@@ -20,6 +20,7 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo"       // nolint
@@ -143,7 +144,7 @@ var _ = Describe("Identity provider creation", func() {
 					`,
 					"URL", server.URL(),
 					"Token", token,
-					"CA", ca,
+					"CA", strings.ReplaceAll(ca, "\\", "/"),
 				).
 				Args(
 					"apply",
@@ -209,7 +210,7 @@ var _ = Describe("Identity provider creation", func() {
 					`,
 					"URL", server.URL(),
 					"Token", token,
-					"CA", ca,
+					"CA", strings.ReplaceAll(ca, "\\", "/"),
 				).
 				Args(
 					"apply",

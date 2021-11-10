@@ -46,8 +46,8 @@ resource "ocm_identity_provider" "my_htpasswd" {
 }
 
 resource "ocm_identity_provider" "my_ldap" {
-  cluster_id    = ocm_cluster.my_cluster.id
-  name          = "my-ldap"
+  cluster_id = ocm_cluster.my_cluster.id
+  name       = "my-ldap"
   ldap {
     bind_dn       = "my-bind-dn"
     bind_password = "my-bind-password"

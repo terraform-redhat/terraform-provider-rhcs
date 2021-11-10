@@ -20,6 +20,7 @@ package tests
 	"context"
 ***REMOVED***
 	"os"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo"       // nolint
@@ -131,7 +132,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 				`,
 				"URL", server.URL(***REMOVED***,
 				"Token", token,
-				"CA", ca,
+				"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
 			***REMOVED***.
 			Args(
 				"apply",

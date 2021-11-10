@@ -20,6 +20,7 @@ package tests
 	"context"
 ***REMOVED***
 	"os"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo"       // nolint
@@ -143,7 +144,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 					`,
 					"URL", server.URL(***REMOVED***,
 					"Token", token,
-					"CA", ca,
+					"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
 				***REMOVED***.
 				Args(
 					"apply",
@@ -209,7 +210,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 					`,
 					"URL", server.URL(***REMOVED***,
 					"Token", token,
-					"CA", ca,
+					"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
 				***REMOVED***.
 				Args(
 					"apply",

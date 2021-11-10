@@ -31,6 +31,7 @@ resource "ocm_cluster" "my_cluster" {
   name           = "my-cluster"
   cloud_provider = "aws"
   cloud_region   = "us-west-1"
+  multi_az       = true
   properties = {
     fake_cluster = "true"
   }

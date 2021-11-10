@@ -48,6 +48,13 @@ func resourceCluster() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 			},
+			multiAZKey: {
+				Description: "Indicates if the cluster should be deployed to " +
+					"multiple availability zones.",
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 			propertiesKey: {
 				Description:      "User defined properties.",
 				Type:             schema.TypeMap,
@@ -225,6 +232,10 @@ func resourceClusterRender(data *schema.ResourceData) (cluster *cmv1.Cluster,
 	if ok {
 		builder.State(cmv1.ClusterState(value.(string)))
 	}
+	value, ok = data.GetOk(multiAZKey)
+	if ok {
+		builder.MultiAZ(value.(bool))
+	}
 	cluster, err := builder.Build()
 	if err != nil {
 		result = diag.FromErr(err)
@@ -236,11 +247,30 @@ func resourceClusterRender(data *schema.ResourceData) (cluster *cmv1.Cluster,
 func resourceClusterParse(cluster *cmv1.Cluster,
 	data *schema.ResourceData) (result diag.Diagnostics) {
 	data.SetId(cluster.ID())
-	data.Set(nameKey, cluster.Name())
-	data.Set(cloudProviderKey, cluster.CloudProvider().ID())
-	data.Set(cloudRegionKey, cluster.Region().ID())
-	data.Set(propertiesKey, cluster.Properties())
-	data.Set(stateKey, string(cluster.State()))
+	name, ok := cluster.GetName()
+	if ok {
+		data.Set(nameKey, name)
+	}
+	cloudProviderID, ok := cluster.CloudProvider().GetID()
+	if ok {
+		data.Set(cloudProviderKey, cloudProviderID)
+	}
+	regionID, ok := cluster.Region().GetID()
+	if ok {
+		data.Set(cloudRegionKey, regionID)
+	}
+	properties, ok := cluster.GetProperties()
+	if ok {
+		data.Set(propertiesKey, properties)
+	}
+	state, ok := cluster.GetState()
+	if ok {
+		data.Set(stateKey, string(state))
+	}
+	multiAZ, ok := cluster.GetMultiAZ()
+	if ok {
+		data.Set(multiAZKey, multiAZ)
+	}
 	return
 }
 

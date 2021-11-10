@@ -104,10 +104,6 @@ func resourceClusterCreate(ctx context.Context, data *schema.ResourceData,
 			return
 ***REMOVED***
 		cluster = addResponse.Body(***REMOVED***
-		result = resourceClusterParse(cluster, data***REMOVED***
-		if result.HasError(***REMOVED*** {
-			return
-***REMOVED***
 	}
 
 	// Wait till the cluster is ready:
@@ -126,10 +122,6 @@ func resourceClusterCreate(ctx context.Context, data *schema.ResourceData,
 
 	// Copy the cluster data:
 	result = resourceClusterParse(cluster, data***REMOVED***
-	if result.HasError(***REMOVED*** {
-		return
-	}
-
 	return
 }
 
@@ -320,8 +312,9 @@ func resourceClusterLookup(ctx context.Context, connection *sdk.Connection,
 	}
 
 	// Try to locate the cluster using the name:
-	clusterName := data.Get("name"***REMOVED***.(string***REMOVED***
-	if clusterName != "" {
+	value, ok := data.GetOk(nameKey***REMOVED***
+	if ok {
+		clusterName := value.(string***REMOVED***
 		listResponse, err := clustersResource.List(***REMOVED***.
 			Search(fmt.Sprintf("name = '%s'", clusterName***REMOVED******REMOVED***.
 			Size(1***REMOVED***.
@@ -330,7 +323,7 @@ func resourceClusterLookup(ctx context.Context, connection *sdk.Connection,
 			result = append(result, diag.Diagnostic{
 				Severity: diag.Error,
 				Summary: fmt.Sprintf(
-					"can't fetch clusters with name '%s'",
+					"can't find clusters with name '%s'",
 					clusterName,
 				***REMOVED***,
 				Detail: err.Error(***REMOVED***,

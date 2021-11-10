@@ -35,6 +35,7 @@ const (
 	idsKey               = "ids"
 	insecureKey          = "insecure"
 	ldapKey              = "ldap"
+	multiAZKey           = "multi_az"
 	nameKey              = "name"
 	passwordKey          = "password"
 	preferredUsernameKey = "preferred_username"

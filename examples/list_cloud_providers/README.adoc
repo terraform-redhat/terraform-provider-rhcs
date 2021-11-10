@@ -1,0 +1,5 @@
+= Cloud provider list example
+
+This example shows how to use the cloud providers data source to get a list of
+the identifiers of the supported cloud providers. To run it use the `make`
+command.

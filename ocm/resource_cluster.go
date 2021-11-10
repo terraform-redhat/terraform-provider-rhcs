@@ -48,6 +48,13 @@ func resourceCluster(***REMOVED*** *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 	***REMOVED***,
+			multiAZKey: {
+				Description: "Indicates if the cluster should be deployed to " +
+					"multiple availability zones.",
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+	***REMOVED***,
 			propertiesKey: {
 				Description:      "User defined properties.",
 				Type:             schema.TypeMap,
@@ -225,6 +232,10 @@ func resourceClusterRender(data *schema.ResourceData***REMOVED*** (cluster *cmv1
 	if ok {
 		builder.State(cmv1.ClusterState(value.(string***REMOVED******REMOVED******REMOVED***
 	}
+	value, ok = data.GetOk(multiAZKey***REMOVED***
+	if ok {
+		builder.MultiAZ(value.(bool***REMOVED******REMOVED***
+	}
 	cluster, err := builder.Build(***REMOVED***
 	if err != nil {
 		result = diag.FromErr(err***REMOVED***
@@ -236,11 +247,30 @@ func resourceClusterRender(data *schema.ResourceData***REMOVED*** (cluster *cmv1
 func resourceClusterParse(cluster *cmv1.Cluster,
 	data *schema.ResourceData***REMOVED*** (result diag.Diagnostics***REMOVED*** {
 	data.SetId(cluster.ID(***REMOVED******REMOVED***
-	data.Set(nameKey, cluster.Name(***REMOVED******REMOVED***
-	data.Set(cloudProviderKey, cluster.CloudProvider(***REMOVED***.ID(***REMOVED******REMOVED***
-	data.Set(cloudRegionKey, cluster.Region(***REMOVED***.ID(***REMOVED******REMOVED***
-	data.Set(propertiesKey, cluster.Properties(***REMOVED******REMOVED***
-	data.Set(stateKey, string(cluster.State(***REMOVED******REMOVED******REMOVED***
+	name, ok := cluster.GetName(***REMOVED***
+	if ok {
+		data.Set(nameKey, name***REMOVED***
+	}
+	cloudProviderID, ok := cluster.CloudProvider(***REMOVED***.GetID(***REMOVED***
+	if ok {
+		data.Set(cloudProviderKey, cloudProviderID***REMOVED***
+	}
+	regionID, ok := cluster.Region(***REMOVED***.GetID(***REMOVED***
+	if ok {
+		data.Set(cloudRegionKey, regionID***REMOVED***
+	}
+	properties, ok := cluster.GetProperties(***REMOVED***
+	if ok {
+		data.Set(propertiesKey, properties***REMOVED***
+	}
+	state, ok := cluster.GetState(***REMOVED***
+	if ok {
+		data.Set(stateKey, string(state***REMOVED******REMOVED***
+	}
+	multiAZ, ok := cluster.GetMultiAZ(***REMOVED***
+	if ok {
+		data.Set(multiAZKey, multiAZ***REMOVED***
+	}
 	return
 }
 

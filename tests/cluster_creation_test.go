@@ -90,15 +90,23 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 					  "region": {
 					    "kind": "CloudRegion",
 					    "id": "us-west-1"
-					  }
+					  },
+					  "multi_az": true
 			***REMOVED***`,
 				***REMOVED***,
 				RespondWithJSON(
 					http.StatusCreated,
 					`{
-					  "kind": "Cluster",
 					  "id": "123",
 					  "name": "my-cluster",
+					  "cloud_provider": {
+					    "id": "aws"
+					  },
+					  "name": "my-cluster",
+					  "region": {
+					    "id": "us-west-1"
+					  },
+					  "multi_az": true,
 					  "state": "ready"
 			***REMOVED***`,
 				***REMOVED***,
@@ -127,6 +135,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 				  name           = "my-cluster"
 				  cloud_provider = "aws"
 				  cloud_region   = "us-west-1"
+				  multi_az       = true
 		***REMOVED***
 				`,
 				"URL", server.URL(***REMOVED***,

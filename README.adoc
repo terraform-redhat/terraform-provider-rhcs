@@ -1,0 +1,82 @@
+= Terraform provider for OCM
+
+== Build
+
+To build the provider use the `make` command.
+
+== Use
+
+Currently the provider isn't available in any public registry, so you will need
+to build it:
+
+....
+$ make build
+....
+
+This will create a local Terraform plugin registry in the directory
+`.terraform.d/plugins` of the project. Assuming that you have the project
+checked out in `/files/projects/terraform-provider-ocm/repository` you will
+need to add something like this to your Terraform CLI configuration file:
+
+....
+provider_installation {
+  filesystem_mirror {
+    path    = "/files/projects/terraform-provider-ocm/repository/.terraform.d/plugins"
+    include = ["localhost/*/*"]
+  }
+}
+....
+
+If you don't want to change your global CLI configuation file you can put this
+in any file you like and then use the `TF_CLI_CONFIG_FILE` environment variable
+to point to it. For example, put the configuration in
+`/files/projects/terraform-provider-ocm/terraform.rc` and then set the
+environment variable pointing to it:
+
+....
+$ cat >/files/projects/terraform-provider-ocm/terraform.rc <<.
+provider_installation {
+  filesystem_mirror {
+    path    = "/files/projects/terraform-provider-ocm/repository/.terraform.d/plugins"
+    include = ["localhost/*/*"]
+  }
+}
+.
+$ export TF_CLI_CONFIG_FILE=/files/projects/terraform-provider-ocm/terraform.rc
+....
+
+Once your configuration is ready you can go to the directory containing the
+Terraform `.tf` files and run the `terraform init` and `terraform apply`
+commands:
+
+....
+$ terraform init
+$ terraform apply
+....
+
+To see the debug log of the provider set the `TF_LOG` environment variable to
+`DEBUG` before running the `terraform apply` command:
+
+....
+$ export TF_LOG=DEBUG
+$ terraform apply
+....
+
+== Examples
+
+The `examples` directory contains some examples, together with _Makefiles_ to
+simplify their use. For example, to run the `create_cluster` example:
+
+....
+$ make build
+$ cd examples/create_cluster
+$ make
+....
+
+Note that this examples expect that you have the `ocm` command line utility
+installed, and use it to get a valid access token (with `ocm token`***REMOVED*** and put it
+in the `OCM_TOKEN` environment variable where the provider gets the token by
+default.
+
+Use the `make clean` command to remove the `.terraform` and `terraform.tfstate`
+files so that the next time you run the example it starts from scratch.

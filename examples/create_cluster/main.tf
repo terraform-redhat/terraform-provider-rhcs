@@ -35,3 +35,28 @@ resource "ocm_cluster" "my_cluster" {
     fake_cluster = "true"
   }
 }
+
+resource "ocm_identity_provider" "my_htpasswd" {
+  cluster_id = ocm_cluster.my_cluster.id
+  name       = "my-htpasswd"
+  htpasswd {
+    user     = "my-user"
+    password = "my-password"
+  }
+}
+
+resource "ocm_identity_provider" "my_ldap" {
+  cluster_id    = ocm_cluster.my_cluster.id
+  name          = "my-ldap"
+  ldap {
+    bind_dn       = "my-bind-dn"
+    bind_password = "my-bind-password"
+    url           = "https://my-server.com"
+    attributes {
+      id                 = ["my-id"]
+      email              = ["my-email"]
+      name               = ["my-name"]
+      preferred_username = ["my-preferred-username"]
+    }
+  }
+}

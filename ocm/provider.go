@@ -119,7 +119,8 @@ func Provider() *schema.Provider {
 			},
 		},
 		ResourcesMap: map[string]*schema.Resource{
-			"ocm_cluster": resourceCluster(),
+			"ocm_cluster":           resourceCluster(),
+			"ocm_identity_provider": resourceIdentityProvider(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"ocm_cloud_providers": dataSourceCloudProviders(),

@@ -1,3 +1,4 @@
 *.log
 .terraform*
+/dist/
 terraform.tfstate*

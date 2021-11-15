@@ -14,22 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package build
 
-import (
-	"context"
-
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-
-	"github.com/openshift-online/terraform-provider-ocm/provider"
+// Information about the build of the project. These will be populated by the Go
+// linker with an options similar to this:
+//
+// -ldflags="-X github.com/openshift-online/terraform-provider-ocm/build.Version=123"
+var (
+	Version string
+	Commit  string
 )
-
-func main() {
-	tfsdk.Serve(
-		context.Background(),
-		provider.New,
-		tfsdk.ServeOpts{
-			Name: "ocm",
-		},
-	)
-}

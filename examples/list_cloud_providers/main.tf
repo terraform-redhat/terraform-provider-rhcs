@@ -17,7 +17,6 @@
 terraform {
   required_providers {
     ocm = {
-      version = "0.1"
       source  = "localhost/redhat/ocm"
     }
   }
@@ -30,7 +29,7 @@ provider "ocm" {
 data "ocm_cloud_providers" "all" {
 }
 
-output "cloud_provider_ids" {
+output "cloud_providers" {
   description = "Cloud providers"
-  value       = data.ocm_cloud_providers.all.ids
+  value       = data.ocm_cloud_providers.all
 }

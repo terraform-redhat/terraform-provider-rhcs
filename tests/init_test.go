@@ -31,7 +31,7 @@ var _ = Describe("Init", func() {
 	})
 
 	It("Downloads and installs the provider", func() {
-		result := NewCommand().
+		result := NewTerraformRunner().
 			File(
 				"main.tf", `
 				terraform {

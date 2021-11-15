@@ -17,24 +17,34 @@
 # Disable CGO so that we always generate static binaries:
 export CGO_ENABLED=0
 
-# Version of the provider:
-version:=0.1.0
+# Import path of the project:
+import_path:=github.com/openshift-online/terraform-provider-ocm
+
+# Version of the project:
+version:=$(shell git describe --abbrev=0 | sed 's/^v//')
+commit:=$(shell git rev-parse --short HEAD)
+
+# Set the linker flags so that the version will be included in the binaries:
+ldflags:=\
+	-X $(import_path)/build.Version=$(version) \
+	-X $(import_path)/build.Commit=$(commit) \
+	$(NULL)
 
 .PHONY: build
 build:
 	platform=$$(terraform version -json | jq -r .platform); \
-	ext=""; \
+	extension=""; \
 	if [[ "$${platform}" =~ ^windows_.*$$ ]]; then \
-	  ext=".exe"; \
+	  extension=".exe"; \
 	fi; \
 	dir=".terraform.d/plugins/localhost/redhat/ocm/$(version)/$${platform}"; \
-	file="terraform-provider-ocm$${ext}"; \
+	file="terraform-provider-ocm$${extension}"; \
 	mkdir -p "$${dir}"; \
-	go build -o "$${dir}/$${file}"
+	go build -ldflags="$(ldflags)" -o "$${dir}/$${file}"
 
 .PHONY: test tests
 test tests: build
-	ginkgo -r tests
+	ginkgo -ldflags="$(ldflags)" -r tests
 
 .PHONY: fmt_go
 fmt_go:

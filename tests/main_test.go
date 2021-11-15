@@ -18,6 +18,7 @@ package tests
 
 ***REMOVED***
 	"context"
+	"encoding/json"
 ***REMOVED***
 	"io/ioutil"
 	"os"
@@ -54,6 +55,7 @@ var _ = BeforeSuite(func(***REMOVED*** {
 type TerraformRunner struct {
 	files map[string]string
 	env   map[string]string
+	vars  map[string]interface{}
 	args  []string
 }
 
@@ -62,10 +64,11 @@ type TerraformResult struct {
 	exitCode int
 }
 
-// NewCommand creates a new Terraform runner.
-func NewCommand(***REMOVED*** *TerraformRunner {
+// NewTerraformRunner creates a new Terraform runner.
+func NewTerraformRunner(***REMOVED*** *TerraformRunner {
 	return &TerraformRunner{
 		env:   map[string]string{},
+		vars:  map[string]interface{}{},
 		files: map[string]string{},
 	}
 }
@@ -80,6 +83,12 @@ func (r *TerraformRunner***REMOVED*** File(name, template string, vars ...interf
 // Env sets an environment variable that will be used when running Terraform.
 func (r *TerraformRunner***REMOVED*** Env(name, value string***REMOVED*** *TerraformRunner {
 	r.env[name] = value
+	return r
+}
+
+// Var adds a Terraform variable.
+func (r *TerraformRunner***REMOVED*** Var(name string, value interface{}***REMOVED*** *TerraformRunner {
+	r.vars[name] = value
 	return r
 }
 
@@ -137,6 +146,13 @@ func (r *TerraformRunner***REMOVED*** Run(ctx context.Context***REMOVED*** *Terr
 		err = ioutil.WriteFile(filePath, []byte(fileContent***REMOVED***, 0600***REMOVED***
 		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 	}
+
+	// Generate the file containing the Terraform variables:
+	varsPath := filepath.Join(tmpDir, "terraform.tfvars.json"***REMOVED***
+	varsJSON, err := json.Marshal(r.vars***REMOVED***
+	Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+	err = ioutil.WriteFile(varsPath, varsJSON, 0400***REMOVED***
+	Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 
 	// Parse the current environment into a map so that it is easy to update it:
 	envMap := map[string]string{}
@@ -207,6 +223,11 @@ func (r *TerraformRunner***REMOVED*** Run(ctx context.Context***REMOVED*** *Terr
 	}
 
 	return result
+}
+
+// Apply runs the `apply` command.
+func (r *TerraformRunner***REMOVED*** Apply(ctx context.Context***REMOVED*** *TerraformResult {
+	return r.Args("apply", "-auto-approve"***REMOVED***.Run(ctx***REMOVED***
 }
 
 // ExitCode returns the exit code of the CLI command.

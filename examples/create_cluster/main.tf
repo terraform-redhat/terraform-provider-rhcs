@@ -17,7 +17,7 @@
 terraform {
   required_providers {
     ocm = {
-      version = "0.1"
+      version = ">= 0.1"
       source  = "localhost/redhat/ocm"
     }
   }
@@ -30,7 +30,7 @@ provider "ocm" {
 resource "ocm_cluster" "my_cluster" {
   name           = "my-cluster"
   cloud_provider = "aws"
-  cloud_region   = "us-west-1"
+  cloud_region   = "us-east-1"
   multi_az       = true
   properties = {
     fake_cluster = "true"
@@ -40,8 +40,8 @@ resource "ocm_cluster" "my_cluster" {
 resource "ocm_identity_provider" "my_htpasswd" {
   cluster_id = ocm_cluster.my_cluster.id
   name       = "my-htpasswd"
-  htpasswd {
-    user     = "my-user"
+  htpasswd = {
+    username = "my-user"
     password = "my-password"
   }
 }
@@ -49,11 +49,11 @@ resource "ocm_identity_provider" "my_htpasswd" {
 resource "ocm_identity_provider" "my_ldap" {
   cluster_id = ocm_cluster.my_cluster.id
   name       = "my-ldap"
-  ldap {
+  ldap = {
     bind_dn       = "my-bind-dn"
     bind_password = "my-bind-password"
     url           = "https://my-server.com"
-    attributes {
+    attributes = {
       id                 = ["my-id"]
       email              = ["my-email"]
       name               = ["my-name"]

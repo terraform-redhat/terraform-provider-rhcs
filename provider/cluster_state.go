@@ -14,22 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package provider
 
 ***REMOVED***
-	"context"
-
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-
-	"github.com/openshift-online/terraform-provider-ocm/provider"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 ***REMOVED***
 
-func main(***REMOVED*** {
-	tfsdk.Serve(
-		context.Background(***REMOVED***,
-		provider.New,
-		tfsdk.ServeOpts{
-			Name: "ocm",
-***REMOVED***,
-	***REMOVED***
+type ClusterState struct {
+	ID            types.String `tfsdk:"id"`
+	Name          types.String `tfsdk:"name"`
+	CloudProvider types.String `tfsdk:"cloud_provider"`
+	CloudRegion   types.String `tfsdk:"cloud_region"`
+	MultiAZ       types.Bool   `tfsdk:"multi_az"`
+	Properties    types.Map    `tfsdk:"properties"`
+	State         types.String `tfsdk:"state"`
+	Wait          types.Bool   `tfsdk:"wait"`
 }

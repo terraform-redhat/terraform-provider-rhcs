@@ -14,22 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package provider
 
-***REMOVED***
-	"context"
-
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-
-	"github.com/openshift-online/terraform-provider-ocm/provider"
-***REMOVED***
-
-func main(***REMOVED*** {
-	tfsdk.Serve(
-		context.Background(***REMOVED***,
-		provider.New,
-		tfsdk.ServeOpts{
-			Name: "ocm",
-***REMOVED***,
-	***REMOVED***
+type CloudProvidersState struct {
+	Items []*CloudProviderState `tfsdk:"items"`
 }

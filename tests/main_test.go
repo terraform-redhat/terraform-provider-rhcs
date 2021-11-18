@@ -18,6 +18,7 @@ package tests
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -54,6 +55,7 @@ var _ = BeforeSuite(func() {
 type TerraformRunner struct {
 	files map[string]string
 	env   map[string]string
+	vars  map[string]interface{}
 	args  []string
 }
 
@@ -62,10 +64,11 @@ type TerraformResult struct {
 	exitCode int
 }
 
-// NewCommand creates a new Terraform runner.
-func NewCommand() *TerraformRunner {
+// NewTerraformRunner creates a new Terraform runner.
+func NewTerraformRunner() *TerraformRunner {
 	return &TerraformRunner{
 		env:   map[string]string{},
+		vars:  map[string]interface{}{},
 		files: map[string]string{},
 	}
 }
@@ -80,6 +83,12 @@ func (r *TerraformRunner) File(name, template string, vars ...interface{}) *Terr
 // Env sets an environment variable that will be used when running Terraform.
 func (r *TerraformRunner) Env(name, value string) *TerraformRunner {
 	r.env[name] = value
+	return r
+}
+
+// Var adds a Terraform variable.
+func (r *TerraformRunner) Var(name string, value interface{}) *TerraformRunner {
+	r.vars[name] = value
 	return r
 }
 
@@ -137,6 +146,13 @@ func (r *TerraformRunner) Run(ctx context.Context) *TerraformResult {
 		err = ioutil.WriteFile(filePath, []byte(fileContent), 0600)
 		Expect(err).ToNot(HaveOccurred())
 	}
+
+	// Generate the file containing the Terraform variables:
+	varsPath := filepath.Join(tmpDir, "terraform.tfvars.json")
+	varsJSON, err := json.Marshal(r.vars)
+	Expect(err).ToNot(HaveOccurred())
+	err = ioutil.WriteFile(varsPath, varsJSON, 0400)
+	Expect(err).ToNot(HaveOccurred())
 
 	// Parse the current environment into a map so that it is easy to update it:
 	envMap := map[string]string{}
@@ -207,6 +223,11 @@ func (r *TerraformRunner) Run(ctx context.Context) *TerraformResult {
 	}
 
 	return result
+}
+
+// Apply runs the `apply` command.
+func (r *TerraformRunner) Apply(ctx context.Context) *TerraformResult {
+	return r.Args("apply", "-auto-approve").Run(ctx)
 }
 
 // ExitCode returns the exit code of the CLI command.

@@ -1,5 +1,7 @@
 = Terraform provider for OCM
 
+Still WIP at the moment.
+
 == Build
 
 To build the provider use the `make` command.

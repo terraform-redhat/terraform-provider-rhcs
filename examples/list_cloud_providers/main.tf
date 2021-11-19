@@ -17,13 +17,13 @@
 terraform {
   required_providers {
     ocm = {
-      source  = "localhost/redhat/ocm"
+      version = ">= 0.1"
+      source  = "openshift-online/ocm"
     }
   }
 }
 
 provider "ocm" {
-  url = "https://api.stage.openshift.com"
 }
 
 data "ocm_cloud_providers" "all" {

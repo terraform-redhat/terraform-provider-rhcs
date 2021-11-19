@@ -1,4 +1,0 @@
-= Cluster creation example
-
-This example shows how to create a cluster. To run it use adjust the description
-of the cluster in the `main.tf` file and then use the `make` command.

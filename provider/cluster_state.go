@@ -27,6 +27,8 @@ type ClusterState struct {
 	CloudRegion   types.String `tfsdk:"cloud_region"`
 	MultiAZ       types.Bool   `tfsdk:"multi_az"`
 	Properties    types.Map    `tfsdk:"properties"`
+	APIURL        types.String `tfsdk:"api_url"`
+	ConsoleURL    types.String `tfsdk:"console_url"`
 	State         types.String `tfsdk:"state"`
 	Wait          types.Bool   `tfsdk:"wait"`
 }

@@ -79,6 +79,16 @@ func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVE
 		***REMOVED***,
 				Optional: true,
 	***REMOVED***,
+			"api_url": {
+				Description: "URL of the API server.",
+				Type:        types.StringType,
+				Computed:    true,
+	***REMOVED***,
+			"console_url": {
+				Description: "URL of the console.",
+				Type:        types.StringType,
+				Computed:    true,
+	***REMOVED***,
 			"state": {
 				Description: "State of the cluster.",
 				Type:        types.StringType,
@@ -114,6 +124,7 @@ func (t *ClusterResourceType***REMOVED*** NewResource(ctx context.Context,
 func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse***REMOVED*** {
 	// Get the plan:
+	r.logger.Info(ctx, "Get plan"***REMOVED***
 	state := &ClusterState{}
 	diags := request.Plan.Get(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
@@ -192,6 +203,12 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 	state.MultiAZ = types.Bool{
 		Value: object.MultiAZ(***REMOVED***,
 	}
+	state.APIURL = types.String{
+		Value: object.API(***REMOVED***.URL(***REMOVED***,
+	}
+	state.ConsoleURL = types.String{
+		Value: object.Console(***REMOVED***.URL(***REMOVED***,
+	}
 	state.State = types.String{
 		Value: string(object.State(***REMOVED******REMOVED***,
 	}
@@ -246,6 +263,12 @@ func (r *ClusterResource***REMOVED*** Read(ctx context.Context, request tfsdk.Re
 		state.Properties.Elems[k] = types.String{
 			Value: v,
 ***REMOVED***
+	}
+	state.APIURL = types.String{
+		Value: object.API(***REMOVED***.URL(***REMOVED***,
+	}
+	state.ConsoleURL = types.String{
+		Value: object.Console(***REMOVED***.URL(***REMOVED***,
 	}
 	state.State = types.String{
 		Value: string(object.State(***REMOVED******REMOVED***,

@@ -61,7 +61,8 @@ type TerraformRunner struct {
 
 // TerraformResult contains the result of executing Terraform.
 type TerraformResult struct {
-	exitCode int
+	exitCode    int
+	stateObject interface{}
 }
 
 // NewTerraformRunner creates a new Terraform runner.
@@ -112,10 +113,12 @@ func (r *TerraformRunner***REMOVED*** Run(ctx context.Context***REMOVED*** *Terr
 	// configuration that may already exist for the user running the tests.
 	tmpDir, err := ioutil.TempDir("", "ocm-test-*.d"***REMOVED***
 	ExpectWithOffset(1, err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-	defer func(***REMOVED*** {
-		err = os.RemoveAll(tmpDir***REMOVED***
-		ExpectWithOffset(1, err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-	}(***REMOVED***
+	/*
+		defer func(***REMOVED*** {
+			err = os.RemoveAll(tmpDir***REMOVED***
+			ExpectWithOffset(1, err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+***REMOVED***(***REMOVED***
+	*/
 
 	// Create a CLI configuration file that tells Terraform to get plugins from the local
 	// directory where `make install` puts them:
@@ -217,9 +220,22 @@ func (r *TerraformRunner***REMOVED*** Run(ctx context.Context***REMOVED*** *Terr
 		ExpectWithOffset(1, err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 	}
 
+	// Read the state:
+	statePath := filepath.Join(tmpDir, "terraform.tfstate"***REMOVED***
+	_, err = os.Stat(statePath***REMOVED***
+	var stateObject map[string]interface{}
+	if err == nil {
+		var stateBytes []byte
+		stateBytes, err = ioutil.ReadFile(statePath***REMOVED***
+		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+		err = json.Unmarshal(stateBytes, &stateObject***REMOVED***
+		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+	}
+
 	// Create the result:
 	result := &TerraformResult{
-		exitCode: cmd.ProcessState.ExitCode(***REMOVED***,
+		exitCode:    cmd.ProcessState.ExitCode(***REMOVED***,
+		stateObject: stateObject,
 	}
 
 	return result
@@ -233,4 +249,25 @@ func (r *TerraformRunner***REMOVED*** Apply(ctx context.Context***REMOVED*** *Te
 // ExitCode returns the exit code of the CLI command.
 func (r *TerraformResult***REMOVED*** ExitCode(***REMOVED*** int {
 	return r.exitCode
+}
+
+// State returns the result of parsing the JSON content of the `terraform.tfstate` file.
+func (r *TerraformResult***REMOVED*** State(path string***REMOVED*** interface{} {
+	return r.stateObject
+}
+
+// Resource returns the resource stored in the state with the given type and identifier.
+func (r *TerraformResult***REMOVED*** Resource(typ, name string***REMOVED*** interface{} {
+	filter := fmt.Sprintf(
+		`.resources[] | select(.type == "%s" and .name == "%s"***REMOVED*** | .instances[]`,
+		typ, name,
+	***REMOVED***
+	results, err := JQ(filter, r.stateObject***REMOVED***
+	ExpectWithOffset(1, err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+	ExpectWithOffset(1, results***REMOVED***.To(
+		HaveLen(1***REMOVED***,
+		"Expected exactly one resource with name type '%s' and name '%s', but found %d",
+		typ, name, len(results***REMOVED***,
+	***REMOVED***
+	return results[0]
 }

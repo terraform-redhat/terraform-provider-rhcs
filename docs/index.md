@@ -16,7 +16,7 @@ description: |-
 > When it is ready for production the version will be updated to 1.0.
 
 The OCM provider simplifies the provisioning of _OpenShift_ managed clusters
-using the [OpenShift Cluster Manager_](https://console.redhat.com/openshift***REMOVED***
+using the [OpenShift Cluster Manager](https://console.redhat.com/openshift***REMOVED***
 application programming interface.
 
 For example, to create a simple cluster with an identity provider that allows

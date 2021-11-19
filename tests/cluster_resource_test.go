@@ -83,6 +83,12 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 				  },
 				  "multi_az": false,
 				  "properties": {},
+				  "api": {
+				    "url": "https://my-api.example.com"
+				  },
+				  "console": {
+				    "url": "https://my-console.example.com"
+				  },
 				  "state": "ready"
 		***REMOVED***`***REMOVED***,
 			***REMOVED***,
@@ -118,6 +124,11 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 			***REMOVED***.
 			Apply(ctx***REMOVED***
 		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// Check the state:
+		resource := result.Resource("ocm_cluster", "my_cluster"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.api_url", "https://my-api.example.com"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.console_url", "https://my-console.example.com"***REMOVED******REMOVED***
 	}***REMOVED***
 
 	It("Fails if the cluster already exists", func(***REMOVED*** {

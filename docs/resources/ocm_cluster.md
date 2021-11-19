@@ -26,6 +26,8 @@ OpenShift managed cluster.
 
 ### Read-Only
 
+- **api_url** (String***REMOVED*** URL of the API server.
+- **console_url** (String***REMOVED*** URL of the console.
 - **id** (String***REMOVED*** Unique identifier of the cluster.
 - **state** (String***REMOVED*** State of the cluster.
 

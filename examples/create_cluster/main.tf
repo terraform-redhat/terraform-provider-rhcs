@@ -18,13 +18,12 @@ terraform {
   required_providers {
     ocm = {
       version = ">= 0.1"
-      source  = "localhost/redhat/ocm"
+      source  = "openshift-online/ocm"
     }
   }
 }
 
 provider "ocm" {
-  url = "https://api.stage.openshift.com"
 }
 
 resource "ocm_cluster" "my_cluster" {
@@ -32,9 +31,6 @@ resource "ocm_cluster" "my_cluster" {
   cloud_provider = "aws"
   cloud_region   = "us-east-1"
   multi_az       = true
-  properties = {
-    fake_cluster = "true"
-  }
 }
 
 resource "ocm_identity_provider" "my_htpasswd" {

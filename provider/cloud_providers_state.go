@@ -16,8 +16,6 @@ limitations under the License.
 
 package provider
 
-type CloudProviderState struct {
-	ID          string `tfsdk:"id"`
-	Name        string `tfsdk:"name"`
-	DisplayName string `tfsdk:"display_name"`
+type CloudProvidersState struct {
+	Items []*CloudProviderState `tfsdk:"items"`
 }

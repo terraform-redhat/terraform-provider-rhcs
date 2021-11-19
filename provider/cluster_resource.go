@@ -79,6 +79,16 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 				},
 				Optional: true,
 			},
+			"api_url": {
+				Description: "URL of the API server.",
+				Type:        types.StringType,
+				Computed:    true,
+			},
+			"console_url": {
+				Description: "URL of the console.",
+				Type:        types.StringType,
+				Computed:    true,
+			},
 			"state": {
 				Description: "State of the cluster.",
 				Type:        types.StringType,
@@ -114,6 +124,7 @@ func (t *ClusterResourceType) NewResource(ctx context.Context,
 func (r *ClusterResource) Create(ctx context.Context,
 	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse) {
 	// Get the plan:
+	r.logger.Info(ctx, "Get plan")
 	state := &ClusterState{}
 	diags := request.Plan.Get(ctx, state)
 	response.Diagnostics.Append(diags...)
@@ -192,6 +203,12 @@ func (r *ClusterResource) Create(ctx context.Context,
 	state.MultiAZ = types.Bool{
 		Value: object.MultiAZ(),
 	}
+	state.APIURL = types.String{
+		Value: object.API().URL(),
+	}
+	state.ConsoleURL = types.String{
+		Value: object.Console().URL(),
+	}
 	state.State = types.String{
 		Value: string(object.State()),
 	}
@@ -246,6 +263,12 @@ func (r *ClusterResource) Read(ctx context.Context, request tfsdk.ReadResourceRe
 		state.Properties.Elems[k] = types.String{
 			Value: v,
 		}
+	}
+	state.APIURL = types.String{
+		Value: object.API().URL(),
+	}
+	state.ConsoleURL = types.String{
+		Value: object.Console().URL(),
 	}
 	state.State = types.String{
 		Value: string(object.State()),

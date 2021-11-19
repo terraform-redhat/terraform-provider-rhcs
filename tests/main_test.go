@@ -61,7 +61,8 @@ type TerraformRunner struct {
 
 // TerraformResult contains the result of executing Terraform.
 type TerraformResult struct {
-	exitCode int
+	exitCode    int
+	stateObject interface{}
 }
 
 // NewTerraformRunner creates a new Terraform runner.
@@ -112,10 +113,12 @@ func (r *TerraformRunner) Run(ctx context.Context) *TerraformResult {
 	// configuration that may already exist for the user running the tests.
 	tmpDir, err := ioutil.TempDir("", "ocm-test-*.d")
 	ExpectWithOffset(1, err).ToNot(HaveOccurred())
-	defer func() {
-		err = os.RemoveAll(tmpDir)
-		ExpectWithOffset(1, err).ToNot(HaveOccurred())
-	}()
+	/*
+		defer func() {
+			err = os.RemoveAll(tmpDir)
+			ExpectWithOffset(1, err).ToNot(HaveOccurred())
+		}()
+	*/
 
 	// Create a CLI configuration file that tells Terraform to get plugins from the local
 	// directory where `make install` puts them:
@@ -217,9 +220,22 @@ func (r *TerraformRunner) Run(ctx context.Context) *TerraformResult {
 		ExpectWithOffset(1, err).ToNot(HaveOccurred())
 	}
 
+	// Read the state:
+	statePath := filepath.Join(tmpDir, "terraform.tfstate")
+	_, err = os.Stat(statePath)
+	var stateObject map[string]interface{}
+	if err == nil {
+		var stateBytes []byte
+		stateBytes, err = ioutil.ReadFile(statePath)
+		Expect(err).ToNot(HaveOccurred())
+		err = json.Unmarshal(stateBytes, &stateObject)
+		Expect(err).ToNot(HaveOccurred())
+	}
+
 	// Create the result:
 	result := &TerraformResult{
-		exitCode: cmd.ProcessState.ExitCode(),
+		exitCode:    cmd.ProcessState.ExitCode(),
+		stateObject: stateObject,
 	}
 
 	return result
@@ -233,4 +249,25 @@ func (r *TerraformRunner) Apply(ctx context.Context) *TerraformResult {
 // ExitCode returns the exit code of the CLI command.
 func (r *TerraformResult) ExitCode() int {
 	return r.exitCode
+}
+
+// State returns the result of parsing the JSON content of the `terraform.tfstate` file.
+func (r *TerraformResult) State(path string) interface{} {
+	return r.stateObject
+}
+
+// Resource returns the resource stored in the state with the given type and identifier.
+func (r *TerraformResult) Resource(typ, name string) interface{} {
+	filter := fmt.Sprintf(
+		`.resources[] | select(.type == "%s" and .name == "%s") | .instances[]`,
+		typ, name,
+	)
+	results, err := JQ(filter, r.stateObject)
+	ExpectWithOffset(1, err).ToNot(HaveOccurred())
+	ExpectWithOffset(1, results).To(
+		HaveLen(1),
+		"Expected exactly one resource with name type '%s' and name '%s', but found %d",
+		typ, name, len(results),
+	)
+	return results[0]
 }

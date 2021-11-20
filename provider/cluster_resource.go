@@ -124,7 +124,6 @@ func (t *ClusterResourceType***REMOVED*** NewResource(ctx context.Context,
 func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse***REMOVED*** {
 	// Get the plan:
-	r.logger.Info(ctx, "Get plan"***REMOVED***
 	state := &ClusterState{}
 	diags := request.Plan.Get(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
@@ -232,11 +231,11 @@ func (r *ClusterResource***REMOVED*** Read(ctx context.Context, request tfsdk.Re
 	get, err := r.collection.Cluster(state.ID.Value***REMOVED***.Get(***REMOVED***.SendContext(ctx***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
+			"Can't find cluster",
 			fmt.Sprintf(
-				"can't find cluster with identifier '%s'",
-				state.ID.Value,
+				"Can't find cluster with identifier '%s': %v",
+				state.ID.Value, err,
 			***REMOVED***,
-			err.Error(***REMOVED***,
 		***REMOVED***
 		return
 	}

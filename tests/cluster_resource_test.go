@@ -70,6 +70,13 @@ var _ = Describe("Cluster creation", func() {
 				  "region": {
 				    "kind": "CloudRegion",
 				    "id": "us-west-1"
+				  },
+				  "nodes": {
+				    "compute": 10,
+				    "compute_machine_type": {
+				      "kind": "MachineType",
+				      "id": "r5.xlarge"
+				    }
 				  }
 				}`),
 				RespondWithJSON(http.StatusCreated, `{
@@ -88,6 +95,12 @@ var _ = Describe("Cluster creation", func() {
 				  },
 				  "console": {
 				    "url": "https://my-console.example.com"
+				  },
+				  "nodes": {
+				    "compute": 10,
+				    "compute_machine_type": {
+				      "id": "r5.xlarge"
+				    }
 				  },
 				  "state": "ready"
 				}`),
@@ -116,6 +129,10 @@ var _ = Describe("Cluster creation", func() {
 				  name           = "my-cluster"
 				  cloud_provider = "aws"
 				  cloud_region   = "us-west-1"
+				  nodes          = {
+					  compute = 10
+					  compute_machine_type = "r5.xlarge"
+				  }
 				}
 				`,
 				"URL", server.URL(),
@@ -129,6 +146,8 @@ var _ = Describe("Cluster creation", func() {
 		resource := result.Resource("ocm_cluster", "my_cluster")
 		Expect(resource).To(MatchJQ(".attributes.api_url", "https://my-api.example.com"))
 		Expect(resource).To(MatchJQ(".attributes.console_url", "https://my-console.example.com"))
+		Expect(resource).To(MatchJQ(".attributes.nodes.compute", 10.0))
+		Expect(resource).To(MatchJQ(".attributes.nodes.compute_machine_type", "r5.xlarge"))
 	})
 
 	It("Fails if the cluster already exists", func() {

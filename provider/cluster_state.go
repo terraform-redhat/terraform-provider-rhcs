@@ -21,14 +21,20 @@ import (
 )
 
 type ClusterState struct {
-	ID            types.String `tfsdk:"id"`
-	Name          types.String `tfsdk:"name"`
-	CloudProvider types.String `tfsdk:"cloud_provider"`
-	CloudRegion   types.String `tfsdk:"cloud_region"`
-	MultiAZ       types.Bool   `tfsdk:"multi_az"`
-	Properties    types.Map    `tfsdk:"properties"`
-	APIURL        types.String `tfsdk:"api_url"`
-	ConsoleURL    types.String `tfsdk:"console_url"`
-	State         types.String `tfsdk:"state"`
-	Wait          types.Bool   `tfsdk:"wait"`
+	APIURL        types.String      `tfsdk:"api_url"`
+	CloudProvider types.String      `tfsdk:"cloud_provider"`
+	CloudRegion   types.String      `tfsdk:"cloud_region"`
+	ConsoleURL    types.String      `tfsdk:"console_url"`
+	ID            types.String      `tfsdk:"id"`
+	MultiAZ       types.Bool        `tfsdk:"multi_az"`
+	Name          types.String      `tfsdk:"name"`
+	Nodes         ClusterNodesState `tfsdk:"nodes"`
+	Properties    types.Map         `tfsdk:"properties"`
+	State         types.String      `tfsdk:"state"`
+	Wait          types.Bool        `tfsdk:"wait"`
+}
+
+type ClusterNodesState struct {
+	Compute            types.Int64  `tfsdk:"compute"`
+	ComputeMachineType types.String `tfsdk:"compute_machine_type"`
 }

@@ -26,7 +26,6 @@ package provider
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/logging"
@@ -71,6 +70,9 @@ func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVE
 				Type:     types.BoolType,
 				Optional: true,
 				Computed: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.RequiresReplace(***REMOVED***,
+		***REMOVED***,
 	***REMOVED***,
 			"properties": {
 				Description: "User defined properties.",
@@ -78,6 +80,7 @@ func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVE
 					ElemType: types.StringType,
 		***REMOVED***,
 				Optional: true,
+				Computed: true,
 	***REMOVED***,
 			"api_url": {
 				Description: "URL of the API server.",
@@ -88,6 +91,11 @@ func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVE
 				Description: "URL of the console.",
 				Type:        types.StringType,
 				Computed:    true,
+	***REMOVED***,
+			"nodes": {
+				Description: "Number and characteristis of nodes of the cluster.",
+				Attributes:  t.nodesSchema(***REMOVED***,
+				Optional:    true,
 	***REMOVED***,
 			"state": {
 				Description: "State of the cluster.",
@@ -102,6 +110,28 @@ func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVE
 ***REMOVED***,
 	}
 	return
+}
+
+func (t *ClusterResourceType***REMOVED*** nodesSchema(***REMOVED*** tfsdk.NestedAttributes {
+	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+		"compute": {
+			Description: "Number of compute nodes of the cluster.",
+			Type:        types.Int64Type,
+			Optional:    true,
+			Computed:    true,
+***REMOVED***,
+		"compute_machine_type": {
+			Description: "Identifier of the machine type used by the compute nodes, " +
+				"for example `r5.xlarge`. Use the `ocm_machine_types` data " +
+				"source to find the possible values.",
+			Type:     types.StringType,
+			Optional: true,
+			Computed: true,
+			PlanModifiers: []tfsdk.AttributePlanModifier{
+				tfsdk.RequiresReplace(***REMOVED***,
+	***REMOVED***,
+***REMOVED***,
+	}***REMOVED***
 }
 
 func (t *ClusterResourceType***REMOVED*** NewResource(ctx context.Context,
@@ -145,6 +175,18 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 			properties[k] = v.(types.String***REMOVED***.Value
 ***REMOVED***
 		builder.Properties(properties***REMOVED***
+	}
+	nodes := cmv1.NewClusterNodes(***REMOVED***
+	if !state.Nodes.Compute.Unknown && !state.Nodes.Compute.Null {
+		nodes.Compute(int(state.Nodes.Compute.Value***REMOVED******REMOVED***
+	}
+	if !state.Nodes.ComputeMachineType.Unknown && !state.Nodes.ComputeMachineType.Null {
+		nodes.ComputeMachineType(
+			cmv1.NewMachineType(***REMOVED***.ID(state.Nodes.ComputeMachineType.Value***REMOVED***,
+		***REMOVED***
+	}
+	if !nodes.Empty(***REMOVED*** {
+		builder.Nodes(nodes***REMOVED***
 	}
 	object, err := builder.Build(***REMOVED***
 	if err != nil {
@@ -195,24 +237,8 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 ***REMOVED***
 	}
 
-	// Set the computed attributes:
-	state.ID = types.String{
-		Value: object.ID(***REMOVED***,
-	}
-	state.MultiAZ = types.Bool{
-		Value: object.MultiAZ(***REMOVED***,
-	}
-	state.APIURL = types.String{
-		Value: object.API(***REMOVED***.URL(***REMOVED***,
-	}
-	state.ConsoleURL = types.String{
-		Value: object.Console(***REMOVED***.URL(***REMOVED***,
-	}
-	state.State = types.String{
-		Value: string(object.State(***REMOVED******REMOVED***,
-	}
-
 	// Save the state:
+	r.populateState(object, state***REMOVED***
 	diags = response.State.Set(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
 }
@@ -241,49 +267,72 @@ func (r *ClusterResource***REMOVED*** Read(ctx context.Context, request tfsdk.Re
 	}
 	object := get.Body(***REMOVED***
 
-	// Copy the cluster data into the state:
-	state.Name = types.String{
-		Value: object.Name(***REMOVED***,
-	}
-	state.CloudProvider = types.String{
-		Value: object.CloudProvider(***REMOVED***.ID(***REMOVED***,
-	}
-	state.CloudRegion = types.String{
-		Value: object.Region(***REMOVED***.ID(***REMOVED***,
-	}
-	state.MultiAZ = types.Bool{
-		Value: object.MultiAZ(***REMOVED***,
-	}
-	state.Properties = types.Map{
-		ElemType: types.StringType,
-		Elems:    map[string]attr.Value{},
-	}
-	for k, v := range object.Properties(***REMOVED*** {
-		state.Properties.Elems[k] = types.String{
-			Value: v,
-***REMOVED***
-	}
-	state.APIURL = types.String{
-		Value: object.API(***REMOVED***.URL(***REMOVED***,
-	}
-	state.ConsoleURL = types.String{
-		Value: object.Console(***REMOVED***.URL(***REMOVED***,
-	}
-	state.State = types.String{
-		Value: string(object.State(***REMOVED******REMOVED***,
-	}
-	response.Diagnostics.Append(diags...***REMOVED***
-	if response.Diagnostics.HasError(***REMOVED*** {
-		return
-	}
-
 	// Save the state:
+	r.populateState(object, state***REMOVED***
 	diags = response.State.Set(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
 }
 
 func (r *ClusterResource***REMOVED*** Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
 	response *tfsdk.UpdateResourceResponse***REMOVED*** {
+	var diags diag.Diagnostics
+
+	// Get the state:
+	state := &ClusterState{}
+	diags = request.State.Get(ctx, state***REMOVED***
+	response.Diagnostics.Append(diags...***REMOVED***
+	if response.Diagnostics.HasError(***REMOVED*** {
+		return
+	}
+
+	// Get the plan:
+	plan := &ClusterState{}
+	diags = request.Plan.Get(ctx, plan***REMOVED***
+	response.Diagnostics.Append(diags...***REMOVED***
+	if response.Diagnostics.HasError(***REMOVED*** {
+		return
+	}
+
+	// Send request to update the cluster:
+	builder := cmv1.NewCluster(***REMOVED***
+	var nodes *cmv1.ClusterNodesBuilder
+	compute, ok := shouldPatchInt(state.Nodes.Compute, plan.Nodes.Compute***REMOVED***
+	if ok {
+		nodes.Compute(int(compute***REMOVED******REMOVED***
+	}
+	if !nodes.Empty(***REMOVED*** {
+		builder.Nodes(nodes***REMOVED***
+	}
+	patch, err := builder.Build(***REMOVED***
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't build cluster patch",
+			fmt.Sprintf(
+				"Can't build patch for cluster with identifier '%s': %v",
+				state.ID.Value, err,
+			***REMOVED***,
+		***REMOVED***
+		return
+	}
+	update, err := r.collection.Cluster(state.ID.Value***REMOVED***.Update(***REMOVED***.
+		Body(patch***REMOVED***.
+		SendContext(ctx***REMOVED***
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't update cluster",
+			fmt.Sprintf(
+				"Can't update cluster with identifier '%s': %v",
+				state.ID.Value, err,
+			***REMOVED***,
+		***REMOVED***
+		return
+	}
+	object := update.Body(***REMOVED***
+
+	// Update the state:
+	r.populateState(object, state***REMOVED***
+	diags = response.State.Set(ctx, state***REMOVED***
+	response.Diagnostics.Append(diags...***REMOVED***
 }
 
 func (r *ClusterResource***REMOVED*** Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
@@ -340,10 +389,66 @@ func (r *ClusterResource***REMOVED*** Delete(ctx context.Context, request tfsdk.
 
 func (r *ClusterResource***REMOVED*** ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
 	response *tfsdk.ImportResourceStateResponse***REMOVED*** {
-	tfsdk.ResourceImportStatePassthroughID(
-		ctx,
-		tftypes.NewAttributePath(***REMOVED***.WithAttributeName("id"***REMOVED***,
-		request,
-		response,
-	***REMOVED***
+	// Try to retrieve the object:
+	get, err := r.collection.Cluster(request.ID***REMOVED***.Get(***REMOVED***.SendContext(ctx***REMOVED***
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't find cluster",
+			fmt.Sprintf(
+				"Can't find cluster with identifier '%s': %v",
+				request.ID, err,
+			***REMOVED***,
+		***REMOVED***
+		return
+	}
+	object := get.Body(***REMOVED***
+
+	// Save the state:
+	state := &ClusterState{}
+	r.populateState(object, state***REMOVED***
+	diags := response.State.Set(ctx, state***REMOVED***
+	response.Diagnostics.Append(diags...***REMOVED***
+}
+
+// populateState copies the data from the API object to the Terraform state.
+func (r *ClusterResource***REMOVED*** populateState(object *cmv1.Cluster, state *ClusterState***REMOVED*** {
+	state.ID = types.String{
+		Value: object.ID(***REMOVED***,
+	}
+	state.Name = types.String{
+		Value: object.Name(***REMOVED***,
+	}
+	state.CloudProvider = types.String{
+		Value: object.CloudProvider(***REMOVED***.ID(***REMOVED***,
+	}
+	state.CloudRegion = types.String{
+		Value: object.Region(***REMOVED***.ID(***REMOVED***,
+	}
+	state.MultiAZ = types.Bool{
+		Value: object.MultiAZ(***REMOVED***,
+	}
+	state.Properties = types.Map{
+		ElemType: types.StringType,
+		Elems:    map[string]attr.Value{},
+	}
+	for k, v := range object.Properties(***REMOVED*** {
+		state.Properties.Elems[k] = types.String{
+			Value: v,
+***REMOVED***
+	}
+	state.APIURL = types.String{
+		Value: object.API(***REMOVED***.URL(***REMOVED***,
+	}
+	state.ConsoleURL = types.String{
+		Value: object.Console(***REMOVED***.URL(***REMOVED***,
+	}
+	state.Nodes.Compute = types.Int64{
+		Value: int64(object.Nodes(***REMOVED***.Compute(***REMOVED******REMOVED***,
+	}
+	state.Nodes.ComputeMachineType = types.String{
+		Value: object.Nodes(***REMOVED***.ComputeMachineType(***REMOVED***.ID(***REMOVED***,
+	}
+	state.State = types.String{
+		Value: string(object.State(***REMOVED******REMOVED***,
+	}
 }

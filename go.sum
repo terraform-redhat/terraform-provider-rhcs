@@ -348,8 +348,8 @@ github.com/onsi/gomega v1.10.1/go.mod h1:iN09h71vgCQne3DLsj+A5owkum+a2tYe+TOCB1y
 github.com/onsi/gomega v1.16.0 h1:6gjqkI8iiRHMvdccRJM8rVKjCWk6ZIm6FTm3ddIe4/c=
 github.com/onsi/gomega v1.16.0/go.mod h1:HnhC7FXeEQY45zxNK3PPoIUhzk/80Xly9PcubAlGdZY=
 github.com/op/go-logging v0.0.0-20160315200505-970db520ece7/go.mod h1:HzydrMdWErDVzsI23lYNej1Htcns9BCg93Dk0bBINWk=
-github.com/openshift-online/ocm-sdk-go v0.1.216 h1:F6PudSxb3RCNUNo8KGKOGjI3uBD8AVwrtHlPIFrRfUI=
-github.com/openshift-online/ocm-sdk-go v0.1.216/go.mod h1:uDiBAEupl2F5rkTBFC4y4ZPEV/ku/fFEBHot6OkYL+I=
+github.com/openshift-online/ocm-sdk-go v0.1.218 h1:82Uc7uRlzY0fNlUVe+H9zbwQ0EVkr+K224oBFETfyHQ=
+github.com/openshift-online/ocm-sdk-go v0.1.218/go.mod h1:uDiBAEupl2F5rkTBFC4y4ZPEV/ku/fFEBHot6OkYL+I=
 github.com/opentracing-contrib/go-observer v0.0.0-20170622124052-a52f23424492/go.mod h1:Ngi6UdF0k5OKD5t5wlmGhe/EDKPoUM3BXZSSfIuJbis=
 github.com/opentracing/basictracer-go v1.0.0/go.mod h1:QfBfYuafItcjQuMwinw9GhYKwFXS9KnPs5lxoYwgW74=
 github.com/opentracing/opentracing-go v1.0.2/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=

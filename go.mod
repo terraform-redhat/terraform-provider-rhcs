@@ -8,7 +8,7 @@ require (
 	github.com/itchyny/gojq v0.12.5
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.16.0
-	github.com/openshift-online/ocm-sdk-go v0.1.216
+	github.com/openshift-online/ocm-sdk-go v0.1.218
 ***REMOVED***
 
 require (

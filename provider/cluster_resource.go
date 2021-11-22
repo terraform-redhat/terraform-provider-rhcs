@@ -26,7 +26,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/logging"
@@ -71,6 +70,9 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 				Type:     types.BoolType,
 				Optional: true,
 				Computed: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.RequiresReplace(),
+				},
 			},
 			"properties": {
 				Description: "User defined properties.",
@@ -78,6 +80,7 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 					ElemType: types.StringType,
 				},
 				Optional: true,
+				Computed: true,
 			},
 			"api_url": {
 				Description: "URL of the API server.",
@@ -88,6 +91,11 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 				Description: "URL of the console.",
 				Type:        types.StringType,
 				Computed:    true,
+			},
+			"nodes": {
+				Description: "Number and characteristis of nodes of the cluster.",
+				Attributes:  t.nodesSchema(),
+				Optional:    true,
 			},
 			"state": {
 				Description: "State of the cluster.",
@@ -102,6 +110,28 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 		},
 	}
 	return
+}
+
+func (t *ClusterResourceType) nodesSchema() tfsdk.NestedAttributes {
+	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+		"compute": {
+			Description: "Number of compute nodes of the cluster.",
+			Type:        types.Int64Type,
+			Optional:    true,
+			Computed:    true,
+		},
+		"compute_machine_type": {
+			Description: "Identifier of the machine type used by the compute nodes, " +
+				"for example `r5.xlarge`. Use the `ocm_machine_types` data " +
+				"source to find the possible values.",
+			Type:     types.StringType,
+			Optional: true,
+			Computed: true,
+			PlanModifiers: []tfsdk.AttributePlanModifier{
+				tfsdk.RequiresReplace(),
+			},
+		},
+	})
 }
 
 func (t *ClusterResourceType) NewResource(ctx context.Context,
@@ -145,6 +175,18 @@ func (r *ClusterResource) Create(ctx context.Context,
 			properties[k] = v.(types.String).Value
 		}
 		builder.Properties(properties)
+	}
+	nodes := cmv1.NewClusterNodes()
+	if !state.Nodes.Compute.Unknown && !state.Nodes.Compute.Null {
+		nodes.Compute(int(state.Nodes.Compute.Value))
+	}
+	if !state.Nodes.ComputeMachineType.Unknown && !state.Nodes.ComputeMachineType.Null {
+		nodes.ComputeMachineType(
+			cmv1.NewMachineType().ID(state.Nodes.ComputeMachineType.Value),
+		)
+	}
+	if !nodes.Empty() {
+		builder.Nodes(nodes)
 	}
 	object, err := builder.Build()
 	if err != nil {
@@ -195,24 +237,8 @@ func (r *ClusterResource) Create(ctx context.Context,
 		}
 	}
 
-	// Set the computed attributes:
-	state.ID = types.String{
-		Value: object.ID(),
-	}
-	state.MultiAZ = types.Bool{
-		Value: object.MultiAZ(),
-	}
-	state.APIURL = types.String{
-		Value: object.API().URL(),
-	}
-	state.ConsoleURL = types.String{
-		Value: object.Console().URL(),
-	}
-	state.State = types.String{
-		Value: string(object.State()),
-	}
-
 	// Save the state:
+	r.populateState(object, state)
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
 }
@@ -241,49 +267,72 @@ func (r *ClusterResource) Read(ctx context.Context, request tfsdk.ReadResourceRe
 	}
 	object := get.Body()
 
-	// Copy the cluster data into the state:
-	state.Name = types.String{
-		Value: object.Name(),
-	}
-	state.CloudProvider = types.String{
-		Value: object.CloudProvider().ID(),
-	}
-	state.CloudRegion = types.String{
-		Value: object.Region().ID(),
-	}
-	state.MultiAZ = types.Bool{
-		Value: object.MultiAZ(),
-	}
-	state.Properties = types.Map{
-		ElemType: types.StringType,
-		Elems:    map[string]attr.Value{},
-	}
-	for k, v := range object.Properties() {
-		state.Properties.Elems[k] = types.String{
-			Value: v,
-		}
-	}
-	state.APIURL = types.String{
-		Value: object.API().URL(),
-	}
-	state.ConsoleURL = types.String{
-		Value: object.Console().URL(),
-	}
-	state.State = types.String{
-		Value: string(object.State()),
-	}
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
-		return
-	}
-
 	// Save the state:
+	r.populateState(object, state)
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
 }
 
 func (r *ClusterResource) Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
 	response *tfsdk.UpdateResourceResponse) {
+	var diags diag.Diagnostics
+
+	// Get the state:
+	state := &ClusterState{}
+	diags = request.State.Get(ctx, state)
+	response.Diagnostics.Append(diags...)
+	if response.Diagnostics.HasError() {
+		return
+	}
+
+	// Get the plan:
+	plan := &ClusterState{}
+	diags = request.Plan.Get(ctx, plan)
+	response.Diagnostics.Append(diags...)
+	if response.Diagnostics.HasError() {
+		return
+	}
+
+	// Send request to update the cluster:
+	builder := cmv1.NewCluster()
+	var nodes *cmv1.ClusterNodesBuilder
+	compute, ok := shouldPatchInt(state.Nodes.Compute, plan.Nodes.Compute)
+	if ok {
+		nodes.Compute(int(compute))
+	}
+	if !nodes.Empty() {
+		builder.Nodes(nodes)
+	}
+	patch, err := builder.Build()
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't build cluster patch",
+			fmt.Sprintf(
+				"Can't build patch for cluster with identifier '%s': %v",
+				state.ID.Value, err,
+			),
+		)
+		return
+	}
+	update, err := r.collection.Cluster(state.ID.Value).Update().
+		Body(patch).
+		SendContext(ctx)
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't update cluster",
+			fmt.Sprintf(
+				"Can't update cluster with identifier '%s': %v",
+				state.ID.Value, err,
+			),
+		)
+		return
+	}
+	object := update.Body()
+
+	// Update the state:
+	r.populateState(object, state)
+	diags = response.State.Set(ctx, state)
+	response.Diagnostics.Append(diags...)
 }
 
 func (r *ClusterResource) Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
@@ -340,10 +389,66 @@ func (r *ClusterResource) Delete(ctx context.Context, request tfsdk.DeleteResour
 
 func (r *ClusterResource) ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
 	response *tfsdk.ImportResourceStateResponse) {
-	tfsdk.ResourceImportStatePassthroughID(
-		ctx,
-		tftypes.NewAttributePath().WithAttributeName("id"),
-		request,
-		response,
-	)
+	// Try to retrieve the object:
+	get, err := r.collection.Cluster(request.ID).Get().SendContext(ctx)
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't find cluster",
+			fmt.Sprintf(
+				"Can't find cluster with identifier '%s': %v",
+				request.ID, err,
+			),
+		)
+		return
+	}
+	object := get.Body()
+
+	// Save the state:
+	state := &ClusterState{}
+	r.populateState(object, state)
+	diags := response.State.Set(ctx, state)
+	response.Diagnostics.Append(diags...)
+}
+
+// populateState copies the data from the API object to the Terraform state.
+func (r *ClusterResource) populateState(object *cmv1.Cluster, state *ClusterState) {
+	state.ID = types.String{
+		Value: object.ID(),
+	}
+	state.Name = types.String{
+		Value: object.Name(),
+	}
+	state.CloudProvider = types.String{
+		Value: object.CloudProvider().ID(),
+	}
+	state.CloudRegion = types.String{
+		Value: object.Region().ID(),
+	}
+	state.MultiAZ = types.Bool{
+		Value: object.MultiAZ(),
+	}
+	state.Properties = types.Map{
+		ElemType: types.StringType,
+		Elems:    map[string]attr.Value{},
+	}
+	for k, v := range object.Properties() {
+		state.Properties.Elems[k] = types.String{
+			Value: v,
+		}
+	}
+	state.APIURL = types.String{
+		Value: object.API().URL(),
+	}
+	state.ConsoleURL = types.String{
+		Value: object.Console().URL(),
+	}
+	state.Nodes.Compute = types.Int64{
+		Value: int64(object.Nodes().Compute()),
+	}
+	state.Nodes.ComputeMachineType = types.String{
+		Value: object.Nodes().ComputeMachineType().ID(),
+	}
+	state.State = types.String{
+		Value: string(object.State()),
+	}
 }

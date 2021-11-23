@@ -220,6 +220,7 @@ func (p *Provider) GetDataSources(ctx context.Context) (result map[string]tfsdk.
 	diags diag.Diagnostics) {
 	result = map[string]tfsdk.DataSourceType{
 		"ocm_cloud_providers": &CloudProvidersDataSourceType{},
+		"ocm_groups":          &GroupsDataSourceType{},
 		"ocm_machine_types":   &MachineTypesDataSourceType{},
 	}
 	return

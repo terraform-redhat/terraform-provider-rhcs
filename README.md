@@ -37,12 +37,18 @@ resource "ocm_cluster" "my_cluster" {
 }
 
 resource "ocm_identity_provider" "my_idp" {
-  cluster_id = ocm_cluster.my_cluster.id
-  name       = "my-idp"
+  cluster = ocm_cluster.my_cluster.id
+  name    = "my-idp"
   htpasswd = {
-    username = "my-user"
-    password = "my-password"
+    username = "admin"
+    password = "redhat123"
   }
+}
+
+resource "ocm_group_membership" "my_admin" {
+  cluster = ocm_cluster.my_cluster.id
+  group   = "dedicated-admins"
+  user    = "admin"
 }
 ```
 

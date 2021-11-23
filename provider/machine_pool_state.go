@@ -21,7 +21,7 @@ import (
 )
 
 type MachinePoolState struct {
-	ClusterID   types.String `tfsdk:"cluster_id"`
+	Cluster     types.String `tfsdk:"cluster"`
 	ID          types.String `tfsdk:"id"`
 	MachineType types.String `tfsdk:"machine_type"`
 	Name        types.String `tfsdk:"name"`

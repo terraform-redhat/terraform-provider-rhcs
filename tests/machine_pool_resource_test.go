@@ -110,7 +110,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		***REMOVED***
 
 				resource "ocm_machine_pool" "my_pool" {
-				  cluster_id   = "123"
+				  cluster      = "123"
 				  name         = "my-pool"
 				  machine_type = "r5.xlarge"
 				  replicas     = 10
@@ -125,7 +125,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 
 		// Check the state:
 		resource := result.Resource("ocm_machine_pool", "my_pool"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster_id", "123"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_type", "r5.xlarge"***REMOVED******REMOVED***

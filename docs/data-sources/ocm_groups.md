@@ -29,7 +29,7 @@ Read-Only:
 
 - **id** (String***REMOVED*** Unique identifier of the group. This is what should be used
   when referencing the group from other places, for example in the `group`
-  attribute of the user resource.
+  attribute of the `ocm_group_membership` resource.
 
 - **name** (String***REMOVED*** Short name of the group for example `dedicated-admins`.
 

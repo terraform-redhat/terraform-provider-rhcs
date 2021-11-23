@@ -42,7 +42,7 @@ func (t *MachinePoolResourceType***REMOVED*** GetSchema(ctx context.Context***RE
 	result = tfsdk.Schema{
 		Description: "Machine pool.",
 		Attributes: map[string]tfsdk.Attribute{
-			"cluster_id": {
+			"cluster": {
 				Description: "Identifier of the cluster.",
 				Type:        types.StringType,
 				Required:    true,
@@ -102,7 +102,7 @@ func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context,
 	}
 
 	// Wait till the cluster is ready:
-	resource := r.collection.Cluster(state.ClusterID.Value***REMOVED***
+	resource := r.collection.Cluster(state.Cluster.Value***REMOVED***
 	pollCtx, cancel := context.WithTimeout(ctx, 1*time.Hour***REMOVED***
 	defer cancel(***REMOVED***
 	_, err := resource.Poll(***REMOVED***.
@@ -116,7 +116,7 @@ func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context,
 			"Can't poll cluster state",
 			fmt.Sprintf(
 				"Can't poll state of cluster with identifier '%s': %v",
-				state.ClusterID.Value, err,
+				state.Cluster.Value, err,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -133,7 +133,7 @@ func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context,
 			"Can't build machine pool",
 			fmt.Sprintf(
 				"Can't build machine pool for cluster '%s': %v",
-				state.ClusterID.Value, err,
+				state.Cluster.Value, err,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -145,7 +145,7 @@ func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context,
 			"Can't create machine pool",
 			fmt.Sprintf(
 				"Can't create machine pool for cluster '%s': %v",
-				state.ClusterID.Value, err,
+				state.Cluster.Value, err,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -169,7 +169,7 @@ func (r *MachinePoolResource***REMOVED*** Read(ctx context.Context, request tfsd
 	}
 
 	// Find the identity provider:
-	resource := r.collection.Cluster(state.ClusterID.Value***REMOVED***.
+	resource := r.collection.Cluster(state.Cluster.Value***REMOVED***.
 		MachinePools(***REMOVED***.
 		MachinePool(state.ID.Value***REMOVED***
 	get, err := resource.Get(***REMOVED***.SendContext(ctx***REMOVED***
@@ -179,7 +179,7 @@ func (r *MachinePoolResource***REMOVED*** Read(ctx context.Context, request tfsd
 			fmt.Sprintf(
 				"Can't find machine pool with identifier '%s' for "+
 					"cluster '%s': %v",
-				state.ID.Value, state.ClusterID.Value, err,
+				state.ID.Value, state.Cluster.Value, err,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -207,7 +207,7 @@ func (r *MachinePoolResource***REMOVED*** Delete(ctx context.Context, request tf
 	}
 
 	// Send the request to delete the machine pool:
-	resource := r.collection.Cluster(state.ClusterID.Value***REMOVED***.
+	resource := r.collection.Cluster(state.Cluster.Value***REMOVED***.
 		MachinePools(***REMOVED***.
 		MachinePool(state.ID.Value***REMOVED***
 	_, err := resource.Delete(***REMOVED***.SendContext(ctx***REMOVED***
@@ -217,7 +217,7 @@ func (r *MachinePoolResource***REMOVED*** Delete(ctx context.Context, request tf
 			fmt.Sprintf(
 				"Can't delete machine pool with identifier '%s' for "+
 					"cluster '%s': %v",
-				state.ID.Value, state.ClusterID.Value, err,
+				state.ID.Value, state.Cluster.Value, err,
 			***REMOVED***,
 		***REMOVED***
 		return

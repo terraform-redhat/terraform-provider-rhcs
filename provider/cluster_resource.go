@@ -109,6 +109,30 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 					tfsdk.RequiresReplace(),
 				},
 			},
+			"ccs_enabled": {
+				Description: "Enables customer cloud subscription.",
+				Type:        types.BoolType,
+				Optional:    true,
+				Computed:    true,
+			},
+			"aws_account_id": {
+				Description: "Identifier of the AWS account.",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
+			},
+			"aws_access_key_id": {
+				Description: "Identifier of the AWS access key.",
+				Type:        types.StringType,
+				Optional:    true,
+				Sensitive:   true,
+			},
+			"aws_secret_access_key": {
+				Description: "AWS access key.",
+				Type:        types.StringType,
+				Optional:    true,
+				Sensitive:   true,
+			},
 			"state": {
 				Description: "State of the cluster.",
 				Type:        types.StringType,
@@ -177,6 +201,26 @@ func (r *ClusterResource) Create(ctx context.Context,
 	}
 	if !nodes.Empty() {
 		builder.Nodes(nodes)
+	}
+	ccs := cmv1.NewCCS()
+	if !state.CCSEnabled.Unknown && !state.CCSEnabled.Null {
+		ccs.Enabled(state.CCSEnabled.Value)
+	}
+	if !ccs.Empty() {
+		builder.CCS(ccs)
+	}
+	aws := cmv1.NewAWS()
+	if !state.AWSAccountID.Unknown && !state.AWSAccountID.Null {
+		aws.AccountID(state.AWSAccountID.Value)
+	}
+	if !state.AWSAccessKeyID.Unknown && !state.AWSAccessKeyID.Null {
+		aws.AccessKeyID(state.AWSAccessKeyID.Value)
+	}
+	if !state.AWSSecretAccessKey.Unknown && !state.AWSSecretAccessKey.Null {
+		aws.SecretAccessKey(state.AWSSecretAccessKey.Value)
+	}
+	if !aws.Empty() {
+		builder.AWS(aws)
 	}
 	object, err := builder.Build()
 	if err != nil {
@@ -437,6 +481,39 @@ func (r *ClusterResource) populateState(object *cmv1.Cluster, state *ClusterStat
 	}
 	state.ComputeMachineType = types.String{
 		Value: object.Nodes().ComputeMachineType().ID(),
+	}
+	state.CCSEnabled = types.Bool{
+		Value: object.CCS().Enabled(),
+	}
+	awsAccountID, ok := object.AWS().GetAccountID()
+	if ok {
+		state.AWSAccountID = types.String{
+			Value: awsAccountID,
+		}
+	} else {
+		state.AWSAccountID = types.String{
+			Null: true,
+		}
+	}
+	awsAccessKeyID, ok := object.AWS().GetAccessKeyID()
+	if ok {
+		state.AWSAccessKeyID = types.String{
+			Value: awsAccessKeyID,
+		}
+	} else {
+		state.AWSAccessKeyID = types.String{
+			Null: true,
+		}
+	}
+	awsSecretAccessKey, ok := object.AWS().GetSecretAccessKey()
+	if ok {
+		state.AWSSecretAccessKey = types.String{
+			Value: awsSecretAccessKey,
+		}
+	} else {
+		state.AWSSecretAccessKey = types.String{
+			Null: true,
+		}
 	}
 	state.State = types.String{
 		Value: string(object.State()),

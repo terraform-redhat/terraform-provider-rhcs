@@ -20,11 +20,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"reflect"
 	"strings"
 
 	"github.com/itchyny/gojq"
 	"github.com/onsi/gomega/types"
+
+	. "github.com/onsi/gomega" //nolint
 )
 
 // JQ runs the given `jq` filter on the given object and returns the list of results. The returned
@@ -107,4 +111,26 @@ func (m *jqMatcher) pretty(object interface{}) string {
 		return fmt.Sprintf("\t%v", object)
 	}
 	return strings.TrimRight(buffer.String(), "\n")
+}
+
+// VerifyJQ verifies that the result of applying the given `jq` filter to the request body matches
+// the given expected value.
+func VerifyJQ(filter string, expected interface{}) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Read the body completely:
+		body, err := ioutil.ReadAll(r.Body)
+		Expect(err).ToNot(HaveOccurred())
+		err = r.Body.Close()
+		Expect(err).ToNot(HaveOccurred())
+
+		// Replace the body with a buffer so that other calls to this same method, or to
+		// other verification methods will also be able to work with it.
+		r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+
+		// Parse the body as JSON and verify that it matches the filter:
+		var data interface{}
+		err = json.Unmarshal(body, &data)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(data).To(MatchJQ(filter, expected))
+	}
 }

@@ -21,12 +21,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	sdktesting "github.com/openshift-online/ocm-sdk-go/testing"
 
 	. "github.com/onsi/ginkgo" // nolint
@@ -270,4 +272,14 @@ func (r *TerraformResult) Resource(typ, name string) interface{} {
 		typ, name, len(results),
 	)
 	return results[0]
+}
+
+// RespondWithPatchedJSON responds with the given status code and the result of
+// patching the given JSON with the given patch.
+func RespondWithPatchedJSON(status int, body string, patch string) http.HandlerFunc {
+	patchObject, err := jsonpatch.DecodePatch([]byte(patch))
+	Expect(err).ToNot(HaveOccurred())
+	patchResult, err := patchObject.Apply([]byte(body))
+	Expect(err).ToNot(HaveOccurred())
+	return sdktesting.RespondWithJSON(status, string(patchResult))
 }

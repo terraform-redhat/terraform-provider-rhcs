@@ -21,11 +21,11 @@ package provider
 ***REMOVED***
 
 type IdentityProviderState struct {
-	ClusterID types.String              `tfsdk:"cluster_id"`
-	ID        types.String              `tfsdk:"id"`
-	Name      types.String              `tfsdk:"name"`
-	HTPasswd  *HTPasswdIdentityProvider `tfsdk:"htpasswd"`
-	LDAP      *LDAPIdentityProvider     `tfsdk:"ldap"`
+	Cluster  types.String              `tfsdk:"cluster"`
+	ID       types.String              `tfsdk:"id"`
+	Name     types.String              `tfsdk:"name"`
+	HTPasswd *HTPasswdIdentityProvider `tfsdk:"htpasswd"`
+	LDAP     *LDAPIdentityProvider     `tfsdk:"ldap"`
 }
 
 type HTPasswdIdentityProvider struct {

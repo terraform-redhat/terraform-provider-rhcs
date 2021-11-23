@@ -115,9 +115,9 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 		***REMOVED***
 
 				resource "ocm_identity_provider" "my_ip" {
-				  cluster_id = "123"
-				  name       = "my-ip"
-				  htpasswd   = {
+				  cluster = "123"
+				  name    = "my-ip"
+				  htpasswd = {
 				    username = "my-user"
 				    password = "my-password"
 				  }
@@ -196,9 +196,9 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 		***REMOVED***
 
 				resource "ocm_identity_provider" "my_ip" {
-				  cluster_id    = "123"
-				  name          = "my-ip"
-				  ldap          = {
+				  cluster    = "123"
+				  name       = "my-ip"
+				  ldap = {
 				    bind_dn       = "my-bind-dn"
 				    bind_password = "my-bind-password"
 				    insecure      = false

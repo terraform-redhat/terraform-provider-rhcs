@@ -22,6 +22,10 @@ package provider
 
 type ClusterState struct {
 	APIURL             types.String `tfsdk:"api_url"`
+	AWSAccessKeyID     types.String `tfsdk:"aws_access_key_id"`
+	AWSAccountID       types.String `tfsdk:"aws_account_id"`
+	AWSSecretAccessKey types.String `tfsdk:"aws_secret_access_key"`
+	CCSEnabled         types.Bool   `tfsdk:"ccs_enabled"`
 	CloudProvider      types.String `tfsdk:"cloud_provider"`
 	CloudRegion        types.String `tfsdk:"cloud_region"`
 	ComputeMachineType types.String `tfsdk:"compute_machine_type"`

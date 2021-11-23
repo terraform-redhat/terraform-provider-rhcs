@@ -60,6 +60,9 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 	      "id": "r5.xlarge"
 	    }
 	  },
+	  "ccs": {
+	    "enabled": false
+	  },
 	  "state": "ready"
 	}`
 
@@ -88,18 +91,9 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		server.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-				VerifyJSON(`{
-				  "kind": "Cluster",
-				  "name": "my-cluster",
-				  "cloud_provider": {
-				    "kind": "CloudProvider",
-				    "id": "aws"
-				  },
-				  "region": {
-				    "kind": "CloudRegion",
-				    "id": "us-west-1"
-				  }
-		***REMOVED***`***REMOVED***,
+				VerifyJQ(`.name`, "my-cluster"***REMOVED***,
+				VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
+				VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
 				RespondWithJSON(http.StatusCreated, template***REMOVED***,
 			***REMOVED***,
 		***REMOVED***
@@ -182,75 +176,13 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.console_url", "https://my-console.example.com"***REMOVED******REMOVED***
 	}***REMOVED***
 
-	It("Saves console URL to the state", func(***REMOVED*** {
-		// Prepare the server:
-		server.AppendHandlers(
-			CombineHandlers(
-				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-				RespondWithJSON(http.StatusCreated, template***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
-
-		// Run the apply command:
-		result := NewTerraformRunner(***REMOVED***.
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-		***REMOVED***
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}"***REMOVED***
-		***REMOVED***
-
-				resource "ocm_cluster" "my_cluster" {
-				  name           = "my-cluster"
-				  cloud_provider = "aws"
-				  cloud_region   = "us-west-1"
-		***REMOVED***
-				`,
-				"URL", server.URL(***REMOVED***,
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
-			***REMOVED***.
-			Apply(ctx***REMOVED***
-		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-
-		// Check the state:
-		resource := result.Resource("ocm_cluster", "my_cluster"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.api_url", "https://my-api.example.com"***REMOVED******REMOVED***
-	}***REMOVED***
-
 	It("Sets compute nodes and machine type", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-				VerifyJSON(`{
-				  "kind": "Cluster",
-				  "name": "my-cluster",
-				  "cloud_provider": {
-				    "kind": "CloudProvider",
-				    "id": "aws"
-				  },
-				  "region": {
-				    "kind": "CloudRegion",
-				    "id": "us-west-1"
-				  },
-				  "nodes": {
-				    "compute": 3,
-				    "compute_machine_type": {
-				      "kind": "MachineType",
-				      "id": "r5.xlarge"
-				    }
-				  }
-		***REMOVED***`***REMOVED***,
+				VerifyJQ(`.nodes.compute`, 3.0***REMOVED***,
+				VerifyJQ(`.nodes.compute_machine_type.id`, "r5.xlarge"***REMOVED***,
 				RespondWithJSON(http.StatusCreated, template***REMOVED***,
 			***REMOVED***,
 		***REMOVED***
@@ -292,6 +224,79 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		resource := result.Resource("ocm_cluster", "my_cluster"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.compute_nodes", 3.0***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.compute_machine_type", "r5.xlarge"***REMOVED******REMOVED***
+	}***REMOVED***
+
+	It("Creates CCS cluster", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+				VerifyJQ(".ccs.enabled", true***REMOVED***,
+				VerifyJQ(".aws.account_id", "123"***REMOVED***,
+				VerifyJQ(".aws.access_key_id", "456"***REMOVED***,
+				VerifyJQ(".aws.secret_access_key", "789"***REMOVED***,
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+				  {
+				    "op": "replace",
+				    "path": "/ccs",
+				    "value": {
+				      "enabled": true
+				    }
+				  },
+				  {
+				    "op": "add",
+				    "path": "/aws",
+				    "value": {
+				      "account_id": "123",
+				      "access_key_id": "456",
+				      "secret_access_key": "789"
+				    }
+				  }
+				]`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		result := NewTerraformRunner(***REMOVED***.
+			File(
+				"main.tf", `
+				terraform {
+				  required_providers {
+				    ocm = {
+				      source = "localhost/openshift-online/ocm"
+				    }
+				  }
+		***REMOVED***
+
+				provider "ocm" {
+				  url         = "{{ .URL }}"
+				  token       = "{{ .Token }}"
+				  trusted_cas = file("{{ .CA }}"***REMOVED***
+		***REMOVED***
+
+				resource "ocm_cluster" "my_cluster" {
+				  name                  = "my-cluster"
+				  cloud_provider        = "aws"
+				  cloud_region          = "us-west-1"
+				  ccs_enabled           = true
+				  aws_account_id        = "123"
+				  aws_access_key_id     = "456"
+				  aws_secret_access_key = "789"
+		***REMOVED***
+				`,
+				"URL", server.URL(***REMOVED***,
+				"Token", token,
+				"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
+			***REMOVED***.
+			Apply(ctx***REMOVED***
+		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// Check the state:
+		resource := result.Resource("ocm_cluster", "my_cluster"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.ccs_enabled", true***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.aws_account_id", "123"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.aws_access_key_id", "456"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.aws_secret_access_key", "789"***REMOVED******REMOVED***
 	}***REMOVED***
 
 	It("Fails if the cluster already exists", func(***REMOVED*** {

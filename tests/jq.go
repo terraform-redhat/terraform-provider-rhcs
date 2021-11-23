@@ -20,11 +20,15 @@ package tests
 	"bytes"
 	"encoding/json"
 ***REMOVED***
+	"io/ioutil"
+***REMOVED***
 	"reflect"
 	"strings"
 
 	"github.com/itchyny/gojq"
 	"github.com/onsi/gomega/types"
+
+***REMOVED*** //nolint
 ***REMOVED***
 
 // JQ runs the given `jq` filter on the given object and returns the list of results. The returned
@@ -107,4 +111,26 @@ func (m *jqMatcher***REMOVED*** pretty(object interface{}***REMOVED*** string {
 		return fmt.Sprintf("\t%v", object***REMOVED***
 	}
 	return strings.TrimRight(buffer.String(***REMOVED***, "\n"***REMOVED***
+}
+
+// VerifyJQ verifies that the result of applying the given `jq` filter to the request body matches
+// the given expected value.
+func VerifyJQ(filter string, expected interface{}***REMOVED*** http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request***REMOVED*** {
+		// Read the body completely:
+		body, err := ioutil.ReadAll(r.Body***REMOVED***
+		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+		err = r.Body.Close(***REMOVED***
+		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+
+		// Replace the body with a buffer so that other calls to this same method, or to
+		// other verification methods will also be able to work with it.
+		r.Body = ioutil.NopCloser(bytes.NewBuffer(body***REMOVED******REMOVED***
+
+		// Parse the body as JSON and verify that it matches the filter:
+		var data interface{}
+		err = json.Unmarshal(body, &data***REMOVED***
+		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+		Expect(data***REMOVED***.To(MatchJQ(filter, expected***REMOVED******REMOVED***
+	}
 }

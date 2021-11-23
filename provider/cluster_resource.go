@@ -109,6 +109,30 @@ func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVE
 					tfsdk.RequiresReplace(***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,
+			"ccs_enabled": {
+				Description: "Enables customer cloud subscription.",
+				Type:        types.BoolType,
+				Optional:    true,
+				Computed:    true,
+	***REMOVED***,
+			"aws_account_id": {
+				Description: "Identifier of the AWS account.",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
+	***REMOVED***,
+			"aws_access_key_id": {
+				Description: "Identifier of the AWS access key.",
+				Type:        types.StringType,
+				Optional:    true,
+				Sensitive:   true,
+	***REMOVED***,
+			"aws_secret_access_key": {
+				Description: "AWS access key.",
+				Type:        types.StringType,
+				Optional:    true,
+				Sensitive:   true,
+	***REMOVED***,
 			"state": {
 				Description: "State of the cluster.",
 				Type:        types.StringType,
@@ -177,6 +201,26 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 	}
 	if !nodes.Empty(***REMOVED*** {
 		builder.Nodes(nodes***REMOVED***
+	}
+	ccs := cmv1.NewCCS(***REMOVED***
+	if !state.CCSEnabled.Unknown && !state.CCSEnabled.Null {
+		ccs.Enabled(state.CCSEnabled.Value***REMOVED***
+	}
+	if !ccs.Empty(***REMOVED*** {
+		builder.CCS(ccs***REMOVED***
+	}
+	aws := cmv1.NewAWS(***REMOVED***
+	if !state.AWSAccountID.Unknown && !state.AWSAccountID.Null {
+		aws.AccountID(state.AWSAccountID.Value***REMOVED***
+	}
+	if !state.AWSAccessKeyID.Unknown && !state.AWSAccessKeyID.Null {
+		aws.AccessKeyID(state.AWSAccessKeyID.Value***REMOVED***
+	}
+	if !state.AWSSecretAccessKey.Unknown && !state.AWSSecretAccessKey.Null {
+		aws.SecretAccessKey(state.AWSSecretAccessKey.Value***REMOVED***
+	}
+	if !aws.Empty(***REMOVED*** {
+		builder.AWS(aws***REMOVED***
 	}
 	object, err := builder.Build(***REMOVED***
 	if err != nil {
@@ -437,6 +481,39 @@ func (r *ClusterResource***REMOVED*** populateState(object *cmv1.Cluster, state 
 	}
 	state.ComputeMachineType = types.String{
 		Value: object.Nodes(***REMOVED***.ComputeMachineType(***REMOVED***.ID(***REMOVED***,
+	}
+	state.CCSEnabled = types.Bool{
+		Value: object.CCS(***REMOVED***.Enabled(***REMOVED***,
+	}
+	awsAccountID, ok := object.AWS(***REMOVED***.GetAccountID(***REMOVED***
+	if ok {
+		state.AWSAccountID = types.String{
+			Value: awsAccountID,
+***REMOVED***
+	} else {
+		state.AWSAccountID = types.String{
+			Null: true,
+***REMOVED***
+	}
+	awsAccessKeyID, ok := object.AWS(***REMOVED***.GetAccessKeyID(***REMOVED***
+	if ok {
+		state.AWSAccessKeyID = types.String{
+			Value: awsAccessKeyID,
+***REMOVED***
+	} else {
+		state.AWSAccessKeyID = types.String{
+			Null: true,
+***REMOVED***
+	}
+	awsSecretAccessKey, ok := object.AWS(***REMOVED***.GetSecretAccessKey(***REMOVED***
+	if ok {
+		state.AWSSecretAccessKey = types.String{
+			Value: awsSecretAccessKey,
+***REMOVED***
+	} else {
+		state.AWSSecretAccessKey = types.String{
+			Null: true,
+***REMOVED***
 	}
 	state.State = types.String{
 		Value: string(object.State(***REMOVED******REMOVED***,

@@ -20,17 +20,10 @@ package provider
 	"github.com/hashicorp/terraform-plugin-framework/types"
 ***REMOVED***
 
-type ClusterState struct {
-	APIURL             types.String `tfsdk:"api_url"`
-	CloudProvider      types.String `tfsdk:"cloud_provider"`
-	CloudRegion        types.String `tfsdk:"cloud_region"`
-	ComputeMachineType types.String `tfsdk:"compute_machine_type"`
-	ComputeNodes       types.Int64  `tfsdk:"compute_nodes"`
-	ConsoleURL         types.String `tfsdk:"console_url"`
-	ID                 types.String `tfsdk:"id"`
-	MultiAZ            types.Bool   `tfsdk:"multi_az"`
-	Name               types.String `tfsdk:"name"`
-	Properties         types.Map    `tfsdk:"properties"`
-	State              types.String `tfsdk:"state"`
-	Wait               types.Bool   `tfsdk:"wait"`
+type MachinePoolState struct {
+	ClusterID   types.String `tfsdk:"cluster_id"`
+	ID          types.String `tfsdk:"id"`
+	MachineType types.String `tfsdk:"machine_type"`
+	Name        types.String `tfsdk:"name"`
+	Replicas    types.Int64  `tfsdk:"replicas"`
 }

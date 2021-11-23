@@ -38,8 +38,8 @@ resource "ocm_cluster" "my_cluster" {
 }
 
 resource "ocm_identity_provider" "my_idp" {
-  cluster_id = ocm_cluster.my_cluster.id
-  name       = "my-idp"
+  cluster = ocm_cluster.my_cluster.id
+  name    = "my-idp"
   htpasswd = {
     username = "admin"
     password = "redhat123"
@@ -53,7 +53,7 @@ resource "ocm_group_membership" "my_admin" {
 }
 
 resource "ocm_machine_pool" "my_pool" {
-  cluster_id   = ocm_cluster.my_cluster.id
+  cluster      = ocm_cluster.my_cluster.id
   name         = "my-pool"
   machine_type = "r5.xlarge"
   replicas     = 5

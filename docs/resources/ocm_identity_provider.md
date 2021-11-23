@@ -14,7 +14,7 @@ Identity provider.
 
 ### Required
 
-- **cluster_id** (String) Identifier of the cluster.
+- **cluster** (String) Identifier of the cluster.
 - **name** (String) Name of the identity provider.
 
 ### Optional

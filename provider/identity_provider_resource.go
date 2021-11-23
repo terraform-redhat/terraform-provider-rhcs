@@ -42,7 +42,7 @@ func (t *IdentityProviderResourceType) GetSchema(ctx context.Context) (result tf
 	result = tfsdk.Schema{
 		Description: "Identity provider.",
 		Attributes: map[string]tfsdk.Attribute{
-			"cluster_id": {
+			"cluster": {
 				Description: "Identifier of the cluster.",
 				Type:        types.StringType,
 				Required:    true,
@@ -177,7 +177,7 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 	}
 
 	// Wait till the cluster is ready:
-	resource := r.collection.Cluster(state.ClusterID.Value)
+	resource := r.collection.Cluster(state.Cluster.Value)
 	pollCtx, cancel := context.WithTimeout(ctx, 1*time.Hour)
 	defer cancel()
 	_, err := resource.Poll().
@@ -191,7 +191,7 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 			"Can't poll cluster state",
 			fmt.Sprintf(
 				"Can't poll state of cluster with identifier '%s': %v",
-				state.ClusterID.Value, err,
+				state.Cluster.Value, err,
 			),
 		)
 		return
@@ -268,7 +268,7 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 			fmt.Sprintf(
 				"Can't create identity provider with name '%s' for "+
 					"cluster '%s': %v",
-				state.Name.Value, state.ClusterID.Value, err,
+				state.Name.Value, state.Cluster.Value, err,
 			),
 		)
 		return
@@ -312,7 +312,7 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request tfsdk.ReadR
 	}
 
 	// Find the identity provider:
-	resource := r.collection.Cluster(state.ClusterID.Value).
+	resource := r.collection.Cluster(state.Cluster.Value).
 		IdentityProviders().
 		IdentityProvider(state.ID.Value)
 	get, err := resource.Get().SendContext(ctx)
@@ -322,7 +322,7 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request tfsdk.ReadR
 			fmt.Sprintf(
 				"Can't find identity provider with identifier '%s' for "+
 					"cluster '%s': %v",
-				state.ID.Value, state.ClusterID.Value, err,
+				state.ID.Value, state.Cluster.Value, err,
 			),
 		)
 		return
@@ -434,7 +434,7 @@ func (r *IdentityProviderResource) Delete(ctx context.Context, request tfsdk.Del
 	}
 
 	// Send the request to delete the identity provider:
-	resource := r.collection.Cluster(state.ClusterID.Value).
+	resource := r.collection.Cluster(state.Cluster.Value).
 		IdentityProviders().
 		IdentityProvider(state.ID.Value)
 	_, err := resource.Delete().SendContext(ctx)
@@ -444,7 +444,7 @@ func (r *IdentityProviderResource) Delete(ctx context.Context, request tfsdk.Del
 			fmt.Sprintf(
 				"Can't delete identity provider with identifier '%s' for "+
 					"cluster '%s': %v",
-				state.ID.Value, state.ClusterID.Value, err,
+				state.ID.Value, state.Cluster.Value, err,
 			),
 		)
 		return

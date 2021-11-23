@@ -13,7 +13,7 @@ Machine pool.
 
 ### Required
 
-- **cluster_id** (String) Identifier of the cluster.
+- **cluster** (String) Identifier of the cluster.
 
 - **machine_type** (String) Identifier of the machine type used by the nodes,
   for example `r5.xlarge`. Use the `ocm_machine_types` data source to find the

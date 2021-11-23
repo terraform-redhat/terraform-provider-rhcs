@@ -22,15 +22,21 @@ OpenShift managed cluster.
 
 ### Optional
 
+- **compute_nodes** (Number) Number of compute nodes of the cluster.
+
+- **compute_machine_type** (String) Identifier of the machine type used by the
+  compute nodes, for example `r5.xlarge`. Use the `ocm_machine_types` data source
+  to find the possible values.
+
+  Note that the compute machine type of a cluster can't be changed. If you change
+  the value of this attribute the cluster will be deleted and created again.
+
 - **multi_az** (Boolean) Indicates if the cluster should be deployed to multiple
   availability zones. Default value is 'false'.
 
   Note a cluster that was created in a single availability zone can't be changed
   to use multiple availability zones. If you change the value of this attribute
   the cluster will be deleted and created again.
-
-- **nodes** (Attributes) Number and characteristis of nodes of the cluster. (see
-  [below for nested schema](#nestedatt--nodes))
 
 - **properties** (Map of String) User defined properties.
 
@@ -45,17 +51,3 @@ OpenShift managed cluster.
 - **id** (String) Unique identifier of the cluster.
 
 - **state** (String) State of the cluster.
-
-<a id="nestedatt--nodes"></a>
-### Nested Schema for `nodes`
-
-Optional:
-
-- **compute** (Number) Number of compute nodes of the cluster.
-
-- **compute_machine_type** (String) Identifier of the machine type used by the
-  compute nodes, for example `r5.xlarge`. Use the `ocm_machine_types` data source
-  to find the possible values.
-
-  Note that the compute machine type of a cluster can't be changed. If you change
-  the value of this attribute the cluster will be deleted and created again.

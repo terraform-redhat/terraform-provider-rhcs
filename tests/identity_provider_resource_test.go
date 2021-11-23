@@ -103,7 +103,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 				terraform {
 				  required_providers {
 				    ocm = {
-				      source = "localhost/redhat/ocm"
+				      source = "localhost/openshift-online/ocm"
 				    }
 				  }
 		***REMOVED***
@@ -184,7 +184,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 				terraform {
 				  required_providers {
 				    ocm = {
-				      source = "localhost/redhat/ocm"
+				      source = "localhost/openshift-online/ocm"
 				    }
 				  }
 		***REMOVED***

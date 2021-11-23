@@ -114,7 +114,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 				terraform {
 				  required_providers {
 				    ocm = {
-				      source = "localhost/redhat/ocm"
+				      source = "localhost/openshift-online/ocm"
 				    }
 				  }
 		***REMOVED***
@@ -182,7 +182,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 				terraform {
 				  required_providers {
 				    ocm = {
-				      source = "localhost/redhat/ocm"
+				      source = "localhost/openshift-online/ocm"
 				    }
 				  }
 		***REMOVED***

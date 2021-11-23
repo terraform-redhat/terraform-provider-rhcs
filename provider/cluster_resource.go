@@ -92,10 +92,22 @@ func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVE
 				Type:        types.StringType,
 				Computed:    true,
 	***REMOVED***,
-			"nodes": {
-				Description: "Number and characteristis of nodes of the cluster.",
-				Attributes:  t.nodesSchema(***REMOVED***,
+			"compute_nodes": {
+				Description: "Number of compute nodes of the cluster.",
+				Type:        types.Int64Type,
 				Optional:    true,
+				Computed:    true,
+	***REMOVED***,
+			"compute_machine_type": {
+				Description: "Identifier of the machine type used by the compute nodes, " +
+					"for example `r5.xlarge`. Use the `ocm_machine_types` data " +
+					"source to find the possible values.",
+				Type:     types.StringType,
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.RequiresReplace(***REMOVED***,
+		***REMOVED***,
 	***REMOVED***,
 			"state": {
 				Description: "State of the cluster.",
@@ -110,28 +122,6 @@ func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVE
 ***REMOVED***,
 	}
 	return
-}
-
-func (t *ClusterResourceType***REMOVED*** nodesSchema(***REMOVED*** tfsdk.NestedAttributes {
-	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-		"compute": {
-			Description: "Number of compute nodes of the cluster.",
-			Type:        types.Int64Type,
-			Optional:    true,
-			Computed:    true,
-***REMOVED***,
-		"compute_machine_type": {
-			Description: "Identifier of the machine type used by the compute nodes, " +
-				"for example `r5.xlarge`. Use the `ocm_machine_types` data " +
-				"source to find the possible values.",
-			Type:     types.StringType,
-			Optional: true,
-			Computed: true,
-			PlanModifiers: []tfsdk.AttributePlanModifier{
-				tfsdk.RequiresReplace(***REMOVED***,
-	***REMOVED***,
-***REMOVED***,
-	}***REMOVED***
 }
 
 func (t *ClusterResourceType***REMOVED*** NewResource(ctx context.Context,
@@ -177,12 +167,12 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 		builder.Properties(properties***REMOVED***
 	}
 	nodes := cmv1.NewClusterNodes(***REMOVED***
-	if !state.Nodes.Compute.Unknown && !state.Nodes.Compute.Null {
-		nodes.Compute(int(state.Nodes.Compute.Value***REMOVED******REMOVED***
+	if !state.ComputeNodes.Unknown && !state.ComputeNodes.Null {
+		nodes.Compute(int(state.ComputeNodes.Value***REMOVED******REMOVED***
 	}
-	if !state.Nodes.ComputeMachineType.Unknown && !state.Nodes.ComputeMachineType.Null {
+	if !state.ComputeMachineType.Unknown && !state.ComputeMachineType.Null {
 		nodes.ComputeMachineType(
-			cmv1.NewMachineType(***REMOVED***.ID(state.Nodes.ComputeMachineType.Value***REMOVED***,
+			cmv1.NewMachineType(***REMOVED***.ID(state.ComputeMachineType.Value***REMOVED***,
 		***REMOVED***
 	}
 	if !nodes.Empty(***REMOVED*** {
@@ -296,7 +286,7 @@ func (r *ClusterResource***REMOVED*** Update(ctx context.Context, request tfsdk.
 	// Send request to update the cluster:
 	builder := cmv1.NewCluster(***REMOVED***
 	var nodes *cmv1.ClusterNodesBuilder
-	compute, ok := shouldPatchInt(state.Nodes.Compute, plan.Nodes.Compute***REMOVED***
+	compute, ok := shouldPatchInt(state.ComputeNodes, plan.ComputeNodes***REMOVED***
 	if ok {
 		nodes.Compute(int(compute***REMOVED******REMOVED***
 	}
@@ -442,10 +432,10 @@ func (r *ClusterResource***REMOVED*** populateState(object *cmv1.Cluster, state 
 	state.ConsoleURL = types.String{
 		Value: object.Console(***REMOVED***.URL(***REMOVED***,
 	}
-	state.Nodes.Compute = types.Int64{
+	state.ComputeNodes = types.Int64{
 		Value: int64(object.Nodes(***REMOVED***.Compute(***REMOVED******REMOVED***,
 	}
-	state.Nodes.ComputeMachineType = types.String{
+	state.ComputeMachineType = types.String{
 		Value: object.Nodes(***REMOVED***.ComputeMachineType(***REMOVED***.ID(***REMOVED***,
 	}
 	state.State = types.String{

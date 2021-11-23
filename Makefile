@@ -37,7 +37,7 @@ build:
 	if [[ "$${platform}" =~ ^windows_.*$$ ]]; then \
 	  extension=".exe"; \
 	fi; \
-	dir=".terraform.d/plugins/localhost/redhat/ocm/$(version***REMOVED***/$${platform}"; \
+	dir=".terraform.d/plugins/localhost/openshift-online/ocm/$(version***REMOVED***/$${platform}"; \
 	file="terraform-provider-ocm$${extension}"; \
 	mkdir -p "$${dir}"; \
 	go build -ldflags="$(ldflags***REMOVED***" -o "$${dir}/$${file}"

@@ -35,6 +35,34 @@ var _ = Describe("Cluster creation", func() {
 	var ca string
 	var token string
 
+	// This is the cluster that will be returned by the server when asked to create or retrieve
+	// a cluster.
+	const template = `{
+	  "id": "123",
+	  "name": "my-cluster",
+	  "cloud_provider": {
+	    "id": "aws"
+	  },
+	  "region": {
+	    "id": "us-west-1"
+	  },
+	  "multi_az": false,
+	  "properties": {},
+	  "api": {
+	    "url": "https://my-api.example.com"
+	  },
+	  "console": {
+	    "url": "https://my-console.example.com"
+	  },
+	  "nodes": {
+	    "compute": 3,
+	    "compute_machine_type": {
+	      "id": "r5.xlarge"
+	    }
+	  },
+	  "state": "ready"
+	}`
+
 	BeforeEach(func() {
 		// Create a contet:
 		ctx = context.Background()
@@ -55,7 +83,7 @@ var _ = Describe("Cluster creation", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	It("Succeeds if the cluster doesn't exist", func() {
+	It("Creates basic cluster", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
@@ -70,40 +98,9 @@ var _ = Describe("Cluster creation", func() {
 				  "region": {
 				    "kind": "CloudRegion",
 				    "id": "us-west-1"
-				  },
-				  "nodes": {
-				    "compute": 10,
-				    "compute_machine_type": {
-				      "kind": "MachineType",
-				      "id": "r5.xlarge"
-				    }
 				  }
 				}`),
-				RespondWithJSON(http.StatusCreated, `{
-				  "id": "123",
-				  "name": "my-cluster",
-				  "cloud_provider": {
-				    "id": "aws"
-				  },
-				  "region": {
-				    "id": "us-west-1"
-				  },
-				  "multi_az": false,
-				  "properties": {},
-				  "api": {
-				    "url": "https://my-api.example.com"
-				  },
-				  "console": {
-				    "url": "https://my-console.example.com"
-				  },
-				  "nodes": {
-				    "compute": 10,
-				    "compute_machine_type": {
-				      "id": "r5.xlarge"
-				    }
-				  },
-				  "state": "ready"
-				}`),
+				RespondWithJSON(http.StatusCreated, template),
 			),
 		)
 
@@ -114,7 +111,7 @@ var _ = Describe("Cluster creation", func() {
 				terraform {
 				  required_providers {
 				    ocm = {
-				      source = "localhost/redhat/ocm"
+				      source = "localhost/openshift-online/ocm"
 				    }
 				  }
 				}
@@ -129,10 +126,47 @@ var _ = Describe("Cluster creation", func() {
 				  name           = "my-cluster"
 				  cloud_provider = "aws"
 				  cloud_region   = "us-west-1"
-				  nodes          = {
-					  compute = 10
-					  compute_machine_type = "r5.xlarge"
+				}
+				`,
+				"URL", server.URL(),
+				"Token", token,
+				"CA", strings.ReplaceAll(ca, "\\", "/"),
+			).
+			Apply(ctx)
+		Expect(result.ExitCode()).To(BeZero())
+	})
+
+	It("Saves API and console URLs to the state", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+				RespondWithJSON(http.StatusCreated, template),
+			),
+		)
+
+		// Run the apply command:
+		result := NewTerraformRunner().
+			File(
+				"main.tf", `
+				terraform {
+				  required_providers {
+				    ocm = {
+				      source = "localhost/openshift-online/ocm"
+				    }
 				  }
+				}
+
+				provider "ocm" {
+				  url         = "{{ .URL }}"
+				  token       = "{{ .Token }}"
+				  trusted_cas = file("{{ .CA }}")
+				}
+
+				resource "ocm_cluster" "my_cluster" {
+				  name           = "my-cluster"
+				  cloud_provider = "aws"
+				  cloud_region   = "us-west-1"
 				}
 				`,
 				"URL", server.URL(),
@@ -146,11 +180,54 @@ var _ = Describe("Cluster creation", func() {
 		resource := result.Resource("ocm_cluster", "my_cluster")
 		Expect(resource).To(MatchJQ(".attributes.api_url", "https://my-api.example.com"))
 		Expect(resource).To(MatchJQ(".attributes.console_url", "https://my-console.example.com"))
-		Expect(resource).To(MatchJQ(".attributes.nodes.compute", 10.0))
-		Expect(resource).To(MatchJQ(".attributes.nodes.compute_machine_type", "r5.xlarge"))
 	})
 
-	It("Fails if the cluster already exists", func() {
+	It("Saves console URL to the state", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+				RespondWithJSON(http.StatusCreated, template),
+			),
+		)
+
+		// Run the apply command:
+		result := NewTerraformRunner().
+			File(
+				"main.tf", `
+				terraform {
+				  required_providers {
+				    ocm = {
+				      source = "localhost/openshift-online/ocm"
+				    }
+				  }
+				}
+
+				provider "ocm" {
+				  url         = "{{ .URL }}"
+				  token       = "{{ .Token }}"
+				  trusted_cas = file("{{ .CA }}")
+				}
+
+				resource "ocm_cluster" "my_cluster" {
+				  name           = "my-cluster"
+				  cloud_provider = "aws"
+				  cloud_region   = "us-west-1"
+				}
+				`,
+				"URL", server.URL(),
+				"Token", token,
+				"CA", strings.ReplaceAll(ca, "\\", "/"),
+			).
+			Apply(ctx)
+		Expect(result.ExitCode()).To(BeZero())
+
+		// Check the state:
+		resource := result.Resource("ocm_cluster", "my_cluster")
+		Expect(resource).To(MatchJQ(".attributes.api_url", "https://my-api.example.com"))
+	})
+
+	It("Sets compute nodes and machine type", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
@@ -165,8 +242,63 @@ var _ = Describe("Cluster creation", func() {
 				  "region": {
 				    "kind": "CloudRegion",
 				    "id": "us-west-1"
+				  },
+				  "nodes": {
+				    "compute": 3,
+				    "compute_machine_type": {
+				      "kind": "MachineType",
+				      "id": "r5.xlarge"
+				    }
 				  }
 				}`),
+				RespondWithJSON(http.StatusCreated, template),
+			),
+		)
+
+		// Run the apply command:
+		result := NewTerraformRunner().
+			File(
+				"main.tf", `
+				terraform {
+				  required_providers {
+				    ocm = {
+				      source = "localhost/openshift-online/ocm"
+				    }
+				  }
+				}
+
+				provider "ocm" {
+				  url         = "{{ .URL }}"
+				  token       = "{{ .Token }}"
+				  trusted_cas = file("{{ .CA }}")
+				}
+
+				resource "ocm_cluster" "my_cluster" {
+				  name                 = "my-cluster"
+				  cloud_provider       = "aws"
+				  cloud_region         = "us-west-1"
+				  compute_nodes        = 3
+				  compute_machine_type = "r5.xlarge"
+				}
+				`,
+				"URL", server.URL(),
+				"Token", token,
+				"CA", strings.ReplaceAll(ca, "\\", "/"),
+			).
+			Apply(ctx)
+		Expect(result.ExitCode()).To(BeZero())
+
+		// Check the state:
+		resource := result.Resource("ocm_cluster", "my_cluster")
+		Expect(resource).To(MatchJQ(".attributes.compute_nodes", 3.0))
+		Expect(resource).To(MatchJQ(".attributes.compute_machine_type", "r5.xlarge"))
+	})
+
+	It("Fails if the cluster already exists", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
 				RespondWithJSON(http.StatusBadRequest, `{
 				  "id": "400",
 				  "code": "CLUSTERS-MGMT-400",
@@ -182,7 +314,7 @@ var _ = Describe("Cluster creation", func() {
 				terraform {
 				  required_providers {
 				    ocm = {
-				      source = "localhost/redhat/ocm"
+				      source = "localhost/openshift-online/ocm"
 				    }
 				  }
 				}

@@ -115,7 +115,7 @@ var _ = Describe("Machine types data source", func() {
 				terraform {
 				  required_providers {
 				    ocm = {
-				      source = "localhost/redhat/ocm"
+				      source = "localhost/openshift-online/ocm"
 				    }
 				  }
 				}

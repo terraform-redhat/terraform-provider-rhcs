@@ -46,6 +46,12 @@ resource "ocm_identity_provider" "my_idp" {
   }
 }
 
+resource "ocm_group_membership" "my_admin" {
+  cluster = ocm.cluster.my_cluster.id
+  group   = "dedicated-admins"
+  user    = "admin"
+}
+
 resource "ocm_machine_pool" "my_pool" {
   cluster_id   = ocm_cluster.my_cluster.id
   name         = "my-pool"

@@ -41,19 +41,3 @@ resource "ocm_identity_provider" "my_htpasswd" {
     password = "my-password"
   }
 }
-
-resource "ocm_identity_provider" "my_ldap" {
-  cluster_id = ocm_cluster.my_cluster.id
-  name       = "my-ldap"
-  ldap = {
-    bind_dn       = "my-bind-dn"
-    bind_password = "my-bind-password"
-    url           = "https://my-server.com"
-    attributes = {
-      id                 = ["my-id"]
-      email              = ["my-email"]
-      name               = ["my-name"]
-      preferred_username = ["my-preferred-username"]
-    }
-  }
-}

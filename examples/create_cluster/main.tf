@@ -30,14 +30,25 @@ resource "ocm_cluster" "my_cluster" {
   name           = "my-cluster"
   cloud_provider = "aws"
   cloud_region   = "us-east-1"
-  multi_az       = true
+  compute_nodes  = 10
+  properties = {
+    department  = "accounting"
+    application = "billing"
+  }
 }
 
-resource "ocm_identity_provider" "my_htpasswd" {
+resource "ocm_identity_provider" "my_idp" {
   cluster_id = ocm_cluster.my_cluster.id
-  name       = "my-htpasswd"
+  name       = "my-idp"
   htpasswd = {
-    username = "my-user"
-    password = "my-password"
+    username = "admin"
+    password = "redhat123"
   }
+}
+
+resource "ocm_machine_pool" "my_pool" {
+  cluster_id   = ocm_cluster.my_cluster.id
+  name         = "my-pool"
+  machine_type = "r5.xlarge"
+  replicas     = 5
 }

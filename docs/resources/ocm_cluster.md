@@ -22,6 +22,20 @@ OpenShift managed cluster.
 
 ### Optional
 
+- **aws_account_id** (String) Identifier of the AWS account where the cluster
+  will be created. This is required when `ccs_enabled` is true.
+
+- **aws_access_key_id** (String) Identifier of the AWS access key that will be
+  used to create the cluster. This is required when `ccs_enabled` is true.
+
+- **aws_secret_access_key** (String) AWS access key that will be used to create
+  the cluster. This is required when `ccs_enabled` is `true`.
+
+- **ccs_enabled** (Boolean) Flag indicating if _customer cloud subscription_ is
+  enabled. Default value is `false`. If set to `true` then the cluster will be
+  created in an AWS account specified by the user with the `aws_account_id`,
+  `aws_access_key_id` and `aws_secret_access_key` attributes.
+
 - **compute_nodes** (Number) Number of compute nodes of the cluster.
 
 - **compute_machine_type** (String) Identifier of the machine type used by the

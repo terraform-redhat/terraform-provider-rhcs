@@ -3,6 +3,7 @@ module github.com/openshift-online/terraform-provider-ocm
 go 1.17
 
 require (
+	github.com/evanphx/json-patch/v5 v5.6.0
 	github.com/hashicorp/terraform-plugin-framework v0.4.2
 	github.com/hashicorp/terraform-plugin-go v0.4.0
 	github.com/itchyny/gojq v0.12.5
@@ -47,6 +48,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/oklog/run v1.0.0 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.9.0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.15.0 // indirect

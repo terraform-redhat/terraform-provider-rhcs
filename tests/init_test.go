@@ -37,7 +37,7 @@ var _ = Describe("Init", func() {
 				terraform {
 				  required_providers {
 				    ocm = {
-				      source  = "localhost/redhat/ocm"
+				      source  = "localhost/openshift-online/ocm"
 				    }
 				  }
 				}

@@ -63,6 +63,12 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 	  "ccs": {
 	    "enabled": false
 	  },
+	  "network": {
+	    "machine_cidr": "10.0.0.0/16",
+	    "service_cidr": "172.30.0.0/16",
+	    "pod_cidr": "10.128.0.0/14",
+	    "host_prefix": 23
+	  },
 	  "state": "ready"
 	}`
 
@@ -297,6 +303,73 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.aws_account_id", "123"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.aws_access_key_id", "456"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.aws_secret_access_key", "789"***REMOVED******REMOVED***
+	}***REMOVED***
+
+	It("Sets network configuration", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+				VerifyJQ(".network.machine_cidr", "10.0.0.0/15"***REMOVED***,
+				VerifyJQ(".network.service_cidr", "172.30.0.0/15"***REMOVED***,
+				VerifyJQ(".network.pod_cidr", "10.128.0.0/13"***REMOVED***,
+				VerifyJQ(".network.host_prefix", 22.0***REMOVED***,
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+				  {
+				    "op": "replace",
+				    "path": "/network",
+				    "value": {
+				      "machine_cidr": "10.0.0.0/15",
+				      "service_cidr": "172.30.0.0/15",
+				      "pod_cidr": "10.128.0.0/13",
+				      "host_prefix": 22
+				    }
+				  }
+				]`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		result := NewTerraformRunner(***REMOVED***.
+			File(
+				"main.tf", `
+				terraform {
+				  required_providers {
+				    ocm = {
+				      source = "localhost/openshift-online/ocm"
+				    }
+				  }
+		***REMOVED***
+
+				provider "ocm" {
+				  url         = "{{ .URL }}"
+				  token       = "{{ .Token }}"
+				  trusted_cas = file("{{ .CA }}"***REMOVED***
+		***REMOVED***
+
+				resource "ocm_cluster" "my_cluster" {
+				  name           = "my-cluster"
+				  cloud_provider = "aws"
+				  cloud_region   = "us-west-1"
+				  machine_cidr   = "10.0.0.0/15"
+				  service_cidr   = "172.30.0.0/15"
+				  pod_cidr       = "10.128.0.0/13"
+				  host_prefix    = 22
+		***REMOVED***
+				`,
+				"URL", server.URL(***REMOVED***,
+				"Token", token,
+				"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
+			***REMOVED***.
+			Apply(ctx***REMOVED***
+		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// Check the state:
+		resource := result.Resource("ocm_cluster", "my_cluster"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_cidr", "10.0.0.0/15"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.service_cidr", "172.30.0.0/15"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.pod_cidr", "10.128.0.0/13"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.host_prefix", 22.0***REMOVED******REMOVED***
 	}***REMOVED***
 
 	It("Fails if the cluster already exists", func(***REMOVED*** {

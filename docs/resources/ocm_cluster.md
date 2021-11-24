@@ -22,11 +22,11 @@ OpenShift managed cluster.
 
 ### Optional
 
-- **aws_account_id** (String***REMOVED*** Identifier of the AWS account where the cluster
-  will be created. This is required when `ccs_enabled` is true.
-
 - **aws_access_key_id** (String***REMOVED*** Identifier of the AWS access key that will be
   used to create the cluster. This is required when `ccs_enabled` is true.
+
+- **aws_account_id** (String***REMOVED*** Identifier of the AWS account where the cluster
+  will be created. This is required when `ccs_enabled` is true.
 
 - **aws_secret_access_key** (String***REMOVED*** AWS access key that will be used to create
   the cluster. This is required when `ccs_enabled` is `true`.
@@ -45,6 +45,12 @@ OpenShift managed cluster.
   Note that the compute machine type of a cluster can't be changed. If you change
   the value of this attribute the cluster will be deleted and created again.
 
+- **host_prefix** (Number***REMOVED*** Length of the prefix of the subnet assigned to each
+  node. Default value is `23`.
+
+- **machine_cidr** (String***REMOVED*** Block of IP addresses for nodes. Default value is
+  `10.0.0.0/16`.
+
 - **multi_az** (Boolean***REMOVED*** Indicates if the cluster should be deployed to multiple
   availability zones. Default value is 'false'.
 
@@ -52,7 +58,13 @@ OpenShift managed cluster.
   to use multiple availability zones. If you change the value of this attribute
   the cluster will be deleted and created again.
 
+- **pod_cidr** (String***REMOVED*** Block of IP addresses for pods. Default value is
+  `172.30.0.0/16`.
+
 - **properties** (Map of String***REMOVED*** User defined properties.
+
+- **service_cidr** (String***REMOVED*** Block of IP addresses for services. Default value is
+  `172.30.0.0/16`.
 
 - **wait** (Boolean***REMOVED*** Wait till the cluster is ready.
 

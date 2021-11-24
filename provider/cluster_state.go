@@ -31,10 +31,14 @@ type ClusterState struct {
 	ComputeMachineType types.String `tfsdk:"compute_machine_type"`
 	ComputeNodes       types.Int64  `tfsdk:"compute_nodes"`
 	ConsoleURL         types.String `tfsdk:"console_url"`
+	HostPrefix         types.Int64  `tfsdk:"host_prefix"`
 	ID                 types.String `tfsdk:"id"`
+	MachineCIDR        types.String `tfsdk:"machine_cidr"`
 	MultiAZ            types.Bool   `tfsdk:"multi_az"`
 	Name               types.String `tfsdk:"name"`
+	PodCIDR            types.String `tfsdk:"pod_cidr"`
 	Properties         types.Map    `tfsdk:"properties"`
+	ServiceCIDR        types.String `tfsdk:"service_cidr"`
 	State              types.String `tfsdk:"state"`
 	Wait               types.Bool   `tfsdk:"wait"`
 }

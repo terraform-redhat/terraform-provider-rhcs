@@ -133,6 +133,30 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 				Optional:    true,
 				Sensitive:   true,
 			},
+			"machine_cidr": {
+				Description: "Block of IP addresses for nodes.",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
+			},
+			"service_cidr": {
+				Description: "Block of IP addresses for services.",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
+			},
+			"pod_cidr": {
+				Description: "Block of IP addresses for pods.",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
+			},
+			"host_prefix": {
+				Description: "Length of the prefix of the subnet assigned to each node.",
+				Type:        types.Int64Type,
+				Optional:    true,
+				Computed:    true,
+			},
 			"state": {
 				Description: "State of the cluster.",
 				Type:        types.StringType,
@@ -221,6 +245,22 @@ func (r *ClusterResource) Create(ctx context.Context,
 	}
 	if !aws.Empty() {
 		builder.AWS(aws)
+	}
+	network := cmv1.NewNetwork()
+	if !state.MachineCIDR.Unknown && !state.MachineCIDR.Null {
+		network.MachineCIDR(state.MachineCIDR.Value)
+	}
+	if !state.ServiceCIDR.Unknown && !state.ServiceCIDR.Null {
+		network.ServiceCIDR(state.ServiceCIDR.Value)
+	}
+	if !state.PodCIDR.Unknown && !state.PodCIDR.Null {
+		network.PodCIDR(state.PodCIDR.Value)
+	}
+	if !state.HostPrefix.Unknown && !state.HostPrefix.Null {
+		network.HostPrefix(int(state.HostPrefix.Value))
+	}
+	if !network.Empty() {
+		builder.Network(network)
 	}
 	object, err := builder.Build()
 	if err != nil {
@@ -512,6 +552,46 @@ func (r *ClusterResource) populateState(object *cmv1.Cluster, state *ClusterStat
 		}
 	} else {
 		state.AWSSecretAccessKey = types.String{
+			Null: true,
+		}
+	}
+	machineCIDR, ok := object.Network().GetMachineCIDR()
+	if ok {
+		state.MachineCIDR = types.String{
+			Value: machineCIDR,
+		}
+	} else {
+		state.MachineCIDR = types.String{
+			Null: true,
+		}
+	}
+	serviceCIDR, ok := object.Network().GetServiceCIDR()
+	if ok {
+		state.ServiceCIDR = types.String{
+			Value: serviceCIDR,
+		}
+	} else {
+		state.ServiceCIDR = types.String{
+			Null: true,
+		}
+	}
+	podCIDR, ok := object.Network().GetPodCIDR()
+	if ok {
+		state.PodCIDR = types.String{
+			Value: podCIDR,
+		}
+	} else {
+		state.PodCIDR = types.String{
+			Null: true,
+		}
+	}
+	hostPrefix, ok := object.Network().GetHostPrefix()
+	if ok {
+		state.HostPrefix = types.Int64{
+			Value: int64(hostPrefix),
+		}
+	} else {
+		state.HostPrefix = types.Int64{
 			Null: true,
 		}
 	}

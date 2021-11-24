@@ -31,6 +31,7 @@ resource "ocm_cluster" "my_cluster" {
   cloud_provider = "aws"
   cloud_region   = "us-east-1"
   compute_nodes  = 10
+  version        = "openshift-v4.9.7"
   properties = {
     department  = "accounting"
     application = "billing"
@@ -47,7 +48,7 @@ resource "ocm_identity_provider" "my_idp" {
 }
 
 resource "ocm_group_membership" "my_admin" {
-  cluster = ocm.cluster.my_cluster.id
+  cluster = ocm_cluster.my_cluster.id
   group   = "dedicated-admins"
   user    = "admin"
 }

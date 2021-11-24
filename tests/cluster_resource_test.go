@@ -69,6 +69,9 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 	    "pod_cidr": "10.128.0.0/14",
 	    "host_prefix": 23
 	  },
+	  "version": {
+		  "id": "openshift-4.8.0"
+	  },
 	  "state": "ready"
 	}`
 
@@ -370,6 +373,61 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.service_cidr", "172.30.0.0/15"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.pod_cidr", "10.128.0.0/13"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.host_prefix", 22.0***REMOVED******REMOVED***
+	}***REMOVED***
+
+	It("Sets version", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+				VerifyJQ(".version.id", "openshift-v4.8.1"***REMOVED***,
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+				  {
+				    "op": "replace",
+				    "path": "/version",
+				    "value": {
+				      "id": "openshift-v4.8.1"
+				    }
+				  }
+				]`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		result := NewTerraformRunner(***REMOVED***.
+			File(
+				"main.tf", `
+				terraform {
+				  required_providers {
+				    ocm = {
+				      source = "localhost/openshift-online/ocm"
+				    }
+				  }
+		***REMOVED***
+
+				provider "ocm" {
+				  url         = "{{ .URL }}"
+				  token       = "{{ .Token }}"
+				  trusted_cas = file("{{ .CA }}"***REMOVED***
+		***REMOVED***
+
+				resource "ocm_cluster" "my_cluster" {
+				  name           = "my-cluster"
+				  cloud_provider = "aws"
+				  cloud_region   = "us-west-1"
+				  version        = "openshift-v4.8.1"
+		***REMOVED***
+				`,
+				"URL", server.URL(***REMOVED***,
+				"Token", token,
+				"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
+			***REMOVED***.
+			Apply(ctx***REMOVED***
+		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// Check the state:
+		resource := result.Resource("ocm_cluster", "my_cluster"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.version", "openshift-v4.8.1"***REMOVED******REMOVED***
 	}***REMOVED***
 
 	It("Fails if the cluster already exists", func(***REMOVED*** {

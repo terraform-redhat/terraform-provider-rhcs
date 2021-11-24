@@ -40,5 +40,6 @@ type ClusterState struct {
 	Properties         types.Map    `tfsdk:"properties"`
 	ServiceCIDR        types.String `tfsdk:"service_cidr"`
 	State              types.String `tfsdk:"state"`
+	Version            types.String `tfsdk:"version"`
 	Wait               types.Bool   `tfsdk:"wait"`
 }

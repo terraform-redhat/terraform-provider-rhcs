@@ -157,6 +157,12 @@ func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVE
 				Optional:    true,
 				Computed:    true,
 	***REMOVED***,
+			"version": {
+				Description: "Identifier of the version of OpenShift, for example 'openshift-v4.1.0'.",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
+	***REMOVED***,
 			"state": {
 				Description: "State of the cluster.",
 				Type:        types.StringType,
@@ -261,6 +267,9 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 	}
 	if !network.Empty(***REMOVED*** {
 		builder.Network(network***REMOVED***
+	}
+	if !state.Version.Unknown && !state.Version.Null {
+		builder.Version(cmv1.NewVersion(***REMOVED***.ID(state.Version.Value***REMOVED******REMOVED***
 	}
 	object, err := builder.Build(***REMOVED***
 	if err != nil {
@@ -592,6 +601,16 @@ func (r *ClusterResource***REMOVED*** populateState(object *cmv1.Cluster, state 
 ***REMOVED***
 	} else {
 		state.HostPrefix = types.Int64{
+			Null: true,
+***REMOVED***
+	}
+	version, ok := object.Version(***REMOVED***.GetID(***REMOVED***
+	if ok {
+		state.Version = types.String{
+			Value: version,
+***REMOVED***
+	} else {
+		state.Version = types.String{
 			Null: true,
 ***REMOVED***
 	}

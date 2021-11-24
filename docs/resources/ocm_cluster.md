@@ -66,6 +66,10 @@ OpenShift managed cluster.
 - **service_cidr** (String***REMOVED*** Block of IP addresses for services. Default value is
   `172.30.0.0/16`.
 
+- **version** (String***REMOVED*** Version of _OpenShift_ used to create the cluster, for
+  example `openshift-v4.9.7`. The default is to use the latest version. To get the
+  available versions use the `ocm_versions` data source.
+
 - **wait** (Boolean***REMOVED*** Wait till the cluster is ready.
 
 ### Read-Only

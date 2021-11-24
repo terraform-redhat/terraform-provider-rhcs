@@ -69,6 +69,9 @@ var _ = Describe("Cluster creation", func() {
 	    "pod_cidr": "10.128.0.0/14",
 	    "host_prefix": 23
 	  },
+	  "version": {
+		  "id": "openshift-4.8.0"
+	  },
 	  "state": "ready"
 	}`
 
@@ -370,6 +373,61 @@ var _ = Describe("Cluster creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.service_cidr", "172.30.0.0/15"))
 		Expect(resource).To(MatchJQ(".attributes.pod_cidr", "10.128.0.0/13"))
 		Expect(resource).To(MatchJQ(".attributes.host_prefix", 22.0))
+	})
+
+	It("Sets version", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+				VerifyJQ(".version.id", "openshift-v4.8.1"),
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+				  {
+				    "op": "replace",
+				    "path": "/version",
+				    "value": {
+				      "id": "openshift-v4.8.1"
+				    }
+				  }
+				]`),
+			),
+		)
+
+		// Run the apply command:
+		result := NewTerraformRunner().
+			File(
+				"main.tf", `
+				terraform {
+				  required_providers {
+				    ocm = {
+				      source = "localhost/openshift-online/ocm"
+				    }
+				  }
+				}
+
+				provider "ocm" {
+				  url         = "{{ .URL }}"
+				  token       = "{{ .Token }}"
+				  trusted_cas = file("{{ .CA }}")
+				}
+
+				resource "ocm_cluster" "my_cluster" {
+				  name           = "my-cluster"
+				  cloud_provider = "aws"
+				  cloud_region   = "us-west-1"
+				  version        = "openshift-v4.8.1"
+				}
+				`,
+				"URL", server.URL(),
+				"Token", token,
+				"CA", strings.ReplaceAll(ca, "\\", "/"),
+			).
+			Apply(ctx)
+		Expect(result.ExitCode()).To(BeZero())
+
+		// Check the state:
+		resource := result.Resource("ocm_cluster", "my_cluster")
+		Expect(resource).To(MatchJQ(".attributes.version", "openshift-v4.8.1"))
 	})
 
 	It("Fails if the cluster already exists", func() {

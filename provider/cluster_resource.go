@@ -157,6 +157,12 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 				Optional:    true,
 				Computed:    true,
 			},
+			"version": {
+				Description: "Identifier of the version of OpenShift, for example 'openshift-v4.1.0'.",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
+			},
 			"state": {
 				Description: "State of the cluster.",
 				Type:        types.StringType,
@@ -261,6 +267,9 @@ func (r *ClusterResource) Create(ctx context.Context,
 	}
 	if !network.Empty() {
 		builder.Network(network)
+	}
+	if !state.Version.Unknown && !state.Version.Null {
+		builder.Version(cmv1.NewVersion().ID(state.Version.Value))
 	}
 	object, err := builder.Build()
 	if err != nil {
@@ -592,6 +601,16 @@ func (r *ClusterResource) populateState(object *cmv1.Cluster, state *ClusterStat
 		}
 	} else {
 		state.HostPrefix = types.Int64{
+			Null: true,
+		}
+	}
+	version, ok := object.Version().GetID()
+	if ok {
+		state.Version = types.String{
+			Value: version,
+		}
+	} else {
+		state.Version = types.String{
 			Null: true,
 		}
 	}

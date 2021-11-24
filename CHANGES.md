@@ -1,4 +1,0 @@
-# Changes
-
-This document describes the relevant changes between releases of the Terraform
-provider for OCM.

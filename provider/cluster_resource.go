@@ -133,6 +133,30 @@ func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVE
 				Optional:    true,
 				Sensitive:   true,
 	***REMOVED***,
+			"machine_cidr": {
+				Description: "Block of IP addresses for nodes.",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
+	***REMOVED***,
+			"service_cidr": {
+				Description: "Block of IP addresses for services.",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
+	***REMOVED***,
+			"pod_cidr": {
+				Description: "Block of IP addresses for pods.",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
+	***REMOVED***,
+			"host_prefix": {
+				Description: "Length of the prefix of the subnet assigned to each node.",
+				Type:        types.Int64Type,
+				Optional:    true,
+				Computed:    true,
+	***REMOVED***,
 			"state": {
 				Description: "State of the cluster.",
 				Type:        types.StringType,
@@ -221,6 +245,22 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 	}
 	if !aws.Empty(***REMOVED*** {
 		builder.AWS(aws***REMOVED***
+	}
+	network := cmv1.NewNetwork(***REMOVED***
+	if !state.MachineCIDR.Unknown && !state.MachineCIDR.Null {
+		network.MachineCIDR(state.MachineCIDR.Value***REMOVED***
+	}
+	if !state.ServiceCIDR.Unknown && !state.ServiceCIDR.Null {
+		network.ServiceCIDR(state.ServiceCIDR.Value***REMOVED***
+	}
+	if !state.PodCIDR.Unknown && !state.PodCIDR.Null {
+		network.PodCIDR(state.PodCIDR.Value***REMOVED***
+	}
+	if !state.HostPrefix.Unknown && !state.HostPrefix.Null {
+		network.HostPrefix(int(state.HostPrefix.Value***REMOVED******REMOVED***
+	}
+	if !network.Empty(***REMOVED*** {
+		builder.Network(network***REMOVED***
 	}
 	object, err := builder.Build(***REMOVED***
 	if err != nil {
@@ -512,6 +552,46 @@ func (r *ClusterResource***REMOVED*** populateState(object *cmv1.Cluster, state 
 ***REMOVED***
 	} else {
 		state.AWSSecretAccessKey = types.String{
+			Null: true,
+***REMOVED***
+	}
+	machineCIDR, ok := object.Network(***REMOVED***.GetMachineCIDR(***REMOVED***
+	if ok {
+		state.MachineCIDR = types.String{
+			Value: machineCIDR,
+***REMOVED***
+	} else {
+		state.MachineCIDR = types.String{
+			Null: true,
+***REMOVED***
+	}
+	serviceCIDR, ok := object.Network(***REMOVED***.GetServiceCIDR(***REMOVED***
+	if ok {
+		state.ServiceCIDR = types.String{
+			Value: serviceCIDR,
+***REMOVED***
+	} else {
+		state.ServiceCIDR = types.String{
+			Null: true,
+***REMOVED***
+	}
+	podCIDR, ok := object.Network(***REMOVED***.GetPodCIDR(***REMOVED***
+	if ok {
+		state.PodCIDR = types.String{
+			Value: podCIDR,
+***REMOVED***
+	} else {
+		state.PodCIDR = types.String{
+			Null: true,
+***REMOVED***
+	}
+	hostPrefix, ok := object.Network(***REMOVED***.GetHostPrefix(***REMOVED***
+	if ok {
+		state.HostPrefix = types.Int64{
+			Value: int64(hostPrefix***REMOVED***,
+***REMOVED***
+	} else {
+		state.HostPrefix = types.Int64{
 			Null: true,
 ***REMOVED***
 	}

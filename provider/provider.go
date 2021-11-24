@@ -223,6 +223,7 @@ func (p *Provider***REMOVED*** GetDataSources(ctx context.Context***REMOVED*** (
 		"ocm_cloud_providers": &CloudProvidersDataSourceType{},
 		"ocm_groups":          &GroupsDataSourceType{},
 		"ocm_machine_types":   &MachineTypesDataSourceType{},
+		"ocm_versions":        &VersionsDataSourceType{},
 	}
 	return
 }

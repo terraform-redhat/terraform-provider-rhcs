@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package tests
+package provider
 
 import (
 	"context"
@@ -23,10 +23,11 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo"                         // nolint
-	. "github.com/onsi/gomega"                         // nolint
-	. "github.com/onsi/gomega/ghttp"                   // nolint
-	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+	. "github.com/onsi/ginkgo"                                     // nolint
+	. "github.com/onsi/gomega"                                     // nolint
+	. "github.com/onsi/gomega/ghttp"                               // nolint
+	. "github.com/openshift-online/ocm-sdk-go/testing"             // nolint
+	. "github.com/openshift-online/terraform-provider-ocm/testing" // nolint
 )
 
 var _ = Describe("Cluster creation", func() {

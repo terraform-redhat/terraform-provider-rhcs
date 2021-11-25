@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package tests
+package provider
 
 import (
 	"context"
@@ -29,10 +29,11 @@ import (
 	"testing"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
-	sdktesting "github.com/openshift-online/ocm-sdk-go/testing"
 
-	. "github.com/onsi/ginkgo" // nolint
-	. "github.com/onsi/gomega" // nolint
+	. "github.com/onsi/ginkgo"                                     // nolint
+	. "github.com/onsi/gomega"                                     // nolint
+	. "github.com/openshift-online/ocm-sdk-go/testing"             // nolint
+	. "github.com/openshift-online/terraform-provider-ocm/testing" // nolint
 )
 
 func TestProvider(t *testing.T) {
@@ -79,7 +80,7 @@ func NewTerraformRunner() *TerraformRunner {
 // File adds a file that will be created in the directory where Terraform will run. The content of
 // the file will be generated from the given template and variables.
 func (r *TerraformRunner) File(name, template string, vars ...interface{}) *TerraformRunner {
-	r.files[name] = sdktesting.EvaluateTemplate(template, vars...)
+	r.files[name] = EvaluateTemplate(template, vars...)
 	return r
 }
 
@@ -128,7 +129,7 @@ func (r *TerraformRunner) Run(ctx context.Context) *TerraformResult {
 	Expect(err).ToNot(HaveOccurred())
 	projectDir := filepath.Dir(currentDir)
 	configPath := filepath.Join(tmpDir, "terraform.rc")
-	configText := sdktesting.EvaluateTemplate(
+	configText := EvaluateTemplate(
 		`
 		provider_installation {
 		  filesystem_mirror {
@@ -281,5 +282,5 @@ func RespondWithPatchedJSON(status int, body string, patch string) http.HandlerF
 	Expect(err).ToNot(HaveOccurred())
 	patchResult, err := patchObject.Apply([]byte(body))
 	Expect(err).ToNot(HaveOccurred())
-	return sdktesting.RespondWithJSON(status, string(patchResult))
+	return RespondWithJSON(status, string(patchResult))
 }

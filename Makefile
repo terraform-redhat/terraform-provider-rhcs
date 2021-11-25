@@ -44,7 +44,7 @@ build:
 
 .PHONY: test tests
 test tests: build
-	ginkgo -ldflags="$(ldflags)" -r tests
+	ginkgo -ldflags="$(ldflags)" -r
 
 .PHONY: fmt_go
 fmt_go:

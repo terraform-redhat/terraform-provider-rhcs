@@ -3,13 +3,11 @@ module github.com/openshift-online/terraform-provider-ocm
 go 1.17
 
 require (
-	github.com/evanphx/json-patch/v5 v5.6.0
 	github.com/hashicorp/terraform-plugin-framework v0.4.2
 	github.com/hashicorp/terraform-plugin-go v0.4.0
-	github.com/itchyny/gojq v0.12.5
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.16.0
-	github.com/openshift-online/ocm-sdk-go v0.1.218
+	github.com/openshift-online/ocm-sdk-go v0.1.220
 )
 
 require (
@@ -17,6 +15,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
+	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
 	github.com/fatih/color v1.10.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
@@ -28,6 +27,7 @@ require (
 	github.com/hashicorp/go-hclog v0.15.0 // indirect
 	github.com/hashicorp/go-plugin v1.4.1 // indirect
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d // indirect
+	github.com/itchyny/gojq v0.12.5 // indirect
 	github.com/itchyny/timefmt-go v0.1.3 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.9.0 // indirect

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package tests
+package provider
 
 ***REMOVED***
 	"context"
@@ -23,13 +23,14 @@ package tests
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo"                         // nolint
-***REMOVED***                         // nolint
-	. "github.com/onsi/gomega/ghttp"                   // nolint
-	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+	. "github.com/onsi/ginkgo"                                     // nolint
+***REMOVED***                                     // nolint
+	. "github.com/onsi/gomega/ghttp"                               // nolint
+	. "github.com/openshift-online/ocm-sdk-go/testing"             // nolint
+	. "github.com/openshift-online/terraform-provider-ocm/testing" // nolint
 ***REMOVED***
 
-var _ = Describe("Versions data source", func(***REMOVED*** {
+var _ = Describe("Groups data source", func(***REMOVED*** {
 	var ctx context.Context
 	var server *Server
 	var ca string
@@ -55,24 +56,18 @@ var _ = Describe("Versions data source", func(***REMOVED*** {
 		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 	}***REMOVED***
 
-	It("Can list versions", func(***REMOVED*** {
+	It("Can list groups", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-				VerifyFormKV("search", "enabled = 't'"***REMOVED***,
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/groups"***REMOVED***,
 				RespondWithJSON(http.StatusOK, `{
 				  "page": 1,
-				  "size": 2,
-				  "total": 2,
+				  "size": 1,
+				  "total": 1,
 				  "items": [
 				    {
-				      "id": "openshift-v4.8.1",
-				      "raw_id": "4.8.1"
-				    },
-				    {
-				      "id": "openshift-v4.8.2",
-				      "raw_id": "4.8.2"
+				      "id": "dedicated-admins"
 				    }
 				  ]
 		***REMOVED***`***REMOVED***,
@@ -97,7 +92,8 @@ var _ = Describe("Versions data source", func(***REMOVED*** {
 				  trusted_cas = file("{{ .CA }}"***REMOVED***
 		***REMOVED***
 
-				data "ocm_versions" "my_versions" {
+				data "ocm_groups" "my_groups" {
+				  cluster = "123"
 		***REMOVED***
 				`,
 				"URL", server.URL(***REMOVED***,
@@ -108,11 +104,9 @@ var _ = Describe("Versions data source", func(***REMOVED*** {
 		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := result.Resource("ocm_versions", "my_versions"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items | length`, 2***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].id`, "openshift-v4.8.1"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].name`, "4.8.1"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].id`, "openshift-v4.8.2"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].name`, "4.8.2"***REMOVED******REMOVED***
+		resource := result.Resource("ocm_groups", "my_groups"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items |length`, 1***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].id`, "dedicated-admins"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].name`, "dedicated-admins"***REMOVED******REMOVED***
 	}***REMOVED***
 }***REMOVED***

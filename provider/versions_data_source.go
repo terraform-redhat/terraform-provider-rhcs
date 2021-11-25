@@ -39,28 +39,25 @@ func (t *VersionsDataSourceType) GetSchema(ctx context.Context) (result tfsdk.Sc
 	result = tfsdk.Schema{
 		Description: "List of OpenShift versions.",
 		Attributes: map[string]tfsdk.Attribute{
+			"search": {
+				Description: "Search criteria.",
+				Type:        types.StringType,
+				Optional:    true,
+			},
+			"order": {
+				Description: "Order criteria.",
+				Type:        types.StringType,
+				Optional:    true,
+			},
+			"item": {
+				Description: "Content of the list when there is exactly one item.",
+				Attributes:  tfsdk.SingleNestedAttributes(t.itemAttributes()),
+				Computed:    true,
+			},
 			"items": {
-				Description: "Items of the list.",
+				Description: "Content of the list.",
 				Attributes: tfsdk.ListNestedAttributes(
-					map[string]tfsdk.Attribute{
-						"id": {
-							Description: "Unique identifier of the " +
-								"version. This is what " +
-								"should be used when referencing " +
-								"the versions from other " +
-								"places, for example in the " +
-								"'version' attribute " +
-								"of the cluster resource.",
-							Type:     types.StringType,
-							Computed: true,
-						},
-						"name": {
-							Description: "Short name of the version " +
-								"provider, for example '4.1.0'.",
-							Type:     types.StringType,
-							Computed: true,
-						},
-					},
+					t.itemAttributes(),
 					tfsdk.ListNestedAttributesOptions{},
 				),
 				Computed: true,
@@ -68,6 +65,23 @@ func (t *VersionsDataSourceType) GetSchema(ctx context.Context) (result tfsdk.Sc
 		},
 	}
 	return
+}
+
+func (t *VersionsDataSourceType) itemAttributes() map[string]tfsdk.Attribute {
+	return map[string]tfsdk.Attribute{
+		"id": {
+			Description: "Unique identifier of the version. This is what should be " +
+				"used when referencing the versions from other places, for " +
+				"example in the 'version' attribute of the cluster resource.",
+			Type:     types.StringType,
+			Computed: true,
+		},
+		"name": {
+			Description: "Short name of the version, for example '4.1.0'.",
+			Type:        types.StringType,
+			Computed:    true,
+		},
+	}
 }
 
 func (t *VersionsDataSourceType) NewDataSource(ctx context.Context,
@@ -88,13 +102,27 @@ func (t *VersionsDataSourceType) NewDataSource(ctx context.Context,
 
 func (s *VersionsDataSource) Read(ctx context.Context, request tfsdk.ReadDataSourceRequest,
 	response *tfsdk.ReadDataSourceResponse) {
-	// Fetch the list of verisions:
+	// Get the state:
+	state := &VersionsState{}
+	diags := request.Config.Get(ctx, state)
+	response.Diagnostics.Append(diags...)
+	if response.Diagnostics.HasError() {
+		return
+	}
+
+	// Fetch the list of versions:
 	var listItems []*cmv1.Version
 	listSize := 100
 	listPage := 1
-	listRequest := s.collection.List().
-		Search("enabled = 't'").
-		Size(listSize)
+	listRequest := s.collection.List().Size(listSize)
+	if !state.Search.Unknown && !state.Search.Null {
+		listRequest.Search(state.Search.Value)
+	} else {
+		listRequest.Search("enabled = 't'")
+	}
+	if !state.Order.Unknown && !state.Order.Null {
+		listRequest.Order(state.Order.Value)
+	}
 	for {
 		listResponse, err := listRequest.SendContext(ctx)
 		if err != nil {
@@ -119,9 +147,7 @@ func (s *VersionsDataSource) Read(ctx context.Context, request tfsdk.ReadDataSou
 	}
 
 	// Populate the state:
-	state := &VersionsState{
-		Items: make([]*VersionState, len(listItems)),
-	}
+	state.Items = make([]*VersionState, len(listItems))
 	for i, listItem := range listItems {
 		state.Items[i] = &VersionState{
 			ID: types.String{
@@ -132,8 +158,13 @@ func (s *VersionsDataSource) Read(ctx context.Context, request tfsdk.ReadDataSou
 			},
 		}
 	}
+	if len(state.Items) == 1 {
+		state.Item = state.Items[0]
+	} else {
+		state.Item = nil
+	}
 
 	// Save the state:
-	diags := response.State.Set(ctx, state)
+	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
 }

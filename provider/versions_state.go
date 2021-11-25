@@ -16,6 +16,11 @@ limitations under the License.
 
 package provider
 
+import "github.com/hashicorp/terraform-plugin-framework/types"
+
 type VersionsState struct {
-	Items []*VersionState `tfsdk:"items"`
+	Search types.String    `tfsdk:"search"`
+	Order  types.String    `tfsdk:"order"`
+	Item   *VersionState   `tfsdk:"item"`
+	Items  []*VersionState `tfsdk:"items"`
 }

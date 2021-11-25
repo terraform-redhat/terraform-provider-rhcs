@@ -55,16 +55,15 @@ var _ = Describe("Cloud providers data source", func(***REMOVED*** {
 		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 	}***REMOVED***
 
-	It("Can list cloud providers types", func(***REMOVED*** {
+	It("Can list cloud providers", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/cloud_providers"***REMOVED***,
 				RespondWithJSON(http.StatusOK, `{
-				  "kind": "CloudProviderList",
 				  "page": 1,
-				  "size": 7,
-				  "total": 7,
+				  "size": 2,
+				  "total": 2,
 				  "items": [
 				    {
 				      "id": "aws",
@@ -99,7 +98,7 @@ var _ = Describe("Cloud providers data source", func(***REMOVED*** {
 				  trusted_cas = file("{{ .CA }}"***REMOVED***
 		***REMOVED***
 
-				data "ocm_cloud_providers" "my_providers" {
+				data "ocm_cloud_providers" "all" {
 		***REMOVED***
 				`,
 				"URL", server.URL(***REMOVED***,
@@ -110,24 +109,243 @@ var _ = Describe("Cloud providers data source", func(***REMOVED*** {
 		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := result.Resource("ocm_cloud_providers", "my_providers"***REMOVED***
+		resource := result.Resource("ocm_cloud_providers", "all"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items | length`, 2***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].id`, "aws"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].name`, "aws"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].display_name`, "AWS"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].id`, "gcp"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].name`, "gcp"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].display_name`, "GCP"***REMOVED******REMOVED***
+	}***REMOVED***
 
-		// Check the GCP cloud provider:
-		gcpItems, err := JQ(`.attributes.items[] | select(.name == "gcp"***REMOVED***`, resource***REMOVED***
-		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-		Expect(gcpItems***REMOVED***.To(HaveLen(1***REMOVED******REMOVED***
-		gcpItem := gcpItems[0]
-		Expect(gcpItem***REMOVED***.To(MatchJQ(".id", "gcp"***REMOVED******REMOVED***
-		Expect(gcpItem***REMOVED***.To(MatchJQ(".name", "gcp"***REMOVED******REMOVED***
-		Expect(gcpItem***REMOVED***.To(MatchJQ(".display_name", "GCP"***REMOVED******REMOVED***
+	It("Can search cloud providers", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/cloud_providers"***REMOVED***,
+				VerifyFormKV("search", "display_name like 'A%'"***REMOVED***,
+				VerifyFormKV("order", "display_name asc"***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+				  "page": 1,
+				  "size": 2,
+				  "total": 2,
+				  "items": [
+				    {
+				      "id": "aws",
+				      "name": "aws",
+				      "display_name": "AWS"
+				    },
+				    {
+				      "id": "azure",
+				      "name": "azure",
+				      "display_name": "Azure"
+				    }
+				  ]
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
 
-		// Check the AWS machine type:
-		awsItems, err := JQ(`.attributes.items[] | select(.name == "aws"***REMOVED***`, resource***REMOVED***
-		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-		Expect(awsItems***REMOVED***.To(HaveLen(1***REMOVED******REMOVED***
-		awsItem := awsItems[0]
-		Expect(awsItem***REMOVED***.To(MatchJQ(".id", "aws"***REMOVED******REMOVED***
-		Expect(awsItem***REMOVED***.To(MatchJQ(".name", "aws"***REMOVED******REMOVED***
-		Expect(awsItem***REMOVED***.To(MatchJQ(".display_name", "AWS"***REMOVED******REMOVED***
+		// Run the apply command:
+		result := NewTerraformRunner(***REMOVED***.
+			File(
+				"main.tf", `
+				terraform {
+				  required_providers {
+				    ocm = {
+				      source = "localhost/openshift-online/ocm"
+				    }
+				  }
+		***REMOVED***
+
+				provider "ocm" {
+				  url         = "{{ .URL }}"
+				  token       = "{{ .Token }}"
+				  trusted_cas = file("{{ .CA }}"***REMOVED***
+		***REMOVED***
+
+				data "ocm_cloud_providers" "a" {
+				  search = "display_name like 'A%'"
+				  order  = "display_name asc"
+		***REMOVED***
+				`,
+				"URL", server.URL(***REMOVED***,
+				"Token", token,
+				"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
+			***REMOVED***.
+			Apply(ctx***REMOVED***
+		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// Check the state:
+		resource := result.Resource("ocm_cloud_providers", "a"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.search`, "display_name like 'A%'"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.order`, "display_name asc"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items | length`, 2***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].id`, "aws"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].name`, "aws"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].display_name`, "AWS"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].id`, "azure"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].name`, "azure"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].display_name`, "Azure"***REMOVED******REMOVED***
+	}***REMOVED***
+
+	It("Populates `item` if there is exactly one result", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/cloud_providers"***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+				  "page": 1,
+				  "size": 1,
+				  "total": 1,
+				  "items": [
+				    {
+				      "id": "aws",
+				      "name": "aws",
+				      "display_name": "AWS"
+				    }
+				  ]
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		result := NewTerraformRunner(***REMOVED***.
+			File(
+				"main.tf", `
+				terraform {
+				  required_providers {
+				    ocm = {
+				      source = "localhost/openshift-online/ocm"
+				    }
+				  }
+		***REMOVED***
+
+				provider "ocm" {
+				  url         = "{{ .URL }}"
+				  token       = "{{ .Token }}"
+				  trusted_cas = file("{{ .CA }}"***REMOVED***
+		***REMOVED***
+
+				data "ocm_cloud_providers" "a" {
+		***REMOVED***
+				`,
+				"URL", server.URL(***REMOVED***,
+				"Token", token,
+				"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
+			***REMOVED***.
+			Apply(ctx***REMOVED***
+		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// Check the state:
+		resource := result.Resource("ocm_cloud_providers", "a"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item.id`, "aws"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item.name`, "aws"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item.display_name`, "AWS"***REMOVED******REMOVED***
+	}***REMOVED***
+
+	It("Doesn't populate `item` if there are zero results", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/cloud_providers"***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+				  "page": 1,
+				  "size": 0,
+				  "total": 0,
+				  "items": []
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		result := NewTerraformRunner(***REMOVED***.
+			File(
+				"main.tf", `
+				terraform {
+				  required_providers {
+				    ocm = {
+				      source = "localhost/openshift-online/ocm"
+				    }
+				  }
+		***REMOVED***
+
+				provider "ocm" {
+				  url         = "{{ .URL }}"
+				  token       = "{{ .Token }}"
+				  trusted_cas = file("{{ .CA }}"***REMOVED***
+		***REMOVED***
+
+				data "ocm_cloud_providers" "all" {
+		***REMOVED***
+				`,
+				"URL", server.URL(***REMOVED***,
+				"Token", token,
+				"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
+			***REMOVED***.
+			Apply(ctx***REMOVED***
+		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// Check the state:
+		resource := result.Resource("ocm_cloud_providers", "all"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item`, nil***REMOVED******REMOVED***
+	}***REMOVED***
+
+	It("Doesn't populate `item` if there multiple results", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/cloud_providers"***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+				  "page": 1,
+				  "size": 2,
+				  "total": 2,
+				  "items": [
+				    {
+				      "id": "aws",
+				      "name": "aws",
+				      "display_name": "AWS"
+				    },
+				    {
+				      "id": "gcp",
+				      "name": "gcp",
+				      "display_name": "GCP"
+				    }
+				  ]
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		result := NewTerraformRunner(***REMOVED***.
+			File(
+				"main.tf", `
+				terraform {
+				  required_providers {
+				    ocm = {
+				      source = "localhost/openshift-online/ocm"
+				    }
+				  }
+		***REMOVED***
+
+				provider "ocm" {
+				  url         = "{{ .URL }}"
+				  token       = "{{ .Token }}"
+				  trusted_cas = file("{{ .CA }}"***REMOVED***
+		***REMOVED***
+
+				data "ocm_cloud_providers" "all" {
+		***REMOVED***
+				`,
+				"URL", server.URL(***REMOVED***,
+				"Token", token,
+				"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
+			***REMOVED***.
+			Apply(ctx***REMOVED***
+		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// Check the state:
+		resource := result.Resource("ocm_cloud_providers", "all"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item`, nil***REMOVED******REMOVED***
 	}***REMOVED***
 }***REMOVED***

@@ -26,10 +26,12 @@ terraform {
 provider "ocm" {
 }
 
-data "ocm_cloud_providers" "all" {
+data "ocm_cloud_providers" "a" {
+  search = "display_name like 'A%'"
+  order  = "display_name asc"
 }
 
-output "cloud_providers" {
-  description = "Cloud providers"
-  value       = data.ocm_cloud_providers.all
+output "result" {
+  description = "Cloud providers with names starting with 'A'"
+  value       = data.ocm_cloud_providers.a.items
 }

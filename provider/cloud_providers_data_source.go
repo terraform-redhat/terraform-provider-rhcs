@@ -39,36 +39,25 @@ func (t *CloudProvidersDataSourceType***REMOVED*** GetSchema(ctx context.Context
 	result = tfsdk.Schema{
 		Description: "List of cloud providers.",
 		Attributes: map[string]tfsdk.Attribute{
+			"search": {
+				Description: "Search criteria.",
+				Type:        types.StringType,
+				Optional:    true,
+	***REMOVED***,
+			"order": {
+				Description: "Order criteria.",
+				Type:        types.StringType,
+				Optional:    true,
+	***REMOVED***,
+			"item": {
+				Description: "Content of the list when there is exactly one item.",
+				Attributes:  tfsdk.SingleNestedAttributes(t.itemAttributes(***REMOVED******REMOVED***,
+				Computed:    true,
+	***REMOVED***,
 			"items": {
-				Description: "Items of the list.",
+				Description: "Content of the list.",
 				Attributes: tfsdk.ListNestedAttributes(
-					map[string]tfsdk.Attribute{
-						"id": {
-							Description: "Unique identifier of the " +
-								"cloud provider. This is what " +
-								"should be used when referencing " +
-								"the cloud providers from other " +
-								"places, for example in the " +
-								"'cloud_provider' attribute " +
-								"of the cluster resource.",
-							Type:     types.StringType,
-							Computed: true,
-				***REMOVED***,
-						"name": {
-							Description: "Short name of the cloud " +
-								"provider, for example 'aws' " +
-								"or 'gcp'.",
-							Type:     types.StringType,
-							Computed: true,
-				***REMOVED***,
-						"display_name": {
-							Description: "Human friendly name of " +
-								"the cloud provider, for " +
-								"example 'AWS' or 'GCP'",
-							Type:     types.StringType,
-							Computed: true,
-				***REMOVED***,
-			***REMOVED***,
+					t.itemAttributes(***REMOVED***,
 					tfsdk.ListNestedAttributesOptions{},
 				***REMOVED***,
 				Computed: true,
@@ -76,6 +65,31 @@ func (t *CloudProvidersDataSourceType***REMOVED*** GetSchema(ctx context.Context
 ***REMOVED***,
 	}
 	return
+}
+
+func (t *CloudProvidersDataSourceType***REMOVED*** itemAttributes(***REMOVED*** map[string]tfsdk.Attribute {
+	return map[string]tfsdk.Attribute{
+		"id": {
+			Description: "Unique identifier of the cloud provider. This is what " +
+				"should be used when referencing the cloud provider from other " +
+				"places, for example in the 'cloud_provider' attribute " +
+				"of the cluster resource.",
+			Type:     types.StringType,
+			Computed: true,
+***REMOVED***,
+		"name": {
+			Description: "Short name of the cloud provider, for example 'aws' " +
+				"or 'gcp'.",
+			Type:     types.StringType,
+			Computed: true,
+***REMOVED***,
+		"display_name": {
+			Description: "Human friendly name of the cloud provider, for example " +
+				"'AWS' or 'GCP'",
+			Type:     types.StringType,
+			Computed: true,
+***REMOVED***,
+	}
 }
 
 func (t *CloudProvidersDataSourceType***REMOVED*** NewDataSource(ctx context.Context,
@@ -96,12 +110,25 @@ func (t *CloudProvidersDataSourceType***REMOVED*** NewDataSource(ctx context.Con
 
 func (s *CloudProvidersDataSource***REMOVED*** Read(ctx context.Context, request tfsdk.ReadDataSourceRequest,
 	response *tfsdk.ReadDataSourceResponse***REMOVED*** {
+	// Get the state:
+	state := &CloudProvidersState{}
+	diags := request.Config.Get(ctx, state***REMOVED***
+	response.Diagnostics.Append(diags...***REMOVED***
+	if response.Diagnostics.HasError(***REMOVED*** {
+		return
+	}
 
 	// Fetch the complete list of cloud providers:
 	var listItems []*cmv1.CloudProvider
-	listSize := 10
+	listSize := 100
 	listPage := 1
 	listRequest := s.collection.List(***REMOVED***.Size(listSize***REMOVED***
+	if !state.Search.Unknown && !state.Search.Null {
+		listRequest.Search(state.Search.Value***REMOVED***
+	}
+	if !state.Order.Unknown && !state.Order.Null {
+		listRequest.Order(state.Order.Value***REMOVED***
+	}
 	for {
 		listResponse, err := listRequest.SendContext(ctx***REMOVED***
 		if err != nil {
@@ -126,9 +153,7 @@ func (s *CloudProvidersDataSource***REMOVED*** Read(ctx context.Context, request
 	}
 
 	// Populate the state:
-	state := &CloudProvidersState{
-		Items: make([]*CloudProviderState, len(listItems***REMOVED******REMOVED***,
-	}
+	state.Items = make([]*CloudProviderState, len(listItems***REMOVED******REMOVED***
 	for i, listItem := range listItems {
 		state.Items[i] = &CloudProviderState{
 			ID:          listItem.ID(***REMOVED***,
@@ -136,8 +161,11 @@ func (s *CloudProvidersDataSource***REMOVED*** Read(ctx context.Context, request
 			DisplayName: listItem.DisplayName(***REMOVED***,
 ***REMOVED***
 	}
+	if len(state.Items***REMOVED*** == 1 {
+		state.Item = state.Items[0]
+	}
 
 	// Save the state:
-	diags := response.State.Set(ctx, state***REMOVED***
+	diags = response.State.Set(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
 }

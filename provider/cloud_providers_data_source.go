@@ -39,36 +39,25 @@ func (t *CloudProvidersDataSourceType) GetSchema(ctx context.Context) (result tf
 	result = tfsdk.Schema{
 		Description: "List of cloud providers.",
 		Attributes: map[string]tfsdk.Attribute{
+			"search": {
+				Description: "Search criteria.",
+				Type:        types.StringType,
+				Optional:    true,
+			},
+			"order": {
+				Description: "Order criteria.",
+				Type:        types.StringType,
+				Optional:    true,
+			},
+			"item": {
+				Description: "Content of the list when there is exactly one item.",
+				Attributes:  tfsdk.SingleNestedAttributes(t.itemAttributes()),
+				Computed:    true,
+			},
 			"items": {
-				Description: "Items of the list.",
+				Description: "Content of the list.",
 				Attributes: tfsdk.ListNestedAttributes(
-					map[string]tfsdk.Attribute{
-						"id": {
-							Description: "Unique identifier of the " +
-								"cloud provider. This is what " +
-								"should be used when referencing " +
-								"the cloud providers from other " +
-								"places, for example in the " +
-								"'cloud_provider' attribute " +
-								"of the cluster resource.",
-							Type:     types.StringType,
-							Computed: true,
-						},
-						"name": {
-							Description: "Short name of the cloud " +
-								"provider, for example 'aws' " +
-								"or 'gcp'.",
-							Type:     types.StringType,
-							Computed: true,
-						},
-						"display_name": {
-							Description: "Human friendly name of " +
-								"the cloud provider, for " +
-								"example 'AWS' or 'GCP'",
-							Type:     types.StringType,
-							Computed: true,
-						},
-					},
+					t.itemAttributes(),
 					tfsdk.ListNestedAttributesOptions{},
 				),
 				Computed: true,
@@ -76,6 +65,31 @@ func (t *CloudProvidersDataSourceType) GetSchema(ctx context.Context) (result tf
 		},
 	}
 	return
+}
+
+func (t *CloudProvidersDataSourceType) itemAttributes() map[string]tfsdk.Attribute {
+	return map[string]tfsdk.Attribute{
+		"id": {
+			Description: "Unique identifier of the cloud provider. This is what " +
+				"should be used when referencing the cloud provider from other " +
+				"places, for example in the 'cloud_provider' attribute " +
+				"of the cluster resource.",
+			Type:     types.StringType,
+			Computed: true,
+		},
+		"name": {
+			Description: "Short name of the cloud provider, for example 'aws' " +
+				"or 'gcp'.",
+			Type:     types.StringType,
+			Computed: true,
+		},
+		"display_name": {
+			Description: "Human friendly name of the cloud provider, for example " +
+				"'AWS' or 'GCP'",
+			Type:     types.StringType,
+			Computed: true,
+		},
+	}
 }
 
 func (t *CloudProvidersDataSourceType) NewDataSource(ctx context.Context,
@@ -96,12 +110,25 @@ func (t *CloudProvidersDataSourceType) NewDataSource(ctx context.Context,
 
 func (s *CloudProvidersDataSource) Read(ctx context.Context, request tfsdk.ReadDataSourceRequest,
 	response *tfsdk.ReadDataSourceResponse) {
+	// Get the state:
+	state := &CloudProvidersState{}
+	diags := request.Config.Get(ctx, state)
+	response.Diagnostics.Append(diags...)
+	if response.Diagnostics.HasError() {
+		return
+	}
 
 	// Fetch the complete list of cloud providers:
 	var listItems []*cmv1.CloudProvider
-	listSize := 10
+	listSize := 100
 	listPage := 1
 	listRequest := s.collection.List().Size(listSize)
+	if !state.Search.Unknown && !state.Search.Null {
+		listRequest.Search(state.Search.Value)
+	}
+	if !state.Order.Unknown && !state.Order.Null {
+		listRequest.Order(state.Order.Value)
+	}
 	for {
 		listResponse, err := listRequest.SendContext(ctx)
 		if err != nil {
@@ -126,9 +153,7 @@ func (s *CloudProvidersDataSource) Read(ctx context.Context, request tfsdk.ReadD
 	}
 
 	// Populate the state:
-	state := &CloudProvidersState{
-		Items: make([]*CloudProviderState, len(listItems)),
-	}
+	state.Items = make([]*CloudProviderState, len(listItems))
 	for i, listItem := range listItems {
 		state.Items[i] = &CloudProviderState{
 			ID:          listItem.ID(),
@@ -136,8 +161,11 @@ func (s *CloudProvidersDataSource) Read(ctx context.Context, request tfsdk.ReadD
 			DisplayName: listItem.DisplayName(),
 		}
 	}
+	if len(state.Items) == 1 {
+		state.Item = state.Items[0]
+	}
 
 	// Save the state:
-	diags := response.State.Set(ctx, state)
+	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
 }

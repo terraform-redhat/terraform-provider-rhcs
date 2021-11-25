@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package tests
+package provider
 
 import (
 	"context"
@@ -23,13 +23,14 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo"                         // nolint
-	. "github.com/onsi/gomega"                         // nolint
-	. "github.com/onsi/gomega/ghttp"                   // nolint
-	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+	. "github.com/onsi/ginkgo"                                     // nolint
+	. "github.com/onsi/gomega"                                     // nolint
+	. "github.com/onsi/gomega/ghttp"                               // nolint
+	. "github.com/openshift-online/ocm-sdk-go/testing"             // nolint
+	. "github.com/openshift-online/terraform-provider-ocm/testing" // nolint
 )
 
-var _ = Describe("Group membership creation", func() {
+var _ = Describe("Machine pool creation", func() {
 	var ctx context.Context
 	var server *Server
 	var ca string
@@ -45,9 +46,9 @@ var _ = Describe("Group membership creation", func() {
 		// Start the server:
 		server, ca = MakeTCPTLSServer()
 
-		// The first thing that the provider will do for any operation on grups is check
-		// that the cluster is ready, so we always need to prepare the server to respond to
-		// that:
+		// The first thing that the provider will do for any operation on identity providers
+		// is check that the cluster is ready, so we always need to prepare the server to
+		// respond to that:
 		server.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
@@ -69,20 +70,24 @@ var _ = Describe("Group membership creation", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	It("Can create a group membership", func() {
+	It("Can create machine pool", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(
 					http.MethodPost,
-					"/api/clusters_mgmt/v1/clusters/123/groups/dedicated-admins/users",
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
 				),
 				VerifyJSON(`{
-				  "kind": "User",
-				  "id": "my-admin"
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 10
 				}`),
 				RespondWithJSON(http.StatusOK, `{
-				  "id": "my-admin"
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 10
 				}`),
 			),
 		)
@@ -105,12 +110,13 @@ var _ = Describe("Group membership creation", func() {
 				  trusted_cas = file("{{ .CA }}")
 				}
 
-				resource "ocm_group_membership" "my_membership" {
-				  cluster   = "123"
-				  group     = "dedicated-admins"
-				  user      = "my-admin"
+				resource "ocm_machine_pool" "my_pool" {
+				  cluster      = "123"
+				  name         = "my-pool"
+				  machine_type = "r5.xlarge"
+				  replicas     = 10
 				}
-				`,
+					`,
 				"URL", server.URL(),
 				"Token", token,
 				"CA", strings.ReplaceAll(ca, "\\", "/"),
@@ -119,10 +125,11 @@ var _ = Describe("Group membership creation", func() {
 		Expect(result.ExitCode()).To(BeZero())
 
 		// Check the state:
-		resource := result.Resource("ocm_group_membership", "my_membership")
+		resource := result.Resource("ocm_machine_pool", "my_pool")
 		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
-		Expect(resource).To(MatchJQ(".attributes.group", "dedicated-admins"))
-		Expect(resource).To(MatchJQ(".attributes.id", "my-admin"))
-		Expect(resource).To(MatchJQ(".attributes.user", "my-admin"))
+		Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
+		Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
+		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
+		Expect(resource).To(MatchJQ(".attributes.replicas", 10.0))
 	})
 })

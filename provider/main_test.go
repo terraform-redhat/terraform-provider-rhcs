@@ -21,19 +21,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	jsonpatch "github.com/evanphx/json-patch/v5"
-
-	. "github.com/onsi/ginkgo"                                     // nolint
-	. "github.com/onsi/gomega"                                     // nolint
-	. "github.com/openshift-online/ocm-sdk-go/testing"             // nolint
-	. "github.com/openshift-online/terraform-provider-ocm/testing" // nolint
+	. "github.com/onsi/ginkgo"                         // nolint
+	. "github.com/onsi/gomega"                         // nolint
+	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
 )
 
 func TestProvider(t *testing.T) {
@@ -273,14 +269,4 @@ func (r *TerraformResult) Resource(typ, name string) interface{} {
 		typ, name, len(results),
 	)
 	return results[0]
-}
-
-// RespondWithPatchedJSON responds with the given status code and the result of
-// patching the given JSON with the given patch.
-func RespondWithPatchedJSON(status int, body string, patch string) http.HandlerFunc {
-	patchObject, err := jsonpatch.DecodePatch([]byte(patch))
-	Expect(err).ToNot(HaveOccurred())
-	patchResult, err := patchObject.Apply([]byte(body))
-	Expect(err).ToNot(HaveOccurred())
-	return RespondWithJSON(status, string(patchResult))
 }

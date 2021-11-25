@@ -23,11 +23,10 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo"                                     // nolint
-	. "github.com/onsi/gomega"                                     // nolint
-	. "github.com/onsi/gomega/ghttp"                               // nolint
-	. "github.com/openshift-online/ocm-sdk-go/testing"             // nolint
-	. "github.com/openshift-online/terraform-provider-ocm/testing" // nolint
+	. "github.com/onsi/ginkgo"                         // nolint
+	. "github.com/onsi/gomega"                         // nolint
+	. "github.com/onsi/gomega/ghttp"                   // nolint
+	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
 )
 
 var _ = Describe("Group membership creation", func() {

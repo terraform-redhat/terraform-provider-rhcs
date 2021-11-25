@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package tests
+package provider
 
 ***REMOVED***
 	"context"
@@ -29,10 +29,11 @@ package tests
 	"testing"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
-	sdktesting "github.com/openshift-online/ocm-sdk-go/testing"
 
-	. "github.com/onsi/ginkgo" // nolint
-***REMOVED*** // nolint
+	. "github.com/onsi/ginkgo"                                     // nolint
+***REMOVED***                                     // nolint
+	. "github.com/openshift-online/ocm-sdk-go/testing"             // nolint
+	. "github.com/openshift-online/terraform-provider-ocm/testing" // nolint
 ***REMOVED***
 
 func TestProvider(t *testing.T***REMOVED*** {
@@ -79,7 +80,7 @@ func NewTerraformRunner(***REMOVED*** *TerraformRunner {
 // File adds a file that will be created in the directory where Terraform will run. The content of
 // the file will be generated from the given template and variables.
 func (r *TerraformRunner***REMOVED*** File(name, template string, vars ...interface{}***REMOVED*** *TerraformRunner {
-	r.files[name] = sdktesting.EvaluateTemplate(template, vars...***REMOVED***
+	r.files[name] = EvaluateTemplate(template, vars...***REMOVED***
 	return r
 }
 
@@ -128,7 +129,7 @@ func (r *TerraformRunner***REMOVED*** Run(ctx context.Context***REMOVED*** *Terr
 	Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 	projectDir := filepath.Dir(currentDir***REMOVED***
 	configPath := filepath.Join(tmpDir, "terraform.rc"***REMOVED***
-	configText := sdktesting.EvaluateTemplate(
+	configText := EvaluateTemplate(
 		`
 		provider_installation {
 		  filesystem_mirror {
@@ -281,5 +282,5 @@ func RespondWithPatchedJSON(status int, body string, patch string***REMOVED*** h
 	Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 	patchResult, err := patchObject.Apply([]byte(body***REMOVED******REMOVED***
 	Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-	return sdktesting.RespondWithJSON(status, string(patchResult***REMOVED******REMOVED***
+	return RespondWithJSON(status, string(patchResult***REMOVED******REMOVED***
 }

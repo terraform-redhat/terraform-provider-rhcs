@@ -39,28 +39,25 @@ func (t *VersionsDataSourceType***REMOVED*** GetSchema(ctx context.Context***REM
 	result = tfsdk.Schema{
 		Description: "List of OpenShift versions.",
 		Attributes: map[string]tfsdk.Attribute{
+			"search": {
+				Description: "Search criteria.",
+				Type:        types.StringType,
+				Optional:    true,
+	***REMOVED***,
+			"order": {
+				Description: "Order criteria.",
+				Type:        types.StringType,
+				Optional:    true,
+	***REMOVED***,
+			"item": {
+				Description: "Content of the list when there is exactly one item.",
+				Attributes:  tfsdk.SingleNestedAttributes(t.itemAttributes(***REMOVED******REMOVED***,
+				Computed:    true,
+	***REMOVED***,
 			"items": {
-				Description: "Items of the list.",
+				Description: "Content of the list.",
 				Attributes: tfsdk.ListNestedAttributes(
-					map[string]tfsdk.Attribute{
-						"id": {
-							Description: "Unique identifier of the " +
-								"version. This is what " +
-								"should be used when referencing " +
-								"the versions from other " +
-								"places, for example in the " +
-								"'version' attribute " +
-								"of the cluster resource.",
-							Type:     types.StringType,
-							Computed: true,
-				***REMOVED***,
-						"name": {
-							Description: "Short name of the version " +
-								"provider, for example '4.1.0'.",
-							Type:     types.StringType,
-							Computed: true,
-				***REMOVED***,
-			***REMOVED***,
+					t.itemAttributes(***REMOVED***,
 					tfsdk.ListNestedAttributesOptions{},
 				***REMOVED***,
 				Computed: true,
@@ -68,6 +65,23 @@ func (t *VersionsDataSourceType***REMOVED*** GetSchema(ctx context.Context***REM
 ***REMOVED***,
 	}
 	return
+}
+
+func (t *VersionsDataSourceType***REMOVED*** itemAttributes(***REMOVED*** map[string]tfsdk.Attribute {
+	return map[string]tfsdk.Attribute{
+		"id": {
+			Description: "Unique identifier of the version. This is what should be " +
+				"used when referencing the versions from other places, for " +
+				"example in the 'version' attribute of the cluster resource.",
+			Type:     types.StringType,
+			Computed: true,
+***REMOVED***,
+		"name": {
+			Description: "Short name of the version, for example '4.1.0'.",
+			Type:        types.StringType,
+			Computed:    true,
+***REMOVED***,
+	}
 }
 
 func (t *VersionsDataSourceType***REMOVED*** NewDataSource(ctx context.Context,
@@ -88,13 +102,27 @@ func (t *VersionsDataSourceType***REMOVED*** NewDataSource(ctx context.Context,
 
 func (s *VersionsDataSource***REMOVED*** Read(ctx context.Context, request tfsdk.ReadDataSourceRequest,
 	response *tfsdk.ReadDataSourceResponse***REMOVED*** {
-	// Fetch the list of verisions:
+	// Get the state:
+	state := &VersionsState{}
+	diags := request.Config.Get(ctx, state***REMOVED***
+	response.Diagnostics.Append(diags...***REMOVED***
+	if response.Diagnostics.HasError(***REMOVED*** {
+		return
+	}
+
+	// Fetch the list of versions:
 	var listItems []*cmv1.Version
 	listSize := 100
 	listPage := 1
-	listRequest := s.collection.List(***REMOVED***.
-		Search("enabled = 't'"***REMOVED***.
-		Size(listSize***REMOVED***
+	listRequest := s.collection.List(***REMOVED***.Size(listSize***REMOVED***
+	if !state.Search.Unknown && !state.Search.Null {
+		listRequest.Search(state.Search.Value***REMOVED***
+	} else {
+		listRequest.Search("enabled = 't'"***REMOVED***
+	}
+	if !state.Order.Unknown && !state.Order.Null {
+		listRequest.Order(state.Order.Value***REMOVED***
+	}
 	for {
 		listResponse, err := listRequest.SendContext(ctx***REMOVED***
 		if err != nil {
@@ -119,9 +147,7 @@ func (s *VersionsDataSource***REMOVED*** Read(ctx context.Context, request tfsdk
 	}
 
 	// Populate the state:
-	state := &VersionsState{
-		Items: make([]*VersionState, len(listItems***REMOVED******REMOVED***,
-	}
+	state.Items = make([]*VersionState, len(listItems***REMOVED******REMOVED***
 	for i, listItem := range listItems {
 		state.Items[i] = &VersionState{
 			ID: types.String{
@@ -132,8 +158,13 @@ func (s *VersionsDataSource***REMOVED*** Read(ctx context.Context, request tfsdk
 	***REMOVED***,
 ***REMOVED***
 	}
+	if len(state.Items***REMOVED*** == 1 {
+		state.Item = state.Items[0]
+	} else {
+		state.Item = nil
+	}
 
 	// Save the state:
-	diags := response.State.Set(ctx, state***REMOVED***
+	diags = response.State.Set(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
 }

@@ -163,6 +163,8 @@ func (s *CloudProvidersDataSource***REMOVED*** Read(ctx context.Context, request
 	}
 	if len(state.Items***REMOVED*** == 1 {
 		state.Item = state.Items[0]
+	} else {
+		state.Item = nil
 	}
 
 	// Save the state:

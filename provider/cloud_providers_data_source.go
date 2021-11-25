@@ -163,6 +163,8 @@ func (s *CloudProvidersDataSource) Read(ctx context.Context, request tfsdk.ReadD
 	}
 	if len(state.Items) == 1 {
 		state.Item = state.Items[0]
+	} else {
+		state.Item = nil
 	}
 
 	// Save the state:

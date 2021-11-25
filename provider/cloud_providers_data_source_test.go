@@ -291,7 +291,7 @@ var _ = Describe("Cloud providers data source", func() {
 		Expect(resource).To(MatchJQ(`.attributes.item`, nil))
 	})
 
-	It("Doesn't populate `item` if there multiple results", func() {
+	It("Doesn't populate `item` if there are multiple results", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(

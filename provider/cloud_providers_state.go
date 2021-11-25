@@ -16,6 +16,11 @@ limitations under the License.
 
 package provider
 
+import "github.com/hashicorp/terraform-plugin-framework/types"
+
 type CloudProvidersState struct {
-	Items []*CloudProviderState `tfsdk:"items"`
+	Search types.String          `tfsdk:"search"`
+	Order  types.String          `tfsdk:"order"`
+	Item   *CloudProviderState   `tfsdk:"item"`
+	Items  []*CloudProviderState `tfsdk:"items"`
 }

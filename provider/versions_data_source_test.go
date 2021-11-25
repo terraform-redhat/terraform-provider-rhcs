@@ -115,4 +115,224 @@ var _ = Describe("Versions data source", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].id`, "openshift-v4.8.2"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].name`, "4.8.2"***REMOVED******REMOVED***
 	}***REMOVED***
+
+	It("Can search versions", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+				VerifyFormKV("search", "enabled = 't' and channel_group = 'fast'"***REMOVED***,
+				VerifyFormKV("order", "raw_id desc"***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+				  "page": 1,
+				  "size": 2,
+				  "total": 2,
+				  "items": [
+				    {
+				      "id": "openshift-v4.8.1-fast",
+				      "raw_id": "4.8.1"
+				    },
+				    {
+				      "id": "openshift-v4.8.2-fast",
+				      "raw_id": "4.8.2"
+				    }
+				  ]
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		result := NewTerraformRunner(***REMOVED***.
+			File(
+				"main.tf", `
+				terraform {
+				  required_providers {
+				    ocm = {
+				      source = "localhost/openshift-online/ocm"
+				    }
+				  }
+		***REMOVED***
+
+				provider "ocm" {
+				  url         = "{{ .URL }}"
+				  token       = "{{ .Token }}"
+				  trusted_cas = file("{{ .CA }}"***REMOVED***
+		***REMOVED***
+
+				data "ocm_versions" "my_versions" {
+				  search = "enabled = 't' and channel_group = 'fast'"
+				  order  = "raw_id desc"
+		***REMOVED***
+				`,
+				"URL", server.URL(***REMOVED***,
+				"Token", token,
+				"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
+			***REMOVED***.
+			Apply(ctx***REMOVED***
+		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// Check the state:
+		resource := result.Resource("ocm_versions", "my_versions"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items | length`, 2***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].id`, "openshift-v4.8.1-fast"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].name`, "4.8.1"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].id`, "openshift-v4.8.2-fast"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].name`, "4.8.2"***REMOVED******REMOVED***
+	}***REMOVED***
+
+	It("Populates `item` if there is exactly one result", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+				  "page": 1,
+				  "size": 1,
+				  "total": 1,
+				  "items": [
+				    {
+				      "id": "openshift-v4.8.1",
+				      "raw_id": "4.8.1"
+				    }
+				  ]
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		result := NewTerraformRunner(***REMOVED***.
+			File(
+				"main.tf", `
+				terraform {
+				  required_providers {
+				    ocm = {
+				      source = "localhost/openshift-online/ocm"
+				    }
+				  }
+		***REMOVED***
+
+				provider "ocm" {
+				  url         = "{{ .URL }}"
+				  token       = "{{ .Token }}"
+				  trusted_cas = file("{{ .CA }}"***REMOVED***
+		***REMOVED***
+
+				data "ocm_versions" "my_versions" {
+		***REMOVED***
+				`,
+				"URL", server.URL(***REMOVED***,
+				"Token", token,
+				"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
+			***REMOVED***.
+			Apply(ctx***REMOVED***
+		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// Check the state:
+		resource := result.Resource("ocm_versions", "my_versions"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item.id`, "openshift-v4.8.1"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item.name`, "4.8.1"***REMOVED******REMOVED***
+	}***REMOVED***
+
+	It("Doesn't populate `item` if there are zero results", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+				  "page": 1,
+				  "size": 0,
+				  "total": 0,
+				  "items": []
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		result := NewTerraformRunner(***REMOVED***.
+			File(
+				"main.tf", `
+				terraform {
+				  required_providers {
+				    ocm = {
+				      source = "localhost/openshift-online/ocm"
+				    }
+				  }
+		***REMOVED***
+
+				provider "ocm" {
+				  url         = "{{ .URL }}"
+				  token       = "{{ .Token }}"
+				  trusted_cas = file("{{ .CA }}"***REMOVED***
+		***REMOVED***
+
+				data "ocm_versions" "my_versions" {
+		***REMOVED***
+				`,
+				"URL", server.URL(***REMOVED***,
+				"Token", token,
+				"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
+			***REMOVED***.
+			Apply(ctx***REMOVED***
+		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// Check the state:
+		resource := result.Resource("ocm_versions", "my_versions"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item`, nil***REMOVED******REMOVED***
+	}***REMOVED***
+
+	It("Doesn't populate `item` if there are multiple results", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+				  "page": 1,
+				  "size": 2,
+				  "total": 2,
+				  "items": [
+				    {
+				      "id": "openshift-v4.8.1",
+				      "raw_id": "4.8.1"
+				    },
+				    {
+				      "id": "openshift-v4.8.2",
+				      "raw_id": "4.8.2"
+				    }
+				  ]
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		result := NewTerraformRunner(***REMOVED***.
+			File(
+				"main.tf", `
+				terraform {
+				  required_providers {
+				    ocm = {
+				      source = "localhost/openshift-online/ocm"
+				    }
+				  }
+		***REMOVED***
+
+				provider "ocm" {
+				  url         = "{{ .URL }}"
+				  token       = "{{ .Token }}"
+				  trusted_cas = file("{{ .CA }}"***REMOVED***
+		***REMOVED***
+
+				data "ocm_versions" "my_versions" {
+		***REMOVED***
+				`,
+				"URL", server.URL(***REMOVED***,
+				"Token", token,
+				"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
+			***REMOVED***.
+			Apply(ctx***REMOVED***
+		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// Check the state:
+		resource := result.Resource("ocm_versions", "my_versions"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item`, nil***REMOVED******REMOVED***
+	}***REMOVED***
 }***REMOVED***

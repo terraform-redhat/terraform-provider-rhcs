@@ -23,11 +23,10 @@ package provider
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo"                                     // nolint
-***REMOVED***                                     // nolint
-	. "github.com/onsi/gomega/ghttp"                               // nolint
-	. "github.com/openshift-online/ocm-sdk-go/testing"             // nolint
-	. "github.com/openshift-online/terraform-provider-ocm/testing" // nolint
+	. "github.com/onsi/ginkgo"                         // nolint
+***REMOVED***                         // nolint
+	. "github.com/onsi/gomega/ghttp"                   // nolint
+	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
 ***REMOVED***
 
 var _ = Describe("Machine pool creation", func(***REMOVED*** {

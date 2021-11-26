@@ -235,8 +235,8 @@ func (r *TerraformRunner) Run(args ...string) int {
 	err = cmd.Run()
 	switch err.(type) {
 	case *exec.ExitError:
-		// Nothing, this is a normal situation and the caller is expected to check it using
-		// the `ExitCode` method.
+		// Nothing, this is a normal situation and the caller is expected to check the
+		// returned exit code.
 	default:
 		ExpectWithOffset(1, err).ToNot(HaveOccurred())
 	}

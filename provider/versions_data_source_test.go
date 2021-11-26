@@ -17,11 +17,7 @@ limitations under the License.
 package provider
 
 import (
-	"context"
 	"net/http"
-	"os"
-	"strings"
-	"time"
 
 	. "github.com/onsi/ginkgo"                         // nolint
 	. "github.com/onsi/gomega"                         // nolint
@@ -30,31 +26,6 @@ import (
 )
 
 var _ = Describe("Versions data source", func() {
-	var ctx context.Context
-	var server *Server
-	var ca string
-	var token string
-
-	BeforeEach(func() {
-		// Create a contet:
-		ctx = context.Background()
-
-		// Create an access token:
-		token = MakeTokenString("Bearer", 10*time.Minute)
-
-		// Start the server:
-		server, ca = MakeTCPTLSServer()
-	})
-
-	AfterEach(func() {
-		// Stop the server:
-		server.Close()
-
-		// Remove the server CA file:
-		err := os.Remove(ca)
-		Expect(err).ToNot(HaveOccurred())
-	})
-
 	It("Can list versions", func() {
 		// Prepare the server:
 		server.AppendHandlers(
@@ -80,35 +51,14 @@ var _ = Describe("Versions data source", func() {
 		)
 
 		// Run the apply command:
-		result := NewTerraformRunner().
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-				}
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}")
-				}
-
-				data "ocm_versions" "my_versions" {
-				}
-				`,
-				"URL", server.URL(),
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"),
-			).
-			Apply(ctx)
-		Expect(result.ExitCode()).To(BeZero())
+		terraform.Source(`
+		  data "ocm_versions" "my_versions" {
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := result.Resource("ocm_versions", "my_versions")
+		resource := terraform.Resource("ocm_versions", "my_versions")
 		Expect(resource).To(MatchJQ(`.attributes.items | length`, 2))
 		Expect(resource).To(MatchJQ(`.attributes.items[0].id`, "openshift-v4.8.1"))
 		Expect(resource).To(MatchJQ(`.attributes.items[0].name`, "4.8.1"))
@@ -142,37 +92,16 @@ var _ = Describe("Versions data source", func() {
 		)
 
 		// Run the apply command:
-		result := NewTerraformRunner().
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-				}
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}")
-				}
-
-				data "ocm_versions" "my_versions" {
-				  search = "enabled = 't' and channel_group = 'fast'"
-				  order  = "raw_id desc"
-				}
-				`,
-				"URL", server.URL(),
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"),
-			).
-			Apply(ctx)
-		Expect(result.ExitCode()).To(BeZero())
+		terraform.Source(`
+		  data "ocm_versions" "my_versions" {
+		    search = "enabled = 't' and channel_group = 'fast'"
+		    order  = "raw_id desc"
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := result.Resource("ocm_versions", "my_versions")
+		resource := terraform.Resource("ocm_versions", "my_versions")
 		Expect(resource).To(MatchJQ(`.attributes.items | length`, 2))
 		Expect(resource).To(MatchJQ(`.attributes.items[0].id`, "openshift-v4.8.1-fast"))
 		Expect(resource).To(MatchJQ(`.attributes.items[0].name`, "4.8.1"))
@@ -200,35 +129,14 @@ var _ = Describe("Versions data source", func() {
 		)
 
 		// Run the apply command:
-		result := NewTerraformRunner().
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-				}
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}")
-				}
-
-				data "ocm_versions" "my_versions" {
-				}
-				`,
-				"URL", server.URL(),
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"),
-			).
-			Apply(ctx)
-		Expect(result.ExitCode()).To(BeZero())
+		terraform.Source(`
+		  data "ocm_versions" "my_versions" {
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := result.Resource("ocm_versions", "my_versions")
+		resource := terraform.Resource("ocm_versions", "my_versions")
 		Expect(resource).To(MatchJQ(`.attributes.item.id`, "openshift-v4.8.1"))
 		Expect(resource).To(MatchJQ(`.attributes.item.name`, "4.8.1"))
 	})
@@ -248,35 +156,14 @@ var _ = Describe("Versions data source", func() {
 		)
 
 		// Run the apply command:
-		result := NewTerraformRunner().
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-				}
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}")
-				}
-
-				data "ocm_versions" "my_versions" {
-				}
-				`,
-				"URL", server.URL(),
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"),
-			).
-			Apply(ctx)
-		Expect(result.ExitCode()).To(BeZero())
+		terraform.Source(`
+		  data "ocm_versions" "my_versions" {
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := result.Resource("ocm_versions", "my_versions")
+		resource := terraform.Resource("ocm_versions", "my_versions")
 		Expect(resource).To(MatchJQ(`.attributes.item`, nil))
 	})
 
@@ -304,35 +191,14 @@ var _ = Describe("Versions data source", func() {
 		)
 
 		// Run the apply command:
-		result := NewTerraformRunner().
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-				}
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}")
-				}
-
-				data "ocm_versions" "my_versions" {
-				}
-				`,
-				"URL", server.URL(),
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"),
-			).
-			Apply(ctx)
-		Expect(result.ExitCode()).To(BeZero())
+		terraform.Source(`
+		  data "ocm_versions" "my_versions" {
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := result.Resource("ocm_versions", "my_versions")
+		resource := terraform.Resource("ocm_versions", "my_versions")
 		Expect(resource).To(MatchJQ(`.attributes.item`, nil))
 	})
 })

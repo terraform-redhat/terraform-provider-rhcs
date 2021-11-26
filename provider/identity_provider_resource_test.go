@@ -17,11 +17,7 @@ limitations under the License.
 package provider
 
 import (
-	"context"
 	"net/http"
-	"os"
-	"strings"
-	"time"
 
 	. "github.com/onsi/ginkgo"                         // nolint
 	. "github.com/onsi/gomega"                         // nolint
@@ -30,21 +26,7 @@ import (
 )
 
 var _ = Describe("Identity provider creation", func() {
-	var ctx context.Context
-	var server *Server
-	var ca string
-	var token string
-
 	BeforeEach(func() {
-		// Create a contet:
-		ctx = context.Background()
-
-		// Create an access token:
-		token = MakeTokenString("Bearer", 10*time.Minute)
-
-		// Start the server:
-		server, ca = MakeTCPTLSServer()
-
 		// The first thing that the provider will do for any operation on identity providers
 		// is check that the cluster is ready, so we always need to prepare the server to
 		// respond to that:
@@ -58,15 +40,6 @@ var _ = Describe("Identity provider creation", func() {
 				}`),
 			),
 		)
-	})
-
-	AfterEach(func() {
-		// Stop the server:
-		server.Close()
-
-		// Remove the server CA file:
-		err := os.Remove(ca)
-		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("Can create a 'htpasswd' identity provider", func() {
@@ -97,38 +70,17 @@ var _ = Describe("Identity provider creation", func() {
 		)
 
 		// Run the apply command:
-		result := NewTerraformRunner().
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-				}
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}")
-				}
-
-				resource "ocm_identity_provider" "my_ip" {
-				  cluster = "123"
-				  name    = "my-ip"
-				  htpasswd = {
-				    username = "my-user"
-				    password = "my-password"
-				  }
-				}
-					`,
-				"URL", server.URL(),
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"),
-			).
-			Apply(ctx)
-		Expect(result.ExitCode()).To(BeZero())
+		terraform.Source(`
+		  resource "ocm_identity_provider" "my_ip" {
+		    cluster = "123"
+		    name    = "my-ip"
+		    htpasswd = {
+		      username = "my-user"
+		      password = "my-password"
+		    }
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 	})
 
 	It("Can create an LDAP identity provider", func() {
@@ -178,46 +130,25 @@ var _ = Describe("Identity provider creation", func() {
 		)
 
 		// Run the apply command:
-		result := NewTerraformRunner().
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-				}
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}")
-				}
-
-				resource "ocm_identity_provider" "my_ip" {
-				  cluster    = "123"
-				  name       = "my-ip"
-				  ldap = {
-				    bind_dn       = "my-bind-dn"
-				    bind_password = "my-bind-password"
-				    insecure      = false
-				    ca            = "my-ca"
-				    url           = "ldap://my-server.com"
-				    attributes    = {
-				      id                 = ["my-id"]
-				      email              = ["my-email"]
-				      name               = ["my-name"]
-				      preferred_username = ["my-preferred-username"]
-				    }
-				  }
-				}
-				`,
-				"URL", server.URL(),
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"),
-			).
-			Apply(ctx)
-		Expect(result.ExitCode()).To(BeZero())
+		terraform.Source(`
+		  resource "ocm_identity_provider" "my_ip" {
+		    cluster    = "123"
+		    name       = "my-ip"
+		    ldap = {
+		      bind_dn       = "my-bind-dn"
+		      bind_password = "my-bind-password"
+		      insecure      = false
+		      ca            = "my-ca"
+		      url           = "ldap://my-server.com"
+		      attributes    = {
+		        id                 = ["my-id"]
+		        email              = ["my-email"]
+		        name               = ["my-name"]
+		        preferred_username = ["my-preferred-username"]
+		      }
+		    }
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 	})
 })

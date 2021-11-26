@@ -17,11 +17,7 @@ limitations under the License.
 package provider
 
 import (
-	"context"
 	"net/http"
-	"os"
-	"strings"
-	"time"
 
 	. "github.com/onsi/ginkgo"                         // nolint
 	. "github.com/onsi/gomega"                         // nolint
@@ -30,11 +26,6 @@ import (
 )
 
 var _ = Describe("Cluster creation", func() {
-	var ctx context.Context
-	var server *Server
-	var ca string
-	var token string
-
 	// This is the cluster that will be returned by the server when asked to create or retrieve
 	// a cluster.
 	const template = `{
@@ -75,26 +66,6 @@ var _ = Describe("Cluster creation", func() {
 	  "state": "ready"
 	}`
 
-	BeforeEach(func() {
-		// Create a contet:
-		ctx = context.Background()
-
-		// Create an access token:
-		token = MakeTokenString("Bearer", 10*time.Minute)
-
-		// Start the server:
-		server, ca = MakeTCPTLSServer()
-	})
-
-	AfterEach(func() {
-		// Stop the server:
-		server.Close()
-
-		// Remove the server CA file:
-		err := os.Remove(ca)
-		Expect(err).ToNot(HaveOccurred())
-	})
-
 	It("Creates basic cluster", func() {
 		// Prepare the server:
 		server.AppendHandlers(
@@ -108,35 +79,14 @@ var _ = Describe("Cluster creation", func() {
 		)
 
 		// Run the apply command:
-		result := NewTerraformRunner().
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-				}
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}")
-				}
-
-				resource "ocm_cluster" "my_cluster" {
-				  name           = "my-cluster"
-				  cloud_provider = "aws"
-				  cloud_region   = "us-west-1"
-				}
-				`,
-				"URL", server.URL(),
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"),
-			).
-			Apply(ctx)
-		Expect(result.ExitCode()).To(BeZero())
+		terraform.Source(`
+		  resource "ocm_cluster" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_provider = "aws"
+		    cloud_region   = "us-west-1"
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 	})
 
 	It("Saves API and console URLs to the state", func() {
@@ -149,38 +99,17 @@ var _ = Describe("Cluster creation", func() {
 		)
 
 		// Run the apply command:
-		result := NewTerraformRunner().
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-				}
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}")
-				}
-
-				resource "ocm_cluster" "my_cluster" {
-				  name           = "my-cluster"
-				  cloud_provider = "aws"
-				  cloud_region   = "us-west-1"
-				}
-				`,
-				"URL", server.URL(),
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"),
-			).
-			Apply(ctx)
-		Expect(result.ExitCode()).To(BeZero())
+		terraform.Source(`
+		  resource "ocm_cluster" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_provider = "aws"
+		    cloud_region   = "us-west-1"
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := result.Resource("ocm_cluster", "my_cluster")
+		resource := terraform.Resource("ocm_cluster", "my_cluster")
 		Expect(resource).To(MatchJQ(".attributes.api_url", "https://my-api.example.com"))
 		Expect(resource).To(MatchJQ(".attributes.console_url", "https://my-console.example.com"))
 	})
@@ -197,40 +126,19 @@ var _ = Describe("Cluster creation", func() {
 		)
 
 		// Run the apply command:
-		result := NewTerraformRunner().
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-				}
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}")
-				}
-
-				resource "ocm_cluster" "my_cluster" {
-				  name                 = "my-cluster"
-				  cloud_provider       = "aws"
-				  cloud_region         = "us-west-1"
-				  compute_nodes        = 3
-				  compute_machine_type = "r5.xlarge"
-				}
-				`,
-				"URL", server.URL(),
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"),
-			).
-			Apply(ctx)
-		Expect(result.ExitCode()).To(BeZero())
+		terraform.Source(`
+		  resource "ocm_cluster" "my_cluster" {
+		    name                 = "my-cluster"
+		    cloud_provider       = "aws"
+		    cloud_region         = "us-west-1"
+		    compute_nodes        = 3
+		    compute_machine_type = "r5.xlarge"
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := result.Resource("ocm_cluster", "my_cluster")
+		resource := terraform.Resource("ocm_cluster", "my_cluster")
 		Expect(resource).To(MatchJQ(".attributes.compute_nodes", 3.0))
 		Expect(resource).To(MatchJQ(".attributes.compute_machine_type", "r5.xlarge"))
 	})
@@ -266,42 +174,21 @@ var _ = Describe("Cluster creation", func() {
 		)
 
 		// Run the apply command:
-		result := NewTerraformRunner().
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-				}
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}")
-				}
-
-				resource "ocm_cluster" "my_cluster" {
-				  name                  = "my-cluster"
-				  cloud_provider        = "aws"
-				  cloud_region          = "us-west-1"
-				  ccs_enabled           = true
-				  aws_account_id        = "123"
-				  aws_access_key_id     = "456"
-				  aws_secret_access_key = "789"
-				}
-				`,
-				"URL", server.URL(),
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"),
-			).
-			Apply(ctx)
-		Expect(result.ExitCode()).To(BeZero())
+		terraform.Source(`
+		  resource "ocm_cluster" "my_cluster" {
+		    name                  = "my-cluster"
+		    cloud_provider        = "aws"
+		    cloud_region          = "us-west-1"
+		    ccs_enabled           = true
+		    aws_account_id        = "123"
+		    aws_access_key_id     = "456"
+		    aws_secret_access_key = "789"
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := result.Resource("ocm_cluster", "my_cluster")
+		resource := terraform.Resource("ocm_cluster", "my_cluster")
 		Expect(resource).To(MatchJQ(".attributes.ccs_enabled", true))
 		Expect(resource).To(MatchJQ(".attributes.aws_account_id", "123"))
 		Expect(resource).To(MatchJQ(".attributes.aws_access_key_id", "456"))
@@ -333,42 +220,21 @@ var _ = Describe("Cluster creation", func() {
 		)
 
 		// Run the apply command:
-		result := NewTerraformRunner().
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-				}
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}")
-				}
-
-				resource "ocm_cluster" "my_cluster" {
-				  name           = "my-cluster"
-				  cloud_provider = "aws"
-				  cloud_region   = "us-west-1"
-				  machine_cidr   = "10.0.0.0/15"
-				  service_cidr   = "172.30.0.0/15"
-				  pod_cidr       = "10.128.0.0/13"
-				  host_prefix    = 22
-				}
-				`,
-				"URL", server.URL(),
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"),
-			).
-			Apply(ctx)
-		Expect(result.ExitCode()).To(BeZero())
+		terraform.Source(`
+		  resource "ocm_cluster" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_provider = "aws"
+		    cloud_region   = "us-west-1"
+		    machine_cidr   = "10.0.0.0/15"
+		    service_cidr   = "172.30.0.0/15"
+		    pod_cidr       = "10.128.0.0/13"
+		    host_prefix    = 22
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := result.Resource("ocm_cluster", "my_cluster")
+		resource := terraform.Resource("ocm_cluster", "my_cluster")
 		Expect(resource).To(MatchJQ(".attributes.machine_cidr", "10.0.0.0/15"))
 		Expect(resource).To(MatchJQ(".attributes.service_cidr", "172.30.0.0/15"))
 		Expect(resource).To(MatchJQ(".attributes.pod_cidr", "10.128.0.0/13"))
@@ -394,39 +260,18 @@ var _ = Describe("Cluster creation", func() {
 		)
 
 		// Run the apply command:
-		result := NewTerraformRunner().
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-				}
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}")
-				}
-
-				resource "ocm_cluster" "my_cluster" {
-				  name           = "my-cluster"
-				  cloud_provider = "aws"
-				  cloud_region   = "us-west-1"
-				  version        = "openshift-v4.8.1"
-				}
-				`,
-				"URL", server.URL(),
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"),
-			).
-			Apply(ctx)
-		Expect(result.ExitCode()).To(BeZero())
+		terraform.Source(`
+		  resource "ocm_cluster" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_provider = "aws"
+		    cloud_region   = "us-west-1"
+		    version        = "openshift-v4.8.1"
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := result.Resource("ocm_cluster", "my_cluster")
+		resource := terraform.Resource("ocm_cluster", "my_cluster")
 		Expect(resource).To(MatchJQ(".attributes.version", "openshift-v4.8.1"))
 	})
 
@@ -444,34 +289,13 @@ var _ = Describe("Cluster creation", func() {
 		)
 
 		// Run the apply command:
-		result := NewTerraformRunner().
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-				}
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}")
-				}
-
-				resource "ocm_cluster" "my_cluster" {
-				  name           = "my-cluster"
-				  cloud_provider = "aws"
-				  cloud_region   = "us-west-1"
-				}
-				`,
-				"URL", server.URL(),
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"),
-			).
-			Apply(ctx)
-		Expect(result.ExitCode()).ToNot(BeZero())
+		terraform.Source(`
+		  resource "ocm_cluster" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_provider = "aws"
+		    cloud_region   = "us-west-1"
+		  }
+		`)
+		Expect(terraform.Apply()).ToNot(BeZero())
 	})
 })

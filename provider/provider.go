@@ -81,14 +81,10 @@ func (p *Provider***REMOVED*** GetSchema(ctx context.Context***REMOVED*** (schem
 				Sensitive:   true,
 	***REMOVED***,
 			"token": {
-				Description: "Access or refresh token. If this isn't explicitly " +
-					"provided and o other mechanism to obtain credentials is " +
-					"used (password or client secret***REMOVED*** then the value will be " +
-					"take from the 'OCM_TOKEN' environment variable, if that " +
-					"exists.",
-				Type:      types.StringType,
-				Optional:  true,
-				Sensitive: true,
+				Description: "Access or refresh token.",
+				Type:        types.StringType,
+				Optional:    true,
+				Sensitive:   true,
 	***REMOVED***,
 			"client_id": {
 				Description: "OpenID client identifier.",
@@ -159,6 +155,11 @@ func (p *Provider***REMOVED*** Configure(ctx context.Context, request tfsdk.Conf
 	// Copy the settings:
 	if !config.URL.Null {
 		builder.URL(config.URL.Value***REMOVED***
+	} else {
+		url, ok := os.LookupEnv("OCM_URL"***REMOVED***
+		if ok {
+			builder.URL(url***REMOVED***
+***REMOVED***
 	}
 	if !config.TokenURL.Null {
 		builder.TokenURL(config.TokenURL.Value***REMOVED***

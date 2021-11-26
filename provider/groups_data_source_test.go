@@ -17,11 +17,7 @@ limitations under the License.
 package provider
 
 ***REMOVED***
-	"context"
 ***REMOVED***
-	"os"
-	"strings"
-	"time"
 
 	. "github.com/onsi/ginkgo"                         // nolint
 ***REMOVED***                         // nolint
@@ -30,31 +26,6 @@ package provider
 ***REMOVED***
 
 var _ = Describe("Groups data source", func(***REMOVED*** {
-	var ctx context.Context
-	var server *Server
-	var ca string
-	var token string
-
-	BeforeEach(func(***REMOVED*** {
-		// Create a contet:
-		ctx = context.Background(***REMOVED***
-
-		// Create an access token:
-		token = MakeTokenString("Bearer", 10*time.Minute***REMOVED***
-
-		// Start the server:
-		server, ca = MakeTCPTLSServer(***REMOVED***
-	}***REMOVED***
-
-	AfterEach(func(***REMOVED*** {
-		// Stop the server:
-		server.Close(***REMOVED***
-
-		// Remove the server CA file:
-		err := os.Remove(ca***REMOVED***
-		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-	}***REMOVED***
-
 	It("Can list groups", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(
@@ -74,36 +45,15 @@ var _ = Describe("Groups data source", func(***REMOVED*** {
 		***REMOVED***
 
 		// Run the apply command:
-		result := NewTerraformRunner(***REMOVED***.
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-		***REMOVED***
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}"***REMOVED***
-		***REMOVED***
-
-				data "ocm_groups" "my_groups" {
-				  cluster = "123"
-		***REMOVED***
-				`,
-				"URL", server.URL(***REMOVED***,
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
-			***REMOVED***.
-			Apply(ctx***REMOVED***
-		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		terraform.Source(`
+		  data "ocm_groups" "my_groups" {
+		    cluster = "123"
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := result.Resource("ocm_groups", "my_groups"***REMOVED***
+		resource := terraform.Resource("ocm_groups", "my_groups"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items |length`, 1***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].id`, "dedicated-admins"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].name`, "dedicated-admins"***REMOVED******REMOVED***

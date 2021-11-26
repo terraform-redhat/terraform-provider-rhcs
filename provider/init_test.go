@@ -17,34 +17,12 @@ limitations under the License.
 package provider
 
 ***REMOVED***
-	"context"
-
 	. "github.com/onsi/ginkgo" // nolint
 ***REMOVED*** // nolint
 ***REMOVED***
 
 var _ = Describe("Init", func(***REMOVED*** {
-	var ctx context.Context
-
-	BeforeEach(func(***REMOVED*** {
-		ctx = context.Background(***REMOVED***
-	}***REMOVED***
-
 	It("Downloads and installs the provider", func(***REMOVED*** {
-		result := NewTerraformRunner(***REMOVED***.
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source  = "localhost/openshift-online/ocm"
-				    }
-				  }
-		***REMOVED***
-				`,
-			***REMOVED***.
-			Args("validate"***REMOVED***.
-			Run(ctx***REMOVED***
-		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		Expect(terraform.Validate(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
 }***REMOVED***

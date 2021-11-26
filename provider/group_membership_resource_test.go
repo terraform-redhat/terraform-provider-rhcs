@@ -17,11 +17,7 @@ limitations under the License.
 package provider
 
 ***REMOVED***
-	"context"
 ***REMOVED***
-	"os"
-	"strings"
-	"time"
 
 	. "github.com/onsi/ginkgo"                         // nolint
 ***REMOVED***                         // nolint
@@ -30,22 +26,8 @@ package provider
 ***REMOVED***
 
 var _ = Describe("Group membership creation", func(***REMOVED*** {
-	var ctx context.Context
-	var server *Server
-	var ca string
-	var token string
-
 	BeforeEach(func(***REMOVED*** {
-		// Create a contet:
-		ctx = context.Background(***REMOVED***
-
-		// Create an access token:
-		token = MakeTokenString("Bearer", 10*time.Minute***REMOVED***
-
-		// Start the server:
-		server, ca = MakeTCPTLSServer(***REMOVED***
-
-		// The first thing that the provider will do for any operation on grups is check
+		// The first thing that the provider will do for any operation on groups is check
 		// that the cluster is ready, so we always need to prepare the server to respond to
 		// that:
 		server.AppendHandlers(
@@ -58,15 +40,6 @@ var _ = Describe("Group membership creation", func(***REMOVED*** {
 		***REMOVED***`***REMOVED***,
 			***REMOVED***,
 		***REMOVED***
-	}***REMOVED***
-
-	AfterEach(func(***REMOVED*** {
-		// Stop the server:
-		server.Close(***REMOVED***
-
-		// Remove the server CA file:
-		err := os.Remove(ca***REMOVED***
-		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 	}***REMOVED***
 
 	It("Can create a group membership", func(***REMOVED*** {
@@ -88,38 +61,17 @@ var _ = Describe("Group membership creation", func(***REMOVED*** {
 		***REMOVED***
 
 		// Run the apply command:
-		result := NewTerraformRunner(***REMOVED***.
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-		***REMOVED***
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}"***REMOVED***
-		***REMOVED***
-
-				resource "ocm_group_membership" "my_membership" {
-				  cluster   = "123"
-				  group     = "dedicated-admins"
-				  user      = "my-admin"
-		***REMOVED***
-				`,
-				"URL", server.URL(***REMOVED***,
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
-			***REMOVED***.
-			Apply(ctx***REMOVED***
-		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		terraform.Source(`
+		  resource "ocm_group_membership" "my_membership" {
+		    cluster   = "123"
+		    group     = "dedicated-admins"
+		    user      = "my-admin"
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := result.Resource("ocm_group_membership", "my_membership"***REMOVED***
+		resource := terraform.Resource("ocm_group_membership", "my_membership"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.group", "dedicated-admins"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-admin"***REMOVED******REMOVED***

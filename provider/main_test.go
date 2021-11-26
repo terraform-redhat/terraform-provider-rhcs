@@ -235,8 +235,8 @@ func (r *TerraformRunner***REMOVED*** Run(args ...string***REMOVED*** int {
 	err = cmd.Run(***REMOVED***
 	switch err.(type***REMOVED*** {
 	case *exec.ExitError:
-		// Nothing, this is a normal situation and the caller is expected to check it using
-		// the `ExitCode` method.
+		// Nothing, this is a normal situation and the caller is expected to check the
+		// returned exit code.
 	default:
 		ExpectWithOffset(1, err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 	}

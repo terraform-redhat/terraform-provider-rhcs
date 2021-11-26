@@ -17,7 +17,6 @@ limitations under the License.
 package provider
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -26,9 +25,11 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo"                         // nolint
 	. "github.com/onsi/gomega"                         // nolint
+	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
 )
 
@@ -37,96 +38,96 @@ func TestProvider(t *testing.T) {
 	RunSpecs(t, "Provider")
 }
 
-// terraformBinary is the path of the `terraform` binary that will be used in the tests.
-var terraformBinary string
+// All tests will use this API server and Terraform runner:
+var (
+	server    *Server
+	terraform *TerraformRunner
+)
 
-var _ = BeforeSuite(func() {
-	var err error
+var _ = BeforeEach(func() {
+	// Create the server:
+	var ca string
+	server, ca = MakeTCPTLSServer()
 
-	// Check that the Terraform binary is available in the path:
-	terraformBinary, err = exec.LookPath("terraform")
-	if err != nil {
-		Fail("The 'terraform' binary isn't installed", 1)
-	}
+	// Create an access token:
+	token := MakeTokenString("Bearer", 10*time.Minute)
+
+	// Create the runner:
+	terraform = NewTerraformRunner().
+		URL(server.URL()).
+		CA(ca).
+		Token(token).
+		Build()
 })
+
+var _ = AfterEach(func() {
+	// Close the server:
+	server.Close()
+
+	// Close the runner:
+	terraform.Close()
+})
+
+// TerraformRunnerBuilder contains the data and logic needed to build a terraform runner.
+type TerraformRunnerBuilder struct {
+	url   string
+	ca    string
+	token string
+}
 
 // TerraformRunner contains the data and logic needed to run Terraform.
 type TerraformRunner struct {
-	files map[string]string
-	env   map[string]string
-	vars  map[string]interface{}
-	args  []string
-}
-
-// TerraformResult contains the result of executing Terraform.
-type TerraformResult struct {
-	exitCode    int
-	stateObject interface{}
+	binary string
+	dir    string
+	env    []string
 }
 
 // NewTerraformRunner creates a new Terraform runner.
-func NewTerraformRunner() *TerraformRunner {
-	return &TerraformRunner{
-		env:   map[string]string{},
-		vars:  map[string]interface{}{},
-		files: map[string]string{},
-	}
+func NewTerraformRunner() *TerraformRunnerBuilder {
+	return &TerraformRunnerBuilder{}
 }
 
-// File adds a file that will be created in the directory where Terraform will run. The content of
-// the file will be generated from the given template and variables.
-func (r *TerraformRunner) File(name, template string, vars ...interface{}) *TerraformRunner {
-	r.files[name] = EvaluateTemplate(template, vars...)
-	return r
+// URL sets the URL of the OCM API server.
+func (b *TerraformRunnerBuilder) URL(value string) *TerraformRunnerBuilder {
+	b.url = value
+	return b
 }
 
-// Env sets an environment variable that will be used when running Terraform.
-func (r *TerraformRunner) Env(name, value string) *TerraformRunner {
-	r.env[name] = value
-	return r
+// CA sets the trusted certificates used to connect to the OCM API server.
+func (b *TerraformRunnerBuilder) CA(value string) *TerraformRunnerBuilder {
+	b.ca = value
+	return b
 }
 
-// Var adds a Terraform variable.
-func (r *TerraformRunner) Var(name string, value interface{}) *TerraformRunner {
-	r.vars[name] = value
-	return r
+// Token sets the authentication token used to connect to the OCM API server.
+func (b *TerraformRunnerBuilder) Token(value string) *TerraformRunnerBuilder {
+	b.token = value
+	return b
 }
 
-// Arg adds a command line argument to Terraform.
-func (r *TerraformRunner) Arg(value string) *TerraformRunner {
-	r.args = append(r.args, value)
-	return r
-}
+// Build uses the information stored in the builder to create a new Terraform runner.
+func (b *TerraformRunnerBuilder) Build() *TerraformRunner {
+	// Check parameters:
+	ExpectWithOffset(1, b.url).ToNot(BeEmpty())
+	ExpectWithOffset(1, b.ca).ToNot(BeEmpty())
+	ExpectWithOffset(1, b.token).ToNot(BeEmpty())
 
-// Args adds a set of command line arguments for the CLI command.
-func (r *TerraformRunner) Args(values ...string) *TerraformRunner {
-	r.args = append(r.args, values...)
-	return r
-}
-
-// Run runs the command.
-func (r *TerraformRunner) Run(ctx context.Context) *TerraformResult {
-	var err error
+	// Check that the Terraform tfBinary is available in the path:
+	tfBinary, err := exec.LookPath("terraform")
+	Expect(err).ToNot(HaveOccurred())
 
 	// Create a temporary directory for the files so that we don't interfere with the
 	// configuration that may already exist for the user running the tests.
 	tmpDir, err := ioutil.TempDir("", "ocm-test-*.d")
 	ExpectWithOffset(1, err).ToNot(HaveOccurred())
-	/*
-		defer func() {
-			err = os.RemoveAll(tmpDir)
-			ExpectWithOffset(1, err).ToNot(HaveOccurred())
-		}()
-	*/
 
 	// Create a CLI configuration file that tells Terraform to get plugins from the local
 	// directory where `make install` puts them:
 	currentDir, err := os.Getwd()
-	Expect(err).ToNot(HaveOccurred())
+	ExpectWithOffset(1, err).ToNot(HaveOccurred())
 	projectDir := filepath.Dir(currentDir)
 	configPath := filepath.Join(tmpDir, "terraform.rc")
-	configText := EvaluateTemplate(
-		`
+	configText := EvaluateTemplate(`
 		provider_installation {
 		  filesystem_mirror {
 		    path    = "{{ .Project }}/.terraform.d/plugins"
@@ -137,24 +138,31 @@ func (r *TerraformRunner) Run(ctx context.Context) *TerraformResult {
 		"Project", strings.ReplaceAll(projectDir, "\\", "/"),
 	)
 	err = ioutil.WriteFile(configPath, []byte(configText), 0400)
-	Expect(err).ToNot(HaveOccurred())
+	ExpectWithOffset(1, err).ToNot(HaveOccurred())
 
-	// Create the files specified in the configuration:
-	for fileName, fileContent := range r.files {
-		filePath := filepath.Join(tmpDir, fileName)
-		fileDir := filepath.Dir(filePath)
-		err = os.MkdirAll(fileDir, 0700)
-		Expect(err).ToNot(HaveOccurred())
-		err = ioutil.WriteFile(filePath, []byte(fileContent), 0600)
-		Expect(err).ToNot(HaveOccurred())
-	}
+	// Create the main file:
+	mainPath := filepath.Join(tmpDir, "main.tf")
+	mainContent := EvaluateTemplate(`
+		terraform {
+		  required_providers {
+		    ocm = {
+		      source = "localhost/openshift-online/ocm"
+		    }
+		  }
+		}
 
-	// Generate the file containing the Terraform variables:
-	varsPath := filepath.Join(tmpDir, "terraform.tfvars.json")
-	varsJSON, err := json.Marshal(r.vars)
-	Expect(err).ToNot(HaveOccurred())
-	err = ioutil.WriteFile(varsPath, varsJSON, 0400)
-	Expect(err).ToNot(HaveOccurred())
+		provider "ocm" {
+		  url         = "{{ .URL }}"
+		  token       = "{{ .Token }}"
+		  trusted_cas = file("{{ .CA }}")
+		}
+		`,
+		"URL", b.url,
+		"Token", b.token,
+		"CA", strings.ReplaceAll(b.ca, "\\", "/"),
+	)
+	err = ioutil.WriteFile(mainPath, []byte(mainContent), 0600)
+	ExpectWithOffset(1, err).ToNot(HaveOccurred())
 
 	// Parse the current environment into a map so that it is easy to update it:
 	envMap := map[string]string{}
@@ -172,11 +180,6 @@ func (r *TerraformRunner) Run(ctx context.Context) *TerraformResult {
 		envMap[name] = value
 	}
 
-	// Add the environment variables specified in the configuration:
-	for envName, envValue := range r.env {
-		envMap[envName] = envValue
-	}
-
 	// Add the environment variable that points to the configuration file:
 	envMap["TF_CLI_CONFIG_FILE"] = configPath
 
@@ -190,7 +193,7 @@ func (r *TerraformRunner) Run(ctx context.Context) *TerraformResult {
 	}
 
 	// Run the init command:
-	initCmd := exec.Command(terraformBinary, "init")
+	initCmd := exec.Command(tfBinary, "init")
 	initCmd.Env = envList
 	initCmd.Dir = tmpDir
 	initCmd.Stdout = GinkgoWriter
@@ -204,10 +207,29 @@ func (r *TerraformRunner) Run(ctx context.Context) *TerraformResult {
 		Fail(message, 1)
 	}
 
+	// Create and populate the object:
+	return &TerraformRunner{
+		binary: tfBinary,
+		dir:    tmpDir,
+		env:    envList,
+	}
+}
+
+// Source sets the Terraform source of the test.
+func (r *TerraformRunner) Source(text string) {
+	file := filepath.Join(r.dir, "test.tf")
+	err := ioutil.WriteFile(file, []byte(text), 0600)
+	ExpectWithOffset(1, err).ToNot(HaveOccurred())
+}
+
+// Run runs a command.
+func (r *TerraformRunner) Run(args ...string) int {
+	var err error
+
 	// Run the command:
-	cmd := exec.Command(terraformBinary, r.args...)
-	cmd.Env = envList
-	cmd.Dir = tmpDir
+	cmd := exec.Command(r.binary, args...)
+	cmd.Env = r.env
+	cmd.Dir = r.dir
 	cmd.Stdout = GinkgoWriter
 	cmd.Stderr = GinkgoWriter
 	err = cmd.Run()
@@ -219,49 +241,44 @@ func (r *TerraformRunner) Run(ctx context.Context) *TerraformResult {
 		ExpectWithOffset(1, err).ToNot(HaveOccurred())
 	}
 
-	// Read the state:
-	statePath := filepath.Join(tmpDir, "terraform.tfstate")
-	_, err = os.Stat(statePath)
-	var stateObject map[string]interface{}
-	if err == nil {
-		var stateBytes []byte
-		stateBytes, err = ioutil.ReadFile(statePath)
-		Expect(err).ToNot(HaveOccurred())
-		err = json.Unmarshal(stateBytes, &stateObject)
-		Expect(err).ToNot(HaveOccurred())
-	}
+	// Return the exit code:
+	return cmd.ProcessState.ExitCode()
+}
 
-	// Create the result:
-	result := &TerraformResult{
-		exitCode:    cmd.ProcessState.ExitCode(),
-		stateObject: stateObject,
-	}
-
-	return result
+// Validate runs the `validate` command.
+func (r *TerraformRunner) Validate() int {
+	return r.Run("validate")
 }
 
 // Apply runs the `apply` command.
-func (r *TerraformRunner) Apply(ctx context.Context) *TerraformResult {
-	return r.Args("apply", "-auto-approve").Run(ctx)
+func (r *TerraformRunner) Apply() int {
+	return r.Run("apply", "-auto-approve")
 }
 
-// ExitCode returns the exit code of the CLI command.
-func (r *TerraformResult) ExitCode() int {
-	return r.exitCode
-}
-
-// State returns the result of parsing the JSON content of the `terraform.tfstate` file.
-func (r *TerraformResult) State(path string) interface{} {
-	return r.stateObject
+// State returns the reads the Terraform state and returns the result of parsing
+// it as a JSON document.
+func (r *TerraformRunner) State() interface{} {
+	path := filepath.Join(r.dir, "terraform.tfstate")
+	_, err := os.Stat(path)
+	var result interface{}
+	if err == nil {
+		var data []byte
+		data, err = ioutil.ReadFile(path)
+		ExpectWithOffset(1, err).ToNot(HaveOccurred())
+		err = json.Unmarshal(data, &result)
+		ExpectWithOffset(1, err).ToNot(HaveOccurred())
+	}
+	return result
 }
 
 // Resource returns the resource stored in the state with the given type and identifier.
-func (r *TerraformResult) Resource(typ, name string) interface{} {
+func (r *TerraformRunner) Resource(typ, name string) interface{} {
+	state := r.State()
 	filter := fmt.Sprintf(
 		`.resources[] | select(.type == "%s" and .name == "%s") | .instances[]`,
 		typ, name,
 	)
-	results, err := JQ(filter, r.stateObject)
+	results, err := JQ(filter, state)
 	ExpectWithOffset(1, err).ToNot(HaveOccurred())
 	ExpectWithOffset(1, results).To(
 		HaveLen(1),
@@ -269,4 +286,11 @@ func (r *TerraformResult) Resource(typ, name string) interface{} {
 		typ, name, len(results),
 	)
 	return results[0]
+}
+
+// Close releases all the resources used by the Terraform runner and removes all
+// temporary files and directories.
+func (r *TerraformRunner) Close() {
+	err := os.RemoveAll(r.dir)
+	ExpectWithOffset(1, err).ToNot(HaveOccurred())
 }

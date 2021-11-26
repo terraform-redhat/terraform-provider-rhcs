@@ -17,11 +17,7 @@ limitations under the License.
 package provider
 
 import (
-	"context"
 	"net/http"
-	"os"
-	"strings"
-	"time"
 
 	. "github.com/onsi/ginkgo"                         // nolint
 	. "github.com/onsi/gomega"                         // nolint
@@ -30,22 +26,8 @@ import (
 )
 
 var _ = Describe("Machine pool creation", func() {
-	var ctx context.Context
-	var server *Server
-	var ca string
-	var token string
-
 	BeforeEach(func() {
-		// Create a contet:
-		ctx = context.Background()
-
-		// Create an access token:
-		token = MakeTokenString("Bearer", 10*time.Minute)
-
-		// Start the server:
-		server, ca = MakeTCPTLSServer()
-
-		// The first thing that the provider will do for any operation on identity providers
+		// The first thing that the provider will do for any operation on machine pools
 		// is check that the cluster is ready, so we always need to prepare the server to
 		// respond to that:
 		server.AppendHandlers(
@@ -58,15 +40,6 @@ var _ = Describe("Machine pool creation", func() {
 				}`),
 			),
 		)
-	})
-
-	AfterEach(func() {
-		// Stop the server:
-		server.Close()
-
-		// Remove the server CA file:
-		err := os.Remove(ca)
-		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("Can create machine pool", func() {
@@ -92,39 +65,18 @@ var _ = Describe("Machine pool creation", func() {
 		)
 
 		// Run the apply command:
-		result := NewTerraformRunner().
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-				}
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}")
-				}
-
-				resource "ocm_machine_pool" "my_pool" {
-				  cluster      = "123"
-				  name         = "my-pool"
-				  machine_type = "r5.xlarge"
-				  replicas     = 10
-				}
-					`,
-				"URL", server.URL(),
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"),
-			).
-			Apply(ctx)
-		Expect(result.ExitCode()).To(BeZero())
+		terraform.Source(`
+		  resource "ocm_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 10
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := result.Resource("ocm_machine_pool", "my_pool")
+		resource := terraform.Resource("ocm_machine_pool", "my_pool")
 		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 		Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 		Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))

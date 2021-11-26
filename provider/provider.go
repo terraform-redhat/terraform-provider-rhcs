@@ -81,14 +81,10 @@ func (p *Provider) GetSchema(ctx context.Context) (schema tfsdk.Schema, diags di
 				Sensitive:   true,
 			},
 			"token": {
-				Description: "Access or refresh token. If this isn't explicitly " +
-					"provided and o other mechanism to obtain credentials is " +
-					"used (password or client secret) then the value will be " +
-					"take from the 'OCM_TOKEN' environment variable, if that " +
-					"exists.",
-				Type:      types.StringType,
-				Optional:  true,
-				Sensitive: true,
+				Description: "Access or refresh token.",
+				Type:        types.StringType,
+				Optional:    true,
+				Sensitive:   true,
 			},
 			"client_id": {
 				Description: "OpenID client identifier.",
@@ -159,6 +155,11 @@ func (p *Provider) Configure(ctx context.Context, request tfsdk.ConfigureProvide
 	// Copy the settings:
 	if !config.URL.Null {
 		builder.URL(config.URL.Value)
+	} else {
+		url, ok := os.LookupEnv("OCM_URL")
+		if ok {
+			builder.URL(url)
+		}
 	}
 	if !config.TokenURL.Null {
 		builder.TokenURL(config.TokenURL.Value)

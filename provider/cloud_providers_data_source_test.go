@@ -17,11 +17,7 @@ limitations under the License.
 package provider
 
 import (
-	"context"
 	"net/http"
-	"os"
-	"strings"
-	"time"
 
 	. "github.com/onsi/ginkgo"                         // nolint
 	. "github.com/onsi/gomega"                         // nolint
@@ -30,31 +26,6 @@ import (
 )
 
 var _ = Describe("Cloud providers data source", func() {
-	var ctx context.Context
-	var server *Server
-	var ca string
-	var token string
-
-	BeforeEach(func() {
-		// Create a contet:
-		ctx = context.Background()
-
-		// Create an access token:
-		token = MakeTokenString("Bearer", 10*time.Minute)
-
-		// Start the server:
-		server, ca = MakeTCPTLSServer()
-	})
-
-	AfterEach(func() {
-		// Stop the server:
-		server.Close()
-
-		// Remove the server CA file:
-		err := os.Remove(ca)
-		Expect(err).ToNot(HaveOccurred())
-	})
-
 	It("Can list cloud providers", func() {
 		// Prepare the server:
 		server.AppendHandlers(
@@ -81,35 +52,14 @@ var _ = Describe("Cloud providers data source", func() {
 		)
 
 		// Run the apply command:
-		result := NewTerraformRunner().
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-				}
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}")
-				}
-
-				data "ocm_cloud_providers" "all" {
-				}
-				`,
-				"URL", server.URL(),
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"),
-			).
-			Apply(ctx)
-		Expect(result.ExitCode()).To(BeZero())
+		terraform.Source(`
+		  data "ocm_cloud_providers" "all" {
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := result.Resource("ocm_cloud_providers", "all")
+		resource := terraform.Resource("ocm_cloud_providers", "all")
 		Expect(resource).To(MatchJQ(`.attributes.items | length`, 2))
 		Expect(resource).To(MatchJQ(`.attributes.items[0].id`, "aws"))
 		Expect(resource).To(MatchJQ(`.attributes.items[0].name`, "aws"))
@@ -147,37 +97,16 @@ var _ = Describe("Cloud providers data source", func() {
 		)
 
 		// Run the apply command:
-		result := NewTerraformRunner().
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-				}
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}")
-				}
-
-				data "ocm_cloud_providers" "a" {
-				  search = "display_name like 'A%'"
-				  order  = "display_name asc"
-				}
-				`,
-				"URL", server.URL(),
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"),
-			).
-			Apply(ctx)
-		Expect(result.ExitCode()).To(BeZero())
+		terraform.Source(`
+		  data "ocm_cloud_providers" "a" {
+		    search = "display_name like 'A%'"
+		    order  = "display_name asc"
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := result.Resource("ocm_cloud_providers", "a")
+		resource := terraform.Resource("ocm_cloud_providers", "a")
 		Expect(resource).To(MatchJQ(`.attributes.search`, "display_name like 'A%'"))
 		Expect(resource).To(MatchJQ(`.attributes.order`, "display_name asc"))
 		Expect(resource).To(MatchJQ(`.attributes.items | length`, 2))
@@ -210,35 +139,14 @@ var _ = Describe("Cloud providers data source", func() {
 		)
 
 		// Run the apply command:
-		result := NewTerraformRunner().
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-				}
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}")
-				}
-
-				data "ocm_cloud_providers" "a" {
-				}
-				`,
-				"URL", server.URL(),
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"),
-			).
-			Apply(ctx)
-		Expect(result.ExitCode()).To(BeZero())
+		terraform.Source(`
+		  data "ocm_cloud_providers" "a" {
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := result.Resource("ocm_cloud_providers", "a")
+		resource := terraform.Resource("ocm_cloud_providers", "a")
 		Expect(resource).To(MatchJQ(`.attributes.item.id`, "aws"))
 		Expect(resource).To(MatchJQ(`.attributes.item.name`, "aws"))
 		Expect(resource).To(MatchJQ(`.attributes.item.display_name`, "AWS"))
@@ -259,35 +167,14 @@ var _ = Describe("Cloud providers data source", func() {
 		)
 
 		// Run the apply command:
-		result := NewTerraformRunner().
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-				}
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}")
-				}
-
-				data "ocm_cloud_providers" "all" {
-				}
-				`,
-				"URL", server.URL(),
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"),
-			).
-			Apply(ctx)
-		Expect(result.ExitCode()).To(BeZero())
+		terraform.Source(`
+		  data "ocm_cloud_providers" "all" {
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := result.Resource("ocm_cloud_providers", "all")
+		resource := terraform.Resource("ocm_cloud_providers", "all")
 		Expect(resource).To(MatchJQ(`.attributes.item`, nil))
 	})
 
@@ -317,35 +204,14 @@ var _ = Describe("Cloud providers data source", func() {
 		)
 
 		// Run the apply command:
-		result := NewTerraformRunner().
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-				}
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}")
-				}
-
-				data "ocm_cloud_providers" "all" {
-				}
-				`,
-				"URL", server.URL(),
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"),
-			).
-			Apply(ctx)
-		Expect(result.ExitCode()).To(BeZero())
+		terraform.Source(`
+		  data "ocm_cloud_providers" "all" {
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := result.Resource("ocm_cloud_providers", "all")
+		resource := terraform.Resource("ocm_cloud_providers", "all")
 		Expect(resource).To(MatchJQ(`.attributes.item`, nil))
 	})
 })

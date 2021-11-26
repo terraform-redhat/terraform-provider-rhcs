@@ -17,11 +17,7 @@ limitations under the License.
 package provider
 
 ***REMOVED***
-	"context"
 ***REMOVED***
-	"os"
-	"strings"
-	"time"
 
 	. "github.com/onsi/ginkgo"                         // nolint
 ***REMOVED***                         // nolint
@@ -30,21 +26,7 @@ package provider
 ***REMOVED***
 
 var _ = Describe("Identity provider creation", func(***REMOVED*** {
-	var ctx context.Context
-	var server *Server
-	var ca string
-	var token string
-
 	BeforeEach(func(***REMOVED*** {
-		// Create a contet:
-		ctx = context.Background(***REMOVED***
-
-		// Create an access token:
-		token = MakeTokenString("Bearer", 10*time.Minute***REMOVED***
-
-		// Start the server:
-		server, ca = MakeTCPTLSServer(***REMOVED***
-
 		// The first thing that the provider will do for any operation on identity providers
 		// is check that the cluster is ready, so we always need to prepare the server to
 		// respond to that:
@@ -58,15 +40,6 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 		***REMOVED***`***REMOVED***,
 			***REMOVED***,
 		***REMOVED***
-	}***REMOVED***
-
-	AfterEach(func(***REMOVED*** {
-		// Stop the server:
-		server.Close(***REMOVED***
-
-		// Remove the server CA file:
-		err := os.Remove(ca***REMOVED***
-		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 	}***REMOVED***
 
 	It("Can create a 'htpasswd' identity provider", func(***REMOVED*** {
@@ -97,38 +70,17 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 		***REMOVED***
 
 		// Run the apply command:
-		result := NewTerraformRunner(***REMOVED***.
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-		***REMOVED***
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}"***REMOVED***
-		***REMOVED***
-
-				resource "ocm_identity_provider" "my_ip" {
-				  cluster = "123"
-				  name    = "my-ip"
-				  htpasswd = {
-				    username = "my-user"
-				    password = "my-password"
-				  }
-		***REMOVED***
-					`,
-				"URL", server.URL(***REMOVED***,
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
-			***REMOVED***.
-			Apply(ctx***REMOVED***
-		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		terraform.Source(`
+		  resource "ocm_identity_provider" "my_ip" {
+		    cluster = "123"
+		    name    = "my-ip"
+		    htpasswd = {
+		      username = "my-user"
+		      password = "my-password"
+		    }
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
 
 	It("Can create an LDAP identity provider", func(***REMOVED*** {
@@ -178,46 +130,25 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 		***REMOVED***
 
 		// Run the apply command:
-		result := NewTerraformRunner(***REMOVED***.
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-		***REMOVED***
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}"***REMOVED***
-		***REMOVED***
-
-				resource "ocm_identity_provider" "my_ip" {
-				  cluster    = "123"
-				  name       = "my-ip"
-				  ldap = {
-				    bind_dn       = "my-bind-dn"
-				    bind_password = "my-bind-password"
-				    insecure      = false
-				    ca            = "my-ca"
-				    url           = "ldap://my-server.com"
-				    attributes    = {
-				      id                 = ["my-id"]
-				      email              = ["my-email"]
-				      name               = ["my-name"]
-				      preferred_username = ["my-preferred-username"]
-				    }
-				  }
-		***REMOVED***
-				`,
-				"URL", server.URL(***REMOVED***,
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
-			***REMOVED***.
-			Apply(ctx***REMOVED***
-		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		terraform.Source(`
+		  resource "ocm_identity_provider" "my_ip" {
+		    cluster    = "123"
+		    name       = "my-ip"
+		    ldap = {
+		      bind_dn       = "my-bind-dn"
+		      bind_password = "my-bind-password"
+		      insecure      = false
+		      ca            = "my-ca"
+		      url           = "ldap://my-server.com"
+		      attributes    = {
+		        id                 = ["my-id"]
+		        email              = ["my-email"]
+		        name               = ["my-name"]
+		        preferred_username = ["my-preferred-username"]
+		      }
+		    }
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
 }***REMOVED***

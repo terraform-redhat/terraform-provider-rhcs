@@ -17,11 +17,7 @@ limitations under the License.
 package provider
 
 ***REMOVED***
-	"context"
 ***REMOVED***
-	"os"
-	"strings"
-	"time"
 
 	. "github.com/onsi/ginkgo"                         // nolint
 ***REMOVED***                         // nolint
@@ -30,31 +26,6 @@ package provider
 ***REMOVED***
 
 var _ = Describe("Machine types data source", func(***REMOVED*** {
-	var ctx context.Context
-	var server *Server
-	var ca string
-	var token string
-
-	BeforeEach(func(***REMOVED*** {
-		// Create a contet:
-		ctx = context.Background(***REMOVED***
-
-		// Create an access token:
-		token = MakeTokenString("Bearer", 10*time.Minute***REMOVED***
-
-		// Start the server:
-		server, ca = MakeTCPTLSServer(***REMOVED***
-	}***REMOVED***
-
-	AfterEach(func(***REMOVED*** {
-		// Stop the server:
-		server.Close(***REMOVED***
-
-		// Remove the server CA file:
-		err := os.Remove(ca***REMOVED***
-		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-	}***REMOVED***
-
 	It("Can list machine types", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(
@@ -109,35 +80,14 @@ var _ = Describe("Machine types data source", func(***REMOVED*** {
 		***REMOVED***
 
 		// Run the apply command:
-		result := NewTerraformRunner(***REMOVED***.
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-		***REMOVED***
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}"***REMOVED***
-		***REMOVED***
-
-				data "ocm_machine_types" "my_machines" {
-		***REMOVED***
-				`,
-				"URL", server.URL(***REMOVED***,
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
-			***REMOVED***.
-			Apply(ctx***REMOVED***
-		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		terraform.Source(`
+		  data "ocm_machine_types" "my_machines" {
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := result.Resource("ocm_machine_types", "my_machines"***REMOVED***
+		resource := terraform.Resource("ocm_machine_types", "my_machines"***REMOVED***
 
 		// Check the GCP machine type:
 		gcpTypes, err := JQ(`.attributes.items[] | select(.cloud_provider == "gcp"***REMOVED***`, resource***REMOVED***

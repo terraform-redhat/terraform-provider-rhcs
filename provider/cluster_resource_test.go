@@ -17,11 +17,7 @@ limitations under the License.
 package provider
 
 ***REMOVED***
-	"context"
 ***REMOVED***
-	"os"
-	"strings"
-	"time"
 
 	. "github.com/onsi/ginkgo"                         // nolint
 ***REMOVED***                         // nolint
@@ -30,11 +26,6 @@ package provider
 ***REMOVED***
 
 var _ = Describe("Cluster creation", func(***REMOVED*** {
-	var ctx context.Context
-	var server *Server
-	var ca string
-	var token string
-
 	// This is the cluster that will be returned by the server when asked to create or retrieve
 	// a cluster.
 	const template = `{
@@ -75,26 +66,6 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 	  "state": "ready"
 	}`
 
-	BeforeEach(func(***REMOVED*** {
-		// Create a contet:
-		ctx = context.Background(***REMOVED***
-
-		// Create an access token:
-		token = MakeTokenString("Bearer", 10*time.Minute***REMOVED***
-
-		// Start the server:
-		server, ca = MakeTCPTLSServer(***REMOVED***
-	}***REMOVED***
-
-	AfterEach(func(***REMOVED*** {
-		// Stop the server:
-		server.Close(***REMOVED***
-
-		// Remove the server CA file:
-		err := os.Remove(ca***REMOVED***
-		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-	}***REMOVED***
-
 	It("Creates basic cluster", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(
@@ -108,35 +79,14 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		***REMOVED***
 
 		// Run the apply command:
-		result := NewTerraformRunner(***REMOVED***.
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-		***REMOVED***
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}"***REMOVED***
-		***REMOVED***
-
-				resource "ocm_cluster" "my_cluster" {
-				  name           = "my-cluster"
-				  cloud_provider = "aws"
-				  cloud_region   = "us-west-1"
-		***REMOVED***
-				`,
-				"URL", server.URL(***REMOVED***,
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
-			***REMOVED***.
-			Apply(ctx***REMOVED***
-		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		terraform.Source(`
+		  resource "ocm_cluster" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_provider = "aws"
+		    cloud_region   = "us-west-1"
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
 
 	It("Saves API and console URLs to the state", func(***REMOVED*** {
@@ -149,38 +99,17 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		***REMOVED***
 
 		// Run the apply command:
-		result := NewTerraformRunner(***REMOVED***.
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-		***REMOVED***
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}"***REMOVED***
-		***REMOVED***
-
-				resource "ocm_cluster" "my_cluster" {
-				  name           = "my-cluster"
-				  cloud_provider = "aws"
-				  cloud_region   = "us-west-1"
-		***REMOVED***
-				`,
-				"URL", server.URL(***REMOVED***,
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
-			***REMOVED***.
-			Apply(ctx***REMOVED***
-		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		terraform.Source(`
+		  resource "ocm_cluster" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_provider = "aws"
+		    cloud_region   = "us-west-1"
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := result.Resource("ocm_cluster", "my_cluster"***REMOVED***
+		resource := terraform.Resource("ocm_cluster", "my_cluster"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.api_url", "https://my-api.example.com"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.console_url", "https://my-console.example.com"***REMOVED******REMOVED***
 	}***REMOVED***
@@ -197,40 +126,19 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		***REMOVED***
 
 		// Run the apply command:
-		result := NewTerraformRunner(***REMOVED***.
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-		***REMOVED***
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}"***REMOVED***
-		***REMOVED***
-
-				resource "ocm_cluster" "my_cluster" {
-				  name                 = "my-cluster"
-				  cloud_provider       = "aws"
-				  cloud_region         = "us-west-1"
-				  compute_nodes        = 3
-				  compute_machine_type = "r5.xlarge"
-		***REMOVED***
-				`,
-				"URL", server.URL(***REMOVED***,
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
-			***REMOVED***.
-			Apply(ctx***REMOVED***
-		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		terraform.Source(`
+		  resource "ocm_cluster" "my_cluster" {
+		    name                 = "my-cluster"
+		    cloud_provider       = "aws"
+		    cloud_region         = "us-west-1"
+		    compute_nodes        = 3
+		    compute_machine_type = "r5.xlarge"
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := result.Resource("ocm_cluster", "my_cluster"***REMOVED***
+		resource := terraform.Resource("ocm_cluster", "my_cluster"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.compute_nodes", 3.0***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.compute_machine_type", "r5.xlarge"***REMOVED******REMOVED***
 	}***REMOVED***
@@ -266,42 +174,21 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		***REMOVED***
 
 		// Run the apply command:
-		result := NewTerraformRunner(***REMOVED***.
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-		***REMOVED***
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}"***REMOVED***
-		***REMOVED***
-
-				resource "ocm_cluster" "my_cluster" {
-				  name                  = "my-cluster"
-				  cloud_provider        = "aws"
-				  cloud_region          = "us-west-1"
-				  ccs_enabled           = true
-				  aws_account_id        = "123"
-				  aws_access_key_id     = "456"
-				  aws_secret_access_key = "789"
-		***REMOVED***
-				`,
-				"URL", server.URL(***REMOVED***,
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
-			***REMOVED***.
-			Apply(ctx***REMOVED***
-		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		terraform.Source(`
+		  resource "ocm_cluster" "my_cluster" {
+		    name                  = "my-cluster"
+		    cloud_provider        = "aws"
+		    cloud_region          = "us-west-1"
+		    ccs_enabled           = true
+		    aws_account_id        = "123"
+		    aws_access_key_id     = "456"
+		    aws_secret_access_key = "789"
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := result.Resource("ocm_cluster", "my_cluster"***REMOVED***
+		resource := terraform.Resource("ocm_cluster", "my_cluster"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.ccs_enabled", true***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.aws_account_id", "123"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.aws_access_key_id", "456"***REMOVED******REMOVED***
@@ -333,42 +220,21 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		***REMOVED***
 
 		// Run the apply command:
-		result := NewTerraformRunner(***REMOVED***.
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-		***REMOVED***
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}"***REMOVED***
-		***REMOVED***
-
-				resource "ocm_cluster" "my_cluster" {
-				  name           = "my-cluster"
-				  cloud_provider = "aws"
-				  cloud_region   = "us-west-1"
-				  machine_cidr   = "10.0.0.0/15"
-				  service_cidr   = "172.30.0.0/15"
-				  pod_cidr       = "10.128.0.0/13"
-				  host_prefix    = 22
-		***REMOVED***
-				`,
-				"URL", server.URL(***REMOVED***,
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
-			***REMOVED***.
-			Apply(ctx***REMOVED***
-		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		terraform.Source(`
+		  resource "ocm_cluster" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_provider = "aws"
+		    cloud_region   = "us-west-1"
+		    machine_cidr   = "10.0.0.0/15"
+		    service_cidr   = "172.30.0.0/15"
+		    pod_cidr       = "10.128.0.0/13"
+		    host_prefix    = 22
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := result.Resource("ocm_cluster", "my_cluster"***REMOVED***
+		resource := terraform.Resource("ocm_cluster", "my_cluster"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_cidr", "10.0.0.0/15"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.service_cidr", "172.30.0.0/15"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.pod_cidr", "10.128.0.0/13"***REMOVED******REMOVED***
@@ -394,39 +260,18 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		***REMOVED***
 
 		// Run the apply command:
-		result := NewTerraformRunner(***REMOVED***.
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-		***REMOVED***
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}"***REMOVED***
-		***REMOVED***
-
-				resource "ocm_cluster" "my_cluster" {
-				  name           = "my-cluster"
-				  cloud_provider = "aws"
-				  cloud_region   = "us-west-1"
-				  version        = "openshift-v4.8.1"
-		***REMOVED***
-				`,
-				"URL", server.URL(***REMOVED***,
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
-			***REMOVED***.
-			Apply(ctx***REMOVED***
-		Expect(result.ExitCode(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		terraform.Source(`
+		  resource "ocm_cluster" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_provider = "aws"
+		    cloud_region   = "us-west-1"
+		    version        = "openshift-v4.8.1"
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := result.Resource("ocm_cluster", "my_cluster"***REMOVED***
+		resource := terraform.Resource("ocm_cluster", "my_cluster"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.version", "openshift-v4.8.1"***REMOVED******REMOVED***
 	}***REMOVED***
 
@@ -444,34 +289,13 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		***REMOVED***
 
 		// Run the apply command:
-		result := NewTerraformRunner(***REMOVED***.
-			File(
-				"main.tf", `
-				terraform {
-				  required_providers {
-				    ocm = {
-				      source = "localhost/openshift-online/ocm"
-				    }
-				  }
-		***REMOVED***
-
-				provider "ocm" {
-				  url         = "{{ .URL }}"
-				  token       = "{{ .Token }}"
-				  trusted_cas = file("{{ .CA }}"***REMOVED***
-		***REMOVED***
-
-				resource "ocm_cluster" "my_cluster" {
-				  name           = "my-cluster"
-				  cloud_provider = "aws"
-				  cloud_region   = "us-west-1"
-		***REMOVED***
-				`,
-				"URL", server.URL(***REMOVED***,
-				"Token", token,
-				"CA", strings.ReplaceAll(ca, "\\", "/"***REMOVED***,
-			***REMOVED***.
-			Apply(ctx***REMOVED***
-		Expect(result.ExitCode(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
+		terraform.Source(`
+		  resource "ocm_cluster" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_provider = "aws"
+		    cloud_region   = "us-west-1"
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
 }***REMOVED***

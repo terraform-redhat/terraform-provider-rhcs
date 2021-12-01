@@ -1,3 +1,12 @@
+## 0.1.5 (December 01, 2021***REMOVED***
+
+ENHANCEMENTS:
+
+* Add `search` and `order` to cloud providers data source.
+
+* Add `search` and `order` to versions data source.
+
+
 ## 0.1.4 (November 24, 2021***REMOVED***
 
 FEATURES:

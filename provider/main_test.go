@@ -27,7 +27,7 @@ package provider
 	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo"                         // nolint
+***REMOVED***                      // nolint
 ***REMOVED***                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint

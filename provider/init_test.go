@@ -17,8 +17,8 @@ limitations under the License.
 package provider
 
 import (
-	. "github.com/onsi/ginkgo" // nolint
-	. "github.com/onsi/gomega" // nolint
+	. "github.com/onsi/ginkgo/v2" // nolint
+	. "github.com/onsi/gomega"    // nolint
 )
 
 var _ = Describe("Init", func() {

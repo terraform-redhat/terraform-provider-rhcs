@@ -17,8 +17,8 @@ limitations under the License.
 package provider
 
 ***REMOVED***
-***REMOVED*** // nolint
-***REMOVED***    // nolint
+	. "github.com/onsi/ginkgo/v2/dsl/core" // nolint
+***REMOVED***             // nolint
 ***REMOVED***
 
 var _ = Describe("Init", func(***REMOVED*** {

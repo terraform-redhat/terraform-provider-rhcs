@@ -44,7 +44,10 @@ build:
 
 .PHONY: test tests
 test tests: build
-	ginkgo -ldflags="$(ldflags***REMOVED***" -r
+	ginkgo run \
+		--succinct \
+		-ldflags="$(ldflags***REMOVED***" \
+		-r
 
 .PHONY: fmt_go
 fmt_go:

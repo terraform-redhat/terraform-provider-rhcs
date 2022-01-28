@@ -19,7 +19,7 @@ package provider
 ***REMOVED***
 ***REMOVED***
 
-***REMOVED***                      // nolint
+	. "github.com/onsi/ginkgo/v2/dsl/core"             // nolint
 ***REMOVED***                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint

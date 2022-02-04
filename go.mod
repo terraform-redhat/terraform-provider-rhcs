@@ -7,7 +7,7 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.5.0
 	github.com/onsi/ginkgo/v2 v2.1.1
 	github.com/onsi/gomega v1.18.1
-	github.com/openshift-online/ocm-sdk-go v0.1.237
+	github.com/openshift-online/ocm-sdk-go v0.1.240
 ***REMOVED***
 
 require (

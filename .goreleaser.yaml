@@ -26,6 +26,7 @@ builds:
   - windows
   goarch:
   - amd64
+  - arm64
   binary: '{{ .ProjectName }}_v{{ .Version }}'
 archives:
 - format: zip

@@ -1,3 +1,10 @@
+## 0.1.6 (Jun 07, 2022)
+
+ENHANCEMENTS:
+
+* Build for Apple M1.
+
+
 ## 0.1.5 (December 01, 2021)
 
 ENHANCEMENTS:

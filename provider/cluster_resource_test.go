@@ -30,6 +30,9 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 	// a cluster.
 	const template = `{
 	  "id": "123",
+	  "product": {
+		"id": "osd"
+	  },
 	  "name": "my-cluster",
 	  "cloud_provider": {
 	    "id": "aws"
@@ -82,6 +85,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		terraform.Source(`
 		  resource "ocm_cluster" "my_cluster" {
 		    name           = "my-cluster"
+			product		   = "osd"
 		    cloud_provider = "aws"
 		    cloud_region   = "us-west-1"
 		  }
@@ -102,6 +106,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		terraform.Source(`
 		  resource "ocm_cluster" "my_cluster" {
 		    name           = "my-cluster"
+			product		   = "osd"
 		    cloud_provider = "aws"
 		    cloud_region   = "us-west-1"
 		  }
@@ -129,6 +134,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		terraform.Source(`
 		  resource "ocm_cluster" "my_cluster" {
 		    name                 = "my-cluster"
+			product		   		 = "osd"
 		    cloud_provider       = "aws"
 		    cloud_region         = "us-west-1"
 		    compute_nodes        = 3
@@ -177,6 +183,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		terraform.Source(`
 		  resource "ocm_cluster" "my_cluster" {
 		    name                  = "my-cluster"
+			product		   		  = "osd"
 		    cloud_provider        = "aws"
 		    cloud_region          = "us-west-1"
 		    ccs_enabled           = true
@@ -223,6 +230,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		terraform.Source(`
 		  resource "ocm_cluster" "my_cluster" {
 		    name           = "my-cluster"
+			product		   = "osd"
 		    cloud_provider = "aws"
 		    cloud_region   = "us-west-1"
 		    machine_cidr   = "10.0.0.0/15"
@@ -263,6 +271,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		terraform.Source(`
 		  resource "ocm_cluster" "my_cluster" {
 		    name           = "my-cluster"
+			product		   = "osd"
 		    cloud_provider = "aws"
 		    cloud_region   = "us-west-1"
 		    version        = "openshift-v4.8.1"
@@ -291,6 +300,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		// Run the apply command:
 		terraform.Source(`
 		  resource "ocm_cluster" "my_cluster" {
+			product		   = "osd"
 		    name           = "my-cluster"
 		    cloud_provider = "aws"
 		    cloud_region   = "us-west-1"

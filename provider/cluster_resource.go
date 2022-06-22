@@ -49,6 +49,11 @@ func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVE
 				Type:        types.StringType,
 				Computed:    true,
 	***REMOVED***,
+			"product": {
+				Description: "Product ID OSD or Rosa",
+				Type:        types.StringType,
+				Required:    true,
+	***REMOVED***,
 			"name": {
 				Description: "Name of the cluster.",
 				Type:        types.StringType,
@@ -63,6 +68,11 @@ func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVE
 				Description: "Cloud region identifier, for example 'us-east-1'.",
 				Type:        types.StringType,
 				Required:    true,
+	***REMOVED***,
+			"sts": {
+				Description: "STS Configuration",
+				Attributes:  stsResource(***REMOVED***,
+				Optional:    true,
 	***REMOVED***,
 			"multi_az": {
 				Description: "Indicates if the cluster should be deployed to " +
@@ -209,6 +219,7 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 	builder := cmv1.NewCluster(***REMOVED***
 	builder.Name(state.Name.Value***REMOVED***
 	builder.CloudProvider(cmv1.NewCloudProvider(***REMOVED***.ID(state.CloudProvider.Value***REMOVED******REMOVED***
+	builder.Product(cmv1.NewProduct(***REMOVED***.ID(state.Product.Value***REMOVED******REMOVED***
 	builder.Region(cmv1.NewCloudRegion(***REMOVED***.ID(state.CloudRegion.Value***REMOVED******REMOVED***
 	if !state.MultiAZ.Unknown && !state.MultiAZ.Null {
 		builder.MultiAZ(state.MultiAZ.Value***REMOVED***
@@ -249,6 +260,44 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 	if !state.AWSSecretAccessKey.Unknown && !state.AWSSecretAccessKey.Null {
 		aws.SecretAccessKey(state.AWSSecretAccessKey.Value***REMOVED***
 	}
+
+	sts := cmv1.NewSTS(***REMOVED***
+	if state.Sts != nil {
+		sts.OIDCEndpointURL(state.Sts.OIDCEndpointURL.Value***REMOVED***
+		sts.RoleARN(state.Sts.RoleARN.Value***REMOVED***
+		sts.SupportRoleARN(state.Sts.SupportRoleArn.Value***REMOVED***
+		instanceIamRoles := cmv1.NewInstanceIAMRoles(***REMOVED***
+		instanceIamRoles.MasterRoleARN(state.Sts.InstanceIAMRoles.MasterRoleARN.Value***REMOVED***
+		instanceIamRoles.WorkerRoleARN(state.Sts.InstanceIAMRoles.WorkerRoleARN.Value***REMOVED***
+		sts.InstanceIAMRoles(instanceIamRoles***REMOVED***
+		cloudCredentialRole := cmv1.NewOperatorIAMRole(***REMOVED***
+		cloudCredentialRole.Name(state.Sts.OperatorIAMRoles.CloudCredential.Name.Value***REMOVED***
+		cloudCredentialRole.Namespace(state.Sts.OperatorIAMRoles.CloudCredential.Namespace.Value***REMOVED***
+		cloudCredentialRole.RoleARN(state.Sts.OperatorIAMRoles.CloudCredential.RoleARN.Value***REMOVED***
+		imageRegistryRole := cmv1.NewOperatorIAMRole(***REMOVED***
+		imageRegistryRole.Name(state.Sts.OperatorIAMRoles.ImageRegistry.Name.Value***REMOVED***
+		imageRegistryRole.Namespace(state.Sts.OperatorIAMRoles.ImageRegistry.Namespace.Value***REMOVED***
+		imageRegistryRole.RoleARN(state.Sts.OperatorIAMRoles.ImageRegistry.RoleARN.Value***REMOVED***
+		ingressRole := cmv1.NewOperatorIAMRole(***REMOVED***
+		ingressRole.Name(state.Sts.OperatorIAMRoles.Ingress.Name.Value***REMOVED***
+		ingressRole.Namespace(state.Sts.OperatorIAMRoles.Ingress.Namespace.Value***REMOVED***
+		ingressRole.RoleARN(state.Sts.OperatorIAMRoles.Ingress.RoleARN.Value***REMOVED***
+		ebsRole := cmv1.NewOperatorIAMRole(***REMOVED***
+		ebsRole.Name(state.Sts.OperatorIAMRoles.EBS.Name.Value***REMOVED***
+		ebsRole.Namespace(state.Sts.OperatorIAMRoles.EBS.Namespace.Value***REMOVED***
+		ebsRole.RoleARN(state.Sts.OperatorIAMRoles.EBS.RoleARN.Value***REMOVED***
+		cloudNetworkConfigRole := cmv1.NewOperatorIAMRole(***REMOVED***
+		cloudNetworkConfigRole.Name(state.Sts.OperatorIAMRoles.CloudNetworkConfig.Name.Value***REMOVED***
+		cloudNetworkConfigRole.Namespace(state.Sts.OperatorIAMRoles.CloudNetworkConfig.Namespace.Value***REMOVED***
+		cloudNetworkConfigRole.RoleARN(state.Sts.OperatorIAMRoles.CloudNetworkConfig.RoleARN.Value***REMOVED***
+		machineAPIRole := cmv1.NewOperatorIAMRole(***REMOVED***
+		machineAPIRole.Name(state.Sts.OperatorIAMRoles.MachineAPI.Name.Value***REMOVED***
+		machineAPIRole.Namespace(state.Sts.OperatorIAMRoles.MachineAPI.Namespace.Value***REMOVED***
+		machineAPIRole.RoleARN(state.Sts.OperatorIAMRoles.MachineAPI.RoleARN.Value***REMOVED***
+		sts.OperatorIAMRoles(cloudCredentialRole, imageRegistryRole, ingressRole, ebsRole, cloudNetworkConfigRole, machineAPIRole***REMOVED***
+		aws.STS(sts***REMOVED***
+	}
+
 	if !aws.Empty(***REMOVED*** {
 		builder.AWS(aws***REMOVED***
 	}
@@ -497,6 +546,9 @@ func (r *ClusterResource***REMOVED*** ImportState(ctx context.Context, request t
 func (r *ClusterResource***REMOVED*** populateState(object *cmv1.Cluster, state *ClusterState***REMOVED*** {
 	state.ID = types.String{
 		Value: object.ID(***REMOVED***,
+	}
+	state.Product = types.String{
+		Value: object.Product(***REMOVED***.ID(***REMOVED***,
 	}
 	state.Name = types.String{
 		Value: object.Name(***REMOVED***,

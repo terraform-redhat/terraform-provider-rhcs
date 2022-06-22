@@ -33,6 +33,7 @@ type ClusterState struct {
 	ConsoleURL         types.String `tfsdk:"console_url"`
 	HostPrefix         types.Int64  `tfsdk:"host_prefix"`
 	ID                 types.String `tfsdk:"id"`
+	Product            types.String `tfsdk:"product"`
 	MachineCIDR        types.String `tfsdk:"machine_cidr"`
 	MultiAZ            types.Bool   `tfsdk:"multi_az"`
 	Name               types.String `tfsdk:"name"`
@@ -42,4 +43,33 @@ type ClusterState struct {
 	State              types.String `tfsdk:"state"`
 	Version            types.String `tfsdk:"version"`
 	Wait               types.Bool   `tfsdk:"wait"`
+	Sts                *Sts         `tfsdk:"sts"`
+}
+
+type Sts struct {
+	OIDCEndpointURL  types.String    `tfsdk:"oidc_endpoint_url"`
+	RoleARN          types.String    `tfsdk:"role_arn"`
+	SupportRoleArn   types.String    `tfsdk:"support_role_arn"`
+	InstanceIAMRoles InstanceIAMRole `tfsdk:"instance_iam_roles"`
+	OperatorIAMRoles OperatorIAMRole `tfsdk:"operator_iam_roles"`
+}
+
+type InstanceIAMRole struct {
+	MasterRoleARN types.String `tfsdk:"master_role_arn"`
+	WorkerRoleARN types.String `tfsdk:"worker_role_arn"`
+}
+
+type OperatorIAMRole struct {
+	CloudCredential    OperatorRole `tfsdk:"cloud_credential"`
+	ImageRegistry      OperatorRole `tfsdk:"image_registry"`
+	Ingress            OperatorRole `tfsdk:"ingress"`
+	EBS                OperatorRole `tfsdk:"ebs"`
+	CloudNetworkConfig OperatorRole `tfsdk:"cloud_network_config"`
+	MachineAPI         OperatorRole `tfsdk:"machine_api"`
+}
+
+type OperatorRole struct {
+	Name      types.String `tfsdk:"name"`
+	Namespace types.String `tfsdk:"namespace"`
+	RoleARN   types.String `tfsdk:"role_arn"`
 }

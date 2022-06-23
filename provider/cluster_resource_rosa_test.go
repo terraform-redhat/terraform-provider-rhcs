@@ -102,7 +102,6 @@ var _ = Describe("Cluster creation", func() {
 				VerifyJQ(`.cloud_provider.id`, "aws"),
 				VerifyJQ(`.region.id`, "us-west-1"),
 				VerifyJQ(`.product.id`, "rosa"),
-				VerifyJQ(`.aws.sts.oidc_endpoint_url`, "oidc_endpoint_url"),
 				VerifyJQ(`.aws.sts.role_arn`, "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role"),
 				VerifyJQ(`.aws.sts.support_role_arn`, "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role"),
 				VerifyJQ(`.aws.sts.instance_iam_roles.master_role_arn`, "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role"),
@@ -113,7 +112,55 @@ var _ = Describe("Cluster creation", func() {
 				VerifyJQ(`.aws.sts.operator_iam_roles.[3].role_arn`, "arn:aws:iam::account-id:role/ebs"),
 				VerifyJQ(`.aws.sts.operator_iam_roles.[4].role_arn`, "arn:aws:iam::account-id:role/cloud-network-config"),
 				VerifyJQ(`.aws.sts.operator_iam_roles.[5].role_arn`, "arn:aws:iam::account-id:role/machine-api"),
-				RespondWithJSON(http.StatusCreated, template),
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "oidc_endpoint_url",
+							  "role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
+							  "support_role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role",
+								"worker_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"
+							  },
+							  "operator_iam_roles" : [
+								{
+									"name": "cloud-credential-operator-iam-ro-creds",
+									"namespace": "openshift-cloud-credential-operator",
+									"role_arn": "arn:aws:iam::account-id:role/cloud-credential"
+								  },
+								  {
+									"name": "installer-cloud-credentials",
+									"namespace": "openshift-image-registry",
+									"role_arn": "arn:aws:iam::account-id:role/image-registry"
+								  },
+								  {
+									"name": "cloud-credentials",
+									"namespace": "openshift-ingress-operator",
+									"role_arn": "arn:aws:iam::account-id:role/ingress"
+								  },
+								  {
+									"name": "ebs-cloud-credentials",
+									"namespace": "openshift-cluster-csi-drivers",
+									"role_arn": "arn:aws:iam::account-id:role/ebs"
+								  },
+								  {
+									"name": "cloud-credentials",
+									"namespace": "openshift-cloud-network-config-controller",
+									"role_arn": "arn:aws:iam::account-id:role/cloud-network-config"
+								  },
+								  {
+									"name": "aws-cloud-credentials",
+									"namespace": "openshift-machine-api",
+									"role_arn": "arn:aws:iam::account-id:role/machine-api"
+								  }								  
+							  ]
+						  }
+					  }
+					}
+				  ]`),
 			),
 		)
 
@@ -125,41 +172,40 @@ var _ = Describe("Cluster creation", func() {
 			cloud_provider = "aws"			
 			cloud_region   = "us-west-1"			
 			sts = {
-				oidc_endpoint_url = "oidc_endpoint_url"
 				role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
 				support_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
-				operator_iam_roles = {
-					cloud_credential = {
+				operator_iam_roles = [
+					{
 						name =  "cloud-credential-operator-iam-ro-creds",
 						namespace = "openshift-cloud-credential-operator",
 						role_arn = "arn:aws:iam::account-id:role/cloud-credential",
 					},
-					image_registry = {
+					{
 						name =  "installer-cloud-credentials",
 						namespace = "openshift-image-registry",
 						role_arn = "arn:aws:iam::account-id:role/image-registry",
 					},
-					ingress = {
+					{
 						name =  "cloud-credentials",
 						namespace = "openshift-ingress-operator",
 						role_arn = "arn:aws:iam::account-id:role/ingress",
 					},
-					ebs = {
+					{
 						name =  "ebs-cloud-credentials",
 						namespace = "openshift-cluster-csi-drivers",
 						role_arn = "arn:aws:iam::account-id:role/ebs",
 					},
-					cloud_network_config = {
+					{
 						name =  "cloud-credentials",
 						namespace = "openshift-cloud-network-config-controller",
 						role_arn = "arn:aws:iam::account-id:role/cloud-network-config",
 					},
-					machine_api = {
+					{
 						name =  "aws-cloud-credentials",
 						namespace = "openshift-machine-api",
 						role_arn = "arn:aws:iam::account-id:role/machine-api",
-					},					
-				},
+					},
+				]
 				instance_iam_roles = {
 				  master_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role",
 				  worker_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"

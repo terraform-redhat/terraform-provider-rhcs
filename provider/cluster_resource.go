@@ -263,38 +263,22 @@ func (r *ClusterResource) Create(ctx context.Context,
 
 	sts := cmv1.NewSTS()
 	if state.Sts != nil {
-		sts.OIDCEndpointURL(state.Sts.OIDCEndpointURL.Value)
 		sts.RoleARN(state.Sts.RoleARN.Value)
 		sts.SupportRoleARN(state.Sts.SupportRoleArn.Value)
 		instanceIamRoles := cmv1.NewInstanceIAMRoles()
 		instanceIamRoles.MasterRoleARN(state.Sts.InstanceIAMRoles.MasterRoleARN.Value)
 		instanceIamRoles.WorkerRoleARN(state.Sts.InstanceIAMRoles.WorkerRoleARN.Value)
 		sts.InstanceIAMRoles(instanceIamRoles)
-		cloudCredentialRole := cmv1.NewOperatorIAMRole()
-		cloudCredentialRole.Name(state.Sts.OperatorIAMRoles.CloudCredential.Name.Value)
-		cloudCredentialRole.Namespace(state.Sts.OperatorIAMRoles.CloudCredential.Namespace.Value)
-		cloudCredentialRole.RoleARN(state.Sts.OperatorIAMRoles.CloudCredential.RoleARN.Value)
-		imageRegistryRole := cmv1.NewOperatorIAMRole()
-		imageRegistryRole.Name(state.Sts.OperatorIAMRoles.ImageRegistry.Name.Value)
-		imageRegistryRole.Namespace(state.Sts.OperatorIAMRoles.ImageRegistry.Namespace.Value)
-		imageRegistryRole.RoleARN(state.Sts.OperatorIAMRoles.ImageRegistry.RoleARN.Value)
-		ingressRole := cmv1.NewOperatorIAMRole()
-		ingressRole.Name(state.Sts.OperatorIAMRoles.Ingress.Name.Value)
-		ingressRole.Namespace(state.Sts.OperatorIAMRoles.Ingress.Namespace.Value)
-		ingressRole.RoleARN(state.Sts.OperatorIAMRoles.Ingress.RoleARN.Value)
-		ebsRole := cmv1.NewOperatorIAMRole()
-		ebsRole.Name(state.Sts.OperatorIAMRoles.EBS.Name.Value)
-		ebsRole.Namespace(state.Sts.OperatorIAMRoles.EBS.Namespace.Value)
-		ebsRole.RoleARN(state.Sts.OperatorIAMRoles.EBS.RoleARN.Value)
-		cloudNetworkConfigRole := cmv1.NewOperatorIAMRole()
-		cloudNetworkConfigRole.Name(state.Sts.OperatorIAMRoles.CloudNetworkConfig.Name.Value)
-		cloudNetworkConfigRole.Namespace(state.Sts.OperatorIAMRoles.CloudNetworkConfig.Namespace.Value)
-		cloudNetworkConfigRole.RoleARN(state.Sts.OperatorIAMRoles.CloudNetworkConfig.RoleARN.Value)
-		machineAPIRole := cmv1.NewOperatorIAMRole()
-		machineAPIRole.Name(state.Sts.OperatorIAMRoles.MachineAPI.Name.Value)
-		machineAPIRole.Namespace(state.Sts.OperatorIAMRoles.MachineAPI.Namespace.Value)
-		machineAPIRole.RoleARN(state.Sts.OperatorIAMRoles.MachineAPI.RoleARN.Value)
-		sts.OperatorIAMRoles(cloudCredentialRole, imageRegistryRole, ingressRole, ebsRole, cloudNetworkConfigRole, machineAPIRole)
+
+		operatorRoles := make([]*cmv1.OperatorIAMRoleBuilder, 0)
+		for _, operatorRole := range state.Sts.OperatorIAMRoles {
+			r := cmv1.NewOperatorIAMRole()
+			r.Name(operatorRole.Name.Value)
+			r.Namespace(operatorRole.Namespace.Value)
+			r.RoleARN(operatorRole.RoleARN.Value)
+			operatorRoles = append(operatorRoles, r)
+		}
+		sts.OperatorIAMRoles(operatorRoles...)
 		aws.STS(sts)
 	}
 
@@ -614,6 +598,40 @@ func (r *ClusterResource) populateState(object *cmv1.Cluster, state *ClusterStat
 	} else {
 		state.AWSSecretAccessKey = types.String{
 			Null: true,
+		}
+	}
+	sts, ok := object.AWS().GetSTS()
+	if ok {
+		state.Sts = &Sts{}
+		state.Sts.OIDCEndpointURL = types.String{
+			Value: sts.OIDCEndpointURL(),
+		}
+		state.Sts.RoleARN = types.String{
+			Value: sts.RoleARN(),
+		}
+		state.Sts.SupportRoleArn = types.String{
+			Value: sts.SupportRoleARN(),
+		}
+		state.Sts.InstanceIAMRoles.MasterRoleARN = types.String{
+			Value: sts.InstanceIAMRoles().MasterRoleARN(),
+		}
+		state.Sts.InstanceIAMRoles.WorkerRoleARN = types.String{
+			Value: sts.InstanceIAMRoles().WorkerRoleARN(),
+		}
+
+		for _, operatorRole := range sts.OperatorIAMRoles() {
+			r := OperatorIAMRole{
+				Name: types.String{
+					Value: operatorRole.Name(),
+				},
+				Namespace: types.String{
+					Value: operatorRole.Namespace(),
+				},
+				RoleARN: types.String{
+					Value: operatorRole.RoleARN(),
+				},
+			}
+			state.Sts.OperatorIAMRoles = append(state.Sts.OperatorIAMRoles, r)
 		}
 	}
 	machineCIDR, ok := object.Network().GetMachineCIDR()

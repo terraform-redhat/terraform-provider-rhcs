@@ -47,11 +47,11 @@ type ClusterState struct {
 }
 
 type Sts struct {
-	OIDCEndpointURL  types.String    `tfsdk:"oidc_endpoint_url"`
-	RoleARN          types.String    `tfsdk:"role_arn"`
-	SupportRoleArn   types.String    `tfsdk:"support_role_arn"`
-	InstanceIAMRoles InstanceIAMRole `tfsdk:"instance_iam_roles"`
-	OperatorIAMRoles OperatorIAMRole `tfsdk:"operator_iam_roles"`
+	OIDCEndpointURL  types.String      `tfsdk:"oidc_endpoint_url"`
+	RoleARN          types.String      `tfsdk:"role_arn"`
+	SupportRoleArn   types.String      `tfsdk:"support_role_arn"`
+	InstanceIAMRoles InstanceIAMRole   `tfsdk:"instance_iam_roles"`
+	OperatorIAMRoles []OperatorIAMRole `tfsdk:"operator_iam_roles"`
 }
 
 type InstanceIAMRole struct {
@@ -60,15 +60,6 @@ type InstanceIAMRole struct {
 }
 
 type OperatorIAMRole struct {
-	CloudCredential    OperatorRole `tfsdk:"cloud_credential"`
-	ImageRegistry      OperatorRole `tfsdk:"image_registry"`
-	Ingress            OperatorRole `tfsdk:"ingress"`
-	EBS                OperatorRole `tfsdk:"ebs"`
-	CloudNetworkConfig OperatorRole `tfsdk:"cloud_network_config"`
-	MachineAPI         OperatorRole `tfsdk:"machine_api"`
-}
-
-type OperatorRole struct {
 	Name      types.String `tfsdk:"name"`
 	Namespace types.String `tfsdk:"namespace"`
 	RoleARN   types.String `tfsdk:"role_arn"`

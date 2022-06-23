@@ -263,38 +263,22 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 
 	sts := cmv1.NewSTS(***REMOVED***
 	if state.Sts != nil {
-		sts.OIDCEndpointURL(state.Sts.OIDCEndpointURL.Value***REMOVED***
 		sts.RoleARN(state.Sts.RoleARN.Value***REMOVED***
 		sts.SupportRoleARN(state.Sts.SupportRoleArn.Value***REMOVED***
 		instanceIamRoles := cmv1.NewInstanceIAMRoles(***REMOVED***
 		instanceIamRoles.MasterRoleARN(state.Sts.InstanceIAMRoles.MasterRoleARN.Value***REMOVED***
 		instanceIamRoles.WorkerRoleARN(state.Sts.InstanceIAMRoles.WorkerRoleARN.Value***REMOVED***
 		sts.InstanceIAMRoles(instanceIamRoles***REMOVED***
-		cloudCredentialRole := cmv1.NewOperatorIAMRole(***REMOVED***
-		cloudCredentialRole.Name(state.Sts.OperatorIAMRoles.CloudCredential.Name.Value***REMOVED***
-		cloudCredentialRole.Namespace(state.Sts.OperatorIAMRoles.CloudCredential.Namespace.Value***REMOVED***
-		cloudCredentialRole.RoleARN(state.Sts.OperatorIAMRoles.CloudCredential.RoleARN.Value***REMOVED***
-		imageRegistryRole := cmv1.NewOperatorIAMRole(***REMOVED***
-		imageRegistryRole.Name(state.Sts.OperatorIAMRoles.ImageRegistry.Name.Value***REMOVED***
-		imageRegistryRole.Namespace(state.Sts.OperatorIAMRoles.ImageRegistry.Namespace.Value***REMOVED***
-		imageRegistryRole.RoleARN(state.Sts.OperatorIAMRoles.ImageRegistry.RoleARN.Value***REMOVED***
-		ingressRole := cmv1.NewOperatorIAMRole(***REMOVED***
-		ingressRole.Name(state.Sts.OperatorIAMRoles.Ingress.Name.Value***REMOVED***
-		ingressRole.Namespace(state.Sts.OperatorIAMRoles.Ingress.Namespace.Value***REMOVED***
-		ingressRole.RoleARN(state.Sts.OperatorIAMRoles.Ingress.RoleARN.Value***REMOVED***
-		ebsRole := cmv1.NewOperatorIAMRole(***REMOVED***
-		ebsRole.Name(state.Sts.OperatorIAMRoles.EBS.Name.Value***REMOVED***
-		ebsRole.Namespace(state.Sts.OperatorIAMRoles.EBS.Namespace.Value***REMOVED***
-		ebsRole.RoleARN(state.Sts.OperatorIAMRoles.EBS.RoleARN.Value***REMOVED***
-		cloudNetworkConfigRole := cmv1.NewOperatorIAMRole(***REMOVED***
-		cloudNetworkConfigRole.Name(state.Sts.OperatorIAMRoles.CloudNetworkConfig.Name.Value***REMOVED***
-		cloudNetworkConfigRole.Namespace(state.Sts.OperatorIAMRoles.CloudNetworkConfig.Namespace.Value***REMOVED***
-		cloudNetworkConfigRole.RoleARN(state.Sts.OperatorIAMRoles.CloudNetworkConfig.RoleARN.Value***REMOVED***
-		machineAPIRole := cmv1.NewOperatorIAMRole(***REMOVED***
-		machineAPIRole.Name(state.Sts.OperatorIAMRoles.MachineAPI.Name.Value***REMOVED***
-		machineAPIRole.Namespace(state.Sts.OperatorIAMRoles.MachineAPI.Namespace.Value***REMOVED***
-		machineAPIRole.RoleARN(state.Sts.OperatorIAMRoles.MachineAPI.RoleARN.Value***REMOVED***
-		sts.OperatorIAMRoles(cloudCredentialRole, imageRegistryRole, ingressRole, ebsRole, cloudNetworkConfigRole, machineAPIRole***REMOVED***
+
+		operatorRoles := make([]*cmv1.OperatorIAMRoleBuilder, 0***REMOVED***
+		for _, operatorRole := range state.Sts.OperatorIAMRoles {
+			r := cmv1.NewOperatorIAMRole(***REMOVED***
+			r.Name(operatorRole.Name.Value***REMOVED***
+			r.Namespace(operatorRole.Namespace.Value***REMOVED***
+			r.RoleARN(operatorRole.RoleARN.Value***REMOVED***
+			operatorRoles = append(operatorRoles, r***REMOVED***
+***REMOVED***
+		sts.OperatorIAMRoles(operatorRoles...***REMOVED***
 		aws.STS(sts***REMOVED***
 	}
 
@@ -614,6 +598,40 @@ func (r *ClusterResource***REMOVED*** populateState(object *cmv1.Cluster, state 
 	} else {
 		state.AWSSecretAccessKey = types.String{
 			Null: true,
+***REMOVED***
+	}
+	sts, ok := object.AWS(***REMOVED***.GetSTS(***REMOVED***
+	if ok {
+		state.Sts = &Sts{}
+		state.Sts.OIDCEndpointURL = types.String{
+			Value: sts.OIDCEndpointURL(***REMOVED***,
+***REMOVED***
+		state.Sts.RoleARN = types.String{
+			Value: sts.RoleARN(***REMOVED***,
+***REMOVED***
+		state.Sts.SupportRoleArn = types.String{
+			Value: sts.SupportRoleARN(***REMOVED***,
+***REMOVED***
+		state.Sts.InstanceIAMRoles.MasterRoleARN = types.String{
+			Value: sts.InstanceIAMRoles(***REMOVED***.MasterRoleARN(***REMOVED***,
+***REMOVED***
+		state.Sts.InstanceIAMRoles.WorkerRoleARN = types.String{
+			Value: sts.InstanceIAMRoles(***REMOVED***.WorkerRoleARN(***REMOVED***,
+***REMOVED***
+
+		for _, operatorRole := range sts.OperatorIAMRoles(***REMOVED*** {
+			r := OperatorIAMRole{
+				Name: types.String{
+					Value: operatorRole.Name(***REMOVED***,
+		***REMOVED***,
+				Namespace: types.String{
+					Value: operatorRole.Namespace(***REMOVED***,
+		***REMOVED***,
+				RoleARN: types.String{
+					Value: operatorRole.RoleARN(***REMOVED***,
+		***REMOVED***,
+	***REMOVED***
+			state.Sts.OperatorIAMRoles = append(state.Sts.OperatorIAMRoles, r***REMOVED***
 ***REMOVED***
 	}
 	machineCIDR, ok := object.Network(***REMOVED***.GetMachineCIDR(***REMOVED***

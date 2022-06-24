@@ -129,7 +129,6 @@ func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVE
 				Description: "Identifier of the AWS account.",
 				Type:        types.StringType,
 				Optional:    true,
-				Computed:    true,
 	***REMOVED***,
 			"aws_access_key_id": {
 				Description: "Identifier of the AWS access key.",
@@ -143,11 +142,39 @@ func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVE
 				Optional:    true,
 				Sensitive:   true,
 	***REMOVED***,
+			"aws_subnet_ids": {
+				Description: "aws subnet ids",
+				Type: types.ListType{
+					ElemType: types.StringType,
+		***REMOVED***,
+				Optional: true,
+	***REMOVED***,
 			"machine_cidr": {
 				Description: "Block of IP addresses for nodes.",
 				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
+	***REMOVED***,
+			"proxy": {
+				Description: "proxy",
+				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+					"http_proxy": {
+						Description: "http proxy",
+						Type:        types.StringType,
+						Required:    true,
+			***REMOVED***,
+					"https_proxy": {
+						Description: "https proxy",
+						Type:        types.StringType,
+						Required:    true,
+			***REMOVED***,
+					"no_proxy": {
+						Description: "no proxy",
+						Type:        types.StringType,
+						Optional:    true,
+			***REMOVED***,
+		***REMOVED******REMOVED***,
+				Optional: true,
 	***REMOVED***,
 			"service_cidr": {
 				Description: "Block of IP addresses for services.",
@@ -282,6 +309,14 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 		aws.STS(sts***REMOVED***
 	}
 
+	if !state.AWSSubnetIDs.Unknown && !state.AWSSubnetIDs.Null {
+		subnetIds := make([]string, 0***REMOVED***
+		for _, e := range state.AWSSubnetIDs.Elems {
+			subnetIds = append(subnetIds, e.(types.String***REMOVED***.Value***REMOVED***
+***REMOVED***
+		aws.SubnetIDs(subnetIds...***REMOVED***
+	}
+
 	if !aws.Empty(***REMOVED*** {
 		builder.AWS(aws***REMOVED***
 	}
@@ -304,6 +339,14 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 	if !state.Version.Unknown && !state.Version.Null {
 		builder.Version(cmv1.NewVersion(***REMOVED***.ID(state.Version.Value***REMOVED******REMOVED***
 	}
+
+	proxy := cmv1.NewProxy(***REMOVED***
+	if state.Proxy != nil {
+		proxy.HTTPProxy(state.Proxy.HttpProxy.Value***REMOVED***
+		proxy.HTTPSProxy(state.Proxy.HttpsProxy.Value***REMOVED***
+		builder.Proxy(proxy***REMOVED***
+	}
+
 	object, err := builder.Build(***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -362,6 +405,7 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 func (r *ClusterResource***REMOVED*** Read(ctx context.Context, request tfsdk.ReadResourceRequest,
 	response *tfsdk.ReadResourceResponse***REMOVED*** {
 	// Get the current state:
+	fmt.Printf("XXXXXXXXXXX Reading"***REMOVED***
 	state := &ClusterState{}
 	diags := request.State.Get(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
@@ -383,6 +427,7 @@ func (r *ClusterResource***REMOVED*** Read(ctx context.Context, request tfsdk.Re
 	}
 	object := get.Body(***REMOVED***
 
+	fmt.Println(object***REMOVED***
 	// Save the state:
 	r.populateState(object, state***REMOVED***
 	diags = response.State.Set(ctx, state***REMOVED***
@@ -570,14 +615,11 @@ func (r *ClusterResource***REMOVED*** populateState(object *cmv1.Cluster, state 
 	state.CCSEnabled = types.Bool{
 		Value: object.CCS(***REMOVED***.Enabled(***REMOVED***,
 	}
+	//The API does not return account id
 	awsAccountID, ok := object.AWS(***REMOVED***.GetAccountID(***REMOVED***
 	if ok {
 		state.AWSAccountID = types.String{
 			Value: awsAccountID,
-***REMOVED***
-	} else {
-		state.AWSAccountID = types.String{
-			Null: true,
 ***REMOVED***
 	}
 	awsAccessKeyID, ok := object.AWS(***REMOVED***.GetAccessKeyID(***REMOVED***
@@ -632,6 +674,26 @@ func (r *ClusterResource***REMOVED*** populateState(object *cmv1.Cluster, state 
 		***REMOVED***,
 	***REMOVED***
 			state.Sts.OperatorIAMRoles = append(state.Sts.OperatorIAMRoles, r***REMOVED***
+***REMOVED***
+	}
+
+	subnetIds, ok := object.AWS(***REMOVED***.GetSubnetIDs(***REMOVED***
+	if ok {
+		state.AWSSubnetIDs.Elems = make([]attr.Value, 0***REMOVED***
+		for _, subnetId := range subnetIds {
+			state.AWSSubnetIDs.Elems = append(state.AWSSubnetIDs.Elems, types.String{
+				Value: subnetId,
+	***REMOVED******REMOVED***
+***REMOVED***
+	}
+
+	proxy, ok := object.GetProxy(***REMOVED***
+	if ok {
+		state.Proxy.HttpProxy = types.String{
+			Value: proxy.HTTPProxy(***REMOVED***,
+***REMOVED***
+		state.Proxy.HttpsProxy = types.String{
+			Value: proxy.HTTPSProxy(***REMOVED***,
 ***REMOVED***
 	}
 	machineCIDR, ok := object.Network(***REMOVED***.GetMachineCIDR(***REMOVED***

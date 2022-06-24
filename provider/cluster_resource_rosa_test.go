@@ -93,7 +93,82 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
 
-	FIt("Creates rosa sts cluster", func(***REMOVED*** {
+	It("Creates cluster with http proxy", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+				VerifyJQ(`.name`, "my-cluster"***REMOVED***,
+				VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
+				VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
+				VerifyJQ(`.product.id`, "rosa"***REMOVED***,
+				VerifyJQ(`.proxy.http_proxy`, "http://proxy.com"***REMOVED***,
+				VerifyJQ(`.proxy.https_proxy`, "http://proxy.com"***REMOVED***,
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/proxy",
+					  "value": {						  
+						  "http_proxy" : "http://proxy.com",
+						  "https_proxy" : "http://proxy.com"
+					  }
+			***REMOVED***]`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "ocm_cluster" "my_cluster" {
+		    name           = "my-cluster"
+			product		   = "rosa"
+		    cloud_provider = "aws"			
+		    cloud_region   = "us-west-1"
+			proxy = {
+				http_proxy = "http://proxy.com",
+				https_proxy = "http://proxy.com",
+	***REMOVED***			
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+	}***REMOVED***
+
+	It("Creates cluster with aws subnet ids", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+				VerifyJQ(`.name`, "my-cluster"***REMOVED***,
+				VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
+				VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
+				VerifyJQ(`.product.id`, "rosa"***REMOVED***,
+				VerifyJQ(`.aws.subnet_ids.[0]`, "id1"***REMOVED***,
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "subnet_ids": ["id1", "id2", "id3"]
+					  }
+			***REMOVED***]`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "ocm_cluster" "my_cluster" {
+		    name           = "my-cluster"
+			product		   = "rosa"
+		    cloud_provider = "aws"			
+		    cloud_region   = "us-west-1"
+			aws_subnet_ids = [
+				"id1", "id2", "id3"
+			]
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+	}***REMOVED***
+
+	It("Creates rosa sts cluster", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
@@ -170,7 +245,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 			name           = "my-cluster"
 			product		   = "rosa"
 			cloud_provider = "aws"			
-			cloud_region   = "us-west-1"			
+			cloud_region   = "us-west-1"
 			sts = {
 				role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
 				support_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",

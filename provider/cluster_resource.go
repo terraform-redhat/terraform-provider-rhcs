@@ -129,7 +129,6 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 				Description: "Identifier of the AWS account.",
 				Type:        types.StringType,
 				Optional:    true,
-				Computed:    true,
 			},
 			"aws_access_key_id": {
 				Description: "Identifier of the AWS access key.",
@@ -143,11 +142,39 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 				Optional:    true,
 				Sensitive:   true,
 			},
+			"aws_subnet_ids": {
+				Description: "aws subnet ids",
+				Type: types.ListType{
+					ElemType: types.StringType,
+				},
+				Optional: true,
+			},
 			"machine_cidr": {
 				Description: "Block of IP addresses for nodes.",
 				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
+			},
+			"proxy": {
+				Description: "proxy",
+				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+					"http_proxy": {
+						Description: "http proxy",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"https_proxy": {
+						Description: "https proxy",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"no_proxy": {
+						Description: "no proxy",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+				}),
+				Optional: true,
 			},
 			"service_cidr": {
 				Description: "Block of IP addresses for services.",
@@ -282,6 +309,14 @@ func (r *ClusterResource) Create(ctx context.Context,
 		aws.STS(sts)
 	}
 
+	if !state.AWSSubnetIDs.Unknown && !state.AWSSubnetIDs.Null {
+		subnetIds := make([]string, 0)
+		for _, e := range state.AWSSubnetIDs.Elems {
+			subnetIds = append(subnetIds, e.(types.String).Value)
+		}
+		aws.SubnetIDs(subnetIds...)
+	}
+
 	if !aws.Empty() {
 		builder.AWS(aws)
 	}
@@ -304,6 +339,14 @@ func (r *ClusterResource) Create(ctx context.Context,
 	if !state.Version.Unknown && !state.Version.Null {
 		builder.Version(cmv1.NewVersion().ID(state.Version.Value))
 	}
+
+	proxy := cmv1.NewProxy()
+	if state.Proxy != nil {
+		proxy.HTTPProxy(state.Proxy.HttpProxy.Value)
+		proxy.HTTPSProxy(state.Proxy.HttpsProxy.Value)
+		builder.Proxy(proxy)
+	}
+
 	object, err := builder.Build()
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -362,6 +405,7 @@ func (r *ClusterResource) Create(ctx context.Context,
 func (r *ClusterResource) Read(ctx context.Context, request tfsdk.ReadResourceRequest,
 	response *tfsdk.ReadResourceResponse) {
 	// Get the current state:
+	fmt.Printf("XXXXXXXXXXX Reading")
 	state := &ClusterState{}
 	diags := request.State.Get(ctx, state)
 	response.Diagnostics.Append(diags...)
@@ -383,6 +427,7 @@ func (r *ClusterResource) Read(ctx context.Context, request tfsdk.ReadResourceRe
 	}
 	object := get.Body()
 
+	fmt.Println(object)
 	// Save the state:
 	r.populateState(object, state)
 	diags = response.State.Set(ctx, state)
@@ -570,14 +615,11 @@ func (r *ClusterResource) populateState(object *cmv1.Cluster, state *ClusterStat
 	state.CCSEnabled = types.Bool{
 		Value: object.CCS().Enabled(),
 	}
+	//The API does not return account id
 	awsAccountID, ok := object.AWS().GetAccountID()
 	if ok {
 		state.AWSAccountID = types.String{
 			Value: awsAccountID,
-		}
-	} else {
-		state.AWSAccountID = types.String{
-			Null: true,
 		}
 	}
 	awsAccessKeyID, ok := object.AWS().GetAccessKeyID()
@@ -632,6 +674,26 @@ func (r *ClusterResource) populateState(object *cmv1.Cluster, state *ClusterStat
 				},
 			}
 			state.Sts.OperatorIAMRoles = append(state.Sts.OperatorIAMRoles, r)
+		}
+	}
+
+	subnetIds, ok := object.AWS().GetSubnetIDs()
+	if ok {
+		state.AWSSubnetIDs.Elems = make([]attr.Value, 0)
+		for _, subnetId := range subnetIds {
+			state.AWSSubnetIDs.Elems = append(state.AWSSubnetIDs.Elems, types.String{
+				Value: subnetId,
+			})
+		}
+	}
+
+	proxy, ok := object.GetProxy()
+	if ok {
+		state.Proxy.HttpProxy = types.String{
+			Value: proxy.HTTPProxy(),
+		}
+		state.Proxy.HttpsProxy = types.String{
+			Value: proxy.HTTPSProxy(),
 		}
 	}
 	machineCIDR, ok := object.Network().GetMachineCIDR()

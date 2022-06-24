@@ -25,6 +25,8 @@ type ClusterState struct {
 	AWSAccessKeyID     types.String `tfsdk:"aws_access_key_id"`
 	AWSAccountID       types.String `tfsdk:"aws_account_id"`
 	AWSSecretAccessKey types.String `tfsdk:"aws_secret_access_key"`
+	AWSSubnetIDs       types.List   `tfsdk:"aws_subnet_ids"`
+	Sts                *Sts         `tfsdk:"sts"`
 	CCSEnabled         types.Bool   `tfsdk:"ccs_enabled"`
 	CloudProvider      types.String `tfsdk:"cloud_provider"`
 	CloudRegion        types.String `tfsdk:"cloud_region"`
@@ -40,10 +42,10 @@ type ClusterState struct {
 	PodCIDR            types.String `tfsdk:"pod_cidr"`
 	Properties         types.Map    `tfsdk:"properties"`
 	ServiceCIDR        types.String `tfsdk:"service_cidr"`
+	Proxy              *Proxy       `tfsdk:"proxy"`
 	State              types.String `tfsdk:"state"`
 	Version            types.String `tfsdk:"version"`
 	Wait               types.Bool   `tfsdk:"wait"`
-	Sts                *Sts         `tfsdk:"sts"`
 }
 
 type Sts struct {
@@ -63,4 +65,10 @@ type OperatorIAMRole struct {
 	Name      types.String `tfsdk:"name"`
 	Namespace types.String `tfsdk:"namespace"`
 	RoleARN   types.String `tfsdk:"role_arn"`
+}
+
+type Proxy struct {
+	HttpProxy  types.String `tfsdk:"http_proxy"`
+	HttpsProxy types.String `tfsdk:"https_proxy"`
+	NoProxy    types.String `tfsdk:"no_proxy"`
 }

@@ -93,7 +93,82 @@ var _ = Describe("Cluster creation", func() {
 		Expect(terraform.Apply()).To(BeZero())
 	})
 
-	FIt("Creates rosa sts cluster", func() {
+	It("Creates cluster with http proxy", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+				VerifyJQ(`.name`, "my-cluster"),
+				VerifyJQ(`.cloud_provider.id`, "aws"),
+				VerifyJQ(`.region.id`, "us-west-1"),
+				VerifyJQ(`.product.id`, "rosa"),
+				VerifyJQ(`.proxy.http_proxy`, "http://proxy.com"),
+				VerifyJQ(`.proxy.https_proxy`, "http://proxy.com"),
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/proxy",
+					  "value": {						  
+						  "http_proxy" : "http://proxy.com",
+						  "https_proxy" : "http://proxy.com"
+					  }
+					}]`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "ocm_cluster" "my_cluster" {
+		    name           = "my-cluster"
+			product		   = "rosa"
+		    cloud_provider = "aws"			
+		    cloud_region   = "us-west-1"
+			proxy = {
+				http_proxy = "http://proxy.com",
+				https_proxy = "http://proxy.com",
+			}			
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+	})
+
+	It("Creates cluster with aws subnet ids", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+				VerifyJQ(`.name`, "my-cluster"),
+				VerifyJQ(`.cloud_provider.id`, "aws"),
+				VerifyJQ(`.region.id`, "us-west-1"),
+				VerifyJQ(`.product.id`, "rosa"),
+				VerifyJQ(`.aws.subnet_ids.[0]`, "id1"),
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "subnet_ids": ["id1", "id2", "id3"]
+					  }
+					}]`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "ocm_cluster" "my_cluster" {
+		    name           = "my-cluster"
+			product		   = "rosa"
+		    cloud_provider = "aws"			
+		    cloud_region   = "us-west-1"
+			aws_subnet_ids = [
+				"id1", "id2", "id3"
+			]
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+	})
+
+	It("Creates rosa sts cluster", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
@@ -170,7 +245,7 @@ var _ = Describe("Cluster creation", func() {
 			name           = "my-cluster"
 			product		   = "rosa"
 			cloud_provider = "aws"			
-			cloud_region   = "us-west-1"			
+			cloud_region   = "us-west-1"
 			sts = {
 				role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
 				support_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",

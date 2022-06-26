@@ -149,6 +149,18 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 				},
 				Optional: true,
 			},
+			"aws_private_link": {
+				Description: "aws subnet ids",
+				Type:        types.BoolType,
+				Optional:    true,
+			},
+			"availability_zones": {
+				Description: "availability zones",
+				Type: types.ListType{
+					ElemType: types.StringType,
+				},
+				Optional: true,
+			},
 			"machine_cidr": {
 				Description: "Block of IP addresses for nodes.",
 				Type:        types.StringType,
@@ -267,6 +279,15 @@ func (r *ClusterResource) Create(ctx context.Context,
 			cmv1.NewMachineType().ID(state.ComputeMachineType.Value),
 		)
 	}
+
+	if !state.AvailabilityZones.Unknown && !state.AvailabilityZones.Null {
+		azs := make([]string, 0)
+		for _, e := range state.AvailabilityZones.Elems {
+			azs = append(azs, e.(types.String).Value)
+		}
+		nodes.AvailabilityZones(azs...)
+	}
+
 	if !nodes.Empty() {
 		builder.Nodes(nodes)
 	}
@@ -286,6 +307,12 @@ func (r *ClusterResource) Create(ctx context.Context,
 	}
 	if !state.AWSSecretAccessKey.Unknown && !state.AWSSecretAccessKey.Null {
 		aws.SecretAccessKey(state.AWSSecretAccessKey.Value)
+	}
+	if !state.AWSPrivateLink.Unknown && !state.AWSPrivateLink.Null {
+		aws.PrivateLink((state.AWSPrivateLink.Value))
+		api := cmv1.NewClusterAPI()
+		api.Listening(cmv1.ListeningMethodInternal)
+		builder.API(api)
 	}
 
 	sts := cmv1.NewSTS()
@@ -612,6 +639,17 @@ func (r *ClusterResource) populateState(object *cmv1.Cluster, state *ClusterStat
 	state.ComputeMachineType = types.String{
 		Value: object.Nodes().ComputeMachineType().ID(),
 	}
+
+	azs, ok := object.Nodes().GetAvailabilityZones()
+	if ok {
+		state.AvailabilityZones.Elems = make([]attr.Value, 0)
+		for _, az := range azs {
+			state.AvailabilityZones.Elems = append(state.AvailabilityZones.Elems, types.String{
+				Value: az,
+			})
+		}
+	}
+
 	state.CCSEnabled = types.Bool{
 		Value: object.CCS().Enabled(),
 	}
@@ -639,6 +677,16 @@ func (r *ClusterResource) populateState(object *cmv1.Cluster, state *ClusterStat
 		}
 	} else {
 		state.AWSSecretAccessKey = types.String{
+			Null: true,
+		}
+	}
+	awsPrivateLink, ok := object.AWS().GetPrivateLink()
+	if ok {
+		state.AWSPrivateLink = types.Bool{
+			Value: awsPrivateLink,
+		}
+	} else {
+		state.AWSPrivateLink = types.Bool{
 			Null: true,
 		}
 	}

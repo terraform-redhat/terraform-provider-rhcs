@@ -132,7 +132,7 @@ var _ = Describe("Cluster creation", func() {
 		Expect(terraform.Apply()).To(BeZero())
 	})
 
-	It("Creates cluster with aws subnet ids", func() {
+	It("Creates cluster with aws subnet ids & private link", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
@@ -142,11 +142,20 @@ var _ = Describe("Cluster creation", func() {
 				VerifyJQ(`.region.id`, "us-west-1"),
 				VerifyJQ(`.product.id`, "rosa"),
 				VerifyJQ(`.aws.subnet_ids.[0]`, "id1"),
+				VerifyJQ(`.aws.private_link`, true),
+				VerifyJQ(`.nodes.availability_zones.[0]`, "az1"),
+				VerifyJQ(`.api.listening`, "internal"),
 				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+						"op": "add",
+						"path": "/availability_zones",
+						"value": ["az1", "az2", "az3"]
+					},					
 					{
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "private_link": true,
 						  "subnet_ids": ["id1", "id2", "id3"]
 					  }
 					}]`),
@@ -160,6 +169,8 @@ var _ = Describe("Cluster creation", func() {
 			product		   = "rosa"
 		    cloud_provider = "aws"			
 		    cloud_region   = "us-west-1"
+			availability_zones = ["az1","az2","az3"]
+			aws_private_link = true
 			aws_subnet_ids = [
 				"id1", "id2", "id3"
 			]

@@ -26,6 +26,7 @@ type ClusterState struct {
 	AWSAccountID       types.String `tfsdk:"aws_account_id"`
 	AWSSecretAccessKey types.String `tfsdk:"aws_secret_access_key"`
 	AWSSubnetIDs       types.List   `tfsdk:"aws_subnet_ids"`
+	AWSPrivateLink     types.Bool   `tfsdk:"aws_private_link"`
 	Sts                *Sts         `tfsdk:"sts"`
 	CCSEnabled         types.Bool   `tfsdk:"ccs_enabled"`
 	CloudProvider      types.String `tfsdk:"cloud_provider"`
@@ -38,6 +39,7 @@ type ClusterState struct {
 	Product            types.String `tfsdk:"product"`
 	MachineCIDR        types.String `tfsdk:"machine_cidr"`
 	MultiAZ            types.Bool   `tfsdk:"multi_az"`
+	AvailabilityZones  types.List   `tfsdk:"availability_zones"`
 	Name               types.String `tfsdk:"name"`
 	PodCIDR            types.String `tfsdk:"pod_cidr"`
 	Properties         types.Map    `tfsdk:"properties"`

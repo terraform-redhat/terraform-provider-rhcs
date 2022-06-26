@@ -149,6 +149,18 @@ func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVE
 		***REMOVED***,
 				Optional: true,
 	***REMOVED***,
+			"aws_private_link": {
+				Description: "aws subnet ids",
+				Type:        types.BoolType,
+				Optional:    true,
+	***REMOVED***,
+			"availability_zones": {
+				Description: "availability zones",
+				Type: types.ListType{
+					ElemType: types.StringType,
+		***REMOVED***,
+				Optional: true,
+	***REMOVED***,
 			"machine_cidr": {
 				Description: "Block of IP addresses for nodes.",
 				Type:        types.StringType,
@@ -267,6 +279,15 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 			cmv1.NewMachineType(***REMOVED***.ID(state.ComputeMachineType.Value***REMOVED***,
 		***REMOVED***
 	}
+
+	if !state.AvailabilityZones.Unknown && !state.AvailabilityZones.Null {
+		azs := make([]string, 0***REMOVED***
+		for _, e := range state.AvailabilityZones.Elems {
+			azs = append(azs, e.(types.String***REMOVED***.Value***REMOVED***
+***REMOVED***
+		nodes.AvailabilityZones(azs...***REMOVED***
+	}
+
 	if !nodes.Empty(***REMOVED*** {
 		builder.Nodes(nodes***REMOVED***
 	}
@@ -286,6 +307,12 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 	}
 	if !state.AWSSecretAccessKey.Unknown && !state.AWSSecretAccessKey.Null {
 		aws.SecretAccessKey(state.AWSSecretAccessKey.Value***REMOVED***
+	}
+	if !state.AWSPrivateLink.Unknown && !state.AWSPrivateLink.Null {
+		aws.PrivateLink((state.AWSPrivateLink.Value***REMOVED******REMOVED***
+		api := cmv1.NewClusterAPI(***REMOVED***
+		api.Listening(cmv1.ListeningMethodInternal***REMOVED***
+		builder.API(api***REMOVED***
 	}
 
 	sts := cmv1.NewSTS(***REMOVED***
@@ -612,6 +639,17 @@ func (r *ClusterResource***REMOVED*** populateState(object *cmv1.Cluster, state 
 	state.ComputeMachineType = types.String{
 		Value: object.Nodes(***REMOVED***.ComputeMachineType(***REMOVED***.ID(***REMOVED***,
 	}
+
+	azs, ok := object.Nodes(***REMOVED***.GetAvailabilityZones(***REMOVED***
+	if ok {
+		state.AvailabilityZones.Elems = make([]attr.Value, 0***REMOVED***
+		for _, az := range azs {
+			state.AvailabilityZones.Elems = append(state.AvailabilityZones.Elems, types.String{
+				Value: az,
+	***REMOVED******REMOVED***
+***REMOVED***
+	}
+
 	state.CCSEnabled = types.Bool{
 		Value: object.CCS(***REMOVED***.Enabled(***REMOVED***,
 	}
@@ -639,6 +677,16 @@ func (r *ClusterResource***REMOVED*** populateState(object *cmv1.Cluster, state 
 ***REMOVED***
 	} else {
 		state.AWSSecretAccessKey = types.String{
+			Null: true,
+***REMOVED***
+	}
+	awsPrivateLink, ok := object.AWS(***REMOVED***.GetPrivateLink(***REMOVED***
+	if ok {
+		state.AWSPrivateLink = types.Bool{
+			Value: awsPrivateLink,
+***REMOVED***
+	} else {
+		state.AWSPrivateLink = types.Bool{
 			Null: true,
 ***REMOVED***
 	}

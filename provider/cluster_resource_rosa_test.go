@@ -132,7 +132,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
 
-	It("Creates cluster with aws subnet ids", func(***REMOVED*** {
+	It("Creates cluster with aws subnet ids & private link", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
@@ -142,11 +142,20 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 				VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
 				VerifyJQ(`.product.id`, "rosa"***REMOVED***,
 				VerifyJQ(`.aws.subnet_ids.[0]`, "id1"***REMOVED***,
+				VerifyJQ(`.aws.private_link`, true***REMOVED***,
+				VerifyJQ(`.nodes.availability_zones.[0]`, "az1"***REMOVED***,
+				VerifyJQ(`.api.listening`, "internal"***REMOVED***,
 				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+						"op": "add",
+					***REMOVED***: "/availability_zones",
+						"value": ["az1", "az2", "az3"]
+			***REMOVED***,					
 					{
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "private_link": true,
 						  "subnet_ids": ["id1", "id2", "id3"]
 					  }
 			***REMOVED***]`***REMOVED***,
@@ -160,6 +169,8 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 			product		   = "rosa"
 		    cloud_provider = "aws"			
 		    cloud_region   = "us-west-1"
+			availability_zones = ["az1","az2","az3"]
+			aws_private_link = true
 			aws_subnet_ids = [
 				"id1", "id2", "id3"
 			]

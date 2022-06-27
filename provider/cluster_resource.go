@@ -153,6 +153,10 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 				Description: "aws subnet ids",
 				Type:        types.BoolType,
 				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.RequiresReplace(),
+				},
 			},
 			"availability_zones": {
 				Description: "availability zones",

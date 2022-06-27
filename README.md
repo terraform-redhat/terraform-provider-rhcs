@@ -70,12 +70,54 @@ The following example shows a production grade rosa cluster with:
 * STS
 
 ```
+locals {
+  sts_roles = {
+      role_arn = "arn:aws:iam::${var.account_id}:role/ManagedOpenShift-Installer-Role",
+      support_role_arn = "arn:aws:iam::${var.account_id}:role/ManagedOpenShift-Support-Role",
+      operator_iam_roles = [
+        {
+          name =  "cloud-credential-operator-iam-ro-creds",
+          namespace = "openshift-cloud-credential-operator",
+          role_arn = "arn:aws:iam::${var.account_id}:role/${var.operator_role_prefix}-openshift-cloud-credential-operator-cloud-c",
+        },
+        {
+          name =  "installer-cloud-credentials",
+          namespace = "openshift-image-registry",
+          role_arn = "arn:aws:iam::${var.account_id}:role/${var.operator_role_prefix}-openshift-image-registry-installer-cloud-cr",
+        },
+        {
+          name =  "cloud-credentials",
+          namespace = "openshift-ingress-operator",
+          role_arn = "arn:aws:iam::${var.account_id}:role/${var.operator_role_prefix}-openshift-ingress-operator-cloud-credential",
+        },
+        {
+          name =  "ebs-cloud-credentials",
+          namespace = "openshift-cluster-csi-drivers",
+          role_arn = "arn:aws:iam::${var.account_id}:role/${var.operator_role_prefix}-openshift-cluster-csi-drivers-ebs-cloud-cre",
+        },
+        {
+          name =  "cloud-credentials",
+          namespace = "openshift-cloud-network-config-controller",
+          role_arn = "arn:aws:iam::${var.account_id}:role/${var.operator_role_prefix}-openshift-cloud-network-config-controller-c",
+        },
+        {
+          name =  "aws-cloud-credentials",
+          namespace = "openshift-machine-api",
+          role_arn = "arn:aws:iam::${var.account_id}:role/${var.operator_role_prefix}-openshift-machine-api-aws-cloud-credentials",
+        },
+      ]
+      instance_iam_roles = {
+        master_role_arn = "arn:aws:iam::${var.account_id}:role/ManagedOpenShift-ControlPlane-Role",
+        worker_role_arn = "arn:aws:iam::${var.account_id}:role/ManagedOpenShift-Worker-Role"
+      },    
+  }
+}
 resource "ocm_cluster" "rosa_cluster" {
   name           = var.cluster_name
   cloud_provider = "aws"
   cloud_region   = "us-east-2"
   product        = "rosa"
-  aws_account_id     = "660250927410"
+  aws_account_id     = "var.account_id"
   aws_subnet_ids = module.openshift_vpc.rosa_subnet_ids
   machine_cidr = module.openshift_vpc.rosa_vpc_cidr
   multi_az = true

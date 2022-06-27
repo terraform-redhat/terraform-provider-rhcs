@@ -8,6 +8,8 @@
 
 ## Introduction
 
+### Create OSD AWS Cluster
+
 The OCM provider simplifies the provisioning of _OpenShift_ managed clusters
 using the [OpenShift Cluster Manager](https://console.redhat.com/openshift)
 application programming interface.
@@ -33,6 +35,7 @@ provider "ocm" {
 resource "ocm_cluster" "my_cluster" {
   name           = "my-cluster"
   cloud_provider = "aws"
+  product        = "osd"
   cloud_region   = "us-east-1"
 }
 
@@ -56,6 +59,40 @@ The value of the `token` attribute of the provider should be the OCM
 authentication token that you can get [here](https://console.redhat.com/openshift/token).
 If this attribute isn't used then the provider will try to get the token it from
 the `OCM_TOKEN` environment variable.
+
+### Create AWS Rosa STS Cluster
+
+The following example shows a production grade rosa cluster with:
+
+* Existing VPC & Subnets
+* Multi AZ
+* Proxy
+* STS
+
+```
+resource "ocm_cluster" "rosa_cluster" {
+  name           = var.cluster_name
+  cloud_provider = "aws"
+  cloud_region   = "us-east-2"
+  product        = "rosa"
+  aws_account_id     = "660250927410"
+  aws_subnet_ids = module.openshift_vpc.rosa_subnet_ids
+  machine_cidr = module.openshift_vpc.rosa_vpc_cidr
+  multi_az = true
+  aws_private_link = true
+  availability_zones = ["us-east-2a", "us-east-2b", "us-east-2c"]
+  proxy = {
+    http_proxy = var.proxy
+    https_proxy = var.proxy
+  }
+  properties = {
+    rosa_creator_arn = data.aws_caller_identity.current.arn
+  }
+  wait = false
+  sts = local.sts_roles
+}
+```
+
 
 ## Documentation
 

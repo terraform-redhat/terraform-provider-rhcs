@@ -153,6 +153,10 @@ func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVE
 				Description: "aws subnet ids",
 				Type:        types.BoolType,
 				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.RequiresReplace(***REMOVED***,
+		***REMOVED***,
 	***REMOVED***,
 			"availability_zones": {
 				Description: "availability zones",

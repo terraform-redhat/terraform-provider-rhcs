@@ -23,7 +23,7 @@ terraform {
   required_providers {
     ocm = {
       version = ">= 0.1"
-      source  = "openshift-online/ocm"
+      source  = "rh-mobb/ocm"
     }
   }
 }

@@ -139,7 +139,7 @@ resource "ocm_cluster" "rosa_cluster" {
 ## Documentation
 
 The reference documentation of the provider is available in the Terraform
-[registry](https://registry.terraform.io/providers/openshift-online/ocm/latest/docs***REMOVED***.
+[registry](https://registry.terraform.io/providers/rh-mobb/ocm/latest/docs***REMOVED***.
 
 ## Examples
 

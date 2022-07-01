@@ -49,6 +49,11 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 				Type:        types.StringType,
 				Computed:    true,
 			},
+			"product": {
+				Description: "Product ID OSD or Rosa",
+				Type:        types.StringType,
+				Required:    true,
+			},
 			"name": {
 				Description: "Name of the cluster.",
 				Type:        types.StringType,
@@ -63,6 +68,11 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 				Description: "Cloud region identifier, for example 'us-east-1'.",
 				Type:        types.StringType,
 				Required:    true,
+			},
+			"sts": {
+				Description: "STS Configuration",
+				Attributes:  stsResource(),
+				Optional:    true,
 			},
 			"multi_az": {
 				Description: "Indicates if the cluster should be deployed to " +
@@ -119,7 +129,6 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 				Description: "Identifier of the AWS account.",
 				Type:        types.StringType,
 				Optional:    true,
-				Computed:    true,
 			},
 			"aws_access_key_id": {
 				Description: "Identifier of the AWS access key.",
@@ -133,11 +142,55 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 				Optional:    true,
 				Sensitive:   true,
 			},
+			"aws_subnet_ids": {
+				Description: "aws subnet ids",
+				Type: types.ListType{
+					ElemType: types.StringType,
+				},
+				Optional: true,
+			},
+			"aws_private_link": {
+				Description: "aws subnet ids",
+				Type:        types.BoolType,
+				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.RequiresReplace(),
+				},
+			},
+			"availability_zones": {
+				Description: "availability zones",
+				Type: types.ListType{
+					ElemType: types.StringType,
+				},
+				Optional: true,
+			},
 			"machine_cidr": {
 				Description: "Block of IP addresses for nodes.",
 				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
+			},
+			"proxy": {
+				Description: "proxy",
+				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+					"http_proxy": {
+						Description: "http proxy",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"https_proxy": {
+						Description: "https proxy",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"no_proxy": {
+						Description: "no proxy",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+				}),
+				Optional: true,
 			},
 			"service_cidr": {
 				Description: "Block of IP addresses for services.",
@@ -209,6 +262,7 @@ func (r *ClusterResource) Create(ctx context.Context,
 	builder := cmv1.NewCluster()
 	builder.Name(state.Name.Value)
 	builder.CloudProvider(cmv1.NewCloudProvider().ID(state.CloudProvider.Value))
+	builder.Product(cmv1.NewProduct().ID(state.Product.Value))
 	builder.Region(cmv1.NewCloudRegion().ID(state.CloudRegion.Value))
 	if !state.MultiAZ.Unknown && !state.MultiAZ.Null {
 		builder.MultiAZ(state.MultiAZ.Value)
@@ -229,6 +283,15 @@ func (r *ClusterResource) Create(ctx context.Context,
 			cmv1.NewMachineType().ID(state.ComputeMachineType.Value),
 		)
 	}
+
+	if !state.AvailabilityZones.Unknown && !state.AvailabilityZones.Null {
+		azs := make([]string, 0)
+		for _, e := range state.AvailabilityZones.Elems {
+			azs = append(azs, e.(types.String).Value)
+		}
+		nodes.AvailabilityZones(azs...)
+	}
+
 	if !nodes.Empty() {
 		builder.Nodes(nodes)
 	}
@@ -249,6 +312,42 @@ func (r *ClusterResource) Create(ctx context.Context,
 	if !state.AWSSecretAccessKey.Unknown && !state.AWSSecretAccessKey.Null {
 		aws.SecretAccessKey(state.AWSSecretAccessKey.Value)
 	}
+	if !state.AWSPrivateLink.Unknown && !state.AWSPrivateLink.Null {
+		aws.PrivateLink((state.AWSPrivateLink.Value))
+		api := cmv1.NewClusterAPI()
+		api.Listening(cmv1.ListeningMethodInternal)
+		builder.API(api)
+	}
+
+	sts := cmv1.NewSTS()
+	if state.Sts != nil {
+		sts.RoleARN(state.Sts.RoleARN.Value)
+		sts.SupportRoleARN(state.Sts.SupportRoleArn.Value)
+		instanceIamRoles := cmv1.NewInstanceIAMRoles()
+		instanceIamRoles.MasterRoleARN(state.Sts.InstanceIAMRoles.MasterRoleARN.Value)
+		instanceIamRoles.WorkerRoleARN(state.Sts.InstanceIAMRoles.WorkerRoleARN.Value)
+		sts.InstanceIAMRoles(instanceIamRoles)
+
+		operatorRoles := make([]*cmv1.OperatorIAMRoleBuilder, 0)
+		for _, operatorRole := range state.Sts.OperatorIAMRoles {
+			r := cmv1.NewOperatorIAMRole()
+			r.Name(operatorRole.Name.Value)
+			r.Namespace(operatorRole.Namespace.Value)
+			r.RoleARN(operatorRole.RoleARN.Value)
+			operatorRoles = append(operatorRoles, r)
+		}
+		sts.OperatorIAMRoles(operatorRoles...)
+		aws.STS(sts)
+	}
+
+	if !state.AWSSubnetIDs.Unknown && !state.AWSSubnetIDs.Null {
+		subnetIds := make([]string, 0)
+		for _, e := range state.AWSSubnetIDs.Elems {
+			subnetIds = append(subnetIds, e.(types.String).Value)
+		}
+		aws.SubnetIDs(subnetIds...)
+	}
+
 	if !aws.Empty() {
 		builder.AWS(aws)
 	}
@@ -271,6 +370,14 @@ func (r *ClusterResource) Create(ctx context.Context,
 	if !state.Version.Unknown && !state.Version.Null {
 		builder.Version(cmv1.NewVersion().ID(state.Version.Value))
 	}
+
+	proxy := cmv1.NewProxy()
+	if state.Proxy != nil {
+		proxy.HTTPProxy(state.Proxy.HttpProxy.Value)
+		proxy.HTTPSProxy(state.Proxy.HttpsProxy.Value)
+		builder.Proxy(proxy)
+	}
+
 	object, err := builder.Build()
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -329,6 +436,7 @@ func (r *ClusterResource) Create(ctx context.Context,
 func (r *ClusterResource) Read(ctx context.Context, request tfsdk.ReadResourceRequest,
 	response *tfsdk.ReadResourceResponse) {
 	// Get the current state:
+	fmt.Printf("XXXXXXXXXXX Reading")
 	state := &ClusterState{}
 	diags := request.State.Get(ctx, state)
 	response.Diagnostics.Append(diags...)
@@ -350,6 +458,7 @@ func (r *ClusterResource) Read(ctx context.Context, request tfsdk.ReadResourceRe
 	}
 	object := get.Body()
 
+	fmt.Println(object)
 	// Save the state:
 	r.populateState(object, state)
 	diags = response.State.Set(ctx, state)
@@ -498,6 +607,9 @@ func (r *ClusterResource) populateState(object *cmv1.Cluster, state *ClusterStat
 	state.ID = types.String{
 		Value: object.ID(),
 	}
+	state.Product = types.String{
+		Value: object.Product().ID(),
+	}
 	state.Name = types.String{
 		Value: object.Name(),
 	}
@@ -531,17 +643,25 @@ func (r *ClusterResource) populateState(object *cmv1.Cluster, state *ClusterStat
 	state.ComputeMachineType = types.String{
 		Value: object.Nodes().ComputeMachineType().ID(),
 	}
+
+	azs, ok := object.Nodes().GetAvailabilityZones()
+	if ok {
+		state.AvailabilityZones.Elems = make([]attr.Value, 0)
+		for _, az := range azs {
+			state.AvailabilityZones.Elems = append(state.AvailabilityZones.Elems, types.String{
+				Value: az,
+			})
+		}
+	}
+
 	state.CCSEnabled = types.Bool{
 		Value: object.CCS().Enabled(),
 	}
+	//The API does not return account id
 	awsAccountID, ok := object.AWS().GetAccountID()
 	if ok {
 		state.AWSAccountID = types.String{
 			Value: awsAccountID,
-		}
-	} else {
-		state.AWSAccountID = types.String{
-			Null: true,
 		}
 	}
 	awsAccessKeyID, ok := object.AWS().GetAccessKeyID()
@@ -562,6 +682,70 @@ func (r *ClusterResource) populateState(object *cmv1.Cluster, state *ClusterStat
 	} else {
 		state.AWSSecretAccessKey = types.String{
 			Null: true,
+		}
+	}
+	awsPrivateLink, ok := object.AWS().GetPrivateLink()
+	if ok {
+		state.AWSPrivateLink = types.Bool{
+			Value: awsPrivateLink,
+		}
+	} else {
+		state.AWSPrivateLink = types.Bool{
+			Null: true,
+		}
+	}
+	sts, ok := object.AWS().GetSTS()
+	if ok {
+		state.Sts = &Sts{}
+		state.Sts.OIDCEndpointURL = types.String{
+			Value: sts.OIDCEndpointURL(),
+		}
+		state.Sts.RoleARN = types.String{
+			Value: sts.RoleARN(),
+		}
+		state.Sts.SupportRoleArn = types.String{
+			Value: sts.SupportRoleARN(),
+		}
+		state.Sts.InstanceIAMRoles.MasterRoleARN = types.String{
+			Value: sts.InstanceIAMRoles().MasterRoleARN(),
+		}
+		state.Sts.InstanceIAMRoles.WorkerRoleARN = types.String{
+			Value: sts.InstanceIAMRoles().WorkerRoleARN(),
+		}
+
+		for _, operatorRole := range sts.OperatorIAMRoles() {
+			r := OperatorIAMRole{
+				Name: types.String{
+					Value: operatorRole.Name(),
+				},
+				Namespace: types.String{
+					Value: operatorRole.Namespace(),
+				},
+				RoleARN: types.String{
+					Value: operatorRole.RoleARN(),
+				},
+			}
+			state.Sts.OperatorIAMRoles = append(state.Sts.OperatorIAMRoles, r)
+		}
+	}
+
+	subnetIds, ok := object.AWS().GetSubnetIDs()
+	if ok {
+		state.AWSSubnetIDs.Elems = make([]attr.Value, 0)
+		for _, subnetId := range subnetIds {
+			state.AWSSubnetIDs.Elems = append(state.AWSSubnetIDs.Elems, types.String{
+				Value: subnetId,
+			})
+		}
+	}
+
+	proxy, ok := object.GetProxy()
+	if ok {
+		state.Proxy.HttpProxy = types.String{
+			Value: proxy.HTTPProxy(),
+		}
+		state.Proxy.HttpsProxy = types.String{
+			Value: proxy.HTTPSProxy(),
 		}
 	}
 	machineCIDR, ok := object.Network().GetMachineCIDR()

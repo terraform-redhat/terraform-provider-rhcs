@@ -151,4 +151,101 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
+
+	It("Can create an OpenID identity provider", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+				***REMOVED***,
+				VerifyJSON(`{
+				  "kind": "IdentityProvider",
+				  "type": "OpenIDIdentityProvider",
+				  "name": "my-ip",
+				  "open_id": {
+					"ca": "test_ca",
+					"claims": {
+						"email": [
+							"email"
+						],
+						"groups": [
+							"admins"
+						],
+						"name": [
+							"name",
+							"email"
+						],
+						"preferred_username": [
+							"preferred_username",
+							"email"
+						]
+			***REMOVED***,
+					"client_id": "test_client",
+					"client_secret": "test_secret",
+					"extra_scopes": [
+					  "email",
+					  "profile"
+					],
+					"issuer": "https://test.okta.com"
+			***REMOVED***
+		***REMOVED***`***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+					"kind": "IdentityProvider",
+					"type": "OpenIDIdentityProvider",
+					"href": "/api/clusters_mgmt/v1/clusters/123/identity_providers/456",
+					"id": "456",
+					"name": "my-ip",
+					"open_id": {
+						"claims": {
+							"email": [
+								"email"
+							],
+							"groups": [
+								"admins"
+							],
+							"name": [
+								"name",
+								"email"
+							],
+							"preferred_username": [
+								"preferred_username",
+								"email"
+							]
+				***REMOVED***,
+						"client_id": "test_client",
+						"extra_scopes": [
+							"email",
+							"profile"
+						],
+						"issuer": "https://test.okta.com"
+			***REMOVED***
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "ocm_identity_provider" "my_ip" {
+		    cluster    				= "123"
+		    name       				= "my-ip"
+		    openid = {
+				ca            			= "test_ca"
+				issuer					= "https://test.okta.com"
+				client_id 				= "test_client"
+				client_secret			= "test_secret"
+				extra_scopes 			= ["email","profile"]
+				claims = {
+					email              = ["email"]
+					groups			   = ["admins"]
+					name               = ["name","email"]
+					preferred_username = ["preferred_username","email"]
+		      	}
+		    }
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+	}***REMOVED***
+
 }***REMOVED***

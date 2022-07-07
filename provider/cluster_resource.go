@@ -436,7 +436,6 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 func (r *ClusterResource***REMOVED*** Read(ctx context.Context, request tfsdk.ReadResourceRequest,
 	response *tfsdk.ReadResourceResponse***REMOVED*** {
 	// Get the current state:
-	fmt.Printf("XXXXXXXXXXX Reading"***REMOVED***
 	state := &ClusterState{}
 	diags := request.State.Get(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
@@ -458,7 +457,6 @@ func (r *ClusterResource***REMOVED*** Read(ctx context.Context, request tfsdk.Re
 	}
 	object := get.Body(***REMOVED***
 
-	fmt.Println(object***REMOVED***
 	// Save the state:
 	r.populateState(object, state***REMOVED***
 	diags = response.State.Set(ctx, state***REMOVED***

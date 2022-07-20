@@ -67,6 +67,11 @@ func (t *IdentityProviderResourceType) GetSchema(ctx context.Context) (result tf
 				Attributes:  t.ldapSchema(),
 				Optional:    true,
 			},
+			"openid": {
+				Description: "Details of the OpenID identity provider.",
+				Attributes:  t.openidSchema(),
+				Optional:    true,
+			},
 		},
 	}
 	return
@@ -128,6 +133,73 @@ func (t *IdentityProviderResourceType) ldapAttributesSchema() tfsdk.NestedAttrib
 			Optional: true,
 		},
 		"id": {
+			Type: types.ListType{
+				ElemType: types.StringType,
+			},
+			Optional: true,
+		},
+		"name": {
+			Type: types.ListType{
+				ElemType: types.StringType,
+			},
+			Optional: true,
+		},
+		"preferred_username": {
+			Type: types.ListType{
+				ElemType: types.StringType,
+			},
+			Optional: true,
+		},
+	})
+}
+
+func (t *IdentityProviderResourceType) openidSchema() tfsdk.NestedAttributes {
+	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+		"ca": {
+			Type:     types.StringType,
+			Optional: true,
+		},
+		"claims": {
+			Attributes: t.openidClaimsSchema(),
+			Required:   true,
+		},
+		"client_id": {
+			Type:     types.StringType,
+			Required: true,
+		},
+		"client_secret": {
+			Type:      types.StringType,
+			Required:  true,
+			Sensitive: true,
+		},
+		"extra_scopes": {
+			Type: types.ListType{
+				ElemType: types.StringType,
+			},
+			Optional: true,
+		},
+		"extra_authorize_parameters": {
+			Type: types.ListType{
+				ElemType: types.StringType,
+			},
+			Optional: true,
+		},
+		"issuer": {
+			Type:     types.StringType,
+			Required: true,
+		},
+	})
+}
+
+func (t *IdentityProviderResourceType) openidClaimsSchema() tfsdk.NestedAttributes {
+	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+		"email": {
+			Type: types.ListType{
+				ElemType: types.StringType,
+			},
+			Optional: true,
+		},
+		"groups": {
 			Type: types.ListType{
 				ElemType: types.StringType,
 			},
@@ -248,6 +320,46 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 			ldapBuilder.Attributes(attributesBuilder)
 		}
 		builder.LDAP(ldapBuilder)
+	case state.OpenID != nil:
+		builder.Type(cmv1.IdentityProviderType("OpenIDIdentityProvider"))
+		openidBuilder := cmv1.NewOpenIDIdentityProvider()
+		if !state.OpenID.CA.Null {
+			openidBuilder.CA(state.OpenID.CA.Value)
+		}
+		if state.OpenID.Claims != nil {
+			claimsBuilder := cmv1.NewOpenIDClaims()
+
+			if state.OpenID.Claims.Groups != nil {
+				claimsBuilder.Groups(state.OpenID.Claims.Groups...)
+			}
+			if state.OpenID.Claims.EMail != nil {
+				claimsBuilder.Email(state.OpenID.Claims.EMail...)
+			}
+			if state.OpenID.Claims.Name != nil {
+				claimsBuilder.Name(state.OpenID.Claims.Name...)
+			}
+			if state.OpenID.Claims.PreferredUsername != nil {
+				claimsBuilder.PreferredUsername(state.OpenID.Claims.PreferredUsername...)
+			}
+
+			openidBuilder.Claims(claimsBuilder)
+		}
+		if !state.OpenID.ClientID.Null {
+			openidBuilder.ClientID(state.OpenID.ClientID.Value)
+		}
+		if !state.OpenID.ClientSecret.Null {
+			openidBuilder.ClientSecret(state.OpenID.ClientSecret.Value)
+		}
+		if state.OpenID.ExtraAuthorizeParameters != nil {
+			openidBuilder.ExtraAuthorizeParameters(state.OpenID.ExtraAuthorizeParameters)
+		}
+		if state.OpenID.ExtraScopes != nil {
+			openidBuilder.ExtraScopes(state.OpenID.ExtraScopes...)
+		}
+		if !state.OpenID.Issuer.Null {
+			openidBuilder.Issuer(state.OpenID.Issuer.Value)
+		}
+		builder.OpenID(openidBuilder)
 	}
 	object, err := builder.Build()
 	if err != nil {
@@ -281,6 +393,7 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 	}
 	htpasswdObject := object.Htpasswd()
 	ldapObject := object.LDAP()
+	openidObject := object.OpenID()
 	switch {
 	case htpasswdObject != nil:
 		// Nothing, there are no computed attributes for `htpasswd` identity providers.
@@ -294,6 +407,7 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 				Value: insecure,
 			}
 		}
+	case openidObject != nil:
 	}
 
 	// Save the state:
@@ -335,6 +449,7 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request tfsdk.ReadR
 	}
 	htpasswdObject := object.Htpasswd()
 	ldapObject := object.LDAP()
+	openidObject := object.OpenID()
 	switch {
 	case htpasswdObject != nil:
 		if state.HTPasswd == nil {
@@ -406,6 +521,56 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request tfsdk.ReadR
 			preferredUsername, ok := attributes.GetPreferredUsername()
 			if ok {
 				state.LDAP.Attributes.PreferredUsername = preferredUsername
+			}
+		}
+	case openidObject != nil:
+		if state.OpenID == nil {
+			state.OpenID = &OpenIDIdentityProvider{}
+		}
+		ca, ok := openidObject.GetCA()
+		if ok {
+			state.OpenID.CA = types.String{
+				Value: ca,
+			}
+		}
+		client_id, ok := openidObject.GetClientID()
+		if ok {
+			state.OpenID.ClientID = types.String{
+				Value: client_id,
+			}
+		}
+		client_secret, ok := openidObject.GetClientSecret()
+		if ok {
+			state.OpenID.ClientSecret = types.String{
+				Value: client_secret,
+			}
+		}
+		claims, ok := openidObject.GetClaims()
+		if ok {
+			if state.OpenID.Claims == nil {
+				state.OpenID.Claims = &OpenIDIdentityProviderClaims{}
+			}
+			email, ok := claims.GetEmail()
+			if ok {
+				state.OpenID.Claims.EMail = email
+			}
+			groups, ok := claims.GetGroups()
+			if ok {
+				state.OpenID.Claims.Groups = groups
+			}
+			name, ok := claims.GetName()
+			if ok {
+				state.OpenID.Claims.Name = name
+			}
+			preferredUsername, ok := claims.GetPreferredUsername()
+			if ok {
+				state.OpenID.Claims.PreferredUsername = preferredUsername
+			}
+		}
+		issuer, ok := openidObject.GetIssuer()
+		if ok {
+			state.OpenID.Issuer = types.String{
+				Value: issuer,
 			}
 		}
 	}

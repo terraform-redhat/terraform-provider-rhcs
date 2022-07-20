@@ -67,6 +67,11 @@ func (t *IdentityProviderResourceType***REMOVED*** GetSchema(ctx context.Context
 				Attributes:  t.ldapSchema(***REMOVED***,
 				Optional:    true,
 	***REMOVED***,
+			"openid": {
+				Description: "Details of the OpenID identity provider.",
+				Attributes:  t.openidSchema(***REMOVED***,
+				Optional:    true,
+	***REMOVED***,
 ***REMOVED***,
 	}
 	return
@@ -128,6 +133,73 @@ func (t *IdentityProviderResourceType***REMOVED*** ldapAttributesSchema(***REMOV
 			Optional: true,
 ***REMOVED***,
 		"id": {
+			Type: types.ListType{
+				ElemType: types.StringType,
+	***REMOVED***,
+			Optional: true,
+***REMOVED***,
+		"name": {
+			Type: types.ListType{
+				ElemType: types.StringType,
+	***REMOVED***,
+			Optional: true,
+***REMOVED***,
+		"preferred_username": {
+			Type: types.ListType{
+				ElemType: types.StringType,
+	***REMOVED***,
+			Optional: true,
+***REMOVED***,
+	}***REMOVED***
+}
+
+func (t *IdentityProviderResourceType***REMOVED*** openidSchema(***REMOVED*** tfsdk.NestedAttributes {
+	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+		"ca": {
+			Type:     types.StringType,
+			Optional: true,
+***REMOVED***,
+		"claims": {
+			Attributes: t.openidClaimsSchema(***REMOVED***,
+			Required:   true,
+***REMOVED***,
+		"client_id": {
+			Type:     types.StringType,
+			Required: true,
+***REMOVED***,
+		"client_secret": {
+			Type:      types.StringType,
+			Required:  true,
+			Sensitive: true,
+***REMOVED***,
+		"extra_scopes": {
+			Type: types.ListType{
+				ElemType: types.StringType,
+	***REMOVED***,
+			Optional: true,
+***REMOVED***,
+		"extra_authorize_parameters": {
+			Type: types.ListType{
+				ElemType: types.StringType,
+	***REMOVED***,
+			Optional: true,
+***REMOVED***,
+		"issuer": {
+			Type:     types.StringType,
+			Required: true,
+***REMOVED***,
+	}***REMOVED***
+}
+
+func (t *IdentityProviderResourceType***REMOVED*** openidClaimsSchema(***REMOVED*** tfsdk.NestedAttributes {
+	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+		"email": {
+			Type: types.ListType{
+				ElemType: types.StringType,
+	***REMOVED***,
+			Optional: true,
+***REMOVED***,
+		"groups": {
 			Type: types.ListType{
 				ElemType: types.StringType,
 	***REMOVED***,
@@ -248,6 +320,46 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 			ldapBuilder.Attributes(attributesBuilder***REMOVED***
 ***REMOVED***
 		builder.LDAP(ldapBuilder***REMOVED***
+	case state.OpenID != nil:
+		builder.Type(cmv1.IdentityProviderType("OpenIDIdentityProvider"***REMOVED******REMOVED***
+		openidBuilder := cmv1.NewOpenIDIdentityProvider(***REMOVED***
+		if !state.OpenID.CA.Null {
+			openidBuilder.CA(state.OpenID.CA.Value***REMOVED***
+***REMOVED***
+		if state.OpenID.Claims != nil {
+			claimsBuilder := cmv1.NewOpenIDClaims(***REMOVED***
+
+			if state.OpenID.Claims.Groups != nil {
+				claimsBuilder.Groups(state.OpenID.Claims.Groups...***REMOVED***
+	***REMOVED***
+			if state.OpenID.Claims.EMail != nil {
+				claimsBuilder.Email(state.OpenID.Claims.EMail...***REMOVED***
+	***REMOVED***
+			if state.OpenID.Claims.Name != nil {
+				claimsBuilder.Name(state.OpenID.Claims.Name...***REMOVED***
+	***REMOVED***
+			if state.OpenID.Claims.PreferredUsername != nil {
+				claimsBuilder.PreferredUsername(state.OpenID.Claims.PreferredUsername...***REMOVED***
+	***REMOVED***
+
+			openidBuilder.Claims(claimsBuilder***REMOVED***
+***REMOVED***
+		if !state.OpenID.ClientID.Null {
+			openidBuilder.ClientID(state.OpenID.ClientID.Value***REMOVED***
+***REMOVED***
+		if !state.OpenID.ClientSecret.Null {
+			openidBuilder.ClientSecret(state.OpenID.ClientSecret.Value***REMOVED***
+***REMOVED***
+		if state.OpenID.ExtraAuthorizeParameters != nil {
+			openidBuilder.ExtraAuthorizeParameters(state.OpenID.ExtraAuthorizeParameters***REMOVED***
+***REMOVED***
+		if state.OpenID.ExtraScopes != nil {
+			openidBuilder.ExtraScopes(state.OpenID.ExtraScopes...***REMOVED***
+***REMOVED***
+		if !state.OpenID.Issuer.Null {
+			openidBuilder.Issuer(state.OpenID.Issuer.Value***REMOVED***
+***REMOVED***
+		builder.OpenID(openidBuilder***REMOVED***
 	}
 	object, err := builder.Build(***REMOVED***
 	if err != nil {
@@ -281,6 +393,7 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 	}
 	htpasswdObject := object.Htpasswd(***REMOVED***
 	ldapObject := object.LDAP(***REMOVED***
+	openidObject := object.OpenID(***REMOVED***
 	switch {
 	case htpasswdObject != nil:
 		// Nothing, there are no computed attributes for `htpasswd` identity providers.
@@ -294,6 +407,7 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 				Value: insecure,
 	***REMOVED***
 ***REMOVED***
+	case openidObject != nil:
 	}
 
 	// Save the state:
@@ -335,6 +449,7 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 	}
 	htpasswdObject := object.Htpasswd(***REMOVED***
 	ldapObject := object.LDAP(***REMOVED***
+	openidObject := object.OpenID(***REMOVED***
 	switch {
 	case htpasswdObject != nil:
 		if state.HTPasswd == nil {
@@ -406,6 +521,56 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 			preferredUsername, ok := attributes.GetPreferredUsername(***REMOVED***
 			if ok {
 				state.LDAP.Attributes.PreferredUsername = preferredUsername
+	***REMOVED***
+***REMOVED***
+	case openidObject != nil:
+		if state.OpenID == nil {
+			state.OpenID = &OpenIDIdentityProvider{}
+***REMOVED***
+		ca, ok := openidObject.GetCA(***REMOVED***
+		if ok {
+			state.OpenID.CA = types.String{
+				Value: ca,
+	***REMOVED***
+***REMOVED***
+		client_id, ok := openidObject.GetClientID(***REMOVED***
+		if ok {
+			state.OpenID.ClientID = types.String{
+				Value: client_id,
+	***REMOVED***
+***REMOVED***
+		client_secret, ok := openidObject.GetClientSecret(***REMOVED***
+		if ok {
+			state.OpenID.ClientSecret = types.String{
+				Value: client_secret,
+	***REMOVED***
+***REMOVED***
+		claims, ok := openidObject.GetClaims(***REMOVED***
+		if ok {
+			if state.OpenID.Claims == nil {
+				state.OpenID.Claims = &OpenIDIdentityProviderClaims{}
+	***REMOVED***
+			email, ok := claims.GetEmail(***REMOVED***
+			if ok {
+				state.OpenID.Claims.EMail = email
+	***REMOVED***
+			groups, ok := claims.GetGroups(***REMOVED***
+			if ok {
+				state.OpenID.Claims.Groups = groups
+	***REMOVED***
+			name, ok := claims.GetName(***REMOVED***
+			if ok {
+				state.OpenID.Claims.Name = name
+	***REMOVED***
+			preferredUsername, ok := claims.GetPreferredUsername(***REMOVED***
+			if ok {
+				state.OpenID.Claims.PreferredUsername = preferredUsername
+	***REMOVED***
+***REMOVED***
+		issuer, ok := openidObject.GetIssuer(***REMOVED***
+		if ok {
+			state.OpenID.Issuer = types.String{
+				Value: issuer,
 	***REMOVED***
 ***REMOVED***
 	}

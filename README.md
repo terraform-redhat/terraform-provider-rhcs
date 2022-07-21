@@ -8,6 +8,8 @@
 
 ## Introduction
 
+### Create OSD AWS Cluster
+
 The OCM provider simplifies the provisioning of _OpenShift_ managed clusters
 using the [OpenShift Cluster Manager](https://console.redhat.com/openshift)
 application programming interface.
@@ -33,6 +35,7 @@ provider "ocm" {
 resource "ocm_cluster" "my_cluster" {
   name           = "my-cluster"
   cloud_provider = "aws"
+  product        = "osd"
   cloud_region   = "us-east-1"
 }
 
@@ -57,10 +60,86 @@ authentication token that you can get [here](https://console.redhat.com/openshif
 If this attribute isn't used then the provider will try to get the token it from
 the `OCM_TOKEN` environment variable.
 
+### Create AWS Rosa STS Cluster
+
+The following example shows a production grade rosa cluster with:
+
+* Existing VPC & Subnets
+* Multi AZ
+* Proxy
+* STS
+
+```
+locals {
+  sts_roles = {
+      role_arn = "arn:aws:iam::${var.account_id}:role/ManagedOpenShift-Installer-Role",
+      support_role_arn = "arn:aws:iam::${var.account_id}:role/ManagedOpenShift-Support-Role",
+      operator_iam_roles = [
+        {
+          name =  "cloud-credential-operator-iam-ro-creds",
+          namespace = "openshift-cloud-credential-operator",
+          role_arn = "arn:aws:iam::${var.account_id}:role/${var.operator_role_prefix}-openshift-cloud-credential-operator-cloud-c",
+        },
+        {
+          name =  "installer-cloud-credentials",
+          namespace = "openshift-image-registry",
+          role_arn = "arn:aws:iam::${var.account_id}:role/${var.operator_role_prefix}-openshift-image-registry-installer-cloud-cr",
+        },
+        {
+          name =  "cloud-credentials",
+          namespace = "openshift-ingress-operator",
+          role_arn = "arn:aws:iam::${var.account_id}:role/${var.operator_role_prefix}-openshift-ingress-operator-cloud-credential",
+        },
+        {
+          name =  "ebs-cloud-credentials",
+          namespace = "openshift-cluster-csi-drivers",
+          role_arn = "arn:aws:iam::${var.account_id}:role/${var.operator_role_prefix}-openshift-cluster-csi-drivers-ebs-cloud-cre",
+        },
+        {
+          name =  "cloud-credentials",
+          namespace = "openshift-cloud-network-config-controller",
+          role_arn = "arn:aws:iam::${var.account_id}:role/${var.operator_role_prefix}-openshift-cloud-network-config-controller-c",
+        },
+        {
+          name =  "aws-cloud-credentials",
+          namespace = "openshift-machine-api",
+          role_arn = "arn:aws:iam::${var.account_id}:role/${var.operator_role_prefix}-openshift-machine-api-aws-cloud-credentials",
+        },
+      ]
+      instance_iam_roles = {
+        master_role_arn = "arn:aws:iam::${var.account_id}:role/ManagedOpenShift-ControlPlane-Role",
+        worker_role_arn = "arn:aws:iam::${var.account_id}:role/ManagedOpenShift-Worker-Role"
+      },    
+  }
+}
+resource "ocm_cluster" "rosa_cluster" {
+  name           = var.cluster_name
+  cloud_provider = "aws"
+  cloud_region   = "us-east-2"
+  product        = "rosa"
+  aws_account_id     = "var.account_id"
+  aws_subnet_ids = module.openshift_vpc.rosa_subnet_ids
+  machine_cidr = module.openshift_vpc.rosa_vpc_cidr
+  multi_az = true
+  aws_private_link = true
+  availability_zones = ["us-east-2a", "us-east-2b", "us-east-2c"]
+  proxy = {
+    http_proxy = var.proxy
+    https_proxy = var.proxy
+  }
+  properties = {
+    rosa_creator_arn = data.aws_caller_identity.current.arn
+  }
+  wait = false
+  sts = local.sts_roles
+}
+```
+
+
 ## Documentation
 
 The reference documentation of the provider is available in the Terraform
-[registry](https://registry.terraform.io/providers/openshift-online/ocm/latest/docs).
+[registry](https://registry.terraform.io/providers/rh-mobb/ocm/latest/docs).
 
 ## Examples
 

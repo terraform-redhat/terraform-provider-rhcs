@@ -49,6 +49,11 @@ func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVE
 				Type:        types.StringType,
 				Computed:    true,
 	***REMOVED***,
+			"product": {
+				Description: "Product ID OSD or Rosa",
+				Type:        types.StringType,
+				Required:    true,
+	***REMOVED***,
 			"name": {
 				Description: "Name of the cluster.",
 				Type:        types.StringType,
@@ -63,6 +68,11 @@ func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVE
 				Description: "Cloud region identifier, for example 'us-east-1'.",
 				Type:        types.StringType,
 				Required:    true,
+	***REMOVED***,
+			"sts": {
+				Description: "STS Configuration",
+				Attributes:  stsResource(***REMOVED***,
+				Optional:    true,
 	***REMOVED***,
 			"multi_az": {
 				Description: "Indicates if the cluster should be deployed to " +
@@ -119,7 +129,6 @@ func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVE
 				Description: "Identifier of the AWS account.",
 				Type:        types.StringType,
 				Optional:    true,
-				Computed:    true,
 	***REMOVED***,
 			"aws_access_key_id": {
 				Description: "Identifier of the AWS access key.",
@@ -133,11 +142,55 @@ func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVE
 				Optional:    true,
 				Sensitive:   true,
 	***REMOVED***,
+			"aws_subnet_ids": {
+				Description: "aws subnet ids",
+				Type: types.ListType{
+					ElemType: types.StringType,
+		***REMOVED***,
+				Optional: true,
+	***REMOVED***,
+			"aws_private_link": {
+				Description: "aws subnet ids",
+				Type:        types.BoolType,
+				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.RequiresReplace(***REMOVED***,
+		***REMOVED***,
+	***REMOVED***,
+			"availability_zones": {
+				Description: "availability zones",
+				Type: types.ListType{
+					ElemType: types.StringType,
+		***REMOVED***,
+				Optional: true,
+	***REMOVED***,
 			"machine_cidr": {
 				Description: "Block of IP addresses for nodes.",
 				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
+	***REMOVED***,
+			"proxy": {
+				Description: "proxy",
+				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+					"http_proxy": {
+						Description: "http proxy",
+						Type:        types.StringType,
+						Required:    true,
+			***REMOVED***,
+					"https_proxy": {
+						Description: "https proxy",
+						Type:        types.StringType,
+						Required:    true,
+			***REMOVED***,
+					"no_proxy": {
+						Description: "no proxy",
+						Type:        types.StringType,
+						Optional:    true,
+			***REMOVED***,
+		***REMOVED******REMOVED***,
+				Optional: true,
 	***REMOVED***,
 			"service_cidr": {
 				Description: "Block of IP addresses for services.",
@@ -209,6 +262,7 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 	builder := cmv1.NewCluster(***REMOVED***
 	builder.Name(state.Name.Value***REMOVED***
 	builder.CloudProvider(cmv1.NewCloudProvider(***REMOVED***.ID(state.CloudProvider.Value***REMOVED******REMOVED***
+	builder.Product(cmv1.NewProduct(***REMOVED***.ID(state.Product.Value***REMOVED******REMOVED***
 	builder.Region(cmv1.NewCloudRegion(***REMOVED***.ID(state.CloudRegion.Value***REMOVED******REMOVED***
 	if !state.MultiAZ.Unknown && !state.MultiAZ.Null {
 		builder.MultiAZ(state.MultiAZ.Value***REMOVED***
@@ -229,6 +283,15 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 			cmv1.NewMachineType(***REMOVED***.ID(state.ComputeMachineType.Value***REMOVED***,
 		***REMOVED***
 	}
+
+	if !state.AvailabilityZones.Unknown && !state.AvailabilityZones.Null {
+		azs := make([]string, 0***REMOVED***
+		for _, e := range state.AvailabilityZones.Elems {
+			azs = append(azs, e.(types.String***REMOVED***.Value***REMOVED***
+***REMOVED***
+		nodes.AvailabilityZones(azs...***REMOVED***
+	}
+
 	if !nodes.Empty(***REMOVED*** {
 		builder.Nodes(nodes***REMOVED***
 	}
@@ -249,6 +312,42 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 	if !state.AWSSecretAccessKey.Unknown && !state.AWSSecretAccessKey.Null {
 		aws.SecretAccessKey(state.AWSSecretAccessKey.Value***REMOVED***
 	}
+	if !state.AWSPrivateLink.Unknown && !state.AWSPrivateLink.Null {
+		aws.PrivateLink((state.AWSPrivateLink.Value***REMOVED******REMOVED***
+		api := cmv1.NewClusterAPI(***REMOVED***
+		api.Listening(cmv1.ListeningMethodInternal***REMOVED***
+		builder.API(api***REMOVED***
+	}
+
+	sts := cmv1.NewSTS(***REMOVED***
+	if state.Sts != nil {
+		sts.RoleARN(state.Sts.RoleARN.Value***REMOVED***
+		sts.SupportRoleARN(state.Sts.SupportRoleArn.Value***REMOVED***
+		instanceIamRoles := cmv1.NewInstanceIAMRoles(***REMOVED***
+		instanceIamRoles.MasterRoleARN(state.Sts.InstanceIAMRoles.MasterRoleARN.Value***REMOVED***
+		instanceIamRoles.WorkerRoleARN(state.Sts.InstanceIAMRoles.WorkerRoleARN.Value***REMOVED***
+		sts.InstanceIAMRoles(instanceIamRoles***REMOVED***
+
+		operatorRoles := make([]*cmv1.OperatorIAMRoleBuilder, 0***REMOVED***
+		for _, operatorRole := range state.Sts.OperatorIAMRoles {
+			r := cmv1.NewOperatorIAMRole(***REMOVED***
+			r.Name(operatorRole.Name.Value***REMOVED***
+			r.Namespace(operatorRole.Namespace.Value***REMOVED***
+			r.RoleARN(operatorRole.RoleARN.Value***REMOVED***
+			operatorRoles = append(operatorRoles, r***REMOVED***
+***REMOVED***
+		sts.OperatorIAMRoles(operatorRoles...***REMOVED***
+		aws.STS(sts***REMOVED***
+	}
+
+	if !state.AWSSubnetIDs.Unknown && !state.AWSSubnetIDs.Null {
+		subnetIds := make([]string, 0***REMOVED***
+		for _, e := range state.AWSSubnetIDs.Elems {
+			subnetIds = append(subnetIds, e.(types.String***REMOVED***.Value***REMOVED***
+***REMOVED***
+		aws.SubnetIDs(subnetIds...***REMOVED***
+	}
+
 	if !aws.Empty(***REMOVED*** {
 		builder.AWS(aws***REMOVED***
 	}
@@ -271,6 +370,14 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 	if !state.Version.Unknown && !state.Version.Null {
 		builder.Version(cmv1.NewVersion(***REMOVED***.ID(state.Version.Value***REMOVED******REMOVED***
 	}
+
+	proxy := cmv1.NewProxy(***REMOVED***
+	if state.Proxy != nil {
+		proxy.HTTPProxy(state.Proxy.HttpProxy.Value***REMOVED***
+		proxy.HTTPSProxy(state.Proxy.HttpsProxy.Value***REMOVED***
+		builder.Proxy(proxy***REMOVED***
+	}
+
 	object, err := builder.Build(***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -498,6 +605,9 @@ func (r *ClusterResource***REMOVED*** populateState(object *cmv1.Cluster, state 
 	state.ID = types.String{
 		Value: object.ID(***REMOVED***,
 	}
+	state.Product = types.String{
+		Value: object.Product(***REMOVED***.ID(***REMOVED***,
+	}
 	state.Name = types.String{
 		Value: object.Name(***REMOVED***,
 	}
@@ -531,17 +641,25 @@ func (r *ClusterResource***REMOVED*** populateState(object *cmv1.Cluster, state 
 	state.ComputeMachineType = types.String{
 		Value: object.Nodes(***REMOVED***.ComputeMachineType(***REMOVED***.ID(***REMOVED***,
 	}
+
+	azs, ok := object.Nodes(***REMOVED***.GetAvailabilityZones(***REMOVED***
+	if ok {
+		state.AvailabilityZones.Elems = make([]attr.Value, 0***REMOVED***
+		for _, az := range azs {
+			state.AvailabilityZones.Elems = append(state.AvailabilityZones.Elems, types.String{
+				Value: az,
+	***REMOVED******REMOVED***
+***REMOVED***
+	}
+
 	state.CCSEnabled = types.Bool{
 		Value: object.CCS(***REMOVED***.Enabled(***REMOVED***,
 	}
+	//The API does not return account id
 	awsAccountID, ok := object.AWS(***REMOVED***.GetAccountID(***REMOVED***
 	if ok {
 		state.AWSAccountID = types.String{
 			Value: awsAccountID,
-***REMOVED***
-	} else {
-		state.AWSAccountID = types.String{
-			Null: true,
 ***REMOVED***
 	}
 	awsAccessKeyID, ok := object.AWS(***REMOVED***.GetAccessKeyID(***REMOVED***
@@ -562,6 +680,70 @@ func (r *ClusterResource***REMOVED*** populateState(object *cmv1.Cluster, state 
 	} else {
 		state.AWSSecretAccessKey = types.String{
 			Null: true,
+***REMOVED***
+	}
+	awsPrivateLink, ok := object.AWS(***REMOVED***.GetPrivateLink(***REMOVED***
+	if ok {
+		state.AWSPrivateLink = types.Bool{
+			Value: awsPrivateLink,
+***REMOVED***
+	} else {
+		state.AWSPrivateLink = types.Bool{
+			Null: true,
+***REMOVED***
+	}
+	sts, ok := object.AWS(***REMOVED***.GetSTS(***REMOVED***
+	if ok {
+		state.Sts = &Sts{}
+		state.Sts.OIDCEndpointURL = types.String{
+			Value: sts.OIDCEndpointURL(***REMOVED***,
+***REMOVED***
+		state.Sts.RoleARN = types.String{
+			Value: sts.RoleARN(***REMOVED***,
+***REMOVED***
+		state.Sts.SupportRoleArn = types.String{
+			Value: sts.SupportRoleARN(***REMOVED***,
+***REMOVED***
+		state.Sts.InstanceIAMRoles.MasterRoleARN = types.String{
+			Value: sts.InstanceIAMRoles(***REMOVED***.MasterRoleARN(***REMOVED***,
+***REMOVED***
+		state.Sts.InstanceIAMRoles.WorkerRoleARN = types.String{
+			Value: sts.InstanceIAMRoles(***REMOVED***.WorkerRoleARN(***REMOVED***,
+***REMOVED***
+
+		for _, operatorRole := range sts.OperatorIAMRoles(***REMOVED*** {
+			r := OperatorIAMRole{
+				Name: types.String{
+					Value: operatorRole.Name(***REMOVED***,
+		***REMOVED***,
+				Namespace: types.String{
+					Value: operatorRole.Namespace(***REMOVED***,
+		***REMOVED***,
+				RoleARN: types.String{
+					Value: operatorRole.RoleARN(***REMOVED***,
+		***REMOVED***,
+	***REMOVED***
+			state.Sts.OperatorIAMRoles = append(state.Sts.OperatorIAMRoles, r***REMOVED***
+***REMOVED***
+	}
+
+	subnetIds, ok := object.AWS(***REMOVED***.GetSubnetIDs(***REMOVED***
+	if ok {
+		state.AWSSubnetIDs.Elems = make([]attr.Value, 0***REMOVED***
+		for _, subnetId := range subnetIds {
+			state.AWSSubnetIDs.Elems = append(state.AWSSubnetIDs.Elems, types.String{
+				Value: subnetId,
+	***REMOVED******REMOVED***
+***REMOVED***
+	}
+
+	proxy, ok := object.GetProxy(***REMOVED***
+	if ok {
+		state.Proxy.HttpProxy = types.String{
+			Value: proxy.HTTPProxy(***REMOVED***,
+***REMOVED***
+		state.Proxy.HttpsProxy = types.String{
+			Value: proxy.HTTPSProxy(***REMOVED***,
 ***REMOVED***
 	}
 	machineCIDR, ok := object.Network(***REMOVED***.GetMachineCIDR(***REMOVED***

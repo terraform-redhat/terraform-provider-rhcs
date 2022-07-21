@@ -93,6 +93,43 @@ var _ = Describe("Cluster creation", func() {
 		Expect(terraform.Apply()).To(BeZero())
 	})
 
+	It("Creates basic cluster with additional tags", func() {
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+				VerifyJQ(`.name`, "my-cluster"),
+				VerifyJQ(`.cloud_provider.id`, "aws"),
+				VerifyJQ(`.region.id`, "us-west-1"),
+				VerifyJQ(`.product.id`, "rosa"),
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {						  
+						  "tags" : {
+							"tag1": "value1",
+							"tag2": "value2"
+						  }
+					  }
+					}]`)),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "ocm_cluster" "my_cluster" {
+		    name           = "my-cluster"
+			product		   = "rosa"
+		    cloud_provider = "aws"			
+		    cloud_region   = "us-west-1"
+			tags = {
+				tag1 = "value1"
+				tag2 = "value2"
+			}
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+	})
+
 	It("Creates cluster with http proxy", func() {
 		// Prepare the server:
 		server.AppendHandlers(

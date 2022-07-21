@@ -46,6 +46,7 @@ type ClusterState struct {
 	ServiceCIDR        types.String `tfsdk:"service_cidr"`
 	Proxy              *Proxy       `tfsdk:"proxy"`
 	State              types.String `tfsdk:"state"`
+	Tags               types.Map    `tfsdk:"tags"`
 	Version            types.String `tfsdk:"version"`
 	Wait               types.Bool   `tfsdk:"wait"`
 }

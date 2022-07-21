@@ -74,6 +74,13 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 				Attributes:  stsResource(),
 				Optional:    true,
 			},
+			"tags": {
+				Description: "Tags to be propogated to AWS resources",
+				Type: types.MapType{
+					ElemType: types.StringType,
+				},
+				Optional: true,
+			},
 			"multi_az": {
 				Description: "Indicates if the cluster should be deployed to " +
 					"multiple availability zones. Default value is 'false'.",
@@ -319,6 +326,13 @@ func (r *ClusterResource) Create(ctx context.Context,
 			api.Listening(cmv1.ListeningMethodInternal)
 		}
 		builder.API(api)
+	}
+	if !state.Tags.Unknown && !state.Tags.Null {
+		tags := map[string]string{}
+		for k, v := range state.Tags.Elems {
+			tags[k] = v.(types.String).Value
+		}
+		aws.Tags(tags)
 	}
 
 	sts := cmv1.NewSTS()

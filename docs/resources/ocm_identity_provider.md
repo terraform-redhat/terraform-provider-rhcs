@@ -21,6 +21,7 @@ Identity provider.
 
 - **htpasswd** (Attributes) Details of the 'htpasswd' identity provider. (see [below for nested schema](#nestedatt--htpasswd))
 - **ldap** (Attributes) Details of the LDAP identity provider. (see [below for nested schema](#nestedatt--ldap))
+- **oidc** (Attributes) Details of the LDAP identity provider. (see [below for nested schema](#nestedatt--oidc))
 
 ### Read-Only
 
@@ -57,4 +58,26 @@ Optional:
 - **name** (List of String)
 - **preferred_username** (List of String)
 
+<a id="nestedatt--openid"></a>
+### Nested Schema for `openid`
+
+Optional:
+
+- **claims** (Attributes) (see [below for nested schema](#nestedatt--openid--claims))
+- **client_id** (String)
+- **client_secret** (String, Sensitive)
+- **ca** (String)
+- **extra_scopes** (List of String, Optional)
+- **exta_authorize_parameters** (Map of String, Optional)
+- **issuer** (String)
+
+<a id="nestedatt--openid--claims"></a>
+### Nested Schema for `openid.claims`
+
+Optional:
+
+- **email** (List of String)
+- **group** (List of String)
+- **name** (List of String)
+- **preferred_username** (List of String)
 

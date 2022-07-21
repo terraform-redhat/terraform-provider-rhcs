@@ -57,6 +57,11 @@ func (t *IdentityProviderResourceType) GetSchema(ctx context.Context) (result tf
 				Type:        types.StringType,
 				Required:    true,
 			},
+			"mapping_method": {
+				Description: "Method used to map keys",
+				Type:        types.StringType,
+				Optional:    true,
+			},
 			"htpasswd": {
 				Description: "Details of the 'htpasswd' identity provider.",
 				Attributes:  t.htpasswdSchema(),
@@ -272,6 +277,9 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 	// Create the identity provider:
 	builder := cmv1.NewIdentityProvider()
 	builder.Name(state.Name.Value)
+	if !state.MappingMethod.Null {
+		builder.MappingMethod(cmv1.IdentityProviderMappingMethod(state.MappingMethod.Value))
+	}
 	switch {
 	case state.HTPasswd != nil:
 		builder.Type(cmv1.IdentityProviderType("HTPasswdIdentityProvider"))

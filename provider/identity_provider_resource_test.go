@@ -164,6 +164,7 @@ var _ = Describe("Identity provider creation", func() {
 				  "kind": "IdentityProvider",
 				  "type": "OpenIDIdentityProvider",
 				  "name": "my-ip",
+				  "mapping_method": "claim",
 				  "open_id": {
 					"ca": "test_ca",
 					"claims": {
@@ -197,6 +198,7 @@ var _ = Describe("Identity provider creation", func() {
 					"href": "/api/clusters_mgmt/v1/clusters/123/identity_providers/456",
 					"id": "456",
 					"name": "my-ip",
+					"mapping_method": "claim",
 					"open_id": {
 						"claims": {
 							"email": [
@@ -230,6 +232,7 @@ var _ = Describe("Identity provider creation", func() {
 		  resource "ocm_identity_provider" "my_ip" {
 		    cluster    				= "123"
 		    name       				= "my-ip"
+			mapping_method			= "claim"
 		    openid = {
 				ca            			= "test_ca"
 				issuer					= "https://test.okta.com"

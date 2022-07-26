@@ -315,7 +315,9 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 	if !state.AWSPrivateLink.Unknown && !state.AWSPrivateLink.Null {
 		aws.PrivateLink((state.AWSPrivateLink.Value***REMOVED******REMOVED***
 		api := cmv1.NewClusterAPI(***REMOVED***
-		api.Listening(cmv1.ListeningMethodInternal***REMOVED***
+		if state.AWSPrivateLink.Value {
+			api.Listening(cmv1.ListeningMethodInternal***REMOVED***
+***REMOVED***
 		builder.API(api***REMOVED***
 	}
 
@@ -605,6 +607,8 @@ func (r *ClusterResource***REMOVED*** populateState(object *cmv1.Cluster, state 
 	state.ID = types.String{
 		Value: object.ID(***REMOVED***,
 	}
+
+	object.API(***REMOVED***
 	state.Product = types.String{
 		Value: object.Product(***REMOVED***.ID(***REMOVED***,
 	}

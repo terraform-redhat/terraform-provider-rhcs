@@ -1,6 +1,6 @@
-# Rosa STS cluster creation example
+# ROSA STS cluster creation example
 
-This example shows how to create an STS _Rosa_ cluster. _Rosa_ stands for Red Hat Openshift Service on AWS
+This example shows how to create an STS _ROSA_ cluster. _ROSA_ stands for Red Hat Openshift Service on AWS
 and is a cluster that is created in the AWS cloud infrastructure.
 
 To run it:

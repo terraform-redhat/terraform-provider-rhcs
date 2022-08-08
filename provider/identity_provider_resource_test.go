@@ -151,4 +151,101 @@ var _ = Describe("Identity provider creation", func() {
 		`)
 		Expect(terraform.Apply()).To(BeZero())
 	})
+
+	It("Can create an OpenID identity provider", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+				),
+				VerifyJSON(`{
+				  "kind": "IdentityProvider",
+				  "type": "OpenIDIdentityProvider",
+				  "name": "my-ip",
+				  "open_id": {
+					"ca": "test_ca",
+					"claims": {
+						"email": [
+							"email"
+						],
+						"groups": [
+							"admins"
+						],
+						"name": [
+							"name",
+							"email"
+						],
+						"preferred_username": [
+							"preferred_username",
+							"email"
+						]
+					},
+					"client_id": "test_client",
+					"client_secret": "test_secret",
+					"extra_scopes": [
+					  "email",
+					  "profile"
+					],
+					"issuer": "https://test.okta.com"
+					}
+				}`),
+				RespondWithJSON(http.StatusOK, `{
+					"kind": "IdentityProvider",
+					"type": "OpenIDIdentityProvider",
+					"href": "/api/clusters_mgmt/v1/clusters/123/identity_providers/456",
+					"id": "456",
+					"name": "my-ip",
+					"open_id": {
+						"claims": {
+							"email": [
+								"email"
+							],
+							"groups": [
+								"admins"
+							],
+							"name": [
+								"name",
+								"email"
+							],
+							"preferred_username": [
+								"preferred_username",
+								"email"
+							]
+						},
+						"client_id": "test_client",
+						"extra_scopes": [
+							"email",
+							"profile"
+						],
+						"issuer": "https://test.okta.com"
+					}
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "ocm_identity_provider" "my_ip" {
+		    cluster    				= "123"
+		    name       				= "my-ip"
+		    openid = {
+				ca            			= "test_ca"
+				issuer					= "https://test.okta.com"
+				client_id 				= "test_client"
+				client_secret			= "test_secret"
+				extra_scopes 			= ["email","profile"]
+				claims = {
+					email              = ["email"]
+					groups			   = ["admins"]
+					name               = ["name","email"]
+					preferred_username = ["preferred_username","email"]
+		      	}
+		    }
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+	})
+
 })

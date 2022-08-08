@@ -26,6 +26,7 @@ type IdentityProviderState struct {
 	Name     types.String              `tfsdk:"name"`
 	HTPasswd *HTPasswdIdentityProvider `tfsdk:"htpasswd"`
 	LDAP     *LDAPIdentityProvider     `tfsdk:"ldap"`
+	OpenID   *OpenIDIdentityProvider   `tfsdk:"openid"`
 }
 
 type HTPasswdIdentityProvider struct {
@@ -45,6 +46,23 @@ type LDAPIdentityProvider struct {
 type LDAPIdentityProviderAttributes struct {
 	EMail             []string `tfsdk:"email"`
 	ID                []string `tfsdk:"id"`
+	Name              []string `tfsdk:"name"`
+	PreferredUsername []string `tfsdk:"preferred_username"`
+}
+
+type OpenIDIdentityProvider struct {
+	CA                       types.String                  `tfsdk:"ca"`
+	Claims                   *OpenIDIdentityProviderClaims `tfsdk:"claims"`
+	ClientID                 types.String                  `tfsdk:"client_id"`
+	ClientSecret             types.String                  `tfsdk:"client_secret"`
+	ExtraScopes              []string                      `tfsdk:"extra_scopes"`
+	ExtraAuthorizeParameters map[string]string             `tfsdk:"extra_authorize_parameters"`
+	Issuer                   types.String                  `tfsdk:"issuer"`
+}
+
+type OpenIDIdentityProviderClaims struct {
+	EMail             []string `tfsdk:"email"`
+	Groups            []string `tfsdk:"groups"`
 	Name              []string `tfsdk:"name"`
 	PreferredUsername []string `tfsdk:"preferred_username"`
 }

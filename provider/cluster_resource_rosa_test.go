@@ -179,6 +179,41 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
 
+	It("Creates cluster when private link is false", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+				VerifyJQ(`.name`, "my-cluster"***REMOVED***,
+				VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
+				VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
+				VerifyJQ(`.product.id`, "rosa"***REMOVED***,
+				VerifyJQ(`.aws.private_link`, false***REMOVED***,
+				VerifyJQ(`.api.listening`, nil***REMOVED***,
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "private_link": false
+					  }
+			***REMOVED***]`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "ocm_cluster" "my_cluster" {
+		    name           = "my-cluster"
+			product		   = "rosa"
+		    cloud_provider = "aws"			
+		    cloud_region   = "us-west-1"
+			aws_private_link = false
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+	}***REMOVED***
+
 	It("Creates rosa sts cluster", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(

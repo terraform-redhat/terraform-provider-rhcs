@@ -1,5 +1,5 @@
 #
-# Copyright (c***REMOVED*** 2021 Red Hat, Inc.
+# Copyright (c***REMOVED*** 2022 Red Hat, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
 # you may not use this file except in compliance with the License.

@@ -1,0 +1,21 @@
+# ROSA cluster creation example
+
+This example shows how to create a _ROSA_ cluster with IAM User. _ROSA_ stands for Red Hat Openshift Service on AWS
+and is a cluster that is created in the AWS cloud infrastructure.
+
+In order to create a _ROSA_ cluster it is necessary to have user named
+`osdCcsAdmin` with the `AdministratorAccess` role. The example assumes the `osdCcsAdmin`
+is already created.
+
+To run it:
+
+* Provide OCM Authentication Token
+
+OCM authentication token that you can get [here](https://console.redhat.com/openshift/token***REMOVED***.
+
+```
+export TF_VAR_token=...
+```
+
+`main.tf` file and then run the `terraform apply` command.
+

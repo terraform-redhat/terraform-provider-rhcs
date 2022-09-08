@@ -21,12 +21,13 @@ import (
 )
 
 type IdentityProviderState struct {
-	Cluster  types.String              `tfsdk:"cluster"`
-	ID       types.String              `tfsdk:"id"`
-	Name     types.String              `tfsdk:"name"`
-	HTPasswd *HTPasswdIdentityProvider `tfsdk:"htpasswd"`
-	LDAP     *LDAPIdentityProvider     `tfsdk:"ldap"`
-	OpenID   *OpenIDIdentityProvider   `tfsdk:"openid"`
+	Cluster       types.String              `tfsdk:"cluster"`
+	ID            types.String              `tfsdk:"id"`
+	Name          types.String              `tfsdk:"name"`
+	MappingMethod types.String              `tfsdk:"mapping_method"`
+	HTPasswd      *HTPasswdIdentityProvider `tfsdk:"htpasswd"`
+	LDAP          *LDAPIdentityProvider     `tfsdk:"ldap"`
+	OpenID        *OpenIDIdentityProvider   `tfsdk:"openid"`
 }
 
 type HTPasswdIdentityProvider struct {

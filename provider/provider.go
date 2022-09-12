@@ -213,6 +213,7 @@ func (p *Provider) GetResources(ctx context.Context) (result map[string]tfsdk.Re
 		"ocm_group_membership":  &GroupMembershipResourceType{},
 		"ocm_identity_provider": &IdentityProviderResourceType{},
 		"ocm_machine_pool":      &MachinePoolResourceType{},
+		"ocm_cluster_wait":      &ClusterWaiterResourceType{},
 	}
 	return
 }

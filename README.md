@@ -136,6 +136,10 @@ resource "ocm_cluster" "rosa_cluster" {
   sts = local.sts_roles
 }
 
+resource "ocm_cluster_wait" "rosa_cluster" {
+  cluster = ocm_cluster.rosa_cluster.id
+}
+
 module sts_roles {
     source  = "rh-mobb/rosa-sts-roles/aws"
     create_account_roles = false

@@ -1,6 +1,6 @@
 module github.com/openshift-online/terraform-provider-ocm
 
-go 1.17
+go 1.18
 
 require (
 	github.com/hashicorp/terraform-plugin-framework v0.5.0

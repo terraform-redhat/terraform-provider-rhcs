@@ -199,6 +199,12 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 				}),
 				Optional: true,
 			},
+			"additional_trust_bundle": {
+				Description: "Added to default TLS trust bundle, typically for transparent proxy config",
+				Type:        types.StringType,
+				Optional:    true,
+				Sensitive:   true,
+			},
 			"service_cidr": {
 				Description: "Block of IP addresses for services.",
 				Type:        types.StringType,
@@ -309,6 +315,7 @@ func (r *ClusterResource) Create(ctx context.Context,
 	if !ccs.Empty() {
 		builder.CCS(ccs)
 	}
+
 	aws := cmv1.NewAWS()
 	if !state.AWSAccountID.Unknown && !state.AWSAccountID.Null {
 		aws.AccountID(state.AWSAccountID.Value)
@@ -368,6 +375,11 @@ func (r *ClusterResource) Create(ctx context.Context,
 		builder.AWS(aws)
 	}
 	network := cmv1.NewNetwork()
+
+	if !state.AdditionalTrustBundle.Unknown && !state.AdditionalTrustBundle.Null {
+		builder.AdditionalTrustBundle(state.AdditionalTrustBundle.Value)
+	}
+
 	if !state.MachineCIDR.Unknown && !state.MachineCIDR.Null {
 		network.MachineCIDR(state.MachineCIDR.Value)
 	}

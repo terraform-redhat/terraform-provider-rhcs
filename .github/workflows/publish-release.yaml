@@ -48,12 +48,12 @@ jobs:
 
     - name: List GPG keys
       run: gpg -K
-      
+
     - name: Run releaser
       uses: goreleaser/goreleaser-action@v3.0.0
       with:
         version: latest
         args: release --rm-dist
       env:
-        GPG_FINGERPRINT: ${{ steps.import_gpg_key.outputs.fingerprint }}
+        GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -13,10 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 # Disable CGO so that we always generate static binaries:
 export CGO_ENABLED=0
 
+ifeq ($(OS),Windows_NT)
+	BINARY=terraform-provider-ocm.exe
+else
+	BINARY=terraform-provider-ocm
+endif
+
+BINARY=terraform-provider-ocm
+PLATFORM=$(shell go env GOOS)_$(shell go env GOARCH)
 # Import path of the project:
 import_path:=github.com/openshift-online/terraform-provider-ocm
 
@@ -32,15 +39,19 @@ ldflags:=\
 
 .PHONY: build
 build:
-	platform=$$(terraform version -json | jq -r .platform); \
-	extension=""; \
-	if [[ "$${platform}" =~ ^windows_.*$$ ]]; then \
-	  extension=".exe"; \
-	fi; \
-	dir=".terraform.d/plugins/localhost/openshift-online/ocm/$(version)/$${platform}"; \
-	file="terraform-provider-ocm$${extension}"; \
-	mkdir -p "$${dir}"; \
-	go build -ldflags="$(ldflags)" -o "$${dir}/$${file}"
+	go build -ldflags="$(ldflags)" -o ${BINARY}
+
+.PHONY: install
+install: build
+	mkdir -p ~/.terraform.d/plugins/localhost/openshift-online/ocm/${version}/${PLATFORM}
+	mv ${BINARY} ~/.terraform.d/plugins/localhost/openshift-online/ocm/${version}/${PLATFORM}
+
+.PHONY: clean
+clean:
+	$(shell go clean)
+	@echo "==> Removing ~/.terraform.d/plugins/localhost/openshift-online/ocm/${version}/${PLATFORM} directory"
+	@rm -rf ~/.terraform.d/plugins/localhost/openshift-online/ocm/${version}/${PLATFORM}
+
 
 .PHONY: test tests
 test tests: build
@@ -59,7 +70,3 @@ fmt_tf:
 
 .PHONY: fmt
 fmt: fmt_go fmt_tf
-
-.PHONY: clean
-clean:
-	rm -rf .terraform.d

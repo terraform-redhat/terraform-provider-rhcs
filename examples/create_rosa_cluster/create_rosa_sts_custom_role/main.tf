@@ -120,7 +120,7 @@ resource "ocm_cluster_wait" "rosa_cluster" {
 }
 
 module account_roles {
-  source  = "/Users/shading/work/source/terraform-aws-rosa-sts-account-roles"
+  source  = "rh-mobb/rosa-sts-account-roles/aws"
   role_prefix = var.role_prefix
   role_suffix = var.role_suffix
   controlplane_role = var.role_names.controlplane_role
@@ -130,7 +130,7 @@ module account_roles {
 }
 
 module operator_roles {
-  source  = "/Users/shading/work/source/terraform-aws-rosa-sts-operator-roles"
+  source  = "rh-mobb/rosa-sts-operator-roles/aws"
   operator_role_prefix = var.role_prefix
   operator_role_suffix = var.role_suffix
   cluster_id = ocm_cluster.rosa_cluster.id

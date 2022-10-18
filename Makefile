@@ -17,6 +17,12 @@
 # Disable CGO so that we always generate static binaries:
 export CGO_ENABLED=0
 
+ifeq ($(shell go env GOOS),windows)
+	BINARY=terraform-provider-ocm.exe
+else
+	BINARY=terraform-provider-ocm
+endif
+
 # Import path of the project:
 import_path:=github.com/openshift-online/terraform-provider-ocm
 
@@ -32,6 +38,10 @@ ldflags:=\
 
 .PHONY: build
 build:
+	go build -ldflags="$(ldflags)" -o ${BINARY}
+
+.PHONY: install
+install: build
 	platform=$$(terraform version -json | jq -r .platform); \
 	extension=""; \
 	if [[ "$${platform}" =~ ^windows_.*$$ ]]; then \
@@ -40,10 +50,10 @@ build:
 	dir=".terraform.d/plugins/localhost/openshift-online/ocm/$(version)/$${platform}"; \
 	file="terraform-provider-ocm$${extension}"; \
 	mkdir -p "$${dir}"; \
-	go build -ldflags="$(ldflags)" -o "$${dir}/$${file}"
+	mv ${BINARY} "$${dir}/$${file}"
 
 .PHONY: test tests
-test tests: build
+test tests: install
 	ginkgo run \
 		--succinct \
 		-ldflags="$(ldflags)" \

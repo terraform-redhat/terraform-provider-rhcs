@@ -17,9 +17,14 @@ limitations under the License.
 package provider
 
 ***REMOVED***
+	"bytes"
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
 ***REMOVED***
 ***REMOVED***
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -379,7 +384,6 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 		proxy.HTTPSProxy(state.Proxy.HttpsProxy.Value***REMOVED***
 		builder.Proxy(proxy***REMOVED***
 	}
-
 	object, err := builder.Build(***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -430,7 +434,7 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 	}
 
 	// Save the state:
-	r.populateState(object, state***REMOVED***
+	r.populateState(ctx, object, state***REMOVED***
 	diags = response.State.Set(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
 }
@@ -460,7 +464,7 @@ func (r *ClusterResource***REMOVED*** Read(ctx context.Context, request tfsdk.Re
 	object := get.Body(***REMOVED***
 
 	// Save the state:
-	r.populateState(object, state***REMOVED***
+	r.populateState(ctx, object, state***REMOVED***
 	diags = response.State.Set(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
 }
@@ -522,7 +526,7 @@ func (r *ClusterResource***REMOVED*** Update(ctx context.Context, request tfsdk.
 	object := update.Body(***REMOVED***
 
 	// Update the state:
-	r.populateState(object, state***REMOVED***
+	r.populateState(ctx, object, state***REMOVED***
 	diags = response.State.Set(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
 }
@@ -597,13 +601,13 @@ func (r *ClusterResource***REMOVED*** ImportState(ctx context.Context, request t
 
 	// Save the state:
 	state := &ClusterState{}
-	r.populateState(object, state***REMOVED***
+	r.populateState(ctx, object, state***REMOVED***
 	diags := response.State.Set(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
 }
 
 // populateState copies the data from the API object to the Terraform state.
-func (r *ClusterResource***REMOVED*** populateState(object *cmv1.Cluster, state *ClusterState***REMOVED*** {
+func (r *ClusterResource***REMOVED*** populateState(ctx context.Context, object *cmv1.Cluster, state *ClusterState***REMOVED*** {
 	state.ID = types.String{
 		Value: object.ID(***REMOVED***,
 	}
@@ -696,11 +700,17 @@ func (r *ClusterResource***REMOVED*** populateState(object *cmv1.Cluster, state 
 			Null: true,
 ***REMOVED***
 	}
+
 	sts, ok := object.AWS(***REMOVED***.GetSTS(***REMOVED***
 	if ok {
 		state.Sts = &Sts{}
+		oidc_endpoint_url := sts.OIDCEndpointURL(***REMOVED***
+		if strings.HasPrefix(oidc_endpoint_url, "https://"***REMOVED*** {
+			oidc_endpoint_url = strings.TrimPrefix(oidc_endpoint_url, "https://"***REMOVED***
+***REMOVED***
+
 		state.Sts.OIDCEndpointURL = types.String{
-			Value: sts.OIDCEndpointURL(***REMOVED***,
+			Value: oidc_endpoint_url,
 ***REMOVED***
 		state.Sts.RoleARN = types.String{
 			Value: sts.RoleARN(***REMOVED***,
@@ -713,6 +723,18 @@ func (r *ClusterResource***REMOVED*** populateState(object *cmv1.Cluster, state 
 ***REMOVED***
 		state.Sts.InstanceIAMRoles.WorkerRoleARN = types.String{
 			Value: sts.InstanceIAMRoles(***REMOVED***.WorkerRoleARN(***REMOVED***,
+***REMOVED***
+
+		thumbprint, err := getThumbprint(sts.OIDCEndpointURL(***REMOVED******REMOVED***
+		if err != nil {
+			r.logger.Error(ctx, "cannot get thumbprint", err***REMOVED***
+			state.Sts.Thumbprint = types.String{
+				Value: "",
+	***REMOVED***
+***REMOVED*** else {
+			state.Sts.Thumbprint = types.String{
+				Value: thumbprint,
+	***REMOVED***
 ***REMOVED***
 
 		for _, operatorRole := range sts.OperatorIAMRoles(***REMOVED*** {
@@ -803,4 +825,41 @@ func (r *ClusterResource***REMOVED*** populateState(object *cmv1.Cluster, state 
 	state.State = types.String{
 		Value: string(object.State(***REMOVED******REMOVED***,
 	}
+
+}
+
+func getThumbprint(oidcEndpointURL string***REMOVED*** (string, error***REMOVED*** {
+	connect, err := url.ParseRequestURI(oidcEndpointURL***REMOVED***
+	if err != nil {
+		return "", err
+	}
+
+	response, err := http.Get(fmt.Sprintf("https://%s:443", connect.Host***REMOVED******REMOVED***
+	if err != nil {
+		return "", err
+	}
+
+	certChain := response.TLS.PeerCertificates
+
+	// Grab the CA in the chain
+	for _, cert := range certChain {
+		if cert.IsCA {
+			if bytes.Equal(cert.RawIssuer, cert.RawSubject***REMOVED*** {
+				return sha1Hash(cert.Raw***REMOVED***, nil
+	***REMOVED***
+***REMOVED***
+	}
+
+	// Fall back to using the last certficiate in the chain
+	cert := certChain[len(certChain***REMOVED***-1]
+	return sha1Hash(cert.Raw***REMOVED***, nil
+}
+
+// sha1Hash computes the SHA1 of the byte array and returns the hex encoding as a string.
+func sha1Hash(data []byte***REMOVED*** string {
+	// nolint:gosec
+	hasher := sha1.New(***REMOVED***
+	hasher.Write(data***REMOVED***
+	hashed := hasher.Sum(nil***REMOVED***
+	return hex.EncodeToString(hashed***REMOVED***
 }

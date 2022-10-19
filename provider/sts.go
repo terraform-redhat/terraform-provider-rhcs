@@ -13,6 +13,12 @@ func stsResource(***REMOVED*** tfsdk.NestedAttributes {
 			Computed:    true,
 			Optional:    true,
 ***REMOVED***,
+		"thumbprint": {
+			Description: "SHA1-hash value of the root CA of the issuer URL",
+			Type:        types.StringType,
+			Computed:    true,
+			Optional:    true,
+***REMOVED***,
 		"role_arn": {
 			Description: "Installer Role",
 			Type:        types.StringType,

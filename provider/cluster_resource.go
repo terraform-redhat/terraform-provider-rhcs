@@ -231,12 +231,6 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 				Type:        types.BoolType,
 				Optional:    true,
 			},
-			"thumbprint": {
-				Description: "SHA1-hash value of the root CA of the issuer URL",
-				Type:        types.StringType,
-				Computed:    true,
-				Optional:    true,
-			},
 		},
 	}
 	return
@@ -733,7 +727,7 @@ func (r *ClusterResource) populateState(object *cmv1.Cluster, state *ClusterStat
 
 		thumbprint, err := getThumbprint(sts.OIDCEndpointURL())
 		if err == nil {
-			state.Thumbprint = types.String{
+			state.Sts.Thumbprint = types.String{
 				Value: thumbprint,
 			}
 		}

@@ -36,14 +36,19 @@ variable operator_role_prefix {
     type = string
 }
 
+variable account_role_prefix {
+    type = string
+    default = "ManagedOpenShift"
+}
+
 provider "ocm" {
   token = var.token
 }
 
 locals {
   sts_roles = {
-      role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-Installer-Role",
-      support_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-Support-Role",
+      role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Installer-Role",
+      support_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Support-Role",
       operator_iam_roles = [
         {
           name =  "cloud-credential-operator-iam-ro-creds",
@@ -77,8 +82,8 @@ locals {
         },
       ]
       instance_iam_roles = {
-        master_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-ControlPlane-Role",
-        worker_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-Worker-Role"
+        master_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-ControlPlane-Role",
+        worker_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Worker-Role"
       },    
   }
 }
@@ -103,10 +108,12 @@ resource "ocm_cluster" "rosa_cluster" {
 module sts_roles {
     source  = "rh-mobb/rosa-sts-roles/aws"
     create_account_roles = false
+    redhat_aws_account_id = data.aws_caller_identity.current.account_id
     clusters = [{
         id = ocm_cluster.rosa_cluster.id
         operator_role_prefix = var.operator_role_prefix
     }]
+    account_role_prefix = var.account_role_prefix
     rh_oidc_provider_thumbprint = ocm_cluster.rosa_cluster.thumbprint
     rh_oidc_provider_url = ocm_cluster.rosa_cluster.sts.oidc_endpoint_url
 }

@@ -327,6 +327,8 @@ func (r *ClusterResource) Create(ctx context.Context,
 	}
 
 	sts := cmv1.NewSTS()
+
+	role_arn := "arn:aws:iam::___:role/ManagedOpenShift-Installer-Role"
 	if state.Sts != nil {
 		sts.RoleARN(state.Sts.RoleARN.Value)
 		sts.SupportRoleARN(state.Sts.SupportRoleArn.Value)

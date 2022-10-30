@@ -91,7 +91,6 @@ resource "ocm_cluster" "rosa_cluster" {
   cloud_provider = "aws"
   cloud_region   = "us-east-2"
   product        = "rosa"
-  aws_account_id     = data.aws_caller_identity.current.account_id
   availability_zones = ["us-east-2a"]
   properties = {
     rosa_creator_arn = data.aws_caller_identity.current.arn

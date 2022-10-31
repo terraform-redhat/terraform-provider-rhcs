@@ -44,6 +44,59 @@ type ClusterResource struct {
 	collection *cmv1.ClustersClient
 }
 
+type AccountRoleFmtStruct struct {
+	InstallerRoleFmt   string
+	ControlPlanRoleFmt string
+	WorkerRoleFmt      string
+	SupportRoleFmt     string
+}
+
+const (
+	AccountRoleInstallerFmt   = "arn:aws:iam::%s:role/%s-Installer-Role"
+	AccountRoleControlPlanFmt = "arn:aws:iam::%s:role/%s-ControlPlane-Role"
+	AccountRoleWorkerFmt      = "arn:aws:iam::%s:role/%s-Worker-Role"
+	AccountRoleSupportFmt     = "arn:aws:iam::%s:role/%s-Support-Role"
+)
+
+type OperatorRole struct {
+	name         string
+	namespace    string
+	role_arn_fmt string
+}
+
+var RosaOperatorRole = []OperatorRole{
+	{
+		name:         "cloud-credential-operator-iam-ro-creds",
+		namespace:    "openshift-cloud-credential-operator",
+		role_arn_fmt: "arn:aws:iam::%s:role/%s-openshift-cloud-credential-operator-cloud-c",
+	},
+	{
+		name:         "installer-cloud-credentials",
+		namespace:    "openshift-image-registry",
+		role_arn_fmt: "arn:aws:iam::%s:role/%s-openshift-image-registry-installer-cloud-cr",
+	},
+	{
+		name:         "openshift-ingress-operator-cloud-credential",
+		namespace:    "openshift-ingress-operator",
+		role_arn_fmt: "arn:aws:iam::%s:role/%s-openshift-ingress-operator-cloud-credential",
+	},
+	{
+		name:         "ebs-cloud-credentials",
+		namespace:    "openshift-cluster-csi-drivers",
+		role_arn_fmt: "arn:aws:iam::%s:role/%s-openshift-cluster-csi-drivers-ebs-cloud-cre",
+	},
+	{
+		name:         "cloud-network-config",
+		namespace:    "openshift-cloud-network-config-controller",
+		role_arn_fmt: "arn:aws:iam::%s:role/%s-openshift-cloud-network-config-controller-c",
+	},
+	{
+		name:         "machine-api-aws-cloud-credentials",
+		namespace:    "openshift-machine-api",
+		role_arn_fmt: "arn:aws:iam::%s:role/%s-openshift-machine-api-aws-cloud-credentials",
+	},
+}
+
 func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schema,
 	diags diag.Diagnostics) {
 	result = tfsdk.Schema{
@@ -327,27 +380,9 @@ func (r *ClusterResource) Create(ctx context.Context,
 	}
 
 	sts := cmv1.NewSTS()
-
-	role_arn := "arn:aws:iam::___:role/ManagedOpenShift-Installer-Role"
-	if state.Sts != nil {
-		sts.RoleARN(state.Sts.RoleARN.Value)
-		sts.SupportRoleARN(state.Sts.SupportRoleArn.Value)
-		instanceIamRoles := cmv1.NewInstanceIAMRoles()
-		instanceIamRoles.MasterRoleARN(state.Sts.InstanceIAMRoles.MasterRoleARN.Value)
-		instanceIamRoles.WorkerRoleARN(state.Sts.InstanceIAMRoles.WorkerRoleARN.Value)
-		sts.InstanceIAMRoles(instanceIamRoles)
-
-		operatorRoles := make([]*cmv1.OperatorIAMRoleBuilder, 0)
-		for _, operatorRole := range state.Sts.OperatorIAMRoles {
-			r := cmv1.NewOperatorIAMRole()
-			r.Name(operatorRole.Name.Value)
-			r.Namespace(operatorRole.Namespace.Value)
-			r.RoleARN(operatorRole.RoleARN.Value)
-			operatorRoles = append(operatorRoles, r)
-		}
-		sts.OperatorIAMRoles(operatorRoles...)
-		aws.STS(sts)
-	}
+	sts = setStsAccountRole(sts, state.AWSAccountID.Value, state.Sts.AccountRolePrefix.Value)
+	sts = setStsOperatorRole(sts, state.AWSAccountID.Value, state.Sts.OperatorRolePrefix.Value)
+	aws.STS(sts)
 
 	if !state.AWSSubnetIDs.Unknown && !state.AWSSubnetIDs.Null {
 		subnetIds := make([]string, 0)
@@ -864,4 +899,29 @@ func sha1Hash(data []byte) string {
 	hasher.Write(data)
 	hashed := hasher.Sum(nil)
 	return hex.EncodeToString(hashed)
+}
+
+func setStsAccountRole(sts *cmv1.STSBuilder, aws_account_id string, account_role_prefix string) *cmv1.STSBuilder {
+	// set the account role:
+	sts.RoleARN(fmt.Sprintf(AccountRoleInstallerFmt, aws_account_id, account_role_prefix))
+	instanceIamRoles := cmv1.NewInstanceIAMRoles()
+	instanceIamRoles.MasterRoleARN(fmt.Sprintf(AccountRoleControlPlanFmt, aws_account_id, account_role_prefix))
+	instanceIamRoles.WorkerRoleARN(fmt.Sprintf(AccountRoleWorkerFmt, aws_account_id, account_role_prefix))
+	sts.InstanceIAMRoles(instanceIamRoles)
+	sts.SupportRoleARN(fmt.Sprintf(AccountRoleSupportFmt, aws_account_id, account_role_prefix))
+	return sts
+}
+
+func setStsOperatorRole(sts *cmv1.STSBuilder, aws_account_id string, operator_role_prefix string) *cmv1.STSBuilder {
+	operatorRoles := make([]*cmv1.OperatorIAMRoleBuilder, 0)
+	// TODO - ask the required operator rules from an API
+	for _, operatorRole := range RosaOperatorRole {
+		r := cmv1.NewOperatorIAMRole()
+		r.Name(operatorRole.name)
+		r.Namespace(operatorRole.namespace)
+		r.RoleARN(fmt.Sprintf(operatorRole.role_arn_fmt, aws_account_id, operator_role_prefix))
+		operatorRoles = append(operatorRoles, r)
+	}
+	sts.OperatorIAMRoles(operatorRoles...)
+	return sts
 }

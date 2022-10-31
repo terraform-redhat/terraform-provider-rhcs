@@ -32,6 +32,10 @@ variable token {
   sensitive = true
 }
 
+variable account_role_prefix {
+    type = string
+}
+
 variable operator_role_prefix {
     type = string
 }
@@ -40,50 +44,14 @@ provider "ocm" {
   token = var.token
 }
 
-locals {
-  sts_roles = {
-      role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-Installer-Role",
-      support_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-Support-Role",
-      operator_iam_roles = [
-        {
-          name =  "cloud-credential-operator-iam-ro-creds",
-          namespace = "openshift-cloud-credential-operator",
-          role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.operator_role_prefix}-openshift-cloud-credential-operator-cloud-c",
-        },
-        {
-          name =  "installer-cloud-credentials",
-          namespace = "openshift-image-registry",
-          role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.operator_role_prefix}-openshift-image-registry-installer-cloud-cr",
-        },
-        {
-          name =  "cloud-credentials",
-          namespace = "openshift-ingress-operator",
-          role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.operator_role_prefix}-openshift-ingress-operator-cloud-credential",
-        },
-        {
-          name =  "ebs-cloud-credentials",
-          namespace = "openshift-cluster-csi-drivers",
-          role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.operator_role_prefix}-openshift-cluster-csi-drivers-ebs-cloud-cre",
-        },
-        {
-          name =  "cloud-credentials",
-          namespace = "openshift-cloud-network-config-controller",
-          role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.operator_role_prefix}-openshift-cloud-network-config-controller-c",
-        },
-        {
-          name =  "aws-cloud-credentials",
-          namespace = "openshift-machine-api",
-          role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.operator_role_prefix}-openshift-machine-api-aws-cloud-credentials",
-        },
-      ]
-      instance_iam_roles = {
-        master_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-ControlPlane-Role",
-        worker_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-Worker-Role"
-      },    
-  }
+data "aws_caller_identity" "current" {
 }
 
-data "aws_caller_identity" "current" {
+locals {
+  sts_vars = {
+    operator_role_prefix = "terraform-ocm"
+    account_role_prefix = "ManagedOpenshift"
+  }
 }
 
 resource "ocm_cluster" "rosa_cluster" {
@@ -96,7 +64,6 @@ resource "ocm_cluster" "rosa_cluster" {
     rosa_creator_arn = data.aws_caller_identity.current.arn
   }
   wait = false
-  sts = local.sts_roles
 }
 
 module sts_roles {

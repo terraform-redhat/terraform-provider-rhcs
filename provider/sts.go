@@ -19,28 +19,40 @@ func stsResource() tfsdk.NestedAttributes {
 			Computed:    true,
 			Optional:    true,
 		},
-		"role_arn": {
-			Description: "Installer Role",
+		"operator_role_prefix": {
+			Description: "prefix for operator role",
 			Type:        types.StringType,
-			Required:    true,
 		},
-		"support_role_arn": {
-			Description: "Support Role",
+		"account_role_prefix": {
+			Description: "prefix for account role",
 			Type:        types.StringType,
-			Required:    true,
 		},
-		"instance_iam_roles": {
-			Description: "Instance IAm Roles",
+		"account_iam_roles": {
+			Description: "Account IAM Roles",
 			Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-				"master_role_arn": {
-					Description: "Master/Controller Plane Role ARN",
+				"control_plane_role_arn": {
+					Description: "Controller Plane Role ARN",
 					Type:        types.StringType,
-					Required:    true,
+					Computed:    true,
+					Optional:    true,
 				},
 				"worker_role_arn": {
 					Description: "Worker Node Role ARN",
 					Type:        types.StringType,
-					Required:    true,
+					Computed:    true,
+					Optional:    true,
+				},
+				"support_role_arn": {
+					Description: "Support Role",
+					Type:        types.StringType,
+					Computed:    true,
+					Optional:    true,
+				},
+				"installer_role_arn": {
+					Description: "Installer Role",
+					Type:        types.StringType,
+					Computed:    true,
+					Optional:    true,
 				},
 			}),
 			Required: true,
@@ -51,17 +63,20 @@ func stsResource() tfsdk.NestedAttributes {
 				"name": {
 					Description: "Operator Name",
 					Type:        types.StringType,
-					Required:    true,
+					Computed:    true,
+					Optional:    true,
 				},
 				"namespace": {
 					Description: "Kubernetes Namespace",
 					Type:        types.StringType,
-					Required:    true,
+					Computed:    true,
+					Optional:    true,
 				},
 				"role_arn": {
 					Description: "AWS Role ARN",
 					Type:        types.StringType,
-					Required:    true,
+					Computed:    true,
+					Optional:    true,
 				},
 			}, tfsdk.ListNestedAttributesOptions{
 				MinItems: 6,

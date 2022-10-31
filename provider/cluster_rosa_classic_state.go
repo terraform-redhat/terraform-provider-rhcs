@@ -20,7 +20,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-type ClusterState struct {
+type ClusterRosaClassicState struct {
 	APIURL             types.String `tfsdk:"api_url"`
 	AWSAccessKeyID     types.String `tfsdk:"aws_access_key_id"`
 	AWSAccountID       types.String `tfsdk:"aws_account_id"`
@@ -29,14 +29,12 @@ type ClusterState struct {
 	AWSPrivateLink     types.Bool   `tfsdk:"aws_private_link"`
 	Sts                *Sts         `tfsdk:"sts"`
 	CCSEnabled         types.Bool   `tfsdk:"ccs_enabled"`
-	CloudProvider      types.String `tfsdk:"cloud_provider"`
 	CloudRegion        types.String `tfsdk:"cloud_region"`
 	ComputeMachineType types.String `tfsdk:"compute_machine_type"`
 	ComputeNodes       types.Int64  `tfsdk:"compute_nodes"`
 	ConsoleURL         types.String `tfsdk:"console_url"`
 	HostPrefix         types.Int64  `tfsdk:"host_prefix"`
 	ID                 types.String `tfsdk:"id"`
-	Product            types.String `tfsdk:"product"`
 	MachineCIDR        types.String `tfsdk:"machine_cidr"`
 	MultiAZ            types.Bool   `tfsdk:"multi_az"`
 	AvailabilityZones  types.List   `tfsdk:"availability_zones"`
@@ -50,22 +48,8 @@ type ClusterState struct {
 	Wait               types.Bool   `tfsdk:"wait"`
 }
 
-type Sts struct {
-	OIDCEndpointURL  types.String      `tfsdk:"oidc_endpoint_url"`
-	Thumbprint       types.String      `tfsdk:"thumbprint"`
-	RoleARN          types.String      `tfsdk:"role_arn"`
-	SupportRoleArn   types.String      `tfsdk:"support_role_arn"`
-	InstanceIAMRoles InstanceIAMRole   `tfsdk:"instance_iam_roles"`
-	OperatorIAMRoles []OperatorIAMRole `tfsdk:"operator_iam_roles"`
-}
-
-type InstanceIAMRole struct {
-	MasterRoleARN types.String `tfsdk:"master_role_arn"`
-	WorkerRoleARN types.String `tfsdk:"worker_role_arn"`
-}
-
-type OperatorIAMRole struct {
-	Name      types.String `tfsdk:"name"`
-	Namespace types.String `tfsdk:"namespace"`
-	RoleARN   types.String `tfsdk:"role_arn"`
+type Proxy struct {
+	HttpProxy  types.String `tfsdk:"http_proxy"`
+	HttpsProxy types.String `tfsdk:"https_proxy"`
+	NoProxy    types.String `tfsdk:"no_proxy"`
 }

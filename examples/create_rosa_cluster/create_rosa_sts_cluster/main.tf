@@ -86,11 +86,9 @@ locals {
 data "aws_caller_identity" "current" {
 }
 
-resource "ocm_cluster" "rosa_cluster" {
+resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
   name           = "my-cluster"
-  cloud_provider = "aws"
   cloud_region   = "us-east-2"
-  product        = "rosa"
   aws_account_id     = data.aws_caller_identity.current.account_id
   availability_zones = ["us-east-2a"]
   properties = {
@@ -109,4 +107,5 @@ module sts_roles {
     }]
     rh_oidc_provider_thumbprint = ocm_cluster.rosa_cluster.thumbprint
     rh_oidc_provider_url = ocm_cluster.rosa_cluster.sts.oidc_endpoint_url
+
 }

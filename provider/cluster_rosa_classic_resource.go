@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-  http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,13 +13,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package provider
 
 ***REMOVED***
+	"bytes"
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
 ***REMOVED***
 ***REMOVED***
+	"net/url"
 	"strings"
 	"time"
 
@@ -32,15 +35,20 @@ package provider
 	"github.com/openshift-online/ocm-sdk-go/logging"
 ***REMOVED***
 
-type ClusterResourceType struct {
+const (
+	awsCloudProvider = "aws"
+	rosaProduct      = "rosa"
+***REMOVED***
+
+type ClusterRosaClassicResourceType struct {
 }
 
-type ClusterResource struct {
+type ClusterRosaClassicResource struct {
 	logger     logging.Logger
 	collection *cmv1.ClustersClient
 }
 
-func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVED*** (result tfsdk.Schema,
+func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVED*** (result tfsdk.Schema,
 	diags diag.Diagnostics***REMOVED*** {
 	result = tfsdk.Schema{
 		Description: "OpenShift managed cluster.",
@@ -50,18 +58,8 @@ func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVE
 				Type:        types.StringType,
 				Computed:    true,
 	***REMOVED***,
-			"product": {
-				Description: "Product ID OSD or Rosa",
-				Type:        types.StringType,
-				Required:    true,
-	***REMOVED***,
 			"name": {
 				Description: "Name of the cluster.",
-				Type:        types.StringType,
-				Required:    true,
-	***REMOVED***,
-			"cloud_provider": {
-				Description: "Cloud provider identifier, for example 'aws'.",
 				Type:        types.StringType,
 				Required:    true,
 	***REMOVED***,
@@ -232,7 +230,7 @@ func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVE
 	return
 }
 
-func (t *ClusterResourceType***REMOVED*** NewResource(ctx context.Context,
+func (t *ClusterRosaClassicResourceType***REMOVED*** NewResource(ctx context.Context,
 	p tfsdk.Provider***REMOVED*** (result tfsdk.Resource, diags diag.Diagnostics***REMOVED*** {
 	// Cast the provider interface to the specific implementation:
 	parent := p.(*Provider***REMOVED***
@@ -241,7 +239,7 @@ func (t *ClusterResourceType***REMOVED*** NewResource(ctx context.Context,
 	collection := parent.connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Clusters(***REMOVED***
 
 	// Create the resource:
-	result = &ClusterResource{
+	result = &ClusterRosaClassicResource{
 		logger:     parent.logger,
 		collection: collection,
 	}
@@ -249,10 +247,10 @@ func (t *ClusterResourceType***REMOVED*** NewResource(ctx context.Context,
 	return
 }
 
-func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
+func (r *ClusterRosaClassicResource***REMOVED*** Create(ctx context.Context,
 	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse***REMOVED*** {
 	// Get the plan:
-	state := &ClusterState{}
+	state := &ClusterRosaClassicState{}
 	diags := request.Plan.Get(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
 	if response.Diagnostics.HasError(***REMOVED*** {
@@ -262,8 +260,8 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 	// Create the cluster:
 	builder := cmv1.NewCluster(***REMOVED***
 	builder.Name(state.Name.Value***REMOVED***
-	builder.CloudProvider(cmv1.NewCloudProvider(***REMOVED***.ID(state.CloudProvider.Value***REMOVED******REMOVED***
-	builder.Product(cmv1.NewProduct(***REMOVED***.ID(state.Product.Value***REMOVED******REMOVED***
+	builder.CloudProvider(cmv1.NewCloudProvider(***REMOVED***.ID(awsCloudProvider***REMOVED******REMOVED***
+	builder.Product(cmv1.NewProduct(***REMOVED***.ID(rosaProduct***REMOVED******REMOVED***
 	builder.Region(cmv1.NewCloudRegion(***REMOVED***.ID(state.CloudRegion.Value***REMOVED******REMOVED***
 	if !state.MultiAZ.Unknown && !state.MultiAZ.Null {
 		builder.MultiAZ(state.MultiAZ.Value***REMOVED***
@@ -435,10 +433,10 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 	response.Diagnostics.Append(diags...***REMOVED***
 }
 
-func (r *ClusterResource***REMOVED*** Read(ctx context.Context, request tfsdk.ReadResourceRequest,
+func (r *ClusterRosaClassicResource***REMOVED*** Read(ctx context.Context, request tfsdk.ReadResourceRequest,
 	response *tfsdk.ReadResourceResponse***REMOVED*** {
 	// Get the current state:
-	state := &ClusterState{}
+	state := &ClusterRosaClassicState{}
 	diags := request.State.Get(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
 	if response.Diagnostics.HasError(***REMOVED*** {
@@ -465,12 +463,12 @@ func (r *ClusterResource***REMOVED*** Read(ctx context.Context, request tfsdk.Re
 	response.Diagnostics.Append(diags...***REMOVED***
 }
 
-func (r *ClusterResource***REMOVED*** Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
+func (r *ClusterRosaClassicResource***REMOVED*** Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
 	response *tfsdk.UpdateResourceResponse***REMOVED*** {
 	var diags diag.Diagnostics
 
 	// Get the state:
-	state := &ClusterState{}
+	state := &ClusterRosaClassicState{}
 	diags = request.State.Get(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
 	if response.Diagnostics.HasError(***REMOVED*** {
@@ -478,7 +476,7 @@ func (r *ClusterResource***REMOVED*** Update(ctx context.Context, request tfsdk.
 	}
 
 	// Get the plan:
-	plan := &ClusterState{}
+	plan := &ClusterRosaClassicState{}
 	diags = request.Plan.Get(ctx, plan***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
 	if response.Diagnostics.HasError(***REMOVED*** {
@@ -527,10 +525,10 @@ func (r *ClusterResource***REMOVED*** Update(ctx context.Context, request tfsdk.
 	response.Diagnostics.Append(diags...***REMOVED***
 }
 
-func (r *ClusterResource***REMOVED*** Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
+func (r *ClusterRosaClassicResource***REMOVED*** Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
 	response *tfsdk.DeleteResourceResponse***REMOVED*** {
 	// Get the state:
-	state := &ClusterState{}
+	state := &ClusterRosaClassicState{}
 	diags := request.State.Get(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
 	if response.Diagnostics.HasError(***REMOVED*** {
@@ -579,7 +577,7 @@ func (r *ClusterResource***REMOVED*** Delete(ctx context.Context, request tfsdk.
 	response.State.RemoveResource(ctx***REMOVED***
 }
 
-func (r *ClusterResource***REMOVED*** ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
+func (r *ClusterRosaClassicResource***REMOVED*** ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
 	response *tfsdk.ImportResourceStateResponse***REMOVED*** {
 	// Try to retrieve the object:
 	get, err := r.collection.Cluster(request.ID***REMOVED***.Get(***REMOVED***.SendContext(ctx***REMOVED***
@@ -596,27 +594,21 @@ func (r *ClusterResource***REMOVED*** ImportState(ctx context.Context, request t
 	object := get.Body(***REMOVED***
 
 	// Save the state:
-	state := &ClusterState{}
+	state := &ClusterRosaClassicState{}
 	r.populateState(ctx, object, state***REMOVED***
 	diags := response.State.Set(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
 }
 
 // populateState copies the data from the API object to the Terraform state.
-func (r *ClusterResource***REMOVED*** populateState(ctx context.Context, object *cmv1.Cluster, state *ClusterState***REMOVED*** {
+func (r *ClusterRosaClassicResource***REMOVED*** populateState(ctx context.Context, object *cmv1.Cluster, state *ClusterRosaClassicState***REMOVED*** {
 	state.ID = types.String{
 		Value: object.ID(***REMOVED***,
 	}
 
 	object.API(***REMOVED***
-	state.Product = types.String{
-		Value: object.Product(***REMOVED***.ID(***REMOVED***,
-	}
 	state.Name = types.String{
 		Value: object.Name(***REMOVED***,
-	}
-	state.CloudProvider = types.String{
-		Value: object.CloudProvider(***REMOVED***.ID(***REMOVED***,
 	}
 	state.CloudRegion = types.String{
 		Value: object.Region(***REMOVED***.ID(***REMOVED***,
@@ -822,4 +814,40 @@ func (r *ClusterResource***REMOVED*** populateState(ctx context.Context, object 
 		Value: string(object.State(***REMOVED******REMOVED***,
 	}
 
+}
+
+func getThumbprint(oidcEndpointURL string***REMOVED*** (string, error***REMOVED*** {
+	connect, err := url.ParseRequestURI(oidcEndpointURL***REMOVED***
+	if err != nil {
+		return "", err
+	}
+
+	response, err := http.Get(fmt.Sprintf("https://%s:443", connect.Host***REMOVED******REMOVED***
+	if err != nil {
+		return "", err
+	}
+
+	certChain := response.TLS.PeerCertificates
+
+	// Grab the CA in the chain
+	for _, cert := range certChain {
+		if cert.IsCA {
+			if bytes.Equal(cert.RawIssuer, cert.RawSubject***REMOVED*** {
+				return sha1Hash(cert.Raw***REMOVED***, nil
+	***REMOVED***
+***REMOVED***
+	}
+
+	// Fall back to using the last certficiate in the chain
+	cert := certChain[len(certChain***REMOVED***-1]
+	return sha1Hash(cert.Raw***REMOVED***, nil
+}
+
+// sha1Hash computes the SHA1 of the byte array and returns the hex encoding as a string.
+func sha1Hash(data []byte***REMOVED*** string {
+	// nolint:gosec
+	hasher := sha1.New(***REMOVED***
+	hasher.Write(data***REMOVED***
+	hashed := hasher.Sum(nil***REMOVED***
+	return hex.EncodeToString(hashed***REMOVED***
 }

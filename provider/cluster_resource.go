@@ -20,7 +20,6 @@ package provider
 	"context"
 ***REMOVED***
 ***REMOVED***
-	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -69,11 +68,6 @@ func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVE
 				Description: "Cloud region identifier, for example 'us-east-1'.",
 				Type:        types.StringType,
 				Required:    true,
-	***REMOVED***,
-			"sts": {
-				Description: "STS Configuration",
-				Attributes:  StsResource(***REMOVED***,
-				Optional:    true,
 	***REMOVED***,
 			"multi_az": {
 				Description: "Indicates if the cluster should be deployed to " +
@@ -320,27 +314,6 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 			api.Listening(cmv1.ListeningMethodInternal***REMOVED***
 ***REMOVED***
 		builder.API(api***REMOVED***
-	}
-
-	sts := cmv1.NewSTS(***REMOVED***
-	if state.Sts != nil {
-		sts.RoleARN(state.Sts.RoleARN.Value***REMOVED***
-		sts.SupportRoleARN(state.Sts.SupportRoleArn.Value***REMOVED***
-		instanceIamRoles := cmv1.NewInstanceIAMRoles(***REMOVED***
-		instanceIamRoles.MasterRoleARN(state.Sts.InstanceIAMRoles.MasterRoleARN.Value***REMOVED***
-		instanceIamRoles.WorkerRoleARN(state.Sts.InstanceIAMRoles.WorkerRoleARN.Value***REMOVED***
-		sts.InstanceIAMRoles(instanceIamRoles***REMOVED***
-
-		operatorRoles := make([]*cmv1.OperatorIAMRoleBuilder, 0***REMOVED***
-		for _, operatorRole := range state.Sts.OperatorIAMRoles {
-			r := cmv1.NewOperatorIAMRole(***REMOVED***
-			r.Name(operatorRole.Name.Value***REMOVED***
-			r.Namespace(operatorRole.Namespace.Value***REMOVED***
-			r.RoleARN(operatorRole.RoleARN.Value***REMOVED***
-			operatorRoles = append(operatorRoles, r***REMOVED***
-***REMOVED***
-		sts.OperatorIAMRoles(operatorRoles...***REMOVED***
-		aws.STS(sts***REMOVED***
 	}
 
 	if !state.AWSSubnetIDs.Unknown && !state.AWSSubnetIDs.Null {
@@ -694,58 +667,6 @@ func (r *ClusterResource***REMOVED*** populateState(ctx context.Context, object 
 	} else {
 		state.AWSPrivateLink = types.Bool{
 			Null: true,
-***REMOVED***
-	}
-
-	sts, ok := object.AWS(***REMOVED***.GetSTS(***REMOVED***
-	if ok {
-		state.Sts = &Sts{}
-		oidc_endpoint_url := sts.OIDCEndpointURL(***REMOVED***
-		if strings.HasPrefix(oidc_endpoint_url, "https://"***REMOVED*** {
-			oidc_endpoint_url = strings.TrimPrefix(oidc_endpoint_url, "https://"***REMOVED***
-***REMOVED***
-
-		state.Sts.OIDCEndpointURL = types.String{
-			Value: oidc_endpoint_url,
-***REMOVED***
-		state.Sts.RoleARN = types.String{
-			Value: sts.RoleARN(***REMOVED***,
-***REMOVED***
-		state.Sts.SupportRoleArn = types.String{
-			Value: sts.SupportRoleARN(***REMOVED***,
-***REMOVED***
-		state.Sts.InstanceIAMRoles.MasterRoleARN = types.String{
-			Value: sts.InstanceIAMRoles(***REMOVED***.MasterRoleARN(***REMOVED***,
-***REMOVED***
-		state.Sts.InstanceIAMRoles.WorkerRoleARN = types.String{
-			Value: sts.InstanceIAMRoles(***REMOVED***.WorkerRoleARN(***REMOVED***,
-***REMOVED***
-
-		thumbprint, err := getThumbprint(sts.OIDCEndpointURL(***REMOVED******REMOVED***
-		if err != nil {
-			r.logger.Error(ctx, "cannot get thumbprint", err***REMOVED***
-			state.Sts.Thumbprint = types.String{
-				Value: "",
-	***REMOVED***
-***REMOVED*** else {
-			state.Sts.Thumbprint = types.String{
-				Value: thumbprint,
-	***REMOVED***
-***REMOVED***
-
-		for _, operatorRole := range sts.OperatorIAMRoles(***REMOVED*** {
-			r := OperatorIAMRole{
-				Name: types.String{
-					Value: operatorRole.Name(***REMOVED***,
-		***REMOVED***,
-				Namespace: types.String{
-					Value: operatorRole.Namespace(***REMOVED***,
-		***REMOVED***,
-				RoleARN: types.String{
-					Value: operatorRole.RoleARN(***REMOVED***,
-		***REMOVED***,
-	***REMOVED***
-			state.Sts.OperatorIAMRoles = append(state.Sts.OperatorIAMRoles, r***REMOVED***
 ***REMOVED***
 	}
 

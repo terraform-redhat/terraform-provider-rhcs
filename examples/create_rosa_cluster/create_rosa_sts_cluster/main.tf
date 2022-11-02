@@ -98,14 +98,11 @@ resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
   sts = local.sts_roles
 }
 
-module sts_roles {
-    source  = "rh-mobb/rosa-sts-roles/aws"
-    create_account_roles = false
-    clusters = [{
-        id = ocm_cluster.rosa_cluster.id
-        operator_role_prefix = var.operator_role_prefix
-    }]
-    rh_oidc_provider_thumbprint = ocm_cluster.rosa_cluster.thumbprint
-    rh_oidc_provider_url = ocm_cluster.rosa_cluster.sts.oidc_endpoint_url
+module operator_roles {
+    source  = "https://github.com/bardielle/terraform-provider-ocm/tree/new_resource_rosa_classic/provider/ocm_cluster_rosa_classic/iam_roles_module"
+    cluster_id = ocm_cluster_rosa_classic.rosa_sts_cluster.id
+    operator_role_prefix = var.operator_role_prefix
+    rh_oidc_provider_thumbprint = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.thumbprint
+    rh_oidc_provider_url = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.oidc_endpoint_url
 
 }

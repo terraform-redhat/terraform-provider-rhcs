@@ -44,6 +44,11 @@ locals {
   sts_roles = {
       role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-Installer-Role",
       support_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-Support-Role",
+      instance_iam_roles = {
+              master_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-ControlPlane-Role",
+              worker_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-Worker-Role"
+      },
+
       operator_iam_roles = [
         {
           name =  "cloud-credential-operator-iam-ro-creds",
@@ -76,10 +81,6 @@ locals {
           role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.operator_role_prefix}-openshift-machine-api-aws-cloud-credentials",
         },
       ]
-      instance_iam_roles = {
-        master_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-ControlPlane-Role",
-        worker_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-Worker-Role"
-      },    
   }
 }
 
@@ -99,7 +100,7 @@ resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
 }
 
 module operator_roles {
-    source  = "https://github.com/bardielle/terraform-provider-ocm/tree/new_resource_rosa_classic/provider/ocm_cluster_rosa_classic/iam_roles_module"
+    source  = "https://github.com/openshift-online/terraform-provider-ocm/tree/new_resource_rosa_classic/provider/ocm_cluster_rosa_classic/iam_roles_module"
     cluster_id = ocm_cluster_rosa_classic.rosa_sts_cluster.id
     operator_role_prefix = var.operator_role_prefix
     rh_oidc_provider_thumbprint = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.thumbprint

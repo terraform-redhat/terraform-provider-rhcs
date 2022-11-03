@@ -83,10 +83,8 @@ var _ = Describe("Cluster creation", func() {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
-		    name           = "my-cluster"
-			product		   = "rosa"
-		    cloud_provider = "aws"			
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"	
 		    cloud_region   = "us-west-1"
 		  }
 		`)
@@ -118,10 +116,8 @@ var _ = Describe("Cluster creation", func() {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
-		    name           = "my-cluster"
-			product		   = "rosa"
-		    cloud_provider = "aws"			
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"	
 		    cloud_region   = "us-west-1"
 			proxy = {
 				http_proxy = "http://proxy.com",
@@ -164,10 +160,8 @@ var _ = Describe("Cluster creation", func() {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
-			product		   = "rosa"
-		    cloud_provider = "aws"			
 		    cloud_region   = "us-west-1"
 			availability_zones = ["az1","az2","az3"]
 			aws_private_link = true
@@ -203,10 +197,8 @@ var _ = Describe("Cluster creation", func() {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
-		    name           = "my-cluster"
-			product		   = "rosa"
-		    cloud_provider = "aws"			
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"	
 		    cloud_region   = "us-west-1"
 			aws_private_link = false
 		  }
@@ -288,10 +280,8 @@ var _ = Describe("Cluster creation", func() {
 
 		// Run the apply command:
 		terraform.Source(`
-		resource "ocm_cluster" "my_cluster" {
-			name           = "my-cluster"
-			product		   = "rosa"
-			cloud_provider = "aws"			
+		resource "ocm_cluster_rosa_classic" "my_cluster" {
+			name           = "my-cluster"	
 			cloud_region   = "us-west-1"
 			sts = {
 				role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",

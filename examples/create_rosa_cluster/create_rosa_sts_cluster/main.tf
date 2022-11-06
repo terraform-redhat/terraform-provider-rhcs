@@ -99,7 +99,7 @@ resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
 }
 
 module operator_roles {
-    source  = "https://github.com/bardielle/terraform-provider-ocm/tree/new_resource_rosa_classic/provider/ocm_cluster_rosa_classic/iam_roles_module"
+    source  = "https://github.com/openshift-online/terraform-provider-ocm/modules/ocm_cluster_rosa_classic/operator_roles"
     cluster_id = ocm_cluster_rosa_classic.rosa_sts_cluster.id
     operator_role_prefix = var.operator_role_prefix
     rh_oidc_provider_thumbprint = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.thumbprint

@@ -21,18 +21,15 @@ package provider
 	"crypto/sha1"
 	"encoding/hex"
 ***REMOVED***
-***REMOVED***
-	"net/url"
-	"strings"
-	"time"
-
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/logging"
+***REMOVED***
+	"net/url"
+	"strings"
 ***REMOVED***
 
 const (
@@ -55,6 +52,11 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 		Attributes: map[string]tfsdk.Attribute{
 			"id": {
 				Description: "Unique identifier of the cluster.",
+				Type:        types.StringType,
+				Computed:    true,
+	***REMOVED***,
+			"external_id": {
+				Description: "Unique external identifier of the cluster.",
 				Type:        types.StringType,
 				Computed:    true,
 	***REMOVED***,
@@ -91,6 +93,32 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 				Optional: true,
 				Computed: true,
 	***REMOVED***,
+			"ccs_enabled": {
+				Description: "Enables customer cloud subscription.",
+				Type:        types.BoolType,
+				Computed:    true,
+	***REMOVED***,
+			"etcd_encryption": {
+				Description: "Encrypt etcd data.",
+				Type:        types.BoolType,
+				Optional:    true,
+				Computed:    true,
+	***REMOVED***,
+			"autoscaling_enabled": {
+				Description: "Enables autoscaling.",
+				Type:        types.BoolType,
+				Optional:    true,
+	***REMOVED***,
+			"min_replicas": {
+				Description: "Min replicas.",
+				Type:        types.Int64Type,
+				Optional:    true,
+	***REMOVED***,
+			"max_replicas": {
+				Description: "Max replicas.",
+				Type:        types.Int64Type,
+				Optional:    true,
+	***REMOVED***,
 			"api_url": {
 				Description: "URL of the API server.",
 				Type:        types.StringType,
@@ -118,28 +146,10 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 					tfsdk.RequiresReplace(***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,
-			"ccs_enabled": {
-				Description: "Enables customer cloud subscription.",
-				Type:        types.BoolType,
-				Optional:    true,
-				Computed:    true,
-	***REMOVED***,
 			"aws_account_id": {
 				Description: "Identifier of the AWS account.",
 				Type:        types.StringType,
-				Optional:    true,
-	***REMOVED***,
-			"aws_access_key_id": {
-				Description: "Identifier of the AWS access key.",
-				Type:        types.StringType,
-				Optional:    true,
-				Sensitive:   true,
-	***REMOVED***,
-			"aws_secret_access_key": {
-				Description: "AWS access key.",
-				Type:        types.StringType,
-				Optional:    true,
-				Sensitive:   true,
+				Required:    true,
 	***REMOVED***,
 			"aws_subnet_ids": {
 				Description: "aws subnet ids",
@@ -220,11 +230,6 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 				Type:        types.StringType,
 				Computed:    true,
 	***REMOVED***,
-			"wait": {
-				Description: "Wait till the cluster is ready.",
-				Type:        types.BoolType,
-				Optional:    true,
-	***REMOVED***,
 ***REMOVED***,
 	}
 	return
@@ -273,6 +278,11 @@ func (r *ClusterRosaClassicResource***REMOVED*** Create(ctx context.Context,
 ***REMOVED***
 		builder.Properties(properties***REMOVED***
 	}
+
+	if !state.EtcdEncryption.Unknown && !state.EtcdEncryption.Null {
+		builder.EtcdEncryption(state.EtcdEncryption.Value***REMOVED***
+	}
+
 	nodes := cmv1.NewClusterNodes(***REMOVED***
 	if !state.ComputeNodes.Unknown && !state.ComputeNodes.Null {
 		nodes.Compute(int(state.ComputeNodes.Value***REMOVED******REMOVED***
@@ -291,25 +301,31 @@ func (r *ClusterRosaClassicResource***REMOVED*** Create(ctx context.Context,
 		nodes.AvailabilityZones(azs...***REMOVED***
 	}
 
+	if !state.AutoScalingEnabled.Unknown && !state.AutoScalingEnabled.Null && state.AutoScalingEnabled.Value {
+		autoscaling := cmv1.NewMachinePoolAutoscaling(***REMOVED***
+		if !state.MaxReplicas.Unknown && !state.MaxReplicas.Null {
+			autoscaling.MaxReplicas(int(state.MaxReplicas.Value***REMOVED******REMOVED***
+***REMOVED***
+		if !state.MinReplicas.Unknown && !state.MinReplicas.Null {
+			autoscaling.MinReplicas(int(state.MinReplicas.Value***REMOVED******REMOVED***
+***REMOVED***
+		if !autoscaling.Empty(***REMOVED*** {
+			nodes.AutoscaleCompute(autoscaling***REMOVED***
+***REMOVED***
+	}
+
 	if !nodes.Empty(***REMOVED*** {
 		builder.Nodes(nodes***REMOVED***
 	}
+
+	// ccs should be enabled in ocm rosa clusters
 	ccs := cmv1.NewCCS(***REMOVED***
-	if !state.CCSEnabled.Unknown && !state.CCSEnabled.Null {
-		ccs.Enabled(state.CCSEnabled.Value***REMOVED***
-	}
-	if !ccs.Empty(***REMOVED*** {
-		builder.CCS(ccs***REMOVED***
-	}
+	ccs.Enabled(true***REMOVED***
+	builder.CCS(ccs***REMOVED***
+
 	aws := cmv1.NewAWS(***REMOVED***
 	if !state.AWSAccountID.Unknown && !state.AWSAccountID.Null {
 		aws.AccountID(state.AWSAccountID.Value***REMOVED***
-	}
-	if !state.AWSAccessKeyID.Unknown && !state.AWSAccessKeyID.Null {
-		aws.AccessKeyID(state.AWSAccessKeyID.Value***REMOVED***
-	}
-	if !state.AWSSecretAccessKey.Unknown && !state.AWSSecretAccessKey.Null {
-		aws.SecretAccessKey(state.AWSSecretAccessKey.Value***REMOVED***
 	}
 	if !state.AWSPrivateLink.Unknown && !state.AWSPrivateLink.Null {
 		aws.PrivateLink((state.AWSPrivateLink.Value***REMOVED******REMOVED***
@@ -401,31 +417,6 @@ func (r *ClusterRosaClassicResource***REMOVED*** Create(ctx context.Context,
 		return
 	}
 	object = add.Body(***REMOVED***
-
-	// Wait till the cluster is ready unless explicitly disabled:
-	wait := state.Wait.Unknown || state.Wait.Null || state.Wait.Value
-	ready := object.State(***REMOVED*** == cmv1.ClusterStateReady
-	if wait && !ready {
-		pollCtx, cancel := context.WithTimeout(ctx, 1*time.Hour***REMOVED***
-		defer cancel(***REMOVED***
-		_, err := r.collection.Cluster(object.ID(***REMOVED******REMOVED***.Poll(***REMOVED***.
-			Interval(30 * time.Second***REMOVED***.
-			Predicate(func(get *cmv1.ClusterGetResponse***REMOVED*** bool {
-				object = get.Body(***REMOVED***
-				return object.State(***REMOVED*** == cmv1.ClusterStateReady
-	***REMOVED******REMOVED***.
-			StartContext(pollCtx***REMOVED***
-		if err != nil {
-			response.Diagnostics.AddError(
-				"Can't poll cluster state",
-				fmt.Sprintf(
-					"Can't poll state of cluster with identifier '%s': %v",
-					object.ID(***REMOVED***, err,
-				***REMOVED***,
-			***REMOVED***
-			return
-***REMOVED***
-	}
 
 	// Save the state:
 	r.populateState(ctx, object, state***REMOVED***
@@ -549,30 +540,6 @@ func (r *ClusterRosaClassicResource***REMOVED*** Delete(ctx context.Context, req
 		return
 	}
 
-	// Wait till the cluster has been effectively deleted:
-	if state.Wait.Unknown || state.Wait.Null || state.Wait.Value {
-		pollCtx, cancel := context.WithTimeout(ctx, 10*time.Minute***REMOVED***
-		defer cancel(***REMOVED***
-		_, err := resource.Poll(***REMOVED***.
-			Interval(30 * time.Second***REMOVED***.
-			Status(http.StatusNotFound***REMOVED***.
-			StartContext(pollCtx***REMOVED***
-		sdkErr, ok := err.(*errors.Error***REMOVED***
-		if ok && sdkErr.Status(***REMOVED*** == http.StatusNotFound {
-			err = nil
-***REMOVED***
-		if err != nil {
-			response.Diagnostics.AddError(
-				"Can't poll cluster deletion",
-				fmt.Sprintf(
-					"Can't poll deletion of cluster with identifier '%s': %v",
-					state.ID.Value, err,
-				***REMOVED***,
-			***REMOVED***
-			return
-***REMOVED***
-	}
-
 	// Remove the state:
 	response.State.RemoveResource(ctx***REMOVED***
 }
@@ -605,7 +572,9 @@ func (r *ClusterRosaClassicResource***REMOVED*** populateState(ctx context.Conte
 	state.ID = types.String{
 		Value: object.ID(***REMOVED***,
 	}
-
+	state.ExternalID = types.String{
+		Value: object.ExternalID(***REMOVED***,
+	}
 	object.API(***REMOVED***
 	state.Name = types.String{
 		Value: object.Name(***REMOVED***,
@@ -651,6 +620,26 @@ func (r *ClusterRosaClassicResource***REMOVED*** populateState(ctx context.Conte
 	state.CCSEnabled = types.Bool{
 		Value: object.CCS(***REMOVED***.Enabled(***REMOVED***,
 	}
+
+	state.EtcdEncryption = types.Bool{
+		Value: object.EtcdEncryption(***REMOVED***,
+	}
+
+	autoscaleCompute := object.Nodes(***REMOVED***.AutoscaleCompute(***REMOVED***
+	if autoscaleCompute != nil {
+		state.AutoScalingEnabled = types.Bool{
+			Value: true,
+***REMOVED***
+
+		state.MaxReplicas = types.Int64{
+			Value: int64(autoscaleCompute.MaxReplicas(***REMOVED******REMOVED***,
+***REMOVED***
+
+		state.MinReplicas = types.Int64{
+			Value: int64(autoscaleCompute.MinReplicas(***REMOVED******REMOVED***,
+***REMOVED***
+	}
+
 	//The API does not return account id
 	awsAccountID, ok := object.AWS(***REMOVED***.GetAccountID(***REMOVED***
 	if ok {
@@ -658,26 +647,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** populateState(ctx context.Conte
 			Value: awsAccountID,
 ***REMOVED***
 	}
-	awsAccessKeyID, ok := object.AWS(***REMOVED***.GetAccessKeyID(***REMOVED***
-	if ok {
-		state.AWSAccessKeyID = types.String{
-			Value: awsAccessKeyID,
-***REMOVED***
-	} else {
-		state.AWSAccessKeyID = types.String{
-			Null: true,
-***REMOVED***
-	}
-	awsSecretAccessKey, ok := object.AWS(***REMOVED***.GetSecretAccessKey(***REMOVED***
-	if ok {
-		state.AWSSecretAccessKey = types.String{
-			Value: awsSecretAccessKey,
-***REMOVED***
-	} else {
-		state.AWSSecretAccessKey = types.String{
-			Null: true,
-***REMOVED***
-	}
+
 	awsPrivateLink, ok := object.AWS(***REMOVED***.GetPrivateLink(***REMOVED***
 	if ok {
 		state.AWSPrivateLink = types.Bool{

@@ -86,6 +86,7 @@ var _ = Describe("Cluster creation", func() {
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"	
 		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
@@ -119,6 +120,7 @@ var _ = Describe("Cluster creation", func() {
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"	
 		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
 			proxy = {
 				http_proxy = "http://proxy.com",
 				https_proxy = "http://proxy.com",
@@ -163,6 +165,7 @@ var _ = Describe("Cluster creation", func() {
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
 			availability_zones = ["az1","az2","az3"]
 			aws_private_link = true
 			aws_subnet_ids = [
@@ -200,6 +203,7 @@ var _ = Describe("Cluster creation", func() {
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"	
 		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
 			aws_private_link = false
 		  }
 		`)
@@ -283,6 +287,7 @@ var _ = Describe("Cluster creation", func() {
 		resource "ocm_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"	
 			cloud_region   = "us-west-1"
+			aws_account_id = "123"
 			sts = {
 				role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
 				support_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",

@@ -11,13 +11,11 @@ func StsResource() tfsdk.NestedAttributes {
 			Description: "OIDC Endpoint URL",
 			Type:        types.StringType,
 			Computed:    true,
-			Optional:    true,
 		},
 		"thumbprint": {
 			Description: "SHA1-hash value of the root CA of the issuer URL",
 			Type:        types.StringType,
 			Computed:    true,
-			Optional:    true,
 		},
 		"role_arn": {
 			Description: "Installer Role",

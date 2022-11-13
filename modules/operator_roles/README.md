@@ -1,23 +1,21 @@
-# TODO: need to update the README.md file
+# operator role module
 
-# terraform-aws-rosa-sts-roles
-
-Create rosa roles, policies and identity provider in an declarative way
+Create rosa operator roles and identity provider in an declarative way
 Terraform AWS ROSA STS Roles
 
 In order to deploy [ROSA](https://docs.openshift.com/rosa/welcome/index.html***REMOVED*** with [STS](https://docs.openshift.com/rosa/rosa_planning/rosa-sts-aws-prereqs.html***REMOVED***, AWS Account needs to have the following roles placed:
 
 * Account Roles (One per AWS account***REMOVED***
 * OCM Roles (For OCM UI, One per OCM Org***REMOVED***
-* User Role (For OCM UI, One per user live in ocm org***REMOVED***
+* User Role (For OCM UI, One per OCM user account***REMOVED***
 * Operator Roles (One Per Cluster***REMOVED***
 * OIDC Identity Provider (One Per Cluster***REMOVED***
 
-This terraform module tries to replicate rosa CLI roles/policies creation so that:
+This terraform module tries to replicate rosa CLI roles creation so that:
 
-* Users have a declartive way to create AWS roles & Policies.
+* Users have a declartive way to create AWS roles.
 * Users can implement security/infrastructure as code practices.
-* Batch creation of user roles, ocm roles and operator roles.
+* Batch creation of operator roles.
 
 ## Prerequisites
 
@@ -27,9 +25,8 @@ This terraform module tries to replicate rosa CLI roles/policies creation so tha
 
 ## Get OCM Information
 
-When create OCM roles, the roles require org id and external id.
+When creating operator IAM roles, the roles require cluster id, operator role prefix, OIDC endpoint url and thumbprint
 
-When create User role. the roles require user id and username.
 
 The information can be retrieved from ocm cli.
 ```
@@ -59,7 +56,7 @@ ocm whoami
 
 ## Get Clusters Information.
 
-In order to create operator roles for clusters. Users need to provide cluster id, operator role prefix and OIDC Endpoint URL
+In order to create operator roles for clusters. Users need to provide cluster id, operator role prefix, OIDC Endpoint URL and thumbprint
 
 ```
  rosa describe cluster -c shaozhenprivate -o json
@@ -84,32 +81,21 @@ In the above example:
 
 * cluster_id =  1srtno3qggal8ujsegvtb2njvbmhdu8c
 * operator_role_prefix = shaozhenprivate-w4e1
+* account_role_prefix = ManagedOpenShift
 * rh_oidc_endpoint_url = rh-oidc.s3.us-east-1.amazonaws.com
+* thumberprint - calculated 
 
 ## Usage
 
 ### Sample Usage
 
 ```
-module sts_roles {
-    source = "rh-mobb/rosa-sts-roles/aws"
-    ## Whether to Create Account Roles & Policies
-    create_account_roles = false
-    ## Create a list of ocm roles. The org id and external id retrieve from OCM
-    # ocm_orgs = [{
-    #     org_id = "1rkxPO7W12geIcRWITwI0I8VIQV"
-    #     external_id = "14540493"
-    # }]
-    ## Create a list of user roles. The user id and user name can retrieve from OCM
-    ocm_users = [{
-        id = "26kcPSEHi0Y6MkTS7OowxfFYmZo"
-        user_name = "shading_mobb"
-    }]
+module operator_role {
+    source = "https://github.com/openshift-online/terraform-provider-ocm/modules/ocm_cluster_rosa_classic/operator_roles"
     ## Create a list of operator roles for clusters. The cluster id and operator_role_prefix can retrieve from OCM.
-    clusters = [{
-        id = "1ssjjr1b2npkg9c70e8kqehfeqmscqeu"
-        operator_role_prefix = "shaozhenprivate-w4e1"
-    }]
+    cluster_id = "1ssjjr1b2npkg9c70e8kqehfeqmscqeu"
+    operator_role_prefix = "terraform-prefix"
+    account_role_prefix = "ManagedOpenShift"
     rh_oidc_provider_url = "rh-oidc.s3.us-east-1.amazonaws.com/1srtno3qggal8ujsegvtb2njvbmhdu8c" 
     rh_oidc_provider_thumbprint = "917e732d330f9a12404f73d8bea36948b929dffc"
 }

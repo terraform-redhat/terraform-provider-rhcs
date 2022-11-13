@@ -28,5 +28,5 @@ resource "aws_iam_role" "ingress_operator_role" {
 
 resource "aws_iam_role_policy_attachment" "ingress_operator_role_policy_attachment" {
   role = aws_iam_role.ingress_operator_role.name
-  policy_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/ManagedOpenShift-openshift-ingress-operator-cloud-credentials"
+  policy_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/${var.account_role_prefix}-openshift-ingress-operator-cloud-credentials"
 }

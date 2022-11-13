@@ -20,9 +20,9 @@ package provider
 	"github.com/hashicorp/terraform-plugin-framework/types"
 ***REMOVED***
 
-// ShouldPatchInt changed checks if the change between the given state and plan requires sending a
+// shouldPatchInt changed checks if the change between the given state and plan requires sending a
 // patch request to the server. If it does it returns the value to add to the patch.
-func ShouldPatchInt(state, plan types.Int64***REMOVED*** (value int64, ok bool***REMOVED*** {
+func shouldPatchInt(state, plan types.Int64***REMOVED*** (value int64, ok bool***REMOVED*** {
 	if plan.Unknown || plan.Null {
 		return
 	}

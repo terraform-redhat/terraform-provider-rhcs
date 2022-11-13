@@ -5,7 +5,7 @@ package provider
 	"github.com/hashicorp/terraform-plugin-framework/types"
 ***REMOVED***
 
-func StsResource(***REMOVED*** tfsdk.NestedAttributes {
+func stsResource(***REMOVED*** tfsdk.NestedAttributes {
 	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
 		"oidc_endpoint_url": {
 			Description: "OIDC Endpoint URL",

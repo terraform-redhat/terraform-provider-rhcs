@@ -31,5 +31,5 @@ resource "aws_iam_role" "csi_drivers_role" {
 
 resource "aws_iam_role_policy_attachment" "csi_drivers_role_policy_attachment" {
   role = aws_iam_role.csi_drivers_role.name
-  policy_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/ManagedOpenShift-openshift-cluster-csi-drivers-ebs-cloud-credent"
+  policy_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/${var.account_role_prefix}-openshift-cluster-csi-drivers-ebs-cloud-credent"
 }

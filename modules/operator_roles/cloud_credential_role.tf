@@ -28,5 +28,5 @@ resource "aws_iam_role" "cloud-credential_role" {
 
 resource "aws_iam_role_policy_attachment" "cloud-credential_role_policy_attachment" {
   role = aws_iam_role.cloud-credential_role.name
-  policy_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/ManagedOpenShift-openshift-cloud-credential-operator-cloud-crede"
+  policy_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/${var.account_role_prefix}-openshift-cloud-credential-operator-cloud-crede"
 }

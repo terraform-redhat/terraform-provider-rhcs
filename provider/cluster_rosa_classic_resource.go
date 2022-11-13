@@ -48,7 +48,7 @@ type ClusterRosaClassicResource struct {
 func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVED*** (result tfsdk.Schema,
 	diags diag.Diagnostics***REMOVED*** {
 	result = tfsdk.Schema{
-		Description: "OpenShift managed cluster.",
+		Description: "OpenShift managed cluster using rosa sts.",
 		Attributes: map[string]tfsdk.Attribute{
 			"id": {
 				Description: "Unique identifier of the cluster.",
@@ -72,7 +72,7 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 	***REMOVED***,
 			"sts": {
 				Description: "STS Configuration",
-				Attributes:  StsResource(***REMOVED***,
+				Attributes:  stsResource(***REMOVED***,
 				Optional:    true,
 	***REMOVED***,
 			"multi_az": {
@@ -477,7 +477,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** Update(ctx context.Context, req
 	// Send request to update the cluster:
 	builder := cmv1.NewCluster(***REMOVED***
 	var nodes *cmv1.ClusterNodesBuilder
-	compute, ok := ShouldPatchInt(state.ComputeNodes, plan.ComputeNodes***REMOVED***
+	compute, ok := shouldPatchInt(state.ComputeNodes, plan.ComputeNodes***REMOVED***
 	if ok {
 		nodes.Compute(int(compute***REMOVED******REMOVED***
 	}
@@ -676,11 +676,15 @@ func (r *ClusterRosaClassicResource***REMOVED*** populateState(ctx context.Conte
 		state.Sts.SupportRoleArn = types.String{
 			Value: sts.SupportRoleARN(***REMOVED***,
 ***REMOVED***
-		state.Sts.InstanceIAMRoles.MasterRoleARN = types.String{
-			Value: sts.InstanceIAMRoles(***REMOVED***.MasterRoleARN(***REMOVED***,
-***REMOVED***
-		state.Sts.InstanceIAMRoles.WorkerRoleARN = types.String{
-			Value: sts.InstanceIAMRoles(***REMOVED***.WorkerRoleARN(***REMOVED***,
+		instanceIAMRoles := sts.InstanceIAMRoles(***REMOVED***
+		if instanceIAMRoles != nil {
+			state.Sts.InstanceIAMRoles.MasterRoleARN = types.String{
+				Value: instanceIAMRoles.MasterRoleARN(***REMOVED***,
+	***REMOVED***
+			state.Sts.InstanceIAMRoles.WorkerRoleARN = types.String{
+				Value: instanceIAMRoles.WorkerRoleARN(***REMOVED***,
+	***REMOVED***
+
 ***REMOVED***
 
 		thumbprint, err := getThumbprint(sts.OIDCEndpointURL(***REMOVED******REMOVED***

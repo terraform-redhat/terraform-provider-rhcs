@@ -31,5 +31,5 @@ resource "aws_iam_role" "image_registry_role" {
 
 resource "aws_iam_role_policy_attachment" "image_registry_role_policy_attachment" {
   role = aws_iam_role.image_registry_role.name
-  policy_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/ManagedOpenShift-openshift-image-registry-installer-cloud-creden"
+  policy_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/${var.account_role_prefix}-openshift-image-registry-installer-cloud-creden"
 }

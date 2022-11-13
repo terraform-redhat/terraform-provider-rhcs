@@ -28,5 +28,5 @@ resource "aws_iam_role" "machine_api_role" {
 
 resource "aws_iam_role_policy_attachment" "machine_api_role_policy_attachment" {
   role = aws_iam_role.machine_api_role.name
-  policy_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/ManagedOpenShift-openshift-machine-api-aws-cloud-credentials"
+  policy_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/${var.account_role_prefix}-openshift-machine-api-aws-cloud-credentials"
 }

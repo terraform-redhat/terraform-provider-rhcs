@@ -28,5 +28,5 @@ resource "aws_iam_role" "cloud_network_config_role" {
 
 resource "aws_iam_role_policy_attachment" "cloud_network_config_role_policy_attachment" {
   role = aws_iam_role.cloud_network_config_role.name
-  policy_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/ManagedOpenShift-openshift-cloud-network-config-controller-cloud"
+  policy_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/${var.account_role_prefix}-openshift-cloud-network-config-controller-cloud"
 }

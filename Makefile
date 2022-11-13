@@ -52,12 +52,24 @@ install: build
 	mkdir -p "$${dir}"; \
 	mv ${BINARY} "$${dir}/$${file}"
 
-.PHONY: test tests
-test tests: install
+.PHONY: subsystem-test
+subsystem-test: install
 	ginkgo run \
 		--succinct \
 		-ldflags="$(ldflags)" \
-		-r
+		-r \
+		--focus-file e2e/.*
+
+.PHONY: unit-test
+unit-test:
+	ginkgo run \
+		--succinct \
+		-ldflags="$(ldflags)" \
+		-r \
+		--focus-file provider/.*
+
+.PHONY: test tests
+test tests: unit-test subsystem-test
 
 .PHONY: fmt_go
 fmt_go:

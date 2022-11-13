@@ -20,3 +20,11 @@ variable rh_oidc_provider_thumbprint {
     type = string
     default = "917e732d330f9a12404f73d8bea36948b929dffc"
 }
+
+
+variable account_role_prefix {
+    description = "account role prefix"
+    type = string
+    default = "ManagedOpenShift"
+}
+

@@ -20,9 +20,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// ShouldPatchInt changed checks if the change between the given state and plan requires sending a
+// shouldPatchInt changed checks if the change between the given state and plan requires sending a
 // patch request to the server. If it does it returns the value to add to the patch.
-func ShouldPatchInt(state, plan types.Int64) (value int64, ok bool) {
+func shouldPatchInt(state, plan types.Int64) (value int64, ok bool) {
 	if plan.Unknown || plan.Null {
 		return
 	}

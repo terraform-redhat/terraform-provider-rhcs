@@ -5,7 +5,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-func StsResource() tfsdk.NestedAttributes {
+func stsResource() tfsdk.NestedAttributes {
 	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
 		"oidc_endpoint_url": {
 			Description: "OIDC Endpoint URL",

@@ -461,7 +461,7 @@ func (r *ClusterResource) Update(ctx context.Context, request tfsdk.UpdateResour
 	// Send request to update the cluster:
 	builder := cmv1.NewCluster()
 	var nodes *cmv1.ClusterNodesBuilder
-	compute, ok := ShouldPatchInt(state.ComputeNodes, plan.ComputeNodes)
+	compute, ok := shouldPatchInt(state.ComputeNodes, plan.ComputeNodes)
 	if ok {
 		nodes.Compute(int(compute))
 	}

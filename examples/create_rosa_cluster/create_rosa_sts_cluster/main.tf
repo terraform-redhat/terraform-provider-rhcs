@@ -27,17 +27,10 @@ terraform {
   }
 }
 
-variable token {
-  type = string
-  sensitive = true
-}
-
-variable operator_role_prefix {
-    type = string
-}
 
 provider "ocm" {
   token = var.token
+  url = var.url
 }
 
 locals {
@@ -94,14 +87,15 @@ resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
   properties = {
     rosa_creator_arn = data.aws_caller_identity.current.arn
   }
-  wait = false
   sts = local.sts_roles
 }
 
 module operator_roles {
-    source  = "https://github.com/openshift-online/terraform-provider-ocm/modules/ocm_cluster_rosa_classic/operator_roles"
+    source  = "git::https://github.com/openshift-online/terraform-provider-ocm.git//modules/operator_roles"
+
     cluster_id = ocm_cluster_rosa_classic.rosa_sts_cluster.id
     operator_role_prefix = var.operator_role_prefix
+    account_role_prefix = var.account_role_prefix
     rh_oidc_provider_thumbprint = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.thumbprint
     rh_oidc_provider_url = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.oidc_endpoint_url
 

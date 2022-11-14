@@ -33,16 +33,18 @@ import (
 )
 
 const (
-	awsCloudProvider = "aws"
-	rosaProduct      = "rosa"
+	awsCloudProvider  = "aws"
+	rosaProduct       = "rosa"
+	serviceAccountFmt = "system:serviceaccount:%s:%s"
 )
 
 type ClusterRosaClassicResourceType struct {
 }
 
 type ClusterRosaClassicResource struct {
-	logger     logging.Logger
-	collection *cmv1.ClustersClient
+	logger         logging.Logger
+	clustersClient *cmv1.ClustersClient
+	awsInquiries   *cmv1.AWSInquiriesClient
 }
 
 func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result tfsdk.Schema,
@@ -230,6 +232,47 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Type:        types.StringType,
 				Computed:    true,
 			},
+			//"operator_iam_roles": {
+			//	Description: "Operator IAM Roles",
+			//	Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+			//		"operator_name": {
+			//			Description: "Operator Name",
+			//			Type:        types.StringType,
+			//			Computed:    true,
+			//		},
+			//		"namespace": {
+			//			Description: "Kubernetes Namespace",
+			//			Type:        types.StringType,
+			//			Computed:    true,
+			//		},
+			//		"role_arn": {
+			//			Description: "AWS Role ARN",
+			//			Type:        types.StringType,
+			//			Computed:    true,
+			//		},
+			//		"role_name": {
+			//			Description: "policy name",
+			//			Type:        types.StringType,
+			//			Computed:    true,
+			//		},
+			//		"policy_name": {
+			//			Description: "policy name",
+			//			Type:        types.StringType,
+			//			Computed:    true,
+			//		},
+			//		"service_accounts": {
+			//			Description: "service accounts",
+			//			Type: types.ListType{
+			//				ElemType: types.StringType,
+			//			},
+			//			Computed: true,
+			//		},
+			//	}, tfsdk.ListNestedAttributesOptions{}),
+			//	Computed: true,
+			//	PlanModifiers: []tfsdk.AttributePlanModifier{
+			//		tfsdk.RequiresReplace(),
+			//	},
+			//},
 		},
 	}
 	return
@@ -240,13 +283,15 @@ func (t *ClusterRosaClassicResourceType) NewResource(ctx context.Context,
 	// Cast the provider interface to the specific implementation:
 	parent := p.(*Provider)
 
-	// Get the collection of clusters:
-	collection := parent.connection.ClustersMgmt().V1().Clusters()
+	// Get the connections:
+	clustersClient := parent.connection.ClustersMgmt().V1().Clusters()
+	awsInquiries := parent.connection.ClustersMgmt().V1().AWSInquiries()
 
 	// Create the resource:
 	result = &ClusterRosaClassicResource{
-		logger:     parent.logger,
-		collection: collection,
+		logger:         parent.logger,
+		clustersClient: clustersClient,
+		awsInquiries:   awsInquiries,
 	}
 
 	return
@@ -345,15 +390,16 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 		instanceIamRoles.WorkerRoleARN(state.Sts.InstanceIAMRoles.WorkerRoleARN.Value)
 		sts.InstanceIAMRoles(instanceIamRoles)
 
-		operatorRoles := make([]*cmv1.OperatorIAMRoleBuilder, 0)
-		for _, operatorRole := range state.Sts.OperatorIAMRoles {
-			r := cmv1.NewOperatorIAMRole()
-			r.Name(operatorRole.Name.Value)
-			r.Namespace(operatorRole.Namespace.Value)
-			r.RoleARN(operatorRole.RoleARN.Value)
-			operatorRoles = append(operatorRoles, r)
-		}
-		sts.OperatorIAMRoles(operatorRoles...)
+		//operatorRoles := make([]*cmv1.OperatorIAMRoleBuilder, 0)
+		//for _, operatorRole := range state.Sts.OperatorIAMRoles {
+		//	r := cmv1.NewOperatorIAMRole()
+		//	r.Name(operatorRole.Name.Value)
+		//	r.Namespace(operatorRole.Namespace.Value)
+		//	r.RoleARN(operatorRole.RoleARN.Value)
+		//	operatorRoles = append(operatorRoles, r)
+		//}
+		//sts.OperatorIAMRoles(operatorRoles...)
+		sts.OperatorRolePrefix(state.Sts.OperatorRolePrefix.Value)
 		aws.STS(sts)
 	}
 
@@ -394,6 +440,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 		proxy.HTTPSProxy(state.Proxy.HttpsProxy.Value)
 		builder.Proxy(proxy)
 	}
+
 	object, err := builder.Build()
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -405,7 +452,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 		)
 		return
 	}
-	add, err := r.collection.Add().Body(object).SendContext(ctx)
+	add, err := r.clustersClient.Add().Body(object).SendContext(ctx)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't create cluster",
@@ -435,7 +482,7 @@ func (r *ClusterRosaClassicResource) Read(ctx context.Context, request tfsdk.Rea
 	}
 
 	// Find the cluster:
-	get, err := r.collection.Cluster(state.ID.Value).Get().SendContext(ctx)
+	get, err := r.clustersClient.Cluster(state.ID.Value).Get().SendContext(ctx)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't find cluster",
@@ -495,7 +542,7 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 		)
 		return
 	}
-	update, err := r.collection.Cluster(state.ID.Value).Update().
+	update, err := r.clustersClient.Cluster(state.ID.Value).Update().
 		Body(patch).
 		SendContext(ctx)
 	if err != nil {
@@ -527,7 +574,7 @@ func (r *ClusterRosaClassicResource) Delete(ctx context.Context, request tfsdk.D
 	}
 
 	// Send the request to delete the cluster:
-	resource := r.collection.Cluster(state.ID.Value)
+	resource := r.clustersClient.Cluster(state.ID.Value)
 	_, err := resource.Delete().SendContext(ctx)
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -547,7 +594,7 @@ func (r *ClusterRosaClassicResource) Delete(ctx context.Context, request tfsdk.D
 func (r *ClusterRosaClassicResource) ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
 	response *tfsdk.ImportResourceStateResponse) {
 	// Try to retrieve the object:
-	get, err := r.collection.Cluster(request.ID).Get().SendContext(ctx)
+	get, err := r.clustersClient.Cluster(request.ID).Get().SendContext(ctx)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't find cluster",
@@ -661,7 +708,9 @@ func (r *ClusterRosaClassicResource) populateState(ctx context.Context, object *
 
 	sts, ok := object.AWS().GetSTS()
 	if ok {
-		state.Sts = &Sts{}
+		if state.Sts == nil {
+			state.Sts = &Sts{}
+		}
 		oidc_endpoint_url := sts.OIDCEndpointURL()
 		if strings.HasPrefix(oidc_endpoint_url, "https://") {
 			oidc_endpoint_url = strings.TrimPrefix(oidc_endpoint_url, "https://")
@@ -697,21 +746,6 @@ func (r *ClusterRosaClassicResource) populateState(ctx context.Context, object *
 			state.Sts.Thumbprint = types.String{
 				Value: thumbprint,
 			}
-		}
-
-		for _, operatorRole := range sts.OperatorIAMRoles() {
-			r := OperatorIAMRole{
-				Name: types.String{
-					Value: operatorRole.Name(),
-				},
-				Namespace: types.String{
-					Value: operatorRole.Namespace(),
-				},
-				RoleARN: types.String{
-					Value: operatorRole.RoleARN(),
-				},
-			}
-			state.Sts.OperatorIAMRoles = append(state.Sts.OperatorIAMRoles, r)
 		}
 	}
 

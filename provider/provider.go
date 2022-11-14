@@ -222,10 +222,11 @@ func (p *Provider***REMOVED*** GetResources(ctx context.Context***REMOVED*** (re
 func (p *Provider***REMOVED*** GetDataSources(ctx context.Context***REMOVED*** (result map[string]tfsdk.DataSourceType,
 	diags diag.Diagnostics***REMOVED*** {
 	result = map[string]tfsdk.DataSourceType{
-		"ocm_cloud_providers": &CloudProvidersDataSourceType{},
-		"ocm_groups":          &GroupsDataSourceType{},
-		"ocm_machine_types":   &MachineTypesDataSourceType{},
-		"ocm_versions":        &VersionsDataSourceType{},
+		"ocm_cloud_providers":     &CloudProvidersDataSourceType{},
+		"ocm_rosa_operator_roles": &RosaOperatorRolesDataSourceType{},
+		"ocm_groups":              &GroupsDataSourceType{},
+		"ocm_machine_types":       &MachineTypesDataSourceType{},
+		"ocm_versions":            &VersionsDataSourceType{},
 	}
 	return
 }

@@ -3,12 +3,6 @@ variable cluster_id {
     type = string
 }
 
-variable operator_role_prefix {
-    description = "operator role prefix"
-    type = string
-    default = "terraform-rosa-classic"
-}
-
 variable rh_oidc_provider_url {
     description = "oidc provider url"
     type = string
@@ -21,10 +15,15 @@ variable rh_oidc_provider_thumbprint {
     default = "917e732d330f9a12404f73d8bea36948b929dffc"
 }
 
+variable operator_role_properties {
+    description = ""
+    type = object({
+        role_name = string
+        policy_name = string
+        service_accounts = list(string***REMOVED***
+        operator_name = string
+        operator_namespace = string
+        role_arn = string
+    }***REMOVED***
 
-variable account_role_prefix {
-    description = "account role prefix"
-    type = string
-    default = "ManagedOpenShift"
 }
-

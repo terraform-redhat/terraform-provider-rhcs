@@ -33,8 +33,9 @@ package provider
 ***REMOVED***
 
 const (
-	awsCloudProvider = "aws"
-	rosaProduct      = "rosa"
+	awsCloudProvider  = "aws"
+	rosaProduct       = "rosa"
+	serviceAccountFmt = "system:serviceaccount:%s:%s"
 ***REMOVED***
 
 type ClusterRosaClassicResourceType struct {
@@ -240,7 +241,7 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** NewResource(ctx context.Con
 	// Cast the provider interface to the specific implementation:
 	parent := p.(*Provider***REMOVED***
 
-	// Get the collection of clusters:
+	// Get the collection:
 	collection := parent.connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Clusters(***REMOVED***
 
 	// Create the resource:
@@ -345,15 +346,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** Create(ctx context.Context,
 		instanceIamRoles.WorkerRoleARN(state.Sts.InstanceIAMRoles.WorkerRoleARN.Value***REMOVED***
 		sts.InstanceIAMRoles(instanceIamRoles***REMOVED***
 
-		operatorRoles := make([]*cmv1.OperatorIAMRoleBuilder, 0***REMOVED***
-		for _, operatorRole := range state.Sts.OperatorIAMRoles {
-			r := cmv1.NewOperatorIAMRole(***REMOVED***
-			r.Name(operatorRole.Name.Value***REMOVED***
-			r.Namespace(operatorRole.Namespace.Value***REMOVED***
-			r.RoleARN(operatorRole.RoleARN.Value***REMOVED***
-			operatorRoles = append(operatorRoles, r***REMOVED***
-***REMOVED***
-		sts.OperatorIAMRoles(operatorRoles...***REMOVED***
+		sts.OperatorRolePrefix(state.Sts.OperatorRolePrefix.Value***REMOVED***
 		aws.STS(sts***REMOVED***
 	}
 
@@ -394,6 +387,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** Create(ctx context.Context,
 		proxy.HTTPSProxy(state.Proxy.HttpsProxy.Value***REMOVED***
 		builder.Proxy(proxy***REMOVED***
 	}
+
 	object, err := builder.Build(***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -661,7 +655,6 @@ func (r *ClusterRosaClassicResource***REMOVED*** populateState(ctx context.Conte
 
 	sts, ok := object.AWS(***REMOVED***.GetSTS(***REMOVED***
 	if ok {
-		state.Sts = &Sts{}
 		oidc_endpoint_url := sts.OIDCEndpointURL(***REMOVED***
 		if strings.HasPrefix(oidc_endpoint_url, "https://"***REMOVED*** {
 			oidc_endpoint_url = strings.TrimPrefix(oidc_endpoint_url, "https://"***REMOVED***
@@ -686,7 +679,9 @@ func (r *ClusterRosaClassicResource***REMOVED*** populateState(ctx context.Conte
 	***REMOVED***
 
 ***REMOVED***
-
+		state.Sts.OperatorRolePrefix = types.String{
+			Value: sts.OperatorRolePrefix(***REMOVED***,
+***REMOVED***
 		thumbprint, err := getThumbprint(sts.OIDCEndpointURL(***REMOVED******REMOVED***
 		if err != nil {
 			r.logger.Error(ctx, "cannot get thumbprint", err***REMOVED***
@@ -697,21 +692,6 @@ func (r *ClusterRosaClassicResource***REMOVED*** populateState(ctx context.Conte
 			state.Sts.Thumbprint = types.String{
 				Value: thumbprint,
 	***REMOVED***
-***REMOVED***
-
-		for _, operatorRole := range sts.OperatorIAMRoles(***REMOVED*** {
-			r := OperatorIAMRole{
-				Name: types.String{
-					Value: operatorRole.Name(***REMOVED***,
-		***REMOVED***,
-				Namespace: types.String{
-					Value: operatorRole.Namespace(***REMOVED***,
-		***REMOVED***,
-				RoleARN: types.String{
-					Value: operatorRole.RoleARN(***REMOVED***,
-		***REMOVED***,
-	***REMOVED***
-			state.Sts.OperatorIAMRoles = append(state.Sts.OperatorIAMRoles, r***REMOVED***
 ***REMOVED***
 	}
 

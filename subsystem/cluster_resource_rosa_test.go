@@ -30,13 +30,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 	// a cluster.
 	const template = `{
 	  "id": "123",
-	  "product": {
-		"id": "rosa"
-	  },
 	  "name": "my-cluster",
-	  "cloud_provider": {
-	    "id": "aws"
-	  },
 	  "region": {
 	    "id": "us-west-1"
 	  },
@@ -52,9 +46,6 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 	    "compute_machine_type": {
 	      "id": "r5.xlarge"
 	    }
-	  },
-	  "ccs": {
-	    "enabled": false
 	  },
 	  "network": {
 	    "machine_cidr": "10.0.0.0/16",
@@ -223,12 +214,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 				VerifyJQ(`.aws.sts.support_role_arn`, "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role"***REMOVED***,
 				VerifyJQ(`.aws.sts.instance_iam_roles.master_role_arn`, "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role"***REMOVED***,
 				VerifyJQ(`.aws.sts.instance_iam_roles.worker_role_arn`, "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"***REMOVED***,
-				VerifyJQ(`.aws.sts.operator_iam_roles.[0].role_arn`, "arn:aws:iam::account-id:role/cloud-credential"***REMOVED***,
-				VerifyJQ(`.aws.sts.operator_iam_roles.[1].role_arn`, "arn:aws:iam::account-id:role/image-registry"***REMOVED***,
-				VerifyJQ(`.aws.sts.operator_iam_roles.[2].role_arn`, "arn:aws:iam::account-id:role/ingress"***REMOVED***,
-				VerifyJQ(`.aws.sts.operator_iam_roles.[3].role_arn`, "arn:aws:iam::account-id:role/ebs"***REMOVED***,
-				VerifyJQ(`.aws.sts.operator_iam_roles.[4].role_arn`, "arn:aws:iam::account-id:role/cloud-network-config"***REMOVED***,
-				VerifyJQ(`.aws.sts.operator_iam_roles.[5].role_arn`, "arn:aws:iam::account-id:role/machine-api"***REMOVED***,
+				VerifyJQ(`.aws.sts.operator_role_prefix`, "terraform-operator"***REMOVED***,
 				RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -243,38 +229,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 								"master_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role",
 								"worker_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"
 							  },
-							  "operator_iam_roles" : [
-								{
-									"name": "cloud-credential-operator-iam-ro-creds",
-									"namespace": "openshift-cloud-credential-operator",
-									"role_arn": "arn:aws:iam::account-id:role/cloud-credential"
-								  },
-								  {
-									"name": "installer-cloud-credentials",
-									"namespace": "openshift-image-registry",
-									"role_arn": "arn:aws:iam::account-id:role/image-registry"
-								  },
-								  {
-									"name": "cloud-credentials",
-									"namespace": "openshift-ingress-operator",
-									"role_arn": "arn:aws:iam::account-id:role/ingress"
-								  },
-								  {
-									"name": "ebs-cloud-credentials",
-									"namespace": "openshift-cluster-csi-drivers",
-									"role_arn": "arn:aws:iam::account-id:role/ebs"
-								  },
-								  {
-									"name": "cloud-credentials",
-									"namespace": "openshift-cloud-network-config-controller",
-									"role_arn": "arn:aws:iam::account-id:role/cloud-network-config"
-								  },
-								  {
-									"name": "aws-cloud-credentials",
-									"namespace": "openshift-machine-api",
-									"role_arn": "arn:aws:iam::account-id:role/machine-api"
-								  }								  
-							  ]
+							  "operator_role_prefix" : "terraform-operator"
 						  }
 					  }
 			***REMOVED***
@@ -291,42 +246,11 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 			sts = {
 				role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
 				support_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
-				operator_iam_roles = [
-					{
-						name =  "cloud-credential-operator-iam-ro-creds",
-						namespace = "openshift-cloud-credential-operator",
-						role_arn = "arn:aws:iam::account-id:role/cloud-credential",
-			***REMOVED***,
-					{
-						name =  "installer-cloud-credentials",
-						namespace = "openshift-image-registry",
-						role_arn = "arn:aws:iam::account-id:role/image-registry",
-			***REMOVED***,
-					{
-						name =  "cloud-credentials",
-						namespace = "openshift-ingress-operator",
-						role_arn = "arn:aws:iam::account-id:role/ingress",
-			***REMOVED***,
-					{
-						name =  "ebs-cloud-credentials",
-						namespace = "openshift-cluster-csi-drivers",
-						role_arn = "arn:aws:iam::account-id:role/ebs",
-			***REMOVED***,
-					{
-						name =  "cloud-credentials",
-						namespace = "openshift-cloud-network-config-controller",
-						role_arn = "arn:aws:iam::account-id:role/cloud-network-config",
-			***REMOVED***,
-					{
-						name =  "aws-cloud-credentials",
-						namespace = "openshift-machine-api",
-						role_arn = "arn:aws:iam::account-id:role/machine-api",
-			***REMOVED***,
-				]
 				instance_iam_roles = {
 				  master_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role",
 				  worker_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"
 		***REMOVED***,
+				"operator_role_prefix" : "terraform-operator"
 	***REMOVED***
 		  }
 		`***REMOVED***

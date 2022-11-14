@@ -33,8 +33,9 @@ import (
 )
 
 const (
-	awsCloudProvider = "aws"
-	rosaProduct      = "rosa"
+	awsCloudProvider  = "aws"
+	rosaProduct       = "rosa"
+	serviceAccountFmt = "system:serviceaccount:%s:%s"
 )
 
 type ClusterRosaClassicResourceType struct {
@@ -240,7 +241,7 @@ func (t *ClusterRosaClassicResourceType) NewResource(ctx context.Context,
 	// Cast the provider interface to the specific implementation:
 	parent := p.(*Provider)
 
-	// Get the collection of clusters:
+	// Get the collection:
 	collection := parent.connection.ClustersMgmt().V1().Clusters()
 
 	// Create the resource:
@@ -345,15 +346,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 		instanceIamRoles.WorkerRoleARN(state.Sts.InstanceIAMRoles.WorkerRoleARN.Value)
 		sts.InstanceIAMRoles(instanceIamRoles)
 
-		operatorRoles := make([]*cmv1.OperatorIAMRoleBuilder, 0)
-		for _, operatorRole := range state.Sts.OperatorIAMRoles {
-			r := cmv1.NewOperatorIAMRole()
-			r.Name(operatorRole.Name.Value)
-			r.Namespace(operatorRole.Namespace.Value)
-			r.RoleARN(operatorRole.RoleARN.Value)
-			operatorRoles = append(operatorRoles, r)
-		}
-		sts.OperatorIAMRoles(operatorRoles...)
+		sts.OperatorRolePrefix(state.Sts.OperatorRolePrefix.Value)
 		aws.STS(sts)
 	}
 
@@ -394,6 +387,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 		proxy.HTTPSProxy(state.Proxy.HttpsProxy.Value)
 		builder.Proxy(proxy)
 	}
+
 	object, err := builder.Build()
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -661,7 +655,6 @@ func (r *ClusterRosaClassicResource) populateState(ctx context.Context, object *
 
 	sts, ok := object.AWS().GetSTS()
 	if ok {
-		state.Sts = &Sts{}
 		oidc_endpoint_url := sts.OIDCEndpointURL()
 		if strings.HasPrefix(oidc_endpoint_url, "https://") {
 			oidc_endpoint_url = strings.TrimPrefix(oidc_endpoint_url, "https://")
@@ -686,7 +679,9 @@ func (r *ClusterRosaClassicResource) populateState(ctx context.Context, object *
 			}
 
 		}
-
+		state.Sts.OperatorRolePrefix = types.String{
+			Value: sts.OperatorRolePrefix(),
+		}
 		thumbprint, err := getThumbprint(sts.OIDCEndpointURL())
 		if err != nil {
 			r.logger.Error(ctx, "cannot get thumbprint", err)
@@ -697,21 +692,6 @@ func (r *ClusterRosaClassicResource) populateState(ctx context.Context, object *
 			state.Sts.Thumbprint = types.String{
 				Value: thumbprint,
 			}
-		}
-
-		for _, operatorRole := range sts.OperatorIAMRoles() {
-			r := OperatorIAMRole{
-				Name: types.String{
-					Value: operatorRole.Name(),
-				},
-				Namespace: types.String{
-					Value: operatorRole.Namespace(),
-				},
-				RoleARN: types.String{
-					Value: operatorRole.RoleARN(),
-				},
-			}
-			state.Sts.OperatorIAMRoles = append(state.Sts.OperatorIAMRoles, r)
 		}
 	}
 

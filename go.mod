@@ -69,4 +69,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/openshift-online/ocm-sdk-go v0.1.240 => github.com/openshift-online/ocm-sdk-go v0.1.275
+replace github.com/openshift-online/ocm-sdk-go => github.com/openshift-online/ocm-sdk-go v0.1.275

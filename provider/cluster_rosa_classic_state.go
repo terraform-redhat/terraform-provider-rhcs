@@ -20,22 +20,24 @@ package provider
 	"github.com/hashicorp/terraform-plugin-framework/types"
 ***REMOVED***
 
-type ClusterState struct {
+type ClusterRosaClassicState struct {
 	APIURL             types.String `tfsdk:"api_url"`
-	AWSAccessKeyID     types.String `tfsdk:"aws_access_key_id"`
 	AWSAccountID       types.String `tfsdk:"aws_account_id"`
-	AWSSecretAccessKey types.String `tfsdk:"aws_secret_access_key"`
 	AWSSubnetIDs       types.List   `tfsdk:"aws_subnet_ids"`
 	AWSPrivateLink     types.Bool   `tfsdk:"aws_private_link"`
+	Sts                *Sts         `tfsdk:"sts"`
 	CCSEnabled         types.Bool   `tfsdk:"ccs_enabled"`
-	CloudProvider      types.String `tfsdk:"cloud_provider"`
+	EtcdEncryption     types.Bool   `tfsdk:"etcd_encryption"`
+	AutoScalingEnabled types.Bool   `tfsdk:"autoscaling_enabled"`
+	MinReplicas        types.Int64  `tfsdk:"min_replicas"`
+	MaxReplicas        types.Int64  `tfsdk:"max_replicas"`
 	CloudRegion        types.String `tfsdk:"cloud_region"`
 	ComputeMachineType types.String `tfsdk:"compute_machine_type"`
 	ComputeNodes       types.Int64  `tfsdk:"compute_nodes"`
 	ConsoleURL         types.String `tfsdk:"console_url"`
 	HostPrefix         types.Int64  `tfsdk:"host_prefix"`
 	ID                 types.String `tfsdk:"id"`
-	Product            types.String `tfsdk:"product"`
+	ExternalID         types.String `tfsdk:"external_id"`
 	MachineCIDR        types.String `tfsdk:"machine_cidr"`
 	MultiAZ            types.Bool   `tfsdk:"multi_az"`
 	AvailabilityZones  types.List   `tfsdk:"availability_zones"`
@@ -46,11 +48,24 @@ type ClusterState struct {
 	Proxy              *Proxy       `tfsdk:"proxy"`
 	State              types.String `tfsdk:"state"`
 	Version            types.String `tfsdk:"version"`
-	Wait               types.Bool   `tfsdk:"wait"`
 }
 
-type Proxy struct {
-	HttpProxy  types.String `tfsdk:"http_proxy"`
-	HttpsProxy types.String `tfsdk:"https_proxy"`
-	NoProxy    types.String `tfsdk:"no_proxy"`
+type Sts struct {
+	OIDCEndpointURL  types.String      `tfsdk:"oidc_endpoint_url"`
+	Thumbprint       types.String      `tfsdk:"thumbprint"`
+	RoleARN          types.String      `tfsdk:"role_arn"`
+	SupportRoleArn   types.String      `tfsdk:"support_role_arn"`
+	InstanceIAMRoles InstanceIAMRole   `tfsdk:"instance_iam_roles"`
+	OperatorIAMRoles []OperatorIAMRole `tfsdk:"operator_iam_roles"`
+}
+
+type InstanceIAMRole struct {
+	MasterRoleARN types.String `tfsdk:"master_role_arn"`
+	WorkerRoleARN types.String `tfsdk:"worker_role_arn"`
+}
+
+type OperatorIAMRole struct {
+	Name      types.String `tfsdk:"name"`
+	Namespace types.String `tfsdk:"namespace"`
+	RoleARN   types.String `tfsdk:"role_arn"`
 }

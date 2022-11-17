@@ -209,10 +209,11 @@ func (p *Provider***REMOVED*** Configure(ctx context.Context, request tfsdk.Conf
 func (p *Provider***REMOVED*** GetResources(ctx context.Context***REMOVED*** (result map[string]tfsdk.ResourceType,
 	diags diag.Diagnostics***REMOVED*** {
 	result = map[string]tfsdk.ResourceType{
-		"ocm_cluster":           &ClusterResourceType{},
-		"ocm_group_membership":  &GroupMembershipResourceType{},
-		"ocm_identity_provider": &IdentityProviderResourceType{},
-		"ocm_machine_pool":      &MachinePoolResourceType{},
+		"ocm_cluster":              &ClusterResourceType{},
+		"ocm_cluster_rosa_classic": &ClusterRosaClassicResourceType{},
+		"ocm_group_membership":     &GroupMembershipResourceType{},
+		"ocm_identity_provider":    &IdentityProviderResourceType{},
+		"ocm_machine_pool":         &MachinePoolResourceType{},
 	}
 	return
 }

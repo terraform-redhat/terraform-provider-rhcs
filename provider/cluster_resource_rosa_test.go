@@ -83,11 +83,10 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
-		    name           = "my-cluster"
-			product		   = "rosa"
-		    cloud_provider = "aws"			
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"	
 		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
@@ -118,11 +117,10 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
-		    name           = "my-cluster"
-			product		   = "rosa"
-		    cloud_provider = "aws"			
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"	
 		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
 			proxy = {
 				http_proxy = "http://proxy.com",
 				https_proxy = "http://proxy.com",
@@ -164,11 +162,10 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
-			product		   = "rosa"
-		    cloud_provider = "aws"			
 		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
 			availability_zones = ["az1","az2","az3"]
 			aws_private_link = true
 			aws_subnet_ids = [
@@ -203,11 +200,10 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
-		    name           = "my-cluster"
-			product		   = "rosa"
-		    cloud_provider = "aws"			
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"	
 		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
 			aws_private_link = false
 		  }
 		`***REMOVED***
@@ -239,7 +235,8 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "thumbprint": "111111",
 							  "role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
 							  "support_role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
 							  "instance_iam_roles" : {
@@ -287,11 +284,10 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		resource "ocm_cluster" "my_cluster" {
-			name           = "my-cluster"
-			product		   = "rosa"
-			cloud_provider = "aws"			
+		resource "ocm_cluster_rosa_classic" "my_cluster" {
+			name           = "my-cluster"	
 			cloud_region   = "us-west-1"
+			aws_account_id = "123"
 			sts = {
 				role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
 				support_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",

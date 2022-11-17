@@ -3,17 +3,23 @@ variable cluster_id {
     type = string
 }
 
-variable "operator_role_properties" {
+variable number_of_roles {
+    description = "number of roles"
+    type = number
+}
+
+variable "operator_roles_properties" {
   description = "operator role properties"
-  type = object({
+  type = list(object({
     operator_name     = string
     role_name = string
     namespace = string
     role_arn = string
     policy_name = string
     service_accounts = list(string)
-  })
+  }))
 }
+
 
 variable rh_oidc_provider_url {
     description = "oidc provider url"

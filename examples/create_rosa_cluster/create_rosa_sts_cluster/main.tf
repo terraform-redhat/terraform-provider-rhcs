@@ -27,17 +27,10 @@ terraform {
   }
 }
 
-variable token {
-  type = string
-  sensitive = true
-}
-
-variable operator_role_prefix {
-    type = string
-}
 
 provider "ocm" {
   token = var.token
+  url = var.url
 }
 
 locals {
@@ -86,25 +79,24 @@ locals {
 data "aws_caller_identity" "current" {
 }
 
-resource "ocm_cluster" "rosa_cluster" {
+resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
   name           = "my-cluster"
-  cloud_provider = "aws"
   cloud_region   = "us-east-2"
-  product        = "rosa"
   aws_account_id     = data.aws_caller_identity.current.account_id
   availability_zones = ["us-east-2a"]
   properties = {
     rosa_creator_arn = data.aws_caller_identity.current.arn
   }
-  wait = false
   sts = local.sts_roles
 }
 
-module sts_roles {
-    source  = "rh-mobb/rosa-sts-roles/aws"
-    create_account_roles = false
-    clusters = [{
-        id = ocm_cluster.rosa_cluster.id
-        operator_role_prefix = var.operator_role_prefix
-    }]
+module operator_roles {
+    source  = "git::https://github.com/openshift-online/terraform-provider-ocm.git//modules/operator_roles"
+
+    cluster_id = ocm_cluster_rosa_classic.rosa_sts_cluster.id
+    operator_role_prefix = var.operator_role_prefix
+    account_role_prefix = var.account_role_prefix
+    rh_oidc_provider_thumbprint = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.thumbprint
+    rh_oidc_provider_url = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.oidc_endpoint_url
+
 }

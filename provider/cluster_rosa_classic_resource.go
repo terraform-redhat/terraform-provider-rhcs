@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-  http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,54 +13,55 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package provider
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
-	"net/http"
-	"time"
-
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/logging"
+	"net/http"
+	"net/url"
+	"strings"
 )
 
-type ClusterResourceType struct {
+const (
+	awsCloudProvider = "aws"
+	rosaProduct      = "rosa"
+)
+
+type ClusterRosaClassicResourceType struct {
 }
 
-type ClusterResource struct {
+type ClusterRosaClassicResource struct {
 	logger     logging.Logger
 	collection *cmv1.ClustersClient
 }
 
-func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schema,
+func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result tfsdk.Schema,
 	diags diag.Diagnostics) {
 	result = tfsdk.Schema{
-		Description: "OpenShift managed cluster.",
+		Description: "OpenShift managed cluster using rosa sts.",
 		Attributes: map[string]tfsdk.Attribute{
 			"id": {
 				Description: "Unique identifier of the cluster.",
 				Type:        types.StringType,
 				Computed:    true,
 			},
-			"product": {
-				Description: "Product ID OSD or Rosa",
+			"external_id": {
+				Description: "Unique external identifier of the cluster.",
 				Type:        types.StringType,
-				Required:    true,
+				Computed:    true,
 			},
 			"name": {
 				Description: "Name of the cluster.",
-				Type:        types.StringType,
-				Required:    true,
-			},
-			"cloud_provider": {
-				Description: "Cloud provider identifier, for example 'aws'.",
 				Type:        types.StringType,
 				Required:    true,
 			},
@@ -68,6 +69,11 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 				Description: "Cloud region identifier, for example 'us-east-1'.",
 				Type:        types.StringType,
 				Required:    true,
+			},
+			"sts": {
+				Description: "STS Configuration",
+				Attributes:  stsResource(),
+				Optional:    true,
 			},
 			"multi_az": {
 				Description: "Indicates if the cluster should be deployed to " +
@@ -86,6 +92,32 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 				},
 				Optional: true,
 				Computed: true,
+			},
+			"ccs_enabled": {
+				Description: "Enables customer cloud subscription.",
+				Type:        types.BoolType,
+				Computed:    true,
+			},
+			"etcd_encryption": {
+				Description: "Encrypt etcd data.",
+				Type:        types.BoolType,
+				Optional:    true,
+				Computed:    true,
+			},
+			"autoscaling_enabled": {
+				Description: "Enables autoscaling.",
+				Type:        types.BoolType,
+				Optional:    true,
+			},
+			"min_replicas": {
+				Description: "Min replicas.",
+				Type:        types.Int64Type,
+				Optional:    true,
+			},
+			"max_replicas": {
+				Description: "Max replicas.",
+				Type:        types.Int64Type,
+				Optional:    true,
 			},
 			"api_url": {
 				Description: "URL of the API server.",
@@ -114,28 +146,10 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 					tfsdk.RequiresReplace(),
 				},
 			},
-			"ccs_enabled": {
-				Description: "Enables customer cloud subscription.",
-				Type:        types.BoolType,
-				Optional:    true,
-				Computed:    true,
-			},
 			"aws_account_id": {
 				Description: "Identifier of the AWS account.",
 				Type:        types.StringType,
-				Optional:    true,
-			},
-			"aws_access_key_id": {
-				Description: "Identifier of the AWS access key.",
-				Type:        types.StringType,
-				Optional:    true,
-				Sensitive:   true,
-			},
-			"aws_secret_access_key": {
-				Description: "AWS access key.",
-				Type:        types.StringType,
-				Optional:    true,
-				Sensitive:   true,
+				Required:    true,
 			},
 			"aws_subnet_ids": {
 				Description: "aws subnet ids",
@@ -216,17 +230,12 @@ func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schem
 				Type:        types.StringType,
 				Computed:    true,
 			},
-			"wait": {
-				Description: "Wait till the cluster is ready.",
-				Type:        types.BoolType,
-				Optional:    true,
-			},
 		},
 	}
 	return
 }
 
-func (t *ClusterResourceType) NewResource(ctx context.Context,
+func (t *ClusterRosaClassicResourceType) NewResource(ctx context.Context,
 	p tfsdk.Provider) (result tfsdk.Resource, diags diag.Diagnostics) {
 	// Cast the provider interface to the specific implementation:
 	parent := p.(*Provider)
@@ -235,7 +244,7 @@ func (t *ClusterResourceType) NewResource(ctx context.Context,
 	collection := parent.connection.ClustersMgmt().V1().Clusters()
 
 	// Create the resource:
-	result = &ClusterResource{
+	result = &ClusterRosaClassicResource{
 		logger:     parent.logger,
 		collection: collection,
 	}
@@ -243,10 +252,10 @@ func (t *ClusterResourceType) NewResource(ctx context.Context,
 	return
 }
 
-func (r *ClusterResource) Create(ctx context.Context,
+func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse) {
 	// Get the plan:
-	state := &ClusterState{}
+	state := &ClusterRosaClassicState{}
 	diags := request.Plan.Get(ctx, state)
 	response.Diagnostics.Append(diags...)
 	if response.Diagnostics.HasError() {
@@ -256,8 +265,8 @@ func (r *ClusterResource) Create(ctx context.Context,
 	// Create the cluster:
 	builder := cmv1.NewCluster()
 	builder.Name(state.Name.Value)
-	builder.CloudProvider(cmv1.NewCloudProvider().ID(state.CloudProvider.Value))
-	builder.Product(cmv1.NewProduct().ID(state.Product.Value))
+	builder.CloudProvider(cmv1.NewCloudProvider().ID(awsCloudProvider))
+	builder.Product(cmv1.NewProduct().ID(rosaProduct))
 	builder.Region(cmv1.NewCloudRegion().ID(state.CloudRegion.Value))
 	if !state.MultiAZ.Unknown && !state.MultiAZ.Null {
 		builder.MultiAZ(state.MultiAZ.Value)
@@ -269,6 +278,11 @@ func (r *ClusterResource) Create(ctx context.Context,
 		}
 		builder.Properties(properties)
 	}
+
+	if !state.EtcdEncryption.Unknown && !state.EtcdEncryption.Null {
+		builder.EtcdEncryption(state.EtcdEncryption.Value)
+	}
+
 	nodes := cmv1.NewClusterNodes()
 	if !state.ComputeNodes.Unknown && !state.ComputeNodes.Null {
 		nodes.Compute(int(state.ComputeNodes.Value))
@@ -287,25 +301,31 @@ func (r *ClusterResource) Create(ctx context.Context,
 		nodes.AvailabilityZones(azs...)
 	}
 
+	if !state.AutoScalingEnabled.Unknown && !state.AutoScalingEnabled.Null && state.AutoScalingEnabled.Value {
+		autoscaling := cmv1.NewMachinePoolAutoscaling()
+		if !state.MaxReplicas.Unknown && !state.MaxReplicas.Null {
+			autoscaling.MaxReplicas(int(state.MaxReplicas.Value))
+		}
+		if !state.MinReplicas.Unknown && !state.MinReplicas.Null {
+			autoscaling.MinReplicas(int(state.MinReplicas.Value))
+		}
+		if !autoscaling.Empty() {
+			nodes.AutoscaleCompute(autoscaling)
+		}
+	}
+
 	if !nodes.Empty() {
 		builder.Nodes(nodes)
 	}
+
+	// ccs should be enabled in ocm rosa clusters
 	ccs := cmv1.NewCCS()
-	if !state.CCSEnabled.Unknown && !state.CCSEnabled.Null {
-		ccs.Enabled(state.CCSEnabled.Value)
-	}
-	if !ccs.Empty() {
-		builder.CCS(ccs)
-	}
+	ccs.Enabled(true)
+	builder.CCS(ccs)
+
 	aws := cmv1.NewAWS()
 	if !state.AWSAccountID.Unknown && !state.AWSAccountID.Null {
 		aws.AccountID(state.AWSAccountID.Value)
-	}
-	if !state.AWSAccessKeyID.Unknown && !state.AWSAccessKeyID.Null {
-		aws.AccessKeyID(state.AWSAccessKeyID.Value)
-	}
-	if !state.AWSSecretAccessKey.Unknown && !state.AWSSecretAccessKey.Null {
-		aws.SecretAccessKey(state.AWSSecretAccessKey.Value)
 	}
 	if !state.AWSPrivateLink.Unknown && !state.AWSPrivateLink.Null {
 		aws.PrivateLink((state.AWSPrivateLink.Value))
@@ -314,6 +334,27 @@ func (r *ClusterResource) Create(ctx context.Context,
 			api.Listening(cmv1.ListeningMethodInternal)
 		}
 		builder.API(api)
+	}
+
+	sts := cmv1.NewSTS()
+	if state.Sts != nil {
+		sts.RoleARN(state.Sts.RoleARN.Value)
+		sts.SupportRoleARN(state.Sts.SupportRoleArn.Value)
+		instanceIamRoles := cmv1.NewInstanceIAMRoles()
+		instanceIamRoles.MasterRoleARN(state.Sts.InstanceIAMRoles.MasterRoleARN.Value)
+		instanceIamRoles.WorkerRoleARN(state.Sts.InstanceIAMRoles.WorkerRoleARN.Value)
+		sts.InstanceIAMRoles(instanceIamRoles)
+
+		operatorRoles := make([]*cmv1.OperatorIAMRoleBuilder, 0)
+		for _, operatorRole := range state.Sts.OperatorIAMRoles {
+			r := cmv1.NewOperatorIAMRole()
+			r.Name(operatorRole.Name.Value)
+			r.Namespace(operatorRole.Namespace.Value)
+			r.RoleARN(operatorRole.RoleARN.Value)
+			operatorRoles = append(operatorRoles, r)
+		}
+		sts.OperatorIAMRoles(operatorRoles...)
+		aws.STS(sts)
 	}
 
 	if !state.AWSSubnetIDs.Unknown && !state.AWSSubnetIDs.Null {
@@ -377,41 +418,16 @@ func (r *ClusterResource) Create(ctx context.Context,
 	}
 	object = add.Body()
 
-	// Wait till the cluster is ready unless explicitly disabled:
-	wait := state.Wait.Unknown || state.Wait.Null || state.Wait.Value
-	ready := object.State() == cmv1.ClusterStateReady
-	if wait && !ready {
-		pollCtx, cancel := context.WithTimeout(ctx, 1*time.Hour)
-		defer cancel()
-		_, err := r.collection.Cluster(object.ID()).Poll().
-			Interval(30 * time.Second).
-			Predicate(func(get *cmv1.ClusterGetResponse) bool {
-				object = get.Body()
-				return object.State() == cmv1.ClusterStateReady
-			}).
-			StartContext(pollCtx)
-		if err != nil {
-			response.Diagnostics.AddError(
-				"Can't poll cluster state",
-				fmt.Sprintf(
-					"Can't poll state of cluster with identifier '%s': %v",
-					object.ID(), err,
-				),
-			)
-			return
-		}
-	}
-
 	// Save the state:
 	r.populateState(ctx, object, state)
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
 }
 
-func (r *ClusterResource) Read(ctx context.Context, request tfsdk.ReadResourceRequest,
+func (r *ClusterRosaClassicResource) Read(ctx context.Context, request tfsdk.ReadResourceRequest,
 	response *tfsdk.ReadResourceResponse) {
 	// Get the current state:
-	state := &ClusterState{}
+	state := &ClusterRosaClassicState{}
 	diags := request.State.Get(ctx, state)
 	response.Diagnostics.Append(diags...)
 	if response.Diagnostics.HasError() {
@@ -438,12 +454,12 @@ func (r *ClusterResource) Read(ctx context.Context, request tfsdk.ReadResourceRe
 	response.Diagnostics.Append(diags...)
 }
 
-func (r *ClusterResource) Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
+func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
 	response *tfsdk.UpdateResourceResponse) {
 	var diags diag.Diagnostics
 
 	// Get the state:
-	state := &ClusterState{}
+	state := &ClusterRosaClassicState{}
 	diags = request.State.Get(ctx, state)
 	response.Diagnostics.Append(diags...)
 	if response.Diagnostics.HasError() {
@@ -451,7 +467,7 @@ func (r *ClusterResource) Update(ctx context.Context, request tfsdk.UpdateResour
 	}
 
 	// Get the plan:
-	plan := &ClusterState{}
+	plan := &ClusterRosaClassicState{}
 	diags = request.Plan.Get(ctx, plan)
 	response.Diagnostics.Append(diags...)
 	if response.Diagnostics.HasError() {
@@ -500,10 +516,10 @@ func (r *ClusterResource) Update(ctx context.Context, request tfsdk.UpdateResour
 	response.Diagnostics.Append(diags...)
 }
 
-func (r *ClusterResource) Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
+func (r *ClusterRosaClassicResource) Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
 	response *tfsdk.DeleteResourceResponse) {
 	// Get the state:
-	state := &ClusterState{}
+	state := &ClusterRosaClassicState{}
 	diags := request.State.Get(ctx, state)
 	response.Diagnostics.Append(diags...)
 	if response.Diagnostics.HasError() {
@@ -524,35 +540,11 @@ func (r *ClusterResource) Delete(ctx context.Context, request tfsdk.DeleteResour
 		return
 	}
 
-	// Wait till the cluster has been effectively deleted:
-	if state.Wait.Unknown || state.Wait.Null || state.Wait.Value {
-		pollCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
-		defer cancel()
-		_, err := resource.Poll().
-			Interval(30 * time.Second).
-			Status(http.StatusNotFound).
-			StartContext(pollCtx)
-		sdkErr, ok := err.(*errors.Error)
-		if ok && sdkErr.Status() == http.StatusNotFound {
-			err = nil
-		}
-		if err != nil {
-			response.Diagnostics.AddError(
-				"Can't poll cluster deletion",
-				fmt.Sprintf(
-					"Can't poll deletion of cluster with identifier '%s': %v",
-					state.ID.Value, err,
-				),
-			)
-			return
-		}
-	}
-
 	// Remove the state:
 	response.State.RemoveResource(ctx)
 }
 
-func (r *ClusterResource) ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
+func (r *ClusterRosaClassicResource) ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
 	response *tfsdk.ImportResourceStateResponse) {
 	// Try to retrieve the object:
 	get, err := r.collection.Cluster(request.ID).Get().SendContext(ctx)
@@ -569,27 +561,23 @@ func (r *ClusterResource) ImportState(ctx context.Context, request tfsdk.ImportR
 	object := get.Body()
 
 	// Save the state:
-	state := &ClusterState{}
+	state := &ClusterRosaClassicState{}
 	r.populateState(ctx, object, state)
 	diags := response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
 }
 
 // populateState copies the data from the API object to the Terraform state.
-func (r *ClusterResource) populateState(ctx context.Context, object *cmv1.Cluster, state *ClusterState) {
+func (r *ClusterRosaClassicResource) populateState(ctx context.Context, object *cmv1.Cluster, state *ClusterRosaClassicState) {
 	state.ID = types.String{
 		Value: object.ID(),
 	}
-
-	object.API()
-	state.Product = types.String{
-		Value: object.Product().ID(),
+	state.ExternalID = types.String{
+		Value: object.ExternalID(),
 	}
+	object.API()
 	state.Name = types.String{
 		Value: object.Name(),
-	}
-	state.CloudProvider = types.String{
-		Value: object.CloudProvider().ID(),
 	}
 	state.CloudRegion = types.String{
 		Value: object.Region().ID(),
@@ -632,6 +620,26 @@ func (r *ClusterResource) populateState(ctx context.Context, object *cmv1.Cluste
 	state.CCSEnabled = types.Bool{
 		Value: object.CCS().Enabled(),
 	}
+
+	state.EtcdEncryption = types.Bool{
+		Value: object.EtcdEncryption(),
+	}
+
+	autoscaleCompute := object.Nodes().AutoscaleCompute()
+	if autoscaleCompute != nil {
+		state.AutoScalingEnabled = types.Bool{
+			Value: true,
+		}
+
+		state.MaxReplicas = types.Int64{
+			Value: int64(autoscaleCompute.MaxReplicas()),
+		}
+
+		state.MinReplicas = types.Int64{
+			Value: int64(autoscaleCompute.MinReplicas()),
+		}
+	}
+
 	//The API does not return account id
 	awsAccountID, ok := object.AWS().GetAccountID()
 	if ok {
@@ -639,26 +647,7 @@ func (r *ClusterResource) populateState(ctx context.Context, object *cmv1.Cluste
 			Value: awsAccountID,
 		}
 	}
-	awsAccessKeyID, ok := object.AWS().GetAccessKeyID()
-	if ok {
-		state.AWSAccessKeyID = types.String{
-			Value: awsAccessKeyID,
-		}
-	} else {
-		state.AWSAccessKeyID = types.String{
-			Null: true,
-		}
-	}
-	awsSecretAccessKey, ok := object.AWS().GetSecretAccessKey()
-	if ok {
-		state.AWSSecretAccessKey = types.String{
-			Value: awsSecretAccessKey,
-		}
-	} else {
-		state.AWSSecretAccessKey = types.String{
-			Null: true,
-		}
-	}
+
 	awsPrivateLink, ok := object.AWS().GetPrivateLink()
 	if ok {
 		state.AWSPrivateLink = types.Bool{
@@ -667,6 +656,62 @@ func (r *ClusterResource) populateState(ctx context.Context, object *cmv1.Cluste
 	} else {
 		state.AWSPrivateLink = types.Bool{
 			Null: true,
+		}
+	}
+
+	sts, ok := object.AWS().GetSTS()
+	if ok {
+		state.Sts = &Sts{}
+		oidc_endpoint_url := sts.OIDCEndpointURL()
+		if strings.HasPrefix(oidc_endpoint_url, "https://") {
+			oidc_endpoint_url = strings.TrimPrefix(oidc_endpoint_url, "https://")
+		}
+
+		state.Sts.OIDCEndpointURL = types.String{
+			Value: oidc_endpoint_url,
+		}
+		state.Sts.RoleARN = types.String{
+			Value: sts.RoleARN(),
+		}
+		state.Sts.SupportRoleArn = types.String{
+			Value: sts.SupportRoleARN(),
+		}
+		instanceIAMRoles := sts.InstanceIAMRoles()
+		if instanceIAMRoles != nil {
+			state.Sts.InstanceIAMRoles.MasterRoleARN = types.String{
+				Value: instanceIAMRoles.MasterRoleARN(),
+			}
+			state.Sts.InstanceIAMRoles.WorkerRoleARN = types.String{
+				Value: instanceIAMRoles.WorkerRoleARN(),
+			}
+
+		}
+
+		thumbprint, err := getThumbprint(sts.OIDCEndpointURL())
+		if err != nil {
+			r.logger.Error(ctx, "cannot get thumbprint", err)
+			state.Sts.Thumbprint = types.String{
+				Value: "",
+			}
+		} else {
+			state.Sts.Thumbprint = types.String{
+				Value: thumbprint,
+			}
+		}
+
+		for _, operatorRole := range sts.OperatorIAMRoles() {
+			r := OperatorIAMRole{
+				Name: types.String{
+					Value: operatorRole.Name(),
+				},
+				Namespace: types.String{
+					Value: operatorRole.Namespace(),
+				},
+				RoleARN: types.String{
+					Value: operatorRole.RoleARN(),
+				},
+			}
+			state.Sts.OperatorIAMRoles = append(state.Sts.OperatorIAMRoles, r)
 		}
 	}
 
@@ -743,4 +788,40 @@ func (r *ClusterResource) populateState(ctx context.Context, object *cmv1.Cluste
 		Value: string(object.State()),
 	}
 
+}
+
+func getThumbprint(oidcEndpointURL string) (string, error) {
+	connect, err := url.ParseRequestURI(oidcEndpointURL)
+	if err != nil {
+		return "", err
+	}
+
+	response, err := http.Get(fmt.Sprintf("https://%s:443", connect.Host))
+	if err != nil {
+		return "", err
+	}
+
+	certChain := response.TLS.PeerCertificates
+
+	// Grab the CA in the chain
+	for _, cert := range certChain {
+		if cert.IsCA {
+			if bytes.Equal(cert.RawIssuer, cert.RawSubject) {
+				return sha1Hash(cert.Raw), nil
+			}
+		}
+	}
+
+	// Fall back to using the last certficiate in the chain
+	cert := certChain[len(certChain)-1]
+	return sha1Hash(cert.Raw), nil
+}
+
+// sha1Hash computes the SHA1 of the byte array and returns the hex encoding as a string.
+func sha1Hash(data []byte) string {
+	// nolint:gosec
+	hasher := sha1.New()
+	hasher.Write(data)
+	hashed := hasher.Sum(nil)
+	return hex.EncodeToString(hashed)
 }

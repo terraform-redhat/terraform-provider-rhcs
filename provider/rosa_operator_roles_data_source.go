@@ -142,6 +142,7 @@ func (t *RosaOperatorRolesDataSource) Read(ctx context.Context, request tfsdk.Re
 		t.logger.Error(ctx, "Failed to get operator list")
 		return
 	}
+
 	stsOperatorMap := make(map[string]*cmv1.STSOperator)
 	stsOperatorRolesList.Items().Each(func(stsCredentialRequest *cmv1.STSCredentialRequest) bool {
 		t.logger.Debug(ctx, "Operator name: %s, namespace %s, service account %s",
@@ -155,6 +156,7 @@ func (t *RosaOperatorRolesDataSource) Read(ctx context.Context, request tfsdk.Re
 		stsOperatorMap[stsCredentialRequest.Operator().Namespace()] = stsCredentialRequest.Operator()
 		return true
 	})
+
 	get, err := t.clustersClient.Cluster(state.ClusterID.Value).Get().SendContext(ctx)
 	if err != nil {
 		response.Diagnostics.AddError(

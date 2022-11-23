@@ -58,7 +58,7 @@ subsystem-test: install
 		--succinct \
 		-ldflags="$(ldflags***REMOVED***" \
 		-r \
-		--focus-file e2e/.*
+		--focus-file subsystem/.*
 
 .PHONY: unit-test
 unit-test:

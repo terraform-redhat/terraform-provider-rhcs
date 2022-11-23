@@ -17,295 +17,153 @@ limitations under the License.
 package provider
 
 ***REMOVED***
-***REMOVED***
+	"context"
+	"encoding/json"
 
-	. "github.com/onsi/ginkgo/v2/dsl/core"             // nolint
-***REMOVED***                         // nolint
-	. "github.com/onsi/gomega/ghttp"                   // nolint
-	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	. "github.com/onsi/ginkgo/v2/dsl/core" // nolint
+***REMOVED***             // nolint
+	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 ***REMOVED***
 
 var _ = Describe("Cluster creation", func(***REMOVED*** {
-	// This is the cluster that will be returned by the server when asked to create or retrieve
-	// a cluster.
-	const template = `{
-	  "id": "123",
-	  "product": {
-		"id": "osd"
-	  },
-	  "name": "my-cluster",
-	  "cloud_provider": {
-	    "id": "aws"
-	  },
-	  "region": {
-	    "id": "us-west-1"
-	  },
-	  "multi_az": false,
-	  "properties": {},
-	  "api": {
-	    "url": "https://my-api.example.com"
-	  },
-	  "console": {
-	    "url": "https://my-console.example.com"
-	  },
-	  "nodes": {
-	    "compute": 3,
-	    "compute_machine_type": {
-	      "id": "r5.xlarge"
-	    }
-	  },
-	  "ccs": {
-	    "enabled": false
-	  },
-	  "network": {
-	    "machine_cidr": "10.0.0.0/16",
-	    "service_cidr": "172.30.0.0/16",
-	    "pod_cidr": "10.128.0.0/14",
-	    "host_prefix": 23
-	  },
-	  "version": {
-		  "id": "openshift-4.8.0"
-	  },
-	  "state": "ready"
-	}`
+	clusterId := "1n2j3k4l5m6n7o8p9q0r"
+	clusterName := "my-cluster"
+	productId := "rosa"
+	cloudProviderId := "aws"
+	regionId := "us-east-1"
+	multiAz := true
+	rosaCreatorArn := "arn:aws:iam::123456789012:dummy/dummy"
+	apiUrl := "https://api.my-cluster.com:6443"
+	consoleUrl := "https://console.my-cluster.com"
+	machineType := "m5.xlarge"
+	availabilityZone := "us-east-1a"
+	ccsEnabled := true
+	awsAccountID := "123456789012"
+	awsAccessKeyID := "AKIAIOSFODNN7EXAMPLE"
+	awsSecretAccessKey := "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+	privateLink := false
 
-	It("Creates basic cluster", func(***REMOVED*** {
-		// Prepare the server:
-		server.AppendHandlers(
-			CombineHandlers(
-				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-				VerifyJQ(`.name`, "my-cluster"***REMOVED***,
-				VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
-				VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
-				RespondWithJSON(http.StatusCreated, template***REMOVED***,
+	It("Creates ClusterBuilder with correct field values", func(***REMOVED*** {
+		clusterState := &ClusterState{
+			Name: types.String{
+				Value: clusterName,
+	***REMOVED***,
+			CloudRegion: types.String{
+				Value: regionId,
+	***REMOVED***,
+			AWSAccountID: types.String{
+				Value: awsAccountID,
+	***REMOVED***,
+			AvailabilityZones: types.List{
+				Elems: []attr.Value{
+					types.String{
+						Value: availabilityZone,
 			***REMOVED***,
-		***REMOVED***
+		***REMOVED***,
+	***REMOVED***,
+			Properties: types.Map{
+				Elems: map[string]attr.Value{
+					"rosa_creator_arn": types.String{
+						Value: rosaCreatorArn,
+			***REMOVED***,
+		***REMOVED***,
+	***REMOVED***,
+			Wait: types.Bool{
+				Value: false,
+	***REMOVED***,
+***REMOVED***
+		clusterObject, err := createClusterObject(context.Background(***REMOVED***, clusterState, diag.Diagnostics{}***REMOVED***
+		Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
 
-		// Run the apply command:
-		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
-		    name           = "my-cluster"
-			product		   = "osd"
-		    cloud_provider = "aws"
-		    cloud_region   = "us-west-1"
-		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
+		Expect(clusterObject***REMOVED***.ToNot(BeNil(***REMOVED******REMOVED***
+
+		Expect(clusterObject.Name(***REMOVED******REMOVED***.To(Equal(clusterName***REMOVED******REMOVED***
+
+		id, ok := clusterObject.Region(***REMOVED***.GetID(***REMOVED***
+		Expect(ok***REMOVED***.To(BeTrue(***REMOVED******REMOVED***
+		Expect(id***REMOVED***.To(Equal(regionId***REMOVED******REMOVED***
+
+		Expect(clusterObject.AWS(***REMOVED***.AccountID(***REMOVED******REMOVED***.To(Equal(awsAccountID***REMOVED******REMOVED***
+
+		availabilityZones := clusterObject.Nodes(***REMOVED***.AvailabilityZones(***REMOVED***
+		Expect(availabilityZones***REMOVED***.To(HaveLen(1***REMOVED******REMOVED***
+		Expect(availabilityZones[0]***REMOVED***.To(Equal(availabilityZone***REMOVED******REMOVED***
+
+		arn, ok := clusterObject.Properties(***REMOVED***["rosa_creator_arn"]
+		Expect(ok***REMOVED***.To(BeTrue(***REMOVED******REMOVED***
+		Expect(arn***REMOVED***.To(Equal(arn***REMOVED******REMOVED***
 	}***REMOVED***
 
-	It("Saves API and console URLs to the state", func(***REMOVED*** {
-		// Prepare the server:
-		server.AppendHandlers(
-			CombineHandlers(
-				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-				RespondWithJSON(http.StatusCreated, template***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+	It("populateClusterState converts correctly a Cluster object into a ClusterState", func(***REMOVED*** {
+		// We builder a Cluster object by creating a json and using cmv1.UnmarshalCluster on it
+		clusterJson := map[string]interface{}{
+			"id": clusterId,
+			"product": map[string]interface{}{
+				"id": productId,
+	***REMOVED***,
+			"cloud_provider": map[string]interface{}{
+				"id": cloudProviderId,
+	***REMOVED***,
+			"region": map[string]interface{}{
+				"id": regionId,
+	***REMOVED***,
+			"multi_az": multiAz,
+			"properties": map[string]interface{}{
+				"rosa_creator_arn": rosaCreatorArn,
+	***REMOVED***,
+			"api": map[string]interface{}{
+				"url": apiUrl,
+	***REMOVED***,
+			"console": map[string]interface{}{
+				"url": consoleUrl,
+	***REMOVED***,
+			"nodes": map[string]interface{}{
+				"compute_machine_type": map[string]interface{}{
+					"id": machineType,
+		***REMOVED***,
+				"availability_zones": []interface{}{
+					availabilityZone,
+		***REMOVED***,
+	***REMOVED***,
+			"ccs": map[string]interface{}{
+				"enabled": ccsEnabled,
+	***REMOVED***,
+			"aws": map[string]interface{}{
+				"account_id":        awsAccountID,
+				"access_key_id":     awsAccessKeyID,
+				"secret_access_key": awsSecretAccessKey,
+				"private_link":      privateLink,
+	***REMOVED***,
+***REMOVED***
+		clusterJsonString, err := json.Marshal(clusterJson***REMOVED***
+		Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
 
-		// Run the apply command:
-		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
-		    name           = "my-cluster"
-			product		   = "osd"
-		    cloud_provider = "aws"
-		    cloud_region   = "us-west-1"
-		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString***REMOVED***
+		Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
 
-		// Check the state:
-		resource := terraform.Resource("ocm_cluster", "my_cluster"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.api_url", "https://my-api.example.com"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.console_url", "https://my-console.example.com"***REMOVED******REMOVED***
-	}***REMOVED***
+		//We convert the Cluster object into a ClusterState and check that the conversion is correct
+		clusterState := &ClusterState{}
+		populateClusterState(clusterObject, clusterState***REMOVED***
 
-	It("Sets compute nodes and machine type", func(***REMOVED*** {
-		// Prepare the server:
-		server.AppendHandlers(
-			CombineHandlers(
-				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-				VerifyJQ(`.nodes.compute`, 3.0***REMOVED***,
-				VerifyJQ(`.nodes.compute_machine_type.id`, "r5.xlarge"***REMOVED***,
-				RespondWithJSON(http.StatusCreated, template***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
-
-		// Run the apply command:
-		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
-		    name                 = "my-cluster"
-			product		   		 = "osd"
-		    cloud_provider       = "aws"
-		    cloud_region         = "us-west-1"
-		    compute_nodes        = 3
-		    compute_machine_type = "r5.xlarge"
-		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-
-		// Check the state:
-		resource := terraform.Resource("ocm_cluster", "my_cluster"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.compute_nodes", 3.0***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.compute_machine_type", "r5.xlarge"***REMOVED******REMOVED***
-	}***REMOVED***
-
-	It("Creates CCS cluster", func(***REMOVED*** {
-		// Prepare the server:
-		server.AppendHandlers(
-			CombineHandlers(
-				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-				VerifyJQ(".ccs.enabled", true***REMOVED***,
-				VerifyJQ(".aws.account_id", "123"***REMOVED***,
-				VerifyJQ(".aws.access_key_id", "456"***REMOVED***,
-				VerifyJQ(".aws.secret_access_key", "789"***REMOVED***,
-				RespondWithPatchedJSON(http.StatusOK, template, `[
-				  {
-				    "op": "replace",
-				    "path": "/ccs",
-				    "value": {
-				      "enabled": true
-				    }
-				  },
-				  {
-				    "op": "add",
-				    "path": "/aws",
-				    "value": {
-				      "account_id": "123",
-				      "access_key_id": "456",
-				      "secret_access_key": "789"
-				    }
-				  }
-				]`***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
-
-		// Run the apply command:
-		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
-		    name                  = "my-cluster"
-			product		   		  = "osd"
-		    cloud_provider        = "aws"
-		    cloud_region          = "us-west-1"
-		    ccs_enabled           = true
-		    aws_account_id        = "123"
-		    aws_access_key_id     = "456"
-		    aws_secret_access_key = "789"
-		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-
-		// Check the state:
-		resource := terraform.Resource("ocm_cluster", "my_cluster"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.ccs_enabled", true***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.aws_account_id", "123"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.aws_access_key_id", "456"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.aws_secret_access_key", "789"***REMOVED******REMOVED***
-	}***REMOVED***
-
-	It("Sets network configuration", func(***REMOVED*** {
-		// Prepare the server:
-		server.AppendHandlers(
-			CombineHandlers(
-				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-				VerifyJQ(".network.machine_cidr", "10.0.0.0/15"***REMOVED***,
-				VerifyJQ(".network.service_cidr", "172.30.0.0/15"***REMOVED***,
-				VerifyJQ(".network.pod_cidr", "10.128.0.0/13"***REMOVED***,
-				VerifyJQ(".network.host_prefix", 22.0***REMOVED***,
-				RespondWithPatchedJSON(http.StatusOK, template, `[
-				  {
-				    "op": "replace",
-				    "path": "/network",
-				    "value": {
-				      "machine_cidr": "10.0.0.0/15",
-				      "service_cidr": "172.30.0.0/15",
-				      "pod_cidr": "10.128.0.0/13",
-				      "host_prefix": 22
-				    }
-				  }
-				]`***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
-
-		// Run the apply command:
-		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
-		    name           = "my-cluster"
-			product		   = "osd"
-		    cloud_provider = "aws"
-		    cloud_region   = "us-west-1"
-		    machine_cidr   = "10.0.0.0/15"
-		    service_cidr   = "172.30.0.0/15"
-		    pod_cidr       = "10.128.0.0/13"
-		    host_prefix    = 22
-		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-
-		// Check the state:
-		resource := terraform.Resource("ocm_cluster", "my_cluster"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_cidr", "10.0.0.0/15"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.service_cidr", "172.30.0.0/15"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.pod_cidr", "10.128.0.0/13"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.host_prefix", 22.0***REMOVED******REMOVED***
-	}***REMOVED***
-
-	It("Sets version", func(***REMOVED*** {
-		// Prepare the server:
-		server.AppendHandlers(
-			CombineHandlers(
-				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-				VerifyJQ(".version.id", "openshift-v4.8.1"***REMOVED***,
-				RespondWithPatchedJSON(http.StatusOK, template, `[
-				  {
-				    "op": "replace",
-				    "path": "/version",
-				    "value": {
-				      "id": "openshift-v4.8.1"
-				    }
-				  }
-				]`***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
-
-		// Run the apply command:
-		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
-		    name           = "my-cluster"
-			product		   = "osd"
-		    cloud_provider = "aws"
-		    cloud_region   = "us-west-1"
-		    version        = "openshift-v4.8.1"
-		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-
-		// Check the state:
-		resource := terraform.Resource("ocm_cluster", "my_cluster"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.version", "openshift-v4.8.1"***REMOVED******REMOVED***
-	}***REMOVED***
-
-	It("Fails if the cluster already exists", func(***REMOVED*** {
-		// Prepare the server:
-		server.AppendHandlers(
-			CombineHandlers(
-				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-				RespondWithJSON(http.StatusBadRequest, `{
-				  "id": "400",
-				  "code": "CLUSTERS-MGMT-400",
-				  "reason": "Cluster 'my-cluster' already exists"
-		***REMOVED***`***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
-
-		// Run the apply command:
-		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
-			product		   = "osd"
-		    name           = "my-cluster"
-		    cloud_provider = "aws"
-		    cloud_region   = "us-west-1"
-		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
+		Expect(clusterState.ID.Value***REMOVED***.To(Equal(clusterId***REMOVED******REMOVED***
+		Expect(clusterState.Product.Value***REMOVED***.To(Equal(productId***REMOVED******REMOVED***
+		Expect(clusterState.CloudProvider.Value***REMOVED***.To(Equal(cloudProviderId***REMOVED******REMOVED***
+		Expect(clusterState.CloudRegion.Value***REMOVED***.To(Equal(regionId***REMOVED******REMOVED***
+		Expect(clusterState.MultiAZ.Value***REMOVED***.To(Equal(multiAz***REMOVED******REMOVED***
+		Expect(clusterState.Properties.Elems["rosa_creator_arn"].Equal(types.String{Value: rosaCreatorArn}***REMOVED******REMOVED***.To(Equal(true***REMOVED******REMOVED***
+		Expect(clusterState.APIURL.Value***REMOVED***.To(Equal(apiUrl***REMOVED******REMOVED***
+		Expect(clusterState.ConsoleURL.Value***REMOVED***.To(Equal(consoleUrl***REMOVED******REMOVED***
+		Expect(clusterState.ComputeMachineType.Value***REMOVED***.To(Equal(machineType***REMOVED******REMOVED***
+		Expect(clusterState.AvailabilityZones.Elems***REMOVED***.To(HaveLen(1***REMOVED******REMOVED***
+		Expect(clusterState.AvailabilityZones.Elems[0].Equal(types.String{Value: availabilityZone}***REMOVED******REMOVED***.To(Equal(true***REMOVED******REMOVED***
+		Expect(clusterState.CCSEnabled.Value***REMOVED***.To(Equal(ccsEnabled***REMOVED******REMOVED***
+		Expect(clusterState.AWSAccountID.Value***REMOVED***.To(Equal(awsAccountID***REMOVED******REMOVED***
+		Expect(clusterState.AWSAccessKeyID.Value***REMOVED***.To(Equal(awsAccessKeyID***REMOVED******REMOVED***
+		Expect(clusterState.AWSSecretAccessKey.Value***REMOVED***.To(Equal(awsSecretAccessKey***REMOVED******REMOVED***
+		Expect(clusterState.AWSPrivateLink.Value***REMOVED***.To(Equal(privateLink***REMOVED******REMOVED***
 	}***REMOVED***
 }***REMOVED***

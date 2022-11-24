@@ -22,20 +22,23 @@ package provider
 	"encoding/hex"
 ***REMOVED***
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+***REMOVED***
+	"net/url"
+	"strings"
+
+	semver "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift-online/ocm-sdk-go/logging"
 ***REMOVED***
-	"net/url"
-	"strings"
-***REMOVED***
 
 const (
 	awsCloudProvider  = "aws"
 	rosaProduct       = "rosa"
 	serviceAccountFmt = "system:serviceaccount:%s:%s"
+	MinVersion        = "4.10"
 ***REMOVED***
 
 type ClusterRosaClassicResourceType struct {
@@ -378,7 +381,32 @@ func (r *ClusterRosaClassicResource***REMOVED*** Create(ctx context.Context,
 		builder.Network(network***REMOVED***
 	}
 	if !state.Version.Unknown && !state.Version.Null {
-		builder.Version(cmv1.NewVersion(***REMOVED***.ID(state.Version.Value***REMOVED******REMOVED***
+		// TODO: update it to support all cluster versions
+		isSupported, err := checkSupportedVersion(state.Version.Value***REMOVED***
+		if err != nil {
+			r.logger.Error(ctx, "Error validating required cluster version %s\", err***REMOVED***"***REMOVED***
+			response.Diagnostics.AddError(
+				"Can't build cluster",
+				fmt.Sprintf(
+					"Can't check if cluster version is supported '%s': %v",
+					state.Version.Value, err,
+				***REMOVED***,
+			***REMOVED***
+			return
+***REMOVED***
+		if isSupported {
+			builder.Version(cmv1.NewVersion(***REMOVED***.ID(state.Version.Value***REMOVED******REMOVED***
+***REMOVED*** else {
+			r.logger.Error(ctx, "Cluster version %s is not supported", state.Version.Value***REMOVED***
+			response.Diagnostics.AddError(
+				"Can't build cluster",
+				fmt.Sprintf(
+					"Cluster version '%s' is not supported, the minimun supported version is %s",
+					state.Version.Value, MinVersion,
+				***REMOVED***,
+			***REMOVED***
+			return
+***REMOVED***
 	}
 
 	proxy := cmv1.NewProxy(***REMOVED***
@@ -804,4 +832,17 @@ func sha1Hash(data []byte***REMOVED*** string {
 	hasher.Write(data***REMOVED***
 	hashed := hasher.Sum(nil***REMOVED***
 	return hex.EncodeToString(hashed***REMOVED***
+}
+
+func checkSupportedVersion(clusterVersion string***REMOVED*** (bool, error***REMOVED*** {
+	v1, err := semver.NewVersion(clusterVersion***REMOVED***
+	if err != nil {
+		return false, err
+	}
+	v2, err := semver.NewVersion(MinVersion***REMOVED***
+	if err != nil {
+		return false, err
+	}
+	//Cluster version is greater than or equal to MinVersion
+	return v1.GreaterThanOrEqual(v2***REMOVED***, nil
 }

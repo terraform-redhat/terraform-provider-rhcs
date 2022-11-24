@@ -3,6 +3,7 @@ module github.com/openshift-online/terraform-provider-ocm
 go 1.17
 
 require (
+	github.com/hashicorp/go-version v1.3.0
 	github.com/hashicorp/terraform-plugin-framework v0.5.0
 	github.com/hashicorp/terraform-plugin-go v0.5.0
 	github.com/onsi/ginkgo/v2 v2.1.4

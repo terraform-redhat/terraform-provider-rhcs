@@ -145,6 +145,7 @@ func (t *RosaOperatorRolesDataSource) Read(ctx context.Context, request tfsdk.Re
 
 	stsOperatorMap := make(map[string]*cmv1.STSOperator)
 	stsOperatorRolesList.Items().Each(func(stsCredentialRequest *cmv1.STSCredentialRequest) bool {
+		// TODO: check the MinVersion of the operator role
 		t.logger.Debug(ctx, "Operator name: %s, namespace %s, service account %s",
 			stsCredentialRequest.Operator().Name(),
 			stsCredentialRequest.Operator().Namespace(),

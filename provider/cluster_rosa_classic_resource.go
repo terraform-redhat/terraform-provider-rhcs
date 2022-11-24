@@ -22,20 +22,23 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"net/http"
+	"net/url"
+	"strings"
+
+	semver "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift-online/ocm-sdk-go/logging"
-	"net/http"
-	"net/url"
-	"strings"
 )
 
 const (
 	awsCloudProvider  = "aws"
 	rosaProduct       = "rosa"
 	serviceAccountFmt = "system:serviceaccount:%s:%s"
+	MinVersion        = "4.10"
 )
 
 type ClusterRosaClassicResourceType struct {
@@ -378,7 +381,32 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 		builder.Network(network)
 	}
 	if !state.Version.Unknown && !state.Version.Null {
-		builder.Version(cmv1.NewVersion().ID(state.Version.Value))
+		// TODO: update it to support all cluster versions
+		isSupported, err := checkSupportedVersion(state.Version.Value)
+		if err != nil {
+			r.logger.Error(ctx, "Error validating required cluster version %s\", err)")
+			response.Diagnostics.AddError(
+				"Can't build cluster",
+				fmt.Sprintf(
+					"Can't check if cluster version is supported '%s': %v",
+					state.Version.Value, err,
+				),
+			)
+			return
+		}
+		if isSupported {
+			builder.Version(cmv1.NewVersion().ID(state.Version.Value))
+		} else {
+			r.logger.Error(ctx, "Cluster version %s is not supported", state.Version.Value)
+			response.Diagnostics.AddError(
+				"Can't build cluster",
+				fmt.Sprintf(
+					"Cluster version '%s' is not supported, the minimun supported version is %s",
+					state.Version.Value, MinVersion,
+				),
+			)
+			return
+		}
 	}
 
 	proxy := cmv1.NewProxy()
@@ -804,4 +832,17 @@ func sha1Hash(data []byte) string {
 	hasher.Write(data)
 	hashed := hasher.Sum(nil)
 	return hex.EncodeToString(hashed)
+}
+
+func checkSupportedVersion(clusterVersion string) (bool, error) {
+	v1, err := semver.NewVersion(clusterVersion)
+	if err != nil {
+		return false, err
+	}
+	v2, err := semver.NewVersion(MinVersion)
+	if err != nil {
+		return false, err
+	}
+	//Cluster version is greater than or equal to MinVersion
+	return v1.GreaterThanOrEqual(v2), nil
 }

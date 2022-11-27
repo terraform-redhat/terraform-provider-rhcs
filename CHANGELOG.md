@@ -1,3 +1,9 @@
+## 0.1.7 (Nov 28, 2022***REMOVED***
+
+ENHANCEMENTS:
+
+* Add `ocm_cluster_rosa_classic` resource to create ROSA STS clusters.
+
 ## 0.1.6 (Jun 07, 2022***REMOVED***
 
 ENHANCEMENTS:

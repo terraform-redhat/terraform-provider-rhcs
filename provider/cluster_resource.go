@@ -243,16 +243,8 @@ func (t *ClusterResourceType***REMOVED*** NewResource(ctx context.Context,
 	return
 }
 
-func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
-	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse***REMOVED*** {
-	// Get the plan:
-	state := &ClusterState{}
-	diags := request.Plan.Get(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
-	if response.Diagnostics.HasError(***REMOVED*** {
-		return
-	}
-
+func createClusterObject(ctx context.Context,
+	state *ClusterState, diags diag.Diagnostics***REMOVED*** (*cmv1.Cluster, error***REMOVED*** {
 	// Create the cluster:
 	builder := cmv1.NewCluster(***REMOVED***
 	builder.Name(state.Name.Value***REMOVED***
@@ -353,7 +345,23 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 		proxy.HTTPSProxy(state.Proxy.HttpsProxy.Value***REMOVED***
 		builder.Proxy(proxy***REMOVED***
 	}
+
 	object, err := builder.Build(***REMOVED***
+
+	return object, err
+}
+
+func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
+	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse***REMOVED*** {
+	// Get the plan:
+	state := &ClusterState{}
+	diags := request.Plan.Get(ctx, state***REMOVED***
+	response.Diagnostics.Append(diags...***REMOVED***
+	if response.Diagnostics.HasError(***REMOVED*** {
+		return
+	}
+
+	object, err := createClusterObject(ctx, state, diags***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't build cluster",
@@ -364,6 +372,7 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 		***REMOVED***
 		return
 	}
+
 	add, err := r.collection.Add(***REMOVED***.Body(object***REMOVED***.SendContext(ctx***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -403,7 +412,7 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 	}
 
 	// Save the state:
-	r.populateState(ctx, object, state***REMOVED***
+	populateClusterState(object, state***REMOVED***
 	diags = response.State.Set(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
 }
@@ -433,7 +442,7 @@ func (r *ClusterResource***REMOVED*** Read(ctx context.Context, request tfsdk.Re
 	object := get.Body(***REMOVED***
 
 	// Save the state:
-	r.populateState(ctx, object, state***REMOVED***
+	populateClusterState(object, state***REMOVED***
 	diags = response.State.Set(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
 }
@@ -495,7 +504,7 @@ func (r *ClusterResource***REMOVED*** Update(ctx context.Context, request tfsdk.
 	object := update.Body(***REMOVED***
 
 	// Update the state:
-	r.populateState(ctx, object, state***REMOVED***
+	populateClusterState(object, state***REMOVED***
 	diags = response.State.Set(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
 }
@@ -570,13 +579,13 @@ func (r *ClusterResource***REMOVED*** ImportState(ctx context.Context, request t
 
 	// Save the state:
 	state := &ClusterState{}
-	r.populateState(ctx, object, state***REMOVED***
+	populateClusterState(object, state***REMOVED***
 	diags := response.State.Set(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
 }
 
-// populateState copies the data from the API object to the Terraform state.
-func (r *ClusterResource***REMOVED*** populateState(ctx context.Context, object *cmv1.Cluster, state *ClusterState***REMOVED*** {
+// populateClusterState copies the data from the API object to the Terraform state.
+func populateClusterState(object *cmv1.Cluster, state *ClusterState***REMOVED*** {
 	state.ID = types.String{
 		Value: object.ID(***REMOVED***,
 	}

@@ -9,6 +9,7 @@ variable operator_role_prefix {
 
 variable account_role_prefix {
     type = string
+    default = ""
 }
 
 variable url {

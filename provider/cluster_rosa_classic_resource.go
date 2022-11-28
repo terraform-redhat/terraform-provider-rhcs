@@ -35,10 +35,9 @@ package provider
 ***REMOVED***
 
 const (
-	awsCloudProvider  = "aws"
-	rosaProduct       = "rosa"
-	serviceAccountFmt = "system:serviceaccount:%s:%s"
-	MinVersion        = "4.10"
+	awsCloudProvider = "aws"
+	rosaProduct      = "rosa"
+	MinVersion       = "4.10"
 ***REMOVED***
 
 type ClusterRosaClassicResourceType struct {
@@ -707,8 +706,14 @@ func (r *ClusterRosaClassicResource***REMOVED*** populateState(ctx context.Conte
 	***REMOVED***
 
 ***REMOVED***
-		state.Sts.OperatorRolePrefix = types.String{
-			Value: sts.OperatorRolePrefix(***REMOVED***,
+		// TODO: fix a bug in uhc-cluster-services
+		if state.Sts.OperatorRolePrefix.Unknown || state.Sts.OperatorRolePrefix.Null {
+			operatorRolePrefix, ok := sts.GetOperatorRolePrefix(***REMOVED***
+			if ok {
+				state.Sts.OperatorRolePrefix = types.String{
+					Value: operatorRolePrefix,
+		***REMOVED***
+	***REMOVED***
 ***REMOVED***
 		thumbprint, err := getThumbprint(sts.OIDCEndpointURL(***REMOVED******REMOVED***
 		if err != nil {

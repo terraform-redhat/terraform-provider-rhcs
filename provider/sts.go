@@ -44,7 +44,7 @@ func stsResource(***REMOVED*** tfsdk.NestedAttributes {
 			Required: true,
 ***REMOVED***,
 		"operator_role_prefix": {
-			Description: "Account Role prefix",
+			Description: "Operator IAM Role prefix",
 			Type:        types.StringType,
 			Required:    true,
 ***REMOVED***,

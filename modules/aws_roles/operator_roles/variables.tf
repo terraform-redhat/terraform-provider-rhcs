@@ -10,7 +10,7 @@ variable rh_oidc_provider_url {
 }
 
 variable rh_oidc_provider_thumbprint {
-    description = "Thumbprint for https://rh-oidc.s3.us-east-1.amazonaws.com"
+    description = "Thumbprint for the variable `rh_oidc_provider_url`"
     type = string
     default = "917e732d330f9a12404f73d8bea36948b929dffc"
 }

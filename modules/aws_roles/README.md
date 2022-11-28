@@ -19,7 +19,7 @@ This terraform module tries to replicate rosa CLI roles creation so that:
 
 ## Prerequisites
 
-* AWS Admin Account
+* AWS Admin Account configured by using AWS CLI in AWS configuration file
 * OCM Account and OCM CLI
 * ROSA CLI
 

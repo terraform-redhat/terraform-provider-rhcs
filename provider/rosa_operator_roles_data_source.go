@@ -37,7 +37,10 @@ type RosaOperatorRolesDataSource struct {
 	awsInquiries   *cmv1.AWSInquiriesClient
 }
 
-const DefaultAccountRolePrefix = "ManagedOpenShift"
+const (
+	DefaultAccountRolePrefix = "ManagedOpenShift"
+	serviceAccountFmt        = "system:serviceaccount:%s:%s"
+)
 
 func (t *RosaOperatorRolesDataSourceType) GetSchema(ctx context.Context) (result tfsdk.Schema,
 	diags diag.Diagnostics) {
@@ -173,7 +176,7 @@ func (t *RosaOperatorRolesDataSource) Read(ctx context.Context, request tfsdk.Re
 	sts, ok := object.AWS().GetSTS()
 	if ok {
 		accountRolePrefix := DefaultAccountRolePrefix
-		if !state.AccountRolePrefix.Unknown && !state.AccountRolePrefix.Null {
+		if !state.AccountRolePrefix.Unknown && !state.AccountRolePrefix.Null && state.AccountRolePrefix.Value != "" {
 			accountRolePrefix = state.AccountRolePrefix.Value
 		}
 
@@ -191,12 +194,12 @@ func (t *RosaOperatorRolesDataSource) Read(ctx context.Context, request tfsdk.Re
 					Value: operatorRole.RoleARN(),
 				},
 				RoleName: types.String{
-					Value: getRoleName(state.OperatorRolePrefix.Value, operatorRole.Namespace(), operatorRole.Name()),
+					Value: getRoleName(state.OperatorRolePrefix.Value, operatorRole),
 				},
 				PolicyName: types.String{
-					Value: getRoleName(accountRolePrefix, operatorRole.Namespace(), operatorRole.Name()),
+					Value: getPolicyName(accountRolePrefix, operatorRole.Namespace(), operatorRole.Name()),
 				},
-				ServiceAccounts: getServiceAccount(stsOperatorMap[operatorRole.Namespace()].ServiceAccounts(), operatorRole.Namespace()),
+				ServiceAccounts: buildServiceAccountsArray(stsOperatorMap[operatorRole.Namespace()].ServiceAccounts(), operatorRole.Namespace()),
 			}
 			state.OperatorIAMRoles = append(state.OperatorIAMRoles, &r)
 		}
@@ -207,15 +210,24 @@ func (t *RosaOperatorRolesDataSource) Read(ctx context.Context, request tfsdk.Re
 }
 
 // TODO: should be in a separate repo
-func getRoleName(prefix string, namespace string, name string) string {
-	roleName := fmt.Sprintf("%s-%s-%s", prefix, namespace, name)
-	if len(roleName) > 64 {
-		roleName = roleName[0:64]
+func getRoleName(rolePrefix string, operatorRole *cmv1.OperatorIAMRole) string {
+	role := fmt.Sprintf("%s-%s-%s", rolePrefix, operatorRole.Namespace(), operatorRole.Name())
+	if len(role) > 64 {
+		role = role[0:64]
 	}
-	return roleName
+	return role
 }
 
-func getServiceAccount(serviceAccountArr []string, operatorNamespace string) types.List {
+// TODO: should be in a separate repo
+func getPolicyName(prefix string, namespace string, name string) string {
+	policy := fmt.Sprintf("%s-%s-%s", prefix, namespace, name)
+	if len(policy) > 64 {
+		policy = policy[0:64]
+	}
+	return policy
+}
+
+func buildServiceAccountsArray(serviceAccountArr []string, operatorNamespace string) types.List {
 	serviceAccounts := types.List{
 		ElemType: types.StringType,
 		Elems:    []attr.Value{},

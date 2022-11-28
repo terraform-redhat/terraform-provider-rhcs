@@ -35,10 +35,9 @@ import (
 )
 
 const (
-	awsCloudProvider  = "aws"
-	rosaProduct       = "rosa"
-	serviceAccountFmt = "system:serviceaccount:%s:%s"
-	MinVersion        = "4.10"
+	awsCloudProvider = "aws"
+	rosaProduct      = "rosa"
+	MinVersion       = "4.10"
 )
 
 type ClusterRosaClassicResourceType struct {
@@ -707,8 +706,14 @@ func (r *ClusterRosaClassicResource) populateState(ctx context.Context, object *
 			}
 
 		}
-		state.Sts.OperatorRolePrefix = types.String{
-			Value: sts.OperatorRolePrefix(),
+		// TODO: fix a bug in uhc-cluster-services
+		if state.Sts.OperatorRolePrefix.Unknown || state.Sts.OperatorRolePrefix.Null {
+			operatorRolePrefix, ok := sts.GetOperatorRolePrefix()
+			if ok {
+				state.Sts.OperatorRolePrefix = types.String{
+					Value: operatorRolePrefix,
+				}
+			}
 		}
 		thumbprint, err := getThumbprint(sts.OIDCEndpointURL())
 		if err != nil {

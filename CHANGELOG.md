@@ -1,8 +1,16 @@
+## 0.1.8 (Nov 30, 2022***REMOVED***
+
+ENHANCEMENTS:
+
+* Add `ocm_rosa_operator_roles` data source to get ROSA Operator IAM Roles of cluster.
+* Change the module that creates the Operator IAM roles using AWS provider to be called `aws_roles`
+
 ## 0.1.7 (Nov 28, 2022***REMOVED***
 
 ENHANCEMENTS:
 
 * Add `ocm_cluster_rosa_classic` resource to create ROSA STS clusters.
+* Add `operator_roles` module to create the Operator IAM roles using AWS provider
 
 ## 0.1.6 (Jun 07, 2022***REMOVED***
 

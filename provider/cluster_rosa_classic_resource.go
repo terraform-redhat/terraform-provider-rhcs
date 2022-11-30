@@ -22,19 +22,22 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"net/http"
+	"net/url"
+	"strings"
+
+	semver "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift-online/ocm-sdk-go/logging"
-	"net/http"
-	"net/url"
-	"strings"
 )
 
 const (
 	awsCloudProvider = "aws"
 	rosaProduct      = "rosa"
+	MinVersion       = "4.10"
 )
 
 type ClusterRosaClassicResourceType struct {
@@ -240,7 +243,7 @@ func (t *ClusterRosaClassicResourceType) NewResource(ctx context.Context,
 	// Cast the provider interface to the specific implementation:
 	parent := p.(*Provider)
 
-	// Get the collection of clusters:
+	// Get the collection:
 	collection := parent.connection.ClustersMgmt().V1().Clusters()
 
 	// Create the resource:
@@ -345,15 +348,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 		instanceIamRoles.WorkerRoleARN(state.Sts.InstanceIAMRoles.WorkerRoleARN.Value)
 		sts.InstanceIAMRoles(instanceIamRoles)
 
-		operatorRoles := make([]*cmv1.OperatorIAMRoleBuilder, 0)
-		for _, operatorRole := range state.Sts.OperatorIAMRoles {
-			r := cmv1.NewOperatorIAMRole()
-			r.Name(operatorRole.Name.Value)
-			r.Namespace(operatorRole.Namespace.Value)
-			r.RoleARN(operatorRole.RoleARN.Value)
-			operatorRoles = append(operatorRoles, r)
-		}
-		sts.OperatorIAMRoles(operatorRoles...)
+		sts.OperatorRolePrefix(state.Sts.OperatorRolePrefix.Value)
 		aws.STS(sts)
 	}
 
@@ -385,7 +380,32 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 		builder.Network(network)
 	}
 	if !state.Version.Unknown && !state.Version.Null {
-		builder.Version(cmv1.NewVersion().ID(state.Version.Value))
+		// TODO: update it to support all cluster versions
+		isSupported, err := checkSupportedVersion(state.Version.Value)
+		if err != nil {
+			r.logger.Error(ctx, "Error validating required cluster version %s\", err)")
+			response.Diagnostics.AddError(
+				"Can't build cluster",
+				fmt.Sprintf(
+					"Can't check if cluster version is supported '%s': %v",
+					state.Version.Value, err,
+				),
+			)
+			return
+		}
+		if isSupported {
+			builder.Version(cmv1.NewVersion().ID(state.Version.Value))
+		} else {
+			r.logger.Error(ctx, "Cluster version %s is not supported", state.Version.Value)
+			response.Diagnostics.AddError(
+				"Can't build cluster",
+				fmt.Sprintf(
+					"Cluster version '%s' is not supported, the minimun supported version is %s",
+					state.Version.Value, MinVersion,
+				),
+			)
+			return
+		}
 	}
 
 	proxy := cmv1.NewProxy()
@@ -394,6 +414,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 		proxy.HTTPSProxy(state.Proxy.HttpsProxy.Value)
 		builder.Proxy(proxy)
 	}
+
 	object, err := builder.Build()
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -661,7 +682,6 @@ func (r *ClusterRosaClassicResource) populateState(ctx context.Context, object *
 
 	sts, ok := object.AWS().GetSTS()
 	if ok {
-		state.Sts = &Sts{}
 		oidc_endpoint_url := sts.OIDCEndpointURL()
 		if strings.HasPrefix(oidc_endpoint_url, "https://") {
 			oidc_endpoint_url = strings.TrimPrefix(oidc_endpoint_url, "https://")
@@ -686,7 +706,15 @@ func (r *ClusterRosaClassicResource) populateState(ctx context.Context, object *
 			}
 
 		}
-
+		// TODO: fix a bug in uhc-cluster-services
+		if state.Sts.OperatorRolePrefix.Unknown || state.Sts.OperatorRolePrefix.Null {
+			operatorRolePrefix, ok := sts.GetOperatorRolePrefix()
+			if ok {
+				state.Sts.OperatorRolePrefix = types.String{
+					Value: operatorRolePrefix,
+				}
+			}
+		}
 		thumbprint, err := getThumbprint(sts.OIDCEndpointURL())
 		if err != nil {
 			r.logger.Error(ctx, "cannot get thumbprint", err)
@@ -697,21 +725,6 @@ func (r *ClusterRosaClassicResource) populateState(ctx context.Context, object *
 			state.Sts.Thumbprint = types.String{
 				Value: thumbprint,
 			}
-		}
-
-		for _, operatorRole := range sts.OperatorIAMRoles() {
-			r := OperatorIAMRole{
-				Name: types.String{
-					Value: operatorRole.Name(),
-				},
-				Namespace: types.String{
-					Value: operatorRole.Namespace(),
-				},
-				RoleARN: types.String{
-					Value: operatorRole.RoleARN(),
-				},
-			}
-			state.Sts.OperatorIAMRoles = append(state.Sts.OperatorIAMRoles, r)
 		}
 	}
 
@@ -824,4 +837,17 @@ func sha1Hash(data []byte) string {
 	hasher.Write(data)
 	hashed := hasher.Sum(nil)
 	return hex.EncodeToString(hashed)
+}
+
+func checkSupportedVersion(clusterVersion string) (bool, error) {
+	v1, err := semver.NewVersion(clusterVersion)
+	if err != nil {
+		return false, err
+	}
+	v2, err := semver.NewVersion(MinVersion)
+	if err != nil {
+		return false, err
+	}
+	//Cluster version is greater than or equal to MinVersion
+	return v1.GreaterThanOrEqual(v2), nil
 }

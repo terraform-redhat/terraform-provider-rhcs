@@ -840,7 +840,8 @@ func sha1Hash(data []byte) string {
 }
 
 func checkSupportedVersion(clusterVersion string) (bool, error) {
-	v1, err := semver.NewVersion(clusterVersion)
+	rawID := strings.Replace(clusterVersion, "openshift-v", "", 1)
+	v1, err := semver.NewVersion(rawID)
 	if err != nil {
 		return false, err
 	}

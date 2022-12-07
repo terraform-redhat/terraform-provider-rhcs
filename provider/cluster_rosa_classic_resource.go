@@ -20,11 +20,15 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
+	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"os"
+
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 
 	semver "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -255,17 +259,8 @@ func (t *ClusterRosaClassicResourceType) NewResource(ctx context.Context,
 	return
 }
 
-func (r *ClusterRosaClassicResource) Create(ctx context.Context,
-	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse) {
-	// Get the plan:
-	state := &ClusterRosaClassicState{}
-	diags := request.Plan.Get(ctx, state)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
-		return
-	}
-
-	// Create the cluster:
+func createClassicClusterObject(ctx context.Context,
+	state *ClusterRosaClassicState, logger logging.Logger, diags diag.Diagnostics) (*cmv1.Cluster, error) {
 	builder := cmv1.NewCluster()
 	builder.Name(state.Name.Value)
 	builder.CloudProvider(cmv1.NewCloudProvider().ID(awsCloudProvider))
@@ -383,28 +378,32 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 		// TODO: update it to support all cluster versions
 		isSupported, err := checkSupportedVersion(state.Version.Value)
 		if err != nil {
-			r.logger.Error(ctx, "Error validating required cluster version %s\", err)")
-			response.Diagnostics.AddError(
-				"Can't build cluster",
-				fmt.Sprintf(
-					"Can't check if cluster version is supported '%s': %v",
-					state.Version.Value, err,
-				),
+			logger.Error(ctx, "Error validating required cluster version %s\", err)")
+			errHeadline := "Can't build cluster"
+			errDecription := fmt.Sprintf(
+				"Can't check if cluster version is supported '%s': %v",
+				state.Version.Value, err,
 			)
-			return
+			diags.AddError(
+				errHeadline,
+				errDecription,
+			)
+			return nil, errors.New(errHeadline + "\n" + errDecription)
 		}
 		if isSupported {
 			builder.Version(cmv1.NewVersion().ID(state.Version.Value))
 		} else {
-			r.logger.Error(ctx, "Cluster version %s is not supported", state.Version.Value)
-			response.Diagnostics.AddError(
-				"Can't build cluster",
-				fmt.Sprintf(
-					"Cluster version '%s' is not supported, the minimun supported version is %s",
-					state.Version.Value, MinVersion,
-				),
+			logger.Error(ctx, "Cluster version %s is not supported", state.Version.Value)
+			errHeadline := "Can't build cluster"
+			errDecription := fmt.Sprintf(
+				"Can't check if cluster version is supported '%s': %v",
+				state.Version.Value, err,
 			)
-			return
+			diags.AddError(
+				errHeadline,
+				errDecription,
+			)
+			return nil, errors.New(errHeadline + "\n" + errDecription)
 		}
 	}
 
@@ -416,6 +415,20 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 	}
 
 	object, err := builder.Build()
+	return object, err
+}
+
+func (r *ClusterRosaClassicResource) Create(ctx context.Context,
+	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse) {
+	// Get the plan:
+	state := &ClusterRosaClassicState{}
+	diags := request.Plan.Get(ctx, state)
+	response.Diagnostics.Append(diags...)
+	if response.Diagnostics.HasError() {
+		return
+	}
+
+	object, err := createClassicClusterObject(ctx, state, r.logger, diags)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't build cluster",
@@ -440,7 +453,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 	object = add.Body()
 
 	// Save the state:
-	r.populateState(ctx, object, state)
+	populateRosaClassicClusterState(ctx, object, state, r.logger, DefaultHttpClient{})
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
 }
@@ -470,7 +483,7 @@ func (r *ClusterRosaClassicResource) Read(ctx context.Context, request tfsdk.Rea
 	object := get.Body()
 
 	// Save the state:
-	r.populateState(ctx, object, state)
+	populateRosaClassicClusterState(ctx, object, state, r.logger, DefaultHttpClient{})
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
 }
@@ -532,7 +545,7 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 	object := update.Body()
 
 	// Update the state:
-	r.populateState(ctx, object, state)
+	populateRosaClassicClusterState(ctx, object, state, r.logger, DefaultHttpClient{})
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
 }
@@ -583,13 +596,23 @@ func (r *ClusterRosaClassicResource) ImportState(ctx context.Context, request tf
 
 	// Save the state:
 	state := &ClusterRosaClassicState{}
-	r.populateState(ctx, object, state)
+	err = populateRosaClassicClusterState(ctx, object, state, r.logger, DefaultHttpClient{})
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't populate cluster state",
+			fmt.Sprintf(
+				"Received error %v", err,
+			),
+		)
+		return
+	}
+
 	diags := response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
 }
 
-// populateState copies the data from the API object to the Terraform state.
-func (r *ClusterRosaClassicResource) populateState(ctx context.Context, object *cmv1.Cluster, state *ClusterRosaClassicState) {
+// populateRosaClassicClusterState copies the data from the API object to the Terraform state.
+func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, state *ClusterRosaClassicState, logger logging.Logger, httpClient HttpClient) error {
 	state.ID = types.String{
 		Value: object.ID(),
 	}
@@ -682,6 +705,9 @@ func (r *ClusterRosaClassicResource) populateState(ctx context.Context, object *
 
 	sts, ok := object.AWS().GetSTS()
 	if ok {
+		if state.Sts == nil {
+			state.Sts = &Sts{}
+		}
 		oidc_endpoint_url := sts.OIDCEndpointURL()
 		if strings.HasPrefix(oidc_endpoint_url, "https://") {
 			oidc_endpoint_url = strings.TrimPrefix(oidc_endpoint_url, "https://")
@@ -715,9 +741,9 @@ func (r *ClusterRosaClassicResource) populateState(ctx context.Context, object *
 				}
 			}
 		}
-		thumbprint, err := getThumbprint(sts.OIDCEndpointURL())
+		thumbprint, err := getThumbprint(sts.OIDCEndpointURL(), httpClient)
 		if err != nil {
-			r.logger.Error(ctx, "cannot get thumbprint", err)
+			logger.Error(ctx, "cannot get thumbprint", err)
 			state.Sts.Thumbprint = types.String{
 				Value: "",
 			}
@@ -801,15 +827,35 @@ func (r *ClusterRosaClassicResource) populateState(ctx context.Context, object *
 		Value: string(object.State()),
 	}
 
+	return nil
 }
 
-func getThumbprint(oidcEndpointURL string) (string, error) {
+type HttpClient interface {
+	Get(url string) (resp *http.Response, err error)
+}
+
+type DefaultHttpClient struct {
+}
+
+func (c DefaultHttpClient) Get(url string) (resp *http.Response, err error) {
+	return http.Get(url)
+}
+
+func getThumbprint(oidcEndpointURL string, httpClient HttpClient) (thumbprint string, err error) {
+	defer func() {
+		if panicErr := recover(); panicErr != nil {
+				fmt.Fprintf(os.Stderr, "recovering from: %q\n", panicErr)
+				thumbprint = ""
+				err = fmt.Errorf("recovering from: %q", panicErr)
+		}
+	}()
+
 	connect, err := url.ParseRequestURI(oidcEndpointURL)
 	if err != nil {
 		return "", err
 	}
 
-	response, err := http.Get(fmt.Sprintf("https://%s:443", connect.Host))
+	response, err := httpClient.Get(fmt.Sprintf("https://%s:443", connect.Host))
 	if err != nil {
 		return "", err
 	}
@@ -820,23 +866,30 @@ func getThumbprint(oidcEndpointURL string) (string, error) {
 	for _, cert := range certChain {
 		if cert.IsCA {
 			if bytes.Equal(cert.RawIssuer, cert.RawSubject) {
-				return sha1Hash(cert.Raw), nil
+				hash, err := sha1Hash(cert.Raw)
+				if err != nil {
+					return "", err
+				}
+				return hash, nil
 			}
 		}
 	}
 
 	// Fall back to using the last certficiate in the chain
 	cert := certChain[len(certChain)-1]
-	return sha1Hash(cert.Raw), nil
+	return sha1Hash(cert.Raw)
 }
 
 // sha1Hash computes the SHA1 of the byte array and returns the hex encoding as a string.
-func sha1Hash(data []byte) string {
+func sha1Hash(data []byte) (string, error) {
 	// nolint:gosec
 	hasher := sha1.New()
-	hasher.Write(data)
+	_, err := hasher.Write(data)
+	if err != nil {
+		return "", fmt.Errorf("Couldn't calculate hash:\n %v", err)
+	}
 	hashed := hasher.Sum(nil)
-	return hex.EncodeToString(hashed)
+	return hex.EncodeToString(hashed), nil
 }
 
 func checkSupportedVersion(clusterVersion string) (bool, error) {

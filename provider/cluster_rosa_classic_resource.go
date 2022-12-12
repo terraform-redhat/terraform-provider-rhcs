@@ -844,9 +844,9 @@ func (c DefaultHttpClient) Get(url string) (resp *http.Response, err error) {
 func getThumbprint(oidcEndpointURL string, httpClient HttpClient) (thumbprint string, err error) {
 	defer func() {
 		if panicErr := recover(); panicErr != nil {
-				fmt.Fprintf(os.Stderr, "recovering from: %q\n", panicErr)
-				thumbprint = ""
-				err = fmt.Errorf("recovering from: %q", panicErr)
+			fmt.Fprintf(os.Stderr, "recovering from: %q\n", panicErr)
+			thumbprint = ""
+			err = fmt.Errorf("recovering from: %q", panicErr)
 		}
 	}()
 
@@ -893,7 +893,8 @@ func sha1Hash(data []byte) (string, error) {
 }
 
 func checkSupportedVersion(clusterVersion string) (bool, error) {
-	v1, err := semver.NewVersion(clusterVersion)
+	rawID := strings.Replace(clusterVersion, "openshift-v", "", 1)
+	v1, err := semver.NewVersion(rawID)
 	if err != nil {
 		return false, err
 	}

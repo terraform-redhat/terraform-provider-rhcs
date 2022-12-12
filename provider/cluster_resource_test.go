@@ -31,6 +31,7 @@ package provider
 var _ = Describe("Cluster creation", func(***REMOVED*** {
 	clusterId := "1n2j3k4l5m6n7o8p9q0r"
 	clusterName := "my-cluster"
+	clusterVersion := "openshift-v4.11.12"
 	productId := "rosa"
 	cloudProviderId := "aws"
 	regionId := "us-east-1"
@@ -50,6 +51,9 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		clusterState := &ClusterState{
 			Name: types.String{
 				Value: clusterName,
+	***REMOVED***,
+			Version: types.String{
+				Value: clusterVersion,
 	***REMOVED***,
 			CloudRegion: types.String{
 				Value: regionId,
@@ -82,6 +86,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		Expect(clusterObject***REMOVED***.ToNot(BeNil(***REMOVED******REMOVED***
 
 		Expect(clusterObject.Name(***REMOVED******REMOVED***.To(Equal(clusterName***REMOVED******REMOVED***
+		Expect(clusterObject.Version(***REMOVED***.ID(***REMOVED******REMOVED***.To(Equal(clusterVersion***REMOVED******REMOVED***
 
 		id, ok := clusterObject.Region(***REMOVED***.GetID(***REMOVED***
 		Expect(ok***REMOVED***.To(BeTrue(***REMOVED******REMOVED***
@@ -138,6 +143,9 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 				"secret_access_key": awsSecretAccessKey,
 				"private_link":      privateLink,
 	***REMOVED***,
+			"version": map[string]interface{}{
+				"id": clusterVersion,
+	***REMOVED***,
 ***REMOVED***
 		clusterJsonString, err := json.Marshal(clusterJson***REMOVED***
 		Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
@@ -150,6 +158,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		populateClusterState(clusterObject, clusterState***REMOVED***
 
 		Expect(clusterState.ID.Value***REMOVED***.To(Equal(clusterId***REMOVED******REMOVED***
+		Expect(clusterState.Version.Value***REMOVED***.To(Equal(clusterVersion***REMOVED******REMOVED***
 		Expect(clusterState.Product.Value***REMOVED***.To(Equal(productId***REMOVED******REMOVED***
 		Expect(clusterState.CloudProvider.Value***REMOVED***.To(Equal(cloudProviderId***REMOVED******REMOVED***
 		Expect(clusterState.CloudRegion.Value***REMOVED***.To(Equal(regionId***REMOVED******REMOVED***

@@ -31,6 +31,7 @@ import (
 var _ = Describe("Cluster creation", func() {
 	clusterId := "1n2j3k4l5m6n7o8p9q0r"
 	clusterName := "my-cluster"
+	clusterVersion := "openshift-v4.11.12"
 	productId := "rosa"
 	cloudProviderId := "aws"
 	regionId := "us-east-1"
@@ -50,6 +51,9 @@ var _ = Describe("Cluster creation", func() {
 		clusterState := &ClusterState{
 			Name: types.String{
 				Value: clusterName,
+			},
+			Version: types.String{
+				Value: clusterVersion,
 			},
 			CloudRegion: types.String{
 				Value: regionId,
@@ -82,6 +86,7 @@ var _ = Describe("Cluster creation", func() {
 		Expect(clusterObject).ToNot(BeNil())
 
 		Expect(clusterObject.Name()).To(Equal(clusterName))
+		Expect(clusterObject.Version().ID()).To(Equal(clusterVersion))
 
 		id, ok := clusterObject.Region().GetID()
 		Expect(ok).To(BeTrue())
@@ -138,6 +143,9 @@ var _ = Describe("Cluster creation", func() {
 				"secret_access_key": awsSecretAccessKey,
 				"private_link":      privateLink,
 			},
+			"version": map[string]interface{}{
+				"id": clusterVersion,
+			},
 		}
 		clusterJsonString, err := json.Marshal(clusterJson)
 		Expect(err).To(BeNil())
@@ -150,6 +158,7 @@ var _ = Describe("Cluster creation", func() {
 		populateClusterState(clusterObject, clusterState)
 
 		Expect(clusterState.ID.Value).To(Equal(clusterId))
+		Expect(clusterState.Version.Value).To(Equal(clusterVersion))
 		Expect(clusterState.Product.Value).To(Equal(productId))
 		Expect(clusterState.CloudProvider.Value).To(Equal(cloudProviderId))
 		Expect(clusterState.CloudRegion.Value).To(Equal(regionId))

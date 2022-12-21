@@ -161,7 +161,6 @@ operator_iam_roles = [
 
 ```
 data "ocm_rosa_operator_roles" "operator_roles" {
-  cluster_id = ocm_cluster_rosa_classic.rosa_sts_cluster.id
   operator_role_prefix = var.operator_role_prefix
   account_role_prefix = var.account_role_prefix
 }

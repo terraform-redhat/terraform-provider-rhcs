@@ -32,9 +32,8 @@ type RosaOperatorRolesDataSourceType struct {
 }
 
 type RosaOperatorRolesDataSource struct {
-	logger         logging.Logger
-	clustersClient *cmv1.ClustersClient
-	awsInquiries   *cmv1.AWSInquiriesClient
+	logger       logging.Logger
+	awsInquiries *cmv1.AWSInquiriesClient
 }
 
 const (
@@ -87,11 +86,6 @@ func (t *RosaOperatorRolesDataSourceType) itemAttributes() map[string]tfsdk.Attr
 			Type:        types.StringType,
 			Computed:    true,
 		},
-		"role_arn": {
-			Description: "AWS Role ARN",
-			Type:        types.StringType,
-			Computed:    true,
-		},
 		"role_name": {
 			Description: "policy name",
 			Type:        types.StringType,
@@ -118,14 +112,12 @@ func (t *RosaOperatorRolesDataSourceType) NewDataSource(ctx context.Context,
 	parent := p.(*Provider)
 
 	// Get the collection of clusters:
-	clustersClient := parent.connection.ClustersMgmt().V1().Clusters()
 	awsInquiries := parent.connection.ClustersMgmt().V1().AWSInquiries()
 
 	// Create the resource:
 	result = &RosaOperatorRolesDataSource{
-		logger:         parent.logger,
-		clustersClient: clustersClient,
-		awsInquiries:   awsInquiries,
+		logger:       parent.logger,
+		awsInquiries: awsInquiries,
 	}
 	return
 }
@@ -161,56 +153,39 @@ func (t *RosaOperatorRolesDataSource) Read(ctx context.Context, request tfsdk.Re
 		return true
 	})
 
-	get, err := t.clustersClient.Cluster(state.ClusterID.Value).Get().SendContext(ctx)
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't find cluster",
-			fmt.Sprintf(
-				"Can't find cluster with identifier '%s': %v",
-				state.ClusterID.Value, err,
-			),
-		)
-		return
+	accountRolePrefix := DefaultAccountRolePrefix
+	if !state.AccountRolePrefix.Unknown && !state.AccountRolePrefix.Null && state.AccountRolePrefix.Value != "" {
+		accountRolePrefix = state.AccountRolePrefix.Value
 	}
-	object := get.Body()
-	sts, ok := object.AWS().GetSTS()
-	if ok {
-		accountRolePrefix := DefaultAccountRolePrefix
-		if !state.AccountRolePrefix.Unknown && !state.AccountRolePrefix.Null && state.AccountRolePrefix.Value != "" {
-			accountRolePrefix = state.AccountRolePrefix.Value
-		}
 
-		// TODO: use the sts.OperatorRolePrefix() if not empty
-		// There is a bug in the return value of sts.OperatorRolePrefix() - it's always empty string
-		for _, operatorRole := range sts.OperatorIAMRoles() {
-			r := OperatorIAMRole{
-				Name: types.String{
-					Value: operatorRole.Name(),
-				},
-				Namespace: types.String{
-					Value: operatorRole.Namespace(),
-				},
-				RoleARN: types.String{
-					Value: operatorRole.RoleARN(),
-				},
-				RoleName: types.String{
-					Value: getRoleName(state.OperatorRolePrefix.Value, operatorRole),
-				},
-				PolicyName: types.String{
-					Value: getPolicyName(accountRolePrefix, operatorRole.Namespace(), operatorRole.Name()),
-				},
-				ServiceAccounts: buildServiceAccountsArray(stsOperatorMap[operatorRole.Namespace()].ServiceAccounts(), operatorRole.Namespace()),
-			}
-			state.OperatorIAMRoles = append(state.OperatorIAMRoles, &r)
+	// TODO: use the sts.OperatorRolePrefix() if not empty
+	// There is a bug in the return value of sts.OperatorRolePrefix() - it's always empty string
+	for _, operatorRole := range stsOperatorMap {
+		r := OperatorIAMRole{
+			Name: types.String{
+				Value: operatorRole.Name(),
+			},
+			Namespace: types.String{
+				Value: operatorRole.Namespace(),
+			},
+			RoleName: types.String{
+				Value: getRoleName(state.OperatorRolePrefix.Value, operatorRole),
+			},
+			PolicyName: types.String{
+				Value: getPolicyName(accountRolePrefix, operatorRole.Namespace(), operatorRole.Name()),
+			},
+			ServiceAccounts: buildServiceAccountsArray(stsOperatorMap[operatorRole.Namespace()].ServiceAccounts(), operatorRole.Namespace()),
 		}
+		state.OperatorIAMRoles = append(state.OperatorIAMRoles, &r)
 	}
+
 	// Save the state:
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
 }
 
 // TODO: should be in a separate repo
-func getRoleName(rolePrefix string, operatorRole *cmv1.OperatorIAMRole) string {
+func getRoleName(rolePrefix string, operatorRole *cmv1.STSOperator) string {
 	role := fmt.Sprintf("%s-%s-%s", rolePrefix, operatorRole.Namespace(), operatorRole.Name())
 	if len(role) > 64 {
 		role = role[0:64]

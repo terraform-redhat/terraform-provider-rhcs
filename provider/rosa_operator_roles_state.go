@@ -28,7 +28,6 @@ type RosaOperatorRolesState struct {
 type OperatorIAMRole struct {
 	Name            types.String `tfsdk:"operator_name"`
 	Namespace       types.String `tfsdk:"operator_namespace"`
-	RoleARN         types.String `tfsdk:"role_arn"`
 	RoleName        types.String `tfsdk:"role_name"`
 	PolicyName      types.String `tfsdk:"policy_name"`
 	ServiceAccounts types.List   `tfsdk:"service_accounts"`

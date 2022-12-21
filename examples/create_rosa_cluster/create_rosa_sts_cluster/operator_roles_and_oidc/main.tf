@@ -34,7 +34,6 @@ provider "ocm" {
 }
 
 data "ocm_rosa_operator_roles" "operator_roles" {
-  cluster_id =var.cluster_id
   operator_role_prefix = var.operator_role_prefix
   account_role_prefix = var.account_role_prefix
 }

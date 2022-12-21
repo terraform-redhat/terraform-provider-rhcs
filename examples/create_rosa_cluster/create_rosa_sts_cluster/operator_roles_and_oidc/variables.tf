@@ -7,6 +7,18 @@ variable operator_role_prefix {
     type = string
 }
 
+variable cluster_id {
+    type = string
+}
+
+variable oidc_endpoint_url {
+    type = string
+}
+
+variable oidc_thumbprint {
+    type = string
+}
+
 variable account_role_prefix {
     type = string
     default = ""

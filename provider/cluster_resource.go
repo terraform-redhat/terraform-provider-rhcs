@@ -41,189 +41,56 @@ type ClusterResource struct {
 
 func (t *ClusterResourceType) GetSchema(ctx context.Context) (result tfsdk.Schema,
 	diags diag.Diagnostics) {
+
 	result = tfsdk.Schema{
 		Description: "OpenShift managed cluster.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
-				Description: "Unique identifier of the cluster.",
-				Type:        types.StringType,
-				Computed:    true,
-			},
-			"product": {
-				Description: "Product ID OSD or Rosa",
-				Type:        types.StringType,
-				Required:    true,
-			},
-			"name": {
-				Description: "Name of the cluster.",
-				Type:        types.StringType,
-				Required:    true,
-			},
-			"cloud_provider": {
-				Description: "Cloud provider identifier, for example 'aws'.",
-				Type:        types.StringType,
-				Required:    true,
-			},
-			"cloud_region": {
-				Description: "Cloud region identifier, for example 'us-east-1'.",
-				Type:        types.StringType,
-				Required:    true,
-			},
-			"multi_az": {
-				Description: "Indicates if the cluster should be deployed to " +
-					"multiple availability zones. Default value is 'false'.",
-				Type:     types.BoolType,
-				Optional: true,
-				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
-				},
-			},
-			"properties": {
-				Description: "User defined properties.",
-				Type: types.MapType{
-					ElemType: types.StringType,
-				},
-				Optional: true,
-				Computed: true,
-			},
-			"api_url": {
-				Description: "URL of the API server.",
-				Type:        types.StringType,
-				Computed:    true,
-			},
-			"console_url": {
-				Description: "URL of the console.",
-				Type:        types.StringType,
-				Computed:    true,
-			},
-			"compute_nodes": {
-				Description: "Number of compute nodes of the cluster.",
-				Type:        types.Int64Type,
-				Optional:    true,
-				Computed:    true,
-			},
-			"compute_machine_type": {
-				Description: "Identifier of the machine type used by the compute nodes, " +
-					"for example `r5.xlarge`. Use the `ocm_machine_types` data " +
-					"source to find the possible values.",
-				Type:     types.StringType,
-				Optional: true,
-				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
-				},
-			},
-			"ccs_enabled": {
-				Description: "Enables customer cloud subscription.",
-				Type:        types.BoolType,
-				Optional:    true,
-				Computed:    true,
-			},
-			"aws_account_id": {
-				Description: "Identifier of the AWS account.",
-				Type:        types.StringType,
-				Optional:    true,
-			},
-			"aws_access_key_id": {
-				Description: "Identifier of the AWS access key.",
-				Type:        types.StringType,
-				Optional:    true,
-				Sensitive:   true,
-			},
-			"aws_secret_access_key": {
-				Description: "AWS access key.",
-				Type:        types.StringType,
-				Optional:    true,
-				Sensitive:   true,
-			},
-			"aws_subnet_ids": {
-				Description: "aws subnet ids",
-				Type: types.ListType{
-					ElemType: types.StringType,
-				},
-				Optional: true,
-			},
-			"aws_private_link": {
-				Description: "aws subnet ids",
-				Type:        types.BoolType,
-				Optional:    true,
-				Computed:    true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
-				},
-			},
-			"availability_zones": {
-				Description: "availability zones",
-				Type: types.ListType{
-					ElemType: types.StringType,
-				},
-				Optional: true,
-			},
-			"machine_cidr": {
-				Description: "Block of IP addresses for nodes.",
-				Type:        types.StringType,
-				Optional:    true,
-				Computed:    true,
-			},
-			"proxy": {
-				Description: "proxy",
-				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-					"http_proxy": {
-						Description: "http proxy",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"https_proxy": {
-						Description: "https proxy",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"no_proxy": {
-						Description: "no proxy",
-						Type:        types.StringType,
-						Optional:    true,
-					},
-				}),
-				Optional: true,
-			},
-			"service_cidr": {
-				Description: "Block of IP addresses for services.",
-				Type:        types.StringType,
-				Optional:    true,
-				Computed:    true,
-			},
-			"pod_cidr": {
-				Description: "Block of IP addresses for pods.",
-				Type:        types.StringType,
-				Optional:    true,
-				Computed:    true,
-			},
-			"host_prefix": {
-				Description: "Length of the prefix of the subnet assigned to each node.",
-				Type:        types.Int64Type,
-				Optional:    true,
-				Computed:    true,
-			},
-			"version": {
-				Description: "Identifier of the version of OpenShift, for example 'openshift-v4.1.0'.",
-				Type:        types.StringType,
-				Optional:    true,
-				Computed:    true,
-			},
-			"state": {
-				Description: "State of the cluster.",
-				Type:        types.StringType,
-				Computed:    true,
-			},
-			"wait": {
-				Description: "Wait till the cluster is ready.",
-				Type:        types.BoolType,
-				Optional:    true,
-			},
-		},
+		Attributes:  clusterResourceAttributes(),
 	}
 	return
+}
+
+func clusterResourceAttributes() map[string]tfsdk.Attribute {
+	attributes := commonAttributesForClusterResources()
+	attributes["product"] = tfsdk.Attribute{
+		Description: "Product ID OSD or Rosa",
+		Type:        types.StringType,
+		Required:    true,
+	}
+	attributes["cloud_provider"] = tfsdk.Attribute{
+		Description: "Cloud provider identifier, for example 'aws'.",
+		Type:        types.StringType,
+		Required:    true,
+	}
+	attributes["ccs_enabled"] = tfsdk.Attribute{
+		Description: "Enables customer cloud subscription.",
+		Type:        types.BoolType,
+		Optional:    true,
+		Computed:    true,
+	}
+	attributes["aws_access_key_id"] = tfsdk.Attribute{
+		Description: "Identifier of the AWS access key.",
+		Type:        types.StringType,
+		Optional:    true,
+		Sensitive:   true,
+	}
+	attributes["aws_secret_access_key"] = tfsdk.Attribute{
+		Description: "AWS access key.",
+		Type:        types.StringType,
+		Optional:    true,
+		Sensitive:   true,
+	}
+	attributes["wait"] = tfsdk.Attribute{
+		Description: "Wait till the cluster is ready.",
+		Type:        types.BoolType,
+		Optional:    true,
+	}
+	attributes["aws_account_id"] = tfsdk.Attribute{
+		Description: "Identifier of the AWS account.",
+		Type:        types.StringType,
+		Optional:    true,
+	}
+
+	return attributes
 }
 
 func (t *ClusterResourceType) NewResource(ctx context.Context,

@@ -23,7 +23,6 @@ variable operator_role_properties {
         service_accounts = list(string)
         operator_name = string
         operator_namespace = string
-        role_arn = string
     })
 
 }

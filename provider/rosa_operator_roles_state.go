@@ -19,7 +19,6 @@ package provider
 import "github.com/hashicorp/terraform-plugin-framework/types"
 
 type RosaOperatorRolesState struct {
-	ClusterID          types.String       `tfsdk:"cluster_id"`
 	OperatorRolePrefix types.String       `tfsdk:"operator_role_prefix"`
 	AccountRolePrefix  types.String       `tfsdk:"account_role_prefix"`
 	OperatorIAMRoles   []*OperatorIAMRole `tfsdk:"operator_iam_roles"`
@@ -28,7 +27,6 @@ type RosaOperatorRolesState struct {
 type OperatorIAMRole struct {
 	Name            types.String `tfsdk:"operator_name"`
 	Namespace       types.String `tfsdk:"operator_namespace"`
-	RoleARN         types.String `tfsdk:"role_arn"`
 	RoleName        types.String `tfsdk:"role_name"`
 	PolicyName      types.String `tfsdk:"policy_name"`
 	ServiceAccounts types.List   `tfsdk:"service_accounts"`

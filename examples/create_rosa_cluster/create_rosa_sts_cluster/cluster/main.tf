@@ -27,7 +27,6 @@ terraform {
   }
 }
 
-
 provider "ocm" {
   token = var.token
   url = var.url
@@ -57,19 +56,4 @@ resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
     rosa_creator_arn = data.aws_caller_identity.current.arn
   }
   sts = local.sts_roles
-}
-
-data "ocm_rosa_operator_roles" "operator_roles" {
-  cluster_id = ocm_cluster_rosa_classic.rosa_sts_cluster.id
-  operator_role_prefix = var.operator_role_prefix
-  account_role_prefix = var.account_role_prefix
-}
-
-module operator_roles {
-    source  = "git::https://github.com/openshift-online/terraform-provider-ocm.git//modules/aws_roles"
-
-    cluster_id = ocm_cluster_rosa_classic.rosa_sts_cluster.id
-    rh_oidc_provider_thumbprint = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.thumbprint
-    rh_oidc_provider_url = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.oidc_endpoint_url
-    operator_roles_properties = data.ocm_rosa_operator_roles.operator_roles.operator_iam_roles
 }

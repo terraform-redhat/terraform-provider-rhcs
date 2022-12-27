@@ -1,23 +1,11 @@
-# ROSA STS cluster creation example
+# ROSA STS cluster with operator IAM roles creation example
 
-This example shows how to create an STS _ROSA_ cluster. _ROSA_ stands for Red Hat Openshift Service on AWS
+This example shows how to create an STS _ROSA_ cluster and operator IAM roles . _ROSA_ stands for Red Hat Openshift Service on AWS
 and is a cluster that is created in the AWS cloud infrastructure.
+In order to create an STS cluster the user also need to create a specific IAM roles called "operator IAM roles" and oidc provider. 
 
-To run it:
+To run it you should create the resources in the following order: 
+* Create a cluster 
+* Create the operator IAM roles and oidc provider
 
-* Provide OCM Authentication Token
-
-OCM authentication token that you can get [here](https://console.redhat.com/openshift/token).
-
-```
-export TF_VAR_token=...
-```
-
-* Decide STS operator_role_prefix
-
-```
-export TF_VAR_operator_role_prefix==...
-```
-
-`main.tf` file and then run the `terraform apply` command.
-
+To remove the cluster, you shouldn't remove the operator IAM roles till the cluster was successfully removed. 

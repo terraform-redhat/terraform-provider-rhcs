@@ -23,7 +23,6 @@ variable operator_roles_properties {
         service_accounts = list(string***REMOVED***
         operator_name = string
         operator_namespace = string
-        role_arn = string
     }***REMOVED******REMOVED***
     validation {
       condition     = length(var.operator_roles_properties***REMOVED*** == 6

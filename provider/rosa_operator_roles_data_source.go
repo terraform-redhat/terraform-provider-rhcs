@@ -32,9 +32,8 @@ type RosaOperatorRolesDataSourceType struct {
 }
 
 type RosaOperatorRolesDataSource struct {
-	logger         logging.Logger
-	clustersClient *cmv1.ClustersClient
-	awsInquiries   *cmv1.AWSInquiriesClient
+	logger       logging.Logger
+	awsInquiries *cmv1.AWSInquiriesClient
 }
 
 const (
@@ -47,11 +46,6 @@ func (t *RosaOperatorRolesDataSourceType***REMOVED*** GetSchema(ctx context.Cont
 	result = tfsdk.Schema{
 		Description: "List of rosa operator role for a specific cluster.",
 		Attributes: map[string]tfsdk.Attribute{
-			"cluster_id": {
-				Description: "Cluster id.",
-				Type:        types.StringType,
-				Required:    true,
-	***REMOVED***,
 			"operator_role_prefix": {
 				Description: "Operator role prefix.",
 				Type:        types.StringType,
@@ -87,11 +81,6 @@ func (t *RosaOperatorRolesDataSourceType***REMOVED*** itemAttributes(***REMOVED*
 			Type:        types.StringType,
 			Computed:    true,
 ***REMOVED***,
-		"role_arn": {
-			Description: "AWS Role ARN",
-			Type:        types.StringType,
-			Computed:    true,
-***REMOVED***,
 		"role_name": {
 			Description: "policy name",
 			Type:        types.StringType,
@@ -118,14 +107,12 @@ func (t *RosaOperatorRolesDataSourceType***REMOVED*** NewDataSource(ctx context.
 	parent := p.(*Provider***REMOVED***
 
 	// Get the collection of clusters:
-	clustersClient := parent.connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Clusters(***REMOVED***
 	awsInquiries := parent.connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.AWSInquiries(***REMOVED***
 
 	// Create the resource:
 	result = &RosaOperatorRolesDataSource{
-		logger:         parent.logger,
-		clustersClient: clustersClient,
-		awsInquiries:   awsInquiries,
+		logger:       parent.logger,
+		awsInquiries: awsInquiries,
 	}
 	return
 }
@@ -161,56 +148,39 @@ func (t *RosaOperatorRolesDataSource***REMOVED*** Read(ctx context.Context, requ
 		return true
 	}***REMOVED***
 
-	get, err := t.clustersClient.Cluster(state.ClusterID.Value***REMOVED***.Get(***REMOVED***.SendContext(ctx***REMOVED***
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't find cluster",
-			fmt.Sprintf(
-				"Can't find cluster with identifier '%s': %v",
-				state.ClusterID.Value, err,
-			***REMOVED***,
-		***REMOVED***
-		return
+	accountRolePrefix := DefaultAccountRolePrefix
+	if !state.AccountRolePrefix.Unknown && !state.AccountRolePrefix.Null && state.AccountRolePrefix.Value != "" {
+		accountRolePrefix = state.AccountRolePrefix.Value
 	}
-	object := get.Body(***REMOVED***
-	sts, ok := object.AWS(***REMOVED***.GetSTS(***REMOVED***
-	if ok {
-		accountRolePrefix := DefaultAccountRolePrefix
-		if !state.AccountRolePrefix.Unknown && !state.AccountRolePrefix.Null && state.AccountRolePrefix.Value != "" {
-			accountRolePrefix = state.AccountRolePrefix.Value
-***REMOVED***
 
-		// TODO: use the sts.OperatorRolePrefix(***REMOVED*** if not empty
-		// There is a bug in the return value of sts.OperatorRolePrefix(***REMOVED*** - it's always empty string
-		for _, operatorRole := range sts.OperatorIAMRoles(***REMOVED*** {
-			r := OperatorIAMRole{
-				Name: types.String{
-					Value: operatorRole.Name(***REMOVED***,
-		***REMOVED***,
-				Namespace: types.String{
-					Value: operatorRole.Namespace(***REMOVED***,
-		***REMOVED***,
-				RoleARN: types.String{
-					Value: operatorRole.RoleARN(***REMOVED***,
-		***REMOVED***,
-				RoleName: types.String{
-					Value: getRoleName(state.OperatorRolePrefix.Value, operatorRole***REMOVED***,
-		***REMOVED***,
-				PolicyName: types.String{
-					Value: getPolicyName(accountRolePrefix, operatorRole.Namespace(***REMOVED***, operatorRole.Name(***REMOVED******REMOVED***,
-		***REMOVED***,
-				ServiceAccounts: buildServiceAccountsArray(stsOperatorMap[operatorRole.Namespace(***REMOVED***].ServiceAccounts(***REMOVED***, operatorRole.Namespace(***REMOVED******REMOVED***,
-	***REMOVED***
-			state.OperatorIAMRoles = append(state.OperatorIAMRoles, &r***REMOVED***
+	// TODO: use the sts.OperatorRolePrefix(***REMOVED*** if not empty
+	// There is a bug in the return value of sts.OperatorRolePrefix(***REMOVED*** - it's always empty string
+	for _, operatorRole := range stsOperatorMap {
+		r := OperatorIAMRole{
+			Name: types.String{
+				Value: operatorRole.Name(***REMOVED***,
+	***REMOVED***,
+			Namespace: types.String{
+				Value: operatorRole.Namespace(***REMOVED***,
+	***REMOVED***,
+			RoleName: types.String{
+				Value: getRoleName(state.OperatorRolePrefix.Value, operatorRole***REMOVED***,
+	***REMOVED***,
+			PolicyName: types.String{
+				Value: getPolicyName(accountRolePrefix, operatorRole.Namespace(***REMOVED***, operatorRole.Name(***REMOVED******REMOVED***,
+	***REMOVED***,
+			ServiceAccounts: buildServiceAccountsArray(stsOperatorMap[operatorRole.Namespace(***REMOVED***].ServiceAccounts(***REMOVED***, operatorRole.Namespace(***REMOVED******REMOVED***,
 ***REMOVED***
+		state.OperatorIAMRoles = append(state.OperatorIAMRoles, &r***REMOVED***
 	}
+
 	// Save the state:
 	diags = response.State.Set(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
 }
 
 // TODO: should be in a separate repo
-func getRoleName(rolePrefix string, operatorRole *cmv1.OperatorIAMRole***REMOVED*** string {
+func getRoleName(rolePrefix string, operatorRole *cmv1.STSOperator***REMOVED*** string {
 	role := fmt.Sprintf("%s-%s-%s", rolePrefix, operatorRole.Namespace(***REMOVED***, operatorRole.Name(***REMOVED******REMOVED***
 	if len(role***REMOVED*** > 64 {
 		role = role[0:64]

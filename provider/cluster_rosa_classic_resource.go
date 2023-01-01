@@ -509,16 +509,45 @@ func (r *ClusterRosaClassicResource***REMOVED*** Update(ctx context.Context, req
 	}
 
 	// Send request to update the cluster:
-	builder := cmv1.NewCluster(***REMOVED***
-	var nodes *cmv1.ClusterNodesBuilder
+	updateNodes := false
+	clusterBuilder := cmv1.NewCluster(***REMOVED***
+	clusterNodesBuilder := cmv1.NewClusterNodes(***REMOVED***
 	compute, ok := shouldPatchInt(state.ComputeNodes, plan.ComputeNodes***REMOVED***
 	if ok {
-		nodes.Compute(int(compute***REMOVED******REMOVED***
+		clusterNodesBuilder = clusterNodesBuilder.Compute(int(compute***REMOVED******REMOVED***
+		updateNodes = true
 	}
-	if !nodes.Empty(***REMOVED*** {
-		builder.Nodes(nodes***REMOVED***
+
+	if !plan.AutoScalingEnabled.Unknown && !plan.AutoScalingEnabled.Null && plan.AutoScalingEnabled.Value {
+		// autoscaling enabled
+		autoscaling := cmv1.NewMachinePoolAutoscaling(***REMOVED***
+
+		if !plan.MaxReplicas.Unknown && !plan.MaxReplicas.Null {
+			autoscaling = autoscaling.MaxReplicas(int(plan.MaxReplicas.Value***REMOVED******REMOVED***
+***REMOVED***
+		if !plan.MinReplicas.Unknown && !plan.MinReplicas.Null {
+			autoscaling = autoscaling.MinReplicas(int(plan.MinReplicas.Value***REMOVED******REMOVED***
+***REMOVED***
+
+		clusterNodesBuilder = clusterNodesBuilder.AutoscaleCompute(autoscaling***REMOVED***
+		updateNodes = true
+
+	} else {
+		if (!plan.MaxReplicas.Unknown && !plan.MaxReplicas.Null***REMOVED*** || (!plan.MinReplicas.Unknown && !plan.MinReplicas.Null***REMOVED*** {
+			response.Diagnostics.AddError(
+				"Can't update cluster",
+				fmt.Sprintf(
+					"Can't update MaxReplica and/or MinReplica of cluster when autoscaling is not enabled",
+				***REMOVED***,
+			***REMOVED***
+			return
+***REMOVED***
 	}
-	patch, err := builder.Build(***REMOVED***
+
+	if updateNodes {
+		clusterBuilder = clusterBuilder.Nodes(clusterNodesBuilder***REMOVED***
+	}
+	clusterSpec, err := clusterBuilder.Build(***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't build cluster patch",
@@ -530,7 +559,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** Update(ctx context.Context, req
 		return
 	}
 	update, err := r.collection.Cluster(state.ID.Value***REMOVED***.Update(***REMOVED***.
-		Body(patch***REMOVED***.
+		Body(clusterSpec***REMOVED***.
 		SendContext(ctx***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -542,6 +571,9 @@ func (r *ClusterRosaClassicResource***REMOVED*** Update(ctx context.Context, req
 		***REMOVED***
 		return
 	}
+
+	// update the autoscaling enabled with the plan value (important for nil and false cases***REMOVED***
+	state.AutoScalingEnabled = plan.AutoScalingEnabled
 	object := update.Body(***REMOVED***
 
 	// Update the state:
@@ -651,6 +683,32 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		Value: object.Nodes(***REMOVED***.ComputeMachineType(***REMOVED***.ID(***REMOVED***,
 	}
 
+	autoScaleCompute, ok := object.Nodes(***REMOVED***.GetAutoscaleCompute(***REMOVED***
+	if ok {
+		var maxReplicas, minReplicas int
+		state.AutoScalingEnabled = types.Bool{
+			Value: true,
+***REMOVED***
+
+		maxReplicas, ok = autoScaleCompute.GetMaxReplicas(***REMOVED***
+		if ok {
+			state.MaxReplicas = types.Int64{
+				Value: int64(maxReplicas***REMOVED***,
+	***REMOVED***
+***REMOVED***
+
+		minReplicas, ok = autoScaleCompute.GetMinReplicas(***REMOVED***
+		if ok {
+			state.MinReplicas = types.Int64{
+				Value: int64(minReplicas***REMOVED***,
+	***REMOVED***
+***REMOVED***
+	} else {
+		// autoscaling not enabled - initialize the MaxReplica and MinReplica
+		state.MaxReplicas.Null = true
+		state.MinReplicas.Null = true
+	}
+
 	azs, ok := object.Nodes(***REMOVED***.GetAvailabilityZones(***REMOVED***
 	if ok {
 		state.AvailabilityZones.Elems = make([]attr.Value, 0***REMOVED***
@@ -667,21 +725,6 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 
 	state.EtcdEncryption = types.Bool{
 		Value: object.EtcdEncryption(***REMOVED***,
-	}
-
-	autoscaleCompute := object.Nodes(***REMOVED***.AutoscaleCompute(***REMOVED***
-	if autoscaleCompute != nil {
-		state.AutoScalingEnabled = types.Bool{
-			Value: true,
-***REMOVED***
-
-		state.MaxReplicas = types.Int64{
-			Value: int64(autoscaleCompute.MaxReplicas(***REMOVED******REMOVED***,
-***REMOVED***
-
-		state.MinReplicas = types.Int64{
-			Value: int64(autoscaleCompute.MinReplicas(***REMOVED******REMOVED***,
-***REMOVED***
 	}
 
 	//The API does not return account id

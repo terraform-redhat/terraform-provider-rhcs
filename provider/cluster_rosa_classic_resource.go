@@ -509,16 +509,45 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 	}
 
 	// Send request to update the cluster:
-	builder := cmv1.NewCluster()
-	var nodes *cmv1.ClusterNodesBuilder
+	updateNodes := false
+	clusterBuilder := cmv1.NewCluster()
+	clusterNodesBuilder := cmv1.NewClusterNodes()
 	compute, ok := shouldPatchInt(state.ComputeNodes, plan.ComputeNodes)
 	if ok {
-		nodes.Compute(int(compute))
+		clusterNodesBuilder = clusterNodesBuilder.Compute(int(compute))
+		updateNodes = true
 	}
-	if !nodes.Empty() {
-		builder.Nodes(nodes)
+
+	if !plan.AutoScalingEnabled.Unknown && !plan.AutoScalingEnabled.Null && plan.AutoScalingEnabled.Value {
+		// autoscaling enabled
+		autoscaling := cmv1.NewMachinePoolAutoscaling()
+
+		if !plan.MaxReplicas.Unknown && !plan.MaxReplicas.Null {
+			autoscaling = autoscaling.MaxReplicas(int(plan.MaxReplicas.Value))
+		}
+		if !plan.MinReplicas.Unknown && !plan.MinReplicas.Null {
+			autoscaling = autoscaling.MinReplicas(int(plan.MinReplicas.Value))
+		}
+
+		clusterNodesBuilder = clusterNodesBuilder.AutoscaleCompute(autoscaling)
+		updateNodes = true
+
+	} else {
+		if (!plan.MaxReplicas.Unknown && !plan.MaxReplicas.Null) || (!plan.MinReplicas.Unknown && !plan.MinReplicas.Null) {
+			response.Diagnostics.AddError(
+				"Can't update cluster",
+				fmt.Sprintf(
+					"Can't update MaxReplica and/or MinReplica of cluster when autoscaling is not enabled",
+				),
+			)
+			return
+		}
 	}
-	patch, err := builder.Build()
+
+	if updateNodes {
+		clusterBuilder = clusterBuilder.Nodes(clusterNodesBuilder)
+	}
+	clusterSpec, err := clusterBuilder.Build()
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't build cluster patch",
@@ -530,7 +559,7 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 		return
 	}
 	update, err := r.collection.Cluster(state.ID.Value).Update().
-		Body(patch).
+		Body(clusterSpec).
 		SendContext(ctx)
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -542,6 +571,9 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 		)
 		return
 	}
+
+	// update the autoscaling enabled with the plan value (important for nil and false cases)
+	state.AutoScalingEnabled = plan.AutoScalingEnabled
 	object := update.Body()
 
 	// Update the state:
@@ -651,6 +683,32 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		Value: object.Nodes().ComputeMachineType().ID(),
 	}
 
+	autoScaleCompute, ok := object.Nodes().GetAutoscaleCompute()
+	if ok {
+		var maxReplicas, minReplicas int
+		state.AutoScalingEnabled = types.Bool{
+			Value: true,
+		}
+
+		maxReplicas, ok = autoScaleCompute.GetMaxReplicas()
+		if ok {
+			state.MaxReplicas = types.Int64{
+				Value: int64(maxReplicas),
+			}
+		}
+
+		minReplicas, ok = autoScaleCompute.GetMinReplicas()
+		if ok {
+			state.MinReplicas = types.Int64{
+				Value: int64(minReplicas),
+			}
+		}
+	} else {
+		// autoscaling not enabled - initialize the MaxReplica and MinReplica
+		state.MaxReplicas.Null = true
+		state.MinReplicas.Null = true
+	}
+
 	azs, ok := object.Nodes().GetAvailabilityZones()
 	if ok {
 		state.AvailabilityZones.Elems = make([]attr.Value, 0)
@@ -667,21 +725,6 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 
 	state.EtcdEncryption = types.Bool{
 		Value: object.EtcdEncryption(),
-	}
-
-	autoscaleCompute := object.Nodes().AutoscaleCompute()
-	if autoscaleCompute != nil {
-		state.AutoScalingEnabled = types.Bool{
-			Value: true,
-		}
-
-		state.MaxReplicas = types.Int64{
-			Value: int64(autoscaleCompute.MaxReplicas()),
-		}
-
-		state.MinReplicas = types.Int64{
-			Value: int64(autoscaleCompute.MinReplicas()),
-		}
 	}
 
 	//The API does not return account id

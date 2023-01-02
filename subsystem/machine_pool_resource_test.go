@@ -42,7 +42,7 @@ var _ = Describe("Machine pool creation", func() {
 		)
 	})
 
-	It("Can create machine pool", func() {
+	It("Can create machine pool with compute nodes", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
@@ -83,4 +83,130 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
 		Expect(resource).To(MatchJQ(".attributes.replicas", 10.0))
 	})
+
+	It("Can create machine pool with autoscaling enabled and update to compute nodes", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				),
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "autoscaling": {
+				  	"kind": "MachinePoolAutoscaling",
+				  	"max_replicas": 2,
+				  	"min_replicas": 0
+				  },
+				  "instance_type": "r5.xlarge"
+				}`),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "autoscaling": {
+				    "max_replicas": 2,
+				    "min_replicas": 0	  
+				  }
+				}`),
+			),
+		)
+
+		// Run the apply command to create the machine pool resource:
+		terraform.Source(`
+		  resource "ocm_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    autoscaling_enabled = "true"
+		    min_replicas = "0"
+		    max_replicas = "2"
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		// Check the state:
+		resource := terraform.Resource("ocm_machine_pool", "my_pool")
+		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+		Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
+		Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
+		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
+		Expect(resource).To(MatchJQ(".attributes.autoscaling_enabled", true))
+		Expect(resource).To(MatchJQ(".attributes.min_replicas", float64(0)))
+		Expect(resource).To(MatchJQ(".attributes.max_replicas", float64(2)))
+
+		server.AppendHandlers(
+			// First get is for the Read function
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool"),
+				RespondWithJSON(http.StatusOK, `
+				{
+				  "id": "my-pool",
+				  "kind": "MachinePool",
+				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
+				  "autoscaling": {
+				  	"kind": "MachinePoolAutoscaling",
+				  	"max_replicas": 2,
+				  	"min_replicas": 0
+				  },
+				  "instance_type": "r5.xlarge"
+				}`),
+			),
+			// Second get is for the Update function
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool"),
+				RespondWithJSON(http.StatusOK, `
+				{
+				  "id": "my-pool",
+				  "kind": "MachinePool",
+				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
+				  "autoscaling": {
+				  	"kind": "MachinePoolAutoscaling",
+				  	"max_replicas": 2,
+				  	"min_replicas": 0
+				  },
+				  "instance_type": "r5.xlarge"
+				}`),
+			),
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPatch,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
+				),
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "replicas": 10
+				}`),
+				RespondWithJSON(http.StatusOK, `
+				{
+				  "id": "my-pool",
+				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
+				  "kind": "MachinePool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 10
+				}`),
+			),
+		)
+		// Run the apply command to update the machine pool:
+		terraform.Source(`
+		  resource "ocm_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 10
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		// Check the state:
+		resource = terraform.Resource("ocm_machine_pool", "my_pool")
+		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+		Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
+		Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
+		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
+		Expect(resource).To(MatchJQ(".attributes.replicas", float64(10)))
+	})
+
 })

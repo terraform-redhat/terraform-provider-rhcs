@@ -574,6 +574,9 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 
 	// update the autoscaling enabled with the plan value (important for nil and false cases)
 	state.AutoScalingEnabled = plan.AutoScalingEnabled
+	// update the ComputeNodes with the plan value (important for nil and zero value cases)
+	state.ComputeNodes = plan.ComputeNodes
+
 	object := update.Body()
 
 	// Update the state:

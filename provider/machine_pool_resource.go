@@ -67,7 +67,22 @@ func (t *MachinePoolResourceType***REMOVED*** GetSchema(ctx context.Context***RE
 			"replicas": {
 				Description: "The number of machines of the pool",
 				Type:        types.Int64Type,
-				Required:    true,
+				Optional:    true,
+	***REMOVED***,
+			"autoscaling_enabled": {
+				Description: "Enables autoscaling.",
+				Type:        types.BoolType,
+				Optional:    true,
+	***REMOVED***,
+			"min_replicas": {
+				Description: "Min replicas.",
+				Type:        types.Int64Type,
+				Optional:    true,
+	***REMOVED***,
+			"max_replicas": {
+				Description: "Max replicas.",
+				Type:        types.Int64Type,
+				Optional:    true,
 	***REMOVED***,
 ***REMOVED***,
 	}
@@ -123,10 +138,39 @@ func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context,
 	}
 
 	// Create the machine pool:
-	builder := cmv1.NewMachinePool(***REMOVED***
+	builder := cmv1.NewMachinePool(***REMOVED***.ID(state.ID.Value***REMOVED***.InstanceType(state.MachineType.Value***REMOVED***
 	builder.ID(state.Name.Value***REMOVED***
-	builder.InstanceType(state.MachineType.Value***REMOVED***
-	builder.Replicas(int(state.Replicas.Value***REMOVED******REMOVED***
+
+	autoscalingEnabled := false
+	computeNodeEnabled := false
+	var errMsg string
+
+	autoscalingEnabled, errMsg = getAutoscaling(state, builder***REMOVED***
+	if errMsg != "" {
+		response.Diagnostics.AddError(
+			"Can't build machine pool",
+			fmt.Sprintf(
+				"Can't build machine pool for cluster '%s, %s'", state.Cluster.Value, errMsg,
+			***REMOVED***,
+		***REMOVED***
+		return
+	}
+
+	if !state.Replicas.Unknown && !state.Replicas.Null {
+		computeNodeEnabled = true
+		builder.Replicas(int(state.Replicas.Value***REMOVED******REMOVED***
+	}
+	if (!autoscalingEnabled && !computeNodeEnabled***REMOVED*** || (autoscalingEnabled && computeNodeEnabled***REMOVED*** {
+		response.Diagnostics.AddError(
+			"Can't build machine pool",
+			fmt.Sprintf(
+				"Can't build machine pool for cluster '%s', should hold either Autoscailing or Compute nodes",
+				state.Cluster.Value,
+			***REMOVED***,
+		***REMOVED***
+		return
+	}
+
 	object, err := builder.Build(***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -138,6 +182,7 @@ func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context,
 		***REMOVED***
 		return
 	}
+
 	collection := resource.MachinePools(***REMOVED***
 	add, err := collection.Add(***REMOVED***.Body(object***REMOVED***.SendContext(ctx***REMOVED***
 	if err != nil {
@@ -168,7 +213,7 @@ func (r *MachinePoolResource***REMOVED*** Read(ctx context.Context, request tfsd
 		return
 	}
 
-	// Find the identity provider:
+	// Find the machine pool:
 	resource := r.collection.Cluster(state.Cluster.Value***REMOVED***.
 		MachinePools(***REMOVED***.
 		MachinePool(state.ID.Value***REMOVED***
@@ -194,6 +239,152 @@ func (r *MachinePoolResource***REMOVED*** Read(ctx context.Context, request tfsd
 
 func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
 	response *tfsdk.UpdateResourceResponse***REMOVED*** {
+	var diags diag.Diagnostics
+
+	// Get the state:
+	state := &MachinePoolState{}
+	diags = request.State.Get(ctx, state***REMOVED***
+	response.Diagnostics.Append(diags...***REMOVED***
+	if response.Diagnostics.HasError(***REMOVED*** {
+		return
+	}
+
+	// Get the plan:
+	plan := &MachinePoolState{}
+	diags = request.Plan.Get(ctx, plan***REMOVED***
+	response.Diagnostics.Append(diags...***REMOVED***
+	if response.Diagnostics.HasError(***REMOVED*** {
+		return
+	}
+
+	resource := r.collection.Cluster(state.Cluster.Value***REMOVED***.
+		MachinePools(***REMOVED***.
+		MachinePool(state.ID.Value***REMOVED***
+	get, err := resource.Get(***REMOVED***.SendContext(ctx***REMOVED***
+
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't find machine pool",
+			fmt.Sprintf(
+				"Can't find machine pool with identifier '%s' for "+
+					"cluster '%s': %v",
+				state.ID.Value, state.Cluster.Value, err,
+			***REMOVED***,
+		***REMOVED***
+		return
+	}
+	object := get.Body(***REMOVED***
+
+	mpBuilder := cmv1.NewMachinePool(***REMOVED***.ID(state.ID.Value***REMOVED***
+
+	_, ok := shouldPatchString(state.MachineType, plan.MachineType***REMOVED***
+	if ok {
+		response.Diagnostics.AddError(
+			"Can't update machine pool",
+			fmt.Sprintf(
+				"Can't update machine pool for cluster '%s', machine type cannot be updated",
+				state.Cluster.Value,
+			***REMOVED***,
+		***REMOVED***
+		return
+	}
+
+	computeNodesEnabled := false
+	autoscalingEnabled := false
+
+	//_, ok = shouldPatchInt(state.Replicas, plan.Replicas***REMOVED***
+	if !plan.Replicas.Unknown && !plan.Replicas.Null {
+		computeNodesEnabled = true
+		mpBuilder.Replicas(int(plan.Replicas.Value***REMOVED******REMOVED***
+
+	}
+
+	var errMsg string
+	autoscalingEnabled, errMsg = getAutoscaling(plan, mpBuilder***REMOVED***
+	if errMsg != "" {
+		response.Diagnostics.AddError(
+			"Can't update machine pool",
+			fmt.Sprintf(
+				"Can't update machine pool for cluster '%s, %s ", state.Cluster.Value, errMsg,
+			***REMOVED***,
+		***REMOVED***
+		return
+	}
+
+	if (autoscalingEnabled && computeNodesEnabled***REMOVED*** || (!autoscalingEnabled && !computeNodesEnabled***REMOVED*** {
+		response.Diagnostics.AddError(
+			"Can't update machine pool",
+			fmt.Sprintf(
+				"Can't update machine pool for cluster '%s: either autoscaling or compute nodes should be enabled", state.Cluster.Value,
+			***REMOVED***,
+		***REMOVED***
+		return
+	}
+
+	machinePool, err := mpBuilder.Build(***REMOVED***
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't update machine pool",
+			fmt.Sprintf(
+				"Can't update machine pool for cluster '%s: %v ", state.Cluster.Value, err,
+			***REMOVED***,
+		***REMOVED***
+		return
+	}
+	update, err := r.collection.Cluster(state.Cluster.Value***REMOVED***.
+		MachinePools(***REMOVED***.
+		MachinePool(state.ID.Value***REMOVED***.Update(***REMOVED***.Body(machinePool***REMOVED***.SendContext(ctx***REMOVED***
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Failed to update machine pool",
+			fmt.Sprintf(
+				"Failed to update machine pool '%s'  on cluster '%s': %v",
+				state.ID.Value, state.Cluster.Value, err,
+			***REMOVED***,
+		***REMOVED***
+		return
+	}
+
+	object = update.Body(***REMOVED***
+
+	// update the autoscaling enabled with the plan value (important for nil and false cases***REMOVED***
+	state.AutoScalingEnabled = plan.AutoScalingEnabled
+	// update the Replicas with the plan value (important for nil and zero value cases***REMOVED***
+	state.Replicas = plan.Replicas
+
+	// Save the state:
+	r.populateState(object, state***REMOVED***
+	diags = response.State.Set(ctx, state***REMOVED***
+	response.Diagnostics.Append(diags...***REMOVED***
+}
+
+func getAutoscaling(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilder***REMOVED*** (
+	autoscalingEnabled bool, errMsg string***REMOVED*** {
+	autoscalingEnabled = false
+	if !state.AutoScalingEnabled.Unknown && !state.AutoScalingEnabled.Null && state.AutoScalingEnabled.Value {
+		autoscalingEnabled = true
+
+		autoscaling := cmv1.NewMachinePoolAutoscaling(***REMOVED***
+		if !state.MaxReplicas.Unknown && !state.MaxReplicas.Null {
+			autoscaling.MaxReplicas(int(state.MaxReplicas.Value***REMOVED******REMOVED***
+***REMOVED*** else {
+			return false, "when enabling autoscaling, should set value for maxReplicas"
+***REMOVED***
+		if !state.MinReplicas.Unknown && !state.MinReplicas.Null {
+			autoscaling.MinReplicas(int(state.MinReplicas.Value***REMOVED******REMOVED***
+***REMOVED*** else {
+			return false, "when enabling autoscaling, should set value for minReplicas"
+***REMOVED***
+		if !autoscaling.Empty(***REMOVED*** {
+			mpBuilder.Autoscaling(autoscaling***REMOVED***
+***REMOVED***
+	} else {
+		if (!state.MaxReplicas.Unknown && !state.MaxReplicas.Null***REMOVED*** || (!state.MinReplicas.Unknown && !state.MinReplicas.Null***REMOVED*** {
+			return false, "when disabling autoscaling, can't set min_replicas and/or max_replicas"
+***REMOVED***
+	}
+
+	return autoscalingEnabled, ""
 }
 
 func (r *MachinePoolResource***REMOVED*** Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
@@ -245,10 +436,40 @@ func (r *MachinePoolResource***REMOVED*** populateState(object *cmv1.MachinePool
 	state.Name = types.String{
 		Value: object.ID(***REMOVED***,
 	}
-	state.MachineType = types.String{
-		Value: object.InstanceType(***REMOVED***,
+
+	autoscaling, ok := object.GetAutoscaling(***REMOVED***
+	if ok {
+		var minReplicas, maxReplicas int
+		state.AutoScalingEnabled = types.Bool{Value: true}
+		minReplicas, ok = autoscaling.GetMinReplicas(***REMOVED***
+		if ok {
+			state.MinReplicas = types.Int64{
+				Value: int64(minReplicas***REMOVED***,
+	***REMOVED***
+***REMOVED***
+		maxReplicas, ok = autoscaling.GetMaxReplicas(***REMOVED***
+		if ok {
+			state.MaxReplicas = types.Int64{
+				Value: int64(maxReplicas***REMOVED***,
+	***REMOVED***
+***REMOVED***
+	} else {
+		state.MaxReplicas.Null = true
+		state.MinReplicas.Null = true
 	}
-	state.Replicas = types.Int64{
-		Value: int64(object.Replicas(***REMOVED******REMOVED***,
+
+	instanceType, ok := object.GetInstanceType(***REMOVED***
+	{
+		state.MachineType = types.String{
+			Value: instanceType,
+***REMOVED***
 	}
+
+	replicas, ok := object.GetReplicas(***REMOVED***
+	if ok {
+		state.Replicas = types.Int64{
+			Value: int64(replicas***REMOVED***,
+***REMOVED***
+	}
+
 }

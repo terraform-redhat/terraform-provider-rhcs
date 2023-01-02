@@ -574,6 +574,9 @@ func (r *ClusterRosaClassicResource***REMOVED*** Update(ctx context.Context, req
 
 	// update the autoscaling enabled with the plan value (important for nil and false cases***REMOVED***
 	state.AutoScalingEnabled = plan.AutoScalingEnabled
+	// update the ComputeNodes with the plan value (important for nil and zero value cases***REMOVED***
+	state.ComputeNodes = plan.ComputeNodes
+
 	object := update.Body(***REMOVED***
 
 	// Update the state:

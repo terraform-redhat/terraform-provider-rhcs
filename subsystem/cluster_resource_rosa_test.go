@@ -41,12 +41,6 @@ var _ = Describe("Cluster creation", func() {
 	  "console": {
 	    "url": "https://my-console.example.com"
 	  },
-	  "nodes": {
-	    "compute": 3,
-	    "compute_machine_type": {
-	      "id": "r5.xlarge"
-	    }
-	  },
 	  "network": {
 	    "machine_cidr": "10.0.0.0/16",
 	    "service_cidr": "172.30.0.0/16",
@@ -68,7 +62,17 @@ var _ = Describe("Cluster creation", func() {
 				VerifyJQ(`.cloud_provider.id`, "aws"),
 				VerifyJQ(`.region.id`, "us-west-1"),
 				VerifyJQ(`.product.id`, "rosa"),
-				RespondWithJSON(http.StatusCreated, template),
+				RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+						}
+					  }
+					}]`),
 			),
 		)
 
@@ -101,6 +105,16 @@ var _ = Describe("Cluster creation", func() {
 					  "value": {						  
 						  "http_proxy" : "http://proxy.com",
 						  "https_proxy" : "http://proxy.com"
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+						}
 					  }
 					}]`),
 			),
@@ -147,6 +161,16 @@ var _ = Describe("Cluster creation", func() {
 						  "private_link": true,
 						  "subnet_ids": ["id1", "id2", "id3"]
 					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+						}
+					  }
 					}]`),
 			),
 		)
@@ -185,6 +209,16 @@ var _ = Describe("Cluster creation", func() {
 					  "value": {
 						  "private_link": false
 					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+						}
+					  }
 					}]`),
 			),
 		)
@@ -201,7 +235,7 @@ var _ = Describe("Cluster creation", func() {
 		Expect(terraform.Apply()).To(BeZero())
 	})
 
-	It("Creates rosa sts cluster", func() {
+	It("Creates rosa sts cluster with autoscaling and update the default machine pool ", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
@@ -215,6 +249,9 @@ var _ = Describe("Cluster creation", func() {
 				VerifyJQ(`.aws.sts.instance_iam_roles.master_role_arn`, "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role"),
 				VerifyJQ(`.aws.sts.instance_iam_roles.worker_role_arn`, "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"),
 				VerifyJQ(`.aws.sts.operator_role_prefix`, "terraform-operator"),
+				VerifyJQ(`.nodes.autoscale_compute.kind`, "MachinePoolAutoscaling"),
+				VerifyJQ(`.nodes.autoscale_compute.max_replicas`, float64(4)),
+				VerifyJQ(`.nodes.autoscale_compute.min_replicas`, float64(2)),
 				RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -232,6 +269,19 @@ var _ = Describe("Cluster creation", func() {
 							  "operator_role_prefix" : "terraform-operator"
 						  }
 					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"autoscale_compute": {
+							"min_replicas": 2,
+							"max_replicas": 4
+						},
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+						}
+					  }
 					}
 				  ]`),
 			),
@@ -243,6 +293,200 @@ var _ = Describe("Cluster creation", func() {
 			name           = "my-cluster"	
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
+			autoscaling_enabled = "true"
+			min_replicas = "2"
+			max_replicas = "4"
+			sts = {
+				role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
+				support_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
+				instance_iam_roles = {
+				  master_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role",
+				  worker_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"
+				},
+				"operator_role_prefix" : "terraform-operator"
+			}
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		// apply for update the min_replica from 2 to 3
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "thumbprint": "111111",
+							  "role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
+							  "support_role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role",
+								"worker_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"
+							  },
+							  "operator_role_prefix" : "terraform-operator"
+						  }
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"autoscale_compute": {
+							"min_replicas": 2,
+							"max_replicas": 4
+						},
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+						}
+					  }
+					}
+				  ]`),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+				VerifyJQ(`.nodes.autoscale_compute.kind`, "MachinePoolAutoscaling"),
+				VerifyJQ(`.nodes.autoscale_compute.max_replicas`, float64(4)),
+				VerifyJQ(`.nodes.autoscale_compute.min_replicas`, float64(3)),
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "thumbprint": "111111",
+							  "role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
+							  "support_role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role",
+								"worker_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"
+							  },
+							  "operator_role_prefix" : "terraform-operator"
+						  }
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"autoscale_compute": {
+							"min_replicas": 3,
+							"max_replicas": 4
+						},
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+						}
+					  }
+					}
+				  ]`),
+			),
+		)
+		// Run the apply command:
+		terraform.Source(`
+		resource "ocm_cluster_rosa_classic" "my_cluster" {
+			name           = "my-cluster"	
+			cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			autoscaling_enabled = "true"
+			min_replicas = "3"
+			max_replicas = "4"
+			sts = {
+				role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
+				support_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
+				instance_iam_roles = {
+				  master_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role",
+				  worker_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"
+				},
+				"operator_role_prefix" : "terraform-operator"
+			}
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		// apply for update the autoscaling group to compute nodes
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "thumbprint": "111111",
+							  "role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
+							  "support_role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role",
+								"worker_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"
+							  },
+							  "operator_role_prefix" : "terraform-operator"
+						  }
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"autoscale_compute": {
+							"min_replicas": 3,
+							"max_replicas": 4
+						},
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+						}
+					  }
+					}
+				  ]`),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+				VerifyJQ(`.nodes.compute`, float64(4)),
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "thumbprint": "111111",
+							  "role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
+							  "support_role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role",
+								"worker_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"
+							  },
+							  "operator_role_prefix" : "terraform-operator"
+						  }
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 4,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+						}
+					  }
+					}
+				  ]`),
+			),
+		)
+		// Run the apply command:
+		terraform.Source(`
+		resource "ocm_cluster_rosa_classic" "my_cluster" {
+			name           = "my-cluster"	
+			cloud_region   = "us-west-1"
+			aws_account_id = "123" 
+			compute_nodes = 4
 			sts = {
 				role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
 				support_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
@@ -256,4 +500,5 @@ var _ = Describe("Cluster creation", func() {
 		`)
 		Expect(terraform.Apply()).To(BeZero())
 	})
+
 })

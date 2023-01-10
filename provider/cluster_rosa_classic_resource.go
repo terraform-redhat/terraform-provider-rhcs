@@ -45,6 +45,7 @@ const (
 )
 
 type ClusterRosaClassicResourceType struct {
+	logger logging.Logger
 }
 
 type ClusterRosaClassicResource struct {
@@ -71,6 +72,9 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Description: "Name of the cluster.",
 				Type:        types.StringType,
 				Required:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger),
+				},
 			},
 			"cloud_region": {
 				Description: "Cloud region identifier, for example 'us-east-1'.",
@@ -89,7 +93,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+					ValueCannotBeChangedModifier(t.logger),
 				},
 			},
 			"properties": {
@@ -110,6 +114,9 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Type:        types.BoolType,
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger),
+				},
 			},
 			"autoscaling_enabled": {
 				Description: "Enables autoscaling.",

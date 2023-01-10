@@ -1,3 +1,10 @@
+## 0.1.9 (Jan 10, 2023***REMOVED***
+
+ENHANCEMENTS:
+
+* Machine pool manipulation on create and update cluster
+* Splitting operator roles creation from the ROSA STS cluster creation
+
 ## 0.1.8 (Nov 30, 2022***REMOVED***
 
 ENHANCEMENTS:

@@ -30,6 +30,7 @@ package provider
 ***REMOVED***
 
 type MachinePoolResourceType struct {
+	logger logging.Logger
 }
 
 type MachinePoolResource struct {
@@ -63,6 +64,9 @@ func (t *MachinePoolResourceType***REMOVED*** GetSchema(ctx context.Context***RE
 					"source to find the possible values.",
 				Type:     types.StringType,
 				Required: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger***REMOVED***,
+		***REMOVED***,
 	***REMOVED***,
 			"replicas": {
 				Description: "The number of machines of the pool",

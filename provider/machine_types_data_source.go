@@ -40,7 +40,7 @@ type MachineTypesDataSource struct {
 func (t *MachineTypesDataSourceType) GetSchema(ctx context.Context) (result tfsdk.Schema,
 	diags diag.Diagnostics) {
 	result = tfsdk.Schema{
-		Description: "List of cloud providers.",
+		Description: "List of machine types.",
 		Attributes: map[string]tfsdk.Attribute{
 			"items": {
 				Description: "Items of the list.",

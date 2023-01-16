@@ -173,7 +173,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional: true,
 			},
 			"aws_private_link": {
-				Description: "aws subnet ids",
+				Description: "aws private link",
 				Type:        types.BoolType,
 				Optional:    true,
 				Computed:    true,

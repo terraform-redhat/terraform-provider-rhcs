@@ -210,10 +210,10 @@ func (p *Provider***REMOVED*** GetResources(ctx context.Context***REMOVED*** (re
 	diags diag.Diagnostics***REMOVED*** {
 	result = map[string]tfsdk.ResourceType{
 		"ocm_cluster":              &ClusterResourceType{},
-		"ocm_cluster_rosa_classic": &ClusterRosaClassicResourceType{},
+		"ocm_cluster_rosa_classic": &ClusterRosaClassicResourceType{p.logger},
 		"ocm_group_membership":     &GroupMembershipResourceType{},
 		"ocm_identity_provider":    &IdentityProviderResourceType{},
-		"ocm_machine_pool":         &MachinePoolResourceType{},
+		"ocm_machine_pool":         &MachinePoolResourceType{p.logger},
 	}
 	return
 }

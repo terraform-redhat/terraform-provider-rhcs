@@ -24,7 +24,7 @@ else
 endif
 
 # Import path of the project:
-import_path:=github.com/openshift-online/terraform-provider-ocm
+import_path:=github.com/terraform-redhat/terraform-provider-ocm
 
 # Version of the project:
 version:=$(shell git describe --abbrev=0 | sed 's/^v//')
@@ -47,7 +47,7 @@ install: build
 	if [[ "$${platform}" =~ ^windows_.*$$ ]]; then \
 	  extension=".exe"; \
 	fi; \
-	dir=".terraform.d/plugins/localhost/openshift-online/ocm/$(version)/$${platform}"; \
+	dir=".terraform.d/plugins/localhost/terraform-redhat/ocm/$(version)/$${platform}"; \
 	file="terraform-provider-ocm$${extension}"; \
 	mkdir -p "$${dir}"; \
 	mv ${BINARY} "$${dir}/$${file}"

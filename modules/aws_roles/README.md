@@ -166,7 +166,7 @@ data "ocm_rosa_operator_roles" "operator_roles" {
 }
 
 module operator_roles {
-    source  = "git::https://github.com/openshift-online/terraform-provider-ocm.git//modules/operator_roles"
+    source  = "git::https://github.com/terraform-redhat/terraform-provider-ocm.git//modules/operator_roles"
 
     cluster_id = ocm_cluster_rosa_classic.rosa_sts_cluster.id
     rh_oidc_provider_thumbprint = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.thumbprint

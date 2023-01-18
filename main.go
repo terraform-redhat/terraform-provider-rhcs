@@ -21,7 +21,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 
-	"github.com/openshift-online/terraform-provider-ocm/provider"
+	"github.com/terraform-redhat/terraform-provider-ocm/provider"
 )
 
 func main() {

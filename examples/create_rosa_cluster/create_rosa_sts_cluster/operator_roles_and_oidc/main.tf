@@ -22,7 +22,7 @@ terraform {
     }
     ocm = {
       version = ">= 0.1"
-      source  = "openshift-online/ocm"
+      source  = "terraform-redhat/ocm"
     }
   }
 }
@@ -39,7 +39,7 @@ data "ocm_rosa_operator_roles" "operator_roles" {
 }
 
 module operator_roles {
-    source  = "git::https://github.com/openshift-online/terraform-provider-ocm.git//modules/aws_roles"
+    source  = "git::https://github.com/terraform-redhat/terraform-provider-ocm.git//modules/aws_roles"
 
     cluster_id = var.cluster_id
     rh_oidc_provider_thumbprint = var.oidc_thumbprint

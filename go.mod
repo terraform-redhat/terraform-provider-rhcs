@@ -1,4 +1,4 @@
-module github.com/openshift-online/terraform-provider-ocm
+module github.com/terraform-redhat/terraform-provider-ocm
 
 go 1.17
 

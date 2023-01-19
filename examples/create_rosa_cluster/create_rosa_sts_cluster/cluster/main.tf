@@ -22,7 +22,7 @@ terraform {
     }
     ocm = {
       version = ">= 0.1"
-      source  = "openshift-online/ocm"
+      source  = "terraform-redhat/ocm"
     }
   }
 }

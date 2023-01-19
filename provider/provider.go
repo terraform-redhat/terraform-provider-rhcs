@@ -28,7 +28,7 @@ package provider
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/openshift-online/ocm-sdk-go/logging"
-	"github.com/openshift-online/terraform-provider-ocm/build"
+	"github.com/terraform-redhat/terraform-provider-ocm/build"
 ***REMOVED***
 
 // Provider is the implementation of the Provider.

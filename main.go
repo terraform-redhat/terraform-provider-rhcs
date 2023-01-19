@@ -24,6 +24,9 @@ package main
 	"github.com/terraform-redhat/terraform-provider-ocm/provider"
 ***REMOVED***
 
+// Generate the Terraform provider documentation using `tfplugindocs`:
+//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+
 func main(***REMOVED*** {
 	tfsdk.Serve(
 		context.Background(***REMOVED***,

@@ -146,7 +146,7 @@ func (b *TerraformRunnerBuilder) Build() *TerraformRunner {
 		terraform {
 		  required_providers {
 		    ocm = {
-		      source = "localhost/openshift-online/ocm"
+		      source = "localhost/terraform-redhat/ocm"
 		    }
 		  }
 		}

@@ -28,9 +28,13 @@ OpenShift managed cluster using rosa sts.
 - `aws_private_link` (Boolean***REMOVED*** aws subnet ids
 - `aws_subnet_ids` (List of String***REMOVED*** aws subnet ids
 - `compute_machine_type` (String***REMOVED*** Identifier of the machine type used by the compute nodes, for example `r5.xlarge`. Use the `ocm_machine_types` data source to find the possible values.
-- `compute_nodes` (Number***REMOVED*** Number of compute nodes of the cluster.
+- `disable_scp_checks` (Boolean***REMOVED*** Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE***REMOVED*** platform metrics.
+- `disable_workload_monitoring` (Boolean***REMOVED*** Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE***REMOVED*** platform metrics.
 - `etcd_encryption` (Boolean***REMOVED*** Encrypt etcd data.
+- `external_id` (String***REMOVED*** Unique external identifier of the cluster.
+- `fips` (Boolean***REMOVED*** Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries
 - `host_prefix` (Number***REMOVED*** Length of the prefix of the subnet assigned to each node.
+- `kms_key_arn` (String***REMOVED*** The key ARN is the Amazon Resource Name (ARN***REMOVED*** of a AWS KMS (Key Management Service***REMOVED*** Key. It is a unique, fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID.
 - `machine_cidr` (String***REMOVED*** Block of IP addresses for nodes.
 - `max_replicas` (Number***REMOVED*** Max replicas.
 - `min_replicas` (Number***REMOVED*** Min replicas.
@@ -38,8 +42,10 @@ OpenShift managed cluster using rosa sts.
 - `pod_cidr` (String***REMOVED*** Block of IP addresses for pods.
 - `properties` (Map of String***REMOVED*** User defined properties.
 - `proxy` (Attributes***REMOVED*** proxy (see [below for nested schema](#nestedatt--proxy***REMOVED******REMOVED***
+- `replicas` (Number***REMOVED*** Number of worker nodes to provision. Single zone clusters need at least 2 nodes, multizone clusters need at least 3 nodes.
 - `service_cidr` (String***REMOVED*** Block of IP addresses for services.
 - `sts` (Attributes***REMOVED*** STS Configuration (see [below for nested schema](#nestedatt--sts***REMOVED******REMOVED***
+- `tags` (Map of String***REMOVED*** Apply user defined tags to all resources created in AWS.
 - `version` (String***REMOVED*** Identifier of the version of OpenShift, for example 'openshift-v4.1.0'.
 
 ### Read-Only
@@ -47,7 +53,6 @@ OpenShift managed cluster using rosa sts.
 - `api_url` (String***REMOVED*** URL of the API server.
 - `ccs_enabled` (Boolean***REMOVED*** Enables customer cloud subscription.
 - `console_url` (String***REMOVED*** URL of the console.
-- `external_id` (String***REMOVED*** Unique external identifier of the cluster.
 - `id` (String***REMOVED*** Unique identifier of the cluster.
 - `state` (String***REMOVED*** State of the cluster.
 
@@ -69,7 +74,7 @@ Optional:
 
 Required:
 
-- `instance_iam_roles` (Attributes***REMOVED*** Instance IAm Roles (see [below for nested schema](#nestedatt--sts--instance_iam_roles***REMOVED******REMOVED***
+- `instance_iam_roles` (Attributes***REMOVED*** Instance IAM Roles (see [below for nested schema](#nestedatt--sts--instance_iam_roles***REMOVED******REMOVED***
 - `operator_role_prefix` (String***REMOVED*** Operator IAM Role prefix
 - `role_arn` (String***REMOVED*** Installer Role
 - `support_role_arn` (String***REMOVED*** Support Role

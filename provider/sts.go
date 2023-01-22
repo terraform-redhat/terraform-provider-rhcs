@@ -28,7 +28,7 @@ func stsResource() tfsdk.NestedAttributes {
 			Required:    true,
 		},
 		"instance_iam_roles": {
-			Description: "Instance IAm Roles",
+			Description: "Instance IAM Roles",
 			Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
 				"master_role_arn": {
 					Description: "Master/Controller Plane Role ARN",

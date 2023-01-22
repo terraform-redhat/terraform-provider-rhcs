@@ -22,15 +22,14 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"os"
-
 	"net/http"
 	"net/url"
+	"os"
+	"regexp"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
-
 	semver "github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -42,6 +41,10 @@ const (
 	awsCloudProvider = "aws"
 	rosaProduct      = "rosa"
 	MinVersion       = "4.10"
+)
+
+var kmsArnRE = regexp.MustCompile(
+	`^arn:aws[\w-]*:kms:[\w-]+:\d{12}:key\/mrk-[0-9a-f]{32}$|[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`,
 )
 
 type ClusterRosaClassicResourceType struct {
@@ -66,7 +69,11 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 			"external_id": {
 				Description: "Unique external identifier of the cluster.",
 				Type:        types.StringType,
+				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger),
+				},
 			},
 			"name": {
 				Description: "Name of the cluster.",
@@ -96,6 +103,24 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 					ValueCannotBeChangedModifier(t.logger),
 				},
 			},
+			"disable_workload_monitoring": {
+				Description: "Enables you to monitor your own projects in isolation from Red Hat " +
+					"Site Reliability Engineer (SRE) platform metrics.",
+				Type:     types.BoolType,
+				Optional: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger),
+				},
+			},
+			"disable_scp_checks": {
+				Description: "Enables you to monitor your own projects in isolation from Red Hat " +
+					"Site Reliability Engineer (SRE) platform metrics.",
+				Type:     types.BoolType,
+				Optional: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger),
+				},
+			},
 			"properties": {
 				Description: "User defined properties.",
 				Type: types.MapType{
@@ -103,6 +128,16 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				},
 				Optional: true,
 				Computed: true,
+			},
+			"tags": {
+				Description: "Apply user defined tags to all resources created in AWS.",
+				Type: types.MapType{
+					ElemType: types.StringType,
+				},
+				Optional: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger),
+				},
 			},
 			"ccs_enabled": {
 				Description: "Enables customer cloud subscription.",
@@ -143,11 +178,12 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Type:        types.StringType,
 				Computed:    true,
 			},
-			"compute_nodes": {
-				Description: "Number of compute nodes of the cluster.",
-				Type:        types.Int64Type,
-				Optional:    true,
-				Computed:    true,
+			"replicas": {
+				Description: "Number of worker nodes to provision. Single zone clusters need at least 2 nodes, " +
+					"multizone clusters need at least 3 nodes.",
+				Type:     types.Int64Type,
+				Optional: true,
+				Computed: true,
 			},
 			"compute_machine_type": {
 				Description: "Identifier of the machine type used by the compute nodes, " +
@@ -164,6 +200,9 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Description: "Identifier of the AWS account.",
 				Type:        types.StringType,
 				Required:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger),
+				},
 			},
 			"aws_subnet_ids": {
 				Description: "aws subnet ids",
@@ -171,6 +210,26 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 					ElemType: types.StringType,
 				},
 				Optional: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger),
+				},
+			},
+			"kms_key_arn": {
+				Description: "The key ARN is the Amazon Resource Name (ARN) of a AWS KMS (Key Management Service) Key. It is a unique, " +
+					"fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID.",
+				Type:     types.StringType,
+				Optional: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger),
+				},
+			},
+			"fips": {
+				Description: "Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries",
+				Type:        types.BoolType,
+				Optional:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger),
+				},
 			},
 			"aws_private_link": {
 				Description: "aws subnet ids",
@@ -178,7 +237,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+					ValueCannotBeChangedModifier(t.logger),
 				},
 			},
 			"availability_zones": {
@@ -187,12 +246,18 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 					ElemType: types.StringType,
 				},
 				Optional: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger),
+				},
 			},
 			"machine_cidr": {
 				Description: "Block of IP addresses for nodes.",
 				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger),
+				},
 			},
 			"proxy": {
 				Description: "proxy",
@@ -214,30 +279,46 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 					},
 				}),
 				Optional: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger),
+				},
 			},
 			"service_cidr": {
 				Description: "Block of IP addresses for services.",
 				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger),
+				},
 			},
 			"pod_cidr": {
 				Description: "Block of IP addresses for pods.",
 				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger),
+				},
 			},
 			"host_prefix": {
 				Description: "Length of the prefix of the subnet assigned to each node.",
 				Type:        types.Int64Type,
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger),
+				},
 			},
 			"version": {
 				Description: "Identifier of the version of OpenShift, for example 'openshift-v4.1.0'.",
 				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
+				// TODO: till AWS will support Managed policies we will not support update versions
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger),
+				},
 			},
 			"state": {
 				Description: "State of the cluster.",
@@ -268,6 +349,8 @@ func (t *ClusterRosaClassicResourceType) NewResource(ctx context.Context,
 
 func createClassicClusterObject(ctx context.Context,
 	state *ClusterRosaClassicState, logger logging.Logger, diags diag.Diagnostics) (*cmv1.Cluster, error) {
+	errHeadline := "Can't build cluster"
+
 	builder := cmv1.NewCluster()
 	builder.Name(state.Name.Value)
 	builder.CloudProvider(cmv1.NewCloudProvider().ID(awsCloudProvider))
@@ -288,9 +371,17 @@ func createClassicClusterObject(ctx context.Context,
 		builder.EtcdEncryption(state.EtcdEncryption.Value)
 	}
 
+	if !state.ExternalID.Unknown && !state.ExternalID.Null {
+		builder.ExternalID(state.ExternalID.Value)
+	}
+
+	if !state.DisableWorkloadMonitoring.Unknown && !state.DisableWorkloadMonitoring.Null {
+		builder.DisableUserWorkloadMonitoring(state.DisableWorkloadMonitoring.Value)
+	}
+
 	nodes := cmv1.NewClusterNodes()
-	if !state.ComputeNodes.Unknown && !state.ComputeNodes.Null {
-		nodes.Compute(int(state.ComputeNodes.Value))
+	if !state.Replicas.Unknown && !state.Replicas.Null {
+		nodes.Compute(int(state.Replicas.Value))
 	}
 	if !state.ComputeMachineType.Unknown && !state.ComputeMachineType.Null {
 		nodes.ComputeMachineType(
@@ -326,12 +417,52 @@ func createClassicClusterObject(ctx context.Context,
 	// ccs should be enabled in ocm rosa clusters
 	ccs := cmv1.NewCCS()
 	ccs.Enabled(true)
+
+	if !state.DisableSCPChecks.Unknown && !state.DisableSCPChecks.Null && state.DisableSCPChecks.Value {
+		ccs.DisableSCPChecks(true)
+	}
 	builder.CCS(ccs)
 
 	aws := cmv1.NewAWS()
+
+	if !state.Tags.Unknown && !state.Tags.Null {
+		tags := map[string]string{}
+		for k, v := range state.Tags.Elems {
+			if _, ok := tags[k]; ok {
+				errDescription := fmt.Sprintf("Invalid tags, user tag keys must be unique, duplicate key '%s' found", k)
+				logger.Error(ctx, errDescription)
+
+				diags.AddError(
+					errHeadline,
+					errDescription,
+				)
+				return nil, errors.New(errHeadline + "\n" + errDescription)
+			}
+			tags[k] = v.(types.String).Value
+		}
+
+		aws.Tags(tags)
+	}
+
+	if !state.KMSKeyArn.Unknown && !state.KMSKeyArn.Null && state.KMSKeyArn.Value != "" {
+		kmsKeyARN := state.KMSKeyArn.Value
+		if !kmsArnRE.MatchString(kmsKeyARN) {
+			errDescription := fmt.Sprintf("Expected a valid value for kms-key-arn matching %s", kmsArnRE)
+			logger.Error(ctx, errDescription)
+
+			diags.AddError(
+				errHeadline,
+				errDescription,
+			)
+			return nil, errors.New(errHeadline + "\n" + errDescription)
+		}
+		aws.KMSKeyArn(kmsKeyARN)
+	}
+
 	if !state.AWSAccountID.Unknown && !state.AWSAccountID.Null {
 		aws.AccountID(state.AWSAccountID.Value)
 	}
+
 	if !state.AWSPrivateLink.Unknown && !state.AWSPrivateLink.Null {
 		aws.PrivateLink((state.AWSPrivateLink.Value))
 		api := cmv1.NewClusterAPI()
@@ -339,6 +470,10 @@ func createClassicClusterObject(ctx context.Context,
 			api.Listening(cmv1.ListeningMethodInternal)
 		}
 		builder.API(api)
+	}
+
+	if !state.FIPS.Unknown && !state.FIPS.Null && state.FIPS.Value {
+		builder.FIPS(true)
 	}
 
 	sts := cmv1.NewSTS()
@@ -386,7 +521,6 @@ func createClassicClusterObject(ctx context.Context,
 		isSupported, err := checkSupportedVersion(state.Version.Value)
 		if err != nil {
 			logger.Error(ctx, "Error validating required cluster version %s\", err)")
-			errHeadline := "Can't build cluster"
 			errDecription := fmt.Sprintf(
 				"Can't check if cluster version is supported '%s': %v",
 				state.Version.Value, err,
@@ -401,7 +535,6 @@ func createClassicClusterObject(ctx context.Context,
 			builder.Version(cmv1.NewVersion().ID(state.Version.Value))
 		} else {
 			logger.Error(ctx, "Cluster version %s is not supported", state.Version.Value)
-			errHeadline := "Can't build cluster"
 			errDecription := fmt.Sprintf(
 				"Can't check if cluster version is supported '%s': %v",
 				state.Version.Value, err,
@@ -519,7 +652,7 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 	updateNodes := false
 	clusterBuilder := cmv1.NewCluster()
 	clusterNodesBuilder := cmv1.NewClusterNodes()
-	compute, ok := shouldPatchInt(state.ComputeNodes, plan.ComputeNodes)
+	compute, ok := shouldPatchInt(state.Replicas, plan.Replicas)
 	if ok {
 		clusterNodesBuilder = clusterNodesBuilder.Compute(int(compute))
 		updateNodes = true
@@ -581,8 +714,8 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 
 	// update the autoscaling enabled with the plan value (important for nil and false cases)
 	state.AutoScalingEnabled = plan.AutoScalingEnabled
-	// update the ComputeNodes with the plan value (important for nil and zero value cases)
-	state.ComputeNodes = plan.ComputeNodes
+	// update the Replicas with the plan value (important for nil and zero value cases)
+	state.Replicas = plan.Replicas
 
 	object := update.Body()
 
@@ -686,13 +819,26 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	state.ConsoleURL = types.String{
 		Value: object.Console().URL(),
 	}
-	state.ComputeNodes = types.Int64{
+	state.Replicas = types.Int64{
 		Value: int64(object.Nodes().Compute()),
 	}
 	state.ComputeMachineType = types.String{
 		Value: object.Nodes().ComputeMachineType().ID(),
 	}
 
+	disableUserWorkload, ok := object.GetDisableUserWorkloadMonitoring()
+	if ok && disableUserWorkload {
+		state.DisableWorkloadMonitoring = types.Bool{
+			Value: true,
+		}
+	}
+
+	isFips, ok := object.GetFIPS()
+	if ok && isFips {
+		state.FIPS = types.Bool{
+			Value: true,
+		}
+	}
 	autoScaleCompute, ok := object.Nodes().GetAutoscaleCompute()
 	if ok {
 		var maxReplicas, minReplicas int
@@ -733,6 +879,13 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		Value: object.CCS().Enabled(),
 	}
 
+	disableSCPChecks, ok := object.CCS().GetDisableSCPChecks()
+	if ok && disableSCPChecks {
+		state.DisableSCPChecks = types.Bool{
+			Value: true,
+		}
+	}
+
 	state.EtcdEncryption = types.Bool{
 		Value: object.EtcdEncryption(),
 	}
@@ -753,6 +906,12 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	} else {
 		state.AWSPrivateLink = types.Bool{
 			Null: true,
+		}
+	}
+	kmsKeyArn, ok := object.AWS().GetKMSKeyArn()
+	if ok {
+		state.KMSKeyArn = types.String{
+			Value: kmsKeyArn,
 		}
 	}
 

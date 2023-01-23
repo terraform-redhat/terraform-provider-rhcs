@@ -85,3 +85,6 @@ fmt: fmt_go fmt_tf
 .PHONY: clean
 clean:
 	rm -rf .terraform.d
+
+generate:
+	go generate ./...

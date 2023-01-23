@@ -1,3 +1,7 @@
+<a href="https://redhat.com">
+    <img src=".github/Logo_Red_Hat.png" alt="RedHat logo" title="RedHat" align="right" height="50" />
+</a>
+
 # Terraform provider for OCM
 
 > **IMPORTANT**: The version of the provider is currently 0.1 to indicate that

@@ -28,9 +28,13 @@ OpenShift managed cluster using rosa sts.
 - `aws_private_link` (Boolean) aws subnet ids
 - `aws_subnet_ids` (List of String) aws subnet ids
 - `compute_machine_type` (String) Identifier of the machine type used by the compute nodes, for example `r5.xlarge`. Use the `ocm_machine_types` data source to find the possible values.
-- `compute_nodes` (Number) Number of compute nodes of the cluster.
+- `disable_scp_checks` (Boolean) Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE) platform metrics.
+- `disable_workload_monitoring` (Boolean) Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE) platform metrics.
 - `etcd_encryption` (Boolean) Encrypt etcd data.
+- `external_id` (String) Unique external identifier of the cluster.
+- `fips` (Boolean) Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries
 - `host_prefix` (Number) Length of the prefix of the subnet assigned to each node.
+- `kms_key_arn` (String) The key ARN is the Amazon Resource Name (ARN) of a AWS KMS (Key Management Service) Key. It is a unique, fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID.
 - `machine_cidr` (String) Block of IP addresses for nodes.
 - `max_replicas` (Number) Max replicas.
 - `min_replicas` (Number) Min replicas.
@@ -38,8 +42,10 @@ OpenShift managed cluster using rosa sts.
 - `pod_cidr` (String) Block of IP addresses for pods.
 - `properties` (Map of String) User defined properties.
 - `proxy` (Attributes) proxy (see [below for nested schema](#nestedatt--proxy))
+- `replicas` (Number) Number of worker nodes to provision. Single zone clusters need at least 2 nodes, multizone clusters need at least 3 nodes.
 - `service_cidr` (String) Block of IP addresses for services.
 - `sts` (Attributes) STS Configuration (see [below for nested schema](#nestedatt--sts))
+- `tags` (Map of String) Apply user defined tags to all resources created in AWS.
 - `version` (String) Identifier of the version of OpenShift, for example 'openshift-v4.1.0'.
 
 ### Read-Only
@@ -47,7 +53,6 @@ OpenShift managed cluster using rosa sts.
 - `api_url` (String) URL of the API server.
 - `ccs_enabled` (Boolean) Enables customer cloud subscription.
 - `console_url` (String) URL of the console.
-- `external_id` (String) Unique external identifier of the cluster.
 - `id` (String) Unique identifier of the cluster.
 - `state` (String) State of the cluster.
 
@@ -69,7 +74,7 @@ Optional:
 
 Required:
 
-- `instance_iam_roles` (Attributes) Instance IAm Roles (see [below for nested schema](#nestedatt--sts--instance_iam_roles))
+- `instance_iam_roles` (Attributes) Instance IAM Roles (see [below for nested schema](#nestedatt--sts--instance_iam_roles))
 - `operator_role_prefix` (String) Operator IAM Role prefix
 - `role_arn` (String) Installer Role
 - `support_role_arn` (String) Support Role

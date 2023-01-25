@@ -22,15 +22,14 @@ package provider
 	"encoding/hex"
 	"errors"
 ***REMOVED***
-	"os"
-
 ***REMOVED***
 	"net/url"
+	"os"
+	"regexp"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
-
 	semver "github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -42,6 +41,10 @@ const (
 	awsCloudProvider = "aws"
 	rosaProduct      = "rosa"
 	MinVersion       = "4.10"
+***REMOVED***
+
+var kmsArnRE = regexp.MustCompile(
+	`^arn:aws[\w-]*:kms:[\w-]+:\d{12}:key\/mrk-[0-9a-f]{32}$|[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`,
 ***REMOVED***
 
 type ClusterRosaClassicResourceType struct {
@@ -66,7 +69,11 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 			"external_id": {
 				Description: "Unique external identifier of the cluster.",
 				Type:        types.StringType,
+				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger***REMOVED***,
+		***REMOVED***,
 	***REMOVED***,
 			"name": {
 				Description: "Name of the cluster.",
@@ -96,6 +103,24 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 					ValueCannotBeChangedModifier(t.logger***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,
+			"disable_workload_monitoring": {
+				Description: "Enables you to monitor your own projects in isolation from Red Hat " +
+					"Site Reliability Engineer (SRE***REMOVED*** platform metrics.",
+				Type:     types.BoolType,
+				Optional: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger***REMOVED***,
+		***REMOVED***,
+	***REMOVED***,
+			"disable_scp_checks": {
+				Description: "Enables you to monitor your own projects in isolation from Red Hat " +
+					"Site Reliability Engineer (SRE***REMOVED*** platform metrics.",
+				Type:     types.BoolType,
+				Optional: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger***REMOVED***,
+		***REMOVED***,
+	***REMOVED***,
 			"properties": {
 				Description: "User defined properties.",
 				Type: types.MapType{
@@ -103,6 +128,16 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 		***REMOVED***,
 				Optional: true,
 				Computed: true,
+	***REMOVED***,
+			"tags": {
+				Description: "Apply user defined tags to all resources created in AWS.",
+				Type: types.MapType{
+					ElemType: types.StringType,
+		***REMOVED***,
+				Optional: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger***REMOVED***,
+		***REMOVED***,
 	***REMOVED***,
 			"ccs_enabled": {
 				Description: "Enables customer cloud subscription.",
@@ -143,11 +178,12 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 				Type:        types.StringType,
 				Computed:    true,
 	***REMOVED***,
-			"compute_nodes": {
-				Description: "Number of compute nodes of the cluster.",
-				Type:        types.Int64Type,
-				Optional:    true,
-				Computed:    true,
+			"replicas": {
+				Description: "Number of worker nodes to provision. Single zone clusters need at least 2 nodes, " +
+					"multizone clusters need at least 3 nodes.",
+				Type:     types.Int64Type,
+				Optional: true,
+				Computed: true,
 	***REMOVED***,
 			"compute_machine_type": {
 				Description: "Identifier of the machine type used by the compute nodes, " +
@@ -164,6 +200,9 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 				Description: "Identifier of the AWS account.",
 				Type:        types.StringType,
 				Required:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger***REMOVED***,
+		***REMOVED***,
 	***REMOVED***,
 			"aws_subnet_ids": {
 				Description: "aws subnet ids",
@@ -171,6 +210,26 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 					ElemType: types.StringType,
 		***REMOVED***,
 				Optional: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger***REMOVED***,
+		***REMOVED***,
+	***REMOVED***,
+			"kms_key_arn": {
+				Description: "The key ARN is the Amazon Resource Name (ARN***REMOVED*** of a AWS KMS (Key Management Service***REMOVED*** Key. It is a unique, " +
+					"fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID.",
+				Type:     types.StringType,
+				Optional: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger***REMOVED***,
+		***REMOVED***,
+	***REMOVED***,
+			"fips": {
+				Description: "Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries",
+				Type:        types.BoolType,
+				Optional:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger***REMOVED***,
+		***REMOVED***,
 	***REMOVED***,
 			"aws_private_link": {
 				Description: "aws subnet ids",
@@ -178,7 +237,7 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(***REMOVED***,
+					ValueCannotBeChangedModifier(t.logger***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,
 			"availability_zones": {
@@ -187,12 +246,18 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 					ElemType: types.StringType,
 		***REMOVED***,
 				Optional: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger***REMOVED***,
+		***REMOVED***,
 	***REMOVED***,
 			"machine_cidr": {
 				Description: "Block of IP addresses for nodes.",
 				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger***REMOVED***,
+		***REMOVED***,
 	***REMOVED***,
 			"proxy": {
 				Description: "proxy",
@@ -214,30 +279,46 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 			***REMOVED***,
 		***REMOVED******REMOVED***,
 				Optional: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger***REMOVED***,
+		***REMOVED***,
 	***REMOVED***,
 			"service_cidr": {
 				Description: "Block of IP addresses for services.",
 				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger***REMOVED***,
+		***REMOVED***,
 	***REMOVED***,
 			"pod_cidr": {
 				Description: "Block of IP addresses for pods.",
 				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger***REMOVED***,
+		***REMOVED***,
 	***REMOVED***,
 			"host_prefix": {
 				Description: "Length of the prefix of the subnet assigned to each node.",
 				Type:        types.Int64Type,
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger***REMOVED***,
+		***REMOVED***,
 	***REMOVED***,
 			"version": {
 				Description: "Identifier of the version of OpenShift, for example 'openshift-v4.1.0'.",
 				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
+				// TODO: till AWS will support Managed policies we will not support update versions
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger***REMOVED***,
+		***REMOVED***,
 	***REMOVED***,
 			"state": {
 				Description: "State of the cluster.",
@@ -268,6 +349,8 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** NewResource(ctx context.Con
 
 func createClassicClusterObject(ctx context.Context,
 	state *ClusterRosaClassicState, logger logging.Logger, diags diag.Diagnostics***REMOVED*** (*cmv1.Cluster, error***REMOVED*** {
+	errHeadline := "Can't build cluster"
+
 	builder := cmv1.NewCluster(***REMOVED***
 	builder.Name(state.Name.Value***REMOVED***
 	builder.CloudProvider(cmv1.NewCloudProvider(***REMOVED***.ID(awsCloudProvider***REMOVED******REMOVED***
@@ -288,9 +371,17 @@ func createClassicClusterObject(ctx context.Context,
 		builder.EtcdEncryption(state.EtcdEncryption.Value***REMOVED***
 	}
 
+	if !state.ExternalID.Unknown && !state.ExternalID.Null {
+		builder.ExternalID(state.ExternalID.Value***REMOVED***
+	}
+
+	if !state.DisableWorkloadMonitoring.Unknown && !state.DisableWorkloadMonitoring.Null {
+		builder.DisableUserWorkloadMonitoring(state.DisableWorkloadMonitoring.Value***REMOVED***
+	}
+
 	nodes := cmv1.NewClusterNodes(***REMOVED***
-	if !state.ComputeNodes.Unknown && !state.ComputeNodes.Null {
-		nodes.Compute(int(state.ComputeNodes.Value***REMOVED******REMOVED***
+	if !state.Replicas.Unknown && !state.Replicas.Null {
+		nodes.Compute(int(state.Replicas.Value***REMOVED******REMOVED***
 	}
 	if !state.ComputeMachineType.Unknown && !state.ComputeMachineType.Null {
 		nodes.ComputeMachineType(
@@ -326,12 +417,52 @@ func createClassicClusterObject(ctx context.Context,
 	// ccs should be enabled in ocm rosa clusters
 	ccs := cmv1.NewCCS(***REMOVED***
 	ccs.Enabled(true***REMOVED***
+
+	if !state.DisableSCPChecks.Unknown && !state.DisableSCPChecks.Null && state.DisableSCPChecks.Value {
+		ccs.DisableSCPChecks(true***REMOVED***
+	}
 	builder.CCS(ccs***REMOVED***
 
 	aws := cmv1.NewAWS(***REMOVED***
+
+	if !state.Tags.Unknown && !state.Tags.Null {
+		tags := map[string]string{}
+		for k, v := range state.Tags.Elems {
+			if _, ok := tags[k]; ok {
+				errDescription := fmt.Sprintf("Invalid tags, user tag keys must be unique, duplicate key '%s' found", k***REMOVED***
+				logger.Error(ctx, errDescription***REMOVED***
+
+				diags.AddError(
+					errHeadline,
+					errDescription,
+				***REMOVED***
+				return nil, errors.New(errHeadline + "\n" + errDescription***REMOVED***
+	***REMOVED***
+			tags[k] = v.(types.String***REMOVED***.Value
+***REMOVED***
+
+		aws.Tags(tags***REMOVED***
+	}
+
+	if !state.KMSKeyArn.Unknown && !state.KMSKeyArn.Null && state.KMSKeyArn.Value != "" {
+		kmsKeyARN := state.KMSKeyArn.Value
+		if !kmsArnRE.MatchString(kmsKeyARN***REMOVED*** {
+			errDescription := fmt.Sprintf("Expected a valid value for kms-key-arn matching %s", kmsArnRE***REMOVED***
+			logger.Error(ctx, errDescription***REMOVED***
+
+			diags.AddError(
+				errHeadline,
+				errDescription,
+			***REMOVED***
+			return nil, errors.New(errHeadline + "\n" + errDescription***REMOVED***
+***REMOVED***
+		aws.KMSKeyArn(kmsKeyARN***REMOVED***
+	}
+
 	if !state.AWSAccountID.Unknown && !state.AWSAccountID.Null {
 		aws.AccountID(state.AWSAccountID.Value***REMOVED***
 	}
+
 	if !state.AWSPrivateLink.Unknown && !state.AWSPrivateLink.Null {
 		aws.PrivateLink((state.AWSPrivateLink.Value***REMOVED******REMOVED***
 		api := cmv1.NewClusterAPI(***REMOVED***
@@ -339,6 +470,10 @@ func createClassicClusterObject(ctx context.Context,
 			api.Listening(cmv1.ListeningMethodInternal***REMOVED***
 ***REMOVED***
 		builder.API(api***REMOVED***
+	}
+
+	if !state.FIPS.Unknown && !state.FIPS.Null && state.FIPS.Value {
+		builder.FIPS(true***REMOVED***
 	}
 
 	sts := cmv1.NewSTS(***REMOVED***
@@ -386,7 +521,6 @@ func createClassicClusterObject(ctx context.Context,
 		isSupported, err := checkSupportedVersion(state.Version.Value***REMOVED***
 		if err != nil {
 			logger.Error(ctx, "Error validating required cluster version %s\", err***REMOVED***"***REMOVED***
-			errHeadline := "Can't build cluster"
 			errDecription := fmt.Sprintf(
 				"Can't check if cluster version is supported '%s': %v",
 				state.Version.Value, err,
@@ -401,7 +535,6 @@ func createClassicClusterObject(ctx context.Context,
 			builder.Version(cmv1.NewVersion(***REMOVED***.ID(state.Version.Value***REMOVED******REMOVED***
 ***REMOVED*** else {
 			logger.Error(ctx, "Cluster version %s is not supported", state.Version.Value***REMOVED***
-			errHeadline := "Can't build cluster"
 			errDecription := fmt.Sprintf(
 				"Can't check if cluster version is supported '%s': %v",
 				state.Version.Value, err,
@@ -519,7 +652,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** Update(ctx context.Context, req
 	updateNodes := false
 	clusterBuilder := cmv1.NewCluster(***REMOVED***
 	clusterNodesBuilder := cmv1.NewClusterNodes(***REMOVED***
-	compute, ok := shouldPatchInt(state.ComputeNodes, plan.ComputeNodes***REMOVED***
+	compute, ok := shouldPatchInt(state.Replicas, plan.Replicas***REMOVED***
 	if ok {
 		clusterNodesBuilder = clusterNodesBuilder.Compute(int(compute***REMOVED******REMOVED***
 		updateNodes = true
@@ -581,8 +714,8 @@ func (r *ClusterRosaClassicResource***REMOVED*** Update(ctx context.Context, req
 
 	// update the autoscaling enabled with the plan value (important for nil and false cases***REMOVED***
 	state.AutoScalingEnabled = plan.AutoScalingEnabled
-	// update the ComputeNodes with the plan value (important for nil and zero value cases***REMOVED***
-	state.ComputeNodes = plan.ComputeNodes
+	// update the Replicas with the plan value (important for nil and zero value cases***REMOVED***
+	state.Replicas = plan.Replicas
 
 	object := update.Body(***REMOVED***
 
@@ -686,13 +819,26 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	state.ConsoleURL = types.String{
 		Value: object.Console(***REMOVED***.URL(***REMOVED***,
 	}
-	state.ComputeNodes = types.Int64{
+	state.Replicas = types.Int64{
 		Value: int64(object.Nodes(***REMOVED***.Compute(***REMOVED******REMOVED***,
 	}
 	state.ComputeMachineType = types.String{
 		Value: object.Nodes(***REMOVED***.ComputeMachineType(***REMOVED***.ID(***REMOVED***,
 	}
 
+	disableUserWorkload, ok := object.GetDisableUserWorkloadMonitoring(***REMOVED***
+	if ok && disableUserWorkload {
+		state.DisableWorkloadMonitoring = types.Bool{
+			Value: true,
+***REMOVED***
+	}
+
+	isFips, ok := object.GetFIPS(***REMOVED***
+	if ok && isFips {
+		state.FIPS = types.Bool{
+			Value: true,
+***REMOVED***
+	}
 	autoScaleCompute, ok := object.Nodes(***REMOVED***.GetAutoscaleCompute(***REMOVED***
 	if ok {
 		var maxReplicas, minReplicas int
@@ -733,6 +879,13 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		Value: object.CCS(***REMOVED***.Enabled(***REMOVED***,
 	}
 
+	disableSCPChecks, ok := object.CCS(***REMOVED***.GetDisableSCPChecks(***REMOVED***
+	if ok && disableSCPChecks {
+		state.DisableSCPChecks = types.Bool{
+			Value: true,
+***REMOVED***
+	}
+
 	state.EtcdEncryption = types.Bool{
 		Value: object.EtcdEncryption(***REMOVED***,
 	}
@@ -753,6 +906,12 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	} else {
 		state.AWSPrivateLink = types.Bool{
 			Null: true,
+***REMOVED***
+	}
+	kmsKeyArn, ok := object.AWS(***REMOVED***.GetKMSKeyArn(***REMOVED***
+	if ok {
+		state.KMSKeyArn = types.String{
+			Value: kmsKeyArn,
 ***REMOVED***
 	}
 

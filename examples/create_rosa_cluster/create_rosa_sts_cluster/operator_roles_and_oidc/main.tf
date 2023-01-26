@@ -21,12 +21,11 @@ terraform {
       version = ">= 4.20.0"
     }
     ocm = {
-      version = ">= 0.1"
+      version = ">= 1.0"
       source  = "terraform-redhat/ocm"
     }
   }
 }
-
 
 provider "ocm" {
   token = var.token
@@ -39,10 +38,12 @@ data "ocm_rosa_operator_roles" "operator_roles" {
 }
 
 module operator_roles {
-    source  = "git::https://github.com/terraform-redhat/terraform-provider-ocm.git//modules/aws_roles"
+    source = "terraform-redhat/rosa-sts/aws"
+    version = "0.0.1"
 
     cluster_id = var.cluster_id
     rh_oidc_provider_thumbprint = var.oidc_thumbprint
     rh_oidc_provider_url = var.oidc_endpoint_url
+
     operator_roles_properties = data.ocm_rosa_operator_roles.operator_roles.operator_iam_roles
 }

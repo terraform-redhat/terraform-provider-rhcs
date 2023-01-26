@@ -277,6 +277,11 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 						Type:        types.StringType,
 						Optional:    true,
 			***REMOVED***,
+					"additional_trust_bundle": {
+						Description: "a string contains contains a PEM-encoded X.509 certificate bundle that will be added to the nodes' trusted certificate store.",
+						Type:        types.StringType,
+						Optional:    true,
+			***REMOVED***,
 		***REMOVED******REMOVED***,
 				Optional: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
@@ -551,6 +556,9 @@ func createClassicClusterObject(ctx context.Context,
 	if state.Proxy != nil {
 		proxy.HTTPProxy(state.Proxy.HttpProxy.Value***REMOVED***
 		proxy.HTTPSProxy(state.Proxy.HttpsProxy.Value***REMOVED***
+		if !state.Proxy.AdditionalTrustBundle.Unknown && !state.Proxy.AdditionalTrustBundle.Null {
+			builder.AdditionalTrustBundle(state.Proxy.AdditionalTrustBundle.Value***REMOVED***
+***REMOVED***
 		builder.Proxy(proxy***REMOVED***
 	}
 
@@ -985,6 +993,14 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 			Value: proxy.HTTPSProxy(***REMOVED***,
 ***REMOVED***
 	}
+
+	trustBundle, ok := object.GetAdditionalTrustBundle(***REMOVED***
+	if ok {
+		state.Proxy.AdditionalTrustBundle = types.String{
+			Value: trustBundle,
+***REMOVED***
+	}
+
 	machineCIDR, ok := object.Network(***REMOVED***.GetMachineCIDR(***REMOVED***
 	if ok {
 		state.MachineCIDR = types.String{

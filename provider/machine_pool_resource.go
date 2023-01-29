@@ -19,6 +19,7 @@ package provider
 ***REMOVED***
 	"context"
 ***REMOVED***
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -87,6 +88,38 @@ func (t *MachinePoolResourceType***REMOVED*** GetSchema(ctx context.Context***RE
 				Description: "Max replicas.",
 				Type:        types.Int64Type,
 				Optional:    true,
+	***REMOVED***,
+			"taints": {
+				Description: "Taints for machine pool. Format should be a comma-separated " +
+					"list of 'key=value:ScheduleType'. This list will overwrite any modifications " +
+					"made to node taints on an ongoing basis.\n",
+				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"key": {
+						Description: "Taints key",
+						Type:        types.StringType,
+						Required:    true,
+			***REMOVED***,
+					"value": {
+						Description: "Taints value",
+						Type:        types.StringType,
+						Required:    true,
+			***REMOVED***,
+					"schedule_type": {
+						Description: "Taints schedule type",
+						Type:        types.StringType,
+						Required:    true,
+			***REMOVED***,
+		***REMOVED***, tfsdk.ListNestedAttributesOptions{},
+				***REMOVED***,
+				Optional: true,
+	***REMOVED***,
+			"labels": {
+				Description: "Labels for machine pool. Format should be a comma-separated list of 'key = value'." +
+					" This list will overwrite any modifications made to node labels on an ongoing basis..",
+				Type: types.MapType{
+					ElemType: types.StringType,
+		***REMOVED***,
+				Optional: true,
 	***REMOVED***,
 ***REMOVED***,
 	}
@@ -173,6 +206,22 @@ func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context,
 			***REMOVED***,
 		***REMOVED***
 		return
+	}
+
+	if state.Taints != nil && len(state.Taints***REMOVED*** > 0 {
+		var taintBuilders []*cmv1.TaintBuilder
+		for _, taint := range state.Taints {
+			taintBuilders = append(taintBuilders, cmv1.NewTaint(***REMOVED***.Key(taint.Key.Value***REMOVED***.Value(taint.Value.Value***REMOVED***.Effect(taint.ScheduleType.Value***REMOVED******REMOVED***
+***REMOVED***
+		builder.Taints(taintBuilders...***REMOVED***
+	}
+
+	if !state.Labels.Unknown && !state.Labels.Null {
+		labels := map[string]string{}
+		for k, v := range state.Labels.Elems {
+			labels[k] = v.(types.String***REMOVED***.Value
+***REMOVED***
+		builder.Labels(labels***REMOVED***
 	}
 
 	object, err := builder.Build(***REMOVED***
@@ -474,6 +523,33 @@ func (r *MachinePoolResource***REMOVED*** populateState(object *cmv1.MachinePool
 		state.Replicas = types.Int64{
 			Value: int64(replicas***REMOVED***,
 ***REMOVED***
+	}
+
+	taints := object.Taints(***REMOVED***
+	if len(taints***REMOVED*** > 0 {
+		state.Taints = make([]Taints, len(taints***REMOVED******REMOVED***
+		for i, taint := range taints {
+			state.Taints[i] = Taints{
+				Key:          types.String{Value: taint.Key(***REMOVED***},
+				Value:        types.String{Value: taint.Value(***REMOVED***},
+				ScheduleType: types.String{Value: taint.Effect(***REMOVED***},
+	***REMOVED***
+***REMOVED***
+
+	}
+
+	labels := object.Labels(***REMOVED***
+	if labels != nil {
+		state.Labels = types.Map{
+			ElemType: types.StringType,
+			Elems:    map[string]attr.Value{},
+***REMOVED***
+		for k, v := range labels {
+			state.Labels.Elems[k] = types.String{
+				Value: v,
+	***REMOVED***
+***REMOVED***
+
 	}
 
 }

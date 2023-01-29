@@ -33,22 +33,23 @@ import (
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
 )
 
-func TestProvider(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Provider")
-}
-
 // All tests will use this API server and Terraform runner:
 var (
 	server    *Server
 	terraform *TerraformRunner
+	testingT  *testing.T
 )
+
+func TestProvider(t *testing.T) {
+	RegisterFailHandler(Fail)
+	testingT = t
+	RunSpecs(t, "Provider")
+}
 
 var _ = BeforeEach(func() {
 	// Create the server:
 	var ca string
 	server, ca = MakeTCPTLSServer()
-
 	// Create an access token:
 	token := MakeTokenString("Bearer", 10*time.Minute)
 

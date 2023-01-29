@@ -196,6 +196,14 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 					tfsdk.RequiresReplace(***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,
+			"compute_labels": {
+				Description: "Labels for the default machine pool. Format should be a comma-separated list of 'key=value'. " +
+					"This list will overwrite any modifications made to Node labels on an ongoing basis.",
+				Type: types.MapType{
+					ElemType: types.StringType,
+		***REMOVED***,
+				Optional: true,
+	***REMOVED***,
 			"aws_account_id": {
 				Description: "Identifier of the AWS account.",
 				Type:        types.StringType,
@@ -392,6 +400,14 @@ func createClassicClusterObject(ctx context.Context,
 		nodes.ComputeMachineType(
 			cmv1.NewMachineType(***REMOVED***.ID(state.ComputeMachineType.Value***REMOVED***,
 		***REMOVED***
+	}
+
+	if !state.ComputeLabels.Unknown && !state.ComputeLabels.Null {
+		labels := map[string]string{}
+		for k, v := range state.ComputeLabels.Elems {
+			labels[k] = v.(types.String***REMOVED***.Value
+***REMOVED***
+		nodes.ComputeLabels(labels***REMOVED***
 	}
 
 	if !state.AvailabilityZones.Unknown && !state.AvailabilityZones.Null {
@@ -832,6 +848,19 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	}
 	state.ComputeMachineType = types.String{
 		Value: object.Nodes(***REMOVED***.ComputeMachineType(***REMOVED***.ID(***REMOVED***,
+	}
+
+	labels, ok := object.Nodes(***REMOVED***.GetComputeLabels(***REMOVED***
+	if ok {
+		state.ComputeLabels = types.Map{
+			ElemType: types.StringType,
+			Elems:    map[string]attr.Value{},
+***REMOVED***
+		for k, v := range labels {
+			state.ComputeLabels.Elems[k] = types.String{
+				Value: v,
+	***REMOVED***
+***REMOVED***
 	}
 
 	disableUserWorkload, ok := object.GetDisableUserWorkloadMonitoring(***REMOVED***

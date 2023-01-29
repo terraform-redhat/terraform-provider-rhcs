@@ -33,6 +33,7 @@ type ClusterRosaClassicState struct {
 	MaxReplicas               types.Int64  `tfsdk:"max_replicas"`
 	CloudRegion               types.String `tfsdk:"cloud_region"`
 	ComputeMachineType        types.String `tfsdk:"compute_machine_type"`
+	ComputeLabels             types.Map    `tfsdk:"compute_labels"`
 	Replicas                  types.Int64  `tfsdk:"replicas"`
 	ConsoleURL                types.String `tfsdk:"console_url"`
 	HostPrefix                types.Int64  `tfsdk:"host_prefix"`

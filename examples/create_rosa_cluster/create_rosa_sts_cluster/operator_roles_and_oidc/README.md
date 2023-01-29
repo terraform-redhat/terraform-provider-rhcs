@@ -1,6 +1,6 @@
 # ROSA STS cluster creation example
 
-This example shows how to create an operator IAM roles and oidc provider for an existing ROSA STS cluster.
+This example shows how to create an operator IAM roles and OIDC provider for an existing ROSA STS cluster.
 The variables are depended on the output of ROSA STS cluster creation.
 
 To run it:

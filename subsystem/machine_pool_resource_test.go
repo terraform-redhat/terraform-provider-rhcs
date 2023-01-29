@@ -54,12 +54,27 @@ var _ = Describe("Machine pool creation", func() {
 				  "kind": "MachinePool",
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10
+				  "labels": {
+				    "label_key1": "label_value1",
+				    "label_key2": "label_value2"
+				  },
+				  "replicas": 10,
+				  "taints": [
+					  {
+						"effect": "effect1",
+						"key": "key1",
+						"value": "value1"
+					  }
+				 ]
 				}`),
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10
+				  "replicas": 10,
+				  "labels": {
+				    "label_key1": "label_value1",
+				    "label_key2": "label_value2"
+				  }
 				}`),
 			),
 		)
@@ -71,6 +86,17 @@ var _ = Describe("Machine pool creation", func() {
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
 		    replicas     = 10
+			labels = {
+				"label_key1" = "label_value1", 
+				"label_key2" = "label_value2"
+			}
+			taints = [
+				{
+					key = "key1",
+					value = "value1",
+					schedule_type = "effect1",
+				},
+		    ]
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
@@ -82,6 +108,7 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
 		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
 		Expect(resource).To(MatchJQ(".attributes.replicas", 10.0))
+		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 2))
 	})
 
 	It("Can create machine pool with autoscaling enabled and update to compute nodes", func() {

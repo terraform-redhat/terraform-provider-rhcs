@@ -19,6 +19,8 @@ package provider
 ***REMOVED***
 	"context"
 ***REMOVED***
+	"sort"
+
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -134,6 +136,7 @@ func (t *RosaOperatorRolesDataSource***REMOVED*** Read(ctx context.Context, requ
 	}
 
 	stsOperatorMap := make(map[string]*cmv1.STSOperator***REMOVED***
+	roleNameSpaces := make([]string, 0***REMOVED***
 	stsOperatorRolesList.Items(***REMOVED***.Each(func(stsCredentialRequest *cmv1.STSCredentialRequest***REMOVED*** bool {
 		// TODO: check the MinVersion of the operator role
 		t.logger.Debug(ctx, "Operator name: %s, namespace %s, service account %s",
@@ -144,6 +147,7 @@ func (t *RosaOperatorRolesDataSource***REMOVED*** Read(ctx context.Context, requ
 		// The key can't be stsCredentialRequest.Operator(***REMOVED***.Name(***REMOVED*** because of constants between
 		// the name of `ingress_operator_cloud_credentials` and `cloud_network_config_controller_cloud_credentials`
 		// both of them includes the same Name `cloud-credentials` and it cannot be fixed
+		roleNameSpaces = append(roleNameSpaces, stsCredentialRequest.Operator(***REMOVED***.Namespace(***REMOVED******REMOVED***
 		stsOperatorMap[stsCredentialRequest.Operator(***REMOVED***.Namespace(***REMOVED***] = stsCredentialRequest.Operator(***REMOVED***
 		return true
 	}***REMOVED***
@@ -155,21 +159,22 @@ func (t *RosaOperatorRolesDataSource***REMOVED*** Read(ctx context.Context, requ
 
 	// TODO: use the sts.OperatorRolePrefix(***REMOVED*** if not empty
 	// There is a bug in the return value of sts.OperatorRolePrefix(***REMOVED*** - it's always empty string
-	for _, operatorRole := range stsOperatorMap {
+	sort.Strings(roleNameSpaces***REMOVED***
+	for _, key := range roleNameSpaces {
 		r := OperatorIAMRole{
 			Name: types.String{
-				Value: operatorRole.Name(***REMOVED***,
+				Value: stsOperatorMap[key].Name(***REMOVED***,
 	***REMOVED***,
 			Namespace: types.String{
-				Value: operatorRole.Namespace(***REMOVED***,
+				Value: stsOperatorMap[key].Namespace(***REMOVED***,
 	***REMOVED***,
 			RoleName: types.String{
-				Value: getRoleName(state.OperatorRolePrefix.Value, operatorRole***REMOVED***,
+				Value: getRoleName(state.OperatorRolePrefix.Value, stsOperatorMap[key]***REMOVED***,
 	***REMOVED***,
 			PolicyName: types.String{
-				Value: getPolicyName(accountRolePrefix, operatorRole.Namespace(***REMOVED***, operatorRole.Name(***REMOVED******REMOVED***,
+				Value: getPolicyName(accountRolePrefix, stsOperatorMap[key].Namespace(***REMOVED***, stsOperatorMap[key].Name(***REMOVED******REMOVED***,
 	***REMOVED***,
-			ServiceAccounts: buildServiceAccountsArray(stsOperatorMap[operatorRole.Namespace(***REMOVED***].ServiceAccounts(***REMOVED***, operatorRole.Namespace(***REMOVED******REMOVED***,
+			ServiceAccounts: buildServiceAccountsArray(stsOperatorMap[stsOperatorMap[key].Namespace(***REMOVED***].ServiceAccounts(***REMOVED***, stsOperatorMap[key].Namespace(***REMOVED******REMOVED***,
 ***REMOVED***
 		state.OperatorIAMRoles = append(state.OperatorIAMRoles, &r***REMOVED***
 	}

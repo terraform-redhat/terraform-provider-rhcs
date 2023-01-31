@@ -74,7 +74,7 @@ var _ = Describe("ROSA Operator IAM roles data source", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.operator_role_prefix`, "terraform-operator"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.account_role_prefix`, "TerraformAccountPrefix"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.operator_iam_roles | length`, 2***REMOVED******REMOVED***
-		compareResultOfRoles(resource, 0,
+		compareResultOfRoles(resource, 1,
 			"ebs-cloud-credentials",
 			"openshift-cluster-csi-drivers",
 			"TerraformAccountPrefix-openshift-cluster-csi-drivers-ebs-cloud-c",
@@ -86,7 +86,7 @@ var _ = Describe("ROSA Operator IAM roles data source", func(***REMOVED*** {
 	***REMOVED***,
 		***REMOVED***
 
-		compareResultOfRoles(resource, 1,
+		compareResultOfRoles(resource, 0,
 			"cloud-credentials",
 			"openshift-cloud-network-config-controller",
 			"TerraformAccountPrefix-openshift-cloud-network-config-controller",
@@ -118,7 +118,7 @@ var _ = Describe("ROSA Operator IAM roles data source", func(***REMOVED*** {
 		//Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items | length`, 1***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.operator_role_prefix`, "terraform-operator"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.operator_iam_roles | length`, 2***REMOVED******REMOVED***
-		compareResultOfRoles(resource, 0,
+		compareResultOfRoles(resource, 1,
 			"ebs-cloud-credentials",
 			"openshift-cluster-csi-drivers",
 			"ManagedOpenShift-openshift-cluster-csi-drivers-ebs-cloud-credent",
@@ -130,7 +130,7 @@ var _ = Describe("ROSA Operator IAM roles data source", func(***REMOVED*** {
 	***REMOVED***,
 		***REMOVED***
 
-		compareResultOfRoles(resource, 1,
+		compareResultOfRoles(resource, 0,
 			"cloud-credentials",
 			"openshift-cloud-network-config-controller",
 			"ManagedOpenShift-openshift-cloud-network-config-controller-cloud",

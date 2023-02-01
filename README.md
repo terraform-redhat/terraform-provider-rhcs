@@ -172,3 +172,33 @@ module operator_roles {
     operator_roles_properties = data.ocm_rosa_operator_roles.operator_roles.operator_iam_roles
 }
 ```
+
+## Development Introduction
+Running `terraform plan` against a local build of OCM provider can be done by those steps:
+1. Run  ```make install ```. After running ```make install``` you will find the ocm provider binary file in the directory: 
+```
+<HOME>/.terraform.d/plugins/terraform.local/local/ocm/<VERSION>/<TARGET_ARCH>
+```
+
+for example 
+```
+~/.terraform.d/plugins/terraform.local/local/ocm/1.0.0/linux_amd64
+```
+
+2. Point to the local provider by pointing the required_providers ocm to the local terraform directory
+
+```
+terraform {
+  required_providers {
+    ocm = {
+      source  = "terraform.local/local/ocm"
+      version = "1.0.0"
+    }
+  }
+}
+
+
+provider "ocm" {
+  token = var.token
+}
+```

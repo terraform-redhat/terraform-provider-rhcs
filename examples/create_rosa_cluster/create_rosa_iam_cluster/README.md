@@ -3,6 +3,8 @@
 This example shows how to create a _ROSA_ cluster with IAM User. _ROSA_ stands for Red Hat Openshift Service on AWS
 and is a cluster that is created in the AWS cloud infrastructure.
 
+ * Please NOTE: ROSA clusters built with non-STS mode (via `osdCcsAdmin` or similar***REMOVED*** is a legacy method that will eventually be deprecated. The recommended method is to build a ROSA cluster with AWS STS.
+
 In order to create a _ROSA_ cluster it is necessary to have user named
 `osdCcsAdmin` with the `AdministratorAccess` role. The example assumes the `osdCcsAdmin`
 is already created.

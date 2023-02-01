@@ -122,23 +122,6 @@ func (b *TerraformRunnerBuilder) Build() *TerraformRunner {
 	tmpDir, err := ioutil.TempDir("", "ocm-test-*.d")
 	ExpectWithOffset(1, err).ToNot(HaveOccurred())
 
-	// Create a CLI configuration file that tells Terraform to get plugins from the local
-	// directory where `make install` puts them:
-	currentDir, err := os.Getwd()
-	ExpectWithOffset(1, err).ToNot(HaveOccurred())
-	projectDir := filepath.Dir(currentDir)
-	configPath := filepath.Join(tmpDir, "terraform.rc")
-	configText := EvaluateTemplate(`
-		provider_installation {
-		  filesystem_mirror {
-		    path    = "{{ .Project }}/.terraform.d/plugins"
-		    include = ["localhost/*/*"]
-		  }
-		}
-		`,
-		"Project", strings.ReplaceAll(projectDir, "\\", "/"),
-	)
-	err = ioutil.WriteFile(configPath, []byte(configText), 0400)
 	ExpectWithOffset(1, err).ToNot(HaveOccurred())
 
 	// Create the main file:
@@ -147,7 +130,7 @@ func (b *TerraformRunnerBuilder) Build() *TerraformRunner {
 		terraform {
 		  required_providers {
 		    ocm = {
-		      source = "localhost/terraform-redhat/ocm"
+		      source = "terraform.local/local/ocm"
 		    }
 		  }
 		}
@@ -180,9 +163,6 @@ func (b *TerraformRunnerBuilder) Build() *TerraformRunner {
 		}
 		envMap[name] = value
 	}
-
-	// Add the environment variable that points to the configuration file:
-	envMap["TF_CLI_CONFIG_FILE"] = configPath
 
 	// Enable verbose debug:
 	envMap["TF_LOG"] = "DEBUG"

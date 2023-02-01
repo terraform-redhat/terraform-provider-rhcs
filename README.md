@@ -2,217 +2,170 @@
     <img src=".github/Logo_Red_Hat.png" alt="RedHat logo" title="RedHat" align="right" height="50" />
 </a>
 
-# Terraform provider for OCM
-
-> **IMPORTANT**: The version of the provider is currently 0.1 to indicate that
-> it is at very early stage of development. The functionality isn't complete
-> and there is no backwards compatibility guarantee.
->
-> When it is ready for production the version will be updated to 1.0.
+# OCM Provider
 
 ## Introduction
 
-### Create OSD AWS Cluster
+The OCM provider allows Terraform to manage Red Hat OpenShift Service on AWS (ROSA***REMOVED*** clusters, machine pools and identity provider.
 
-The OCM provider simplifies the provisioning of _OpenShift_ managed clusters
-using the [OpenShift Cluster Manager](https://console.redhat.com/openshift***REMOVED***
-application programming interface.
+## OCM
 
-For example, to create a simple cluster with an identity provider that allows
-login with a simple user name and password create a `main.tf` file similar this
-and then run `terraform apply`:
+Red Hat OpenShift Cluster Manager is a managed service where you can install, modify, operate, and upgrade your Red Hat OpenShift clusters. This service allows you to work with all of your organization’s clusters from a single dashboard. More information can be found [here](https://docs.openshift.com/rosa/ocm/ocm-overview.html***REMOVED***.
 
-```hcl
+## ROSA
+Red Hat OpenShift Service on AWS (ROSA***REMOVED*** is a fully-managed, turnkey application platform that allows you to focus on delivering value to your customers by building and deploying applications. 
+More information can be found [here](https://docs.openshift.com/rosa/welcome/index.html***REMOVED***.
+
+## AWS STS
+A Secure Token Service (STS***REMOVED*** is a component that issues, validates, renews, and cancels security tokens for trusted systems, users, and resources requesting access within a federation.
+AWS provides AWS STS as a web service that enables you to request temporary, limited-privilege credentials for AWS Identity and Access Management (IAM***REMOVED*** users or for users you authenticate (federated users***REMOVED***.
+
+## ROSA STS mode
+
+To deploy a Red Hat OpenShift Service on AWS (ROSA***REMOVED*** cluster that uses the AWS Security Token Service (STS***REMOVED***, you must create the following AWS Identity Access Management (IAM***REMOVED*** resources:
+
+Specific account-wide IAM roles and policies that provide the STS permissions required for ROSA support, installation, control plane, and compute functionality. This includes account-wide Operator policies.
+Cluster-specific Operator IAM roles that permit the ROSA cluster Operators to carry out core OpenShift functionality.
+An OpenID Connect (OIDC***REMOVED*** provider that the cluster Operators use to authenticate.
+
+## Terraform
+
+Terraform is an infrastructure as a code tool, used primarily by DevOps teams.
+It lets you define resources in human-readable configuration files that you can version, reuse, and share.
+
+Terraform creates and manages resources through their application programming interfaces (APIs***REMOVED*** by using "Providers".
+
+## Prerequisites
+
+In order to use the provider inside your terraform configuration you need to import it using:
+
+* Offline token (OCM***REMOVED***:
+
+Get an offline token from [https://console.redhat.com/openshift/token/rosa](https://console.redhat.com/openshift/token/rosa***REMOVED***
+
+* Create ROSA account IAM roles: 
+
+Detailed ROSA Account Roles and Policies can be found [here](https://docs.openshift.com/rosa/rosa_architecture/rosa-sts-about-iam-resources.html***REMOVED***
+
+```
+rosa create account-roles
+```
+
+* Least AWS Permissions required to run the terraform
+
+```
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": [
+                "iam:GetRole",
+                "iam:UpdateOpenIDConnectProviderThumbprint",
+                "iam:CreateRole",
+                "iam:DeleteRole",
+                "iam:UpdateRole",
+                "iam:DeleteOpenIDConnectProvider",
+                "iam:GetOpenIDConnectProvider",
+                "iam:CreateOpenIDConnectProvider",
+                "iam:TagOpenIDConnectProvider",
+                "iam:TagRole",
+                "iam:ListRolePolicies",
+                "iam:ListAttachedRolePolicies",
+                "iam:ListInstanceProfilesForRole",
+                "iam:AttachRolePolicy",
+                "iam:DetachRolePolicy"
+            ],
+            "Resource": [
+                "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/*",
+                "arn:aws:iam::<ACCOUNT_ID>:role/*"
+            ]
+        }
+    ]
+}
+```
+
+* Choose operator IAM roles prefix name
+
+The operator IAM roles will be created per cluster by [module](https://registry.terraform.io/modules/terraform-redhat/rosa-sts***REMOVED***.
+
+
+## Sample Terraform Manifest File
+
+```
+variable token {
+    type = string
+}
+
+variable operator_role_prefix {
+    type = string
+}
+
+variable cluster_name {
+    type = string
+}
+
+variable region {
+    type = string
+}
+
+variable zone {
+    type = string
+}
+
+provider "ocm" {
+  token = var.token
+}
+
 terraform {
   required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 4.20.0"
+    }
     ocm = {
-      version = ">= 0.1"
+      version = ">= 1.0"
       source  = "terraform-redhat/ocm"
     }
   }
 }
 
-provider "ocm" {
-  token = "..."
-}
-
-resource "ocm_cluster" "my_cluster" {
-  name           = "my-cluster"
-  cloud_provider = "aws"
-  product        = "osd"
-  cloud_region   = "us-east-1"
-}
-
-resource "ocm_identity_provider" "my_idp" {
-  cluster = ocm_cluster.my_cluster.id
-  name    = "my-idp"
-  htpasswd = {
-    username = "admin"
-    password = "redhat123"
-  }
-}
-
-resource "ocm_group_membership" "my_admin" {
-  cluster = ocm_cluster.my_cluster.id
-  group   = "dedicated-admins"
-  user    = "admin"
-}
-```
-
-The value of the `token` attribute of the provider should be the OCM
-authentication token that you can get [here](https://console.redhat.com/openshift/token***REMOVED***.
-If this attribute isn't used then the provider will try to get the token it from
-the `OCM_TOKEN` environment variable.
-
-### Create AWS Rosa STS Cluster
-
-The following example shows a production grade rosa cluster with:
-
-* Existing VPC & Subnets
-* Multi AZ
-* Proxy
-* STS
-
-```
-data "aws_caller_identity" "current" {}
-
 locals {
   sts_roles = {
       role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-Installer-Role",
       support_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-Support-Role",
-      operator_iam_roles = [
-        {
-          name =  "cloud-credential-operator-iam-ro-creds",
-          namespace = "openshift-cloud-credential-operator",
-          role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.operator_role_prefix}-openshift-cloud-credential-operator-cloud-c",
-        },
-        {
-          name =  "installer-cloud-credentials",
-          namespace = "openshift-image-registry",
-          role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.operator_role_prefix}-openshift-image-registry-installer-cloud-cr",
-        },
-        {
-          name =  "cloud-credentials",
-          namespace = "openshift-ingress-operator",
-          role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.operator_role_prefix}-openshift-ingress-operator-cloud-credential",
-        },
-        {
-          name =  "ebs-cloud-credentials",
-          namespace = "openshift-cluster-csi-drivers",
-          role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.operator_role_prefix}-openshift-cluster-csi-drivers-ebs-cloud-cre",
-        },
-        {
-          name =  "cloud-credentials",
-          namespace = "openshift-cloud-network-config-controller",
-          role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.operator_role_prefix}-openshift-cloud-network-config-controller-c",
-        },
-        {
-          name =  "aws-cloud-credentials",
-          namespace = "openshift-machine-api",
-          role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.operator_role_prefix}-openshift-machine-api-aws-cloud-credentials",
-        },
-      ]
       instance_iam_roles = {
         master_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-ControlPlane-Role",
         worker_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-Worker-Role"
-      },    
+      },
+      operator_role_prefix = var.operator_role_prefix,
   }
 }
-resource "ocm_cluster" "rosa_cluster" {
+
+data "aws_caller_identity" "current" {}
+
+resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
   name           = var.cluster_name
-  cloud_provider = "aws"
-  cloud_region   = "us-east-2"
-  product        = "rosa"
+  cloud_region   = var.region
   aws_account_id     = data.aws_caller_identity.current.account_id
-  aws_subnet_ids = var.rosa_subnet_ids
-  machine_cidr = var.rosa_vpc_cidr
-  multi_az = true
-  aws_private_link = true
-  availability_zones = ["us-east-2a", "us-east-2b", "us-east-2c"]
-  proxy = {
-    http_proxy = var.proxy
-    https_proxy = var.proxy
-  }
+  availability_zones = [var.zone]
   properties = {
     rosa_creator_arn = data.aws_caller_identity.current.arn
   }
-  wait = false
   sts = local.sts_roles
 }
 
-module sts_roles {
-    source  = "rh-mobb/rosa-sts-roles/aws"
-    create_account_roles = false
-    clusters = [{
-        id = ocm_cluster.rosa_cluster.id
-        operator_role_prefix = var.operator_role_prefix
-    }]
+data "ocm_rosa_operator_roles" "operator_roles" {
+  operator_role_prefix = var.operator_role_prefix
 }
-```
 
-
-## Documentation
-
-The reference documentation of the provider is available in the Terraform
-[registry](https://registry.terraform.io/providers/rh-mobb/ocm/latest/docs***REMOVED***.
-
-## Examples
-
-Check the [examples](examples***REMOVED*** directory for complete examples.
-
-## Development
-
-To build the provider run the `make` command:
-
-```shell
-$ make
-```
-
-This will create a local Terraform plugin registry in the directory
-`.terraform.d/plugins` of the project. Assuming that you have the project
-checked out in `/files/projects/terraform-provider-ocm/repository` you will need
-to add something like this to your Terraform CLI configuration file:
-
-```hcl
-provider_installation {
-  filesystem_mirror {
-    path    = "/files/projects/terraform-provider-ocm/repository/.terraform.d/plugins"
-    include = ["localhost/*/*"]
-  }
+module operator_roles {
+    source = "terraform-redhat/rosa-sts/aws"
+    version = "0.0.1"
+    cluster_id = ocm_cluster_rosa_classic.rosa_sts_cluster.id
+    rh_oidc_provider_thumbprint = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.thumbprint
+    rh_oidc_provider_url = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.oidc_endpoint_url
+    operator_roles_properties = data.ocm_rosa_operator_roles.operator_roles.operator_iam_roles
 }
-```
-
-If you don't want to change your global CLI configuation file you can put this
-in any file you like and then use the `TF_CLI_CONFIG_FILE` environment variable
-to point to it. For example, put the configuration in
-`/files/projects/terraform-provider-ocm/terraform.rc` and then set the
-environment variable pointing to it:
-
-```shell
-$ cat >/files/projects/terraform-provider-ocm/terraform.rc <<.
-provider_installation {
-  filesystem_mirror {
-    path    = "/files/projects/terraform-provider-ocm/repository/.terraform.d/plugins"
-    include = ["localhost/*/*"]
-  }
-}
-.
-$ export TF_CLI_CONFIG_FILE=/files/projects/terraform-provider-ocm/terraform.rc
-```
-
-Once your configuration is ready you can go to the directory containing the
-Terraform `.tf` files and run the `terraform init` and `terraform apply`
-commands:
-
-```shell
-$ terraform init
-$ terraform apply
-```
-
-To see the debug log of the provider set the `TF_LOG` environment variable to
-`DEBUG` before running the `terraform apply` command:
-
-```shell
-$ export TF_LOG=DEBUG
-$ terraform apply
 ```

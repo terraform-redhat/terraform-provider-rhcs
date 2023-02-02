@@ -33,22 +33,23 @@ package provider
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
 ***REMOVED***
 
-func TestProvider(t *testing.T***REMOVED*** {
-	RegisterFailHandler(Fail***REMOVED***
-	RunSpecs(t, "Provider"***REMOVED***
-}
-
 // All tests will use this API server and Terraform runner:
 var (
 	server    *Server
 	terraform *TerraformRunner
+	testingT  *testing.T
 ***REMOVED***
+
+func TestProvider(t *testing.T***REMOVED*** {
+	RegisterFailHandler(Fail***REMOVED***
+	testingT = t
+	RunSpecs(t, "Provider"***REMOVED***
+}
 
 var _ = BeforeEach(func(***REMOVED*** {
 	// Create the server:
 	var ca string
 	server, ca = MakeTCPTLSServer(***REMOVED***
-
 	// Create an access token:
 	token := MakeTokenString("Bearer", 10*time.Minute***REMOVED***
 

@@ -29,4 +29,12 @@ type MachinePoolState struct {
 	AutoScalingEnabled types.Bool   `tfsdk:"autoscaling_enabled"`
 	MinReplicas        types.Int64  `tfsdk:"min_replicas"`
 	MaxReplicas        types.Int64  `tfsdk:"max_replicas"`
+	Taints             []Taints     `tfsdk:"taints"`
+	Labels             types.Map    `tfsdk:"labels"`
+}
+
+type Taints struct {
+	Key          types.String `tfsdk:"key"`
+	Value        types.String `tfsdk:"value"`
+	ScheduleType types.String `tfsdk:"schedule_type"`
 }

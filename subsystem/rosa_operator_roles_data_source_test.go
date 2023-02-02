@@ -14,8 +14,8 @@ const (
 	// This is the cluster that will be returned by the server when asked to retrieve a cluster with ID 123
 	getStsCredentialRequests = `{
 	"page": 1,
-	"size": 6,
-	"total": 6,
+	"size": 2,
+	"total": 2,
 	"items": [
 		{
 			"kind": "STSOperator",
@@ -74,7 +74,16 @@ var _ = Describe("ROSA Operator IAM roles data source", func() {
 		Expect(resource).To(MatchJQ(`.attributes.operator_role_prefix`, "terraform-operator"))
 		Expect(resource).To(MatchJQ(`.attributes.account_role_prefix`, "TerraformAccountPrefix"))
 		Expect(resource).To(MatchJQ(`.attributes.operator_iam_roles | length`, 2))
-		compareResultOfRoles(resource, 1,
+
+		index := 0
+		firstOperatorName := resource.(map[string]interface{})["attributes"].(map[string]interface{})["operator_iam_roles"].([]interface{})[0].(map[string]interface{})["operator_name"].(string)
+		testingT.Log("firstOperatorName = ", firstOperatorName)
+		if firstOperatorName != "ebs-cloud-credentials" {
+			index = 1
+		}
+		testingT.Log("index = ", index)
+
+		compareResultOfRoles(resource, index,
 			"ebs-cloud-credentials",
 			"openshift-cluster-csi-drivers",
 			"TerraformAccountPrefix-openshift-cluster-csi-drivers-ebs-cloud-c",
@@ -86,7 +95,7 @@ var _ = Describe("ROSA Operator IAM roles data source", func() {
 			},
 		)
 
-		compareResultOfRoles(resource, 0,
+		compareResultOfRoles(resource, 1-index,
 			"cloud-credentials",
 			"openshift-cloud-network-config-controller",
 			"TerraformAccountPrefix-openshift-cloud-network-config-controller",
@@ -118,7 +127,17 @@ var _ = Describe("ROSA Operator IAM roles data source", func() {
 		//Expect(resource).To(MatchJQ(`.attributes.items | length`, 1))
 		Expect(resource).To(MatchJQ(`.attributes.operator_role_prefix`, "terraform-operator"))
 		Expect(resource).To(MatchJQ(`.attributes.operator_iam_roles | length`, 2))
-		compareResultOfRoles(resource, 1,
+
+		index := 0
+		firstOperatorName := resource.(map[string]interface{})["attributes"].(map[string]interface{})["operator_iam_roles"].([]interface{})[0].(map[string]interface{})["operator_name"].(string)
+		testingT.Log("*firstOperatorName = ", firstOperatorName)
+		if firstOperatorName != "ebs-cloud-credentials" {
+			index = 1
+		}
+
+		testingT.Log("index = ", index)
+
+		compareResultOfRoles(resource, index,
 			"ebs-cloud-credentials",
 			"openshift-cluster-csi-drivers",
 			"ManagedOpenShift-openshift-cluster-csi-drivers-ebs-cloud-credent",
@@ -130,7 +149,7 @@ var _ = Describe("ROSA Operator IAM roles data source", func() {
 			},
 		)
 
-		compareResultOfRoles(resource, 0,
+		compareResultOfRoles(resource, 1-index,
 			"cloud-credentials",
 			"openshift-cloud-network-config-controller",
 			"ManagedOpenShift-openshift-cloud-network-config-controller-cloud",

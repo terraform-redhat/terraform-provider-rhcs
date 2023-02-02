@@ -98,6 +98,7 @@ var _ = Describe("Cluster creation", func() {
 				VerifyJQ(`.product.id`, "rosa"),
 				VerifyJQ(`.proxy.http_proxy`, "http://proxy.com"),
 				VerifyJQ(`.proxy.https_proxy`, "http://proxy.com"),
+				VerifyJQ(`.additional_trust_bundle`, "123"),
 				RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -105,6 +106,13 @@ var _ = Describe("Cluster creation", func() {
 					  "value": {						  
 						  "http_proxy" : "http://proxy.com",
 						  "https_proxy" : "http://proxy.com"
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/",
+					  "value": {
+						  "additional_trust_bundle" : "123"
 					  }
 					},
 					{
@@ -129,6 +137,7 @@ var _ = Describe("Cluster creation", func() {
 			proxy = {
 				http_proxy = "http://proxy.com",
 				https_proxy = "http://proxy.com",
+				additional_trust_bundle = "123",
 			}			
 		  }
 		`)
@@ -252,6 +261,8 @@ var _ = Describe("Cluster creation", func() {
 				VerifyJQ(`.nodes.autoscale_compute.kind`, "MachinePoolAutoscaling"),
 				VerifyJQ(`.nodes.autoscale_compute.max_replicas`, float64(4)),
 				VerifyJQ(`.nodes.autoscale_compute.min_replicas`, float64(2)),
+				VerifyJQ(`.nodes.compute_labels.label_key1`, "label_value1"),
+				VerifyJQ(`.nodes.compute_labels.label_key2`, "label_value2"),
 				RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -280,6 +291,10 @@ var _ = Describe("Cluster creation", func() {
 						},
 						"compute_machine_type": {
 							"id": "r5.xlarge"
+						},
+						"compute_labels": {
+							"label_key1": "label_value1",
+				    		"label_key2": "label_value2"
 						}
 					  }
 					}
@@ -296,6 +311,10 @@ var _ = Describe("Cluster creation", func() {
 			autoscaling_enabled = "true"
 			min_replicas = "2"
 			max_replicas = "4"
+			compute_labels = {
+				"label_key1" = "label_value1", 
+				"label_key2" = "label_value2"
+			}
 			sts = {
 				role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
 				support_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
@@ -342,6 +361,10 @@ var _ = Describe("Cluster creation", func() {
 						},
 						"compute_machine_type": {
 							"id": "r5.xlarge"
+						},
+						"compute_labels": {
+							"label_key1": "label_value1",
+				    		"label_key2": "label_value2"
 						}
 					  }
 					}
@@ -380,6 +403,10 @@ var _ = Describe("Cluster creation", func() {
 						},
 						"compute_machine_type": {
 							"id": "r5.xlarge"
+						},
+						"compute_labels": {
+							"label_key1": "label_value1",
+				    		"label_key2": "label_value2"
 						}
 					  }
 					}
@@ -395,6 +422,10 @@ var _ = Describe("Cluster creation", func() {
 			autoscaling_enabled = "true"
 			min_replicas = "3"
 			max_replicas = "4"
+			compute_labels = {
+				"label_key1" = "label_value1", 
+				"label_key2" = "label_value2"
+			}
 			sts = {
 				role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
 				support_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
@@ -441,6 +472,10 @@ var _ = Describe("Cluster creation", func() {
 						},
 						"compute_machine_type": {
 							"id": "r5.xlarge"
+						},
+						"compute_labels": {
+							"label_key1": "label_value1",
+				    		"label_key2": "label_value2"
 						}
 					  }
 					}
@@ -474,6 +509,10 @@ var _ = Describe("Cluster creation", func() {
 						"compute": 4,
 						"compute_machine_type": {
 							"id": "r5.xlarge"
+						},
+						"compute_labels": {
+							"label_key1": "label_value1",
+				    		"label_key2": "label_value2"
 						}
 					  }
 					}
@@ -487,6 +526,10 @@ var _ = Describe("Cluster creation", func() {
 			cloud_region   = "us-west-1"
 			aws_account_id = "123" 
 			replicas = 4
+			compute_labels = {
+				"label_key1" = "label_value1", 
+				"label_key2" = "label_value2"
+			}
 			sts = {
 				role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
 				support_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",

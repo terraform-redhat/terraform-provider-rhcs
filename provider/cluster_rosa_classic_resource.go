@@ -196,6 +196,14 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 					tfsdk.RequiresReplace(),
 				},
 			},
+			"compute_labels": {
+				Description: "Labels for the default machine pool. Format should be a comma-separated list of 'key=value'. " +
+					"This list will overwrite any modifications made to Node labels on an ongoing basis.",
+				Type: types.MapType{
+					ElemType: types.StringType,
+				},
+				Optional: true,
+			},
 			"aws_account_id": {
 				Description: "Identifier of the AWS account.",
 				Type:        types.StringType,
@@ -274,6 +282,11 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 					},
 					"no_proxy": {
 						Description: "no proxy",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"additional_trust_bundle": {
+						Description: "a string contains contains a PEM-encoded X.509 certificate bundle that will be added to the nodes' trusted certificate store.",
 						Type:        types.StringType,
 						Optional:    true,
 					},
@@ -387,6 +400,14 @@ func createClassicClusterObject(ctx context.Context,
 		nodes.ComputeMachineType(
 			cmv1.NewMachineType().ID(state.ComputeMachineType.Value),
 		)
+	}
+
+	if !state.ComputeLabels.Unknown && !state.ComputeLabels.Null {
+		labels := map[string]string{}
+		for k, v := range state.ComputeLabels.Elems {
+			labels[k] = v.(types.String).Value
+		}
+		nodes.ComputeLabels(labels)
 	}
 
 	if !state.AvailabilityZones.Unknown && !state.AvailabilityZones.Null {
@@ -551,6 +572,9 @@ func createClassicClusterObject(ctx context.Context,
 	if state.Proxy != nil {
 		proxy.HTTPProxy(state.Proxy.HttpProxy.Value)
 		proxy.HTTPSProxy(state.Proxy.HttpsProxy.Value)
+		if !state.Proxy.AdditionalTrustBundle.Unknown && !state.Proxy.AdditionalTrustBundle.Null {
+			builder.AdditionalTrustBundle(state.Proxy.AdditionalTrustBundle.Value)
+		}
 		builder.Proxy(proxy)
 	}
 
@@ -826,6 +850,19 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		Value: object.Nodes().ComputeMachineType().ID(),
 	}
 
+	labels, ok := object.Nodes().GetComputeLabels()
+	if ok {
+		state.ComputeLabels = types.Map{
+			ElemType: types.StringType,
+			Elems:    map[string]attr.Value{},
+		}
+		for k, v := range labels {
+			state.ComputeLabels.Elems[k] = types.String{
+				Value: v,
+			}
+		}
+	}
+
 	disableUserWorkload, ok := object.GetDisableUserWorkloadMonitoring()
 	if ok && disableUserWorkload {
 		state.DisableWorkloadMonitoring = types.Bool{
@@ -985,6 +1022,14 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 			Value: proxy.HTTPSProxy(),
 		}
 	}
+
+	trustBundle, ok := object.GetAdditionalTrustBundle()
+	if ok {
+		state.Proxy.AdditionalTrustBundle = types.String{
+			Value: trustBundle,
+		}
+	}
+
 	machineCIDR, ok := object.Network().GetMachineCIDR()
 	if ok {
 		state.MachineCIDR = types.String{

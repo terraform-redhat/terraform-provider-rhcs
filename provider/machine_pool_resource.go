@@ -19,6 +19,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -87,6 +88,38 @@ func (t *MachinePoolResourceType) GetSchema(ctx context.Context) (result tfsdk.S
 				Description: "Max replicas.",
 				Type:        types.Int64Type,
 				Optional:    true,
+			},
+			"taints": {
+				Description: "Taints for machine pool. Format should be a comma-separated " +
+					"list of 'key=value:ScheduleType'. This list will overwrite any modifications " +
+					"made to node taints on an ongoing basis.\n",
+				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"key": {
+						Description: "Taints key",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"value": {
+						Description: "Taints value",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"schedule_type": {
+						Description: "Taints schedule type",
+						Type:        types.StringType,
+						Required:    true,
+					},
+				}, tfsdk.ListNestedAttributesOptions{},
+				),
+				Optional: true,
+			},
+			"labels": {
+				Description: "Labels for machine pool. Format should be a comma-separated list of 'key = value'." +
+					" This list will overwrite any modifications made to node labels on an ongoing basis..",
+				Type: types.MapType{
+					ElemType: types.StringType,
+				},
+				Optional: true,
 			},
 		},
 	}
@@ -173,6 +206,22 @@ func (r *MachinePoolResource) Create(ctx context.Context,
 			),
 		)
 		return
+	}
+
+	if state.Taints != nil && len(state.Taints) > 0 {
+		var taintBuilders []*cmv1.TaintBuilder
+		for _, taint := range state.Taints {
+			taintBuilders = append(taintBuilders, cmv1.NewTaint().Key(taint.Key.Value).Value(taint.Value.Value).Effect(taint.ScheduleType.Value))
+		}
+		builder.Taints(taintBuilders...)
+	}
+
+	if !state.Labels.Unknown && !state.Labels.Null {
+		labels := map[string]string{}
+		for k, v := range state.Labels.Elems {
+			labels[k] = v.(types.String).Value
+		}
+		builder.Labels(labels)
 	}
 
 	object, err := builder.Build()
@@ -474,6 +523,33 @@ func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *Mac
 		state.Replicas = types.Int64{
 			Value: int64(replicas),
 		}
+	}
+
+	taints := object.Taints()
+	if len(taints) > 0 {
+		state.Taints = make([]Taints, len(taints))
+		for i, taint := range taints {
+			state.Taints[i] = Taints{
+				Key:          types.String{Value: taint.Key()},
+				Value:        types.String{Value: taint.Value()},
+				ScheduleType: types.String{Value: taint.Effect()},
+			}
+		}
+
+	}
+
+	labels := object.Labels()
+	if labels != nil {
+		state.Labels = types.Map{
+			ElemType: types.StringType,
+			Elems:    map[string]attr.Value{},
+		}
+		for k, v := range labels {
+			state.Labels.Elems[k] = types.String{
+				Value: v,
+			}
+		}
+
 	}
 
 }

@@ -2,7 +2,10 @@
     <img src=".github/Logo_Red_Hat.png" alt="RedHat logo" title="RedHat" align="right" height="50" />
 </a>
 
-# OCM Provider
+# Red Hat OCM Provider
+
+> Please note that this Terraform provider and its modules are open source and will continue to iterate features, gradually maturing this code.
+> If you encounter any issues, please report them in this repo.
 
 ## Introduction
 

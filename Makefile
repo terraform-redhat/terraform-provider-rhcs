@@ -19,9 +19,14 @@ export CGO_ENABLED=0
 
 ifeq ($(shell go env GOOS),windows)
 	BINARY=terraform-provider-ocm.exe
+	DESTINATION_PREFIX=$(APPDATA)/terraform.d/plugins
 else
 	BINARY=terraform-provider-ocm
+	DESTINATION_PREFIX=$(HOME)/.terraform.d/plugins
 endif
+
+GO_ARCH=$(shell go env GOARCH)
+TARGET_ARCH=$(shell go env GOOS)_${GO_ARCH}
 
 # Import path of the project:
 import_path:=github.com/terraform-redhat/terraform-provider-ocm
@@ -45,9 +50,9 @@ install: build
 	platform=$$(terraform version -json | jq -r .platform); \
 	extension=""; \
 	if [[ "$${platform}" =~ ^windows_.*$$ ]]; then \
-	  extension=".exe"; \
+		extension=".exe"; \
 	fi; \
-	dir=".terraform.d/plugins/localhost/terraform-redhat/ocm/$(version)/$${platform}"; \
+	dir="$(DESTINATION_PREFIX)/terraform.local/local/ocm/$(version)/$(TARGET_ARCH)"; \
 	file="terraform-provider-ocm$${extension}"; \
 	mkdir -p "$${dir}"; \
 	mv ${BINARY} "$${dir}/$${file}"

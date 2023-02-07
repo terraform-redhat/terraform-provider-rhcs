@@ -236,6 +236,11 @@ func (r *TerraformRunner***REMOVED*** Apply(***REMOVED*** int {
 	return r.Run("apply", "-auto-approve"***REMOVED***
 }
 
+// Destroy runs the `destroy` command.
+func (r *TerraformRunner***REMOVED*** Destroy(***REMOVED*** int {
+	return r.Run("destroy", "-auto-approve"***REMOVED***
+}
+
 // State returns the reads the Terraform state and returns the result of parsing
 // it as a JSON document.
 func (r *TerraformRunner***REMOVED*** State(***REMOVED*** interface{} {

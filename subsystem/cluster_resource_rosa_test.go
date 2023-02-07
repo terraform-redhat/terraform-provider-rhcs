@@ -49,8 +49,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 	  },
 	  "version": {
 		  "id": "openshift-4.8.0"
-	  },
-	  "state": "ready"
+	  }
 	}`
 
 	It("Creates basic cluster", func(***REMOVED*** {
@@ -85,6 +84,172 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+	}***REMOVED***
+	Context("Create and destroy with a timeout", func(***REMOVED*** {
+		It("Create cluster with a negative timeout", func(***REMOVED*** {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
+					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
+					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
+					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+				***REMOVED***
+					  }
+			***REMOVED***]`***REMOVED***,
+				***REMOVED***,
+			***REMOVED***
+
+			// Run the apply command with a negative timeout
+			terraform.Source(`
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"	
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			wait_with_timeout = -1
+		  }
+		`***REMOVED***
+
+			// it should return a warning so exit code will be "0":
+			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+***REMOVED******REMOVED***
+
+		It("Create cluster with a positive timeout but get a waiting state", func(***REMOVED*** {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
+					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
+					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
+					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+				***REMOVED***
+					  }
+			***REMOVED***]`***REMOVED***,
+				***REMOVED***,
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/",
+					  "state": "waiting"
+			***REMOVED***]`***REMOVED***,
+				***REMOVED***,
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/",
+					  "state": "ready"
+			***REMOVED***]`***REMOVED***,
+				***REMOVED***,
+			***REMOVED***
+
+			// Run the apply command with a negative timeout
+			terraform.Source(`
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"	
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			wait_with_timeout = 1
+		  }
+		`***REMOVED***
+
+			// it should return a warning so exit code will be "0":
+			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+***REMOVED******REMOVED***
+
+		It("Create cluster with a positive timeout and get a ready state and then destroy it", func(***REMOVED*** {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
+					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
+					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
+					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+				***REMOVED***
+					  }
+			***REMOVED***]`***REMOVED***,
+				***REMOVED***,
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/",
+					  "state": "ready"
+			***REMOVED***]`***REMOVED***,
+				***REMOVED***,
+			***REMOVED***
+
+			// Run the apply command with a negative timeout
+			terraform.Source(`
+			  resource "ocm_cluster_rosa_classic" "my_cluster" {
+				name           = "my-cluster"	
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				wait_with_timeout = 1
+			  }
+			`***REMOVED***
+
+			// it should return a warning so exit code will be "0":
+			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+			// destroy
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/",
+					  "state": "ready"
+			***REMOVED***]`***REMOVED***,
+				***REMOVED***,
+				CombineHandlers(
+					VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/",
+					  "state": "ready"
+			***REMOVED***]`***REMOVED***,
+				***REMOVED***,
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					RespondWithJSON(http.StatusNotFound, template***REMOVED***,
+				***REMOVED***,
+			***REMOVED***
+			Expect(terraform.Destroy(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+***REMOVED******REMOVED***
 	}***REMOVED***
 
 	It("Creates cluster with http proxy", func(***REMOVED*** {

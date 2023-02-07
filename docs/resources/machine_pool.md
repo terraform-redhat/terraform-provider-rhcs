@@ -24,12 +24,23 @@ Machine pool.
 ### Optional
 
 - `autoscaling_enabled` (Boolean***REMOVED*** Enables autoscaling.
+- `labels` (Map of String***REMOVED*** Labels for machine pool. Format should be a comma-separated list of 'key = value'. This list will overwrite any modifications made to node labels on an ongoing basis..
 - `max_replicas` (Number***REMOVED*** Max replicas.
 - `min_replicas` (Number***REMOVED*** Min replicas.
 - `replicas` (Number***REMOVED*** The number of machines of the pool
+- `taints` (Attributes List***REMOVED*** Taints for machine pool. Format should be a comma-separated list of 'key=value:ScheduleType'. This list will overwrite any modifications made to node taints on an ongoing basis. (see [below for nested schema](#nestedatt--taints***REMOVED******REMOVED***
 
 ### Read-Only
 
 - `id` (String***REMOVED*** Unique identifier of the machine pool.
+
+<a id="nestedatt--taints"></a>
+### Nested Schema for `taints`
+
+Required:
+
+- `key` (String***REMOVED*** Taints key
+- `schedule_type` (String***REMOVED*** Taints schedule type
+- `value` (String***REMOVED*** Taints value
 
 

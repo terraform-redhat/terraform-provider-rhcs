@@ -49,8 +49,7 @@ var _ = Describe("Cluster creation", func() {
 	  },
 	  "version": {
 		  "id": "openshift-4.8.0"
-	  },
-	  "state": "ready"
+	  }
 	}`
 
 	It("Creates basic cluster", func() {
@@ -85,6 +84,172 @@ var _ = Describe("Cluster creation", func() {
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
+	})
+	Context("Create and destroy with a timeout", func() {
+		It("Create cluster with a negative timeout", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+						}
+					  }
+					}]`),
+				),
+			)
+
+			// Run the apply command with a negative timeout
+			terraform.Source(`
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"	
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			wait_with_timeout = -1
+		  }
+		`)
+
+			// it should return a warning so exit code will be "0":
+			Expect(terraform.Apply()).To(BeZero())
+		})
+
+		It("Create cluster with a positive timeout but get a waiting state", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+						}
+					  }
+					}]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/",
+					  "state": "waiting"
+					}]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/",
+					  "state": "ready"
+					}]`),
+				),
+			)
+
+			// Run the apply command with a negative timeout
+			terraform.Source(`
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"	
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			wait_with_timeout = 1
+		  }
+		`)
+
+			// it should return a warning so exit code will be "0":
+			Expect(terraform.Apply()).To(BeZero())
+		})
+
+		It("Create cluster with a positive timeout and get a ready state and then destroy it", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+						}
+					  }
+					}]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/",
+					  "state": "ready"
+					}]`),
+				),
+			)
+
+			// Run the apply command with a negative timeout
+			terraform.Source(`
+			  resource "ocm_cluster_rosa_classic" "my_cluster" {
+				name           = "my-cluster"	
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				wait_with_timeout = 1
+			  }
+			`)
+
+			// it should return a warning so exit code will be "0":
+			Expect(terraform.Apply()).To(BeZero())
+
+			// destroy
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/",
+					  "state": "ready"
+					}]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/",
+					  "state": "ready"
+					}]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusNotFound, template),
+				),
+			)
+			Expect(terraform.Destroy()).To(BeZero())
+		})
 	})
 
 	It("Creates cluster with http proxy", func() {

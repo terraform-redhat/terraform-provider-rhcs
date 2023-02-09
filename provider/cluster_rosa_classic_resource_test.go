@@ -65,7 +65,7 @@ var (
 		response: &http.Response{
 			TLS: &tls.ConnectionState{
 				PeerCertificates: []*x509.Certificate{
-					&x509.Certificate{
+					{
 						Raw: []byte("nonce"***REMOVED***,
 			***REMOVED***,
 		***REMOVED***,
@@ -151,9 +151,7 @@ func generateBasicRosaClassicClusterState(***REMOVED*** *ClusterRosaClassicState
 				Value: httpsProxy,
 	***REMOVED***,
 ***REMOVED***,
-		Sts: &Sts{
-
-***REMOVED***,
+		Sts: &Sts{},
 	}
 }
 

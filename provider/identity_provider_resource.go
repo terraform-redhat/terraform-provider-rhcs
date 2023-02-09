@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"time"
+	"net/url"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
@@ -62,6 +63,11 @@ func (t *IdentityProviderResourceType) GetSchema(ctx context.Context) (result tf
 				Attributes:  t.htpasswdSchema(),
 				Optional:    true,
 			},
+			"gitlab": {
+				Description: "Details of the Gitlab identity provider.",
+				Attributes:  t.gitlabSchema(),
+				Optional:    true,				
+			},
 			"ldap": {
 				Description: "Details of the LDAP identity provider.",
 				Attributes:  t.ldapSchema(),
@@ -89,6 +95,32 @@ func (t *IdentityProviderResourceType) htpasswdSchema() tfsdk.NestedAttributes {
 			Type:        types.StringType,
 			Required:    true,
 			Sensitive:   true,
+		},
+	})
+}
+
+func (t *IdentityProviderResourceType) gitlabSchema() tfsdk.NestedAttributes {
+	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+		"ca": {
+			Description: "Optional trusted certificate authority bundle.",
+			Type:     types.StringType,
+			Optional: true,
+		},
+		"client_id": {
+			Description: "Client identifier of a registered Gitlab OAuth application.",
+			Type:     types.StringType,
+			Required: true,
+		},
+		"client_secret": {
+			Description: "Client secret issued by Gitlab.",
+			Type:      types.StringType,
+			Required:  true,
+			Sensitive: true,
+		},
+		"url": {
+			Description: "URL of the Gitlab instance.",
+			Type:     types.StringType,
+			Required: true,
 		},
 	})
 }
@@ -274,7 +306,7 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 	builder.Name(state.Name.Value)
 	switch {
 	case state.HTPasswd != nil:
-		builder.Type(cmv1.IdentityProviderType("HTPasswdIdentityProvider"))
+		builder.Type(cmv1.IdentityProviderTypeHtpasswd)
 		htpasswdBuilder := cmv1.NewHTPasswdIdentityProvider()
 		if !state.HTPasswd.Username.Null {
 			htpasswdBuilder.Username(state.HTPasswd.Username.Value)
@@ -283,8 +315,29 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 			htpasswdBuilder.Password(state.HTPasswd.Password.Value)
 		}
 		builder.Htpasswd(htpasswdBuilder)
+    case state.Gitlab != nil:
+		builder.Type(cmv1.IdentityProviderTypeGitlab)
+		gitlabBuilder := cmv1.NewGitlabIdentityProvider()
+		if !state.Gitlab.CA.Unknown && !state.Gitlab.CA.Null {
+			gitlabBuilder.CA(state.Gitlab.CA.Value)
+		}
+		gitlabBuilder.ClientID(state.Gitlab.ClientID.Value)
+		gitlabBuilder.ClientSecret(state.Gitlab.ClientSecret.Value)
+		u, err := url.ParseRequestURI(state.Gitlab.URL.Value)
+		if err != nil || u.Scheme != "https" || u.RawQuery != "" || u.Fragment != "" {
+			response.Diagnostics.AddError(
+				"Expected a valid GitLab provider URL: to use an https:// scheme, must not have query parameters and not have a fragment.",
+				fmt.Sprintf(
+					"Can't build identity provider with name '%s': %v",
+					state.Name.Value, err,
+				),
+			)
+			return
+		}
+		gitlabBuilder.URL(state.Gitlab.URL.Value)
+		builder.Gitlab(gitlabBuilder)
 	case state.LDAP != nil:
-		builder.Type(cmv1.IdentityProviderType("LDAPIdentityProvider"))
+		builder.Type(cmv1.IdentityProviderTypeLDAP)
 		ldapBuilder := cmv1.NewLDAPIdentityProvider()
 		if !state.LDAP.BindDN.Null {
 			ldapBuilder.BindDN(state.LDAP.BindDN.Value)
@@ -321,7 +374,7 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 		}
 		builder.LDAP(ldapBuilder)
 	case state.OpenID != nil:
-		builder.Type(cmv1.IdentityProviderType("OpenIDIdentityProvider"))
+		builder.Type(cmv1.IdentityProviderTypeOpenID)
 		openidBuilder := cmv1.NewOpenIDIdentityProvider()
 		if !state.OpenID.CA.Null {
 			openidBuilder.CA(state.OpenID.CA.Value)
@@ -392,11 +445,14 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 		Value: object.ID(),
 	}
 	htpasswdObject := object.Htpasswd()
+	gitlabObject := object.Gitlab()
 	ldapObject := object.LDAP()
 	openidObject := object.OpenID()
 	switch {
 	case htpasswdObject != nil:
 		// Nothing, there are no computed attributes for `htpasswd` identity providers.
+	case gitlabObject !=nil:
+		// Nothing, there are no computed attributes for `gitlab` identity providers.
 	case ldapObject != nil:
 		if state.LDAP == nil {
 			state.LDAP = &LDAPIdentityProvider{}
@@ -448,6 +504,7 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request tfsdk.ReadR
 		Value: object.Name(),
 	}
 	htpasswdObject := object.Htpasswd()
+	gitlabObject := object.Gitlab()
 	ldapObject := object.LDAP()
 	openidObject := object.OpenID()
 	switch {
@@ -465,6 +522,34 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request tfsdk.ReadR
 		if ok {
 			state.HTPasswd.Password = types.String{
 				Value: password,
+			}
+		}
+    case gitlabObject != nil:
+		if state.Gitlab == nil {
+			state.Gitlab = &GitlabIdentityProvider{}
+		}
+		ca, ok := gitlabObject.GetCA()
+		if ok {
+			state.Gitlab.CA = types.String{
+				Value: ca,
+			}
+		}
+		client_id, ok := gitlabObject.GetClientID()
+		if ok {
+			state.Gitlab.ClientID = types.String{
+				Value: client_id,
+			}
+		}
+		client_secret, ok := gitlabObject.GetClientSecret()
+		if ok {
+			state.Gitlab.ClientSecret = types.String{
+				Value: client_secret,
+			}
+		}
+		url, ok := gitlabObject.GetURL()
+		if ok {
+			state.Gitlab.URL = types.String{
+				Value: url,
 			}
 		}
 	case ldapObject != nil:

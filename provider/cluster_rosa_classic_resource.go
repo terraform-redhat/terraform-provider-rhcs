@@ -45,6 +45,7 @@ const (
 	MinVersion                = "4.10"
 	nonPositiveTimeoutSummary = "Can't poll cluster state with a non-positive timeout"
 	nonPositiveTimeoutFormat  = "Can't poll state of cluster with identifier '%s', the timeout that was set is not a positive number"
+	pollingIntervalInMinutes  = 1
 ***REMOVED***
 
 var kmsArnRE = regexp.MustCompile(
@@ -671,7 +672,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** waitForClusterStateWithTimeout(
 	pollCtx, cancel := context.WithTimeout(ctx, timeoutInMinutes***REMOVED***
 	defer cancel(***REMOVED***
 	_, err := r.collection.Cluster(object.ID(***REMOVED******REMOVED***.Poll(***REMOVED***.
-		Interval(1 * time.Minute***REMOVED***.
+		Interval(pollingIntervalInMinutes * time.Minute***REMOVED***.
 		Predicate(func(getClusterResponse *cmv1.ClusterGetResponse***REMOVED*** bool {
 			object = getClusterResponse.Body(***REMOVED***
 			logger.Debug(ctx, "cluster state is %s", object.State(***REMOVED******REMOVED***
@@ -891,7 +892,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** waitTillClusterIsNotFoundWithTi
 	pollCtx, cancel := context.WithTimeout(ctx, timeoutInMinutes***REMOVED***
 	defer cancel(***REMOVED***
 	_, err := resource.Poll(***REMOVED***.
-		Interval(1 * time.Minute***REMOVED***.
+		Interval(pollingIntervalInMinutes * time.Minute***REMOVED***.
 		Status(http.StatusNotFound***REMOVED***.
 		StartContext(pollCtx***REMOVED***
 	sdkErr, ok := err.(*ocm_errors.Error***REMOVED***

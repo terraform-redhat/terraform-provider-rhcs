@@ -19,13 +19,14 @@ package provider
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
+
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift-online/ocm-sdk-go/logging"
 )
@@ -313,7 +314,7 @@ func (r *MachinePoolResource) Update(ctx context.Context, request tfsdk.UpdateRe
 	resource := r.collection.Cluster(state.Cluster.Value).
 		MachinePools().
 		MachinePool(state.ID.Value)
-	get, err := resource.Get().SendContext(ctx)
+	_, err := resource.Get().SendContext(ctx)
 
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -326,7 +327,6 @@ func (r *MachinePoolResource) Update(ctx context.Context, request tfsdk.UpdateRe
 		)
 		return
 	}
-	object := get.Body()
 
 	mpBuilder := cmv1.NewMachinePool().ID(state.ID.Value)
 
@@ -345,7 +345,6 @@ func (r *MachinePoolResource) Update(ctx context.Context, request tfsdk.UpdateRe
 	computeNodesEnabled := false
 	autoscalingEnabled := false
 
-	//_, ok = shouldPatchInt(state.Replicas, plan.Replicas)
 	if !plan.Replicas.Unknown && !plan.Replicas.Null {
 		computeNodesEnabled = true
 		mpBuilder.Replicas(int(plan.Replicas.Value))
@@ -398,7 +397,7 @@ func (r *MachinePoolResource) Update(ctx context.Context, request tfsdk.UpdateRe
 		return
 	}
 
-	object = update.Body()
+	object := update.Body()
 
 	// update the autoscaling enabled with the plan value (important for nil and false cases)
 	state.AutoScalingEnabled = plan.AutoScalingEnabled
@@ -512,9 +511,11 @@ func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *Mac
 	}
 
 	instanceType, ok := object.GetInstanceType()
-	{
-		state.MachineType = types.String{
-			Value: instanceType,
+	if ok {
+		{
+			state.MachineType = types.String{
+				Value: instanceType,
+			}
 		}
 	}
 

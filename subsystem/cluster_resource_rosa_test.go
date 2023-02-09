@@ -52,6 +52,56 @@ var _ = Describe("Cluster creation", func() {
 	  }
 	}`
 
+	const templateWaitingState = `{
+	  "id": "123",
+	  "name": "my-cluster",
+	  "state": "waiting",
+	  "region": {
+	    "id": "us-west-1"
+	  },
+	  "multi_az": true,
+	  "api": {
+	    "url": "https://my-api.example.com"
+	  },
+	  "console": {
+	    "url": "https://my-console.example.com"
+	  },
+	  "network": {
+	    "machine_cidr": "10.0.0.0/16",
+	    "service_cidr": "172.30.0.0/16",
+	    "pod_cidr": "10.128.0.0/14",
+	    "host_prefix": 23
+	  },
+	  "version": {
+		  "id": "openshift-4.8.0"
+	  }
+	}`
+
+	const templateReadyState = `{
+	  "id": "123",
+	  "name": "my-cluster",
+	  "state": "ready",
+	  "region": {
+	    "id": "us-west-1"
+	  },
+	  "multi_az": true,
+	  "api": {
+	    "url": "https://my-api.example.com"
+	  },
+	  "console": {
+	    "url": "https://my-console.example.com"
+	  },
+	  "network": {
+	    "machine_cidr": "10.0.0.0/16",
+	    "service_cidr": "172.30.0.0/16",
+	    "pod_cidr": "10.128.0.0/14",
+	    "host_prefix": 23
+	  },
+	  "version": {
+		  "id": "openshift-4.8.0"
+	  }
+	}`
+
 	It("Creates basic cluster", func() {
 		// Prepare the server:
 		server.AppendHandlers(
@@ -146,25 +196,11 @@ var _ = Describe("Cluster creation", func() {
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-					RespondWithPatchedJSON(http.StatusOK, template, `[
-					{
-					  "op": "add",
-					  "path": "/",
-					  "state": "waiting"
-					}]`),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-					RespondWithPatchedJSON(http.StatusOK, template, `[
-					{
-					  "op": "add",
-					  "path": "/",
-					  "state": "ready"
-					}]`),
+					RespondWithJSON(http.StatusOK, templateWaitingState),
 				),
 			)
 
-			// Run the apply command with a negative timeout
+			// Run the apply command with a positive timeout
 			terraform.Source(`
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"	
@@ -201,16 +237,11 @@ var _ = Describe("Cluster creation", func() {
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-					RespondWithPatchedJSON(http.StatusOK, template, `[
-					{
-					  "op": "add",
-					  "path": "/",
-					  "state": "ready"
-					}]`),
+					RespondWithJSON(http.StatusOK, templateReadyState),
 				),
 			)
 
-			// Run the apply command with a negative timeout
+			// Run the apply command with a positive timeout
 			terraform.Source(`
 			  resource "ocm_cluster_rosa_classic" "my_cluster" {
 				name           = "my-cluster"	
@@ -223,25 +254,15 @@ var _ = Describe("Cluster creation", func() {
 			// it should return a warning so exit code will be "0":
 			Expect(terraform.Apply()).To(BeZero())
 
-			// destroy
+			// prepare the server to terraform destroy
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-					RespondWithPatchedJSON(http.StatusOK, template, `[
-					{
-					  "op": "add",
-					  "path": "/",
-					  "state": "ready"
-					}]`),
+					RespondWithJSON(http.StatusOK, templateReadyState),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/123"),
-					RespondWithPatchedJSON(http.StatusOK, template, `[
-					{
-					  "op": "add",
-					  "path": "/",
-					  "state": "ready"
-					}]`),
+					RespondWithJSON(http.StatusOK, templateReadyState),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),

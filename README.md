@@ -182,7 +182,7 @@ Running `terraform plan` against a local build of OCM provider can be done by th
 
 for example 
 ```
-~/.terraform.d/plugins/terraform.local/local/ocm/1.0.0/linux_amd64
+~/.terraform.d/plugins/terraform.local/local/ocm/0.0.1/linux_amd64
 ```
 
 2. Point to the local provider by pointing the required_providers ocm to the local terraform directory
@@ -192,7 +192,7 @@ terraform {
   required_providers {
     ocm = {
       source  = "terraform.local/local/ocm"
-      version = "1.0.0"
+      version = "0.0.1"
     }
   }
 }

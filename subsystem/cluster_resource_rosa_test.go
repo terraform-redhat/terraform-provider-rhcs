@@ -49,8 +49,57 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 	  },
 	  "version": {
 		  "id": "openshift-4.8.0"
+	  }
+	}`
+
+	const templateWaitingState = `{
+	  "id": "123",
+	  "name": "my-cluster",
+	  "state": "waiting",
+	  "region": {
+	    "id": "us-west-1"
 	  },
-	  "state": "ready"
+	  "multi_az": true,
+	  "api": {
+	    "url": "https://my-api.example.com"
+	  },
+	  "console": {
+	    "url": "https://my-console.example.com"
+	  },
+	  "network": {
+	    "machine_cidr": "10.0.0.0/16",
+	    "service_cidr": "172.30.0.0/16",
+	    "pod_cidr": "10.128.0.0/14",
+	    "host_prefix": 23
+	  },
+	  "version": {
+		  "id": "openshift-4.8.0"
+	  }
+	}`
+
+	const templateReadyState = `{
+	  "id": "123",
+	  "name": "my-cluster",
+	  "state": "ready",
+	  "region": {
+	    "id": "us-west-1"
+	  },
+	  "multi_az": true,
+	  "api": {
+	    "url": "https://my-api.example.com"
+	  },
+	  "console": {
+	    "url": "https://my-console.example.com"
+	  },
+	  "network": {
+	    "machine_cidr": "10.0.0.0/16",
+	    "service_cidr": "172.30.0.0/16",
+	    "pod_cidr": "10.128.0.0/14",
+	    "host_prefix": 23
+	  },
+	  "version": {
+		  "id": "openshift-4.8.0"
+	  }
 	}`
 
 	It("Creates basic cluster", func(***REMOVED*** {
@@ -85,6 +134,143 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+	}***REMOVED***
+	Context("Create and destroy with a timeout", func(***REMOVED*** {
+		It("Create cluster with a negative timeout", func(***REMOVED*** {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
+					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
+					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
+					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+				***REMOVED***
+					  }
+			***REMOVED***]`***REMOVED***,
+				***REMOVED***,
+			***REMOVED***
+
+			// Run the apply command with a negative timeout
+			terraform.Source(`
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"	
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			wait_with_timeout = -1
+		  }
+		`***REMOVED***
+
+			// it should return a warning so exit code will be "0":
+			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+***REMOVED******REMOVED***
+
+		It("Create cluster with a positive timeout but get a waiting state", func(***REMOVED*** {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
+					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
+					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
+					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+				***REMOVED***
+					  }
+			***REMOVED***]`***REMOVED***,
+				***REMOVED***,
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					RespondWithJSON(http.StatusOK, templateWaitingState***REMOVED***,
+				***REMOVED***,
+			***REMOVED***
+
+			// Run the apply command with a positive timeout
+			terraform.Source(`
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"	
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			wait_with_timeout = 1
+		  }
+		`***REMOVED***
+
+			// it should return a warning so exit code will be "0":
+			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+***REMOVED******REMOVED***
+
+		It("Create cluster with a positive timeout and get a ready state and then destroy it", func(***REMOVED*** {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
+					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
+					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
+					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+				***REMOVED***
+					  }
+			***REMOVED***]`***REMOVED***,
+				***REMOVED***,
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					RespondWithJSON(http.StatusOK, templateReadyState***REMOVED***,
+				***REMOVED***,
+			***REMOVED***
+
+			// Run the apply command with a positive timeout
+			terraform.Source(`
+			  resource "ocm_cluster_rosa_classic" "my_cluster" {
+				name           = "my-cluster"	
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				wait_with_timeout = 1
+			  }
+			`***REMOVED***
+
+			// it should return a warning so exit code will be "0":
+			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+			// prepare the server to terraform destroy
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					RespondWithJSON(http.StatusOK, templateReadyState***REMOVED***,
+				***REMOVED***,
+				CombineHandlers(
+					VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					RespondWithJSON(http.StatusOK, templateReadyState***REMOVED***,
+				***REMOVED***,
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					RespondWithJSON(http.StatusNotFound, template***REMOVED***,
+				***REMOVED***,
+			***REMOVED***
+			Expect(terraform.Destroy(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+***REMOVED******REMOVED***
 	}***REMOVED***
 
 	It("Creates cluster with http proxy", func(***REMOVED*** {

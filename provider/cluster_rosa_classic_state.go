@@ -54,6 +54,7 @@ type ClusterRosaClassicState struct {
 	Proxy                     *Proxy       `tfsdk:"proxy"`
 	State                     types.String `tfsdk:"state"`
 	Version                   types.String `tfsdk:"version"`
+	WaitWithTimeout           types.Int64  `tfsdk:"wait_with_timeout"`
 }
 
 type Sts struct {

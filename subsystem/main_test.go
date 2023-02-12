@@ -236,6 +236,11 @@ func (r *TerraformRunner) Apply() int {
 	return r.Run("apply", "-auto-approve")
 }
 
+// Destroy runs the `destroy` command.
+func (r *TerraformRunner) Destroy() int {
+	return r.Run("destroy", "-auto-approve")
+}
+
 // State returns the reads the Terraform state and returns the result of parsing
 // it as a JSON document.
 func (r *TerraformRunner) State() interface{} {

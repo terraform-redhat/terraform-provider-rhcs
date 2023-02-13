@@ -19,13 +19,14 @@ package provider
 ***REMOVED***
 	"context"
 ***REMOVED***
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
+
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift-online/ocm-sdk-go/logging"
 ***REMOVED***
@@ -313,7 +314,7 @@ func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, request tf
 	resource := r.collection.Cluster(state.Cluster.Value***REMOVED***.
 		MachinePools(***REMOVED***.
 		MachinePool(state.ID.Value***REMOVED***
-	get, err := resource.Get(***REMOVED***.SendContext(ctx***REMOVED***
+	_, err := resource.Get(***REMOVED***.SendContext(ctx***REMOVED***
 
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -326,7 +327,6 @@ func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, request tf
 		***REMOVED***
 		return
 	}
-	object := get.Body(***REMOVED***
 
 	mpBuilder := cmv1.NewMachinePool(***REMOVED***.ID(state.ID.Value***REMOVED***
 
@@ -345,7 +345,6 @@ func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, request tf
 	computeNodesEnabled := false
 	autoscalingEnabled := false
 
-	//_, ok = shouldPatchInt(state.Replicas, plan.Replicas***REMOVED***
 	if !plan.Replicas.Unknown && !plan.Replicas.Null {
 		computeNodesEnabled = true
 		mpBuilder.Replicas(int(plan.Replicas.Value***REMOVED******REMOVED***
@@ -398,7 +397,7 @@ func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, request tf
 		return
 	}
 
-	object = update.Body(***REMOVED***
+	object := update.Body(***REMOVED***
 
 	// update the autoscaling enabled with the plan value (important for nil and false cases***REMOVED***
 	state.AutoScalingEnabled = plan.AutoScalingEnabled
@@ -512,9 +511,11 @@ func (r *MachinePoolResource***REMOVED*** populateState(object *cmv1.MachinePool
 	}
 
 	instanceType, ok := object.GetInstanceType(***REMOVED***
-	{
-		state.MachineType = types.String{
-			Value: instanceType,
+	if ok {
+		{
+			state.MachineType = types.String{
+				Value: instanceType,
+	***REMOVED***
 ***REMOVED***
 	}
 

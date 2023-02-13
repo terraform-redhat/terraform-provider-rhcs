@@ -48,7 +48,6 @@ OpenShift managed cluster using rosa sts.
 - `sts` (Attributes) STS Configuration (see [below for nested schema](#nestedatt--sts))
 - `tags` (Map of String) Apply user defined tags to all resources created in AWS.
 - `version` (String) Identifier of the version of OpenShift, for example 'openshift-v4.1.0'.
-- `wait_with_timeout` (Number) Wait with a timeout till the cluster is ready. The timeout value should be in minutes
 
 ### Read-Only
 

@@ -171,6 +171,11 @@ module operator_roles {
     rh_oidc_provider_url = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.oidc_endpoint_url
     operator_roles_properties = data.ocm_rosa_operator_roles.operator_roles.operator_iam_roles
 }
+
+resource "ocm_cluster_wait" "rosa_cluster" {
+￼  cluster = ocm_cluster.rosa_cluster.id
+   timeout = 30 
+￼}
 ```
 
 ## Development Introduction

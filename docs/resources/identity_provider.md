@@ -22,6 +22,7 @@ Identity provider.
 
 ### Optional
 
+- `gitlab` (Attributes***REMOVED*** Details of the Gitlab identity provider. (see [below for nested schema](#nestedatt--gitlab***REMOVED******REMOVED***
 - `htpasswd` (Attributes***REMOVED*** Details of the 'htpasswd' identity provider. (see [below for nested schema](#nestedatt--htpasswd***REMOVED******REMOVED***
 - `ldap` (Attributes***REMOVED*** Details of the LDAP identity provider. (see [below for nested schema](#nestedatt--ldap***REMOVED******REMOVED***
 - `openid` (Attributes***REMOVED*** Details of the OpenID identity provider. (see [below for nested schema](#nestedatt--openid***REMOVED******REMOVED***
@@ -29,6 +30,20 @@ Identity provider.
 ### Read-Only
 
 - `id` (String***REMOVED*** Unique identifier of the identity provider.
+
+<a id="nestedatt--gitlab"></a>
+### Nested Schema for `gitlab`
+
+Required:
+
+- `client_id` (String***REMOVED***
+- `client_secret` (String, Sensitive***REMOVED***
+- `url` (String***REMOVED***
+
+Optional:
+
+- `ca` (String***REMOVED***
+
 
 <a id="nestedatt--htpasswd"></a>
 ### Nested Schema for `htpasswd`

@@ -20,6 +20,7 @@ package provider
 	"context"
 ***REMOVED***
 	"time"
+	"net/url"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
@@ -62,6 +63,11 @@ func (t *IdentityProviderResourceType***REMOVED*** GetSchema(ctx context.Context
 				Attributes:  t.htpasswdSchema(***REMOVED***,
 				Optional:    true,
 	***REMOVED***,
+			"gitlab": {
+				Description: "Details of the Gitlab identity provider.",
+				Attributes:  t.gitlabSchema(***REMOVED***,
+				Optional:    true,				
+	***REMOVED***,
 			"ldap": {
 				Description: "Details of the LDAP identity provider.",
 				Attributes:  t.ldapSchema(***REMOVED***,
@@ -89,6 +95,32 @@ func (t *IdentityProviderResourceType***REMOVED*** htpasswdSchema(***REMOVED*** 
 			Type:        types.StringType,
 			Required:    true,
 			Sensitive:   true,
+***REMOVED***,
+	}***REMOVED***
+}
+
+func (t *IdentityProviderResourceType***REMOVED*** gitlabSchema(***REMOVED*** tfsdk.NestedAttributes {
+	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+		"ca": {
+			Description: "Optional trusted certificate authority bundle.",
+			Type:     types.StringType,
+			Optional: true,
+***REMOVED***,
+		"client_id": {
+			Description: "Client identifier of a registered Gitlab OAuth application.",
+			Type:     types.StringType,
+			Required: true,
+***REMOVED***,
+		"client_secret": {
+			Description: "Client secret issued by Gitlab.",
+			Type:      types.StringType,
+			Required:  true,
+			Sensitive: true,
+***REMOVED***,
+		"url": {
+			Description: "URL of the Gitlab instance.",
+			Type:     types.StringType,
+			Required: true,
 ***REMOVED***,
 	}***REMOVED***
 }
@@ -274,7 +306,7 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 	builder.Name(state.Name.Value***REMOVED***
 	switch {
 	case state.HTPasswd != nil:
-		builder.Type(cmv1.IdentityProviderType("HTPasswdIdentityProvider"***REMOVED******REMOVED***
+		builder.Type(cmv1.IdentityProviderTypeHtpasswd***REMOVED***
 		htpasswdBuilder := cmv1.NewHTPasswdIdentityProvider(***REMOVED***
 		if !state.HTPasswd.Username.Null {
 			htpasswdBuilder.Username(state.HTPasswd.Username.Value***REMOVED***
@@ -283,8 +315,29 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 			htpasswdBuilder.Password(state.HTPasswd.Password.Value***REMOVED***
 ***REMOVED***
 		builder.Htpasswd(htpasswdBuilder***REMOVED***
+    case state.Gitlab != nil:
+		builder.Type(cmv1.IdentityProviderTypeGitlab***REMOVED***
+		gitlabBuilder := cmv1.NewGitlabIdentityProvider(***REMOVED***
+		if !state.Gitlab.CA.Unknown && !state.Gitlab.CA.Null {
+			gitlabBuilder.CA(state.Gitlab.CA.Value***REMOVED***
+***REMOVED***
+		gitlabBuilder.ClientID(state.Gitlab.ClientID.Value***REMOVED***
+		gitlabBuilder.ClientSecret(state.Gitlab.ClientSecret.Value***REMOVED***
+		u, err := url.ParseRequestURI(state.Gitlab.URL.Value***REMOVED***
+		if err != nil || u.Scheme != "https" || u.RawQuery != "" || u.Fragment != "" {
+			response.Diagnostics.AddError(
+				"Expected a valid GitLab provider URL: to use an https:// scheme, must not have query parameters and not have a fragment.",
+				fmt.Sprintf(
+					"Can't build identity provider with name '%s': %v",
+					state.Name.Value, err,
+				***REMOVED***,
+			***REMOVED***
+			return
+***REMOVED***
+		gitlabBuilder.URL(state.Gitlab.URL.Value***REMOVED***
+		builder.Gitlab(gitlabBuilder***REMOVED***
 	case state.LDAP != nil:
-		builder.Type(cmv1.IdentityProviderType("LDAPIdentityProvider"***REMOVED******REMOVED***
+		builder.Type(cmv1.IdentityProviderTypeLDAP***REMOVED***
 		ldapBuilder := cmv1.NewLDAPIdentityProvider(***REMOVED***
 		if !state.LDAP.BindDN.Null {
 			ldapBuilder.BindDN(state.LDAP.BindDN.Value***REMOVED***
@@ -321,7 +374,7 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 ***REMOVED***
 		builder.LDAP(ldapBuilder***REMOVED***
 	case state.OpenID != nil:
-		builder.Type(cmv1.IdentityProviderType("OpenIDIdentityProvider"***REMOVED******REMOVED***
+		builder.Type(cmv1.IdentityProviderTypeOpenID***REMOVED***
 		openidBuilder := cmv1.NewOpenIDIdentityProvider(***REMOVED***
 		if !state.OpenID.CA.Null {
 			openidBuilder.CA(state.OpenID.CA.Value***REMOVED***
@@ -392,11 +445,14 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 		Value: object.ID(***REMOVED***,
 	}
 	htpasswdObject := object.Htpasswd(***REMOVED***
+	gitlabObject := object.Gitlab(***REMOVED***
 	ldapObject := object.LDAP(***REMOVED***
 	openidObject := object.OpenID(***REMOVED***
 	switch {
 	case htpasswdObject != nil:
 		// Nothing, there are no computed attributes for `htpasswd` identity providers.
+	case gitlabObject !=nil:
+		// Nothing, there are no computed attributes for `gitlab` identity providers.
 	case ldapObject != nil:
 		if state.LDAP == nil {
 			state.LDAP = &LDAPIdentityProvider{}
@@ -448,6 +504,7 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 		Value: object.Name(***REMOVED***,
 	}
 	htpasswdObject := object.Htpasswd(***REMOVED***
+	gitlabObject := object.Gitlab(***REMOVED***
 	ldapObject := object.LDAP(***REMOVED***
 	openidObject := object.OpenID(***REMOVED***
 	switch {
@@ -465,6 +522,34 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 		if ok {
 			state.HTPasswd.Password = types.String{
 				Value: password,
+	***REMOVED***
+***REMOVED***
+    case gitlabObject != nil:
+		if state.Gitlab == nil {
+			state.Gitlab = &GitlabIdentityProvider{}
+***REMOVED***
+		ca, ok := gitlabObject.GetCA(***REMOVED***
+		if ok {
+			state.Gitlab.CA = types.String{
+				Value: ca,
+	***REMOVED***
+***REMOVED***
+		client_id, ok := gitlabObject.GetClientID(***REMOVED***
+		if ok {
+			state.Gitlab.ClientID = types.String{
+				Value: client_id,
+	***REMOVED***
+***REMOVED***
+		client_secret, ok := gitlabObject.GetClientSecret(***REMOVED***
+		if ok {
+			state.Gitlab.ClientSecret = types.String{
+				Value: client_secret,
+	***REMOVED***
+***REMOVED***
+		url, ok := gitlabObject.GetURL(***REMOVED***
+		if ok {
+			state.Gitlab.URL = types.String{
+				Value: url,
 	***REMOVED***
 ***REMOVED***
 	case ldapObject != nil:

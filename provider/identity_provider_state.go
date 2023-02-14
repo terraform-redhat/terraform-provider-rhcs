@@ -25,6 +25,7 @@ type IdentityProviderState struct {
 	ID       types.String              `tfsdk:"id"`
 	Name     types.String              `tfsdk:"name"`
 	HTPasswd *HTPasswdIdentityProvider `tfsdk:"htpasswd"`
+	Gitlab   *GitlabIdentityProvider   `tfsdk:"gitlab"`
 	LDAP     *LDAPIdentityProvider     `tfsdk:"ldap"`
 	OpenID   *OpenIDIdentityProvider   `tfsdk:"openid"`
 }
@@ -32,6 +33,13 @@ type IdentityProviderState struct {
 type HTPasswdIdentityProvider struct {
 	Username types.String `tfsdk:"username"`
 	Password types.String `tfsdk:"password"`
+}
+
+type GitlabIdentityProvider struct {
+	CA           types.String `tfsdk:"ca"`
+	ClientID     types.String `tfsdk:"client_id"`
+	ClientSecret types.String `tfsdk:"client_secret"`
+	URL          types.String `tfsdk:"url"`
 }
 
 type LDAPIdentityProvider struct {

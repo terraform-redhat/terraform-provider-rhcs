@@ -83,6 +83,54 @@ var _ = Describe("Identity provider creation", func() {
 		Expect(terraform.Apply()).To(BeZero())
 	})
 
+	It("Can create a 'gitlab' identity provider", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+				),
+				VerifyJSON(`{
+				  "kind": "IdentityProvider",
+				  "type": "GitlabIdentityProvider",
+				  "name": "my-ip",
+				  "gitlab": {
+				    "ca": "test-ca",
+				    "url": "https://test.gitlab.com",
+				    "client_id": "test-client",
+				    "client_secret": "test-secret"
+				  }
+				}`),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "456",
+				  "name": "my-ip",
+				  "gitlab": {
+				    "ca": "test-ca",
+				    "url": "https://test.gitlab.com",
+				    "client_id": "test-client",
+				    "client_secret": "test-secret"
+				  }
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "ocm_identity_provider" "my_ip" {
+		    cluster = "123"
+		    name    = "my-ip"
+		    gitlab = {
+		      ca = "test-ca"
+		      url = "https://test.gitlab.com"
+			  client_id = "test-client"
+			  client_secret = "test-secret"
+		    }
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+	})
+
 	It("Can create an LDAP identity provider", func() {
 		// Prepare the server:
 		server.AppendHandlers(

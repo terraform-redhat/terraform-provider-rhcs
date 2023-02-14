@@ -82,9 +82,13 @@ Required:
 - `role_arn` (String) Installer Role
 - `support_role_arn` (String) Support Role
 
-Read-Only:
+Optional:
 
 - `oidc_endpoint_url` (String) OIDC Endpoint URL
+- `oidc_private_key_secret_arn` (String) OIDC Private Key Secret ARN
+
+Read-Only:
+
 - `thumbprint` (String) SHA1-hash value of the root CA of the issuer URL
 
 <a id="nestedatt--sts--instance_iam_roles"></a>

@@ -370,9 +370,12 @@ func (t *ClusterRosaClassicResourceType) NewResource(ctx context.Context,
 	return
 }
 
+const (
+	errHeadline = "Can't build cluster"
+)
+
 func createClassicClusterObject(ctx context.Context,
 	state *ClusterRosaClassicState, logger logging.Logger, diags diag.Diagnostics) (*cmv1.Cluster, error) {
-	errHeadline := "Can't build cluster"
 
 	builder := cmv1.NewCluster()
 	builder.Name(state.Name.Value)
@@ -516,6 +519,12 @@ func createClassicClusterObject(ctx context.Context,
 		instanceIamRoles.WorkerRoleARN(state.Sts.InstanceIAMRoles.WorkerRoleARN.Value)
 		sts.InstanceIAMRoles(instanceIamRoles)
 
+		sts, err := checkAndSetByoOidcAttributes(ctx, state, sts)
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("%v", err))
+			return nil, err
+		}
+
 		sts.OperatorRolePrefix(state.Sts.OperatorRolePrefix.Value)
 		aws.STS(sts)
 	}
@@ -590,6 +599,28 @@ func createClassicClusterObject(ctx context.Context,
 
 	object, err := builder.Build()
 	return object, err
+}
+
+func checkAndSetByoOidcAttributes(ctx context.Context, state *ClusterRosaClassicState, sts *cmv1.STSBuilder) (*cmv1.STSBuilder, error) {
+	isByoOidcSet := isByoOidcSet(state.Sts)
+	if isByoOidcSet {
+		if state.Sts.OIDCEndpointURL.Unknown || state.Sts.OIDCEndpointURL.Null || state.Sts.OIDCEndpointURL.Value == "" {
+			errDescription := fmt.Sprintf("When using BYO OIDC Endpoint URL cannot be empty")
+			return nil, errors.New(errHeadline + "\n" + errDescription)
+		}
+		if state.Sts.OIDCPrivateKeySecretArn.Unknown || state.Sts.OIDCPrivateKeySecretArn.Null || state.Sts.OIDCPrivateKeySecretArn.Value == "" {
+			errDescription := fmt.Sprintf("When using BYO OIDC Secret ARN cannot be empty")
+			return nil, errors.New(errHeadline + "\n" + errDescription)
+		}
+		sts.OIDCEndpointURL("https://" + state.Sts.OIDCEndpointURL.Value)
+		sts.OidcPrivateKeySecretArn(state.Sts.OIDCPrivateKeySecretArn.Value)
+	}
+	return sts, nil
+}
+
+func isByoOidcSet(sts *Sts) bool {
+	return !sts.OIDCEndpointURL.Unknown && !sts.OIDCEndpointURL.Null && sts.OIDCEndpointURL.Value != "" ||
+		!sts.OIDCPrivateKeySecretArn.Unknown && !sts.OIDCPrivateKeySecretArn.Null && sts.OIDCPrivateKeySecretArn.Value != ""
 }
 
 func (r *ClusterRosaClassicResource) Create(ctx context.Context,

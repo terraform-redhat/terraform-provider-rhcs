@@ -370,9 +370,12 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** NewResource(ctx context.Con
 	return
 }
 
+const (
+	errHeadline = "Can't build cluster"
+***REMOVED***
+
 func createClassicClusterObject(ctx context.Context,
 	state *ClusterRosaClassicState, logger logging.Logger, diags diag.Diagnostics***REMOVED*** (*cmv1.Cluster, error***REMOVED*** {
-	errHeadline := "Can't build cluster"
 
 	builder := cmv1.NewCluster(***REMOVED***
 	builder.Name(state.Name.Value***REMOVED***
@@ -516,6 +519,12 @@ func createClassicClusterObject(ctx context.Context,
 		instanceIamRoles.WorkerRoleARN(state.Sts.InstanceIAMRoles.WorkerRoleARN.Value***REMOVED***
 		sts.InstanceIAMRoles(instanceIamRoles***REMOVED***
 
+		sts, err := checkAndSetByoOidcAttributes(ctx, state, sts***REMOVED***
+		if err != nil {
+			logger.Error(ctx, fmt.Sprintf("%v", err***REMOVED******REMOVED***
+			return nil, err
+***REMOVED***
+
 		sts.OperatorRolePrefix(state.Sts.OperatorRolePrefix.Value***REMOVED***
 		aws.STS(sts***REMOVED***
 	}
@@ -590,6 +599,28 @@ func createClassicClusterObject(ctx context.Context,
 
 	object, err := builder.Build(***REMOVED***
 	return object, err
+}
+
+func checkAndSetByoOidcAttributes(ctx context.Context, state *ClusterRosaClassicState, sts *cmv1.STSBuilder***REMOVED*** (*cmv1.STSBuilder, error***REMOVED*** {
+	isByoOidcSet := isByoOidcSet(state.Sts***REMOVED***
+	if isByoOidcSet {
+		if state.Sts.OIDCEndpointURL.Unknown || state.Sts.OIDCEndpointURL.Null || state.Sts.OIDCEndpointURL.Value == "" {
+			errDescription := fmt.Sprintf("When using BYO OIDC Endpoint URL cannot be empty"***REMOVED***
+			return nil, errors.New(errHeadline + "\n" + errDescription***REMOVED***
+***REMOVED***
+		if state.Sts.OIDCPrivateKeySecretArn.Unknown || state.Sts.OIDCPrivateKeySecretArn.Null || state.Sts.OIDCPrivateKeySecretArn.Value == "" {
+			errDescription := fmt.Sprintf("When using BYO OIDC Secret ARN cannot be empty"***REMOVED***
+			return nil, errors.New(errHeadline + "\n" + errDescription***REMOVED***
+***REMOVED***
+		sts.OIDCEndpointURL("https://" + state.Sts.OIDCEndpointURL.Value***REMOVED***
+		sts.OidcPrivateKeySecretArn(state.Sts.OIDCPrivateKeySecretArn.Value***REMOVED***
+	}
+	return sts, nil
+}
+
+func isByoOidcSet(sts *Sts***REMOVED*** bool {
+	return !sts.OIDCEndpointURL.Unknown && !sts.OIDCEndpointURL.Null && sts.OIDCEndpointURL.Value != "" ||
+		!sts.OIDCPrivateKeySecretArn.Unknown && !sts.OIDCPrivateKeySecretArn.Null && sts.OIDCPrivateKeySecretArn.Value != ""
 }
 
 func (r *ClusterRosaClassicResource***REMOVED*** Create(ctx context.Context,

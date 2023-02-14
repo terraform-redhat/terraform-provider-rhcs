@@ -36,13 +36,13 @@ Identity provider.
 
 Required:
 
-- `client_id` (String***REMOVED***
-- `client_secret` (String, Sensitive***REMOVED***
-- `url` (String***REMOVED***
+- `client_id` (String***REMOVED*** Client identifier of a registered Gitlab OAuth application.
+- `client_secret` (String, Sensitive***REMOVED*** Client secret issued by Gitlab.
+- `url` (String***REMOVED*** URL of the Gitlab instance.
 
 Optional:
 
-- `ca` (String***REMOVED***
+- `ca` (String***REMOVED*** Optional trusted certificate authority bundle.
 
 
 <a id="nestedatt--htpasswd"></a>

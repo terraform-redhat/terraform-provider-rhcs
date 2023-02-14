@@ -516,6 +516,22 @@ func createClassicClusterObject(ctx context.Context,
 		instanceIamRoles.WorkerRoleARN(state.Sts.InstanceIAMRoles.WorkerRoleARN.Value)
 		sts.InstanceIAMRoles(instanceIamRoles)
 
+		isByoOidcSet := isByoOidcSet(state.Sts)
+		if isByoOidcSet {
+			if state.Sts.OIDCEndpointURL.Unknown || state.Sts.OIDCEndpointURL.Null || state.Sts.OIDCEndpointURL.Value == "" {
+				errDescription := fmt.Sprintf("When using BYO OIDC Endpoint URL cannot be empty")
+				logger.Error(ctx, errDescription)
+				return nil, errors.New(errHeadline + "\n" + errDescription)
+			}
+			if state.Sts.OIDCPrivateKeySecretArn.Unknown || state.Sts.OIDCPrivateKeySecretArn.Null || state.Sts.OIDCPrivateKeySecretArn.Value == "" {
+				errDescription := fmt.Sprintf("When using BYO OIDC Secret ARN cannot be empty")
+				logger.Error(ctx, errDescription)
+				return nil, errors.New(errHeadline + "\n" + errDescription)
+			}
+			sts.OIDCEndpointURL("https://" + state.Sts.OIDCEndpointURL.Value)
+			sts.OidcPrivateKeySecretArn(state.Sts.OIDCPrivateKeySecretArn.Value)
+		}
+
 		sts.OperatorRolePrefix(state.Sts.OperatorRolePrefix.Value)
 		aws.STS(sts)
 	}
@@ -590,6 +606,11 @@ func createClassicClusterObject(ctx context.Context,
 
 	object, err := builder.Build()
 	return object, err
+}
+
+func isByoOidcSet(sts *Sts) bool {
+	return !sts.OIDCEndpointURL.Unknown && !sts.OIDCEndpointURL.Null && sts.OIDCEndpointURL.Value != "" ||
+		!sts.OIDCPrivateKeySecretArn.Unknown && !sts.OIDCPrivateKeySecretArn.Null && sts.OIDCPrivateKeySecretArn.Value != ""
 }
 
 func (r *ClusterRosaClassicResource) Create(ctx context.Context,

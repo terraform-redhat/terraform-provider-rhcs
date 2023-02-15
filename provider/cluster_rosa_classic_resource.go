@@ -22,18 +22,21 @@ package provider
 	"encoding/hex"
 	"errors"
 ***REMOVED***
+***REMOVED***
+	"net/url"
+	"os"
+	"regexp"
+	"strings"
+	"time"
+
 	semver "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	ocm_errors "github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/logging"
-***REMOVED***
-	"net/url"
-	"os"
-	"regexp"
-	"strings"
 ***REMOVED***
 
 const (
@@ -331,6 +334,16 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 				PlanModifiers: []tfsdk.AttributePlanModifier{
 					ValueCannotBeChangedModifier(t.logger***REMOVED***,
 		***REMOVED***,
+	***REMOVED***,
+			"disable_waiting_in_destroy": {
+				Description: "Disable addressing cluster state in the destroy resource. Default value is false",
+				Type:        types.BoolType,
+				Optional:    true,
+	***REMOVED***,
+			"destroy_timeout": {
+				Description: "Timeout in minutes for addressing cluster state in destroy resource. Default value is 60 minutes.",
+				Type:        types.Int64Type,
+				Optional:    true,
 	***REMOVED***,
 			"state": {
 				Description: "State of the cluster.",
@@ -798,7 +811,37 @@ func (r *ClusterRosaClassicResource***REMOVED*** Delete(ctx context.Context, req
 		***REMOVED***
 		return
 	}
+	if !state.DisableWaitingInDestroy.Unknown && !state.DisableWaitingInDestroy.Null && state.DisableWaitingInDestroy.Value {
+		r.logger.Info(ctx, "Waiting for destroy to be completed, is disabled"***REMOVED***
+	} else {
+		timeout := defaultTimeoutInMinutes
+		if !state.DestroyTimeout.Unknown && !state.DestroyTimeout.Null {
+			if state.DestroyTimeout.Value <= 0 {
+				response.Diagnostics.AddWarning(nonPositiveTimeoutSummary, fmt.Sprintf(nonPositiveTimeoutFormat, state.ID.Value***REMOVED******REMOVED***
+	***REMOVED*** else {
+				timeout = state.DestroyTimeout.Value
+	***REMOVED***
+***REMOVED***
+		isNotFound, err := r.waitTillClusterIsNotFoundWithTimeout(ctx, timeout, resource, r.logger***REMOVED***
+		if err != nil {
+			response.Diagnostics.AddError(
+				"Can't poll cluster state",
+				fmt.Sprintf(
+					"Can't poll state of cluster with identifier '%s': %v",
+					state.ID.Value, err,
+				***REMOVED***,
+			***REMOVED***
+			return
+***REMOVED***
 
+		if !isNotFound {
+			response.Diagnostics.AddWarning(
+				"Cluster wasn't deleted yet",
+				fmt.Sprintf("The cluster with identifier '%s' is not deleted yet, but the polling finisehd due to a timeout", state.ID.Value***REMOVED***,
+			***REMOVED***
+***REMOVED***
+
+	}
 	// Remove the state:
 	response.State.RemoveResource(ctx***REMOVED***
 }
@@ -1187,4 +1230,26 @@ func checkSupportedVersion(clusterVersion string***REMOVED*** (bool, error***REM
 	}
 	//Cluster version is greater than or equal to MinVersion
 	return v1.GreaterThanOrEqual(v2***REMOVED***, nil
+}
+
+func (r *ClusterRosaClassicResource***REMOVED*** waitTillClusterIsNotFoundWithTimeout(ctx context.Context, timeout int64,
+	resource *cmv1.ClusterClient, logger logging.Logger***REMOVED*** (bool, error***REMOVED*** {
+	timeoutInMinutes := time.Duration(timeout***REMOVED*** * time.Minute
+	pollCtx, cancel := context.WithTimeout(ctx, timeoutInMinutes***REMOVED***
+	defer cancel(***REMOVED***
+	_, err := resource.Poll(***REMOVED***.
+		Interval(pollingIntervalInMinutes * time.Minute***REMOVED***.
+		Status(http.StatusNotFound***REMOVED***.
+		StartContext(pollCtx***REMOVED***
+	sdkErr, ok := err.(*ocm_errors.Error***REMOVED***
+	if ok && sdkErr.Status(***REMOVED*** == http.StatusNotFound {
+		logger.Info(ctx, "Cluster was removed"***REMOVED***
+		return true, nil
+	}
+	if err != nil {
+		logger.Error(ctx, "Can't poll cluster deletion"***REMOVED***
+		return false, err
+	}
+
+	return false, nil
 }

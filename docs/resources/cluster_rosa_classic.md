@@ -29,7 +29,9 @@ OpenShift managed cluster using rosa sts.
 - `aws_subnet_ids` (List of String) aws subnet ids
 - `compute_labels` (Map of String) Labels for the default machine pool. Format should be a comma-separated list of 'key=value'. This list will overwrite any modifications made to Node labels on an ongoing basis.
 - `compute_machine_type` (String) Identifier of the machine type used by the compute nodes, for example `r5.xlarge`. Use the `ocm_machine_types` data source to find the possible values.
+- `destroy_timeout` (Number) Timeout in minutes for addressing cluster state in destroy resource. Default value is 60 minutes.
 - `disable_scp_checks` (Boolean) Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE) platform metrics.
+- `disable_waiting_in_destroy` (Boolean) Disable addressing cluster state in the destroy resource. Default value is false
 - `disable_workload_monitoring` (Boolean) Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE) platform metrics.
 - `etcd_encryption` (Boolean) Encrypt etcd data.
 - `external_id` (String) Unique external identifier of the cluster.

@@ -52,6 +52,31 @@ var _ = Describe("Cluster creation", func() {
 	  }
 	}`
 
+	const templateReadyState = `{
+	  "id": "123",
+	  "name": "my-cluster",
+	  "state": "ready",
+	  "region": {
+	    "id": "us-west-1"
+	  },
+	  "multi_az": true,
+	  "api": {
+	    "url": "https://my-api.example.com"
+	  },
+	  "console": {
+	    "url": "https://my-console.example.com"
+	  },
+	  "network": {
+	    "machine_cidr": "10.0.0.0/16",
+	    "service_cidr": "172.30.0.0/16",
+	    "pod_cidr": "10.128.0.0/14",
+	    "host_prefix": 23
+	  },
+	  "version": {
+		  "id": "openshift-4.8.0"
+	  }
+	}`
+
 	It("Creates basic cluster", func() {
 		// Prepare the server:
 		server.AppendHandlers(
@@ -84,6 +109,118 @@ var _ = Describe("Cluster creation", func() {
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
+	})
+
+	Context("Test destroy cluster", func() {
+
+		BeforeEach(func() {
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+						}
+					  }
+					}]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, templateReadyState),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, templateReadyState),
+				),
+			)
+		})
+
+		It("Disable waiting in destroy resource", func() {
+			terraform.Source(`
+				  resource "ocm_cluster_rosa_classic" "my_cluster" {
+					name           = "my-cluster"	
+					cloud_region   = "us-west-1"
+					aws_account_id = "123"
+					disable_waiting_in_destroy = true
+				  }
+			`)
+
+			// it should return a warning so exit code will be "0":
+			Expect(terraform.Apply()).To(BeZero())
+			Expect(terraform.Destroy()).To(BeZero())
+
+		})
+
+		It("Wait in destroy resource but use the default timeout", func() {
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusNotFound, template),
+				),
+			)
+			terraform.Source(`
+				  resource "ocm_cluster_rosa_classic" "my_cluster" {
+					name           = "my-cluster"	
+					cloud_region   = "us-west-1"
+					aws_account_id = "123"
+				  }
+			`)
+
+			// it should return a warning so exit code will be "0":
+			Expect(terraform.Apply()).To(BeZero())
+			Expect(terraform.Destroy()).To(BeZero())
+		})
+
+		It("Wait in destroy resource and set timeout to a negative value", func() {
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusNotFound, template),
+				),
+			)
+			terraform.Source(`
+				  resource "ocm_cluster_rosa_classic" "my_cluster" {
+					name           = "my-cluster"	
+					cloud_region   = "us-west-1"
+					aws_account_id = "123"
+					destroy_timeout = -1
+				  }
+			`)
+
+			// it should return a warning so exit code will be "0":
+			Expect(terraform.Apply()).To(BeZero())
+			Expect(terraform.Destroy()).To(BeZero())
+		})
+
+		It("Wait in destroy resource and set timeout to a positive value", func() {
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusNotFound, template),
+				),
+			)
+			terraform.Source(`
+				  resource "ocm_cluster_rosa_classic" "my_cluster" {
+					name           = "my-cluster"	
+					cloud_region   = "us-west-1"
+					aws_account_id = "123"
+					destroy_timeout = 10
+				  }
+			`)
+
+			// it should return a warning so exit code will be "0":
+			Expect(terraform.Apply()).To(BeZero())
+			Expect(terraform.Destroy()).To(BeZero())
+		})
 	})
 
 	It("Creates cluster with http proxy", func() {

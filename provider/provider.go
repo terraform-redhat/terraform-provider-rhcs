@@ -214,6 +214,7 @@ func (p *Provider***REMOVED*** GetResources(ctx context.Context***REMOVED*** (re
 		"ocm_group_membership":     &GroupMembershipResourceType{},
 		"ocm_identity_provider":    &IdentityProviderResourceType{},
 		"ocm_machine_pool":         &MachinePoolResourceType{p.logger},
+		"ocm_cluster_wait":         &ClusterWaiterResourceType{},
 	}
 	return
 }

@@ -29,7 +29,9 @@ OpenShift managed cluster using rosa sts.
 - `aws_subnet_ids` (List of String***REMOVED*** aws subnet ids
 - `compute_labels` (Map of String***REMOVED*** Labels for the default machine pool. Format should be a comma-separated list of 'key=value'. This list will overwrite any modifications made to Node labels on an ongoing basis.
 - `compute_machine_type` (String***REMOVED*** Identifier of the machine type used by the compute nodes, for example `r5.xlarge`. Use the `ocm_machine_types` data source to find the possible values.
+- `destroy_timeout` (Number***REMOVED*** Timeout in minutes for addressing cluster state in destroy resource. Default value is 60 minutes.
 - `disable_scp_checks` (Boolean***REMOVED*** Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE***REMOVED*** platform metrics.
+- `disable_waiting_in_destroy` (Boolean***REMOVED*** Disable addressing cluster state in the destroy resource. Default value is false
 - `disable_workload_monitoring` (Boolean***REMOVED*** Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE***REMOVED*** platform metrics.
 - `etcd_encryption` (Boolean***REMOVED*** Encrypt etcd data.
 - `external_id` (String***REMOVED*** Unique external identifier of the cluster.
@@ -48,7 +50,6 @@ OpenShift managed cluster using rosa sts.
 - `sts` (Attributes***REMOVED*** STS Configuration (see [below for nested schema](#nestedatt--sts***REMOVED******REMOVED***
 - `tags` (Map of String***REMOVED*** Apply user defined tags to all resources created in AWS.
 - `version` (String***REMOVED*** Identifier of the version of OpenShift, for example 'openshift-v4.1.0'.
-- `wait_with_timeout` (Number***REMOVED*** Wait with a timeout till the cluster is ready. The timeout value should be in minutes
 
 ### Read-Only
 

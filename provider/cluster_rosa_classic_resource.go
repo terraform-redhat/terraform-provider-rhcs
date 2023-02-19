@@ -40,12 +40,9 @@ import (
 )
 
 const (
-	awsCloudProvider          = "aws"
-	rosaProduct               = "rosa"
-	MinVersion                = "4.10"
-	nonPositiveTimeoutSummary = "Can't poll cluster state with a non-positive timeout"
-	nonPositiveTimeoutFormat  = "Can't poll state of cluster with identifier '%s', the timeout that was set is not a positive number"
-	pollingIntervalInMinutes  = 1
+	awsCloudProvider = "aws"
+	rosaProduct      = "rosa"
+	MinVersion       = "4.10"
 )
 
 var kmsArnRE = regexp.MustCompile(
@@ -338,15 +335,20 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 					ValueCannotBeChangedModifier(t.logger),
 				},
 			},
+			"disable_waiting_in_destroy": {
+				Description: "Disable addressing cluster state in the destroy resource. Default value is false",
+				Type:        types.BoolType,
+				Optional:    true,
+			},
+			"destroy_timeout": {
+				Description: "Timeout in minutes for addressing cluster state in destroy resource. Default value is 60 minutes.",
+				Type:        types.Int64Type,
+				Optional:    true,
+			},
 			"state": {
 				Description: "State of the cluster.",
 				Type:        types.StringType,
 				Computed:    true,
-			},
-			"wait_with_timeout": {
-				Description: "Wait with a timeout till the cluster is ready. The timeout value should be in minutes",
-				Type:        types.Int64Type,
-				Optional:    true,
 			},
 		},
 	}
@@ -626,31 +628,6 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 	}
 	object = add.Body()
 
-	// Wait till the cluster is ready unless explicitly disabled:
-	if !state.WaitWithTimeout.Unknown && !state.WaitWithTimeout.Null {
-		if state.WaitWithTimeout.Value <= 0 {
-			response.Diagnostics.AddWarning(nonPositiveTimeoutSummary, fmt.Sprintf(nonPositiveTimeoutFormat, state.ID.Value))
-		} else {
-			object, err = r.waitForClusterStateWithTimeout(ctx, state.WaitWithTimeout.Value, object, r.logger, cmv1.ClusterStateReady)
-			if err != nil {
-				response.Diagnostics.AddError(
-					"Can't poll cluster state",
-					fmt.Sprintf("Can't poll state of cluster with identifier '%s': %v", object.ID(), err),
-				)
-				return
-			}
-
-			if object.State() != cmv1.ClusterStateReady {
-				response.Diagnostics.AddWarning(
-					"Cluster state is not ready",
-					fmt.Sprintf("The cluster with identifier '%s' is not ready yet, but the polling finisehd due to a timeout", object.ID()),
-				)
-			}
-
-			r.logger.Info(ctx, "Cluster state is %s", object.State())
-		}
-	}
-
 	// Save the state:
 	err = populateRosaClassicClusterState(ctx, object, state, r.logger, DefaultHttpClient{})
 	if err != nil {
@@ -664,27 +641,6 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 	}
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
-}
-
-func (r *ClusterRosaClassicResource) waitForClusterStateWithTimeout(ctx context.Context, WaitWithTimeout int64,
-	object *cmv1.Cluster, logger logging.Logger, requiredState cmv1.ClusterState) (*cmv1.Cluster, error) {
-	timeoutInMinutes := time.Duration(WaitWithTimeout) * time.Minute
-	pollCtx, cancel := context.WithTimeout(ctx, timeoutInMinutes)
-	defer cancel()
-	_, err := r.collection.Cluster(object.ID()).Poll().
-		Interval(pollingIntervalInMinutes * time.Minute).
-		Predicate(func(getClusterResponse *cmv1.ClusterGetResponse) bool {
-			object = getClusterResponse.Body()
-			logger.Debug(ctx, "cluster state is %s", object.State())
-			return object.State() == requiredState
-		}).
-		StartContext(pollCtx)
-	if err != nil {
-		logger.Error(ctx, "Can't  poll cluster state")
-		return nil, err
-	}
-
-	return object, nil
 }
 
 func (r *ClusterRosaClassicResource) Read(ctx context.Context, request tfsdk.ReadResourceRequest,
@@ -855,57 +811,39 @@ func (r *ClusterRosaClassicResource) Delete(ctx context.Context, request tfsdk.D
 		)
 		return
 	}
-
-	// Wait till the cluster has been effectively deleted:
-	if !state.WaitWithTimeout.Unknown && !state.WaitWithTimeout.Null {
-		if state.WaitWithTimeout.Value <= 0 {
-			response.Diagnostics.AddWarning(nonPositiveTimeoutSummary, fmt.Sprintf(nonPositiveTimeoutFormat, state.ID.Value))
-		} else {
-			isNotFound, err := r.waitTillClusterIsNotFoundWithTimeout(ctx, state.WaitWithTimeout.Value, resource, r.logger)
-			if err != nil {
-				response.Diagnostics.AddError(
-					"Can't poll cluster state",
-					fmt.Sprintf(
-						"Can't poll state of cluster with identifier '%s': %v",
-						state.ID.Value, err,
-					),
-				)
-				return
-			}
-
-			if !isNotFound {
-				response.Diagnostics.AddWarning(
-					"Cluster wasn't deleted yet",
-					fmt.Sprintf("The cluster with identifier '%s' is not deleted yet, but the polling finisehd due to a timeout", state.ID.Value),
-				)
+	if !state.DisableWaitingInDestroy.Unknown && !state.DisableWaitingInDestroy.Null && state.DisableWaitingInDestroy.Value {
+		r.logger.Info(ctx, "Waiting for destroy to be completed, is disabled")
+	} else {
+		timeout := defaultTimeoutInMinutes
+		if !state.DestroyTimeout.Unknown && !state.DestroyTimeout.Null {
+			if state.DestroyTimeout.Value <= 0 {
+				response.Diagnostics.AddWarning(nonPositiveTimeoutSummary, fmt.Sprintf(nonPositiveTimeoutFormat, state.ID.Value))
+			} else {
+				timeout = state.DestroyTimeout.Value
 			}
 		}
-	}
+		isNotFound, err := r.waitTillClusterIsNotFoundWithTimeout(ctx, timeout, resource, r.logger)
+		if err != nil {
+			response.Diagnostics.AddError(
+				"Can't poll cluster state",
+				fmt.Sprintf(
+					"Can't poll state of cluster with identifier '%s': %v",
+					state.ID.Value, err,
+				),
+			)
+			return
+		}
 
+		if !isNotFound {
+			response.Diagnostics.AddWarning(
+				"Cluster wasn't deleted yet",
+				fmt.Sprintf("The cluster with identifier '%s' is not deleted yet, but the polling finisehd due to a timeout", state.ID.Value),
+			)
+		}
+
+	}
 	// Remove the state:
 	response.State.RemoveResource(ctx)
-}
-
-func (r *ClusterRosaClassicResource) waitTillClusterIsNotFoundWithTimeout(ctx context.Context, WaitWithTimeout int64,
-	resource *cmv1.ClusterClient, logger logging.Logger) (bool, error) {
-	timeoutInMinutes := time.Duration(WaitWithTimeout) * time.Minute
-	pollCtx, cancel := context.WithTimeout(ctx, timeoutInMinutes)
-	defer cancel()
-	_, err := resource.Poll().
-		Interval(pollingIntervalInMinutes * time.Minute).
-		Status(http.StatusNotFound).
-		StartContext(pollCtx)
-	sdkErr, ok := err.(*ocm_errors.Error)
-	if ok && sdkErr.Status() == http.StatusNotFound {
-		logger.Info(ctx, "Cluster was removed")
-		return true, nil
-	}
-	if err != nil {
-		logger.Error(ctx, "Can't poll cluster deletion")
-		return false, err
-	}
-
-	return false, nil
 }
 
 func (r *ClusterRosaClassicResource) ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
@@ -1292,4 +1230,26 @@ func checkSupportedVersion(clusterVersion string) (bool, error) {
 	}
 	//Cluster version is greater than or equal to MinVersion
 	return v1.GreaterThanOrEqual(v2), nil
+}
+
+func (r *ClusterRosaClassicResource) waitTillClusterIsNotFoundWithTimeout(ctx context.Context, timeout int64,
+	resource *cmv1.ClusterClient, logger logging.Logger) (bool, error) {
+	timeoutInMinutes := time.Duration(timeout) * time.Minute
+	pollCtx, cancel := context.WithTimeout(ctx, timeoutInMinutes)
+	defer cancel()
+	_, err := resource.Poll().
+		Interval(pollingIntervalInMinutes * time.Minute).
+		Status(http.StatusNotFound).
+		StartContext(pollCtx)
+	sdkErr, ok := err.(*ocm_errors.Error)
+	if ok && sdkErr.Status() == http.StatusNotFound {
+		logger.Info(ctx, "Cluster was removed")
+		return true, nil
+	}
+	if err != nil {
+		logger.Error(ctx, "Can't poll cluster deletion")
+		return false, err
+	}
+
+	return false, nil
 }

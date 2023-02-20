@@ -680,4 +680,74 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
 
+	It("Creates rosa sts cluster with BYO OIDC", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+				VerifyJQ(`.name`, "my-cluster"***REMOVED***,
+				VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
+				VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
+				VerifyJQ(`.product.id`, "rosa"***REMOVED***,
+				VerifyJQ(`.aws.sts.role_arn`, "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role"***REMOVED***,
+				VerifyJQ(`.aws.sts.support_role_arn`, "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role"***REMOVED***,
+				VerifyJQ(`.aws.sts.instance_iam_roles.master_role_arn`, "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role"***REMOVED***,
+				VerifyJQ(`.aws.sts.instance_iam_roles.worker_role_arn`, "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"***REMOVED***,
+				VerifyJQ(`.aws.sts.operator_role_prefix`, "terraform-operator"***REMOVED***,
+				VerifyJQ(`.aws.sts.oidc_endpoint_url`, "https://oidc_endpoint_url"***REMOVED***,
+				VerifyJQ(`.aws.sts.oidc_private_key_secret_arn`, "arn:aws:secretsmanager:us-east-1"+
+					":765374464689:secret:oidc-u2u1-6GYVrU"***REMOVED***,
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "thumbprint": "111111",
+							  "role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
+							  "support_role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role",
+								"worker_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"
+							  },
+							  "operator_role_prefix" : "terraform-operator"
+						  }
+					  }
+			***REMOVED***,
+					{
+						"op": "add",
+					***REMOVED***: "/nodes",
+						"value": {
+						  "compute": 3,
+						  "compute_machine_type": {
+							  "id": "r5.xlarge"
+						  }
+				***REMOVED***
+					  }
+				  ]`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+		// Run the apply command:
+		terraform.Source(`
+		resource "ocm_cluster_rosa_classic" "my_cluster" {
+			name           = "my-cluster"
+			cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			sts = {
+				role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
+				support_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
+				instance_iam_roles = {
+				  master_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role",
+				  worker_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"
+		***REMOVED***,
+				"operator_role_prefix" : "terraform-operator",
+				"oidc_endpoint_url" : "oidc_endpoint_url",
+				"oidc_private_key_secret_arn" : "arn:aws:secretsmanager:us-east-1:765374464689:secret:oidc-u2u1-6GYVrU"
+	***REMOVED***
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+	}***REMOVED***
+
 }***REMOVED***

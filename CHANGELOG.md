@@ -1,3 +1,14 @@
+## 0.0.2 (Feb 21, 2023***REMOVED***
+-FEATURES:
+* Add `cluster_waiter` resource for addressing the cluster state in cluster creation scenario
+
+-ENHANCEMENTS:
+* Add BYO OIDC support in `cluster_rosa_classic` resource
+* Address cluster state while destroying the cluster_rosa_classic resource
+* Add gitlab `identity_provider` resource
+
+
+
 ## 0.0.1 (Feb 12, 2023***REMOVED***
 -RESOURCES:
 * ocm_cluster

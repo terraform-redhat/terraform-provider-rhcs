@@ -62,16 +62,14 @@ subsystem-test: install
 	ginkgo run \
 		--succinct \
 		-ldflags="$(ldflags***REMOVED***" \
-		-r \
-		--focus-file subsystem/.*
+		-r subsystem
 
 .PHONY: unit-test
 unit-test:
 	ginkgo run \
 		--succinct \
 		-ldflags="$(ldflags***REMOVED***" \
-		-r \
-		--focus-file provider/.*
+		-r provider
 
 .PHONY: test tests
 test tests: unit-test subsystem-test
@@ -93,3 +91,21 @@ clean:
 
 generate:
 	go generate ./...
+
+.PHONY: tools
+tools:
+	go install github.com/onsi/ginkgo/v2/ginkgo@v2.1.1
+	go install github.com/golang/mock/mockgen@v1.6.0
+
+.PHONY: e2e_test
+e2e_test: tools install
+	ginkgo run $(ginkgo_flags***REMOVED*** \
+		--timeout 5h \
+		--junit-report ../../junit.xml \
+		-r \
+		--focus-file ci/e2e/.*
+		-- \
+		--token-url=$(test_token_url***REMOVED*** \
+		--gateway-url=$(test_gateway_url***REMOVED*** \
+		--token=$(test_offline_token***REMOVED*** \
+		$(NULL***REMOVED***

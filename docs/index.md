@@ -118,7 +118,7 @@ terraform {
       version = ">= 4.20.0"
     }
     ocm = {
-      version = ">= 1.0"
+      version = "0.0.2"
       source  = "terraform-redhat/ocm"
     }
   }
@@ -143,10 +143,15 @@ resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
   cloud_region   = var.region
   aws_account_id     = data.aws_caller_identity.current.account_id
   availability_zones = [var.zone]
+  disable_waiting_in_destroy = false
   properties = {
     rosa_creator_arn = data.aws_caller_identity.current.arn
   }
   sts = local.sts_roles
+}
+
+resource "ocm_cluster_wait" "rosa_cluster" {
+  cluster = ocm_cluster_rosa_classic.rosa_sts_cluster.id
 }
 
 data "ocm_rosa_operator_roles" "operator_roles" {

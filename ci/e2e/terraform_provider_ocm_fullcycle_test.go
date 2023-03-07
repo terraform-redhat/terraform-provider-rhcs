@@ -26,6 +26,9 @@ var (
 	randSuffix         string
 	tempDir            string
 	operatorRolePrefix string
+	accountRolePrefix  string
+	ocmEnvironment     string
+	openshiftVersion   string
 	clusterName        string
 	ctx                context.Context
 	TestID             = ksuid.New(***REMOVED***
@@ -33,12 +36,20 @@ var (
 	logger             logging.Logger
 ***REMOVED***
 
+var URLAliases = map[string]string{
+	"https://api.openshift.com":             "production",
+	"https://api.stage.openshift.com":       "staging",
+	"https://api.integration.openshift.com": "integration",
+	"http://localhost:8000":                 "local",
+	"http://localhost:9000":                 "local",
+}
 var args struct {
-	tokenURL     string
-	gatewayURL   string
-	token        string
-	clientID     string
-	clientSecret string
+	tokenURL         string
+	gatewayURL       string
+	token            string
+	clientID         string
+	clientSecret     string
+	openshiftVersion string
 }
 
 func init(***REMOVED*** {
@@ -72,6 +83,12 @@ func init(***REMOVED*** {
 		"",
 		"Offline token for authentication.",
 	***REMOVED***
+	flag.StringVar(
+		&args.openshiftVersion,
+		"openshift-version",
+		"4.12",
+		"Openshift version.",
+	***REMOVED***
 }
 
 func TestE2E(t *testing.T***REMOVED*** {
@@ -95,6 +112,7 @@ func validateArgs(***REMOVED*** {
 	helper.CheckEmpty(args.gatewayURL, "gateway-url"***REMOVED***
 	helper.CheckEmpty(args.clientID, "client-id"***REMOVED***
 	helper.CheckEmpty(args.token, "token"***REMOVED***
+	helper.CheckEmpty(args.openshiftVersion, "openshift-version"***REMOVED***
 }
 
 var _ = BeforeEach(func(***REMOVED*** {
@@ -130,7 +148,8 @@ func createClusterUsingTerraformProviderOCM(ctx context.Context***REMOVED*** str
 
 	logger.Info(ctx, "Running terraform apply"***REMOVED***
 	terraformApply := exec.Command("terraform", "apply", "-var", tokenFilter,
-		"-var", operatorRolePrefix, "-var", gatewayFilter, "-var", clusterName, "-auto-approve"***REMOVED***
+		"-var", operatorRolePrefix, "-var", accountRolePrefix, "-var", gatewayFilter, "-var", clusterName,
+		"-var", ocmEnvironment, "-var", openshiftVersion, "-auto-approve"***REMOVED***
 	terraformApply.Dir = tempDir
 	terraformApply.Stdout = os.Stdout
 	terraformApply.Stderr = os.Stderr
@@ -163,8 +182,17 @@ var _ = FDescribe("Terraform provider OCM test", Ordered, func(***REMOVED*** {
 		clusterName = fmt.Sprintf("cluster_name=terr-ocm-%s", randSuffix***REMOVED***
 		logger.Info(ctx, "The cluster name that was chosen is ", clusterName***REMOVED***
 
-		operatorRolePrefix = fmt.Sprintf("operator_role_prefix=fullcycle-ci-%s", rand.String(4***REMOVED******REMOVED***
+		operatorRolePrefix = fmt.Sprintf("operator_role_prefix=terr-operator-%s", randSuffix***REMOVED***
 		logger.Info(ctx, "The operator IAM role prefix that was chose is ", operatorRolePrefix***REMOVED***
+
+		accountRolePrefix = fmt.Sprintf("account_role_prefix=terr-account-%s", randSuffix***REMOVED***
+		logger.Info(ctx, "The account IAM role prefix that was chose is ", accountRolePrefix***REMOVED***
+
+		ocmEnvironment = fmt.Sprintf("ocm_env=%s", URLAliases[args.gatewayURL]***REMOVED***
+		logger.Info(ctx, "The ocm environment that was chose is ", ocmEnvironment***REMOVED***
+
+		openshiftVersion = fmt.Sprintf("rosa_openshift_version=%s", args.openshiftVersion***REMOVED***
+		logger.Info(ctx, "The cluster version that was chose is ", openshiftVersion***REMOVED***
 
 		// prepareDirectory
 		terraformProviderOCMClusterID = createClusterUsingTerraformProviderOCM(ctx***REMOVED***
@@ -178,8 +206,9 @@ var _ = FDescribe("Terraform provider OCM test", Ordered, func(***REMOVED*** {
 	AfterAll(func(***REMOVED*** {
 		tokenFilter := fmt.Sprintf("token=%s", args.token***REMOVED***
 		gatewayFilter := fmt.Sprintf("url=%s", args.gatewayURL***REMOVED***
-		terraformDestroyCmd := exec.Command("terraform", "destroy", "-var", tokenFilter, "-var", operatorRolePrefix,
-			"-var", gatewayFilter, "-var", clusterName, "-auto-approve"***REMOVED***
+		terraformDestroyCmd := exec.Command("terraform", "destroy", "-var", tokenFilter,
+			"-var", operatorRolePrefix, "-var", accountRolePrefix, "-var", gatewayFilter, "-var", clusterName,
+			"-var", ocmEnvironment, "-var", openshiftVersion, "-auto-approve"***REMOVED***
 		terraformDestroyCmd.Dir = tempDir
 		terraformDestroyCmd.Stdout = os.Stdout
 		terraformDestroyCmd.Stderr = os.Stderr

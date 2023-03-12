@@ -25,7 +25,7 @@ OpenShift managed cluster using rosa sts.
 
 - `autoscaling_enabled` (Boolean***REMOVED*** Enables autoscaling.
 - `availability_zones` (List of String***REMOVED*** availability zones
-- `aws_private_link` (Boolean***REMOVED*** aws subnet ids
+- `aws_private_link` (Boolean***REMOVED*** Enables Private link. This provides private connectivity between VPCs, AWS services, and your on-premises networks, without exposing your traffic to the public internet.
 - `aws_subnet_ids` (List of String***REMOVED*** aws subnet ids
 - `compute_labels` (Map of String***REMOVED*** Labels for the default machine pool. Format should be a comma-separated list of 'key=value'. This list will overwrite any modifications made to Node labels on an ongoing basis.
 - `compute_machine_type` (String***REMOVED*** Identifier of the machine type used by the compute nodes, for example `r5.xlarge`. Use the `ocm_machine_types` data source to find the possible values.

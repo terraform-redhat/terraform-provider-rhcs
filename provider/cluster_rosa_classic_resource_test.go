@@ -21,6 +21,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -48,6 +49,7 @@ const (
 	rosaCreatorArn    = "arn:aws:iam::123456789012:dummy/dummy"
 	apiUrl            = "https://api.my-cluster.com:6443"
 	consoleUrl        = "https://console.my-cluster.com"
+	baseDomain        = "alias.p1.openshiftapps.com"
 	machineType       = "m5.xlarge"
 	availabilityZone1 = "us-east-1a"
 	availabilityZone2 = "us-east-1b"
@@ -76,7 +78,8 @@ var (
 
 func generateBasicRosaClassicClusterJson() map[string]interface{} {
 	return map[string]interface{}{
-		"id": clusterId,
+		"id":   clusterId,
+		"name": clusterName,
 		"region": map[string]interface{}{
 			"id": regionId,
 		},
@@ -89,6 +92,9 @@ func generateBasicRosaClassicClusterJson() map[string]interface{} {
 		},
 		"console": map[string]interface{}{
 			"url": consoleUrl,
+		},
+		"dns": map[string]interface{}{
+			"base_domain": baseDomain,
 		},
 		"nodes": map[string]interface{}{
 			"compute_machine_type": map[string]interface{}{
@@ -216,6 +222,7 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 			Expect(clusterState.Properties.Elems["rosa_creator_arn"].Equal(types.String{Value: rosaCreatorArn})).To(Equal(true))
 			Expect(clusterState.APIURL.Value).To(Equal(apiUrl))
 			Expect(clusterState.ConsoleURL.Value).To(Equal(consoleUrl))
+			Expect(clusterState.Domain.Value).To(Equal(fmt.Sprintf("%s.%s", clusterName, baseDomain)))
 			Expect(clusterState.ComputeMachineType.Value).To(Equal(machineType))
 			Expect(clusterState.AvailabilityZones.Elems).To(HaveLen(1))
 			Expect(clusterState.AvailabilityZones.Elems[0].Equal(types.String{Value: availabilityZone1})).To(Equal(true))

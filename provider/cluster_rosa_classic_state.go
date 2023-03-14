@@ -36,6 +36,7 @@ type ClusterRosaClassicState struct {
 	ComputeLabels             types.Map    `tfsdk:"compute_labels"`
 	Replicas                  types.Int64  `tfsdk:"replicas"`
 	ConsoleURL                types.String `tfsdk:"console_url"`
+	Domain                    types.String `tfsdk:"domain"`
 	HostPrefix                types.Int64  `tfsdk:"host_prefix"`
 	ID                        types.String `tfsdk:"id"`
 	FIPS                      types.Bool   `tfsdk:"fips"`

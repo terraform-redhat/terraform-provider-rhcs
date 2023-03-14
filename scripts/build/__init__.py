@@ -1,5 +1,7 @@
+# -*- coding: utf-8 -*-
+
 #
-# Copyright (c) 2022 Red Hat, Inc.
+# Copyright (c) 2019 Red Hat, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,25 +16,10 @@
 # limitations under the License.
 #
 
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = ">= 4.20.0"
-    }
-  }
-}
+"""
+Functions and clases to simplify build tasks.
+"""
 
-
-module "create_account_roles"{
-  source = "terraform-redhat/rosa-sts/aws"
-  version = "0.0.3"
-
-  create_operator_roles = false
-  create_oidc_provider = false
-  create_account_roles = true
-
-  account_role_prefix =  var.account_role_prefix
-  ocm_environment =  var.ocm_environment
-  rosa_openshift_version=  var.openshift_version
-}
+from .command import Command
+from .logger import Logger
+from .make import Make

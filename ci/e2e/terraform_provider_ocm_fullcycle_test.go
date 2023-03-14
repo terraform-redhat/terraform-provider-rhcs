@@ -52,10 +52,11 @@ var URLAliases = map[string]string{
 	"http://localhost:8000":                 "local",
 	"http://localhost:9000":                 "local",
 }
+
 var args struct {
 	tokenURL         string
 	gatewayURL       string
-	token            string
+	offlineToken     string
 	clientID         string
 	clientSecret     string
 	openshiftVersion string
@@ -87,8 +88,8 @@ func init() {
 		"OpenID client secret.",
 	)
 	flag.StringVar(
-		&args.token,
-		"token",
+		&args.offlineToken,
+		"offline-token",
 		"",
 		"Offline token for authentication.",
 	)
@@ -120,8 +121,8 @@ func TestE2E(t *testing.T) {
 func validateArgs() {
 	helper.CheckEmpty(args.gatewayURL, "gateway-url")
 	helper.CheckEmpty(args.clientID, "client-id")
-	helper.CheckEmpty(args.token, "token")
 	helper.CheckEmpty(args.openshiftVersion, "openshift-version")
+	helper.CheckEmpty(args.offlineToken, "offline-token")
 }
 
 var _ = BeforeEach(func() {
@@ -137,7 +138,7 @@ var _ = BeforeEach(func() {
 
 var _ = BeforeSuite(func() {
 	connection = helper.CreateConnectionWithToken(
-		args.token,
+		args.offlineToken,
 		args.tokenURL,
 		args.gatewayURL,
 		args.clientID,
@@ -231,7 +232,7 @@ func defineVariablesValues() {
 	openshiftVersion = fmt.Sprintf("rosa_openshift_version=%s", args.openshiftVersion)
 	logger.Info(ctx, "The cluster version that was chose is %s", openshiftVersion)
 
-	tokenFilter = fmt.Sprintf("token=%s", args.token)
+	tokenFilter = fmt.Sprintf("token=%s", args.offlineToken)
 
 	gatewayFilter = fmt.Sprintf("url=%s", args.gatewayURL)
 	logger.Info(ctx, "The gateway url filter is %s", gatewayFilter)

@@ -22,6 +22,7 @@ package provider
 	"crypto/x509"
 	"encoding/json"
 ***REMOVED***
+***REMOVED***
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -48,6 +49,7 @@ const (
 	rosaCreatorArn    = "arn:aws:iam::123456789012:dummy/dummy"
 	apiUrl            = "https://api.my-cluster.com:6443"
 	consoleUrl        = "https://console.my-cluster.com"
+	baseDomain        = "alias.p1.openshiftapps.com"
 	machineType       = "m5.xlarge"
 	availabilityZone1 = "us-east-1a"
 	availabilityZone2 = "us-east-1b"
@@ -76,7 +78,8 @@ var (
 
 func generateBasicRosaClassicClusterJson(***REMOVED*** map[string]interface{} {
 	return map[string]interface{}{
-		"id": clusterId,
+		"id":   clusterId,
+		"name": clusterName,
 		"region": map[string]interface{}{
 			"id": regionId,
 ***REMOVED***,
@@ -89,6 +92,9 @@ func generateBasicRosaClassicClusterJson(***REMOVED*** map[string]interface{} {
 ***REMOVED***,
 		"console": map[string]interface{}{
 			"url": consoleUrl,
+***REMOVED***,
+		"dns": map[string]interface{}{
+			"base_domain": baseDomain,
 ***REMOVED***,
 		"nodes": map[string]interface{}{
 			"compute_machine_type": map[string]interface{}{
@@ -216,6 +222,7 @@ var _ = Describe("Rosa Classic Sts cluster", func(***REMOVED*** {
 			Expect(clusterState.Properties.Elems["rosa_creator_arn"].Equal(types.String{Value: rosaCreatorArn}***REMOVED******REMOVED***.To(Equal(true***REMOVED******REMOVED***
 			Expect(clusterState.APIURL.Value***REMOVED***.To(Equal(apiUrl***REMOVED******REMOVED***
 			Expect(clusterState.ConsoleURL.Value***REMOVED***.To(Equal(consoleUrl***REMOVED******REMOVED***
+			Expect(clusterState.Domain.Value***REMOVED***.To(Equal(fmt.Sprintf("%s.%s", clusterName, baseDomain***REMOVED******REMOVED******REMOVED***
 			Expect(clusterState.ComputeMachineType.Value***REMOVED***.To(Equal(machineType***REMOVED******REMOVED***
 			Expect(clusterState.AvailabilityZones.Elems***REMOVED***.To(HaveLen(1***REMOVED******REMOVED***
 			Expect(clusterState.AvailabilityZones.Elems[0].Equal(types.String{Value: availabilityZone1}***REMOVED******REMOVED***.To(Equal(true***REMOVED******REMOVED***

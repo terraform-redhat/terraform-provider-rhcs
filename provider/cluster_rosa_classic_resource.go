@@ -858,7 +858,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** Delete(ctx context.Context, req
 				timeout = state.DestroyTimeout.Value
 	***REMOVED***
 ***REMOVED***
-		isNotFound, err := r.waitTillClusterIsNotFoundWithTimeout(ctx, timeout, resource, r.logger***REMOVED***
+		isNotFound, err := r.retryClusterNotFoundWithTimeout(3, 1*time.Minute, ctx, timeout, resource***REMOVED***
 		if err != nil {
 			response.Diagnostics.AddError(
 				"Can't poll cluster state",
@@ -1269,6 +1269,20 @@ func checkSupportedVersion(clusterVersion string***REMOVED*** (bool, error***REM
 	}
 	//Cluster version is greater than or equal to MinVersion
 	return v1.GreaterThanOrEqual(v2***REMOVED***, nil
+}
+
+func (r *ClusterRosaClassicResource***REMOVED*** retryClusterNotFoundWithTimeout(attempts int, sleep time.Duration, ctx context.Context, timeout int64,
+	resource *cmv1.ClusterClient***REMOVED*** (bool, error***REMOVED*** {
+	isNotFound, err := r.waitTillClusterIsNotFoundWithTimeout(ctx, timeout, resource, r.logger***REMOVED***
+	if err != nil {
+		if attempts--; attempts > 0 {
+			time.Sleep(sleep***REMOVED***
+			return r.retryClusterNotFoundWithTimeout(attempts, 2*sleep, ctx, timeout, resource***REMOVED***
+***REMOVED***
+		return isNotFound, err
+	}
+
+	return isNotFound, nil
 }
 
 func (r *ClusterRosaClassicResource***REMOVED*** waitTillClusterIsNotFoundWithTimeout(ctx context.Context, timeout int64,

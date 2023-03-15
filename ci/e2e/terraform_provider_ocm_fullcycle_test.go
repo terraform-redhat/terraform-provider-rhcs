@@ -12,6 +12,7 @@
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 ***REMOVED***
 ***REMOVED***
@@ -22,23 +23,42 @@
 	"k8s.io/apimachinery/pkg/util/rand"
 ***REMOVED***
 
-var (
-	randSuffix         string
-	tempDir            string
-	operatorRolePrefix string
-	clusterName        string
-	ctx                context.Context
-	TestID             = ksuid.New(***REMOVED***
-	connection         *client.Connection
-	logger             logging.Logger
+const (
+	accountRolesFilesDir         = "account_roles_files"
+	terraformProviderOCMFilesDir = "terraform_provider_ocm_files"
 ***REMOVED***
 
+var (
+	randSuffix          string
+	providerTempDir     string
+	accountRolesTempDir string
+	operatorRolePrefix  string
+	accountRolePrefix   string
+	ocmEnvironment      string
+	openshiftVersion    string
+	tokenFilter         string
+	gatewayFilter       string
+	clusterName         string
+	ctx                 context.Context
+	TestID              = ksuid.New(***REMOVED***
+	connection          *client.Connection
+	logger              logging.Logger
+***REMOVED***
+
+var URLAliases = map[string]string{
+	"https://api.openshift.com":             "production",
+	"https://api.stage.openshift.com":       "staging",
+	"https://api.integration.openshift.com": "integration",
+	"http://localhost:8000":                 "local",
+	"http://localhost:9000":                 "local",
+}
 var args struct {
-	tokenURL     string
-	gatewayURL   string
-	token        string
-	clientID     string
-	clientSecret string
+	tokenURL         string
+	gatewayURL       string
+	token            string
+	clientID         string
+	clientSecret     string
+	openshiftVersion string
 }
 
 func init(***REMOVED*** {
@@ -72,6 +92,12 @@ func init(***REMOVED*** {
 		"",
 		"Offline token for authentication.",
 	***REMOVED***
+	flag.StringVar(
+		&args.openshiftVersion,
+		"openshift-version",
+		"4.12",
+		"Openshift version.",
+	***REMOVED***
 }
 
 func TestE2E(t *testing.T***REMOVED*** {
@@ -95,6 +121,7 @@ func validateArgs(***REMOVED*** {
 	helper.CheckEmpty(args.gatewayURL, "gateway-url"***REMOVED***
 	helper.CheckEmpty(args.clientID, "client-id"***REMOVED***
 	helper.CheckEmpty(args.token, "token"***REMOVED***
+	helper.CheckEmpty(args.openshiftVersion, "openshift-version"***REMOVED***
 }
 
 var _ = BeforeEach(func(***REMOVED*** {
@@ -118,27 +145,58 @@ var _ = BeforeSuite(func(***REMOVED*** {
 	helper.WaitForBackendToBeReady(ctx, connection***REMOVED***
 }***REMOVED***
 
-func createClusterUsingTerraformProviderOCM(ctx context.Context***REMOVED*** string {
-	logger.Info(ctx, "Running terraform init"***REMOVED***
+func runTerraformInit(ctx context.Context, dir string***REMOVED*** {
+	logger.Info(ctx, "Running terraform init against the dir %s", dir***REMOVED***
 	terraformInitCmd := exec.Command("terraform", "init"***REMOVED***
-	terraformInitCmd.Dir = tempDir
+	terraformInitCmd.Dir = dir
 	err := terraformInitCmd.Run(***REMOVED***
 	helper.CheckError(err***REMOVED***
+}
 
-	tokenFilter := fmt.Sprintf("token=%s", args.token***REMOVED***
-	gatewayFilter := fmt.Sprintf("url=%s", args.gatewayURL***REMOVED***
-
-	logger.Info(ctx, "Running terraform apply"***REMOVED***
-	terraformApply := exec.Command("terraform", "apply", "-var", tokenFilter,
-		"-var", operatorRolePrefix, "-var", gatewayFilter, "-var", clusterName, "-auto-approve"***REMOVED***
-	terraformApply.Dir = tempDir
+func runTerraformApplyWithArgs(ctx context.Context, dir string, terraformArgs []string***REMOVED*** {
+	applyArgs := append([]string{"apply"}, terraformArgs...***REMOVED***
+	logger.Info(ctx, "Running terraform apply against the dir: %s", dir***REMOVED***
+	terraformApply := exec.Command("terraform", applyArgs...***REMOVED***
+	terraformApply.Dir = dir
 	terraformApply.Stdout = os.Stdout
 	terraformApply.Stderr = os.Stderr
-	err = terraformApply.Run(***REMOVED***
+	err := terraformApply.Run(***REMOVED***
 	helper.CheckError(err***REMOVED***
+}
+func runTerraformDestroyWithArgs(ctx context.Context, dir string, terraformArgs []string***REMOVED*** {
+	destroyArgs := append([]string{"destroy"}, terraformArgs...***REMOVED***
+	logger.Info(ctx, "Running terraform destroy against the dir: %s", dir***REMOVED***
+	terraformApply := exec.Command("terraform", destroyArgs...***REMOVED***
+	terraformApply.Dir = dir
+	terraformApply.Stdout = os.Stdout
+	terraformApply.Stderr = os.Stderr
+	err := terraformApply.Run(***REMOVED***
+	helper.CheckError(err***REMOVED***
+}
+
+func createAccountRolesUsingTerraformAWSRosaStsModule(ctx context.Context***REMOVED*** {
+	runTerraformInit(ctx, accountRolesTempDir***REMOVED***
+
+	runTerraformApplyWithArgs(ctx, accountRolesTempDir, []string{
+		"-var", accountRolePrefix,
+		"-var", ocmEnvironment,
+		"-var", openshiftVersion,
+		"-auto-approve"}***REMOVED***
+}
+
+func createClusterUsingTerraformProviderOCM(ctx context.Context***REMOVED*** string {
+	runTerraformInit(ctx, providerTempDir***REMOVED***
+
+	runTerraformApplyWithArgs(ctx, providerTempDir, []string{
+		"-var", tokenFilter,
+		"-var", operatorRolePrefix,
+		"-var", accountRolePrefix,
+		"-var", gatewayFilter,
+		"-var", clusterName,
+		"-auto-approve"}***REMOVED***
 
 	getClusterIdCmd := exec.Command("terraform", "output", "-json", "cluster_id"***REMOVED***
-	getClusterIdCmd.Dir = tempDir
+	getClusterIdCmd.Dir = providerTempDir
 	output, err := getClusterIdCmd.Output(***REMOVED***
 	helper.CheckError(err***REMOVED***
 
@@ -148,45 +206,84 @@ func createClusterUsingTerraformProviderOCM(ctx context.Context***REMOVED*** str
 	return splitOutput[1]
 }
 
+func defineVariablesValues(***REMOVED*** {
+	randSuffix = rand.String(4***REMOVED***
+	logger.Info(ctx, "The random suffix that was chosen is %s", randSuffix***REMOVED***
+
+	providerTempDir = fmt.Sprintf("%s_%s", terraformProviderOCMFilesDir, randSuffix***REMOVED***
+	logger.Info(ctx, "The temp directory that was chosen is %s", providerTempDir***REMOVED***
+
+	accountRolesTempDir = fmt.Sprintf("%s_%s", accountRolesFilesDir, randSuffix***REMOVED***
+	logger.Info(ctx, "The temp directory that was chosen is %s", accountRolesTempDir***REMOVED***
+
+	clusterName = fmt.Sprintf("cluster_name=terr-ocm-%s", randSuffix***REMOVED***
+	logger.Info(ctx, "The cluster name that was chosen is %s", clusterName***REMOVED***
+
+	operatorRolePrefix = fmt.Sprintf("operator_role_prefix=terr-operator-%s", randSuffix***REMOVED***
+	logger.Info(ctx, "The operator IAM role prefix that was chose is %s", operatorRolePrefix***REMOVED***
+
+	accountRolePrefix = fmt.Sprintf("account_role_prefix=terr-account-%s", randSuffix***REMOVED***
+	logger.Info(ctx, "The account IAM role prefix that was chose is %s", accountRolePrefix***REMOVED***
+
+	ocmEnvironment = fmt.Sprintf("ocm_env=%s", URLAliases[args.gatewayURL]***REMOVED***
+	logger.Info(ctx, "The ocm environment that was chose is %s", ocmEnvironment***REMOVED***
+
+	openshiftVersion = fmt.Sprintf("rosa_openshift_version=%s", args.openshiftVersion***REMOVED***
+	logger.Info(ctx, "The cluster version that was chose is %s", openshiftVersion***REMOVED***
+
+	tokenFilter = fmt.Sprintf("token=%s", args.token***REMOVED***
+
+	gatewayFilter = fmt.Sprintf("url=%s", args.gatewayURL***REMOVED***
+	logger.Info(ctx, "The gateway url filter is %s", gatewayFilter***REMOVED***
+
+}
+
 var _ = FDescribe("Terraform provider OCM test", Ordered, func(***REMOVED*** {
 	var terraformProviderOCMClusterID string
 
 	BeforeAll(func(***REMOVED*** {
-		randSuffix = rand.String(4***REMOVED***
-		logger.Info(ctx, "The random suffix that was chosen is ", randSuffix***REMOVED***
+		defineVariablesValues(***REMOVED***
 
-		tempDir = fmt.Sprintf("terraform_provider_ocm_files_%s", randSuffix***REMOVED***
-		logger.Info(ctx, "The temp directory that was chosen is ", tempDir***REMOVED***
-		err := Unpack(tempDir, "terraform_provider_ocm_files"***REMOVED***
+		//create temp dirs
+		err := Unpack(providerTempDir, terraformProviderOCMFilesDir***REMOVED***
 		helper.CheckError(err***REMOVED***
 
-		clusterName = fmt.Sprintf("cluster_name=terr-ocm-%s", randSuffix***REMOVED***
-		logger.Info(ctx, "The cluster name that was chosen is ", clusterName***REMOVED***
-
-		operatorRolePrefix = fmt.Sprintf("operator_role_prefix=fullcycle-ci-%s", rand.String(4***REMOVED******REMOVED***
-		logger.Info(ctx, "The operator IAM role prefix that was chose is ", operatorRolePrefix***REMOVED***
+		err = Unpack(accountRolesTempDir, accountRolesFilesDir***REMOVED***
+		helper.CheckError(err***REMOVED***
 
 		// prepareDirectory
+		createAccountRolesUsingTerraformAWSRosaStsModule(ctx***REMOVED***
+		time.Sleep(5 * time.Second***REMOVED***
 		terraformProviderOCMClusterID = createClusterUsingTerraformProviderOCM(ctx***REMOVED***
 	}***REMOVED***
+
 	Context("Cluster creation", func(***REMOVED*** {
 		It("creates a cluster using terraform-provider-ocm", func(***REMOVED*** {
 			resp, err := connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Clusters(***REMOVED***.Cluster(terraformProviderOCMClusterID***REMOVED***.Get(***REMOVED***.Send(***REMOVED***
 			helper.CheckResponse(resp, err, http.StatusOK***REMOVED***
 ***REMOVED******REMOVED***
 	}***REMOVED***
-	AfterAll(func(***REMOVED*** {
-		tokenFilter := fmt.Sprintf("token=%s", args.token***REMOVED***
-		gatewayFilter := fmt.Sprintf("url=%s", args.gatewayURL***REMOVED***
-		terraformDestroyCmd := exec.Command("terraform", "destroy", "-var", tokenFilter, "-var", operatorRolePrefix,
-			"-var", gatewayFilter, "-var", clusterName, "-auto-approve"***REMOVED***
-		terraformDestroyCmd.Dir = tempDir
-		terraformDestroyCmd.Stdout = os.Stdout
-		terraformDestroyCmd.Stderr = os.Stderr
-		err := terraformDestroyCmd.Run(***REMOVED***
-		helper.CheckError(err***REMOVED***
 
-		os.RemoveAll(tempDir***REMOVED***
+	AfterAll(func(***REMOVED*** {
+		// destroy cluster
+		runTerraformDestroyWithArgs(ctx, providerTempDir, []string{
+			"-var", tokenFilter,
+			"-var", operatorRolePrefix,
+			"-var", accountRolePrefix,
+			"-var", gatewayFilter,
+			"-var", clusterName,
+			"-auto-approve"}***REMOVED***
+
+		// destroy account roles
+		runTerraformDestroyWithArgs(ctx, accountRolesTempDir, []string{
+			"-var", accountRolePrefix,
+			"-var", ocmEnvironment,
+			"-var", openshiftVersion,
+			"-auto-approve"}***REMOVED***
+
+		// remove temporary directories
+		os.RemoveAll(providerTempDir***REMOVED***
+		os.RemoveAll(accountRolesTempDir***REMOVED***
 	}***REMOVED***
 }***REMOVED***
 

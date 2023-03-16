@@ -19,6 +19,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -34,6 +35,10 @@ import (
 type MachinePoolResourceType struct {
 	logger logging.Logger
 }
+
+var machinepoolNameRE = regexp.MustCompile(
+	`^[a-z]([-a-z0-9]*[a-z0-9])?$`,
+)
 
 type MachinePoolResource struct {
 	logger     logging.Logger
@@ -56,7 +61,7 @@ func (t *MachinePoolResourceType) GetSchema(ctx context.Context) (result tfsdk.S
 				Computed:    true,
 			},
 			"name": {
-				Description: "Name of the machine pool.",
+				Description: "Name of the machine pool.Must consist of lower-case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.",
 				Type:        types.StringType,
 				Required:    true,
 			},
@@ -74,6 +79,22 @@ func (t *MachinePoolResourceType) GetSchema(ctx context.Context) (result tfsdk.S
 				Description: "The number of machines of the pool",
 				Type:        types.Int64Type,
 				Optional:    true,
+			},
+			"use_spot_instances": {
+				Description: "Use Spot Instances. Applicable only for AWS.",
+				Type:        types.BoolType,
+				Optional:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger),
+				},
+			},
+			"max_spot_price": {
+				Description: "Max Spot price. Applicable only for AWS.",
+				Type:        types.Float64Type,
+				Optional:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger),
+				},
 			},
 			"autoscaling_enabled": {
 				Description: "Enables autoscaling.",
@@ -154,6 +175,17 @@ func (r *MachinePoolResource) Create(ctx context.Context,
 		return
 	}
 
+	machinepoolName := state.Name.Value
+	if !machinepoolNameRE.MatchString(machinepoolName) {
+		response.Diagnostics.AddError(
+			"Can't create machine pool: ",
+			fmt.Sprintf("Can't create machine pool for cluster '%s' with name '%s'. Expected a valid value for 'name' matching %s",
+				state.Cluster.Value, state.Name.Value, machinepoolNameRE,
+			),
+		)
+		return
+	}
+
 	// Wait till the cluster is ready:
 	resource := r.collection.Cluster(state.Cluster.Value)
 	pollCtx, cancel := context.WithTimeout(ctx, 1*time.Hour)
@@ -179,10 +211,20 @@ func (r *MachinePoolResource) Create(ctx context.Context,
 	builder := cmv1.NewMachinePool().ID(state.ID.Value).InstanceType(state.MachineType.Value)
 	builder.ID(state.Name.Value)
 
+	var errMsg string
+	_, errMsg = getSpotinstances(state, builder)
+	if errMsg != "" {
+		response.Diagnostics.AddError(
+			"Can't build machine pool",
+			fmt.Sprintf(
+				"Can't build machine pool for cluster '%s, %s'", state.Cluster.Value, errMsg,
+			),
+		)
+		return
+	}
+
 	autoscalingEnabled := false
 	computeNodeEnabled := false
-	var errMsg string
-
 	autoscalingEnabled, errMsg = getAutoscaling(state, builder)
 	if errMsg != "" {
 		response.Diagnostics.AddError(
@@ -342,6 +384,18 @@ func (r *MachinePoolResource) Update(ctx context.Context, request tfsdk.UpdateRe
 		return
 	}
 
+	var errMsg string
+	_, errMsg = getSpotinstances(plan, mpBuilder)
+	if errMsg != "" {
+		response.Diagnostics.AddError(
+			"Can't update machine pool",
+			fmt.Sprintf(
+				"Can't update machine pool for cluster '%s, %s ", state.Cluster.Value, errMsg,
+			),
+		)
+		return
+	}
+
 	computeNodesEnabled := false
 	autoscalingEnabled := false
 
@@ -351,7 +405,6 @@ func (r *MachinePoolResource) Update(ctx context.Context, request tfsdk.UpdateRe
 
 	}
 
-	var errMsg string
 	autoscalingEnabled, errMsg = getAutoscaling(plan, mpBuilder)
 	if errMsg != "" {
 		response.Diagnostics.AddError(
@@ -399,6 +452,8 @@ func (r *MachinePoolResource) Update(ctx context.Context, request tfsdk.UpdateRe
 
 	object := update.Body()
 
+	// update the spot instances enabled with the plan value
+	state.UseSpotInstances = plan.UseSpotInstances
 	// update the autoscaling enabled with the plan value (important for nil and false cases)
 	state.AutoScalingEnabled = plan.AutoScalingEnabled
 	// update the Replicas with the plan value (important for nil and zero value cases)
@@ -408,6 +463,32 @@ func (r *MachinePoolResource) Update(ctx context.Context, request tfsdk.UpdateRe
 	r.populateState(object, state)
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
+}
+
+func getSpotinstances(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilder) (
+	useSpotInstances bool, errMsg string) {
+	useSpotInstances = false
+
+	if !state.UseSpotInstances.Unknown && !state.UseSpotInstances.Null && state.UseSpotInstances.Value {
+		useSpotInstances = true
+
+		awsMachinePool := cmv1.NewAWSMachinePool()
+		spotMarketOptions := cmv1.NewAWSSpotMarketOptions()
+		if !state.MaxSpotPrice.Unknown && !state.MaxSpotPrice.Null {
+			spotMarketOptions.MaxPrice(float64(state.MaxSpotPrice.Value))
+		}
+		awsMachinePool.SpotMarketOptions(spotMarketOptions)
+
+		if !awsMachinePool.Empty() {
+			mpBuilder.AWS(awsMachinePool)
+		}
+	} else {
+		if !state.MaxSpotPrice.Unknown && !state.MaxSpotPrice.Null {
+			return false, "when not using aws spot instances, can't set max_spot_price"
+		}
+	}
+
+	return useSpotInstances, ""
 }
 
 func getAutoscaling(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilder) (
@@ -487,6 +568,24 @@ func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *Mac
 	}
 	state.Name = types.String{
 		Value: object.ID(),
+	}
+
+	getAWS, ok := object.GetAWS()
+	if ok {
+		state.UseSpotInstances = types.Bool{Value: true}
+		spotMarketOptions, ok := getAWS.GetSpotMarketOptions()
+		if ok {
+			if spotMarketOptions.MaxPrice() != 0 {
+				state.MaxSpotPrice = types.Float64{
+					Value: float64(spotMarketOptions.MaxPrice()),
+				}
+			} else {
+				state.MaxSpotPrice.Null = true
+			}
+		}
+	} else {
+		state.UseSpotInstances = types.Bool{Value: false}
+		state.MaxSpotPrice.Null = true
 	}
 
 	autoscaling, ok := object.GetAutoscaling()

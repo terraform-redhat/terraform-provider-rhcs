@@ -384,8 +384,7 @@ func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, request tf
 		return
 	}
 
-	var errMsg string
-	_, errMsg = getSpotinstances(plan, mpBuilder***REMOVED***
+	_, errMsg := getSpotinstances(plan, mpBuilder***REMOVED***
 	if errMsg != "" {
 		response.Diagnostics.AddError(
 			"Can't update machine pool",

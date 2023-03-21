@@ -225,6 +225,7 @@ func (p *Provider***REMOVED*** GetDataSources(ctx context.Context***REMOVED*** (
 	result = map[string]tfsdk.DataSourceType{
 		"ocm_cloud_providers":     &CloudProvidersDataSourceType{},
 		"ocm_rosa_operator_roles": &RosaOperatorRolesDataSourceType{},
+		"ocm_policies":            &OcmPoliciesDataSourceType{},
 		"ocm_groups":              &GroupsDataSourceType{},
 		"ocm_machine_types":       &MachineTypesDataSourceType{},
 		"ocm_versions":            &VersionsDataSourceType{},

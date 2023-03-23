@@ -17,5 +17,18 @@ To run it:
     ```
     export TF_VAR_ocm_environment=...
     ```
+
+* Provide OCM Authentication Token
+
+  OCM authentication token that you can get [here](https://console.redhat.com/openshift/token).
+    ```
+    export TF_VAR_token=...
+    ```
+
+* Provide OCM environment by setting a value to url
+    ```
+    export TF_VAR_url=...
+    ```
+
 and then run the `terraform apply` command.
 

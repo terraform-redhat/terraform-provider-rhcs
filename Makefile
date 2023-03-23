@@ -16,6 +16,7 @@
 
 # Disable CGO so that we always generate static binaries:
 export CGO_ENABLED=0
+export version=""
 
 ifeq ($(shell go env GOOS),windows)
 	BINARY=terraform-provider-ocm.exe
@@ -32,7 +33,7 @@ TARGET_ARCH=$(shell go env GOOS)_${GO_ARCH}
 import_path:=github.com/terraform-redhat/terraform-provider-ocm
 
 # Version of the project:
-version:=$(shell git describe --abbrev=0 | sed 's/^v//')
+version=$(shell git describe --abbrev=0 | sed 's/^v//')
 commit:=$(shell git rev-parse --short HEAD)
 
 # Set the linker flags so that the version will be included in the binaries:
@@ -52,7 +53,10 @@ install: build
 	if [[ "$${platform}" =~ ^windows_.*$$ ]]; then \
 		extension=".exe"; \
 	fi; \
-	dir="$(DESTINATION_PREFIX)/terraform.local/local/ocm/$(version)/$(TARGET_ARCH)"; \
+	if [ -z "${version}" ]; then \
+    	version="0.0.2"; \
+    fi; \
+    dir="$(DESTINATION_PREFIX)/terraform.local/local/ocm/$${version}/$(TARGET_ARCH)"; \
 	file="terraform-provider-ocm$${extension}"; \
 	mkdir -p "$${dir}"; \
 	mv ${BINARY} "$${dir}/$${file}"
@@ -103,9 +107,10 @@ e2e_test: tools install
 		--timeout 5h \
 		--junit-report ../../junit.xml \
 		-r \
-		--focus-file ci/e2e/.*
+		--focus-file ci/e2e/.* \
 		-- \
 		--token-url=$(test_token_url) \
 		--gateway-url=$(test_gateway_url) \
-		--token=$(test_offline_token) \
+		--offline-token=$(test_token) \
+		--openshift-version=$(openshift_version) \
 		$(NULL)

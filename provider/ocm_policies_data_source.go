@@ -53,7 +53,7 @@ type OcmPoliciesDataSource struct {
 func (t *OcmPoliciesDataSourceType***REMOVED*** GetSchema(ctx context.Context***REMOVED*** (result tfsdk.Schema,
 	diags diag.Diagnostics***REMOVED*** {
 	result = tfsdk.Schema{
-		Description: "List of rosa operator role for a specific cluster.",
+		Description: "List of rosa operator role and account roles for a specific cluster.",
 		Attributes: map[string]tfsdk.Attribute{
 			"operator_role_policies": {
 				Description: "Operator role policies.",
@@ -72,19 +72,19 @@ func (t *OcmPoliciesDataSourceType***REMOVED*** GetSchema(ctx context.Context***
 
 func accountRolePoliciesNames(***REMOVED*** tfsdk.NestedAttributes {
 	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-		"sts_installer_permission_policy": {
+		Installer: {
 			Type:     types.StringType,
 			Computed: true,
 ***REMOVED***,
-		"sts_support_permission_policy": {
+		Support: {
 			Type:     types.StringType,
 			Computed: true,
 ***REMOVED***,
-		"sts_instance_worker_permission_policy": {
+		InstanceWorker: {
 			Type:     types.StringType,
 			Computed: true,
 ***REMOVED***,
-		"sts_instance_controlplane_permission_policy": {
+		InstanceControlPlane: {
 			Type:     types.StringType,
 			Computed: true,
 ***REMOVED***,
@@ -93,27 +93,27 @@ func accountRolePoliciesNames(***REMOVED*** tfsdk.NestedAttributes {
 
 func operatorRolePoliciesNames(***REMOVED*** tfsdk.NestedAttributes {
 	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-		"openshift_cloud_credential_operator_cloud_credential_operator_iam_ro_creds_policy": {
+		CloudCred: {
 			Type:     types.StringType,
 			Computed: true,
 ***REMOVED***,
-		"openshift_cloud_network_config_controller_cloud_credentials_policy": {
+		CloudNetwork: {
 			Type:     types.StringType,
 			Computed: true,
 ***REMOVED***,
-		"openshift_cluster_csi_drivers_ebs_cloud_credentials_policy": {
+		ClusterCSI: {
 			Type:     types.StringType,
 			Computed: true,
 ***REMOVED***,
-		"openshift_image_registry_installer_cloud_credentials_policy": {
+		ImageRegistry: {
 			Type:     types.StringType,
 			Computed: true,
 ***REMOVED***,
-		"openshift_ingress_operator_cloud_credentials_policy": {
+		IngressOperator: {
 			Type:     types.StringType,
 			Computed: true,
 ***REMOVED***,
-		"openshift_machine_api_aws_cloud_credentials_policy": {
+		MachineAPI: {
 			Type:     types.StringType,
 			Computed: true,
 ***REMOVED***,
@@ -125,7 +125,7 @@ func (t *OcmPoliciesDataSourceType***REMOVED*** NewDataSource(ctx context.Contex
 	// Cast the provider interface to the specific implementation:
 	parent := p.(*Provider***REMOVED***
 
-	// Get the collection of clusters:
+	// Get the collection of aws inquiries:
 	awsInquiries := parent.connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.AWSInquiries(***REMOVED***
 
 	// Create the resource:

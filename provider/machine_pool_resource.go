@@ -384,17 +384,6 @@ func (r *MachinePoolResource) Update(ctx context.Context, request tfsdk.UpdateRe
 		return
 	}
 
-	_, errMsg := getSpotinstances(plan, mpBuilder)
-	if errMsg != "" {
-		response.Diagnostics.AddError(
-			"Can't update machine pool",
-			fmt.Sprintf(
-				"Can't update machine pool for cluster '%s, %s ", state.Cluster.Value, errMsg,
-			),
-		)
-		return
-	}
-
 	computeNodesEnabled := false
 	autoscalingEnabled := false
 
@@ -451,8 +440,6 @@ func (r *MachinePoolResource) Update(ctx context.Context, request tfsdk.UpdateRe
 
 	object := update.Body()
 
-	// update the spot instances enabled with the plan value
-	state.UseSpotInstances = plan.UseSpotInstances
 	// update the autoscaling enabled with the plan value (important for nil and false cases)
 	state.AutoScalingEnabled = plan.AutoScalingEnabled
 	// update the Replicas with the plan value (important for nil and zero value cases)

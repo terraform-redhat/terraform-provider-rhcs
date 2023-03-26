@@ -204,7 +204,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				},
 			},
 			"compute_labels": {
-				Description: "Labels for the default machine pool. Format should be a comma-separated list of 'key=value'. " +
+				Description: "Labels for the default machine pool. Format should be a comma-separated list of {\"key1\"=\"value1\", \"key2\"=\"value2\"}'. " +
 					"This list will overwrite any modifications made to Node labels on an ongoing basis.",
 				Type: types.MapType{
 					ElemType: types.StringType,
@@ -247,7 +247,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				},
 			},
 			"aws_private_link": {
-				Description: "aws subnet ids",
+				Description: "Provides private connectivity between VPCs, AWS services, and your on-premises networks, without exposing your traffic to the public internet.",
 				Type:        types.BoolType,
 				Optional:    true,
 				Computed:    true,

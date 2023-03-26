@@ -153,7 +153,12 @@ func (r *ClusterWaiterResource) isClusterReady(clusterId string, ctx context.Con
 		Predicate(func(getClusterResponse *cmv1.ClusterGetResponse) bool {
 			object = getClusterResponse.Body()
 			r.logger.Debug(ctx, "cluster state is %s", object.State())
-			return object.State() == cmv1.ClusterStateReady
+			switch object.State() {
+			case cmv1.ClusterStateReady,
+				cmv1.ClusterStateError:
+				return true
+			}
+			return false
 		}).
 		StartContext(pollCtx)
 	if err != nil {

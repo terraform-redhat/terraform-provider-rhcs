@@ -78,6 +78,32 @@ var _ = Describe("Cluster creation", func() {
 		  "id": "openshift-4.8.0"
 	  }
 	}`
+
+	const templateErrorState = `{
+	  "id": "123",
+	  "name": "my-cluster",
+	  "state": "error",
+	  "region": {
+	    "id": "us-west-1"
+	  },
+	  "multi_az": true,
+	  "api": {
+	    "url": "https://my-api.example.com"
+	  },
+	  "console": {
+	    "url": "https://my-console.example.com"
+	  },
+	  "network": {
+	    "machine_cidr": "10.0.0.0/16",
+	    "service_cidr": "172.30.0.0/16",
+	    "pod_cidr": "10.128.0.0/14",
+	    "host_prefix": 23
+	  },
+	  "version": {
+		  "id": "openshift-4.8.0"
+	  }
+	}`
+
 	Context("Create cluster waiter resource", func() {
 		BeforeEach(func() {
 			// Prepare the server:
@@ -131,6 +157,27 @@ var _ = Describe("Cluster creation", func() {
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, templateWaitingState),
+			),
+		)
+
+		terraform.Source(`
+				resource "ocm_cluster_wait" "rosa_cluster" {
+				  cluster = "123"
+				  timeout = 1
+				}
+			`)
+
+		Expect(terraform.Apply()).To(BeZero())
+		resource := terraform.Resource("ocm_cluster_wait", "rosa_cluster")
+		Expect(resource).To(MatchJQ(`.attributes.ready`, false))
+	})
+
+	It("Create cluster with a positive timeout and get cluster in error state", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, templateErrorState),
 			),
 		)
 

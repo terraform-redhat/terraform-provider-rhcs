@@ -78,6 +78,32 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		  "id": "openshift-4.8.0"
 	  }
 	}`
+
+	const templateErrorState = `{
+	  "id": "123",
+	  "name": "my-cluster",
+	  "state": "error",
+	  "region": {
+	    "id": "us-west-1"
+	  },
+	  "multi_az": true,
+	  "api": {
+	    "url": "https://my-api.example.com"
+	  },
+	  "console": {
+	    "url": "https://my-console.example.com"
+	  },
+	  "network": {
+	    "machine_cidr": "10.0.0.0/16",
+	    "service_cidr": "172.30.0.0/16",
+	    "pod_cidr": "10.128.0.0/14",
+	    "host_prefix": 23
+	  },
+	  "version": {
+		  "id": "openshift-4.8.0"
+	  }
+	}`
+
 	Context("Create cluster waiter resource", func(***REMOVED*** {
 		BeforeEach(func(***REMOVED*** {
 			// Prepare the server:
@@ -131,6 +157,27 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
 				RespondWithJSON(http.StatusOK, templateWaitingState***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		terraform.Source(`
+				resource "ocm_cluster_wait" "rosa_cluster" {
+				  cluster = "123"
+				  timeout = 1
+		***REMOVED***
+			`***REMOVED***
+
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		resource := terraform.Resource("ocm_cluster_wait", "rosa_cluster"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ready`, false***REMOVED******REMOVED***
+	}***REMOVED***
+
+	It("Create cluster with a positive timeout and get cluster in error state", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+				RespondWithJSON(http.StatusOK, templateErrorState***REMOVED***,
 			***REMOVED***,
 		***REMOVED***
 

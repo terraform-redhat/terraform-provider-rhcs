@@ -153,7 +153,12 @@ func (r *ClusterWaiterResource***REMOVED*** isClusterReady(clusterId string, ctx
 		Predicate(func(getClusterResponse *cmv1.ClusterGetResponse***REMOVED*** bool {
 			object = getClusterResponse.Body(***REMOVED***
 			r.logger.Debug(ctx, "cluster state is %s", object.State(***REMOVED******REMOVED***
-			return object.State(***REMOVED*** == cmv1.ClusterStateReady
+			switch object.State(***REMOVED*** {
+			case cmv1.ClusterStateReady,
+				cmv1.ClusterStateError:
+				return true
+	***REMOVED***
+			return false
 ***REMOVED******REMOVED***.
 		StartContext(pollCtx***REMOVED***
 	if err != nil {

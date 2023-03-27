@@ -212,7 +212,7 @@ func (r *MachinePoolResource) Create(ctx context.Context,
 	builder.ID(state.Name.Value)
 
 	var errMsg string
-	_, errMsg = getSpotinstances(state, builder)
+	_, errMsg = getSpotInstances(state, builder)
 	if errMsg != "" {
 		response.Diagnostics.AddError(
 			"Can't build machine pool",
@@ -451,7 +451,7 @@ func (r *MachinePoolResource) Update(ctx context.Context, request tfsdk.UpdateRe
 	response.Diagnostics.Append(diags...)
 }
 
-func getSpotinstances(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilder) (
+func getSpotInstances(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilder) (
 	useSpotInstances bool, errMsg string) {
 	useSpotInstances = false
 

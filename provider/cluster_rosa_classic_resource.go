@@ -22,9 +22,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/aws/request"
 	"net/http"
 	"net/url"
 	"os"
@@ -32,6 +29,10 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/aws/request"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -561,7 +562,7 @@ func createClassicClusterObject(ctx context.Context,
 		instanceIamRoles.WorkerRoleARN(state.Sts.InstanceIAMRoles.WorkerRoleARN.Value)
 		sts.InstanceIAMRoles(instanceIamRoles)
 
-		sts, err := checkAndSetByoOidcAttributes(ctx, state, sts)
+		sts, err := checkAndSetOidcConfigAttributes(ctx, state, sts)
 		if err != nil {
 			logger.Error(ctx, fmt.Sprintf("%v", err))
 			return nil, err
@@ -759,6 +760,9 @@ func buildSession(region string) (*session.Session, error) {
 			},
 		},
 	})
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create session. Check your AWS configuration and try again")
+	}
 
 	sess.Handlers.Build.PushBackNamed(addTerraformProviderVersionToUserAgent)
 
@@ -790,26 +794,16 @@ func getOcmVersionMinor(ver string) string {
 	return fmt.Sprintf("%d.%d", segments[0], segments[1])
 }
 
-func checkAndSetByoOidcAttributes(ctx context.Context, state *ClusterRosaClassicState, sts *cmv1.STSBuilder) (*cmv1.STSBuilder, error) {
-	isByoOidcSet := isByoOidcSet(state.Sts)
-	if isByoOidcSet {
-		if state.Sts.OIDCEndpointURL.Unknown || state.Sts.OIDCEndpointURL.Null || state.Sts.OIDCEndpointURL.Value == "" {
-			errDescription := fmt.Sprintf("When using BYO OIDC Endpoint URL cannot be empty")
-			return nil, errors.New(errHeadline + "\n" + errDescription)
-		}
-		if state.Sts.OIDCPrivateKeySecretArn.Unknown || state.Sts.OIDCPrivateKeySecretArn.Null || state.Sts.OIDCPrivateKeySecretArn.Value == "" {
-			errDescription := fmt.Sprintf("When using BYO OIDC Secret ARN cannot be empty")
-			return nil, errors.New(errHeadline + "\n" + errDescription)
-		}
-		sts.OIDCEndpointURL("https://" + state.Sts.OIDCEndpointURL.Value)
-		sts.OidcPrivateKeySecretArn(state.Sts.OIDCPrivateKeySecretArn.Value)
+func checkAndSetOidcConfigAttributes(ctx context.Context, state *ClusterRosaClassicState, sts *cmv1.STSBuilder) (*cmv1.STSBuilder, error) {
+	isOidcConfigSet := isOidcConfigSet(state.Sts)
+	if isOidcConfigSet {
+		sts.OidcConfig(cmv1.NewOidcConfig().ID(state.Sts.OIDCConfig.ID.Value))
 	}
 	return sts, nil
 }
 
-func isByoOidcSet(sts *Sts) bool {
-	return !sts.OIDCEndpointURL.Unknown && !sts.OIDCEndpointURL.Null && sts.OIDCEndpointURL.Value != "" ||
-		!sts.OIDCPrivateKeySecretArn.Unknown && !sts.OIDCPrivateKeySecretArn.Null && sts.OIDCPrivateKeySecretArn.Value != ""
+func isOidcConfigSet(sts *Sts) bool {
+	return !sts.OIDCConfig.ID.Unknown && !sts.OIDCConfig.ID.Null && sts.OIDCConfig.ID.Value != ""
 }
 func (r *ClusterRosaClassicResource) getVersionList(logger logging.Logger, ctx context.Context) (versionList []string, err error) {
 	vs, err := r.getVersions(logger, ctx)
@@ -1334,7 +1328,6 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 			state.Sts.InstanceIAMRoles.WorkerRoleARN = types.String{
 				Value: instanceIAMRoles.WorkerRoleARN(),
 			}
-
 		}
 		// TODO: fix a bug in uhc-cluster-services
 		if state.Sts.OperatorRolePrefix.Unknown || state.Sts.OperatorRolePrefix.Null {
@@ -1354,6 +1347,24 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		} else {
 			state.Sts.Thumbprint = types.String{
 				Value: thumbprint,
+			}
+		}
+		oidcConfig := sts.OidcConfig()
+		if oidcConfig != nil {
+			state.Sts.OIDCConfig.ID = types.String{
+				Value: oidcConfig.ID(),
+			}
+			state.Sts.OIDCConfig.IssuerUrl = types.String{
+				Value: oidcConfig.IssuerUrl(),
+			}
+			state.Sts.OIDCConfig.SecretArn = types.String{
+				Value: oidcConfig.SecretArn(),
+			}
+			state.Sts.OIDCConfig.Managed = types.Bool{
+				Value: oidcConfig.Managed(),
+			}
+			state.Sts.OIDCConfig.Reusable = types.Bool{
+				Value: oidcConfig.Reusable(),
 			}
 		}
 	}

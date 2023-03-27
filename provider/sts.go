@@ -13,9 +13,9 @@ func stsResource() tfsdk.NestedAttributes {
 			Optional:    true,
 			Computed:    true,
 		},
-		"oidc_private_key_secret_arn": {
-			Description: "OIDC Private Key Secret ARN",
-			Type:        types.StringType,
+		"oidc_config": {
+			Description: "OIDC Configuration",
+			Attributes:  oidcConfigResource(),
 			Optional:    true,
 		},
 		"thumbprint": {

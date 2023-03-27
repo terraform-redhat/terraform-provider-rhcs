@@ -86,8 +86,7 @@ Required:
 
 Optional:
 
-- `oidc_endpoint_url` (String) OIDC Endpoint URL
-- `oidc_private_key_secret_arn` (String) OIDC Private Key Secret ARN
+- `oidc_config_id` (String) OIDC Configuration ID
 
 Read-Only:
 

@@ -41,8 +41,9 @@ locals {
         worker_role_arn = var.worker_role_arn
       },
       operator_role_prefix = var.operator_role_prefix,
-      oidc_endpoint_url = var.oidc_endpoint_url,
-      oidc_private_key_secret_arn = var.oidc_private_key_secret_arn,
+      oidc_config = {
+        id = var.oidc_config_id
+      }
   }
 }
 

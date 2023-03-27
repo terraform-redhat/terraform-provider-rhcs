@@ -22,14 +22,9 @@ To run it:
     export TF_VAR_operator_role_prefix=...
     ```
 
-* Provide OIDC endpoint url
+* Provide OIDC configuration ID
     ```
-    export TF_VAR_oidc_endpoint_url=...
-    ```
-
-* Provide OIDC Private Key Secret ARN
-    ```
-    export TF_VAR_oidc_private_key_secret_arn=...
+    export TF_VAR_oidc_config_id=...
     ```
 
 and then run the `terraform apply` command.

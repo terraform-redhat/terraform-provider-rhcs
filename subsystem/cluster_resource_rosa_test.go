@@ -148,6 +148,7 @@ var _ = Describe("Cluster creation", func() {
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			sts = {
+				oidc_config = {},
 				operator_role_prefix = "test"
 				role_arn = "",
 				support_role_arn = "",
@@ -228,6 +229,7 @@ var _ = Describe("Cluster creation", func() {
 					aws_account_id = "123"
 					disable_waiting_in_destroy = true
 					sts = {
+						oidc_config = {},
 						operator_role_prefix = "test"
 						role_arn = "",
 						support_role_arn = "",
@@ -258,6 +260,7 @@ var _ = Describe("Cluster creation", func() {
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
 					sts = {
+						oidc_config = {},
 						operator_role_prefix = "test"
 						role_arn = "",
 						support_role_arn = "",
@@ -288,6 +291,7 @@ var _ = Describe("Cluster creation", func() {
 					aws_account_id = "123"
 					destroy_timeout = -1
 					sts = {
+						oidc_config = {},
 						operator_role_prefix = "test"
 						role_arn = "",
 						support_role_arn = "",
@@ -318,6 +322,7 @@ var _ = Describe("Cluster creation", func() {
 					aws_account_id = "123"
 					destroy_timeout = 10
 					sts = {
+						oidc_config = {},
 						operator_role_prefix = "test"
 						role_arn = "",
 						support_role_arn = "",
@@ -409,6 +414,7 @@ var _ = Describe("Cluster creation", func() {
 				additional_trust_bundle = "123",
 			}
 			sts = {
+				oidc_config = {},
 				operator_role_prefix = "test"
 				role_arn = "",
 				support_role_arn = "",
@@ -489,6 +495,7 @@ var _ = Describe("Cluster creation", func() {
 				"id1", "id2", "id3"
 			]
 			sts = {
+				oidc_config = {},
 				operator_role_prefix = "test"
 				role_arn = "",
 				support_role_arn = "",
@@ -557,6 +564,7 @@ var _ = Describe("Cluster creation", func() {
 			aws_account_id = "123"
 			aws_private_link = false
 			sts = {
+				oidc_config = {},
 				operator_role_prefix = "test"
 				role_arn = "",
 				support_role_arn = "",
@@ -646,6 +654,7 @@ var _ = Describe("Cluster creation", func() {
 				"label_key2" = "label_value2"
 			}
 			sts = {
+				oidc_config = {},
 				role_arn = "",
 				support_role_arn = "",
 				instance_iam_roles = {
@@ -757,6 +766,7 @@ var _ = Describe("Cluster creation", func() {
 				"label_key2" = "label_value2"
 			}
 			sts = {
+				oidc_config = {},
 				role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
 				support_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
 				instance_iam_roles = {
@@ -861,6 +871,7 @@ var _ = Describe("Cluster creation", func() {
 				"label_key2" = "label_value2"
 			}
 			sts = {
+				oidc_config = {},
 				role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
 				support_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
 				instance_iam_roles = {
@@ -874,7 +885,7 @@ var _ = Describe("Cluster creation", func() {
 		Expect(terraform.Apply()).To(BeZero())
 	})
 
-	It("Creates rosa sts cluster with BYO OIDC", func() {
+	It("Creates rosa sts cluster with OIDC Configuration", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
@@ -892,9 +903,7 @@ var _ = Describe("Cluster creation", func() {
 				VerifyJQ(`.aws.sts.instance_iam_roles.master_role_arn`, ""),
 				VerifyJQ(`.aws.sts.instance_iam_roles.worker_role_arn`, ""),
 				VerifyJQ(`.aws.sts.operator_role_prefix`, "terraform-operator"),
-				VerifyJQ(`.aws.sts.oidc_endpoint_url`, "https://oidc_endpoint_url"),
-				VerifyJQ(`.aws.sts.oidc_private_key_secret_arn`, "arn:aws:secretsmanager:us-east-1"+
-					":765374464689:secret:oidc-u2u1-6GYVrU"),
+				VerifyJQ(`.aws.sts.oidc_config.id`, "aaa"),
 				RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -902,6 +911,13 @@ var _ = Describe("Cluster creation", func() {
 					  "value": {
 						  "sts" : {
 							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_config": {
+								"id": "aaa",
+								"secret_arn": "aaa",
+								"issuer_url": "https://oidc_endpoint_url",
+								"reusable": true,
+								"managed": false
+							  },
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -940,8 +956,13 @@ var _ = Describe("Cluster creation", func() {
 				  worker_role_arn = ""
 				},
 				"operator_role_prefix" : "terraform-operator",
-				"oidc_endpoint_url" : "oidc_endpoint_url",
-				"oidc_private_key_secret_arn" : "arn:aws:secretsmanager:us-east-1:765374464689:secret:oidc-u2u1-6GYVrU"
+				"oidc_config": {
+					"id": "aaa",
+					"managed": false,
+					"reusable": true,
+					"issuer_url": "https://oidc_endpoint_url",
+					"secret_arn": "aaa",
+				}
 			}
 		  }
 		`)
@@ -1000,6 +1021,7 @@ var _ = Describe("Cluster creation", func() {
 			aws_account_id = "123"
 			version = "openshift-v4.12"
 			sts = {
+				oidc_config = {},
 				operator_role_prefix = "test"
 				role_arn = "arn:aws:iam::765374464689:role/terr-account-Installer-Role",
 				support_role_arn = "",

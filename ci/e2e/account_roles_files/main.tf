@@ -10,7 +10,7 @@ terraform {
 # create account roles
 module account_role{
   source = "terraform-redhat/rosa-sts/aws"
-  version = "0.0.3"
+  version = "0.0.2"
 
   create_operator_roles = false
   create_oidc_provider = false

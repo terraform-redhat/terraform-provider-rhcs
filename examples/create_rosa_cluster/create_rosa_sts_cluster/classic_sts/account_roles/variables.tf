@@ -11,3 +11,11 @@ variable openshift_version {
 variable account_role_prefix {
     type = string
 }
+
+variable token {
+    type = string
+}
+
+variable url {
+    type = string
+}

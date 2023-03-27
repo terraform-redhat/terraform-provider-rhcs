@@ -21,7 +21,7 @@ terraform {
       version = ">= 4.20.0"
     }
     ocm = {
-      version = ">= 1.0"
+      version = "0.0.2"
       source  = "terraform-redhat/ocm"
     }
   }
@@ -39,7 +39,7 @@ data "ocm_rosa_operator_roles" "rosa_sts" {
 
 module rosa_sts {
     source = "terraform-redhat/rosa-sts/aws"
-    version = "0.0.2"
+    version = "0.0.4"
 
     cluster_id = var.cluster_id
     rh_oidc_provider_url = var.oidc_endpoint_url

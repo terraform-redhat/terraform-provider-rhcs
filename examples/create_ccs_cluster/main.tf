@@ -21,7 +21,7 @@ terraform {
       version = ">= 3.67"
     }
     ocm = {
-      version = ">= 0.1"
+      version = " 0.1"
       source  = "terraform-redhat/ocm"
     }
   }

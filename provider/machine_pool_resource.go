@@ -393,7 +393,7 @@ func (r *MachinePoolResource) Update(ctx context.Context, request tfsdk.UpdateRe
 
 	}
 
-	autoscalingEnabled, errMsg = getAutoscaling(plan, mpBuilder)
+	autoscalingEnabled, errMsg := getAutoscaling(plan, mpBuilder)
 	if errMsg != "" {
 		response.Diagnostics.AddError(
 			"Can't update machine pool",

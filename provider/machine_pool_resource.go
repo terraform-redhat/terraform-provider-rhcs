@@ -211,8 +211,7 @@ func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context,
 	builder := cmv1.NewMachinePool(***REMOVED***.ID(state.ID.Value***REMOVED***.InstanceType(state.MachineType.Value***REMOVED***
 	builder.ID(state.Name.Value***REMOVED***
 
-	var errMsg string
-	_, errMsg = getSpotInstances(state, builder***REMOVED***
+	_, errMsg := getSpotInstances(state, builder***REMOVED***
 	if errMsg != "" {
 		response.Diagnostics.AddError(
 			"Can't build machine pool",
@@ -244,7 +243,7 @@ func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context,
 		response.Diagnostics.AddError(
 			"Can't build machine pool",
 			fmt.Sprintf(
-				"Can't build machine pool for cluster '%s', should hold either Autoscailing or Compute nodes",
+				"Can't build machine pool for cluster '%s', should hold either Autoscaling or Compute nodes",
 				state.Cluster.Value,
 			***REMOVED***,
 		***REMOVED***
@@ -570,7 +569,7 @@ func (r *MachinePoolResource***REMOVED*** populateState(object *cmv1.MachinePool
 	***REMOVED***
 ***REMOVED***
 	} else {
-		state.UseSpotInstances = types.Bool{Value: false}
+		state.UseSpotInstances.Null = true
 		state.MaxSpotPrice.Null = true
 	}
 

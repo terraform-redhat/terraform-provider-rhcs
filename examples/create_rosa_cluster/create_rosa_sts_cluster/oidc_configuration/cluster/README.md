@@ -1,4 +1,4 @@
-# ROSA STS cluster creation example
+# ROSA STS cluster creation example with OIDC configuration ID
 
 This example shows how to create an STS _ROSA_ cluster. _ROSA_ stands for Red Hat Openshift Service on AWS
 and is a cluster that is created in the AWS cloud infrastructure.
@@ -22,14 +22,9 @@ To run it:
     export TF_VAR_operator_role_prefix=...
     ```
 
-* Provide OIDC endpoint url
+* Provide OIDC configuration ID
     ```
-    export TF_VAR_oidc_endpoint_url=...
-    ```
-
-* Provide OIDC Private Key Secret ARN
-    ```
-    export TF_VAR_oidc_private_key_secret_arn=...
+    export TF_VAR_oidc_config_id=...
     ```
 
 and then run the `terraform apply` command.

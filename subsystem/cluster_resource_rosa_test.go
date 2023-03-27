@@ -874,7 +874,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
 
-	It("Creates rosa sts cluster with BYO OIDC", func(***REMOVED*** {
+	It("Creates rosa sts cluster with OIDC Configuration ID", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
@@ -892,7 +892,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 				VerifyJQ(`.aws.sts.instance_iam_roles.master_role_arn`, ""***REMOVED***,
 				VerifyJQ(`.aws.sts.instance_iam_roles.worker_role_arn`, ""***REMOVED***,
 				VerifyJQ(`.aws.sts.operator_role_prefix`, "terraform-operator"***REMOVED***,
-				VerifyJQ(`.aws.sts.oidc_endpoint_url`, "https://oidc_endpoint_url"***REMOVED***,
+				VerifyJQ(`.aws.sts.oidc_config.id`, "aaa"***REMOVED***,
 				RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -900,6 +900,13 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 					  "value": {
 						  "sts" : {
 							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_config": {
+								"id": "aaa",
+								"secret_arn": "aaa",
+								"issuer_url": "https://oidc_endpoint_url",
+								"reusable": true,
+								"managed": false
+							  },
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -938,8 +945,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 				  worker_role_arn = ""
 		***REMOVED***,
 				"operator_role_prefix" : "terraform-operator",
-				"oidc_endpoint_url" : "oidc_endpoint_url",
-				"oidc_private_key_secret_arn" : "arn:aws:secretsmanager:us-east-1:765374464689:secret:oidc-u2u1-6GYVrU"
+				"oidc_config_id" = "aaa"
 	***REMOVED***
 		  }
 		`***REMOVED***

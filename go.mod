@@ -10,7 +10,7 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.5.0
 	github.com/onsi/ginkgo/v2 v2.4.0
 	github.com/onsi/gomega v1.23.0
-	github.com/openshift-online/ocm-sdk-go v0.1.330
+	github.com/openshift-online/ocm-sdk-go v0.1.337
 	github.com/openshift/rosa v0.0.0-00010101000000-000000000000
 	github.com/segmentio/ksuid v1.0.4
 	k8s.io/apimachinery v0.26.2

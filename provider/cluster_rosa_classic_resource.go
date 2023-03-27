@@ -381,9 +381,9 @@ func createClassicClusterObject(ctx context.Context,
 
 	builder := cmv1.NewCluster(***REMOVED***
 	clusterName := state.Name.Value
-	if len([]rune(clusterName***REMOVED******REMOVED*** > 15 {
+	if len(clusterName***REMOVED*** > 15 {
 		errDescription := fmt.Sprintf("Expected a valid value for 'name' maximum of 15 characters in length. Provided Cluster name '%s' is of length '%d'",
-			clusterName, len([]rune(clusterName***REMOVED******REMOVED***,
+			clusterName, len(clusterName***REMOVED***,
 		***REMOVED***
 		logger.Error(ctx, errDescription***REMOVED***
 

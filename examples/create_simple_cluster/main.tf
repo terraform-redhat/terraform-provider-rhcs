@@ -17,7 +17,7 @@
 terraform {
   required_providers {
     ocm = {
-      version = ">= 0.1"
+      version = "0.0.3"
       source  = "terraform-redhat/ocm"
     }
   }

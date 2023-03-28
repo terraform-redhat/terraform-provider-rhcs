@@ -40,9 +40,10 @@ import (
 )
 
 const (
-	awsCloudProvider = "aws"
-	rosaProduct      = "rosa"
-	MinVersion       = "4.10"
+	awsCloudProvider     = "aws"
+	rosaProduct          = "rosa"
+	MinVersion           = "4.10"
+	maxClusterNameLength = 15
 )
 
 var kmsArnRE = regexp.MustCompile(
@@ -381,7 +382,7 @@ func createClassicClusterObject(ctx context.Context,
 
 	builder := cmv1.NewCluster()
 	clusterName := state.Name.Value
-	if len(clusterName) > 15 {
+	if len(clusterName) > maxClusterNameLength {
 		errDescription := fmt.Sprintf("Expected a valid value for 'name' maximum of 15 characters in length. Provided Cluster name '%s' is of length '%d'",
 			clusterName, len(clusterName),
 		)

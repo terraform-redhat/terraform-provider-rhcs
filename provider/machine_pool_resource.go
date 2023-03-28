@@ -81,7 +81,7 @@ func (t *MachinePoolResourceType) GetSchema(ctx context.Context) (result tfsdk.S
 				Optional:    true,
 			},
 			"use_spot_instances": {
-				Description: "Use Spot Instances. Applicable only for AWS.",
+				Description: "Use Spot Instances.",
 				Type:        types.BoolType,
 				Optional:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
@@ -89,7 +89,7 @@ func (t *MachinePoolResourceType) GetSchema(ctx context.Context) (result tfsdk.S
 				},
 			},
 			"max_spot_price": {
-				Description: "Max Spot price. Applicable only for AWS.",
+				Description: "Max Spot price.",
 				Type:        types.Float64Type,
 				Optional:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{

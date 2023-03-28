@@ -29,8 +29,8 @@ Machine pool.
 - `min_replicas` (Number) Min replicas.
 - `replicas` (Number) The number of machines of the pool
 - `taints` (Attributes List) Taints for machine pool. Format should be a comma-separated list of 'key=value:ScheduleType'. This list will overwrite any modifications made to node taints on an ongoing basis. (see [below for nested schema](#nestedatt--taints))
-- `use_spot_instances`(Boolean) Use Spot Instances. Applicable only for AWS.
-- `max_spot_price` (Float) Max Spot price. Default value to set maximum spot price as on-demand price. Applicable only for AWS.
+- `use_spot_instances`(Boolean) Use Spot Instances.
+- `max_spot_price` (Float) Max Spot price. Default value to set maximum spot price as on-demand price.
 
 ### Read-Only
 

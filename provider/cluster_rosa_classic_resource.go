@@ -40,9 +40,10 @@ package provider
 ***REMOVED***
 
 const (
-	awsCloudProvider = "aws"
-	rosaProduct      = "rosa"
-	MinVersion       = "4.10"
+	awsCloudProvider     = "aws"
+	rosaProduct          = "rosa"
+	MinVersion           = "4.10"
+	maxClusterNameLength = 15
 ***REMOVED***
 
 var kmsArnRE = regexp.MustCompile(
@@ -78,7 +79,7 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 		***REMOVED***,
 	***REMOVED***,
 			"name": {
-				Description: "Name of the cluster.",
+				Description: "Name of the cluster. Must be a maximum of 15 characters in length.",
 				Type:        types.StringType,
 				Required:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
@@ -385,6 +386,20 @@ func createClassicClusterObject(ctx context.Context,
 	state *ClusterRosaClassicState, logger logging.Logger, diags diag.Diagnostics***REMOVED*** (*cmv1.Cluster, error***REMOVED*** {
 
 	builder := cmv1.NewCluster(***REMOVED***
+	clusterName := state.Name.Value
+	if len(clusterName***REMOVED*** > maxClusterNameLength {
+		errDescription := fmt.Sprintf("Expected a valid value for 'name' maximum of 15 characters in length. Provided Cluster name '%s' is of length '%d'",
+			clusterName, len(clusterName***REMOVED***,
+		***REMOVED***
+		logger.Error(ctx, errDescription***REMOVED***
+
+		diags.AddError(
+			errHeadline,
+			errDescription,
+		***REMOVED***
+		return nil, errors.New(errHeadline + "\n" + errDescription***REMOVED***
+	}
+
 	builder.Name(state.Name.Value***REMOVED***
 	builder.CloudProvider(cmv1.NewCloudProvider(***REMOVED***.ID(awsCloudProvider***REMOVED******REMOVED***
 	builder.Product(cmv1.NewProduct(***REMOVED***.ID(rosaProduct***REMOVED******REMOVED***

@@ -19,7 +19,7 @@ OpenShift managed cluster using rosa sts.
 
 - `aws_account_id` (String***REMOVED*** Identifier of the AWS account.
 - `cloud_region` (String***REMOVED*** Cloud region identifier, for example 'us-east-1'.
-- `name` (String***REMOVED*** Name of the cluster.
+- `name` (String***REMOVED*** Name of the cluster. Must be a maximum of 15 characters in length.
 
 ### Optional
 

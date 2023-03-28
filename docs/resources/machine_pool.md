@@ -19,7 +19,7 @@ Machine pool.
 
 - `cluster` (String***REMOVED*** Identifier of the cluster.
 - `machine_type` (String***REMOVED*** Identifier of the machine type used by the nodes, for example `r5.xlarge`. Use the `ocm_machine_types` data source to find the possible values.
-- `name` (String***REMOVED*** Name of the machine pool.
+- `name` (String***REMOVED*** Name of the machine pool. Must consist of lower-case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
 
 ### Optional
 
@@ -29,6 +29,8 @@ Machine pool.
 - `min_replicas` (Number***REMOVED*** Min replicas.
 - `replicas` (Number***REMOVED*** The number of machines of the pool
 - `taints` (Attributes List***REMOVED*** Taints for machine pool. Format should be a comma-separated list of 'key=value:ScheduleType'. This list will overwrite any modifications made to node taints on an ongoing basis. (see [below for nested schema](#nestedatt--taints***REMOVED******REMOVED***
+- `use_spot_instances`(Boolean***REMOVED*** Use Spot Instances.
+- `max_spot_price` (Float***REMOVED*** Max Spot price. Default value to set maximum spot price as on-demand price.
 
 ### Read-Only
 
@@ -42,5 +44,3 @@ Required:
 - `key` (String***REMOVED*** Taints key
 - `schedule_type` (String***REMOVED*** Taints schedule type
 - `value` (String***REMOVED*** Taints value
-
-

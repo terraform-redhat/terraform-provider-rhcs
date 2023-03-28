@@ -19,6 +19,7 @@ package provider
 ***REMOVED***
 	"context"
 ***REMOVED***
+	"regexp"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -34,6 +35,10 @@ package provider
 type MachinePoolResourceType struct {
 	logger logging.Logger
 }
+
+var machinepoolNameRE = regexp.MustCompile(
+	`^[a-z]([-a-z0-9]*[a-z0-9]***REMOVED***?$`,
+***REMOVED***
 
 type MachinePoolResource struct {
 	logger     logging.Logger
@@ -56,7 +61,7 @@ func (t *MachinePoolResourceType***REMOVED*** GetSchema(ctx context.Context***RE
 				Computed:    true,
 	***REMOVED***,
 			"name": {
-				Description: "Name of the machine pool.",
+				Description: "Name of the machine pool.Must consist of lower-case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.",
 				Type:        types.StringType,
 				Required:    true,
 	***REMOVED***,
@@ -74,6 +79,22 @@ func (t *MachinePoolResourceType***REMOVED*** GetSchema(ctx context.Context***RE
 				Description: "The number of machines of the pool",
 				Type:        types.Int64Type,
 				Optional:    true,
+	***REMOVED***,
+			"use_spot_instances": {
+				Description: "Use Spot Instances.",
+				Type:        types.BoolType,
+				Optional:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger***REMOVED***,
+		***REMOVED***,
+	***REMOVED***,
+			"max_spot_price": {
+				Description: "Max Spot price.",
+				Type:        types.Float64Type,
+				Optional:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger***REMOVED***,
+		***REMOVED***,
 	***REMOVED***,
 			"autoscaling_enabled": {
 				Description: "Enables autoscaling.",
@@ -154,6 +175,17 @@ func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context,
 		return
 	}
 
+	machinepoolName := state.Name.Value
+	if !machinepoolNameRE.MatchString(machinepoolName***REMOVED*** {
+		response.Diagnostics.AddError(
+			"Can't create machine pool: ",
+			fmt.Sprintf("Can't create machine pool for cluster '%s' with name '%s'. Expected a valid value for 'name' matching %s",
+				state.Cluster.Value, state.Name.Value, machinepoolNameRE,
+			***REMOVED***,
+		***REMOVED***
+		return
+	}
+
 	// Wait till the cluster is ready:
 	resource := r.collection.Cluster(state.Cluster.Value***REMOVED***
 	pollCtx, cancel := context.WithTimeout(ctx, 1*time.Hour***REMOVED***
@@ -179,10 +211,19 @@ func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context,
 	builder := cmv1.NewMachinePool(***REMOVED***.ID(state.ID.Value***REMOVED***.InstanceType(state.MachineType.Value***REMOVED***
 	builder.ID(state.Name.Value***REMOVED***
 
+	_, errMsg := getSpotInstances(state, builder***REMOVED***
+	if errMsg != "" {
+		response.Diagnostics.AddError(
+			"Can't build machine pool",
+			fmt.Sprintf(
+				"Can't build machine pool for cluster '%s, %s'", state.Cluster.Value, errMsg,
+			***REMOVED***,
+		***REMOVED***
+		return
+	}
+
 	autoscalingEnabled := false
 	computeNodeEnabled := false
-	var errMsg string
-
 	autoscalingEnabled, errMsg = getAutoscaling(state, builder***REMOVED***
 	if errMsg != "" {
 		response.Diagnostics.AddError(
@@ -202,7 +243,7 @@ func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context,
 		response.Diagnostics.AddError(
 			"Can't build machine pool",
 			fmt.Sprintf(
-				"Can't build machine pool for cluster '%s', should hold either Autoscailing or Compute nodes",
+				"Can't build machine pool for cluster '%s', should hold either Autoscaling or Compute nodes",
 				state.Cluster.Value,
 			***REMOVED***,
 		***REMOVED***
@@ -351,8 +392,7 @@ func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, request tf
 
 	}
 
-	var errMsg string
-	autoscalingEnabled, errMsg = getAutoscaling(plan, mpBuilder***REMOVED***
+	autoscalingEnabled, errMsg := getAutoscaling(plan, mpBuilder***REMOVED***
 	if errMsg != "" {
 		response.Diagnostics.AddError(
 			"Can't update machine pool",
@@ -408,6 +448,32 @@ func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, request tf
 	r.populateState(object, state***REMOVED***
 	diags = response.State.Set(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
+}
+
+func getSpotInstances(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilder***REMOVED*** (
+	useSpotInstances bool, errMsg string***REMOVED*** {
+	useSpotInstances = false
+
+	if !state.UseSpotInstances.Unknown && !state.UseSpotInstances.Null && state.UseSpotInstances.Value {
+		useSpotInstances = true
+
+		awsMachinePool := cmv1.NewAWSMachinePool(***REMOVED***
+		spotMarketOptions := cmv1.NewAWSSpotMarketOptions(***REMOVED***
+		if !state.MaxSpotPrice.Unknown && !state.MaxSpotPrice.Null {
+			spotMarketOptions.MaxPrice(float64(state.MaxSpotPrice.Value***REMOVED******REMOVED***
+***REMOVED***
+		awsMachinePool.SpotMarketOptions(spotMarketOptions***REMOVED***
+
+		if !awsMachinePool.Empty(***REMOVED*** {
+			mpBuilder.AWS(awsMachinePool***REMOVED***
+***REMOVED***
+	} else {
+		if !state.MaxSpotPrice.Unknown && !state.MaxSpotPrice.Null {
+			return false, "when not using aws spot instances, can't set max_spot_price"
+***REMOVED***
+	}
+
+	return useSpotInstances, ""
 }
 
 func getAutoscaling(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilder***REMOVED*** (
@@ -487,6 +553,24 @@ func (r *MachinePoolResource***REMOVED*** populateState(object *cmv1.MachinePool
 	}
 	state.Name = types.String{
 		Value: object.ID(***REMOVED***,
+	}
+
+	getAWS, ok := object.GetAWS(***REMOVED***
+	if ok {
+		state.UseSpotInstances = types.Bool{Value: true}
+		spotMarketOptions, ok := getAWS.GetSpotMarketOptions(***REMOVED***
+		if ok {
+			if spotMarketOptions.MaxPrice(***REMOVED*** != 0 {
+				state.MaxSpotPrice = types.Float64{
+					Value: float64(spotMarketOptions.MaxPrice(***REMOVED******REMOVED***,
+		***REMOVED***
+	***REMOVED*** else {
+				state.MaxSpotPrice.Null = true
+	***REMOVED***
+***REMOVED***
+	} else {
+		state.UseSpotInstances.Null = true
+		state.MaxSpotPrice.Null = true
 	}
 
 	autoscaling, ok := object.GetAutoscaling(***REMOVED***

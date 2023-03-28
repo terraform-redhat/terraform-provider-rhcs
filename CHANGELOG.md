@@ -1,3 +1,15 @@
+## 0.0.3 (Mar 28, 2023)
+-FEATURES:
+* Add `ocm_policies` data source for getting the account role policies and operator role policies from OCM API.
+
+-ENHANCEMENTS:
+* Add domain attribute to `cluster_rosa_classic` resource
+* Bug fixes
+  * update the descriptions of several attributes in `cluster_rosa_classic` resource.
+  * Stop waiting when the cluster encounters an error state
+* Add end-to-end test
+
+
 ## 0.0.2 (Feb 21, 2023)
 -FEATURES:
 * Add `cluster_waiter` resource for addressing the cluster state in cluster creation scenario
@@ -6,7 +18,6 @@
 * Add BYO OIDC support in `cluster_rosa_classic` resource
 * Address cluster state while destroying the cluster_rosa_classic resource
 * Add gitlab `identity_provider` resource
-
 
 
 ## 0.0.1 (Feb 12, 2023)

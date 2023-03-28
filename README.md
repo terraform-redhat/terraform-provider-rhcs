@@ -80,7 +80,7 @@ terraform {
       version = ">= 4.20.0"
     }
     ocm = {
-      version = "0.0.2"
+      version = "0.0.3"
       source  = "terraform-redhat/ocm"
     }
   }
@@ -188,7 +188,7 @@ terraform {
       version = ">= 4.20.0"
     }
     ocm = {
-      version = "0.0.2"
+      version = "0.0.3"
       source  = "terraform-redhat/ocm"
     }
   }

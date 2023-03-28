@@ -236,4 +236,169 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.replicas", float64(10)))
 	})
 
+	It("Can create machine pool with compute nodes using spot instances with max spot price of 0.5", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				),
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-spot-pool",
+				  "aws": {
+					"kind": "AWSMachinePool",
+					"spot_market_options": {
+						"kind": "AWSSpotMarketOptions",
+						"max_price": 0.5
+					} 
+				  },
+				  "instance_type": "r5.xlarge",
+				  "labels": {
+				    "label_key1": "label_value1",
+				    "label_key2": "label_value2"
+				  },
+				  "replicas": 10,
+				  "taints": [
+					  {
+						"effect": "effect1",
+						"key": "key1",
+						"value": "value1"
+					  }
+				 ]
+				}`),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-spot-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 10,
+				  "aws": {    
+					"spot_market_options": {      
+						"max_price": 0.5    
+					}  
+				  },
+				  "labels": {
+				    "label_key1": "label_value1",
+				    "label_key2": "label_value2"
+				  }
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "ocm_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-spot-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 10
+			labels = {
+				"label_key1" = "label_value1", 
+				"label_key2" = "label_value2"
+			}
+			use_spot_instances = "true"
+            max_spot_price = 0.5
+			taints = [
+				{
+					key = "key1",
+					value = "value1",
+					schedule_type = "effect1",
+				},
+		    ]
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		// Check the state:
+		resource := terraform.Resource("ocm_machine_pool", "my_pool")
+		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+		Expect(resource).To(MatchJQ(".attributes.id", "my-spot-pool"))
+		Expect(resource).To(MatchJQ(".attributes.name", "my-spot-pool"))
+		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
+		Expect(resource).To(MatchJQ(".attributes.replicas", 10.0))
+		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 2))
+		Expect(resource).To(MatchJQ(".attributes.use_spot_instances", true))
+		Expect(resource).To(MatchJQ(".attributes.max_spot_price", float64(0.5)))
+	})
+
+	It("Can create machine pool with compute nodes using spot instances with max spot price of on-demand price", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				),
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-spot-pool",
+				  "aws": {
+					"kind": "AWSMachinePool",
+					"spot_market_options": {
+						"kind": "AWSSpotMarketOptions"
+					} 
+				  },
+				  "instance_type": "r5.xlarge",
+				  "labels": {
+				    "label_key1": "label_value1",
+				    "label_key2": "label_value2"
+				  },
+				  "replicas": 10,
+				  "taints": [
+					  {
+						"effect": "effect1",
+						"key": "key1",
+						"value": "value1"
+					  }
+				 ]
+				}`),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-spot-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 10,
+				  "aws": {    
+					"spot_market_options": {      
+					}  
+				  },
+				  "labels": {
+				    "label_key1": "label_value1",
+				    "label_key2": "label_value2"
+				  }
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "ocm_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-spot-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 10
+			labels = {
+				"label_key1" = "label_value1", 
+				"label_key2" = "label_value2"
+			}
+			use_spot_instances = "true"
+			taints = [
+				{
+					key = "key1",
+					value = "value1",
+					schedule_type = "effect1",
+				},
+		    ]
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		// Check the state:
+		resource := terraform.Resource("ocm_machine_pool", "my_pool")
+		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+		Expect(resource).To(MatchJQ(".attributes.id", "my-spot-pool"))
+		Expect(resource).To(MatchJQ(".attributes.name", "my-spot-pool"))
+		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
+		Expect(resource).To(MatchJQ(".attributes.replicas", 10.0))
+		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 2))
+		Expect(resource).To(MatchJQ(".attributes.use_spot_instances", true))
+	})
 })

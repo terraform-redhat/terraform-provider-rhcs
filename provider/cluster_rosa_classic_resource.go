@@ -22,14 +22,22 @@ package provider
 	"encoding/hex"
 	"errors"
 ***REMOVED***
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/aws/request"
 ***REMOVED***
 	"net/url"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/iam"
 	semver "github.com/hashicorp/go-version"
+	ver "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
@@ -44,19 +52,27 @@ const (
 	rosaProduct          = "rosa"
 	MinVersion           = "4.10"
 	maxClusterNameLength = 15
+	tagsPrefix           = "rosa_"
+	tagsOpenShiftVersion = tagsPrefix + "openshift_version"
 ***REMOVED***
 
 var kmsArnRE = regexp.MustCompile(
 	`^arn:aws[\w-]*:kms:[\w-]+:\d{12}:key\/mrk-[0-9a-f]{32}$|[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`,
 ***REMOVED***
 
+var addTerraformProviderVersionToUserAgent = request.NamedHandler{
+	Name: "ocmTerraformProvider.VersionUserAgentHandler",
+	Fn:   request.MakeAddToUserAgentHandler("TERRAFORM_PROVIDER_OCM", "1.0.0"***REMOVED***,
+}
+
 type ClusterRosaClassicResourceType struct {
 	logger logging.Logger
 }
 
 type ClusterRosaClassicResource struct {
-	logger     logging.Logger
-	collection *cmv1.ClustersClient
+	logger            logging.Logger
+	clusterCollection *cmv1.ClustersClient
+	versionCollection *cmv1.VersionsClient
 }
 
 func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVED*** (result tfsdk.Schema,
@@ -366,13 +382,17 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** NewResource(ctx context.Con
 	// Cast the provider interface to the specific implementation:
 	parent := p.(*Provider***REMOVED***
 
-	// Get the collection:
-	collection := parent.connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Clusters(***REMOVED***
+	// Get the cluster collection:
+	clusterCollection := parent.connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Clusters(***REMOVED***
+
+	// Get the version collection
+	versionCollection := parent.connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Versions(***REMOVED***
 
 	// Create the resource:
 	result = &ClusterRosaClassicResource{
-		logger:     parent.logger,
-		collection: collection,
+		logger:            parent.logger,
+		clusterCollection: clusterCollection,
+		versionCollection: versionCollection,
 	}
 
 	return
@@ -623,6 +643,153 @@ func createClassicClusterObject(ctx context.Context,
 	return object, err
 }
 
+func (r *ClusterRosaClassicResource***REMOVED*** validateAccountRoles(ctx context.Context, state *ClusterRosaClassicState***REMOVED*** error {
+	r.logger.Debug(ctx, "Validating if cluster version is compatible to account roles' version"***REMOVED***
+	region := state.CloudRegion.Value
+	version := ""
+	if !state.Version.Unknown && !state.Version.Null {
+		version = state.Version.Value
+	}
+
+	if version == "" {
+		versionList, err := r.getVersionList(r.logger, ctx***REMOVED***
+		if err != nil {
+			return err
+***REMOVED***
+		version = versionList[0]
+	}
+
+	r.logger.Debug(ctx, "Cluster version is %s", version***REMOVED***
+	roleARNs := []string{
+		state.Sts.RoleARN.Value,
+		state.Sts.SupportRoleArn.Value,
+		state.Sts.InstanceIAMRoles.MasterRoleARN.Value,
+		state.Sts.InstanceIAMRoles.WorkerRoleARN.Value,
+	}
+
+	for _, ARN := range roleARNs {
+		if ARN == "" {
+			continue
+***REMOVED***
+		// get role from arn
+		role, err := getRoleByARN(ARN, region***REMOVED***
+		if err != nil {
+			return fmt.Errorf("Could not get Role '%s' : %v", ARN, err***REMOVED***
+***REMOVED***
+
+		validVersion, err := r.hasCompatibleVersionTags(ctx, role.Tags, getOcmVersionMinor(version***REMOVED******REMOVED***
+		if err != nil {
+			return fmt.Errorf("Could not validate Role '%s' : %v", ARN, err***REMOVED***
+***REMOVED***
+		if !validVersion {
+			return fmt.Errorf("account role '%s' is not compatible with version %s. "+
+				"Run 'rosa create account-roles' to create compatible roles and try again",
+				ARN, version***REMOVED***
+***REMOVED***
+	}
+
+	return nil
+}
+func (r *ClusterRosaClassicResource***REMOVED*** hasCompatibleVersionTags(ctx context.Context, iamTags []*iam.Tag, version string***REMOVED*** (bool, error***REMOVED*** {
+	if len(iamTags***REMOVED*** == 0 {
+		return false, nil
+	}
+	for _, tag := range iamTags {
+		if aws.StringValue(tag.Key***REMOVED*** == tagsOpenShiftVersion {
+			r.logger.Debug(ctx, "role version is %s", aws.StringValue(tag.Value***REMOVED******REMOVED***
+			if version == aws.StringValue(tag.Value***REMOVED*** {
+				return true, nil
+	***REMOVED***
+			wantedVersion, err := semver.NewVersion(version***REMOVED***
+			if err != nil {
+				return false, err
+	***REMOVED***
+			currentVersion, err := semver.NewVersion(aws.StringValue(tag.Value***REMOVED******REMOVED***
+			if err != nil {
+				return false, err
+	***REMOVED***
+			return currentVersion.GreaterThanOrEqual(wantedVersion***REMOVED***, nil
+***REMOVED***
+	}
+	return false, nil
+}
+
+func getRoleByARN(roleARN, region string***REMOVED*** (*iam.Role, error***REMOVED*** {
+	// validate arn
+	parsedARN, err := arn.Parse(roleARN***REMOVED***
+	if err != nil {
+		return nil, fmt.Errorf("expected a valid IAM role ARN: %s", err***REMOVED***
+	}
+	// validate arn is for a role resource
+	resource := parsedARN.Resource
+	isRole := strings.Contains(resource, "role/"***REMOVED***
+	if !isRole {
+		return nil, fmt.Errorf("expected ARN '%s' to be IAM role resource", roleARN***REMOVED***
+	}
+
+	// get resource name
+	m := strings.LastIndex(resource, "/"***REMOVED***
+	roleName := resource[m+1:]
+
+	sess, err := buildSession(region***REMOVED***
+	if err != nil {
+		return nil, err
+	}
+	iamClient := iam.New(sess***REMOVED***
+	roleOutput, err := iamClient.GetRole(&iam.GetRoleInput{
+		RoleName: aws.String(roleName***REMOVED***,
+	}***REMOVED***
+
+	if err != nil {
+		return nil, err
+	}
+	return roleOutput.Role, nil
+}
+
+func buildSession(region string***REMOVED*** (*session.Session, error***REMOVED*** {
+	sess, err := session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+		Profile:           "",
+		Config: aws.Config{
+			CredentialsChainVerboseErrors: aws.Bool(true***REMOVED***,
+			Region:                        &region,
+			Retryer:                       buildCustomRetryer(***REMOVED***,
+			HTTPClient: &http.Client{
+				Transport: http.DefaultTransport,
+	***REMOVED***,
+***REMOVED***,
+	}***REMOVED***
+
+	sess.Handlers.Build.PushBackNamed(addTerraformProviderVersionToUserAgent***REMOVED***
+
+	if _, err = sess.Config.Credentials.Get(***REMOVED***; err != nil {
+		return nil, fmt.Errorf("Failed to find credentials. Check your AWS configuration and try again"***REMOVED***
+	}
+
+	return sess, nil
+}
+
+func buildCustomRetryer(***REMOVED*** client.DefaultRetryer {
+	return client.DefaultRetryer{
+		NumMaxRetries:    12,
+		MinRetryDelay:    1 * time.Second,
+		MinThrottleDelay: 5 * time.Second,
+		MaxThrottleDelay: 5 * time.Second,
+	}
+
+}
+
+func getOcmVersionMinor(ver string***REMOVED*** string {
+	rawID := strings.Replace(ver, "openshift-v", "", 1***REMOVED***
+	version, err := semver.NewVersion(rawID***REMOVED***
+	if err != nil {
+		segments := strings.Split(rawID, "."***REMOVED***
+		return fmt.Sprintf("%s.%s", segments[0], segments[1]***REMOVED***
+	}
+	segments := version.Segments(***REMOVED***
+	return fmt.Sprintf("%d.%d", segments[0], segments[1]***REMOVED***
+}
+
 func checkAndSetByoOidcAttributes(ctx context.Context, state *ClusterRosaClassicState, sts *cmv1.STSBuilder***REMOVED*** (*cmv1.STSBuilder, error***REMOVED*** {
 	isByoOidcSet := isByoOidcSet(state.Sts***REMOVED***
 	if isByoOidcSet {
@@ -644,6 +811,59 @@ func isByoOidcSet(sts *Sts***REMOVED*** bool {
 	return !sts.OIDCEndpointURL.Unknown && !sts.OIDCEndpointURL.Null && sts.OIDCEndpointURL.Value != "" ||
 		!sts.OIDCPrivateKeySecretArn.Unknown && !sts.OIDCPrivateKeySecretArn.Null && sts.OIDCPrivateKeySecretArn.Value != ""
 }
+func (r *ClusterRosaClassicResource***REMOVED*** getVersionList(logger logging.Logger, ctx context.Context***REMOVED*** (versionList []string, err error***REMOVED*** {
+	vs, err := r.getVersions(logger, ctx***REMOVED***
+	if err != nil {
+		err = fmt.Errorf("Failed to retrieve versions: %s", err***REMOVED***
+		return
+	}
+
+	for _, v := range vs {
+		versionList = append(versionList, v.RawID(***REMOVED******REMOVED***
+	}
+
+	if len(versionList***REMOVED*** == 0 {
+		err = fmt.Errorf("Could not find versions"***REMOVED***
+		return
+	}
+
+	return
+}
+func (r *ClusterRosaClassicResource***REMOVED*** getVersions(logger logging.Logger, ctx context.Context***REMOVED*** (versions []*cmv1.Version, err error***REMOVED*** {
+	page := 1
+	size := 100
+	filter := "enabled = 'true' AND rosa_enabled = 'true'"
+	for {
+		var response *cmv1.VersionsListResponse
+		response, err = r.versionCollection.List(***REMOVED***.
+			Search(filter***REMOVED***.
+			Order("default desc, id desc"***REMOVED***.
+			Page(page***REMOVED***.
+			Size(size***REMOVED***.
+			Send(***REMOVED***
+		if err != nil {
+			logger.Debug(ctx, err.Error(***REMOVED******REMOVED***
+			return nil, err
+***REMOVED***
+		versions = append(versions, response.Items(***REMOVED***.Slice(***REMOVED***...***REMOVED***
+		if response.Size(***REMOVED*** < size {
+			break
+***REMOVED***
+		page++
+	}
+
+	// Sort list in descending order
+	sort.Slice(versions, func(i, j int***REMOVED*** bool {
+		a, erra := ver.NewVersion(versions[i].RawID(***REMOVED******REMOVED***
+		b, errb := ver.NewVersion(versions[j].RawID(***REMOVED******REMOVED***
+		if erra != nil || errb != nil {
+			return false
+***REMOVED***
+		return a.GreaterThan(b***REMOVED***
+	}***REMOVED***
+
+	return
+}
 
 func (r *ClusterRosaClassicResource***REMOVED*** Create(ctx context.Context,
 	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse***REMOVED*** {
@@ -655,6 +875,17 @@ func (r *ClusterRosaClassicResource***REMOVED*** Create(ctx context.Context,
 		return
 	}
 
+	err := r.validateAccountRoles(ctx, state***REMOVED***
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't build cluster",
+			fmt.Sprintf(
+				"Can't build cluster with name '%s', failed while validating account roles: %v",
+				state.Name.Value, err,
+			***REMOVED***,
+		***REMOVED***
+		return
+	}
 	object, err := createClassicClusterObject(ctx, state, r.logger, diags***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -666,7 +897,8 @@ func (r *ClusterRosaClassicResource***REMOVED*** Create(ctx context.Context,
 		***REMOVED***
 		return
 	}
-	add, err := r.collection.Add(***REMOVED***.Body(object***REMOVED***.SendContext(ctx***REMOVED***
+
+	add, err := r.clusterCollection.Add(***REMOVED***.Body(object***REMOVED***.SendContext(ctx***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't create cluster",
@@ -705,7 +937,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** Read(ctx context.Context, reque
 	}
 
 	// Find the cluster:
-	get, err := r.collection.Cluster(state.ID.Value***REMOVED***.Get(***REMOVED***.SendContext(ctx***REMOVED***
+	get, err := r.clusterCollection.Cluster(state.ID.Value***REMOVED***.Get(***REMOVED***.SendContext(ctx***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't find cluster",
@@ -803,7 +1035,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** Update(ctx context.Context, req
 		***REMOVED***
 		return
 	}
-	update, err := r.collection.Cluster(state.ID.Value***REMOVED***.Update(***REMOVED***.
+	update, err := r.clusterCollection.Cluster(state.ID.Value***REMOVED***.Update(***REMOVED***.
 		Body(clusterSpec***REMOVED***.
 		SendContext(ctx***REMOVED***
 	if err != nil {
@@ -850,7 +1082,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** Delete(ctx context.Context, req
 	}
 
 	// Send the request to delete the cluster:
-	resource := r.collection.Cluster(state.ID.Value***REMOVED***
+	resource := r.clusterCollection.Cluster(state.ID.Value***REMOVED***
 	_, err := resource.Delete(***REMOVED***.SendContext(ctx***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -900,7 +1132,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** Delete(ctx context.Context, req
 func (r *ClusterRosaClassicResource***REMOVED*** ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
 	response *tfsdk.ImportResourceStateResponse***REMOVED*** {
 	// Try to retrieve the object:
-	get, err := r.collection.Cluster(request.ID***REMOVED***.Get(***REMOVED***.SendContext(ctx***REMOVED***
+	get, err := r.clusterCollection.Cluster(request.ID***REMOVED***.Get(***REMOVED***.SendContext(ctx***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't find cluster",

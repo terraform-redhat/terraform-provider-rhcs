@@ -77,9 +77,33 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 	  }
 	}`
 
+	const versionListPage1 = `{
+	"kind": "VersionList",
+	"page": 1,
+	"size": 2,
+	"total": 2,
+	"items": [{
+			"kind": "Version",
+			"id": "openshift-v4.10.1",
+			"href": "/api/clusters_mgmt/v1/versions/openshift-v4.10.1",
+			"raw_id": "4.11.1"
+***REMOVED***,
+		{
+			"kind": "Version",
+			"id": "openshift-v4.10.1",
+			"href": "/api/clusters_mgmt/v1/versions/openshift-v4.11.1",
+			"raw_id": "4.11.1"
+***REMOVED***
+	]
+}`
+
 	It("Creates basic cluster", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+				RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
+			***REMOVED***,
 			CombineHandlers(
 				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
 				VerifyJQ(`.name`, "my-cluster"***REMOVED***,
@@ -87,6 +111,23 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 				VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
 				VerifyJQ(`.product.id`, "rosa"***REMOVED***,
 				RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***,
 					{
 					  "op": "add",
 					  "path": "/nodes",
@@ -106,22 +147,57 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		    name           = "my-cluster"	
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+		***REMOVED***
+	***REMOVED***
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
 
 	Context("Test destroy cluster", func(***REMOVED*** {
-
 		BeforeEach(func(***REMOVED*** {
 			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
+				***REMOVED***,
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
 					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
 					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
 					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
 					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
+					VerifyJQ(`.aws.sts.instance_iam_roles.master_role_arn`, ""***REMOVED***,
+					VerifyJQ(`.aws.sts.instance_iam_roles.worker_role_arn`, ""***REMOVED***,
+					VerifyJQ(`.aws.sts.operator_role_prefix`, "test"***REMOVED***,
+					VerifyJQ(`.aws.sts.role_arn`, ""***REMOVED***,
+					VerifyJQ(`.aws.sts.support_role_arn`, ""***REMOVED***,
+					VerifyJQ(`.aws.account_id`, "123"***REMOVED***,
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***,
 					{
 					  "op": "add",
 					  "path": "/nodes",
@@ -151,6 +227,15 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
 					disable_waiting_in_destroy = true
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							master_role_arn = "",
+							worker_role_arn = "",
+				***REMOVED***
+			***REMOVED***
 				  }
 			`***REMOVED***
 
@@ -172,6 +257,15 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 					name           = "my-cluster"	
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							master_role_arn = "",
+							worker_role_arn = "",
+				***REMOVED***
+			***REMOVED***
 				  }
 			`***REMOVED***
 
@@ -193,6 +287,15 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
 					destroy_timeout = -1
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							master_role_arn = "",
+							worker_role_arn = "",
+				***REMOVED***
+			***REMOVED***
 				  }
 			`***REMOVED***
 
@@ -214,6 +317,15 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
 					destroy_timeout = 10
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							master_role_arn = "",
+							worker_role_arn = "",
+				***REMOVED***
+			***REMOVED***
 				  }
 			`***REMOVED***
 
@@ -227,6 +339,10 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+				RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
+			***REMOVED***,
+			CombineHandlers(
 				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
 				VerifyJQ(`.name`, "my-cluster"***REMOVED***,
 				VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
@@ -236,6 +352,23 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 				VerifyJQ(`.proxy.https_proxy`, "http://proxy.com"***REMOVED***,
 				VerifyJQ(`.additional_trust_bundle`, "123"***REMOVED***,
 				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***,
 					{
 					  "op": "add",
 					  "path": "/proxy",
@@ -274,7 +407,16 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 				http_proxy = "http://proxy.com",
 				https_proxy = "http://proxy.com",
 				additional_trust_bundle = "123",
-	***REMOVED***			
+	***REMOVED***
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+		***REMOVED***
+	***REMOVED***
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
@@ -283,6 +425,10 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 	It("Creates cluster with aws subnet ids & private link", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+				RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
+			***REMOVED***,
 			CombineHandlers(
 				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
 				VerifyJQ(`.name`, "my-cluster"***REMOVED***,
@@ -295,17 +441,28 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 				VerifyJQ(`.api.listening`, "internal"***REMOVED***,
 				RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
-						"op": "add",
-					***REMOVED***: "/availability_zones",
-						"value": ["az1", "az2", "az3"]
-			***REMOVED***,					
-					{
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
 						  "private_link": true,
-						  "subnet_ids": ["id1", "id2", "id3"]
+						  "subnet_ids": ["id1", "id2", "id3"],	
+						  "sts" : {
+							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
 					  }
+			***REMOVED***,
+					{
+						"op": "add",
+					***REMOVED***: "/availability_zones",
+						"value": ["az1", "az2", "az3"]
 			***REMOVED***,
 					{
 					  "op": "add",
@@ -331,6 +488,15 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 			aws_subnet_ids = [
 				"id1", "id2", "id3"
 			]
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+		***REMOVED***
+	***REMOVED***
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
@@ -339,6 +505,10 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 	It("Creates cluster when private link is false", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+				RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
+			***REMOVED***,
 			CombineHandlers(
 				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
 				VerifyJQ(`.name`, "my-cluster"***REMOVED***,
@@ -352,7 +522,18 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
-						  "private_link": false
+						  "private_link": false,
+						  "sts" : {
+							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
 					  }
 			***REMOVED***,
 					{
@@ -375,6 +556,15 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			aws_private_link = false
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+		***REMOVED***
+	***REMOVED***
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
@@ -384,15 +574,19 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+				RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
+			***REMOVED***,
+			CombineHandlers(
 				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
 				VerifyJQ(`.name`, "my-cluster"***REMOVED***,
 				VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
 				VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
 				VerifyJQ(`.product.id`, "rosa"***REMOVED***,
-				VerifyJQ(`.aws.sts.role_arn`, "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role"***REMOVED***,
-				VerifyJQ(`.aws.sts.support_role_arn`, "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role"***REMOVED***,
-				VerifyJQ(`.aws.sts.instance_iam_roles.master_role_arn`, "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role"***REMOVED***,
-				VerifyJQ(`.aws.sts.instance_iam_roles.worker_role_arn`, "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"***REMOVED***,
+				VerifyJQ(`.aws.sts.role_arn`, ""***REMOVED***,
+				VerifyJQ(`.aws.sts.support_role_arn`, ""***REMOVED***,
+				VerifyJQ(`.aws.sts.instance_iam_roles.master_role_arn`, ""***REMOVED***,
+				VerifyJQ(`.aws.sts.instance_iam_roles.worker_role_arn`, ""***REMOVED***,
 				VerifyJQ(`.aws.sts.operator_role_prefix`, "terraform-operator"***REMOVED***,
 				VerifyJQ(`.nodes.autoscale_compute.kind`, "MachinePoolAutoscaling"***REMOVED***,
 				VerifyJQ(`.nodes.autoscale_compute.max_replicas`, float64(4***REMOVED******REMOVED***,
@@ -407,11 +601,11 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 						  "sts" : {
 							  "oidc_endpoint_url": "https://oidc_endpoint_url",
 							  "thumbprint": "111111",
-							  "role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
-							  "support_role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
+							  "role_arn": "",
+							  "support_role_arn": "",
 							  "instance_iam_roles" : {
-								"master_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role",
-								"worker_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
 							  },
 							  "operator_role_prefix" : "terraform-operator"
 						  }
@@ -452,11 +646,11 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 				"label_key2" = "label_value2"
 	***REMOVED***
 			sts = {
-				role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
-				support_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
+				role_arn = "",
+				support_role_arn = "",
 				instance_iam_roles = {
-				  master_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role",
-				  worker_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"
+				  master_role_arn = "",
+				  worker_role_arn = ""
 		***REMOVED***,
 				"operator_role_prefix" : "terraform-operator"
 	***REMOVED***
@@ -684,15 +878,19 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+				RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
+			***REMOVED***,
+			CombineHandlers(
 				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
 				VerifyJQ(`.name`, "my-cluster"***REMOVED***,
 				VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
 				VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
 				VerifyJQ(`.product.id`, "rosa"***REMOVED***,
-				VerifyJQ(`.aws.sts.role_arn`, "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role"***REMOVED***,
-				VerifyJQ(`.aws.sts.support_role_arn`, "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role"***REMOVED***,
-				VerifyJQ(`.aws.sts.instance_iam_roles.master_role_arn`, "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role"***REMOVED***,
-				VerifyJQ(`.aws.sts.instance_iam_roles.worker_role_arn`, "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"***REMOVED***,
+				VerifyJQ(`.aws.sts.role_arn`, ""***REMOVED***,
+				VerifyJQ(`.aws.sts.support_role_arn`, ""***REMOVED***,
+				VerifyJQ(`.aws.sts.instance_iam_roles.master_role_arn`, ""***REMOVED***,
+				VerifyJQ(`.aws.sts.instance_iam_roles.worker_role_arn`, ""***REMOVED***,
 				VerifyJQ(`.aws.sts.operator_role_prefix`, "terraform-operator"***REMOVED***,
 				VerifyJQ(`.aws.sts.oidc_endpoint_url`, "https://oidc_endpoint_url"***REMOVED***,
 				VerifyJQ(`.aws.sts.oidc_private_key_secret_arn`, "arn:aws:secretsmanager:us-east-1"+
@@ -705,11 +903,11 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 						  "sts" : {
 							  "oidc_endpoint_url": "https://oidc_endpoint_url",
 							  "thumbprint": "111111",
-							  "role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
-							  "support_role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
+							  "role_arn": "",
+							  "support_role_arn": "",
 							  "instance_iam_roles" : {
-								"master_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role",
-								"worker_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
 							  },
 							  "operator_role_prefix" : "terraform-operator"
 						  }
@@ -735,11 +933,11 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			sts = {
-				role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
-				support_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
+				role_arn = "",
+				support_role_arn = "",
 				instance_iam_roles = {
-				  master_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role",
-				  worker_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"
+				  master_role_arn = "",
+				  worker_role_arn = ""
 		***REMOVED***,
 				"operator_role_prefix" : "terraform-operator",
 				"oidc_endpoint_url" : "oidc_endpoint_url",
@@ -748,6 +946,72 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+	}***REMOVED***
+
+	It("Fails to create cluster with incompatible account role's version and fail", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+				RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
+			***REMOVED***,
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+				VerifyJQ(`.name`, "my-cluster"***REMOVED***,
+				VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
+				VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
+				VerifyJQ(`.product.id`, "rosa"***REMOVED***,
+				RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "thumbprint": "111111",
+							  "role_arn": "arn:aws:iam::765374464689:role/terr-account-Installer-Role",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+				***REMOVED***
+					  }
+			***REMOVED***]`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"	
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			version = "openshift-v4.12"
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "arn:aws:iam::765374464689:role/terr-account-Installer-Role",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+		***REMOVED***
+	***REMOVED***
+		  }
+		`***REMOVED***
+		// expect to get an error
+		Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
 
 }***REMOVED***

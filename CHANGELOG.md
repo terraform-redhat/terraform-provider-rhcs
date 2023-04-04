@@ -1,3 +1,7 @@
+## 1.0.0 (April 4, 2023***REMOVED***
+-ENHANCEMENTS:
+* Bug fixes - Validate that the cluster version is compatible to the selected account roles' version in `cluster_rosa_classic` resource 
+
 ## 0.0.3 (Mar 28, 2023***REMOVED***
 -FEATURES:
 * Add `ocm_policies` data source for getting the account role policies and operator role policies from OCM API.

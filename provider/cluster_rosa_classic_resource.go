@@ -802,7 +802,8 @@ func checkAndSetByoOidcAttributes(ctx context.Context, state *ClusterRosaClassic
 			return nil, errors.New(errHeadline + "\n" + errDescription)
 		}
 		sts.OIDCEndpointURL("https://" + state.Sts.OIDCEndpointURL.Value)
-		sts.OidcPrivateKeySecretArn(state.Sts.OIDCPrivateKeySecretArn.Value)
+		// TODO: fix that check
+		//sts.OidcPrivateKeySecretArn(state.Sts.OIDCPrivateKeySecretArn.Value)
 	}
 	return sts, nil
 }

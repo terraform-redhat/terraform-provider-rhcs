@@ -25,9 +25,9 @@ OpenShift managed cluster using rosa sts.
 
 - `autoscaling_enabled` (Boolean) Enables autoscaling.
 - `availability_zones` (List of String) availability zones
-- `aws_private_link` (Boolean) Enables Private link. This provides private connectivity between VPCs, AWS services, and your on-premises networks, without exposing your traffic to the public internet.
+- `aws_private_link` (Boolean) Provides private connectivity between VPCs, AWS services, and your on-premises networks, without exposing your traffic to the public internet.
 - `aws_subnet_ids` (List of String) aws subnet ids
-- `compute_labels` (Map of String) Labels for the default machine pool. Format should be a comma-separated list of 'key=value'. This list will overwrite any modifications made to Node labels on an ongoing basis.
+- `compute_labels` (Map of String) Labels for the default machine pool. Format should be a comma-separated list of {"key1"="value1", "key2"="value2"}'. This list will overwrite any modifications made to Node labels on an ongoing basis.
 - `compute_machine_type` (String) Identifier of the machine type used by the compute nodes, for example `r5.xlarge`. Use the `ocm_machine_types` data source to find the possible values.
 - `destroy_timeout` (Number) Timeout in minutes for addressing cluster state in destroy resource. Default value is 60 minutes.
 - `disable_scp_checks` (Boolean) Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE) platform metrics.
@@ -56,6 +56,7 @@ OpenShift managed cluster using rosa sts.
 - `api_url` (String) URL of the API server.
 - `ccs_enabled` (Boolean) Enables customer cloud subscription.
 - `console_url` (String) URL of the console.
+- `domain` (String) DNS Domain of Cluster
 - `id` (String) Unique identifier of the cluster.
 - `state` (String) State of the cluster.
 

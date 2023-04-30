@@ -216,6 +216,7 @@ func (p *Provider***REMOVED*** GetResources(ctx context.Context***REMOVED*** (re
 		"ocm_machine_pool":           &MachinePoolResourceType{p.logger},
 		"ocm_cluster_wait":           &ClusterWaiterResourceType{},
 		"ocm_rosa_oidc_config_input": &RosaOidcConfigInputResourceType{},
+		"ocm_rosa_oidc_config":       &RosaOidcConfigResourceType{},
 	}
 	return
 }

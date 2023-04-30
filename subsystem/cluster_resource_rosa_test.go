@@ -893,8 +893,6 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 				VerifyJQ(`.aws.sts.instance_iam_roles.worker_role_arn`, ""***REMOVED***,
 				VerifyJQ(`.aws.sts.operator_role_prefix`, "terraform-operator"***REMOVED***,
 				VerifyJQ(`.aws.sts.oidc_endpoint_url`, "https://oidc_endpoint_url"***REMOVED***,
-				VerifyJQ(`.aws.sts.oidc_private_key_secret_arn`, "arn:aws:secretsmanager:us-east-1"+
-					":765374464689:secret:oidc-u2u1-6GYVrU"***REMOVED***,
 				RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",

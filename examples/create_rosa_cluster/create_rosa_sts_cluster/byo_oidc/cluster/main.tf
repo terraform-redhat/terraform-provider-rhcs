@@ -43,6 +43,7 @@ locals {
       operator_role_prefix = var.operator_role_prefix,
       oidc_endpoint_url = var.oidc_endpoint_url,
       oidc_private_key_secret_arn = var.oidc_private_key_secret_arn,
+      # TODO: need to update it with oidc_config_id- will be done in the next PR: https://github.com/terraform-redhat/terraform-provider-ocm/pull/39
   }
 }
 

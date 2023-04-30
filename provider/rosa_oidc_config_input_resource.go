@@ -36,7 +36,7 @@ type RosaOidcConfigInputResource struct {
 func (t *RosaOidcConfigInputResourceType) GetSchema(ctx context.Context) (result tfsdk.Schema,
 	diags diag.Diagnostics) {
 	result = tfsdk.Schema{
-		Description: "OpenShift managed cluster using rosa sts.",
+		Description: "OIDC config input resources' names",
 		Attributes: map[string]tfsdk.Attribute{
 			"region": {
 				Description: "Unique identifier of the cluster.",

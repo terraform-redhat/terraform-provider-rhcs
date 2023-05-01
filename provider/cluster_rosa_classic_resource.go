@@ -220,8 +220,8 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 					tfsdk.RequiresReplace(***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,
-			"compute_labels": {
-				Description: "Labels for the default machine pool. Format should be a comma-separated list of {\"key1\"=\"value1\", \"key2\"=\"value2\"}'. " +
+			"default_mp_labels": {
+				Description: "Labels for the default machine pool. Format should be a comma-separated list of '{\"key1\"=\"value1\", \"key2\"=\"value2\"}'. " +
 					"This list will overwrite any modifications made to Node labels on an ongoing basis.",
 				Type: types.MapType{
 					ElemType: types.StringType,
@@ -457,9 +457,9 @@ func createClassicClusterObject(ctx context.Context,
 		***REMOVED***
 	}
 
-	if !state.ComputeLabels.Unknown && !state.ComputeLabels.Null {
+	if !state.DefaultMPLabels.Unknown && !state.DefaultMPLabels.Null {
 		labels := map[string]string{}
-		for k, v := range state.ComputeLabels.Elems {
+		for k, v := range state.DefaultMPLabels.Elems {
 			labels[k] = v.(types.String***REMOVED***.Value
 ***REMOVED***
 		nodes.ComputeLabels(labels***REMOVED***
@@ -1208,12 +1208,12 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 
 	labels, ok := object.Nodes(***REMOVED***.GetComputeLabels(***REMOVED***
 	if ok {
-		state.ComputeLabels = types.Map{
+		state.DefaultMPLabels = types.Map{
 			ElemType: types.StringType,
 			Elems:    map[string]attr.Value{},
 ***REMOVED***
 		for k, v := range labels {
-			state.ComputeLabels.Elems[k] = types.String{
+			state.DefaultMPLabels.Elems[k] = types.String{
 				Value: v,
 	***REMOVED***
 ***REMOVED***

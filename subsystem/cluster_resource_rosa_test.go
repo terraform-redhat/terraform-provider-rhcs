@@ -641,7 +641,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 			autoscaling_enabled = "true"
 			min_replicas = "2"
 			max_replicas = "4"
-			compute_labels = {
+			default_mp_labels = {
 				"label_key1" = "label_value1", 
 				"label_key2" = "label_value2"
 	***REMOVED***
@@ -752,7 +752,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 			autoscaling_enabled = "true"
 			min_replicas = "3"
 			max_replicas = "4"
-			compute_labels = {
+			default_mp_labels = {
 				"label_key1" = "label_value1", 
 				"label_key2" = "label_value2"
 	***REMOVED***
@@ -856,7 +856,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 			cloud_region   = "us-west-1"
 			aws_account_id = "123" 
 			replicas = 4
-			compute_labels = {
+			default_mp_labels = {
 				"label_key1" = "label_value1", 
 				"label_key2" = "label_value2"
 	***REMOVED***

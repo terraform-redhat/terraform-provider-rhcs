@@ -21,7 +21,7 @@ terraform {
       version = ">= 4.20.0"
     }
     ocm = {
-      version = "0.0.3"
+      version = " 0.0.3"
       source  = "terraform-redhat/ocm"
     }
   }
@@ -29,7 +29,7 @@ terraform {
 
 provider "ocm" {
   token = var.token
-  url = var.url
+  url   = var.url
 }
 
 locals {
@@ -48,14 +48,16 @@ data "aws_caller_identity" "current" {
 }
 
 resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
-  name           = "my-cluster"
-  cloud_region   = "us-east-2"
+  name               = var.cluster_name
+  cloud_region       = var.aws_region
   aws_account_id     = data.aws_caller_identity.current.account_id
-  availability_zones = ["us-east-2a"]
+  availability_zones = [var.aws_availability_zones]
   properties = {
     rosa_creator_arn = data.aws_caller_identity.current.arn
   }
-  sts = local.sts_roles
+  sts                = local.sts_roles
+  version            = var.openshift_version
+  replicas           = var.replicas
   # disable_waiting_in_destroy = false
   # destroy_timeout in minutes
   destroy_timeout = 60
@@ -69,20 +71,19 @@ resource "ocm_cluster_wait" "rosa_cluster" {
 
 data "ocm_rosa_operator_roles" "operator_roles" {
   operator_role_prefix = var.operator_role_prefix
-  account_role_prefix = var.account_role_prefix
+  account_role_prefix  = var.account_role_prefix
 }
 
 module operator_roles {
   source = "terraform-redhat/rosa-sts/aws"
-  version = "0.0.4"
+  version = "0.0.3"
 
   create_operator_roles = true
-  create_oidc_provider = true
-  create_account_roles = false
+  create_oidc_provider  = true
+  create_account_roles  = false
 
   cluster_id = ocm_cluster_rosa_classic.rosa_sts_cluster.id
   rh_oidc_provider_thumbprint = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.thumbprint
   rh_oidc_provider_url = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.oidc_endpoint_url
   operator_roles_properties = data.ocm_rosa_operator_roles.operator_roles.operator_iam_roles
 }
-

@@ -14,15 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package common
 
 ***REMOVED***
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/pkg/errors"
 ***REMOVED***
 
 // shouldPatchInt changed checks if the change between the given state and plan requires sending a
 // patch request to the server. If it does it returns the value to add to the patch.
-func shouldPatchInt(state, plan types.Int64***REMOVED*** (value int64, ok bool***REMOVED*** {
+func ShouldPatchInt(state, plan types.Int64***REMOVED*** (value int64, ok bool***REMOVED*** {
 	if plan.Unknown || plan.Null {
 		return
 	}
@@ -40,7 +42,7 @@ func shouldPatchInt(state, plan types.Int64***REMOVED*** (value int64, ok bool**
 
 // shouldPatchString changed checks if the change between the given state and plan requires sending
 // a patch request to the server. If it does it returns the value to add to the patch.
-func shouldPatchString(state, plan types.String***REMOVED*** (value string, ok bool***REMOVED*** {
+func ShouldPatchString(state, plan types.String***REMOVED*** (value string, ok bool***REMOVED*** {
 	if plan.Unknown || plan.Null {
 		return
 	}
@@ -54,4 +56,30 @@ func shouldPatchString(state, plan types.String***REMOVED*** (value string, ok b
 		ok = true
 	}
 	return
+}
+
+// TF types converter functions
+func StringArrayToList(arr []string***REMOVED*** types.List {
+	list := types.List{
+		ElemType: types.StringType,
+		Elems:    []attr.Value{},
+	}
+
+	for _, elm := range arr {
+		list.Elems = append(list.Elems, types.String{Value: elm}***REMOVED***
+	}
+
+	return list
+}
+
+func StringListToArray(list types.List***REMOVED*** ([]string, error***REMOVED*** {
+	arr := []string{}
+	for _, elm := range list.Elems {
+		stype, ok := elm.(types.String***REMOVED***
+		if !ok {
+			return arr, errors.New("Failed to convert TF list to string slice."***REMOVED***
+***REMOVED***
+		arr = append(arr, stype.Value***REMOVED***
+	}
+	return arr, nil
 }

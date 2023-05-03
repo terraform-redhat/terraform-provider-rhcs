@@ -22,6 +22,7 @@ Identity provider.
 
 ### Optional
 
+- `github` (Attributes***REMOVED*** Details of the Github identity provider. (see [below for nested schema](#nestedatt--github***REMOVED******REMOVED***
 - `gitlab` (Attributes***REMOVED*** Details of the Gitlab identity provider. (see [below for nested schema](#nestedatt--gitlab***REMOVED******REMOVED***
 - `htpasswd` (Attributes***REMOVED*** Details of the 'htpasswd' identity provider. (see [below for nested schema](#nestedatt--htpasswd***REMOVED******REMOVED***
 - `ldap` (Attributes***REMOVED*** Details of the LDAP identity provider. (see [below for nested schema](#nestedatt--ldap***REMOVED******REMOVED***
@@ -30,6 +31,22 @@ Identity provider.
 ### Read-Only
 
 - `id` (String***REMOVED*** Unique identifier of the identity provider.
+
+<a id="nestedatt--github"></a>
+### Nested Schema for `github`
+
+Required:
+
+- `client_id` (String***REMOVED*** Client identifier of a registered Github OAuth application.
+- `client_secret` (String, Sensitive***REMOVED*** Client secret issued by Github.
+
+Optional:
+
+- `ca` (String***REMOVED*** Path to PEM-encoded certificate file to use when making requests to the server.
+- `hostname` (String***REMOVED*** Optional domain to use with a hosted instance of GitHub Enterprise.
+- `organizations` (List of String***REMOVED*** Only users that are members of at least one of the listed organizations will be allowed to log in.
+- `teams` (List of String***REMOVED*** Only users that are members of at least one of the listed teams will be allowed to log in. The format is <org>/<team>.
+
 
 <a id="nestedatt--gitlab"></a>
 ### Nested Schema for `gitlab`

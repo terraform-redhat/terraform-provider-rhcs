@@ -27,6 +27,7 @@ package provider
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/terraform-redhat/terraform-provider-ocm/provider/common"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift-online/ocm-sdk-go/logging"
@@ -371,7 +372,7 @@ func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, request tf
 
 	mpBuilder := cmv1.NewMachinePool(***REMOVED***.ID(state.ID.Value***REMOVED***
 
-	_, ok := shouldPatchString(state.MachineType, plan.MachineType***REMOVED***
+	_, ok := common.ShouldPatchString(state.MachineType, plan.MachineType***REMOVED***
 	if ok {
 		response.Diagnostics.AddError(
 			"Can't update machine pool",

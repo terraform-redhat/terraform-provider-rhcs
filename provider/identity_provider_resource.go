@@ -19,8 +19,8 @@ package provider
 ***REMOVED***
 	"context"
 ***REMOVED***
-	"time"
 	"net/url"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
@@ -28,6 +28,8 @@ package provider
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift-online/ocm-sdk-go/logging"
+	"github.com/terraform-redhat/terraform-provider-ocm/provider/common"
+	"github.com/terraform-redhat/terraform-provider-ocm/provider/idps"
 ***REMOVED***
 
 type IdentityProviderResourceType struct {
@@ -66,7 +68,13 @@ func (t *IdentityProviderResourceType***REMOVED*** GetSchema(ctx context.Context
 			"gitlab": {
 				Description: "Details of the Gitlab identity provider.",
 				Attributes:  t.gitlabSchema(***REMOVED***,
-				Optional:    true,				
+				Optional:    true,
+	***REMOVED***,
+			"github": {
+				Description: "Details of the Github identity provider.",
+				Attributes:  idps.GithubSchema(***REMOVED***,
+				Optional:    true,
+				Validators:  idps.GithubValidators(***REMOVED***,
 	***REMOVED***,
 			"ldap": {
 				Description: "Details of the LDAP identity provider.",
@@ -103,24 +111,24 @@ func (t *IdentityProviderResourceType***REMOVED*** gitlabSchema(***REMOVED*** tf
 	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
 		"ca": {
 			Description: "Optional trusted certificate authority bundle.",
-			Type:     types.StringType,
-			Optional: true,
+			Type:        types.StringType,
+			Optional:    true,
 ***REMOVED***,
 		"client_id": {
 			Description: "Client identifier of a registered Gitlab OAuth application.",
-			Type:     types.StringType,
-			Required: true,
+			Type:        types.StringType,
+			Required:    true,
 ***REMOVED***,
 		"client_secret": {
 			Description: "Client secret issued by Gitlab.",
-			Type:      types.StringType,
-			Required:  true,
-			Sensitive: true,
+			Type:        types.StringType,
+			Required:    true,
+			Sensitive:   true,
 ***REMOVED***,
 		"url": {
 			Description: "URL of the Gitlab instance.",
-			Type:     types.StringType,
-			Required: true,
+			Type:        types.StringType,
+			Required:    true,
 ***REMOVED***,
 	}***REMOVED***
 }
@@ -315,7 +323,7 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 			htpasswdBuilder.Password(state.HTPasswd.Password.Value***REMOVED***
 ***REMOVED***
 		builder.Htpasswd(htpasswdBuilder***REMOVED***
-    case state.Gitlab != nil:
+	case state.Gitlab != nil:
 		builder.Type(cmv1.IdentityProviderTypeGitlab***REMOVED***
 		gitlabBuilder := cmv1.NewGitlabIdentityProvider(***REMOVED***
 		if !state.Gitlab.CA.Unknown && !state.Gitlab.CA.Null {
@@ -336,6 +344,14 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 ***REMOVED***
 		gitlabBuilder.URL(state.Gitlab.URL.Value***REMOVED***
 		builder.Gitlab(gitlabBuilder***REMOVED***
+	case state.Github != nil:
+		builder.Type(cmv1.IdentityProviderTypeGithub***REMOVED***
+		githubBuilder, err := idps.CreateGithubIDPBuilder(ctx, state.Github***REMOVED***
+		if err != nil {
+			response.Diagnostics.AddError(err.Error(***REMOVED***, err.Error(***REMOVED******REMOVED***
+			return
+***REMOVED***
+		builder.Github(githubBuilder***REMOVED***
 	case state.LDAP != nil:
 		builder.Type(cmv1.IdentityProviderTypeLDAP***REMOVED***
 		ldapBuilder := cmv1.NewLDAPIdentityProvider(***REMOVED***
@@ -451,7 +467,7 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 	switch {
 	case htpasswdObject != nil:
 		// Nothing, there are no computed attributes for `htpasswd` identity providers.
-	case gitlabObject !=nil:
+	case gitlabObject != nil:
 		// Nothing, there are no computed attributes for `gitlab` identity providers.
 	case ldapObject != nil:
 		if state.LDAP == nil {
@@ -507,6 +523,7 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 	gitlabObject := object.Gitlab(***REMOVED***
 	ldapObject := object.LDAP(***REMOVED***
 	openidObject := object.OpenID(***REMOVED***
+	githubObject := object.Github(***REMOVED***
 	switch {
 	case htpasswdObject != nil:
 		if state.HTPasswd == nil {
@@ -524,7 +541,7 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 				Value: password,
 	***REMOVED***
 ***REMOVED***
-    case gitlabObject != nil:
+	case gitlabObject != nil:
 		if state.Gitlab == nil {
 			state.Gitlab = &GitlabIdentityProvider{}
 ***REMOVED***
@@ -551,6 +568,42 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 			state.Gitlab.URL = types.String{
 				Value: url,
 	***REMOVED***
+***REMOVED***
+	case githubObject != nil:
+		if state.Github == nil {
+			state.Github = &idps.GithubIdentityProvider{}
+***REMOVED***
+		ca, ok := githubObject.GetCA(***REMOVED***
+		if ok {
+			state.Github.CA = types.String{
+				Value: ca,
+	***REMOVED***
+***REMOVED***
+		client_id, ok := githubObject.GetClientID(***REMOVED***
+		if ok {
+			state.Github.ClientID = types.String{
+				Value: client_id,
+	***REMOVED***
+***REMOVED***
+		client_secret, ok := githubObject.GetClientSecret(***REMOVED***
+		if ok {
+			state.Github.ClientSecret = types.String{
+				Value: client_secret,
+	***REMOVED***
+***REMOVED***
+		hostname, ok := githubObject.GetHostname(***REMOVED***
+		if ok {
+			state.Github.Hostname = types.String{
+				Value: hostname,
+	***REMOVED***
+***REMOVED***
+		teams, ok := githubObject.GetTeams(***REMOVED***
+		if ok {
+			state.Github.Teams = common.StringArrayToList(teams***REMOVED***
+***REMOVED***
+		orgs, ok := githubObject.GetOrganizations(***REMOVED***
+		if ok {
+			state.Github.Organizations = common.StringArrayToList(orgs***REMOVED***
 ***REMOVED***
 	case ldapObject != nil:
 		if state.LDAP == nil {

@@ -131,6 +131,185 @@ var _ = Describe("Identity provider creation", func() {
 		Expect(terraform.Apply()).To(BeZero())
 	})
 
+	Context("Can create a 'github' identity provider", func() {
+		Context("Invalid 'github' identity provider config", func() {
+			It("Should fail with both 'teams' and 'organizations'", func() {
+				terraform.Source(`
+		          resource "ocm_identity_provider" "my_ip" {
+		            cluster = "123"
+		            name    = "my-ip"
+		            github = {
+		              ca = "test-ca"
+		        	  client_id = "test-client"
+		        	  client_secret = "test-secret"
+                      organizations = ["my-org"]
+                      teams = ["valid/team"]
+		            }
+		          }
+		        `)
+				Expect(terraform.Apply()).ToNot(BeZero())
+			})
+
+			It("Should fail without 'teams' or 'organizations'", func() {
+				terraform.Source(`
+		          resource "ocm_identity_provider" "my_ip" {
+		            cluster = "123"
+		            name    = "my-ip"
+		            github = {
+		              ca = "test-ca"
+		        	  client_id = "test-client"
+		        	  client_secret = "test-secret"
+		            }
+		          }
+		        `)
+				Expect(terraform.Apply()).ToNot(BeZero())
+			})
+
+			It("Should fail if teams contain an invalid format", func() {
+				terraform.Source(`
+		          resource "ocm_identity_provider" "my_ip" {
+		            cluster = "123"
+		            name    = "my-ip"
+		            github = {
+		              ca = "test-ca"
+		        	  client_id = "test-client"
+		        	  client_secret = "test-secret"
+                      teams = ["invalidteam"]
+		            }
+		          }
+		        `)
+				Expect(terraform.Apply()).ToNot(BeZero())
+				terraform.Source(`
+		          resource "ocm_identity_provider" "my_ip" {
+		            cluster = "123"
+		            name    = "my-ip"
+		            github = {
+		              ca = "test-ca"
+		        	  client_id = "test-client"
+		        	  client_secret = "test-secret"
+                      teams = ["valid/team", "invalidteam"]
+		            }
+		          }
+		        `)
+				Expect(terraform.Apply()).ToNot(BeZero())
+			})
+
+			It("Should fail with an invalid hostname", func() {
+				terraform.Source(`
+		          resource "ocm_identity_provider" "my_ip" {
+		            cluster = "123"
+		            name    = "my-ip"
+		            github = {
+		              ca = "test-ca"
+		        	  client_id = "test-client"
+		        	  client_secret = "test-secret"
+                      organizations = ["org"]
+                      hostname = "invalidhostname"
+		            }
+		          }
+		        `)
+				Expect(terraform.Apply()).ToNot(BeZero())
+			})
+		})
+		It("Happy flow with org restriction", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+					),
+					VerifyJSON(`{
+				      "kind": "IdentityProvider",
+				      "type": "GithubIdentityProvider",
+				      "name": "my-ip",
+				      "github": {
+				        "ca": "test-ca",
+				        "client_id": "test-client",
+				        "client_secret": "test-secret",
+                        "organizations": ["my-org"]
+				      }
+				    }`),
+					RespondWithJSON(http.StatusOK, `{
+				      "id": "456",
+				      "name": "my-ip",
+				      "github": {
+				        "ca": "test-ca",
+				        "url": "https://test.gitlab.com",
+				        "client_id": "test-client",
+				        "client_secret": "test-secret",
+                        "organizations": ["my-org"]
+				      }
+				    }`),
+				),
+			)
+
+			// Run the apply command:
+			terraform.Source(`
+		      resource "ocm_identity_provider" "my_ip" {
+		        cluster = "123"
+		        name    = "my-ip"
+		        github = {
+		          ca = "test-ca"
+		    	  client_id = "test-client"
+		    	  client_secret = "test-secret"
+                  organizations = ["my-org"]
+		        }
+		      }
+		    `)
+			Expect(terraform.Apply()).To(BeZero())
+		})
+
+		It("Happy flow with team restriction", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+					),
+					VerifyJSON(`{
+				      "kind": "IdentityProvider",
+				      "type": "GithubIdentityProvider",
+				      "name": "my-ip",
+				      "github": {
+				        "ca": "test-ca",
+				        "client_id": "test-client",
+				        "client_secret": "test-secret",
+                        "teams": ["valid/team"]
+				      }
+				    }`),
+					RespondWithJSON(http.StatusOK, `{
+				      "id": "456",
+				      "name": "my-ip",
+				      "github": {
+				        "ca": "test-ca",
+				        "url": "https://test.gitlab.com",
+				        "client_id": "test-client",
+				        "client_secret": "test-secret",
+                        "teams": ["valid/team"]
+				      }
+				    }`),
+				),
+			)
+
+			// Run the apply command:
+			terraform.Source(`
+		      resource "ocm_identity_provider" "my_ip" {
+		        cluster = "123"
+		        name    = "my-ip"
+		        github = {
+		          ca = "test-ca"
+		    	  client_id = "test-client"
+		    	  client_secret = "test-secret"
+                  teams = ["valid/team"]
+		        }
+		      }
+		    `)
+			Expect(terraform.Apply()).To(BeZero())
+		})
+	})
+
 	It("Can create an LDAP identity provider", func() {
 		// Prepare the server:
 		server.AppendHandlers(

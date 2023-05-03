@@ -14,15 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package common
 
 import (
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/pkg/errors"
 )
 
 // shouldPatchInt changed checks if the change between the given state and plan requires sending a
 // patch request to the server. If it does it returns the value to add to the patch.
-func shouldPatchInt(state, plan types.Int64) (value int64, ok bool) {
+func ShouldPatchInt(state, plan types.Int64) (value int64, ok bool) {
 	if plan.Unknown || plan.Null {
 		return
 	}
@@ -40,7 +42,7 @@ func shouldPatchInt(state, plan types.Int64) (value int64, ok bool) {
 
 // shouldPatchString changed checks if the change between the given state and plan requires sending
 // a patch request to the server. If it does it returns the value to add to the patch.
-func shouldPatchString(state, plan types.String) (value string, ok bool) {
+func ShouldPatchString(state, plan types.String) (value string, ok bool) {
 	if plan.Unknown || plan.Null {
 		return
 	}
@@ -54,4 +56,30 @@ func shouldPatchString(state, plan types.String) (value string, ok bool) {
 		ok = true
 	}
 	return
+}
+
+// TF types converter functions
+func StringArrayToList(arr []string) types.List {
+	list := types.List{
+		ElemType: types.StringType,
+		Elems:    []attr.Value{},
+	}
+
+	for _, elm := range arr {
+		list.Elems = append(list.Elems, types.String{Value: elm})
+	}
+
+	return list
+}
+
+func StringListToArray(list types.List) ([]string, error) {
+	arr := []string{}
+	for _, elm := range list.Elems {
+		stype, ok := elm.(types.String)
+		if !ok {
+			return arr, errors.New("Failed to convert TF list to string slice.")
+		}
+		arr = append(arr, stype.Value)
+	}
+	return arr, nil
 }

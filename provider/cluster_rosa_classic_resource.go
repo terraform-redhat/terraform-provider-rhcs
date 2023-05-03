@@ -33,6 +33,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/terraform-redhat/terraform-provider-ocm/provider/common"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -972,7 +973,7 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 	updateNodes := false
 	clusterBuilder := cmv1.NewCluster()
 	clusterNodesBuilder := cmv1.NewClusterNodes()
-	compute, ok := shouldPatchInt(state.Replicas, plan.Replicas)
+	compute, ok := common.ShouldPatchInt(state.Replicas, plan.Replicas)
 	if ok {
 		clusterNodesBuilder = clusterNodesBuilder.Compute(int(compute))
 		updateNodes = true

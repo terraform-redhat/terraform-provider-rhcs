@@ -18,16 +18,18 @@ package provider
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/terraform-redhat/terraform-provider-ocm/provider/idps"
 )
 
 type IdentityProviderState struct {
-	Cluster  types.String              `tfsdk:"cluster"`
-	ID       types.String              `tfsdk:"id"`
-	Name     types.String              `tfsdk:"name"`
-	HTPasswd *HTPasswdIdentityProvider `tfsdk:"htpasswd"`
-	Gitlab   *GitlabIdentityProvider   `tfsdk:"gitlab"`
-	LDAP     *LDAPIdentityProvider     `tfsdk:"ldap"`
-	OpenID   *OpenIDIdentityProvider   `tfsdk:"openid"`
+	Cluster  types.String                 `tfsdk:"cluster"`
+	ID       types.String                 `tfsdk:"id"`
+	Name     types.String                 `tfsdk:"name"`
+	HTPasswd *HTPasswdIdentityProvider    `tfsdk:"htpasswd"`
+	Gitlab   *GitlabIdentityProvider      `tfsdk:"gitlab"`
+	Github   *idps.GithubIdentityProvider `tfsdk:"github"`
+	LDAP     *LDAPIdentityProvider        `tfsdk:"ldap"`
+	OpenID   *OpenIDIdentityProvider      `tfsdk:"openid"`
 }
 
 type HTPasswdIdentityProvider struct {

@@ -22,9 +22,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/aws/request"
 	"net/http"
 	"net/url"
 	"os"
@@ -32,6 +29,10 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/aws/request"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -553,6 +554,7 @@ func createClassicClusterObject(ctx context.Context,
 	}
 
 	sts := cmv1.NewSTS()
+	var err error
 	if state.Sts != nil {
 		sts.RoleARN(state.Sts.RoleARN.Value)
 		sts.SupportRoleARN(state.Sts.SupportRoleArn.Value)
@@ -561,10 +563,9 @@ func createClassicClusterObject(ctx context.Context,
 		instanceIamRoles.WorkerRoleARN(state.Sts.InstanceIAMRoles.WorkerRoleARN.Value)
 		sts.InstanceIAMRoles(instanceIamRoles)
 
-		sts, err := checkAndSetByoOidcAttributes(ctx, state, sts)
-		if err != nil {
-			logger.Error(ctx, fmt.Sprintf("%v", err))
-			return nil, err
+		// set OIDC config ID
+		if !state.Sts.OIDCConfigID.Unknown && !state.Sts.OIDCConfigID.Null && state.Sts.OIDCConfigID.Value != "" {
+			sts.OidcConfig(cmv1.NewOidcConfig().ID(state.Sts.OIDCConfigID.Value))
 		}
 
 		sts.OperatorRolePrefix(state.Sts.OperatorRolePrefix.Value)
@@ -759,6 +760,9 @@ func buildSession(region string) (*session.Session, error) {
 			},
 		},
 	})
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create session. Check your AWS configuration and try again")
+	}
 
 	sess.Handlers.Build.PushBackNamed(addTerraformProviderVersionToUserAgent)
 
@@ -790,28 +794,6 @@ func getOcmVersionMinor(ver string) string {
 	return fmt.Sprintf("%d.%d", segments[0], segments[1])
 }
 
-func checkAndSetByoOidcAttributes(ctx context.Context, state *ClusterRosaClassicState, sts *cmv1.STSBuilder) (*cmv1.STSBuilder, error) {
-	isByoOidcSet := isByoOidcSet(state.Sts)
-	if isByoOidcSet {
-		if state.Sts.OIDCEndpointURL.Unknown || state.Sts.OIDCEndpointURL.Null || state.Sts.OIDCEndpointURL.Value == "" {
-			errDescription := fmt.Sprintf("When using BYO OIDC Endpoint URL cannot be empty")
-			return nil, errors.New(errHeadline + "\n" + errDescription)
-		}
-		if state.Sts.OIDCPrivateKeySecretArn.Unknown || state.Sts.OIDCPrivateKeySecretArn.Null || state.Sts.OIDCPrivateKeySecretArn.Value == "" {
-			errDescription := fmt.Sprintf("When using BYO OIDC Secret ARN cannot be empty")
-			return nil, errors.New(errHeadline + "\n" + errDescription)
-		}
-		sts.OIDCEndpointURL("https://" + state.Sts.OIDCEndpointURL.Value)
-		// TODO: fix that check
-		//sts.OidcPrivateKeySecretArn(state.Sts.OIDCPrivateKeySecretArn.Value)
-	}
-	return sts, nil
-}
-
-func isByoOidcSet(sts *Sts) bool {
-	return !sts.OIDCEndpointURL.Unknown && !sts.OIDCEndpointURL.Null && sts.OIDCEndpointURL.Value != "" ||
-		!sts.OIDCPrivateKeySecretArn.Unknown && !sts.OIDCPrivateKeySecretArn.Null && sts.OIDCPrivateKeySecretArn.Value != ""
-}
 func (r *ClusterRosaClassicResource) getVersionList(logger logging.Logger, ctx context.Context) (versionList []string, err error) {
 	vs, err := r.getVersions(logger, ctx)
 	if err != nil {
@@ -1335,7 +1317,6 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 			state.Sts.InstanceIAMRoles.WorkerRoleARN = types.String{
 				Value: instanceIAMRoles.WorkerRoleARN(),
 			}
-
 		}
 		// TODO: fix a bug in uhc-cluster-services
 		if state.Sts.OperatorRolePrefix.Unknown || state.Sts.OperatorRolePrefix.Null {
@@ -1355,6 +1336,12 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		} else {
 			state.Sts.Thumbprint = types.String{
 				Value: thumbprint,
+			}
+		}
+		oidcConfig, ok := sts.GetOidcConfig()
+		if ok && oidcConfig != nil {
+			state.Sts.OIDCConfigID = types.String{
+				Value: oidcConfig.ID(),
 			}
 		}
 	}

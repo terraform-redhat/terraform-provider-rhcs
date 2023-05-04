@@ -22,9 +22,6 @@ package provider
 	"encoding/hex"
 	"errors"
 ***REMOVED***
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/aws/request"
 ***REMOVED***
 	"net/url"
 	"os"
@@ -32,6 +29,10 @@ package provider
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/aws/request"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -553,6 +554,7 @@ func createClassicClusterObject(ctx context.Context,
 	}
 
 	sts := cmv1.NewSTS(***REMOVED***
+	var err error
 	if state.Sts != nil {
 		sts.RoleARN(state.Sts.RoleARN.Value***REMOVED***
 		sts.SupportRoleARN(state.Sts.SupportRoleArn.Value***REMOVED***
@@ -561,10 +563,9 @@ func createClassicClusterObject(ctx context.Context,
 		instanceIamRoles.WorkerRoleARN(state.Sts.InstanceIAMRoles.WorkerRoleARN.Value***REMOVED***
 		sts.InstanceIAMRoles(instanceIamRoles***REMOVED***
 
-		sts, err := checkAndSetByoOidcAttributes(ctx, state, sts***REMOVED***
-		if err != nil {
-			logger.Error(ctx, fmt.Sprintf("%v", err***REMOVED******REMOVED***
-			return nil, err
+		// set OIDC config ID
+		if !state.Sts.OIDCConfigID.Unknown && !state.Sts.OIDCConfigID.Null && state.Sts.OIDCConfigID.Value != "" {
+			sts.OidcConfig(cmv1.NewOidcConfig(***REMOVED***.ID(state.Sts.OIDCConfigID.Value***REMOVED******REMOVED***
 ***REMOVED***
 
 		sts.OperatorRolePrefix(state.Sts.OperatorRolePrefix.Value***REMOVED***
@@ -759,6 +760,9 @@ func buildSession(region string***REMOVED*** (*session.Session, error***REMOVED*
 	***REMOVED***,
 ***REMOVED***,
 	}***REMOVED***
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create session. Check your AWS configuration and try again"***REMOVED***
+	}
 
 	sess.Handlers.Build.PushBackNamed(addTerraformProviderVersionToUserAgent***REMOVED***
 
@@ -790,28 +794,6 @@ func getOcmVersionMinor(ver string***REMOVED*** string {
 	return fmt.Sprintf("%d.%d", segments[0], segments[1]***REMOVED***
 }
 
-func checkAndSetByoOidcAttributes(ctx context.Context, state *ClusterRosaClassicState, sts *cmv1.STSBuilder***REMOVED*** (*cmv1.STSBuilder, error***REMOVED*** {
-	isByoOidcSet := isByoOidcSet(state.Sts***REMOVED***
-	if isByoOidcSet {
-		if state.Sts.OIDCEndpointURL.Unknown || state.Sts.OIDCEndpointURL.Null || state.Sts.OIDCEndpointURL.Value == "" {
-			errDescription := fmt.Sprintf("When using BYO OIDC Endpoint URL cannot be empty"***REMOVED***
-			return nil, errors.New(errHeadline + "\n" + errDescription***REMOVED***
-***REMOVED***
-		if state.Sts.OIDCPrivateKeySecretArn.Unknown || state.Sts.OIDCPrivateKeySecretArn.Null || state.Sts.OIDCPrivateKeySecretArn.Value == "" {
-			errDescription := fmt.Sprintf("When using BYO OIDC Secret ARN cannot be empty"***REMOVED***
-			return nil, errors.New(errHeadline + "\n" + errDescription***REMOVED***
-***REMOVED***
-		sts.OIDCEndpointURL("https://" + state.Sts.OIDCEndpointURL.Value***REMOVED***
-		// TODO: fix that check
-		//sts.OidcPrivateKeySecretArn(state.Sts.OIDCPrivateKeySecretArn.Value***REMOVED***
-	}
-	return sts, nil
-}
-
-func isByoOidcSet(sts *Sts***REMOVED*** bool {
-	return !sts.OIDCEndpointURL.Unknown && !sts.OIDCEndpointURL.Null && sts.OIDCEndpointURL.Value != "" ||
-		!sts.OIDCPrivateKeySecretArn.Unknown && !sts.OIDCPrivateKeySecretArn.Null && sts.OIDCPrivateKeySecretArn.Value != ""
-}
 func (r *ClusterRosaClassicResource***REMOVED*** getVersionList(logger logging.Logger, ctx context.Context***REMOVED*** (versionList []string, err error***REMOVED*** {
 	vs, err := r.getVersions(logger, ctx***REMOVED***
 	if err != nil {
@@ -1335,7 +1317,6 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 			state.Sts.InstanceIAMRoles.WorkerRoleARN = types.String{
 				Value: instanceIAMRoles.WorkerRoleARN(***REMOVED***,
 	***REMOVED***
-
 ***REMOVED***
 		// TODO: fix a bug in uhc-cluster-services
 		if state.Sts.OperatorRolePrefix.Unknown || state.Sts.OperatorRolePrefix.Null {
@@ -1355,6 +1336,12 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 ***REMOVED*** else {
 			state.Sts.Thumbprint = types.String{
 				Value: thumbprint,
+	***REMOVED***
+***REMOVED***
+		oidcConfig, ok := sts.GetOidcConfig(***REMOVED***
+		if ok && oidcConfig != nil {
+			state.Sts.OIDCConfigID = types.String{
+				Value: oidcConfig.ID(***REMOVED***,
 	***REMOVED***
 ***REMOVED***
 	}

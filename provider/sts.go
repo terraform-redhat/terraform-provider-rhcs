@@ -13,8 +13,8 @@ func stsResource(***REMOVED*** tfsdk.NestedAttributes {
 			Optional:    true,
 			Computed:    true,
 ***REMOVED***,
-		"oidc_private_key_secret_arn": {
-			Description: "OIDC Private Key Secret ARN",
+		"oidc_config_id": {
+			Description: "OIDC Configuration ID",
 			Type:        types.StringType,
 			Optional:    true,
 ***REMOVED***,

@@ -28,10 +28,7 @@ variable url {
     default = "https://api.openshift.com"
 }
 
-variable oidc_endpoint_url {
+variable oidc_config_id {
     type = string
 }
 
-variable oidc_private_key_secret_arn {
-    type = string
-}

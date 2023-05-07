@@ -33,6 +33,7 @@ package provider
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/terraform-redhat/terraform-provider-ocm/provider/common"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -972,7 +973,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** Update(ctx context.Context, req
 	updateNodes := false
 	clusterBuilder := cmv1.NewCluster(***REMOVED***
 	clusterNodesBuilder := cmv1.NewClusterNodes(***REMOVED***
-	compute, ok := shouldPatchInt(state.Replicas, plan.Replicas***REMOVED***
+	compute, ok := common.ShouldPatchInt(state.Replicas, plan.Replicas***REMOVED***
 	if ok {
 		clusterNodesBuilder = clusterNodesBuilder.Compute(int(compute***REMOVED******REMOVED***
 		updateNodes = true

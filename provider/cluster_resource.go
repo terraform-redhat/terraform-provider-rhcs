@@ -29,6 +29,7 @@ package provider
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/logging"
+	"github.com/terraform-redhat/terraform-provider-ocm/provider/common"
 ***REMOVED***
 
 type ClusterResourceType struct {
@@ -470,7 +471,7 @@ func (r *ClusterResource***REMOVED*** Update(ctx context.Context, request tfsdk.
 	// Send request to update the cluster:
 	builder := cmv1.NewCluster(***REMOVED***
 	var nodes *cmv1.ClusterNodesBuilder
-	compute, ok := shouldPatchInt(state.ComputeNodes, plan.ComputeNodes***REMOVED***
+	compute, ok := common.ShouldPatchInt(state.ComputeNodes, plan.ComputeNodes***REMOVED***
 	if ok {
 		nodes.Compute(int(compute***REMOVED******REMOVED***
 	}

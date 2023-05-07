@@ -29,6 +29,7 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/logging"
+	"github.com/terraform-redhat/terraform-provider-ocm/provider/common"
 )
 
 type ClusterResourceType struct {
@@ -470,7 +471,7 @@ func (r *ClusterResource) Update(ctx context.Context, request tfsdk.UpdateResour
 	// Send request to update the cluster:
 	builder := cmv1.NewCluster()
 	var nodes *cmv1.ClusterNodesBuilder
-	compute, ok := shouldPatchInt(state.ComputeNodes, plan.ComputeNodes)
+	compute, ok := common.ShouldPatchInt(state.ComputeNodes, plan.ComputeNodes)
 	if ok {
 		nodes.Compute(int(compute))
 	}

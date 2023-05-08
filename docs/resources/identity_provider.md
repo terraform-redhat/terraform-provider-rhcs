@@ -77,24 +77,24 @@ Required:
 Required:
 
 - `attributes` (Attributes) (see [below for nested schema](#nestedatt--ldap--attributes))
-- `bind_dn` (String)
-- `bind_password` (String, Sensitive)
-- `url` (String)
+- `bind_dn` (String) DN to bind with during the search phase.
+- `bind_password` (String, Sensitive) Password to bind with during the search phase.
+- `url` (String) An RFC 2255 URL which specifies the LDAP search parameters to use.
 
 Optional:
 
-- `ca` (String)
-- `insecure` (Boolean)
+- `ca` (String) Optional trusted certificate authority bundle.
+- `insecure` (Boolean) Do not make TLS connections to the server.
 
 <a id="nestedatt--ldap--attributes"></a>
 ### Nested Schema for `ldap.attributes`
 
 Optional:
 
-- `email` (List of String)
-- `id` (List of String)
-- `name` (List of String)
-- `preferred_username` (List of String)
+- `email` (List of String) The list of attributes whose values should be used as the email address.
+- `id` (List of String) The list of attributes whose values should be used as the user ID. (default 'dn')
+- `name` (List of String) The list of attributes whose values should be used as the display name. (default 'cn')
+- `preferred_username` (List of String) The list of attributes whose values should be used as the preferred username. (default 'uid')
 
 
 
@@ -103,25 +103,25 @@ Optional:
 
 Required:
 
-- `claims` (Attributes) (see [below for nested schema](#nestedatt--openid--claims))
-- `client_id` (String)
-- `client_secret` (String, Sensitive)
-- `issuer` (String)
+- `claims` (Attributes) OpenID Claims config. (see [below for nested schema](#nestedatt--openid--claims))
+- `client_id` (String) Client ID from the registered application.
+- `client_secret` (String, Sensitive) Client Secret from the registered application.
+- `issuer` (String) The URL that the OpenID Provider asserts as the Issuer Identifier. It must use the https scheme with no URL query parameters or fragment.
 
 Optional:
 
-- `ca` (String)
+- `ca` (String) Optional trusted certificate authority bundle.
 - `extra_authorize_parameters` (List of String)
-- `extra_scopes` (List of String)
+- `extra_scopes` (List of String) List of scopes to request, in addition to the 'openid' scope, during the authorization token request.
 
 <a id="nestedatt--openid--claims"></a>
 ### Nested Schema for `openid.claims`
 
 Optional:
 
-- `email` (List of String)
-- `groups` (List of String)
-- `name` (List of String)
-- `preferred_username` (List of String)
+- `email` (List of String) List of claims to use as the email address.
+- `groups` (List of String) List of claims to use as the groups names.
+- `name` (List of String) List of claims to use as the display name.
+- `preferred_username` (List of String) List of claims to use as the preferred username when provisioning a user.
 
 

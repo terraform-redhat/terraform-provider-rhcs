@@ -31,6 +31,7 @@ type ClusterRosaClassicState struct {
 	AutoScalingEnabled        types.Bool   `tfsdk:"autoscaling_enabled"`
 	MinReplicas               types.Int64  `tfsdk:"min_replicas"`
 	MaxReplicas               types.Int64  `tfsdk:"max_replicas"`
+	ChannelGroup              types.String `tfsdk:"channel_group"`
 	CloudRegion               types.String `tfsdk:"cloud_region"`
 	ComputeMachineType        types.String `tfsdk:"compute_machine_type"`
 	DefaultMPLabels           types.Map    `tfsdk:"default_mp_labels"`

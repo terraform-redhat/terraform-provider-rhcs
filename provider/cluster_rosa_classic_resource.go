@@ -33,6 +33,7 @@ package provider
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/openshift/rosa/pkg/ocm"
 	"github.com/terraform-redhat/terraform-provider-ocm/provider/common"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
@@ -349,6 +350,15 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 					ValueCannotBeChangedModifier(t.logger***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,
+			"channel_group": {
+				Description: "Name of the channel group from which to select the OpenShift cluster version, for example 'stable'.",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger***REMOVED***,
+		***REMOVED***,
+	***REMOVED***,
 			"version": {
 				Description: "Identifier of the version of OpenShift, for example 'openshift-v4.1.0'.",
 				Type:        types.StringType,
@@ -600,9 +610,15 @@ func createClassicClusterObject(ctx context.Context,
 	if !network.Empty(***REMOVED*** {
 		builder.Network(network***REMOVED***
 	}
+
+	channelGroup := ocm.DefaultChannelGroup
+	if !state.ChannelGroup.Unknown && !state.ChannelGroup.Null {
+		channelGroup = state.ChannelGroup.Value
+	}
+
 	if !state.Version.Unknown && !state.Version.Null {
 		// TODO: update it to support all cluster versions
-		isSupported, err := checkSupportedVersion(state.Version.Value***REMOVED***
+		isSupported, err := checkMinSupportedVersion(state.Version.Value***REMOVED***
 		if err != nil {
 			logger.Error(ctx, "Error validating required cluster version %s\", err***REMOVED***"***REMOVED***
 			errDecription := fmt.Sprintf(
@@ -615,9 +631,7 @@ func createClassicClusterObject(ctx context.Context,
 			***REMOVED***
 			return nil, errors.New(errHeadline + "\n" + errDecription***REMOVED***
 ***REMOVED***
-		if isSupported {
-			builder.Version(cmv1.NewVersion(***REMOVED***.ID(state.Version.Value***REMOVED******REMOVED***
-***REMOVED*** else {
+		if !isSupported {
 			logger.Error(ctx, "Cluster version %s is not supported", state.Version.Value***REMOVED***
 			errDecription := fmt.Sprintf(
 				"Can't check if cluster version is supported '%s': %v",
@@ -629,6 +643,17 @@ func createClassicClusterObject(ctx context.Context,
 			***REMOVED***
 			return nil, errors.New(errHeadline + "\n" + errDecription***REMOVED***
 ***REMOVED***
+		vBuilder := cmv1.NewVersion(***REMOVED***
+		versionID := state.Version.Value
+		// When using a channel group other than the default, the channel name
+		// must be appended to the version ID or the API server will return an
+		// error stating unexpected channel group.
+		if channelGroup != ocm.DefaultChannelGroup {
+			versionID = versionID + "-" + channelGroup
+***REMOVED***
+		vBuilder.ID(versionID***REMOVED***
+		vBuilder.ChannelGroup(channelGroup***REMOVED***
+		builder.Version(vBuilder***REMOVED***
 	}
 
 	proxy := cmv1.NewProxy(***REMOVED***
@@ -645,20 +670,40 @@ func createClassicClusterObject(ctx context.Context,
 	return object, err
 }
 
+// getAndValidateVersion ensures that the cluster version is available in the
+// channel group
+func (r *ClusterRosaClassicResource***REMOVED*** getAndValidateVersion(ctx context.Context, state *ClusterRosaClassicState***REMOVED*** (string, error***REMOVED*** {
+	channelGroup := ocm.DefaultChannelGroup
+	if !state.ChannelGroup.Unknown && !state.ChannelGroup.Null {
+		channelGroup = state.ChannelGroup.Value
+	}
+
+	versionList, err := r.getVersionList(r.logger, ctx, channelGroup***REMOVED***
+	if err != nil {
+		return "", err
+	}
+
+	version := versionList[0]
+	if !state.Version.Unknown && !state.Version.Null {
+		version = strings.Replace(state.Version.Value, "openshift-v", "", 1***REMOVED***
+	}
+
+	r.logger.Debug(ctx, "Validating if cluster version %s is in the list of supported versions: %v", version, versionList***REMOVED***
+	for _, v := range versionList {
+		if v == version {
+			return version, nil
+***REMOVED***
+	}
+
+	return "", fmt.Errorf("version %s is not in the list of supported versions: %v", version, versionList***REMOVED***
+}
+
 func (r *ClusterRosaClassicResource***REMOVED*** validateAccountRoles(ctx context.Context, state *ClusterRosaClassicState***REMOVED*** error {
 	r.logger.Debug(ctx, "Validating if cluster version is compatible to account roles' version"***REMOVED***
 	region := state.CloudRegion.Value
-	version := ""
-	if !state.Version.Unknown && !state.Version.Null {
-		version = state.Version.Value
-	}
-
-	if version == "" {
-		versionList, err := r.getVersionList(r.logger, ctx***REMOVED***
-		if err != nil {
-			return err
-***REMOVED***
-		version = versionList[0]
+	version, err := r.getAndValidateVersion(ctx, state***REMOVED***
+	if err != nil {
+		return fmt.Errorf("Could not get cluster version: %v", err***REMOVED***
 	}
 
 	r.logger.Debug(ctx, "Cluster version is %s", version***REMOVED***
@@ -795,8 +840,10 @@ func getOcmVersionMinor(ver string***REMOVED*** string {
 	return fmt.Sprintf("%d.%d", segments[0], segments[1]***REMOVED***
 }
 
-func (r *ClusterRosaClassicResource***REMOVED*** getVersionList(logger logging.Logger, ctx context.Context***REMOVED*** (versionList []string, err error***REMOVED*** {
-	vs, err := r.getVersions(logger, ctx***REMOVED***
+// getVersionList returns a list of versions for the given channel group, sorted by
+// descending semver
+func (r *ClusterRosaClassicResource***REMOVED*** getVersionList(logger logging.Logger, ctx context.Context, channelGroup string***REMOVED*** (versionList []string, err error***REMOVED*** {
+	vs, err := r.getVersions(logger, ctx, channelGroup***REMOVED***
 	if err != nil {
 		err = fmt.Errorf("Failed to retrieve versions: %s", err***REMOVED***
 		return
@@ -813,10 +860,14 @@ func (r *ClusterRosaClassicResource***REMOVED*** getVersionList(logger logging.L
 
 	return
 }
-func (r *ClusterRosaClassicResource***REMOVED*** getVersions(logger logging.Logger, ctx context.Context***REMOVED*** (versions []*cmv1.Version, err error***REMOVED*** {
+func (r *ClusterRosaClassicResource***REMOVED*** getVersions(logger logging.Logger, ctx context.Context, channelGroup string***REMOVED*** (versions []*cmv1.Version, err error***REMOVED*** {
 	page := 1
 	size := 100
-	filter := "enabled = 'true' AND rosa_enabled = 'true'"
+	filter := strings.Join([]string{
+		"enabled = 'true'",
+		"rosa_enabled = 'true'",
+		fmt.Sprintf("channel_group = '%s'", channelGroup***REMOVED***,
+	}, " AND "***REMOVED***
 	for {
 		var response *cmv1.VersionsListResponse
 		response, err = r.versionCollection.List(***REMOVED***.
@@ -1414,7 +1465,20 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 			Null: true,
 ***REMOVED***
 	}
+	channel_group, ok := object.Version(***REMOVED***.GetChannelGroup(***REMOVED***
+	if ok {
+		state.ChannelGroup = types.String{
+			Value: channel_group,
+***REMOVED***
+	} else {
+		state.ChannelGroup = types.String{
+			Null: true,
+***REMOVED***
+	}
 	version, ok := object.Version(***REMOVED***.GetID(***REMOVED***
+	// If we're using a non-default channel group, it will have been appended to
+	// the version ID. Remove it before saving state.
+	version = strings.TrimSuffix(version, fmt.Sprintf("-%s", channel_group***REMOVED******REMOVED***
 	if ok {
 		state.Version = types.String{
 			Value: version,
@@ -1493,18 +1557,17 @@ func sha1Hash(data []byte***REMOVED*** (string, error***REMOVED*** {
 	return hex.EncodeToString(hashed***REMOVED***, nil
 }
 
-func checkSupportedVersion(clusterVersion string***REMOVED*** (bool, error***REMOVED*** {
+func checkMinSupportedVersion(clusterVersion string***REMOVED*** (bool, error***REMOVED*** {
 	rawID := strings.Replace(clusterVersion, "openshift-v", "", 1***REMOVED***
-	v1, err := semver.NewVersion(rawID***REMOVED***
+	requestedVersion, err := semver.NewVersion(rawID***REMOVED***
 	if err != nil {
 		return false, err
 	}
-	v2, err := semver.NewVersion(MinVersion***REMOVED***
+	minSupportedVersion, err := semver.NewVersion(MinVersion***REMOVED***
 	if err != nil {
 		return false, err
 	}
-	//Cluster version is greater than or equal to MinVersion
-	return v1.GreaterThanOrEqual(v2***REMOVED***, nil
+	return requestedVersion.GreaterThanOrEqual(minSupportedVersion***REMOVED***, nil
 }
 
 func (r *ClusterRosaClassicResource***REMOVED*** retryClusterNotFoundWithTimeout(attempts int, sleep time.Duration, ctx context.Context, timeout int64,

@@ -146,6 +146,9 @@ func generateBasicRosaClassicClusterState(***REMOVED*** *ClusterRosaClassicState
 		***REMOVED***,
 	***REMOVED***,
 ***REMOVED***,
+		ChannelGroup: types.String{
+			Value: "somechannel",
+***REMOVED***,
 		Version: types.String{
 			Value: "4.10",
 ***REMOVED***,
@@ -187,6 +190,13 @@ var _ = Describe("Rosa Classic Sts cluster", func(***REMOVED*** {
 			arn, ok := rosaClusterObject.Properties(***REMOVED***["rosa_creator_arn"]
 			Expect(ok***REMOVED***.To(BeTrue(***REMOVED******REMOVED***
 			Expect(arn***REMOVED***.To(Equal(rosaCreatorArn***REMOVED******REMOVED***
+
+			version, ok := rosaClusterObject.Version(***REMOVED***.GetID(***REMOVED***
+			Expect(ok***REMOVED***.To(BeTrue(***REMOVED******REMOVED***
+			Expect(version***REMOVED***.To(Equal("4.10"***REMOVED******REMOVED***
+			channel, ok := rosaClusterObject.Version(***REMOVED***.GetChannelGroup(***REMOVED***
+			Expect(ok***REMOVED***.To(BeTrue(***REMOVED******REMOVED***
+			Expect(channel***REMOVED***.To(Equal("somechannel"***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 	}***REMOVED***
 

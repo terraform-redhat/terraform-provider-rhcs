@@ -77,24 +77,24 @@ Required:
 Required:
 
 - `attributes` (Attributes***REMOVED*** (see [below for nested schema](#nestedatt--ldap--attributes***REMOVED******REMOVED***
-- `bind_dn` (String***REMOVED***
-- `bind_password` (String, Sensitive***REMOVED***
-- `url` (String***REMOVED***
+- `bind_dn` (String***REMOVED*** DN to bind with during the search phase.
+- `bind_password` (String, Sensitive***REMOVED*** Password to bind with during the search phase.
+- `url` (String***REMOVED*** An RFC 2255 URL which specifies the LDAP search parameters to use.
 
 Optional:
 
-- `ca` (String***REMOVED***
-- `insecure` (Boolean***REMOVED***
+- `ca` (String***REMOVED*** Optional trusted certificate authority bundle.
+- `insecure` (Boolean***REMOVED*** Do not make TLS connections to the server.
 
 <a id="nestedatt--ldap--attributes"></a>
 ### Nested Schema for `ldap.attributes`
 
 Optional:
 
-- `email` (List of String***REMOVED***
-- `id` (List of String***REMOVED***
-- `name` (List of String***REMOVED***
-- `preferred_username` (List of String***REMOVED***
+- `email` (List of String***REMOVED*** The list of attributes whose values should be used as the email address.
+- `id` (List of String***REMOVED*** The list of attributes whose values should be used as the user ID. (default 'dn'***REMOVED***
+- `name` (List of String***REMOVED*** The list of attributes whose values should be used as the display name. (default 'cn'***REMOVED***
+- `preferred_username` (List of String***REMOVED*** The list of attributes whose values should be used as the preferred username. (default 'uid'***REMOVED***
 
 
 
@@ -103,25 +103,25 @@ Optional:
 
 Required:
 
-- `claims` (Attributes***REMOVED*** (see [below for nested schema](#nestedatt--openid--claims***REMOVED******REMOVED***
-- `client_id` (String***REMOVED***
-- `client_secret` (String, Sensitive***REMOVED***
-- `issuer` (String***REMOVED***
+- `claims` (Attributes***REMOVED*** OpenID Claims config. (see [below for nested schema](#nestedatt--openid--claims***REMOVED******REMOVED***
+- `client_id` (String***REMOVED*** Client ID from the registered application.
+- `client_secret` (String, Sensitive***REMOVED*** Client Secret from the registered application.
+- `issuer` (String***REMOVED*** The URL that the OpenID Provider asserts as the Issuer Identifier. It must use the https scheme with no URL query parameters or fragment.
 
 Optional:
 
-- `ca` (String***REMOVED***
+- `ca` (String***REMOVED*** Optional trusted certificate authority bundle.
 - `extra_authorize_parameters` (List of String***REMOVED***
-- `extra_scopes` (List of String***REMOVED***
+- `extra_scopes` (List of String***REMOVED*** List of scopes to request, in addition to the 'openid' scope, during the authorization token request.
 
 <a id="nestedatt--openid--claims"></a>
 ### Nested Schema for `openid.claims`
 
 Optional:
 
-- `email` (List of String***REMOVED***
-- `groups` (List of String***REMOVED***
-- `name` (List of String***REMOVED***
-- `preferred_username` (List of String***REMOVED***
+- `email` (List of String***REMOVED*** List of claims to use as the email address.
+- `groups` (List of String***REMOVED*** List of claims to use as the groups names.
+- `name` (List of String***REMOVED*** List of claims to use as the display name.
+- `preferred_username` (List of String***REMOVED*** List of claims to use as the preferred username when provisioning a user.
 
 

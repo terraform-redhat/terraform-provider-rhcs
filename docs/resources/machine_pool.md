@@ -19,18 +19,18 @@ Machine pool.
 
 - `cluster` (String) Identifier of the cluster.
 - `machine_type` (String) Identifier of the machine type used by the nodes, for example `r5.xlarge`. Use the `ocm_machine_types` data source to find the possible values.
-- `name` (String) Name of the machine pool. Must consist of lower-case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+- `name` (String) Name of the machine pool.Must consist of lower-case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
 
 ### Optional
 
 - `autoscaling_enabled` (Boolean) Enables autoscaling.
 - `labels` (Map of String) Labels for machine pool. Format should be a comma-separated list of 'key = value'. This list will overwrite any modifications made to node labels on an ongoing basis..
 - `max_replicas` (Number) Max replicas.
+- `max_spot_price` (Number) Max Spot price.
 - `min_replicas` (Number) Min replicas.
 - `replicas` (Number) The number of machines of the pool
 - `taints` (Attributes List) Taints for machine pool. Format should be a comma-separated list of 'key=value:ScheduleType'. This list will overwrite any modifications made to node taints on an ongoing basis. (see [below for nested schema](#nestedatt--taints))
-- `use_spot_instances`(Boolean) Use Spot Instances.
-- `max_spot_price` (Float) Max Spot price. Default value to set maximum spot price as on-demand price.
+- `use_spot_instances` (Boolean) Use Spot Instances.
 
 ### Read-Only
 
@@ -44,3 +44,5 @@ Required:
 - `key` (String) Taints key
 - `schedule_type` (String) Taints schedule type
 - `value` (String) Taints value
+
+

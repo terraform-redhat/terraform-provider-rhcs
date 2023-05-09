@@ -16,8 +16,3 @@ variable account_role_prefix {
     type = string
     default = ""
 }
-
-variable installer_role_arn {
-    type = string
-    default = ""
-}

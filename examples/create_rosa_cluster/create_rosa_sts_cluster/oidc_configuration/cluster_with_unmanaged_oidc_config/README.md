@@ -1,4 +1,4 @@
-# ROSA STS unmanaged OIDC config example
+# ROSA STS cluster creation example with an unmanaged OIDC configuration ID
 
 This example shows how to create unmanaged OIDC config an operator IAM roles and OIDC provider before creating a cluster.
 In order to create unmanaged OIDC config you'll need to create those resources: 

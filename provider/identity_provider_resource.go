@@ -59,6 +59,13 @@ func (t *IdentityProviderResourceType***REMOVED*** GetSchema(ctx context.Context
 				Type:        types.StringType,
 				Required:    true,
 	***REMOVED***,
+			"mapping_method": {
+				Description: "Specifies how new identities are mapped to users when they log in. Options are [add claim generate lookup] (default 'claim'***REMOVED***",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
+				Validators:  idps.MappingMethodValidators(***REMOVED***,
+	***REMOVED***,
 			"htpasswd": {
 				Description: "Details of the 'htpasswd' identity provider.",
 				Attributes:  idps.HtpasswdSchema(***REMOVED***,
@@ -143,6 +150,12 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 	// Create the identity provider:
 	builder := cmv1.NewIdentityProvider(***REMOVED***
 	builder.Name(state.Name.Value***REMOVED***
+	// handle mapping_method
+	mappingMethod := idps.DefaultMappingMethod
+	if !state.MappingMethod.Unknown && !state.MappingMethod.Null {
+		mappingMethod = state.MappingMethod.Value
+	}
+	builder.MappingMethod(cmv1.IdentityProviderMappingMethod(mappingMethod***REMOVED******REMOVED***
 	switch {
 	case state.HTPasswd != nil:
 		builder.Type(cmv1.IdentityProviderTypeHtpasswd***REMOVED***
@@ -211,6 +224,9 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 	state.ID = types.String{
 		Value: object.ID(***REMOVED***,
 	}
+	state.MappingMethod = types.String{
+		Value: string(object.MappingMethod(***REMOVED******REMOVED***,
+	}
 	htpasswdObject := object.Htpasswd(***REMOVED***
 	gitlabObject := object.Gitlab(***REMOVED***
 	ldapObject := object.LDAP(***REMOVED***
@@ -270,6 +286,7 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 	state.Name = types.String{
 		Value: object.Name(***REMOVED***,
 	}
+
 	htpasswdObject := object.Htpasswd(***REMOVED***
 	gitlabObject := object.Gitlab(***REMOVED***
 	ldapObject := object.LDAP(***REMOVED***

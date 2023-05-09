@@ -66,8 +66,7 @@ func GithubValidators() []tfsdk.AttributeValidator {
 	errSumm := "Invalid GitHub IDP resource configuration"
 	return []tfsdk.AttributeValidator{
 		&common.AttributeValidator{
-			Desc:   "GitHub IDP requires either organizations or teams",
-			MDDesc: "",
+			Desc: "GitHub IDP requires either organizations or teams",
 			Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse) {
 				ghState := &GithubIdentityProvider{}
 				diag := req.Config.GetAttribute(ctx, req.AttributePath, ghState)
@@ -87,8 +86,7 @@ func GithubValidators() []tfsdk.AttributeValidator {
 			},
 		},
 		&common.AttributeValidator{
-			Desc:   "GitHub IDP teams format validator",
-			MDDesc: "",
+			Desc: "GitHub IDP teams format validator",
 			Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse) {
 				ghState := &GithubIdentityProvider{}
 				diag := req.Config.GetAttribute(ctx, req.AttributePath, ghState)
@@ -116,8 +114,7 @@ func GithubValidators() []tfsdk.AttributeValidator {
 			},
 		},
 		&common.AttributeValidator{
-			Desc:   "Github IDP hostname validator",
-			MDDesc: "",
+			Desc: "Github IDP hostname validator",
 			Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse) {
 				ghState := &GithubIdentityProvider{}
 				diag := req.Config.GetAttribute(ctx, req.AttributePath, ghState)
@@ -140,25 +137,25 @@ func GithubValidators() []tfsdk.AttributeValidator {
 	}
 }
 
-func CreateGithubIDPBuilder(ctx context.Context, ghState *GithubIdentityProvider) (*cmv1.GithubIdentityProviderBuilder, error) {
+func CreateGithubIDPBuilder(ctx context.Context, state *GithubIdentityProvider) (*cmv1.GithubIdentityProviderBuilder, error) {
 	githubBuilder := cmv1.NewGithubIdentityProvider()
-	githubBuilder.ClientID(ghState.ClientID.Value)
-	githubBuilder.ClientSecret(ghState.ClientSecret.Value)
-	if !ghState.CA.Unknown && !ghState.CA.Null {
-		githubBuilder.CA(ghState.CA.Value)
+	githubBuilder.ClientID(state.ClientID.Value)
+	githubBuilder.ClientSecret(state.ClientSecret.Value)
+	if !state.CA.Unknown && !state.CA.Null {
+		githubBuilder.CA(state.CA.Value)
 	}
-	if !ghState.Hostname.Unknown && !ghState.Hostname.Null && len(ghState.Hostname.Value) > 0 {
-		githubBuilder.Hostname(ghState.Hostname.Value)
+	if !state.Hostname.Unknown && !state.Hostname.Null && len(state.Hostname.Value) > 0 {
+		githubBuilder.Hostname(state.Hostname.Value)
 	}
-	if !ghState.Teams.Unknown && !ghState.Teams.Null {
-		teams, err := common.StringListToArray(ghState.Teams)
+	if !state.Teams.Unknown && !state.Teams.Null {
+		teams, err := common.StringListToArray(state.Teams)
 		if err != nil {
 			return nil, err
 		}
 		githubBuilder.Teams(teams...)
 	}
-	if !ghState.Organizations.Unknown && !ghState.Organizations.Null {
-		orgs, err := common.StringListToArray(ghState.Organizations)
+	if !state.Organizations.Unknown && !state.Organizations.Null {
+		orgs, err := common.StringListToArray(state.Organizations)
 		if err != nil {
 			return nil, err
 		}

@@ -10,8 +10,9 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.5.0
 	github.com/onsi/ginkgo/v2 v2.4.0
 	github.com/onsi/gomega v1.23.0
-	github.com/openshift-online/ocm-sdk-go v0.1.337
-	github.com/openshift/rosa v0.0.0-00010101000000-000000000000
+	github.com/openshift-online/ocm-sdk-go v0.1.338
+	github.com/openshift/rosa v1.2.21
+	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.4
 	k8s.io/apimachinery v0.26.2
 ***REMOVED***
@@ -76,7 +77,6 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/oklog/run v1.0.0 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/posener/complete v1.2.3 // indirect
 	github.com/prometheus/client_golang v1.14.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
@@ -91,9 +91,9 @@ require (
 	github.com/zclconf/go-cty v1.10.0 // indirect
 	github.com/zgalor/weberr v0.6.0 // indirect
 	golang.org/x/crypto v0.1.0 // indirect
-	golang.org/x/net v0.8.0 // indirect
-	golang.org/x/sys v0.6.0 // indirect
-	golang.org/x/text v0.8.0 // indirect
+	golang.org/x/net v0.9.0 // indirect
+	golang.org/x/sys v0.7.0 // indirect
+	golang.org/x/text v0.9.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20201019141844-1ed22bb0c154 // indirect
 	google.golang.org/grpc v1.32.0 // indirect
@@ -101,5 +101,3 @@ require (
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 ***REMOVED***
-
-replace github.com/openshift/rosa => github.com/bardielle/rosa v0.0.0-20230425081801-37427c3d2328

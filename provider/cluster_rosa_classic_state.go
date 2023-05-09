@@ -57,6 +57,7 @@ type ClusterRosaClassicState struct {
 	Version                   types.String `tfsdk:"version"`
 	DisableWaitingInDestroy   types.Bool   `tfsdk:"disable_waiting_in_destroy"`
 	DestroyTimeout            types.Int64  `tfsdk:"destroy_timeout"`
+	HttpTokensState           types.String `tfsdk:"aws_http_tokens_state"`
 }
 
 type Sts struct {

@@ -25,6 +25,7 @@ OpenShift managed cluster using rosa sts.
 
 - `autoscaling_enabled` (Boolean***REMOVED*** Enables autoscaling.
 - `availability_zones` (List of String***REMOVED*** availability zones
+- `aws_http_tokens_state` (String***REMOVED*** Which http_tokens_state to use for metadata service interaction options for EC2 instancescan be optional or required, available from ocp v4.11.0
 - `aws_private_link` (Boolean***REMOVED*** Provides private connectivity between VPCs, AWS services, and your on-premises networks, without exposing your traffic to the public internet.
 - `aws_subnet_ids` (List of String***REMOVED*** aws subnet ids
 - `compute_machine_type` (String***REMOVED*** Identifier of the machine type used by the compute nodes, for example `r5.xlarge`. Use the `ocm_machine_types` data source to find the possible values.

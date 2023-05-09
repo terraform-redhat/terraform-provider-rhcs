@@ -10,3 +10,6 @@ output thumbprint{
   value = ocm_rosa_oidc_config.oidc_config.thumbprint
 }
 
+output cluster_id {
+  value = ocm_cluster_rosa_classic.rosa_sts_cluster.id
+}

@@ -19,7 +19,6 @@ package provider
 ***REMOVED***
 	"context"
 ***REMOVED***
-	"net/url"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -62,13 +61,14 @@ func (t *IdentityProviderResourceType***REMOVED*** GetSchema(ctx context.Context
 	***REMOVED***,
 			"htpasswd": {
 				Description: "Details of the 'htpasswd' identity provider.",
-				Attributes:  t.htpasswdSchema(***REMOVED***,
+				Attributes:  idps.HtpasswdSchema(***REMOVED***,
 				Optional:    true,
 	***REMOVED***,
 			"gitlab": {
 				Description: "Details of the Gitlab identity provider.",
-				Attributes:  t.gitlabSchema(***REMOVED***,
+				Attributes:  idps.GitlabSchema(***REMOVED***,
 				Optional:    true,
+				Validators:  idps.GitlabValidators(***REMOVED***,
 	***REMOVED***,
 			"github": {
 				Description: "Details of the Github identity provider.",
@@ -78,186 +78,17 @@ func (t *IdentityProviderResourceType***REMOVED*** GetSchema(ctx context.Context
 	***REMOVED***,
 			"ldap": {
 				Description: "Details of the LDAP identity provider.",
-				Attributes:  t.ldapSchema(***REMOVED***,
+				Attributes:  idps.LdapSchema(***REMOVED***,
 				Optional:    true,
 	***REMOVED***,
 			"openid": {
 				Description: "Details of the OpenID identity provider.",
-				Attributes:  t.openidSchema(***REMOVED***,
+				Attributes:  idps.OpenidSchema(***REMOVED***,
 				Optional:    true,
 	***REMOVED***,
 ***REMOVED***,
 	}
 	return
-}
-
-func (t *IdentityProviderResourceType***REMOVED*** htpasswdSchema(***REMOVED*** tfsdk.NestedAttributes {
-	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-		"username": {
-			Description: "User name.",
-			Type:        types.StringType,
-			Required:    true,
-***REMOVED***,
-		"password": {
-			Description: "User password.",
-			Type:        types.StringType,
-			Required:    true,
-			Sensitive:   true,
-***REMOVED***,
-	}***REMOVED***
-}
-
-func (t *IdentityProviderResourceType***REMOVED*** gitlabSchema(***REMOVED*** tfsdk.NestedAttributes {
-	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-		"ca": {
-			Description: "Optional trusted certificate authority bundle.",
-			Type:        types.StringType,
-			Optional:    true,
-***REMOVED***,
-		"client_id": {
-			Description: "Client identifier of a registered Gitlab OAuth application.",
-			Type:        types.StringType,
-			Required:    true,
-***REMOVED***,
-		"client_secret": {
-			Description: "Client secret issued by Gitlab.",
-			Type:        types.StringType,
-			Required:    true,
-			Sensitive:   true,
-***REMOVED***,
-		"url": {
-			Description: "URL of the Gitlab instance.",
-			Type:        types.StringType,
-			Required:    true,
-***REMOVED***,
-	}***REMOVED***
-}
-
-func (t *IdentityProviderResourceType***REMOVED*** ldapSchema(***REMOVED*** tfsdk.NestedAttributes {
-	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-		"bind_dn": {
-			Type:     types.StringType,
-			Required: true,
-***REMOVED***,
-		"bind_password": {
-			Type:      types.StringType,
-			Required:  true,
-			Sensitive: true,
-***REMOVED***,
-		"ca": {
-			Type:     types.StringType,
-			Optional: true,
-***REMOVED***,
-		"insecure": {
-			Type:     types.BoolType,
-			Optional: true,
-			Computed: true,
-***REMOVED***,
-		"url": {
-			Type:     types.StringType,
-			Required: true,
-***REMOVED***,
-		"attributes": {
-			Attributes: t.ldapAttributesSchema(***REMOVED***,
-			Required:   true,
-***REMOVED***,
-	}***REMOVED***
-}
-
-func (t *IdentityProviderResourceType***REMOVED*** ldapAttributesSchema(***REMOVED*** tfsdk.NestedAttributes {
-	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-		"email": {
-			Type: types.ListType{
-				ElemType: types.StringType,
-	***REMOVED***,
-			Optional: true,
-***REMOVED***,
-		"id": {
-			Type: types.ListType{
-				ElemType: types.StringType,
-	***REMOVED***,
-			Optional: true,
-***REMOVED***,
-		"name": {
-			Type: types.ListType{
-				ElemType: types.StringType,
-	***REMOVED***,
-			Optional: true,
-***REMOVED***,
-		"preferred_username": {
-			Type: types.ListType{
-				ElemType: types.StringType,
-	***REMOVED***,
-			Optional: true,
-***REMOVED***,
-	}***REMOVED***
-}
-
-func (t *IdentityProviderResourceType***REMOVED*** openidSchema(***REMOVED*** tfsdk.NestedAttributes {
-	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-		"ca": {
-			Type:     types.StringType,
-			Optional: true,
-***REMOVED***,
-		"claims": {
-			Attributes: t.openidClaimsSchema(***REMOVED***,
-			Required:   true,
-***REMOVED***,
-		"client_id": {
-			Type:     types.StringType,
-			Required: true,
-***REMOVED***,
-		"client_secret": {
-			Type:      types.StringType,
-			Required:  true,
-			Sensitive: true,
-***REMOVED***,
-		"extra_scopes": {
-			Type: types.ListType{
-				ElemType: types.StringType,
-	***REMOVED***,
-			Optional: true,
-***REMOVED***,
-		"extra_authorize_parameters": {
-			Type: types.ListType{
-				ElemType: types.StringType,
-	***REMOVED***,
-			Optional: true,
-***REMOVED***,
-		"issuer": {
-			Type:     types.StringType,
-			Required: true,
-***REMOVED***,
-	}***REMOVED***
-}
-
-func (t *IdentityProviderResourceType***REMOVED*** openidClaimsSchema(***REMOVED*** tfsdk.NestedAttributes {
-	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-		"email": {
-			Type: types.ListType{
-				ElemType: types.StringType,
-	***REMOVED***,
-			Optional: true,
-***REMOVED***,
-		"groups": {
-			Type: types.ListType{
-				ElemType: types.StringType,
-	***REMOVED***,
-			Optional: true,
-***REMOVED***,
-		"name": {
-			Type: types.ListType{
-				ElemType: types.StringType,
-	***REMOVED***,
-			Optional: true,
-***REMOVED***,
-		"preferred_username": {
-			Type: types.ListType{
-				ElemType: types.StringType,
-	***REMOVED***,
-			Optional: true,
-***REMOVED***,
-	}***REMOVED***
 }
 
 func (t *IdentityProviderResourceType***REMOVED*** NewResource(ctx context.Context,
@@ -315,34 +146,15 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 	switch {
 	case state.HTPasswd != nil:
 		builder.Type(cmv1.IdentityProviderTypeHtpasswd***REMOVED***
-		htpasswdBuilder := cmv1.NewHTPasswdIdentityProvider(***REMOVED***
-		if !state.HTPasswd.Username.Null {
-			htpasswdBuilder.Username(state.HTPasswd.Username.Value***REMOVED***
-***REMOVED***
-		if !state.HTPasswd.Password.Null {
-			htpasswdBuilder.Password(state.HTPasswd.Password.Value***REMOVED***
-***REMOVED***
+		htpasswdBuilder := idps.CreateHTPasswdIDPBuilder(ctx, state.HTPasswd***REMOVED***
 		builder.Htpasswd(htpasswdBuilder***REMOVED***
 	case state.Gitlab != nil:
 		builder.Type(cmv1.IdentityProviderTypeGitlab***REMOVED***
-		gitlabBuilder := cmv1.NewGitlabIdentityProvider(***REMOVED***
-		if !state.Gitlab.CA.Unknown && !state.Gitlab.CA.Null {
-			gitlabBuilder.CA(state.Gitlab.CA.Value***REMOVED***
-***REMOVED***
-		gitlabBuilder.ClientID(state.Gitlab.ClientID.Value***REMOVED***
-		gitlabBuilder.ClientSecret(state.Gitlab.ClientSecret.Value***REMOVED***
-		u, err := url.ParseRequestURI(state.Gitlab.URL.Value***REMOVED***
-		if err != nil || u.Scheme != "https" || u.RawQuery != "" || u.Fragment != "" {
-			response.Diagnostics.AddError(
-				"Expected a valid GitLab provider URL: to use an https:// scheme, must not have query parameters and not have a fragment.",
-				fmt.Sprintf(
-					"Can't build identity provider with name '%s': %v",
-					state.Name.Value, err,
-				***REMOVED***,
-			***REMOVED***
+		gitlabBuilder, err := idps.CreateGitlabIDPBuilder(ctx, state.Gitlab***REMOVED***
+		if err != nil {
+			response.Diagnostics.AddError(err.Error(***REMOVED***, err.Error(***REMOVED******REMOVED***
 			return
 ***REMOVED***
-		gitlabBuilder.URL(state.Gitlab.URL.Value***REMOVED***
 		builder.Gitlab(gitlabBuilder***REMOVED***
 	case state.Github != nil:
 		builder.Type(cmv1.IdentityProviderTypeGithub***REMOVED***
@@ -354,79 +166,18 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 		builder.Github(githubBuilder***REMOVED***
 	case state.LDAP != nil:
 		builder.Type(cmv1.IdentityProviderTypeLDAP***REMOVED***
-		ldapBuilder := cmv1.NewLDAPIdentityProvider(***REMOVED***
-		if !state.LDAP.BindDN.Null {
-			ldapBuilder.BindDN(state.LDAP.BindDN.Value***REMOVED***
-***REMOVED***
-		if !state.LDAP.BindPassword.Null {
-			ldapBuilder.BindPassword(state.LDAP.BindPassword.Value***REMOVED***
-***REMOVED***
-		if !state.LDAP.CA.Null {
-			ldapBuilder.CA(state.LDAP.CA.Value***REMOVED***
-***REMOVED***
-		if !state.LDAP.Insecure.Null {
-			ldapBuilder.Insecure(state.LDAP.Insecure.Value***REMOVED***
-***REMOVED***
-		if !state.LDAP.URL.Null {
-			ldapBuilder.URL(state.LDAP.URL.Value***REMOVED***
-***REMOVED***
-		if state.LDAP.Attributes != nil {
-			attributesBuilder := cmv1.NewLDAPAttributes(***REMOVED***
-			if state.LDAP.Attributes.ID != nil {
-				attributesBuilder.ID(state.LDAP.Attributes.ID...***REMOVED***
-	***REMOVED***
-			if state.LDAP.Attributes.EMail != nil {
-				attributesBuilder.Email(state.LDAP.Attributes.EMail...***REMOVED***
-	***REMOVED***
-			if state.LDAP.Attributes.Name != nil {
-				attributesBuilder.Name(state.LDAP.Attributes.Name...***REMOVED***
-	***REMOVED***
-			if state.LDAP.Attributes.PreferredUsername != nil {
-				attributesBuilder.PreferredUsername(
-					state.LDAP.Attributes.PreferredUsername...,
-				***REMOVED***
-	***REMOVED***
-			ldapBuilder.Attributes(attributesBuilder***REMOVED***
+		ldapBuilder, err := idps.CreateLdapIDPBuilder(ctx, state.LDAP***REMOVED***
+		if err != nil {
+			response.Diagnostics.AddError(err.Error(***REMOVED***, err.Error(***REMOVED******REMOVED***
+			return
 ***REMOVED***
 		builder.LDAP(ldapBuilder***REMOVED***
 	case state.OpenID != nil:
 		builder.Type(cmv1.IdentityProviderTypeOpenID***REMOVED***
-		openidBuilder := cmv1.NewOpenIDIdentityProvider(***REMOVED***
-		if !state.OpenID.CA.Null {
-			openidBuilder.CA(state.OpenID.CA.Value***REMOVED***
-***REMOVED***
-		if state.OpenID.Claims != nil {
-			claimsBuilder := cmv1.NewOpenIDClaims(***REMOVED***
-
-			if state.OpenID.Claims.Groups != nil {
-				claimsBuilder.Groups(state.OpenID.Claims.Groups...***REMOVED***
-	***REMOVED***
-			if state.OpenID.Claims.EMail != nil {
-				claimsBuilder.Email(state.OpenID.Claims.EMail...***REMOVED***
-	***REMOVED***
-			if state.OpenID.Claims.Name != nil {
-				claimsBuilder.Name(state.OpenID.Claims.Name...***REMOVED***
-	***REMOVED***
-			if state.OpenID.Claims.PreferredUsername != nil {
-				claimsBuilder.PreferredUsername(state.OpenID.Claims.PreferredUsername...***REMOVED***
-	***REMOVED***
-
-			openidBuilder.Claims(claimsBuilder***REMOVED***
-***REMOVED***
-		if !state.OpenID.ClientID.Null {
-			openidBuilder.ClientID(state.OpenID.ClientID.Value***REMOVED***
-***REMOVED***
-		if !state.OpenID.ClientSecret.Null {
-			openidBuilder.ClientSecret(state.OpenID.ClientSecret.Value***REMOVED***
-***REMOVED***
-		if state.OpenID.ExtraAuthorizeParameters != nil {
-			openidBuilder.ExtraAuthorizeParameters(state.OpenID.ExtraAuthorizeParameters***REMOVED***
-***REMOVED***
-		if state.OpenID.ExtraScopes != nil {
-			openidBuilder.ExtraScopes(state.OpenID.ExtraScopes...***REMOVED***
-***REMOVED***
-		if !state.OpenID.Issuer.Null {
-			openidBuilder.Issuer(state.OpenID.Issuer.Value***REMOVED***
+		openidBuilder, err := idps.CreateOpenIDIDPBuilder(ctx, state.OpenID***REMOVED***
+		if err != nil {
+			response.Diagnostics.AddError(err.Error(***REMOVED***, err.Error(***REMOVED******REMOVED***
+			return
 ***REMOVED***
 		builder.OpenID(openidBuilder***REMOVED***
 	}
@@ -471,7 +222,7 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 		// Nothing, there are no computed attributes for `gitlab` identity providers.
 	case ldapObject != nil:
 		if state.LDAP == nil {
-			state.LDAP = &LDAPIdentityProvider{}
+			state.LDAP = &idps.LDAPIdentityProvider{}
 ***REMOVED***
 		insecure, ok := ldapObject.GetInsecure(***REMOVED***
 		if ok {
@@ -527,7 +278,7 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 	switch {
 	case htpasswdObject != nil:
 		if state.HTPasswd == nil {
-			state.HTPasswd = &HTPasswdIdentityProvider{}
+			state.HTPasswd = &idps.HTPasswdIdentityProvider{}
 ***REMOVED***
 		username, ok := htpasswdObject.GetUsername(***REMOVED***
 		if ok {
@@ -543,7 +294,7 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 ***REMOVED***
 	case gitlabObject != nil:
 		if state.Gitlab == nil {
-			state.Gitlab = &GitlabIdentityProvider{}
+			state.Gitlab = &idps.GitlabIdentityProvider{}
 ***REMOVED***
 		ca, ok := gitlabObject.GetCA(***REMOVED***
 		if ok {
@@ -607,7 +358,7 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 ***REMOVED***
 	case ldapObject != nil:
 		if state.LDAP == nil {
-			state.LDAP = &LDAPIdentityProvider{}
+			state.LDAP = &idps.LDAPIdentityProvider{}
 ***REMOVED***
 		bindDN, ok := ldapObject.GetBindDN(***REMOVED***
 		if ok {
@@ -642,28 +393,28 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 		attributes, ok := ldapObject.GetAttributes(***REMOVED***
 		if ok {
 			if state.LDAP.Attributes == nil {
-				state.LDAP.Attributes = &LDAPIdentityProviderAttributes{}
+				state.LDAP.Attributes = &idps.LDAPIdentityProviderAttributes{}
 	***REMOVED***
 			id, ok := attributes.GetID(***REMOVED***
 			if ok {
-				state.LDAP.Attributes.ID = id
+				state.LDAP.Attributes.ID = common.StringArrayToList(id***REMOVED***
 	***REMOVED***
 			email, ok := attributes.GetEmail(***REMOVED***
 			if ok {
-				state.LDAP.Attributes.EMail = email
+				state.LDAP.Attributes.EMail = common.StringArrayToList(email***REMOVED***
 	***REMOVED***
 			name, ok := attributes.GetName(***REMOVED***
 			if ok {
-				state.LDAP.Attributes.Name = name
+				state.LDAP.Attributes.Name = common.StringArrayToList(name***REMOVED***
 	***REMOVED***
 			preferredUsername, ok := attributes.GetPreferredUsername(***REMOVED***
 			if ok {
-				state.LDAP.Attributes.PreferredUsername = preferredUsername
+				state.LDAP.Attributes.PreferredUsername = common.StringArrayToList(preferredUsername***REMOVED***
 	***REMOVED***
 ***REMOVED***
 	case openidObject != nil:
 		if state.OpenID == nil {
-			state.OpenID = &OpenIDIdentityProvider{}
+			state.OpenID = &idps.OpenIDIdentityProvider{}
 ***REMOVED***
 		ca, ok := openidObject.GetCA(***REMOVED***
 		if ok {
@@ -686,23 +437,23 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 		claims, ok := openidObject.GetClaims(***REMOVED***
 		if ok {
 			if state.OpenID.Claims == nil {
-				state.OpenID.Claims = &OpenIDIdentityProviderClaims{}
+				state.OpenID.Claims = &idps.OpenIDIdentityProviderClaims{}
 	***REMOVED***
 			email, ok := claims.GetEmail(***REMOVED***
 			if ok {
-				state.OpenID.Claims.EMail = email
+				state.OpenID.Claims.EMail = common.StringArrayToList(email***REMOVED***
 	***REMOVED***
 			groups, ok := claims.GetGroups(***REMOVED***
 			if ok {
-				state.OpenID.Claims.Groups = groups
+				state.OpenID.Claims.Groups = common.StringArrayToList(groups***REMOVED***
 	***REMOVED***
 			name, ok := claims.GetName(***REMOVED***
 			if ok {
-				state.OpenID.Claims.Name = name
+				state.OpenID.Claims.Name = common.StringArrayToList(name***REMOVED***
 	***REMOVED***
 			preferredUsername, ok := claims.GetPreferredUsername(***REMOVED***
 			if ok {
-				state.OpenID.Claims.PreferredUsername = preferredUsername
+				state.OpenID.Claims.PreferredUsername = common.StringArrayToList(preferredUsername***REMOVED***
 	***REMOVED***
 ***REMOVED***
 		issuer, ok := openidObject.GetIssuer(***REMOVED***

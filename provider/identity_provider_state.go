@@ -22,12 +22,13 @@ import (
 )
 
 type IdentityProviderState struct {
-	Cluster  types.String                   `tfsdk:"cluster"`
-	ID       types.String                   `tfsdk:"id"`
-	Name     types.String                   `tfsdk:"name"`
-	HTPasswd *idps.HTPasswdIdentityProvider `tfsdk:"htpasswd"`
-	Gitlab   *idps.GitlabIdentityProvider   `tfsdk:"gitlab"`
-	Github   *idps.GithubIdentityProvider   `tfsdk:"github"`
-	LDAP     *idps.LDAPIdentityProvider     `tfsdk:"ldap"`
-	OpenID   *idps.OpenIDIdentityProvider   `tfsdk:"openid"`
+	Cluster       types.String                   `tfsdk:"cluster"`
+	ID            types.String                   `tfsdk:"id"`
+	Name          types.String                   `tfsdk:"name"`
+	MappingMethod types.String                   `tfsdk:"mapping_method"`
+	HTPasswd      *idps.HTPasswdIdentityProvider `tfsdk:"htpasswd"`
+	Gitlab        *idps.GitlabIdentityProvider   `tfsdk:"gitlab"`
+	Github        *idps.GithubIdentityProvider   `tfsdk:"github"`
+	LDAP          *idps.LDAPIdentityProvider     `tfsdk:"ldap"`
+	OpenID        *idps.OpenIDIdentityProvider   `tfsdk:"openid"`
 }

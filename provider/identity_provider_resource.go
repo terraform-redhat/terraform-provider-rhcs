@@ -59,6 +59,13 @@ func (t *IdentityProviderResourceType) GetSchema(ctx context.Context) (result tf
 				Type:        types.StringType,
 				Required:    true,
 			},
+			"mapping_method": {
+				Description: "Specifies how new identities are mapped to users when they log in. Options are [add claim generate lookup] (default 'claim')",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
+				Validators:  idps.MappingMethodValidators(),
+			},
 			"htpasswd": {
 				Description: "Details of the 'htpasswd' identity provider.",
 				Attributes:  idps.HtpasswdSchema(),
@@ -143,6 +150,12 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 	// Create the identity provider:
 	builder := cmv1.NewIdentityProvider()
 	builder.Name(state.Name.Value)
+	// handle mapping_method
+	mappingMethod := idps.DefaultMappingMethod
+	if !state.MappingMethod.Unknown && !state.MappingMethod.Null {
+		mappingMethod = state.MappingMethod.Value
+	}
+	builder.MappingMethod(cmv1.IdentityProviderMappingMethod(mappingMethod))
 	switch {
 	case state.HTPasswd != nil:
 		builder.Type(cmv1.IdentityProviderTypeHtpasswd)
@@ -211,6 +224,9 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 	state.ID = types.String{
 		Value: object.ID(),
 	}
+	state.MappingMethod = types.String{
+		Value: string(object.MappingMethod()),
+	}
 	htpasswdObject := object.Htpasswd()
 	gitlabObject := object.Gitlab()
 	ldapObject := object.LDAP()
@@ -270,6 +286,7 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request tfsdk.ReadR
 	state.Name = types.String{
 		Value: object.Name(),
 	}
+
 	htpasswdObject := object.Htpasswd()
 	gitlabObject := object.Gitlab()
 	ldapObject := object.LDAP()

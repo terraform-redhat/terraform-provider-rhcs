@@ -147,7 +147,7 @@ func generateBasicRosaClassicClusterState(***REMOVED*** *ClusterRosaClassicState
 	***REMOVED***,
 ***REMOVED***,
 		ChannelGroup: types.String{
-			Value: "somechannel",
+			Value: "stable",
 ***REMOVED***,
 		Version: types.String{
 			Value: "4.10",
@@ -196,7 +196,7 @@ var _ = Describe("Rosa Classic Sts cluster", func(***REMOVED*** {
 			Expect(version***REMOVED***.To(Equal("4.10"***REMOVED******REMOVED***
 			channel, ok := rosaClusterObject.Version(***REMOVED***.GetChannelGroup(***REMOVED***
 			Expect(ok***REMOVED***.To(BeTrue(***REMOVED******REMOVED***
-			Expect(channel***REMOVED***.To(Equal("somechannel"***REMOVED******REMOVED***
+			Expect(channel***REMOVED***.To(Equal("stable"***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 	}***REMOVED***
 
@@ -212,6 +212,20 @@ var _ = Describe("Rosa Classic Sts cluster", func(***REMOVED*** {
 		clusterState.Version.Value = "4.1.0"
 		_, err := createClassicClusterObject(context.Background(***REMOVED***, clusterState, &logging.StdLogger{}, diag.Diagnostics{}***REMOVED***
 		Expect(err***REMOVED***.ToNot(BeNil(***REMOVED******REMOVED***
+	}***REMOVED***
+
+	It("appends the non-default channel name to the requested version", func(***REMOVED*** {
+		clusterState := generateBasicRosaClassicClusterState(***REMOVED***
+		clusterState.ChannelGroup.Value = "somechannel"
+		rosaClusterObject, err := createClassicClusterObject(context.Background(***REMOVED***, clusterState, &logging.StdLogger{}, diag.Diagnostics{}***REMOVED***
+		Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
+
+		version, ok := rosaClusterObject.Version(***REMOVED***.GetID(***REMOVED***
+		Expect(ok***REMOVED***.To(BeTrue(***REMOVED******REMOVED***
+		Expect(version***REMOVED***.To(Equal("4.10-somechannel"***REMOVED******REMOVED***
+		channel, ok := rosaClusterObject.Version(***REMOVED***.GetChannelGroup(***REMOVED***
+		Expect(ok***REMOVED***.To(BeTrue(***REMOVED******REMOVED***
+		Expect(channel***REMOVED***.To(Equal("somechannel"***REMOVED******REMOVED***
 	}***REMOVED***
 
 	Context("populateRosaClassicClusterState", func(***REMOVED*** {

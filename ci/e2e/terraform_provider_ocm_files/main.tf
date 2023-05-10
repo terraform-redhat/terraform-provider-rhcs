@@ -1,3 +1,4 @@
+#
 terraform {
   required_providers {
     aws = {
@@ -5,12 +6,13 @@ terraform {
       version = ">= 4.20.0"
     }
     ocm = {
-      version = "0.0.2"
+      version = ">= 0.0.1"
       source  = "terraform.local/local/ocm"
     }
   }
 }
-
+      # version = " 0.0.3"
+      # source  = "terraform-redhat/ocm"
 
 provider "ocm" {
   token = var.token
@@ -33,15 +35,16 @@ data "aws_caller_identity" "current" {
 }
 
 resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
-  name           = var.cluster_name
-  cloud_region   = "us-east-1"
+  name               = var.cluster_name
+  cloud_region       = var.aws_region
   aws_account_id     = data.aws_caller_identity.current.account_id
-  availability_zones = ["us-east-1a"]
+  availability_zones = [var.aws_availability_zones]
   properties = {
     rosa_creator_arn = data.aws_caller_identity.current.arn
   }
-  sts = local.sts_roles
-  destroy_timeout = 120
+  sts                = local.sts_roles
+  replicas           = var.replicas
+  destroy_timeout    = 120
 }
 
 resource "ocm_cluster_wait" "rosa_cluster" {

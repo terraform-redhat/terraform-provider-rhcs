@@ -147,7 +147,7 @@ func generateBasicRosaClassicClusterState() *ClusterRosaClassicState {
 			},
 		},
 		ChannelGroup: types.String{
-			Value: "somechannel",
+			Value: "stable",
 		},
 		Version: types.String{
 			Value: "4.10",
@@ -196,7 +196,7 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 			Expect(version).To(Equal("4.10"))
 			channel, ok := rosaClusterObject.Version().GetChannelGroup()
 			Expect(ok).To(BeTrue())
-			Expect(channel).To(Equal("somechannel"))
+			Expect(channel).To(Equal("stable"))
 		})
 	})
 
@@ -212,6 +212,20 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 		clusterState.Version.Value = "4.1.0"
 		_, err := createClassicClusterObject(context.Background(), clusterState, &logging.StdLogger{}, diag.Diagnostics{})
 		Expect(err).ToNot(BeNil())
+	})
+
+	It("appends the non-default channel name to the requested version", func() {
+		clusterState := generateBasicRosaClassicClusterState()
+		clusterState.ChannelGroup.Value = "somechannel"
+		rosaClusterObject, err := createClassicClusterObject(context.Background(), clusterState, &logging.StdLogger{}, diag.Diagnostics{})
+		Expect(err).To(BeNil())
+
+		version, ok := rosaClusterObject.Version().GetID()
+		Expect(ok).To(BeTrue())
+		Expect(version).To(Equal("4.10-somechannel"))
+		channel, ok := rosaClusterObject.Version().GetChannelGroup()
+		Expect(ok).To(BeTrue())
+		Expect(channel).To(Equal("somechannel"))
 	})
 
 	Context("populateRosaClassicClusterState", func() {

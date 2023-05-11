@@ -22,57 +22,13 @@ import (
 )
 
 type IdentityProviderState struct {
-	Cluster  types.String                 `tfsdk:"cluster"`
-	ID       types.String                 `tfsdk:"id"`
-	Name     types.String                 `tfsdk:"name"`
-	HTPasswd *HTPasswdIdentityProvider    `tfsdk:"htpasswd"`
-	Gitlab   *GitlabIdentityProvider      `tfsdk:"gitlab"`
-	Github   *idps.GithubIdentityProvider `tfsdk:"github"`
-	LDAP     *LDAPIdentityProvider        `tfsdk:"ldap"`
-	OpenID   *OpenIDIdentityProvider      `tfsdk:"openid"`
-}
-
-type HTPasswdIdentityProvider struct {
-	Username types.String `tfsdk:"username"`
-	Password types.String `tfsdk:"password"`
-}
-
-type GitlabIdentityProvider struct {
-	CA           types.String `tfsdk:"ca"`
-	ClientID     types.String `tfsdk:"client_id"`
-	ClientSecret types.String `tfsdk:"client_secret"`
-	URL          types.String `tfsdk:"url"`
-}
-
-type LDAPIdentityProvider struct {
-	BindDN       types.String                    `tfsdk:"bind_dn"`
-	BindPassword types.String                    `tfsdk:"bind_password"`
-	CA           types.String                    `tfsdk:"ca"`
-	Insecure     types.Bool                      `tfsdk:"insecure"`
-	URL          types.String                    `tfsdk:"url"`
-	Attributes   *LDAPIdentityProviderAttributes `tfsdk:"attributes"`
-}
-
-type LDAPIdentityProviderAttributes struct {
-	EMail             []string `tfsdk:"email"`
-	ID                []string `tfsdk:"id"`
-	Name              []string `tfsdk:"name"`
-	PreferredUsername []string `tfsdk:"preferred_username"`
-}
-
-type OpenIDIdentityProvider struct {
-	CA                       types.String                  `tfsdk:"ca"`
-	Claims                   *OpenIDIdentityProviderClaims `tfsdk:"claims"`
-	ClientID                 types.String                  `tfsdk:"client_id"`
-	ClientSecret             types.String                  `tfsdk:"client_secret"`
-	ExtraScopes              []string                      `tfsdk:"extra_scopes"`
-	ExtraAuthorizeParameters map[string]string             `tfsdk:"extra_authorize_parameters"`
-	Issuer                   types.String                  `tfsdk:"issuer"`
-}
-
-type OpenIDIdentityProviderClaims struct {
-	EMail             []string `tfsdk:"email"`
-	Groups            []string `tfsdk:"groups"`
-	Name              []string `tfsdk:"name"`
-	PreferredUsername []string `tfsdk:"preferred_username"`
+	Cluster       types.String                   `tfsdk:"cluster"`
+	ID            types.String                   `tfsdk:"id"`
+	Name          types.String                   `tfsdk:"name"`
+	MappingMethod types.String                   `tfsdk:"mapping_method"`
+	HTPasswd      *idps.HTPasswdIdentityProvider `tfsdk:"htpasswd"`
+	Gitlab        *idps.GitlabIdentityProvider   `tfsdk:"gitlab"`
+	Github        *idps.GithubIdentityProvider   `tfsdk:"github"`
+	LDAP          *idps.LDAPIdentityProvider     `tfsdk:"ldap"`
+	OpenID        *idps.OpenIDIdentityProvider   `tfsdk:"openid"`
 }

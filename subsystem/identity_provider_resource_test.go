@@ -53,6 +53,7 @@ var _ = Describe("Identity provider creation", func() {
 				VerifyJSON(`{
 				  "kind": "IdentityProvider",
 				  "type": "HTPasswdIdentityProvider",
+                  "mapping_method": "claim",
 				  "name": "my-ip",
 				  "htpasswd": {
 				    "password": "my-password",
@@ -62,6 +63,7 @@ var _ = Describe("Identity provider creation", func() {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "456",
 				  "name": "my-ip",
+                  "mapping_method": "claim",
 				  "htpasswd": {
 				    "user": "my-user"
 				  }
@@ -94,6 +96,7 @@ var _ = Describe("Identity provider creation", func() {
 				VerifyJSON(`{
 				  "kind": "IdentityProvider",
 				  "type": "GitlabIdentityProvider",
+                  "mapping_method": "claim",
 				  "name": "my-ip",
 				  "gitlab": {
 				    "ca": "test-ca",
@@ -105,6 +108,7 @@ var _ = Describe("Identity provider creation", func() {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "456",
 				  "name": "my-ip",
+                  "mapping_method": "claim",
 				  "gitlab": {
 				    "ca": "test-ca",
 				    "url": "https://test.gitlab.com",
@@ -222,6 +226,7 @@ var _ = Describe("Identity provider creation", func() {
 					VerifyJSON(`{
 				      "kind": "IdentityProvider",
 				      "type": "GithubIdentityProvider",
+                      "mapping_method": "claim",
 				      "name": "my-ip",
 				      "github": {
 				        "ca": "test-ca",
@@ -233,6 +238,7 @@ var _ = Describe("Identity provider creation", func() {
 					RespondWithJSON(http.StatusOK, `{
 				      "id": "456",
 				      "name": "my-ip",
+                      "mapping_method": "claim",
 				      "github": {
 				        "ca": "test-ca",
 				        "url": "https://test.gitlab.com",
@@ -271,6 +277,7 @@ var _ = Describe("Identity provider creation", func() {
 					VerifyJSON(`{
 				      "kind": "IdentityProvider",
 				      "type": "GithubIdentityProvider",
+                      "mapping_method": "claim",
 				      "name": "my-ip",
 				      "github": {
 				        "ca": "test-ca",
@@ -282,6 +289,7 @@ var _ = Describe("Identity provider creation", func() {
 					RespondWithJSON(http.StatusOK, `{
 				      "id": "456",
 				      "name": "my-ip",
+                      "mapping_method": "claim",
 				      "github": {
 				        "ca": "test-ca",
 				        "url": "https://test.gitlab.com",
@@ -321,6 +329,7 @@ var _ = Describe("Identity provider creation", func() {
 				VerifyJSON(`{
 				  "kind": "IdentityProvider",
 				  "type": "LDAPIdentityProvider",
+                  "mapping_method": "claim",
 				  "name": "my-ip",
 				  "ldap": {
 				    "bind_dn": "my-bind-dn",
@@ -339,6 +348,7 @@ var _ = Describe("Identity provider creation", func() {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "456",
 				  "name": "my-ip",
+                  "mapping_method": "claim",
 				  "ldap": {
 				    "bind_dn": "my-bind-dn",
 				    "bind_password": "my-bind-password",
@@ -390,6 +400,7 @@ var _ = Describe("Identity provider creation", func() {
 				VerifyJSON(`{
 				  "kind": "IdentityProvider",
 				  "type": "OpenIDIdentityProvider",
+                  "mapping_method": "claim",
 				  "name": "my-ip",
 				  "open_id": {
 					"ca": "test_ca",
@@ -424,6 +435,7 @@ var _ = Describe("Identity provider creation", func() {
 					"href": "/api/clusters_mgmt/v1/clusters/123/identity_providers/456",
 					"id": "456",
 					"name": "my-ip",
+                    "mapping_method": "claim",
 					"open_id": {
 						"claims": {
 							"email": [
@@ -475,4 +487,19 @@ var _ = Describe("Identity provider creation", func() {
 		Expect(terraform.Apply()).To(BeZero())
 	})
 
+	It("Should fail with invalid mapping_method", func() {
+		// Run the apply command:
+		terraform.Source(`
+		  resource "ocm_identity_provider" "my_ip" {
+		    cluster = "123"
+		    name    = "my-ip"
+            mapping_method = "invalid"
+		    htpasswd = {
+		      username = "my-user"
+		      password = "my-password"
+		    }
+		  }
+		`)
+		Expect(terraform.Apply()).ToNot(BeZero())
+	})
 })

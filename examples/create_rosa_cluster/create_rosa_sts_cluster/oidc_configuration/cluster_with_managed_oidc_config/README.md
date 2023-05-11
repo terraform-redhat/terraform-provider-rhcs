@@ -1,4 +1,4 @@
-# ROSA STS managed OIDC config example
+# ROSA STS cluster creation example with a managed OIDC configuration ID
 
 This example shows how to create managed OIDC config an operator IAM roles and OIDC provider before creating a cluster.
 

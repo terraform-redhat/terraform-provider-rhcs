@@ -83,6 +83,12 @@ func (t *IdentityProviderResourceType) GetSchema(ctx context.Context) (result tf
 				Optional:    true,
 				Validators:  idps.GithubValidators(),
 			},
+			"google": {
+				Description: "Details of the Google identity provider.",
+				Attributes:  idps.GoogleSchema(),
+				Optional:    true,
+				Validators:  idps.GoogleValidators(),
+			},
 			"ldap": {
 				Description: "Details of the LDAP identity provider.",
 				Attributes:  idps.LdapSchema(),
@@ -177,6 +183,14 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 			return
 		}
 		builder.Github(githubBuilder)
+	case state.Google != nil:
+		builder.Type(cmv1.IdentityProviderTypeGoogle)
+		googleBuilder, err := idps.CreateGoogleIDPBuilder(ctx, mappingMethod, state.Google)
+		if err != nil {
+			response.Diagnostics.AddError(err.Error(), err.Error())
+			return
+		}
+		builder.Google(googleBuilder)
 	case state.LDAP != nil:
 		builder.Type(cmv1.IdentityProviderTypeLDAP)
 		ldapBuilder, err := idps.CreateLdapIDPBuilder(ctx, state.LDAP)
@@ -292,6 +306,7 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request tfsdk.ReadR
 	ldapObject := object.LDAP()
 	openidObject := object.OpenID()
 	githubObject := object.Github()
+	googleObject := object.Google()
 	switch {
 	case htpasswdObject != nil:
 		if state.HTPasswd == nil {
@@ -372,6 +387,25 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request tfsdk.ReadR
 		orgs, ok := githubObject.GetOrganizations()
 		if ok {
 			state.Github.Organizations = common.StringArrayToList(orgs)
+		}
+	case googleObject != nil:
+		if state.Google == nil {
+			state.Google = &idps.GoogleIdentityProvider{}
+		}
+		if client_id, ok := googleObject.GetClientID(); ok {
+			state.Google.ClientID = types.String{
+				Value: client_id,
+			}
+		}
+		if client_secret, ok := googleObject.GetClientSecret(); ok {
+			state.Google.ClientSecret = types.String{
+				Value: client_secret,
+			}
+		}
+		if hosted_domain, ok := googleObject.GetHostedDomain(); ok {
+			state.Google.HostedDomain = types.String{
+				Value: hosted_domain,
+			}
 		}
 	case ldapObject != nil:
 		if state.LDAP == nil {

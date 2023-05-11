@@ -1,4 +1,3 @@
-#
 terraform {
   required_providers {
     aws = {
@@ -13,8 +12,8 @@ terraform {
 }
 
 provider "ocm" {
-  token = var.token
-  url = var.url
+  token = var.ocm_token
+  url = var.ocm_url
 }
 
 data "ocm_policies" "all_policies"{}

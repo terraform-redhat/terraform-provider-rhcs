@@ -16,6 +16,6 @@ variable ocm_token {
     type = string
 }
 
-variable url {
+variable ocm_url {
     type = string
 }

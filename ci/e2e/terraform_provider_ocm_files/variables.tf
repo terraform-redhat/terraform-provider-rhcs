@@ -26,8 +26,8 @@ variable aws_region {
 }
 
 variable aws_availability_zones {
-    type = string
-    default = "us-east-1a"
+    type      = list(string)
+    default = ["us-east-1a"]
 }
 
 variable replicas {

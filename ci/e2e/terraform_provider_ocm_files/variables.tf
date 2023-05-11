@@ -1,9 +1,9 @@
-variable ocm_token {
+variable token {
   type = string
   sensitive = true
 }
 
-variable ocm_url {
+variable url {
     type = string
     default = "https://api.stage.openshift.com"
 }

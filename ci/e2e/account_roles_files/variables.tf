@@ -12,10 +12,10 @@ variable account_role_prefix {
     type = string
 }
 
-variable ocm_token {
+variable token {
     type = string
 }
 
-variable ocm_url {
+variable url {
     type = string
 }

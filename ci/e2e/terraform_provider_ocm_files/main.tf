@@ -12,8 +12,8 @@ terraform {
 }
 
 provider "ocm" {
-  token = var.ocm_token
-  url = var.ocm_url
+  token = var.token
+  url = var.url
 }
 
 locals {

@@ -66,8 +66,7 @@ func GithubValidators(***REMOVED*** []tfsdk.AttributeValidator {
 	errSumm := "Invalid GitHub IDP resource configuration"
 	return []tfsdk.AttributeValidator{
 		&common.AttributeValidator{
-			Desc:   "GitHub IDP requires either organizations or teams",
-			MDDesc: "",
+			Desc: "GitHub IDP requires either organizations or teams",
 			Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse***REMOVED*** {
 				ghState := &GithubIdentityProvider{}
 				diag := req.Config.GetAttribute(ctx, req.AttributePath, ghState***REMOVED***
@@ -87,8 +86,7 @@ func GithubValidators(***REMOVED*** []tfsdk.AttributeValidator {
 	***REMOVED***,
 ***REMOVED***,
 		&common.AttributeValidator{
-			Desc:   "GitHub IDP teams format validator",
-			MDDesc: "",
+			Desc: "GitHub IDP teams format validator",
 			Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse***REMOVED*** {
 				ghState := &GithubIdentityProvider{}
 				diag := req.Config.GetAttribute(ctx, req.AttributePath, ghState***REMOVED***
@@ -116,8 +114,7 @@ func GithubValidators(***REMOVED*** []tfsdk.AttributeValidator {
 	***REMOVED***,
 ***REMOVED***,
 		&common.AttributeValidator{
-			Desc:   "Github IDP hostname validator",
-			MDDesc: "",
+			Desc: "Github IDP hostname validator",
 			Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse***REMOVED*** {
 				ghState := &GithubIdentityProvider{}
 				diag := req.Config.GetAttribute(ctx, req.AttributePath, ghState***REMOVED***
@@ -140,25 +137,25 @@ func GithubValidators(***REMOVED*** []tfsdk.AttributeValidator {
 	}
 }
 
-func CreateGithubIDPBuilder(ctx context.Context, ghState *GithubIdentityProvider***REMOVED*** (*cmv1.GithubIdentityProviderBuilder, error***REMOVED*** {
+func CreateGithubIDPBuilder(ctx context.Context, state *GithubIdentityProvider***REMOVED*** (*cmv1.GithubIdentityProviderBuilder, error***REMOVED*** {
 	githubBuilder := cmv1.NewGithubIdentityProvider(***REMOVED***
-	githubBuilder.ClientID(ghState.ClientID.Value***REMOVED***
-	githubBuilder.ClientSecret(ghState.ClientSecret.Value***REMOVED***
-	if !ghState.CA.Unknown && !ghState.CA.Null {
-		githubBuilder.CA(ghState.CA.Value***REMOVED***
+	githubBuilder.ClientID(state.ClientID.Value***REMOVED***
+	githubBuilder.ClientSecret(state.ClientSecret.Value***REMOVED***
+	if !state.CA.Unknown && !state.CA.Null {
+		githubBuilder.CA(state.CA.Value***REMOVED***
 	}
-	if !ghState.Hostname.Unknown && !ghState.Hostname.Null && len(ghState.Hostname.Value***REMOVED*** > 0 {
-		githubBuilder.Hostname(ghState.Hostname.Value***REMOVED***
+	if !state.Hostname.Unknown && !state.Hostname.Null && len(state.Hostname.Value***REMOVED*** > 0 {
+		githubBuilder.Hostname(state.Hostname.Value***REMOVED***
 	}
-	if !ghState.Teams.Unknown && !ghState.Teams.Null {
-		teams, err := common.StringListToArray(ghState.Teams***REMOVED***
+	if !state.Teams.Unknown && !state.Teams.Null {
+		teams, err := common.StringListToArray(state.Teams***REMOVED***
 		if err != nil {
 			return nil, err
 ***REMOVED***
 		githubBuilder.Teams(teams...***REMOVED***
 	}
-	if !ghState.Organizations.Unknown && !ghState.Organizations.Null {
-		orgs, err := common.StringListToArray(ghState.Organizations***REMOVED***
+	if !state.Organizations.Unknown && !state.Organizations.Null {
+		orgs, err := common.StringListToArray(state.Organizations***REMOVED***
 		if err != nil {
 			return nil, err
 ***REMOVED***

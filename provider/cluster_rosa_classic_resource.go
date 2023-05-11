@@ -670,9 +670,9 @@ func createClassicClusterObject(ctx context.Context,
 	return object, err
 }
 
-// getAndValidateVersion ensures that the cluster version is available in the
-// channel group
-func (r *ClusterRosaClassicResource) getAndValidateVersion(ctx context.Context, state *ClusterRosaClassicState) (string, error) {
+// getAndValidateVersionInChannelGroup ensures that the cluster version is
+// available in the channel group
+func (r *ClusterRosaClassicResource) getAndValidateVersionInChannelGroup(ctx context.Context, state *ClusterRosaClassicState) (string, error) {
 	channelGroup := ocm.DefaultChannelGroup
 	if !state.ChannelGroup.Unknown && !state.ChannelGroup.Null {
 		channelGroup = state.ChannelGroup.Value
@@ -701,7 +701,7 @@ func (r *ClusterRosaClassicResource) getAndValidateVersion(ctx context.Context, 
 func (r *ClusterRosaClassicResource) validateAccountRoles(ctx context.Context, state *ClusterRosaClassicState) error {
 	r.logger.Debug(ctx, "Validating if cluster version is compatible to account roles' version")
 	region := state.CloudRegion.Value
-	version, err := r.getAndValidateVersion(ctx, state)
+	version, err := r.getAndValidateVersionInChannelGroup(ctx, state)
 	if err != nil {
 		return fmt.Errorf("Could not get cluster version: %v", err)
 	}

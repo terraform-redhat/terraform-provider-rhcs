@@ -1,4 +1,3 @@
-#
 terraform {
   required_providers {
     aws = {
@@ -11,12 +10,10 @@ terraform {
     }
   }
 }
-      # version = " 0.0.3"
-      # source  = "terraform-redhat/ocm"
 
 provider "ocm" {
-  token = var.token
-  url = var.url
+  token = var.ocm_token
+  url = var.ocm_url
 }
 
 locals {
@@ -38,7 +35,7 @@ resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
   name               = var.cluster_name
   cloud_region       = var.aws_region
   aws_account_id     = data.aws_caller_identity.current.account_id
-  availability_zones = [var.aws_availability_zones]
+  availability_zones = var.aws_availability_zones
   properties = {
     rosa_creator_arn = data.aws_caller_identity.current.arn
   }
@@ -59,7 +56,7 @@ data "ocm_rosa_operator_roles" "operator_roles" {
 
 module operator_roles {
   source = "terraform-redhat/rosa-sts/aws"
-  version = "0.0.3"
+  version = "0.0.4"
 
   create_operator_roles = true
   create_oidc_provider = true

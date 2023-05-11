@@ -1,9 +1,9 @@
-variable token {
+variable ocm_token {
   type = string
   sensitive = true
 }
 
-variable url {
+variable ocm_url {
     type = string
     default = "https://api.stage.openshift.com"
 }
@@ -18,4 +18,19 @@ variable account_role_prefix {
 
 variable cluster_name {
     type = string
+}
+
+variable aws_region {
+    type = string
+    default = "us-east-1"
+}
+
+variable aws_availability_zones {
+    type      = list(string)
+    default = ["us-east-1a"]
+}
+
+variable replicas {
+    type = string
+    default = "3"
 }

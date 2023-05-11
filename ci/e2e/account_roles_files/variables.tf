@@ -12,7 +12,7 @@ variable account_role_prefix {
     type = string
 }
 
-variable token {
+variable ocm_token {
     type = string
 }
 

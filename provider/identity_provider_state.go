@@ -29,6 +29,7 @@ type IdentityProviderState struct {
 	HTPasswd      *idps.HTPasswdIdentityProvider `tfsdk:"htpasswd"`
 	Gitlab        *idps.GitlabIdentityProvider   `tfsdk:"gitlab"`
 	Github        *idps.GithubIdentityProvider   `tfsdk:"github"`
+	Google        *idps.GoogleIdentityProvider   `tfsdk:"google"`
 	LDAP          *idps.LDAPIdentityProvider     `tfsdk:"ldap"`
 	OpenID        *idps.OpenIDIdentityProvider   `tfsdk:"openid"`
 }

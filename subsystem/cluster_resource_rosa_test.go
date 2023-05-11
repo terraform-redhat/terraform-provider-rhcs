@@ -86,7 +86,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 			"kind": "Version",
 			"id": "openshift-v4.10.1",
 			"href": "/api/clusters_mgmt/v1/versions/openshift-v4.10.1",
-			"raw_id": "4.11.1"
+			"raw_id": "4.10.1"
 ***REMOVED***,
 		{
 			"kind": "Version",
@@ -96,6 +96,195 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 ***REMOVED***
 	]
 }`
+
+	Context("Test channel groups", func(***REMOVED*** {
+		It("doesn't append the channel group when on the default channel", func(***REMOVED*** {
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
+				***REMOVED***,
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+					VerifyJQ(`.version.id`, "openshift-v4.11.1"***REMOVED***,
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+						{
+						  "op": "add",
+						  "path": "/aws",
+						  "value": {
+							  "sts" : {
+								  "oidc_endpoint_url": "https://oidc_endpoint_url",
+								  "thumbprint": "111111",
+								  "role_arn": "",
+								  "support_role_arn": "",
+								  "instance_iam_roles" : {
+									"master_role_arn" : "",
+									"worker_role_arn" : ""
+								  },
+								  "operator_role_prefix" : "test"
+							  }
+						  }
+				***REMOVED***,
+						{
+						  "op": "add",
+						  "path": "/nodes",
+						  "value": {
+							"compute": 3,
+							"compute_machine_type": {
+								"id": "r5.xlarge"
+					***REMOVED***
+						  }
+				***REMOVED***,
+						{
+							"op": "replace",
+						***REMOVED***: "/version/id",
+							"value": "openshift-v4.11.1"
+				***REMOVED***
+						]`***REMOVED***,
+				***REMOVED***,
+			***REMOVED***
+			terraform.Source(`
+			resource "ocm_cluster_rosa_classic" "my_cluster" {
+			  name           = "my-cluster"
+			  cloud_region   = "us-west-1"
+			  aws_account_id = "123"
+			  sts = {
+				  operator_role_prefix = "test"
+				  role_arn = "",
+				  support_role_arn = "",
+				  instance_iam_roles = {
+					  master_role_arn = "",
+					  worker_role_arn = "",
+				  }
+			  }
+			  version = "openshift-v4.11.1"
+	***REMOVED***
+		  `***REMOVED***
+			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+***REMOVED******REMOVED***
+		It("appends the channel group when on a non-default channel", func(***REMOVED*** {
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+					RespondWithPatchedJSON(http.StatusOK, versionListPage1, `[
+						{
+							"op": "add",
+						***REMOVED***: "/items/-",
+							"value": {
+								"kind": "Version",
+								"id": "openshift-v4.50.0-fast",
+								"href": "/api/clusters_mgmt/v1/versions/openshift-v4.50.0-fast",
+								"raw_id": "4.50.0",
+								"channel_group": "fast"
+					***REMOVED***
+				***REMOVED***
+					]`***REMOVED***,
+				***REMOVED***,
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+					VerifyJQ(`.version.id`, "openshift-v4.50.0-fast"***REMOVED***,
+					VerifyJQ(`.version.channel_group`, "fast"***REMOVED***,
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+						{
+						  "op": "add",
+						  "path": "/aws",
+						  "value": {
+							  "sts" : {
+								  "oidc_endpoint_url": "https://oidc_endpoint_url",
+								  "thumbprint": "111111",
+								  "role_arn": "",
+								  "support_role_arn": "",
+								  "instance_iam_roles" : {
+									"master_role_arn" : "",
+									"worker_role_arn" : ""
+								  },
+								  "operator_role_prefix" : "test"
+							  }
+						  }
+				***REMOVED***,
+						{
+						  "op": "add",
+						  "path": "/nodes",
+						  "value": {
+							"compute": 3,
+							"compute_machine_type": {
+								"id": "r5.xlarge"
+					***REMOVED***
+						  }
+				***REMOVED***,
+						{
+							"op": "replace",
+						***REMOVED***: "/version/id",
+							"value": "openshift-v4.50.0-fast"
+				***REMOVED***,
+						{
+							"op": "add",
+						***REMOVED***: "/version/channel_group",
+							"value": "fast"
+				***REMOVED***
+						]`***REMOVED***,
+				***REMOVED***,
+			***REMOVED***
+			terraform.Source(`
+			resource "ocm_cluster_rosa_classic" "my_cluster" {
+			  name           = "my-cluster"
+			  cloud_region   = "us-west-1"
+			  aws_account_id = "123"
+			  sts = {
+				  operator_role_prefix = "test"
+				  role_arn = "",
+				  support_role_arn = "",
+				  instance_iam_roles = {
+					  master_role_arn = "",
+					  worker_role_arn = "",
+				  }
+			  }
+			  channel_group = "fast"
+			  version = "openshift-v4.50.0"
+	***REMOVED***
+		  `***REMOVED***
+			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+***REMOVED******REMOVED***
+		It("returns an error when the version is not found in the channel group", func(***REMOVED*** {
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+					RespondWithPatchedJSON(http.StatusOK, versionListPage1, `[
+						{
+							"op": "add",
+						***REMOVED***: "/items/-",
+							"value": {
+								"kind": "Version",
+								"id": "openshift-v4.50.0-fast",
+								"href": "/api/clusters_mgmt/v1/versions/openshift-v4.50.0-fast",
+								"raw_id": "4.50.0",
+								"channel_group": "fast"
+					***REMOVED***
+				***REMOVED***
+					]`***REMOVED***,
+				***REMOVED***,
+			***REMOVED***
+			terraform.Source(`
+			resource "ocm_cluster_rosa_classic" "my_cluster" {
+			  name           = "my-cluster"
+			  cloud_region   = "us-west-1"
+			  aws_account_id = "123"
+			  sts = {
+				  operator_role_prefix = "test"
+				  role_arn = "",
+				  support_role_arn = "",
+				  instance_iam_roles = {
+					  master_role_arn = "",
+					  worker_role_arn = "",
+				  }
+			  }
+			  channel_group = "fast"
+			  version = "openshift-v4.99.99"
+	***REMOVED***
+		  `***REMOVED***
+			Expect(terraform.Apply(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
+***REMOVED******REMOVED***
+	}***REMOVED***
 
 	It("Creates basic cluster", func(***REMOVED*** {
 		// Prepare the server:

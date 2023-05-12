@@ -56,6 +56,7 @@ const (
 	maxClusterNameLength = 15
 	tagsPrefix           = "rosa_"
 	tagsOpenShiftVersion = tagsPrefix + "openshift_version"
+	lowestHttpTokensVer  = "4.11.0"
 )
 
 var kmsArnRE = regexp.MustCompile(
@@ -374,6 +375,17 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Type:        types.StringType,
 				Computed:    true,
 			},
+			"aws_http_tokens_state": {
+				Description: "Which HttpTokensState to use for metadata service interaction options for EC2 instances" +
+					"can be optional or required, available only from 4.11.0",
+				Type:     types.StringType,
+				Optional: true,
+				Validators: EnumValueValidator([]string{string(cmv1.HttpTokenStateOptional),
+					string(cmv1.HttpTokenStateRequired)}),
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(t.logger),
+				},
+			},
 		},
 	}
 	return
@@ -522,6 +534,11 @@ func createClassicClusterObject(ctx context.Context,
 		aws.Tags(tags)
 	}
 
+	if !common.IsStringAttributeEmpty(state.HttpTokensState) {
+		// value validation was done before
+		aws.HttpTokensState(cmv1.HttpTokenState(state.HttpTokensState.Value))
+	}
+
 	if !state.KMSKeyArn.Unknown && !state.KMSKeyArn.Null && state.KMSKeyArn.Value != "" {
 		kmsKeyARN := state.KMSKeyArn.Value
 		if !kmsArnRE.MatchString(kmsKeyARN) {
@@ -645,9 +662,28 @@ func createClassicClusterObject(ctx context.Context,
 	return object, err
 }
 
-func (r *ClusterRosaClassicResource) validateAccountRoles(ctx context.Context, state *ClusterRosaClassicState) error {
-	r.logger.Debug(ctx, "Validating if cluster version is compatible to account roles' version")
-	region := state.CloudRegion.Value
+func validateHttpTokensVersion(ctx context.Context, logger logging.Logger, state *ClusterRosaClassicState, version string) error {
+	if common.IsStringAttributeEmpty(state.HttpTokensState) {
+		return nil
+	}
+
+	version = getOcmVersionMinor(version)
+	a, err := ver.NewVersion(version)
+	if err != nil {
+		return fmt.Errorf("version '%s' is not supported: %v", version, err)
+	}
+	b, _ := ver.NewVersion(lowestHttpTokensVer)
+	if !a.GreaterThanOrEqual(b) {
+		msg := fmt.Sprintf("version '%s' is not supported with http tokens required, "+
+			"minimum supported version is %s", version, lowestHttpTokensVer)
+		logger.Error(ctx, msg)
+		return fmt.Errorf(msg)
+	}
+
+	return nil
+}
+
+func (r *ClusterRosaClassicResource) getVersion(ctx context.Context, state *ClusterRosaClassicState) (string, error) {
 	version := ""
 	if !state.Version.Unknown && !state.Version.Null {
 		version = state.Version.Value
@@ -656,10 +692,16 @@ func (r *ClusterRosaClassicResource) validateAccountRoles(ctx context.Context, s
 	if version == "" {
 		versionList, err := r.getVersionList(r.logger, ctx)
 		if err != nil {
-			return err
+			return version, err
 		}
 		version = versionList[0]
 	}
+	return version, nil
+}
+
+func (r *ClusterRosaClassicResource) validateAccountRoles(ctx context.Context, state *ClusterRosaClassicState, version string) error {
+	r.logger.Debug(ctx, "Validating if cluster version is compatible to account roles' version")
+	region := state.CloudRegion.Value
 
 	r.logger.Debug(ctx, "Cluster version is %s", version)
 	roleARNs := []string{
@@ -858,11 +900,23 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 	if response.Diagnostics.HasError() {
 		return
 	}
+	summary := "Can't build cluster"
 
-	err := r.validateAccountRoles(ctx, state)
+	version, err := r.getVersion(ctx, state)
 	if err != nil {
 		response.Diagnostics.AddError(
-			"Can't build cluster",
+			summary,
+			fmt.Sprintf(
+				"Can't build cluster with name '%s': %v",
+				state.Name.Value, err,
+			),
+		)
+	}
+
+	err = r.validateAccountRoles(ctx, state, version)
+	if err != nil {
+		response.Diagnostics.AddError(
+			summary,
 			fmt.Sprintf(
 				"Can't build cluster with name '%s', failed while validating account roles: %v",
 				state.Name.Value, err,
@@ -870,10 +924,22 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 		)
 		return
 	}
+	err = validateHttpTokensVersion(ctx, r.logger, state, version)
+	if err != nil {
+		response.Diagnostics.AddError(
+			summary,
+			fmt.Sprintf(
+				"Can't build cluster with name '%s': %v",
+				state.Name.Value, err,
+			),
+		)
+		return
+	}
+
 	object, err := createClassicClusterObject(ctx, state, r.logger, diags)
 	if err != nil {
 		response.Diagnostics.AddError(
-			"Can't build cluster",
+			summary,
 			fmt.Sprintf(
 				"Can't build cluster with name '%s': %v",
 				state.Name.Value, err,
@@ -885,7 +951,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 	add, err := r.clusterCollection.Add().Body(object).SendContext(ctx)
 	if err != nil {
 		response.Diagnostics.AddError(
-			"Can't create cluster",
+			summary,
 			fmt.Sprintf(
 				"Can't create cluster with name '%s': %v",
 				state.Name.Value, err,
@@ -1288,6 +1354,13 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	if ok {
 		state.KMSKeyArn = types.String{
 			Value: kmsKeyArn,
+		}
+	}
+
+	httpTokensState, ok := object.AWS().GetHttpTokensState()
+	if ok {
+		state.HttpTokensState = types.String{
+			Value: string(httpTokensState),
 		}
 	}
 

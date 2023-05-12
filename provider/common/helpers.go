@@ -83,3 +83,7 @@ func StringListToArray(list types.List) ([]string, error) {
 	}
 	return arr, nil
 }
+
+func IsStringAttributeEmpty(param types.String) bool {
+	return param.Unknown || param.Null || param.Value == ""
+}

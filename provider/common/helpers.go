@@ -17,6 +17,8 @@ limitations under the License.
 package common
 
 ***REMOVED***
+	"regexp"
+
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/pkg/errors"
@@ -82,4 +84,9 @@ func StringListToArray(list types.List***REMOVED*** ([]string, error***REMOVED**
 		arr = append(arr, stype.Value***REMOVED***
 	}
 	return arr, nil
+}
+
+func IsValidDomain(candidate string***REMOVED*** bool {
+	var domainRegexp = regexp.MustCompile(`^(?i***REMOVED***[a-z0-9-]+(\.[a-z0-9-]+***REMOVED***+\.?$`***REMOVED***
+	return domainRegexp.MatchString(candidate***REMOVED***
 }

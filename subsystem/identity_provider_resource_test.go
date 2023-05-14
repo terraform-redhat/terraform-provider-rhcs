@@ -389,6 +389,136 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
 
+	Context("Google identity provider", func(***REMOVED*** {
+		Context("Invalid google config", func(***REMOVED*** {
+			It("Should fail with invalid hosted_domain", func(***REMOVED*** {
+				// Run the apply command:
+				terraform.Source(`
+		          resource "ocm_identity_provider" "my_ip" {
+		            cluster = "123"
+		            name    = "my-ip"
+		            google = {
+		        	  client_id = "test-client"
+		        	  client_secret = "test-secret"
+                      hosted_domain = "examplecom"
+		            }
+		          }
+		        `***REMOVED***
+				Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
+	***REMOVED******REMOVED***
+
+			It("Should fail when mapping_method is not lookup and no hosted_domain", func(***REMOVED*** {
+				// Run the apply command:
+				terraform.Source(`
+		          resource "ocm_identity_provider" "my_ip" {
+		            cluster = "123"
+		            name    = "my-ip"
+		            google = {
+		        	  client_id = "test-client"
+		        	  client_secret = "test-secret"
+		            }
+		          }
+		        `***REMOVED***
+				Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
+	***REMOVED******REMOVED***
+
+***REMOVED******REMOVED***
+
+		Context("Happy flow", func(***REMOVED*** {
+			It("Should create provider", func(***REMOVED*** {
+				// Prepare the server:
+				server.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(
+							http.MethodPost,
+							"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+						***REMOVED***,
+						VerifyJSON(`{
+			    	      "kind": "IdentityProvider",
+			    	      "type": "GoogleIdentityProvider",
+                          "mapping_method": "claim",
+			    	      "name": "my-ip",
+			    	      "google": {
+			    	        "client_id": "test-client",
+			    	        "client_secret": "test-secret",
+                            "hosted_domain": "example.com"
+			    	      }
+			    	    }`***REMOVED***,
+						RespondWithJSON(http.StatusOK, `{
+			    	      "id": "456",
+			    	      "name": "my-ip",
+                          "mapping_method": "claim",
+			    	      "google": {
+			    	        "client_id": "test-client",
+			    	        "client_secret": "test-secret",
+                            "hosted_domain": "example.com"
+			    	      }
+			    	    }`***REMOVED***,
+					***REMOVED***,
+				***REMOVED***
+
+				// Run the apply command:
+				terraform.Source(`
+		          resource "ocm_identity_provider" "my_ip" {
+		            cluster = "123"
+		            name    = "my-ip"
+		            google = {
+		        	  client_id = "test-client"
+		        	  client_secret = "test-secret"
+                      hosted_domain = "example.com"
+		            }
+		          }
+		        `***REMOVED***
+				Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+	***REMOVED******REMOVED***
+
+			It("Should create provider without hosted_domain when mapping_method is set to 'lookup'", func(***REMOVED*** {
+				// Prepare the server:
+				server.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(
+							http.MethodPost,
+							"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+						***REMOVED***,
+						VerifyJSON(`{
+			    	      "kind": "IdentityProvider",
+			    	      "type": "GoogleIdentityProvider",
+			    	      "name": "my-ip",
+                          "mapping_method": "lookup",
+			    	      "google": {
+			    	        "client_id": "test-client",
+			    	        "client_secret": "test-secret"
+			    	      }
+			    	    }`***REMOVED***,
+						RespondWithJSON(http.StatusOK, `{
+			    	      "id": "456",
+			    	      "name": "my-ip",
+                          "mapping_method": "lookup",
+			    	      "google": {
+			    	        "client_id": "test-client",
+			    	        "client_secret": "test-secret"
+			    	      }
+			    	    }`***REMOVED***,
+					***REMOVED***,
+				***REMOVED***
+
+				// Run the apply command:
+				terraform.Source(`
+		          resource "ocm_identity_provider" "my_ip" {
+		            cluster = "123"
+		            name    = "my-ip"
+                    mapping_method = "lookup"
+		            google = {
+		        	  client_id = "test-client"
+		        	  client_secret = "test-secret"
+		            }
+		          }
+		        `***REMOVED***
+				Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+	***REMOVED******REMOVED***
+***REMOVED******REMOVED***
+	}***REMOVED***
+
 	It("Can create an OpenID identity provider", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(

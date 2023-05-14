@@ -83,6 +83,12 @@ func (t *IdentityProviderResourceType***REMOVED*** GetSchema(ctx context.Context
 				Optional:    true,
 				Validators:  idps.GithubValidators(***REMOVED***,
 	***REMOVED***,
+			"google": {
+				Description: "Details of the Google identity provider.",
+				Attributes:  idps.GoogleSchema(***REMOVED***,
+				Optional:    true,
+				Validators:  idps.GoogleValidators(***REMOVED***,
+	***REMOVED***,
 			"ldap": {
 				Description: "Details of the LDAP identity provider.",
 				Attributes:  idps.LdapSchema(***REMOVED***,
@@ -177,6 +183,14 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 			return
 ***REMOVED***
 		builder.Github(githubBuilder***REMOVED***
+	case state.Google != nil:
+		builder.Type(cmv1.IdentityProviderTypeGoogle***REMOVED***
+		googleBuilder, err := idps.CreateGoogleIDPBuilder(ctx, mappingMethod, state.Google***REMOVED***
+		if err != nil {
+			response.Diagnostics.AddError(err.Error(***REMOVED***, err.Error(***REMOVED******REMOVED***
+			return
+***REMOVED***
+		builder.Google(googleBuilder***REMOVED***
 	case state.LDAP != nil:
 		builder.Type(cmv1.IdentityProviderTypeLDAP***REMOVED***
 		ldapBuilder, err := idps.CreateLdapIDPBuilder(ctx, state.LDAP***REMOVED***
@@ -292,6 +306,7 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 	ldapObject := object.LDAP(***REMOVED***
 	openidObject := object.OpenID(***REMOVED***
 	githubObject := object.Github(***REMOVED***
+	googleObject := object.Google(***REMOVED***
 	switch {
 	case htpasswdObject != nil:
 		if state.HTPasswd == nil {
@@ -372,6 +387,25 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 		orgs, ok := githubObject.GetOrganizations(***REMOVED***
 		if ok {
 			state.Github.Organizations = common.StringArrayToList(orgs***REMOVED***
+***REMOVED***
+	case googleObject != nil:
+		if state.Google == nil {
+			state.Google = &idps.GoogleIdentityProvider{}
+***REMOVED***
+		if client_id, ok := googleObject.GetClientID(***REMOVED***; ok {
+			state.Google.ClientID = types.String{
+				Value: client_id,
+	***REMOVED***
+***REMOVED***
+		if client_secret, ok := googleObject.GetClientSecret(***REMOVED***; ok {
+			state.Google.ClientSecret = types.String{
+				Value: client_secret,
+	***REMOVED***
+***REMOVED***
+		if hosted_domain, ok := googleObject.GetHostedDomain(***REMOVED***; ok {
+			state.Google.HostedDomain = types.String{
+				Value: hosted_domain,
+	***REMOVED***
 ***REMOVED***
 	case ldapObject != nil:
 		if state.LDAP == nil {

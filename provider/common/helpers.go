@@ -17,6 +17,8 @@ limitations under the License.
 package common
 
 import (
+	"regexp"
+
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/pkg/errors"
@@ -82,4 +84,9 @@ func StringListToArray(list types.List) ([]string, error) {
 		arr = append(arr, stype.Value)
 	}
 	return arr, nil
+}
+
+func IsValidDomain(candidate string) bool {
+	var domainRegexp = regexp.MustCompile(`^(?i)[a-z0-9-]+(\.[a-z0-9-]+)+\.?$`)
+	return domainRegexp.MatchString(candidate)
 }

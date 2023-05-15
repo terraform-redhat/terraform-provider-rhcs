@@ -105,7 +105,6 @@ tools:
 e2e_test: tools install
 	ginkgo run $(ginkgo_flags) \
 		--timeout 5h \
-		--junit-report ../../junit.xml \
 		-r \
 		--focus-file ci/e2e/.* \
 		-- \

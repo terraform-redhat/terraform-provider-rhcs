@@ -182,6 +182,8 @@ func createAccountRolesUsingTerraformAWSRosaStsModule(ctx context.Context) {
 		"-var", accountRolePrefix,
 		"-var", ocmEnvironment,
 		"-var", openshiftVersion,
+		"-var", tokenFilter,
+		"-var", gatewayFilter,
 		"-auto-approve"})
 }
 
@@ -226,10 +228,10 @@ func defineVariablesValues() {
 	accountRolePrefix = fmt.Sprintf("account_role_prefix=terr-account-%s", randSuffix)
 	logger.Info(ctx, "The account IAM role prefix that was chose is %s", accountRolePrefix)
 
-	ocmEnvironment = fmt.Sprintf("ocm_env=%s", URLAliases[args.gatewayURL])
+	ocmEnvironment = fmt.Sprintf("ocm_environment=%s", URLAliases[args.gatewayURL])
 	logger.Info(ctx, "The ocm environment that was chose is %s", ocmEnvironment)
 
-	openshiftVersion = fmt.Sprintf("rosa_openshift_version=%s", args.openshiftVersion)
+	openshiftVersion = fmt.Sprintf("openshift_version=%s", args.openshiftVersion)
 	logger.Info(ctx, "The cluster version that was chose is %s", openshiftVersion)
 
 	tokenFilter = fmt.Sprintf("token=%s", args.offlineToken)

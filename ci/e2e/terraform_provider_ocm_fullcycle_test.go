@@ -282,6 +282,7 @@ var _ = FDescribe("Terraform provider OCM test", Ordered, func() {
 			"-var", accountRolePrefix,
 			"-var", ocmEnvironment,
 			"-var", openshiftVersion,
+			"-var", gatewayFilter,
 			"-auto-approve"})
 
 		// remove temporary directories

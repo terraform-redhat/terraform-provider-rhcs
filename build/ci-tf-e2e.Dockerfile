@@ -16,13 +16,11 @@ ENV GOPATH=/usr/local/go
 ENV TEST_OFFLINE_TOKEN=""
 
 # terraform-provider-ocm repo
-RUN yum install -y git &&\
-    git config --global http.sslVerify false &&\
-    git clone https://github.com/terraform-redhat/terraform-provider-ocm.git --branch main
+COPY . ./terraform-provider-ocm
 
 RUN yum install -y yum-utils && \
     yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo &&\
-    yum -y install terraform python3 make jq httpd-tools &&\
+    yum -y install terraform python3 make jq httpd-tools git &&\
     pip3 install PyYAML jinja2 &&\
     go env -w GO111MODULE=on &&\
     go install github.com/onsi/ginkgo/v2/ginkgo@latest &&\

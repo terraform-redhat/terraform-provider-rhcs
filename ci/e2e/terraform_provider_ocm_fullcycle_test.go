@@ -182,6 +182,8 @@ func createAccountRolesUsingTerraformAWSRosaStsModule(ctx context.Context***REMO
 		"-var", accountRolePrefix,
 		"-var", ocmEnvironment,
 		"-var", openshiftVersion,
+		"-var", tokenFilter,
+		"-var", gatewayFilter,
 		"-auto-approve"}***REMOVED***
 }
 
@@ -226,10 +228,10 @@ func defineVariablesValues(***REMOVED*** {
 	accountRolePrefix = fmt.Sprintf("account_role_prefix=terr-account-%s", randSuffix***REMOVED***
 	logger.Info(ctx, "The account IAM role prefix that was chose is %s", accountRolePrefix***REMOVED***
 
-	ocmEnvironment = fmt.Sprintf("ocm_env=%s", URLAliases[args.gatewayURL]***REMOVED***
+	ocmEnvironment = fmt.Sprintf("ocm_environment=%s", URLAliases[args.gatewayURL]***REMOVED***
 	logger.Info(ctx, "The ocm environment that was chose is %s", ocmEnvironment***REMOVED***
 
-	openshiftVersion = fmt.Sprintf("rosa_openshift_version=%s", args.openshiftVersion***REMOVED***
+	openshiftVersion = fmt.Sprintf("openshift_version=%s", args.openshiftVersion***REMOVED***
 	logger.Info(ctx, "The cluster version that was chose is %s", openshiftVersion***REMOVED***
 
 	tokenFilter = fmt.Sprintf("token=%s", args.offlineToken***REMOVED***
@@ -280,6 +282,7 @@ var _ = FDescribe("Terraform provider OCM test", Ordered, func(***REMOVED*** {
 			"-var", accountRolePrefix,
 			"-var", ocmEnvironment,
 			"-var", openshiftVersion,
+			"-var", gatewayFilter,
 			"-auto-approve"}***REMOVED***
 
 		// remove temporary directories

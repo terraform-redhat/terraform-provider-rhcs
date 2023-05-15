@@ -17,12 +17,16 @@ limitations under the License.
 package common
 
 ***REMOVED***
+	"github.com/hashicorp/go-version"
 	"regexp"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/pkg/errors"
 ***REMOVED***
+
+const versionPrefix = "openshift-v"
 
 // shouldPatchInt changed checks if the change between the given state and plan requires sending a
 // patch request to the server. If it does it returns the value to add to the patch.
@@ -89,4 +93,20 @@ func StringListToArray(list types.List***REMOVED*** ([]string, error***REMOVED**
 func IsValidDomain(candidate string***REMOVED*** bool {
 	var domainRegexp = regexp.MustCompile(`^(?i***REMOVED***[a-z0-9-]+(\.[a-z0-9-]+***REMOVED***+\.?$`***REMOVED***
 	return domainRegexp.MatchString(candidate***REMOVED***
+}
+
+func IsStringAttributeEmpty(param types.String***REMOVED*** bool {
+	return param.Unknown || param.Null || param.Value == ""
+}
+
+func IsGreaterThanOrEqual(version1, version2 string***REMOVED*** (bool, error***REMOVED*** {
+	v1, err := version.NewVersion(strings.TrimPrefix(version1, versionPrefix***REMOVED******REMOVED***
+	if err != nil {
+		return false, err
+	}
+	v2, err := version.NewVersion(strings.TrimPrefix(version2, versionPrefix***REMOVED******REMOVED***
+	if err != nil {
+		return false, err
+	}
+	return v1.GreaterThanOrEqual(v2***REMOVED***, nil
 }

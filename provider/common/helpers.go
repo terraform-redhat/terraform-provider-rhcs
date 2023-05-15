@@ -17,12 +17,16 @@ limitations under the License.
 package common
 
 import (
+	"github.com/hashicorp/go-version"
 	"regexp"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/pkg/errors"
 )
+
+const versionPrefix = "openshift-v"
 
 // shouldPatchInt changed checks if the change between the given state and plan requires sending a
 // patch request to the server. If it does it returns the value to add to the patch.
@@ -89,4 +93,20 @@ func StringListToArray(list types.List) ([]string, error) {
 func IsValidDomain(candidate string) bool {
 	var domainRegexp = regexp.MustCompile(`^(?i)[a-z0-9-]+(\.[a-z0-9-]+)+\.?$`)
 	return domainRegexp.MatchString(candidate)
+}
+
+func IsStringAttributeEmpty(param types.String) bool {
+	return param.Unknown || param.Null || param.Value == ""
+}
+
+func IsGreaterThanOrEqual(version1, version2 string) (bool, error) {
+	v1, err := version.NewVersion(strings.TrimPrefix(version1, versionPrefix))
+	if err != nil {
+		return false, err
+	}
+	v2, err := version.NewVersion(strings.TrimPrefix(version2, versionPrefix))
+	if err != nil {
+		return false, err
+	}
+	return v1.GreaterThanOrEqual(v2), nil
 }

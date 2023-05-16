@@ -1399,7 +1399,7 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	}
 
 	httpTokensState, ok := object.AWS().GetHttpTokensState()
-	if ok {
+	if ok && httpTokensState != "" {
 		state.HttpTokensState = types.String{
 			Value: string(httpTokensState),
 		}

@@ -11,7 +11,7 @@ To run it:
 
 * Provide STS openshift_version
     ```
-    export TF_VAR_openshift_versionx=...
+    export TF_VAR_openshift_version=...
     
 * Provide STS ocm_environment
     ```

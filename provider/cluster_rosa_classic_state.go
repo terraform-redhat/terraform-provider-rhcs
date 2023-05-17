@@ -51,6 +51,7 @@ type ClusterRosaClassicState struct {
 	Name                      types.String `tfsdk:"name"`
 	PodCIDR                   types.String `tfsdk:"pod_cidr"`
 	Properties                types.Map    `tfsdk:"properties"`
+	OCMProperties             types.Map    `tfsdk:"ocm_properties"`
 	Tags                      types.Map    `tfsdk:"tags"`
 	ServiceCIDR               types.String `tfsdk:"service_cidr"`
 	Proxy                     *Proxy       `tfsdk:"proxy"`

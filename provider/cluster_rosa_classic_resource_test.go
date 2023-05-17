@@ -31,6 +31,7 @@ package provider
 ***REMOVED***             // nolint
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift-online/ocm-sdk-go/logging"
+	"github.com/terraform-redhat/terraform-provider-ocm/build"
 ***REMOVED***
 
 type MockHttpClient struct {
@@ -87,6 +88,8 @@ func generateBasicRosaClassicClusterJson(***REMOVED*** map[string]interface{} {
 		"multi_az": multiAz,
 		"properties": map[string]interface{}{
 			"rosa_creator_arn": rosaCreatorArn,
+			"rosa_tf_version":  build.Version,
+			"rosa_tf_commit":   build.Commit,
 ***REMOVED***,
 		"api": map[string]interface{}{
 			"url": apiUrl,
@@ -245,6 +248,8 @@ var _ = Describe("Rosa Classic Sts cluster", func(***REMOVED*** {
 			Expect(clusterState.CloudRegion.Value***REMOVED***.To(Equal(regionId***REMOVED******REMOVED***
 			Expect(clusterState.MultiAZ.Value***REMOVED***.To(Equal(multiAz***REMOVED******REMOVED***
 			Expect(clusterState.Properties.Elems["rosa_creator_arn"].Equal(types.String{Value: rosaCreatorArn}***REMOVED******REMOVED***.To(Equal(true***REMOVED******REMOVED***
+			Expect(clusterState.OCMProperties.Elems["rosa_tf_version"].Equal(types.String{Value: build.Version}***REMOVED******REMOVED***.To(Equal(true***REMOVED******REMOVED***
+			Expect(clusterState.OCMProperties.Elems["rosa_tf_commit"].Equal(types.String{Value: build.Commit}***REMOVED******REMOVED***.To(Equal(true***REMOVED******REMOVED***
 			Expect(clusterState.APIURL.Value***REMOVED***.To(Equal(apiUrl***REMOVED******REMOVED***
 			Expect(clusterState.ConsoleURL.Value***REMOVED***.To(Equal(consoleUrl***REMOVED******REMOVED***
 			Expect(clusterState.Domain.Value***REMOVED***.To(Equal(fmt.Sprintf("%s.%s", clusterName, baseDomain***REMOVED******REMOVED******REMOVED***

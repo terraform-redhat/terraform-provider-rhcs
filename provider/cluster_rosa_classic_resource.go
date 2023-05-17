@@ -34,6 +34,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/openshift/rosa/pkg/ocm"
+	"github.com/terraform-redhat/terraform-provider-ocm/build"
 	"github.com/terraform-redhat/terraform-provider-ocm/provider/common"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
@@ -51,14 +52,21 @@ import (
 )
 
 const (
-	awsCloudProvider     = "aws"
-	rosaProduct          = "rosa"
-	MinVersion           = "4.10.0"
-	maxClusterNameLength = 15
-	tagsPrefix           = "rosa_"
-	tagsOpenShiftVersion = tagsPrefix + "openshift_version"
-	lowestHttpTokensVer  = "4.11.0"
+	awsCloudProvider      = "aws"
+	rosaProduct           = "rosa"
+	MinVersion            = "4.10.0"
+	maxClusterNameLength  = 15
+	tagsPrefix            = "rosa_"
+	tagsOpenShiftVersion  = tagsPrefix + "openshift_version"
+	lowestHttpTokensVer   = "4.11.0"
+	propertyRosaTfVersion = tagsPrefix + "tf_version"
+	propertyRosaTfCommit  = tagsPrefix + "tf_commit"
 )
+
+var OCMProperties = map[string]string{
+	propertyRosaTfVersion: build.Version,
+	propertyRosaTfCommit:  build.Commit,
+}
 
 var kmsArnRE = regexp.MustCompile(
 	`^arn:aws[\w-]*:kms:[\w-]+:\d{12}:key\/mrk-[0-9a-f]{32}$|[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`,
@@ -149,7 +157,15 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Type: types.MapType{
 					ElemType: types.StringType,
 				},
-				Optional: true,
+				Optional:   true,
+				Computed:   true,
+				Validators: propertiesValidators(),
+			},
+			"ocm_properties": {
+				Description: "Merged properties defined by OCM and the user defined 'properties'",
+				Type: types.MapType{
+					ElemType: types.StringType,
+				},
 				Computed: true,
 			},
 			"tags": {
@@ -451,13 +467,17 @@ func createClassicClusterObject(ctx context.Context,
 	if !state.MultiAZ.Unknown && !state.MultiAZ.Null {
 		builder.MultiAZ(state.MultiAZ.Value)
 	}
+	// Set default properties
+	properties := make(map[string]string)
+	for k, v := range OCMProperties {
+		properties[k] = v
+	}
 	if !state.Properties.Unknown && !state.Properties.Null {
-		properties := map[string]string{}
 		for k, v := range state.Properties.Elems {
 			properties[k] = v.(types.String).Value
 		}
-		builder.Properties(properties)
 	}
+	builder.Properties(properties)
 
 	if !state.EtcdEncryption.Unknown && !state.EtcdEncryption.Null {
 		builder.EtcdEncryption(state.EtcdEncryption.Value)
@@ -1271,15 +1291,29 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	state.MultiAZ = types.Bool{
 		Value: object.MultiAZ(),
 	}
+
 	state.Properties = types.Map{
 		ElemType: types.StringType,
 		Elems:    map[string]attr.Value{},
 	}
-	for k, v := range object.Properties() {
-		state.Properties.Elems[k] = types.String{
-			Value: v,
+	state.OCMProperties = types.Map{
+		ElemType: types.StringType,
+		Elems:    map[string]attr.Value{},
+	}
+	if props, ok := object.GetProperties(); ok {
+		for k, v := range props {
+			if k == propertyRosaTfCommit || k == propertyRosaTfVersion {
+				state.OCMProperties.Elems[k] = types.String{
+					Value: v,
+				}
+			} else {
+				state.Properties.Elems[k] = types.String{
+					Value: v,
+				}
+			}
 		}
 	}
+
 	state.APIURL = types.String{
 		Value: object.API().URL(),
 	}
@@ -1654,4 +1688,32 @@ func (r *ClusterRosaClassicResource) waitTillClusterIsNotFoundWithTimeout(ctx co
 	}
 
 	return false, nil
+}
+
+func propertiesValidators() []tfsdk.AttributeValidator {
+	return []tfsdk.AttributeValidator{
+		&common.AttributeValidator{
+			Desc: "Validate property key override",
+			Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse) {
+				propertiesState := &types.Map{
+					ElemType: types.StringType,
+				}
+				diag := req.Config.GetAttribute(ctx, req.AttributePath, propertiesState)
+				if diag.HasError() {
+					// No attribute to validate
+					return
+				}
+				if !propertiesState.Null && !propertiesState.Unknown {
+					for k := range propertiesState.Elems {
+						if k == propertyRosaTfVersion || k == propertyRosaTfCommit {
+							errHead := "Invalid property key."
+							errDesc := fmt.Sprintf("Can not override reserved properties keys. Reserved keys: '%s'/'%s'", propertyRosaTfVersion, propertyRosaTfCommit)
+							resp.Diagnostics.AddError(errHead, errDesc)
+							return
+						}
+					}
+				}
+			},
+		},
+	}
 }

@@ -219,7 +219,7 @@ func defineVariablesValues() {
 	accountRolesTempDir = fmt.Sprintf("%s_%s", accountRolesFilesDir, randSuffix)
 	logger.Info(ctx, "The temp directory that was chosen is %s", accountRolesTempDir)
 
-	clusterName = fmt.Sprintf("cluster_name=terr-ocm-%s", randSuffix)
+	clusterName = fmt.Sprintf("cluster_name=ci-ocm-tf-%s", randSuffix)
 	logger.Info(ctx, "The cluster name that was chosen is %s", clusterName)
 
 	operatorRolePrefix = fmt.Sprintf("operator_role_prefix=terr-operator-%s", randSuffix)

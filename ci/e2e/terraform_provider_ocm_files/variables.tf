@@ -34,3 +34,8 @@ variable replicas {
     type = string
     default = "3"
 }
+
+variable openshift_version {
+    type = string
+    default = "4.12.15"
+}

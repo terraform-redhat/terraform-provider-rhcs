@@ -33,6 +33,7 @@ data "aws_caller_identity" "current" {
 
 resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
   name               = var.cluster_name
+  version            = "openshift-v${var.openshift_version}"
   cloud_region       = var.aws_region
   aws_account_id     = data.aws_caller_identity.current.account_id
   availability_zones = var.aws_availability_zones

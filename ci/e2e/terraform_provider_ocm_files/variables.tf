@@ -39,3 +39,7 @@ variable openshift_version {
     type = string
     default = "4.12.15"
 }
+
+variable channel_group {
+    default = "stable"
+}

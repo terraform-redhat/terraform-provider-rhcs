@@ -15,3 +15,18 @@ variable url {
 variable account_role_prefix {
     type = string
 }
+
+variable cluster_name {
+    type = string
+    default = "my-cluster"
+}
+
+variable cloud_region {
+    type = string
+    default = "us-east-2"
+}
+
+variable availability_zones {
+    type = list(string)
+    default = ["us-east-2a"]
+}

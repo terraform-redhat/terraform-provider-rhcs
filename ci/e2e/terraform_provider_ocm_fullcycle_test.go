@@ -279,6 +279,7 @@ var _ = FDescribe("Terraform provider OCM test", Ordered, func(***REMOVED*** {
 
 		// destroy account roles
 		runTerraformDestroyWithArgs(ctx, accountRolesTempDir, []string{
+			"-var", tokenFilter,
 			"-var", accountRolePrefix,
 			"-var", ocmEnvironment,
 			"-var", openshiftVersion,

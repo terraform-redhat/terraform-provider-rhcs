@@ -31,6 +31,7 @@ import (
 	. "github.com/onsi/gomega"             // nolint
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift-online/ocm-sdk-go/logging"
+	"github.com/terraform-redhat/terraform-provider-ocm/build"
 )
 
 type MockHttpClient struct {
@@ -87,6 +88,8 @@ func generateBasicRosaClassicClusterJson() map[string]interface{} {
 		"multi_az": multiAz,
 		"properties": map[string]interface{}{
 			"rosa_creator_arn": rosaCreatorArn,
+			"rosa_tf_version":  build.Version,
+			"rosa_tf_commit":   build.Commit,
 		},
 		"api": map[string]interface{}{
 			"url": apiUrl,
@@ -245,6 +248,8 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 			Expect(clusterState.CloudRegion.Value).To(Equal(regionId))
 			Expect(clusterState.MultiAZ.Value).To(Equal(multiAz))
 			Expect(clusterState.Properties.Elems["rosa_creator_arn"].Equal(types.String{Value: rosaCreatorArn})).To(Equal(true))
+			Expect(clusterState.OCMProperties.Elems["rosa_tf_version"].Equal(types.String{Value: build.Version})).To(Equal(true))
+			Expect(clusterState.OCMProperties.Elems["rosa_tf_commit"].Equal(types.String{Value: build.Commit})).To(Equal(true))
 			Expect(clusterState.APIURL.Value).To(Equal(apiUrl))
 			Expect(clusterState.ConsoleURL.Value).To(Equal(consoleUrl))
 			Expect(clusterState.Domain.Value).To(Equal(fmt.Sprintf("%s.%s", clusterName, baseDomain)))

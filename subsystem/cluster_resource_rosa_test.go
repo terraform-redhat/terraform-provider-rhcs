@@ -23,12 +23,13 @@ package provider
 ***REMOVED***                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+	"github.com/terraform-redhat/terraform-provider-ocm/build"
 ***REMOVED***
 
 var _ = Describe("Cluster creation", func(***REMOVED*** {
 	// This is the cluster that will be returned by the server when asked to create or retrieve
 	// a cluster.
-	const template = `{
+	template := `{
 	  "id": "123",
 	  "name": "my-cluster",
 	  "region": {
@@ -41,6 +42,10 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 	  "console": {
 	    "url": "https://my-console.example.com"
 	  },
+      "properties": {
+         "rosa_tf_version": "` + build.Version + `",
+         "rosa_tf_commit": "` + build.Commit + `"
+      },
 	  "network": {
 	    "machine_cidr": "10.0.0.0/16",
 	    "service_cidr": "172.30.0.0/16",
@@ -299,6 +304,8 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 				VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
 				VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
 				VerifyJQ(`.product.id`, "rosa"***REMOVED***,
+				VerifyJQ(`.properties.rosa_tf_version`, build.Version***REMOVED***,
+				VerifyJQ(`.properties.rosa_tf_commit`, build.Commit***REMOVED***,
 				RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
@@ -348,6 +355,151 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+	}***REMOVED***
+	It("Creates basic cluster with properties", func(***REMOVED*** {
+		prop_key := "my_prop_key"
+		prop_val := "my_prop_val"
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+				RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
+			***REMOVED***,
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+				VerifyJQ(`.name`, "my-cluster"***REMOVED***,
+				VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
+				VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
+				VerifyJQ(`.product.id`, "rosa"***REMOVED***,
+				VerifyJQ(`.properties.rosa_tf_version`, build.Version***REMOVED***,
+				VerifyJQ(`.properties.rosa_tf_commit`, build.Commit***REMOVED***,
+				VerifyJQ(`.properties.`+prop_key, prop_val***REMOVED***,
+				RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+				***REMOVED***
+					  }
+			***REMOVED***,
+                    {
+                      "op": "add",
+                      "path": "/properties",
+                      "value": {
+                        "`+prop_key+`": "`+prop_val+`"
+                      }
+                    }]`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"	
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123" 
+            properties = { ` +
+			prop_key + ` = "` + prop_val + `"` +
+			`}
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+		***REMOVED***
+	***REMOVED***
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+	}***REMOVED***
+	It("Should fail cluster creation when trying to overrive reserved properties", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+				RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
+			***REMOVED***,
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+				VerifyJQ(`.name`, "my-cluster"***REMOVED***,
+				VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
+				VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
+				VerifyJQ(`.product.id`, "rosa"***REMOVED***,
+				VerifyJQ(`.properties.rosa_tf_version`, build.Version***REMOVED***,
+				VerifyJQ(`.properties.rosa_tf_commit`, build.Commit***REMOVED***,
+				RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+				***REMOVED***
+					  }
+			***REMOVED***]`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+		// Run the apply command:
+		terraform.Source(`
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"	
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123" 
+            properties = { 
+                rosa_tf_version = "bob"
+	***REMOVED***
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+		***REMOVED***
+	***REMOVED***
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
 
 	Context("Test destroy cluster", func(***REMOVED*** {

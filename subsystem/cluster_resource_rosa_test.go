@@ -485,8 +485,8 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		    name           = "my-cluster"	
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123" 
-            properties = { 
-                rosa_tf_version = "bob"
+			properties = { 
+   				rosa_tf_version = "bob"
 	***REMOVED***
 			sts = {
 				operator_role_prefix = "test"

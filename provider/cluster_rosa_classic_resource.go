@@ -74,7 +74,7 @@ var kmsArnRE = regexp.MustCompile(
 
 var addTerraformProviderVersionToUserAgent = request.NamedHandler{
 	Name: "ocmTerraformProvider.VersionUserAgentHandler",
-	Fn:   request.MakeAddToUserAgentHandler("TERRAFORM_PROVIDER_OCM", "1.0.0"),
+	Fn:   request.MakeAddToUserAgentHandler("TERRAFORM_PROVIDER_OCM", build.Version),
 }
 
 type ClusterRosaClassicResourceType struct {

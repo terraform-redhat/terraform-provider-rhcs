@@ -61,7 +61,7 @@ const (
 	roleArn           = "arn:aws:iam::123456789012:role/role-name"
 	httpProxy         = "http://proxy.com"
 	httpsProxy        = "https://proxy.com"
-	httpTokensState   = "required"
+	httpTokens        = "required"
 )
 
 var (
@@ -112,9 +112,9 @@ func generateBasicRosaClassicClusterJson() map[string]interface{} {
 			"enabled": ccsEnabled,
 		},
 		"aws": map[string]interface{}{
-			"account_id":        awsAccountID,
-			"private_link":      privateLink,
-			"http_tokens_state": httpTokensState,
+			"account_id":               awsAccountID,
+			"private_link":             privateLink,
+			"ec2_metadata_http_tokens": httpTokens,
 			"sts": map[string]interface{}{
 				"oidc_endpoint_url": oidcEndpointUrl,
 				"role_arn":          roleArn,
@@ -261,7 +261,7 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 			Expect(clusterState.AWSPrivateLink.Value).To(Equal(privateLink))
 			Expect(clusterState.Sts.OIDCEndpointURL.Value).To(Equal(oidcEndpointUrl))
 			Expect(clusterState.Sts.RoleARN.Value).To(Equal(roleArn))
-			Expect(clusterState.HttpTokensState.Value).To(Equal(httpTokensState))
+			Expect(clusterState.Ec2MetadataHttpTokens.Value).To(Equal(httpTokens))
 		})
 
 		It("Check trimming of oidc url with https perfix", func() {
@@ -302,11 +302,10 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 	Context("http tokens state validation", func() {
 		It("Fail validation with lower version than allowed", func() {
 			clusterState := generateBasicRosaClassicClusterState()
-			clusterState.HttpTokensState.Value = string(cmv1.HttpTokenStateOptional)
+			clusterState.Ec2MetadataHttpTokens.Value = string(cmv1.Ec2MetadataHttpTokensOptional)
 			err := validateHttpTokensVersion(context.Background(), &logging.StdLogger{}, clusterState, "openshift-v4.10.0")
 			Expect(err).ToNot(BeNil())
-			Expect(err.Error()).To(ContainSubstring("is not supported with http tokens " +
-				"required, minimum supported version"))
+			Expect(err.Error()).To(ContainSubstring("is not supported with ec2_metadata_http_tokens"))
 		})
 		It("Pass validation with http_tokens_state and supported version", func() {
 			clusterState := generateBasicRosaClassicClusterState()

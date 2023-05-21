@@ -1368,13 +1368,13 @@ var _ = Describe("Cluster creation", func() {
 			),
 			CombineHandlers(
 				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
-				VerifyJQ(`.aws.http_tokens_state`, "required"),
+				VerifyJQ(`.aws.ec2_metadata_http_tokens`, "required"),
 				RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
-                          "aws_http_tokens_state" : "required",
+                          "ec2_metadata_http_tokens" : "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://oidc_endpoint_url",
 							  "thumbprint": "111111",
@@ -1407,7 +1407,7 @@ var _ = Describe("Cluster creation", func() {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
-			aws_http_tokens_state = "required"
+			ec2_metadata_http_tokens = "required"
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -1430,13 +1430,13 @@ var _ = Describe("Cluster creation", func() {
 			),
 			CombineHandlers(
 				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
-				VerifyJQ(`.aws.http_tokens_state`, "required"),
+				VerifyJQ(`.aws.ec2_metadata_http_tokens`, "required"),
 				RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
-                          "aws_http_tokens_state" : "required",
+                          "ec2_metadata_http_tokens" : "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://oidc_endpoint_url",
 							  "thumbprint": "111111",
@@ -1469,7 +1469,7 @@ var _ = Describe("Cluster creation", func() {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
-			aws_http_tokens_state = "required"
+			ec2_metadata_http_tokens = "required"
 			version = "openshift-v4.10"
 			sts = {
 				operator_role_prefix = "test"
@@ -1500,7 +1500,7 @@ var _ = Describe("Cluster creation", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
-                          "aws_http_tokens_state" : "bad_string",
+                          "ec2_metadata_http_tokens" : "bad_string",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://oidc_endpoint_url",
 							  "thumbprint": "111111",
@@ -1533,7 +1533,7 @@ var _ = Describe("Cluster creation", func() {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
-			aws_http_tokens_state = "bad_string"
+			ec2_metadata_http_tokens = "bad_string"
 			version = "openshift-v4.12"
 			sts = {
 				operator_role_prefix = "test"

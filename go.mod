@@ -10,10 +10,11 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.5.0
 	github.com/onsi/ginkgo/v2 v2.4.0
 	github.com/onsi/gomega v1.23.0
-	github.com/openshift-online/ocm-sdk-go v0.1.339
+	github.com/openshift-online/ocm-sdk-go v0.1.341
 	github.com/openshift/rosa v1.2.21
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.4
+	github.com/thoas/go-funk v0.9.3
 	k8s.io/apimachinery v0.26.2
 )
 
@@ -90,7 +91,6 @@ require (
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/cobra v1.1.3 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/thoas/go-funk v0.9.3 // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	github.com/zclconf/go-cty v1.10.0 // indirect
 	github.com/zgalor/weberr v0.6.0 // indirect

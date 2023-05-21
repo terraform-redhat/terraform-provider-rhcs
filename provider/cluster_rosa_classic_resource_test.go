@@ -61,7 +61,7 @@ const (
 	roleArn           = "arn:aws:iam::123456789012:role/role-name"
 	httpProxy         = "http://proxy.com"
 	httpsProxy        = "https://proxy.com"
-	httpTokensState   = "required"
+	httpTokens        = "required"
 ***REMOVED***
 
 var (
@@ -112,9 +112,9 @@ func generateBasicRosaClassicClusterJson(***REMOVED*** map[string]interface{} {
 			"enabled": ccsEnabled,
 ***REMOVED***,
 		"aws": map[string]interface{}{
-			"account_id":        awsAccountID,
-			"private_link":      privateLink,
-			"http_tokens_state": httpTokensState,
+			"account_id":               awsAccountID,
+			"private_link":             privateLink,
+			"ec2_metadata_http_tokens": httpTokens,
 			"sts": map[string]interface{}{
 				"oidc_endpoint_url": oidcEndpointUrl,
 				"role_arn":          roleArn,
@@ -261,7 +261,7 @@ var _ = Describe("Rosa Classic Sts cluster", func(***REMOVED*** {
 			Expect(clusterState.AWSPrivateLink.Value***REMOVED***.To(Equal(privateLink***REMOVED******REMOVED***
 			Expect(clusterState.Sts.OIDCEndpointURL.Value***REMOVED***.To(Equal(oidcEndpointUrl***REMOVED******REMOVED***
 			Expect(clusterState.Sts.RoleARN.Value***REMOVED***.To(Equal(roleArn***REMOVED******REMOVED***
-			Expect(clusterState.HttpTokensState.Value***REMOVED***.To(Equal(httpTokensState***REMOVED******REMOVED***
+			Expect(clusterState.Ec2MetadataHttpTokens.Value***REMOVED***.To(Equal(httpTokens***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 
 		It("Check trimming of oidc url with https perfix", func(***REMOVED*** {
@@ -302,11 +302,10 @@ var _ = Describe("Rosa Classic Sts cluster", func(***REMOVED*** {
 	Context("http tokens state validation", func(***REMOVED*** {
 		It("Fail validation with lower version than allowed", func(***REMOVED*** {
 			clusterState := generateBasicRosaClassicClusterState(***REMOVED***
-			clusterState.HttpTokensState.Value = string(cmv1.HttpTokenStateOptional***REMOVED***
+			clusterState.Ec2MetadataHttpTokens.Value = string(cmv1.Ec2MetadataHttpTokensOptional***REMOVED***
 			err := validateHttpTokensVersion(context.Background(***REMOVED***, &logging.StdLogger{}, clusterState, "openshift-v4.10.0"***REMOVED***
 			Expect(err***REMOVED***.ToNot(BeNil(***REMOVED******REMOVED***
-			Expect(err.Error(***REMOVED******REMOVED***.To(ContainSubstring("is not supported with http tokens " +
-				"required, minimum supported version"***REMOVED******REMOVED***
+			Expect(err.Error(***REMOVED******REMOVED***.To(ContainSubstring("is not supported with ec2_metadata_http_tokens"***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 		It("Pass validation with http_tokens_state and supported version", func(***REMOVED*** {
 			clusterState := generateBasicRosaClassicClusterState(***REMOVED***

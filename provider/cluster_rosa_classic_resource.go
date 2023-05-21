@@ -401,13 +401,13 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 				Type:        types.StringType,
 				Computed:    true,
 	***REMOVED***,
-			"aws_http_tokens_state": {
-				Description: "Which HttpTokensState to use for metadata service interaction options for EC2 instances" +
+			"ec2_metadata_http_tokens": {
+				Description: "Which ec2 metadata mode to use for metadata service interaction options for EC2 instances" +
 					"can be optional or required, available only from 4.11.0",
 				Type:     types.StringType,
 				Optional: true,
-				Validators: EnumValueValidator([]string{string(cmv1.HttpTokenStateOptional***REMOVED***,
-					string(cmv1.HttpTokenStateRequired***REMOVED***}***REMOVED***,
+				Validators: EnumValueValidator([]string{string(cmv1.Ec2MetadataHttpTokensOptional***REMOVED***,
+					string(cmv1.Ec2MetadataHttpTokensRequired***REMOVED***}***REMOVED***,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
 					ValueCannotBeChangedModifier(t.logger***REMOVED***,
 		***REMOVED***,
@@ -564,9 +564,9 @@ func createClassicClusterObject(ctx context.Context,
 		aws.Tags(tags***REMOVED***
 	}
 
-	if !common.IsStringAttributeEmpty(state.HttpTokensState***REMOVED*** {
+	if !common.IsStringAttributeEmpty(state.Ec2MetadataHttpTokens***REMOVED*** {
 		// value validation was done before
-		aws.HttpTokensState(cmv1.HttpTokenState(state.HttpTokensState.Value***REMOVED******REMOVED***
+		aws.Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokens(state.Ec2MetadataHttpTokens.Value***REMOVED******REMOVED***
 	}
 
 	if !state.KMSKeyArn.Unknown && !state.KMSKeyArn.Null && state.KMSKeyArn.Value != "" {
@@ -736,7 +736,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** getAndValidateVersionInChannelG
 }
 
 func validateHttpTokensVersion(ctx context.Context, logger logging.Logger, state *ClusterRosaClassicState, version string***REMOVED*** error {
-	if common.IsStringAttributeEmpty(state.HttpTokensState***REMOVED*** {
+	if common.IsStringAttributeEmpty(state.Ec2MetadataHttpTokens***REMOVED*** {
 		return nil
 	}
 
@@ -745,7 +745,7 @@ func validateHttpTokensVersion(ctx context.Context, logger logging.Logger, state
 		return fmt.Errorf("version '%s' is not supported: %v", version, err***REMOVED***
 	}
 	if !greater {
-		msg := fmt.Sprintf("version '%s' is not supported with http tokens required, "+
+		msg := fmt.Sprintf("version '%s' is not supported with ec2_metadata_http_tokens, "+
 			"minimum supported version is %s", version, lowestHttpTokensVer***REMOVED***
 		logger.Error(ctx, msg***REMOVED***
 		return fmt.Errorf(msg***REMOVED***
@@ -1432,9 +1432,9 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 ***REMOVED***
 	}
 
-	httpTokensState, ok := object.AWS(***REMOVED***.GetHttpTokensState(***REMOVED***
+	httpTokensState, ok := object.AWS(***REMOVED***.GetEc2MetadataHttpTokens(***REMOVED***
 	if ok && httpTokensState != "" {
-		state.HttpTokensState = types.String{
+		state.Ec2MetadataHttpTokens = types.String{
 			Value: string(httpTokensState***REMOVED***,
 ***REMOVED***
 	}

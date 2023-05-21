@@ -22,6 +22,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/openshift/rosa/pkg/helper"
 	"net/http"
 	"net/url"
 	"os"
@@ -317,12 +318,12 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 					"http_proxy": {
 						Description: "http proxy",
 						Type:        types.StringType,
-						Required:    true,
+						Optional:    true,
 					},
 					"https_proxy": {
 						Description: "https proxy",
 						Type:        types.StringType,
-						Required:    true,
+						Optional:    true,
 					},
 					"no_proxy": {
 						Description: "no proxy",
@@ -335,10 +336,8 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 						Optional:    true,
 					},
 				}),
-				Optional: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(t.logger),
-				},
+				Optional:   true,
+				Validators: proxyValidators(),
 			},
 			"service_cidr": {
 				Description: "Block of IP addresses for services.",
@@ -658,27 +657,27 @@ func createClassicClusterObject(ctx context.Context,
 		isSupported, err := common.IsGreaterThanOrEqual(state.Version.Value, MinVersion)
 		if err != nil {
 			logger.Error(ctx, "Error validating required cluster version %s\", err)")
-			errDecription := fmt.Sprintf(
+			errDescription := fmt.Sprintf(
 				"Can't check if cluster version is supported '%s': %v",
 				state.Version.Value, err,
 			)
 			diags.AddError(
 				errHeadline,
-				errDecription,
+				errDescription,
 			)
-			return nil, errors.New(errHeadline + "\n" + errDecription)
+			return nil, errors.New(errHeadline + "\n" + errDescription)
 		}
 		if !isSupported {
 			logger.Error(ctx, "Cluster version %s is not supported", state.Version.Value)
-			errDecription := fmt.Sprintf(
+			errDescription := fmt.Sprintf(
 				"Can't check if cluster version is supported '%s': %v",
 				state.Version.Value, err,
 			)
 			diags.AddError(
 				errHeadline,
-				errDecription,
+				errDescription,
 			)
-			return nil, errors.New(errHeadline + "\n" + errDecription)
+			return nil, errors.New(errHeadline + "\n" + errDescription)
 		}
 		vBuilder := cmv1.NewVersion()
 		versionID := state.Version.Value
@@ -693,18 +692,44 @@ func createClassicClusterObject(ctx context.Context,
 		builder.Version(vBuilder)
 	}
 
-	proxy := cmv1.NewProxy()
-	if state.Proxy != nil {
-		proxy.HTTPProxy(state.Proxy.HttpProxy.Value)
-		proxy.HTTPSProxy(state.Proxy.HttpsProxy.Value)
-		if !state.Proxy.AdditionalTrustBundle.Unknown && !state.Proxy.AdditionalTrustBundle.Null {
-			builder.AdditionalTrustBundle(state.Proxy.AdditionalTrustBundle.Value)
-		}
-		builder.Proxy(proxy)
+	builder, err = buildProxy(state, builder)
+	if err != nil {
+		logger.Error(ctx, "Failed to build the Proxy's attributes")
+		return nil, err
 	}
 
 	object, err := builder.Build()
 	return object, err
+}
+
+func buildProxy(state *ClusterRosaClassicState, builder *cmv1.ClusterBuilder) (*cmv1.ClusterBuilder, error) {
+	proxy := cmv1.NewProxy()
+	if state.Proxy != nil {
+		httpsProxy := ""
+		httpProxy := ""
+		additionalTrustBundle := ""
+
+		if !common.IsStringAttributeEmpty(state.Proxy.HttpProxy) {
+			httpProxy = state.Proxy.HttpProxy.Value
+			proxy.HTTPProxy(httpProxy)
+		}
+		if !common.IsStringAttributeEmpty(state.Proxy.HttpsProxy) {
+			httpsProxy = state.Proxy.HttpsProxy.Value
+			proxy.HTTPSProxy(httpsProxy)
+		}
+		if !common.IsStringAttributeEmpty(state.Proxy.NoProxy) {
+			proxy.NoProxy(state.Proxy.NoProxy.Value)
+		}
+
+		if !common.IsStringAttributeEmpty(state.Proxy.AdditionalTrustBundle) {
+			additionalTrustBundle = state.Proxy.AdditionalTrustBundle.Value
+			builder.AdditionalTrustBundle(additionalTrustBundle)
+		}
+
+		builder.Proxy(proxy)
+	}
+
+	return builder, nil
 }
 
 // getAndValidateVersionInChannelGroup ensures that the cluster version is
@@ -1096,44 +1121,34 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 		return
 	}
 
-	// Send request to update the cluster:
-	updateNodes := false
 	clusterBuilder := cmv1.NewCluster()
-	clusterNodesBuilder := cmv1.NewClusterNodes()
-	compute, ok := common.ShouldPatchInt(state.Replicas, plan.Replicas)
-	if ok {
-		clusterNodesBuilder = clusterNodesBuilder.Compute(int(compute))
-		updateNodes = true
+
+	clusterBuilder, shouldUpdateNodes, err := updateNodes(state, plan, clusterBuilder)
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't update cluster",
+			fmt.Sprintf(
+				"Can't update cluster nodes for cluster with identifier: `%s`, %v",
+				state.ID.Value, err,
+			),
+		)
+		return
 	}
 
-	if !plan.AutoScalingEnabled.Unknown && !plan.AutoScalingEnabled.Null && plan.AutoScalingEnabled.Value {
-		// autoscaling enabled
-		autoscaling := cmv1.NewMachinePoolAutoscaling()
-
-		if !plan.MaxReplicas.Unknown && !plan.MaxReplicas.Null {
-			autoscaling = autoscaling.MaxReplicas(int(plan.MaxReplicas.Value))
-		}
-		if !plan.MinReplicas.Unknown && !plan.MinReplicas.Null {
-			autoscaling = autoscaling.MinReplicas(int(plan.MinReplicas.Value))
-		}
-
-		clusterNodesBuilder = clusterNodesBuilder.AutoscaleCompute(autoscaling)
-		updateNodes = true
-
-	} else {
-		if (!plan.MaxReplicas.Unknown && !plan.MaxReplicas.Null) || (!plan.MinReplicas.Unknown && !plan.MinReplicas.Null) {
-			response.Diagnostics.AddError(
-				"Can't update cluster",
-				fmt.Sprintf(
-					"Can't update MaxReplica and/or MinReplica of cluster when autoscaling is not enabled",
-				),
-			)
-			return
-		}
+	clusterBuilder, shouldUpdateProxy, err := updateProxy(state, plan, clusterBuilder)
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't update cluster",
+			fmt.Sprintf(
+				"Can't update proxy's configuration for cluster with identifier: `%s`, %v",
+				state.ID.Value, err,
+			),
+		)
+		return
 	}
 
-	if updateNodes {
-		clusterBuilder = clusterBuilder.Nodes(clusterNodesBuilder)
+	if !shouldUpdateProxy && !shouldUpdateNodes {
+		return
 	}
 	clusterSpec, err := clusterBuilder.Build()
 	if err != nil {
@@ -1146,6 +1161,7 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 		)
 		return
 	}
+
 	update, err := r.clusterCollection.Cluster(state.ID.Value).Update().
 		Body(clusterSpec).
 		SendContext(ctx)
@@ -1168,7 +1184,7 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 	object := update.Body()
 
 	// Update the state:
-	err = populateRosaClassicClusterState(ctx, object, state, r.logger, DefaultHttpClient{})
+	err = populateRosaClassicClusterState(ctx, object, plan, r.logger, DefaultHttpClient{})
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -1178,8 +1194,69 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 		)
 		return
 	}
-	diags = response.State.Set(ctx, state)
+	diags = response.State.Set(ctx, plan)
 	response.Diagnostics.Append(diags...)
+}
+
+func updateProxy(state, plan *ClusterRosaClassicState, clusterBuilder *cmv1.ClusterBuilder) (*cmv1.ClusterBuilder, bool, error) {
+	shouldUpdateProxy := false
+	if (state.Proxy == nil && plan.Proxy != nil) || (state.Proxy != nil && plan.Proxy == nil) {
+		shouldUpdateProxy = true
+	} else if state.Proxy != nil && plan.Proxy != nil {
+		_, patchNoProxy := common.ShouldPatchString(state.Proxy.NoProxy, plan.Proxy.NoProxy)
+		_, patchHttpProxy := common.ShouldPatchString(state.Proxy.HttpProxy, plan.Proxy.HttpProxy)
+		_, patchHttpsProxy := common.ShouldPatchString(state.Proxy.HttpsProxy, plan.Proxy.HttpsProxy)
+		_, patchAdditionalTrustBundle := common.ShouldPatchString(state.Proxy.AdditionalTrustBundle, plan.Proxy.AdditionalTrustBundle)
+		if patchNoProxy || patchHttpProxy || patchHttpsProxy || patchAdditionalTrustBundle {
+			shouldUpdateProxy = true
+		}
+	}
+
+	if shouldUpdateProxy {
+		var err error
+		clusterBuilder, err = buildProxy(plan, clusterBuilder)
+		if err != nil {
+			return nil, false, err
+		}
+	}
+
+	return clusterBuilder, shouldUpdateProxy, nil
+}
+func updateNodes(state, plan *ClusterRosaClassicState, clusterBuilder *cmv1.ClusterBuilder) (*cmv1.ClusterBuilder, bool, error) {
+	// Send request to update the cluster:
+	shouldUpdateNodes := false
+	clusterNodesBuilder := cmv1.NewClusterNodes()
+	compute, ok := common.ShouldPatchInt(state.Replicas, plan.Replicas)
+	if ok {
+		clusterNodesBuilder = clusterNodesBuilder.Compute(int(compute))
+		shouldUpdateNodes = true
+	}
+
+	if !plan.AutoScalingEnabled.Unknown && !plan.AutoScalingEnabled.Null && plan.AutoScalingEnabled.Value {
+		// autoscaling enabled
+		autoscaling := cmv1.NewMachinePoolAutoscaling()
+
+		if !plan.MaxReplicas.Unknown && !plan.MaxReplicas.Null {
+			autoscaling = autoscaling.MaxReplicas(int(plan.MaxReplicas.Value))
+		}
+		if !plan.MinReplicas.Unknown && !plan.MinReplicas.Null {
+			autoscaling = autoscaling.MinReplicas(int(plan.MinReplicas.Value))
+		}
+
+		clusterNodesBuilder = clusterNodesBuilder.AutoscaleCompute(autoscaling)
+		shouldUpdateNodes = true
+
+	} else {
+		if (!plan.MaxReplicas.Unknown && !plan.MaxReplicas.Null) || (!plan.MinReplicas.Unknown && !plan.MinReplicas.Null) {
+			return nil, false, fmt.Errorf("Can't update MaxReplica and/or MinReplica of cluster when autoscaling is not enabled")
+		}
+	}
+
+	if shouldUpdateNodes {
+		clusterBuilder = clusterBuilder.Nodes(clusterNodesBuilder)
+	}
+
+	return clusterBuilder, shouldUpdateNodes, nil
 }
 
 func (r *ClusterRosaClassicResource) Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
@@ -1507,11 +1584,25 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 
 	proxy, ok := object.GetProxy()
 	if ok {
-		state.Proxy.HttpProxy = types.String{
-			Value: proxy.HTTPProxy(),
+		httpProxy, ok := proxy.GetHTTPProxy()
+		if ok {
+			state.Proxy.HttpProxy = types.String{
+				Value: httpProxy,
+			}
 		}
-		state.Proxy.HttpsProxy = types.String{
-			Value: proxy.HTTPSProxy(),
+
+		httpsProxy, ok := proxy.GetHTTPSProxy()
+		if ok {
+			state.Proxy.HttpsProxy = types.String{
+				Value: httpsProxy,
+			}
+		}
+
+		noProxy, ok := proxy.GetNoProxy()
+		if ok {
+			state.Proxy.NoProxy = types.String{
+				Value: noProxy,
+			}
 		}
 	}
 
@@ -1688,6 +1779,53 @@ func (r *ClusterRosaClassicResource) waitTillClusterIsNotFoundWithTimeout(ctx co
 	}
 
 	return false, nil
+}
+func proxyValidators() []tfsdk.AttributeValidator {
+	return []tfsdk.AttributeValidator{
+		&common.AttributeValidator{
+			Desc: "Validate proxy's attributes",
+			Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse) {
+				state := &Proxy{}
+				diag := req.Config.GetAttribute(ctx, req.AttributePath, state)
+				if diag.HasError() {
+					// No attribute to validate
+					return
+				}
+				if state == nil {
+					return
+				}
+				errSum := "Invalid proxy's attribute assignment"
+				httpsProxy := ""
+				httpProxy := ""
+				additionalTrustBundle := ""
+				var noProxySlice []string
+
+				if !common.IsStringAttributeEmpty(state.HttpProxy) {
+					httpProxy = state.HttpProxy.Value
+				}
+				if !common.IsStringAttributeEmpty(state.HttpsProxy) {
+					httpsProxy = state.HttpsProxy.Value
+				}
+				if !common.IsStringAttributeEmpty(state.NoProxy) {
+					noProxySlice = helper.HandleEmptyStringOnSlice(strings.Split(state.NoProxy.Value, ","))
+				}
+
+				if !common.IsStringAttributeEmpty(state.AdditionalTrustBundle) {
+					additionalTrustBundle = state.AdditionalTrustBundle.Value
+				}
+
+				if httpProxy == "" && httpsProxy == "" && noProxySlice != nil && len(noProxySlice) > 0 {
+					resp.Diagnostics.AddError(errSum, "Expected at least one of the following: http-proxy, https-proxy")
+					return
+				}
+
+				if httpProxy == "" && httpsProxy == "" && additionalTrustBundle == "" {
+					resp.Diagnostics.AddError(errSum, "Expected at least one of the following: http-proxy, https-proxy, additional-trust-bundle")
+					return
+				}
+			},
+		},
+	}
 }
 
 func propertiesValidators() []tfsdk.AttributeValidator {

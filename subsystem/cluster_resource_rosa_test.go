@@ -434,7 +434,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
-	It("Should fail cluster creation when trying to overrive reserved properties", func(***REMOVED*** {
+	It("Should fail cluster creation when trying to override reserved properties", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
@@ -676,7 +676,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 ***REMOVED******REMOVED***
 	}***REMOVED***
 
-	It("Creates cluster with http proxy", func(***REMOVED*** {
+	It("Creates cluster with http proxy and update it", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
@@ -690,7 +690,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 				VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
 				VerifyJQ(`.product.id`, "rosa"***REMOVED***,
 				VerifyJQ(`.proxy.http_proxy`, "http://proxy.com"***REMOVED***,
-				VerifyJQ(`.proxy.https_proxy`, "http://proxy.com"***REMOVED***,
+				VerifyJQ(`.proxy.https_proxy`, "https://proxy.com"***REMOVED***,
 				VerifyJQ(`.additional_trust_bundle`, "123"***REMOVED***,
 				RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
@@ -715,7 +715,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 					  "path": "/proxy",
 					  "value": {						  
 						  "http_proxy" : "http://proxy.com",
-						  "https_proxy" : "http://proxy.com"
+						  "https_proxy" : "https://proxy.com"
 					  }
 			***REMOVED***,
 					{
@@ -746,7 +746,132 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 			aws_account_id = "123"
 			proxy = {
 				http_proxy = "http://proxy.com",
-				https_proxy = "http://proxy.com",
+				https_proxy = "https://proxy.com",
+				additional_trust_bundle = "123",
+	***REMOVED***
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+		***REMOVED***
+	***REMOVED***
+		  }
+		`***REMOVED***
+
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// apply for update the proxy's attributes
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/proxy",
+					  "value": {						  
+						  "http_proxy" : "http://proxy.com",
+						  "https_proxy" : "https://proxy.com"
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/",
+					  "value": {
+						  "additional_trust_bundle" : "123"
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+				***REMOVED***
+					  }
+			***REMOVED***]`***REMOVED***,
+			***REMOVED***,
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+				VerifyJQ(`.proxy.https_proxy`, "https://proxy2.com"***REMOVED***,
+				VerifyJQ(`.proxy.no_proxy`, "test"***REMOVED***,
+				VerifyJQ(`.additional_trust_bundle`, "123"***REMOVED***,
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/proxy",
+					  "value": {						  
+						  "https_proxy" : "https://proxy2.com",
+						  "no_proxy" : "test"
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/",
+					  "value": {
+						  "additional_trust_bundle" : "123"
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+				***REMOVED***
+					  }
+			***REMOVED***]`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// update the attribute "proxy"
+		terraform.Source(`
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"	
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			proxy = {
+				https_proxy = "https://proxy2.com",
+				no_proxy = "test"
 				additional_trust_bundle = "123",
 	***REMOVED***
 			sts = {
@@ -761,8 +886,58 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		resource := terraform.Resource("ocm_cluster_rosa_classic", "my_cluster"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.proxy.https_proxy`, "https://proxy2.com"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.proxy.no_proxy`, "test"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.proxy.additional_trust_bundle`, "123"***REMOVED******REMOVED***
 	}***REMOVED***
 
+	It("Except to fail on proxy validators", func(***REMOVED*** {
+		// Expected at least one of the following: http-proxy, https-proxy
+		terraform.Source(`
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"	
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			proxy = {
+				no_proxy = "test1, test2"
+				additional_trust_bundle = "123",
+	***REMOVED***
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+		***REMOVED***
+	***REMOVED***
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
+
+		// Expected at least one of the following: http-proxy, https-proxy, additional-trust-bundle
+		terraform.Source(`
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"	
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			proxy = {
+	***REMOVED***
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+		***REMOVED***
+	***REMOVED***
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
+
+	}***REMOVED***
 	It("Creates cluster with aws subnet ids & private link", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(
@@ -1421,6 +1596,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
+
 	It("Fails to create cluster with http tokens and not supported version", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(
@@ -1485,6 +1661,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		// expect to get an error
 		Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
+
 	It("Fails to create cluster with http tokens with not supported value", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(

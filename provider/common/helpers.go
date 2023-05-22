@@ -64,6 +64,24 @@ func ShouldPatchString(state, plan types.String) (value string, ok bool) {
 	return
 }
 
+// ShouldPatchBool changed checks if the change between the given state and plan requires sending
+// a patch request to the server. If it does it return the value to add to the patch.
+func ShouldPatchBool(state, plan types.Bool) (value bool, ok bool) {
+	if plan.Unknown || plan.Null {
+		return
+	}
+	if state.Unknown || state.Null {
+		value = plan.Value
+		ok = true
+		return
+	}
+	if plan.Value != state.Value {
+		value = plan.Value
+		ok = true
+	}
+	return
+}
+
 // TF types converter functions
 func StringArrayToList(arr []string) types.List {
 	list := types.List{

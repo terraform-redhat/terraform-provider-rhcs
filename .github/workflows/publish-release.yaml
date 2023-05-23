@@ -29,6 +29,7 @@ jobs:
   release:
     name: Publish release
     runs-on: ubuntu-latest
+    container: redhat/ubi8
     steps:
     - name: Checkout the source
       uses: actions/checkout@v2

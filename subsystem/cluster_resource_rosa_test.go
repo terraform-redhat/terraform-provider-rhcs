@@ -676,6 +676,183 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 ***REMOVED******REMOVED***
 	}***REMOVED***
 
+	It("Disable workload monitor and update it", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+				RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
+			***REMOVED***,
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+				VerifyJQ(`.name`, "my-cluster"***REMOVED***,
+				VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
+				VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
+				VerifyJQ(`.product.id`, "rosa"***REMOVED***,
+				VerifyJQ(`.disable_user_workload_monitoring`, true***REMOVED***,
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/",
+					  "value": {
+						  "disable_user_workload_monitoring" : true
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+				***REMOVED***
+					  }
+			***REMOVED***]`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+		terraform.Source(`
+				  resource "ocm_cluster_rosa_classic" "my_cluster" {
+					name           = "my-cluster"	
+					cloud_region   = "us-west-1"
+					aws_account_id = "123"
+					disable_workload_monitoring = true
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							master_role_arn = "",
+							worker_role_arn = "",
+				***REMOVED***
+			***REMOVED***
+				  }
+			`***REMOVED***
+
+		// it should return a warning so exit code will be "0":
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// apply for update the workload monitor to be enabled
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/",
+					  "value": {
+						  "disable_user_workload_monitoring" : "true"
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+				***REMOVED***
+					  }
+			***REMOVED***]`***REMOVED***,
+			***REMOVED***,
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/",
+					  "value": {
+						  "disable_user_workload_monitoring" : "false"
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+				***REMOVED***
+					  }
+			***REMOVED***]`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		terraform.Source(`
+				  resource "ocm_cluster_rosa_classic" "my_cluster" {
+					name           = "my-cluster"	
+					cloud_region   = "us-west-1"
+					aws_account_id = "123"
+					disable_workload_monitoring = false
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							master_role_arn = "",
+							worker_role_arn = "",
+				***REMOVED***
+			***REMOVED***
+				  }
+			`***REMOVED***
+
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		resource := terraform.Resource("ocm_cluster_rosa_classic", "my_cluster"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.disable_workload_monitoring`, false***REMOVED******REMOVED***
+
+	}***REMOVED***
+
 	It("Creates cluster with http proxy and update it", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(

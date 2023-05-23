@@ -140,9 +140,6 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 					"Site Reliability Engineer (SRE***REMOVED*** platform metrics.",
 				Type:     types.BoolType,
 				Optional: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(t.logger***REMOVED***,
-		***REMOVED***,
 	***REMOVED***,
 			"disable_scp_checks": {
 				Description: "Enables you to monitor your own projects in isolation from Red Hat " +
@@ -1147,7 +1144,12 @@ func (r *ClusterRosaClassicResource***REMOVED*** Update(ctx context.Context, req
 		return
 	}
 
-	if !shouldUpdateProxy && !shouldUpdateNodes {
+	_, shouldPatchDisableWorkloadMonitoring := common.ShouldPatchBool(state.DisableWorkloadMonitoring, plan.DisableWorkloadMonitoring***REMOVED***
+	if shouldPatchDisableWorkloadMonitoring {
+		clusterBuilder.DisableUserWorkloadMonitoring(plan.DisableWorkloadMonitoring.Value***REMOVED***
+	}
+
+	if !shouldUpdateProxy && !shouldUpdateNodes && !shouldPatchDisableWorkloadMonitoring {
 		return
 	}
 	clusterSpec, err := clusterBuilder.Build(***REMOVED***

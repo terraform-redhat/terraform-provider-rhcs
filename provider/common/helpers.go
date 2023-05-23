@@ -17,10 +17,11 @@ limitations under the License.
 package common
 
 ***REMOVED***
-	"github.com/hashicorp/go-version"
+	"reflect"
 	"regexp"
 	"strings"
 
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/pkg/errors"
@@ -80,6 +81,12 @@ func ShouldPatchBool(state, plan types.Bool***REMOVED*** (value bool, ok bool***
 		ok = true
 	}
 	return
+}
+
+// ShouldPatchMap changed checks if the change between the given state and plan requires sending
+// a patch request to the server. If it does it return the value to add to the patch.
+func ShouldPatchMap(state, plan types.Map***REMOVED*** (types.Map, bool***REMOVED*** {
+	return plan, !reflect.DeepEqual(state.Elems, plan.Elems***REMOVED***
 }
 
 // TF types converter functions

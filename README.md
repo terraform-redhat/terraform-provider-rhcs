@@ -279,3 +279,15 @@ provider "ocm" {
   url = var.url
 }
 ```
+## Testing binary
+If you want to test locally the provider binary without building from sources you can pull the `latest` container image and copy the binary from the directory :
+```
+<HOME>/.terraform.d/plugins/terraform.local/local/ocm/<VERSION>/<TARGET_ARCH>
+```
+to your local like this:
+
+```
+podman run --pull=always --rm registry.ci.openshift.org/ci/ocm-tf-e2e:latest cat /root/.terraform.d/plugins/terraform.local/local/ocm/1.0.1/linux_amd64/terraform-provider-ocm > ~/terraform-provider-ocm && chmod +x ~/terraform-provider-ocm
+```
+
+You can also use specific commit images just substituting `latest` for the desired commit SHA.

@@ -1152,6 +1152,7 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 	if !shouldUpdateProxy && !shouldUpdateNodes && !shouldPatchDisableWorkloadMonitoring {
 		return
 	}
+
 	clusterSpec, err := clusterBuilder.Build()
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -1251,6 +1252,18 @@ func updateNodes(state, plan *ClusterRosaClassicState, clusterBuilder *cmv1.Clus
 	} else {
 		if (!plan.MaxReplicas.Unknown && !plan.MaxReplicas.Null) || (!plan.MinReplicas.Unknown && !plan.MinReplicas.Null) {
 			return nil, false, fmt.Errorf("Can't update MaxReplica and/or MinReplica of cluster when autoscaling is not enabled")
+		}
+	}
+
+	// MP labels update
+	if !plan.DefaultMPLabels.Unknown && !plan.DefaultMPLabels.Null {
+		if labelsPlan, ok := common.ShouldPatchMap(state.DefaultMPLabels, plan.DefaultMPLabels); ok {
+			labels := map[string]string{}
+			for k, v := range labelsPlan.Elems {
+				labels[k] = v.(types.String).Value
+			}
+			clusterNodesBuilder.ComputeLabels(labels)
+			shouldUpdateNodes = true
 		}
 	}
 
@@ -1782,6 +1795,7 @@ func (r *ClusterRosaClassicResource) waitTillClusterIsNotFoundWithTimeout(ctx co
 
 	return false, nil
 }
+
 func proxyValidators() []tfsdk.AttributeValidator {
 	return []tfsdk.AttributeValidator{
 		&common.AttributeValidator{

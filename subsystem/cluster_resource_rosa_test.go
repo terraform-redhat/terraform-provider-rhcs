@@ -1069,6 +1069,165 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.proxy.additional_trust_bundle`, "123"***REMOVED******REMOVED***
 	}***REMOVED***
 
+	It("Creates cluster with default_mp_labels and update them", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+				RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
+			***REMOVED***,
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+				VerifyJQ(`.name`, "my-cluster"***REMOVED***,
+				VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
+				VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
+				VerifyJQ(`.product.id`, "rosa"***REMOVED***,
+				VerifyJQ(`.nodes.compute_labels.label_key1`, "label_value1"***REMOVED***,
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+                        "compute_labels": {
+                            "label_key1": "label_value1"
+                        }
+					  }
+			***REMOVED***]`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"	
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+            default_mp_labels = {
+                label_key1 = "label_value1"
+            }
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+		***REMOVED***
+	***REMOVED***
+		  }
+		`***REMOVED***
+
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// apply for update the default_mp_labels
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+                        "compute_labels": {
+                            "label_key1": "label_value1"
+                        }
+					  }
+			***REMOVED***]`***REMOVED***,
+			***REMOVED***,
+			// Update handler and response
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+				VerifyJQ(`.nodes.compute_labels.changed_label`, "changed"***REMOVED***,
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+                        "compute_labels": {
+                            "changed_label": "changed"
+                        }
+					  }
+			***REMOVED***]`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// update the attribute "proxy"
+		terraform.Source(`
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"	
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+            default_mp_labels = {
+                changed_label = "changed"
+            }
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+		***REMOVED***
+	***REMOVED***
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED***, "Failed to update cluster with changed default_mp_labels"***REMOVED***
+		resource := terraform.Resource("ocm_cluster_rosa_classic", "my_cluster"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.default_mp_labels.changed_label`, "changed"***REMOVED******REMOVED***
+	}***REMOVED***
+
 	It("Except to fail on proxy validators", func(***REMOVED*** {
 		// Expected at least one of the following: http-proxy, https-proxy
 		terraform.Source(`
@@ -1263,7 +1422,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
 
-	It("Creates rosa sts cluster with autoscaling and update the default machine pool ", func(***REMOVED*** {
+	It("Creates rosa sts cluster with autoscaling and update the default machine pool", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(

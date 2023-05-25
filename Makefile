@@ -113,3 +113,12 @@ e2e_test: tools install
 		--offline-token=$(test_token***REMOVED*** \
 		--openshift-version=$(openshift_version***REMOVED*** \
 		$(NULL***REMOVED***
+
+.PHONY: apply_folder
+apply_folder: install
+	bash ./ci/apply_folder.sh
+
+.PHONY: destroy_folder
+destroy_folder: install
+	bash ./ci/destroy_folder.sh
+

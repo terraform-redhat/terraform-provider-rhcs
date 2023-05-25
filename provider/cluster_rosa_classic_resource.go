@@ -1530,10 +1530,7 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		if state.Sts == nil {
 			state.Sts = &Sts{}
 		}
-		oidc_endpoint_url := sts.OIDCEndpointURL()
-		if strings.HasPrefix(oidc_endpoint_url, "https://") {
-			oidc_endpoint_url = strings.TrimPrefix(oidc_endpoint_url, "https://")
-		}
+		oidc_endpoint_url := strings.TrimPrefix(sts.OIDCEndpointURL(), "https://")
 
 		state.Sts.OIDCEndpointURL = types.String{
 			Value: oidc_endpoint_url,
@@ -1799,9 +1796,6 @@ func proxyValidators() []tfsdk.AttributeValidator {
 				diag := req.Config.GetAttribute(ctx, req.AttributePath, state)
 				if diag.HasError() {
 					// No attribute to validate
-					return
-				}
-				if state == nil {
 					return
 				}
 				errSum := "Invalid proxy's attribute assignment"

@@ -376,10 +376,6 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
-				// TODO: till AWS will support Managed policies we will not support update versions
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(***REMOVED***,
-		***REMOVED***,
 	***REMOVED***,
 			"disable_waiting_in_destroy": {
 				Description: "Disable addressing cluster state in the destroy resource. Default value is false",

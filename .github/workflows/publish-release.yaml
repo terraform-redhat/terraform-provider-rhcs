@@ -31,8 +31,15 @@ jobs:
     runs-on: ubuntu-latest
     container: redhat/ubi8
     steps:
+    - name: Install git
+      run: |
+        dnf -y install git
+
     - name: Checkout the source
       uses: actions/checkout@v2
+
+    - name: Workaround to fix git dir
+      run: git config --system --add safe.directory /__w/terraform-provider-ocm/terraform-provider-ocm
 
     - name: Setup Go
       uses: actions/setup-go@v2

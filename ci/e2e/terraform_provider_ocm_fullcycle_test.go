@@ -213,26 +213,31 @@ func defineVariablesValues() {
 	randSuffix = rand.String(4)
 	logger.Info(ctx, "The random suffix that was chosen is %s", randSuffix)
 
+	awsUserOutput, err := exec.Command("aws", "iam", "get-user", "--query", "User.UserName", "--output", "text").Output()
+	helper.CheckError(err)
+	awsUser := strings.TrimSpace(string(awsUserOutput))
+
 	providerTempDir = fmt.Sprintf("%s_%s", terraformProviderOCMFilesDir, randSuffix)
 	logger.Info(ctx, "The temp directory that was chosen is %s", providerTempDir)
 
 	accountRolesTempDir = fmt.Sprintf("%s_%s", accountRolesFilesDir, randSuffix)
 	logger.Info(ctx, "The temp directory that was chosen is %s", accountRolesTempDir)
 
-	clusterName = fmt.Sprintf("cluster_name=ci-ocm-tf-%s", randSuffix)
+	truncatedClusterName := string([]rune(fmt.Sprintf("%s-%s", awsUser, randSuffix))[:15])  // cluster-name limited to 15 chars
+	clusterName = fmt.Sprintf("cluster_name=%s", truncatedClusterName)
 	logger.Info(ctx, "The cluster name that was chosen is %s", clusterName)
 
-	operatorRolePrefix = fmt.Sprintf("operator_role_prefix=terr-operator-%s", randSuffix)
-	logger.Info(ctx, "The operator IAM role prefix that was chose is %s", operatorRolePrefix)
+	operatorRolePrefix = fmt.Sprintf("operator_role_prefix=%s-e2e-tf-operator-%s", awsUser, randSuffix)
+	logger.Info(ctx, "The operator IAM role prefix that was chosen is %s", operatorRolePrefix)
 
-	accountRolePrefix = fmt.Sprintf("account_role_prefix=terr-account-%s", randSuffix)
-	logger.Info(ctx, "The account IAM role prefix that was chose is %s", accountRolePrefix)
+	accountRolePrefix = fmt.Sprintf("account_role_prefix=%s-e2e-tf-account-%s", awsUser, randSuffix)
+	logger.Info(ctx, "The account IAM role prefix that was chosen is %s", accountRolePrefix)
 
 	ocmEnvironment = fmt.Sprintf("ocm_environment=%s", URLAliases[args.gatewayURL])
-	logger.Info(ctx, "The ocm environment that was chose is %s", ocmEnvironment)
+	logger.Info(ctx, "The ocm environment that was chosen is %s", ocmEnvironment)
 
 	openshiftVersion = fmt.Sprintf("openshift_version=%s", args.openshiftVersion)
-	logger.Info(ctx, "The cluster version that was chose is %s", openshiftVersion)
+	logger.Info(ctx, "The cluster version that was chosen is %s", openshiftVersion)
 
 	tokenFilter = fmt.Sprintf("token=%s", args.offlineToken)
 

@@ -79,7 +79,8 @@ func (p *Provider) GetSchema(ctx context.Context) (schema tfsdk.Schema, diags di
 				Sensitive:   true,
 			},
 			"token": {
-				Description: "Access or refresh token.",
+				Description: "Access or refresh token that is " +
+				"generated from https://console.redhat.com/openshift/token/rosa.",
 				Type:        types.StringType,
 				Optional:    true,
 				Sensitive:   true,
@@ -97,7 +98,7 @@ func (p *Provider) GetSchema(ctx context.Context) (schema tfsdk.Schema, diags di
 			},
 			"trusted_cas": {
 				Description: "PEM encoded certificates of authorities that will " +
-					"be trusted. If this isn't explicitly specified then " +
+					"be trusted. If this is not explicitly specified, then " +
 					"the provider will trust the certificate authorities " +
 					"trusted by default by the system.",
 				Type:     types.StringType,
@@ -106,7 +107,7 @@ func (p *Provider) GetSchema(ctx context.Context) (schema tfsdk.Schema, diags di
 			"insecure": {
 				Description: "When set to 'true' enables insecure communication " +
 					"with the server. This disables verification of TLS " +
-					"certificates and host names and it isn't recommended " +
+					"certificates and host names, and it is not recommended " +
 					"for production environments.",
 				Type:     types.BoolType,
 				Optional: true,

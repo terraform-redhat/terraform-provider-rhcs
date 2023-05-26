@@ -113,7 +113,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				},
 			},
 			"name": {
-				Description: "Name of the cluster. Must be a maximum of 15 characters in length.",
+				Description: "Name of the cluster. Cannot exceed 15 characters in length.",
 				Type:        types.StringType,
 				Required:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
@@ -126,7 +126,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Required:    true,
 			},
 			"sts": {
-				Description: "STS Configuration",
+				Description: "STS configuration.",
 				Attributes:  stsResource(),
 				Optional:    true,
 			},
@@ -165,7 +165,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Validators: propertiesValidators(),
 			},
 			"ocm_properties": {
-				Description: "Merged properties defined by OCM and the user defined 'properties'",
+				Description: "Merged properties defined by OCM and the user defined 'properties'.",
 				Type: types.MapType{
 					ElemType: types.StringType,
 				},
@@ -201,12 +201,12 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional:    true,
 			},
 			"min_replicas": {
-				Description: "Min replicas.",
+				Description: "Minimum replicas.",
 				Type:        types.Int64Type,
 				Optional:    true,
 			},
 			"max_replicas": {
-				Description: "Max replicas.",
+				Description: "Maximum replicas.",
 				Type:        types.Int64Type,
 				Optional:    true,
 			},
@@ -221,7 +221,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Computed:    true,
 			},
 			"domain": {
-				Description: "DNS Domain of Cluster",
+				Description: "DNS domain of cluster.",
 				Type:        types.StringType,
 				Computed:    true,
 			},
@@ -233,7 +233,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Computed: true,
 			},
 			"compute_machine_type": {
-				Description: "Identifier of the machine type used by the compute nodes, " +
+				Description: "Identifies the machine type used by the compute nodes, " +
 					"for example `r5.xlarge`. Use the `ocm_machine_types` data " +
 					"source to find the possible values.",
 				Type:     types.StringType,
@@ -244,8 +244,8 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				},
 			},
 			"default_mp_labels": {
-				Description: "Labels for the default machine pool. Format should be a comma-separated list of '{\"key1\"=\"value1\", \"key2\"=\"value2\"}'. " +
-					"This list will overwrite any modifications made to Node labels on an ongoing basis.",
+				Description: "This value is the default machine pool labels. Format should be a comma-separated list of '{\"key1\"=\"value1\", \"key2\"=\"value2\"}'. " +
+					"This list overwrites any modifications made to Node labels on an ongoing basis. ",
 				Type: types.MapType{
 					ElemType: types.StringType,
 				},
@@ -260,7 +260,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				},
 			},
 			"aws_subnet_ids": {
-				Description: "aws subnet ids",
+				Description: "AWS subnet IDs.",
 				Type: types.ListType{
 					ElemType: types.StringType,
 				},
@@ -270,7 +270,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				},
 			},
 			"kms_key_arn": {
-				Description: "The key ARN is the Amazon Resource Name (ARN) of a AWS KMS (Key Management Service) Key. It is a unique, " +
+				Description: "The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, " +
 					"fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID.",
 				Type:     types.StringType,
 				Optional: true,
@@ -279,7 +279,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				},
 			},
 			"fips": {
-				Description: "Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries",
+				Description: "Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries.",
 				Type:        types.BoolType,
 				Optional:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
@@ -296,7 +296,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				},
 			},
 			"availability_zones": {
-				Description: "availability zones",
+				Description: "Availability zones.",
 				Type: types.ListType{
 					ElemType: types.StringType,
 				},
@@ -318,22 +318,22 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Description: "proxy",
 				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
 					"http_proxy": {
-						Description: "http proxy",
+						Description: "HTTP proxy.",
 						Type:        types.StringType,
 						Optional:    true,
 					},
 					"https_proxy": {
-						Description: "https proxy",
+						Description: "HTTPS proxy.",
 						Type:        types.StringType,
 						Optional:    true,
 					},
 					"no_proxy": {
-						Description: "no proxy",
+						Description: "No proxy.",
 						Type:        types.StringType,
 						Optional:    true,
 					},
 					"additional_trust_bundle": {
-						Description: "a string contains contains a PEM-encoded X.509 certificate bundle that will be added to the nodes' trusted certificate store.",
+						Description: "A string containing a PEM-encoded X.509 certificate bundle that will be added to the nodes' trusted certificate store.",
 						Type:        types.StringType,
 						Optional:    true,
 					},
@@ -369,7 +369,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				},
 			},
 			"channel_group": {
-				Description: "Name of the channel group from which to select the OpenShift cluster version, for example 'stable'.",
+				Description: "Name of the channel group where you select the OpenShift cluster version, for example 'stable'.",
 				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
@@ -388,12 +388,12 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Computed:    true,
 			},
 			"disable_waiting_in_destroy": {
-				Description: "Disable addressing cluster state in the destroy resource. Default value is false",
+				Description: "Disable addressing cluster state in the destroy resource. Default value is false.",
 				Type:        types.BoolType,
 				Optional:    true,
 			},
 			"destroy_timeout": {
-				Description: "Timeout in minutes for addressing cluster state in destroy resource. Default value is 60 minutes.",
+				Description: "This value sets the maximum duration in minutes to allow for destroying resources. Default value is 60 minutes.",
 				Type:        types.Int64Type,
 				Optional:    true,
 			},
@@ -403,8 +403,9 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Computed:    true,
 			},
 			"ec2_metadata_http_tokens": {
-				Description: "Which ec2 metadata mode to use for metadata service interaction options for EC2 instances" +
-					"can be optional or required, available only from 4.11.0",
+				Description: "This value determines which EC2 metadata mode to use for metadata service interaction " +
+				"options for EC2 instances can be optional or required. This feature is available from " +
+				"OpenShift version 4.11.0 and newer.",
 				Type:     types.StringType,
 				Optional: true,
 				Validators: EnumValueValidator([]string{string(cmv1.Ec2MetadataHttpTokensOptional),

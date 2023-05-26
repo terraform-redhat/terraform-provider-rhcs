@@ -24,8 +24,10 @@ Identity provider.
 
 - `github` (Attributes) Details of the Github identity provider. (see [below for nested schema](#nestedatt--github))
 - `gitlab` (Attributes) Details of the Gitlab identity provider. (see [below for nested schema](#nestedatt--gitlab))
+- `google` (Attributes) Details of the Google identity provider. (see [below for nested schema](#nestedatt--google))
 - `htpasswd` (Attributes) Details of the 'htpasswd' identity provider. (see [below for nested schema](#nestedatt--htpasswd))
 - `ldap` (Attributes) Details of the LDAP identity provider. (see [below for nested schema](#nestedatt--ldap))
+- `mapping_method` (String) Specifies how new identities are mapped to users when they log in. Options are [add claim generate lookup] (default 'claim')
 - `openid` (Attributes) Details of the OpenID identity provider. (see [below for nested schema](#nestedatt--openid))
 
 ### Read-Only
@@ -60,6 +62,19 @@ Required:
 Optional:
 
 - `ca` (String) Optional trusted certificate authority bundle.
+
+
+<a id="nestedatt--google"></a>
+### Nested Schema for `google`
+
+Required:
+
+- `client_id` (String) Client identifier of a registered Google OAuth application.
+- `client_secret` (String, Sensitive) Client secret issued by Google.
+
+Optional:
+
+- `hosted_domain` (String) Restrict users to a Google Apps domain.
 
 
 <a id="nestedatt--htpasswd"></a>

@@ -19,60 +19,60 @@ OpenShift managed cluster using rosa sts.
 
 - `aws_account_id` (String***REMOVED*** Identifier of the AWS account.
 - `cloud_region` (String***REMOVED*** Cloud region identifier, for example 'us-east-1'.
-- `name` (String***REMOVED*** Name of the cluster. Must be a maximum of 15 characters in length.
+- `name` (String***REMOVED*** Name of the cluster. Cannot exceed 15 characters in length.
 
 ### Optional
 
 - `autoscaling_enabled` (Boolean***REMOVED*** Enables autoscaling.
-- `availability_zones` (List of String***REMOVED*** availability zones
-- `aws_http_tokens_state` (String***REMOVED*** Which http_tokens_state to use for metadata service interaction options for EC2 instancescan be optional or required, available from ocp v4.11.0
+- `availability_zones` (List of String***REMOVED*** Availability zones.
 - `aws_private_link` (Boolean***REMOVED*** Provides private connectivity between VPCs, AWS services, and your on-premises networks, without exposing your traffic to the public internet.
-- `aws_subnet_ids` (List of String***REMOVED*** aws subnet ids
-- `compute_machine_type` (String***REMOVED*** Identifier of the machine type used by the compute nodes, for example `r5.xlarge`. Use the `ocm_machine_types` data source to find the possible values.
-- `default_mp_labels` (Map of String***REMOVED*** Labels for the default machine pool. Format should be a comma-separated list of '{"key1"="value1", "key2"="value2"}'. This list will overwrite any modifications made to Node labels on an ongoing basis.
-- `destroy_timeout` (Number***REMOVED*** Timeout in minutes for addressing cluster state in destroy resource. Default value is 60 minutes.
+- `aws_subnet_ids` (List of String***REMOVED*** AWS subnet IDs.
+- `channel_group` (String***REMOVED*** Name of the channel group where you select the OpenShift cluster version, for example 'stable'.
+- `compute_machine_type` (String***REMOVED*** Identifies the machine type used by the compute nodes, for example `r5.xlarge`. Use the `ocm_machine_types` data source to find the possible values.
+- `default_mp_labels` (Map of String***REMOVED*** This value is the default machine pool labels. Format should be a comma-separated list of '{"key1"="value1", "key2"="value2"}'. This list overwrites any modifications made to Node labels on an ongoing basis.
+- `destroy_timeout` (Number***REMOVED*** This value sets the maximum duration in minutes to allow for destroying resources. Default value is 60 minutes.
 - `disable_scp_checks` (Boolean***REMOVED*** Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE***REMOVED*** platform metrics.
-- `disable_waiting_in_destroy` (Boolean***REMOVED*** Disable addressing cluster state in the destroy resource. Default value is false
+- `disable_waiting_in_destroy` (Boolean***REMOVED*** Disable addressing cluster state in the destroy resource. Default value is false.
 - `disable_workload_monitoring` (Boolean***REMOVED*** Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE***REMOVED*** platform metrics.
+- `ec2_metadata_http_tokens` (String***REMOVED*** This value determines which EC2 metadata mode to use for metadata service interaction options for EC2 instances can be optional or required. This feature is available from OpenShift version 4.11.0 and newer.
 - `etcd_encryption` (Boolean***REMOVED*** Encrypt etcd data.
 - `external_id` (String***REMOVED*** Unique external identifier of the cluster.
-- `fips` (Boolean***REMOVED*** Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries
+- `fips` (Boolean***REMOVED*** Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries.
 - `host_prefix` (Number***REMOVED*** Length of the prefix of the subnet assigned to each node.
-- `kms_key_arn` (String***REMOVED*** The key ARN is the Amazon Resource Name (ARN***REMOVED*** of a AWS KMS (Key Management Service***REMOVED*** Key. It is a unique, fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID.
+- `kms_key_arn` (String***REMOVED*** The key ARN is the Amazon Resource Name (ARN***REMOVED*** of a AWS Key Management Service (KMS***REMOVED*** Key. It is a unique, fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID.
 - `machine_cidr` (String***REMOVED*** Block of IP addresses for nodes.
-- `max_replicas` (Number***REMOVED*** Max replicas.
-- `min_replicas` (Number***REMOVED*** Min replicas.
+- `max_replicas` (Number***REMOVED*** Maximum replicas.
+- `min_replicas` (Number***REMOVED*** Minimum replicas.
 - `multi_az` (Boolean***REMOVED*** Indicates if the cluster should be deployed to multiple availability zones. Default value is 'false'.
 - `pod_cidr` (String***REMOVED*** Block of IP addresses for pods.
 - `properties` (Map of String***REMOVED*** User defined properties.
 - `proxy` (Attributes***REMOVED*** proxy (see [below for nested schema](#nestedatt--proxy***REMOVED******REMOVED***
 - `replicas` (Number***REMOVED*** Number of worker nodes to provision. Single zone clusters need at least 2 nodes, multizone clusters need at least 3 nodes.
 - `service_cidr` (String***REMOVED*** Block of IP addresses for services.
-- `sts` (Attributes***REMOVED*** STS Configuration (see [below for nested schema](#nestedatt--sts***REMOVED******REMOVED***
+- `sts` (Attributes***REMOVED*** STS configuration. (see [below for nested schema](#nestedatt--sts***REMOVED******REMOVED***
 - `tags` (Map of String***REMOVED*** Apply user defined tags to all resources created in AWS.
-- `version` (String***REMOVED*** Identifier of the version of OpenShift, for example 'openshift-v4.1.0'.
+- `version` (String***REMOVED*** Desired version of OpenShift for the cluster, for example 'openshift-v4.1.0'. If version is greater than the currently running version, an upgrade will be scheduled.
 
 ### Read-Only
 
 - `api_url` (String***REMOVED*** URL of the API server.
 - `ccs_enabled` (Boolean***REMOVED*** Enables customer cloud subscription.
 - `console_url` (String***REMOVED*** URL of the console.
-- `domain` (String***REMOVED*** DNS Domain of Cluster
+- `current_version` (String***REMOVED*** The currently running version of OpenShift on the cluster, for example 'openshift-v4.1.0'.
+- `domain` (String***REMOVED*** DNS domain of cluster.
 - `id` (String***REMOVED*** Unique identifier of the cluster.
+- `ocm_properties` (Map of String***REMOVED*** Merged properties defined by OCM and the user defined 'properties'.
 - `state` (String***REMOVED*** State of the cluster.
 
 <a id="nestedatt--proxy"></a>
 ### Nested Schema for `proxy`
 
-Required:
-
-- `http_proxy` (String***REMOVED*** http proxy
-- `https_proxy` (String***REMOVED*** https proxy
-
 Optional:
 
-- `additional_trust_bundle` (String***REMOVED*** a string contains contains a PEM-encoded X.509 certificate bundle that will be added to the nodes' trusted certificate store.
-- `no_proxy` (String***REMOVED*** no proxy
+- `additional_trust_bundle` (String***REMOVED*** A string containing a PEM-encoded X.509 certificate bundle that will be added to the nodes' trusted certificate store.
+- `http_proxy` (String***REMOVED*** HTTP proxy.
+- `https_proxy` (String***REMOVED*** HTTPS proxy.
+- `no_proxy` (String***REMOVED*** No proxy.
 
 
 <a id="nestedatt--sts"></a>

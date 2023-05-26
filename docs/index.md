@@ -3,174 +3,141 @@
 page_title: "ocm Provider"
 subcategory: ""
 description: |-
+  
 ---
-# OCM Provider
+<a href="https://redhat.com">
+    <img src=".github/Logo_Red_Hat.png" alt="RedHat logo" title="RedHat" align="right" height="50" />
+</a>
+
+# Red Hat OCM Provider
+
+> Please note that this Terraform provider and its modules are open source and will continue to iterate features, gradually maturing this code. If you encounter any issues, please report them in this repo.
 
 ## Introduction
 
-The OCM provider allows Terraform to manage Red Hat OpenShift Service on AWS (ROSA***REMOVED*** clusters, machine pools and identity provider.
+The Red Hat OCM provider allows Terraform to manage Red Hat OpenShift Service on AWS (ROSA***REMOVED*** clusters, machine pools, and an identity provider.
 
-## OCM
+### OCM
 
-Red Hat OpenShift Cluster Manager is a managed service where you can install, modify, operate, and upgrade your Red Hat OpenShift clusters. This service allows you to work with all of your organization’s clusters from a single dashboard. More information can be found [here](https://docs.openshift.com/rosa/ocm/ocm-overview.html***REMOVED***.
+Red Hat OpenShift Cluster Manager is a managed service where you can install, modify, operate, and upgrade your Red Hat OpenShift clusters. This service allows you to work with all of your organization’s clusters from a single dashboard. 
 
-## ROSA
-Red Hat OpenShift Service on AWS (ROSA***REMOVED*** is a fully-managed, turnkey application platform that allows you to focus on delivering value to your customers by building and deploying applications.
-More information can be found [here](https://docs.openshift.com/rosa/welcome/index.html***REMOVED***.
+More information can be found [here](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/red_hat_openshift_cluster_manager/ocm-overview***REMOVED***.
 
-## AWS STS
-A Secure Token Service (STS***REMOVED*** is a component that issues, validates, renews, and cancels security tokens for trusted systems, users, and resources requesting access within a federation.
-AWS provides AWS STS as a web service that enables you to request temporary, limited-privilege credentials for AWS Identity and Access Management (IAM***REMOVED*** users or for users you authenticate (federated users***REMOVED***.
+### ROSA
+Red Hat OpenShift Service on AWS (ROSA***REMOVED*** is a fully-managed, turnkey application platform that allows you to focus on delivering value to your customers by building and deploying applications. 
 
-## ROSA STS mode
+ROSA provides seamless integration with a wide range of AWS compute, database, analytics, machine learning, networking, mobile, and other services to further accelerate the building and delivering of differentiating experiences to your customers.
+
+You subscribe to the service directly from your AWS account. After the clusters are created, you can operate your clusters with the OpenShift web console or through Red Hat OpenShift Cluster Manager. The ROSA service also uses OpenShift APIs and command-line interface (CLI***REMOVED*** tools. These tools provide a standardized OpenShift experience to use your existing skills and tools knowledge.
+
+More information can be found [here](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/introduction_to_rosa/rosa-understanding***REMOVED***.
+
+### AWS STS
+
+AWS Secure Token Service (STS***REMOVED*** is a global web service that provides short-term credentials for IAM or federated users. ROSA with STS is the recommended credential mode for ROSA clusters. You can use AWS STS with ROSA to allocate temporary, limited-privilege credentials for component-specific IAM roles. The service enables cluster components to make AWS API calls using secure cloud resource management practices.
+
+You can use the rosa CLI to create the IAM role, policy, and identity provider resources that are required for ROSA clusters that use STS.
+
+AWS STS aligns with principles of least privilege and secure practices in cloud service resource management. The rosa CLI manages the STS credentials that are assigned for unique tasks and takes action upon AWS resources as part of OpenShift functionality. One limitation of using STS is that roles must be created for each ROSA cluster.
+
+### ROSA STS mode
 
 To deploy a Red Hat OpenShift Service on AWS (ROSA***REMOVED*** cluster that uses the AWS Security Token Service (STS***REMOVED***, you must create the following AWS Identity Access Management (IAM***REMOVED*** resources:
 
-Specific account-wide IAM roles and policies that provide the STS permissions required for ROSA support, installation, control plane, and compute functionality. This includes account-wide Operator policies.
-Cluster-specific Operator IAM roles that permit the ROSA cluster Operators to carry out core OpenShift functionality.
-An OpenID Connect (OIDC***REMOVED*** provider that the cluster Operators use to authenticate.
+* Specific account-wide IAM roles and policies that provide the STS permissions required for ROSA support, installation, control plane, and compute functionality. This includes account-wide Operator policies.
+* Cluster-specific Operator IAM roles that permit the ROSA cluster Operators to carry out core OpenShift functionality.
+* An OpenID Connect (OIDC***REMOVED*** provider that the cluster Operators use to authenticate.
+
+### Terraform
+
+Terraform is an infrastructure-as-a-code tool that is primarily used by DevOps teams. The tool allows you to define resources in human-readable configuration files that you can version, reuse, and share. Terraform uses a declarative language model, which allows you to describe the intended goal rather than focusing on the processes.
+
+Terraform creates and manages resources through application programming interfaces (APIs***REMOVED*** by using "Providers".
+
+For more information, see the [Terraform documentation](https://developer.hashicorp.com/terraform***REMOVED***.
 
 ## Prerequisites
 
-In order to use the provider inside your terraform configuration you need to:
+To use the OCM provider inside your Terraform configuration you must meet the following:
 
-* Get Offline token (OCM***REMOVED*** [here](https://console.redhat.com/openshift/token/rosa***REMOVED***:
+* An offline [OCM token](https://console.redhat.com/openshift/token/rosa***REMOVED***
+  
+  This token is generated through the Red Hat Hybrid Cloud Console. The purpose of this token is to verify that you have access and permission to create and upgrade clusters. This token is unique to your account and should not be shared.
 
-* Create ROSA account IAM roles:
+* [GoLang version 1.20 or newer](https://go.dev/doc/install***REMOVED***
 
-ROSA account roles and policies can be found at [ROSA Documentation](https://docs.openshift.com/rosa/rosa_architecture/rosa-sts-about-iam-resources.html***REMOVED***
+  To build components with Terraform, you must have the latest version of Go installed and usable on your system.
 
-```
-rosa create account-roles
-```
+* [Terraform version 1.4.6 or newer](https://developer.hashicorp.com/terraform/downloads***REMOVED***
 
-* Least AWS Permissions required to run the terraform
+  You need to have Terraform configured for your local system. The Terraform website contains installation options for MacOS, Windows, and Linux.
 
-```
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "VisualEditor0",
-            "Effect": "Allow",
-            "Action": [
-                "iam:GetRole",
-                "iam:UpdateOpenIDConnectProviderThumbprint",
-                "iam:CreateRole",
-                "iam:DeleteRole",
-                "iam:UpdateRole",
-                "iam:DeleteOpenIDConnectProvider",
-                "iam:GetOpenIDConnectProvider",
-                "iam:CreateOpenIDConnectProvider",
-                "iam:TagOpenIDConnectProvider",
-                "iam:TagRole",
-                "iam:ListRolePolicies",
-                "iam:ListAttachedRolePolicies",
-                "iam:ListInstanceProfilesForRole",
-                "iam:AttachRolePolicy",
-                "iam:DetachRolePolicy"
-            ],
-            "Resource": [
-                "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/*",
-                "arn:aws:iam::<ACCOUNT_ID>:role/*"
-            ]
-        }
-    ]
-}
-```
+* ROSA account roles
+  
+  You need to have created the AWS account-wide roles. The specific account-wide IAM roles and policies provide the STS permissions required for ROSA support, installation, control plane, and compute functionality. This includes account-wide Operator policies. Detailed ROSA account roles and policies can be found [here](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/introduction_to_rosa/rosa-sts-about-iam-resources***REMOVED***.
 
-* Choose operator IAM roles prefix name
+  To create the account roles using Terraform, see the [Account Roles terraform example](https://github.com/terraform-redhat/terraform-provider-ocm/blob/a42779d6b6712f4dde358344f44b782e4dfcd120/examples/create_rosa_cluster/create_rosa_sts_cluster/classic_sts/account_roles/README.md***REMOVED***.
 
-The operator IAM roles will be created per cluster by [module](https://registry.terraform.io/modules/terraform-redhat/rosa-sts***REMOVED***.
+* AWS Permissions
 
+  The following excerpt lists the minimum AWS permissions required to run Terraform.
 
-## Sample ROSA STS Cluster Terraform Manifest File
-
-```
-variable token {
-    type = string
-}
-
-variable operator_role_prefix {
-    type = string
-}
-
-variable cluster_name {
-    type = string
-}
-
-variable region {
-    type = string
-}
-
-variable zone {
-    type = string
-}
-
-provider "ocm" {
-  token = var.token
-}
-
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = ">= 4.20.0"
+    ```
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "VisualEditor0",
+                "Effect": "Allow",
+                "Action": [
+                    
+                    "iam:GetRole",
+                    "iam:UpdateOpenIDConnectProviderThumbprint",
+                    "iam:CreateRole",
+                    "iam:DeleteRole",
+                    "iam:UpdateRole",
+                    "iam:DeleteOpenIDConnectProvider",
+                    "iam:GetOpenIDConnectProvider",
+                    "iam:CreateOpenIDConnectProvider",
+                    "iam:TagOpenIDConnectProvider",
+                    "iam:TagRole",
+                    "iam:ListRolePolicies",
+                    "iam:ListAttachedRolePolicies",
+                    "iam:ListInstanceProfilesForRole",
+                    "iam:AttachRolePolicy",
+                    "iam:DetachRolePolicy"
+                ],
+                "Resource": [
+                    "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/*",
+                    "arn:aws:iam::<ACCOUNT_ID>:role/*"
+                ]
+            }
+        ]
     }
-    ocm = {
-      version = "0.0.3"
-      source  = "terraform-redhat/ocm"
-    }
-  }
-}
+    ```
 
-locals {
-  sts_roles = {
-      role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-Installer-Role",
-      support_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-Support-Role",
-      instance_iam_roles = {
-        master_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-ControlPlane-Role",
-        worker_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ManagedOpenShift-Worker-Role"
-      },
-      operator_role_prefix = var.operator_role_prefix,
-  }
-}
+## Terraform examples
 
-data "aws_caller_identity" "current" {}
+The example Terraform files are all considered in development and should not be used for production environments:
 
-resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
-  name           = var.cluster_name
-  cloud_region   = var.region
-  aws_account_id     = data.aws_caller_identity.current.account_id
-  availability_zones = [var.zone]
-  disable_waiting_in_destroy = false
-  properties = {
-    rosa_creator_arn = data.aws_caller_identity.current.arn
-  }
-  sts = local.sts_roles
-}
+1. **Required**: [Account Roles Terraform](https://github.com/terraform-redhat/terraform-provider-ocm/blob/a42779d6b6712f4dde358344f44b782e4dfcd120/examples/create_rosa_cluster/create_rosa_sts_cluster/classic_sts/account_roles/README.md***REMOVED***
+1. [Create a ROSA cluster that usess STS and has a managed OIDC configuration](https://github.com/terraform-redhat/terraform-provider-ocm/blob/529b10c22c13810b3edbaa01327c7dfdcc207650/examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/README.md***REMOVED***
+1. [Create a ROSA cluster that uses STS and has an unmanaged OIDC configuration](https://github.com/terraform-redhat/terraform-provider-ocm/blob/529b10c22c13810b3edbaa01327c7dfdcc207650/examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/README.md***REMOVED***
 
-resource "ocm_cluster_wait" "rosa_cluster" {
-  cluster = ocm_cluster_rosa_classic.rosa_sts_cluster.id
-}
+### Create your Operator IAM roles prefix name
 
-data "ocm_rosa_operator_roles" "operator_roles" {
-  operator_role_prefix = var.operator_role_prefix
-  account_role_prefix = var.account_role_prefix
-}
+The Operator IAM roles will be created per cluster with the [rosa-sts](https://registry.terraform.io/modules/terraform-redhat/rosa-sts***REMOVED*** module.
 
-module operator_roles {
-  source = "terraform-redhat/rosa-sts/aws"
-  version = "0.0.4"
+## Variables for Red Hat OCM Terraform Provider
 
-  create_operator_roles = true
-  create_oidc_provider = true
-  create_account_roles = false
+The following variables are used to create a ROSA cluster with the Terraform provider:
 
-  cluster_id = ocm_cluster_rosa_classic.rosa_sts_cluster.id
-  rh_oidc_provider_thumbprint = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.thumbprint
-  rh_oidc_provider_url = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.oidc_endpoint_url
-  operator_roles_properties = data.ocm_rosa_operator_roles.operator_roles.operator_iam_roles
-}
-
-```
+- `client_id` (String***REMOVED*** - OpenID client identifier.
+- `client_secret` (String, Sensitive***REMOVED*** - OpenID client secret.
+- `insecure` (Boolean***REMOVED*** - When set to 'true' enables insecure communication with the server. This disables verification of TLS certificates and host names, and it is not recommended for production environments.
+- `password` (String, Sensitive***REMOVED*** - User password.
+- `token` (String, Sensitive***REMOVED*** - Access or refresh token that is generated from https://console.redhat.com/openshift/token/rosa.
+- `token_url` (String***REMOVED*** - OpenID token URL.
+- `trusted_cas` (String***REMOVED*** - PEM encoded certificates of authorities that will be trusted. If this is not explicitly specified, then the provider will trust the certificate authorities trusted by default by the system.
+- `url` (String***REMOVED*** - URL of the API server.
+- `user` (String***REMOVED*** - User name.

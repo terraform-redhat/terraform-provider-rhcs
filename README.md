@@ -287,7 +287,7 @@ This will build and install the provider, and will try to apply the folder. You 
 $ WORK_DIR="/tmp/my_tf_folder" make apply_folder
 ```
 
-> Note: Don't forget to to pint to the local provider in your TF files.
+> Note: Don't forget to point to the local provider in your TF files.
 
 ## Testing binary
 If you want to test locally the provider binary without building from sources you can pull the `latest` container image and copy the binary from the directory :

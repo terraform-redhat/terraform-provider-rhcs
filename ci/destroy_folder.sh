@@ -1,0 +1,69 @@
+#!/bin/bash
+
+set -o nounset
+set -o errexit
+set -o pipefail
+
+trap 'CHILDREN=$(jobs -p***REMOVED***; if test -n "${CHILDREN}"; then kill ${CHILDREN} && wait; fi' TERM
+
+function error_exit(***REMOVED*** {
+    msg=${1}
+    >&2 echo "[Error] ${msg}"
+    exit 1
+}
+
+function prow_archive_state(***REMOVED*** {
+    if [ -n "${OPENSHIFT_CI:-}" ]; then
+        echo
+        echo "[INFO] Running in OpenShift CI (Prow***REMOVED***."
+        echo "[INFO] Archiving state for PROW."
+        echo
+        set -o xtrace
+        tar cvfz "${STATE_ARCHIVE}" ./*.tf*  # For next steps to use
+        set +o xtrace
+        echo "[INFO] ${STATE_ARCHIVE} created."
+    fi
+
+    if [ -n "${1:-}" ]; then
+        error_exit "TF command failed."
+    fi
+}
+
+THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" ***REMOVED***" >/dev/null 2>&1 && pwd ***REMOVED***"
+BASE_DIR=$(realpath "${THIS_DIR}/.."***REMOVED***
+
+echo
+echo ">> Running destroy_folder script"
+echo "   -----------------------------"
+echo
+if [ -n "${OPENSHIFT_CI:-}" ]; then
+    source "${THIS_DIR}/setup_prow_env.sh"
+fi
+
+# Setup defaults
+TERRAFORM_D_DIR=${TERRAFORM_D_DIR:-"${HOME}"}
+WORK_DIR=${WORK_DIR:-"${BASE_DIR}/playground"}
+
+echo "[INFO] Will apply folder."
+echo "[INFO] - WORK_DIR: ${WORK_DIR}"
+echo "[INFO] - TERRAFORM_D_DIR: ${TERRAFORM_D_DIR}"
+echo "[INFO] - THIS_DIR: ${THIS_DIR}"
+echo "[INFO] - BASE_DIR: ${BASE_DIR}"
+
+if [[ ! -d ${WORK_DIR} ]]; then
+    error_exit "can't load WORK_DIR"
+fi
+
+set -o xtrace
+
+cd "${WORK_DIR}"
+HOME=${TERRAFORM_D_DIR} terraform init
+HOME=${TERRAFORM_D_DIR} terraform destroy -auto-approve || prow_archive_state "true"
+
+set +o xtrace
+
+prow_archive_state
+
+echo
+echo "[INFO] Finished destroying the terraform folder ${WORK_DIR} successfully"
+echo

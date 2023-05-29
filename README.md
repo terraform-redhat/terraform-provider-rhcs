@@ -279,6 +279,16 @@ provider "ocm" {
   url = var.url
 }
 ```
+### Development playground
+You can create a `./playground/` folder in the root dir. Place your .tf files in the playground and run `make apply_folder`.
+
+This will build and install the provider, and will try to apply the folder. You can change the "playground" directory by by setting `$WORK_DIR`.
+```
+$ WORK_DIR="/tmp/my_tf_folder" make apply_folder
+```
+
+> Note: Don't forget to to pint to the local provider in your TF files.
+
 ## Testing binary
 If you want to test locally the provider binary without building from sources you can pull the `latest` container image and copy the binary from the directory :
 ```

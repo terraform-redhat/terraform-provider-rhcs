@@ -131,7 +131,12 @@ func (t *RosaOperatorRolesDataSource***REMOVED*** Read(ctx context.Context, requ
 
 	stsOperatorRolesList, err := t.awsInquiries.STSCredentialRequests(***REMOVED***.List(***REMOVED***.Send(***REMOVED***
 	if err != nil {
-		t.logger.Error(ctx, "Failed to get operator list"***REMOVED***
+		description := fmt.Sprintf("Failed to get STS Operator Roles list with error: %v", err***REMOVED***
+		t.logger.Error(ctx, description***REMOVED***
+		response.Diagnostics.AddError(
+			description,
+			"hint: validate the credetials (token***REMOVED*** used to run this provider",
+		***REMOVED***
 		return
 	}
 

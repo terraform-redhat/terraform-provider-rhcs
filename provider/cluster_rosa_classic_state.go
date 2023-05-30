@@ -57,6 +57,7 @@ type ClusterRosaClassicState struct {
 	Proxy                     *Proxy       `tfsdk:"proxy"`
 	State                     types.String `tfsdk:"state"`
 	Version                   types.String `tfsdk:"version"`
+	CurrentVersion            types.String `tfsdk:"current_version"`
 	DisableWaitingInDestroy   types.Bool   `tfsdk:"disable_waiting_in_destroy"`
 	DestroyTimeout            types.Int64  `tfsdk:"destroy_timeout"`
 	Ec2MetadataHttpTokens     types.String `tfsdk:"ec2_metadata_http_tokens"`

@@ -372,9 +372,13 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				},
 			},
 			"version": {
-				Description: "Identifier of the version of OpenShift, for example 'openshift-v4.1.0'.",
+				Description: "Desired version of OpenShift for the cluster, for example 'openshift-v4.1.0'. If version is greater than the currently running version, an upgrade will be scheduled.",
 				Type:        types.StringType,
 				Optional:    true,
+			},
+			"current_version": {
+				Description: "The currently running version of OpenShift on the cluster, for example 'openshift-v4.1.0'.",
+				Type:        types.StringType,
 				Computed:    true,
 			},
 			"disable_waiting_in_destroy": {
@@ -1112,9 +1116,18 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 		return
 	}
 
+	// Schedule a cluster upgrade
+	if err := r.upgradeClusterIfNeeded(ctx, state, plan); err != nil {
+		response.Diagnostics.AddError(
+			"Can't upgrade cluster",
+			fmt.Sprintf("Can't upgrade cluster version with identifier: `%s`, %v", state.ID.Value, err),
+		)
+		return
+	}
+
 	clusterBuilder := cmv1.NewCluster()
 
-	clusterBuilder, shouldUpdateNodes, err := updateNodes(state, plan, clusterBuilder)
+	clusterBuilder, _, err := updateNodes(state, plan, clusterBuilder)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't update cluster",
@@ -1126,7 +1139,7 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 		return
 	}
 
-	clusterBuilder, shouldUpdateProxy, err := updateProxy(state, plan, clusterBuilder)
+	clusterBuilder, _, err = updateProxy(state, plan, clusterBuilder)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't update cluster",
@@ -1143,9 +1156,9 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 		clusterBuilder.DisableUserWorkloadMonitoring(plan.DisableWorkloadMonitoring.Value)
 	}
 
-	if !shouldUpdateProxy && !shouldUpdateNodes && !shouldPatchDisableWorkloadMonitoring {
-		return
-	}
+	// if !shouldUpdateProxy && !shouldUpdateNodes && !shouldPatchDisableWorkloadMonitoring {
+	// 	return
+	// }
 
 	clusterSpec, err := clusterBuilder.Build()
 	if err != nil {
@@ -1193,6 +1206,114 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 	}
 	diags = response.State.Set(ctx, plan)
 	response.Diagnostics.Append(diags...)
+}
+
+// Upgrades the cluster if the desired (plan) version is greater than the
+// current version
+func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context, state, plan *ClusterRosaClassicState) error {
+	if common.IsStringAttributeEmpty(plan.Version) || common.IsStringAttributeEmpty(state.CurrentVersion) {
+		// No version information, nothing to do
+		r.logger.Debug(ctx, "Insufficient cluster version information to determine if upgrade should be performed.")
+		return nil
+	}
+
+	// Check the versions to see if we need to upgrade
+	currentVersionString := strings.TrimPrefix(state.CurrentVersion.Value, "openshift-v")
+	currentVersion, err := semver.NewVersion(currentVersionString)
+	if err != nil {
+		return fmt.Errorf("failed to parse current cluster version: %v", err)
+	}
+	desiredVersionString := strings.TrimPrefix(plan.Version.Value, "openshift-v")
+	desiredVersion, err := semver.NewVersion(desiredVersionString)
+	if err != nil {
+		return fmt.Errorf("failed to parse desired cluster version: %v", err)
+	}
+	if currentVersion.GreaterThanOrEqual(desiredVersion) {
+		r.logger.Debug(ctx, "No cluster version upgrade needed.")
+		return nil
+	}
+
+	// Make sure the desired version is available
+	availableVersions, err := getAvailableUpgrades(ctx, r.versionCollection, state.CurrentVersion.Value)
+	if err != nil {
+		return fmt.Errorf("failed to get available upgrades: %v", err)
+	}
+	found := false
+	for _, v := range availableVersions {
+		sem, err := semver.NewVersion(v.RawID())
+		if err != nil {
+			return fmt.Errorf("failed to parse available upgrade version: %v", err)
+		}
+		if desiredVersion.Equal(sem) {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return fmt.Errorf("desired version (%s) is not in the list of available upgrades", desiredVersion)
+	}
+
+	// Make sure the account roles have been upgraded
+	if err := r.validateAccountRoles(ctx, plan, desiredVersion.String()); err != nil {
+		return fmt.Errorf("failed to validate account roles: %v", err)
+	}
+
+	// XXX: Make sure the operator role policies have been upgraded
+
+	// Fetch existing upgrade policies
+	upgrades, err := getScheduledUpgrades(ctx, r.clusterCollection, state.ID.Value)
+	if err != nil {
+		return fmt.Errorf("failed to get upgrade policies: %v", err)
+	}
+
+	// Stop if an upgrade is already in progress
+	upgradeInProgress := false
+	correctUpgradePending := false
+	tenMinFromNow := time.Now().Add(10 * time.Minute)
+	for _, upgrade := range upgrades {
+		switch upgrade.State() {
+		case cmv1.UpgradePolicyStateValueDelayed, cmv1.UpgradePolicyStateValueStarted:
+			upgradeInProgress = true
+		case cmv1.UpgradePolicyStateValuePending, cmv1.UpgradePolicyStateValueScheduled:
+			toVersion, err := semver.NewVersion(upgrade.Version())
+			if err != nil {
+				return fmt.Errorf("failed to parse upgrade version: %v", err)
+			}
+			if desiredVersion.Equal(toVersion) && upgrade.NextRun().Before(tenMinFromNow) {
+				correctUpgradePending = true
+			} else {
+				// The upgrade is not one we want, so cancel it
+				if err := upgrade.Delete(ctx, r.clusterCollection); err != nil {
+					return fmt.Errorf("failed to delete upgrade policy: %v", err)
+				}
+			}
+		}
+	}
+
+	if !upgradeInProgress && !correctUpgradePending {
+		// XXX: What do we do about gate agreements?
+
+		// Schedule an upgrade
+		newPolicy, err := cmv1.NewUpgradePolicy().
+			ScheduleType("manual").
+			Version(desiredVersion.String()).
+			NextRun(tenMinFromNow).
+			Build()
+		if err != nil {
+			return fmt.Errorf("failed to create upgrade policy: %v", err)
+		}
+		_, err = r.clusterCollection.Cluster(state.ID.Value).
+			UpgradePolicies().
+			Add().
+			Body(newPolicy).
+			SendContext(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to schedule upgrade: %v", err)
+		}
+	}
+
+	state.Version = plan.Version
+	return nil
 }
 
 func updateProxy(state, plan *ClusterRosaClassicState, clusterBuilder *cmv1.ClusterBuilder) (*cmv1.ClusterBuilder, bool, error) {
@@ -1674,11 +1795,11 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	// the version ID. Remove it before saving state.
 	version = strings.TrimSuffix(version, fmt.Sprintf("-%s", channel_group))
 	if ok {
-		state.Version = types.String{
+		state.CurrentVersion = types.String{
 			Value: version,
 		}
 	} else {
-		state.Version = types.String{
+		state.CurrentVersion = types.String{
 			Null: true,
 		}
 	}

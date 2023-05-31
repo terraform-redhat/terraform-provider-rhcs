@@ -22,7 +22,7 @@ terraform {
     }
     ocm = {
       version = ">=1.0.1"
-      source  = "terraform-redhat/ocm"
+      source  = "terraform.local/local/ocm"
     }
   }
 }
@@ -33,13 +33,13 @@ provider "ocm" {
 
 # Generates the OIDC config resources' names
 resource "ocm_rosa_oidc_config_input" "oidc_input" {
-  region = "us-east-2"
+  region = var.aws_region
 }
 
 # Create the OIDC config resources on AWS
 module oidc_config_input_resources {
   source = "terraform-redhat/rosa-sts/aws"
-  version = "0.0.5"
+  version = ">=0.0.5"
 
   create_oidc_config_resources = true
 
@@ -56,7 +56,7 @@ resource "ocm_rosa_oidc_config" "oidc_config" {
   managed = false
   secret_arn =  module.oidc_config_input_resources.secret_arn
   issuer_url = ocm_rosa_oidc_config_input.oidc_input.issuer_url
-  installer_role_arn = var.installer_role_arn
+  installer_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Installer-Role"
 }
 
 data "ocm_rosa_operator_roles" "operator_roles" {
@@ -66,7 +66,7 @@ data "ocm_rosa_operator_roles" "operator_roles" {
 
 module operator_roles_and_oidc_provider {
   source = "terraform-redhat/rosa-sts/aws"
-  version = ">=0.0.5"
+  version = "0.0.5"
 
   create_operator_roles = true
   create_oidc_provider = true
@@ -94,14 +94,18 @@ data "aws_caller_identity" "current" {
 }
 
 resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
-  name           = "tf-gdb-test"
-  cloud_region   = "us-east-2"
+  name               = var.cluster_name
+  version            = "openshift-v${var.openshift_version}"
+  channel_group      = var.channel_group
+  cloud_region       = var.aws_region
   aws_account_id     = data.aws_caller_identity.current.account_id
-  availability_zones = ["us-east-2a"]
+  availability_zones = var.aws_availability_zones
   properties = {
     rosa_creator_arn = data.aws_caller_identity.current.arn
   }
-  sts = local.sts_roles
+  sts                = local.sts_roles
+  replicas           = var.replicas
+  destroy_timeout    = 120
 }
 
 resource "ocm_cluster_wait" "rosa_cluster" {

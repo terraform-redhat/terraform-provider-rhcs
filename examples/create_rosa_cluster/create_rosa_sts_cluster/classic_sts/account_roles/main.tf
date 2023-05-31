@@ -21,7 +21,7 @@ terraform {
       version = ">= 4.20.0"
     }
     ocm = {
-      version = "0.0.3"
+      version = ">=1.0.1"
       source  = "terraform-redhat/ocm"
     }
   }
@@ -36,7 +36,7 @@ data "ocm_policies" "all_policies"{}
 
 module "create_account_roles"{
   source = "terraform-redhat/rosa-sts/aws"
-  version = "0.0.4"
+  version = ">=0.0.5"
 
   create_operator_roles = false
   create_oidc_provider = false

@@ -5,7 +5,7 @@ terraform {
       version = ">= 4.20.0"
     }
     ocm = {
-      version = ">= 0.0.1"
+      version = ">= 1.0.1"
       source  = "terraform.local/local/ocm"
     }
   }
@@ -58,7 +58,7 @@ data "ocm_rosa_operator_roles" "operator_roles" {
 
 module operator_roles {
   source = "terraform-redhat/rosa-sts/aws"
-  version = "0.0.4"
+  version = ">=0.0.5"
 
   create_operator_roles = true
   create_oidc_provider = true

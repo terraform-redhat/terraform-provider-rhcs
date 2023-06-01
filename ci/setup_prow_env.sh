@@ -1,10 +1,11 @@
 #!/bin/bash
 
-# This file should be sourced in a wrapper script (i.e apply_folder.sh)
+# This file should be sourced in a wrapper script (i.e apply/destroy_folder.sh)
 
+CI_TIMESTAMP=$(date +%s)
 echo
 echo "[INFO] Running in OpenShift CI (Prow)."
-echo "[INFO] Setting up for PROW"
+echo "[INFO] Setting up for PROW. timestamp ${CI_TIMESTAMP}"
 echo
 
 # Validate some mandatory variables

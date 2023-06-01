@@ -22,6 +22,11 @@ function prow_archive_state() {
         tar cvfz "${STATE_ARCHIVE}" ./*.tf*  # For next steps to use
         set +o xtrace
         echo "[INFO] ${STATE_ARCHIVE} created."
+
+        run_artifact_dir="${ARTIFACT_DIR}/destroy_folder_${CI_TIMESTAMP}"
+        echo "[INFO] Uploading tf files to ARTIFACT_DIR @ ${run_artifact_dir}"
+        mkdir "${run_artifact_dir}"
+        cp ./*.tf "${run_artifact_dir}"/
     fi
 
     if [ -n "${1:-}" ]; then

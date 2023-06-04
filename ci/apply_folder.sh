@@ -3,7 +3,7 @@
 set -o nounset
 set -o errexit
 set -o pipefail
-
+set -x
 trap 'CHILDREN=$(jobs -p); if test -n "${CHILDREN}"; then kill ${CHILDREN} && wait; fi' TERM
 
 function error_exit() {
@@ -60,6 +60,7 @@ if [[ ! -d ${WORK_DIR} ]]; then
 fi
 
 set -o xtrace
+export TF_LOG=debug
 
 cd "${WORK_DIR}"
 HOME=${TERRAFORM_D_DIR} terraform init

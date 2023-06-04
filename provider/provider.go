@@ -21,19 +21,19 @@ package provider
 	"crypto/x509"
 ***REMOVED***
 	"os"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	sdk "github.com/openshift-online/ocm-sdk-go"
-	"github.com/openshift-online/ocm-sdk-go/logging"
+	ocmlogging "github.com/openshift-online/ocm-sdk-go/logging"
 	"github.com/terraform-redhat/terraform-provider-ocm/build"
+	locallogging "github.com/terraform-redhat/terraform-provider-ocm/logging"
 ***REMOVED***
 
 // Provider is the implementation of the Provider.
 type Provider struct {
-	logger     logging.Logger
+	logger     ocmlogging.Logger
 	connection *sdk.Connection
 }
 
@@ -130,22 +130,10 @@ func (p *Provider***REMOVED*** Configure(ctx context.Context, request tfsdk.Conf
 		return
 	}
 
-	// Determine the log level used by the SDK from the environment variables used by Terraform:
-	level := os.Getenv("TF_LOG"***REMOVED***
-
 	// The plugin infrastructure redirects the log package output so that it is sent to the main
 	// Terraform process, so if we want to have the logs of the SDK redirected we need to use
 	// the log package as well.
-	logger, err := logging.NewGoLoggerBuilder(***REMOVED***.
-		Error(true***REMOVED***.
-		Warn(true***REMOVED***.
-		Info(true***REMOVED***.
-		Debug(strings.EqualFold(level, "DEBUG"***REMOVED******REMOVED***.
-		Build(***REMOVED***
-	if err != nil {
-		response.Diagnostics.AddError(err.Error(***REMOVED***, ""***REMOVED***
-		return
-	}
+	logger := locallogging.New(***REMOVED***
 
 	// Create the builder:
 	builder := sdk.NewConnectionBuilder(***REMOVED***

@@ -30,11 +30,6 @@ variable aws_availability_zones {
     default = ["us-east-1a"]
 }
 
-variable aws_subnets {
-    type      = list(string)
-    default = null
-}
-
 variable replicas {
     type = string
     default = "3"
@@ -45,11 +40,6 @@ variable openshift_version {
     default = "4.13.0"
 }
 
-variable "account_role_path" {
-  description = "(Optional) Path to the account role."
-  type        = string
-  default     = "/"
-}
 variable channel_group {
     type = string
     default = "stable"

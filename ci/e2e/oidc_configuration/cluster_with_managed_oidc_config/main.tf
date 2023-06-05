@@ -50,8 +50,6 @@ module operator_roles_and_oidc_provider {
   cluster_id = ""
   rh_oidc_provider_thumbprint = ocm_rosa_oidc_config.oidc_config.thumbprint
   rh_oidc_provider_url = ocm_rosa_oidc_config.oidc_config.oidc_endpoint_url
-  # rh_oidc_provider_url = "d3gt1gce2zmg3d.cloudfront.net/246cu965153b3jpdhfrqcfnpaddi16on"
-  # rh_oidc_provider_thumbprint = "9e99a48a9960b14926bb7f3b02e22da2b0ab7280"
   operator_roles_properties = data.ocm_rosa_operator_roles.operator_roles.operator_iam_roles
 }
 
@@ -64,7 +62,6 @@ locals {
       worker_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Worker-Role"
     },
     operator_role_prefix = var.operator_role_prefix,
-    #oidc_config_id = "246cu965153b3jpdhfrqcfnpaddi16on"
     oidc_config_id = ocm_rosa_oidc_config.oidc_config.id
   }
 }
@@ -85,9 +82,6 @@ resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
   sts                = local.sts_roles
   replicas           = var.replicas
   destroy_timeout    = 120
-  aws_subnet_ids = ["subnet-0c38b59ed5f0f0707"]
-  aws_private_link = true
-
 }
 
 resource "ocm_cluster_wait" "rosa_cluster" {

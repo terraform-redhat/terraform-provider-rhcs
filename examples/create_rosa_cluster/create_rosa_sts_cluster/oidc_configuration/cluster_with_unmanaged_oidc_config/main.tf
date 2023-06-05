@@ -37,7 +37,7 @@ module "oidc_config" {
   url                  = var.url
   source               = "../oidc_provider"
   managed              = false
-  installer_role_arn   = var.installer_role_arn
+  installer_role_arn   = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${var.account_role_path}${var.account_role_prefix}-Installer-Role"
   operator_role_prefix = var.operator_role_prefix
   account_role_prefix  = var.account_role_prefix
   cloud_region         = var.cloud_region

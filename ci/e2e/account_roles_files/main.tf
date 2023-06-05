@@ -5,7 +5,7 @@ terraform {
       version = ">= 4.20.0"
     }
     ocm = {
-      version = ">= 1.0.1"
+      version = ">= 0.0.1"
       source  = "terraform.local/local/ocm"
     }
   }
@@ -20,12 +20,12 @@ data "ocm_policies" "all_policies"{}
 
 module "create_account_roles"{
   source = "terraform-redhat/rosa-sts/aws"
-  version = ">=0.0.5"
+  version = "0.0.4"
 
   create_operator_roles = false
   create_oidc_provider = false
   create_account_roles = true
-  account_role_path = "/am/am/"
+
   account_role_prefix    = var.account_role_prefix
   ocm_environment        = var.ocm_environment
   rosa_openshift_version = "${split(".", var.openshift_version)[0]}.${split(".", var.openshift_version)[1]}"

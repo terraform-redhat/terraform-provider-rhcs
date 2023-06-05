@@ -1,4 +1,5 @@
 #!/bin/bash
+set -x
 
 # This file should be sourced in a wrapper script (i.e apply_folder.sh***REMOVED***
 
@@ -16,6 +17,9 @@ if [[ "${cluster_id_tf}" != "null" ]]; then
     echo "${cluster_id}" > "${SHARED_DIR}/cluster_id"
     # Kubeconfig
     ocm login --token="${OCM_TOKEN}" --url="${GATEWAY_URL}"
+
+    #save the json in artifacts
+    ocm get /api/clusters_mgmt/v1/clusters/${cluster_id} > $ARTIFACT_DIR/cluster.json
 
     creds=$(ocm get "/api/clusters_mgmt/v1/clusters/${cluster_id}/credentials"***REMOVED***
 

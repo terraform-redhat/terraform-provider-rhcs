@@ -1,4 +1,5 @@
 #!/bin/bash
+set -x
 
 # This file should be sourced in a wrapper script (i.e apply/destroy_folder.sh***REMOVED***
 

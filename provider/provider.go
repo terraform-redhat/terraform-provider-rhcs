@@ -26,14 +26,12 @@ package provider
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	sdk "github.com/openshift-online/ocm-sdk-go"
-	ocmlogging "github.com/openshift-online/ocm-sdk-go/logging"
 	"github.com/terraform-redhat/terraform-provider-ocm/build"
-	locallogging "github.com/terraform-redhat/terraform-provider-ocm/logging"
+	"github.com/terraform-redhat/terraform-provider-ocm/logging"
 ***REMOVED***
 
 // Provider is the implementation of the Provider.
 type Provider struct {
-	logger     ocmlogging.Logger
 	connection *sdk.Connection
 }
 
@@ -133,7 +131,7 @@ func (p *Provider***REMOVED*** Configure(ctx context.Context, request tfsdk.Conf
 	// The plugin infrastructure redirects the log package output so that it is sent to the main
 	// Terraform process, so if we want to have the logs of the SDK redirected we need to use
 	// the log package as well.
-	logger := locallogging.New(***REMOVED***
+	logger := logging.New(***REMOVED***
 
 	// Create the builder:
 	builder := sdk.NewConnectionBuilder(***REMOVED***
@@ -189,7 +187,6 @@ func (p *Provider***REMOVED*** Configure(ctx context.Context, request tfsdk.Conf
 	}
 
 	// Save the connection:
-	p.logger = logger
 	p.connection = connection
 }
 
@@ -198,10 +195,10 @@ func (p *Provider***REMOVED*** GetResources(ctx context.Context***REMOVED*** (re
 	diags diag.Diagnostics***REMOVED*** {
 	result = map[string]tfsdk.ResourceType{
 		"ocm_cluster":                &ClusterResourceType{},
-		"ocm_cluster_rosa_classic":   &ClusterRosaClassicResourceType{p.logger},
+		"ocm_cluster_rosa_classic":   &ClusterRosaClassicResourceType{},
 		"ocm_group_membership":       &GroupMembershipResourceType{},
 		"ocm_identity_provider":      &IdentityProviderResourceType{},
-		"ocm_machine_pool":           &MachinePoolResourceType{p.logger},
+		"ocm_machine_pool":           &MachinePoolResourceType{},
 		"ocm_cluster_wait":           &ClusterWaiterResourceType{},
 		"ocm_rosa_oidc_config_input": &RosaOidcConfigInputResourceType{},
 		"ocm_rosa_oidc_config":       &RosaOidcConfigResourceType{},

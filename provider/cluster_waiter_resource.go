@@ -8,8 +8,8 @@ package provider
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/openshift-online/ocm-sdk-go/logging"
 ***REMOVED***
 
 type Waiter interface {
@@ -20,7 +20,6 @@ type ClusterWaiterResourceType struct {
 }
 
 type ClusterWaiterResource struct {
-	logger     logging.Logger
 	collection *cmv1.ClustersClient
 }
 
@@ -67,7 +66,6 @@ func (t *ClusterWaiterResourceType***REMOVED*** NewResource(ctx context.Context,
 
 	// Create the resource:
 	result = &ClusterWaiterResource{
-		logger:     parent.logger,
 		collection: collection,
 	}
 	return
@@ -152,7 +150,7 @@ func (r *ClusterWaiterResource***REMOVED*** isClusterReady(clusterId string, ctx
 		Interval(pollingIntervalInMinutes * time.Minute***REMOVED***.
 		Predicate(func(getClusterResponse *cmv1.ClusterGetResponse***REMOVED*** bool {
 			object = getClusterResponse.Body(***REMOVED***
-			r.logger.Debug(ctx, "cluster state is %s", object.State(***REMOVED******REMOVED***
+			tflog.Debug(ctx, fmt.Sprintf("cluster state is %s", object.State(***REMOVED******REMOVED******REMOVED***
 			switch object.State(***REMOVED*** {
 			case cmv1.ClusterStateReady,
 				cmv1.ClusterStateError:
@@ -162,7 +160,7 @@ func (r *ClusterWaiterResource***REMOVED*** isClusterReady(clusterId string, ctx
 ***REMOVED******REMOVED***.
 		StartContext(pollCtx***REMOVED***
 	if err != nil {
-		r.logger.Error(ctx, "Can't  poll cluster state"***REMOVED***
+		tflog.Error(ctx, "Can't  poll cluster state"***REMOVED***
 		return nil, err
 	}
 

@@ -28,7 +28,6 @@ package provider
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift-online/ocm-sdk-go/errors"
-	"github.com/openshift-online/ocm-sdk-go/logging"
 	"github.com/terraform-redhat/terraform-provider-ocm/provider/common"
 ***REMOVED***
 
@@ -36,7 +35,6 @@ type ClusterResourceType struct {
 }
 
 type ClusterResource struct {
-	logger     logging.Logger
 	collection *cmv1.ClustersClient
 }
 
@@ -237,7 +235,6 @@ func (t *ClusterResourceType***REMOVED*** NewResource(ctx context.Context,
 
 	// Create the resource:
 	result = &ClusterResource{
-		logger:     parent.logger,
 		collection: collection,
 	}
 

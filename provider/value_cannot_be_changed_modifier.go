@@ -6,17 +6,14 @@ package provider
 ***REMOVED***
 
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/openshift-online/ocm-sdk-go/logging"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 ***REMOVED***
 
 type valueCannotBeChangedModifier struct {
-	logger logging.Logger
 }
 
-func ValueCannotBeChangedModifier(logger logging.Logger***REMOVED*** tfsdk.AttributePlanModifier {
-	return valueCannotBeChangedModifier{
-		logger: logger,
-	}
+func ValueCannotBeChangedModifier(***REMOVED*** tfsdk.AttributePlanModifier {
+	return valueCannotBeChangedModifier{}
 }
 func (m valueCannotBeChangedModifier***REMOVED*** Description(ctx context.Context***REMOVED*** string {
 	return "The value cannot be changed after the resource was created."
@@ -70,12 +67,12 @@ func (m valueCannotBeChangedModifier***REMOVED*** Modify(ctx context.Context, re
 	}
 
 	if req.AttributeState.Equal(req.AttributePlan***REMOVED*** {
-		m.logger.Debug(ctx, "attribute state and attribute plan have the same value"***REMOVED***
+		tflog.Debug(ctx, "attribute state and attribute plan have the same value"***REMOVED***
 		return
 	}
 
 	// the attribute value was changes
-	m.logger.Debug(ctx, "attribute plan was changed"***REMOVED***
+	tflog.Debug(ctx, "attribute plan was changed"***REMOVED***
 	resp.Diagnostics.AddAttributeError(req.AttributePath, "Value cannot be changed", "This attribute is blocked for updating"***REMOVED***
 	return
 

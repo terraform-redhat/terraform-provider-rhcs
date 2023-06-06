@@ -23,14 +23,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/openshift-online/ocm-sdk-go/logging"
 )
 
 type GroupsDataSourceType struct {
 }
 
 type GroupsDataSource struct {
-	logger     logging.Logger
 	collection *cmv1.ClustersClient
 }
 
@@ -86,7 +84,6 @@ func (t *GroupsDataSourceType) NewDataSource(ctx context.Context,
 
 	// Create the resource:
 	result = &GroupsDataSource{
-		logger:     parent.logger,
 		collection: collection,
 	}
 	return

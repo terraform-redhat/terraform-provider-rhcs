@@ -19,21 +19,20 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/openshift-online/ocm-sdk-go/logging"
-	"strings"
 )
 
 type RosaOidcConfigResourceType struct {
-	logger logging.Logger
 }
 
 type RosaOidcConfigResource struct {
-	logger           logging.Logger
 	oidcConfigClient *cmv1.OidcConfigsClient
 	clustersClient   *cmv1.ClustersClient
 }
@@ -96,7 +95,6 @@ func (t *RosaOidcConfigResourceType) NewResource(ctx context.Context,
 
 	// Create the resource:
 	result = &RosaOidcConfigResource{
-		logger:           parent.logger,
 		oidcConfigClient: oidcConfigClient,
 		clustersClient:   clustersClient,
 	}
@@ -369,7 +367,7 @@ func (r *RosaOidcConfigResource) populateState(ctx context.Context, object *cmv1
 
 	thumbprint, err := getThumbprint(issuerUrl, DefaultHttpClient{})
 	if err != nil {
-		r.logger.Error(ctx, "cannot get thumbprint", err)
+		tflog.Error(ctx, fmt.Sprintf("cannot get thumbprint, with error: %v", err))
 		state.Thumbprint = types.String{
 			Value: "",
 		}

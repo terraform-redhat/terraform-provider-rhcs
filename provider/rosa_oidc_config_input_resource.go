@@ -18,19 +18,17 @@ package provider
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/openshift-online/ocm-sdk-go/logging"
 	rosaoidcconfig "github.com/openshift/rosa/pkg/helper/oidc_config"
 )
 
 type RosaOidcConfigInputResourceType struct {
-	logger logging.Logger
 }
 
 type RosaOidcConfigInputResource struct {
-	logger logging.Logger
 }
 
 func (t *RosaOidcConfigInputResourceType) GetSchema(ctx context.Context) (result tfsdk.Schema,
@@ -85,13 +83,8 @@ func (t *RosaOidcConfigInputResourceType) GetSchema(ctx context.Context) (result
 
 func (t *RosaOidcConfigInputResourceType) NewResource(ctx context.Context,
 	p tfsdk.Provider) (result tfsdk.Resource, diags diag.Diagnostics) {
-	// Cast the provider interface to the specific implementation:
-	parent := p.(*Provider)
-
 	// Create the resource:
-	result = &RosaOidcConfigInputResource{
-		logger: parent.logger,
-	}
+	result = &RosaOidcConfigInputResource{}
 
 	return
 }

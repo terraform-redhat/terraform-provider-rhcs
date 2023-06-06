@@ -12,6 +12,13 @@ func stsResource(***REMOVED*** tfsdk.NestedAttributes {
 			Type:        types.StringType,
 			Optional:    true,
 			Computed:    true,
+			PlanModifiers: []tfsdk.AttributePlanModifier{
+				// This passes the state through to the plan, so that the OIDC
+				// provider URL will not be "unknown" at plan-time, resulting in
+				// the oidc provider being needlessly replaced. This should be
+				// OK, since the OIDC provider URL is not expected to change.
+				tfsdk.UseStateForUnknown(***REMOVED***,
+	***REMOVED***,
 ***REMOVED***,
 		"oidc_config_id": {
 			Description: "OIDC Configuration ID",
@@ -22,6 +29,13 @@ func stsResource(***REMOVED*** tfsdk.NestedAttributes {
 			Description: "SHA1-hash value of the root CA of the issuer URL",
 			Type:        types.StringType,
 			Computed:    true,
+			PlanModifiers: []tfsdk.AttributePlanModifier{
+				// This passes the state through to the plan, so that the OIDC
+				// thumbprint will not be "unknown" at plan-time, resulting in
+				// the oidc provider being needlessly replaced. This should be
+				// OK, since the thumbprint is not expected to change.
+				tfsdk.UseStateForUnknown(***REMOVED***,
+	***REMOVED***,
 ***REMOVED***,
 		"role_arn": {
 			Description: "Installer Role",

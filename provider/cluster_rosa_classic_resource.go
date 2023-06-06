@@ -96,6 +96,11 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 				Description: "Unique identifier of the cluster.",
 				Type:        types.StringType,
 				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					// This passes the state through to the plan, preventing
+					// "known after apply" since we know it won't change.
+					tfsdk.UseStateForUnknown(***REMOVED***,
+		***REMOVED***,
 	***REMOVED***,
 			"external_id": {
 				Description: "Unique external identifier of the cluster.",

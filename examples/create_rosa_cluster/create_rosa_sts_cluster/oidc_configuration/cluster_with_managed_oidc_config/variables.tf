@@ -1,18 +1,18 @@
-variable token {
-  type = string
+variable "token" {
+  type      = string
   sensitive = true
 }
 
-variable url {
-    type = string
-    default = "https://api.openshift.com"
+variable "url" {
+  type    = string
+  default = "https://api.openshift.com"
 }
 
-variable operator_role_prefix {
-    type = string
+variable "operator_role_prefix" {
+  type = string
 }
 
-variable account_role_prefix {
-    type = string
-    default = ""
+variable "account_role_prefix" {
+  type    = string
+  default = ""
 }

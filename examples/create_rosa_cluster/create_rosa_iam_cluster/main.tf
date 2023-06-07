@@ -31,8 +31,8 @@ provider "aws" {
   region = "us-east-1"
 }
 
-variable token {
-  type = string
+variable "token" {
+  type      = string
   sensitive = true
 }
 
@@ -52,14 +52,14 @@ resource "aws_iam_access_key" "admin_key" {
 }
 
 resource "ocm_cluster" "rosa_cluster" {
-  name           = "my-cluster"
-  cloud_provider = "aws"
-  cloud_region   = "us-east-1"
-  product        = "rosa"
-  aws_account_id     = data.aws_caller_identity.current.account_id
-  availability_zones = ["us-east-1a"]
+  name                  = "my-cluster"
+  cloud_provider        = "aws"
+  cloud_region          = "us-east-1"
+  product               = "rosa"
+  aws_account_id        = data.aws_caller_identity.current.account_id
+  availability_zones    = ["us-east-1a"]
   aws_access_key_id     = aws_iam_access_key.admin_key.id
-  aws_secret_access_key = aws_iam_access_key.admin_key.secret  
+  aws_secret_access_key = aws_iam_access_key.admin_key.secret
   properties = {
     rosa_creator_arn = data.aws_caller_identity.current.arn
   }

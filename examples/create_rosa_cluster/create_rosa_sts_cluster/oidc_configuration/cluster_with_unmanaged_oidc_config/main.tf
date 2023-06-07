@@ -33,7 +33,7 @@ provider "ocm" {
 
 # Generates the OIDC config resources' names
 resource "ocm_rosa_oidc_config_input" "oidc_input" {
-  region = "us-east-2"
+  region = var.cloud_region
 }
 
 # Create the OIDC config resources on AWS
@@ -94,10 +94,10 @@ data "aws_caller_identity" "current" {
 }
 
 resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
-  name               = "tf-gdb-test"
-  cloud_region       = "us-east-2"
+  name               = var.cluster_name
+  cloud_region       = var.cloud_region
   aws_account_id     = data.aws_caller_identity.current.account_id
-  availability_zones = ["us-east-2a"]
+  availability_zones = var.availability_zones
   properties = {
     rosa_creator_arn = data.aws_caller_identity.current.arn
   }

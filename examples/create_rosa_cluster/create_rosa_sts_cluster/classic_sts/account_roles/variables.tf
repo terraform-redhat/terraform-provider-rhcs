@@ -1,21 +1,21 @@
-variable ocm_environment {
-    type = string
-    default = "production"
+variable "ocm_environment" {
+  type    = string
+  default = "production"
 }
 
-variable openshift_version {
-    type = string
-    default = "4.12"
+variable "openshift_version" {
+  type    = string
+  default = "4.12"
 }
 
-variable account_role_prefix {
-    type = string
+variable "account_role_prefix" {
+  type = string
 }
 
-variable token {
-    type = string
+variable "token" {
+  type = string
 }
 
-variable url {
-    type = string
+variable "url" {
+  type = string
 }

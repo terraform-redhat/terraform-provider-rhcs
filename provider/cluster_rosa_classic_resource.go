@@ -813,13 +813,80 @@ func (r *ClusterRosaClassicResource***REMOVED*** validateAccountRoles(ctx contex
 
 	return nil
 }
+
+// validateOperatorRolePolicies ensures that the operator role policies are
+// compatible with the requested cluster version
+func (r *ClusterRosaClassicResource***REMOVED*** validateOperatorRolePolicies(ctx context.Context, state *ClusterRosaClassicState, version string***REMOVED*** error {
+	r.logger.Debug(ctx, "Validating if cluster version is compatible with the operator role policies"***REMOVED***
+
+	operRoles := []*cmv1.OperatorIAMRole{}
+	operRoleClient := r.clusterCollection.Cluster(state.ID.Value***REMOVED***.STSOperatorRoles(***REMOVED***
+	page := 1
+	size := 100
+	for {
+		resp, err := operRoleClient.List(***REMOVED***.Page(page***REMOVED***.Size(size***REMOVED***.SendContext(ctx***REMOVED***
+		if err != nil {
+			return fmt.Errorf("Could not list operator roles: %v", err***REMOVED***
+***REMOVED***
+		operRoles = append(operRoles, resp.Items(***REMOVED***.Slice(***REMOVED***...***REMOVED***
+		if resp.Size(***REMOVED*** < size {
+			break
+***REMOVED***
+		page++
+	}
+
+	region := state.CloudRegion.Value
+	session, err := buildSession(region***REMOVED***
+	if err != nil {
+		return fmt.Errorf("Could not build session: %v", err***REMOVED***
+	}
+	iamClient := iam.New(session***REMOVED***
+	for _, operRole := range operRoles {
+		roleARN := operRole.RoleARN(***REMOVED***
+		role, err := getRoleByARN(roleARN, state.CloudRegion.Value***REMOVED***
+		if err != nil {
+			return fmt.Errorf("Could not get Role '%s' : %v", roleARN, err***REMOVED***
+***REMOVED***
+		attachedPolicies, err := iamClient.ListAttachedRolePoliciesWithContext(ctx, &iam.ListAttachedRolePoliciesInput{
+			MaxItems: aws.Int64(100***REMOVED***,
+			RoleName: role.RoleName,
+***REMOVED******REMOVED***
+		if err != nil {
+			return fmt.Errorf("Could not list attached policies for role '%s' : %v", roleARN, err***REMOVED***
+***REMOVED***
+		for _, policy := range attachedPolicies.AttachedPolicies {
+			policyARN := policy.PolicyArn
+			policyOut, err := iamClient.GetPolicyWithContext(ctx, &iam.GetPolicyInput{
+				PolicyArn: policyARN,
+	***REMOVED******REMOVED***
+			if err != nil {
+				return fmt.Errorf("Could not get policy '%s' : %v", aws.StringValue(policyARN***REMOVED***, err***REMOVED***
+	***REMOVED***
+			tags := policyOut.Policy.Tags
+			validVersion, err := r.hasCompatibleVersionTags(ctx, tags, getOcmVersionMinor(version***REMOVED******REMOVED***
+			if err != nil {
+				return fmt.Errorf("Could not validate policy '%s' : %v", aws.StringValue(policyARN***REMOVED***, err***REMOVED***
+	***REMOVED***
+			if !validVersion {
+				return fmt.Errorf("operator role policy '%s' is not compatible with version %s. "+
+					"Upgrade operator roles and try again",
+					aws.StringValue(policyARN***REMOVED***, version***REMOVED***
+	***REMOVED***
+***REMOVED***
+	}
+	return nil
+}
+
+// Check whether the list of tags contains a tag indicating the version of
+// OpenShift it was creted for, and whether that version is at lest as new as
+// the provided version.
 func (r *ClusterRosaClassicResource***REMOVED*** hasCompatibleVersionTags(ctx context.Context, iamTags []*iam.Tag, version string***REMOVED*** (bool, error***REMOVED*** {
 	if len(iamTags***REMOVED*** == 0 {
 		return false, nil
 	}
 	for _, tag := range iamTags {
 		if aws.StringValue(tag.Key***REMOVED*** == tagsOpenShiftVersion {
-			tflog.Debug(ctx, fmt.Sprintf("role version is %s", aws.StringValue(tag.Value***REMOVED******REMOVED******REMOVED***
+			tflog.Debug(ctx, fmt.Sprintf("tag version is %s", aws.StringValue(tag.Value***REMOVED******REMOVED******REMOVED***
 			if version == aws.StringValue(tag.Value***REMOVED*** {
 				return true, nil
 	***REMOVED***
@@ -1255,7 +1322,11 @@ func (r *ClusterRosaClassicResource***REMOVED*** upgradeClusterIfNeeded(ctx cont
 ***REMOVED***
 	}
 	if !found {
-		return fmt.Errorf("desired version (%s***REMOVED*** is not in the list of available upgrades", desiredVersion***REMOVED***
+		avail := []string{}
+		for _, v := range availableVersions {
+			avail = append(avail, v.RawID(***REMOVED******REMOVED***
+***REMOVED***
+		return fmt.Errorf("desired version (%s***REMOVED*** is not in the list of available upgrades (%v***REMOVED***", desiredVersion, avail***REMOVED***
 	}
 
 	// Make sure the account roles have been upgraded
@@ -1263,7 +1334,10 @@ func (r *ClusterRosaClassicResource***REMOVED*** upgradeClusterIfNeeded(ctx cont
 		return fmt.Errorf("failed to validate account roles: %v", err***REMOVED***
 	}
 
-	// XXX: Make sure the operator role policies have been upgraded
+	// Make sure the operator role policies have been upgraded
+	if err := r.validateOperatorRolePolicies(ctx, plan, desiredVersion.String(***REMOVED******REMOVED***; err != nil {
+		return fmt.Errorf("failed to validate operator role policies: %v", err***REMOVED***
+	}
 
 	// Fetch existing upgrade policies
 	upgrades, err := getScheduledUpgrades(ctx, r.clusterCollection, state.ID.Value***REMOVED***
@@ -1296,7 +1370,12 @@ func (r *ClusterRosaClassicResource***REMOVED*** upgradeClusterIfNeeded(ctx cont
 	}
 
 	if !upgradeInProgress && !correctUpgradePending {
-		// XXX: What do we do about gate agreements?
+		// Gate agreements are checked when the upgrade is scheduled, resulting
+		// in an error return. ROSA cli does this by scheduling once w/ dryRun
+		// to look for un-acked agreements. Since we are not implementing acking
+		// gate agreements in TF, we will just go ahead and apply the upgrade,
+		// letting it fail w/ an error. The user can then ack the agreement via
+		// some other method and re-run the apply.
 
 		// Schedule an upgrade
 		newPolicy, err := cmv1.NewUpgradePolicy(***REMOVED***.

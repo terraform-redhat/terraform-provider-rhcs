@@ -1346,18 +1346,21 @@ func (r *ClusterRosaClassicResource***REMOVED*** upgradeClusterIfNeeded(ctx cont
 	}
 
 	// Stop if an upgrade is already in progress
-	upgradeInProgress := false
 	correctUpgradePending := false
 	tenMinFromNow := time.Now(***REMOVED***.Add(10 * time.Minute***REMOVED***
 	for _, upgrade := range upgrades {
+		toVersion, err := semver.NewVersion(upgrade.Version(***REMOVED******REMOVED***
+		if err != nil {
+			return fmt.Errorf("failed to parse upgrade version: %v", err***REMOVED***
+***REMOVED***
 		switch upgrade.State(***REMOVED*** {
 		case cmv1.UpgradePolicyStateValueDelayed, cmv1.UpgradePolicyStateValueStarted:
-			upgradeInProgress = true
-		case cmv1.UpgradePolicyStateValuePending, cmv1.UpgradePolicyStateValueScheduled:
-			toVersion, err := semver.NewVersion(upgrade.Version(***REMOVED******REMOVED***
-			if err != nil {
-				return fmt.Errorf("failed to parse upgrade version: %v", err***REMOVED***
+			if desiredVersion.Equal(toVersion***REMOVED*** {
+				correctUpgradePending = true
+	***REMOVED*** else {
+				return fmt.Errorf("a cluster upgrade is already in progress"***REMOVED***
 	***REMOVED***
+		case cmv1.UpgradePolicyStateValuePending, cmv1.UpgradePolicyStateValueScheduled:
 			if desiredVersion.Equal(toVersion***REMOVED*** && upgrade.NextRun(***REMOVED***.Before(tenMinFromNow***REMOVED*** {
 				correctUpgradePending = true
 	***REMOVED*** else {
@@ -1369,7 +1372,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** upgradeClusterIfNeeded(ctx cont
 ***REMOVED***
 	}
 
-	if !upgradeInProgress && !correctUpgradePending {
+	if !correctUpgradePending {
 		// Gate agreements are checked when the upgrade is scheduled, resulting
 		// in an error return. ROSA cli does this by scheduling once w/ dryRun
 		// to look for un-acked agreements. Since we are not implementing acking

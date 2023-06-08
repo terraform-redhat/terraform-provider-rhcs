@@ -817,7 +817,7 @@ func (r *ClusterRosaClassicResource) validateAccountRoles(ctx context.Context, s
 // validateOperatorRolePolicies ensures that the operator role policies are
 // compatible with the requested cluster version
 func (r *ClusterRosaClassicResource) validateOperatorRolePolicies(ctx context.Context, state *ClusterRosaClassicState, version string) error {
-	r.logger.Debug(ctx, "Validating if cluster version is compatible with the operator role policies")
+	tflog.Debug(ctx, "Validating if cluster version is compatible with the operator role policies")
 
 	operRoles := []*cmv1.OperatorIAMRole{}
 	operRoleClient := r.clusterCollection.Cluster(state.ID.Value).STSOperatorRoles()
@@ -1285,7 +1285,7 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context, state, plan *ClusterRosaClassicState) error {
 	if common.IsStringAttributeEmpty(plan.Version) || common.IsStringAttributeEmpty(state.CurrentVersion) {
 		// No version information, nothing to do
-		r.logger.Debug(ctx, "Insufficient cluster version information to determine if upgrade should be performed.")
+		tflog.Debug(ctx, "Insufficient cluster version information to determine if upgrade should be performed.")
 		return nil
 	}
 
@@ -1301,7 +1301,7 @@ func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context,
 		return fmt.Errorf("failed to parse desired cluster version: %v", err)
 	}
 	if currentVersion.GreaterThanOrEqual(desiredVersion) {
-		r.logger.Debug(ctx, "No cluster version upgrade needed.")
+		tflog.Debug(ctx, "No cluster version upgrade needed.")
 		return nil
 	}
 

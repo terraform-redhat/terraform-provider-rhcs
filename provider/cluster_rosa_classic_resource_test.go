@@ -241,7 +241,7 @@ var _ = Describe("Rosa Classic Sts cluster", func(***REMOVED*** {
 			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString***REMOVED***
 			Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
 
-			populateRosaClassicClusterState(context.Background(***REMOVED***, clusterObject, clusterState, mockHttpClient***REMOVED***
+			Expect(populateRosaClassicClusterState(context.Background(***REMOVED***, clusterObject, clusterState, mockHttpClient***REMOVED******REMOVED***.To(Succeed(***REMOVED******REMOVED***
 
 			Expect(clusterState.ID.Value***REMOVED***.To(Equal(clusterId***REMOVED******REMOVED***
 			Expect(clusterState.CloudRegion.Value***REMOVED***.To(Equal(regionId***REMOVED******REMOVED***

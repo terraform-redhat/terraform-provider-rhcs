@@ -817,7 +817,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** validateAccountRoles(ctx contex
 // validateOperatorRolePolicies ensures that the operator role policies are
 // compatible with the requested cluster version
 func (r *ClusterRosaClassicResource***REMOVED*** validateOperatorRolePolicies(ctx context.Context, state *ClusterRosaClassicState, version string***REMOVED*** error {
-	r.logger.Debug(ctx, "Validating if cluster version is compatible with the operator role policies"***REMOVED***
+	tflog.Debug(ctx, "Validating if cluster version is compatible with the operator role policies"***REMOVED***
 
 	operRoles := []*cmv1.OperatorIAMRole{}
 	operRoleClient := r.clusterCollection.Cluster(state.ID.Value***REMOVED***.STSOperatorRoles(***REMOVED***
@@ -1285,7 +1285,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** Update(ctx context.Context, req
 func (r *ClusterRosaClassicResource***REMOVED*** upgradeClusterIfNeeded(ctx context.Context, state, plan *ClusterRosaClassicState***REMOVED*** error {
 	if common.IsStringAttributeEmpty(plan.Version***REMOVED*** || common.IsStringAttributeEmpty(state.CurrentVersion***REMOVED*** {
 		// No version information, nothing to do
-		r.logger.Debug(ctx, "Insufficient cluster version information to determine if upgrade should be performed."***REMOVED***
+		tflog.Debug(ctx, "Insufficient cluster version information to determine if upgrade should be performed."***REMOVED***
 		return nil
 	}
 
@@ -1301,7 +1301,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** upgradeClusterIfNeeded(ctx cont
 		return fmt.Errorf("failed to parse desired cluster version: %v", err***REMOVED***
 	}
 	if currentVersion.GreaterThanOrEqual(desiredVersion***REMOVED*** {
-		r.logger.Debug(ctx, "No cluster version upgrade needed."***REMOVED***
+		tflog.Debug(ctx, "No cluster version upgrade needed."***REMOVED***
 		return nil
 	}
 

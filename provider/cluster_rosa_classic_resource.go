@@ -843,6 +843,9 @@ func (r *ClusterRosaClassicResource***REMOVED*** validateOperatorRolePolicies(ct
 	iamClient := iam.New(session***REMOVED***
 	for _, operRole := range operRoles {
 		roleARN := operRole.RoleARN(***REMOVED***
+		if roleARN == "" {
+			continue
+***REMOVED***
 		role, err := getRoleByARN(roleARN, state.CloudRegion.Value***REMOVED***
 		if err != nil {
 			return fmt.Errorf("Could not get Role '%s' : %v", roleARN, err***REMOVED***
@@ -1045,6 +1048,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** getVersions(ctx context.Context
 
 func (r *ClusterRosaClassicResource***REMOVED*** Create(ctx context.Context,
 	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse***REMOVED*** {
+	r.logger.Debug(ctx, "begin create(***REMOVED***"***REMOVED***
 	// Get the plan:
 	state := &ClusterRosaClassicState{}
 	diags := request.Plan.Get(ctx, state***REMOVED***
@@ -1172,6 +1176,8 @@ func (r *ClusterRosaClassicResource***REMOVED*** Update(ctx context.Context, req
 	response *tfsdk.UpdateResourceResponse***REMOVED*** {
 	var diags diag.Diagnostics
 
+	r.logger.Debug(ctx, "begin update(***REMOVED***"***REMOVED***
+
 	// Get the state:
 	state := &ClusterRosaClassicState{}
 	diags = request.State.Get(ctx, state***REMOVED***
@@ -1227,10 +1233,6 @@ func (r *ClusterRosaClassicResource***REMOVED*** Update(ctx context.Context, req
 	if shouldPatchDisableWorkloadMonitoring {
 		clusterBuilder.DisableUserWorkloadMonitoring(plan.DisableWorkloadMonitoring.Value***REMOVED***
 	}
-
-	// if !shouldUpdateProxy && !shouldUpdateNodes && !shouldPatchDisableWorkloadMonitoring {
-	// 	return
-	// }
 
 	clusterSpec, err := clusterBuilder.Build(***REMOVED***
 	if err != nil {
@@ -1478,6 +1480,8 @@ func updateNodes(state, plan *ClusterRosaClassicState, clusterBuilder *cmv1.Clus
 
 func (r *ClusterRosaClassicResource***REMOVED*** Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
 	response *tfsdk.DeleteResourceResponse***REMOVED*** {
+	r.logger.Debug(ctx, "begin delete(***REMOVED***"***REMOVED***
+
 	// Get the state:
 	state := &ClusterRosaClassicState{}
 	diags := request.State.Get(ctx, state***REMOVED***
@@ -1536,6 +1540,8 @@ func (r *ClusterRosaClassicResource***REMOVED*** Delete(ctx context.Context, req
 
 func (r *ClusterRosaClassicResource***REMOVED*** ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
 	response *tfsdk.ImportResourceStateResponse***REMOVED*** {
+	r.logger.Debug(ctx, "begin importstate(***REMOVED***"***REMOVED***
+
 	// Try to retrieve the object:
 	get, err := r.clusterCollection.Cluster(request.ID***REMOVED***.Get(***REMOVED***.SendContext(ctx***REMOVED***
 	if err != nil {
@@ -1882,10 +1888,12 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	// the version ID. Remove it before saving state.
 	version = strings.TrimSuffix(version, fmt.Sprintf("-%s", channel_group***REMOVED******REMOVED***
 	if ok {
+		logger.Debug(ctx, "actual cluster version: %v", version***REMOVED***
 		state.CurrentVersion = types.String{
 			Value: version,
 ***REMOVED***
 	} else {
+		logger.Debug(ctx, "unknown cluster version"***REMOVED***
 		state.CurrentVersion = types.String{
 			Null: true,
 ***REMOVED***

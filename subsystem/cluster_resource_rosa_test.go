@@ -17,6 +17,7 @@ limitations under the License.
 package provider
 
 ***REMOVED***
+	"encoding/json"
 ***REMOVED***
 
 	. "github.com/onsi/ginkgo/v2/dsl/core"             // nolint
@@ -26,7 +27,27 @@ package provider
 	"github.com/terraform-redhat/terraform-provider-ocm/build"
 ***REMOVED***
 
-var _ = Describe("Cluster creation", func(***REMOVED*** {
+const versionListPage1 = `{
+	"kind": "VersionList",
+	"page": 1,
+	"size": 2,
+	"total": 2,
+	"items": [{
+			"kind": "Version",
+			"id": "openshift-v4.10.1",
+			"href": "/api/clusters_mgmt/v1/versions/openshift-v4.10.1",
+			"raw_id": "4.10.1"
+***REMOVED***,
+		{
+			"kind": "Version",
+			"id": "openshift-v4.10.1",
+			"href": "/api/clusters_mgmt/v1/versions/openshift-v4.11.1",
+			"raw_id": "4.11.1"
+***REMOVED***
+	]
+}`
+
+var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 	// This is the cluster that will be returned by the server when asked to create or retrieve
 	// a cluster.
 	template := `{
@@ -81,26 +102,6 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		  "id": "openshift-4.8.0"
 	  }
 	}`
-
-	const versionListPage1 = `{
-	"kind": "VersionList",
-	"page": 1,
-	"size": 2,
-	"total": 2,
-	"items": [{
-			"kind": "Version",
-			"id": "openshift-v4.10.1",
-			"href": "/api/clusters_mgmt/v1/versions/openshift-v4.10.1",
-			"raw_id": "4.10.1"
-***REMOVED***,
-		{
-			"kind": "Version",
-			"id": "openshift-v4.10.1",
-			"href": "/api/clusters_mgmt/v1/versions/openshift-v4.11.1",
-			"raw_id": "4.11.1"
-***REMOVED***
-	]
-}`
 
 	Context("Test channel groups", func(***REMOVED*** {
 		It("doesn't append the channel group when on the default channel", func(***REMOVED*** {
@@ -2063,5 +2064,269 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		`***REMOVED***
 		// expect to get an error
 		Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
+	}***REMOVED***
+}***REMOVED***
+
+var _ = Describe("ocm_cluster_rosa_classic - upgrade", func(***REMOVED*** {
+	const template = `{
+		"id": "123",
+		"name": "my-cluster",
+		"region": {
+		  "id": "us-west-1"
+***REMOVED***,
+		"aws": {
+			"sts": {
+				"oidc_endpoint_url": "https://127.0.0.2",
+				"thumbprint": "111111",
+				"role_arn": "",
+				"support_role_arn": "",
+				"instance_iam_roles" : {
+					"master_role_arn" : "",
+					"worker_role_arn" : ""
+		***REMOVED***,
+				"operator_role_prefix" : "test"
+	***REMOVED***
+***REMOVED***,
+		"multi_az": true,
+		"api": {
+		  "url": "https://my-api.example.com"
+***REMOVED***,
+		"console": {
+		  "url": "https://my-console.example.com"
+***REMOVED***,
+		"network": {
+		  "machine_cidr": "10.0.0.0/16",
+		  "service_cidr": "172.30.0.0/16",
+		  "pod_cidr": "10.128.0.0/14",
+		  "host_prefix": 23
+***REMOVED***,
+		"nodes": {
+			"compute": 3,
+			"compute_machine_type": {
+				"id": "r5.xlarge"
+	***REMOVED***
+***REMOVED***,
+		"version": {
+			"id": "openshift-v4.8.0"
+***REMOVED***
+	}`
+	const v4_8_0Info = `{
+		"kind": "Version",
+		"id": "openshift-v4.8.0",
+		"href": "/api/clusters_mgmt/v1/versions/openshift-v4.8.0",
+		"raw_id": "4.8.0",
+		"enabled": true,
+		"default": false,
+		"channel_group": "stable",
+		"available_upgrades": [
+			"4.10.1"
+		],
+		"rosa_enabled": true
+	}`
+	const v4_10_1Info = `{
+		"kind": "Version",
+		"id": "openshift-v4.10.1",
+		"href": "/api/clusters_mgmt/v1/versions/openshift-v4.10.1",
+		"raw_id": "4.10.1",
+		"enabled": true,
+		"default": false,
+		"channel_group": "stable",
+		"available_upgrades": [],
+		"rosa_enabled": true
+	}`
+	const operIAMList = `{
+		"kind": "OperatorIAMRoleList",
+		"href": "/api/clusters_mgmt/v1/123/sts_operator_roles",
+		"page": 1,
+		"size": 6,
+		"total": 6,
+		"items": [
+		  {
+			"id": "",
+			"name": "ebs-cloud-credentials",
+			"role_arn": ""
+		  },
+		  {
+			"id": "",
+			"role_arn": ""
+		  },
+		  {
+			"id": "",
+			"name": "aws-cloud-credentials",
+			"role_arn": ""
+		  },
+		  {
+			"id": "",
+			"name": "cloud-credential-operator-iam-ro-creds",
+			"role_arn": ""
+		  },
+		  {
+			"id": "",
+			"name": "installer-cloud-credentials",
+			"role_arn": ""
+		  },
+		  {
+			"id": "",
+			"name": "cloud-credentials",
+			"role_arn": ""
+		  }
+		]
+	}`
+	const upgradePoliciesEmpty = `{
+		"kind": "UpgradePolicyList",
+		"page": 1,
+		"size": 0,
+		"total": 0,
+		"items": []
+	}`
+	BeforeEach(func(***REMOVED*** {
+		Expect(json.Valid([]byte(template***REMOVED******REMOVED******REMOVED***.To(BeTrue(***REMOVED******REMOVED***
+		Expect(json.Valid([]byte(v4_8_0Info***REMOVED******REMOVED******REMOVED***.To(BeTrue(***REMOVED******REMOVED***
+
+		// Create a cluster for us to upgrade:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+				RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
+			***REMOVED***,
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+				RespondWithJSON(http.StatusCreated, template***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+		terraform.Source(`
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+			name           = "my-cluster"
+			cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+		***REMOVED***,
+				"operator_iam_roles": [
+					{
+					  "id": "",
+					  "name": "ebs-cloud-credentials",
+					  "namespace": "openshift-cluster-csi-drivers",
+					  "role_arn": "",
+					  "service_account": ""
+			***REMOVED***,
+					{
+					  "id": "",
+					  "name": "cloud-credentials",
+					  "namespace": "openshift-cloud-network-config-controller",
+					  "role_arn": "",
+					  "service_account": ""
+			***REMOVED***,
+					{
+					  "id": "",
+					  "name": "aws-cloud-credentials",
+					  "namespace": "openshift-machine-api",
+					  "role_arn": "",
+					  "service_account": ""
+			***REMOVED***,
+					{
+					  "id": "",
+					  "name": "cloud-credential-operator-iam-ro-creds",
+					  "namespace": "openshift-cloud-credential-operator",
+					  "role_arn": "",
+					  "service_account": ""
+			***REMOVED***,
+					{
+					  "id": "",
+					  "name": "installer-cloud-credentials",
+					  "namespace": "openshift-image-registry",
+					  "role_arn": "",
+					  "service_account": ""
+			***REMOVED***,
+					{
+					  "id": "",
+					  "name": "cloud-credentials",
+					  "namespace": "openshift-ingress-operator",
+					  "role_arn": "",
+					  "service_account": ""
+			***REMOVED***
+				]
+	***REMOVED***
+***REMOVED***
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// Verify initial cluster version
+		resource := terraform.Resource("ocm_cluster_rosa_classic", "my_cluster"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.current_version", "openshift-v4.8.0"***REMOVED******REMOVED***
+	}***REMOVED***
+
+	It("Upgrades cluster", func(***REMOVED*** {
+		server.AppendHandlers(
+			// Refresh cluster state
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+				RespondWithJSON(http.StatusOK, template***REMOVED***,
+			***REMOVED***,
+			// Validate upgrade versions
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.8.0"***REMOVED***,
+				RespondWithJSON(http.StatusOK, v4_8_0Info***REMOVED***,
+			***REMOVED***,
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"***REMOVED***,
+				RespondWithJSON(http.StatusOK, v4_10_1Info***REMOVED***,
+			***REMOVED***,
+			// Validate roles
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/sts_operator_roles"***REMOVED***,
+				RespondWithJSON(http.StatusOK, operIAMList***REMOVED***,
+			***REMOVED***,
+			// Look for existing upgrade policies
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"***REMOVED***,
+				RespondWithJSON(http.StatusOK, upgradePoliciesEmpty***REMOVED***,
+			***REMOVED***,
+			// Create an upgrade policy
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"***REMOVED***,
+				VerifyJQ(".version", "4.10.1"***REMOVED***,
+				RespondWithJSON(http.StatusCreated, `
+				{
+					"kind": "UpgradePolicy",
+					"id": "123",
+					"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/123",
+					"schedule_type": "manual",
+					"upgrade_type": "OSD",
+					"version": "4.10.1",
+					"next_run": "2023-06-09T20:59:00Z",
+					"cluster_id": "123",
+					"enable_minor_version_upgrades": true
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+			// Patch the cluster (w/ no changes***REMOVED***
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+				RespondWithJSON(http.StatusOK, template***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+		// Perform upgrade
+		terraform.Source(`
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+			name           = "my-cluster"
+			cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+		***REMOVED***
+	***REMOVED***
+			version = "openshift-v4.10.1"
+***REMOVED***`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
 }***REMOVED***

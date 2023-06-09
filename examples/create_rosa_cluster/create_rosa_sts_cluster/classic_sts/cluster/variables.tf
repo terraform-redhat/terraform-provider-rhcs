@@ -1,32 +1,32 @@
-variable token {
-  type = string
+variable "token" {
+  type      = string
   sensitive = true
 }
 
-variable operator_role_prefix {
-    type = string
+variable "operator_role_prefix" {
+  type = string
 }
 
-variable url {
-    type = string
-    default = "https://api.openshift.com"
+variable "url" {
+  type    = string
+  default = "https://api.openshift.com"
 }
 
-variable account_role_prefix {
-    type = string
+variable "account_role_prefix" {
+  type = string
 }
 
-variable cluster_name {
-    type = string
-    default = "my-cluster"
+variable "cluster_name" {
+  type    = string
+  default = "my-cluster"
 }
 
-variable cloud_region {
-    type = string
-    default = "us-east-2"
+variable "cloud_region" {
+  type    = string
+  default = "us-east-2"
 }
 
-variable availability_zones {
-    type = list(string)
-    default = ["us-east-2a"]
+variable "availability_zones" {
+  type    = list(string)
+  default = ["us-east-2a"]
 }

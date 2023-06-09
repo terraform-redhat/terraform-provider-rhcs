@@ -340,7 +340,7 @@ var _ = Describe("Cluster creation", func() {
 		// Run the apply command:
 		terraform.Source(`
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"	
+		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			sts = {
@@ -355,6 +355,8 @@ var _ = Describe("Cluster creation", func() {
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
+		resource := terraform.Resource("ocm_cluster_rosa_classic", "my_cluster")
+		Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
 	})
 	It("Creates basic cluster with properties", func() {
 		prop_key := "my_prop_key"
@@ -415,9 +417,9 @@ var _ = Describe("Cluster creation", func() {
 		// Run the apply command:
 		terraform.Source(`
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"	
+		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123" 
+			aws_account_id = "123"
             properties = { ` +
 			prop_key + ` = "` + prop_val + `"` +
 			`}
@@ -482,10 +484,10 @@ var _ = Describe("Cluster creation", func() {
 		// Run the apply command:
 		terraform.Source(`
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"	
+		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123" 
-			properties = { 
+			aws_account_id = "123"
+			properties = {
    				rosa_tf_version = "bob"
 			}
 			sts = {
@@ -564,7 +566,7 @@ var _ = Describe("Cluster creation", func() {
 		It("Disable waiting in destroy resource", func() {
 			terraform.Source(`
 				  resource "ocm_cluster_rosa_classic" "my_cluster" {
-					name           = "my-cluster"	
+					name           = "my-cluster"
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
 					disable_waiting_in_destroy = true
@@ -595,7 +597,7 @@ var _ = Describe("Cluster creation", func() {
 			)
 			terraform.Source(`
 				  resource "ocm_cluster_rosa_classic" "my_cluster" {
-					name           = "my-cluster"	
+					name           = "my-cluster"
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
 					sts = {
@@ -624,7 +626,7 @@ var _ = Describe("Cluster creation", func() {
 			)
 			terraform.Source(`
 				  resource "ocm_cluster_rosa_classic" "my_cluster" {
-					name           = "my-cluster"	
+					name           = "my-cluster"
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
 					destroy_timeout = -1
@@ -654,7 +656,7 @@ var _ = Describe("Cluster creation", func() {
 			)
 			terraform.Source(`
 				  resource "ocm_cluster_rosa_classic" "my_cluster" {
-					name           = "my-cluster"	
+					name           = "my-cluster"
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
 					destroy_timeout = 10
@@ -729,7 +731,7 @@ var _ = Describe("Cluster creation", func() {
 		)
 		terraform.Source(`
 				  resource "ocm_cluster_rosa_classic" "my_cluster" {
-					name           = "my-cluster"	
+					name           = "my-cluster"
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
 					disable_workload_monitoring = true
@@ -831,7 +833,7 @@ var _ = Describe("Cluster creation", func() {
 
 		terraform.Source(`
 				  resource "ocm_cluster_rosa_classic" "my_cluster" {
-					name           = "my-cluster"	
+					name           = "my-cluster"
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
 					disable_workload_monitoring = false
@@ -890,7 +892,7 @@ var _ = Describe("Cluster creation", func() {
 					{
 					  "op": "add",
 					  "path": "/proxy",
-					  "value": {						  
+					  "value": {
 						  "http_proxy" : "http://proxy.com",
 						  "https_proxy" : "https://proxy.com"
 					  }
@@ -918,7 +920,7 @@ var _ = Describe("Cluster creation", func() {
 		// Run the apply command:
 		terraform.Source(`
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"	
+		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			proxy = {
@@ -966,7 +968,7 @@ var _ = Describe("Cluster creation", func() {
 					{
 					  "op": "add",
 					  "path": "/proxy",
-					  "value": {						  
+					  "value": {
 						  "http_proxy" : "http://proxy.com",
 						  "https_proxy" : "https://proxy.com"
 					  }
@@ -1015,7 +1017,7 @@ var _ = Describe("Cluster creation", func() {
 					{
 					  "op": "add",
 					  "path": "/proxy",
-					  "value": {						  
+					  "value": {
 						  "https_proxy" : "https://proxy2.com",
 						  "no_proxy" : "test"
 					  }
@@ -1043,7 +1045,7 @@ var _ = Describe("Cluster creation", func() {
 		// update the attribute "proxy"
 		terraform.Source(`
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"	
+		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			proxy = {
@@ -1116,7 +1118,7 @@ var _ = Describe("Cluster creation", func() {
 		// Run the apply command:
 		terraform.Source(`
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"	
+		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
             default_mp_labels = {
@@ -1206,7 +1208,7 @@ var _ = Describe("Cluster creation", func() {
 		// update the attribute "proxy"
 		terraform.Source(`
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"	
+		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
             default_mp_labels = {
@@ -1232,7 +1234,7 @@ var _ = Describe("Cluster creation", func() {
 		// Expected at least one of the following: http-proxy, https-proxy
 		terraform.Source(`
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"	
+		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			proxy = {
@@ -1255,7 +1257,7 @@ var _ = Describe("Cluster creation", func() {
 		// Expected at least one of the following: http-proxy, https-proxy, additional-trust-bundle
 		terraform.Source(`
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"	
+		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			proxy = {
@@ -1297,7 +1299,7 @@ var _ = Describe("Cluster creation", func() {
 					  "path": "/aws",
 					  "value": {
 						  "private_link": true,
-						  "subnet_ids": ["id1", "id2", "id3"],	
+						  "subnet_ids": ["id1", "id2", "id3"],
 						  "sts" : {
 							  "oidc_endpoint_url": "https://oidc_endpoint_url",
 							  "thumbprint": "111111",
@@ -1404,7 +1406,7 @@ var _ = Describe("Cluster creation", func() {
 		// Run the apply command:
 		terraform.Source(`
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"	
+		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			aws_private_link = false
@@ -1487,14 +1489,14 @@ var _ = Describe("Cluster creation", func() {
 		// Run the apply command:
 		terraform.Source(`
 		resource "ocm_cluster_rosa_classic" "my_cluster" {
-			name           = "my-cluster"	
+			name           = "my-cluster"
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			autoscaling_enabled = "true"
 			min_replicas = "2"
 			max_replicas = "4"
 			default_mp_labels = {
-				"label_key1" = "label_value1", 
+				"label_key1" = "label_value1",
 				"label_key2" = "label_value2"
 			}
 			sts = {
@@ -1598,14 +1600,14 @@ var _ = Describe("Cluster creation", func() {
 		// Run the apply command:
 		terraform.Source(`
 		resource "ocm_cluster_rosa_classic" "my_cluster" {
-			name           = "my-cluster"	
+			name           = "my-cluster"
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			autoscaling_enabled = "true"
 			min_replicas = "3"
 			max_replicas = "4"
 			default_mp_labels = {
-				"label_key1" = "label_value1", 
+				"label_key1" = "label_value1",
 				"label_key2" = "label_value2"
 			}
 			sts = {
@@ -1704,12 +1706,12 @@ var _ = Describe("Cluster creation", func() {
 		// Run the apply command:
 		terraform.Source(`
 		resource "ocm_cluster_rosa_classic" "my_cluster" {
-			name           = "my-cluster"	
+			name           = "my-cluster"
 			cloud_region   = "us-west-1"
-			aws_account_id = "123" 
+			aws_account_id = "123"
 			replicas = 4
 			default_mp_labels = {
-				"label_key1" = "label_value1", 
+				"label_key1" = "label_value1",
 				"label_key2" = "label_value2"
 			}
 			sts = {

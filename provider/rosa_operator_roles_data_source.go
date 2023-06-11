@@ -22,19 +22,18 @@ import (
 	"sort"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/openshift-online/ocm-sdk-go/logging"
 )
 
 type RosaOperatorRolesDataSourceType struct {
 }
 
 type RosaOperatorRolesDataSource struct {
-	logger       logging.Logger
 	awsInquiries *cmv1.AWSInquiriesClient
 }
 
@@ -113,7 +112,6 @@ func (t *RosaOperatorRolesDataSourceType) NewDataSource(ctx context.Context,
 
 	// Create the resource:
 	result = &RosaOperatorRolesDataSource{
-		logger:       parent.logger,
 		awsInquiries: awsInquiries,
 	}
 	return
@@ -132,7 +130,7 @@ func (t *RosaOperatorRolesDataSource) Read(ctx context.Context, request tfsdk.Re
 	stsOperatorRolesList, err := t.awsInquiries.STSCredentialRequests().List().Send()
 	if err != nil {
 		description := fmt.Sprintf("Failed to get STS Operator Roles list with error: %v", err)
-		t.logger.Error(ctx, description)
+		tflog.Error(ctx, description)
 		response.Diagnostics.AddError(
 			description,
 			"hint: validate the credetials (token) used to run this provider",
@@ -144,11 +142,11 @@ func (t *RosaOperatorRolesDataSource) Read(ctx context.Context, request tfsdk.Re
 	roleNameSpaces := make([]string, 0)
 	stsOperatorRolesList.Items().Each(func(stsCredentialRequest *cmv1.STSCredentialRequest) bool {
 		// TODO: check the MinVersion of the operator role
-		t.logger.Debug(ctx, "Operator name: %s, namespace %s, service account %s",
+		tflog.Debug(ctx, fmt.Sprintf("Operator name: %s, namespace %s, service account %s",
 			stsCredentialRequest.Operator().Name(),
 			stsCredentialRequest.Operator().Namespace(),
 			stsCredentialRequest.Operator().ServiceAccounts(),
-		)
+		))
 		// The key can't be stsCredentialRequest.Operator().Name() because of constants between
 		// the name of `ingress_operator_cloud_credentials` and `cloud_network_config_controller_cloud_credentials`
 		// both of them includes the same Name `cloud-credentials` and it cannot be fixed

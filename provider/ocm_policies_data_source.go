@@ -18,12 +18,13 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/openshift-online/ocm-sdk-go/logging"
 )
 
 const (
@@ -46,7 +47,6 @@ type OcmPoliciesDataSourceType struct {
 }
 
 type OcmPoliciesDataSource struct {
-	logger       logging.Logger
 	awsInquiries *cmv1.AWSInquiriesClient
 }
 
@@ -130,7 +130,6 @@ func (t *OcmPoliciesDataSourceType) NewDataSource(ctx context.Context,
 
 	// Create the resource:
 	result = &OcmPoliciesDataSource{
-		logger:       parent.logger,
 		awsInquiries: awsInquiries,
 	}
 	return
@@ -148,14 +147,14 @@ func (t *OcmPoliciesDataSource) Read(ctx context.Context, request tfsdk.ReadData
 
 	policiesResponse, err := t.awsInquiries.STSPolicies().List().Send()
 	if err != nil {
-		t.logger.Error(ctx, "Failed to get policies")
+		tflog.Error(ctx, "Failed to get policies")
 		return
 	}
 
 	operatorRolePolicies := OperatorRolePolicies{}
 	accountRolePolicies := AccountRolePolicies{}
 	policiesResponse.Items().Each(func(awsPolicy *cmv1.AWSSTSPolicy) bool {
-		t.logger.Debug(ctx, "policy id: %s ", awsPolicy.ID())
+		tflog.Debug(ctx, fmt.Sprintf("policy id: %s ", awsPolicy.ID()))
 		switch awsPolicy.ID() {
 		// operator roles
 		case CloudCred:
@@ -180,7 +179,7 @@ func (t *OcmPoliciesDataSource) Read(ctx context.Context, request tfsdk.ReadData
 		case InstanceControlPlane:
 			accountRolePolicies.InstanceControlPlane = types.String{Value: awsPolicy.Details()}
 		default:
-			t.logger.Debug(ctx, "This is neither operator role policy nor account role policy")
+			tflog.Debug(ctx, "This is neither operator role policy nor account role policy")
 		}
 		return true
 	})

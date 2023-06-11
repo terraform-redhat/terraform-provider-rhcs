@@ -26,14 +26,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/openshift-online/ocm-sdk-go/logging"
 )
 
 type GroupMembershipResourceType struct {
 }
 
 type GroupMembershipResource struct {
-	logger     logging.Logger
 	collection *cmv1.ClustersClient
 }
 
@@ -77,7 +75,6 @@ func (t *GroupMembershipResourceType) NewResource(ctx context.Context,
 
 	// Create the resource:
 	result = &GroupMembershipResource{
-		logger:     parent.logger,
 		collection: collection,
 	}
 

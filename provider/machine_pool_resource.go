@@ -30,11 +30,9 @@ import (
 	"github.com/terraform-redhat/terraform-provider-ocm/provider/common"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/openshift-online/ocm-sdk-go/logging"
 )
 
 type MachinePoolResourceType struct {
-	logger logging.Logger
 }
 
 var machinepoolNameRE = regexp.MustCompile(
@@ -42,7 +40,6 @@ var machinepoolNameRE = regexp.MustCompile(
 )
 
 type MachinePoolResource struct {
-	logger     logging.Logger
 	collection *cmv1.ClustersClient
 }
 
@@ -73,7 +70,7 @@ func (t *MachinePoolResourceType) GetSchema(ctx context.Context) (result tfsdk.S
 				Type:     types.StringType,
 				Required: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(t.logger),
+					ValueCannotBeChangedModifier(),
 				},
 			},
 			"replicas": {
@@ -86,7 +83,7 @@ func (t *MachinePoolResourceType) GetSchema(ctx context.Context) (result tfsdk.S
 				Type:        types.BoolType,
 				Optional:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(t.logger),
+					ValueCannotBeChangedModifier(),
 				},
 			},
 			"max_spot_price": {
@@ -94,7 +91,7 @@ func (t *MachinePoolResourceType) GetSchema(ctx context.Context) (result tfsdk.S
 				Type:        types.Float64Type,
 				Optional:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(t.logger),
+					ValueCannotBeChangedModifier(),
 				},
 			},
 			"autoscaling_enabled": {
@@ -159,7 +156,6 @@ func (t *MachinePoolResourceType) NewResource(ctx context.Context,
 
 	// Create the resource:
 	result = &MachinePoolResource{
-		logger:     parent.logger,
 		collection: collection,
 	}
 

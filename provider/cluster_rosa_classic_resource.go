@@ -22,7 +22,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/openshift/rosa/pkg/helper"
 	"net/http"
 	"net/url"
 	"os"
@@ -30,6 +29,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/openshift/rosa/pkg/helper"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
@@ -47,9 +48,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	ocm_errors "github.com/openshift-online/ocm-sdk-go/errors"
-	"github.com/openshift-online/ocm-sdk-go/logging"
 )
 
 const (
@@ -79,11 +80,9 @@ var addTerraformProviderVersionToUserAgent = request.NamedHandler{
 }
 
 type ClusterRosaClassicResourceType struct {
-	logger logging.Logger
 }
 
 type ClusterRosaClassicResource struct {
-	logger            logging.Logger
 	clusterCollection *cmv1.ClustersClient
 	versionCollection *cmv1.VersionsClient
 }
@@ -104,7 +103,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(t.logger),
+					ValueCannotBeChangedModifier(),
 				},
 			},
 			"name": {
@@ -112,7 +111,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Type:        types.StringType,
 				Required:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(t.logger),
+					ValueCannotBeChangedModifier(),
 				},
 			},
 			"cloud_region": {
@@ -132,7 +131,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(t.logger),
+					ValueCannotBeChangedModifier(),
 				},
 			},
 			"disable_workload_monitoring": {
@@ -147,7 +146,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Type:     types.BoolType,
 				Optional: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(t.logger),
+					ValueCannotBeChangedModifier(),
 				},
 			},
 			"properties": {
@@ -173,7 +172,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				},
 				Optional: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(t.logger),
+					ValueCannotBeChangedModifier(),
 				},
 			},
 			"ccs_enabled": {
@@ -187,7 +186,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(t.logger),
+					ValueCannotBeChangedModifier(),
 				},
 			},
 			"autoscaling_enabled": {
@@ -251,7 +250,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Type:        types.StringType,
 				Required:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(t.logger),
+					ValueCannotBeChangedModifier(),
 				},
 			},
 			"aws_subnet_ids": {
@@ -261,7 +260,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				},
 				Optional: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(t.logger),
+					ValueCannotBeChangedModifier(),
 				},
 			},
 			"kms_key_arn": {
@@ -270,7 +269,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Type:     types.StringType,
 				Optional: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(t.logger),
+					ValueCannotBeChangedModifier(),
 				},
 			},
 			"fips": {
@@ -278,7 +277,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Type:        types.BoolType,
 				Optional:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(t.logger),
+					ValueCannotBeChangedModifier(),
 				},
 			},
 			"aws_private_link": {
@@ -287,7 +286,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(t.logger),
+					ValueCannotBeChangedModifier(),
 				},
 			},
 			"availability_zones": {
@@ -297,7 +296,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				},
 				Optional: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(t.logger),
+					ValueCannotBeChangedModifier(),
 				},
 			},
 			"machine_cidr": {
@@ -306,7 +305,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(t.logger),
+					ValueCannotBeChangedModifier(),
 				},
 			},
 			"proxy": {
@@ -342,7 +341,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(t.logger),
+					ValueCannotBeChangedModifier(),
 				},
 			},
 			"pod_cidr": {
@@ -351,7 +350,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(t.logger),
+					ValueCannotBeChangedModifier(),
 				},
 			},
 			"host_prefix": {
@@ -360,7 +359,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(t.logger),
+					ValueCannotBeChangedModifier(),
 				},
 			},
 			"channel_group": {
@@ -369,7 +368,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(t.logger),
+					ValueCannotBeChangedModifier(),
 				},
 			},
 			"version": {
@@ -379,7 +378,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Computed:    true,
 				// TODO: till AWS will support Managed policies we will not support update versions
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(t.logger),
+					ValueCannotBeChangedModifier(),
 				},
 			},
 			"disable_waiting_in_destroy": {
@@ -405,7 +404,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Validators: EnumValueValidator([]string{string(cmv1.Ec2MetadataHttpTokensOptional),
 					string(cmv1.Ec2MetadataHttpTokensRequired)}),
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(t.logger),
+					ValueCannotBeChangedModifier(),
 				},
 			},
 		},
@@ -426,7 +425,6 @@ func (t *ClusterRosaClassicResourceType) NewResource(ctx context.Context,
 
 	// Create the resource:
 	result = &ClusterRosaClassicResource{
-		logger:            parent.logger,
 		clusterCollection: clusterCollection,
 		versionCollection: versionCollection,
 	}
@@ -439,7 +437,7 @@ const (
 )
 
 func createClassicClusterObject(ctx context.Context,
-	state *ClusterRosaClassicState, logger logging.Logger, diags diag.Diagnostics) (*cmv1.Cluster, error) {
+	state *ClusterRosaClassicState, diags diag.Diagnostics) (*cmv1.Cluster, error) {
 
 	builder := cmv1.NewCluster()
 	clusterName := state.Name.Value
@@ -447,7 +445,7 @@ func createClassicClusterObject(ctx context.Context,
 		errDescription := fmt.Sprintf("Expected a valid value for 'name' maximum of 15 characters in length. Provided Cluster name '%s' is of length '%d'",
 			clusterName, len(clusterName),
 		)
-		logger.Error(ctx, errDescription)
+		tflog.Error(ctx, errDescription)
 
 		diags.AddError(
 			errHeadline,
@@ -546,7 +544,7 @@ func createClassicClusterObject(ctx context.Context,
 		for k, v := range state.Tags.Elems {
 			if _, ok := tags[k]; ok {
 				errDescription := fmt.Sprintf("Invalid tags, user tag keys must be unique, duplicate key '%s' found", k)
-				logger.Error(ctx, errDescription)
+				tflog.Error(ctx, errDescription)
 
 				diags.AddError(
 					errHeadline,
@@ -569,7 +567,7 @@ func createClassicClusterObject(ctx context.Context,
 		kmsKeyARN := state.KMSKeyArn.Value
 		if !kmsArnRE.MatchString(kmsKeyARN) {
 			errDescription := fmt.Sprintf("Expected a valid value for kms-key-arn matching %s", kmsArnRE)
-			logger.Error(ctx, errDescription)
+			tflog.Error(ctx, errDescription)
 
 			diags.AddError(
 				errHeadline,
@@ -653,7 +651,7 @@ func createClassicClusterObject(ctx context.Context,
 		// TODO: update it to support all cluster versions
 		isSupported, err := common.IsGreaterThanOrEqual(state.Version.Value, MinVersion)
 		if err != nil {
-			logger.Error(ctx, "Error validating required cluster version %s\", err)")
+			tflog.Error(ctx, fmt.Sprintf("Error validating required cluster version %s", err))
 			errDescription := fmt.Sprintf(
 				"Can't check if cluster version is supported '%s': %v",
 				state.Version.Value, err,
@@ -665,7 +663,7 @@ func createClassicClusterObject(ctx context.Context,
 			return nil, errors.New(errHeadline + "\n" + errDescription)
 		}
 		if !isSupported {
-			logger.Error(ctx, "Cluster version %s is not supported", state.Version.Value)
+			tflog.Error(ctx, fmt.Sprintf("Cluster version %s is not supported", state.Version.Value))
 			errDescription := fmt.Sprintf(
 				"Can't check if cluster version is supported '%s': %v",
 				state.Version.Value, err,
@@ -691,7 +689,7 @@ func createClassicClusterObject(ctx context.Context,
 
 	builder, err = buildProxy(state, builder)
 	if err != nil {
-		logger.Error(ctx, "Failed to build the Proxy's attributes")
+		tflog.Error(ctx, "Failed to build the Proxy's attributes")
 		return nil, err
 	}
 
@@ -737,7 +735,7 @@ func (r *ClusterRosaClassicResource) getAndValidateVersionInChannelGroup(ctx con
 		channelGroup = state.ChannelGroup.Value
 	}
 
-	versionList, err := r.getVersionList(r.logger, ctx, channelGroup)
+	versionList, err := r.getVersionList(ctx, channelGroup)
 	if err != nil {
 		return "", err
 	}
@@ -747,7 +745,7 @@ func (r *ClusterRosaClassicResource) getAndValidateVersionInChannelGroup(ctx con
 		version = strings.Replace(state.Version.Value, "openshift-v", "", 1)
 	}
 
-	r.logger.Debug(ctx, "Validating if cluster version %s is in the list of supported versions: %v", version, versionList)
+	tflog.Debug(ctx, fmt.Sprintf("Validating if cluster version %s is in the list of supported versions: %v", version, versionList))
 	for _, v := range versionList {
 		if v == version {
 			return version, nil
@@ -757,7 +755,7 @@ func (r *ClusterRosaClassicResource) getAndValidateVersionInChannelGroup(ctx con
 	return "", fmt.Errorf("version %s is not in the list of supported versions: %v", version, versionList)
 }
 
-func validateHttpTokensVersion(ctx context.Context, logger logging.Logger, state *ClusterRosaClassicState, version string) error {
+func validateHttpTokensVersion(ctx context.Context, state *ClusterRosaClassicState, version string) error {
 	if common.IsStringAttributeEmpty(state.Ec2MetadataHttpTokens) {
 		return nil
 	}
@@ -769,17 +767,17 @@ func validateHttpTokensVersion(ctx context.Context, logger logging.Logger, state
 	if !greater {
 		msg := fmt.Sprintf("version '%s' is not supported with ec2_metadata_http_tokens, "+
 			"minimum supported version is %s", version, lowestHttpTokensVer)
-		logger.Error(ctx, msg)
+		tflog.Error(ctx, msg)
 		return fmt.Errorf(msg)
 	}
 	return nil
 }
 
 func (r *ClusterRosaClassicResource) validateAccountRoles(ctx context.Context, state *ClusterRosaClassicState, version string) error {
-	r.logger.Debug(ctx, "Validating if cluster version is compatible to account roles' version")
+	tflog.Debug(ctx, "Validating if cluster version is compatible to account roles' version")
 	region := state.CloudRegion.Value
 
-	r.logger.Debug(ctx, "Cluster version is %s", version)
+	tflog.Debug(ctx, fmt.Sprintf("Cluster version is %s", version))
 	roleARNs := []string{
 		state.Sts.RoleARN.Value,
 		state.Sts.SupportRoleArn.Value,
@@ -816,7 +814,7 @@ func (r *ClusterRosaClassicResource) hasCompatibleVersionTags(ctx context.Contex
 	}
 	for _, tag := range iamTags {
 		if aws.StringValue(tag.Key) == tagsOpenShiftVersion {
-			r.logger.Debug(ctx, "role version is %s", aws.StringValue(tag.Value))
+			tflog.Debug(ctx, fmt.Sprintf("role version is %s", aws.StringValue(tag.Value)))
 			if version == aws.StringValue(tag.Value) {
 				return true, nil
 			}
@@ -915,8 +913,8 @@ func getOcmVersionMinor(ver string) string {
 
 // getVersionList returns a list of versions for the given channel group, sorted by
 // descending semver
-func (r *ClusterRosaClassicResource) getVersionList(logger logging.Logger, ctx context.Context, channelGroup string) (versionList []string, err error) {
-	vs, err := r.getVersions(logger, ctx, channelGroup)
+func (r *ClusterRosaClassicResource) getVersionList(ctx context.Context, channelGroup string) (versionList []string, err error) {
+	vs, err := r.getVersions(ctx, channelGroup)
 	if err != nil {
 		err = fmt.Errorf("Failed to retrieve versions: %s", err)
 		return
@@ -933,7 +931,7 @@ func (r *ClusterRosaClassicResource) getVersionList(logger logging.Logger, ctx c
 
 	return
 }
-func (r *ClusterRosaClassicResource) getVersions(logger logging.Logger, ctx context.Context, channelGroup string) (versions []*cmv1.Version, err error) {
+func (r *ClusterRosaClassicResource) getVersions(ctx context.Context, channelGroup string) (versions []*cmv1.Version, err error) {
 	page := 1
 	size := 100
 	filter := strings.Join([]string{
@@ -950,7 +948,7 @@ func (r *ClusterRosaClassicResource) getVersions(logger logging.Logger, ctx cont
 			Size(size).
 			Send()
 		if err != nil {
-			logger.Debug(ctx, err.Error())
+			tflog.Debug(ctx, err.Error())
 			return nil, err
 		}
 		versions = append(versions, response.Items().Slice()...)
@@ -1007,7 +1005,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 		)
 		return
 	}
-	err = validateHttpTokensVersion(ctx, r.logger, state, version)
+	err = validateHttpTokensVersion(ctx, state, version)
 	if err != nil {
 		response.Diagnostics.AddError(
 			summary,
@@ -1019,7 +1017,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 		return
 	}
 
-	object, err := createClassicClusterObject(ctx, state, r.logger, diags)
+	object, err := createClassicClusterObject(ctx, state, diags)
 	if err != nil {
 		response.Diagnostics.AddError(
 			summary,
@@ -1045,7 +1043,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 	object = add.Body()
 
 	// Save the state:
-	err = populateRosaClassicClusterState(ctx, object, state, r.logger, DefaultHttpClient{})
+	err = populateRosaClassicClusterState(ctx, object, state, DefaultHttpClient{})
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -1084,7 +1082,7 @@ func (r *ClusterRosaClassicResource) Read(ctx context.Context, request tfsdk.Rea
 	object := get.Body()
 
 	// Save the state:
-	err = populateRosaClassicClusterState(ctx, object, state, r.logger, DefaultHttpClient{})
+	err = populateRosaClassicClusterState(ctx, object, state, DefaultHttpClient{})
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -1187,7 +1185,7 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 	object := update.Body()
 
 	// Update the state:
-	err = populateRosaClassicClusterState(ctx, object, plan, r.logger, DefaultHttpClient{})
+	err = populateRosaClassicClusterState(ctx, object, plan, DefaultHttpClient{})
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -1298,7 +1296,7 @@ func (r *ClusterRosaClassicResource) Delete(ctx context.Context, request tfsdk.D
 		return
 	}
 	if !state.DisableWaitingInDestroy.Unknown && !state.DisableWaitingInDestroy.Null && state.DisableWaitingInDestroy.Value {
-		r.logger.Info(ctx, "Waiting for destroy to be completed, is disabled")
+		tflog.Info(ctx, "Waiting for destroy to be completed, is disabled")
 	} else {
 		timeout := defaultTimeoutInMinutes
 		if !state.DestroyTimeout.Unknown && !state.DestroyTimeout.Null {
@@ -1350,7 +1348,7 @@ func (r *ClusterRosaClassicResource) ImportState(ctx context.Context, request tf
 
 	// Save the state:
 	state := &ClusterRosaClassicState{}
-	err = populateRosaClassicClusterState(ctx, object, state, r.logger, DefaultHttpClient{})
+	err = populateRosaClassicClusterState(ctx, object, state, DefaultHttpClient{})
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -1366,7 +1364,7 @@ func (r *ClusterRosaClassicResource) ImportState(ctx context.Context, request tf
 }
 
 // populateRosaClassicClusterState copies the data from the API object to the Terraform state.
-func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, state *ClusterRosaClassicState, logger logging.Logger, httpClient HttpClient) error {
+func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, state *ClusterRosaClassicState, httpClient HttpClient) error {
 	state.ID = types.String{
 		Value: object.ID(),
 	}
@@ -1570,7 +1568,7 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		}
 		thumbprint, err := getThumbprint(sts.OIDCEndpointURL(), httpClient)
 		if err != nil {
-			logger.Error(ctx, "cannot get thumbprint", err)
+			tflog.Error(ctx, "cannot get thumbprint", err)
 			state.Sts.Thumbprint = types.String{
 				Value: "",
 			}
@@ -1762,7 +1760,7 @@ func sha1Hash(data []byte) (string, error) {
 
 func (r *ClusterRosaClassicResource) retryClusterNotFoundWithTimeout(attempts int, sleep time.Duration, ctx context.Context, timeout int64,
 	resource *cmv1.ClusterClient) (bool, error) {
-	isNotFound, err := r.waitTillClusterIsNotFoundWithTimeout(ctx, timeout, resource, r.logger)
+	isNotFound, err := r.waitTillClusterIsNotFoundWithTimeout(ctx, timeout, resource)
 	if err != nil {
 		if attempts--; attempts > 0 {
 			time.Sleep(sleep)
@@ -1775,7 +1773,7 @@ func (r *ClusterRosaClassicResource) retryClusterNotFoundWithTimeout(attempts in
 }
 
 func (r *ClusterRosaClassicResource) waitTillClusterIsNotFoundWithTimeout(ctx context.Context, timeout int64,
-	resource *cmv1.ClusterClient, logger logging.Logger) (bool, error) {
+	resource *cmv1.ClusterClient) (bool, error) {
 	timeoutInMinutes := time.Duration(timeout) * time.Minute
 	pollCtx, cancel := context.WithTimeout(ctx, timeoutInMinutes)
 	defer cancel()
@@ -1785,11 +1783,11 @@ func (r *ClusterRosaClassicResource) waitTillClusterIsNotFoundWithTimeout(ctx co
 		StartContext(pollCtx)
 	sdkErr, ok := err.(*ocm_errors.Error)
 	if ok && sdkErr.Status() == http.StatusNotFound {
-		logger.Info(ctx, "Cluster was removed")
+		tflog.Info(ctx, "Cluster was removed")
 		return true, nil
 	}
 	if err != nil {
-		logger.Error(ctx, "Can't poll cluster deletion")
+		tflog.Error(ctx, "Can't poll cluster deletion")
 		return false, err
 	}
 

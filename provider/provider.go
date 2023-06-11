@@ -21,19 +21,17 @@ import (
 	"crypto/x509"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	sdk "github.com/openshift-online/ocm-sdk-go"
-	"github.com/openshift-online/ocm-sdk-go/logging"
 	"github.com/terraform-redhat/terraform-provider-ocm/build"
+	"github.com/terraform-redhat/terraform-provider-ocm/logging"
 )
 
 // Provider is the implementation of the Provider.
 type Provider struct {
-	logger     logging.Logger
 	connection *sdk.Connection
 }
 
@@ -130,22 +128,10 @@ func (p *Provider) Configure(ctx context.Context, request tfsdk.ConfigureProvide
 		return
 	}
 
-	// Determine the log level used by the SDK from the environment variables used by Terraform:
-	level := os.Getenv("TF_LOG")
-
 	// The plugin infrastructure redirects the log package output so that it is sent to the main
 	// Terraform process, so if we want to have the logs of the SDK redirected we need to use
 	// the log package as well.
-	logger, err := logging.NewGoLoggerBuilder().
-		Error(true).
-		Warn(true).
-		Info(true).
-		Debug(strings.EqualFold(level, "DEBUG")).
-		Build()
-	if err != nil {
-		response.Diagnostics.AddError(err.Error(), "")
-		return
-	}
+	logger := logging.New()
 
 	// Create the builder:
 	builder := sdk.NewConnectionBuilder()
@@ -201,7 +187,6 @@ func (p *Provider) Configure(ctx context.Context, request tfsdk.ConfigureProvide
 	}
 
 	// Save the connection:
-	p.logger = logger
 	p.connection = connection
 }
 
@@ -210,10 +195,10 @@ func (p *Provider) GetResources(ctx context.Context) (result map[string]tfsdk.Re
 	diags diag.Diagnostics) {
 	result = map[string]tfsdk.ResourceType{
 		"ocm_cluster":                &ClusterResourceType{},
-		"ocm_cluster_rosa_classic":   &ClusterRosaClassicResourceType{p.logger},
+		"ocm_cluster_rosa_classic":   &ClusterRosaClassicResourceType{},
 		"ocm_group_membership":       &GroupMembershipResourceType{},
 		"ocm_identity_provider":      &IdentityProviderResourceType{},
-		"ocm_machine_pool":           &MachinePoolResourceType{p.logger},
+		"ocm_machine_pool":           &MachinePoolResourceType{},
 		"ocm_cluster_wait":           &ClusterWaiterResourceType{},
 		"ocm_rosa_oidc_config_input": &RosaOidcConfigInputResourceType{},
 		"ocm_rosa_oidc_config":       &RosaOidcConfigResourceType{},

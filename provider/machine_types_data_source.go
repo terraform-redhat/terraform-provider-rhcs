@@ -26,14 +26,12 @@ package provider
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/openshift-online/ocm-sdk-go/logging"
 ***REMOVED***
 
 type MachineTypesDataSourceType struct {
 }
 
 type MachineTypesDataSource struct {
-	logger     logging.Logger
 	collection *cmv1.MachineTypesClient
 }
 
@@ -95,7 +93,6 @@ func (t *MachineTypesDataSourceType***REMOVED*** NewDataSource(ctx context.Conte
 
 	// Create the resource:
 	result = &MachineTypesDataSource{
-		logger:     parent.logger,
 		collection: collection,
 	}
 	return

@@ -18,12 +18,13 @@ package provider
 
 ***REMOVED***
 	"context"
+***REMOVED***
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/openshift-online/ocm-sdk-go/logging"
 ***REMOVED***
 
 const (
@@ -46,7 +47,6 @@ type OcmPoliciesDataSourceType struct {
 }
 
 type OcmPoliciesDataSource struct {
-	logger       logging.Logger
 	awsInquiries *cmv1.AWSInquiriesClient
 }
 
@@ -130,7 +130,6 @@ func (t *OcmPoliciesDataSourceType***REMOVED*** NewDataSource(ctx context.Contex
 
 	// Create the resource:
 	result = &OcmPoliciesDataSource{
-		logger:       parent.logger,
 		awsInquiries: awsInquiries,
 	}
 	return
@@ -148,14 +147,14 @@ func (t *OcmPoliciesDataSource***REMOVED*** Read(ctx context.Context, request tf
 
 	policiesResponse, err := t.awsInquiries.STSPolicies(***REMOVED***.List(***REMOVED***.Send(***REMOVED***
 	if err != nil {
-		t.logger.Error(ctx, "Failed to get policies"***REMOVED***
+		tflog.Error(ctx, "Failed to get policies"***REMOVED***
 		return
 	}
 
 	operatorRolePolicies := OperatorRolePolicies{}
 	accountRolePolicies := AccountRolePolicies{}
 	policiesResponse.Items(***REMOVED***.Each(func(awsPolicy *cmv1.AWSSTSPolicy***REMOVED*** bool {
-		t.logger.Debug(ctx, "policy id: %s ", awsPolicy.ID(***REMOVED******REMOVED***
+		tflog.Debug(ctx, fmt.Sprintf("policy id: %s ", awsPolicy.ID(***REMOVED******REMOVED******REMOVED***
 		switch awsPolicy.ID(***REMOVED*** {
 		// operator roles
 		case CloudCred:
@@ -180,7 +179,7 @@ func (t *OcmPoliciesDataSource***REMOVED*** Read(ctx context.Context, request tf
 		case InstanceControlPlane:
 			accountRolePolicies.InstanceControlPlane = types.String{Value: awsPolicy.Details(***REMOVED***}
 		default:
-			t.logger.Debug(ctx, "This is neither operator role policy nor account role policy"***REMOVED***
+			tflog.Debug(ctx, "This is neither operator role policy nor account role policy"***REMOVED***
 ***REMOVED***
 		return true
 	}***REMOVED***

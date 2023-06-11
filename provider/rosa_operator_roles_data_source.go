@@ -22,19 +22,18 @@ package provider
 	"sort"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/openshift-online/ocm-sdk-go/logging"
 ***REMOVED***
 
 type RosaOperatorRolesDataSourceType struct {
 }
 
 type RosaOperatorRolesDataSource struct {
-	logger       logging.Logger
 	awsInquiries *cmv1.AWSInquiriesClient
 }
 
@@ -113,7 +112,6 @@ func (t *RosaOperatorRolesDataSourceType***REMOVED*** NewDataSource(ctx context.
 
 	// Create the resource:
 	result = &RosaOperatorRolesDataSource{
-		logger:       parent.logger,
 		awsInquiries: awsInquiries,
 	}
 	return
@@ -132,7 +130,7 @@ func (t *RosaOperatorRolesDataSource***REMOVED*** Read(ctx context.Context, requ
 	stsOperatorRolesList, err := t.awsInquiries.STSCredentialRequests(***REMOVED***.List(***REMOVED***.Send(***REMOVED***
 	if err != nil {
 		description := fmt.Sprintf("Failed to get STS Operator Roles list with error: %v", err***REMOVED***
-		t.logger.Error(ctx, description***REMOVED***
+		tflog.Error(ctx, description***REMOVED***
 		response.Diagnostics.AddError(
 			description,
 			"hint: validate the credetials (token***REMOVED*** used to run this provider",
@@ -144,11 +142,11 @@ func (t *RosaOperatorRolesDataSource***REMOVED*** Read(ctx context.Context, requ
 	roleNameSpaces := make([]string, 0***REMOVED***
 	stsOperatorRolesList.Items(***REMOVED***.Each(func(stsCredentialRequest *cmv1.STSCredentialRequest***REMOVED*** bool {
 		// TODO: check the MinVersion of the operator role
-		t.logger.Debug(ctx, "Operator name: %s, namespace %s, service account %s",
+		tflog.Debug(ctx, fmt.Sprintf("Operator name: %s, namespace %s, service account %s",
 			stsCredentialRequest.Operator(***REMOVED***.Name(***REMOVED***,
 			stsCredentialRequest.Operator(***REMOVED***.Namespace(***REMOVED***,
 			stsCredentialRequest.Operator(***REMOVED***.ServiceAccounts(***REMOVED***,
-		***REMOVED***
+		***REMOVED******REMOVED***
 		// The key can't be stsCredentialRequest.Operator(***REMOVED***.Name(***REMOVED*** because of constants between
 		// the name of `ingress_operator_cloud_credentials` and `cloud_network_config_controller_cloud_credentials`
 		// both of them includes the same Name `cloud-credentials` and it cannot be fixed

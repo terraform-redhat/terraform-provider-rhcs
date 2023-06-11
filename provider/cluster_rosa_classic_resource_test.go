@@ -30,7 +30,6 @@ package provider
 	. "github.com/onsi/ginkgo/v2/dsl/core" // nolint
 ***REMOVED***             // nolint
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/openshift-online/ocm-sdk-go/logging"
 	"github.com/terraform-redhat/terraform-provider-ocm/build"
 ***REMOVED***
 
@@ -173,7 +172,7 @@ var _ = Describe("Rosa Classic Sts cluster", func(***REMOVED*** {
 	Context("createClassicClusterObject", func(***REMOVED*** {
 		It("Creates a cluster with correct field values", func(***REMOVED*** {
 			clusterState := generateBasicRosaClassicClusterState(***REMOVED***
-			rosaClusterObject, err := createClassicClusterObject(context.Background(***REMOVED***, clusterState, &logging.StdLogger{}, diag.Diagnostics{}***REMOVED***
+			rosaClusterObject, err := createClassicClusterObject(context.Background(***REMOVED***, clusterState, diag.Diagnostics{}***REMOVED***
 			Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
 
 			Expect(rosaClusterObject.Name(***REMOVED******REMOVED***.To(Equal(clusterName***REMOVED******REMOVED***
@@ -207,21 +206,21 @@ var _ = Describe("Rosa Classic Sts cluster", func(***REMOVED*** {
 	It("Throws an error when version format is invalid", func(***REMOVED*** {
 		clusterState := generateBasicRosaClassicClusterState(***REMOVED***
 		clusterState.Version.Value = "a.4.1"
-		_, err := createClassicClusterObject(context.Background(***REMOVED***, clusterState, &logging.StdLogger{}, diag.Diagnostics{}***REMOVED***
+		_, err := createClassicClusterObject(context.Background(***REMOVED***, clusterState, diag.Diagnostics{}***REMOVED***
 		Expect(err***REMOVED***.ToNot(BeNil(***REMOVED******REMOVED***
 	}***REMOVED***
 
 	It("Throws an error when version is unsupported", func(***REMOVED*** {
 		clusterState := generateBasicRosaClassicClusterState(***REMOVED***
 		clusterState.Version.Value = "4.1.0"
-		_, err := createClassicClusterObject(context.Background(***REMOVED***, clusterState, &logging.StdLogger{}, diag.Diagnostics{}***REMOVED***
+		_, err := createClassicClusterObject(context.Background(***REMOVED***, clusterState, diag.Diagnostics{}***REMOVED***
 		Expect(err***REMOVED***.ToNot(BeNil(***REMOVED******REMOVED***
 	}***REMOVED***
 
 	It("appends the non-default channel name to the requested version", func(***REMOVED*** {
 		clusterState := generateBasicRosaClassicClusterState(***REMOVED***
 		clusterState.ChannelGroup.Value = "somechannel"
-		rosaClusterObject, err := createClassicClusterObject(context.Background(***REMOVED***, clusterState, &logging.StdLogger{}, diag.Diagnostics{}***REMOVED***
+		rosaClusterObject, err := createClassicClusterObject(context.Background(***REMOVED***, clusterState, diag.Diagnostics{}***REMOVED***
 		Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
 
 		version, ok := rosaClusterObject.Version(***REMOVED***.GetID(***REMOVED***
@@ -242,7 +241,7 @@ var _ = Describe("Rosa Classic Sts cluster", func(***REMOVED*** {
 			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString***REMOVED***
 			Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
 
-			populateRosaClassicClusterState(context.Background(***REMOVED***, clusterObject, clusterState, &logging.StdLogger{}, mockHttpClient***REMOVED***
+			populateRosaClassicClusterState(context.Background(***REMOVED***, clusterObject, clusterState, mockHttpClient***REMOVED***
 
 			Expect(clusterState.ID.Value***REMOVED***.To(Equal(clusterId***REMOVED******REMOVED***
 			Expect(clusterState.CloudRegion.Value***REMOVED***.To(Equal(regionId***REMOVED******REMOVED***
@@ -277,7 +276,7 @@ var _ = Describe("Rosa Classic Sts cluster", func(***REMOVED*** {
 			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString***REMOVED***
 			Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
 
-			err = populateRosaClassicClusterState(context.Background(***REMOVED***, clusterObject, clusterState, &logging.StdLogger{}, mockHttpClient***REMOVED***
+			err = populateRosaClassicClusterState(context.Background(***REMOVED***, clusterObject, clusterState, mockHttpClient***REMOVED***
 			Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
 			Expect(clusterState.Sts.OIDCEndpointURL.Value***REMOVED***.To(Equal("nonce.com"***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
@@ -293,7 +292,7 @@ var _ = Describe("Rosa Classic Sts cluster", func(***REMOVED*** {
 			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString***REMOVED***
 			Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
 
-			err = populateRosaClassicClusterState(context.Background(***REMOVED***, clusterObject, clusterState, &logging.StdLogger{}, mockHttpClient***REMOVED***
+			err = populateRosaClassicClusterState(context.Background(***REMOVED***, clusterObject, clusterState, mockHttpClient***REMOVED***
 			Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
 			Expect(clusterState.Sts.Thumbprint.Value***REMOVED***.To(Equal(""***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
@@ -303,13 +302,13 @@ var _ = Describe("Rosa Classic Sts cluster", func(***REMOVED*** {
 		It("Fail validation with lower version than allowed", func(***REMOVED*** {
 			clusterState := generateBasicRosaClassicClusterState(***REMOVED***
 			clusterState.Ec2MetadataHttpTokens.Value = string(cmv1.Ec2MetadataHttpTokensOptional***REMOVED***
-			err := validateHttpTokensVersion(context.Background(***REMOVED***, &logging.StdLogger{}, clusterState, "openshift-v4.10.0"***REMOVED***
+			err := validateHttpTokensVersion(context.Background(***REMOVED***, clusterState, "openshift-v4.10.0"***REMOVED***
 			Expect(err***REMOVED***.ToNot(BeNil(***REMOVED******REMOVED***
 			Expect(err.Error(***REMOVED******REMOVED***.To(ContainSubstring("is not supported with ec2_metadata_http_tokens"***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 		It("Pass validation with http_tokens_state and supported version", func(***REMOVED*** {
 			clusterState := generateBasicRosaClassicClusterState(***REMOVED***
-			err := validateHttpTokensVersion(context.Background(***REMOVED***, &logging.StdLogger{}, clusterState, "openshift-v4.11.0"***REMOVED***
+			err := validateHttpTokensVersion(context.Background(***REMOVED***, clusterState, "openshift-v4.11.0"***REMOVED***
 			Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 	}***REMOVED***

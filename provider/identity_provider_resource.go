@@ -26,7 +26,6 @@ package provider
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/openshift-online/ocm-sdk-go/logging"
 	"github.com/terraform-redhat/terraform-provider-ocm/provider/common"
 	"github.com/terraform-redhat/terraform-provider-ocm/provider/idps"
 ***REMOVED***
@@ -35,7 +34,6 @@ type IdentityProviderResourceType struct {
 }
 
 type IdentityProviderResource struct {
-	logger     logging.Logger
 	collection *cmv1.ClustersClient
 }
 
@@ -115,7 +113,6 @@ func (t *IdentityProviderResourceType***REMOVED*** NewResource(ctx context.Conte
 
 	// Create the resource:
 	result = &IdentityProviderResource{
-		logger:     parent.logger,
 		collection: collection,
 	}
 

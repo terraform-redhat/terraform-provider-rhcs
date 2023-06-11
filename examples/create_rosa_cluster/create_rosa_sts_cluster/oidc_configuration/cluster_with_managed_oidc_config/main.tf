@@ -31,26 +31,14 @@ provider "ocm" {
   url   = var.url
 }
 
-resource "ocm_rosa_oidc_config" "oidc_config" {
-  managed = true
-}
-
-data "ocm_rosa_operator_roles" "operator_roles" {
+# Create managed OIDC config
+module "oidc_config" {
+  token                = var.token
+  url                  = var.url
+  source               = "../oidc_provider"
+  managed              = true
   operator_role_prefix = var.operator_role_prefix
   account_role_prefix  = var.account_role_prefix
-}
-
-module "operator_roles_and_oidc_provider" {
-  source  = "terraform-redhat/rosa-sts/aws"
-  version = ">=0.0.5"
-
-  create_operator_roles = true
-  create_oidc_provider  = true
-
-  cluster_id                  = ""
-  rh_oidc_provider_thumbprint = ocm_rosa_oidc_config.oidc_config.thumbprint
-  rh_oidc_provider_url        = ocm_rosa_oidc_config.oidc_config.oidc_endpoint_url
-  operator_roles_properties   = data.ocm_rosa_operator_roles.operator_roles.operator_iam_roles
 }
 
 locals {
@@ -62,7 +50,7 @@ locals {
       worker_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Worker-Role"
     },
     operator_role_prefix = var.operator_role_prefix,
-    oidc_config_id       = ocm_rosa_oidc_config.oidc_config.id
+    oidc_config_id       = module.oidc_config.id
   }
 }
 

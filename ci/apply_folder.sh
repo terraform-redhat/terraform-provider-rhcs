@@ -60,7 +60,7 @@ if [[ ! -d ${WORK_DIR} ]]; then
 fi
 
 set -o xtrace
-export TF_LOG=debug
+export TF_LOG=${TF_LOG:-info}
 
 cd "${WORK_DIR}"
 HOME=${TERRAFORM_D_DIR} terraform init

@@ -663,16 +663,13 @@ func createClassicClusterObject(ctx context.Context,
 			return nil, errors.New(errHeadline + "\n" + errDescription***REMOVED***
 ***REMOVED***
 		if !isSupported {
-			tflog.Error(ctx, fmt.Sprintf("Cluster version %s is not supported", state.Version.Value***REMOVED******REMOVED***
-			errDescription := fmt.Sprintf(
-				"Can't check if cluster version is supported '%s': %v",
-				state.Version.Value, err,
-			***REMOVED***
+			description := fmt.Sprintf("Cluster version %s is not supported (minimal supported version is %s***REMOVED***", state.Version.Value, MinVersion***REMOVED***
+			tflog.Error(ctx, description***REMOVED***
 			diags.AddError(
 				errHeadline,
-				errDescription,
+				description,
 			***REMOVED***
-			return nil, errors.New(errHeadline + "\n" + errDescription***REMOVED***
+			return nil, errors.New(errHeadline + "\n" + description***REMOVED***
 ***REMOVED***
 		vBuilder := cmv1.NewVersion(***REMOVED***
 		versionID := state.Version.Value

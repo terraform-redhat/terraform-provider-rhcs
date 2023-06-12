@@ -836,15 +836,22 @@ func (r *ClusterRosaClassicResource***REMOVED*** validateOperatorRolePolicies(ct
 	}
 
 	region := state.CloudRegion.Value
-	session, err := buildSession(region***REMOVED***
-	if err != nil {
-		return fmt.Errorf("Could not build session: %v", err***REMOVED***
-	}
-	iamClient := iam.New(session***REMOVED***
+	var session *session.Session
+	var iamClient *iam.IAM
 	for _, operRole := range operRoles {
 		roleARN := operRole.RoleARN(***REMOVED***
 		if roleARN == "" {
 			continue
+***REMOVED***
+		if session == nil {
+			var err error
+			session, err = buildSession(region***REMOVED***
+			if err != nil {
+				return fmt.Errorf("Could not build session: %v", err***REMOVED***
+	***REMOVED***
+***REMOVED***
+		if iamClient == nil {
+			iamClient = iam.New(session***REMOVED***
 ***REMOVED***
 		role, err := getRoleByARN(roleARN, state.CloudRegion.Value***REMOVED***
 		if err != nil {

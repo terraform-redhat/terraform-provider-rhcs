@@ -119,7 +119,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 						  "path": "/aws",
 						  "value": {
 							  "sts" : {
-								  "oidc_endpoint_url": "https://oidc_endpoint_url",
+								  "oidc_endpoint_url": "https://127.0.0.2",
 								  "thumbprint": "111111",
 								  "role_arn": "",
 								  "support_role_arn": "",
@@ -196,7 +196,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 						  "path": "/aws",
 						  "value": {
 							  "sts" : {
-								  "oidc_endpoint_url": "https://oidc_endpoint_url",
+								  "oidc_endpoint_url": "https://127.0.0.2",
 								  "thumbprint": "111111",
 								  "role_arn": "",
 								  "support_role_arn": "",
@@ -313,7 +313,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -383,7 +383,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -458,7 +458,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -530,7 +530,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -699,7 +699,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -762,7 +762,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -800,7 +800,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -878,7 +878,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -954,7 +954,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1003,7 +1003,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1092,7 +1092,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1150,7 +1150,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1182,7 +1182,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1302,7 +1302,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 						  "private_link": true,
 						  "subnet_ids": ["id1", "id2", "id3"],
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1379,7 +1379,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "private_link": false,
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1454,7 +1454,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1524,7 +1524,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
 							  "support_role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
@@ -1566,7 +1566,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
 							  "support_role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
@@ -1635,7 +1635,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
 							  "support_role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
@@ -1675,7 +1675,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
 							  "support_role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
@@ -1754,11 +1754,11 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "oidc_config": {
 								"id": "aaa",
 								"secret_arn": "aaa",
-								"issuer_url": "https://oidc_endpoint_url",
+								"issuer_url": "https://127.0.0.2",
 								"reusable": true,
 								"managed": false
 							  },
@@ -1826,7 +1826,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "arn:aws:iam::765374464689:role/terr-account-Installer-Role",
 							  "support_role_arn": "",
@@ -1890,7 +1890,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 					  "value": {
                           "ec2_metadata_http_tokens" : "required",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1953,7 +1953,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 					  "value": {
                           "ec2_metadata_http_tokens" : "required",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -2018,7 +2018,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 					  "value": {
                           "ec2_metadata_http_tokens" : "bad_string",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",

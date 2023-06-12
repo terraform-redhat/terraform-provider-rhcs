@@ -36,3 +36,9 @@ variable "availability_zones" {
   type    = list(string)
   default = ["us-east-2a"]
 }
+
+variable "account_role_path" {
+  description = "(Optional) Path to the account role."
+  type        = string
+  default     = "/"
+}

@@ -30,4 +30,9 @@ To run it:
     export TF_VAR_account_role_prefix=...
     ```
 
+* Provide STS account_role_path (optional):
+    ```
+    export TF_VAR_account_role_path=...
+    ```
+
 and then run the `terraform apply` command.

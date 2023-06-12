@@ -19,3 +19,9 @@ variable "token" {
 variable "url" {
   type = string
 }
+
+variable "account_role_path" {
+  description = "(Optional***REMOVED*** Path to the account role."
+  type        = string
+  default     = null
+}

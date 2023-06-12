@@ -1351,6 +1351,7 @@ func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context,
 	correctUpgradePending := false
 	tenMinFromNow := time.Now().Add(10 * time.Minute)
 	for _, upgrade := range upgrades {
+		r.logger.Debug(ctx, "Found existing upgrade policy to %s in state %s", upgrade.Version(), upgrade.State())
 		toVersion, err := semver.NewVersion(upgrade.Version())
 		if err != nil {
 			return fmt.Errorf("failed to parse upgrade version: %v", err)

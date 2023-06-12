@@ -2329,4 +2329,184 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func() {
 		}`)
 		Expect(terraform.Apply()).To(BeZero())
 	})
+
+	It("Does nothing if upgrade is in progress", func() {
+		server.AppendHandlers(
+			// Refresh cluster state
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, template),
+			),
+			// Validate upgrade versions
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.8.0"),
+				RespondWithJSON(http.StatusOK, v4_8_0Info),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
+				RespondWithJSON(http.StatusOK, v4_10_1Info),
+			),
+			// Validate roles
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/sts_operator_roles"),
+				RespondWithJSON(http.StatusOK, operIAMList),
+			),
+			// Look for existing upgrade policies
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
+				RespondWithJSON(http.StatusOK, `{
+					"kind": "UpgradePolicyState",
+					"page": 1,
+					"size": 0,
+					"total": 0,
+					"items": [
+						{
+							"kind": "UpgradePolicy",
+							"id": "456",
+							"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/123",
+							"schedule_type": "manual",
+							"upgrade_type": "OSD",
+							"version": "4.10.0",
+							"next_run": "2023-06-09T20:59:00Z",
+							"cluster_id": "123",
+							"enable_minor_version_upgrades": true
+						}
+					]
+				}`),
+			),
+			// Check it's state
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456/state"),
+				RespondWithJSON(http.StatusOK, `{
+					"kind": "UpgradePolicyState",
+					"id": "456",
+					"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456/state",
+					"description": "Upgrade in progress",
+					"value": "started"
+				}`),
+			),
+		)
+		// Perform try the upgrade
+		terraform.Source(`
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+			name           = "my-cluster"
+			cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+				}
+			}
+			version = "openshift-v4.10.1"
+		}`)
+		// Will fail due to upgrade in progress
+		Expect(terraform.Apply()).NotTo(BeZero())
+	})
+
+	It("Cancels and upgrade for the wrong version & schedules new", func() {
+		server.AppendHandlers(
+			// Refresh cluster state
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, template),
+			),
+			// Validate upgrade versions
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.8.0"),
+				RespondWithJSON(http.StatusOK, v4_8_0Info),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
+				RespondWithJSON(http.StatusOK, v4_10_1Info),
+			),
+			// Validate roles
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/sts_operator_roles"),
+				RespondWithJSON(http.StatusOK, operIAMList),
+			),
+			// Look for existing upgrade policies
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
+				RespondWithJSON(http.StatusOK, `{
+					"kind": "UpgradePolicyState",
+					"page": 1,
+					"size": 0,
+					"total": 0,
+					"items": [
+						{
+							"kind": "UpgradePolicy",
+							"id": "456",
+							"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/123",
+							"schedule_type": "manual",
+							"upgrade_type": "OSD",
+							"version": "4.10.0",
+							"next_run": "2023-06-09T20:59:00Z",
+							"cluster_id": "123",
+							"enable_minor_version_upgrades": true
+						}
+					]
+				}`),
+			),
+			// Check it's state
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456/state"),
+				RespondWithJSON(http.StatusOK, `{
+					"kind": "UpgradePolicyState",
+					"id": "456",
+					"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456/state",
+					"description": "",
+					"value": "scheduled"
+				}`),
+			),
+			// Delete existing upgrade policy
+			CombineHandlers(
+				VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456"),
+				RespondWithJSON(http.StatusOK, "{}"),
+			),
+			// Create an upgrade policy
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
+				VerifyJQ(".version", "4.10.1"),
+				RespondWithJSON(http.StatusCreated, `
+				{
+					"kind": "UpgradePolicy",
+					"id": "123",
+					"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/123",
+					"schedule_type": "manual",
+					"upgrade_type": "OSD",
+					"version": "4.10.1",
+					"next_run": "2023-06-09T20:59:00Z",
+					"cluster_id": "123",
+					"enable_minor_version_upgrades": true
+				}`),
+			),
+			// Patch the cluster (w/ no changes)
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, template),
+			),
+		)
+		// Perform try the upgrade
+		terraform.Source(`
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+			name           = "my-cluster"
+			cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+				}
+			}
+			version = "openshift-v4.10.1"
+		}`)
+		Expect(terraform.Apply()).To(BeZero())
+	})
 })

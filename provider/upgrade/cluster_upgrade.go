@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package provider
+package upgrade
 
 ***REMOVED***
 	"context"
@@ -26,25 +26,25 @@ package provider
 	"github.com/openshift/rosa/pkg/ocm"
 ***REMOVED***
 
-// clusterUpgrade bundles the description of the upgrade with its current state
-type clusterUpgrade struct {
+// ClusterUpgrade bundles the description of the upgrade with its current state
+type ClusterUpgrade struct {
 	policy      *cmv1.UpgradePolicy
 	policyState *cmv1.UpgradePolicyState
 }
 
-func (cu *clusterUpgrade***REMOVED*** State(***REMOVED*** cmv1.UpgradePolicyStateValue {
+func (cu *ClusterUpgrade***REMOVED*** State(***REMOVED*** cmv1.UpgradePolicyStateValue {
 	return cu.policyState.Value(***REMOVED***
 }
 
-func (cu *clusterUpgrade***REMOVED*** Version(***REMOVED*** string {
+func (cu *ClusterUpgrade***REMOVED*** Version(***REMOVED*** string {
 	return cu.policy.Version(***REMOVED***
 }
 
-func (cu *clusterUpgrade***REMOVED*** NextRun(***REMOVED*** time.Time {
+func (cu *ClusterUpgrade***REMOVED*** NextRun(***REMOVED*** time.Time {
 	return cu.policy.NextRun(***REMOVED***
 }
 
-func (cu *clusterUpgrade***REMOVED*** Delete(ctx context.Context, client *cmv1.ClustersClient***REMOVED*** error {
+func (cu *ClusterUpgrade***REMOVED*** Delete(ctx context.Context, client *cmv1.ClustersClient***REMOVED*** error {
 	_, err := client.Cluster(cu.policy.ClusterID(***REMOVED******REMOVED***.UpgradePolicies(***REMOVED***.UpgradePolicy(cu.policy.ID(***REMOVED******REMOVED***.Delete(***REMOVED***.SendContext(ctx***REMOVED***
 	if err != nil {
 		return fmt.Errorf("failed to delete upgrade policy: %v", err***REMOVED***
@@ -54,7 +54,7 @@ func (cu *clusterUpgrade***REMOVED*** Delete(ctx context.Context, client *cmv1.C
 
 // Get the available upgrade versions that are reachable from a given starting
 // version
-func getAvailableUpgradeVersions(ctx context.Context, client *cmv1.VersionsClient, fromVersionId string***REMOVED*** ([]*cmv1.Version, error***REMOVED*** {
+func GetAvailableUpgradeVersions(ctx context.Context, client *cmv1.VersionsClient, fromVersionId string***REMOVED*** ([]*cmv1.Version, error***REMOVED*** {
 	// Retrieve info about the current version
 	resp, err := client.Version(fromVersionId***REMOVED***.Get(***REMOVED***.SendContext(ctx***REMOVED***
 	if err != nil {
@@ -82,8 +82,8 @@ func getAvailableUpgradeVersions(ctx context.Context, client *cmv1.VersionsClien
 }
 
 // Get the list of upgrade policies associated with a cluster
-func getScheduledUpgrades(ctx context.Context, client *cmv1.ClustersClient, clusterId string***REMOVED*** ([]clusterUpgrade, error***REMOVED*** {
-	upgrades := []clusterUpgrade{}
+func GetScheduledUpgrades(ctx context.Context, client *cmv1.ClustersClient, clusterId string***REMOVED*** ([]ClusterUpgrade, error***REMOVED*** {
+	upgrades := []ClusterUpgrade{}
 
 	// Get the upgrade policies for the cluster
 	upgradePolicies := []*cmv1.UpgradePolicy{}
@@ -118,7 +118,7 @@ func getScheduledUpgrades(ctx context.Context, client *cmv1.ClustersClient, clus
 		if err != nil {
 			return nil, fmt.Errorf("failed to get upgrade policy state: %v", err***REMOVED***
 ***REMOVED***
-		upgrades = append(upgrades, clusterUpgrade{
+		upgrades = append(upgrades, ClusterUpgrade{
 			policy:      policy,
 			policyState: resp.Body(***REMOVED***,
 ***REMOVED******REMOVED***
@@ -130,7 +130,7 @@ func getScheduledUpgrades(ctx context.Context, client *cmv1.ClustersClient, clus
 // Check the provided list of upgrades, canceling pending upgrades that are not
 // for the correct version, and returning an error if there is already an
 // upgrade in progress that is not for the desired version
-func checkAndCancelUpgrades(ctx context.Context, client *cmv1.ClustersClient, upgrades []clusterUpgrade, desiredVersion *semver.Version***REMOVED*** (bool, error***REMOVED*** {
+func CheckAndCancelUpgrades(ctx context.Context, client *cmv1.ClustersClient, upgrades []ClusterUpgrade, desiredVersion *semver.Version***REMOVED*** (bool, error***REMOVED*** {
 	correctUpgradePending := false
 	tenMinFromNow := time.Now(***REMOVED***.UTC(***REMOVED***.Add(10 * time.Minute***REMOVED***
 

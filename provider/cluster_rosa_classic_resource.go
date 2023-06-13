@@ -38,6 +38,7 @@ package provider
 	"github.com/openshift/rosa/pkg/ocm"
 	"github.com/terraform-redhat/terraform-provider-ocm/build"
 	"github.com/terraform-redhat/terraform-provider-ocm/provider/common"
+	"github.com/terraform-redhat/terraform-provider-ocm/provider/upgrade"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -1315,7 +1316,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** upgradeClusterIfNeeded(ctx cont
 	}
 
 	// Make sure the desired version is available
-	availableVersions, err := getAvailableUpgradeVersions(ctx, r.versionCollection, state.CurrentVersion.Value***REMOVED***
+	availableVersions, err := upgrade.GetAvailableUpgradeVersions(ctx, r.versionCollection, state.CurrentVersion.Value***REMOVED***
 	if err != nil {
 		return fmt.Errorf("failed to get available upgrades: %v", err***REMOVED***
 	}
@@ -1349,13 +1350,13 @@ func (r *ClusterRosaClassicResource***REMOVED*** upgradeClusterIfNeeded(ctx cont
 	}
 
 	// Fetch existing upgrade policies
-	upgrades, err := getScheduledUpgrades(ctx, r.clusterCollection, state.ID.Value***REMOVED***
+	upgrades, err := upgrade.GetScheduledUpgrades(ctx, r.clusterCollection, state.ID.Value***REMOVED***
 	if err != nil {
 		return fmt.Errorf("failed to get upgrade policies: %v", err***REMOVED***
 	}
 
 	// Stop if an upgrade is already in progress
-	correctUpgradePending, err := checkAndCancelUpgrades(ctx, r.clusterCollection, upgrades, desiredVersion***REMOVED***
+	correctUpgradePending, err := upgrade.CheckAndCancelUpgrades(ctx, r.clusterCollection, upgrades, desiredVersion***REMOVED***
 	if err != nil {
 		return err
 	}

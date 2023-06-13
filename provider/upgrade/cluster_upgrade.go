@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package provider
+package upgrade
 
 import (
 	"context"
@@ -26,25 +26,25 @@ import (
 	"github.com/openshift/rosa/pkg/ocm"
 )
 
-// clusterUpgrade bundles the description of the upgrade with its current state
-type clusterUpgrade struct {
+// ClusterUpgrade bundles the description of the upgrade with its current state
+type ClusterUpgrade struct {
 	policy      *cmv1.UpgradePolicy
 	policyState *cmv1.UpgradePolicyState
 }
 
-func (cu *clusterUpgrade) State() cmv1.UpgradePolicyStateValue {
+func (cu *ClusterUpgrade) State() cmv1.UpgradePolicyStateValue {
 	return cu.policyState.Value()
 }
 
-func (cu *clusterUpgrade) Version() string {
+func (cu *ClusterUpgrade) Version() string {
 	return cu.policy.Version()
 }
 
-func (cu *clusterUpgrade) NextRun() time.Time {
+func (cu *ClusterUpgrade) NextRun() time.Time {
 	return cu.policy.NextRun()
 }
 
-func (cu *clusterUpgrade) Delete(ctx context.Context, client *cmv1.ClustersClient) error {
+func (cu *ClusterUpgrade) Delete(ctx context.Context, client *cmv1.ClustersClient) error {
 	_, err := client.Cluster(cu.policy.ClusterID()).UpgradePolicies().UpgradePolicy(cu.policy.ID()).Delete().SendContext(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to delete upgrade policy: %v", err)
@@ -54,7 +54,7 @@ func (cu *clusterUpgrade) Delete(ctx context.Context, client *cmv1.ClustersClien
 
 // Get the available upgrade versions that are reachable from a given starting
 // version
-func getAvailableUpgradeVersions(ctx context.Context, client *cmv1.VersionsClient, fromVersionId string) ([]*cmv1.Version, error) {
+func GetAvailableUpgradeVersions(ctx context.Context, client *cmv1.VersionsClient, fromVersionId string) ([]*cmv1.Version, error) {
 	// Retrieve info about the current version
 	resp, err := client.Version(fromVersionId).Get().SendContext(ctx)
 	if err != nil {
@@ -82,8 +82,8 @@ func getAvailableUpgradeVersions(ctx context.Context, client *cmv1.VersionsClien
 }
 
 // Get the list of upgrade policies associated with a cluster
-func getScheduledUpgrades(ctx context.Context, client *cmv1.ClustersClient, clusterId string) ([]clusterUpgrade, error) {
-	upgrades := []clusterUpgrade{}
+func GetScheduledUpgrades(ctx context.Context, client *cmv1.ClustersClient, clusterId string) ([]ClusterUpgrade, error) {
+	upgrades := []ClusterUpgrade{}
 
 	// Get the upgrade policies for the cluster
 	upgradePolicies := []*cmv1.UpgradePolicy{}
@@ -118,7 +118,7 @@ func getScheduledUpgrades(ctx context.Context, client *cmv1.ClustersClient, clus
 		if err != nil {
 			return nil, fmt.Errorf("failed to get upgrade policy state: %v", err)
 		}
-		upgrades = append(upgrades, clusterUpgrade{
+		upgrades = append(upgrades, ClusterUpgrade{
 			policy:      policy,
 			policyState: resp.Body(),
 		})
@@ -130,7 +130,7 @@ func getScheduledUpgrades(ctx context.Context, client *cmv1.ClustersClient, clus
 // Check the provided list of upgrades, canceling pending upgrades that are not
 // for the correct version, and returning an error if there is already an
 // upgrade in progress that is not for the desired version
-func checkAndCancelUpgrades(ctx context.Context, client *cmv1.ClustersClient, upgrades []clusterUpgrade, desiredVersion *semver.Version) (bool, error) {
+func CheckAndCancelUpgrades(ctx context.Context, client *cmv1.ClustersClient, upgrades []ClusterUpgrade, desiredVersion *semver.Version) (bool, error) {
 	correctUpgradePending := false
 	tenMinFromNow := time.Now().UTC().Add(10 * time.Minute)
 

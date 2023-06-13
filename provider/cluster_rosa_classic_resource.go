@@ -1201,7 +1201,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** Update(ctx context.Context, req
 		return
 	}
 
-	// Schedule a cluster upgrade
+	// Schedule a cluster upgrade if a newer version is requested
 	if err := r.upgradeClusterIfNeeded(ctx, state, plan***REMOVED***; err != nil {
 		response.Diagnostics.AddError(
 			"Can't upgrade cluster",
@@ -1315,7 +1315,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** upgradeClusterIfNeeded(ctx cont
 	}
 
 	// Make sure the desired version is available
-	availableVersions, err := getAvailableUpgrades(ctx, r.versionCollection, state.CurrentVersion.Value***REMOVED***
+	availableVersions, err := getAvailableUpgradeVersions(ctx, r.versionCollection, state.CurrentVersion.Value***REMOVED***
 	if err != nil {
 		return fmt.Errorf("failed to get available upgrades: %v", err***REMOVED***
 	}
@@ -1355,31 +1355,9 @@ func (r *ClusterRosaClassicResource***REMOVED*** upgradeClusterIfNeeded(ctx cont
 	}
 
 	// Stop if an upgrade is already in progress
-	correctUpgradePending := false
-	tenMinFromNow := time.Now(***REMOVED***.Add(10 * time.Minute***REMOVED***
-	for _, upgrade := range upgrades {
-		tflog.Debug(ctx, "Found existing upgrade policy to %s in state %s", upgrade.Version(***REMOVED***, upgrade.State(***REMOVED******REMOVED***
-		toVersion, err := semver.NewVersion(upgrade.Version(***REMOVED******REMOVED***
-		if err != nil {
-			return fmt.Errorf("failed to parse upgrade version: %v", err***REMOVED***
-***REMOVED***
-		switch upgrade.State(***REMOVED*** {
-		case cmv1.UpgradePolicyStateValueDelayed, cmv1.UpgradePolicyStateValueStarted:
-			if desiredVersion.Equal(toVersion***REMOVED*** {
-				correctUpgradePending = true
-	***REMOVED*** else {
-				return fmt.Errorf("a cluster upgrade is already in progress"***REMOVED***
-	***REMOVED***
-		case cmv1.UpgradePolicyStateValuePending, cmv1.UpgradePolicyStateValueScheduled:
-			if desiredVersion.Equal(toVersion***REMOVED*** && upgrade.NextRun(***REMOVED***.Before(tenMinFromNow***REMOVED*** {
-				correctUpgradePending = true
-	***REMOVED*** else {
-				// The upgrade is not one we want, so cancel it
-				if err := upgrade.Delete(ctx, r.clusterCollection***REMOVED***; err != nil {
-					return fmt.Errorf("failed to delete upgrade policy: %v", err***REMOVED***
-		***REMOVED***
-	***REMOVED***
-***REMOVED***
+	correctUpgradePending, err := checkAndCancelUpgrades(ctx, r.clusterCollection, upgrades, desiredVersion***REMOVED***
+	if err != nil {
+		return err
 	}
 
 	if !correctUpgradePending {
@@ -1391,6 +1369,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** upgradeClusterIfNeeded(ctx cont
 		// some other method and re-run the apply.
 
 		// Schedule an upgrade
+		tenMinFromNow := time.Now(***REMOVED***.UTC(***REMOVED***.Add(10 * time.Minute***REMOVED***
 		newPolicy, err := cmv1.NewUpgradePolicy(***REMOVED***.
 			ScheduleType("manual"***REMOVED***.
 			Version(desiredVersion.String(***REMOVED******REMOVED***.

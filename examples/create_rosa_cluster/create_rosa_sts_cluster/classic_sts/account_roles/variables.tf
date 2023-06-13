@@ -25,3 +25,10 @@ variable "account_role_path" {
   type        = string
   default     = null
 }
+
+variable "tags" {
+  description = "List of AWS resource tags to apply."
+  type        = map(string)
+  default     = null
+}
+

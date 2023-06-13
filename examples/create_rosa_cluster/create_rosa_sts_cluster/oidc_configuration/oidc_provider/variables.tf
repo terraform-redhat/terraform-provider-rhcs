@@ -32,3 +32,9 @@ variable "cloud_region" {
   type    = string
   default = "us-east-2"
 }
+
+variable "tags" {
+  description = "List of AWS resource tags to apply."
+  type        = map(string)
+  default     = null
+}

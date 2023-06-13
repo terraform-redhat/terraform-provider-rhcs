@@ -27,5 +27,11 @@ To run it:
     ```
     export TF_VAR_account_role_prefix=...
     ```
+
+* Provide List of AWS resource tags to apply (optional):
+    ```
+    export TF_VAR_tags=...
+    ```
+
 and then run the `terraform apply` command.
 

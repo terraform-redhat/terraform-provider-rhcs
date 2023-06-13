@@ -78,4 +78,5 @@ module "operator_roles_and_oidc_provider" {
   rh_oidc_provider_thumbprint = ocm_rosa_oidc_config.oidc_config.thumbprint
   rh_oidc_provider_url        = ocm_rosa_oidc_config.oidc_config.oidc_endpoint_url
   operator_roles_properties   = data.ocm_rosa_operator_roles.operator_roles.operator_iam_roles
+  tags                        = var.tags
 }

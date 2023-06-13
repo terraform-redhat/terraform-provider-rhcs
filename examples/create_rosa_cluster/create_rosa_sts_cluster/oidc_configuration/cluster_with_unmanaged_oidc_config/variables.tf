@@ -42,3 +42,9 @@ variable "account_role_path" {
   type        = string
   default     = "/"
 }
+
+variable "tags" {
+  description = "List of AWS resource tags to apply."
+  type        = map(string***REMOVED***
+  default     = null
+}

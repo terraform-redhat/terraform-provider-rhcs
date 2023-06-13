@@ -48,4 +48,5 @@ module "create_account_roles" {
   account_role_policies  = data.ocm_policies.all_policies.account_role_policies
   operator_role_policies = data.ocm_policies.all_policies.operator_role_policies
   account_role_path      = var.account_role_path
+  tags                   = var.tags
 }

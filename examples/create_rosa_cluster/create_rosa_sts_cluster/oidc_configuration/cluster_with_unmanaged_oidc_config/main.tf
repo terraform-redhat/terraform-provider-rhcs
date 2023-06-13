@@ -41,6 +41,7 @@ module "oidc_config" {
   operator_role_prefix = var.operator_role_prefix
   account_role_prefix  = var.account_role_prefix
   cloud_region         = var.cloud_region
+  tags                 = var.tags
 }
 
 locals {

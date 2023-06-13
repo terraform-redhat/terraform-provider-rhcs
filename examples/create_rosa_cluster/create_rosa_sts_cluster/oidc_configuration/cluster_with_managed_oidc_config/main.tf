@@ -39,6 +39,7 @@ module "oidc_config" {
   managed              = true
   operator_role_prefix = var.operator_role_prefix
   account_role_prefix  = var.account_role_prefix
+  tags                 = var.tags
 }
 
 locals {

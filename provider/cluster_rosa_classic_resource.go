@@ -1201,7 +1201,7 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 		return
 	}
 
-	// Schedule a cluster upgrade
+	// Schedule a cluster upgrade if a newer version is requested
 	if err := r.upgradeClusterIfNeeded(ctx, state, plan); err != nil {
 		response.Diagnostics.AddError(
 			"Can't upgrade cluster",
@@ -1315,7 +1315,7 @@ func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context,
 	}
 
 	// Make sure the desired version is available
-	availableVersions, err := getAvailableUpgrades(ctx, r.versionCollection, state.CurrentVersion.Value)
+	availableVersions, err := getAvailableUpgradeVersions(ctx, r.versionCollection, state.CurrentVersion.Value)
 	if err != nil {
 		return fmt.Errorf("failed to get available upgrades: %v", err)
 	}
@@ -1355,31 +1355,9 @@ func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context,
 	}
 
 	// Stop if an upgrade is already in progress
-	correctUpgradePending := false
-	tenMinFromNow := time.Now().Add(10 * time.Minute)
-	for _, upgrade := range upgrades {
-		tflog.Debug(ctx, "Found existing upgrade policy to %s in state %s", upgrade.Version(), upgrade.State())
-		toVersion, err := semver.NewVersion(upgrade.Version())
-		if err != nil {
-			return fmt.Errorf("failed to parse upgrade version: %v", err)
-		}
-		switch upgrade.State() {
-		case cmv1.UpgradePolicyStateValueDelayed, cmv1.UpgradePolicyStateValueStarted:
-			if desiredVersion.Equal(toVersion) {
-				correctUpgradePending = true
-			} else {
-				return fmt.Errorf("a cluster upgrade is already in progress")
-			}
-		case cmv1.UpgradePolicyStateValuePending, cmv1.UpgradePolicyStateValueScheduled:
-			if desiredVersion.Equal(toVersion) && upgrade.NextRun().Before(tenMinFromNow) {
-				correctUpgradePending = true
-			} else {
-				// The upgrade is not one we want, so cancel it
-				if err := upgrade.Delete(ctx, r.clusterCollection); err != nil {
-					return fmt.Errorf("failed to delete upgrade policy: %v", err)
-				}
-			}
-		}
+	correctUpgradePending, err := checkAndCancelUpgrades(ctx, r.clusterCollection, upgrades, desiredVersion)
+	if err != nil {
+		return err
 	}
 
 	if !correctUpgradePending {
@@ -1391,6 +1369,7 @@ func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context,
 		// some other method and re-run the apply.
 
 		// Schedule an upgrade
+		tenMinFromNow := time.Now().UTC().Add(10 * time.Minute)
 		newPolicy, err := cmv1.NewUpgradePolicy().
 			ScheduleType("manual").
 			Version(desiredVersion.String()).

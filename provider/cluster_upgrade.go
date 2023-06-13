@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"time"
 
+	semver "github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift/rosa/pkg/ocm"
 )
@@ -52,7 +54,7 @@ func (cu *clusterUpgrade) Delete(ctx context.Context, client *cmv1.ClustersClien
 
 // Get the available upgrade versions that are reachable from a given starting
 // version
-func getAvailableUpgrades(ctx context.Context, client *cmv1.VersionsClient, fromVersionId string) ([]*cmv1.Version, error) {
+func getAvailableUpgradeVersions(ctx context.Context, client *cmv1.VersionsClient, fromVersionId string) ([]*cmv1.Version, error) {
 	// Retrieve info about the current version
 	resp, err := client.Version(fromVersionId).Get().SendContext(ctx)
 	if err != nil {
@@ -61,7 +63,7 @@ func getAvailableUpgrades(ctx context.Context, client *cmv1.VersionsClient, from
 	version := resp.Body()
 
 	// Cycle through the available upgrades and find the ones that are ROSA enabled
-	availableUpgrades := []*cmv1.Version{}
+	availableUpgradeVersions := []*cmv1.Version{}
 	for _, v := range version.AvailableUpgrades() {
 		id := ocm.CreateVersionID(v, version.ChannelGroup())
 		resp, err := client.Version(id).
@@ -72,11 +74,11 @@ func getAvailableUpgrades(ctx context.Context, client *cmv1.VersionsClient, from
 		}
 		availableVersion := resp.Body()
 		if availableVersion.ROSAEnabled() {
-			availableUpgrades = append(availableUpgrades, availableVersion)
+			availableUpgradeVersions = append(availableUpgradeVersions, availableVersion)
 		}
 	}
 
-	return availableUpgrades, nil
+	return availableUpgradeVersions, nil
 }
 
 // Get the list of upgrade policies associated with a cluster
@@ -123,4 +125,38 @@ func getScheduledUpgrades(ctx context.Context, client *cmv1.ClustersClient, clus
 	}
 
 	return upgrades, nil
+}
+
+// Check the provided list of upgrades, canceling pending upgrades that are not
+// for the correct version, and returning an error if there is already an
+// upgrade in progress that is not for the desired version
+func checkAndCancelUpgrades(ctx context.Context, client *cmv1.ClustersClient, upgrades []clusterUpgrade, desiredVersion *semver.Version) (bool, error) {
+	correctUpgradePending := false
+	tenMinFromNow := time.Now().UTC().Add(10 * time.Minute)
+
+	for _, upgrade := range upgrades {
+		tflog.Debug(ctx, "Found existing upgrade policy to %s in state %s", upgrade.Version(), upgrade.State())
+		toVersion, err := semver.NewVersion(upgrade.Version())
+		if err != nil {
+			return false, fmt.Errorf("failed to parse upgrade version: %v", err)
+		}
+		switch upgrade.State() {
+		case cmv1.UpgradePolicyStateValueDelayed, cmv1.UpgradePolicyStateValueStarted:
+			if desiredVersion.Equal(toVersion) {
+				correctUpgradePending = true
+			} else {
+				return false, fmt.Errorf("a cluster upgrade is already in progress")
+			}
+		case cmv1.UpgradePolicyStateValuePending, cmv1.UpgradePolicyStateValueScheduled:
+			if desiredVersion.Equal(toVersion) && upgrade.NextRun().Before(tenMinFromNow) {
+				correctUpgradePending = true
+			} else {
+				// The upgrade is not one we want, so cancel it
+				if err := upgrade.Delete(ctx, client); err != nil {
+					return false, fmt.Errorf("failed to delete upgrade policy: %v", err)
+				}
+			}
+		}
+	}
+	return correctUpgradePending, nil
 }

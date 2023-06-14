@@ -56,7 +56,7 @@ resource "ocm_rosa_oidc_config" "oidc_config" {
   managed = false
   secret_arn =  module.oidc_config_input_resources.secret_arn
   issuer_url = ocm_rosa_oidc_config_input.oidc_input.issuer_url
-  installer_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Installer-Role"
+  installer_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${var.account_role_path}${var.account_role_prefix}-Installer-Role"
 }
 
 data "ocm_rosa_operator_roles" "operator_roles" {
@@ -79,11 +79,11 @@ module operator_roles_and_oidc_provider {
 
 locals {
   sts_roles = {
-    role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Installer-Role",
-    support_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Support-Role",
+    role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${var.account_role_path}${var.account_role_prefix}-Installer-Role",
+    support_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${var.account_role_path}${var.account_role_prefix}-Support-Role",
     instance_iam_roles = {
-      master_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-ControlPlane-Role",
-      worker_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Worker-Role"
+      master_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${var.account_role_path}${var.account_role_prefix}-ControlPlane-Role",
+      worker_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${var.account_role_path}${var.account_role_prefix}-Worker-Role"
     },
     operator_role_prefix = var.operator_role_prefix,
     oidc_config_id = ocm_rosa_oidc_config.oidc_config.id
@@ -100,12 +100,17 @@ resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
   cloud_region       = var.aws_region
   aws_account_id     = data.aws_caller_identity.current.account_id
   availability_zones = var.aws_availability_zones
+  autoscaling_enabled = true
   properties = {
     rosa_creator_arn = data.aws_caller_identity.current.arn
   }
   sts                = local.sts_roles
-  replicas           = var.replicas
+  min_replicas = "3"
+  max_replicas           = var.replicas
   destroy_timeout    = 120
+  default_mp_labels  = {fo1="bar", fo2="baz", fo3=""}
+  aws_subnet_ids = var.aws_subnets
+  aws_private_link = true
 }
 
 resource "ocm_cluster_wait" "rosa_cluster" {

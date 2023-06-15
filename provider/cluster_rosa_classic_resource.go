@@ -22,7 +22,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/openshift/rosa/pkg/helper"
 	"net/http"
 	"net/url"
 	"os"
@@ -30,6 +29,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/openshift/rosa/pkg/helper"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
@@ -237,6 +238,19 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				PlanModifiers: []tfsdk.AttributePlanModifier{
 					tfsdk.RequiresReplace(),
 				},
+			},
+			"compute_root_volume": {
+				Description: "Compute node root volume capabilities.",
+				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+					// Later on an IOPS attribute can be added
+					"size": {
+						Description: "root volume size in GiB",
+						Type:        types.Int64Type,
+						Optional:    true,
+						Validators:  rootVolumeValidators(),
+					},
+				}),
+				Optional: true,
 			},
 			"default_mp_labels": {
 				Description: "Labels for the default machine pool. Format should be a comma-separated list of '{\"key1\"=\"value1\", \"key2\"=\"value2\"}'. " +
@@ -524,6 +538,12 @@ func createClassicClusterObject(ctx context.Context,
 		if !autoscaling.Empty() {
 			nodes.AutoscaleCompute(autoscaling)
 		}
+	}
+
+	if state.ComputeRootVolume != nil && !state.ComputeRootVolume.Size.Null && !state.ComputeRootVolume.Size.Unknown && state.ComputeRootVolume.Size.Value > 0 {
+		nodes.ComputeRootVolume(cmv1.NewRootVolume().
+			AWS(cmv1.NewAWSVolume().
+				Size(int(state.ComputeRootVolume.Size.Value))))
 	}
 
 	if !nodes.Empty() {
@@ -973,6 +993,7 @@ func (r *ClusterRosaClassicResource) getVersions(logger logging.Logger, ctx cont
 	return
 }
 
+// TODO:
 func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse) {
 	// Get the plan:
@@ -1691,6 +1712,26 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 			Null: true,
 		}
 	}
+
+	computeRootVolume, ok := object.Nodes().GetComputeRootVolume()
+	if ok {
+		state.ComputeRootVolume = new(RootVolume)
+		aws, ok := computeRootVolume.GetAWS()
+		if ok {
+			size, ok := aws.GetSize()
+			if ok {
+				state.ComputeRootVolume.Size = types.Int64{
+					Value: int64(size),
+				}
+			}
+		}
+	} else {
+		state.ComputeRootVolume = new(RootVolume)
+		state.ComputeRootVolume.Size = types.Int64{
+			Null: true,
+		}
+	}
+
 	state.State = types.String{
 		Value: string(object.State()),
 	}
@@ -1837,6 +1878,35 @@ func proxyValidators() []tfsdk.AttributeValidator {
 
 				if httpProxy == "" && httpsProxy == "" && additionalTrustBundle == "" {
 					resp.Diagnostics.AddError(errSum, "Expected at least one of the following: http-proxy, https-proxy, additional-trust-bundle")
+					return
+				}
+			},
+		},
+	}
+}
+
+func rootVolumeValidators() []tfsdk.AttributeValidator {
+	return []tfsdk.AttributeValidator{
+		&common.AttributeValidator{
+			Desc: "Validate root volume attributes",
+			Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse) {
+				state := new(RootVolume)
+				diag := req.Config.GetAttribute(ctx, req.AttributePath, state)
+				if diag.HasError() {
+					// No attribute to validate
+					return
+				}
+				errSum := "Invalid root volume's attribute assignment"
+				var rootVolumeSize int64
+
+				if state != nil && !state.Size.Unknown && state.Size.Value > 0 {
+					rootVolumeSize = state.Size.Value
+				}
+
+				// Validate provided size
+				// TODO: do better
+				if rootVolumeSize < 0 {
+					resp.Diagnostics.AddError(errSum, "Expected root volume size to be greater than 0")
 					return
 				}
 			},

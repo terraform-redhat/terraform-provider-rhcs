@@ -40,3 +40,9 @@ type Taints struct {
 	Value        types.String `tfsdk:"value"`
 	ScheduleType types.String `tfsdk:"schedule_type"`
 }
+
+// RootVolume represents the root volume of a machine.
+type RootVolume struct {
+	// Size int64 // size in GiB
+	Size types.Int64 // size in GiB
+}

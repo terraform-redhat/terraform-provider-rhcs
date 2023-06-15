@@ -144,6 +144,23 @@ func (t *MachinePoolResourceType) GetSchema(ctx context.Context) (result tfsdk.S
 				},
 				Optional: true,
 			},
+			"root_volume": {
+				Description: "Root volume capabilities.",
+				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+					// Later on an IOPS attribute can be added
+					"size": {
+						Description: "volume size in GiB",
+						Type:        types.Int64Type,
+						Optional:    true,
+					},
+				}),
+				Optional: true,
+				// TODO: fix the logger
+				// PlanModifiers: []tfsdk.AttributePlanModifier{
+				// 	ValueCannotBeChangedModifier(t.logger),
+				// },
+				Validators: rootVolumeValidators(),
+			},
 		},
 	}
 	return
@@ -266,6 +283,13 @@ func (r *MachinePoolResource) Create(ctx context.Context,
 		}
 		builder.Labels(labels)
 	}
+
+	// pick AWS directly since this is ROSA
+	// rootDiskObject := listItem.RootVolume().AWS()
+	// rootVolumeValue := rootDiskObject.Size()
+	// if rootVolumeValue != 0 {
+	// 	ms.RootVolume = &RootVolume{Size: int64(rootVolumeValue)}
+	// }
 
 	object, err := builder.Build()
 	if err != nil {

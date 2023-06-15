@@ -26,53 +26,23 @@ import (
 )
 
 var _ = Describe("Identity provider creation", func() {
-	BeforeEach(func() {
-		// The first thing that the provider will do for any operation on identity providers
-		// is check that the cluster is ready, so we always need to prepare the server to
-		// respond to that:
-		server.AppendHandlers(
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-				RespondWithJSON(http.StatusOK, `{
+
+	Context("Idebtity Provider Failure", func() {
+		It("cluster_id not found", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusNotFound, `{
 				  "id": "123",
 				  "name": "my-cluster",
 				  "state": "ready"
 				}`),
-			),
-		)
-	})
-
-	It("Can create a 'htpasswd' identity provider", func() {
-		// Prepare the server:
-		server.AppendHandlers(
-			CombineHandlers(
-				VerifyRequest(
-					http.MethodPost,
-					"/api/clusters_mgmt/v1/clusters/123/identity_providers",
 				),
-				VerifyJSON(`{
-				  "kind": "IdentityProvider",
-				  "type": "HTPasswdIdentityProvider",
-                  "mapping_method": "claim",
-				  "name": "my-ip",
-				  "htpasswd": {
-				    "password": "my-password",
-				    "username": "my-user"
-				  }
-				}`),
-				RespondWithJSON(http.StatusOK, `{
-				  "id": "456",
-				  "name": "my-ip",
-                  "mapping_method": "claim",
-				  "htpasswd": {
-				    "user": "my-user"
-				  }
-				}`),
-			),
-		)
+			)
 
-		// Run the apply command:
-		terraform.Source(`
+			// Run the apply command:
+			terraform.Source(`
 		  resource "ocm_identity_provider" "my_ip" {
 		    cluster = "123"
 		    name    = "my-ip"
@@ -82,18 +52,87 @@ var _ = Describe("Identity provider creation", func() {
 		    }
 		  }
 		`)
-		Expect(terraform.Apply()).To(BeZero())
+			Expect(terraform.Apply()).Should(BeNumerically("==", 1))
+		})
 	})
 
-	It("Can create a 'gitlab' identity provider", func() {
-		// Prepare the server:
-		server.AppendHandlers(
-			CombineHandlers(
-				VerifyRequest(
-					http.MethodPost,
-					"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+	Context("Idebtity Provider Success", func() {
+		BeforeEach(func() {
+			// The first thing that the provider will do for any operation on identity providers
+			// is check that the cluster is ready, so we always need to prepare the server to
+			// respond to that:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, `{
+				  "id": "123",
+				  "name": "my-cluster",
+				  "state": "ready"
+				}`),
 				),
-				VerifyJSON(`{
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, `{
+				  "id": "123",
+				  "name": "my-cluster",
+				  "state": "ready"
+				}`),
+				),
+			)
+		})
+
+		It("Can create a 'htpasswd' identity provider", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+					),
+					VerifyJSON(`{
+				  "kind": "IdentityProvider",
+				  "type": "HTPasswdIdentityProvider",
+                  "mapping_method": "claim",
+				  "name": "my-ip",
+				  "htpasswd": {
+				    "password": "my-password",
+				    "username": "my-user"
+				  }
+				}`),
+					RespondWithJSON(http.StatusOK, `{
+				  "id": "456",
+				  "name": "my-ip",
+                  "mapping_method": "claim",
+				  "htpasswd": {
+				    "user": "my-user"
+				  }
+				}`),
+				),
+			)
+
+			// Run the apply command:
+			terraform.Source(`
+		  resource "ocm_identity_provider" "my_ip" {
+		    cluster = "123"
+		    name    = "my-ip"
+		    htpasswd = {
+		      username = "my-user"
+		      password = "my-password"
+		    }
+		  }
+		`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
+
+		It("Can create a 'gitlab' identity provider", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+					),
+					VerifyJSON(`{
 				  "kind": "IdentityProvider",
 				  "type": "GitlabIdentityProvider",
                   "mapping_method": "claim",
@@ -105,7 +144,7 @@ var _ = Describe("Identity provider creation", func() {
 				    "client_secret": "test-secret"
 				  }
 				}`),
-				RespondWithJSON(http.StatusOK, `{
+					RespondWithJSON(http.StatusOK, `{
 				  "id": "456",
 				  "name": "my-ip",
                   "mapping_method": "claim",
@@ -116,11 +155,11 @@ var _ = Describe("Identity provider creation", func() {
 				    "client_secret": "test-secret"
 				  }
 				}`),
-			),
-		)
+				),
+			)
 
-		// Run the apply command:
-		terraform.Source(`
+			// Run the apply command:
+			terraform.Source(`
 		  resource "ocm_identity_provider" "my_ip" {
 		    cluster = "123"
 		    name    = "my-ip"
@@ -132,13 +171,13 @@ var _ = Describe("Identity provider creation", func() {
 		    }
 		  }
 		`)
-		Expect(terraform.Apply()).To(BeZero())
-	})
+			Expect(terraform.Apply()).To(BeZero())
+		})
 
-	Context("Can create a 'github' identity provider", func() {
-		Context("Invalid 'github' identity provider config", func() {
-			It("Should fail with both 'teams' and 'organizations'", func() {
-				terraform.Source(`
+		Context("Can create a 'github' identity provider", func() {
+			Context("Invalid 'github' identity provider config", func() {
+				It("Should fail with both 'teams' and 'organizations'", func() {
+					terraform.Source(`
 		          resource "ocm_identity_provider" "my_ip" {
 		            cluster = "123"
 		            name    = "my-ip"
@@ -151,11 +190,11 @@ var _ = Describe("Identity provider creation", func() {
 		            }
 		          }
 		        `)
-				Expect(terraform.Apply()).ToNot(BeZero())
-			})
+					Expect(terraform.Apply()).ToNot(BeZero())
+				})
 
-			It("Should fail without 'teams' or 'organizations'", func() {
-				terraform.Source(`
+				It("Should fail without 'teams' or 'organizations'", func() {
+					terraform.Source(`
 		          resource "ocm_identity_provider" "my_ip" {
 		            cluster = "123"
 		            name    = "my-ip"
@@ -166,11 +205,11 @@ var _ = Describe("Identity provider creation", func() {
 		            }
 		          }
 		        `)
-				Expect(terraform.Apply()).ToNot(BeZero())
-			})
+					Expect(terraform.Apply()).ToNot(BeZero())
+				})
 
-			It("Should fail if teams contain an invalid format", func() {
-				terraform.Source(`
+				It("Should fail if teams contain an invalid format", func() {
+					terraform.Source(`
 		          resource "ocm_identity_provider" "my_ip" {
 		            cluster = "123"
 		            name    = "my-ip"
@@ -182,8 +221,8 @@ var _ = Describe("Identity provider creation", func() {
 		            }
 		          }
 		        `)
-				Expect(terraform.Apply()).ToNot(BeZero())
-				terraform.Source(`
+					Expect(terraform.Apply()).ToNot(BeZero())
+					terraform.Source(`
 		          resource "ocm_identity_provider" "my_ip" {
 		            cluster = "123"
 		            name    = "my-ip"
@@ -195,11 +234,11 @@ var _ = Describe("Identity provider creation", func() {
 		            }
 		          }
 		        `)
-				Expect(terraform.Apply()).ToNot(BeZero())
-			})
+					Expect(terraform.Apply()).ToNot(BeZero())
+				})
 
-			It("Should fail with an invalid hostname", func() {
-				terraform.Source(`
+				It("Should fail with an invalid hostname", func() {
+					terraform.Source(`
 		          resource "ocm_identity_provider" "my_ip" {
 		            cluster = "123"
 		            name    = "my-ip"
@@ -212,18 +251,18 @@ var _ = Describe("Identity provider creation", func() {
 		            }
 		          }
 		        `)
-				Expect(terraform.Apply()).ToNot(BeZero())
+					Expect(terraform.Apply()).ToNot(BeZero())
+				})
 			})
-		})
-		It("Happy flow with org restriction", func() {
-			// Prepare the server:
-			server.AppendHandlers(
-				CombineHandlers(
-					VerifyRequest(
-						http.MethodPost,
-						"/api/clusters_mgmt/v1/clusters/123/identity_providers",
-					),
-					VerifyJSON(`{
+			It("Happy flow with org restriction", func() {
+				// Prepare the server:
+				server.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(
+							http.MethodPost,
+							"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+						),
+						VerifyJSON(`{
 				      "kind": "IdentityProvider",
 				      "type": "GithubIdentityProvider",
                       "mapping_method": "claim",
@@ -235,7 +274,7 @@ var _ = Describe("Identity provider creation", func() {
                         "organizations": ["my-org"]
 				      }
 				    }`),
-					RespondWithJSON(http.StatusOK, `{
+						RespondWithJSON(http.StatusOK, `{
 				      "id": "456",
 				      "name": "my-ip",
                       "mapping_method": "claim",
@@ -247,11 +286,11 @@ var _ = Describe("Identity provider creation", func() {
                         "organizations": ["my-org"]
 				      }
 				    }`),
-				),
-			)
+					),
+				)
 
-			// Run the apply command:
-			terraform.Source(`
+				// Run the apply command:
+				terraform.Source(`
 		      resource "ocm_identity_provider" "my_ip" {
 		        cluster = "123"
 		        name    = "my-ip"
@@ -263,18 +302,18 @@ var _ = Describe("Identity provider creation", func() {
 		        }
 		      }
 		    `)
-			Expect(terraform.Apply()).To(BeZero())
-		})
+				Expect(terraform.Apply()).To(BeZero())
+			})
 
-		It("Happy flow with team restriction", func() {
-			// Prepare the server:
-			server.AppendHandlers(
-				CombineHandlers(
-					VerifyRequest(
-						http.MethodPost,
-						"/api/clusters_mgmt/v1/clusters/123/identity_providers",
-					),
-					VerifyJSON(`{
+			It("Happy flow with team restriction", func() {
+				// Prepare the server:
+				server.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(
+							http.MethodPost,
+							"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+						),
+						VerifyJSON(`{
 				      "kind": "IdentityProvider",
 				      "type": "GithubIdentityProvider",
                       "mapping_method": "claim",
@@ -286,7 +325,7 @@ var _ = Describe("Identity provider creation", func() {
                         "teams": ["valid/team"]
 				      }
 				    }`),
-					RespondWithJSON(http.StatusOK, `{
+						RespondWithJSON(http.StatusOK, `{
 				      "id": "456",
 				      "name": "my-ip",
                       "mapping_method": "claim",
@@ -298,11 +337,11 @@ var _ = Describe("Identity provider creation", func() {
                         "teams": ["valid/team"]
 				      }
 				    }`),
-				),
-			)
+					),
+				)
 
-			// Run the apply command:
-			terraform.Source(`
+				// Run the apply command:
+				terraform.Source(`
 		      resource "ocm_identity_provider" "my_ip" {
 		        cluster = "123"
 		        name    = "my-ip"
@@ -314,19 +353,19 @@ var _ = Describe("Identity provider creation", func() {
 		        }
 		      }
 		    `)
-			Expect(terraform.Apply()).To(BeZero())
+				Expect(terraform.Apply()).To(BeZero())
+			})
 		})
-	})
 
-	It("Can create an LDAP identity provider", func() {
-		// Prepare the server:
-		server.AppendHandlers(
-			CombineHandlers(
-				VerifyRequest(
-					http.MethodPost,
-					"/api/clusters_mgmt/v1/clusters/123/identity_providers",
-				),
-				VerifyJSON(`{
+		It("Can create an LDAP identity provider", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+					),
+					VerifyJSON(`{
 				  "kind": "IdentityProvider",
 				  "type": "LDAPIdentityProvider",
                   "mapping_method": "claim",
@@ -345,7 +384,7 @@ var _ = Describe("Identity provider creation", func() {
 				    }
 				  }
 				}`),
-				RespondWithJSON(http.StatusOK, `{
+					RespondWithJSON(http.StatusOK, `{
 				  "id": "456",
 				  "name": "my-ip",
                   "mapping_method": "claim",
@@ -363,11 +402,11 @@ var _ = Describe("Identity provider creation", func() {
 				    }
 				  }
 				}`),
-			),
-		)
+				),
+			)
 
-		// Run the apply command:
-		terraform.Source(`
+			// Run the apply command:
+			terraform.Source(`
 		  resource "ocm_identity_provider" "my_ip" {
 		    cluster    = "123"
 		    name       = "my-ip"
@@ -386,14 +425,14 @@ var _ = Describe("Identity provider creation", func() {
 		    }
 		  }
 		`)
-		Expect(terraform.Apply()).To(BeZero())
-	})
+			Expect(terraform.Apply()).To(BeZero())
+		})
 
-	Context("Google identity provider", func() {
-		Context("Invalid google config", func() {
-			It("Should fail with invalid hosted_domain", func() {
-				// Run the apply command:
-				terraform.Source(`
+		Context("Google identity provider", func() {
+			Context("Invalid google config", func() {
+				It("Should fail with invalid hosted_domain", func() {
+					// Run the apply command:
+					terraform.Source(`
 		          resource "ocm_identity_provider" "my_ip" {
 		            cluster = "123"
 		            name    = "my-ip"
@@ -404,12 +443,12 @@ var _ = Describe("Identity provider creation", func() {
 		            }
 		          }
 		        `)
-				Expect(terraform.Apply()).ToNot(BeZero())
-			})
+					Expect(terraform.Apply()).ToNot(BeZero())
+				})
 
-			It("Should fail when mapping_method is not lookup and no hosted_domain", func() {
-				// Run the apply command:
-				terraform.Source(`
+				It("Should fail when mapping_method is not lookup and no hosted_domain", func() {
+					// Run the apply command:
+					terraform.Source(`
 		          resource "ocm_identity_provider" "my_ip" {
 		            cluster = "123"
 		            name    = "my-ip"
@@ -419,21 +458,21 @@ var _ = Describe("Identity provider creation", func() {
 		            }
 		          }
 		        `)
-				Expect(terraform.Apply()).ToNot(BeZero())
+					Expect(terraform.Apply()).ToNot(BeZero())
+				})
+
 			})
 
-		})
-
-		Context("Happy flow", func() {
-			It("Should create provider", func() {
-				// Prepare the server:
-				server.AppendHandlers(
-					CombineHandlers(
-						VerifyRequest(
-							http.MethodPost,
-							"/api/clusters_mgmt/v1/clusters/123/identity_providers",
-						),
-						VerifyJSON(`{
+			Context("Happy flow", func() {
+				It("Should create provider", func() {
+					// Prepare the server:
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(
+								http.MethodPost,
+								"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+							),
+							VerifyJSON(`{
 			    	      "kind": "IdentityProvider",
 			    	      "type": "GoogleIdentityProvider",
                           "mapping_method": "claim",
@@ -444,7 +483,7 @@ var _ = Describe("Identity provider creation", func() {
                             "hosted_domain": "example.com"
 			    	      }
 			    	    }`),
-						RespondWithJSON(http.StatusOK, `{
+							RespondWithJSON(http.StatusOK, `{
 			    	      "id": "456",
 			    	      "name": "my-ip",
                           "mapping_method": "claim",
@@ -454,11 +493,11 @@ var _ = Describe("Identity provider creation", func() {
                             "hosted_domain": "example.com"
 			    	      }
 			    	    }`),
-					),
-				)
+						),
+					)
 
-				// Run the apply command:
-				terraform.Source(`
+					// Run the apply command:
+					terraform.Source(`
 		          resource "ocm_identity_provider" "my_ip" {
 		            cluster = "123"
 		            name    = "my-ip"
@@ -469,18 +508,18 @@ var _ = Describe("Identity provider creation", func() {
 		            }
 		          }
 		        `)
-				Expect(terraform.Apply()).To(BeZero())
-			})
+					Expect(terraform.Apply()).To(BeZero())
+				})
 
-			It("Should create provider without hosted_domain when mapping_method is set to 'lookup'", func() {
-				// Prepare the server:
-				server.AppendHandlers(
-					CombineHandlers(
-						VerifyRequest(
-							http.MethodPost,
-							"/api/clusters_mgmt/v1/clusters/123/identity_providers",
-						),
-						VerifyJSON(`{
+				It("Should create provider without hosted_domain when mapping_method is set to 'lookup'", func() {
+					// Prepare the server:
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(
+								http.MethodPost,
+								"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+							),
+							VerifyJSON(`{
 			    	      "kind": "IdentityProvider",
 			    	      "type": "GoogleIdentityProvider",
 			    	      "name": "my-ip",
@@ -490,7 +529,7 @@ var _ = Describe("Identity provider creation", func() {
 			    	        "client_secret": "test-secret"
 			    	      }
 			    	    }`),
-						RespondWithJSON(http.StatusOK, `{
+							RespondWithJSON(http.StatusOK, `{
 			    	      "id": "456",
 			    	      "name": "my-ip",
                           "mapping_method": "lookup",
@@ -499,11 +538,11 @@ var _ = Describe("Identity provider creation", func() {
 			    	        "client_secret": "test-secret"
 			    	      }
 			    	    }`),
-					),
-				)
+						),
+					)
 
-				// Run the apply command:
-				terraform.Source(`
+					// Run the apply command:
+					terraform.Source(`
 		          resource "ocm_identity_provider" "my_ip" {
 		            cluster = "123"
 		            name    = "my-ip"
@@ -514,20 +553,20 @@ var _ = Describe("Identity provider creation", func() {
 		            }
 		          }
 		        `)
-				Expect(terraform.Apply()).To(BeZero())
+					Expect(terraform.Apply()).To(BeZero())
+				})
 			})
 		})
-	})
 
-	It("Can create an OpenID identity provider", func() {
-		// Prepare the server:
-		server.AppendHandlers(
-			CombineHandlers(
-				VerifyRequest(
-					http.MethodPost,
-					"/api/clusters_mgmt/v1/clusters/123/identity_providers",
-				),
-				VerifyJSON(`{
+		It("Can create an OpenID identity provider", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+					),
+					VerifyJSON(`{
 				  "kind": "IdentityProvider",
 				  "type": "OpenIDIdentityProvider",
                   "mapping_method": "claim",
@@ -559,7 +598,7 @@ var _ = Describe("Identity provider creation", func() {
 					"issuer": "https://test.okta.com"
 					}
 				}`),
-				RespondWithJSON(http.StatusOK, `{
+					RespondWithJSON(http.StatusOK, `{
 					"kind": "IdentityProvider",
 					"type": "OpenIDIdentityProvider",
 					"href": "/api/clusters_mgmt/v1/clusters/123/identity_providers/456",
@@ -591,11 +630,11 @@ var _ = Describe("Identity provider creation", func() {
 						"issuer": "https://test.okta.com"
 					}
 				}`),
-			),
-		)
+				),
+			)
 
-		// Run the apply command:
-		terraform.Source(`
+			// Run the apply command:
+			terraform.Source(`
 		  resource "ocm_identity_provider" "my_ip" {
 		    cluster    				= "123"
 		    name       				= "my-ip"
@@ -614,12 +653,12 @@ var _ = Describe("Identity provider creation", func() {
 		    }
 		  }
 		`)
-		Expect(terraform.Apply()).To(BeZero())
-	})
+			Expect(terraform.Apply()).To(BeZero())
+		})
 
-	It("Should fail with invalid mapping_method", func() {
-		// Run the apply command:
-		terraform.Source(`
+		It("Should fail with invalid mapping_method", func() {
+			// Run the apply command:
+			terraform.Source(`
 		  resource "ocm_identity_provider" "my_ip" {
 		    cluster = "123"
 		    name    = "my-ip"
@@ -630,6 +669,7 @@ var _ = Describe("Identity provider creation", func() {
 		    }
 		  }
 		`)
-		Expect(terraform.Apply()).ToNot(BeZero())
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
 	})
 })

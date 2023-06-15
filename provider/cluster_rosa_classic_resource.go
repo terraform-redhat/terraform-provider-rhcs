@@ -1313,7 +1313,11 @@ func (r *ClusterRosaClassicResource***REMOVED*** upgradeClusterIfNeeded(ctx cont
 	}
 
 	// Make sure the desired version is available
-	availableVersions, err := upgrade.GetAvailableUpgradeVersions(ctx, r.versionCollection, state.CurrentVersion.Value***REMOVED***
+	versionId := state.CurrentVersion.Value
+	if !state.ChannelGroup.Unknown && !state.ChannelGroup.Null && state.ChannelGroup.Value != ocm.DefaultChannelGroup {
+		versionId += "-" + state.ChannelGroup.Value
+	}
+	availableVersions, err := upgrade.GetAvailableUpgradeVersions(ctx, r.versionCollection, versionId***REMOVED***
 	if err != nil {
 		return fmt.Errorf("failed to get available upgrades: %v", err***REMOVED***
 	}

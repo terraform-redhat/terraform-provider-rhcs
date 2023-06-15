@@ -241,7 +241,7 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
 			Expect(err).To(BeNil())
 
-			populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)
+			Expect(populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)).To(Succeed())
 
 			Expect(clusterState.ID.Value).To(Equal(clusterId))
 			Expect(clusterState.CloudRegion.Value).To(Equal(regionId))

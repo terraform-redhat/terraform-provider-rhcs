@@ -17,6 +17,7 @@ limitations under the License.
 package provider
 
 import (
+	"encoding/json"
 	"net/http"
 
 	. "github.com/onsi/ginkgo/v2/dsl/core"             // nolint
@@ -26,7 +27,27 @@ import (
 	"github.com/terraform-redhat/terraform-provider-ocm/build"
 )
 
-var _ = Describe("Cluster creation", func() {
+const versionListPage1 = `{
+	"kind": "VersionList",
+	"page": 1,
+	"size": 2,
+	"total": 2,
+	"items": [{
+			"kind": "Version",
+			"id": "openshift-v4.10.1",
+			"href": "/api/clusters_mgmt/v1/versions/openshift-v4.10.1",
+			"raw_id": "4.10.1"
+		},
+		{
+			"kind": "Version",
+			"id": "openshift-v4.10.1",
+			"href": "/api/clusters_mgmt/v1/versions/openshift-v4.11.1",
+			"raw_id": "4.11.1"
+		}
+	]
+}`
+
+var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 	// This is the cluster that will be returned by the server when asked to create or retrieve
 	// a cluster.
 	template := `{
@@ -82,26 +103,6 @@ var _ = Describe("Cluster creation", func() {
 	  }
 	}`
 
-	const versionListPage1 = `{
-	"kind": "VersionList",
-	"page": 1,
-	"size": 2,
-	"total": 2,
-	"items": [{
-			"kind": "Version",
-			"id": "openshift-v4.10.1",
-			"href": "/api/clusters_mgmt/v1/versions/openshift-v4.10.1",
-			"raw_id": "4.10.1"
-		},
-		{
-			"kind": "Version",
-			"id": "openshift-v4.10.1",
-			"href": "/api/clusters_mgmt/v1/versions/openshift-v4.11.1",
-			"raw_id": "4.11.1"
-		}
-	]
-}`
-
 	Context("Test channel groups", func() {
 		It("doesn't append the channel group when on the default channel", func() {
 			server.AppendHandlers(
@@ -118,7 +119,7 @@ var _ = Describe("Cluster creation", func() {
 						  "path": "/aws",
 						  "value": {
 							  "sts" : {
-								  "oidc_endpoint_url": "https://oidc_endpoint_url",
+								  "oidc_endpoint_url": "https://127.0.0.2",
 								  "thumbprint": "111111",
 								  "role_arn": "",
 								  "support_role_arn": "",
@@ -195,7 +196,7 @@ var _ = Describe("Cluster creation", func() {
 						  "path": "/aws",
 						  "value": {
 							  "sts" : {
-								  "oidc_endpoint_url": "https://oidc_endpoint_url",
+								  "oidc_endpoint_url": "https://127.0.0.2",
 								  "thumbprint": "111111",
 								  "role_arn": "",
 								  "support_role_arn": "",
@@ -312,7 +313,7 @@ var _ = Describe("Cluster creation", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -340,7 +341,7 @@ var _ = Describe("Cluster creation", func() {
 		// Run the apply command:
 		terraform.Source(`
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"	
+		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			sts = {
@@ -355,6 +356,8 @@ var _ = Describe("Cluster creation", func() {
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
+		resource := terraform.Resource("ocm_cluster_rosa_classic", "my_cluster")
+		Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
 	})
 	It("Creates basic cluster with properties", func() {
 		prop_key := "my_prop_key"
@@ -380,7 +383,7 @@ var _ = Describe("Cluster creation", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -415,9 +418,9 @@ var _ = Describe("Cluster creation", func() {
 		// Run the apply command:
 		terraform.Source(`
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"	
+		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123" 
+			aws_account_id = "123"
             properties = { ` +
 			prop_key + ` = "` + prop_val + `"` +
 			`}
@@ -455,7 +458,7 @@ var _ = Describe("Cluster creation", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -482,10 +485,10 @@ var _ = Describe("Cluster creation", func() {
 		// Run the apply command:
 		terraform.Source(`
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"	
+		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123" 
-			properties = { 
+			aws_account_id = "123"
+			properties = {
    				rosa_tf_version = "bob"
 			}
 			sts = {
@@ -527,7 +530,7 @@ var _ = Describe("Cluster creation", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -564,7 +567,7 @@ var _ = Describe("Cluster creation", func() {
 		It("Disable waiting in destroy resource", func() {
 			terraform.Source(`
 				  resource "ocm_cluster_rosa_classic" "my_cluster" {
-					name           = "my-cluster"	
+					name           = "my-cluster"
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
 					disable_waiting_in_destroy = true
@@ -595,7 +598,7 @@ var _ = Describe("Cluster creation", func() {
 			)
 			terraform.Source(`
 				  resource "ocm_cluster_rosa_classic" "my_cluster" {
-					name           = "my-cluster"	
+					name           = "my-cluster"
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
 					sts = {
@@ -624,7 +627,7 @@ var _ = Describe("Cluster creation", func() {
 			)
 			terraform.Source(`
 				  resource "ocm_cluster_rosa_classic" "my_cluster" {
-					name           = "my-cluster"	
+					name           = "my-cluster"
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
 					destroy_timeout = -1
@@ -654,7 +657,7 @@ var _ = Describe("Cluster creation", func() {
 			)
 			terraform.Source(`
 				  resource "ocm_cluster_rosa_classic" "my_cluster" {
-					name           = "my-cluster"	
+					name           = "my-cluster"
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
 					destroy_timeout = 10
@@ -696,7 +699,7 @@ var _ = Describe("Cluster creation", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -729,7 +732,7 @@ var _ = Describe("Cluster creation", func() {
 		)
 		terraform.Source(`
 				  resource "ocm_cluster_rosa_classic" "my_cluster" {
-					name           = "my-cluster"	
+					name           = "my-cluster"
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
 					disable_workload_monitoring = true
@@ -759,7 +762,7 @@ var _ = Describe("Cluster creation", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -797,7 +800,7 @@ var _ = Describe("Cluster creation", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -831,7 +834,7 @@ var _ = Describe("Cluster creation", func() {
 
 		terraform.Source(`
 				  resource "ocm_cluster_rosa_classic" "my_cluster" {
-					name           = "my-cluster"	
+					name           = "my-cluster"
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
 					disable_workload_monitoring = false
@@ -875,7 +878,7 @@ var _ = Describe("Cluster creation", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -890,7 +893,7 @@ var _ = Describe("Cluster creation", func() {
 					{
 					  "op": "add",
 					  "path": "/proxy",
-					  "value": {						  
+					  "value": {
 						  "http_proxy" : "http://proxy.com",
 						  "https_proxy" : "https://proxy.com"
 					  }
@@ -918,7 +921,7 @@ var _ = Describe("Cluster creation", func() {
 		// Run the apply command:
 		terraform.Source(`
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"	
+		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			proxy = {
@@ -951,7 +954,7 @@ var _ = Describe("Cluster creation", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -966,7 +969,7 @@ var _ = Describe("Cluster creation", func() {
 					{
 					  "op": "add",
 					  "path": "/proxy",
-					  "value": {						  
+					  "value": {
 						  "http_proxy" : "http://proxy.com",
 						  "https_proxy" : "https://proxy.com"
 					  }
@@ -1000,7 +1003,7 @@ var _ = Describe("Cluster creation", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1015,7 +1018,7 @@ var _ = Describe("Cluster creation", func() {
 					{
 					  "op": "add",
 					  "path": "/proxy",
-					  "value": {						  
+					  "value": {
 						  "https_proxy" : "https://proxy2.com",
 						  "no_proxy" : "test"
 					  }
@@ -1043,7 +1046,7 @@ var _ = Describe("Cluster creation", func() {
 		// update the attribute "proxy"
 		terraform.Source(`
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"	
+		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			proxy = {
@@ -1089,7 +1092,7 @@ var _ = Describe("Cluster creation", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1116,7 +1119,7 @@ var _ = Describe("Cluster creation", func() {
 		// Run the apply command:
 		terraform.Source(`
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"	
+		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
             default_mp_labels = {
@@ -1147,7 +1150,7 @@ var _ = Describe("Cluster creation", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1179,7 +1182,7 @@ var _ = Describe("Cluster creation", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1206,7 +1209,7 @@ var _ = Describe("Cluster creation", func() {
 		// update the attribute "proxy"
 		terraform.Source(`
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"	
+		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
             default_mp_labels = {
@@ -1232,7 +1235,7 @@ var _ = Describe("Cluster creation", func() {
 		// Expected at least one of the following: http-proxy, https-proxy
 		terraform.Source(`
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"	
+		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			proxy = {
@@ -1255,7 +1258,7 @@ var _ = Describe("Cluster creation", func() {
 		// Expected at least one of the following: http-proxy, https-proxy, additional-trust-bundle
 		terraform.Source(`
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"	
+		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			proxy = {
@@ -1297,9 +1300,9 @@ var _ = Describe("Cluster creation", func() {
 					  "path": "/aws",
 					  "value": {
 						  "private_link": true,
-						  "subnet_ids": ["id1", "id2", "id3"],	
+						  "subnet_ids": ["id1", "id2", "id3"],
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1376,7 +1379,7 @@ var _ = Describe("Cluster creation", func() {
 					  "value": {
 						  "private_link": false,
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1404,7 +1407,7 @@ var _ = Describe("Cluster creation", func() {
 		// Run the apply command:
 		terraform.Source(`
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"	
+		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			aws_private_link = false
@@ -1451,7 +1454,7 @@ var _ = Describe("Cluster creation", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1487,14 +1490,14 @@ var _ = Describe("Cluster creation", func() {
 		// Run the apply command:
 		terraform.Source(`
 		resource "ocm_cluster_rosa_classic" "my_cluster" {
-			name           = "my-cluster"	
+			name           = "my-cluster"
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			autoscaling_enabled = "true"
 			min_replicas = "2"
 			max_replicas = "4"
 			default_mp_labels = {
-				"label_key1" = "label_value1", 
+				"label_key1" = "label_value1",
 				"label_key2" = "label_value2"
 			}
 			sts = {
@@ -1521,7 +1524,7 @@ var _ = Describe("Cluster creation", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
 							  "support_role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
@@ -1563,7 +1566,7 @@ var _ = Describe("Cluster creation", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
 							  "support_role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
@@ -1598,14 +1601,14 @@ var _ = Describe("Cluster creation", func() {
 		// Run the apply command:
 		terraform.Source(`
 		resource "ocm_cluster_rosa_classic" "my_cluster" {
-			name           = "my-cluster"	
+			name           = "my-cluster"
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			autoscaling_enabled = "true"
 			min_replicas = "3"
 			max_replicas = "4"
 			default_mp_labels = {
-				"label_key1" = "label_value1", 
+				"label_key1" = "label_value1",
 				"label_key2" = "label_value2"
 			}
 			sts = {
@@ -1632,7 +1635,7 @@ var _ = Describe("Cluster creation", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
 							  "support_role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
@@ -1672,7 +1675,7 @@ var _ = Describe("Cluster creation", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
 							  "support_role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
@@ -1704,12 +1707,12 @@ var _ = Describe("Cluster creation", func() {
 		// Run the apply command:
 		terraform.Source(`
 		resource "ocm_cluster_rosa_classic" "my_cluster" {
-			name           = "my-cluster"	
+			name           = "my-cluster"
 			cloud_region   = "us-west-1"
-			aws_account_id = "123" 
+			aws_account_id = "123"
 			replicas = 4
 			default_mp_labels = {
-				"label_key1" = "label_value1", 
+				"label_key1" = "label_value1",
 				"label_key2" = "label_value2"
 			}
 			sts = {
@@ -1751,11 +1754,11 @@ var _ = Describe("Cluster creation", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "oidc_config": {
 								"id": "aaa",
 								"secret_arn": "aaa",
-								"issuer_url": "https://oidc_endpoint_url",
+								"issuer_url": "https://127.0.0.2",
 								"reusable": true,
 								"managed": false
 							  },
@@ -1823,7 +1826,7 @@ var _ = Describe("Cluster creation", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "arn:aws:iam::765374464689:role/terr-account-Installer-Role",
 							  "support_role_arn": "",
@@ -1887,7 +1890,7 @@ var _ = Describe("Cluster creation", func() {
 					  "value": {
                           "ec2_metadata_http_tokens" : "required",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1950,7 +1953,7 @@ var _ = Describe("Cluster creation", func() {
 					  "value": {
                           "ec2_metadata_http_tokens" : "required",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -2015,7 +2018,7 @@ var _ = Describe("Cluster creation", func() {
 					  "value": {
                           "ec2_metadata_http_tokens" : "bad_string",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://oidc_endpoint_url",
+							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -2061,5 +2064,449 @@ var _ = Describe("Cluster creation", func() {
 		`)
 		// expect to get an error
 		Expect(terraform.Apply()).ToNot(BeZero())
+	})
+})
+
+var _ = Describe("ocm_cluster_rosa_classic - upgrade", func() {
+	const template = `{
+		"id": "123",
+		"name": "my-cluster",
+		"region": {
+		  "id": "us-west-1"
+		},
+		"aws": {
+			"sts": {
+				"oidc_endpoint_url": "https://127.0.0.2",
+				"thumbprint": "111111",
+				"role_arn": "",
+				"support_role_arn": "",
+				"instance_iam_roles" : {
+					"master_role_arn" : "",
+					"worker_role_arn" : ""
+				},
+				"operator_role_prefix" : "test"
+			}
+		},
+		"multi_az": true,
+		"api": {
+		  "url": "https://my-api.example.com"
+		},
+		"console": {
+		  "url": "https://my-console.example.com"
+		},
+		"network": {
+		  "machine_cidr": "10.0.0.0/16",
+		  "service_cidr": "172.30.0.0/16",
+		  "pod_cidr": "10.128.0.0/14",
+		  "host_prefix": 23
+		},
+		"nodes": {
+			"compute": 3,
+			"compute_machine_type": {
+				"id": "r5.xlarge"
+			}
+		},
+		"version": {
+			"id": "openshift-v4.8.0"
+		}
+	}`
+	const v4_8_0Info = `{
+		"kind": "Version",
+		"id": "openshift-v4.8.0",
+		"href": "/api/clusters_mgmt/v1/versions/openshift-v4.8.0",
+		"raw_id": "4.8.0",
+		"enabled": true,
+		"default": false,
+		"channel_group": "stable",
+		"available_upgrades": [
+			"4.10.1"
+		],
+		"rosa_enabled": true
+	}`
+	const v4_10_1Info = `{
+		"kind": "Version",
+		"id": "openshift-v4.10.1",
+		"href": "/api/clusters_mgmt/v1/versions/openshift-v4.10.1",
+		"raw_id": "4.10.1",
+		"enabled": true,
+		"default": false,
+		"channel_group": "stable",
+		"available_upgrades": [],
+		"rosa_enabled": true
+	}`
+	const operIAMList = `{
+		"kind": "OperatorIAMRoleList",
+		"href": "/api/clusters_mgmt/v1/123/sts_operator_roles",
+		"page": 1,
+		"size": 6,
+		"total": 6,
+		"items": [
+		  {
+			"id": "",
+			"name": "ebs-cloud-credentials",
+			"role_arn": ""
+		  },
+		  {
+			"id": "",
+			"role_arn": ""
+		  },
+		  {
+			"id": "",
+			"name": "aws-cloud-credentials",
+			"role_arn": ""
+		  },
+		  {
+			"id": "",
+			"name": "cloud-credential-operator-iam-ro-creds",
+			"role_arn": ""
+		  },
+		  {
+			"id": "",
+			"name": "installer-cloud-credentials",
+			"role_arn": ""
+		  },
+		  {
+			"id": "",
+			"name": "cloud-credentials",
+			"role_arn": ""
+		  }
+		]
+	}`
+	const upgradePoliciesEmpty = `{
+		"kind": "UpgradePolicyList",
+		"page": 1,
+		"size": 0,
+		"total": 0,
+		"items": []
+	}`
+	BeforeEach(func() {
+		Expect(json.Valid([]byte(template))).To(BeTrue())
+		Expect(json.Valid([]byte(v4_8_0Info))).To(BeTrue())
+
+		// Create a cluster for us to upgrade:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+				RespondWithJSON(http.StatusOK, versionListPage1),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+				RespondWithJSON(http.StatusCreated, template),
+			),
+		)
+		terraform.Source(`
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+			name           = "my-cluster"
+			cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+				},
+				"operator_iam_roles": [
+					{
+					  "id": "",
+					  "name": "ebs-cloud-credentials",
+					  "namespace": "openshift-cluster-csi-drivers",
+					  "role_arn": "",
+					  "service_account": ""
+					},
+					{
+					  "id": "",
+					  "name": "cloud-credentials",
+					  "namespace": "openshift-cloud-network-config-controller",
+					  "role_arn": "",
+					  "service_account": ""
+					},
+					{
+					  "id": "",
+					  "name": "aws-cloud-credentials",
+					  "namespace": "openshift-machine-api",
+					  "role_arn": "",
+					  "service_account": ""
+					},
+					{
+					  "id": "",
+					  "name": "cloud-credential-operator-iam-ro-creds",
+					  "namespace": "openshift-cloud-credential-operator",
+					  "role_arn": "",
+					  "service_account": ""
+					},
+					{
+					  "id": "",
+					  "name": "installer-cloud-credentials",
+					  "namespace": "openshift-image-registry",
+					  "role_arn": "",
+					  "service_account": ""
+					},
+					{
+					  "id": "",
+					  "name": "cloud-credentials",
+					  "namespace": "openshift-ingress-operator",
+					  "role_arn": "",
+					  "service_account": ""
+					}
+				]
+			}
+		}
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		// Verify initial cluster version
+		resource := terraform.Resource("ocm_cluster_rosa_classic", "my_cluster")
+		Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-v4.8.0"))
+	})
+
+	It("Upgrades cluster", func() {
+		server.AppendHandlers(
+			// Refresh cluster state
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, template),
+			),
+			// Validate upgrade versions
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.8.0"),
+				RespondWithJSON(http.StatusOK, v4_8_0Info),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
+				RespondWithJSON(http.StatusOK, v4_10_1Info),
+			),
+			// Validate roles
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/sts_operator_roles"),
+				RespondWithJSON(http.StatusOK, operIAMList),
+			),
+			// Look for existing upgrade policies
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
+				RespondWithJSON(http.StatusOK, upgradePoliciesEmpty),
+			),
+			// Create an upgrade policy
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
+				VerifyJQ(".version", "4.10.1"),
+				RespondWithJSON(http.StatusCreated, `
+				{
+					"kind": "UpgradePolicy",
+					"id": "123",
+					"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/123",
+					"schedule_type": "manual",
+					"upgrade_type": "OSD",
+					"version": "4.10.1",
+					"next_run": "2023-06-09T20:59:00Z",
+					"cluster_id": "123",
+					"enable_minor_version_upgrades": true
+				}`),
+			),
+			// Patch the cluster (w/ no changes)
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, template),
+			),
+		)
+		// Perform upgrade
+		terraform.Source(`
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+			name           = "my-cluster"
+			cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+				}
+			}
+			version = "openshift-v4.10.1"
+		}`)
+		Expect(terraform.Apply()).To(BeZero())
+	})
+
+	It("Does nothing if upgrade is in progress", func() {
+		server.AppendHandlers(
+			// Refresh cluster state
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, template),
+			),
+			// Validate upgrade versions
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.8.0"),
+				RespondWithJSON(http.StatusOK, v4_8_0Info),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
+				RespondWithJSON(http.StatusOK, v4_10_1Info),
+			),
+			// Validate roles
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/sts_operator_roles"),
+				RespondWithJSON(http.StatusOK, operIAMList),
+			),
+			// Look for existing upgrade policies
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
+				RespondWithJSON(http.StatusOK, `{
+					"kind": "UpgradePolicyState",
+					"page": 1,
+					"size": 0,
+					"total": 0,
+					"items": [
+						{
+							"kind": "UpgradePolicy",
+							"id": "456",
+							"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/123",
+							"schedule_type": "manual",
+							"upgrade_type": "OSD",
+							"version": "4.10.0",
+							"next_run": "2023-06-09T20:59:00Z",
+							"cluster_id": "123",
+							"enable_minor_version_upgrades": true
+						}
+					]
+				}`),
+			),
+			// Check it's state
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456/state"),
+				RespondWithJSON(http.StatusOK, `{
+					"kind": "UpgradePolicyState",
+					"id": "456",
+					"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456/state",
+					"description": "Upgrade in progress",
+					"value": "started"
+				}`),
+			),
+		)
+		// Perform try the upgrade
+		terraform.Source(`
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+			name           = "my-cluster"
+			cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+				}
+			}
+			version = "openshift-v4.10.1"
+		}`)
+		// Will fail due to upgrade in progress
+		Expect(terraform.Apply()).NotTo(BeZero())
+	})
+
+	It("Cancels and upgrade for the wrong version & schedules new", func() {
+		server.AppendHandlers(
+			// Refresh cluster state
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, template),
+			),
+			// Validate upgrade versions
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.8.0"),
+				RespondWithJSON(http.StatusOK, v4_8_0Info),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
+				RespondWithJSON(http.StatusOK, v4_10_1Info),
+			),
+			// Validate roles
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/sts_operator_roles"),
+				RespondWithJSON(http.StatusOK, operIAMList),
+			),
+			// Look for existing upgrade policies
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
+				RespondWithJSON(http.StatusOK, `{
+					"kind": "UpgradePolicyState",
+					"page": 1,
+					"size": 0,
+					"total": 0,
+					"items": [
+						{
+							"kind": "UpgradePolicy",
+							"id": "456",
+							"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/123",
+							"schedule_type": "manual",
+							"upgrade_type": "OSD",
+							"version": "4.10.0",
+							"next_run": "2023-06-09T20:59:00Z",
+							"cluster_id": "123",
+							"enable_minor_version_upgrades": true
+						}
+					]
+				}`),
+			),
+			// Check it's state
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456/state"),
+				RespondWithJSON(http.StatusOK, `{
+					"kind": "UpgradePolicyState",
+					"id": "456",
+					"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456/state",
+					"description": "",
+					"value": "scheduled"
+				}`),
+			),
+			// Delete existing upgrade policy
+			CombineHandlers(
+				VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456"),
+				RespondWithJSON(http.StatusOK, "{}"),
+			),
+			// Create an upgrade policy
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
+				VerifyJQ(".version", "4.10.1"),
+				RespondWithJSON(http.StatusCreated, `
+				{
+					"kind": "UpgradePolicy",
+					"id": "123",
+					"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/123",
+					"schedule_type": "manual",
+					"upgrade_type": "OSD",
+					"version": "4.10.1",
+					"next_run": "2023-06-09T20:59:00Z",
+					"cluster_id": "123",
+					"enable_minor_version_upgrades": true
+				}`),
+			),
+			// Patch the cluster (w/ no changes)
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, template),
+			),
+		)
+		// Perform try the upgrade
+		terraform.Source(`
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+			name           = "my-cluster"
+			cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+				}
+			}
+			version = "openshift-v4.10.1"
+		}`)
+		Expect(terraform.Apply()).To(BeZero())
 	})
 })

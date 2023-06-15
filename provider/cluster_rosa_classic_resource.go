@@ -38,6 +38,7 @@ package provider
 	"github.com/openshift/rosa/pkg/ocm"
 	"github.com/terraform-redhat/terraform-provider-ocm/build"
 	"github.com/terraform-redhat/terraform-provider-ocm/provider/common"
+	"github.com/terraform-redhat/terraform-provider-ocm/provider/upgrade"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -96,6 +97,11 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 				Description: "Unique identifier of the cluster.",
 				Type:        types.StringType,
 				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					// This passes the state through to the plan, preventing
+					// "known after apply" since we know it won't change.
+					tfsdk.UseStateForUnknown(***REMOVED***,
+		***REMOVED***,
 	***REMOVED***,
 			"external_id": {
 				Description: "Unique external identifier of the cluster.",
@@ -372,14 +378,14 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 		***REMOVED***,
 	***REMOVED***,
 			"version": {
-				Description: "Identifier of the version of OpenShift, for example 'openshift-v4.1.0'.",
+				Description: "Desired version of OpenShift for the cluster, for example 'openshift-v4.1.0'. If version is greater than the currently running version, an upgrade will be scheduled.",
 				Type:        types.StringType,
 				Optional:    true,
+	***REMOVED***,
+			"current_version": {
+				Description: "The currently running version of OpenShift on the cluster, for example 'openshift-v4.1.0'.",
+				Type:        types.StringType,
 				Computed:    true,
-				// TODO: till AWS will support Managed policies we will not support update versions
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(***REMOVED***,
-		***REMOVED***,
 	***REMOVED***,
 			"disable_waiting_in_destroy": {
 				Description: "Disable addressing cluster state in the destroy resource. Default value is false",
@@ -805,13 +811,90 @@ func (r *ClusterRosaClassicResource***REMOVED*** validateAccountRoles(ctx contex
 
 	return nil
 }
+
+// validateOperatorRolePolicies ensures that the operator role policies are
+// compatible with the requested cluster version
+func (r *ClusterRosaClassicResource***REMOVED*** validateOperatorRolePolicies(ctx context.Context, state *ClusterRosaClassicState, version string***REMOVED*** error {
+	tflog.Debug(ctx, "Validating if cluster version is compatible with the operator role policies"***REMOVED***
+
+	operRoles := []*cmv1.OperatorIAMRole{}
+	operRoleClient := r.clusterCollection.Cluster(state.ID.Value***REMOVED***.STSOperatorRoles(***REMOVED***
+	page := 1
+	size := 100
+	for {
+		resp, err := operRoleClient.List(***REMOVED***.Page(page***REMOVED***.Size(size***REMOVED***.SendContext(ctx***REMOVED***
+		if err != nil {
+			return fmt.Errorf("Could not list operator roles: %v", err***REMOVED***
+***REMOVED***
+		operRoles = append(operRoles, resp.Items(***REMOVED***.Slice(***REMOVED***...***REMOVED***
+		if resp.Size(***REMOVED*** < size {
+			break
+***REMOVED***
+		page++
+	}
+
+	region := state.CloudRegion.Value
+	var session *session.Session
+	var iamClient *iam.IAM
+	for _, operRole := range operRoles {
+		roleARN := operRole.RoleARN(***REMOVED***
+		if roleARN == "" {
+			continue
+***REMOVED***
+		if session == nil {
+			var err error
+			session, err = buildSession(region***REMOVED***
+			if err != nil {
+				return fmt.Errorf("Could not build session: %v", err***REMOVED***
+	***REMOVED***
+***REMOVED***
+		if iamClient == nil {
+			iamClient = iam.New(session***REMOVED***
+***REMOVED***
+		role, err := getRoleByARN(roleARN, state.CloudRegion.Value***REMOVED***
+		if err != nil {
+			return fmt.Errorf("Could not get Role '%s' : %v", roleARN, err***REMOVED***
+***REMOVED***
+		attachedPolicies, err := iamClient.ListAttachedRolePoliciesWithContext(ctx, &iam.ListAttachedRolePoliciesInput{
+			MaxItems: aws.Int64(100***REMOVED***,
+			RoleName: role.RoleName,
+***REMOVED******REMOVED***
+		if err != nil {
+			return fmt.Errorf("Could not list attached policies for role '%s' : %v", roleARN, err***REMOVED***
+***REMOVED***
+		for _, policy := range attachedPolicies.AttachedPolicies {
+			policyARN := policy.PolicyArn
+			policyOut, err := iamClient.GetPolicyWithContext(ctx, &iam.GetPolicyInput{
+				PolicyArn: policyARN,
+	***REMOVED******REMOVED***
+			if err != nil {
+				return fmt.Errorf("Could not get policy '%s' : %v", aws.StringValue(policyARN***REMOVED***, err***REMOVED***
+	***REMOVED***
+			tags := policyOut.Policy.Tags
+			validVersion, err := r.hasCompatibleVersionTags(ctx, tags, getOcmVersionMinor(version***REMOVED******REMOVED***
+			if err != nil {
+				return fmt.Errorf("Could not validate policy '%s' : %v", aws.StringValue(policyARN***REMOVED***, err***REMOVED***
+	***REMOVED***
+			if !validVersion {
+				return fmt.Errorf("operator role policy '%s' is not compatible with version %s. "+
+					"Upgrade operator roles and try again",
+					aws.StringValue(policyARN***REMOVED***, version***REMOVED***
+	***REMOVED***
+***REMOVED***
+	}
+	return nil
+}
+
+// Check whether the list of tags contains a tag indicating the version of
+// OpenShift it was creted for, and whether that version is at lest as new as
+// the provided version.
 func (r *ClusterRosaClassicResource***REMOVED*** hasCompatibleVersionTags(ctx context.Context, iamTags []*iam.Tag, version string***REMOVED*** (bool, error***REMOVED*** {
 	if len(iamTags***REMOVED*** == 0 {
 		return false, nil
 	}
 	for _, tag := range iamTags {
 		if aws.StringValue(tag.Key***REMOVED*** == tagsOpenShiftVersion {
-			tflog.Debug(ctx, fmt.Sprintf("role version is %s", aws.StringValue(tag.Value***REMOVED******REMOVED******REMOVED***
+			tflog.Debug(ctx, fmt.Sprintf("tag version is %s", aws.StringValue(tag.Value***REMOVED******REMOVED******REMOVED***
 			if version == aws.StringValue(tag.Value***REMOVED*** {
 				return true, nil
 	***REMOVED***
@@ -970,6 +1053,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** getVersions(ctx context.Context
 
 func (r *ClusterRosaClassicResource***REMOVED*** Create(ctx context.Context,
 	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse***REMOVED*** {
+	tflog.Debug(ctx, "begin create(***REMOVED***"***REMOVED***
 	// Get the plan:
 	state := &ClusterRosaClassicState{}
 	diags := request.Plan.Get(ctx, state***REMOVED***
@@ -1097,6 +1181,8 @@ func (r *ClusterRosaClassicResource***REMOVED*** Update(ctx context.Context, req
 	response *tfsdk.UpdateResourceResponse***REMOVED*** {
 	var diags diag.Diagnostics
 
+	tflog.Debug(ctx, "begin update(***REMOVED***"***REMOVED***
+
 	// Get the state:
 	state := &ClusterRosaClassicState{}
 	diags = request.State.Get(ctx, state***REMOVED***
@@ -1113,9 +1199,18 @@ func (r *ClusterRosaClassicResource***REMOVED*** Update(ctx context.Context, req
 		return
 	}
 
+	// Schedule a cluster upgrade if a newer version is requested
+	if err := r.upgradeClusterIfNeeded(ctx, state, plan***REMOVED***; err != nil {
+		response.Diagnostics.AddError(
+			"Can't upgrade cluster",
+			fmt.Sprintf("Can't upgrade cluster version with identifier: `%s`, %v", state.ID.Value, err***REMOVED***,
+		***REMOVED***
+		return
+	}
+
 	clusterBuilder := cmv1.NewCluster(***REMOVED***
 
-	clusterBuilder, shouldUpdateNodes, err := updateNodes(state, plan, clusterBuilder***REMOVED***
+	clusterBuilder, _, err := updateNodes(state, plan, clusterBuilder***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't update cluster",
@@ -1127,7 +1222,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** Update(ctx context.Context, req
 		return
 	}
 
-	clusterBuilder, shouldUpdateProxy, err := updateProxy(state, plan, clusterBuilder***REMOVED***
+	clusterBuilder, _, err = updateProxy(state, plan, clusterBuilder***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't update cluster",
@@ -1142,10 +1237,6 @@ func (r *ClusterRosaClassicResource***REMOVED*** Update(ctx context.Context, req
 	_, shouldPatchDisableWorkloadMonitoring := common.ShouldPatchBool(state.DisableWorkloadMonitoring, plan.DisableWorkloadMonitoring***REMOVED***
 	if shouldPatchDisableWorkloadMonitoring {
 		clusterBuilder.DisableUserWorkloadMonitoring(plan.DisableWorkloadMonitoring.Value***REMOVED***
-	}
-
-	if !shouldUpdateProxy && !shouldUpdateNodes && !shouldPatchDisableWorkloadMonitoring {
-		return
 	}
 
 	clusterSpec, err := clusterBuilder.Build(***REMOVED***
@@ -1194,6 +1285,109 @@ func (r *ClusterRosaClassicResource***REMOVED*** Update(ctx context.Context, req
 	}
 	diags = response.State.Set(ctx, plan***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
+}
+
+// Upgrades the cluster if the desired (plan***REMOVED*** version is greater than the
+// current version
+func (r *ClusterRosaClassicResource***REMOVED*** upgradeClusterIfNeeded(ctx context.Context, state, plan *ClusterRosaClassicState***REMOVED*** error {
+	if common.IsStringAttributeEmpty(plan.Version***REMOVED*** || common.IsStringAttributeEmpty(state.CurrentVersion***REMOVED*** {
+		// No version information, nothing to do
+		tflog.Debug(ctx, "Insufficient cluster version information to determine if upgrade should be performed."***REMOVED***
+		return nil
+	}
+
+	// Check the versions to see if we need to upgrade
+	currentVersionString := strings.TrimPrefix(state.CurrentVersion.Value, "openshift-v"***REMOVED***
+	currentVersion, err := semver.NewVersion(currentVersionString***REMOVED***
+	if err != nil {
+		return fmt.Errorf("failed to parse current cluster version: %v", err***REMOVED***
+	}
+	desiredVersionString := strings.TrimPrefix(plan.Version.Value, "openshift-v"***REMOVED***
+	desiredVersion, err := semver.NewVersion(desiredVersionString***REMOVED***
+	if err != nil {
+		return fmt.Errorf("failed to parse desired cluster version: %v", err***REMOVED***
+	}
+	if currentVersion.GreaterThanOrEqual(desiredVersion***REMOVED*** {
+		tflog.Debug(ctx, "No cluster version upgrade needed."***REMOVED***
+		return nil
+	}
+
+	// Make sure the desired version is available
+	availableVersions, err := upgrade.GetAvailableUpgradeVersions(ctx, r.versionCollection, state.CurrentVersion.Value***REMOVED***
+	if err != nil {
+		return fmt.Errorf("failed to get available upgrades: %v", err***REMOVED***
+	}
+	found := false
+	for _, v := range availableVersions {
+		sem, err := semver.NewVersion(v.RawID(***REMOVED******REMOVED***
+		if err != nil {
+			return fmt.Errorf("failed to parse available upgrade version: %v", err***REMOVED***
+***REMOVED***
+		if desiredVersion.Equal(sem***REMOVED*** {
+			found = true
+			break
+***REMOVED***
+	}
+	if !found {
+		avail := []string{}
+		for _, v := range availableVersions {
+			avail = append(avail, v.RawID(***REMOVED******REMOVED***
+***REMOVED***
+		return fmt.Errorf("desired version (%s***REMOVED*** is not in the list of available upgrades (%v***REMOVED***", desiredVersion, avail***REMOVED***
+	}
+
+	// Make sure the account roles have been upgraded
+	if err := r.validateAccountRoles(ctx, plan, desiredVersion.String(***REMOVED******REMOVED***; err != nil {
+		return fmt.Errorf("failed to validate account roles: %v", err***REMOVED***
+	}
+
+	// Make sure the operator role policies have been upgraded
+	if err := r.validateOperatorRolePolicies(ctx, plan, desiredVersion.String(***REMOVED******REMOVED***; err != nil {
+		return fmt.Errorf("failed to validate operator role policies: %v", err***REMOVED***
+	}
+
+	// Fetch existing upgrade policies
+	upgrades, err := upgrade.GetScheduledUpgrades(ctx, r.clusterCollection, state.ID.Value***REMOVED***
+	if err != nil {
+		return fmt.Errorf("failed to get upgrade policies: %v", err***REMOVED***
+	}
+
+	// Stop if an upgrade is already in progress
+	correctUpgradePending, err := upgrade.CheckAndCancelUpgrades(ctx, r.clusterCollection, upgrades, desiredVersion***REMOVED***
+	if err != nil {
+		return err
+	}
+
+	if !correctUpgradePending {
+		// Gate agreements are checked when the upgrade is scheduled, resulting
+		// in an error return. ROSA cli does this by scheduling once w/ dryRun
+		// to look for un-acked agreements. Since we are not implementing acking
+		// gate agreements in TF, we will just go ahead and apply the upgrade,
+		// letting it fail w/ an error. The user can then ack the agreement via
+		// some other method and re-run the apply.
+
+		// Schedule an upgrade
+		tenMinFromNow := time.Now(***REMOVED***.UTC(***REMOVED***.Add(10 * time.Minute***REMOVED***
+		newPolicy, err := cmv1.NewUpgradePolicy(***REMOVED***.
+			ScheduleType("manual"***REMOVED***.
+			Version(desiredVersion.String(***REMOVED******REMOVED***.
+			NextRun(tenMinFromNow***REMOVED***.
+			Build(***REMOVED***
+		if err != nil {
+			return fmt.Errorf("failed to create upgrade policy: %v", err***REMOVED***
+***REMOVED***
+		_, err = r.clusterCollection.Cluster(state.ID.Value***REMOVED***.
+			UpgradePolicies(***REMOVED***.
+			Add(***REMOVED***.
+			Body(newPolicy***REMOVED***.
+			SendContext(ctx***REMOVED***
+		if err != nil {
+			return fmt.Errorf("failed to schedule upgrade: %v", err***REMOVED***
+***REMOVED***
+	}
+
+	state.Version = plan.Version
+	return nil
 }
 
 func updateProxy(state, plan *ClusterRosaClassicState, clusterBuilder *cmv1.ClusterBuilder***REMOVED*** (*cmv1.ClusterBuilder, bool, error***REMOVED*** {
@@ -1271,6 +1465,8 @@ func updateNodes(state, plan *ClusterRosaClassicState, clusterBuilder *cmv1.Clus
 
 func (r *ClusterRosaClassicResource***REMOVED*** Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
 	response *tfsdk.DeleteResourceResponse***REMOVED*** {
+	tflog.Debug(ctx, "begin delete(***REMOVED***"***REMOVED***
+
 	// Get the state:
 	state := &ClusterRosaClassicState{}
 	diags := request.State.Get(ctx, state***REMOVED***
@@ -1329,6 +1525,8 @@ func (r *ClusterRosaClassicResource***REMOVED*** Delete(ctx context.Context, req
 
 func (r *ClusterRosaClassicResource***REMOVED*** ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
 	response *tfsdk.ImportResourceStateResponse***REMOVED*** {
+	tflog.Debug(ctx, "begin importstate(***REMOVED***"***REMOVED***
+
 	// Try to retrieve the object:
 	get, err := r.clusterCollection.Cluster(request.ID***REMOVED***.Get(***REMOVED***.SendContext(ctx***REMOVED***
 	if err != nil {
@@ -1531,10 +1729,7 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		if state.Sts == nil {
 			state.Sts = &Sts{}
 ***REMOVED***
-		oidc_endpoint_url := sts.OIDCEndpointURL(***REMOVED***
-		if strings.HasPrefix(oidc_endpoint_url, "https://"***REMOVED*** {
-			oidc_endpoint_url = strings.TrimPrefix(oidc_endpoint_url, "https://"***REMOVED***
-***REMOVED***
+		oidc_endpoint_url := strings.TrimPrefix(sts.OIDCEndpointURL(***REMOVED***, "https://"***REMOVED***
 
 		state.Sts.OIDCEndpointURL = types.String{
 			Value: oidc_endpoint_url,
@@ -1678,11 +1873,13 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	// the version ID. Remove it before saving state.
 	version = strings.TrimSuffix(version, fmt.Sprintf("-%s", channel_group***REMOVED******REMOVED***
 	if ok {
-		state.Version = types.String{
+		tflog.Debug(ctx, "actual cluster version: %v", version***REMOVED***
+		state.CurrentVersion = types.String{
 			Value: version,
 ***REMOVED***
 	} else {
-		state.Version = types.String{
+		tflog.Debug(ctx, "unknown cluster version"***REMOVED***
+		state.CurrentVersion = types.String{
 			Null: true,
 ***REMOVED***
 	}
@@ -1800,9 +1997,6 @@ func proxyValidators(***REMOVED*** []tfsdk.AttributeValidator {
 				diag := req.Config.GetAttribute(ctx, req.AttributePath, state***REMOVED***
 				if diag.HasError(***REMOVED*** {
 					// No attribute to validate
-					return
-		***REMOVED***
-				if state == nil {
 					return
 		***REMOVED***
 				errSum := "Invalid proxy's attribute assignment"

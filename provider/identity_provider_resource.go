@@ -19,12 +19,14 @@ package provider
 ***REMOVED***
 	"context"
 ***REMOVED***
+***REMOVED***
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/terraform-redhat/terraform-provider-ocm/provider/common"
 	"github.com/terraform-redhat/terraform-provider-ocm/provider/idps"
@@ -129,8 +131,20 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 		return
 	}
 
-	// Wait till the cluster is ready:
 	resource := r.collection.Cluster(state.Cluster.Value***REMOVED***
+	// We expect the cluster to be already exist
+	// Try to get it and if result with NotFound error, return error to user
+	if resp, err := resource.Get(***REMOVED***.SendContext(ctx***REMOVED***; err != nil && resp.Status(***REMOVED*** == http.StatusNotFound {
+		message := fmt.Sprintf("Cluster %s not found, error: %v", state.Cluster.Value, err***REMOVED***
+		tflog.Error(ctx, message***REMOVED***
+		response.Diagnostics.AddError(
+			"Can't poll cluster state",
+			message,
+		***REMOVED***
+		return
+	}
+
+	// Wait till the cluster is ready:
 	pollCtx, cancel := context.WithTimeout(ctx, 1*time.Hour***REMOVED***
 	defer cancel(***REMOVED***
 	_, err := resource.Poll(***REMOVED***.

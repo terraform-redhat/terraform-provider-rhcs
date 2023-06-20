@@ -21,13 +21,15 @@ terraform {
       version = ">= 3.67"
     }
     ocm = {
-      version = "0.0.3"
+      version = ">= 1.0.1"
       source  = "terraform-redhat/ocm"
     }
   }
 }
 
 provider "ocm" {
+  token = var.token
+  url   = var.url
 }
 
 resource "ocm_identity_provider" "gitlab_idp" {
@@ -39,3 +41,4 @@ resource "ocm_identity_provider" "gitlab_idp" {
     url           = var.gitlab_url
   }
 }
+

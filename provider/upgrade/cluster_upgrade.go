@@ -180,12 +180,16 @@ func AckVersionGate(
 	return nil
 }
 
+// Construct a list of missing gate agreements for upgrade to a given cluster version
 func CheckMissingAgreements(version string,
-	clusterKey string, upgradePoliciesClient *cmv1.UpgradePoliciesClient***REMOVED*** ([]string, string, error***REMOVED*** {
+	clusterKey string, upgradePoliciesClient *cmv1.UpgradePoliciesClient, ackRequiredOnly bool***REMOVED*** ([]string, string, error***REMOVED*** {
 	upgradePolicyBuilder := cmv1.NewUpgradePolicy(***REMOVED***.
 		ScheduleType("manual"***REMOVED***.
 		Version(version***REMOVED***
 	upgradePolicy, err := upgradePolicyBuilder.Build(***REMOVED***
+	if err != nil {
+		return []string{}, "", fmt.Errorf("failed to build upgrade policy: %v", err***REMOVED***
+	}
 
 	// check if the cluster upgrade requires gate agreements
 	gates, err := getMissingGateAgreements(upgradePolicy, upgradePoliciesClient***REMOVED***
@@ -199,7 +203,7 @@ func CheckMissingAgreements(version string,
 	counter := 1
 	var gateIDs []string
 	for _, gate := range gates {
-		if !gate.STSOnly(***REMOVED*** {
+		if !gate.STSOnly(***REMOVED*** { // STS-only gates don't require user acknowledgement
 			str = fmt.Sprintf("%s\n%d***REMOVED*** %s\n", str, counter, gate.Description(***REMOVED******REMOVED***
 
 			if gate.WarningMessage(***REMOVED*** != "" {
@@ -208,8 +212,11 @@ func CheckMissingAgreements(version string,
 			str = fmt.Sprintf("%s   URL:         %s\n", str, gate.DocumentationURL(***REMOVED******REMOVED***
 			counter++
 			gateIDs = append(gateIDs, gate.ID(***REMOVED******REMOVED***
+***REMOVED*** else if !ackRequiredOnly { // We want all gates, not just the ones that require acknowledgement
+			gateIDs = append(gateIDs, gate.ID(***REMOVED******REMOVED***
 ***REMOVED***
 	}
+	tflog.Debug(context.TODO(***REMOVED***, "Missing gate agreement IDs", "gateIDs", gateIDs***REMOVED***
 	return gateIDs, str, nil
 }
 

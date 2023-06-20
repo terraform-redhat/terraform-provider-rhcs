@@ -413,10 +413,12 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 					ValueCannotBeChangedModifier(***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,
-			"upgrade_admin_ack": {
-				Description: ".",
-				Type:        types.BoolType,
-				Optional:    true,
+			"upgrade_acknowledgements_for": {
+				Description: "Indicates acknowledgement of agreements required to upgrade the cluster version between" +
+					" minor versions (e.g. a value of \"4.12\" indicates acknowledgement of any agreements required to " +
+					"upgrade to OpenShift 4.12.z from 4.11 or before***REMOVED***.",
+				Type:     types.StringType,
+				Optional: true,
 	***REMOVED***,
 ***REMOVED***,
 	}
@@ -1377,21 +1379,30 @@ func (r *ClusterRosaClassicResource***REMOVED*** upgradeClusterIfNeeded(ctx cont
 
 		clusterClient := r.clusterCollection.Cluster(state.ID.Value***REMOVED***
 		upgradePoliciesClient := clusterClient.UpgradePolicies(***REMOVED***
-		gateIDs, description, err := upgrade.CheckMissingAgreements(desiredVersion.String(***REMOVED***, state.ID.Value, upgradePoliciesClient***REMOVED***
+		// Gates that require acknowledgement
+		ackGateIDs, description, err := upgrade.CheckMissingAgreements(desiredVersion.String(***REMOVED***, state.ID.Value, upgradePoliciesClient, true***REMOVED***
+		if err != nil {
+			return fmt.Errorf("failed to check for missing upgrade agreements: %v", err***REMOVED***
+***REMOVED***
+		targetMinorVersion := getOcmVersionMinor(desiredVersion.String(***REMOVED******REMOVED***
+		userAcksGates := !plan.UpgradeAcksFor.Unknown && !plan.UpgradeAcksFor.Null && plan.UpgradeAcksFor.Value == targetMinorVersion
+		if len(ackGateIDs***REMOVED*** > 0 && !userAcksGates { // User has not acknowledged mandatory gates
+			return fmt.Errorf("%s\nTo acknowledge these items, please add \"upgrade_acknowledgements_for = %s\""+
+				" and re-apply the changes", description, targetMinorVersion***REMOVED***
+***REMOVED***
 
-		if len(gateIDs***REMOVED*** > 0 {
-			if !plan.UpgradeAdminAck.Unknown && !plan.UpgradeAdminAck.Null && plan.UpgradeAdminAck.Value {
-				for _, gateID := range gateIDs {
-					gateAgreementsClient := clusterClient.GateAgreements(***REMOVED***
-					err := upgrade.AckVersionGate(gateAgreementsClient, gateID***REMOVED***
-					if err != nil {
-						return fmt.Errorf("failed to acknowledge version gate '%s' for cluster '%s': %v",
-							gateID, state.ID.Value, err***REMOVED***
-			***REMOVED***
-		***REMOVED***
-	***REMOVED*** else {
-				return fmt.Errorf("%s\nTo acknoledge on this, please add \"upgrade_admin_ack = true\""+
-					" and re-apply the changes", description***REMOVED***
+		// Ack all gates to OCM; including ones that don't require _user_ acks
+		allGates, _, err := upgrade.CheckMissingAgreements(desiredVersion.String(***REMOVED***, state.ID.Value, upgradePoliciesClient, false***REMOVED***
+		if err != nil {
+			return fmt.Errorf("failed to check for missing upgrade agreements: %v", err***REMOVED***
+***REMOVED***
+		for _, gateID := range allGates {
+			tflog.Debug(ctx, "Acknowledging version gate", "gateID", gateID***REMOVED***
+			gateAgreementsClient := clusterClient.GateAgreements(***REMOVED***
+			err := upgrade.AckVersionGate(gateAgreementsClient, gateID***REMOVED***
+			if err != nil {
+				return fmt.Errorf("failed to acknowledge version gate '%s' for cluster '%s': %v",
+					gateID, state.ID.Value, err***REMOVED***
 	***REMOVED***
 ***REMOVED***
 
@@ -1416,6 +1427,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** upgradeClusterIfNeeded(ctx cont
 	}
 
 	state.Version = plan.Version
+	state.UpgradeAcksFor = plan.UpgradeAcksFor
 	return nil
 }
 

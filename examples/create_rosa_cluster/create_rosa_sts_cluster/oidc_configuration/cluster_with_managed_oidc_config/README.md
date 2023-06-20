@@ -4,7 +4,7 @@ This Terraform example creates a ROSA STS cluster that uses a managed OIDC confi
 
 ## Prerequisites
 
-* You have an AWS account.
+* You have an AWS account. Your locally configured AWS credentials are used to access to AWS API for validation purposes.
 * You have installed the latest version ROSA CLI (`rosa`).
 * You must have an offline OCM token. This token can be generated in the [Red Hat Hybrid Cloud Console](https://console.redhat.com/openshift/token).
 * You have installed Terraform. See the [Hashicorp Terraform page](https://developer.hashicorp.com/terraform/downloads) for the latest version.
@@ -87,7 +87,9 @@ This Terraform example creates a ROSA STS cluster that uses a managed OIDC confi
 
 After you are done with the resources you created, you should not delete them manually, but instead, use the `destroy` command. Run the following to delete all of your created resources:
   
-    terraform destroy
+```
+terraform destroy
+```
 
 After the command is complete, your resources are deleted.
 

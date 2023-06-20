@@ -24,7 +24,9 @@ package common
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	ocmerrors "github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/pkg/errors"
+	"github.com/zgalor/weberr"
 ***REMOVED***
 
 const versionPrefix = "openshift-v"
@@ -134,4 +136,13 @@ func IsGreaterThanOrEqual(version1, version2 string***REMOVED*** (bool, error***
 		return false, err
 	}
 	return v1.GreaterThanOrEqual(v2***REMOVED***, nil
+}
+
+func HandleErr(res *ocmerrors.Error, err error***REMOVED*** error {
+	msg := res.Reason(***REMOVED***
+	if msg == "" {
+		msg = err.Error(***REMOVED***
+	}
+	errType := weberr.ErrorType(res.Status(***REMOVED******REMOVED***
+	return errType.Set(errors.Errorf("%s", msg***REMOVED******REMOVED***
 }

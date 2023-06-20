@@ -413,6 +413,11 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 					ValueCannotBeChangedModifier(***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,
+			"upgrade_admin_ack": {
+				Description: ".",
+				Type:        types.BoolType,
+				Optional:    true,
+	***REMOVED***,
 ***REMOVED***,
 	}
 	return
@@ -1369,6 +1374,26 @@ func (r *ClusterRosaClassicResource***REMOVED*** upgradeClusterIfNeeded(ctx cont
 		// gate agreements in TF, we will just go ahead and apply the upgrade,
 		// letting it fail w/ an error. The user can then ack the agreement via
 		// some other method and re-run the apply.
+
+		clusterClient := r.clusterCollection.Cluster(state.ID.Value***REMOVED***
+		upgradePoliciesClient := clusterClient.UpgradePolicies(***REMOVED***
+		gateIDs, description, err := upgrade.CheckMissingAgreements(desiredVersion.String(***REMOVED***, state.ID.Value, upgradePoliciesClient***REMOVED***
+
+		if len(gateIDs***REMOVED*** > 0 {
+			if !plan.UpgradeAdminAck.Unknown && !plan.UpgradeAdminAck.Null && plan.UpgradeAdminAck.Value {
+				for _, gateID := range gateIDs {
+					gateAgreementsClient := clusterClient.GateAgreements(***REMOVED***
+					err := upgrade.AckVersionGate(gateAgreementsClient, gateID***REMOVED***
+					if err != nil {
+						return fmt.Errorf("failed to acknowledge version gate '%s' for cluster '%s': %v",
+							gateID, state.ID.Value, err***REMOVED***
+			***REMOVED***
+		***REMOVED***
+	***REMOVED*** else {
+				return fmt.Errorf("%s\nTo acknoledge on this, please add \"upgrade_admin_ack = true\""+
+					" and re-apply the changes", description***REMOVED***
+	***REMOVED***
+***REMOVED***
 
 		// Schedule an upgrade
 		tenMinFromNow := time.Now(***REMOVED***.UTC(***REMOVED***.Add(10 * time.Minute***REMOVED***

@@ -56,7 +56,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 ***REMOVED******REMOVED***
 	}***REMOVED***
 
-	Context("Idebtity Provider Success", func(***REMOVED*** {
+	Context("Identity Provider Success", func(***REMOVED*** {
 		BeforeEach(func(***REMOVED*** {
 			// The first thing that the provider will do for any operation on identity providers
 			// is check that the cluster is ready, so we always need to prepare the server to
@@ -342,90 +342,260 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 
 				// Run the apply command:
 				terraform.Source(`
-		      resource "ocm_identity_provider" "my_ip" {
-		        cluster = "123"
-		        name    = "my-ip"
-		        github = {
-		          ca = "test-ca"
-		    	  client_id = "test-client"
-		    	  client_secret = "test-secret"
-                  teams = ["valid/team"]
-		        }
-		      }
-		    `***REMOVED***
+		          resource "ocm_identity_provider" "my_ip" {
+		            cluster = "123"
+		            name    = "my-ip"
+		            github = {
+		              ca = "test-ca"
+		        	  client_id = "test-client"
+		        	  client_secret = "test-secret"
+                      teams = ["valid/team"]
+		            }
+		          }
+		        `***REMOVED***
 				Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 	***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 
-		It("Can create an LDAP identity provider", func(***REMOVED*** {
-			// Prepare the server:
-			server.AppendHandlers(
-				CombineHandlers(
-					VerifyRequest(
-						http.MethodPost,
-						"/api/clusters_mgmt/v1/clusters/123/identity_providers",
-					***REMOVED***,
-					VerifyJSON(`{
-				  "kind": "IdentityProvider",
-				  "type": "LDAPIdentityProvider",
-                  "mapping_method": "claim",
-				  "name": "my-ip",
-				  "ldap": {
-				    "bind_dn": "my-bind-dn",
-				    "bind_password": "my-bind-password",
-				    "ca": "my-ca",
-				    "insecure": false,
-				    "url": "ldap://my-server.com",
-				    "attributes": {
-				      "id": ["my-id"],
-				      "email": ["my-email"],
-				      "name": ["my-name"],
-				      "preferred_username": ["my-preferred-username"]
-				    }
-				  }
-		***REMOVED***`***REMOVED***,
-					RespondWithJSON(http.StatusOK, `{
-				  "id": "456",
-				  "name": "my-ip",
-                  "mapping_method": "claim",
-				  "ldap": {
-				    "bind_dn": "my-bind-dn",
-				    "bind_password": "my-bind-password",
-				    "ca": "my-ca",
-				    "insecure": false,
-				    "url": "ldap://my-server.com",
-				    "attributes": {
-				      "id": ["my-id"],
-				      "email": ["my-email"],
-				      "name": ["my-name"],
-				      "preferred_username": ["my-preferred-username"]
-				    }
-				  }
-		***REMOVED***`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+		Context("Can create 'LDDAP' Identity provider", func(***REMOVED*** {
+			Context("Invalid LDAP config", func(***REMOVED*** {
+				It("Should fail with invalid email", func(***REMOVED*** {
+					// Run the apply command:
+					terraform.Source(`
+        		      resource "ocm_identity_provider" "my_ip" {
+        		        cluster    = "123"
+        		        name       = "my-ip"
+        		        ldap = {
+        		          insecure      = false
+        		          ca            = "my-ca"
+        		          url           = "ldap://my-server.com"
+        		          attributes    = {
+        		            id                 = ["my-id"]
+        		            email              = ["my-email"]
+        		            name               = ["my-name"]
+        		            preferred_username = ["my-preferred-username"]
+        		          }
+        		        }
+        		      }
+        		    `***REMOVED***
+					Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
+		***REMOVED******REMOVED***
+				It("Should fail if not both bind properties are set", func(***REMOVED*** {
+					// Run the apply command:
+					terraform.Source(`
+        		      resource "ocm_identity_provider" "my_ip" {
+        		        cluster    = "123"
+        		        name       = "my-ip"
+        		        ldap = {
+        		          bind_dn       = "my-bind-dn"
+        		          insecure      = false
+        		          ca            = "my-ca"
+        		          url           = "ldap://my-server.com"
+        		          attributes    = {
+        		            id                 = ["my-id"]
+        		            email              = ["my@email.com"]
+        		            name               = ["my-name"]
+        		            preferred_username = ["my-preferred-username"]
+        		          }
+        		        }
+        		      }
+        		    `***REMOVED***
+					Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
+		***REMOVED******REMOVED***
 
-			// Run the apply command:
-			terraform.Source(`
-		  resource "ocm_identity_provider" "my_ip" {
-		    cluster    = "123"
-		    name       = "my-ip"
-		    ldap = {
-		      bind_dn       = "my-bind-dn"
-		      bind_password = "my-bind-password"
-		      insecure      = false
-		      ca            = "my-ca"
-		      url           = "ldap://my-server.com"
-		      attributes    = {
-		        id                 = ["my-id"]
-		        email              = ["my-email"]
-		        name               = ["my-name"]
-		        preferred_username = ["my-preferred-username"]
-		      }
-		    }
-		  }
-		`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+	***REMOVED******REMOVED***
+			It("Happy flow with default attributes", func(***REMOVED*** {
+				// Prepare the server:
+				server.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(
+							http.MethodPost,
+							"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+						***REMOVED***,
+						VerifyJSON(`{
+				          "kind": "IdentityProvider",
+				          "type": "LDAPIdentityProvider",
+                          "mapping_method": "claim",
+				          "name": "my-ip",
+				          "ldap": {
+				            "ca": "my-ca",
+				            "insecure": false,
+				            "url": "ldap://my-server.com",
+				            "attributes": {
+				              "id": ["dn"],
+				              "name": ["cn"],
+				              "preferred_username": ["uid"]
+				            }
+				          }
+				        }`***REMOVED***,
+						RespondWithJSON(http.StatusOK, `{
+				          "id": "456",
+				          "name": "my-ip",
+                          "mapping_method": "claim",
+				          "ldap": {
+				            "ca": "my-ca",
+				            "insecure": false,
+				            "url": "ldap://my-server.com",
+				            "attributes": {
+				              "id": ["dn"],
+				              "name": ["cn"],
+				              "preferred_username": ["uid"]
+				            }
+				          }
+				        }`***REMOVED***,
+					***REMOVED***,
+				***REMOVED***
+
+				// Run the apply command:
+				terraform.Source(`
+        		  resource "ocm_identity_provider" "my_ip" {
+        		    cluster    = "123"
+        		    name       = "my-ip"
+        		    ldap = {
+        		      insecure      = false
+        		      ca            = "my-ca"
+        		      url           = "ldap://my-server.com"
+                      attributes    = {}
+        		    }
+        		  }
+        		`***REMOVED***
+				Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+	***REMOVED******REMOVED***
+			It("Happy flow with bind values", func(***REMOVED*** {
+				// Prepare the server:
+				server.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(
+							http.MethodPost,
+							"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+						***REMOVED***,
+						VerifyJSON(`{
+				          "kind": "IdentityProvider",
+				          "type": "LDAPIdentityProvider",
+                          "mapping_method": "claim",
+				          "name": "my-ip",
+				          "ldap": {
+				            "bind_dn": "my-bind-dn",
+				            "bind_password": "my-bind-password",
+				            "ca": "my-ca",
+				            "insecure": false,
+				            "url": "ldap://my-server.com",
+				            "attributes": {
+				              "id": ["my-id"],
+				              "email": ["my@email.com"],
+				              "name": ["my-name"],
+				              "preferred_username": ["my-preferred-username"]
+				            }
+				          }
+				        }`***REMOVED***,
+						RespondWithJSON(http.StatusOK, `{
+				          "id": "456",
+				          "name": "my-ip",
+                          "mapping_method": "claim",
+				          "ldap": {
+				            "bind_dn": "my-bind-dn",
+				            "bind_password": "my-bind-password",
+				            "ca": "my-ca",
+				            "insecure": false,
+				            "url": "ldap://my-server.com",
+				            "attributes": {
+				              "id": ["my-id"],
+				              "email": ["my@email.com"],
+				              "name": ["my-name"],
+				              "preferred_username": ["my-preferred-username"]
+				            }
+				          }
+				        }`***REMOVED***,
+					***REMOVED***,
+				***REMOVED***
+
+				// Run the apply command:
+				terraform.Source(`
+        		  resource "ocm_identity_provider" "my_ip" {
+        		    cluster    = "123"
+        		    name       = "my-ip"
+        		    ldap = {
+        		      bind_dn       = "my-bind-dn"
+        		      bind_password = "my-bind-password"
+        		      insecure      = false
+        		      ca            = "my-ca"
+        		      url           = "ldap://my-server.com"
+        		      attributes    = {
+        		        id                 = ["my-id"]
+        		        email              = ["my@email.com"]
+        		        name               = ["my-name"]
+        		        preferred_username = ["my-preferred-username"]
+        		      }
+        		    }
+        		  }
+        		`***REMOVED***
+				Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+	***REMOVED******REMOVED***
+
+			It("Happy flow without bind values", func(***REMOVED*** {
+				// Prepare the server:
+				server.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(
+							http.MethodPost,
+							"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+						***REMOVED***,
+						VerifyJSON(`{
+				          "kind": "IdentityProvider",
+				          "type": "LDAPIdentityProvider",
+                          "mapping_method": "claim",
+				          "name": "my-ip",
+				          "ldap": {
+				            "ca": "my-ca",
+				            "insecure": false,
+				            "url": "ldap://my-server.com",
+				            "attributes": {
+				              "id": ["my-id"],
+				              "email": ["my@email.com"],
+				              "name": ["my-name"],
+				              "preferred_username": ["my-preferred-username"]
+				            }
+				          }
+				        }`***REMOVED***,
+						RespondWithJSON(http.StatusOK, `{
+				          "id": "456",
+				          "name": "my-ip",
+                          "mapping_method": "claim",
+				          "ldap": {
+				            "ca": "my-ca",
+				            "insecure": false,
+				            "url": "ldap://my-server.com",
+				            "attributes": {
+				              "id": ["my-id"],
+				              "email": ["my@email.com"],
+				              "name": ["my-name"],
+				              "preferred_username": ["my-preferred-username"]
+				            }
+				          }
+				        }`***REMOVED***,
+					***REMOVED***,
+				***REMOVED***
+
+				// Run the apply command:
+				terraform.Source(`
+        		  resource "ocm_identity_provider" "my_ip" {
+        		    cluster    = "123"
+        		    name       = "my-ip"
+        		    ldap = {
+        		      insecure      = false
+        		      ca            = "my-ca"
+        		      url           = "ldap://my-server.com"
+        		      attributes    = {
+        		        id                 = ["my-id"]
+        		        email              = ["my@email.com"]
+        		        name               = ["my-name"]
+        		        preferred_username = ["my-preferred-username"]
+        		      }
+        		    }
+        		  }
+        		`***REMOVED***
+				Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+	***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 
 		Context("Google identity provider", func(***REMOVED*** {

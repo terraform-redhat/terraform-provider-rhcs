@@ -21,21 +21,23 @@ terraform {
       version = ">= 3.67"
     }
     ocm = {
-      version = "0.0.3"
+      version = ">= 1.0.1"
       source  = "terraform-redhat/ocm"
     }
   }
 }
 
 provider "ocm" {
+  token = var.token
+  url   = var.url
 }
 
-resource "ocm_identity_provider" "gitlab_idp" {
+resource "ocm_identity_provider" "htpasswd_idp" {
   cluster = "my-cluster"
-  name    = "Gitlab"
-  gitlab = {
-    client_id     = var.gitlab_client_id
-    client_secret = var.gitlab_client_secret
-    url           = var.gitlab_url
+  name    = "htpasswd"
+  htpasswd = {
+    username = var.htpasswd_username
+    password = var.htpasswd_password
   }
 }
+

@@ -1,36 +1,26 @@
-# GitHub identity provider example
+# GitHub identity provider
 
 Configuring [GitHub authentication](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/authorizing-oauth-apps***REMOVED*** allows users to log in to OpenShift Container Platform with their GitHub credentials.
-To prevent anyone with any GitHub user ID from logging in to your OpenShift Container Platform cluster, you can restrict access to only those in specific GitHub organizations.
 
+To prevent anyone with any GitHub user ID from logging in to your OpenShift Container Platform cluster, you can restrict access to only those in specific GitHub organizations.
 ## Prerequisites
 
-### An OpenShift cluster
+1. You created your [account roles using Terraform](../../examples/create_rosa_cluster/create_rosa_sts_cluster/classic_sts/account_roles/README.md***REMOVED***.
+1. You created your cluster using Terraform. This cluster can either have [a managed OIDC configuration](../../examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/README.md***REMOVED*** or [an unmanaged OIDC configuration](../../examples/create_rosa_cluster/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/README.md***REMOVED***.
+1. **Optional**: You have configured your Terraform.tfvars file.
 
-This example assumes you have created a cluster via OCM, It can be via this terraform provider or by a different client.
-We will need the cluster name and some credentials.
-
-### Setting up your application in GitHub
+## Setting up your application in GitHub
 
 To use GitHub or GitHub Enterprise as an identity provider, you must register an application to use.
 
-Procedure
-
 1. Register an application on GitHub:
-    
     - For GitHub, click [**Settings**](https://github.com/settings/profile***REMOVED*** → [**Developer settings**](https://github.com/settings/apps***REMOVED*** → [**OAuth Apps**](https://github.com/settings/developers***REMOVED*** → [**Register a new OAuth application**](https://github.com/settings/applications/new***REMOVED***.
-        
     - For GitHub Enterprise, go to your GitHub Enterprise home page and then click **Settings → Developer settings → Register a new application**.
-        
-    
 2. Enter an application name, for example `My OpenShift Install`.
-    
 3. Enter a homepage URL, such as `https://oauth-openshift.apps.<cluster-name>.<cluster-domain>`.
-    
-4. Optional: Enter an application description.
-    
+4. **Optional**: Enter an application description.    
 5. Enter the authorization callback URL, where the end of the URL contains the identity provider `name`:
-    
+
     `https://oauth-openshift.apps.<cluster-name>.<cluster-domain>/oauth2callback/<idp-provider-name>`
     
     For example:
@@ -40,17 +30,58 @@ Procedure
 
 6. Click **Register application**. GitHub provides a client ID and a client secret. You need these values to complete the identity provider configuration.
 
-## Execution
+## Applying the Terraform plan
 
-### Edit the terraform.tfvars
+1. You need to either edit the `terraform.tfvars` file within this directory, or add the following items to your existing `*.tfvars` file. You may also export these variables as environmental variables with the following commands:
+      1.  This value is the generated GitHub client secret to validate your account. It can be found in the settings of your GitHub account.
+          ```
+          export TF_VAR_github_client_secret=<github_client_secret>
+          ```
+      1.  This value is your GitHub client ID. It can be found in the settings of your GitHub account.   
+          ```
+          export TF_VAR_github_client_id=<client_id>
+          ```
+      1.  This value should be your GitHub organization. 
+          ```
+          export TF_VAR_github_orgs='["<github_org>"]'
+          ```
+      1.  This variable should be your full [OCM offline token](https://console.redhat.com/openshift/token***REMOVED*** that you generated in the prerequisites.  
+          ```
+          export TF_VAR_token=<ocm_offline_token> 
+          ```
+      1.  This value should point to your OpenShift instance.  
+          ```
+          export TF_VAR_url=<ocm_url>
+          ```
+1. In your local copy of the `github` folder, run the following command:
+   ````
+   terraform init
+   ````
+   Running this command accesses all the necessary provider information to apply your Terraform plan.
+1. **Optional**: Run the `plan` command to ensure that your Terraform files build correctly without errors. This is not required to apply your Terraform plans.
+   ````
+   terraform plan -out github.tfplan
+   ````
+1. Run the apply command to create your GitHub identity provider. 
 
-Take your time with editing the variables file. 
-There are comments that will explain what each variable is.
+   > **Note**: If you did not run the `plan` command, you can simply just `apply` without specifying a file.
 
-### Let's Go!
+    ````
+    terraform apply <"github.tfplan">
+    ````
+1. The Terraform applies the plan and creates your identity provider using GitHub. You will see a prompt to confirm you want to create these resources. Enter `yes`, then the process will complete with your resources.
 
-Simply run `terraform apply`
+## Resource clean up
 
+After you are done with the resources you created, you should not delete them manually, but instead, use the `destroy` command. Run the following to delete all of your created resources:
+  
+```
+terraform destroy
+```
+
+After the command is complete, your resources are deleted.
+
+> **NOTE**: If you manually delete a resource, you create unresolvable issues within your environment.
 
 ## OpenShift documentation
 

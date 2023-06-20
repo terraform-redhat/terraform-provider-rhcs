@@ -24,7 +24,9 @@ import (
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	ocmerrors "github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/pkg/errors"
+	"github.com/zgalor/weberr"
 )
 
 const versionPrefix = "openshift-v"
@@ -134,4 +136,13 @@ func IsGreaterThanOrEqual(version1, version2 string) (bool, error) {
 		return false, err
 	}
 	return v1.GreaterThanOrEqual(v2), nil
+}
+
+func HandleErr(res *ocmerrors.Error, err error) error {
+	msg := res.Reason()
+	if msg == "" {
+		msg = err.Error()
+	}
+	errType := weberr.ErrorType(res.Status())
+	return errType.Set(errors.Errorf("%s", msg))
 }

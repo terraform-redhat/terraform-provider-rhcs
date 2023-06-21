@@ -2287,6 +2287,58 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"***REMOVED***,
 				RespondWithJSON(http.StatusOK, upgradePoliciesEmpty***REMOVED***,
 			***REMOVED***,
+			// Look for gate agreements by posting an upgrade policy w/ dryRun
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies", "dryRun=true"***REMOVED***,
+				VerifyJQ(".version", "4.10.1"***REMOVED***,
+				RespondWithJSON(http.StatusBadRequest, `{
+					"kind": "Error",
+					"id": "400",
+					"href": "/api/clusters_mgmt/v1/errors/400",
+					"code": "CLUSTERS-MGMT-400",
+					"reason": "There are missing version gate agreements for this cluster. See details.",
+					"details": [
+					  {
+						"kind": "VersionGate",
+						"id": "999",
+						"href": "/api/clusters_mgmt/v1/version_gates/596326fb-d1ea-11ed-9f29-0a580a8312f9",
+						"version_raw_id_prefix": "4.10",
+						"label": "api.openshift.com/gate-sts",
+						"value": "4.10",
+						"warning_message": "STS roles must be updated blah blah blah",
+						"description": "OpenShift STS clusters include new required cloud provider permissions in OpenShift 4.YY.",
+						"documentation_url": "https://access.redhat.com/solutions/0000000",
+						"sts_only": true,
+						"creation_timestamp": "2023-04-03T06:39:57.057613Z"
+					  }
+					],
+					"operation_id": "8f2d2946-c4ef-4c2f-877b-c19eb17dc918"
+				  }`***REMOVED***,
+			***REMOVED***,
+			// Send acks for all gate agreements
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/gate_agreements"***REMOVED***,
+				VerifyJQ(".version_gate.id", "999"***REMOVED***,
+				RespondWithJSON(http.StatusCreated, `{
+					"kind": "VersionGateAgreement",
+					"id": "888",
+					"href": "/api/clusters_mgmt/v1/clusters/24g9q8jhdhv66fi41jfiuup5lsvu61fi/gate_agreements/d2e8d371-1033-11ee-9f05-0a580a820bdb",
+					"version_gate": {
+					  "kind": "VersionGate",
+					  "id": "999",
+					  "href": "/api/clusters_mgmt/v1/version_gates/596326fb-d1ea-11ed-9f29-0a580a8312f9",
+					  "version_raw_id_prefix": "4.10",
+					  "label": "api.openshift.com/gate-sts",
+					  "value": "4.10",
+					  "warning_message": "STS blah blah blah",
+					  "description": "OpenShift STS clusters include new required cloud provider permissions in OpenShift 4.YY.",
+					  "documentation_url": "https://access.redhat.com/solutions/0000000",
+					  "sts_only": true,
+					  "creation_timestamp": "2023-04-03T06:39:57.057613Z"
+			***REMOVED***,
+					"creation_timestamp": "2023-06-21T13:02:06.291443Z"
+				  }`***REMOVED***,
+			***REMOVED***,
 			// Create an upgrade policy
 			CombineHandlers(
 				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"***REMOVED***,
@@ -2310,7 +2362,7 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 				RespondWithJSON(http.StatusOK, template***REMOVED***,
 			***REMOVED***,
 		***REMOVED***
-		// Perform upgrade
+		// Perform upgrade w/ auto-ack of sts-only gate agreements
 		terraform.Source(`
 		  resource "ocm_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
@@ -2467,6 +2519,12 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 				VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456"***REMOVED***,
 				RespondWithJSON(http.StatusOK, "{}"***REMOVED***,
 			***REMOVED***,
+			// Look for gate agreements by posting an upgrade policy w/ dryRun (no gates necessary***REMOVED***
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies", "dryRun=true"***REMOVED***,
+				VerifyJQ(".version", "4.10.1"***REMOVED***,
+				RespondWithJSON(http.StatusNoContent, ""***REMOVED***,
+			***REMOVED***,
 			// Create an upgrade policy
 			CombineHandlers(
 				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"***REMOVED***,
@@ -2508,5 +2566,171 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 			version = "openshift-v4.10.1"
 ***REMOVED***`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+	}***REMOVED***
+
+	Context("Un-acked gates", func(***REMOVED*** {
+		BeforeEach(func(***REMOVED*** {
+			server.AppendHandlers(
+				// Refresh cluster state
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					RespondWithJSON(http.StatusOK, template***REMOVED***,
+				***REMOVED***,
+				// Validate upgrade versions
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.8.0"***REMOVED***,
+					RespondWithJSON(http.StatusOK, v4_8_0Info***REMOVED***,
+				***REMOVED***,
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"***REMOVED***,
+					RespondWithJSON(http.StatusOK, v4_10_1Info***REMOVED***,
+				***REMOVED***,
+				// Validate roles
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/sts_operator_roles"***REMOVED***,
+					RespondWithJSON(http.StatusOK, operIAMList***REMOVED***,
+				***REMOVED***,
+				// Look for existing upgrade policies
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"***REMOVED***,
+					RespondWithJSON(http.StatusOK, upgradePoliciesEmpty***REMOVED***,
+				***REMOVED***,
+				// Look for gate agreements by posting an upgrade policy w/ dryRun
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies", "dryRun=true"***REMOVED***,
+					VerifyJQ(".version", "4.10.1"***REMOVED***,
+					RespondWithJSON(http.StatusBadRequest, `{
+						"kind": "Error",
+						"id": "400",
+						"href": "/api/clusters_mgmt/v1/errors/400",
+						"code": "CLUSTERS-MGMT-400",
+						"reason": "There are missing version gate agreements for this cluster. See details.",
+						"details": [
+						{
+							"kind": "VersionGate",
+							"id": "999",
+							"href": "/api/clusters_mgmt/v1/version_gates/596326fb-d1ea-11ed-9f29-0a580a8312f9",
+							"version_raw_id_prefix": "4.10",
+							"label": "api.openshift.com/ackme",
+							"value": "4.10",
+							"warning_message": "user gotta ack",
+							"description": "deprecations... blah blah blah",
+							"documentation_url": "https://access.redhat.com/solutions/0000000",
+							"sts_only": false,
+							"creation_timestamp": "2023-04-03T06:39:57.057613Z"
+				***REMOVED***
+						],
+						"operation_id": "8f2d2946-c4ef-4c2f-877b-c19eb17dc918"
+			***REMOVED***`***REMOVED***,
+				***REMOVED***,
+			***REMOVED***
+***REMOVED******REMOVED***
+		It("Fails upgrade for un-acked gates", func(***REMOVED*** {
+			terraform.Source(`
+			resource "ocm_cluster_rosa_classic" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						master_role_arn = "",
+						worker_role_arn = "",
+			***REMOVED***
+		***REMOVED***
+				version = "openshift-v4.10.1"
+	***REMOVED***`***REMOVED***
+			Expect(terraform.Apply(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
+***REMOVED******REMOVED***
+		It("Fails upgrade if wrong version is acked", func(***REMOVED*** {
+			terraform.Source(`
+			resource "ocm_cluster_rosa_classic" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						master_role_arn = "",
+						worker_role_arn = "",
+			***REMOVED***
+		***REMOVED***
+				version = "openshift-v4.10.1"
+				upgrade_acknowledgements_for = "1.1"
+	***REMOVED***`***REMOVED***
+			Expect(terraform.Apply(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
+***REMOVED******REMOVED***
+		It("It acks gates if correct ack is provided", func(***REMOVED*** {
+			server.AppendHandlers(
+				// Send acks for all gate agreements
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/gate_agreements"***REMOVED***,
+					VerifyJQ(".version_gate.id", "999"***REMOVED***,
+					RespondWithJSON(http.StatusCreated, `{
+					"kind": "VersionGateAgreement",
+					"id": "888",
+					"href": "/api/clusters_mgmt/v1/clusters/24g9q8jhdhv66fi41jfiuup5lsvu61fi/gate_agreements/d2e8d371-1033-11ee-9f05-0a580a820bdb",
+					"version_gate": {
+					  "kind": "VersionGate",
+					  "id": "999",
+					  "href": "/api/clusters_mgmt/v1/version_gates/596326fb-d1ea-11ed-9f29-0a580a8312f9",
+					  "version_raw_id_prefix": "4.10",
+					  "label": "api.openshift.com/gate-sts",
+					  "value": "4.10",
+					  "warning_message": "blah blah blah",
+					  "description": "whatever",
+					  "documentation_url": "https://access.redhat.com/solutions/0000000",
+					  "sts_only": false,
+					  "creation_timestamp": "2023-04-03T06:39:57.057613Z"
+			***REMOVED***,
+					"creation_timestamp": "2023-06-21T13:02:06.291443Z"
+				  }`***REMOVED***,
+				***REMOVED***,
+				// Create an upgrade policy
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"***REMOVED***,
+					VerifyJQ(".version", "4.10.1"***REMOVED***,
+					RespondWithJSON(http.StatusCreated, `
+				{
+					"kind": "UpgradePolicy",
+					"id": "123",
+					"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/123",
+					"schedule_type": "manual",
+					"upgrade_type": "OSD",
+					"version": "4.10.1",
+					"next_run": "2023-06-09T20:59:00Z",
+					"cluster_id": "123",
+					"enable_minor_version_upgrades": true
+		***REMOVED***`***REMOVED***,
+				***REMOVED***,
+				// Patch the cluster (w/ no changes***REMOVED***
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					RespondWithJSON(http.StatusOK, template***REMOVED***,
+				***REMOVED***,
+			***REMOVED***
+			terraform.Source(`
+			resource "ocm_cluster_rosa_classic" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						master_role_arn = "",
+						worker_role_arn = "",
+			***REMOVED***
+		***REMOVED***
+				version = "openshift-v4.10.1"
+				upgrade_acknowledgements_for = "4.10"
+	***REMOVED***`***REMOVED***
+			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+***REMOVED******REMOVED***
 	}***REMOVED***
 }***REMOVED***

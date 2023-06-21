@@ -1,3 +1,17 @@
+## 1.0.2 (Jun 21, 2023***REMOVED***
+-FEATURES:
+* Added GitHub IDP provider support
+* Added Google IDP provider support
+* Adding support for http_tokens_state field.
+* Added day 2 proxy settings
+* Support cluster update/upgrade
+
+-ENHANCEMENTS:
+* Add and improve documentations and examples
+* Improve tests coverage
+* Adjust rosa_cluster_resource to support OIDC config ID as an input attribute
+* Improve the provider logger
+
 ## 1.0.0 (April 4, 2023***REMOVED***
 -ENHANCEMENTS:
 * Bug fixes - Validate that the cluster version is compatible to the selected account roles' version in `cluster_rosa_classic` resource 

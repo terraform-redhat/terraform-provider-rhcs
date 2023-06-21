@@ -181,27 +181,27 @@ func AckVersionGate(
 }
 
 // Construct a list of missing gate agreements for upgrade to a given cluster version
+// Returns: a list of all un-acked gate agreements, a string describing the ones that need user ack, and an error
 func CheckMissingAgreements(version string,
-	clusterKey string, upgradePoliciesClient *cmv1.UpgradePoliciesClient, ackRequiredOnly bool) ([]string, string, error) {
+	clusterKey string, upgradePoliciesClient *cmv1.UpgradePoliciesClient) ([]*cmv1.VersionGate, string, error) {
 	upgradePolicyBuilder := cmv1.NewUpgradePolicy().
 		ScheduleType("manual").
 		Version(version)
 	upgradePolicy, err := upgradePolicyBuilder.Build()
 	if err != nil {
-		return []string{}, "", fmt.Errorf("failed to build upgrade policy: %v", err)
+		return []*cmv1.VersionGate{}, "", fmt.Errorf("failed to build upgrade policy: %v", err)
 	}
 
 	// check if the cluster upgrade requires gate agreements
 	gates, err := getMissingGateAgreements(upgradePolicy, upgradePoliciesClient)
 	if err != nil {
-		return []string{}, "", fmt.Errorf("failed to check for missing gate agreements upgrade for "+
+		return []*cmv1.VersionGate{}, "", fmt.Errorf("failed to check for missing gate agreements upgrade for "+
 			"cluster '%s': %v", clusterKey, err)
 	}
 	str := "\nMissing required acknowledgements to schedule upgrade." +
 		"\nRead the below description and acknowledge to proceed with upgrade." +
 		"\nDescription:"
 	counter := 1
-	var gateIDs []string
 	for _, gate := range gates {
 		if !gate.STSOnly() { // STS-only gates don't require user acknowledgement
 			str = fmt.Sprintf("%s\n%d) %s\n", str, counter, gate.Description())
@@ -211,13 +211,9 @@ func CheckMissingAgreements(version string,
 			}
 			str = fmt.Sprintf("%s   URL:         %s\n", str, gate.DocumentationURL())
 			counter++
-			gateIDs = append(gateIDs, gate.ID())
-		} else if !ackRequiredOnly { // We want all gates, not just the ones that require acknowledgement
-			gateIDs = append(gateIDs, gate.ID())
 		}
 	}
-	tflog.Debug(context.TODO(), "Missing gate agreement IDs", "gateIDs", gateIDs)
-	return gateIDs, str, nil
+	return gates, str, nil
 }
 
 func getMissingGateAgreements(

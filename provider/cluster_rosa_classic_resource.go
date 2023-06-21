@@ -1372,31 +1372,30 @@ func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context,
 	if !correctUpgradePending {
 		// Gate agreements are checked when the upgrade is scheduled, resulting
 		// in an error return. ROSA cli does this by scheduling once w/ dryRun
-		// to look for un-acked agreements. Since we are not implementing acking
-		// gate agreements in TF, we will just go ahead and apply the upgrade,
-		// letting it fail w/ an error. The user can then ack the agreement via
-		// some other method and re-run the apply.
-
+		// to look for un-acked agreements.
 		clusterClient := r.clusterCollection.Cluster(state.ID.Value)
 		upgradePoliciesClient := clusterClient.UpgradePolicies()
-		// Gates that require acknowledgement
-		ackGateIDs, description, err := upgrade.CheckMissingAgreements(desiredVersion.String(), state.ID.Value, upgradePoliciesClient, true)
+		gates, description, err := upgrade.CheckMissingAgreements(desiredVersion.String(), state.ID.Value, upgradePoliciesClient)
 		if err != nil {
 			return fmt.Errorf("failed to check for missing upgrade agreements: %v", err)
 		}
+		// User ack is required if we have any non-STS-only gates
+		userAckRequired := false
+		for _, gate := range gates {
+			if !gate.STSOnly() {
+				userAckRequired = true
+			}
+		}
 		targetMinorVersion := getOcmVersionMinor(desiredVersion.String())
 		userAcksGates := !plan.UpgradeAcksFor.Unknown && !plan.UpgradeAcksFor.Null && plan.UpgradeAcksFor.Value == targetMinorVersion
-		if len(ackGateIDs) > 0 && !userAcksGates { // User has not acknowledged mandatory gates
+		if userAckRequired && !userAcksGates { // User has not acknowledged mandatory gates, stop here.
 			return fmt.Errorf("%s\nTo acknowledge these items, please add \"upgrade_acknowledgements_for = %s\""+
 				" and re-apply the changes", description, targetMinorVersion)
 		}
 
-		// Ack all gates to OCM; including ones that don't require _user_ acks
-		allGates, _, err := upgrade.CheckMissingAgreements(desiredVersion.String(), state.ID.Value, upgradePoliciesClient, false)
-		if err != nil {
-			return fmt.Errorf("failed to check for missing upgrade agreements: %v", err)
-		}
-		for _, gateID := range allGates {
+		// Ack all gates to OCM
+		for _, gate := range gates {
+			gateID := gate.ID()
 			tflog.Debug(ctx, "Acknowledging version gate", "gateID", gateID)
 			gateAgreementsClient := clusterClient.GateAgreements()
 			err := upgrade.AckVersionGate(gateAgreementsClient, gateID)

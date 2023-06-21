@@ -121,4 +121,3 @@ apply_folder: install
 .PHONY: destroy_folder
 destroy_folder: install
 	bash ./ci/destroy_folder.sh
-

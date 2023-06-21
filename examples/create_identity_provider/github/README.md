@@ -53,7 +53,7 @@ To use GitHub or GitHub Enterprise as an identity provider, you must register an
           ```
           export TF_VAR_url=<ocm_url>
           ```
-      1.  This value should point to your cluster ID.  
+      1.  The ID of the cluster for which you are creating the identity provider. This ID can be found in the CLI with the command `rosa list cluster`. 
           ```
           export TF_VAR_cluster_id=<cluster_id>
           ```

@@ -25,7 +25,9 @@ For more information about ROSA, see the Red Hat documentation [here](https://ac
 * [Terraform version 1.4.6 or newer](https://developer.hashicorp.com/terraform/downloads)
 * An offline [OCM token](https://console.redhat.com/openshift/token/rosa)
 * [AWS account](https://aws.amazon.com/console/)
+* Completed [the ROSA getting started](https://console.redhat.com/openshift/create/rosa/getstarted) requirements
 * [ROSA CLI](https://console.redhat.com/openshift/downloads#tool-rosa)
+* **Optional**: A [configured `*.tfvars` file](docs/terraform-vars.md).
 
 ## Provider Documentation
 
@@ -47,6 +49,7 @@ The example Terraform files are all considered in development:
       * [Gitlab](/examples/create_identity_provider/gitlab/README.md)
       * [HTPasswd](/examples/create_identity_provider/htpasswd/README.md)
       * [Google](/examples/create_identity_provider/google/README.md)
+      * [LDAP](/examples/create_identity_provider/ldap/README.md)
 1. Update/Upgrade cluster
 
 ## Contributing to the Red Hat OCM Terraform Provider

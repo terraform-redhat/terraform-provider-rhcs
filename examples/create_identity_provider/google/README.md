@@ -1,18 +1,15 @@
-# Google identity provider example
+# Google identity provider
 
 Using Google as an identity provider allows any Google user to authenticate to your server.
 You can limit authentication to members of a specific hosted domain with the `hosted_domain` configuration attribute.
 
-This example shows how to create a Google identity provider.
-
 ## Prerequisites
 
-### An OpenShift cluster
+1. You created your [account roles using Terraform](../../examples/create_rosa_cluster/create_rosa_sts_cluster/classic_sts/account_roles/README.md***REMOVED***.
+1. You created your cluster using Terraform. This cluster can either have [a managed OIDC configuration](../../examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/README.md***REMOVED*** or [an unmanaged OIDC configuration](../../examples/create_rosa_cluster/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/README.md***REMOVED***.
+1. **Optional**: You have configured your Terraform.tfvars file.
 
-This example assumes you have created a cluster via OCM, It can be via this terraform provider or by a different client.
-We will need the cluster name and some credentials.
-
-### Setting up your application in Google
+## Setting up your application in Google
 
 You will need a client ID/Secret of a [registered Google project](https://console.developers.google.com/***REMOVED***.
 The project must be configured with a redirect URI of `https://oauth-openshift.apps.<cluster-name>.<cluster-domain>/oauth2callback/<idp-provider-name>`.
@@ -21,17 +18,58 @@ For example:
 
 > **Note**: `<idp-provider-name>` is case-sensitive. Name is defined [here](./main.tf#L37***REMOVED***
 
-## Execution
+## Applying the Terraform plan
 
-### Edit the terraform.tfvars
+1. You need to either edit the `terraform.tfvars` file within this directory, or add the following items to your existing `*.tfvars` file. You may also export these variables as environmental variables with the following commands:
+      1.  This value is the generated Google client secret to validate your account. It can be found in the settings of your Google account.
+          ```
+          export TF_VAR_google_client_secret=<google_client_secret>
+          ```
+      1.  This value is your Google client ID. It can be found in the settings of your Google account.   
+          ```
+          export TF_VAR_google_client_id=<client_id>
+          ```
+      1.  This value should be your Google hosted domain that was generated in the previous step.  
+          ```
+          export TF_VAR_google_hosted_domain='["<google_hosted_domain>"]'
+          ```
+      1.  This variable should be your full [OCM offline token](https://console.redhat.com/openshift/token***REMOVED*** that you generated in the prerequisites.  
+          ```
+          export TF_VAR_token=<ocm_offline_token> 
+          ```
+      1.  This value should point to your OpenShift instance.  
+          ```
+          export TF_VAR_url=<ocm_url>
+          ```
+1. In your local copy of the `google` folder, run the following command:
+   ````
+   terraform init
+   ````
+   Running this command accesses all the necessary provider information to apply your Terraform plan.
+1. **Optional**: Run the `plan` command to ensure that your Terraform files build correctly without errors. This is not required to apply your Terraform plans.
+   ````
+   terraform plan -out google.tfplan
+   ````
+1. Run the apply command to create your Google identity provider. 
 
-Take your time with editing the variables file. 
-There are comments that will explain what each variable is.
+   > **Note**: If you did not run the `plan` command, you can simply just `apply` without specifying a file.
 
-### Let's Go!
+    ````
+    terraform apply <"google.tfplan">
+    ````
+1. The Terraform applies the plan and creates your identity provider using Google. You will see a prompt to confirm you want to create these resources. Enter `yes`, then the process will complete with your resources.
 
-Simply run `terraform apply`
+## Resource clean up
 
+After you are done with the resources you created, you should not delete them manually, but instead, use the `destroy` command. Run the following to delete all of your created resources:
+  
+```
+terraform destroy
+```
+
+After the command is complete, your resources are deleted.
+
+> **NOTE**: If you manually delete a resource, you create unresolvable issues within your environment.
 
 ## OpenShift documentation
 

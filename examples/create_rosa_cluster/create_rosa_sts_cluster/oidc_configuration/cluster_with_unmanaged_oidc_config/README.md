@@ -4,7 +4,7 @@ This Terraform example creates a ROSA STS cluster that uses an unmanaged OIDC co
 
 ## Prerequisites
 
-* You have an AWS account.
+* You have an AWS account. Your locally configured AWS credentials are used to access to AWS API for validation purposes.
 * You have installed the latest version ROSA CLI (`rosa`***REMOVED***.
 * You must have an offline OCM token. This token can be generated in the [Red Hat Hybrid Cloud Console](https://console.redhat.com/openshift/token***REMOVED***.
 * You have installed Terraform. See the [Hashicorp Terraform page](https://developer.hashicorp.com/terraform/downloads***REMOVED*** for the latest version.

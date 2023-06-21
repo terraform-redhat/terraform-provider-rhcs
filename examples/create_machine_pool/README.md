@@ -1,6 +1,6 @@
-# Creating a Machine Pool for existing Openshift cluster
+# Creating a machine pool for an existing Openshift cluster
 
-This Terraform example creates a Node Pool for existing OCM cluster. Creating new Machine pool allows users to add different machine types in the cluster..
+This Terraform example creates a **machine pool** for existing ROSA cluster. Creating a new machine pool allows users to add different machine types in the cluster.
 
 ## Prerequisites
 
@@ -11,7 +11,7 @@ This Terraform example creates a Node Pool for existing OCM cluster. Creating ne
 * You have already created OCM cluster.
 
 
-## ROSA cluster creation
+## machine pool creation
 
 1. To run the `terraform apply` you need to set up some variables. This guide uses environmental variables. For more on Terraform variables, see [Managing Variables](https://developer.hashicorp.com/terraform/enterprise/workspaces/variables/managing-variables***REMOVED*** in the Terraform documentation.
 
@@ -27,21 +27,21 @@ This Terraform example creates a Node Pool for existing OCM cluster. Creating ne
         ```
         export TF_VAR_url=<ocm_url>
         ```
-    3. The ID of the cluster which the Machine Pool is created for
+    3. The ID of the cluster for which you are creating the machine pool. This ID can be found in the CLI with the command `rosa list cluster`.
         ```
         export TF_VAR_cluster_id=<cluster_id>
         ```
-    4. The Machine Pool name
+    4. The machine pool name
         ```
         export TF_VAR_name=<name>
         ```
-    5. This value sets the AWS instance type used for instances created in this Machine Pool
+    5. This value sets the AWS instance type used for instances created in this machine pool
         ```
         export TF_VAR_machine_type=<machine_type>
         ```
     6. This value sets the amount of the machine created in this machine pool
         ```
-        export TF_VAR_replica=<replica>
+        export TF_VAR_replicas=<replica>
         ```
 1. In your local copy of the `create_machine_pool` folder, run the following command:
    ````
@@ -67,3 +67,14 @@ This Terraform example creates a Node Pool for existing OCM cluster. Creating ne
     ````
     rosa list machinepools -c <cluster_id>
     ````
+## Resource clean up
+
+After you are done with the resources you created, you should not delete them manually, but instead, use the `destroy` command. Run the following to delete all of your created resources:
+  
+```
+terraform destroy
+```
+
+After the command is complete, your resources are deleted.
+
+> **NOTE**: If you manually delete a resource, you create unresolvable issues within your environment.

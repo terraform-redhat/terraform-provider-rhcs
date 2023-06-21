@@ -55,7 +55,7 @@ This Terraform example creates a ROSA STS cluster that uses an unmanaged OIDC co
         ```    
         export TF_VAR_openshift_version=<choose_openshift_version>
         ```
-    10.  **Optional**: If you want to set any specific AWS tags for your account roles, you can use this variable to declare those tags.   
+    10.  **Optional**: If you want to set any specific AWS tags for your cluster, you can use this variable to declare those tags.   
          ```    
          export TF_VAR_tags=<aws_resource_tags> (Optional***REMOVED*** 
          ```         
@@ -79,7 +79,7 @@ This Terraform example creates a ROSA STS cluster that uses an unmanaged OIDC co
 
 ## Verification
 
-1. In your command-line interface, run the following command to verify that the account roles are created:
+1. In your command-line interface, run the following command to verify that the cluster was created:
     ````
     rosa list cluster
     ````

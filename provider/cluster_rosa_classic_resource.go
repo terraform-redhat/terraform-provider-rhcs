@@ -414,6 +414,13 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 					ValueCannotBeChangedModifier(***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,
+			"upgrade_acknowledgements_for": {
+				Description: "Indicates acknowledgement of agreements required to upgrade the cluster version between" +
+					" minor versions (e.g. a value of \"4.12\" indicates acknowledgement of any agreements required to " +
+					"upgrade to OpenShift 4.12.z from 4.11 or before***REMOVED***.",
+				Type:     types.StringType,
+				Optional: true,
+	***REMOVED***,
 ***REMOVED***,
 	}
 	return
@@ -1366,10 +1373,38 @@ func (r *ClusterRosaClassicResource***REMOVED*** upgradeClusterIfNeeded(ctx cont
 	if !correctUpgradePending {
 		// Gate agreements are checked when the upgrade is scheduled, resulting
 		// in an error return. ROSA cli does this by scheduling once w/ dryRun
-		// to look for un-acked agreements. Since we are not implementing acking
-		// gate agreements in TF, we will just go ahead and apply the upgrade,
-		// letting it fail w/ an error. The user can then ack the agreement via
-		// some other method and re-run the apply.
+		// to look for un-acked agreements.
+		clusterClient := r.clusterCollection.Cluster(state.ID.Value***REMOVED***
+		upgradePoliciesClient := clusterClient.UpgradePolicies(***REMOVED***
+		gates, description, err := upgrade.CheckMissingAgreements(desiredVersion.String(***REMOVED***, state.ID.Value, upgradePoliciesClient***REMOVED***
+		if err != nil {
+			return fmt.Errorf("failed to check for missing upgrade agreements: %v", err***REMOVED***
+***REMOVED***
+		// User ack is required if we have any non-STS-only gates
+		userAckRequired := false
+		for _, gate := range gates {
+			if !gate.STSOnly(***REMOVED*** {
+				userAckRequired = true
+	***REMOVED***
+***REMOVED***
+		targetMinorVersion := getOcmVersionMinor(desiredVersion.String(***REMOVED******REMOVED***
+		userAcksGates := !plan.UpgradeAcksFor.Unknown && !plan.UpgradeAcksFor.Null && plan.UpgradeAcksFor.Value == targetMinorVersion
+		if userAckRequired && !userAcksGates { // User has not acknowledged mandatory gates, stop here.
+			return fmt.Errorf("%s\nTo acknowledge these items, please add \"upgrade_acknowledgements_for = %s\""+
+				" and re-apply the changes", description, targetMinorVersion***REMOVED***
+***REMOVED***
+
+		// Ack all gates to OCM
+		for _, gate := range gates {
+			gateID := gate.ID(***REMOVED***
+			tflog.Debug(ctx, "Acknowledging version gate", "gateID", gateID***REMOVED***
+			gateAgreementsClient := clusterClient.GateAgreements(***REMOVED***
+			err := upgrade.AckVersionGate(gateAgreementsClient, gateID***REMOVED***
+			if err != nil {
+				return fmt.Errorf("failed to acknowledge version gate '%s' for cluster '%s': %v",
+					gateID, state.ID.Value, err***REMOVED***
+	***REMOVED***
+***REMOVED***
 
 		// Schedule an upgrade
 		tenMinFromNow := time.Now(***REMOVED***.UTC(***REMOVED***.Add(10 * time.Minute***REMOVED***
@@ -1392,6 +1427,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** upgradeClusterIfNeeded(ctx cont
 	}
 
 	state.Version = plan.Version
+	state.UpgradeAcksFor = plan.UpgradeAcksFor
 	return nil
 }
 

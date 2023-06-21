@@ -40,6 +40,15 @@ The example Terraform files are all considered in development:
 1. [Create a ROSA cluster that usess STS and has a managed OIDC configuration](https://github.com/terraform-redhat/terraform-provider-ocm/blob/529b10c22c13810b3edbaa01327c7dfdcc207650/examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/README.md)
 1. [Create a ROSA cluster that uses STS and has an unmanaged OIDC configuration](https://github.com/terraform-redhat/terraform-provider-ocm/blob/529b10c22c13810b3edbaa01327c7dfdcc207650/examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/README.md)
 
+### Post cluster installation
+1. Modifying default machine pools
+1. [Identity provider](/examples/create_identity_provider/README.md). The following identity providers are supported:
+      * [Github](/examples/create_identity_provider/github/README.md)
+      * [Gitlab](/examples/create_identity_provider/gitlab/README.md)
+      * [HTPasswd](/examples/create_identity_provider/htpasswd/README.md)
+      * [Google](/examples/create_identity_provider/google/README.md)
+1. Update/Upgrade cluster
+
 ## Contributing to the Red Hat OCM Terraform Provider
 If you want to build a local OCM provider to develop improvements for the Red Hat OCM provider, you can run `terraform plan` against your local build with:
 1. Run  ```make install``` in the repository root directory. After running ```make install``` you will find the ocm provider binary file in the directory:

@@ -163,7 +163,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 					  worker_role_arn = "",
 				  }
 			  }
-			  version = "openshift-v4.11.1"
+			  version = "4.11.1"
 	***REMOVED***
 		  `***REMOVED***
 			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
@@ -246,7 +246,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 				  }
 			  }
 			  channel_group = "fast"
-			  version = "openshift-v4.50.0"
+			  version = "4.50.0"
 	***REMOVED***
 		  `***REMOVED***
 			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
@@ -285,7 +285,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 				  }
 			  }
 			  channel_group = "fast"
-			  version = "openshift-v4.99.99"
+			  version = "4.99.99"
 	***REMOVED***
 		  `***REMOVED***
 			Expect(terraform.Apply(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
@@ -2050,7 +2050,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			ec2_metadata_http_tokens = "bad_string"
-			version = "openshift-v4.12"
+			version = "4.12"
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -2107,7 +2107,7 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 	***REMOVED***
 ***REMOVED***,
 		"version": {
-			"id": "openshift-v4.8.0"
+			"id": "4.8.0"
 ***REMOVED***
 	}`
 	const v4_8_0Info = `{
@@ -2258,7 +2258,7 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 
 		// Verify initial cluster version
 		resource := terraform.Resource("ocm_cluster_rosa_classic", "my_cluster"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.current_version", "openshift-v4.8.0"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.current_version", "4.8.0"***REMOVED******REMOVED***
 	}***REMOVED***
 
 	It("Upgrades cluster", func(***REMOVED*** {
@@ -2377,7 +2377,7 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 					worker_role_arn = "",
 		***REMOVED***
 	***REMOVED***
-			version = "openshift-v4.10.1"
+			version = "4.10.1"
 ***REMOVED***`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
@@ -2453,7 +2453,7 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 					worker_role_arn = "",
 		***REMOVED***
 	***REMOVED***
-			version = "openshift-v4.10.1"
+			version = "4.10.1"
 ***REMOVED***`***REMOVED***
 		// Will fail due to upgrade in progress
 		Expect(terraform.Apply(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
@@ -2563,7 +2563,7 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 					worker_role_arn = "",
 		***REMOVED***
 	***REMOVED***
-			version = "openshift-v4.10.1"
+			version = "4.10.1"
 ***REMOVED***`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
@@ -2727,7 +2727,7 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 						worker_role_arn = "",
 			***REMOVED***
 		***REMOVED***
-				version = "openshift-v4.10.1"
+				version = "4.10.1"
 				upgrade_acknowledgements_for = "4.10"
 	***REMOVED***`***REMOVED***
 			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***

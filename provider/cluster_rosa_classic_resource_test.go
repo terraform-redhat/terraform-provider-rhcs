@@ -197,7 +197,7 @@ var _ = Describe("Rosa Classic Sts cluster", func(***REMOVED*** {
 
 			version, ok := rosaClusterObject.Version(***REMOVED***.GetID(***REMOVED***
 			Expect(ok***REMOVED***.To(BeTrue(***REMOVED******REMOVED***
-			Expect(version***REMOVED***.To(Equal("4.10"***REMOVED******REMOVED***
+			Expect(version***REMOVED***.To(Equal("openshift-v4.10"***REMOVED******REMOVED***
 			channel, ok := rosaClusterObject.Version(***REMOVED***.GetChannelGroup(***REMOVED***
 			Expect(ok***REMOVED***.To(BeTrue(***REMOVED******REMOVED***
 			Expect(channel***REMOVED***.To(Equal("stable"***REMOVED******REMOVED***
@@ -225,7 +225,7 @@ var _ = Describe("Rosa Classic Sts cluster", func(***REMOVED*** {
 
 		version, ok := rosaClusterObject.Version(***REMOVED***.GetID(***REMOVED***
 		Expect(ok***REMOVED***.To(BeTrue(***REMOVED******REMOVED***
-		Expect(version***REMOVED***.To(Equal("4.10-somechannel"***REMOVED******REMOVED***
+		Expect(version***REMOVED***.To(Equal("openshift-v4.10-somechannel"***REMOVED******REMOVED***
 		channel, ok := rosaClusterObject.Version(***REMOVED***.GetChannelGroup(***REMOVED***
 		Expect(ok***REMOVED***.To(BeTrue(***REMOVED******REMOVED***
 		Expect(channel***REMOVED***.To(Equal("somechannel"***REMOVED******REMOVED***

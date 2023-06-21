@@ -17,6 +17,7 @@ package upgrade
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -24,6 +25,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift/rosa/pkg/ocm"
+	"github.com/terraform-redhat/terraform-provider-ocm/provider/common"
+	"github.com/zgalor/weberr"
 )
 
 // ClusterUpgrade bundles the description of the upgrade with its current state
@@ -159,4 +162,87 @@ func CheckAndCancelUpgrades(ctx context.Context, client *cmv1.ClustersClient, up
 		}
 	}
 	return correctUpgradePending, nil
+}
+
+func AckVersionGate(
+	gateAgreementsClient *cmv1.VersionGateAgreementsClient,
+	gateID string) error {
+	agreement, err := cmv1.NewVersionGateAgreement().
+		VersionGate(cmv1.NewVersionGate().ID(gateID)).
+		Build()
+	if err != nil {
+		return err
+	}
+	response, err := gateAgreementsClient.Add().Body(agreement).Send()
+	if err != nil {
+		return common.HandleErr(response.Error(), err)
+	}
+	return nil
+}
+
+// Construct a list of missing gate agreements for upgrade to a given cluster version
+// Returns: a list of all un-acked gate agreements, a string describing the ones that need user ack, and an error
+func CheckMissingAgreements(version string,
+	clusterKey string, upgradePoliciesClient *cmv1.UpgradePoliciesClient) ([]*cmv1.VersionGate, string, error) {
+	upgradePolicyBuilder := cmv1.NewUpgradePolicy().
+		ScheduleType("manual").
+		Version(version)
+	upgradePolicy, err := upgradePolicyBuilder.Build()
+	if err != nil {
+		return []*cmv1.VersionGate{}, "", fmt.Errorf("failed to build upgrade policy: %v", err)
+	}
+
+	// check if the cluster upgrade requires gate agreements
+	gates, err := getMissingGateAgreements(upgradePolicy, upgradePoliciesClient)
+	if err != nil {
+		return []*cmv1.VersionGate{}, "", fmt.Errorf("failed to check for missing gate agreements upgrade for "+
+			"cluster '%s': %v", clusterKey, err)
+	}
+	str := "\nMissing required acknowledgements to schedule upgrade." +
+		"\nRead the below description and acknowledge to proceed with upgrade." +
+		"\nDescription:"
+	counter := 1
+	for _, gate := range gates {
+		if !gate.STSOnly() { // STS-only gates don't require user acknowledgement
+			str = fmt.Sprintf("%s\n%d) %s\n", str, counter, gate.Description())
+
+			if gate.WarningMessage() != "" {
+				str = fmt.Sprintf("%s   Warning:     %s\n", str, gate.WarningMessage())
+			}
+			str = fmt.Sprintf("%s   URL:         %s\n", str, gate.DocumentationURL())
+			counter++
+		}
+	}
+	return gates, str, nil
+}
+
+func getMissingGateAgreements(
+	upgradePolicy *cmv1.UpgradePolicy,
+	upgradePoliciesClient *cmv1.UpgradePoliciesClient) ([]*cmv1.VersionGate, error) {
+	response, err := upgradePoliciesClient.Add().Parameter("dryRun", true).Body(upgradePolicy).Send()
+
+	if err != nil {
+		if response.Error() != nil {
+			// parse gates list
+			errorDetails, ok := response.Error().GetDetails()
+			if !ok {
+				return []*cmv1.VersionGate{}, common.HandleErr(response.Error(), err)
+			}
+			data, err := json.Marshal(errorDetails)
+			if err != nil {
+				return []*cmv1.VersionGate{}, common.HandleErr(response.Error(), err)
+			}
+			gates, err := cmv1.UnmarshalVersionGateList(data)
+			if err != nil {
+				return []*cmv1.VersionGate{}, common.HandleErr(response.Error(), err)
+			}
+			// return original error if invaild version gate detected
+			if len(gates) > 0 && gates[0].ID() == "" {
+				errType := weberr.ErrorType(response.Error().Status())
+				return []*cmv1.VersionGate{}, errType.Set(weberr.Errorf(response.Error().Reason()))
+			}
+			return gates, nil
+		}
+	}
+	return []*cmv1.VersionGate{}, nil
 }

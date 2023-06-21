@@ -163,7 +163,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 					  worker_role_arn = "",
 				  }
 			  }
-			  version = "openshift-v4.11.1"
+			  version = "4.11.1"
 			}
 		  `)
 			Expect(terraform.Apply()).To(BeZero())
@@ -246,7 +246,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 				  }
 			  }
 			  channel_group = "fast"
-			  version = "openshift-v4.50.0"
+			  version = "4.50.0"
 			}
 		  `)
 			Expect(terraform.Apply()).To(BeZero())
@@ -285,7 +285,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 				  }
 			  }
 			  channel_group = "fast"
-			  version = "openshift-v4.99.99"
+			  version = "4.99.99"
 			}
 		  `)
 			Expect(terraform.Apply()).NotTo(BeZero())
@@ -2050,7 +2050,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func() {
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			ec2_metadata_http_tokens = "bad_string"
-			version = "openshift-v4.12"
+			version = "4.12"
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -2107,7 +2107,7 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func() {
 			}
 		},
 		"version": {
-			"id": "openshift-v4.8.0"
+			"id": "4.8.0"
 		}
 	}`
 	const v4_8_0Info = `{
@@ -2258,7 +2258,7 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func() {
 
 		// Verify initial cluster version
 		resource := terraform.Resource("ocm_cluster_rosa_classic", "my_cluster")
-		Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-v4.8.0"))
+		Expect(resource).To(MatchJQ(".attributes.current_version", "4.8.0"))
 	})
 
 	It("Upgrades cluster", func() {
@@ -2377,7 +2377,7 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func() {
 					worker_role_arn = "",
 				}
 			}
-			version = "openshift-v4.10.1"
+			version = "4.10.1"
 		}`)
 		Expect(terraform.Apply()).To(BeZero())
 	})
@@ -2453,7 +2453,7 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func() {
 					worker_role_arn = "",
 				}
 			}
-			version = "openshift-v4.10.1"
+			version = "4.10.1"
 		}`)
 		// Will fail due to upgrade in progress
 		Expect(terraform.Apply()).NotTo(BeZero())
@@ -2563,7 +2563,7 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func() {
 					worker_role_arn = "",
 				}
 			}
-			version = "openshift-v4.10.1"
+			version = "4.10.1"
 		}`)
 		Expect(terraform.Apply()).To(BeZero())
 	})
@@ -2727,7 +2727,7 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func() {
 						worker_role_arn = "",
 					}
 				}
-				version = "openshift-v4.10.1"
+				version = "4.10.1"
 				upgrade_acknowledgements_for = "4.10"
 			}`)
 			Expect(terraform.Apply()).To(BeZero())

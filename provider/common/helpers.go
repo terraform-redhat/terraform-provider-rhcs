@@ -120,6 +120,11 @@ func IsValidDomain(candidate string) bool {
 	return domainRegexp.MatchString(candidate)
 }
 
+func IsValidEmail(candidate string) bool {
+	var emailRegexp = regexp.MustCompile("^[a-zA-Z0-9+_.-]+@[a-zA-Z0-9.-]+$")
+	return emailRegexp.MatchString(candidate)
+}
+
 func IsStringAttributeEmpty(param types.String) bool {
 	return param.Unknown || param.Null || param.Value == ""
 }

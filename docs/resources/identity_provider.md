@@ -92,12 +92,12 @@ Required:
 Required:
 
 - `attributes` (Attributes) (see [below for nested schema](#nestedatt--ldap--attributes))
-- `bind_dn` (String) DN to bind with during the search phase.
-- `bind_password` (String, Sensitive) Password to bind with during the search phase.
 - `url` (String) An RFC 2255 URL which specifies the LDAP search parameters to use.
 
 Optional:
 
+- `bind_dn` (String) DN to bind with during the search phase.
+- `bind_password` (String, Sensitive) Password to bind with during the search phase.
 - `ca` (String) Optional trusted certificate authority bundle.
 - `insecure` (Boolean) Do not make TLS connections to the server.
 
@@ -107,9 +107,9 @@ Optional:
 Optional:
 
 - `email` (List of String) The list of attributes whose values should be used as the email address.
-- `id` (List of String) The list of attributes whose values should be used as the user ID. (default 'dn')
-- `name` (List of String) The list of attributes whose values should be used as the display name. (default 'cn')
-- `preferred_username` (List of String) The list of attributes whose values should be used as the preferred username. (default 'uid')
+- `id` (List of String) The list of attributes whose values should be used as the user ID. (default ['dn'])
+- `name` (List of String) The list of attributes whose values should be used as the display name. (default ['cn'])
+- `preferred_username` (List of String) The list of attributes whose values should be used as the preferred username. (default ['uid'])
 
 
 

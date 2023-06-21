@@ -91,8 +91,9 @@ func (t *IdentityProviderResourceType) GetSchema(ctx context.Context) (result tf
 			},
 			"ldap": {
 				Description: "Details of the LDAP identity provider.",
-				Attributes:  idps.LdapSchema(),
+				Attributes:  idps.LDAPSchema(),
 				Optional:    true,
+				Validators:  idps.LDAPValidators(),
 			},
 			"openid": {
 				Description: "Details of the OpenID identity provider.",
@@ -204,7 +205,7 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 		builder.Google(googleBuilder)
 	case state.LDAP != nil:
 		builder.Type(cmv1.IdentityProviderTypeLDAP)
-		ldapBuilder, err := idps.CreateLdapIDPBuilder(ctx, state.LDAP)
+		ldapBuilder, err := idps.CreateLDAPIDPBuilder(ctx, state.LDAP)
 		if err != nil {
 			response.Diagnostics.AddError(err.Error(), err.Error())
 			return

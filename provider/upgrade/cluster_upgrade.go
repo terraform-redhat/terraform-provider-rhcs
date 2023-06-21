@@ -181,27 +181,27 @@ func AckVersionGate(
 }
 
 // Construct a list of missing gate agreements for upgrade to a given cluster version
+// Returns: a list of all un-acked gate agreements, a string describing the ones that need user ack, and an error
 func CheckMissingAgreements(version string,
-	clusterKey string, upgradePoliciesClient *cmv1.UpgradePoliciesClient, ackRequiredOnly bool***REMOVED*** ([]string, string, error***REMOVED*** {
+	clusterKey string, upgradePoliciesClient *cmv1.UpgradePoliciesClient***REMOVED*** ([]*cmv1.VersionGate, string, error***REMOVED*** {
 	upgradePolicyBuilder := cmv1.NewUpgradePolicy(***REMOVED***.
 		ScheduleType("manual"***REMOVED***.
 		Version(version***REMOVED***
 	upgradePolicy, err := upgradePolicyBuilder.Build(***REMOVED***
 	if err != nil {
-		return []string{}, "", fmt.Errorf("failed to build upgrade policy: %v", err***REMOVED***
+		return []*cmv1.VersionGate{}, "", fmt.Errorf("failed to build upgrade policy: %v", err***REMOVED***
 	}
 
 	// check if the cluster upgrade requires gate agreements
 	gates, err := getMissingGateAgreements(upgradePolicy, upgradePoliciesClient***REMOVED***
 	if err != nil {
-		return []string{}, "", fmt.Errorf("failed to check for missing gate agreements upgrade for "+
+		return []*cmv1.VersionGate{}, "", fmt.Errorf("failed to check for missing gate agreements upgrade for "+
 			"cluster '%s': %v", clusterKey, err***REMOVED***
 	}
 	str := "\nMissing required acknowledgements to schedule upgrade." +
 		"\nRead the below description and acknowledge to proceed with upgrade." +
 		"\nDescription:"
 	counter := 1
-	var gateIDs []string
 	for _, gate := range gates {
 		if !gate.STSOnly(***REMOVED*** { // STS-only gates don't require user acknowledgement
 			str = fmt.Sprintf("%s\n%d***REMOVED*** %s\n", str, counter, gate.Description(***REMOVED******REMOVED***
@@ -211,13 +211,9 @@ func CheckMissingAgreements(version string,
 	***REMOVED***
 			str = fmt.Sprintf("%s   URL:         %s\n", str, gate.DocumentationURL(***REMOVED******REMOVED***
 			counter++
-			gateIDs = append(gateIDs, gate.ID(***REMOVED******REMOVED***
-***REMOVED*** else if !ackRequiredOnly { // We want all gates, not just the ones that require acknowledgement
-			gateIDs = append(gateIDs, gate.ID(***REMOVED******REMOVED***
 ***REMOVED***
 	}
-	tflog.Debug(context.TODO(***REMOVED***, "Missing gate agreement IDs", "gateIDs", gateIDs***REMOVED***
-	return gateIDs, str, nil
+	return gates, str, nil
 }
 
 func getMissingGateAgreements(

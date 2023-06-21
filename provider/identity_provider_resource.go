@@ -91,8 +91,9 @@ func (t *IdentityProviderResourceType***REMOVED*** GetSchema(ctx context.Context
 	***REMOVED***,
 			"ldap": {
 				Description: "Details of the LDAP identity provider.",
-				Attributes:  idps.LdapSchema(***REMOVED***,
+				Attributes:  idps.LDAPSchema(***REMOVED***,
 				Optional:    true,
+				Validators:  idps.LDAPValidators(***REMOVED***,
 	***REMOVED***,
 			"openid": {
 				Description: "Details of the OpenID identity provider.",
@@ -204,7 +205,7 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 		builder.Google(googleBuilder***REMOVED***
 	case state.LDAP != nil:
 		builder.Type(cmv1.IdentityProviderTypeLDAP***REMOVED***
-		ldapBuilder, err := idps.CreateLdapIDPBuilder(ctx, state.LDAP***REMOVED***
+		ldapBuilder, err := idps.CreateLDAPIDPBuilder(ctx, state.LDAP***REMOVED***
 		if err != nil {
 			response.Diagnostics.AddError(err.Error(***REMOVED***, err.Error(***REMOVED******REMOVED***
 			return

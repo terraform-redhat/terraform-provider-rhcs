@@ -92,12 +92,12 @@ Required:
 Required:
 
 - `attributes` (Attributes***REMOVED*** (see [below for nested schema](#nestedatt--ldap--attributes***REMOVED******REMOVED***
-- `bind_dn` (String***REMOVED*** DN to bind with during the search phase.
-- `bind_password` (String, Sensitive***REMOVED*** Password to bind with during the search phase.
 - `url` (String***REMOVED*** An RFC 2255 URL which specifies the LDAP search parameters to use.
 
 Optional:
 
+- `bind_dn` (String***REMOVED*** DN to bind with during the search phase.
+- `bind_password` (String, Sensitive***REMOVED*** Password to bind with during the search phase.
 - `ca` (String***REMOVED*** Optional trusted certificate authority bundle.
 - `insecure` (Boolean***REMOVED*** Do not make TLS connections to the server.
 
@@ -107,9 +107,9 @@ Optional:
 Optional:
 
 - `email` (List of String***REMOVED*** The list of attributes whose values should be used as the email address.
-- `id` (List of String***REMOVED*** The list of attributes whose values should be used as the user ID. (default 'dn'***REMOVED***
-- `name` (List of String***REMOVED*** The list of attributes whose values should be used as the display name. (default 'cn'***REMOVED***
-- `preferred_username` (List of String***REMOVED*** The list of attributes whose values should be used as the preferred username. (default 'uid'***REMOVED***
+- `id` (List of String***REMOVED*** The list of attributes whose values should be used as the user ID. (default ['dn']***REMOVED***
+- `name` (List of String***REMOVED*** The list of attributes whose values should be used as the display name. (default ['cn']***REMOVED***
+- `preferred_username` (List of String***REMOVED*** The list of attributes whose values should be used as the preferred username. (default ['uid']***REMOVED***
 
 
 

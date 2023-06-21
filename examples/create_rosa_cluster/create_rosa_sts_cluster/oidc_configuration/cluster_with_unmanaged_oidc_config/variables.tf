@@ -50,7 +50,7 @@ variable "tags" {
 }
 
 variable "openshift_version" {
-  description = "Desired version of OpenShift for the cluster, for example 'openshift-v4.1.0'. If version is greater than the currently running version, an upgrade will be scheduled."
+  description = "Desired version of OpenShift for the cluster, for example '4.1.0'. If version is greater than the currently running version, an upgrade will be scheduled."
   type        = string
-  default     = "openshift-v4.13.0"
+  default     = "4.13.0"
 }

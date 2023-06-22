@@ -10,7 +10,6 @@ This Terraform example creates a ROSA STS cluster that uses a managed OIDC confi
 * You have installed Terraform. See the [Hashicorp Terraform page](https://developer.hashicorp.com/terraform/downloads) for the latest version.
 * You have created your [account-wide IAM Roles](https://github.com/terraform-redhat/terraform-provider-ocm/blob/a42779d6b6712f4dde358344f44b782e4dfcd120/examples/create_rosa_cluster/create_rosa_sts_cluster/classic_sts/account_roles/README.md). For more information, see [Account-wide IAM role and policy reference](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/introduction_to_rosa/rosa-sts-about-iam-resources#rosa-sts-account-wide-roles-and-policies_rosa-sts-about-iam-resources) in the Red Hat Customer Portal.
 
-
 ## ROSA cluster creation
 
 1. To run the `terraform apply` you need to set up some variables. This guide uses environmental variables. For more on Terraform variables, see [Managing Variables](https://developer.hashicorp.com/terraform/enterprise/workspaces/variables/managing-variables) in the Terraform documentation.
@@ -51,7 +50,7 @@ This Terraform example creates a ROSA STS cluster that uses a managed OIDC confi
         ```    
         export TF_VAR_openshift_version=<choose_openshift_version>
         ```
-    9.  **Optional**: If you want to set any specific AWS tags for your account roles, you can use this variable to declare those tags.   
+    9.  **Optional**: If you want to set any specific AWS tags for your cluster, you can use this variable to declare those tags.   
          ```    
          export TF_VAR_tags=<aws_resource_tags> (Optional) 
          ```      
@@ -75,7 +74,7 @@ This Terraform example creates a ROSA STS cluster that uses a managed OIDC confi
 
 ## Verification
 
-1. In your command-line interface, run the following command to verify that the account roles are created:
+1. In your command-line interface, run the following command to verify that the cluster was created:
     ````
     rosa list cluster
     ````

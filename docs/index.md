@@ -130,11 +130,11 @@ Rosa cluster installation:
 Post cluster installation operations:
 1. [Create second day MachinePool](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_machine_pool/README.md***REMOVED***
 1. Create identity providers. supported type:
-> 1. [Github](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/github/README.md***REMOVED***
-> 1. [Gitlab](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/gitlab/README.md***REMOVED***
-> 1. [Google](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/google/README.md***REMOVED***
-> 1. [HTPasswd](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/google/README.md***REMOVED***
-> 1. [LDAP](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/ldap/README.md***REMOVED***
+    > 1. [Github](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/github/README.md***REMOVED***
+    > 1. [Gitlab](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/gitlab/README.md***REMOVED***
+    > 1. [Google](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/google/README.md***REMOVED***
+    > 1. [HTPasswd](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/google/README.md***REMOVED***
+    > 1. [LDAP](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/ldap/README.md***REMOVED***
 
 ### Create your Operator IAM roles prefix name
 

@@ -31,6 +31,10 @@ provider "ocm" {
   url   = var.url
 }
 
+provider "aws" {
+  region = var.cloud_region
+}
+
 # Generates the OIDC config resources' names
 resource "ocm_rosa_oidc_config_input" "oidc_input" {
   count = var.managed ? 0 : 1

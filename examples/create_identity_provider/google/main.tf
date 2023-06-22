@@ -16,10 +16,6 @@
 
 terraform {
   required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = ">= 3.67"
-    }
     ocm = {
       version = ">= 1.0.1"
       source  = "terraform-redhat/ocm"
@@ -33,7 +29,7 @@ provider "ocm" {
 }
 
 resource "ocm_identity_provider" "google_idp" {
-  cluster = "my-cluster"
+  cluster = var.cluster_id
   name    = "Google"
   google = {
     client_id     = var.google_client_id

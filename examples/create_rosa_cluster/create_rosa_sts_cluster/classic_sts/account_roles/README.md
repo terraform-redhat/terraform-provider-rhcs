@@ -23,11 +23,11 @@ Prior to creating a ROSA STS cluster, you must create the required account-wide 
         ```
         export TF_VAR_token=<ocm_offline_token>
         ```
-    3.  This value should point to your OpenShift instance.  
+    3.  This value should always point to `https://api.openshift.com` (unless you're a Red Hat engineer and you know of a different one ;***REMOVED*** ***REMOVED***.  
         ```
-        export TF_VAR_url=<ocm_url>
+        export TF_VAR_url=https://api.openshift.com
         ```
-    4.  **Optional**: You can set the desired OpenShift version with this variable. The default is 4.13.
+    4.  **Optional**: You can set the desired OpenShift version with this variable. The default is available from the ROSA CLI with `rosa list version |grep yes`. This should be in the format of x.y.z, such as 4.13.2
         ```    
         export TF_VAR_openshift_version=<choose_openshift_version>
         ```

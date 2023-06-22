@@ -16,10 +16,12 @@ Please read the [official docs](https://docs.openshift.com/container-platform/4.
 
 ## Execution
 
-### Edit the terraform.tfvars
+### Setting variables
+Take a look at `variables.tf` to see what variables are needed.
 
-Take your time with editing the variables file. 
-There are comments that will explain what each variable is.
+You have 2 options to pass variables.
+ 1. Create a `terraform.tfvars` file
+ 2. Set environment variables with a format of `TF_VAR_<variable_name>` for example: `export TF_VAR_token="..."`
 
 ### Let's Go!
 

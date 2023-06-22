@@ -32,7 +32,7 @@ To use GitHub or GitHub Enterprise as an identity provider, you must register an
 
 ## Applying the Terraform plan
 
-1. You need to either edit the `terraform.tfvars` file within this directory, or add the following items to your existing `*.tfvars` file. You may also export these variables as environmental variables with the following commands:
+1. You need to either create `terraform.tfvars` file in this directory, or add the following items to your existing `*.tfvars` file. You may also export these variables as environmental variables with the following commands:
       1.  This value is the generated GitHub client secret to validate your account. It can be found in the settings of your GitHub account.
           ```
           export TF_VAR_github_client_secret=<github_client_secret>
@@ -52,6 +52,10 @@ To use GitHub or GitHub Enterprise as an identity provider, you must register an
       1.  This value should point to your OpenShift instance.  
           ```
           export TF_VAR_url=<ocm_url>
+          ```
+      1.  This value should point to your cluster ID.  
+          ```
+          export TF_VAR_cluster_id=<cluster_id>
           ```
 1. In your local copy of the `github` folder, run the following command:
    ````

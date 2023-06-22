@@ -65,7 +65,7 @@ var _ = Describe("Machine pool creation", func() {
 						"key": "key1",
 						"value": "value1"
 					  }
-				 ]
+				  ]
 				}`),
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-pool",
@@ -74,7 +74,14 @@ var _ = Describe("Machine pool creation", func() {
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
-				  }
+				  },
+				  "taints": [
+					  {
+						"effect": "effect1",
+						"key": "key1",
+						"value": "value1"
+					  }
+				  ]
 				}`),
 			),
 		)
@@ -109,6 +116,365 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
 		Expect(resource).To(MatchJQ(".attributes.replicas", 10.0))
 		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 2))
+	})
+
+	It("Can create machine pool with compute nodes and update taints", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				),
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "labels": {
+				    "label_key1": "label_value1",
+				    "label_key2": "label_value2"
+				  },
+				  "replicas": 10,
+				  "taints": [
+					  {
+						"effect": "effect1",
+						"key": "key1",
+						"value": "value1"
+					  }
+				  ]
+				}`),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 10,
+				  "labels": {
+				    "label_key1": "label_value1",
+				    "label_key2": "label_value2"
+				  },
+				  "taints": [
+					  {
+						"effect": "effect1",
+						"key": "key1",
+						"value": "value1"
+					  }
+				  ]
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "ocm_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 10
+			labels = {
+				"label_key1" = "label_value1", 
+				"label_key2" = "label_value2"
+			}
+			taints = [
+				{
+					key = "key1",
+					value = "value1",
+					schedule_type = "effect1",
+				}
+		    ]
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		// Check the state:
+		resource := terraform.Resource("ocm_machine_pool", "my_pool")
+		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+		Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
+		Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
+		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
+		Expect(resource).To(MatchJQ(".attributes.replicas", 10.0))
+		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 2))
+		Expect(resource).To(MatchJQ(`.attributes.taints | length`, 1))
+
+		server.AppendHandlers(
+			// First get is for the Read function
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool"),
+				RespondWithJSON(http.StatusOK, `
+				{
+				  "id": "my-pool",
+				  "kind": "MachinePool",
+				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
+                  "replicas": 10,
+				  "taints": [
+					  {
+						"effect": "effect1",
+						"key": "key1",
+						"value": "value1"
+					  }
+				  ],
+				  "instance_type": "r5.xlarge"
+				}`),
+			),
+			// Second get is for the Update function
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool"),
+				RespondWithJSON(http.StatusOK, `
+				{
+				  "id": "my-pool",
+				  "kind": "MachinePool",
+				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
+                  "replicas": 10,
+				  "taints": [
+					  {
+						"effect": "effect1",
+						"key": "key1",
+						"value": "value1"
+					  }
+				  ],
+				  "instance_type": "r5.xlarge"
+				}`),
+			),
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPatch,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
+				),
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "replicas": 10,
+				  "taints": [
+					  {
+						"effect": "effect1",
+						"key": "key1",
+						"value": "value1"
+					  },
+					  {
+						"effect": "effect2",
+						"key": "key2",
+						"value": "value2"
+					  }
+				  ]
+				}`),
+				RespondWithJSON(http.StatusOK, `
+				{
+				  "id": "my-pool",
+				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
+				  "kind": "MachinePool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 10,
+				  "taints": [
+					  {
+						"effect": "effect1",
+						"key": "key1",
+						"value": "value1"
+					  },
+					  {
+						"effect": "effect2",
+						"key": "key2",
+						"value": "value2"
+					  }
+				  ]
+				}`),
+			),
+		)
+
+		terraform.Source(`
+		  resource "ocm_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 10
+			labels = {
+				"label_key1" = "label_value1", 
+				"label_key2" = "label_value2"
+			}
+			taints = [
+				{
+					key = "key1",
+					value = "value1",
+					schedule_type = "effect1",
+				},
+				{
+					key = "key2",
+					value = "value2",
+					schedule_type = "effect2",
+				}
+		    ]
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		// Check the state:
+		resource = terraform.Resource("ocm_machine_pool", "my_pool")
+		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+		Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
+		Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
+		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
+		Expect(resource).To(MatchJQ(".attributes.replicas", 10.0))
+		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 2))
+		Expect(resource).To(MatchJQ(`.attributes.taints | length`, 2))
+	})
+
+	It("Can create machine pool with compute nodes and remove taints", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				),
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "labels": {
+				    "label_key1": "label_value1",
+				    "label_key2": "label_value2"
+				  },
+				  "replicas": 10,
+				  "taints": [
+					  {
+						"effect": "effect1",
+						"key": "key1",
+						"value": "value1"
+					  }
+				  ]
+				}`),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "labels": {
+				    "label_key1": "label_value1",
+				    "label_key2": "label_value2"
+				  },
+				  "replicas": 10,
+				  "taints": [
+					  {
+						"effect": "effect1",
+						"key": "key1",
+						"value": "value1"
+					  }
+				  ]
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "ocm_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 10
+			labels = {
+				"label_key1" = "label_value1", 
+				"label_key2" = "label_value2"
+			}
+			taints = [
+				{
+					key = "key1",
+					value = "value1",
+					schedule_type = "effect1",
+				}
+		    ]
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		// Check the state:
+		resource := terraform.Resource("ocm_machine_pool", "my_pool")
+		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+		Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
+		Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
+		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
+		Expect(resource).To(MatchJQ(".attributes.replicas", 10.0))
+		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 2))
+		Expect(resource).To(MatchJQ(`.attributes.taints | length`, 1))
+
+		server.AppendHandlers(
+			// First get is for the Read function
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool"),
+				RespondWithJSON(http.StatusOK, `
+				{
+				  "id": "my-pool",
+				  "kind": "MachinePool",
+				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
+                  "replicas": 10,
+				  "taints": [
+					  {
+						"effect": "effect1",
+						"key": "key1",
+						"value": "value1"
+					  }
+				  ],
+				  "instance_type": "r5.xlarge"
+				}`),
+			),
+			// Second get is for the Update function
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool"),
+				RespondWithJSON(http.StatusOK, `
+				{
+				  "id": "my-pool",
+				  "kind": "MachinePool",
+				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
+                  "replicas": 10,
+				  "taints": [
+					  {
+						"effect": "effect1",
+						"key": "key1",
+						"value": "value1"
+					  }
+				  ],
+				  "instance_type": "r5.xlarge"
+				}`),
+			),
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPatch,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
+				),
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "replicas": 10,
+                  "taints": []
+				}`),
+				RespondWithJSON(http.StatusOK, `
+				{
+				  "id": "my-pool",
+				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
+				  "kind": "MachinePool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 10
+				}`),
+			),
+		)
+
+		terraform.Source(`
+		  resource "ocm_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 10
+			labels = {
+				"label_key1" = "label_value1", 
+				"label_key2" = "label_value2"
+			}
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		// Check the state:
+		resource = terraform.Resource("ocm_machine_pool", "my_pool")
+		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+		Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
+		Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
+		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
+		Expect(resource).To(MatchJQ(".attributes.replicas", 10.0))
+		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 2))
+		Expect(resource).To(MatchJQ(`.attributes.taints | length`, 0))
 	})
 
 	It("Can create machine pool with autoscaling enabled and update to compute nodes", func() {
@@ -266,7 +632,7 @@ var _ = Describe("Machine pool creation", func() {
 						"key": "key1",
 						"value": "value1"
 					  }
-				 ]
+				  ]
 				}`),
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-spot-pool",
@@ -280,7 +646,14 @@ var _ = Describe("Machine pool creation", func() {
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
-				  }
+				  },
+				  "taints": [
+					  {
+						"effect": "effect1",
+						"key": "key1",
+						"value": "value1"
+					  }
+				  ]
 				}`),
 			),
 		)
@@ -317,6 +690,7 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
 		Expect(resource).To(MatchJQ(".attributes.replicas", 10.0))
 		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 2))
+		Expect(resource).To(MatchJQ(`.attributes.taints | length`, 1))
 		Expect(resource).To(MatchJQ(".attributes.use_spot_instances", true))
 		Expect(resource).To(MatchJQ(".attributes.max_spot_price", float64(0.5)))
 	})
@@ -350,7 +724,7 @@ var _ = Describe("Machine pool creation", func() {
 						"key": "key1",
 						"value": "value1"
 					  }
-				 ]
+				  ]
 				}`),
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-spot-pool",
@@ -363,7 +737,14 @@ var _ = Describe("Machine pool creation", func() {
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
-				  }
+				  },
+				  "taints": [
+					  {
+						"effect": "effect1",
+						"key": "key1",
+						"value": "value1"
+					  }
+				  ]
 				}`),
 			),
 		)
@@ -399,6 +780,7 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
 		Expect(resource).To(MatchJQ(".attributes.replicas", 10.0))
 		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 2))
+		Expect(resource).To(MatchJQ(`.attributes.taints | length`, 1))
 		Expect(resource).To(MatchJQ(".attributes.use_spot_instances", true))
 	})
 })

@@ -12,7 +12,7 @@ Using htpasswd authentication in OpenShift Container Platform allows you to iden
 
 ## Applying the Terraform plan
 
-1. You need to either edit the `terraform.tfvars` file within this directory, or add the following items to your existing `*.tfvars` file. You may also export these variables as environmental variables with the following commands:
+1. You need to either create a `terraform.tfvars` file in this directory, or add the following items to your existing `*.tfvars` file. You may also export these variables as environmental variables with the following commands:
       1.  This value sets the username for logging into your application.
           ```
           export TF_VAR_htpasswd_username=<user-name-to-login>
@@ -28,6 +28,10 @@ Using htpasswd authentication in OpenShift Container Platform allows you to iden
       1.  This value should point to your OpenShift instance.  
           ```
           export TF_VAR_url=<ocm_url>
+          ```
+      1.  This value should point to your cluster ID.  
+          ```
+          export TF_VAR_cluster_id=<cluster_id>
           ```
 1. In your local copy of the `htpasswd` folder, run the following command:
    ````

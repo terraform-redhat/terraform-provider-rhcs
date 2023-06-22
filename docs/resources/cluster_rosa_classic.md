@@ -51,6 +51,7 @@ OpenShift managed cluster using rosa sts.
 - `service_cidr` (String) Block of IP addresses for services.
 - `sts` (Attributes) STS configuration. (see [below for nested schema](#nestedatt--sts))
 - `tags` (Map of String) Apply user defined tags to all resources created in AWS.
+- `upgrade_acknowledgements_for` (String) Indicates acknowledgement of agreements required to upgrade the cluster version between minor versions (e.g. a value of "4.12" indicates acknowledgement of any agreements required to upgrade to OpenShift 4.12.z from 4.11 or before).
 - `version` (String) Desired version of OpenShift for the cluster, for example 'openshift-v4.1.0'. If version is greater than the currently running version, an upgrade will be scheduled.
 
 ### Read-Only

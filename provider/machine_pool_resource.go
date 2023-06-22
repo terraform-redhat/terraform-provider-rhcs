@@ -410,6 +410,14 @@ func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, request tf
 		return
 	}
 
+	if shouldPatchTaints(state.Taints, plan.Taints***REMOVED*** {
+		var taintBuilders []*cmv1.TaintBuilder
+		for _, taint := range plan.Taints {
+			taintBuilders = append(taintBuilders, cmv1.NewTaint(***REMOVED***.Key(taint.Key.Value***REMOVED***.Value(taint.Value.Value***REMOVED***.Effect(taint.ScheduleType.Value***REMOVED******REMOVED***
+***REMOVED***
+		mpBuilder.Taints(taintBuilders...***REMOVED***
+	}
+
 	machinePool, err := mpBuilder.Build(***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -617,7 +625,8 @@ func (r *MachinePoolResource***REMOVED*** populateState(object *cmv1.MachinePool
 				ScheduleType: types.String{Value: taint.Effect(***REMOVED***},
 	***REMOVED***
 ***REMOVED***
-
+	} else {
+		state.Taints = nil
 	}
 
 	labels := object.Labels(***REMOVED***
@@ -634,4 +643,19 @@ func (r *MachinePoolResource***REMOVED*** populateState(object *cmv1.MachinePool
 
 	}
 
+}
+
+func shouldPatchTaints(a, b []Taints***REMOVED*** bool {
+	if (a == nil && b != nil***REMOVED*** || (a != nil && b == nil***REMOVED*** {
+		return true
+	}
+	if len(a***REMOVED*** != len(b***REMOVED*** {
+		return true
+	}
+	for i := range a {
+		if !a[i].Key.Equal(b[i].Key***REMOVED*** || !a[i].Value.Equal(b[i].Value***REMOVED*** || !a[i].ScheduleType.Equal(b[i].ScheduleType***REMOVED*** {
+			return true
+***REMOVED***
+	}
+	return false
 }

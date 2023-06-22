@@ -120,9 +120,21 @@ To use the OCM provider inside your Terraform configuration you must meet the fo
 
 The example Terraform files are all considered in development and should not be used for production environments:
 
-1. **Required**: [Account Roles Terraform](https://github.com/terraform-redhat/terraform-provider-ocm/blob/a42779d6b6712f4dde358344f44b782e4dfcd120/examples/create_rosa_cluster/create_rosa_sts_cluster/classic_sts/account_roles/README.md)
-1. [Create a ROSA cluster that usess STS and has a managed OIDC configuration](https://github.com/terraform-redhat/terraform-provider-ocm/blob/529b10c22c13810b3edbaa01327c7dfdcc207650/examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/README.md)
-1. [Create a ROSA cluster that uses STS and has an unmanaged OIDC configuration](https://github.com/terraform-redhat/terraform-provider-ocm/blob/529b10c22c13810b3edbaa01327c7dfdcc207650/examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/README.md)
+Pre cluster installation steps:
+1. **Required**: [Account Roles Terraform](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_rosa_cluster/create_rosa_sts_cluster/classic_sts/account_roles/README.md)
+
+Rosa cluster installation:
+1. [Create a ROSA cluster that usess STS and has a managed OIDC configuration](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/README.md)
+1. [Create a ROSA cluster that uses STS and has an unmanaged OIDC configuration](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/README.md)
+
+Post cluster installation operations:
+1. [Create second day MachinePool](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_machine_pool/README.md)
+1. Create identity providers. supported type:
+> 1. [Github](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/github/README.md)
+> 1. [Gitlab](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/gitlab/README.md)
+> 1. [Google](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/google/README.md)
+> 1. [HTPasswd](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/google/README.md)
+> 1. [LDAP](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/ldap/README.md)
 
 ### Create your Operator IAM roles prefix name
 

@@ -60,6 +60,10 @@ For more information, see the [Terraform documentation](https://developer.hashic
 
 To use the OCM provider inside your Terraform configuration you must meet the following:
 
+* Completed [the ROSA getting started](https://console.redhat.com/openshift/create/rosa/getstarted***REMOVED*** requirements
+
+  You must complete some AWS account and local configurations to create and managed ROSA clusters. 
+
 * An offline [OCM token](https://console.redhat.com/openshift/token/rosa***REMOVED***
   
   This token is generated through the Red Hat Hybrid Cloud Console. The purpose of this token is to verify that you have access and permission to create and upgrade clusters. This token is unique to your account and should not be shared.
@@ -71,6 +75,10 @@ To use the OCM provider inside your Terraform configuration you must meet the fo
 * [Terraform version 1.4.6 or newer](https://developer.hashicorp.com/terraform/downloads***REMOVED***
 
   You need to have Terraform configured for your local system. The Terraform website contains installation options for MacOS, Windows, and Linux.
+
+* **Optional**: A [configured `*.tfvars` file](docs/terraform-vars.md***REMOVED***.
+
+  A `*.tfvars` file is a definition sheet for all of your variables. This method allows you to reference a file that is safely stored due to the sensitive nature of some variable values. You can create multiple `*.tfvars` files with different variable values.
 
 * ROSA account roles
   
@@ -84,35 +92,44 @@ To use the OCM provider inside your Terraform configuration you must meet the fo
 
     ```
     {
-        "Version": "2012-10-17",
-        "Statement": [
-            {
-                "Sid": "VisualEditor0",
-                "Effect": "Allow",
-                "Action": [
-                    
-                    "iam:GetRole",
-                    "iam:UpdateOpenIDConnectProviderThumbprint",
-                    "iam:CreateRole",
-                    "iam:DeleteRole",
-                    "iam:UpdateRole",
-                    "iam:DeleteOpenIDConnectProvider",
-                    "iam:GetOpenIDConnectProvider",
-                    "iam:CreateOpenIDConnectProvider",
-                    "iam:TagOpenIDConnectProvider",
-                    "iam:TagRole",
-                    "iam:ListRolePolicies",
-                    "iam:ListAttachedRolePolicies",
-                    "iam:ListInstanceProfilesForRole",
-                    "iam:AttachRolePolicy",
-                    "iam:DetachRolePolicy"
-                ],
-                "Resource": [
-                    "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/*",
-                    "arn:aws:iam::<ACCOUNT_ID>:role/*"
-                ]
-            }
-        ]
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": [
+                "iam:GetRole",
+                "iam:TagRole",
+                "iam:UpdateOpenIDConnectProviderThumbprint",
+                "iam:CreateRole",
+                "iam:DeleteRole",
+                "iam:ListRoles",
+                "iam:ListRoleTags",
+                "iam:AttachRolePolicy",
+                "iam:CreateOpenIDConnectProvider",
+                "iam:CreatePolicy",
+                "iam:TagPolicy",
+                "iam:GetPolicy",
+                "iam:GetPolicyVersion",
+                "iam:ListPolicyVersions",
+                "iam:ListEntitiesForPolicy",
+                "iam:DeletePolicy",
+                "iam:ListInstanceProfilesForRole",
+                "iam:DetachRolePolicy",
+                "iam:ListAttachedRolePolicies",
+                "iam:UpdateRole",
+                "iam:ListRolePolicies",
+                "iam:GetOpenIDConnectProvider",
+                "iam:DeleteOpenIDConnectProvider",
+                "iam:TagOpenIDConnectProvider"
+            ],
+            "Resource": [
+                "arn:aws:iam::<ACCOUNT_ID>:role/*",
+                "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/*",
+                "arn:aws:iam::<ACCOUNT_ID>:policy/*"
+            ]
+        }
+      ]
     }
     ```
 
@@ -120,21 +137,21 @@ To use the OCM provider inside your Terraform configuration you must meet the fo
 
 The example Terraform files are all considered in development and should not be used for production environments:
 
-Pre cluster installation steps:
+### Step before creating a cluster
 1. **Required**: [Account Roles Terraform](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_rosa_cluster/create_rosa_sts_cluster/classic_sts/account_roles/README.md***REMOVED***
 
-Rosa cluster installation:
+### Creating a ROSA cluster
 1. [Create a ROSA cluster that usess STS and has a managed OIDC configuration](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/README.md***REMOVED***
 1. [Create a ROSA cluster that uses STS and has an unmanaged OIDC configuration](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/README.md***REMOVED***
 
-Post cluster installation operations:
-1. [Create second day MachinePool](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_machine_pool/README.md***REMOVED***
-1. Create identity providers. supported type:
-    > 1. [Github](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/github/README.md***REMOVED***
-    > 1. [Gitlab](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/gitlab/README.md***REMOVED***
-    > 1. [Google](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/google/README.md***REMOVED***
-    > 1. [HTPasswd](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/google/README.md***REMOVED***
-    > 1. [LDAP](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/ldap/README.md***REMOVED***
+### Operations after creating a cluster
+1. [Machine pools](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_machine_pool/README.md***REMOVED***
+1. Supported identity providers:
+    1. [Github](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/github/README.md***REMOVED***
+    1. [Gitlab](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/gitlab/README.md***REMOVED***
+    1. [Google](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/google/README.md***REMOVED***
+    1. [HTPasswd](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/google/README.md***REMOVED***
+    1. [LDAP](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/ldap/README.md***REMOVED***
 
 ### Create your Operator IAM roles prefix name
 

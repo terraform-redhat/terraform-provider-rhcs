@@ -152,7 +152,7 @@ The example Terraform files are all considered in development and should not be 
     1. [Google](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/google/README.md)
     1. [HTPasswd](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/google/README.md)
     1. [LDAP](https://github.com/terraform-redhat/terraform-provider-ocm/blob/main/examples/create_identity_provider/ldap/README.md)
-
+1. [Upgrading or Updating your cluster](upgrading-cluster.md)
 ### Create your Operator IAM roles prefix name
 
 The Operator IAM roles will be created per cluster with the [rosa-sts](https://registry.terraform.io/modules/terraform-redhat/rosa-sts) module.

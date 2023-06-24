@@ -1070,6 +1070,16 @@ func (r *ClusterRosaClassicResource***REMOVED*** Create(ctx context.Context,
 	}
 	summary := "Can't build cluster"
 
+	// In case version with "openshift-v" prefix was used here,
+	// Give a meaningful message to inform the user that it not supported any more
+	if !state.Version.Unknown && !state.Version.Null && strings.HasPrefix(state.Version.Value, "openshift-v"***REMOVED*** {
+		response.Diagnostics.AddError(
+			summary,
+			"Openshift version must be provided without the \"openshift-v\" prefix",
+		***REMOVED***
+		return
+	}
+
 	version, err := r.getAndValidateVersionInChannelGroup(ctx, state***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -1308,7 +1318,11 @@ func (r *ClusterRosaClassicResource***REMOVED*** upgradeClusterIfNeeded(ctx cont
 	if err != nil {
 		return fmt.Errorf("failed to parse current cluster version: %v", err***REMOVED***
 	}
-	desiredVersion, err := semver.NewVersion(plan.Version.Value***REMOVED***
+	// For backward compatibility
+	// In case version format with "openshift-v" was already used
+	// remove the prefix to adapt the right format and avoid failure
+	fixedVersion := strings.TrimPrefix(plan.Version.Value, "openshift-v"***REMOVED***
+	desiredVersion, err := semver.NewVersion(fixedVersion***REMOVED***
 	if err != nil {
 		return fmt.Errorf("failed to parse desired cluster version: %v", err***REMOVED***
 	}

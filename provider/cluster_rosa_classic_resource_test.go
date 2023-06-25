@@ -197,7 +197,7 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 
 			version, ok := rosaClusterObject.Version().GetID()
 			Expect(ok).To(BeTrue())
-			Expect(version).To(Equal("4.10"))
+			Expect(version).To(Equal("openshift-v4.10"))
 			channel, ok := rosaClusterObject.Version().GetChannelGroup()
 			Expect(ok).To(BeTrue())
 			Expect(channel).To(Equal("stable"))
@@ -225,7 +225,7 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 
 		version, ok := rosaClusterObject.Version().GetID()
 		Expect(ok).To(BeTrue())
-		Expect(version).To(Equal("4.10-somechannel"))
+		Expect(version).To(Equal("openshift-v4.10-somechannel"))
 		channel, ok := rosaClusterObject.Version().GetChannelGroup()
 		Expect(ok).To(BeTrue())
 		Expect(channel).To(Equal("somechannel"))

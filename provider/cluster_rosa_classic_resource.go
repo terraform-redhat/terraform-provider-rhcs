@@ -378,12 +378,12 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				},
 			},
 			"version": {
-				Description: "Desired version of OpenShift for the cluster, for example 'openshift-v4.1.0'. If version is greater than the currently running version, an upgrade will be scheduled.",
+				Description: "Desired version of OpenShift for the cluster, for example '4.1.0'. If version is greater than the currently running version, an upgrade will be scheduled.",
 				Type:        types.StringType,
 				Optional:    true,
 			},
 			"current_version": {
-				Description: "The currently running version of OpenShift on the cluster, for example 'openshift-v4.1.0'.",
+				Description: "The currently running version of OpenShift on the cluster, for example '4.1.0'.",
 				Type:        types.StringType,
 				Computed:    true,
 			},
@@ -404,8 +404,8 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 			},
 			"ec2_metadata_http_tokens": {
 				Description: "This value determines which EC2 metadata mode to use for metadata service interaction " +
-				"options for EC2 instances can be optional or required. This feature is available from " +
-				"OpenShift version 4.11.0 and newer.",
+					"options for EC2 instances can be optional or required. This feature is available from " +
+					"OpenShift version 4.11.0 and newer.",
 				Type:     types.StringType,
 				Optional: true,
 				Validators: EnumValueValidator([]string{string(cmv1.Ec2MetadataHttpTokensOptional),
@@ -686,7 +686,7 @@ func createClassicClusterObject(ctx context.Context,
 			return nil, errors.New(errHeadline + "\n" + description)
 		}
 		vBuilder := cmv1.NewVersion()
-		versionID := state.Version.Value
+		versionID := fmt.Sprintf("openshift-v%s", state.Version.Value)
 		// When using a channel group other than the default, the channel name
 		// must be appended to the version ID or the API server will return an
 		// error stating unexpected channel group.
@@ -753,7 +753,7 @@ func (r *ClusterRosaClassicResource) getAndValidateVersionInChannelGroup(ctx con
 
 	version := versionList[0]
 	if !state.Version.Unknown && !state.Version.Null {
-		version = strings.Replace(state.Version.Value, "openshift-v", "", 1)
+		version = state.Version.Value
 	}
 
 	tflog.Debug(ctx, fmt.Sprintf("Validating if cluster version %s is in the list of supported versions: %v", version, versionList))
@@ -989,10 +989,9 @@ func buildCustomRetryer() client.DefaultRetryer {
 }
 
 func getOcmVersionMinor(ver string) string {
-	rawID := strings.Replace(ver, "openshift-v", "", 1)
-	version, err := semver.NewVersion(rawID)
+	version, err := semver.NewVersion(ver)
 	if err != nil {
-		segments := strings.Split(rawID, ".")
+		segments := strings.Split(ver, ".")
 		return fmt.Sprintf("%s.%s", segments[0], segments[1])
 	}
 	segments := version.Segments()
@@ -1070,6 +1069,16 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 		return
 	}
 	summary := "Can't build cluster"
+
+	// In case version with "openshift-v" prefix was used here,
+	// Give a meaningful message to inform the user that it not supported any more
+	if !state.Version.Unknown && !state.Version.Null && strings.HasPrefix(state.Version.Value, "openshift-v") {
+		response.Diagnostics.AddError(
+			summary,
+			"Openshift version must be provided without the \"openshift-v\" prefix",
+		)
+		return
+	}
 
 	version, err := r.getAndValidateVersionInChannelGroup(ctx, state)
 	if err != nil {
@@ -1305,13 +1314,15 @@ func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context,
 	}
 
 	// Check the versions to see if we need to upgrade
-	currentVersionString := strings.TrimPrefix(state.CurrentVersion.Value, "openshift-v")
-	currentVersion, err := semver.NewVersion(currentVersionString)
+	currentVersion, err := semver.NewVersion(state.CurrentVersion.Value)
 	if err != nil {
 		return fmt.Errorf("failed to parse current cluster version: %v", err)
 	}
-	desiredVersionString := strings.TrimPrefix(plan.Version.Value, "openshift-v")
-	desiredVersion, err := semver.NewVersion(desiredVersionString)
+	// For backward compatibility
+	// In case version format with "openshift-v" was already used
+	// remove the prefix to adapt the right format and avoid failure
+	fixedVersion := strings.TrimPrefix(plan.Version.Value, "openshift-v")
+	desiredVersion, err := semver.NewVersion(fixedVersion)
 	if err != nil {
 		return fmt.Errorf("failed to parse desired cluster version: %v", err)
 	}
@@ -1321,7 +1332,7 @@ func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context,
 	}
 
 	// Make sure the desired version is available
-	versionId := state.CurrentVersion.Value
+	versionId := fmt.Sprintf("openshift-v%s", state.CurrentVersion.Value)
 	if !state.ChannelGroup.Unknown && !state.ChannelGroup.Null && state.ChannelGroup.Value != ocm.DefaultChannelGroup {
 		versionId += "-" + state.ChannelGroup.Value
 	}
@@ -1913,6 +1924,7 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	// If we're using a non-default channel group, it will have been appended to
 	// the version ID. Remove it before saving state.
 	version = strings.TrimSuffix(version, fmt.Sprintf("-%s", channel_group))
+	version = strings.TrimPrefix(version, "openshift-v")
 	if ok {
 		tflog.Debug(ctx, "actual cluster version: %v", version)
 		state.CurrentVersion = types.String{

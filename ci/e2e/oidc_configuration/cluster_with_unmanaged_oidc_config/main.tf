@@ -28,7 +28,7 @@ terraform {
 }
 provider "ocm" {
   token = var.token
-  url = var.url
+  url   = var.url
 }
 
 # Generates the OIDC config resources' names
@@ -37,56 +37,56 @@ resource "ocm_rosa_oidc_config_input" "oidc_input" {
 }
 
 # Create the OIDC config resources on AWS
-module oidc_config_input_resources {
-  source = "terraform-redhat/rosa-sts/aws"
+module "oidc_config_input_resources" {
+  source  = "terraform-redhat/rosa-sts/aws"
   version = ">=0.0.5"
 
   create_oidc_config_resources = true
 
-  bucket_name = ocm_rosa_oidc_config_input.oidc_input.bucket_name
-  discovery_doc = ocm_rosa_oidc_config_input.oidc_input.discovery_doc
-  jwks = ocm_rosa_oidc_config_input.oidc_input.jwks
-  private_key = ocm_rosa_oidc_config_input.oidc_input.private_key
-  private_key_file_name = ocm_rosa_oidc_config_input.oidc_input.private_key_file_name
+  bucket_name             = ocm_rosa_oidc_config_input.oidc_input.bucket_name
+  discovery_doc           = ocm_rosa_oidc_config_input.oidc_input.discovery_doc
+  jwks                    = ocm_rosa_oidc_config_input.oidc_input.jwks
+  private_key             = ocm_rosa_oidc_config_input.oidc_input.private_key
+  private_key_file_name   = ocm_rosa_oidc_config_input.oidc_input.private_key_file_name
   private_key_secret_name = ocm_rosa_oidc_config_input.oidc_input.private_key_secret_name
 }
 
 # Create unmanaged OIDC config
 resource "ocm_rosa_oidc_config" "oidc_config" {
-  managed = false
-  secret_arn =  module.oidc_config_input_resources.secret_arn
-  issuer_url = ocm_rosa_oidc_config_input.oidc_input.issuer_url
+  managed            = false
+  secret_arn         = module.oidc_config_input_resources.secret_arn
+  issuer_url         = ocm_rosa_oidc_config_input.oidc_input.issuer_url
   installer_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Installer-Role"
 }
 
 data "ocm_rosa_operator_roles" "operator_roles" {
   operator_role_prefix = var.operator_role_prefix
-  account_role_prefix = var.account_role_prefix
+  account_role_prefix  = var.account_role_prefix
 }
 
-module operator_roles_and_oidc_provider {
-  source = "terraform-redhat/rosa-sts/aws"
+module "operator_roles_and_oidc_provider" {
+  source  = "terraform-redhat/rosa-sts/aws"
   version = "0.0.5"
 
   create_operator_roles = true
-  create_oidc_provider = true
+  create_oidc_provider  = true
 
-  cluster_id = ""
+  cluster_id                  = ""
   rh_oidc_provider_thumbprint = ocm_rosa_oidc_config.oidc_config.thumbprint
-  rh_oidc_provider_url = ocm_rosa_oidc_config.oidc_config.oidc_endpoint_url
-  operator_roles_properties = data.ocm_rosa_operator_roles.operator_roles.operator_iam_roles
+  rh_oidc_provider_url        = ocm_rosa_oidc_config.oidc_config.oidc_endpoint_url
+  operator_roles_properties   = data.ocm_rosa_operator_roles.operator_roles.operator_iam_roles
 }
 
 locals {
   sts_roles = {
-    role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Installer-Role",
+    role_arn         = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Installer-Role",
     support_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Support-Role",
     instance_iam_roles = {
       master_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-ControlPlane-Role",
       worker_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Worker-Role"
     },
     operator_role_prefix = var.operator_role_prefix,
-    oidc_config_id = ocm_rosa_oidc_config.oidc_config.id
+    oidc_config_id       = ocm_rosa_oidc_config.oidc_config.id
   }
 }
 
@@ -95,7 +95,7 @@ data "aws_caller_identity" "current" {
 
 resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
   name               = var.cluster_name
-  version            = "openshift-v${var.openshift_version}"
+  version            = var.openshift_version
   channel_group      = var.channel_group
   cloud_region       = var.aws_region
   aws_account_id     = data.aws_caller_identity.current.account_id
@@ -103,9 +103,9 @@ resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
   properties = {
     rosa_creator_arn = data.aws_caller_identity.current.arn
   }
-  sts                = local.sts_roles
-  replicas           = var.replicas
-  destroy_timeout    = 120
+  sts             = local.sts_roles
+  replicas        = var.replicas
+  destroy_timeout = 120
 }
 
 resource "ocm_cluster_wait" "rosa_cluster" {

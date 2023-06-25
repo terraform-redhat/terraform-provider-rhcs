@@ -71,7 +71,7 @@ data "aws_caller_identity" "current" {
 
 resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
   name               = var.cluster_name
-  version            = "openshift-v${var.openshift_version}"
+  version            = var.openshift_version
   channel_group      = var.channel_group
   cloud_region       = var.aws_region
   aws_account_id     = data.aws_caller_identity.current.account_id
@@ -89,4 +89,3 @@ resource "ocm_cluster_wait" "rosa_cluster" {
   # timeout in minutes
   timeout = 60
 }
-

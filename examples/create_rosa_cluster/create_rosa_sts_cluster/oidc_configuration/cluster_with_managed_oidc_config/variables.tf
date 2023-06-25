@@ -49,3 +49,9 @@ variable "openshift_version" {
   type        = string
   default     = "4.13.0"
 }
+
+variable "acks_for" {
+  description = "This variable is used to acknowledge significant changes between versions of OpenShift when performing a version upgrade.The acks_for variable must match the upgraded version's Y-stream."
+  type        = string
+  default     = null
+}

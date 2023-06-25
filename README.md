@@ -50,7 +50,7 @@ The example Terraform files are all considered in development:
       * [HTPasswd](/examples/create_identity_provider/htpasswd/README.md)
       * [Google](/examples/create_identity_provider/google/README.md)
       * [LDAP](/examples/create_identity_provider/ldap/README.md)
-1. Update/Upgrade cluster
+1. [Upgrading or Updating your cluster](docs/upgrading-cluster.md)
 
 ## Contributing to the Red Hat OCM Terraform Provider
 If you want to build a local OCM provider to develop improvements for the Red Hat OCM provider, you can run `terraform plan` against your local build with:

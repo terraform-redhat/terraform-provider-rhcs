@@ -63,13 +63,11 @@ resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
   cloud_region       = var.cloud_region
   aws_account_id     = data.aws_caller_identity.current.account_id
   availability_zones = var.availability_zones
-  version            = "openshift-v${var.openshift_version}"
+  version            = var.openshift_version
   properties = {
     rosa_creator_arn = data.aws_caller_identity.current.arn
   }
   sts = local.sts_roles
-
-  upgrade_acknowledgements_for = var.acks_for
 }
 
 resource "ocm_cluster_wait" "rosa_cluster" {

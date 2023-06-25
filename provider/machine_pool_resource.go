@@ -410,6 +410,14 @@ func (r *MachinePoolResource) Update(ctx context.Context, request tfsdk.UpdateRe
 		return
 	}
 
+	if shouldPatchTaints(state.Taints, plan.Taints) {
+		var taintBuilders []*cmv1.TaintBuilder
+		for _, taint := range plan.Taints {
+			taintBuilders = append(taintBuilders, cmv1.NewTaint().Key(taint.Key.Value).Value(taint.Value.Value).Effect(taint.ScheduleType.Value))
+		}
+		mpBuilder.Taints(taintBuilders...)
+	}
+
 	machinePool, err := mpBuilder.Build()
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -617,7 +625,8 @@ func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *Mac
 				ScheduleType: types.String{Value: taint.Effect()},
 			}
 		}
-
+	} else {
+		state.Taints = nil
 	}
 
 	labels := object.Labels()
@@ -634,4 +643,19 @@ func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *Mac
 
 	}
 
+}
+
+func shouldPatchTaints(a, b []Taints) bool {
+	if (a == nil && b != nil) || (a != nil && b == nil) {
+		return true
+	}
+	if len(a) != len(b) {
+		return true
+	}
+	for i := range a {
+		if !a[i].Key.Equal(b[i].Key) || !a[i].Value.Equal(b[i].Value) || !a[i].ScheduleType.Equal(b[i].ScheduleType) {
+			return true
+		}
+	}
+	return false
 }

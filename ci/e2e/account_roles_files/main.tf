@@ -13,18 +13,18 @@ terraform {
 
 provider "ocm" {
   token = var.token
-  url = var.url
+  url   = var.url
 }
 
-data "ocm_policies" "all_policies"{}
+data "ocm_policies" "all_policies" {}
 
-module "create_account_roles"{
-  source = "terraform-redhat/rosa-sts/aws"
-  version = "0.0.4"
+module "create_account_roles" {
+  source  = "terraform-redhat/rosa-sts/aws"
+  version = "0.0.8"
 
   create_operator_roles = false
-  create_oidc_provider = false
-  create_account_roles = true
+  create_oidc_provider  = false
+  create_account_roles  = true
 
   account_role_prefix    = var.account_role_prefix
   ocm_environment        = var.ocm_environment

@@ -37,10 +37,10 @@ variable "availability_zones" {
   default = ["us-east-2a"]
 }
 
-variable "account_role_path" {
-  description = "(Optional) Path to the account role."
+variable "path" {
+  description = "(Optional) The arn path for the account/operator roles as well as their policies."
   type        = string
-  default     = "/"
+  default     = null
 }
 
 variable "tags" {

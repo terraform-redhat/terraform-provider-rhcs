@@ -3,3 +3,4 @@
 /dist/
 terraform.tfstate*
 /playground/*
+terraform-provider-rhcs

@@ -36,8 +36,32 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "123",
 				  "name": "my-cluster",
+				  "multi_az": true,
+				  "nodes": {
+					"availability_zones": [
+					  "us-east-1a",
+					  "us-east-1b",
+					  "us-east-1c"
+					]
+				  },
 				  "state": "ready"
 		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+					"id": "123",
+					"name": "my-cluster",
+					"multi_az": true,
+					"nodes": {
+					  "availability_zones": [
+						"us-east-1a",
+						"us-east-1b",
+						"us-east-1c"
+					  ]
+			***REMOVED***,
+					"state": "ready"
+				  }`***REMOVED***,
 			***REMOVED***,
 		***REMOVED***
 	}***REMOVED***
@@ -58,7 +82,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
 				  },
-				  "replicas": 10,
+				  "replicas": 12,
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -70,12 +94,17 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
+				  "replicas": 12,
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
 				  },
-				  "taints": [
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
+			  	  "taints": [
 					  {
 						"effect": "effect1",
 						"key": "key1",
@@ -92,9 +121,9 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
-		    replicas     = 10
+		    replicas     = 12
 			labels = {
-				"label_key1" = "label_value1", 
+				"label_key1" = "label_value1",
 				"label_key2" = "label_value2"
 	***REMOVED***
 			taints = [
@@ -114,7 +143,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_type", "r5.xlarge"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 10.0***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 12.0***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.labels | length`, 2***REMOVED******REMOVED***
 	}***REMOVED***
 
@@ -134,12 +163,17 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
 				  },
-				  "replicas": 10
+				  "replicas": 12
 		***REMOVED***`***REMOVED***,
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
+				  "replicas": 12,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
@@ -154,9 +188,9 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
-		    replicas     = 10
+		    replicas     = 12
 			labels = {
-				"label_key1" = "label_value1", 
+				"label_key1" = "label_value1",
 				"label_key2" = "label_value2"
 	***REMOVED***
 		  }
@@ -169,7 +203,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_type", "r5.xlarge"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 10.0***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 12.0***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.labels | length`, 2***REMOVED******REMOVED***
 
 		// Update - change lables
@@ -182,7 +216,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  "id": "my-pool",
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
-                  "replicas": 10,
+                  "replicas": 12,
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
@@ -198,13 +232,29 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  "id": "my-pool",
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
-                  "replicas": 10,
+                  "replicas": 12,
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
 				  },
 				  "instance_type": "r5.xlarge"
 		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+					"id": "123",
+					"name": "my-cluster",
+					"multi_az": true,
+					"nodes": {
+					  "availability_zones": [
+						"us-east-1a",
+						"us-east-1b",
+						"us-east-1c"
+					  ]
+			***REMOVED***,
+					"state": "ready"
+				  }`***REMOVED***,
 			***REMOVED***,
 			CombineHandlers(
 				VerifyRequest(
@@ -214,7 +264,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				VerifyJSON(`{
 				  "kind": "MachinePool",
 				  "id": "my-pool",
-				  "replicas": 10,
+				  "replicas": 12,
 				  "labels": {
 				    "label_key3": "label_value3"
 				  }
@@ -225,7 +275,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
 				  "kind": "MachinePool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
+				  "replicas": 12,
 				  "labels": {
 				    "label_key3": "label_value3"
 				  }
@@ -238,7 +288,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
-		    replicas     = 10
+		    replicas     = 12
 			labels = {
 				"label_key3" = "label_value3"
 	***REMOVED***
@@ -252,7 +302,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_type", "r5.xlarge"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 10.0***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 12.0***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.labels | length`, 1***REMOVED******REMOVED***
 
 		// Update - delete lables
@@ -265,7 +315,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  "id": "my-pool",
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
-                  "replicas": 10,
+                  "replicas": 12,
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
@@ -281,13 +331,29 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  "id": "my-pool",
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
-                  "replicas": 10,
+                  "replicas": 12,
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
 				  },
 				  "instance_type": "r5.xlarge"
 		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+					"id": "123",
+					"name": "my-cluster",
+					"multi_az": true,
+					"nodes": {
+					  "availability_zones": [
+						"us-east-1a",
+						"us-east-1b",
+						"us-east-1c"
+					  ]
+			***REMOVED***,
+					"state": "ready"
+				  }`***REMOVED***,
 			***REMOVED***,
 			CombineHandlers(
 				VerifyRequest(
@@ -297,7 +363,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				VerifyJSON(`{
 				  "kind": "MachinePool",
 				  "id": "my-pool",
-				  "replicas": 10,
+				  "replicas": 12,
                   "labels": {}
 		***REMOVED***`***REMOVED***,
 				RespondWithJSON(http.StatusOK, `
@@ -306,7 +372,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
 				  "kind": "MachinePool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
+				  "replicas": 12,
                   "labels": {}
 		***REMOVED***`***REMOVED***,
 			***REMOVED***,
@@ -317,7 +383,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
-		    replicas     = 10
+		    replicas     = 12
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
@@ -328,7 +394,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_type", "r5.xlarge"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 10.0***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 12.0***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.labels | length`, 0***REMOVED******REMOVED***
 	}***REMOVED***
 
@@ -344,7 +410,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  "kind": "MachinePool",
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
+				  "replicas": 12,
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -356,7 +422,12 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
+				  "replicas": 12,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -374,7 +445,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
-		    replicas     = 10
+		    replicas     = 12
 			taints = [
 				{
 					key = "key1",
@@ -392,7 +463,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_type", "r5.xlarge"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 10.0***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 12.0***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.taints | length`, 1***REMOVED******REMOVED***
 
 		server.AppendHandlers(
@@ -404,7 +475,12 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  "id": "my-pool",
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
-                  "replicas": 10,
+                  "replicas": 12,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -423,7 +499,12 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  "id": "my-pool",
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
-                  "replicas": 10,
+                  "replicas": 12,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -435,6 +516,22 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		***REMOVED***`***REMOVED***,
 			***REMOVED***,
 			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+					"id": "123",
+					"name": "my-cluster",
+					"multi_az": true,
+					"nodes": {
+					  "availability_zones": [
+						"us-east-1a",
+						"us-east-1b",
+						"us-east-1c"
+					  ]
+			***REMOVED***,
+					"state": "ready"
+				  }`***REMOVED***,
+			***REMOVED***,
+			CombineHandlers(
 				VerifyRequest(
 					http.MethodPatch,
 					"/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
@@ -442,7 +539,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				VerifyJSON(`{
 				  "kind": "MachinePool",
 				  "id": "my-pool",
-				  "replicas": 10,
+				  "replicas": 12,
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -462,7 +559,12 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
 				  "kind": "MachinePool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
+				  "replicas": 12,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -484,7 +586,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
-		    replicas     = 10
+		    replicas     = 12
 			taints = [
 				{
 					key = "key1",
@@ -507,7 +609,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_type", "r5.xlarge"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 10.0***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 12.0***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.taints | length`, 2***REMOVED******REMOVED***
 	}***REMOVED***
 
@@ -523,7 +625,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  "kind": "MachinePool",
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
+				  "replicas": 12,
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -535,7 +637,12 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
+				  "replicas": 12,
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -553,7 +660,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
-		    replicas     = 10
+		    replicas     = 12
 			taints = [
 				{
 					key = "key1",
@@ -571,7 +678,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_type", "r5.xlarge"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 10.0***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 12.0***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.taints | length`, 1***REMOVED******REMOVED***
 
 		server.AppendHandlers(
@@ -583,7 +690,12 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  "id": "my-pool",
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
-                  "replicas": 10,
+                  "replicas": 12,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -602,7 +714,12 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  "id": "my-pool",
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
-                  "replicas": 10,
+                  "replicas": 12,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -613,6 +730,23 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  "instance_type": "r5.xlarge"
 		***REMOVED***`***REMOVED***,
 			***REMOVED***,
+			// 3rd get is for the Update function az verification
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+					"id": "123",
+					"name": "my-cluster",
+					"multi_az": true,
+					"nodes": {
+					  "availability_zones": [
+						"us-east-1a",
+						"us-east-1b",
+						"us-east-1c"
+					  ]
+			***REMOVED***,
+					"state": "ready"
+				  }`***REMOVED***,
+			***REMOVED***,
 			CombineHandlers(
 				VerifyRequest(
 					http.MethodPatch,
@@ -621,7 +755,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				VerifyJSON(`{
 				  "kind": "MachinePool",
 				  "id": "my-pool",
-				  "replicas": 10,
+				  "replicas": 12,
                   "taints": []
 		***REMOVED***`***REMOVED***,
 				RespondWithJSON(http.StatusOK, `
@@ -630,7 +764,12 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
 				  "kind": "MachinePool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10
+				  "replicas": 12,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ]
 		***REMOVED***`***REMOVED***,
 			***REMOVED***,
 		***REMOVED***
@@ -640,7 +779,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
-		    replicas     = 10
+		    replicas     = 12
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
@@ -651,7 +790,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_type", "r5.xlarge"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 10.0***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 12.0***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.taints | length`, 0***REMOVED******REMOVED***
 	}***REMOVED***
 
@@ -668,7 +807,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  "id": "my-pool",
 				  "autoscaling": {
 				  	"kind": "MachinePoolAutoscaling",
-				  	"max_replicas": 2,
+				  	"max_replicas": 3,
 				  	"min_replicas": 0
 				  },
 				  "instance_type": "r5.xlarge"
@@ -676,9 +815,14 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "autoscaling": {
-				    "max_replicas": 2,
-				    "min_replicas": 0	  
+				    "max_replicas": 3,
+				    "min_replicas": 0
 				  }
 		***REMOVED***`***REMOVED***,
 			***REMOVED***,
@@ -692,7 +836,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		    machine_type = "r5.xlarge"
 		    autoscaling_enabled = "true"
 		    min_replicas = "0"
-		    max_replicas = "2"
+		    max_replicas = "3"
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
@@ -705,7 +849,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_type", "r5.xlarge"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.autoscaling_enabled", true***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.min_replicas", float64(0***REMOVED******REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.max_replicas", float64(2***REMOVED******REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.max_replicas", float64(3***REMOVED******REMOVED******REMOVED***
 
 		server.AppendHandlers(
 			// First get is for the Read function
@@ -718,9 +862,14 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
 				  "autoscaling": {
 				  	"kind": "MachinePoolAutoscaling",
-				  	"max_replicas": 2,
+				  	"max_replicas": 3,
 				  	"min_replicas": 0
 				  },
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "instance_type": "r5.xlarge"
 		***REMOVED***`***REMOVED***,
 			***REMOVED***,
@@ -734,11 +883,32 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
 				  "autoscaling": {
 				  	"kind": "MachinePoolAutoscaling",
-				  	"max_replicas": 2,
+				  	"max_replicas": 3,
 				  	"min_replicas": 0
 				  },
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "instance_type": "r5.xlarge"
 		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+					"id": "123",
+					"name": "my-cluster",
+					"multi_az": true,
+					"nodes": {
+					  "availability_zones": [
+						"us-east-1a",
+						"us-east-1b",
+						"us-east-1c"
+					  ]
+			***REMOVED***,
+					"state": "ready"
+				  }`***REMOVED***,
 			***REMOVED***,
 			CombineHandlers(
 				VerifyRequest(
@@ -748,7 +918,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				VerifyJSON(`{
 				  "kind": "MachinePool",
 				  "id": "my-pool",
-				  "replicas": 10
+				  "replicas": 12
 		***REMOVED***`***REMOVED***,
 				RespondWithJSON(http.StatusOK, `
 				{
@@ -756,7 +926,12 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
 				  "kind": "MachinePool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10
+				  "replicas": 12,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ]
 		***REMOVED***`***REMOVED***,
 			***REMOVED***,
 		***REMOVED***
@@ -766,7 +941,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
-		    replicas     = 10
+		    replicas     = 12
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
@@ -777,7 +952,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_type", "r5.xlarge"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", float64(10***REMOVED******REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", float64(12***REMOVED******REMOVED******REMOVED***
 	}***REMOVED***
 
 	It("Can't create machine pool with compute nodes using spot instances with negative max spot price", func(***REMOVED*** {
@@ -796,14 +971,14 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 					"spot_market_options": {
 						"kind": "AWSSpotMarketOptions",
 						"max_price": -10
-			***REMOVED*** 
+			***REMOVED***
 				  },
 				  "instance_type": "r5.xlarge",
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
 				  },
-				  "replicas": 10,
+				  "replicas": 12,
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -815,11 +990,11 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-spot-pool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
-				  "aws": {    
-					"spot_market_options": {      
+				  "replicas": 12,
+				  "aws": {
+					"spot_market_options": {
 						"max_price": -10
-			***REMOVED***  
+			***REMOVED***
 				  },
 				  "labels": {
 				    "label_key1": "label_value1",
@@ -842,9 +1017,9 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		    cluster      = "123"
 		    name         = "my-spot-pool"
 		    machine_type = "r5.xlarge"
-		    replicas     = 10
+		    replicas     = 12
 			labels = {
-				"label_key1" = "label_value1", 
+				"label_key1" = "label_value1",
 				"label_key2" = "label_value2"
 	***REMOVED***
 			use_spot_instances = "true"
@@ -877,7 +1052,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
 				  },
-				  "replicas": 10,
+				  "replicas": 12,
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -889,7 +1064,12 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
+				  "replicas": 12,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
@@ -912,9 +1092,9 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
 		    use_spot_instances = "false"
-		    replicas     = 10
+		    replicas     = 12
 			labels = {
-				"label_key1" = "label_value1", 
+				"label_key1" = "label_value1",
 				"label_key2" = "label_value2"
 	***REMOVED***
 			taints = [
@@ -934,7 +1114,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_type", "r5.xlarge"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 10.0***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 12.0***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.labels | length`, 2***REMOVED******REMOVED***
 	}***REMOVED***
 
@@ -954,14 +1134,14 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 					"spot_market_options": {
 						"kind": "AWSSpotMarketOptions",
 						"max_price": 0.5
-			***REMOVED*** 
+			***REMOVED***
 				  },
 				  "instance_type": "r5.xlarge",
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
 				  },
-				  "replicas": 10,
+				  "replicas": 12,
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -973,12 +1153,17 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-spot-pool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
-				  "aws": {    
-					"spot_market_options": {      
-						"max_price": 0.5    
-			***REMOVED***  
+				  "replicas": 12,
+				  "aws": {
+					"spot_market_options": {
+						"max_price": 0.5
+			***REMOVED***
 				  },
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
@@ -1000,9 +1185,9 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		    cluster      = "123"
 		    name         = "my-spot-pool"
 		    machine_type = "r5.xlarge"
-		    replicas     = 10
+		    replicas     = 12
 			labels = {
-				"label_key1" = "label_value1", 
+				"label_key1" = "label_value1",
 				"label_key2" = "label_value2"
 	***REMOVED***
 			use_spot_instances = "true"
@@ -1024,7 +1209,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-spot-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-spot-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_type", "r5.xlarge"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 10.0***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 12.0***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.labels | length`, 2***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.taints | length`, 1***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.use_spot_instances", true***REMOVED******REMOVED***
@@ -1046,14 +1231,14 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 					"kind": "AWSMachinePool",
 					"spot_market_options": {
 						"kind": "AWSSpotMarketOptions"
-			***REMOVED*** 
+			***REMOVED***
 				  },
 				  "instance_type": "r5.xlarge",
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
 				  },
-				  "replicas": 10,
+				  "replicas": 12,
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -1065,11 +1250,16 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-spot-pool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
-				  "aws": {    
-					"spot_market_options": {      
-			***REMOVED***  
+				  "replicas": 12,
+				  "aws": {
+					"spot_market_options": {
+			***REMOVED***
 				  },
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
@@ -1091,9 +1281,9 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		    cluster      = "123"
 		    name         = "my-spot-pool"
 		    machine_type = "r5.xlarge"
-		    replicas     = 10
+		    replicas     = 12
 			labels = {
-				"label_key1" = "label_value1", 
+				"label_key1" = "label_value1",
 				"label_key2" = "label_value2"
 	***REMOVED***
 			use_spot_instances = "true"
@@ -1114,9 +1304,382 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-spot-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-spot-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_type", "r5.xlarge"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 10.0***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 12.0***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.labels | length`, 2***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.taints | length`, 1***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.use_spot_instances", true***REMOVED******REMOVED***
+	}***REMOVED***
+}***REMOVED***
+
+var _ = Describe("Machine pool w/ mAZ cluster", func(***REMOVED*** {
+	BeforeEach(func(***REMOVED*** {
+		// The first thing that the provider will do for any operation on machine pools
+		// is check that the cluster is ready, so we always need to prepare the server to
+		// respond to that:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "123",
+				  "name": "my-cluster",
+				  "multi_az": true,
+				  "nodes": {
+					"availability_zones": [
+					  "us-east-1a",
+					  "us-east-1b",
+					  "us-east-1c"
+					]
+				  },
+				  "state": "ready"
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+					"id": "123",
+					"name": "my-cluster",
+					"multi_az": true,
+					"nodes": {
+					  "availability_zones": [
+						"us-east-1a",
+						"us-east-1b",
+						"us-east-1c"
+					  ]
+			***REMOVED***,
+					"state": "ready"
+				  }`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+	}***REMOVED***
+
+	It("Can create mAZ pool", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				***REMOVED***,
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 6
+		***REMOVED***`***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 6,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ]
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 6
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// Check the state:
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.availability_zone", nil***REMOVED******REMOVED***
+	}***REMOVED***
+
+	It("Can create mAZ pool, setting multi_availbility_zone", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				***REMOVED***,
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 6
+		***REMOVED***`***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 6,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ]
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 6
+			multi_availability_zone = true
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// Check the state:
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.availability_zone", nil***REMOVED******REMOVED***
+	}***REMOVED***
+
+	It("Fails to create mAZ pool if replicas not multiple of 3", func(***REMOVED*** {
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 2
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
+	}***REMOVED***
+
+	It("Can create 1AZ pool", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				***REMOVED***,
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 4,
+				  "availability_zones": [
+					"us-east-1b"
+				  ]
+		***REMOVED***`***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 4,
+				  "availability_zones": [
+					"us-east-1b"
+				  ]
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 4
+			availability_zone = "us-east-1b"
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// Check the state:
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.availability_zone", "us-east-1b"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.multi_availability_zone", false***REMOVED******REMOVED***
+	}***REMOVED***
+
+	It("Can create 1AZ pool w/ multi_availability_zone", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				***REMOVED***,
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 4,
+				  "availability_zones": [
+					"us-east-1a"
+				  ]
+		***REMOVED***`***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 4,
+				  "availability_zones": [
+					"us-east-1a"
+				  ]
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 4
+			multi_availability_zone = false
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// Check the state:
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.availability_zone", "us-east-1a"***REMOVED******REMOVED***
+	}***REMOVED***
+}***REMOVED***
+
+var _ = Describe("Machine pool w/ 1AZ cluster", func(***REMOVED*** {
+	BeforeEach(func(***REMOVED*** {
+		// The first thing that the provider will do for any operation on machine pools
+		// is check that the cluster is ready, so we always need to prepare the server to
+		// respond to that:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "123",
+				  "name": "my-cluster",
+				  "multi_az": false,
+				  "nodes": {
+					"availability_zones": [
+					  "us-east-1a"
+					]
+				  },
+				  "state": "ready"
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+					"id": "123",
+					"name": "my-cluster",
+					"multi_az": false,
+					"nodes": {
+					  "availability_zones": [
+						"us-east-1a"
+					  ]
+			***REMOVED***,
+					"state": "ready"
+				  }`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+	}***REMOVED***
+
+	It("Can create 1az pool", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				***REMOVED***,
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 4
+		***REMOVED***`***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 4,
+				  "availability_zones": [
+					"us-east-1a"
+				  ]
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 4
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// Check the state:
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.availability_zone", nil***REMOVED******REMOVED***
+	}***REMOVED***
+
+	It("Can create 1az pool w/ multi_availability_zone", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				***REMOVED***,
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 4
+		***REMOVED***`***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 4,
+				  "availability_zones": [
+					"us-east-1a"
+				  ]
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 4
+			multi_availability_zone = false
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// Check the state:
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.availability_zone", nil***REMOVED******REMOVED***
+	}***REMOVED***
+
+	It("Fails to create pool if az and subnet supplied", func(***REMOVED*** {
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 2
+			availability_zone: "us-east-1b"
+			subnet_id: "subnet-123"
+	  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
 }***REMOVED***

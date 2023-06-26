@@ -21,18 +21,21 @@ package provider
 ***REMOVED***
 
 type MachinePoolState struct {
-	Cluster            types.String  `tfsdk:"cluster"`
-	ID                 types.String  `tfsdk:"id"`
-	MachineType        types.String  `tfsdk:"machine_type"`
-	Name               types.String  `tfsdk:"name"`
-	Replicas           types.Int64   `tfsdk:"replicas"`
-	UseSpotInstances   types.Bool    `tfsdk:"use_spot_instances"`
-	MaxSpotPrice       types.Float64 `tfsdk:"max_spot_price"`
-	AutoScalingEnabled types.Bool    `tfsdk:"autoscaling_enabled"`
-	MinReplicas        types.Int64   `tfsdk:"min_replicas"`
-	MaxReplicas        types.Int64   `tfsdk:"max_replicas"`
-	Taints             []Taints      `tfsdk:"taints"`
-	Labels             types.Map     `tfsdk:"labels"`
+	Cluster               types.String  `tfsdk:"cluster"`
+	ID                    types.String  `tfsdk:"id"`
+	MachineType           types.String  `tfsdk:"machine_type"`
+	Name                  types.String  `tfsdk:"name"`
+	Replicas              types.Int64   `tfsdk:"replicas"`
+	UseSpotInstances      types.Bool    `tfsdk:"use_spot_instances"`
+	MaxSpotPrice          types.Float64 `tfsdk:"max_spot_price"`
+	AutoScalingEnabled    types.Bool    `tfsdk:"autoscaling_enabled"`
+	MinReplicas           types.Int64   `tfsdk:"min_replicas"`
+	MaxReplicas           types.Int64   `tfsdk:"max_replicas"`
+	Taints                []Taints      `tfsdk:"taints"`
+	Labels                types.Map     `tfsdk:"labels"`
+	MultiAvailabilityZone types.Bool    `tfsdk:"multi_availability_zone"`
+	AvailabilityZone      types.String  `tfsdk:"availability_zone"`
+	SubnetID              types.String  `tfsdk:"subnet_id"`
 }
 
 type Taints struct {

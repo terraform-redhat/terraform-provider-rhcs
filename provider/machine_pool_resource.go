@@ -18,6 +18,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"time"
@@ -208,12 +209,11 @@ func (r *MachinePoolResource) Create(ctx context.Context,
 	builder := cmv1.NewMachinePool().ID(state.ID.Value).InstanceType(state.MachineType.Value)
 	builder.ID(state.Name.Value)
 
-	_, errMsg := getSpotInstances(state, builder)
-	if errMsg != "" {
+	if err := setSpotInstances(state, builder); err != nil {
 		response.Diagnostics.AddError(
 			"Can't build machine pool",
 			fmt.Sprintf(
-				"Can't build machine pool for cluster '%s, %s'", state.Cluster.Value, errMsg,
+				"Can't build machine pool for cluster '%s: %v'", state.Cluster.Value, err,
 			),
 		)
 		return
@@ -221,7 +221,7 @@ func (r *MachinePoolResource) Create(ctx context.Context,
 
 	autoscalingEnabled := false
 	computeNodeEnabled := false
-	autoscalingEnabled, errMsg = getAutoscaling(state, builder)
+	autoscalingEnabled, errMsg := getAutoscaling(state, builder)
 	if errMsg != "" {
 		response.Diagnostics.AddError(
 			"Can't build machine pool",
@@ -455,30 +455,29 @@ func (r *MachinePoolResource) Update(ctx context.Context, request tfsdk.UpdateRe
 	response.Diagnostics.Append(diags...)
 }
 
-func getSpotInstances(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilder) (
-	useSpotInstances bool, errMsg string) {
-	useSpotInstances = false
+func setSpotInstances(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilder) error {
+	useSpotInstances := !state.UseSpotInstances.Unknown && !state.UseSpotInstances.Null && state.UseSpotInstances.Value
+	isSpotMaxPriceSet := !state.MaxSpotPrice.Unknown && !state.MaxSpotPrice.Null
 
-	if !state.UseSpotInstances.Unknown && !state.UseSpotInstances.Null && state.UseSpotInstances.Value {
-		useSpotInstances = true
+	if isSpotMaxPriceSet && !useSpotInstances {
+		return errors.New("Can't set max price when not using spot instances (set \"use_spot_instances\" to true)")
+	}
+
+	if useSpotInstances {
+		if isSpotMaxPriceSet && state.MaxSpotPrice.Value <= 0 {
+			return errors.New("To use Spot instances, you must set \"max_spot_price\" with positive value")
+		}
 
 		awsMachinePool := cmv1.NewAWSMachinePool()
 		spotMarketOptions := cmv1.NewAWSSpotMarketOptions()
-		if !state.MaxSpotPrice.Unknown && !state.MaxSpotPrice.Null {
+		if isSpotMaxPriceSet {
 			spotMarketOptions.MaxPrice(float64(state.MaxSpotPrice.Value))
 		}
 		awsMachinePool.SpotMarketOptions(spotMarketOptions)
-
-		if !awsMachinePool.Empty() {
-			mpBuilder.AWS(awsMachinePool)
-		}
-	} else {
-		if !state.MaxSpotPrice.Unknown && !state.MaxSpotPrice.Null {
-			return false, "when not using aws spot instances, can't set max_spot_price"
-		}
+		mpBuilder.AWS(awsMachinePool)
 	}
 
-	return useSpotInstances, ""
+	return nil
 }
 
 func getAutoscaling(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilder) (
@@ -560,22 +559,15 @@ func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *Mac
 		Value: object.ID(),
 	}
 
-	getAWS, ok := object.GetAWS()
-	if ok {
-		state.UseSpotInstances = types.Bool{Value: true}
-		spotMarketOptions, ok := getAWS.GetSpotMarketOptions()
-		if ok {
+	if getAWS, ok := object.GetAWS(); ok {
+		if spotMarketOptions, ok := getAWS.GetSpotMarketOptions(); ok {
+			state.UseSpotInstances = types.Bool{Value: true}
 			if spotMarketOptions.MaxPrice() != 0 {
 				state.MaxSpotPrice = types.Float64{
 					Value: float64(spotMarketOptions.MaxPrice()),
 				}
-			} else {
-				state.MaxSpotPrice.Null = true
 			}
 		}
-	} else {
-		state.UseSpotInstances.Null = true
-		state.MaxSpotPrice.Null = true
 	}
 
 	autoscaling, ok := object.GetAutoscaling()

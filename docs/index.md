@@ -56,6 +56,20 @@ Terraform creates and manages resources through application programming interfac
 
 For more information, see the [Terraform documentation](https://developer.hashicorp.com/terraform).
 
+## Limitations of OCM Terraform provider
+
+The following items are limitations with the current release of the OCM Terraform provider:
+
+* The latest version is not backward compatible with version 1.0.1.
+* When creating a cluster, the cluster uses AWS credentials configured on your local machine. These credentials provide access to the AWS API for validating your account.
+* When creating a machine pool, you need to specify your replica count. You must define either the `replicas= "<count>"` variable or provide values for the following variables to build the machine pool:  
+   * `min_replicas = "<count>"` 
+   * `max_replicas="<count>"` 
+   * `autoscaling_enabled=true`
+* The htpasswd identity provider does not support creating the identity provider with multiple users or adding additional users to the existing identity provider.
+* The S3 bucket that is created as part of the OIDC configuration must be created in the same region as your OIDC provider.
+* The Terraform provider does not support auto-generated `operator_role_prefix`. You must provide your `operator_role_prefix` when creating the account roles.
+
 ## Prerequisites
 
 To use the OCM provider inside your Terraform configuration you must meet the following:
@@ -92,44 +106,78 @@ To use the OCM provider inside your Terraform configuration you must meet the fo
 
     ```
     {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "VisualEditor0",
-            "Effect": "Allow",
-            "Action": [
-                "iam:GetRole",
-                "iam:TagRole",
-                "iam:UpdateOpenIDConnectProviderThumbprint",
-                "iam:CreateRole",
-                "iam:DeleteRole",
-                "iam:ListRoles",
-                "iam:ListRoleTags",
-                "iam:AttachRolePolicy",
-                "iam:CreateOpenIDConnectProvider",
-                "iam:CreatePolicy",
-                "iam:TagPolicy",
-                "iam:GetPolicy",
-                "iam:GetPolicyVersion",
-                "iam:ListPolicyVersions",
-                "iam:ListEntitiesForPolicy",
-                "iam:DeletePolicy",
-                "iam:ListInstanceProfilesForRole",
-                "iam:DetachRolePolicy",
-                "iam:ListAttachedRolePolicies",
-                "iam:UpdateRole",
-                "iam:ListRolePolicies",
-                "iam:GetOpenIDConnectProvider",
-                "iam:DeleteOpenIDConnectProvider",
-                "iam:TagOpenIDConnectProvider"
-            ],
-            "Resource": [
-                "arn:aws:iam::<ACCOUNT_ID>:role/*",
-                "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/*",
-                "arn:aws:iam::<ACCOUNT_ID>:policy/*"
-            ]
-        }
-      ]
+	    "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "VisualEditor0",
+                "Effect": "Allow",
+                "Action": [
+                    "iam:GetPolicyVersion",
+                    "iam:DeletePolicyVersion",
+                    "iam:CreatePolicyVersion",
+                    "iam:UpdateAssumeRolePolicy",
+                    "secretsmanager:DescribeSecret",
+                    "iam:ListRoleTags",
+                    "secretsmanager:PutSecretValue",
+                    "secretsmanager:CreateSecret",
+                    "iam:TagRole",
+                    "secretsmanager:DeleteSecret",
+                    "iam:UpdateOpenIDConnectProviderThumbprint",
+                    "iam:DeletePolicy",
+                    "iam:CreateRole",
+                    "iam:AttachRolePolicy",
+                    "iam:ListInstanceProfilesForRole",
+                    "secretsmanager:GetSecretValue",
+                    "iam:DetachRolePolicy",
+                    "iam:ListAttachedRolePolicies",
+                    "iam:ListPolicyTags",
+                    "iam:ListRolePolicies",
+                    "iam:DeleteOpenIDConnectProvider",
+                    "iam:DeleteInstanceProfile",
+                    "iam:GetRole",
+                    "iam:GetPolicy",
+                    "iam:ListEntitiesForPolicy",
+                    "iam:DeleteRole",
+                    "iam:TagPolicy",
+                    "iam:CreateOpenIDConnectProvider",
+                    "iam:CreatePolicy",
+                    "secretsmanager:GetResourcePolicy",
+                    "iam:ListPolicyVersions",
+                    "iam:UpdateRole",
+                    "iam:GetOpenIDConnectProvider",
+                    "iam:TagOpenIDConnectProvider",
+                    "secretsmanager:TagResource"
+                ],
+                "Resource": [
+                    "arn:aws:secretsmanager:*:<ACCOUNT_ID>:secret:*",
+                    "arn:aws:iam::<ACCOUNT_ID>:instance-profile/*",
+                    "arn:aws:iam::<ACCOUNT_ID>:role/*",
+                    "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/*",
+                    "arn:aws:iam::<ACCOUNT_ID>:policy/*"
+                ]
+            },
+            {
+                "Sid": "VisualEditor1",
+                "Effect": "Allow",
+                "Action": [
+                   "s3:PutObject",
+                   "s3:GetObject",
+                   "s3:AbortMultipartUpload",
+                   "iam:ListRoles",
+                   "s3:ListBucket",
+                   "sts:AssumeRoleWithWebIdentity",
+                   "s3:DeleteObject",
+                   "s3:GetBucketPolicy",
+                   "s3:GetObjectVersion",
+                   "s3:ListMultipartUploadParts",
+                   "s3:PutInventoryConfiguration",
+                   "s3:CreateBucket",
+                   "s3:PutBucketPolicy",
+                   "s3:DeleteBucketPolicy"
+                ],
+                "Resource": "*"
+            }
+        ]
     }
     ```
 

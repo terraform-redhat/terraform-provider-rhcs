@@ -40,15 +40,17 @@ module "oidc_config" {
   operator_role_prefix = var.operator_role_prefix
   account_role_prefix  = var.account_role_prefix
   tags                 = var.tags
+  path                 = var.path
 }
 
 locals {
+  path = coalesce(var.path, "/"***REMOVED***
   sts_roles = {
-    role_arn         = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${var.account_role_path}${var.account_role_prefix}-Installer-Role",
-    support_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${var.account_role_path}${var.account_role_prefix}-Support-Role",
+    role_arn         = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${var.account_role_prefix}-Installer-Role",
+    support_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${var.account_role_prefix}-Support-Role",
     instance_iam_roles = {
-      master_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${var.account_role_path}${var.account_role_prefix}-ControlPlane-Role",
-      worker_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${var.account_role_path}${var.account_role_prefix}-Worker-Role"
+      master_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${var.account_role_prefix}-ControlPlane-Role",
+      worker_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${var.account_role_prefix}-Worker-Role"
     },
     operator_role_prefix = var.operator_role_prefix,
     oidc_config_id       = module.oidc_config.id

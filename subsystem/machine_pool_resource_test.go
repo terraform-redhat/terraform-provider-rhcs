@@ -602,6 +602,164 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", float64(10***REMOVED******REMOVED******REMOVED***
 	}***REMOVED***
 
+	It("Can't create machine pool with compute nodes using spot instances with negative max spot price", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				***REMOVED***,
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-spot-pool",
+				  "aws": {
+					"kind": "AWSMachinePool",
+					"spot_market_options": {
+						"kind": "AWSSpotMarketOptions",
+						"max_price": -10
+			***REMOVED*** 
+				  },
+				  "instance_type": "r5.xlarge",
+				  "labels": {
+				    "label_key1": "label_value1",
+				    "label_key2": "label_value2"
+				  },
+				  "replicas": 10,
+				  "taints": [
+					  {
+						"effect": "effect1",
+						"key": "key1",
+						"value": "value1"
+					  }
+				  ]
+		***REMOVED***`***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-spot-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 10,
+				  "aws": {    
+					"spot_market_options": {      
+						"max_price": -10
+			***REMOVED***  
+				  },
+				  "labels": {
+				    "label_key1": "label_value1",
+				    "label_key2": "label_value2"
+				  },
+				  "taints": [
+					  {
+						"effect": "effect1",
+						"key": "key1",
+						"value": "value1"
+					  }
+				  ]
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "ocm_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-spot-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 10
+			labels = {
+				"label_key1" = "label_value1", 
+				"label_key2" = "label_value2"
+	***REMOVED***
+			use_spot_instances = "true"
+            max_spot_price = -10
+			taints = [
+				{
+					key = "key1",
+					value = "value1",
+					schedule_type = "effect1",
+		***REMOVED***,
+		    ]
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
+	}***REMOVED***
+
+	It("Can create machine pool with compute nodes and use_spot_instances false", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				***REMOVED***,
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "labels": {
+				    "label_key1": "label_value1",
+				    "label_key2": "label_value2"
+				  },
+				  "replicas": 10,
+				  "taints": [
+					  {
+						"effect": "effect1",
+						"key": "key1",
+						"value": "value1"
+					  }
+				  ]
+		***REMOVED***`***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 10,
+				  "labels": {
+				    "label_key1": "label_value1",
+				    "label_key2": "label_value2"
+				  },
+				  "taints": [
+					  {
+						"effect": "effect1",
+						"key": "key1",
+						"value": "value1"
+					  }
+				  ]
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "ocm_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    use_spot_instances = "false"
+		    replicas     = 10
+			labels = {
+				"label_key1" = "label_value1", 
+				"label_key2" = "label_value2"
+	***REMOVED***
+			taints = [
+				{
+					key = "key1",
+					value = "value1",
+					schedule_type = "effect1",
+		***REMOVED***,
+		    ]
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// Check the state:
+		resource := terraform.Resource("ocm_machine_pool", "my_pool"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-pool"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_type", "r5.xlarge"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 10.0***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.labels | length`, 2***REMOVED******REMOVED***
+	}***REMOVED***
+
 	It("Can create machine pool with compute nodes using spot instances with max spot price of 0.5", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(

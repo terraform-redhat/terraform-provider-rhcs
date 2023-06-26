@@ -18,6 +18,7 @@ package provider
 
 ***REMOVED***
 	"context"
+	"errors"
 ***REMOVED***
 	"regexp"
 	"time"
@@ -208,12 +209,11 @@ func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context,
 	builder := cmv1.NewMachinePool(***REMOVED***.ID(state.ID.Value***REMOVED***.InstanceType(state.MachineType.Value***REMOVED***
 	builder.ID(state.Name.Value***REMOVED***
 
-	_, errMsg := getSpotInstances(state, builder***REMOVED***
-	if errMsg != "" {
+	if err := setSpotInstances(state, builder***REMOVED***; err != nil {
 		response.Diagnostics.AddError(
 			"Can't build machine pool",
 			fmt.Sprintf(
-				"Can't build machine pool for cluster '%s, %s'", state.Cluster.Value, errMsg,
+				"Can't build machine pool for cluster '%s: %v'", state.Cluster.Value, err,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -221,7 +221,7 @@ func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context,
 
 	autoscalingEnabled := false
 	computeNodeEnabled := false
-	autoscalingEnabled, errMsg = getAutoscaling(state, builder***REMOVED***
+	autoscalingEnabled, errMsg := getAutoscaling(state, builder***REMOVED***
 	if errMsg != "" {
 		response.Diagnostics.AddError(
 			"Can't build machine pool",
@@ -455,30 +455,29 @@ func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, request tf
 	response.Diagnostics.Append(diags...***REMOVED***
 }
 
-func getSpotInstances(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilder***REMOVED*** (
-	useSpotInstances bool, errMsg string***REMOVED*** {
-	useSpotInstances = false
+func setSpotInstances(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilder***REMOVED*** error {
+	useSpotInstances := !state.UseSpotInstances.Unknown && !state.UseSpotInstances.Null && state.UseSpotInstances.Value
+	isSpotMaxPriceSet := !state.MaxSpotPrice.Unknown && !state.MaxSpotPrice.Null
 
-	if !state.UseSpotInstances.Unknown && !state.UseSpotInstances.Null && state.UseSpotInstances.Value {
-		useSpotInstances = true
+	if isSpotMaxPriceSet && !useSpotInstances {
+		return errors.New("Can't set max price when not using spot instances (set \"use_spot_instances\" to true***REMOVED***"***REMOVED***
+	}
+
+	if useSpotInstances {
+		if isSpotMaxPriceSet && state.MaxSpotPrice.Value <= 0 {
+			return errors.New("To use Spot instances, you must set \"max_spot_price\" with positive value"***REMOVED***
+***REMOVED***
 
 		awsMachinePool := cmv1.NewAWSMachinePool(***REMOVED***
 		spotMarketOptions := cmv1.NewAWSSpotMarketOptions(***REMOVED***
-		if !state.MaxSpotPrice.Unknown && !state.MaxSpotPrice.Null {
+		if isSpotMaxPriceSet {
 			spotMarketOptions.MaxPrice(float64(state.MaxSpotPrice.Value***REMOVED******REMOVED***
 ***REMOVED***
 		awsMachinePool.SpotMarketOptions(spotMarketOptions***REMOVED***
-
-		if !awsMachinePool.Empty(***REMOVED*** {
-			mpBuilder.AWS(awsMachinePool***REMOVED***
-***REMOVED***
-	} else {
-		if !state.MaxSpotPrice.Unknown && !state.MaxSpotPrice.Null {
-			return false, "when not using aws spot instances, can't set max_spot_price"
-***REMOVED***
+		mpBuilder.AWS(awsMachinePool***REMOVED***
 	}
 
-	return useSpotInstances, ""
+	return nil
 }
 
 func getAutoscaling(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilder***REMOVED*** (
@@ -560,22 +559,15 @@ func (r *MachinePoolResource***REMOVED*** populateState(object *cmv1.MachinePool
 		Value: object.ID(***REMOVED***,
 	}
 
-	getAWS, ok := object.GetAWS(***REMOVED***
-	if ok {
-		state.UseSpotInstances = types.Bool{Value: true}
-		spotMarketOptions, ok := getAWS.GetSpotMarketOptions(***REMOVED***
-		if ok {
+	if getAWS, ok := object.GetAWS(***REMOVED***; ok {
+		if spotMarketOptions, ok := getAWS.GetSpotMarketOptions(***REMOVED***; ok {
+			state.UseSpotInstances = types.Bool{Value: true}
 			if spotMarketOptions.MaxPrice(***REMOVED*** != 0 {
 				state.MaxSpotPrice = types.Float64{
 					Value: float64(spotMarketOptions.MaxPrice(***REMOVED******REMOVED***,
 		***REMOVED***
-	***REMOVED*** else {
-				state.MaxSpotPrice.Null = true
 	***REMOVED***
 ***REMOVED***
-	} else {
-		state.UseSpotInstances.Null = true
-		state.MaxSpotPrice.Null = true
 	}
 
 	autoscaling, ok := object.GetAutoscaling(***REMOVED***

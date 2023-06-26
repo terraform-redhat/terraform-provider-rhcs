@@ -36,8 +36,32 @@ var _ = Describe("Machine pool creation", func() {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "123",
 				  "name": "my-cluster",
+				  "multi_az": true,
+				  "nodes": {
+					"availability_zones": [
+					  "us-east-1a",
+					  "us-east-1b",
+					  "us-east-1c"
+					]
+				  },
 				  "state": "ready"
 				}`),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, `{
+					"id": "123",
+					"name": "my-cluster",
+					"multi_az": true,
+					"nodes": {
+					  "availability_zones": [
+						"us-east-1a",
+						"us-east-1b",
+						"us-east-1c"
+					  ]
+					},
+					"state": "ready"
+				  }`),
 			),
 		)
 	})
@@ -58,7 +82,7 @@ var _ = Describe("Machine pool creation", func() {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
 				  },
-				  "replicas": 10,
+				  "replicas": 12,
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -70,12 +94,17 @@ var _ = Describe("Machine pool creation", func() {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
+				  "replicas": 12,
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
 				  },
-				  "taints": [
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
+			  	  "taints": [
 					  {
 						"effect": "effect1",
 						"key": "key1",
@@ -92,9 +121,9 @@ var _ = Describe("Machine pool creation", func() {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
-		    replicas     = 10
+		    replicas     = 12
 			labels = {
-				"label_key1" = "label_value1", 
+				"label_key1" = "label_value1",
 				"label_key2" = "label_value2"
 			}
 			taints = [
@@ -114,7 +143,7 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 		Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
 		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
-		Expect(resource).To(MatchJQ(".attributes.replicas", 10.0))
+		Expect(resource).To(MatchJQ(".attributes.replicas", 12.0))
 		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 2))
 	})
 
@@ -134,12 +163,17 @@ var _ = Describe("Machine pool creation", func() {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
 				  },
-				  "replicas": 10
+				  "replicas": 12
 				}`),
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
+				  "replicas": 12,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
@@ -154,9 +188,9 @@ var _ = Describe("Machine pool creation", func() {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
-		    replicas     = 10
+		    replicas     = 12
 			labels = {
-				"label_key1" = "label_value1", 
+				"label_key1" = "label_value1",
 				"label_key2" = "label_value2"
 			}
 		  }
@@ -169,7 +203,7 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 		Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
 		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
-		Expect(resource).To(MatchJQ(".attributes.replicas", 10.0))
+		Expect(resource).To(MatchJQ(".attributes.replicas", 12.0))
 		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 2))
 
 		// Update - change lables
@@ -182,7 +216,7 @@ var _ = Describe("Machine pool creation", func() {
 				  "id": "my-pool",
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
-                  "replicas": 10,
+                  "replicas": 12,
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
@@ -198,13 +232,29 @@ var _ = Describe("Machine pool creation", func() {
 				  "id": "my-pool",
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
-                  "replicas": 10,
+                  "replicas": 12,
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
 				  },
 				  "instance_type": "r5.xlarge"
 				}`),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, `{
+					"id": "123",
+					"name": "my-cluster",
+					"multi_az": true,
+					"nodes": {
+					  "availability_zones": [
+						"us-east-1a",
+						"us-east-1b",
+						"us-east-1c"
+					  ]
+					},
+					"state": "ready"
+				  }`),
 			),
 			CombineHandlers(
 				VerifyRequest(
@@ -214,7 +264,7 @@ var _ = Describe("Machine pool creation", func() {
 				VerifyJSON(`{
 				  "kind": "MachinePool",
 				  "id": "my-pool",
-				  "replicas": 10,
+				  "replicas": 12,
 				  "labels": {
 				    "label_key3": "label_value3"
 				  }
@@ -225,7 +275,7 @@ var _ = Describe("Machine pool creation", func() {
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
 				  "kind": "MachinePool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
+				  "replicas": 12,
 				  "labels": {
 				    "label_key3": "label_value3"
 				  }
@@ -238,7 +288,7 @@ var _ = Describe("Machine pool creation", func() {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
-		    replicas     = 10
+		    replicas     = 12
 			labels = {
 				"label_key3" = "label_value3"
 			}
@@ -252,7 +302,7 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 		Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
 		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
-		Expect(resource).To(MatchJQ(".attributes.replicas", 10.0))
+		Expect(resource).To(MatchJQ(".attributes.replicas", 12.0))
 		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 1))
 
 		// Update - delete lables
@@ -265,7 +315,7 @@ var _ = Describe("Machine pool creation", func() {
 				  "id": "my-pool",
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
-                  "replicas": 10,
+                  "replicas": 12,
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
@@ -281,13 +331,29 @@ var _ = Describe("Machine pool creation", func() {
 				  "id": "my-pool",
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
-                  "replicas": 10,
+                  "replicas": 12,
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
 				  },
 				  "instance_type": "r5.xlarge"
 				}`),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, `{
+					"id": "123",
+					"name": "my-cluster",
+					"multi_az": true,
+					"nodes": {
+					  "availability_zones": [
+						"us-east-1a",
+						"us-east-1b",
+						"us-east-1c"
+					  ]
+					},
+					"state": "ready"
+				  }`),
 			),
 			CombineHandlers(
 				VerifyRequest(
@@ -297,7 +363,7 @@ var _ = Describe("Machine pool creation", func() {
 				VerifyJSON(`{
 				  "kind": "MachinePool",
 				  "id": "my-pool",
-				  "replicas": 10,
+				  "replicas": 12,
                   "labels": {}
 				}`),
 				RespondWithJSON(http.StatusOK, `
@@ -306,7 +372,7 @@ var _ = Describe("Machine pool creation", func() {
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
 				  "kind": "MachinePool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
+				  "replicas": 12,
                   "labels": {}
 				}`),
 			),
@@ -317,7 +383,7 @@ var _ = Describe("Machine pool creation", func() {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
-		    replicas     = 10
+		    replicas     = 12
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
@@ -328,7 +394,7 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 		Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
 		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
-		Expect(resource).To(MatchJQ(".attributes.replicas", 10.0))
+		Expect(resource).To(MatchJQ(".attributes.replicas", 12.0))
 		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 0))
 	})
 
@@ -344,7 +410,7 @@ var _ = Describe("Machine pool creation", func() {
 				  "kind": "MachinePool",
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
+				  "replicas": 12,
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -356,7 +422,12 @@ var _ = Describe("Machine pool creation", func() {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
+				  "replicas": 12,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -374,7 +445,7 @@ var _ = Describe("Machine pool creation", func() {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
-		    replicas     = 10
+		    replicas     = 12
 			taints = [
 				{
 					key = "key1",
@@ -392,7 +463,7 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 		Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
 		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
-		Expect(resource).To(MatchJQ(".attributes.replicas", 10.0))
+		Expect(resource).To(MatchJQ(".attributes.replicas", 12.0))
 		Expect(resource).To(MatchJQ(`.attributes.taints | length`, 1))
 
 		server.AppendHandlers(
@@ -404,7 +475,12 @@ var _ = Describe("Machine pool creation", func() {
 				  "id": "my-pool",
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
-                  "replicas": 10,
+                  "replicas": 12,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -423,7 +499,12 @@ var _ = Describe("Machine pool creation", func() {
 				  "id": "my-pool",
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
-                  "replicas": 10,
+                  "replicas": 12,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -435,6 +516,22 @@ var _ = Describe("Machine pool creation", func() {
 				}`),
 			),
 			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, `{
+					"id": "123",
+					"name": "my-cluster",
+					"multi_az": true,
+					"nodes": {
+					  "availability_zones": [
+						"us-east-1a",
+						"us-east-1b",
+						"us-east-1c"
+					  ]
+					},
+					"state": "ready"
+				  }`),
+			),
+			CombineHandlers(
 				VerifyRequest(
 					http.MethodPatch,
 					"/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
@@ -442,7 +539,7 @@ var _ = Describe("Machine pool creation", func() {
 				VerifyJSON(`{
 				  "kind": "MachinePool",
 				  "id": "my-pool",
-				  "replicas": 10,
+				  "replicas": 12,
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -462,7 +559,12 @@ var _ = Describe("Machine pool creation", func() {
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
 				  "kind": "MachinePool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
+				  "replicas": 12,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -484,7 +586,7 @@ var _ = Describe("Machine pool creation", func() {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
-		    replicas     = 10
+		    replicas     = 12
 			taints = [
 				{
 					key = "key1",
@@ -507,7 +609,7 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 		Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
 		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
-		Expect(resource).To(MatchJQ(".attributes.replicas", 10.0))
+		Expect(resource).To(MatchJQ(".attributes.replicas", 12.0))
 		Expect(resource).To(MatchJQ(`.attributes.taints | length`, 2))
 	})
 
@@ -523,7 +625,7 @@ var _ = Describe("Machine pool creation", func() {
 				  "kind": "MachinePool",
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
+				  "replicas": 12,
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -535,7 +637,12 @@ var _ = Describe("Machine pool creation", func() {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
+				  "replicas": 12,
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -553,7 +660,7 @@ var _ = Describe("Machine pool creation", func() {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
-		    replicas     = 10
+		    replicas     = 12
 			taints = [
 				{
 					key = "key1",
@@ -571,7 +678,7 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 		Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
 		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
-		Expect(resource).To(MatchJQ(".attributes.replicas", 10.0))
+		Expect(resource).To(MatchJQ(".attributes.replicas", 12.0))
 		Expect(resource).To(MatchJQ(`.attributes.taints | length`, 1))
 
 		server.AppendHandlers(
@@ -583,7 +690,12 @@ var _ = Describe("Machine pool creation", func() {
 				  "id": "my-pool",
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
-                  "replicas": 10,
+                  "replicas": 12,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -602,7 +714,12 @@ var _ = Describe("Machine pool creation", func() {
 				  "id": "my-pool",
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
-                  "replicas": 10,
+                  "replicas": 12,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -613,6 +730,23 @@ var _ = Describe("Machine pool creation", func() {
 				  "instance_type": "r5.xlarge"
 				}`),
 			),
+			// 3rd get is for the Update function az verification
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, `{
+					"id": "123",
+					"name": "my-cluster",
+					"multi_az": true,
+					"nodes": {
+					  "availability_zones": [
+						"us-east-1a",
+						"us-east-1b",
+						"us-east-1c"
+					  ]
+					},
+					"state": "ready"
+				  }`),
+			),
 			CombineHandlers(
 				VerifyRequest(
 					http.MethodPatch,
@@ -621,7 +755,7 @@ var _ = Describe("Machine pool creation", func() {
 				VerifyJSON(`{
 				  "kind": "MachinePool",
 				  "id": "my-pool",
-				  "replicas": 10,
+				  "replicas": 12,
                   "taints": []
 				}`),
 				RespondWithJSON(http.StatusOK, `
@@ -630,7 +764,12 @@ var _ = Describe("Machine pool creation", func() {
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
 				  "kind": "MachinePool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10
+				  "replicas": 12,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ]
 				}`),
 			),
 		)
@@ -640,7 +779,7 @@ var _ = Describe("Machine pool creation", func() {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
-		    replicas     = 10
+		    replicas     = 12
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
@@ -651,7 +790,7 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 		Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
 		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
-		Expect(resource).To(MatchJQ(".attributes.replicas", 10.0))
+		Expect(resource).To(MatchJQ(".attributes.replicas", 12.0))
 		Expect(resource).To(MatchJQ(`.attributes.taints | length`, 0))
 	})
 
@@ -668,7 +807,7 @@ var _ = Describe("Machine pool creation", func() {
 				  "id": "my-pool",
 				  "autoscaling": {
 				  	"kind": "MachinePoolAutoscaling",
-				  	"max_replicas": 2,
+				  	"max_replicas": 3,
 				  	"min_replicas": 0
 				  },
 				  "instance_type": "r5.xlarge"
@@ -676,9 +815,14 @@ var _ = Describe("Machine pool creation", func() {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "autoscaling": {
-				    "max_replicas": 2,
-				    "min_replicas": 0	  
+				    "max_replicas": 3,
+				    "min_replicas": 0
 				  }
 				}`),
 			),
@@ -692,7 +836,7 @@ var _ = Describe("Machine pool creation", func() {
 		    machine_type = "r5.xlarge"
 		    autoscaling_enabled = "true"
 		    min_replicas = "0"
-		    max_replicas = "2"
+		    max_replicas = "3"
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
@@ -705,7 +849,7 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
 		Expect(resource).To(MatchJQ(".attributes.autoscaling_enabled", true))
 		Expect(resource).To(MatchJQ(".attributes.min_replicas", float64(0)))
-		Expect(resource).To(MatchJQ(".attributes.max_replicas", float64(2)))
+		Expect(resource).To(MatchJQ(".attributes.max_replicas", float64(3)))
 
 		server.AppendHandlers(
 			// First get is for the Read function
@@ -718,9 +862,14 @@ var _ = Describe("Machine pool creation", func() {
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
 				  "autoscaling": {
 				  	"kind": "MachinePoolAutoscaling",
-				  	"max_replicas": 2,
+				  	"max_replicas": 3,
 				  	"min_replicas": 0
 				  },
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "instance_type": "r5.xlarge"
 				}`),
 			),
@@ -734,11 +883,32 @@ var _ = Describe("Machine pool creation", func() {
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
 				  "autoscaling": {
 				  	"kind": "MachinePoolAutoscaling",
-				  	"max_replicas": 2,
+				  	"max_replicas": 3,
 				  	"min_replicas": 0
 				  },
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "instance_type": "r5.xlarge"
 				}`),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, `{
+					"id": "123",
+					"name": "my-cluster",
+					"multi_az": true,
+					"nodes": {
+					  "availability_zones": [
+						"us-east-1a",
+						"us-east-1b",
+						"us-east-1c"
+					  ]
+					},
+					"state": "ready"
+				  }`),
 			),
 			CombineHandlers(
 				VerifyRequest(
@@ -748,7 +918,7 @@ var _ = Describe("Machine pool creation", func() {
 				VerifyJSON(`{
 				  "kind": "MachinePool",
 				  "id": "my-pool",
-				  "replicas": 10
+				  "replicas": 12
 				}`),
 				RespondWithJSON(http.StatusOK, `
 				{
@@ -756,7 +926,12 @@ var _ = Describe("Machine pool creation", func() {
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
 				  "kind": "MachinePool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10
+				  "replicas": 12,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ]
 				}`),
 			),
 		)
@@ -766,7 +941,7 @@ var _ = Describe("Machine pool creation", func() {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
-		    replicas     = 10
+		    replicas     = 12
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
@@ -777,7 +952,7 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 		Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
 		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
-		Expect(resource).To(MatchJQ(".attributes.replicas", float64(10)))
+		Expect(resource).To(MatchJQ(".attributes.replicas", float64(12)))
 	})
 
 	It("Can't create machine pool with compute nodes using spot instances with negative max spot price", func() {
@@ -796,14 +971,14 @@ var _ = Describe("Machine pool creation", func() {
 					"spot_market_options": {
 						"kind": "AWSSpotMarketOptions",
 						"max_price": -10
-					} 
+					}
 				  },
 				  "instance_type": "r5.xlarge",
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
 				  },
-				  "replicas": 10,
+				  "replicas": 12,
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -815,11 +990,11 @@ var _ = Describe("Machine pool creation", func() {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-spot-pool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
-				  "aws": {    
-					"spot_market_options": {      
+				  "replicas": 12,
+				  "aws": {
+					"spot_market_options": {
 						"max_price": -10
-					}  
+					}
 				  },
 				  "labels": {
 				    "label_key1": "label_value1",
@@ -842,9 +1017,9 @@ var _ = Describe("Machine pool creation", func() {
 		    cluster      = "123"
 		    name         = "my-spot-pool"
 		    machine_type = "r5.xlarge"
-		    replicas     = 10
+		    replicas     = 12
 			labels = {
-				"label_key1" = "label_value1", 
+				"label_key1" = "label_value1",
 				"label_key2" = "label_value2"
 			}
 			use_spot_instances = "true"
@@ -877,7 +1052,7 @@ var _ = Describe("Machine pool creation", func() {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
 				  },
-				  "replicas": 10,
+				  "replicas": 12,
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -889,7 +1064,12 @@ var _ = Describe("Machine pool creation", func() {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
+				  "replicas": 12,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
@@ -912,9 +1092,9 @@ var _ = Describe("Machine pool creation", func() {
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
 		    use_spot_instances = "false"
-		    replicas     = 10
+		    replicas     = 12
 			labels = {
-				"label_key1" = "label_value1", 
+				"label_key1" = "label_value1",
 				"label_key2" = "label_value2"
 			}
 			taints = [
@@ -934,7 +1114,7 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 		Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
 		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
-		Expect(resource).To(MatchJQ(".attributes.replicas", 10.0))
+		Expect(resource).To(MatchJQ(".attributes.replicas", 12.0))
 		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 2))
 	})
 
@@ -954,14 +1134,14 @@ var _ = Describe("Machine pool creation", func() {
 					"spot_market_options": {
 						"kind": "AWSSpotMarketOptions",
 						"max_price": 0.5
-					} 
+					}
 				  },
 				  "instance_type": "r5.xlarge",
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
 				  },
-				  "replicas": 10,
+				  "replicas": 12,
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -973,12 +1153,17 @@ var _ = Describe("Machine pool creation", func() {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-spot-pool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
-				  "aws": {    
-					"spot_market_options": {      
-						"max_price": 0.5    
-					}  
+				  "replicas": 12,
+				  "aws": {
+					"spot_market_options": {
+						"max_price": 0.5
+					}
 				  },
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
@@ -1000,9 +1185,9 @@ var _ = Describe("Machine pool creation", func() {
 		    cluster      = "123"
 		    name         = "my-spot-pool"
 		    machine_type = "r5.xlarge"
-		    replicas     = 10
+		    replicas     = 12
 			labels = {
-				"label_key1" = "label_value1", 
+				"label_key1" = "label_value1",
 				"label_key2" = "label_value2"
 			}
 			use_spot_instances = "true"
@@ -1024,7 +1209,7 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.id", "my-spot-pool"))
 		Expect(resource).To(MatchJQ(".attributes.name", "my-spot-pool"))
 		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
-		Expect(resource).To(MatchJQ(".attributes.replicas", 10.0))
+		Expect(resource).To(MatchJQ(".attributes.replicas", 12.0))
 		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 2))
 		Expect(resource).To(MatchJQ(`.attributes.taints | length`, 1))
 		Expect(resource).To(MatchJQ(".attributes.use_spot_instances", true))
@@ -1046,14 +1231,14 @@ var _ = Describe("Machine pool creation", func() {
 					"kind": "AWSMachinePool",
 					"spot_market_options": {
 						"kind": "AWSSpotMarketOptions"
-					} 
+					}
 				  },
 				  "instance_type": "r5.xlarge",
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
 				  },
-				  "replicas": 10,
+				  "replicas": 12,
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -1065,11 +1250,16 @@ var _ = Describe("Machine pool creation", func() {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-spot-pool",
 				  "instance_type": "r5.xlarge",
-				  "replicas": 10,
-				  "aws": {    
-					"spot_market_options": {      
-					}  
+				  "replicas": 12,
+				  "aws": {
+					"spot_market_options": {
+					}
 				  },
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
@@ -1091,9 +1281,9 @@ var _ = Describe("Machine pool creation", func() {
 		    cluster      = "123"
 		    name         = "my-spot-pool"
 		    machine_type = "r5.xlarge"
-		    replicas     = 10
+		    replicas     = 12
 			labels = {
-				"label_key1" = "label_value1", 
+				"label_key1" = "label_value1",
 				"label_key2" = "label_value2"
 			}
 			use_spot_instances = "true"
@@ -1114,9 +1304,382 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.id", "my-spot-pool"))
 		Expect(resource).To(MatchJQ(".attributes.name", "my-spot-pool"))
 		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
-		Expect(resource).To(MatchJQ(".attributes.replicas", 10.0))
+		Expect(resource).To(MatchJQ(".attributes.replicas", 12.0))
 		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 2))
 		Expect(resource).To(MatchJQ(`.attributes.taints | length`, 1))
 		Expect(resource).To(MatchJQ(".attributes.use_spot_instances", true))
+	})
+})
+
+var _ = Describe("Machine pool w/ mAZ cluster", func() {
+	BeforeEach(func() {
+		// The first thing that the provider will do for any operation on machine pools
+		// is check that the cluster is ready, so we always need to prepare the server to
+		// respond to that:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "123",
+				  "name": "my-cluster",
+				  "multi_az": true,
+				  "nodes": {
+					"availability_zones": [
+					  "us-east-1a",
+					  "us-east-1b",
+					  "us-east-1c"
+					]
+				  },
+				  "state": "ready"
+				}`),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, `{
+					"id": "123",
+					"name": "my-cluster",
+					"multi_az": true,
+					"nodes": {
+					  "availability_zones": [
+						"us-east-1a",
+						"us-east-1b",
+						"us-east-1c"
+					  ]
+					},
+					"state": "ready"
+				  }`),
+			),
+		)
+	})
+
+	It("Can create mAZ pool", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				),
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 6
+				}`),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 6,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ]
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 6
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		// Check the state:
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool")
+		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+		Expect(resource).To(MatchJQ(".attributes.availability_zone", nil))
+	})
+
+	It("Can create mAZ pool, setting multi_availbility_zone", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				),
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 6
+				}`),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 6,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ]
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 6
+			multi_availability_zone = true
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		// Check the state:
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool")
+		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+		Expect(resource).To(MatchJQ(".attributes.availability_zone", nil))
+	})
+
+	It("Fails to create mAZ pool if replicas not multiple of 3", func() {
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 2
+		  }
+		`)
+		Expect(terraform.Apply()).NotTo(BeZero())
+	})
+
+	It("Can create 1AZ pool", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				),
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 4,
+				  "availability_zones": [
+					"us-east-1b"
+				  ]
+				}`),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 4,
+				  "availability_zones": [
+					"us-east-1b"
+				  ]
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 4
+			availability_zone = "us-east-1b"
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		// Check the state:
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool")
+		Expect(resource).To(MatchJQ(".attributes.availability_zone", "us-east-1b"))
+		Expect(resource).To(MatchJQ(".attributes.multi_availability_zone", false))
+	})
+
+	It("Can create 1AZ pool w/ multi_availability_zone", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				),
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 4,
+				  "availability_zones": [
+					"us-east-1a"
+				  ]
+				}`),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 4,
+				  "availability_zones": [
+					"us-east-1a"
+				  ]
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 4
+			multi_availability_zone = false
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		// Check the state:
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool")
+		Expect(resource).To(MatchJQ(".attributes.availability_zone", "us-east-1a"))
+	})
+})
+
+var _ = Describe("Machine pool w/ 1AZ cluster", func() {
+	BeforeEach(func() {
+		// The first thing that the provider will do for any operation on machine pools
+		// is check that the cluster is ready, so we always need to prepare the server to
+		// respond to that:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "123",
+				  "name": "my-cluster",
+				  "multi_az": false,
+				  "nodes": {
+					"availability_zones": [
+					  "us-east-1a"
+					]
+				  },
+				  "state": "ready"
+				}`),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, `{
+					"id": "123",
+					"name": "my-cluster",
+					"multi_az": false,
+					"nodes": {
+					  "availability_zones": [
+						"us-east-1a"
+					  ]
+					},
+					"state": "ready"
+				  }`),
+			),
+		)
+	})
+
+	It("Can create 1az pool", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				),
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 4
+				}`),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 4,
+				  "availability_zones": [
+					"us-east-1a"
+				  ]
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 4
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		// Check the state:
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool")
+		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+		Expect(resource).To(MatchJQ(".attributes.availability_zone", nil))
+	})
+
+	It("Can create 1az pool w/ multi_availability_zone", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				),
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 4
+				}`),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 4,
+				  "availability_zones": [
+					"us-east-1a"
+				  ]
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 4
+			multi_availability_zone = false
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		// Check the state:
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool")
+		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+		Expect(resource).To(MatchJQ(".attributes.availability_zone", nil))
+	})
+
+	It("Fails to create pool if az and subnet supplied", func() {
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 2
+			availability_zone: "us-east-1b"
+			subnet_id: "subnet-123"
+	  }
+		`)
+		Expect(terraform.Apply()).NotTo(BeZero())
 	})
 })

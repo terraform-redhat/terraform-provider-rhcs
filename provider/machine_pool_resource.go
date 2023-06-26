@@ -53,16 +53,25 @@ func (t *MachinePoolResourceType) GetSchema(ctx context.Context) (result tfsdk.S
 				Description: "Identifier of the cluster.",
 				Type:        types.StringType,
 				Required:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(),
+				},
 			},
 			"id": {
 				Description: "Unique identifier of the machine pool.",
 				Type:        types.StringType,
 				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.UseStateForUnknown(),
+				},
 			},
 			"name": {
 				Description: "Name of the machine pool.Must consist of lower-case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.",
 				Type:        types.StringType,
 				Required:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(),
+				},
 			},
 			"machine_type": {
 				Description: "Identifier of the machine type used by the nodes, " +
@@ -142,6 +151,36 @@ func (t *MachinePoolResourceType) GetSchema(ctx context.Context) (result tfsdk.S
 				},
 				Optional: true,
 			},
+			"multi_availability_zone": {
+				Description: "Create a multi-AZ machine pool for a multi-AZ cluster (default true)",
+				Type:        types.BoolType,
+				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.UseStateForUnknown(),
+					ValueCannotBeChangedModifier(),
+				},
+			},
+			"availability_zone": {
+				Description: "Select availability zone to create a single AZ machine pool for a multi-AZ cluster",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.UseStateForUnknown(),
+					ValueCannotBeChangedModifier(),
+				},
+			},
+			"subnet_id": {
+				Description: "Select subnet to create a single AZ machine pool for BYOVPC cluster",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.UseStateForUnknown(),
+					ValueCannotBeChangedModifier(),
+				},
+			},
 		},
 	}
 	return
@@ -219,6 +258,24 @@ func (r *MachinePoolResource) Create(ctx context.Context,
 		return
 	}
 
+	isMultiAZPool, err := r.validateAZConfig(state)
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't build machine pool",
+			fmt.Sprintf(
+				"Can't build machine pool for cluster '%s': %v",
+				state.Cluster.Value, err,
+			),
+		)
+		return
+	}
+	if !common.IsStringAttributeEmpty(state.AvailabilityZone) {
+		builder.AvailabilityZones(state.AvailabilityZone.Value)
+	}
+	if !common.IsStringAttributeEmpty(state.SubnetID) {
+		builder.Subnets(state.SubnetID.Value)
+	}
+
 	autoscalingEnabled := false
 	computeNodeEnabled := false
 	autoscalingEnabled, errMsg := getAutoscaling(state, builder)
@@ -234,6 +291,16 @@ func (r *MachinePoolResource) Create(ctx context.Context,
 
 	if !state.Replicas.Unknown && !state.Replicas.Null {
 		computeNodeEnabled = true
+		if isMultiAZPool && state.Replicas.Value%3 != 0 {
+			response.Diagnostics.AddError(
+				"Can't build machine pool",
+				fmt.Sprintf(
+					"Can't build machine pool for cluster '%s', replicas must be a multiple of 3",
+					state.Cluster.Value,
+				),
+			)
+			return
+		}
 		builder.Replicas(int(state.Replicas.Value))
 	}
 	if (!autoscalingEnabled && !computeNodeEnabled) || (autoscalingEnabled && computeNodeEnabled) {
@@ -380,11 +447,34 @@ func (r *MachinePoolResource) Update(ctx context.Context, request tfsdk.UpdateRe
 		return
 	}
 
+	// AZ settings can't be changed. We're just calling validate to determine whether it's a multi-AZ pool or not.
+	isMultiAZPool, err := r.validateAZConfig(plan)
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't build machine pool",
+			fmt.Sprintf(
+				"Can't build machine pool for cluster '%s': %v",
+				state.Cluster.Value, err,
+			),
+		)
+		return
+	}
+
 	computeNodesEnabled := false
 	autoscalingEnabled := false
 
 	if !plan.Replicas.Unknown && !plan.Replicas.Null {
 		computeNodesEnabled = true
+		if isMultiAZPool && plan.Replicas.Value%3 != 0 {
+			response.Diagnostics.AddError(
+				"Can't build machine pool",
+				fmt.Sprintf(
+					"Can't build machine pool for cluster '%s', replicas must be a multiple of 3",
+					state.Cluster.Value,
+				),
+			)
+			return
+		}
 		mpBuilder.Replicas(int(plan.Replicas.Value))
 
 	}
@@ -462,6 +552,84 @@ func (r *MachinePoolResource) Update(ctx context.Context, request tfsdk.UpdateRe
 	r.populateState(object, state)
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
+}
+
+// Validate the machine pool's settings that pertain to availability zones.
+// Returns whether the machine pool is/will be multi-AZ.
+func (r *MachinePoolResource) validateAZConfig(state *MachinePoolState) (bool, error) {
+	resp, err := r.collection.Cluster(state.Cluster.Value).Get().Send()
+	if err != nil {
+		return false, fmt.Errorf("failed to get information for cluster %s: %v", state.Cluster.Value, err)
+	}
+	cluster := resp.Body()
+	isMultiAZCluster := cluster.MultiAZ()
+	clusterAZs := cluster.Nodes().AvailabilityZones()
+	clusterSubnets := cluster.AWS().SubnetIDs()
+
+	if isMultiAZCluster {
+		// Can't set both availability_zone and subnet_id
+		if !common.IsStringAttributeEmpty(state.AvailabilityZone) && !common.IsStringAttributeEmpty(state.SubnetID) {
+			return false, fmt.Errorf("availability_zone and subnet_id are mutually exclusive")
+		}
+
+		// multi_availability_zone setting must be consistent with availability_zone and subnet_id
+		azOrSubnet := !common.IsStringAttributeEmpty(state.AvailabilityZone) || !common.IsStringAttributeEmpty(state.SubnetID)
+		if !state.MultiAvailabilityZone.Null && !state.MultiAvailabilityZone.Unknown {
+			if azOrSubnet && state.MultiAvailabilityZone.Value {
+				return false, fmt.Errorf("multi_availability_zone must be False when availability_zone or subnet_id is set")
+			}
+		} else {
+			state.MultiAvailabilityZone = types.Bool{Value: !azOrSubnet}
+		}
+	} else { // not a multi-AZ cluster
+		if !common.IsStringAttributeEmpty(state.AvailabilityZone) {
+			return false, fmt.Errorf("availability_zone can only be set for multi-AZ clusters")
+		}
+		if !common.IsStringAttributeEmpty(state.SubnetID) {
+			return false, fmt.Errorf("subnet_id can only be set for multi-AZ clusters")
+		}
+		if !state.MultiAvailabilityZone.Null && !state.MultiAvailabilityZone.Unknown && state.MultiAvailabilityZone.Value {
+			return false, fmt.Errorf("multi_availability_zone can only be set for multi-AZ clusters")
+		}
+		state.MultiAvailabilityZone = types.Bool{Value: false}
+	}
+
+	// Ensure that the machine pool's AZ and subnet are valid for the cluster
+	// If subnet is set, we make sure it's valid for the cluster, but we don't default it if not set
+	if !common.IsStringAttributeEmpty(state.SubnetID) {
+		inClusterSubnet := false
+		for _, subnet := range clusterSubnets {
+			if subnet == state.SubnetID.Value {
+				inClusterSubnet = true
+				break
+			}
+		}
+		if !inClusterSubnet {
+			return false, fmt.Errorf("subnet_id %s is not valid for cluster %s", state.SubnetID.Value, state.Cluster.Value)
+		}
+	} else {
+		state.SubnetID = types.String{Null: true}
+	}
+	// If AZ is set, we make sure it's valid for the cluster. If not set and neither is subnet, we default it to the 1st AZ in the cluster
+	if !common.IsStringAttributeEmpty(state.AvailabilityZone) {
+		inClusterAZ := false
+		for _, az := range clusterAZs {
+			if az == state.AvailabilityZone.Value {
+				inClusterAZ = true
+				break
+			}
+		}
+		if !inClusterAZ {
+			return false, fmt.Errorf("availability_zone %s is not valid for cluster %s", state.AvailabilityZone.Value, state.Cluster.Value)
+		}
+	} else {
+		if len(clusterAZs) > 0 && !state.MultiAvailabilityZone.Value && isMultiAZCluster && common.IsStringAttributeEmpty(state.SubnetID) {
+			state.AvailabilityZone = types.String{Value: clusterAZs[0]}
+		} else {
+			state.AvailabilityZone = types.String{Null: true}
+		}
+	}
+	return state.MultiAvailabilityZone.Value, nil
 }
 
 func setSpotInstances(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilder) error {
@@ -631,7 +799,7 @@ func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *Mac
 	}
 
 	labels := object.Labels()
-	if labels != nil && len(labels) > 0 {
+	if len(labels) > 0 {
 		state.Labels = types.Map{
 			ElemType: types.StringType,
 			Elems:    map[string]attr.Value{},
@@ -644,7 +812,6 @@ func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *Mac
 	} else {
 		state.Labels.Null = true
 	}
-
 }
 
 func shouldPatchTaints(a, b []Taints) bool {

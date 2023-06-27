@@ -83,7 +83,7 @@ var _ = Describe("Cluster creation", func() {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
+		  resource "rhcs_cluster" "my_cluster" {
 		    name           = "my-cluster"
 			product		   = "osd"
 		    cloud_provider = "aws"
@@ -104,7 +104,7 @@ var _ = Describe("Cluster creation", func() {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
+		  resource "rhcs_cluster" "my_cluster" {
 		    name           = "my-cluster"
 			product		   = "osd"
 		    cloud_provider = "aws"
@@ -114,7 +114,7 @@ var _ = Describe("Cluster creation", func() {
 		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("ocm_cluster", "my_cluster")
+		resource := terraform.Resource("rhcs_cluster", "my_cluster")
 		Expect(resource).To(MatchJQ(".attributes.api_url", "https://my-api.example.com"))
 		Expect(resource).To(MatchJQ(".attributes.console_url", "https://my-console.example.com"))
 	})
@@ -132,7 +132,7 @@ var _ = Describe("Cluster creation", func() {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
+		  resource "rhcs_cluster" "my_cluster" {
 		    name                 = "my-cluster"
 			product		   		 = "osd"
 		    cloud_provider       = "aws"
@@ -144,7 +144,7 @@ var _ = Describe("Cluster creation", func() {
 		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("ocm_cluster", "my_cluster")
+		resource := terraform.Resource("rhcs_cluster", "my_cluster")
 		Expect(resource).To(MatchJQ(".attributes.compute_nodes", 3.0))
 		Expect(resource).To(MatchJQ(".attributes.compute_machine_type", "r5.xlarge"))
 	})
@@ -181,7 +181,7 @@ var _ = Describe("Cluster creation", func() {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
+		  resource "rhcs_cluster" "my_cluster" {
 		    name                  = "my-cluster"
 			product		   		  = "osd"
 		    cloud_provider        = "aws"
@@ -195,7 +195,7 @@ var _ = Describe("Cluster creation", func() {
 		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("ocm_cluster", "my_cluster")
+		resource := terraform.Resource("rhcs_cluster", "my_cluster")
 		Expect(resource).To(MatchJQ(".attributes.ccs_enabled", true))
 		Expect(resource).To(MatchJQ(".attributes.aws_account_id", "123"))
 		Expect(resource).To(MatchJQ(".attributes.aws_access_key_id", "456"))
@@ -228,7 +228,7 @@ var _ = Describe("Cluster creation", func() {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
+		  resource "rhcs_cluster" "my_cluster" {
 		    name           = "my-cluster"
 			product		   = "osd"
 		    cloud_provider = "aws"
@@ -242,7 +242,7 @@ var _ = Describe("Cluster creation", func() {
 		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("ocm_cluster", "my_cluster")
+		resource := terraform.Resource("rhcs_cluster", "my_cluster")
 		Expect(resource).To(MatchJQ(".attributes.machine_cidr", "10.0.0.0/15"))
 		Expect(resource).To(MatchJQ(".attributes.service_cidr", "172.30.0.0/15"))
 		Expect(resource).To(MatchJQ(".attributes.pod_cidr", "10.128.0.0/13"))
@@ -269,7 +269,7 @@ var _ = Describe("Cluster creation", func() {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
+		  resource "rhcs_cluster" "my_cluster" {
 		    name           = "my-cluster"
 			product		   = "osd"
 		    cloud_provider = "aws"
@@ -280,7 +280,7 @@ var _ = Describe("Cluster creation", func() {
 		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("ocm_cluster", "my_cluster")
+		resource := terraform.Resource("rhcs_cluster", "my_cluster")
 		Expect(resource).To(MatchJQ(".attributes.version", "openshift-v4.8.1"))
 	})
 
@@ -299,7 +299,7 @@ var _ = Describe("Cluster creation", func() {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
+		  resource "rhcs_cluster" "my_cluster" {
 			product		   = "osd"
 		    name           = "my-cluster"
 		    cloud_provider = "aws"

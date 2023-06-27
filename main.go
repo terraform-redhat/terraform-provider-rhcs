@@ -21,7 +21,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 
-	"github.com/terraform-redhat/terraform-provider-red-hat-cloud-services/provider"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider"
 )
 
 // Generate the Terraform provider documentation using `tfplugindocs`:
@@ -32,7 +32,7 @@ func main() {
 		context.Background(),
 		provider.New,
 		tfsdk.ServeOpts{
-			Name: "ocm",
+			Name: "rhcs",
 		},
 	)
 }

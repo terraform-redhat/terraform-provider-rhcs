@@ -26,8 +26,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	sdk "github.com/openshift-online/ocm-sdk-go"
-	"github.com/terraform-redhat/terraform-provider-red-hat-cloud-services/build"
-	"github.com/terraform-redhat/terraform-provider-red-hat-cloud-services/logging"
+	"github.com/terraform-redhat/terraform-provider-rhcs/build"
+	"github.com/terraform-redhat/terraform-provider-rhcs/logging"
 )
 
 // Provider is the implementation of the Provider.
@@ -195,14 +195,14 @@ func (p *Provider) Configure(ctx context.Context, request tfsdk.ConfigureProvide
 func (p *Provider) GetResources(ctx context.Context) (result map[string]tfsdk.ResourceType,
 	diags diag.Diagnostics) {
 	result = map[string]tfsdk.ResourceType{
-		"ocm_cluster":                &ClusterResourceType{},
-		"ocm_cluster_rosa_classic":   &ClusterRosaClassicResourceType{},
-		"ocm_group_membership":       &GroupMembershipResourceType{},
-		"ocm_identity_provider":      &IdentityProviderResourceType{},
-		"ocm_machine_pool":           &MachinePoolResourceType{},
-		"ocm_cluster_wait":           &ClusterWaiterResourceType{},
-		"ocm_rosa_oidc_config_input": &RosaOidcConfigInputResourceType{},
-		"ocm_rosa_oidc_config":       &RosaOidcConfigResourceType{},
+		"rhcs_cluster":                &ClusterResourceType{},
+		"rhcs_cluster_rosa_classic":   &ClusterRosaClassicResourceType{},
+		"rhcs_group_membership":       &GroupMembershipResourceType{},
+		"rhcs_identity_provider":      &IdentityProviderResourceType{},
+		"rhcs_machine_pool":           &MachinePoolResourceType{},
+		"rhcs_cluster_wait":           &ClusterWaiterResourceType{},
+		"rhcs_rosa_oidc_config_input": &RosaOidcConfigInputResourceType{},
+		"rhcs_rosa_oidc_config":       &RosaOidcConfigResourceType{},
 	}
 	return
 }
@@ -211,12 +211,12 @@ func (p *Provider) GetResources(ctx context.Context) (result map[string]tfsdk.Re
 func (p *Provider) GetDataSources(ctx context.Context) (result map[string]tfsdk.DataSourceType,
 	diags diag.Diagnostics) {
 	result = map[string]tfsdk.DataSourceType{
-		"ocm_cloud_providers":     &CloudProvidersDataSourceType{},
-		"ocm_rosa_operator_roles": &RosaOperatorRolesDataSourceType{},
-		"ocm_policies":            &OcmPoliciesDataSourceType{},
-		"ocm_groups":              &GroupsDataSourceType{},
-		"ocm_machine_types":       &MachineTypesDataSourceType{},
-		"ocm_versions":            &VersionsDataSourceType{},
+		"rhcs_cloud_providers":     &CloudProvidersDataSourceType{},
+		"rhcs_rosa_operator_roles": &RosaOperatorRolesDataSourceType{},
+		"rhcs_policies":            &OcmPoliciesDataSourceType{},
+		"rhcs_groups":              &GroupsDataSourceType{},
+		"rhcs_machine_types":       &MachineTypesDataSourceType{},
+		"rhcs_versions":            &VersionsDataSourceType{},
 	}
 	return
 }

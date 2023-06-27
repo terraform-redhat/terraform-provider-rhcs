@@ -53,13 +53,13 @@ var _ = Describe("Cloud providers data source", func() {
 
 		// Run the apply command:
 		terraform.Source(`
-		  data "ocm_cloud_providers" "all" {
+		  data "rhcs_cloud_providers" "all" {
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("ocm_cloud_providers", "all")
+		resource := terraform.Resource("rhcs_cloud_providers", "all")
 		Expect(resource).To(MatchJQ(`.attributes.items | length`, 2))
 		Expect(resource).To(MatchJQ(`.attributes.items[0].id`, "aws"))
 		Expect(resource).To(MatchJQ(`.attributes.items[0].name`, "aws"))
@@ -98,7 +98,7 @@ var _ = Describe("Cloud providers data source", func() {
 
 		// Run the apply command:
 		terraform.Source(`
-		  data "ocm_cloud_providers" "a" {
+		  data "rhcs_cloud_providers" "a" {
 		    search = "display_name like 'A%'"
 		    order  = "display_name asc"
 		  }
@@ -106,7 +106,7 @@ var _ = Describe("Cloud providers data source", func() {
 		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("ocm_cloud_providers", "a")
+		resource := terraform.Resource("rhcs_cloud_providers", "a")
 		Expect(resource).To(MatchJQ(`.attributes.search`, "display_name like 'A%'"))
 		Expect(resource).To(MatchJQ(`.attributes.order`, "display_name asc"))
 		Expect(resource).To(MatchJQ(`.attributes.items | length`, 2))
@@ -140,13 +140,13 @@ var _ = Describe("Cloud providers data source", func() {
 
 		// Run the apply command:
 		terraform.Source(`
-		  data "ocm_cloud_providers" "a" {
+		  data "rhcs_cloud_providers" "a" {
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("ocm_cloud_providers", "a")
+		resource := terraform.Resource("rhcs_cloud_providers", "a")
 		Expect(resource).To(MatchJQ(`.attributes.item.id`, "aws"))
 		Expect(resource).To(MatchJQ(`.attributes.item.name`, "aws"))
 		Expect(resource).To(MatchJQ(`.attributes.item.display_name`, "AWS"))
@@ -168,13 +168,13 @@ var _ = Describe("Cloud providers data source", func() {
 
 		// Run the apply command:
 		terraform.Source(`
-		  data "ocm_cloud_providers" "all" {
+		  data "rhcs_cloud_providers" "all" {
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("ocm_cloud_providers", "all")
+		resource := terraform.Resource("rhcs_cloud_providers", "all")
 		Expect(resource).To(MatchJQ(`.attributes.item`, nil))
 	})
 
@@ -205,13 +205,13 @@ var _ = Describe("Cloud providers data source", func() {
 
 		// Run the apply command:
 		terraform.Source(`
-		  data "ocm_cloud_providers" "all" {
+		  data "rhcs_cloud_providers" "all" {
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("ocm_cloud_providers", "all")
+		resource := terraform.Resource("rhcs_cloud_providers", "all")
 		Expect(resource).To(MatchJQ(`.attributes.item`, nil))
 	})
 })

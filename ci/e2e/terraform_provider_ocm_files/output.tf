@@ -1,3 +1,4 @@
-output cluster_id {
-  value = ocm_cluster_rosa_classic.rosa_sts_cluster.id
+output "cluster_id" {
+  value = rhcs_cluster_rosa_classic.rosa_sts_cluster.id
 }
+

@@ -61,7 +61,7 @@ var _ = Describe("ROSA Operator IAM roles data source", func() {
 
 		// Run the apply command:
 		terraform.Source(`
-		  data "ocm_rosa_operator_roles" "operator_roles" {
+		  data "rhcs_rosa_operator_roles" "operator_roles" {
 			  operator_role_prefix = "terraform-operator"
 			  account_role_prefix = "TerraformAccountPrefix"
 		  }
@@ -69,7 +69,7 @@ var _ = Describe("ROSA Operator IAM roles data source", func() {
 		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("ocm_rosa_operator_roles", "operator_roles")
+		resource := terraform.Resource("rhcs_rosa_operator_roles", "operator_roles")
 		//Expect(resource).To(MatchJQ(`.attributes.items | length`, 1))
 		Expect(resource).To(MatchJQ(`.attributes.operator_role_prefix`, "terraform-operator"))
 		Expect(resource).To(MatchJQ(`.attributes.account_role_prefix`, "TerraformAccountPrefix"))
@@ -116,14 +116,14 @@ var _ = Describe("ROSA Operator IAM roles data source", func() {
 
 		// Run the apply command:
 		terraform.Source(`
-		  data "ocm_rosa_operator_roles" "operator_roles" {
+		  data "rhcs_rosa_operator_roles" "operator_roles" {
 			  operator_role_prefix = "terraform-operator"
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("ocm_rosa_operator_roles", "operator_roles")
+		resource := terraform.Resource("rhcs_rosa_operator_roles", "operator_roles")
 		//Expect(resource).To(MatchJQ(`.attributes.items | length`, 1))
 		Expect(resource).To(MatchJQ(`.attributes.operator_role_prefix`, "terraform-operator"))
 		Expect(resource).To(MatchJQ(`.attributes.operator_iam_roles | length`, 2))

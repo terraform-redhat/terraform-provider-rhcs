@@ -16,19 +16,19 @@
 
 terraform {
   required_providers {
-    red-hat-cloud-services = {
+    rhcs = {
       version = ">= 1.0.1"
-      source  = "terraform-redhat/red-hat-cloud-services"
+      source  = "terraform-redhat/rhcs"
     }
   }
 }
 
-provider "red-hat-cloud-services" {
+provider "rhcs" {
   token = var.token
   url   = var.url
 }
 
-resource "ocm_identity_provider" "htpasswd_idp" {
+resource "rhcs_identity_provider" "htpasswd_idp" {
   cluster = var.cluster_id
   name    = "htpasswd"
   htpasswd = {

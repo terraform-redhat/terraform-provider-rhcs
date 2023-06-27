@@ -119,7 +119,7 @@ func (b *TerraformRunnerBuilder) Build() *TerraformRunner {
 
 	// Create a temporary directory for the files so that we don't interfere with the
 	// configuration that may already exist for the user running the tests.
-	tmpDir, err := ioutil.TempDir("", "ocm-test-*.d")
+	tmpDir, err := ioutil.TempDir("", "rhcs-test-*.d")
 	ExpectWithOffset(1, err).ToNot(HaveOccurred())
 
 	ExpectWithOffset(1, err).ToNot(HaveOccurred())
@@ -129,13 +129,14 @@ func (b *TerraformRunnerBuilder) Build() *TerraformRunner {
 	mainContent := EvaluateTemplate(`
 		terraform {
 		  required_providers {
-		    ocm = {
-		      source = "terraform.local/local/ocm"
+		    rhcs = {
+                source = "terraform.local/local/rhcs"
+                version = ">= 0.0.1"
 		    }
 		  }
 		}
 
-		provider "ocm" {
+		provider "rhcs" {
 		  url         = "{{ .URL }}"
 		  token       = "{{ .Token }}"
 		  trusted_cas = file("{{ .CA }}")

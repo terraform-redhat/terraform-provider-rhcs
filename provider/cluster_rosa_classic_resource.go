@@ -1157,6 +1157,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** Create(ctx context.Context,
 
 func (r *ClusterRosaClassicResource***REMOVED*** Read(ctx context.Context, request tfsdk.ReadResourceRequest,
 	response *tfsdk.ReadResourceResponse***REMOVED*** {
+	tflog.Debug(ctx, "begin Read(***REMOVED***"***REMOVED***
 	// Get the current state:
 	state := &ClusterRosaClassicState{}
 	diags := request.State.Get(ctx, state***REMOVED***
@@ -1313,6 +1314,19 @@ func (r *ClusterRosaClassicResource***REMOVED*** upgradeClusterIfNeeded(ctx cont
 		return nil
 	}
 
+	tflog.Debug(ctx, "Cluster versions",
+		"current_version", state.CurrentVersion.Value,
+		"plan-version", plan.Version.Value,
+		"state-version", state.Version.Value***REMOVED***
+
+	// See if the user has changed the requested version for this run
+	requestedVersionChanged := true
+	if !common.IsStringAttributeEmpty(plan.Version***REMOVED*** && !common.IsStringAttributeEmpty(state.Version***REMOVED*** {
+		if plan.Version.Value == state.Version.Value {
+			requestedVersionChanged = false
+***REMOVED***
+	}
+
 	// Check the versions to see if we need to upgrade
 	currentVersion, err := semver.NewVersion(state.CurrentVersion.Value***REMOVED***
 	if err != nil {
@@ -1326,47 +1340,55 @@ func (r *ClusterRosaClassicResource***REMOVED*** upgradeClusterIfNeeded(ctx cont
 	if err != nil {
 		return fmt.Errorf("failed to parse desired cluster version: %v", err***REMOVED***
 	}
-	if currentVersion.GreaterThanOrEqual(desiredVersion***REMOVED*** {
+	if currentVersion.GreaterThan(desiredVersion***REMOVED*** {
 		tflog.Debug(ctx, "No cluster version upgrade needed."***REMOVED***
+		if requestedVersionChanged {
+			// User changed the version they want, but actual is higher. We
+			// don't support downgrades.
+			return fmt.Errorf("cluster version is already above the requested version"***REMOVED***
+***REMOVED***
 		return nil
 	}
+	cancelingUpgradeOnly := desiredVersion.Equal(currentVersion***REMOVED***
 
-	// Make sure the desired version is available
-	versionId := fmt.Sprintf("openshift-v%s", state.CurrentVersion.Value***REMOVED***
-	if !state.ChannelGroup.Unknown && !state.ChannelGroup.Null && state.ChannelGroup.Value != ocm.DefaultChannelGroup {
-		versionId += "-" + state.ChannelGroup.Value
-	}
-	availableVersions, err := upgrade.GetAvailableUpgradeVersions(ctx, r.versionCollection, versionId***REMOVED***
-	if err != nil {
-		return fmt.Errorf("failed to get available upgrades: %v", err***REMOVED***
-	}
-	found := false
-	for _, v := range availableVersions {
-		sem, err := semver.NewVersion(v.RawID(***REMOVED******REMOVED***
+	if !cancelingUpgradeOnly {
+		// Make sure the desired version is available
+		versionId := fmt.Sprintf("openshift-v%s", state.CurrentVersion.Value***REMOVED***
+		if !state.ChannelGroup.Unknown && !state.ChannelGroup.Null && state.ChannelGroup.Value != ocm.DefaultChannelGroup {
+			versionId += "-" + state.ChannelGroup.Value
+***REMOVED***
+		availableVersions, err := upgrade.GetAvailableUpgradeVersions(ctx, r.versionCollection, versionId***REMOVED***
 		if err != nil {
-			return fmt.Errorf("failed to parse available upgrade version: %v", err***REMOVED***
+			return fmt.Errorf("failed to get available upgrades: %v", err***REMOVED***
 ***REMOVED***
-		if desiredVersion.Equal(sem***REMOVED*** {
-			found = true
-			break
-***REMOVED***
-	}
-	if !found {
-		avail := []string{}
+		found := false
 		for _, v := range availableVersions {
-			avail = append(avail, v.RawID(***REMOVED******REMOVED***
+			sem, err := semver.NewVersion(v.RawID(***REMOVED******REMOVED***
+			if err != nil {
+				return fmt.Errorf("failed to parse available upgrade version: %v", err***REMOVED***
+	***REMOVED***
+			if desiredVersion.Equal(sem***REMOVED*** {
+				found = true
+				break
+	***REMOVED***
 ***REMOVED***
-		return fmt.Errorf("desired version (%s***REMOVED*** is not in the list of available upgrades (%v***REMOVED***", desiredVersion, avail***REMOVED***
-	}
+		if !found {
+			avail := []string{}
+			for _, v := range availableVersions {
+				avail = append(avail, v.RawID(***REMOVED******REMOVED***
+	***REMOVED***
+			return fmt.Errorf("desired version (%s***REMOVED*** is not in the list of available upgrades (%v***REMOVED***", desiredVersion, avail***REMOVED***
+***REMOVED***
 
-	// Make sure the account roles have been upgraded
-	if err := r.validateAccountRoles(ctx, plan, desiredVersion.String(***REMOVED******REMOVED***; err != nil {
-		return fmt.Errorf("failed to validate account roles: %v", err***REMOVED***
-	}
+		// Make sure the account roles have been upgraded
+		if err := r.validateAccountRoles(ctx, plan, desiredVersion.String(***REMOVED******REMOVED***; err != nil {
+			return fmt.Errorf("failed to validate account roles: %v", err***REMOVED***
+***REMOVED***
 
-	// Make sure the operator role policies have been upgraded
-	if err := r.validateOperatorRolePolicies(ctx, plan, desiredVersion.String(***REMOVED******REMOVED***; err != nil {
-		return fmt.Errorf("failed to validate operator role policies: %v", err***REMOVED***
+		// Make sure the operator role policies have been upgraded
+		if err := r.validateOperatorRolePolicies(ctx, plan, desiredVersion.String(***REMOVED******REMOVED***; err != nil {
+			return fmt.Errorf("failed to validate operator role policies: %v", err***REMOVED***
+***REMOVED***
 	}
 
 	// Fetch existing upgrade policies
@@ -1381,7 +1403,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** upgradeClusterIfNeeded(ctx cont
 		return err
 	}
 
-	if !correctUpgradePending {
+	if !correctUpgradePending && !cancelingUpgradeOnly {
 		// Gate agreements are checked when the upgrade is scheduled, resulting
 		// in an error return. ROSA cli does this by scheduling once w/ dryRun
 		// to look for un-acked agreements.

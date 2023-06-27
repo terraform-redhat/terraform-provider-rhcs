@@ -25,7 +25,7 @@ Using htpasswd authentication in OpenShift Container Platform allows you to iden
           ```
           export TF_VAR_token=<ocm_offline_token> 
           ```
-      1.  This value should point to your OpenShift instance.  
+      1.  This value should always point to `https://api.openshift.com` (unless you're a Red Hat engineer and you know of a different one ;) )  
           ```
           export TF_VAR_url=<ocm_url>
           ```

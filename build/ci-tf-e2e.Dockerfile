@@ -15,8 +15,8 @@ ENV PATH="/usr/local/go/bin:${PATH}"
 ENV GOPATH=/usr/local/go
 ENV TEST_OFFLINE_TOKEN=""
 
-# terraform-provider-ocm repo
-COPY . ./terraform-provider-ocm
+# terraform-provider-red-hat-cloud-services repo
+COPY . ./terraform-provider-red-hat-cloud-services
 
 RUN yum install -y yum-utils && \
     yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo &&\
@@ -25,6 +25,6 @@ RUN yum install -y yum-utils && \
     go env -w GO111MODULE=on &&\
     go install github.com/onsi/ginkgo/v2/ginkgo@latest &&\
     go install github.com/golang/mock/mockgen@v1.6.0 &&\
-    cd terraform-provider-ocm && go mod tidy && go mod vendor && make install &&\
+    cd terraform-provider-red-hat-cloud-services && go mod tidy && go mod vendor && make install &&\
     chmod -R 777 $GOPATH &&\
     echo 'RUN done'

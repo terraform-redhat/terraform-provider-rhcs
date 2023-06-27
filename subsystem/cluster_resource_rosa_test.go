@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
-	"github.com/terraform-redhat/terraform-provider-ocm/build"
+	"github.com/terraform-redhat/terraform-provider-red-hat-cloud-services/build"
 )
 
 const versionListPage1 = `{

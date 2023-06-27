@@ -2128,20 +2128,43 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			}
 		},
 		"version": {
-			"id": "4.8.0"
+			"id": "4.10.0"
 		}
 	}`
-	const v4_8_0Info = `{
+	const versionList = `{
+		"kind": "VersionList",
+		"page": 1,
+		"size": 3,
+		"total": 3,
+		"items": [{
+				"kind": "Version",
+				"id": "openshift-v4.10.0",
+				"href": "/api/clusters_mgmt/v1/versions/openshift-v4.10.0",
+				"raw_id": "4.10.0"
+			},
+			{
+				"kind": "Version",
+				"id": "openshift-v4.10.1",
+				"href": "/api/clusters_mgmt/v1/versions/openshift-v4.10.1",
+				"raw_id": "4.10.1"
+			},
+			{
+				"kind": "Version",
+				"id": "openshift-v4.10.1",
+				"href": "/api/clusters_mgmt/v1/versions/openshift-v4.11.1",
+				"raw_id": "4.11.1"
+			}
+		]
+	}`
+	const v4_10_0Info = `{
 		"kind": "Version",
-		"id": "openshift-v4.8.0",
-		"href": "/api/clusters_mgmt/v1/versions/openshift-v4.8.0",
-		"raw_id": "4.8.0",
+		"id": "openshift-v4.10.0",
+		"href": "/api/clusters_mgmt/v1/versions/openshift-v4.10.0",
+		"raw_id": "4.10.0",
 		"enabled": true,
 		"default": false,
 		"channel_group": "stable",
-		"available_upgrades": [
-			"4.10.1"
-		],
+		"available_upgrades": ["4.10.1"],
 		"rosa_enabled": true
 	}`
 	const v4_10_1Info = `{
@@ -2202,13 +2225,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 	}`
 	BeforeEach(func() {
 		Expect(json.Valid([]byte(template))).To(BeTrue())
-		Expect(json.Valid([]byte(v4_8_0Info))).To(BeTrue())
+		Expect(json.Valid([]byte(v4_10_0Info))).To(BeTrue())
 
 		// Create a cluster for us to upgrade:
 		server.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-				RespondWithJSON(http.StatusOK, versionListPage1),
+				RespondWithJSON(http.StatusOK, versionList),
 			),
 			CombineHandlers(
 				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
@@ -2273,13 +2296,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 					}
 				]
 			}
+			version = "4.10.0"
 		}
 		`)
 		Expect(terraform.Apply()).To(BeZero())
 
 		// Verify initial cluster version
 		resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
-		Expect(resource).To(MatchJQ(".attributes.current_version", "4.8.0"))
+		Expect(resource).To(MatchJQ(".attributes.current_version", "4.10.0"))
 	})
 
 	It("Upgrades cluster", func() {
@@ -2291,8 +2315,8 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			),
 			// Validate upgrade versions
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.8.0"),
-				RespondWithJSON(http.StatusOK, v4_8_0Info),
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.0"),
+				RespondWithJSON(http.StatusOK, v4_10_0Info),
 			),
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
@@ -2412,8 +2436,8 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			),
 			// Validate upgrade versions
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.8.0"),
-				RespondWithJSON(http.StatusOK, v4_8_0Info),
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.0"),
+				RespondWithJSON(http.StatusOK, v4_10_0Info),
 			),
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
@@ -2533,8 +2557,8 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			),
 			// Validate upgrade versions
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.8.0"),
-				RespondWithJSON(http.StatusOK, v4_8_0Info),
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.0"),
+				RespondWithJSON(http.StatusOK, v4_10_0Info),
 			),
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
@@ -2610,8 +2634,8 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			),
 			// Validate upgrade versions
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.8.0"),
-				RespondWithJSON(http.StatusOK, v4_8_0Info),
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.0"),
+				RespondWithJSON(http.StatusOK, v4_10_0Info),
 			),
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
@@ -2710,6 +2734,151 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 		Expect(terraform.Apply()).To(BeZero())
 	})
 
+	It("Cancels upgrade if version=current_version", func() {
+		server.AppendHandlers(
+			// Refresh cluster state
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, template),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
+				RespondWithJSON(http.StatusOK, `{
+					"kind": "UpgradePolicyState",
+					"page": 1,
+					"size": 0,
+					"total": 0,
+					"items": [
+						{
+							"kind": "UpgradePolicy",
+							"id": "456",
+							"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/123",
+							"schedule_type": "manual",
+							"upgrade_type": "OSD",
+							"version": "4.10.1",
+							"next_run": "2023-06-09T20:59:00Z",
+							"cluster_id": "123",
+							"enable_minor_version_upgrades": true
+						}
+					]
+				}`),
+			),
+			// Check it's state
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456/state"),
+				RespondWithJSON(http.StatusOK, `{
+					"kind": "UpgradePolicyState",
+					"id": "456",
+					"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456/state",
+					"description": "",
+					"value": "scheduled"
+				}`),
+			),
+			// Delete existing upgrade policy
+			CombineHandlers(
+				VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456"),
+				RespondWithJSON(http.StatusOK, "{}"),
+			),
+			// Patch the cluster (w/ no changes)
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, template),
+			),
+		)
+		// Set version to match current cluster version
+		terraform.Source(`
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+			name           = "my-cluster"
+			cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+				}
+			}
+			version = "4.10.0"
+		}`)
+		Expect(terraform.Apply()).To(BeZero())
+	})
+
+	It("is an error to request a version older than current", func() {
+		server.AppendHandlers(
+			// Refresh cluster state
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithPatchedJSON(http.StatusOK, template,
+					`[
+					{
+						"op": "replace",
+						"path": "/version/id",
+						"value": "openshift-v4.11.0"
+					}]`),
+			),
+		)
+		// Set version to before current cluster version, but after version from create
+		terraform.Source(`
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+			name           = "my-cluster"
+			cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+				}
+			}
+			version = "4.10.1"
+		}`)
+		Expect(terraform.Apply()).NotTo(BeZero())
+	})
+
+	It("older than current is allowed as long as not changed", func() {
+		server.AppendHandlers(
+			// Refresh cluster state
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithPatchedJSON(http.StatusOK, template,
+					`[
+						{
+							"op": "replace",
+							"path": "/version/id",
+							"value": "openshift-v4.11.0"
+						}]`),
+			),
+			// Patch the cluster (w/ no changes)
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, template),
+			),
+		)
+		// Set version to before current cluster version, but matching what was
+		// used during creation (i.e. in state file)
+		terraform.Source(`
+		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+			name           = "my-cluster"
+			cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+				}
+			}
+			version = "4.10.0"
+		}`)
+		Expect(terraform.Apply()).To(BeZero())
+	})
+
 	Context("Un-acked gates", func() {
 		BeforeEach(func() {
 			server.AppendHandlers(
@@ -2720,8 +2889,8 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 				),
 				// Validate upgrade versions
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.8.0"),
-					RespondWithJSON(http.StatusOK, v4_8_0Info),
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.0"),
+					RespondWithJSON(http.StatusOK, v4_10_0Info),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),

@@ -37,8 +37,8 @@ The example Terraform files are all considered in development:
 ### Prior to creating clusters
 1. [Account Roles terraform](https://github.com/terraform-redhat/terraform-provider-ocm/blob/a42779d6b6712f4dde358344f44b782e4dfcd120/examples/create_rosa_cluster/create_rosa_sts_cluster/classic_sts/account_roles/README.md)
 ### Cluster Creation examples
-1. [Create a ROSA cluster that usess STS and has a managed OIDC configuration](https://github.com/terraform-redhat/terraform-provider-ocm/blob/529b10c22c13810b3edbaa01327c7dfdcc207650/examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/README.md)
-1. [Create a ROSA cluster that uses STS and has an unmanaged OIDC configuration](https://github.com/terraform-redhat/terraform-provider-ocm/blob/529b10c22c13810b3edbaa01327c7dfdcc207650/examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/README.md)
+1. [Create a ROSA cluster that has a managed OIDC configuration](https://github.com/terraform-redhat/terraform-provider-ocm/blob/529b10c22c13810b3edbaa01327c7dfdcc207650/examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/README.md)
+1. [Create a ROSA cluster that has an unmanaged OIDC configuration](https://github.com/terraform-redhat/terraform-provider-ocm/blob/529b10c22c13810b3edbaa01327c7dfdcc207650/examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/README.md)
 
 ### Post cluster installation
 1. Modifying default machine pools

@@ -100,5 +100,5 @@ If you want to locally test the provider binary without building from sources, y
     
 to your local using the following example: 
 
-    podman run --pull=always --rm registry.ci.openshift.org/ci/rhcs-tf-e2e:latest cat /root/.terraform.d/plugins/terraform.local/local/rhcs/1.0.4/linux_amd64/terraform-provider-rhcs > ~/terraform-provider-rhcs && chmod +x ~/terraform-provider-rhcs
+    podman run --pull=always --rm registry.ci.openshift.org/ci/rhcs-tf-e2e:latest cat /root/.terraform.d/plugins/terraform.local/local/rhcs/1.0.5/linux_amd64/terraform-provider-rhcs > ~/terraform-provider-rhcs && chmod +x ~/terraform-provider-rhcs
     can also use specific commit images by substituting `latest` for the desired commit SHA.

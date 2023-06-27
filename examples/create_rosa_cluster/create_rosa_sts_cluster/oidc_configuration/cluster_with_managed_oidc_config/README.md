@@ -42,7 +42,7 @@ This Terraform example creates a ROSA STS cluster that uses a managed OIDC confi
         ```
         export TF_VAR_token=<ocm_offline_token> 
         ```
-    7.  This value should point to your OpenShift instance.  
+    7.  This value should always point to `https://api.openshift.com` (unless you're a Red Hat engineer and you know of a different one ;) )  
         ```
         export TF_VAR_url=<ocm_url>
         ```

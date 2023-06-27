@@ -39,7 +39,7 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Workaround to fix git dir
-      run: git config --system --add safe.directory /__w/terraform-provider-ocm/terraform-provider-ocm
+      run: git config --system --add safe.directory /__w/terraform-provider-rhcs/terraform-provider-rhcs
 
     - name: Setup Go
       uses: actions/setup-go@v2

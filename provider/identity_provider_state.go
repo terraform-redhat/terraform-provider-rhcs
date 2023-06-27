@@ -18,7 +18,7 @@ package provider
 
 ***REMOVED***
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/terraform-redhat/terraform-provider-red-hat-cloud-services/provider/idps"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/idps"
 ***REMOVED***
 
 type IdentityProviderState struct {

@@ -61,7 +61,7 @@ var _ = Describe("ROSA Operator IAM roles data source", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  data "ocm_rosa_operator_roles" "operator_roles" {
+		  data "rhcs_rosa_operator_roles" "operator_roles" {
 			  operator_role_prefix = "terraform-operator"
 			  account_role_prefix = "TerraformAccountPrefix"
 		  }
@@ -69,7 +69,7 @@ var _ = Describe("ROSA Operator IAM roles data source", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_rosa_operator_roles", "operator_roles"***REMOVED***
+		resource := terraform.Resource("rhcs_rosa_operator_roles", "operator_roles"***REMOVED***
 		//Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items | length`, 1***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.operator_role_prefix`, "terraform-operator"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.account_role_prefix`, "TerraformAccountPrefix"***REMOVED******REMOVED***
@@ -116,14 +116,14 @@ var _ = Describe("ROSA Operator IAM roles data source", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  data "ocm_rosa_operator_roles" "operator_roles" {
+		  data "rhcs_rosa_operator_roles" "operator_roles" {
 			  operator_role_prefix = "terraform-operator"
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_rosa_operator_roles", "operator_roles"***REMOVED***
+		resource := terraform.Resource("rhcs_rosa_operator_roles", "operator_roles"***REMOVED***
 		//Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items | length`, 1***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.operator_role_prefix`, "terraform-operator"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.operator_iam_roles | length`, 2***REMOVED******REMOVED***

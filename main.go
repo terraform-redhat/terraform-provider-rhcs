@@ -21,7 +21,7 @@ package main
 
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 
-	"github.com/terraform-redhat/terraform-provider-red-hat-cloud-services/provider"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider"
 ***REMOVED***
 
 // Generate the Terraform provider documentation using `tfplugindocs`:
@@ -32,7 +32,7 @@ func main(***REMOVED*** {
 		context.Background(***REMOVED***,
 		provider.New,
 		tfsdk.ServeOpts{
-			Name: "ocm",
+			Name: "rhcs",
 ***REMOVED***,
 	***REMOVED***
 }

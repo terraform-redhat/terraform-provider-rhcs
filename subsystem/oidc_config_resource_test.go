@@ -101,12 +101,12 @@ var _ = Describe("OIDC config creation", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_rosa_oidc_config" "oidc_config" {
+		  resource "rhcs_rosa_oidc_config" "oidc_config" {
 			  managed = true
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-		resource := terraform.Resource("ocm_rosa_oidc_config", "oidc_config"***REMOVED***
+		resource := terraform.Resource("rhcs_rosa_oidc_config", "oidc_config"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", ID***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.issuer_url", managedIssuerURL***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.managed", true***REMOVED******REMOVED***
@@ -151,7 +151,7 @@ var _ = Describe("OIDC config creation", func(***REMOVED*** {
 
 			// Run the apply command:
 			terraform.Source(`
-		resource "ocm_rosa_oidc_config" "oidc_config" {
+		resource "rhcs_rosa_oidc_config" "oidc_config" {
 			  managed = false
 			  secret_arn =  "arn:aws:secretsmanager:us-east-1:765374464689:secret:rosa-private-key-oidc-f3y4-fEqj4c"
 			  issuer_url = "https://oidc-f3y4.s3.us-east-1.amazonaws.com"
@@ -178,7 +178,7 @@ var _ = Describe("OIDC config creation", func(***REMOVED*** {
 
 			// Run the apply command:
 			terraform.Source(`
-		resource "ocm_rosa_oidc_config" "oidc_config" {
+		resource "rhcs_rosa_oidc_config" "oidc_config" {
 			  managed = false
 			  secret_arn =  "arn:aws:secretsmanager:us-east-1:765374464689:secret:rosa-private-key-oidc-f3y4-fEqj4c"
 			  issuer_url = "https://oidc-f3y4.s3.us-east-1.amazonaws.com"
@@ -207,7 +207,7 @@ var _ = Describe("OIDC config creation", func(***REMOVED*** {
 
 			// Run the apply command:
 			terraform.Source(`
-		resource "ocm_rosa_oidc_config" "oidc_config" {
+		resource "rhcs_rosa_oidc_config" "oidc_config" {
 			  managed = false
 			  secret_arn =  "arn:aws:secretsmanager:us-east-1:765374464689:secret:rosa-private-key-oidc-f3y4-fEqj4c"
 			  issuer_url = "https://oidc-f3y4.s3.us-east-1.amazonaws.com"
@@ -236,7 +236,7 @@ var _ = Describe("OIDC config creation", func(***REMOVED*** {
 
 			// Run the apply command:
 			terraform.Source(`
-		resource "ocm_rosa_oidc_config" "oidc_config" {
+		resource "rhcs_rosa_oidc_config" "oidc_config" {
 			  managed = false
 			  secret_arn =  "arn:aws:secretsmanager:us-east-1:765374464689:secret:rosa-private-key-oidc-f3y4-fEqj4c"
 			  issuer_url = "https://oidc-f3y4.s3.us-east-1.amazonaws.com"
@@ -282,7 +282,7 @@ var _ = Describe("OIDC config creation", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		resource "ocm_rosa_oidc_config" "oidc_config" {
+		resource "rhcs_rosa_oidc_config" "oidc_config" {
 			  managed = true
 			  secret_arn =  "arn:aws:secretsmanager:us-east-1:765374464689:secret:rosa-private-key-oidc-f3y4-fEqj4c"
 			  issuer_url = "https://oidc-f3y4.s3.us-east-1.amazonaws.com"
@@ -296,7 +296,7 @@ var _ = Describe("OIDC config creation", func(***REMOVED*** {
 }***REMOVED***
 
 func validateTerraformResourceState(***REMOVED*** {
-	resource := terraform.Resource("ocm_rosa_oidc_config", "oidc_config"***REMOVED***
+	resource := terraform.Resource("rhcs_rosa_oidc_config", "oidc_config"***REMOVED***
 	Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", ID***REMOVED******REMOVED***
 	Expect(resource***REMOVED***.To(MatchJQ(".attributes.installer_role_arn", installerRoleARN***REMOVED******REMOVED***
 	Expect(resource***REMOVED***.To(MatchJQ(".attributes.managed", false***REMOVED******REMOVED***

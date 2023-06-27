@@ -20,22 +20,22 @@ terraform {
       source  = "hashicorp/aws"
       version = ">= 4.20.0"
     }
-    red-hat-cloud-services = {
+    rhcs = {
       version = ">=1.0.1"
-      source  = "terraform.local/local/red-hat-cloud-services"
+      source  = "terraform.local/local/rhcs"
     }
   }
 }
-provider "red-hat-cloud-services" {
+provider "rhcs" {
   token = var.token
   url   = var.url
 }
 
-resource "ocm_rosa_oidc_config" "oidc_config" {
+resource "rhcs_rosa_oidc_config" "oidc_config" {
   managed = true
 }
 
-data "ocm_rosa_operator_roles" "operator_roles" {
+data "rhcs_rosa_operator_roles" "operator_roles" {
   operator_role_prefix = var.operator_role_prefix
   account_role_prefix  = var.account_role_prefix
 }
@@ -48,9 +48,9 @@ module "operator_roles_and_oidc_provider" {
   create_oidc_provider  = true
 
   cluster_id                  = ""
-  rh_oidc_provider_thumbprint = ocm_rosa_oidc_config.oidc_config.thumbprint
-  rh_oidc_provider_url        = ocm_rosa_oidc_config.oidc_config.oidc_endpoint_url
-  operator_roles_properties   = data.ocm_rosa_operator_roles.operator_roles.operator_iam_roles
+  rh_oidc_provider_thumbprint = rhcs_rosa_oidc_config.oidc_config.thumbprint
+  rh_oidc_provider_url        = rhcs_rosa_oidc_config.oidc_config.oidc_endpoint_url
+  operator_roles_properties   = data.rhcs_rosa_operator_roles.operator_roles.operator_iam_roles
 }
 
 locals {
@@ -62,14 +62,14 @@ locals {
       worker_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Worker-Role"
     },
     operator_role_prefix = var.operator_role_prefix,
-    oidc_config_id       = ocm_rosa_oidc_config.oidc_config.id
+    oidc_config_id       = rhcs_rosa_oidc_config.oidc_config.id
   }
 }
 
 data "aws_caller_identity" "current" {
 }
 
-resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
+resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   name               = var.cluster_name
   version            = var.openshift_version
   channel_group      = var.channel_group
@@ -84,8 +84,8 @@ resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
   destroy_timeout = 120
 }
 
-resource "ocm_cluster_wait" "rosa_cluster" {
-  cluster = ocm_cluster_rosa_classic.rosa_sts_cluster.id
+resource "rhcs_cluster_wait" "rosa_cluster" {
+  cluster = rhcs_cluster_rosa_classic.rosa_sts_cluster.id
   # timeout in minutes
   timeout = 60
 }

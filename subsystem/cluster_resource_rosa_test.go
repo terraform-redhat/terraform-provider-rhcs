@@ -24,7 +24,7 @@ package provider
 ***REMOVED***                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
-	"github.com/terraform-redhat/terraform-provider-red-hat-cloud-services/build"
+	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 ***REMOVED***
 
 const versionListPage1 = `{
@@ -47,7 +47,7 @@ const versionListPage1 = `{
 	]
 }`
 
-var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
+var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 	// This is the cluster that will be returned by the server when asked to create or retrieve
 	// a cluster.
 	template := `{
@@ -105,7 +105,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 
 	It("version with unsupported prefix error", func(***REMOVED*** {
 		terraform.Source(`
-			resource "ocm_cluster_rosa_classic" "my_cluster" {
+			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			  name           = "my-cluster"
 			  cloud_region   = "us-west-1"
 			  aws_account_id = "123"
@@ -171,7 +171,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 				***REMOVED***,
 			***REMOVED***
 			terraform.Source(`
-			resource "ocm_cluster_rosa_classic" "my_cluster" {
+			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			  name           = "my-cluster"
 			  cloud_region   = "us-west-1"
 			  aws_account_id = "123"
@@ -253,7 +253,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 				***REMOVED***,
 			***REMOVED***
 			terraform.Source(`
-			resource "ocm_cluster_rosa_classic" "my_cluster" {
+			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			  name           = "my-cluster"
 			  cloud_region   = "us-west-1"
 			  aws_account_id = "123"
@@ -292,7 +292,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 				***REMOVED***,
 			***REMOVED***
 			terraform.Source(`
-			resource "ocm_cluster_rosa_classic" "my_cluster" {
+			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			  name           = "my-cluster"
 			  cloud_region   = "us-west-1"
 			  aws_account_id = "123"
@@ -361,7 +361,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -377,7 +377,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-		resource := terraform.Resource("ocm_cluster_rosa_classic", "my_cluster"***REMOVED***
+		resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.current_version", "openshift-4.8.0"***REMOVED******REMOVED***
 	}***REMOVED***
 	It("Creates basic cluster with properties", func(***REMOVED*** {
@@ -438,7 +438,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -505,7 +505,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 		***REMOVED***
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -587,7 +587,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 
 		It("Disable waiting in destroy resource", func(***REMOVED*** {
 			terraform.Source(`
-				  resource "ocm_cluster_rosa_classic" "my_cluster" {
+				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
@@ -618,7 +618,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 				***REMOVED***,
 			***REMOVED***
 			terraform.Source(`
-				  resource "ocm_cluster_rosa_classic" "my_cluster" {
+				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
@@ -647,7 +647,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 				***REMOVED***,
 			***REMOVED***
 			terraform.Source(`
-				  resource "ocm_cluster_rosa_classic" "my_cluster" {
+				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
@@ -677,7 +677,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 				***REMOVED***,
 			***REMOVED***
 			terraform.Source(`
-				  resource "ocm_cluster_rosa_classic" "my_cluster" {
+				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
@@ -752,7 +752,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 			***REMOVED***,
 		***REMOVED***
 		terraform.Source(`
-				  resource "ocm_cluster_rosa_classic" "my_cluster" {
+				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
@@ -854,7 +854,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 		***REMOVED***
 
 		terraform.Source(`
-				  resource "ocm_cluster_rosa_classic" "my_cluster" {
+				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
@@ -872,7 +872,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 			`***REMOVED***
 
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-		resource := terraform.Resource("ocm_cluster_rosa_classic", "my_cluster"***REMOVED***
+		resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.disable_workload_monitoring`, false***REMOVED******REMOVED***
 
 	}***REMOVED***
@@ -941,7 +941,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -1066,7 +1066,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 
 		// update the attribute "proxy"
 		terraform.Source(`
-		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -1087,7 +1087,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-		resource := terraform.Resource("ocm_cluster_rosa_classic", "my_cluster"***REMOVED***
+		resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.proxy.https_proxy`, "https://proxy2.com"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.proxy.no_proxy`, "test"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.proxy.additional_trust_bundle`, "123"***REMOVED******REMOVED***
@@ -1139,7 +1139,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -1229,7 +1229,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 
 		// update the attribute "proxy"
 		terraform.Source(`
-		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -1248,14 +1248,14 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED***, "Failed to update cluster with changed default_mp_labels"***REMOVED***
-		resource := terraform.Resource("ocm_cluster_rosa_classic", "my_cluster"***REMOVED***
+		resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.default_mp_labels.changed_label`, "changed"***REMOVED******REMOVED***
 	}***REMOVED***
 
 	It("Except to fail on proxy validators", func(***REMOVED*** {
 		// Expected at least one of the following: http-proxy, https-proxy
 		terraform.Source(`
-		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -1278,7 +1278,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 
 		// Expected at least one of the following: http-proxy, https-proxy, additional-trust-bundle
 		terraform.Source(`
-		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -1355,7 +1355,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -1427,7 +1427,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -1510,7 +1510,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		resource "ocm_cluster_rosa_classic" "my_cluster" {
+		resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -1621,7 +1621,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 		***REMOVED***
 		// Run the apply command:
 		terraform.Source(`
-		resource "ocm_cluster_rosa_classic" "my_cluster" {
+		resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -1727,7 +1727,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 		***REMOVED***
 		// Run the apply command:
 		terraform.Source(`
-		resource "ocm_cluster_rosa_classic" "my_cluster" {
+		resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -1809,7 +1809,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 		***REMOVED***
 		// Run the apply command:
 		terraform.Source(`
-		resource "ocm_cluster_rosa_classic" "my_cluster" {
+		resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -1874,7 +1874,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -1938,7 +1938,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -2001,7 +2001,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -2066,7 +2066,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -2088,7 +2088,7 @@ var _ = Describe("ocm_cluster_rosa_classic - create", func(***REMOVED*** {
 	}***REMOVED***
 }***REMOVED***
 
-var _ = Describe("ocm_cluster_rosa_classic - upgrade", func(***REMOVED*** {
+var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 	const template = `{
 		"id": "123",
 		"name": "my-cluster",
@@ -2216,7 +2216,7 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 			***REMOVED***,
 		***REMOVED***
 		terraform.Source(`
-		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -2278,7 +2278,7 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Verify initial cluster version
-		resource := terraform.Resource("ocm_cluster_rosa_classic", "my_cluster"***REMOVED***
+		resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.current_version", "4.8.0"***REMOVED******REMOVED***
 	}***REMOVED***
 
@@ -2385,7 +2385,7 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 		***REMOVED***
 		// Perform upgrade w/ auto-ack of sts-only gate agreements
 		terraform.Source(`
-		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -2506,7 +2506,7 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 		***REMOVED***
 		// Perform upgrade w/ auto-ack of sts-only gate agreements
 		terraform.Source(`
-		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -2582,7 +2582,7 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 		***REMOVED***
 		// Perform try the upgrade
 		terraform.Source(`
-		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -2692,7 +2692,7 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 		***REMOVED***
 		// Perform try the upgrade
 		terraform.Source(`
-		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -2769,7 +2769,7 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 ***REMOVED******REMOVED***
 		It("Fails upgrade for un-acked gates", func(***REMOVED*** {
 			terraform.Source(`
-			resource "ocm_cluster_rosa_classic" "my_cluster" {
+			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
 				aws_account_id = "123"
@@ -2788,7 +2788,7 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 ***REMOVED******REMOVED***
 		It("Fails upgrade if wrong version is acked", func(***REMOVED*** {
 			terraform.Source(`
-			resource "ocm_cluster_rosa_classic" "my_cluster" {
+			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
 				aws_account_id = "123"
@@ -2856,7 +2856,7 @@ var _ = Describe("ocm_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 				***REMOVED***,
 			***REMOVED***
 			terraform.Source(`
-			resource "ocm_cluster_rosa_classic" "my_cluster" {
+			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
 				aws_account_id = "123"

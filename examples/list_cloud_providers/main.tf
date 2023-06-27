@@ -16,22 +16,22 @@
 
 terraform {
   required_providers {
-    red-hat-cloud-services = {
+    rhcs = {
       version = ">= 0.1"
-      source  = "terraform-redhat/red-hat-cloud-services"
+      source  = "terraform-redhat/rhcs"
     }
   }
 }
 
-provider "red-hat-cloud-services" {
+provider "rhcs" {
 }
 
-data "ocm_cloud_providers" "a" {
+data "rhcs_cloud_providers" "a" {
   search = "display_name like 'A%'"
   order  = "display_name asc"
 }
 
 output "result" {
   description = "Cloud providers with names starting with 'A'"
-  value       = data.ocm_cloud_providers.a.items
+  value       = data.rhcs_cloud_providers.a.items
 }

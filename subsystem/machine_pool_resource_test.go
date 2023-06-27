@@ -88,7 +88,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_machine_pool" "my_pool" {
+		  resource "rhcs_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
@@ -109,7 +109,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_machine_pool", "my_pool"***REMOVED***
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
@@ -164,7 +164,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_machine_pool" "my_pool" {
+		  resource "rhcs_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
@@ -185,7 +185,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_machine_pool", "my_pool"***REMOVED***
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
@@ -279,7 +279,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		***REMOVED***
 
 		terraform.Source(`
-		  resource "ocm_machine_pool" "my_pool" {
+		  resource "rhcs_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
@@ -305,7 +305,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource = terraform.Resource("ocm_machine_pool", "my_pool"***REMOVED***
+		resource = terraform.Resource("rhcs_machine_pool", "my_pool"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
@@ -361,7 +361,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_machine_pool" "my_pool" {
+		  resource "rhcs_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
@@ -382,7 +382,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_machine_pool", "my_pool"***REMOVED***
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
@@ -453,7 +453,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		***REMOVED***
 
 		terraform.Source(`
-		  resource "ocm_machine_pool" "my_pool" {
+		  resource "rhcs_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
@@ -467,7 +467,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource = terraform.Resource("ocm_machine_pool", "my_pool"***REMOVED***
+		resource = terraform.Resource("rhcs_machine_pool", "my_pool"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
@@ -508,7 +508,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 
 		// Run the apply command to create the machine pool resource:
 		terraform.Source(`
-		  resource "ocm_machine_pool" "my_pool" {
+		  resource "rhcs_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
@@ -520,7 +520,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_machine_pool", "my_pool"***REMOVED***
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
@@ -584,7 +584,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		***REMOVED***
 		// Run the apply command to update the machine pool:
 		terraform.Source(`
-		  resource "ocm_machine_pool" "my_pool" {
+		  resource "rhcs_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
@@ -594,7 +594,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource = terraform.Resource("ocm_machine_pool", "my_pool"***REMOVED***
+		resource = terraform.Resource("rhcs_machine_pool", "my_pool"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
@@ -660,7 +660,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_machine_pool" "my_pool" {
+		  resource "rhcs_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-spot-pool"
 		    machine_type = "r5.xlarge"
@@ -729,7 +729,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_machine_pool" "my_pool" {
+		  resource "rhcs_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
@@ -751,7 +751,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_machine_pool", "my_pool"***REMOVED***
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
@@ -818,7 +818,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_machine_pool" "my_pool" {
+		  resource "rhcs_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-spot-pool"
 		    machine_type = "r5.xlarge"
@@ -841,7 +841,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_machine_pool", "my_pool"***REMOVED***
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-spot-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-spot-pool"***REMOVED******REMOVED***
@@ -909,7 +909,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_machine_pool" "my_pool" {
+		  resource "rhcs_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-spot-pool"
 		    machine_type = "r5.xlarge"
@@ -931,7 +931,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_machine_pool", "my_pool"***REMOVED***
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-spot-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-spot-pool"***REMOVED******REMOVED***

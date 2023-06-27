@@ -20,13 +20,13 @@ terraform {
       source  = "hashicorp/aws"
       version = ">= 4.20.0"
     }
-    red-hat-cloud-services = {
+    rhcs = {
       version = ">=1.0.1"
-      source  = "terraform-redhat/red-hat-cloud-services"
+      source  = "terraform-redhat/rhcs"
     }
   }
 }
-provider "red-hat-cloud-services" {
+provider "rhcs" {
   token = var.token
   url   = var.url
 }
@@ -36,7 +36,7 @@ provider "aws" {
 }
 
 # Generates the OIDC config resources' names
-resource "ocm_rosa_oidc_config_input" "oidc_input" {
+resource "rhcs_rosa_oidc_config_input" "oidc_input" {
   count = var.managed ? 0 : 1
 
   region = var.cloud_region
@@ -51,22 +51,22 @@ module "oidc_config_input_resources" {
 
   create_oidc_config_resources = true
 
-  bucket_name             = one(ocm_rosa_oidc_config_input.oidc_input[*].bucket_name***REMOVED***
-  discovery_doc           = one(ocm_rosa_oidc_config_input.oidc_input[*].discovery_doc***REMOVED***
-  jwks                    = one(ocm_rosa_oidc_config_input.oidc_input[*].jwks***REMOVED***
-  private_key             = one(ocm_rosa_oidc_config_input.oidc_input[*].private_key***REMOVED***
-  private_key_file_name   = one(ocm_rosa_oidc_config_input.oidc_input[*].private_key_file_name***REMOVED***
-  private_key_secret_name = one(ocm_rosa_oidc_config_input.oidc_input[*].private_key_secret_name***REMOVED***
+  bucket_name             = one(rhcs_rosa_oidc_config_input.oidc_input[*].bucket_name***REMOVED***
+  discovery_doc           = one(rhcs_rosa_oidc_config_input.oidc_input[*].discovery_doc***REMOVED***
+  jwks                    = one(rhcs_rosa_oidc_config_input.oidc_input[*].jwks***REMOVED***
+  private_key             = one(rhcs_rosa_oidc_config_input.oidc_input[*].private_key***REMOVED***
+  private_key_file_name   = one(rhcs_rosa_oidc_config_input.oidc_input[*].private_key_file_name***REMOVED***
+  private_key_secret_name = one(rhcs_rosa_oidc_config_input.oidc_input[*].private_key_secret_name***REMOVED***
 }
 
-resource "ocm_rosa_oidc_config" "oidc_config" {
+resource "rhcs_rosa_oidc_config" "oidc_config" {
   managed            = var.managed
   secret_arn         = one(module.oidc_config_input_resources[*].secret_arn***REMOVED***
-  issuer_url         = one(ocm_rosa_oidc_config_input.oidc_input[*].issuer_url***REMOVED***
+  issuer_url         = one(rhcs_rosa_oidc_config_input.oidc_input[*].issuer_url***REMOVED***
   installer_role_arn = var.installer_role_arn
 }
 
-data "ocm_rosa_operator_roles" "operator_roles" {
+data "rhcs_rosa_operator_roles" "operator_roles" {
   operator_role_prefix = var.operator_role_prefix
   account_role_prefix  = var.account_role_prefix
 }
@@ -79,9 +79,9 @@ module "operator_roles_and_oidc_provider" {
   create_oidc_provider  = true
 
   cluster_id                  = ""
-  rh_oidc_provider_thumbprint = ocm_rosa_oidc_config.oidc_config.thumbprint
-  rh_oidc_provider_url        = ocm_rosa_oidc_config.oidc_config.oidc_endpoint_url
-  operator_roles_properties   = data.ocm_rosa_operator_roles.operator_roles.operator_iam_roles
+  rh_oidc_provider_thumbprint = rhcs_rosa_oidc_config.oidc_config.thumbprint
+  rh_oidc_provider_url        = rhcs_rosa_oidc_config.oidc_config.oidc_endpoint_url
+  operator_roles_properties   = data.rhcs_rosa_operator_roles.operator_roles.operator_iam_roles
   tags                        = var.tags
   path                        = var.path
 }

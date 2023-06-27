@@ -1,4 +1,4 @@
-module github.com/terraform-redhat/terraform-provider-red-hat-cloud-services
+module github.com/terraform-redhat/terraform-provider-rhcs
 
 go 1.18
 

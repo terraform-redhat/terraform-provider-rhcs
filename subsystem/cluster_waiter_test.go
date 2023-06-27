@@ -117,7 +117,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 
 		It("Create cluster waiter without a timeout", func(***REMOVED*** {
 			terraform.Source(`
-				resource "ocm_cluster_wait" "rosa_cluster" {
+				resource "rhcs_cluster_wait" "rosa_cluster" {
 				  cluster = "123"
 		***REMOVED***
 			`***REMOVED***
@@ -127,7 +127,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 
 		It("Create cluster with a negative timeout", func(***REMOVED*** {
 			terraform.Source(`
-				resource "ocm_cluster_wait" "rosa_cluster" {
+				resource "rhcs_cluster_wait" "rosa_cluster" {
 				  cluster = "123"
 				  timeout = -1
 		***REMOVED***
@@ -139,7 +139,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 
 		It("Create cluster with a positive timeout", func(***REMOVED*** {
 			terraform.Source(`
-				resource "ocm_cluster_wait" "rosa_cluster" {
+				resource "rhcs_cluster_wait" "rosa_cluster" {
 				  cluster = "123"
 				  timeout = 1
 		***REMOVED***
@@ -161,14 +161,14 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		***REMOVED***
 
 		terraform.Source(`
-				resource "ocm_cluster_wait" "rosa_cluster" {
+				resource "rhcs_cluster_wait" "rosa_cluster" {
 				  cluster = "123"
 				  timeout = 1
 		***REMOVED***
 			`***REMOVED***
 
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-		resource := terraform.Resource("ocm_cluster_wait", "rosa_cluster"***REMOVED***
+		resource := terraform.Resource("rhcs_cluster_wait", "rosa_cluster"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ready`, false***REMOVED******REMOVED***
 	}***REMOVED***
 
@@ -182,14 +182,14 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		***REMOVED***
 
 		terraform.Source(`
-				resource "ocm_cluster_wait" "rosa_cluster" {
+				resource "rhcs_cluster_wait" "rosa_cluster" {
 				  cluster = "123"
 				  timeout = 1
 		***REMOVED***
 			`***REMOVED***
 
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-		resource := terraform.Resource("ocm_cluster_wait", "rosa_cluster"***REMOVED***
+		resource := terraform.Resource("rhcs_cluster_wait", "rosa_cluster"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ready`, false***REMOVED******REMOVED***
 	}***REMOVED***
 }***REMOVED***

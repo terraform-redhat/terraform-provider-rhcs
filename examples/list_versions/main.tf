@@ -16,20 +16,20 @@
 
 terraform {
   required_providers {
-    red-hat-cloud-services = {
+    rhcs = {
       version = ">= 0.1"
-      source  = "terraform-redhat/red-hat-cloud-services"
+      source  = "terraform-redhat/rhcs"
     }
   }
 }
 
-provider "red-hat-cloud-services" {
+provider "rhcs" {
 }
 
-data "ocm_versions" "all" {
+data "rhcs_versions" "all" {
 }
 
 output "versions" {
   description = "OpenShift versions"
-  value       = data.ocm_versions.all
+  value       = data.rhcs_versions.all
 }

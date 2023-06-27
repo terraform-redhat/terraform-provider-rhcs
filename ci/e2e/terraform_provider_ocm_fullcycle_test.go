@@ -19,13 +19,13 @@
 	client "github.com/openshift-online/ocm-sdk-go"
 	"github.com/openshift-online/ocm-sdk-go/logging"
 	"github.com/segmentio/ksuid"
-	"github.com/terraform-redhat/terraform-provider-ocm/ci/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/ci/helper"
 	"k8s.io/apimachinery/pkg/util/rand"
 ***REMOVED***
 
 const (
-	accountRolesFilesDir         = "account_roles_files"
-	terraformProviderOCMFilesDir = "terraform_provider_ocm_files"
+	accountRolesFilesDir          = "account_roles_files"
+	terraformProviderRHCSFilesDir = "terraform_provider_rhcs_files"
 ***REMOVED***
 
 var (
@@ -187,7 +187,7 @@ func createAccountRolesUsingTerraformAWSRosaStsModule(ctx context.Context***REMO
 		"-auto-approve"}***REMOVED***
 }
 
-func createClusterUsingTerraformProviderOCM(ctx context.Context***REMOVED*** string {
+func createClusterUsingTerraformProviderRHCS(ctx context.Context***REMOVED*** string {
 	runTerraformInit(ctx, providerTempDir***REMOVED***
 
 	runTerraformApplyWithArgs(ctx, providerTempDir, []string{
@@ -213,13 +213,13 @@ func defineVariablesValues(***REMOVED*** {
 	randSuffix = rand.String(4***REMOVED***
 	logger.Info(ctx, "The random suffix that was chosen is %s", randSuffix***REMOVED***
 
-	providerTempDir = fmt.Sprintf("%s_%s", terraformProviderOCMFilesDir, randSuffix***REMOVED***
+	providerTempDir = fmt.Sprintf("%s_%s", terraformProviderRHCSFilesDir, randSuffix***REMOVED***
 	logger.Info(ctx, "The temp directory that was chosen is %s", providerTempDir***REMOVED***
 
 	accountRolesTempDir = fmt.Sprintf("%s_%s", accountRolesFilesDir, randSuffix***REMOVED***
 	logger.Info(ctx, "The temp directory that was chosen is %s", accountRolesTempDir***REMOVED***
 
-	clusterName = fmt.Sprintf("cluster_name=ci-ocm-tf-%s", randSuffix***REMOVED***
+	clusterName = fmt.Sprintf("cluster_name=ci-rhcs-tf-%s", randSuffix***REMOVED***
 	logger.Info(ctx, "The cluster name that was chosen is %s", clusterName***REMOVED***
 
 	operatorRolePrefix = fmt.Sprintf("operator_role_prefix=terr-operator-%s", randSuffix***REMOVED***
@@ -241,14 +241,14 @@ func defineVariablesValues(***REMOVED*** {
 
 }
 
-var _ = FDescribe("Terraform provider OCM test", Ordered, func(***REMOVED*** {
-	var terraformProviderOCMClusterID string
+var _ = FDescribe("Terraform provider RHCS test", Ordered, func(***REMOVED*** {
+	var terraformProviderRHCSClusterID string
 
 	BeforeAll(func(***REMOVED*** {
 		defineVariablesValues(***REMOVED***
 
 		//create temp dirs
-		err := Unpack(providerTempDir, terraformProviderOCMFilesDir***REMOVED***
+		err := Unpack(providerTempDir, terraformProviderRHCSFilesDir***REMOVED***
 		helper.CheckError(err***REMOVED***
 
 		err = Unpack(accountRolesTempDir, accountRolesFilesDir***REMOVED***
@@ -257,12 +257,12 @@ var _ = FDescribe("Terraform provider OCM test", Ordered, func(***REMOVED*** {
 		// prepareDirectory
 		createAccountRolesUsingTerraformAWSRosaStsModule(ctx***REMOVED***
 		time.Sleep(5 * time.Second***REMOVED***
-		terraformProviderOCMClusterID = createClusterUsingTerraformProviderOCM(ctx***REMOVED***
+		terraformProviderRHCSClusterID = createClusterUsingTerraformProviderRHCS(ctx***REMOVED***
 	}***REMOVED***
 
 	Context("Cluster creation", func(***REMOVED*** {
-		It("creates a cluster using terraform-provider-ocm", func(***REMOVED*** {
-			resp, err := connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Clusters(***REMOVED***.Cluster(terraformProviderOCMClusterID***REMOVED***.Get(***REMOVED***.Send(***REMOVED***
+		It("creates a cluster using terraform-provider-rhcs", func(***REMOVED*** {
+			resp, err := connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Clusters(***REMOVED***.Cluster(terraformProviderRHCSClusterID***REMOVED***.Get(***REMOVED***.Send(***REMOVED***
 			helper.CheckResponse(resp, err, http.StatusOK***REMOVED***
 ***REMOVED******REMOVED***
 	}***REMOVED***

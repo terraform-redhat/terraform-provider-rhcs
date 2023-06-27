@@ -31,7 +31,7 @@ fi
 
 CLUSTER_NAME_FILE="${SHARED_DIR}/cluster-name"
 if [[ ! -f "${CLUSTER_NAME_FILE}" ]]; then
-    echo "ocm-tf-ci-$(mktemp -u XXXXX | tr '[:upper:]' '[:lower:]'***REMOVED***" > "${CLUSTER_NAME_FILE}"
+    echo "rhcsci-$(mktemp -u XXXXX | tr '[:upper:]' '[:lower:]'***REMOVED***" > "${CLUSTER_NAME_FILE}"
 fi
 CLUSTER_NAME=$(cat "${CLUSTER_NAME_FILE}"***REMOVED***
 

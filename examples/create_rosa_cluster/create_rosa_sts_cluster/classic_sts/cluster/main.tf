@@ -20,14 +20,14 @@ terraform {
       source  = "hashicorp/aws"
       version = ">= 4.20.0"
     }
-    red-hat-cloud-services = {
+    rhcs = {
       version = ">=1.0.1"
-      source  = "terraform-redhat/red-hat-cloud-services"
+      source  = "terraform-redhat/rhcs"
     }
   }
 }
 
-provider "red-hat-cloud-services" {
+provider "rhcs" {
   token = var.token
   url   = var.url
 }
@@ -47,7 +47,7 @@ locals {
 data "aws_caller_identity" "current" {
 }
 
-resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
+resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   name               = var.cluster_name
   cloud_region       = var.cloud_region
   aws_account_id     = data.aws_caller_identity.current.account_id
@@ -61,13 +61,13 @@ resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
   destroy_timeout = 60
 }
 
-resource "ocm_cluster_wait" "rosa_cluster" {
-  cluster = ocm_cluster_rosa_classic.rosa_sts_cluster.id
+resource "rhcs_cluster_wait" "rosa_cluster" {
+  cluster = rhcs_cluster_rosa_classic.rosa_sts_cluster.id
   # timeout in minutes
   timeout = 60
 }
 
-data "ocm_rosa_operator_roles" "operator_roles" {
+data "rhcs_rosa_operator_roles" "operator_roles" {
   operator_role_prefix = var.operator_role_prefix
   account_role_prefix  = var.account_role_prefix
 }
@@ -80,10 +80,10 @@ module "operator_roles" {
   create_oidc_provider  = true
   create_account_roles  = false
 
-  cluster_id                  = ocm_cluster_rosa_classic.rosa_sts_cluster.id
-  rh_oidc_provider_thumbprint = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.thumbprint
-  rh_oidc_provider_url        = ocm_cluster_rosa_classic.rosa_sts_cluster.sts.oidc_endpoint_url
-  operator_roles_properties   = data.ocm_rosa_operator_roles.operator_roles.operator_iam_roles
+  cluster_id                  = rhcs_cluster_rosa_classic.rosa_sts_cluster.id
+  rh_oidc_provider_thumbprint = rhcs_cluster_rosa_classic.rosa_sts_cluster.sts.thumbprint
+  rh_oidc_provider_url        = rhcs_cluster_rosa_classic.rosa_sts_cluster.sts.oidc_endpoint_url
+  operator_roles_properties   = data.rhcs_rosa_operator_roles.operator_roles.operator_iam_roles
   tags                        = var.tags
 }
 

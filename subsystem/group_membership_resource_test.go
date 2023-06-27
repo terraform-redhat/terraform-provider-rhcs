@@ -62,7 +62,7 @@ var _ = Describe("Group membership creation", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_group_membership" "my_membership" {
+		  resource "rhcs_group_membership" "my_membership" {
 		    cluster   = "123"
 		    group     = "dedicated-admins"
 		    user      = "my-admin"
@@ -71,7 +71,7 @@ var _ = Describe("Group membership creation", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_group_membership", "my_membership"***REMOVED***
+		resource := terraform.Resource("rhcs_group_membership", "my_membership"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.group", "dedicated-admins"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-admin"***REMOVED******REMOVED***

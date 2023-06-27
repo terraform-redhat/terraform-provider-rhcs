@@ -43,7 +43,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 
 			// Run the apply command:
 			terraform.Source(`
-		  resource "ocm_identity_provider" "my_ip" {
+		  resource "rhcs_identity_provider" "my_ip" {
 		    cluster = "123"
 		    name    = "my-ip"
 		    htpasswd = {
@@ -112,7 +112,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 
 			// Run the apply command:
 			terraform.Source(`
-		  resource "ocm_identity_provider" "my_ip" {
+		  resource "rhcs_identity_provider" "my_ip" {
 		    cluster = "123"
 		    name    = "my-ip"
 		    htpasswd = {
@@ -160,7 +160,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 
 			// Run the apply command:
 			terraform.Source(`
-		  resource "ocm_identity_provider" "my_ip" {
+		  resource "rhcs_identity_provider" "my_ip" {
 		    cluster = "123"
 		    name    = "my-ip"
 		    gitlab = {
@@ -178,7 +178,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 			Context("Invalid 'github' identity provider config", func(***REMOVED*** {
 				It("Should fail with both 'teams' and 'organizations'", func(***REMOVED*** {
 					terraform.Source(`
-		          resource "ocm_identity_provider" "my_ip" {
+		          resource "rhcs_identity_provider" "my_ip" {
 		            cluster = "123"
 		            name    = "my-ip"
 		            github = {
@@ -195,7 +195,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 
 				It("Should fail without 'teams' or 'organizations'", func(***REMOVED*** {
 					terraform.Source(`
-		          resource "ocm_identity_provider" "my_ip" {
+		          resource "rhcs_identity_provider" "my_ip" {
 		            cluster = "123"
 		            name    = "my-ip"
 		            github = {
@@ -210,7 +210,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 
 				It("Should fail if teams contain an invalid format", func(***REMOVED*** {
 					terraform.Source(`
-		          resource "ocm_identity_provider" "my_ip" {
+		          resource "rhcs_identity_provider" "my_ip" {
 		            cluster = "123"
 		            name    = "my-ip"
 		            github = {
@@ -223,7 +223,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 		        `***REMOVED***
 					Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
 					terraform.Source(`
-		          resource "ocm_identity_provider" "my_ip" {
+		          resource "rhcs_identity_provider" "my_ip" {
 		            cluster = "123"
 		            name    = "my-ip"
 		            github = {
@@ -239,7 +239,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 
 				It("Should fail with an invalid hostname", func(***REMOVED*** {
 					terraform.Source(`
-		          resource "ocm_identity_provider" "my_ip" {
+		          resource "rhcs_identity_provider" "my_ip" {
 		            cluster = "123"
 		            name    = "my-ip"
 		            github = {
@@ -291,7 +291,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 
 				// Run the apply command:
 				terraform.Source(`
-		      resource "ocm_identity_provider" "my_ip" {
+		      resource "rhcs_identity_provider" "my_ip" {
 		        cluster = "123"
 		        name    = "my-ip"
 		        github = {
@@ -342,7 +342,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 
 				// Run the apply command:
 				terraform.Source(`
-		          resource "ocm_identity_provider" "my_ip" {
+		          resource "rhcs_identity_provider" "my_ip" {
 		            cluster = "123"
 		            name    = "my-ip"
 		            github = {
@@ -362,7 +362,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 				It("Should fail with invalid email", func(***REMOVED*** {
 					// Run the apply command:
 					terraform.Source(`
-        		      resource "ocm_identity_provider" "my_ip" {
+        		      resource "rhcs_identity_provider" "my_ip" {
         		        cluster    = "123"
         		        name       = "my-ip"
         		        ldap = {
@@ -383,7 +383,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 				It("Should fail if not both bind properties are set", func(***REMOVED*** {
 					// Run the apply command:
 					terraform.Source(`
-        		      resource "ocm_identity_provider" "my_ip" {
+        		      resource "rhcs_identity_provider" "my_ip" {
         		        cluster    = "123"
         		        name       = "my-ip"
         		        ldap = {
@@ -448,7 +448,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 
 				// Run the apply command:
 				terraform.Source(`
-        		  resource "ocm_identity_provider" "my_ip" {
+        		  resource "rhcs_identity_provider" "my_ip" {
         		    cluster    = "123"
         		    name       = "my-ip"
         		    ldap = {
@@ -511,7 +511,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 
 				// Run the apply command:
 				terraform.Source(`
-        		  resource "ocm_identity_provider" "my_ip" {
+        		  resource "rhcs_identity_provider" "my_ip" {
         		    cluster    = "123"
         		    name       = "my-ip"
         		    ldap = {
@@ -578,7 +578,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 
 				// Run the apply command:
 				terraform.Source(`
-        		  resource "ocm_identity_provider" "my_ip" {
+        		  resource "rhcs_identity_provider" "my_ip" {
         		    cluster    = "123"
         		    name       = "my-ip"
         		    ldap = {
@@ -603,7 +603,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 				It("Should fail with invalid hosted_domain", func(***REMOVED*** {
 					// Run the apply command:
 					terraform.Source(`
-		          resource "ocm_identity_provider" "my_ip" {
+		          resource "rhcs_identity_provider" "my_ip" {
 		            cluster = "123"
 		            name    = "my-ip"
 		            google = {
@@ -619,7 +619,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 				It("Should fail when mapping_method is not lookup and no hosted_domain", func(***REMOVED*** {
 					// Run the apply command:
 					terraform.Source(`
-		          resource "ocm_identity_provider" "my_ip" {
+		          resource "rhcs_identity_provider" "my_ip" {
 		            cluster = "123"
 		            name    = "my-ip"
 		            google = {
@@ -668,7 +668,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 
 					// Run the apply command:
 					terraform.Source(`
-		          resource "ocm_identity_provider" "my_ip" {
+		          resource "rhcs_identity_provider" "my_ip" {
 		            cluster = "123"
 		            name    = "my-ip"
 		            google = {
@@ -713,7 +713,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 
 					// Run the apply command:
 					terraform.Source(`
-		          resource "ocm_identity_provider" "my_ip" {
+		          resource "rhcs_identity_provider" "my_ip" {
 		            cluster = "123"
 		            name    = "my-ip"
                     mapping_method = "lookup"
@@ -805,7 +805,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 
 			// Run the apply command:
 			terraform.Source(`
-		  resource "ocm_identity_provider" "my_ip" {
+		  resource "rhcs_identity_provider" "my_ip" {
 		    cluster    				= "123"
 		    name       				= "my-ip"
 		    openid = {
@@ -829,7 +829,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 		It("Should fail with invalid mapping_method", func(***REMOVED*** {
 			// Run the apply command:
 			terraform.Source(`
-		  resource "ocm_identity_provider" "my_ip" {
+		  resource "rhcs_identity_provider" "my_ip" {
 		    cluster = "123"
 		    name    = "my-ip"
             mapping_method = "invalid"

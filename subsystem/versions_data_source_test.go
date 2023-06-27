@@ -52,13 +52,13 @@ var _ = Describe("Versions data source", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  data "ocm_versions" "my_versions" {
+		  data "rhcs_versions" "my_versions" {
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_versions", "my_versions"***REMOVED***
+		resource := terraform.Resource("rhcs_versions", "my_versions"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items | length`, 2***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].id`, "openshift-v4.8.1"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].name`, "4.8.1"***REMOVED******REMOVED***
@@ -93,7 +93,7 @@ var _ = Describe("Versions data source", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  data "ocm_versions" "my_versions" {
+		  data "rhcs_versions" "my_versions" {
 		    search = "enabled = 't' and channel_group = 'fast'"
 		    order  = "raw_id desc"
 		  }
@@ -101,7 +101,7 @@ var _ = Describe("Versions data source", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_versions", "my_versions"***REMOVED***
+		resource := terraform.Resource("rhcs_versions", "my_versions"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items | length`, 2***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].id`, "openshift-v4.8.1-fast"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].name`, "4.8.1"***REMOVED******REMOVED***
@@ -130,13 +130,13 @@ var _ = Describe("Versions data source", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  data "ocm_versions" "my_versions" {
+		  data "rhcs_versions" "my_versions" {
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_versions", "my_versions"***REMOVED***
+		resource := terraform.Resource("rhcs_versions", "my_versions"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item.id`, "openshift-v4.8.1"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item.name`, "4.8.1"***REMOVED******REMOVED***
 	}***REMOVED***
@@ -157,13 +157,13 @@ var _ = Describe("Versions data source", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  data "ocm_versions" "my_versions" {
+		  data "rhcs_versions" "my_versions" {
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_versions", "my_versions"***REMOVED***
+		resource := terraform.Resource("rhcs_versions", "my_versions"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item`, nil***REMOVED******REMOVED***
 	}***REMOVED***
 
@@ -192,13 +192,13 @@ var _ = Describe("Versions data source", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  data "ocm_versions" "my_versions" {
+		  data "rhcs_versions" "my_versions" {
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_versions", "my_versions"***REMOVED***
+		resource := terraform.Resource("rhcs_versions", "my_versions"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item`, nil***REMOVED******REMOVED***
 	}***REMOVED***
 }***REMOVED***

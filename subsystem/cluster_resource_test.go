@@ -83,7 +83,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
+		  resource "rhcs_cluster" "my_cluster" {
 		    name           = "my-cluster"
 			product		   = "osd"
 		    cloud_provider = "aws"
@@ -104,7 +104,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
+		  resource "rhcs_cluster" "my_cluster" {
 		    name           = "my-cluster"
 			product		   = "osd"
 		    cloud_provider = "aws"
@@ -114,7 +114,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_cluster", "my_cluster"***REMOVED***
+		resource := terraform.Resource("rhcs_cluster", "my_cluster"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.api_url", "https://my-api.example.com"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.console_url", "https://my-console.example.com"***REMOVED******REMOVED***
 	}***REMOVED***
@@ -132,7 +132,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
+		  resource "rhcs_cluster" "my_cluster" {
 		    name                 = "my-cluster"
 			product		   		 = "osd"
 		    cloud_provider       = "aws"
@@ -144,7 +144,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_cluster", "my_cluster"***REMOVED***
+		resource := terraform.Resource("rhcs_cluster", "my_cluster"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.compute_nodes", 3.0***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.compute_machine_type", "r5.xlarge"***REMOVED******REMOVED***
 	}***REMOVED***
@@ -181,7 +181,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
+		  resource "rhcs_cluster" "my_cluster" {
 		    name                  = "my-cluster"
 			product		   		  = "osd"
 		    cloud_provider        = "aws"
@@ -195,7 +195,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_cluster", "my_cluster"***REMOVED***
+		resource := terraform.Resource("rhcs_cluster", "my_cluster"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.ccs_enabled", true***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.aws_account_id", "123"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.aws_access_key_id", "456"***REMOVED******REMOVED***
@@ -228,7 +228,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
+		  resource "rhcs_cluster" "my_cluster" {
 		    name           = "my-cluster"
 			product		   = "osd"
 		    cloud_provider = "aws"
@@ -242,7 +242,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_cluster", "my_cluster"***REMOVED***
+		resource := terraform.Resource("rhcs_cluster", "my_cluster"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_cidr", "10.0.0.0/15"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.service_cidr", "172.30.0.0/15"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.pod_cidr", "10.128.0.0/13"***REMOVED******REMOVED***
@@ -269,7 +269,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
+		  resource "rhcs_cluster" "my_cluster" {
 		    name           = "my-cluster"
 			product		   = "osd"
 		    cloud_provider = "aws"
@@ -280,7 +280,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_cluster", "my_cluster"***REMOVED***
+		resource := terraform.Resource("rhcs_cluster", "my_cluster"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.version", "openshift-v4.8.1"***REMOVED******REMOVED***
 	}***REMOVED***
 
@@ -299,7 +299,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  resource "ocm_cluster" "my_cluster" {
+		  resource "rhcs_cluster" "my_cluster" {
 			product		   = "osd"
 		    name           = "my-cluster"
 		    cloud_provider = "aws"

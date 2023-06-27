@@ -53,13 +53,13 @@ var _ = Describe("Cloud providers data source", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  data "ocm_cloud_providers" "all" {
+		  data "rhcs_cloud_providers" "all" {
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_cloud_providers", "all"***REMOVED***
+		resource := terraform.Resource("rhcs_cloud_providers", "all"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items | length`, 2***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].id`, "aws"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].name`, "aws"***REMOVED******REMOVED***
@@ -98,7 +98,7 @@ var _ = Describe("Cloud providers data source", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  data "ocm_cloud_providers" "a" {
+		  data "rhcs_cloud_providers" "a" {
 		    search = "display_name like 'A%'"
 		    order  = "display_name asc"
 		  }
@@ -106,7 +106,7 @@ var _ = Describe("Cloud providers data source", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_cloud_providers", "a"***REMOVED***
+		resource := terraform.Resource("rhcs_cloud_providers", "a"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.search`, "display_name like 'A%'"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.order`, "display_name asc"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items | length`, 2***REMOVED******REMOVED***
@@ -140,13 +140,13 @@ var _ = Describe("Cloud providers data source", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  data "ocm_cloud_providers" "a" {
+		  data "rhcs_cloud_providers" "a" {
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_cloud_providers", "a"***REMOVED***
+		resource := terraform.Resource("rhcs_cloud_providers", "a"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item.id`, "aws"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item.name`, "aws"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item.display_name`, "AWS"***REMOVED******REMOVED***
@@ -168,13 +168,13 @@ var _ = Describe("Cloud providers data source", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  data "ocm_cloud_providers" "all" {
+		  data "rhcs_cloud_providers" "all" {
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_cloud_providers", "all"***REMOVED***
+		resource := terraform.Resource("rhcs_cloud_providers", "all"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item`, nil***REMOVED******REMOVED***
 	}***REMOVED***
 
@@ -205,13 +205,13 @@ var _ = Describe("Cloud providers data source", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  data "ocm_cloud_providers" "all" {
+		  data "rhcs_cloud_providers" "all" {
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_cloud_providers", "all"***REMOVED***
+		resource := terraform.Resource("rhcs_cloud_providers", "all"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item`, nil***REMOVED******REMOVED***
 	}***REMOVED***
 }***REMOVED***

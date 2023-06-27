@@ -46,14 +46,14 @@ var _ = Describe("Groups data source", func(***REMOVED*** {
 
 		// Run the apply command:
 		terraform.Source(`
-		  data "ocm_groups" "my_groups" {
+		  data "rhcs_groups" "my_groups" {
 		    cluster = "123"
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
 		// Check the state:
-		resource := terraform.Resource("ocm_groups", "my_groups"***REMOVED***
+		resource := terraform.Resource("rhcs_groups", "my_groups"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items |length`, 1***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].id`, "dedicated-admins"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].name`, "dedicated-admins"***REMOVED******REMOVED***

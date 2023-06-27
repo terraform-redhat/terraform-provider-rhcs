@@ -26,8 +26,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	sdk "github.com/openshift-online/ocm-sdk-go"
-	"github.com/terraform-redhat/terraform-provider-ocm/build"
-	"github.com/terraform-redhat/terraform-provider-ocm/logging"
+	"github.com/terraform-redhat/terraform-provider-red-hat-cloud-services/build"
+	"github.com/terraform-redhat/terraform-provider-red-hat-cloud-services/logging"
 )
 
 // Provider is the implementation of the Provider.
@@ -80,10 +80,10 @@ func (p *Provider) GetSchema(ctx context.Context) (schema tfsdk.Schema, diags di
 			},
 			"token": {
 				Description: "Access or refresh token that is " +
-				"generated from https://console.redhat.com/openshift/token/rosa.",
-				Type:        types.StringType,
-				Optional:    true,
-				Sensitive:   true,
+					"generated from https://console.redhat.com/openshift/token/rosa.",
+				Type:      types.StringType,
+				Optional:  true,
+				Sensitive: true,
 			},
 			"client_id": {
 				Description: "OpenID client identifier.",

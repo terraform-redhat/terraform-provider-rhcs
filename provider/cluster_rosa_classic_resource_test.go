@@ -30,7 +30,7 @@ package provider
 	. "github.com/onsi/ginkgo/v2/dsl/core" // nolint
 ***REMOVED***             // nolint
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/terraform-redhat/terraform-provider-ocm/build"
+	"github.com/terraform-redhat/terraform-provider-red-hat-cloud-services/build"
 ***REMOVED***
 
 type MockHttpClient struct {

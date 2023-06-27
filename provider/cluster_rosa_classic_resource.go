@@ -36,9 +36,9 @@ package provider
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/openshift/rosa/pkg/ocm"
-	"github.com/terraform-redhat/terraform-provider-ocm/build"
-	"github.com/terraform-redhat/terraform-provider-ocm/provider/common"
-	"github.com/terraform-redhat/terraform-provider-ocm/provider/upgrade"
+	"github.com/terraform-redhat/terraform-provider-red-hat-cloud-services/build"
+	"github.com/terraform-redhat/terraform-provider-red-hat-cloud-services/provider/common"
+	"github.com/terraform-redhat/terraform-provider-red-hat-cloud-services/provider/upgrade"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"

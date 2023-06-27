@@ -3,11 +3,12 @@ package provider
 ***REMOVED***
 	"context"
 ***REMOVED***
+
 	"github.com/thoas/go-funk"
 
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/terraform-redhat/terraform-provider-ocm/provider/common"
+	"github.com/terraform-redhat/terraform-provider-red-hat-cloud-services/provider/common"
 ***REMOVED***
 
 func EnumValueValidator(allowedList []string***REMOVED*** []tfsdk.AttributeValidator {

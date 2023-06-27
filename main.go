@@ -21,7 +21,7 @@ package main
 
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 
-	"github.com/terraform-redhat/terraform-provider-ocm/provider"
+	"github.com/terraform-redhat/terraform-provider-red-hat-cloud-services/provider"
 ***REMOVED***
 
 // Generate the Terraform provider documentation using `tfplugindocs`:

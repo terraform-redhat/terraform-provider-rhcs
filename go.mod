@@ -1,4 +1,4 @@
-module github.com/terraform-redhat/terraform-provider-ocm
+module github.com/terraform-redhat/terraform-provider-red-hat-cloud-services
 
 go 1.18
 

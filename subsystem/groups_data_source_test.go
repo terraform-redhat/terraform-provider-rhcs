@@ -46,14 +46,14 @@ var _ = Describe("Groups data source", func() {
 
 		// Run the apply command:
 		terraform.Source(`
-		  data "ocm_groups" "my_groups" {
+		  data "rhcs_groups" "my_groups" {
 		    cluster = "123"
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("ocm_groups", "my_groups")
+		resource := terraform.Resource("rhcs_groups", "my_groups")
 		Expect(resource).To(MatchJQ(`.attributes.items |length`, 1))
 		Expect(resource).To(MatchJQ(`.attributes.items[0].id`, "dedicated-admins"))
 		Expect(resource).To(MatchJQ(`.attributes.items[0].name`, "dedicated-admins"))

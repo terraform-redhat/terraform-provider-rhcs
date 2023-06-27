@@ -27,7 +27,7 @@ var _ = Describe("Cluster creation", func() {
 
 	It("Create oidc config input resource", func() {
 		terraform.Source(`
-				resource "ocm_rosa_oidc_config_input" "oidc_input" {
+				resource "rhcs_rosa_oidc_config_input" "oidc_input" {
   					region = "us-east-1"
 				}
 			`)

@@ -20,9 +20,9 @@ terraform {
       source  = "hashicorp/aws"
       version = ">= 3.67"
     }
-    red-hat-cloud-services = {
+    rhcs = {
       version = " 0.1"
-      source  = "terraform-redhat/red-hat-cloud-services"
+      source  = "terraform-redhat/rhcs"
     }
   }
 }
@@ -31,7 +31,7 @@ provider "aws" {
   region = "us-east-1"
 }
 
-provider "red-hat-cloud-services" {
+provider "rhcs" {
 }
 
 data "aws_caller_identity" "current" {
@@ -50,7 +50,7 @@ resource "aws_iam_access_key" "admin_key" {
   user = aws_iam_user.admin.name
 }
 
-resource "ocm_cluster" "my_cluster" {
+resource "rhcs_cluster" "my_cluster" {
   name                  = "my-cluster"
   cloud_provider        = "aws"
   cloud_region          = "us-east-1"

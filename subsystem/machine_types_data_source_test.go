@@ -81,13 +81,13 @@ var _ = Describe("Machine types data source", func() {
 
 		// Run the apply command:
 		terraform.Source(`
-		  data "ocm_machine_types" "my_machines" {
+		  data "rhcs_machine_types" "my_machines" {
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("ocm_machine_types", "my_machines")
+		resource := terraform.Resource("rhcs_machine_types", "my_machines")
 
 		// Check the GCP machine type:
 		gcpTypes, err := JQ(`.attributes.items[] | select(.cloud_provider == "gcp")`, resource)

@@ -16,20 +16,20 @@
 
 terraform {
   required_providers {
-    red-hat-cloud-services = {
+    rhcs = {
       version = ">= 0.1"
-      source  = "terraform-redhat/red-hat-cloud-services"
+      source  = "terraform-redhat/rhcs"
     }
   }
 }
 
-provider "red-hat-cloud-services" {
+provider "rhcs" {
 }
 
-data "ocm_machine_types" "all" {
+data "rhcs_machine_types" "all" {
 }
 
 output "machine_types" {
   description = "Machine types"
-  value       = data.ocm_machine_types.all
+  value       = data.rhcs_machine_types.all
 }

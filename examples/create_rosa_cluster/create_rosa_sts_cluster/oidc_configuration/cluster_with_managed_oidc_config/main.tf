@@ -20,13 +20,13 @@ terraform {
       source  = "hashicorp/aws"
       version = ">= 4.20.0"
     }
-    red-hat-cloud-services = {
+    rhcs = {
       version = ">=1.0.1"
-      source  = "terraform-redhat/red-hat-cloud-services"
+      source  = "terraform-redhat/rhcs"
     }
   }
 }
-provider "red-hat-cloud-services" {
+provider "rhcs" {
   token = var.token
   url   = var.url
 }
@@ -60,7 +60,7 @@ locals {
 data "aws_caller_identity" "current" {
 }
 
-resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
+resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   name               = var.cluster_name
   cloud_region       = var.cloud_region
   aws_account_id     = data.aws_caller_identity.current.account_id
@@ -72,8 +72,8 @@ resource "ocm_cluster_rosa_classic" "rosa_sts_cluster" {
   sts = local.sts_roles
 }
 
-resource "ocm_cluster_wait" "rosa_cluster" {
-  cluster = ocm_cluster_rosa_classic.rosa_sts_cluster.id
+resource "rhcs_cluster_wait" "rosa_cluster" {
+  cluster = rhcs_cluster_rosa_classic.rosa_sts_cluster.id
   # timeout in minutes
   timeout = 60
 }

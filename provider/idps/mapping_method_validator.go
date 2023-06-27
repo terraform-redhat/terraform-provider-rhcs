@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/terraform-redhat/terraform-provider-red-hat-cloud-services/provider/common"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 
 var validMappingMethods = []string{"claim", "add", "generate", "lookup"} // Default is @ index 0

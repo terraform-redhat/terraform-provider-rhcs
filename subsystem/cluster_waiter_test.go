@@ -117,7 +117,7 @@ var _ = Describe("Cluster creation", func() {
 
 		It("Create cluster waiter without a timeout", func() {
 			terraform.Source(`
-				resource "ocm_cluster_wait" "rosa_cluster" {
+				resource "rhcs_cluster_wait" "rosa_cluster" {
 				  cluster = "123"
 				}
 			`)
@@ -127,7 +127,7 @@ var _ = Describe("Cluster creation", func() {
 
 		It("Create cluster with a negative timeout", func() {
 			terraform.Source(`
-				resource "ocm_cluster_wait" "rosa_cluster" {
+				resource "rhcs_cluster_wait" "rosa_cluster" {
 				  cluster = "123"
 				  timeout = -1
 				}
@@ -139,7 +139,7 @@ var _ = Describe("Cluster creation", func() {
 
 		It("Create cluster with a positive timeout", func() {
 			terraform.Source(`
-				resource "ocm_cluster_wait" "rosa_cluster" {
+				resource "rhcs_cluster_wait" "rosa_cluster" {
 				  cluster = "123"
 				  timeout = 1
 				}
@@ -161,14 +161,14 @@ var _ = Describe("Cluster creation", func() {
 		)
 
 		terraform.Source(`
-				resource "ocm_cluster_wait" "rosa_cluster" {
+				resource "rhcs_cluster_wait" "rosa_cluster" {
 				  cluster = "123"
 				  timeout = 1
 				}
 			`)
 
 		Expect(terraform.Apply()).To(BeZero())
-		resource := terraform.Resource("ocm_cluster_wait", "rosa_cluster")
+		resource := terraform.Resource("rhcs_cluster_wait", "rosa_cluster")
 		Expect(resource).To(MatchJQ(`.attributes.ready`, false))
 	})
 
@@ -182,14 +182,14 @@ var _ = Describe("Cluster creation", func() {
 		)
 
 		terraform.Source(`
-				resource "ocm_cluster_wait" "rosa_cluster" {
+				resource "rhcs_cluster_wait" "rosa_cluster" {
 				  cluster = "123"
 				  timeout = 1
 				}
 			`)
 
 		Expect(terraform.Apply()).To(BeZero())
-		resource := terraform.Resource("ocm_cluster_wait", "rosa_cluster")
+		resource := terraform.Resource("rhcs_cluster_wait", "rosa_cluster")
 		Expect(resource).To(MatchJQ(`.attributes.ready`, false))
 	})
 })

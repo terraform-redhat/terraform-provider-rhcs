@@ -20,9 +20,9 @@ terraform {
       source  = "hashicorp/aws"
       version = ">= 3.67"
     }
-    ocm = {
+    red-hat-cloud-services = {
       version = " 0.1"
-      source  = "terraform-redhat/ocm"
+      source  = "terraform-redhat/red-hat-cloud-services"
     }
   }
 }
@@ -31,7 +31,7 @@ provider "aws" {
   region = "us-east-1"
 }
 
-provider "ocm" {
+provider "red-hat-cloud-services" {
 }
 
 data "aws_caller_identity" "current" {

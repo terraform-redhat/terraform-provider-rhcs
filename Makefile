@@ -19,10 +19,10 @@ export CGO_ENABLED=0
 export version=""
 
 ifeq ($(shell go env GOOS***REMOVED***,windows***REMOVED***
-	BINARY=terraform-provider-ocm.exe
+	BINARY=terraform-provider-red-hat-cloud-services.exe
 	DESTINATION_PREFIX=$(APPDATA***REMOVED***/terraform.d/plugins
 else
-	BINARY=terraform-provider-ocm
+	BINARY=terraform-provider-red-hat-cloud-services
 	DESTINATION_PREFIX=$(HOME***REMOVED***/.terraform.d/plugins
 endif
 
@@ -30,7 +30,7 @@ GO_ARCH=$(shell go env GOARCH***REMOVED***
 TARGET_ARCH=$(shell go env GOOS***REMOVED***_${GO_ARCH}
 
 # Import path of the project:
-import_path:=github.com/terraform-redhat/terraform-provider-ocm
+import_path:=github.com/terraform-redhat/terraform-provider-red-hat-cloud-services
 
 # Version of the project:
 version=$(shell git describe --abbrev=0 | sed 's/^v//'***REMOVED***
@@ -56,8 +56,8 @@ install: build
 	if [ -z "${version}" ]; then \
     	version="0.0.2"; \
     fi; \
-    dir="$(DESTINATION_PREFIX***REMOVED***/terraform.local/local/ocm/$${version}/$(TARGET_ARCH***REMOVED***"; \
-	file="terraform-provider-ocm$${extension}"; \
+    dir="$(DESTINATION_PREFIX***REMOVED***/terraform.local/local/red-hat-cloud-services/$${version}/$(TARGET_ARCH***REMOVED***"; \
+	file="terraform-provider-red-hat-cloud-services$${extension}"; \
 	mkdir -p "$${dir}"; \
 	mv ${BINARY} "$${dir}/$${file}"
 

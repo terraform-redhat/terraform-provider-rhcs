@@ -4,14 +4,14 @@ terraform {
       source  = "hashicorp/aws"
       version = ">= 4.20.0"
     }
-    ocm = {
+    red-hat-cloud-services = {
       version = ">= 0.0.1"
-      source  = "terraform.local/local/ocm"
+      source  = "terraform.local/local/red-hat-cloud-services"
     }
   }
 }
 
-provider "ocm" {
+provider "red-hat-cloud-services" {
   token = var.token
   url   = var.url
 }

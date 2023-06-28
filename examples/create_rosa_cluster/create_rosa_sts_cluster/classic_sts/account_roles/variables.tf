@@ -17,7 +17,9 @@ variable "token" {
 }
 
 variable "url" {
-  type = string
+  type        = string
+  description = "Provide OCM environment by setting a value to url"
+  default     = "https://api.openshift.com"
 }
 
 variable "path" {

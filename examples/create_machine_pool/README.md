@@ -9,8 +9,6 @@ This Terraform example creates a **machine pool** for an existing ROSA cluster. 
 * You have an offline OpenShift Cluster Manager token. This token can be generated in the [Red Hat Hybrid Cloud Console](https://console.redhat.com/openshift/token).
 * You have installed Terraform. See the [Terraform page](https://developer.hashicorp.com/terraform/downloads) for the latest version.
 * You have already created an OpenShift Cluster Manager cluster.
-
-
 ## Creating machine pools
 
 1. To run the `terraform apply` you need to set up some variables. This guide uses environmental variables. For more on Terraform variables, see [Managing Variables](https://developer.hashicorp.com/terraform/enterprise/workspaces/variables/managing-variables) in the Terraform documentation.
@@ -76,11 +74,9 @@ This Terraform example creates a **machine pool** for an existing ROSA cluster. 
 ## Resource clean up
 
 After you are done with the resources you created, you should not delete them manually, but instead, use the `destroy` command. Run the following to delete all of your created resources:
-  
 ```
 terraform destroy
 ```
-
 After the command is complete, your resources are deleted.
 
 > **NOTE**: If you manually delete a resource, you create unresolvable issues within your environment.

@@ -55,3 +55,27 @@ variable "openshift_version" {
   type        = string
   default     = "4.13.0"
 }
+
+variable "replicas" {
+  description = "The amount of the machine created in this machine pool."
+  type        = number
+  default     = null
+}
+
+variable "autoscaling_enabled" {
+    description = "Enables autoscaling. This variable requires you to set a maximum and minimum replicas range using the `max_replicas` and `min_replicas` variables."
+    type        = string
+	default     = "false"
+}
+
+variable "min_replicas" {
+  description = "The minimum number of replicas for autoscaling."
+  type        = number
+  default     = null
+}
+
+variable "max_replicas" {
+  description = "The maximum number of replicas not exceeded by the autoscaling functionality."
+  type        = number
+  default     = null
+}

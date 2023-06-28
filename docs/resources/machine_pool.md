@@ -23,11 +23,11 @@ Machine pool.
 
 ### Optional
 
-- `autoscaling_enabled` (Boolean***REMOVED*** Enables autoscaling.
-- `labels` (Map of String***REMOVED*** Labels for machine pool. Format should be a comma-separated list of 'key = value'. This list will overwrite any modifications made to node labels on an ongoing basis..
-- `max_replicas` (Number***REMOVED*** Max replicas.
-- `max_spot_price` (Number***REMOVED*** Max Spot price.
-- `min_replicas` (Number***REMOVED*** Min replicas.
+- `autoscaling_enabled` (Boolean***REMOVED*** Enables autoscaling. This variable requires you to set a maximum and minimum replicas range using the `max_replicas` and `min_replicas` variables.
+- `labels` (Map of String***REMOVED*** Labels for the machine pool. Format should be a comma-separated list of 'key = value'. This list will overwrite any modifications made to node labels on an ongoing basis.
+- `max_replicas` (Number***REMOVED*** The maximum number of replicas for autoscaling functionality.
+- `max_spot_price` (Number***REMOVED*** Maximum Spot price.
+- `min_replicas` (Number***REMOVED*** The minimum number of replicas for autoscaling.
 - `replicas` (Number***REMOVED*** The number of machines of the pool
 - `taints` (Attributes List***REMOVED*** Taints for machine pool. Format should be a comma-separated list of 'key=value:ScheduleType'. This list will overwrite any modifications made to node taints on an ongoing basis. (see [below for nested schema](#nestedatt--taints***REMOVED******REMOVED***
 - `use_spot_instances` (Boolean***REMOVED*** Use Spot Instances.

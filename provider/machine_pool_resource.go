@@ -96,17 +96,17 @@ func (t *MachinePoolResourceType***REMOVED*** GetSchema(ctx context.Context***RE
 		***REMOVED***,
 	***REMOVED***,
 			"autoscaling_enabled": {
-				Description: "Enables autoscaling.",
+				Description: "Enables autoscaling. This variable requires you to set a maximum and minimum replicas range using the `max_replicas` and `min_replicas` variables.",
 				Type:        types.BoolType,
 				Optional:    true,
 	***REMOVED***,
 			"min_replicas": {
-				Description: "Min replicas.",
+				Description: "The minimum number of replicas for autoscaling.",
 				Type:        types.Int64Type,
 				Optional:    true,
 	***REMOVED***,
 			"max_replicas": {
-				Description: "Max replicas.",
+				Description: "The maximum number of replicas for autoscaling functionality.",
 				Type:        types.Int64Type,
 				Optional:    true,
 	***REMOVED***,
@@ -135,8 +135,8 @@ func (t *MachinePoolResourceType***REMOVED*** GetSchema(ctx context.Context***RE
 				Optional: true,
 	***REMOVED***,
 			"labels": {
-				Description: "Labels for machine pool. Format should be a comma-separated list of 'key = value'." +
-					" This list will overwrite any modifications made to node labels on an ongoing basis..",
+				Description: "Labels for the machine pool. Format should be a comma-separated list of 'key = value'." +
+					" This list will overwrite any modifications made to node labels on an ongoing basis.",
 				Type: types.MapType{
 					ElemType: types.StringType,
 		***REMOVED***,

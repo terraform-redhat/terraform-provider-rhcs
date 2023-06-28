@@ -29,8 +29,12 @@ provider "rhcs" {
 }
 
 resource "rhcs_machine_pool" "machine_pool" {
-  cluster      = var.cluster_id
-  name         = var.name
-  machine_type = var.machine_type
-  replicas     = var.replicas
+  cluster             = var.cluster_id
+  name                = var.name
+  machine_type        = var.machine_type
+  replicas            = var.replicas
+  autoscaling_enabled = var.autoscaling_enabled
+  min_replicas        = var.min_replicas
+  max_replicas        = var.max_replicas
+  labels              = var.labels
 }

@@ -1352,42 +1352,8 @@ func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context,
 	cancelingUpgradeOnly := desiredVersion.Equal(currentVersion)
 
 	if !cancelingUpgradeOnly {
-		// Make sure the desired version is available
-		versionId := fmt.Sprintf("openshift-v%s", state.CurrentVersion.Value)
-		if !state.ChannelGroup.Unknown && !state.ChannelGroup.Null && state.ChannelGroup.Value != ocm.DefaultChannelGroup {
-			versionId += "-" + state.ChannelGroup.Value
-		}
-		availableVersions, err := upgrade.GetAvailableUpgradeVersions(ctx, r.versionCollection, versionId)
-		if err != nil {
-			return fmt.Errorf("failed to get available upgrades: %v", err)
-		}
-		found := false
-		for _, v := range availableVersions {
-			sem, err := semver.NewVersion(v.RawID())
-			if err != nil {
-				return fmt.Errorf("failed to parse available upgrade version: %v", err)
-			}
-			if desiredVersion.Equal(sem) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			avail := []string{}
-			for _, v := range availableVersions {
-				avail = append(avail, v.RawID())
-			}
-			return fmt.Errorf("desired version (%s) is not in the list of available upgrades (%v)", desiredVersion, avail)
-		}
-
-		// Make sure the account roles have been upgraded
-		if err := r.validateAccountRoles(ctx, plan, desiredVersion.String()); err != nil {
-			return fmt.Errorf("failed to validate account roles: %v", err)
-		}
-
-		// Make sure the operator role policies have been upgraded
-		if err := r.validateOperatorRolePolicies(ctx, plan, desiredVersion.String()); err != nil {
-			return fmt.Errorf("failed to validate operator role policies: %v", err)
+		if err = r.validateUpgrade(ctx, state, plan); err != nil {
+			return err
 		}
 	}
 
@@ -1464,6 +1430,51 @@ func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context,
 	return nil
 }
 
+func (r *ClusterRosaClassicResource) validateUpgrade(ctx context.Context, state, plan *ClusterRosaClassicState) error {
+	// Make sure the desired version is available
+	versionId := fmt.Sprintf("openshift-v%s", state.CurrentVersion.Value)
+	if !state.ChannelGroup.Unknown && !state.ChannelGroup.Null && state.ChannelGroup.Value != ocm.DefaultChannelGroup {
+		versionId += "-" + state.ChannelGroup.Value
+	}
+	availableVersions, err := upgrade.GetAvailableUpgradeVersions(ctx, r.versionCollection, versionId)
+	if err != nil {
+		return fmt.Errorf("failed to get available upgrades: %v", err)
+	}
+	trimmedDesiredVersion := strings.TrimPrefix(plan.Version.Value, "openshift-v")
+	desiredVersion, err := semver.NewVersion(trimmedDesiredVersion)
+	if err != nil {
+		return fmt.Errorf("failed to parse desired version: %v", err)
+	}
+	found := false
+	for _, v := range availableVersions {
+		sem, err := semver.NewVersion(v.RawID())
+		if err != nil {
+			return fmt.Errorf("failed to parse available upgrade version: %v", err)
+		}
+		if desiredVersion.Equal(sem) {
+			found = true
+			break
+		}
+	}
+	if !found {
+		avail := []string{}
+		for _, v := range availableVersions {
+			avail = append(avail, v.RawID())
+		}
+		return fmt.Errorf("desired version (%s) is not in the list of available upgrades (%v)", desiredVersion, avail)
+	}
+
+	// Make sure the account roles have been upgraded
+	if err := r.validateAccountRoles(ctx, plan, desiredVersion.String()); err != nil {
+		return fmt.Errorf("failed to validate account roles: %v", err)
+	}
+
+	// Make sure the operator role policies have been upgraded
+	if err := r.validateOperatorRolePolicies(ctx, plan, desiredVersion.String()); err != nil {
+		return fmt.Errorf("failed to validate operator role policies: %v", err)
+	}
+	return nil
+}
 func updateProxy(state, plan *ClusterRosaClassicState, clusterBuilder *cmv1.ClusterBuilder) (*cmv1.ClusterBuilder, bool, error) {
 	shouldUpdateProxy := false
 	if (state.Proxy == nil && plan.Proxy != nil) || (state.Proxy != nil && plan.Proxy == nil) {

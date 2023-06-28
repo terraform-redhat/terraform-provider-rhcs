@@ -2787,7 +2787,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 		)
 		// Set version to match current cluster version
 		terraform.Source(`
-		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -2821,7 +2821,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 		)
 		// Set version to before current cluster version, but after version from create
 		terraform.Source(`
-		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
@@ -2861,7 +2861,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 		// Set version to before current cluster version, but matching what was
 		// used during creation (i.e. in state file)
 		terraform.Source(`
-		  resource "ocm_cluster_rosa_classic" "my_cluster" {
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"

@@ -4,8 +4,9 @@ variable "token" {
 }
 
 variable "url" {
-  type    = string
-  default = "https://api.openshift.com"
+  type        = string
+  description = "Provide OCM environment by setting a value to url"
+  default     = "https://api.openshift.com"
 }
 
 variable "operator_role_prefix" {

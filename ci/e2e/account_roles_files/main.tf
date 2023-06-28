@@ -20,7 +20,7 @@ data "rhcs_policies" "all_policies" {}
 
 module "create_account_roles" {
   source  = "terraform-redhat/rosa-sts/aws"
-  version = "0.0.8"
+  version = "0.0.9"
 
   create_operator_roles = false
   create_oidc_provider  = false

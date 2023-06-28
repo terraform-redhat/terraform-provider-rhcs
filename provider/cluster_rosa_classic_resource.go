@@ -1369,59 +1369,11 @@ func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context,
 		return err
 	}
 
+	// Schedule a new upgrade
 	if !correctUpgradePending && !cancelingUpgradeOnly {
-		// Gate agreements are checked when the upgrade is scheduled, resulting
-		// in an error return. ROSA cli does this by scheduling once w/ dryRun
-		// to look for un-acked agreements.
-		clusterClient := r.clusterCollection.Cluster(state.ID.Value)
-		upgradePoliciesClient := clusterClient.UpgradePolicies()
-		gates, description, err := upgrade.CheckMissingAgreements(desiredVersion.String(), state.ID.Value, upgradePoliciesClient)
-		if err != nil {
-			return fmt.Errorf("failed to check for missing upgrade agreements: %v", err)
-		}
-		// User ack is required if we have any non-STS-only gates
-		userAckRequired := false
-		for _, gate := range gates {
-			if !gate.STSOnly() {
-				userAckRequired = true
-			}
-		}
-		targetMinorVersion := getOcmVersionMinor(desiredVersion.String())
-		userAcksGates := !plan.UpgradeAcksFor.Unknown && !plan.UpgradeAcksFor.Null && plan.UpgradeAcksFor.Value == targetMinorVersion
-		if userAckRequired && !userAcksGates { // User has not acknowledged mandatory gates, stop here.
-			return fmt.Errorf("%s\nTo acknowledge these items, please add \"upgrade_acknowledgements_for = %s\""+
-				" and re-apply the changes", description, targetMinorVersion)
-		}
-
-		// Ack all gates to OCM
-		for _, gate := range gates {
-			gateID := gate.ID()
-			tflog.Debug(ctx, "Acknowledging version gate", "gateID", gateID)
-			gateAgreementsClient := clusterClient.GateAgreements()
-			err := upgrade.AckVersionGate(gateAgreementsClient, gateID)
-			if err != nil {
-				return fmt.Errorf("failed to acknowledge version gate '%s' for cluster '%s': %v",
-					gateID, state.ID.Value, err)
-			}
-		}
-
-		// Schedule an upgrade
-		tenMinFromNow := time.Now().UTC().Add(10 * time.Minute)
-		newPolicy, err := cmv1.NewUpgradePolicy().
-			ScheduleType("manual").
-			Version(desiredVersion.String()).
-			NextRun(tenMinFromNow).
-			Build()
-		if err != nil {
-			return fmt.Errorf("failed to create upgrade policy: %v", err)
-		}
-		_, err = r.clusterCollection.Cluster(state.ID.Value).
-			UpgradePolicies().
-			Add().
-			Body(newPolicy).
-			SendContext(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to schedule upgrade: %v", err)
+		ackString := plan.UpgradeAcksFor.Value
+		if err = scheduleUpgrade(ctx, r.clusterCollection, state.ID.Value, desiredVersion, ackString); err != nil {
+			return err
 		}
 	}
 
@@ -1475,6 +1427,63 @@ func (r *ClusterRosaClassicResource) validateUpgrade(ctx context.Context, state,
 	}
 	return nil
 }
+
+// Ensure user has acked upgrade gates and schedule the upgrade
+func scheduleUpgrade(ctx context.Context, client *cmv1.ClustersClient, clusterID string, desiredVersion *semver.Version, userAckString string) error {
+	// Gate agreements are checked when the upgrade is scheduled, resulting
+	// in an error return. ROSA cli does this by scheduling once w/ dryRun
+	// to look for un-acked agreements.
+	clusterClient := client.Cluster(clusterID)
+	upgradePoliciesClient := clusterClient.UpgradePolicies()
+	gates, description, err := upgrade.CheckMissingAgreements(desiredVersion.String(), clusterID, upgradePoliciesClient)
+	if err != nil {
+		return fmt.Errorf("failed to check for missing upgrade agreements: %v", err)
+	}
+	// User ack is required if we have any non-STS-only gates
+	userAckRequired := false
+	for _, gate := range gates {
+		if !gate.STSOnly() {
+			userAckRequired = true
+		}
+	}
+	targetMinorVersion := getOcmVersionMinor(desiredVersion.String())
+	if userAckRequired && userAckString != targetMinorVersion { // User has not acknowledged mandatory gates, stop here.
+		return fmt.Errorf("%s\nTo acknowledge these items, please add \"upgrade_acknowledgements_for = %s\""+
+			" and re-apply the changes", description, targetMinorVersion)
+	}
+
+	// Ack all gates to OCM
+	for _, gate := range gates {
+		gateID := gate.ID()
+		tflog.Debug(ctx, "Acknowledging version gate", "gateID", gateID)
+		gateAgreementsClient := clusterClient.GateAgreements()
+		err := upgrade.AckVersionGate(gateAgreementsClient, gateID)
+		if err != nil {
+			return fmt.Errorf("failed to acknowledge version gate '%s' for cluster '%s': %v",
+				gateID, clusterID, err)
+		}
+	}
+
+	// Schedule an upgrade
+	tenMinFromNow := time.Now().UTC().Add(10 * time.Minute)
+	newPolicy, err := cmv1.NewUpgradePolicy().
+		ScheduleType("manual").
+		Version(desiredVersion.String()).
+		NextRun(tenMinFromNow).
+		Build()
+	if err != nil {
+		return fmt.Errorf("failed to create upgrade policy: %v", err)
+	}
+	_, err = clusterClient.UpgradePolicies().
+		Add().
+		Body(newPolicy).
+		SendContext(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to schedule upgrade: %v", err)
+	}
+	return nil
+}
+
 func updateProxy(state, plan *ClusterRosaClassicState, clusterBuilder *cmv1.ClusterBuilder) (*cmv1.ClusterBuilder, bool, error) {
 	shouldUpdateProxy := false
 	if (state.Proxy == nil && plan.Proxy != nil) || (state.Proxy != nil && plan.Proxy == nil) {

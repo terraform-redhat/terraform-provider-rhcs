@@ -410,6 +410,15 @@ func (r *MachinePoolResource) Update(ctx context.Context, request tfsdk.UpdateRe
 		return
 	}
 
+	patchLabels, shouldPatchLabels := common.ShouldPatchMap(state.Labels, plan.Labels)
+	if shouldPatchLabels {
+		labels := map[string]string{}
+		for k, v := range patchLabels.Elems {
+			labels[k] = v.(types.String).Value
+		}
+		mpBuilder.Labels(labels)
+	}
+
 	if shouldPatchTaints(state.Taints, plan.Taints) {
 		var taintBuilders []*cmv1.TaintBuilder
 		for _, taint := range plan.Taints {
@@ -622,7 +631,7 @@ func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *Mac
 	}
 
 	labels := object.Labels()
-	if labels != nil {
+	if labels != nil && len(labels) > 0 {
 		state.Labels = types.Map{
 			ElemType: types.StringType,
 			Elems:    map[string]attr.Value{},
@@ -632,7 +641,8 @@ func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *Mac
 				Value: v,
 			}
 		}
-
+	} else {
+		state.Labels.Null = true
 	}
 
 }

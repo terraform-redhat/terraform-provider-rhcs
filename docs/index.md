@@ -17,7 +17,7 @@ description: |-
 
 The Red Hat Cloud Services provider allows Terraform to manage Red Hat OpenShift Service on AWS (ROSA***REMOVED*** clusters, machine pools, and an identity provider.
 
-### OCM
+### Red Hat OpenShift Cluster Manager
 
 Red Hat OpenShift Cluster Manager is a managed service where you can install, modify, operate, and upgrade your Red Hat OpenShift clusters. This service allows you to work with all of your organization’s clusters from a single dashboard. 
 
@@ -28,21 +28,21 @@ Red Hat OpenShift Service on AWS (ROSA***REMOVED*** is a fully-managed, turnkey 
 
 ROSA provides seamless integration with a wide range of AWS compute, database, analytics, machine learning, networking, mobile, and other services to further accelerate the building and delivering of differentiating experiences to your customers.
 
-You subscribe to the service directly from your AWS account. After the clusters are created, you can operate your clusters with the OpenShift web console or through Red Hat OpenShift Cluster Manager. The ROSA service also uses OpenShift APIs and command-line interface (CLI***REMOVED*** tools. These tools provide a standardized OpenShift experience to use your existing skills and tools knowledge.
+You subscribe to the service directly from your AWS account. After the clusters are created, you can operate your clusters with the OpenShift web console or through the OpenShift Cluster Manager. The ROSA service also uses OpenShift APIs and command-line interface (CLI***REMOVED*** tools. These tools provide a standardized OpenShift experience to use your existing skills and tools knowledge.
 
 More information can be found [here](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/introduction_to_rosa/rosa-understanding***REMOVED***.
 
 ### AWS STS
 
-AWS Secure Token Service (STS***REMOVED*** is a global web service that provides short-term credentials for IAM or federated users. ROSA with STS is the recommended credential mode for ROSA clusters. You can use AWS STS with ROSA to allocate temporary, limited-privilege credentials for component-specific IAM roles. The service enables cluster components to make AWS API calls using secure cloud resource management practices.
+AWS Secure Token Service (STS***REMOVED*** is a global web service that provides short-term credentials for Identity Access Management (IAM***REMOVED*** or federated users. ROSA with STS is the recommended credential mode for ROSA clusters. You can use AWS STS with ROSA to allocate temporary, limited-privilege credentials for component-specific IAM roles. The service enables cluster components to make AWS API calls using secure cloud resource management practices.
 
-You can use the rosa CLI to create the IAM role, policy, and identity provider resources that are required for ROSA clusters that use STS.
+You can use the ROSA CLI to create the IAM role, policy, and identity provider resources that are required for ROSA clusters that use STS.
 
-AWS STS aligns with principles of least privilege and secure practices in cloud service resource management. The rosa CLI manages the STS credentials that are assigned for unique tasks and takes action upon AWS resources as part of OpenShift functionality. One limitation of using STS is that roles must be created for each ROSA cluster.
+AWS STS aligns with principles of least privilege and secure practices in cloud service resource management. The ROSA CLI manages the STS credentials that are assigned for unique tasks and takes action upon AWS resources as part of OpenShift functionality. A limitation of using STS is that roles must be created for each ROSA cluster.
 
 ### ROSA STS mode
 
-To deploy a Red Hat OpenShift Service on AWS (ROSA***REMOVED*** cluster that uses the AWS Security Token Service (STS***REMOVED***, you must create the following AWS Identity Access Management (IAM***REMOVED*** resources:
+To deploy a ROSA cluster that uses the STS, you must create the following AWS IAM resources:
 
 * Specific account-wide IAM roles and policies that provide the STS permissions required for ROSA support, installation, control plane, and compute functionality. This includes account-wide Operator policies.
 * Cluster-specific Operator IAM roles that permit the ROSA cluster Operators to carry out core OpenShift functionality.
@@ -52,11 +52,11 @@ To deploy a Red Hat OpenShift Service on AWS (ROSA***REMOVED*** cluster that use
 
 Terraform is an infrastructure-as-a-code tool that is primarily used by DevOps teams. The tool allows you to define resources in human-readable configuration files that you can version, reuse, and share. Terraform uses a declarative language model, which allows you to describe the intended goal rather than focusing on the processes.
 
-Terraform creates and manages resources through application programming interfaces (APIs***REMOVED*** by using "Providers".
+Terraform creates and manages resources through application programming interfaces (APIs***REMOVED*** by using "providers".
 
 For more information, see the [Terraform documentation](https://developer.hashicorp.com/terraform***REMOVED***.
 
-## Limitations of Red Hat Cloud Services Terraform provider
+## Limitations of the Red Hat Cloud Services Terraform provider
 
 The following items are limitations with the current release of the Red Hat Cloud Services Terraform provider:
 
@@ -94,11 +94,11 @@ To use the Red Hat Cloud Services provider inside your Terraform configuration y
 
   A `*.tfvars` file is a definition sheet for all of your variables. This method allows you to reference a file that is safely stored due to the sensitive nature of some variable values. You can create multiple `*.tfvars` files with different variable values.
 
-* ROSA account roles
+* [ROSA account roles](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/introduction_to_rosa/rosa-sts-about-iam-resources***REMOVED***
   
-  You need to have created the AWS account-wide roles. The specific account-wide IAM roles and policies provide the STS permissions required for ROSA support, installation, control plane, and compute functionality. This includes account-wide Operator policies. Detailed ROSA account roles and policies can be found [here](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/introduction_to_rosa/rosa-sts-about-iam-resources***REMOVED***.
+  You need to have created the AWS account-wide roles. The specific account-wide IAM roles and policies provide the STS permissions required for ROSA support, installation, control plane, and compute functionality. This includes account-wide Operator policies.
 
-  To create the account roles using Terraform, see the [Account Roles terraform example](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.0.5/examples/create_rosa_cluster/create_rosa_sts_cluster/classic_sts/account_roles/***REMOVED***.
+  To create the account roles using Terraform, see the [Account Roles Terraform example](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.0.5/examples/create_rosa_cluster/create_rosa_sts_cluster/classic_sts/account_roles/***REMOVED***.
 
 * AWS Permissions
 
@@ -185,27 +185,27 @@ To use the Red Hat Cloud Services provider inside your Terraform configuration y
 
 The example Terraform files are all considered in development and should not be used for production environments:
 
-### Step before creating a cluster
-1. **Required**: [Account Roles Terraform](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.0.5/examples/create_rosa_cluster/create_rosa_sts_cluster/classic_sts/account_roles/***REMOVED***
+### Before creating a cluster
+* **Required**: [Account Roles Terraform](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.0.5/examples/create_rosa_cluster/create_rosa_sts_cluster/classic_sts/account_roles/***REMOVED***
 
 ### Creating a ROSA cluster
-1. [Create a ROSA cluster that usess STS and has a managed OIDC configuration](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.0.5/examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/***REMOVED***
-1. [Create a ROSA cluster that uses STS and has an unmanaged OIDC configuration](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.0.5/examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/***REMOVED***
+* [Create a ROSA cluster that usess STS and has a managed OIDC configuration](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.0.5/examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/***REMOVED***
+* [Create a ROSA cluster that uses STS and has an unmanaged OIDC configuration](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.0.5/examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/***REMOVED***
 
-### Operations after creating a cluster
-1. [Machine pools](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.0.5/examples/create_machine_pool/***REMOVED***
-1. Supported identity providers:
-    1. [Github](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.0.5/examples/create_identity_provider/github/***REMOVED***
-    1. [Gitlab](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.0.5/examples/create_identity_provider/gitlab/***REMOVED***
-    1. [Google](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.0.5/examples/create_identity_provider/google/***REMOVED***
-    1. [HTPasswd](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.0.5/examples/create_identity_provider/google/***REMOVED***
-    1. [LDAP](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.0.5/examples/create_identity_provider/ldap/***REMOVED***
-1. [Upgrading or Updating your cluster](upgrading-cluster.md***REMOVED***
+### After creating a cluster
+* [Machine pools](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.0.5/examples/create_machine_pool/***REMOVED***
+* Supported identity providers:
+    * [Github](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.0.5/examples/create_identity_provider/github/***REMOVED***
+    * [Gitlab](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.0.5/examples/create_identity_provider/gitlab/***REMOVED***
+    * [Google](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.0.5/examples/create_identity_provider/google/***REMOVED***
+    * [HTPasswd](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.0.5/examples/create_identity_provider/google/***REMOVED***
+    * [LDAP](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.0.5/examples/create_identity_provider/ldap/***REMOVED***
+* [Upgrading or updating your cluster](upgrading-cluster.md***REMOVED***
 ### Create your Operator IAM roles prefix name
 
 The Operator IAM roles will be created per cluster with the [rosa-sts](https://registry.terraform.io/modules/terraform-redhat/rosa-sts***REMOVED*** module.
 
-## Variables for Red Hat Cloud Services Terraform Provider
+## Variables for Red Hat Cloud Services Terraform provider
 
 The following variables are used to create a ROSA cluster with the Terraform provider:
 
@@ -215,6 +215,6 @@ The following variables are used to create a ROSA cluster with the Terraform pro
 - `password` (String, Sensitive***REMOVED*** - User password.
 - `token` (String, Sensitive***REMOVED*** - Access or refresh token that is generated from https://console.redhat.com/openshift/token/rosa.
 - `token_url` (String***REMOVED*** - OpenID token URL.
-- `trusted_cas` (String***REMOVED*** - PEM encoded certificates of authorities that will be trusted. If this is not explicitly specified, then the provider will trust the certificate authorities trusted by default by the system.
+- `trusted_cas` (String***REMOVED*** - PEM encoded certificates of authorities that will be trusted. If this is not explicitly specified, then the provider will trust the default certificate authorities trusted by the system.
 - `url` (String***REMOVED*** - URL of the API server.
 - `user` (String***REMOVED*** - User name.

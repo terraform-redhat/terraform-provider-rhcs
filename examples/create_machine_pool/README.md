@@ -1,17 +1,17 @@
 # Creating a machine pool for an existing Openshift cluster
 
-This Terraform example creates a **machine pool** for existing ROSA cluster. Creating a new machine pool allows users to add different machine types in the cluster.
+This Terraform example creates a **machine pool** for an existing ROSA cluster. Creating a new machine pool allows users to add different machine types in the cluster.
 
 ## Prerequisites
 
 * You have an AWS account.
-* You have installed the latest version ROSA CLI (`rosa`***REMOVED***.
-* You must have an offline OCM token. This token can be generated in the [Red Hat Hybrid Cloud Console](https://console.redhat.com/openshift/token***REMOVED***.
-* You have installed Terraform. See the [Hashicorp Terraform page](https://developer.hashicorp.com/terraform/downloads***REMOVED*** for the latest version.
-* You have already created OCM cluster.
+* You have installed the latest version of the ROSA command-line interface (CLI***REMOVED*** (`rosa`***REMOVED***.
+* You have an offline OpenShift Cluster Manager token. This token can be generated in the [Red Hat Hybrid Cloud Console](https://console.redhat.com/openshift/token***REMOVED***.
+* You have installed Terraform. See the [Terraform page](https://developer.hashicorp.com/terraform/downloads***REMOVED*** for the latest version.
+* You have already created an OpenShift Cluster Manager cluster.
 
 
-## machine pool creation
+## Creating machine pools
 
 1. To run the `terraform apply` you need to set up some variables. This guide uses environmental variables. For more on Terraform variables, see [Managing Variables](https://developer.hashicorp.com/terraform/enterprise/workspaces/variables/managing-variables***REMOVED*** in the Terraform documentation.
 
@@ -19,27 +19,33 @@ This Terraform example creates a **machine pool** for existing ROSA cluster. Cre
 
    Run the following commands to export your variables. Provide your values in lieu of the brackets. Note that any values declared in the `variables.tf` are the default values if you do not export a superseding value.
 
-    1.  This variable should be your full [OCM offline token](https://console.redhat.com/openshift/token***REMOVED*** that you generated in the prerequisites.  
+    *  OpenShift Cluster Manager offline token:
+
+         This variable should be your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token***REMOVED*** that you generated in the prerequisites.  
         ```
         export TF_VAR_token=<ocm_offline_token> 
         ```
-    2.  This value should always point to `https://api.openshift.com` (unless you're a Red Hat engineer and you know of a different one ;***REMOVED*** ***REMOVED***  
+    *  OpenShift Cluster Manager URL:
+    
+       This value should always point to `https://api.openshift.com`.  
         ```
         export TF_VAR_url=<ocm_url>
         ```
-    3. The ID of the cluster for which you are creating the machine pool. This ID can be found in the CLI with the command `rosa list cluster`.
+    * Machine pool cluster ID:
+
+      This ID can be found in the `rosa` CLI with the command `rosa list cluster`.
         ```
         export TF_VAR_cluster_id=<cluster_id>
         ```
-    4. The machine pool name
+    * Machine pool name:
         ```
         export TF_VAR_name=<name>
         ```
-    5. This value sets the AWS instance type used for instances created in this machine pool
+    * AWS instance type:
         ```
         export TF_VAR_machine_type=<machine_type>
         ```
-    6. This value sets the amount of the machine created in this machine pool
+    * Amount of the machine created:
         ```
         export TF_VAR_replicas=<replica>
         ```
@@ -63,7 +69,7 @@ This Terraform example creates a **machine pool** for existing ROSA cluster. Cre
 
 ## Verification
 
-1. In your command-line interface, run the following command to verify that the machine pool are created:
+1. In your command-line interface, run the following command to verify that the machine pools are created:
     ````
     rosa list machinepools -c <cluster_id>
     ````

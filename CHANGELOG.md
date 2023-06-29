@@ -1,3 +1,21 @@
+## 1.0.5 (Jun 29, 2023)
+-FEATURES:
+* Add an options to set version in oidc clusters
+* Add update/remove taints from machine pool
+* Support edit/delete labels of secondary machine pool
+* Create new topics on Terraform vars and modifying machine pools.
+* Support upgrade cluster 
+
+-ENHANCEMENTS:
+* Rename all resources prefix to start with `rhcs` (instead of `ocm`)
+* Rename "terraform-provider-ocm" to "terraform-provider-rhcs"
+* Improve examples
+* Remove mandatory openshift-v prefix from create cluster version attribute
+* Update the documentation files
+* Update CI files
+* Fix path also to be used for the operator roles creation
+* Fix use_spot_instances attribute usage in machinepool resource
+
 ## 1.0.2 (Jun 21, 2023)
 -FEATURES:
 * Added GitHub IDP provider support

@@ -410,6 +410,15 @@ func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, request tf
 		return
 	}
 
+	patchLabels, shouldPatchLabels := common.ShouldPatchMap(state.Labels, plan.Labels***REMOVED***
+	if shouldPatchLabels {
+		labels := map[string]string{}
+		for k, v := range patchLabels.Elems {
+			labels[k] = v.(types.String***REMOVED***.Value
+***REMOVED***
+		mpBuilder.Labels(labels***REMOVED***
+	}
+
 	if shouldPatchTaints(state.Taints, plan.Taints***REMOVED*** {
 		var taintBuilders []*cmv1.TaintBuilder
 		for _, taint := range plan.Taints {
@@ -622,7 +631,7 @@ func (r *MachinePoolResource***REMOVED*** populateState(object *cmv1.MachinePool
 	}
 
 	labels := object.Labels(***REMOVED***
-	if labels != nil {
+	if labels != nil && len(labels***REMOVED*** > 0 {
 		state.Labels = types.Map{
 			ElemType: types.StringType,
 			Elems:    map[string]attr.Value{},
@@ -632,7 +641,8 @@ func (r *MachinePoolResource***REMOVED*** populateState(object *cmv1.MachinePool
 				Value: v,
 	***REMOVED***
 ***REMOVED***
-
+	} else {
+		state.Labels.Null = true
 	}
 
 }

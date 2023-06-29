@@ -118,7 +118,7 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.labels | length`, 2***REMOVED******REMOVED***
 	}***REMOVED***
 
-	It("Can create machine pool with compute nodes and update taints", func(***REMOVED*** {
+	It("Can create machine pool with compute nodes and update labels", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
@@ -134,6 +134,216 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
 				  },
+				  "replicas": 10
+		***REMOVED***`***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 10,
+				  "labels": {
+				    "label_key1": "label_value1",
+				    "label_key2": "label_value2"
+				  }
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 10
+			labels = {
+				"label_key1" = "label_value1", 
+				"label_key2" = "label_value2"
+	***REMOVED***
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// Check the state:
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-pool"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_type", "r5.xlarge"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 10.0***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.labels | length`, 2***REMOVED******REMOVED***
+
+		// Update - change lables
+		server.AppendHandlers(
+			// First get is for the Read function
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool"***REMOVED***,
+				RespondWithJSON(http.StatusOK, `
+				{
+				  "id": "my-pool",
+				  "kind": "MachinePool",
+				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
+                  "replicas": 10,
+				  "labels": {
+				    "label_key1": "label_value1",
+				    "label_key2": "label_value2"
+				  },
+				  "instance_type": "r5.xlarge"
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+			// Second get is for the Update function
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool"***REMOVED***,
+				RespondWithJSON(http.StatusOK, `
+				{
+				  "id": "my-pool",
+				  "kind": "MachinePool",
+				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
+                  "replicas": 10,
+				  "labels": {
+				    "label_key1": "label_value1",
+				    "label_key2": "label_value2"
+				  },
+				  "instance_type": "r5.xlarge"
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPatch,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
+				***REMOVED***,
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "replicas": 10,
+				  "labels": {
+				    "label_key3": "label_value3"
+				  }
+		***REMOVED***`***REMOVED***,
+				RespondWithJSON(http.StatusOK, `
+				{
+				  "id": "my-pool",
+				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
+				  "kind": "MachinePool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 10,
+				  "labels": {
+				    "label_key3": "label_value3"
+				  }
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 10
+			labels = {
+				"label_key3" = "label_value3"
+	***REMOVED***
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// Check the state:
+		resource = terraform.Resource("rhcs_machine_pool", "my_pool"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-pool"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_type", "r5.xlarge"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 10.0***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.labels | length`, 1***REMOVED******REMOVED***
+
+		// Update - delete lables
+		server.AppendHandlers(
+			// First get is for the Read function
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool"***REMOVED***,
+				RespondWithJSON(http.StatusOK, `
+				{
+				  "id": "my-pool",
+				  "kind": "MachinePool",
+				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
+                  "replicas": 10,
+				  "labels": {
+				    "label_key1": "label_value1",
+				    "label_key2": "label_value2"
+				  },
+				  "instance_type": "r5.xlarge"
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+			// Second get is for the Update function
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool"***REMOVED***,
+				RespondWithJSON(http.StatusOK, `
+				{
+				  "id": "my-pool",
+				  "kind": "MachinePool",
+				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
+                  "replicas": 10,
+				  "labels": {
+				    "label_key1": "label_value1",
+				    "label_key2": "label_value2"
+				  },
+				  "instance_type": "r5.xlarge"
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPatch,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
+				***REMOVED***,
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "replicas": 10,
+                  "labels": {}
+		***REMOVED***`***REMOVED***,
+				RespondWithJSON(http.StatusOK, `
+				{
+				  "id": "my-pool",
+				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
+				  "kind": "MachinePool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 10,
+                  "labels": {}
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 10
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+		// Check the state:
+		resource = terraform.Resource("rhcs_machine_pool", "my_pool"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-pool"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_type", "r5.xlarge"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 10.0***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.labels | length`, 0***REMOVED******REMOVED***
+	}***REMOVED***
+
+	It("Can create machine pool with compute nodes and update taints", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				***REMOVED***,
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
 				  "replicas": 10,
 				  "taints": [
 					  {
@@ -147,10 +357,6 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
 				  "replicas": 10,
-				  "labels": {
-				    "label_key1": "label_value1",
-				    "label_key2": "label_value2"
-				  },
 				  "taints": [
 					  {
 						"effect": "effect1",
@@ -169,10 +375,6 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
 		    replicas     = 10
-			labels = {
-				"label_key1" = "label_value1", 
-				"label_key2" = "label_value2"
-	***REMOVED***
 			taints = [
 				{
 					key = "key1",
@@ -191,7 +393,6 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_type", "r5.xlarge"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 10.0***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.labels | length`, 2***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.taints | length`, 1***REMOVED******REMOVED***
 
 		server.AppendHandlers(
@@ -284,10 +485,6 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
 		    replicas     = 10
-			labels = {
-				"label_key1" = "label_value1", 
-				"label_key2" = "label_value2"
-	***REMOVED***
 			taints = [
 				{
 					key = "key1",
@@ -311,7 +508,6 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_type", "r5.xlarge"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 10.0***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.labels | length`, 2***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.taints | length`, 2***REMOVED******REMOVED***
 	}***REMOVED***
 
@@ -327,10 +523,6 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  "kind": "MachinePool",
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
-				  "labels": {
-				    "label_key1": "label_value1",
-				    "label_key2": "label_value2"
-				  },
 				  "replicas": 10,
 				  "taints": [
 					  {
@@ -343,10 +535,6 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
-				  "labels": {
-				    "label_key1": "label_value1",
-				    "label_key2": "label_value2"
-				  },
 				  "replicas": 10,
 				  "taints": [
 					  {
@@ -366,10 +554,6 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
 		    replicas     = 10
-			labels = {
-				"label_key1" = "label_value1", 
-				"label_key2" = "label_value2"
-	***REMOVED***
 			taints = [
 				{
 					key = "key1",
@@ -388,7 +572,6 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_type", "r5.xlarge"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 10.0***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.labels | length`, 2***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.taints | length`, 1***REMOVED******REMOVED***
 
 		server.AppendHandlers(
@@ -458,10 +641,6 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
 		    replicas     = 10
-			labels = {
-				"label_key1" = "label_value1", 
-				"label_key2" = "label_value2"
-	***REMOVED***
 		  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
@@ -473,7 +652,6 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_type", "r5.xlarge"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.replicas", 10.0***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.labels | length`, 2***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.taints | length`, 0***REMOVED******REMOVED***
 	}***REMOVED***
 

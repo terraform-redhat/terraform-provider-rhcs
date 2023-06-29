@@ -1,7 +1,5 @@
 # Creating and modifying machine pools on your cluster
 
-You can do the following cluster administrative tasks.
-
 ## Prerequisites
 
 1. You created your [account roles using Terraform](../examples/create_rosa_cluster/create_rosa_sts_cluster/classic_sts/account_roles/README.md).
@@ -17,14 +15,14 @@ If you need to create a machine pool, use the `create_machine_pool` [Terraform m
 
 ### Changing replica count
 
-The replica count specifies how many compute nodes you want to provision. Using the `create_machine_pool` [Terraform module](../examples/create_machine_pool/README.md), you can change the replica count with the `replica` variable. The default replica count is **2**.
+The replica count specifies how many compute nodes you want to provision. Using the `create_machine_pool` [Terraform module](../examples/create_machine_pool/README.md), you can change the replica count with the `replica` variable.
 ```
 export TF_VAR_replica=<integer>
 ```
 
-### Auto Scaling 
+### Autoscaling 
 
-You may enable or disable autoscaling on your machine pools. You must set a minimum or maximum replica count variables for Terraform. The autoscaling will not exceed whichever value you set. For more information, see [About autoscaling nodes on a cluster](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/cluster_administration/nodes#rosa-nodes-about-autoscaling-nodes) in the Red Hat Customer Portal.
+You may enable or disable autoscaling on your machine pools. You must set either the minimum or maximum replica count variable for Terraform. The autoscaling will not exceed whichever value you set. For more information, see [About autoscaling nodes on a cluster](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/cluster_administration/nodes#rosa-nodes-about-autoscaling-nodes) in the Red Hat Customer Portal.
 
 ### Changing labels on machine pools
 

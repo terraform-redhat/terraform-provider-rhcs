@@ -1,8 +1,8 @@
-# TFVars File
+# .tfvars file
 
-Terraform allows you to define variable files called `*.tfvars` to create a reusable file for all of your variables for a project. The following is an example that covers all of the required variables to run the majority of the Terraform examples in this repository. When a particular module does not use a variable, you see the following error, though you can ignore it.
+Terraform allows you to define variable files called `*.tfvars` to create a reusable file for all the variables for a project. The following is an example that covers all of the required variables to run a majority of the Terraform examples in this repository. 
 
-You may still define environmental variables. These exported values will override any of the variables set in both the `variables.tf` file as well as the `terraform.tfvars` file.
+If a particular module does not use a variable, you will see the following error. This error can be ignored.
 
 ```
 │ Warning: Value for undeclared variable
@@ -16,13 +16,15 @@ You may still define environmental variables. These exported values will overrid
 
 ```
 
-The following example should serve as a basis for your own `*.tfvars` files. You can create multiple versions of this file, and then, apply and destroy using this file with the `-var-file=` flag.
+You may still define environmental variables. The exported values will override any of the variables in both the `variables.tf` file and the `terraform.tfvars` file.
 
-> **NOTE**: The `token` value in this example requires you to generate an offline OCM token. You can do that in the [Red Hat Hybrid Cloud console](https://console.redhat.com/openshift/token).
+### Example Terraform .tfvars
 
-### Example Terraform.tfvars
+The following example should serve as a basis for your own `*.tfvars` files. You can create multiple versions of this file, and then, apply and destroy using this file with the `-var-file=` flag. 
 
-This example only includes the variables needed for creating your account-wide roles and creating cluster with a managed OIC configuration. You can also add the needed variables for creating your identity provider and machine pools to this file.
+This example only includes the variables needed for creating your account-wide roles and creating cluster with a managed OIDC configuration. You can also add the needed variables for creating your identity provider and machine pools to this file.
+
+> **NOTE**: The `token` value in this example requires you to generate an offline OpenShift Cluster Manager token. You can do that in the [Red Hat Hybrid Cloud Console](https://console.redhat.com/openshift/token).
 
 ```
 account_role_prefix = "<user-prefix>"
@@ -34,6 +36,6 @@ token = "<ocm-offline-token>"
 url = "<url-of-environment"
 ```
 
-### Additional Resources
+### Additional resources
 
 * See the Terraform documentation for more information on [Terraform variables](https://developer.hashicorp.com/terraform/language/values/variables).

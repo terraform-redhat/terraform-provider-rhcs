@@ -5,9 +5,9 @@ This Terraform example creates a ROSA STS cluster that uses a managed OIDC confi
 ## Prerequisites
 
 * You have an AWS account. Your locally configured AWS credentials are used to access to AWS API for validation purposes.
-* You have installed the latest version ROSA CLI (`rosa`***REMOVED***.
-* You must have an offline OCM token. This token can be generated in the [Red Hat Hybrid Cloud Console](https://console.redhat.com/openshift/token***REMOVED***.
-* You have installed Terraform. See the [Hashicorp Terraform page](https://developer.hashicorp.com/terraform/downloads***REMOVED*** for the latest version.
+* You have installed the latest version of the ROSA CLI (`rosa`***REMOVED***.
+* You have an offline OpenShift Cluster Manager token. This token can be generated in the [Red Hat Hybrid Cloud Console](https://console.redhat.com/openshift/token***REMOVED***.
+* You have installed Terraform. See the [Terraform page](https://developer.hashicorp.com/terraform/downloads***REMOVED*** for the latest version.
 * You have created your [account-wide IAM Roles](/examples/create_rosa_cluster/create_rosa_sts_cluster/classic_sts/account_roles/README.md***REMOVED***. For more information, see [Account-wide IAM role and policy reference](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/introduction_to_rosa/rosa-sts-about-iam-resources#rosa-sts-account-wide-roles-and-policies_rosa-sts-about-iam-resources***REMOVED*** in the Red Hat Customer Portal.
 
 ## ROSA cluster creation
@@ -30,19 +30,19 @@ This Terraform example creates a ROSA STS cluster that uses a managed OIDC confi
         ```
         export TF_VAR_cloud_region=<aws_region_name>
         ```
-    4.  This value is your cluster name. The cluster name cannot exceed fifteen (15***REMOVED*** characters or the Terraform apply fails.  
+    4.  This value is your cluster name. The cluster name cannot exceed 15 characters or the Terraform apply fails.  
         ```
         export TF_VAR_cluster_name=<cluster_name>
         ```
-    5.  Your Operator role prefix prepends all of your Operator roles and policies. You should use the same value as your account-role prefix for consistency, though it is not required.
+    5.  Your Operator-role prefix prepends all of your Operator roles and policies. You should use the same value as your account-role prefix for consistency, though it is not required.
         ```
         export TF_VAR_operator_role_prefix=<operator_role_prefix>
         ```
-    6.  This variable should be your full [OCM offline token](https://console.redhat.com/openshift/token***REMOVED*** that you generated in the prerequisites.  
+    6.  This variable should be your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token***REMOVED*** that you generated in the prerequisites.  
         ```
         export TF_VAR_token=<ocm_offline_token> 
         ```
-    7.  This value should always point to `https://api.openshift.com` (unless you're a Red Hat engineer and you know of a different one ;***REMOVED*** ***REMOVED***  
+    7.  This value should always point to `https://api.openshift.com`.  
         ```
         export TF_VAR_url=<ocm_url>
         ```
@@ -74,7 +74,7 @@ This Terraform example creates a ROSA STS cluster that uses a managed OIDC confi
 
 ## Verification
 
-1. In your command-line interface, run the following command to verify that the cluster was created:
+1. In the `rosa` command-line interface (CLI***REMOVED***, run the following command to verify that the cluster was created:
     ````
     rosa list cluster
     ````

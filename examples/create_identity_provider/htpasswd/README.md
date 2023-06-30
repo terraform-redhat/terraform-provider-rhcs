@@ -1,6 +1,6 @@
 # htpasswd identity provider
 
-Using htpasswd authentication in OpenShift Container Platform allows you to identify users based on username/password pairs.
+Using htpasswd authentication in OpenShift Container Platform allows you to identify users based on username and password pairs.
 
 > **IMPORTANT**: htpasswd does not support multiple users.
 
@@ -12,7 +12,7 @@ Using htpasswd authentication in OpenShift Container Platform allows you to iden
 
 ## Applying the Terraform plan
 
-1. You need to either create a `terraform.tfvars` file in this directory, or add the following items to your existing `*.tfvars` file. You may also export these variables as environmental variables with the following commands:
+1. You need to either create a `terraform.tfvars` file in this directory or add the following items to your existing `*.tfvars` file. You may also export these variables as environmental variables with the following commands:
       1.  This value sets the username for logging into your application.
           ```
           export TF_VAR_htpasswd_username=<user-name-to-login>
@@ -21,15 +21,15 @@ Using htpasswd authentication in OpenShift Container Platform allows you to iden
           ```
           export TF_VAR_htpasswd_password=<password-for-user-name>
           ```
-      1.  This variable should be your full [OCM offline token](https://console.redhat.com/openshift/token) that you generated in the prerequisites.  
+      1.  This variable should be your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token) that you generated in the prerequisites.  
           ```
           export TF_VAR_token=<ocm_offline_token> 
           ```
-      1.  This value should always point to `https://api.openshift.com` (unless you're a Red Hat engineer and you know of a different one ;) )  
+      1.  This value should always point to `https://api.openshift.com`.  
           ```
           export TF_VAR_url=<ocm_url>
           ```
-      1.  The ID of the cluster for which you are creating the identity provider. This ID can be found in the CLI with the command `rosa list cluster`.
+      1.  The ID of the cluster for which you are creating the identity provider. This ID can be found in the `rosa` command-line interface (CLI) with the command `rosa list cluster`.
           ```
           export TF_VAR_cluster_id=<cluster_id>
           ```
@@ -44,7 +44,7 @@ Using htpasswd authentication in OpenShift Container Platform allows you to iden
    ````
 1. Run the apply command to create your htpasswd identity provider. 
 
-   > **Note**: If you did not run the `plan` command, you can simply just `apply` without specifying a file.
+   > **Note**: If you did not run the `plan` command, you can simply `apply` without specifying a file.
 
     ````
     terraform apply <"htpasswd.tfplan">
@@ -63,7 +63,7 @@ After the command is complete, your resources are deleted.
 
 > **NOTE**: If you manually delete a resource, you create unresolvable issues within your environment.
 
-## OpenShift documentation
+## Additional resources
 
- - [htpasswd Identity Provider](https://docs.openshift.com/container-platform/4.12/authentication/identity_providers/configuring-htpasswd-identity-provider.html)
+ - [htpasswd identity provider](https://docs.openshift.com/container-platform/4.12/authentication/identity_providers/configuring-htpasswd-identity-provider.html)
  - [Understanding identity provider configuration](https://docs.openshift.com/container-platform/4.12/authentication/understanding-identity-provider.html)

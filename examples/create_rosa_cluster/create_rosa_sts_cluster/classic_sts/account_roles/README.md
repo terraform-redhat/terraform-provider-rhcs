@@ -1,29 +1,29 @@
-# Account-Wide IAM Roles
+# Account-wide IAM roles
 
 Prior to creating a ROSA STS cluster, you must create the required account-wide roles and policies. For more information, see [Account-wide IAM role and policy reference](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/introduction_to_rosa/rosa-sts-about-iam-resources#rosa-sts-account-wide-roles-and-policies_rosa-sts-about-iam-resources) in the Red Hat Customer Portal.
 
 ## Prerequisites
 
 * You have an AWS account.
-* You have installed the latest version ROSA CLI (`rosa`)
-* You must have an offline OCM token. This token can be generated in the [Red Hat Hybrid Cloud Console](https://console.redhat.com/openshift/token).
-* You have installed Terraform. See the [Hashicorp Terraform page](https://developer.hashicorp.com/terraform/downloads) for the latest version.
+* You have installed the latest version of the ROSA command-line interface (CLI) (`rosa`).
+* You have an offline OpenShift Cluster Manager token. This token can be generated in the [Red Hat Hybrid Cloud Console](https://console.redhat.com/openshift/token).
+* You have installed Terraform. See the [Terraform page](https://developer.hashicorp.com/terraform/downloads) for the latest version.
 
 ## Account-wide IAM role creation
 
-1. To run the `terraform apply` you need to set up some variables. This guide uses environmental variables. For more on Terraform variables, see [Managing Variables](https://developer.hashicorp.com/terraform/enterprise/workspaces/variables/managing-variables) in the Terraform documentation.
+1. To run `terraform apply` you need to set up some variables. This guide uses environmental variables. For more on Terraform variables, see [Managing Variables](https://developer.hashicorp.com/terraform/enterprise/workspaces/variables/managing-variables) in the Terraform documentation.
 
    Run the following commands to export your variables. Provide your values in lieu of the brackets. Note that any values declared in the `variables.tf` are the default values if you do not export a superseding value.
         
-    1. Your account role prefix prepends to all of your created roles.  This value cannot end with a hyphen (-).
+    1. Your account-role prefix prepends to all of your created roles. This value cannot end with a hyphen (-).
         ```
         export TF_VAR_account_role_prefix=<account_role_prefix>
         ```
-    2.  This variable should be your full [OCM offline token](https://console.redhat.com/openshift/token) that you generated in the prerequisites.  
+    2.  This variable should be your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token) that you generated in the prerequisites.  
         ```
         export TF_VAR_token=<ocm_offline_token>
         ```
-    3.  This value should always point to `https://api.openshift.com` (unless you're a Red Hat engineer and you know of a different one ;) ).  
+    3.  This value should always point to `https://api.openshift.com`.  
         ```
         export TF_VAR_url=https://api.openshift.com
         ```
@@ -35,7 +35,7 @@ Prior to creating a ROSA STS cluster, you must create the required account-wide 
         ```    
         export TF_VAR_tags=<aws_resource_tags> (Optional) 
         ```   
-1. In your local copy of this `account-roles` folder, run the following command:
+1. In your local copy of the `account-roles` folder, run the following command:
    ````
    terraform init
    ````
@@ -51,11 +51,11 @@ Prior to creating a ROSA STS cluster, you must create the required account-wide 
     ````
     terraform apply <"account-roles.tfplan">
     ````
-1. The Terraform applies the plan and creates the account roles. You will see a prompt to confirm you want to create these resources. Enter `yes` then the process will complete with your resources.
+1. The Terraform applies the plan and creates the account roles. You will see a prompt to confirm you want to create these resources. Enter `yes`, then the process will complete with your resources.
 
 ## Verification
 
-1. In your command-line interface, run the following command to verify that the account roles are created:
+1. In the `rosa` CLI, run the following command to verify that the account roles are created:
     ````
     rosa list account-roles
     ````

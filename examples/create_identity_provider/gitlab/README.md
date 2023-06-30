@@ -2,7 +2,7 @@
 
 Configuring GitLab authentication allows users to log in to OpenShift Container Platform with their GitLab credentials.
 
-If you use GitLab version 7.7.0 to 11.0, you connect using the [OAuth integration](http://doc.gitlab.com/ce/integration/oauth_provider.html). If you use GitLab version 11.1 or later, you can use [OpenID Connect](https://docs.gitlab.com/ce/integration/openid_connect_provider.html) (OIDC) to connect instead of OAuth.
+If you use GitLab version 7.7.0 to 11.0, you can connect using the [OAuth integration](http://doc.gitlab.com/ce/integration/oauth_provider.html). If you use GitLab version 11.1 or later, you can use [OpenID Connect](https://docs.gitlab.com/ce/integration/openid_connect_provider.html) (OIDC) to connect instead of OAuth.
 
 ## Prerequisites
 
@@ -12,16 +12,16 @@ If you use GitLab version 7.7.0 to 11.0, you connect using the [OAuth integratio
 
 ## Setting up your application in GitLab
 
-You will need a client ID/Secret of a [registered GitLab OAuth application](https://docs.gitlab.com/ce/api/oauth2.html). 
+You will need a client ID/secret of a [registered GitLab OAuth application](https://docs.gitlab.com/ce/api/oauth2.html). 
 The application must be configured with a callback URL of `https://oauth-openshift.apps.<cluster-name>.<cluster-domain>/oauth2callback/<idp-provider-name>`
 For example:
-`https://oauth-openshift.apps.openshift-cluster.example.com/oauth2callback/Gitlab`
+`https://oauth-openshift.apps.openshift-cluster.example.com/oauth2callback/Gitlab`.
 
-> **Note**: `<idp-provider-name>` is case-sensitive. Name is defined [here](./main.tf#L37)
+> **Note**: `<idp-provider-name>` is case-sensitive. Name is defined [here](./main.tf#L37).
 
 ## Applying the Terraform plan
 
-1. You need to either create a `terraform.tfvars` file in this directory, or add the following items to your existing `*.tfvars` file. You may also export these variables as environmental variables with the following commands:
+1. You need to either create a `terraform.tfvars` file in this directory or add the following items to your existing `*.tfvars` file. You may also export these variables as environmental variables with the following commands:
       1.  This value is the generated GitLab client secret to validate your account. It can be found in the settings of your GitLab account.
           ```
           export TF_VAR_gitlab_client_secret=<gitlab_client_secret>
@@ -30,19 +30,19 @@ For example:
           ```
           export TF_VAR_gitlab_client_id=<client_id>
           ```
-      1.  This value should be your GitLab URL that was generated in the previous step.  
+      1.  This value is your GitLab URL that was generated in the previous step.  
           ```
           export TF_VAR_gitlab_url='["<gitlab_url>"]'
           ```
-      1.  This variable should be your full [OCM offline token](https://console.redhat.com/openshift/token) that you generated in the prerequisites.  
+      1.  This variable is your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token) that you generated in the prerequisites.  
           ```
           export TF_VAR_token=<ocm_offline_token> 
           ```
-      1.  This value should always point to `https://api.openshift.com` (unless you're a Red Hat engineer and you know of a different one ;) )  
+      1.  This value should always point to `https://api.openshift.com`.
           ```
           export TF_VAR_url=<ocm_url>
           ```
-      1.  The ID of the cluster for which you are creating the identity provider. This ID can be found in the CLI with the command `rosa list cluster`. 
+      1.  The ID of the cluster for which you are creating the identity provider. This ID can be found in the `rosa` command-line interface (CLI) with the command `rosa list cluster`. 
           ```
           export TF_VAR_cluster_id=<cluster_id>
           ```
@@ -76,7 +76,7 @@ After the command is complete, your resources are deleted.
 
 > **NOTE**: If you manually delete a resource, you create unresolvable issues within your environment.
 
-## OpenShift documentation
+## Additional resources
 
  - [GitLab Identity Provider](https://docs.openshift.com/container-platform/4.12/authentication/identity_providers/configuring-gitlab-identity-provider.html)
  - [Understanding identity provider configuration](https://docs.openshift.com/container-platform/4.12/authentication/understanding-identity-provider.html)

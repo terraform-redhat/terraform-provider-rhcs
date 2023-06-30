@@ -1,4 +1,4 @@
-# Updating or Upgrading your ROSA cluster
+# Updating or upgrading your ROSA cluster
 
 You can update or upgrade your cluster using Terraform.
 
@@ -11,11 +11,11 @@ You can update or upgrade your cluster using Terraform.
 
 To upgrade your ROSA cluster to another version, export the following variable then run `terraform apply`.
 
-1. Export the `TF_VAR_openshift_version` with the intended version. Your value must be prepended with `openshift-v` to succeed.
+1. Export the `TF_VAR_openshift_version` with the intended version. Your value must be prepended with `openshift-v`.
     ```
     export TF_VAR_openshift_version=<version_number>
     ```
-1. When upgrading to a new cluster version, especially when transitioning between major Y-Streams, it requires approval. You might be requested to provide administrative confirmation regarding significant modifications for your cluster. In this case, when you first attempt the upgrade, you will receive an error message that provides guidance on the necessary modifications. It is essential to follow those instructions carefully and indicate completion of the requirements by adding the "upgrade_acknowledgements_for" attribute to your resource, specifying the target version. For example, if you are upgrading from 4.11.43 to 4.12.21, you should use '4.12' as the value for this variable.
+1. Upgrading to a new cluster version, especially when transitioning between major y-streams, requires approval. You might be requested to provide administrative confirmation regarding significant modifications for your cluster. In this case, when you first attempt the upgrade, you will receive an error message that provides guidance on the necessary modifications. It is essential to follow those instructions carefully and indicate completion of the requirements by adding the "upgrade_acknowledgements_for" attribute to your resource, specifying the target version. For example, if you are upgrading from 4.11.43 to 4.12.21, you should use '4.12' as the value for this variable.
     ```
     upgrade_acknowledgements_for = <version_acknowledgement>
     ```

@@ -11,16 +11,16 @@ You can limit authentication to members of a specific hosted domain with the `ho
 
 ## Setting up your application in Google
 
-You will need a client ID/Secret of a [registered Google project](https://console.developers.google.com/).
+You will need a client ID/secret of a [registered Google project](https://console.developers.google.com/).
 The project must be configured with a redirect URI of `https://oauth-openshift.apps.<cluster-name>.<cluster-domain>/oauth2callback/<idp-provider-name>`.
 For example:
-`https://oauth-openshift.apps.openshift-cluster.example.com/oauth2callback/Google`
+`https://oauth-openshift.apps.openshift-cluster.example.com/oauth2callback/Google`.
 
-> **Note**: `<idp-provider-name>` is case-sensitive. Name is defined [here](./main.tf#L37)
+> **Note**: `<idp-provider-name>` is case-sensitive. Name is defined [here](./main.tf#L37).
 
 ## Applying the Terraform plan
 
-1. You need to either create a `terraform.tfvars` file in this directory, or add the following items to your existing `*.tfvars` file. You may also export these variables as environmental variables with the following commands:
+1. You need to either create a `terraform.tfvars` file in this directory or add the following items to your existing `*.tfvars` file. You may also export these variables as environmental variables with the following commands:
       1.  This value is the generated Google client secret to validate your account. It can be found in the settings of your Google account.
           ```
           export TF_VAR_google_client_secret=<google_client_secret>
@@ -29,19 +29,19 @@ For example:
           ```
           export TF_VAR_google_client_id=<client_id>
           ```
-      1.  This value should be your Google hosted domain that was generated in the previous step.  
+      1.  This value is your Google hosted domain that was generated in the previous step.  
           ```
           export TF_VAR_google_hosted_domain='["<google_hosted_domain>"]'
           ```
-      1.  This variable should be your full [OCM offline token](https://console.redhat.com/openshift/token) that you generated in the prerequisites.  
+      1.  This variable is your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token) that you generated in the prerequisites.  
           ```
           export TF_VAR_token=<ocm_offline_token> 
           ```
-      1.  This value should always point to `https://api.openshift.com` (unless you're a Red Hat engineer and you know of a different one ;) )  
+      1.  This value should always point to `https://api.openshift.com`.
           ```
           export TF_VAR_url=<ocm_url>
           ```
-      1.  The ID of the cluster for which you are creating the identity provider. This ID can be found in the CLI with the command `rosa list cluster`. 
+      1.  The ID of the cluster for which you are creating the identity provider. This ID can be found in the `rosa` command-line interface (CLI) with the command `rosa list cluster`. 
           ```
           export TF_VAR_cluster_id=<cluster_id>
           ```
@@ -56,7 +56,7 @@ For example:
    ````
 1. Run the apply command to create your Google identity provider. 
 
-   > **Note**: If you did not run the `plan` command, you can simply just `apply` without specifying a file.
+   > **Note**: If you did not run the `plan` command, you can simply `apply` without specifying a file.
 
     ````
     terraform apply <"google.tfplan">
@@ -75,7 +75,7 @@ After the command is complete, your resources are deleted.
 
 > **NOTE**: If you manually delete a resource, you create unresolvable issues within your environment.
 
-## OpenShift documentation
+## Additional resources
 
  - [Google Identity Provider](https://docs.openshift.com/container-platform/4.12/authentication/identity_providers/configuring-google-identity-provider.html)
  - [Understanding identity provider configuration](https://docs.openshift.com/container-platform/4.12/authentication/understanding-identity-provider.html)

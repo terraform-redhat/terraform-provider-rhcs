@@ -1257,6 +1257,21 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 		clusterBuilder.DisableUserWorkloadMonitoring(plan.DisableWorkloadMonitoring.Value)
 	}
 
+	shouldPatchProperties := shouldPatchProperties(state, plan)
+
+	if shouldPatchProperties {
+		properties := make(map[string]string)
+		for k, v := range OCMProperties {
+			properties[k] = v
+		}
+		if !plan.Properties.Unknown && !plan.Properties.Null {
+			for k, v := range plan.Properties.Elems {
+				properties[k] = v.(types.String).Value
+			}
+		}
+		clusterBuilder.Properties(properties)
+	}
+
 	clusterSpec, err := clusterBuilder.Build()
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -1681,11 +1696,10 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	}
 	if props, ok := object.GetProperties(); ok {
 		for k, v := range props {
-			if k == propertyRosaTfCommit || k == propertyRosaTfVersion {
-				state.OCMProperties.Elems[k] = types.String{
-					Value: v,
-				}
-			} else {
+			state.OCMProperties.Elems[k] = types.String{
+				Value: v,
+			}
+			if _, isDefault := OCMProperties[k]; !isDefault {
 				state.Properties.Elems[k] = types.String{
 					Value: v,
 				}
@@ -2126,6 +2140,36 @@ func proxyValidators() []tfsdk.AttributeValidator {
 			},
 		},
 	}
+}
+
+func shouldPatchProperties(state, plan *ClusterRosaClassicState) bool {
+	// User defined properties needs update
+	if _, should := common.ShouldPatchMap(state.Properties, plan.Properties); should {
+		return true
+	}
+
+	extractedDefaults := map[string]string{}
+	for k, v := range state.OCMProperties.Elems {
+		if _, ok := state.Properties.Elems[k]; !ok {
+			extractedDefaults[k] = v.(types.String).Value
+		}
+	}
+
+	if len(extractedDefaults) != len(OCMProperties) {
+		return true
+	}
+
+	for k, v := range OCMProperties {
+		if _, ok := extractedDefaults[k]; !ok {
+			return true
+		} else if extractedDefaults[k] != v {
+			return true
+		}
+
+	}
+
+	return false
+
 }
 
 func propertiesValidators() []tfsdk.AttributeValidator {

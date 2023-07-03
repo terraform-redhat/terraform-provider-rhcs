@@ -380,6 +380,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 		resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.current_version", "openshift-4.8.0"***REMOVED******REMOVED***
 	}***REMOVED***
+
 	It("Creates basic cluster with properties", func(***REMOVED*** {
 		prop_key := "my_prop_key"
 		prop_val := "my_prop_val"
@@ -458,6 +459,408 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
+
+	It("Creates basic cluster with properties and update them", func(***REMOVED*** {
+		prop_key := "my_prop_key"
+		prop_val := "my_prop_val"
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+				RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
+			***REMOVED***,
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+				VerifyJQ(`.name`, "my-cluster"***REMOVED***,
+				VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
+				VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
+				VerifyJQ(`.product.id`, "rosa"***REMOVED***,
+				VerifyJQ(`.properties.rosa_tf_version`, build.Version***REMOVED***,
+				VerifyJQ(`.properties.rosa_tf_commit`, build.Commit***REMOVED***,
+				VerifyJQ(`.properties.`+prop_key, prop_val***REMOVED***,
+				RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+				***REMOVED***
+					  }
+			***REMOVED***,
+                    {
+                      "op": "add",
+                      "path": "/properties",
+                      "value": {
+                        "rosa_tf_commit":"`+build.Commit+`",
+                        "rosa_tf_version":"`+build.Version+`",
+                        "`+prop_key+`": "`+prop_val+`"
+                      }
+                    }]`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+            properties = { ` +
+			prop_key + ` = "` + prop_val + `"` +
+			`}
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+		***REMOVED***
+	***REMOVED***
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties.rosa_tf_commit`, build.Commit***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties.rosa_tf_version`, build.Version***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties.`+prop_key, prop_val***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.properties.`+prop_key, prop_val***REMOVED******REMOVED***
+
+		// Prepare server for update
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+				***REMOVED***
+					  }
+			***REMOVED***,
+                    {
+                      "op": "add",
+                      "path": "/properties",
+                      "value": {
+                        "rosa_tf_commit":"`+build.Commit+`",
+                        "rosa_tf_version":"`+build.Version+`",
+                        "`+prop_key+`": "`+prop_val+`"
+                      }
+                    }]`***REMOVED***,
+			***REMOVED***,
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+				VerifyJQ(`.properties.rosa_tf_version`, build.Version***REMOVED***,
+				VerifyJQ(`.properties.rosa_tf_commit`, build.Commit***REMOVED***,
+				VerifyJQ(`.properties.`+prop_key, prop_val+"_1"***REMOVED***,
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+				***REMOVED***
+					  }
+			***REMOVED***,
+                    {
+                      "op": "add",
+                      "path": "/properties",
+                      "value": {
+                        "rosa_tf_commit":"`+build.Commit+`",
+                        "rosa_tf_version":"`+build.Version+`",
+                        "`+prop_key+`": "`+prop_val+`_1"
+                      }
+                    }]`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+            id             = "123"
+		    name           = "my-cluster"
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+            properties = { ` +
+			prop_key + ` = "` + prop_val + `_1"` +
+			`}
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+		***REMOVED***
+	***REMOVED***
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		resource = terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties.rosa_tf_commit`, build.Commit***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties.rosa_tf_version`, build.Version***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties.`+prop_key, prop_val+"_1"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.properties.`+prop_key, prop_val+"_1"***REMOVED******REMOVED***
+	}***REMOVED***
+
+	It("Creates basic cluster with properties and delete them", func(***REMOVED*** {
+		prop_key := "my_prop_key"
+		prop_val := "my_prop_val"
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+				RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
+			***REMOVED***,
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+				VerifyJQ(`.name`, "my-cluster"***REMOVED***,
+				VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
+				VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
+				VerifyJQ(`.product.id`, "rosa"***REMOVED***,
+				VerifyJQ(`.properties.rosa_tf_version`, build.Version***REMOVED***,
+				VerifyJQ(`.properties.rosa_tf_commit`, build.Commit***REMOVED***,
+				VerifyJQ(`.properties.`+prop_key, prop_val***REMOVED***,
+				RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+				***REMOVED***
+					  }
+			***REMOVED***,
+                    {
+                      "op": "add",
+                      "path": "/properties",
+                      "value": {
+                        "rosa_tf_commit":"`+build.Commit+`",
+                        "rosa_tf_version":"`+build.Version+`",
+                        "`+prop_key+`": "`+prop_val+`"
+                      }
+                    }]`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+            properties = { ` +
+			prop_key + ` = "` + prop_val + `"` +
+			`}
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+		***REMOVED***
+	***REMOVED***
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties.rosa_tf_commit`, build.Commit***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties.rosa_tf_version`, build.Version***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties.`+prop_key, prop_val***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.properties.`+prop_key, prop_val***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.properties| keys | length`, 1***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties| keys | length`, 3***REMOVED******REMOVED***
+
+		// Prepare server for update
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+				***REMOVED***
+					  }
+			***REMOVED***,
+                    {
+                      "op": "add",
+                      "path": "/properties",
+                      "value": {
+                        "rosa_tf_commit":"`+build.Commit+`",
+                        "rosa_tf_version":"`+build.Version+`",
+                        "`+prop_key+`": "`+prop_val+`"
+                      }
+                    }]`***REMOVED***,
+			***REMOVED***,
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+				VerifyJQ(`.properties.rosa_tf_version`, build.Version***REMOVED***,
+				VerifyJQ(`.properties.rosa_tf_commit`, build.Commit***REMOVED***,
+				VerifyJQ(`.properties.`+prop_key, nil***REMOVED***,
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+				***REMOVED***
+					  }
+			***REMOVED***,
+                    {
+                      "op": "add",
+                      "path": "/properties",
+                      "value": {
+                        "rosa_tf_commit":"`+build.Commit+`",
+                        "rosa_tf_version":"`+build.Version+`"
+                      }
+                    }]`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+            id             = "123"
+		    name           = "my-cluster"
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+            properties = {}
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+		***REMOVED***
+	***REMOVED***
+		  }
+		`***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		resource = terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties.rosa_tf_commit`, build.Commit***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties.rosa_tf_version`, build.Version***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.properties | keys | length`, 0***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties | keys | length`, 2***REMOVED******REMOVED***
+	}***REMOVED***
+
 	It("Should fail cluster creation when trying to override reserved properties", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(

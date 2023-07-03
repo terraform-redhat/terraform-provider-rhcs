@@ -1257,6 +1257,21 @@ func (r *ClusterRosaClassicResource***REMOVED*** Update(ctx context.Context, req
 		clusterBuilder.DisableUserWorkloadMonitoring(plan.DisableWorkloadMonitoring.Value***REMOVED***
 	}
 
+	shouldPatchProperties := shouldPatchProperties(state, plan***REMOVED***
+
+	if shouldPatchProperties {
+		properties := make(map[string]string***REMOVED***
+		for k, v := range OCMProperties {
+			properties[k] = v
+***REMOVED***
+		if !plan.Properties.Unknown && !plan.Properties.Null {
+			for k, v := range plan.Properties.Elems {
+				properties[k] = v.(types.String***REMOVED***.Value
+	***REMOVED***
+***REMOVED***
+		clusterBuilder.Properties(properties***REMOVED***
+	}
+
 	clusterSpec, err := clusterBuilder.Build(***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -1681,11 +1696,10 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	}
 	if props, ok := object.GetProperties(***REMOVED***; ok {
 		for k, v := range props {
-			if k == propertyRosaTfCommit || k == propertyRosaTfVersion {
-				state.OCMProperties.Elems[k] = types.String{
-					Value: v,
-		***REMOVED***
-	***REMOVED*** else {
+			state.OCMProperties.Elems[k] = types.String{
+				Value: v,
+	***REMOVED***
+			if _, isDefault := OCMProperties[k]; !isDefault {
 				state.Properties.Elems[k] = types.String{
 					Value: v,
 		***REMOVED***
@@ -2126,6 +2140,36 @@ func proxyValidators(***REMOVED*** []tfsdk.AttributeValidator {
 	***REMOVED***,
 ***REMOVED***,
 	}
+}
+
+func shouldPatchProperties(state, plan *ClusterRosaClassicState***REMOVED*** bool {
+	// User defined properties needs update
+	if _, should := common.ShouldPatchMap(state.Properties, plan.Properties***REMOVED***; should {
+		return true
+	}
+
+	extractedDefaults := map[string]string{}
+	for k, v := range state.OCMProperties.Elems {
+		if _, ok := state.Properties.Elems[k]; !ok {
+			extractedDefaults[k] = v.(types.String***REMOVED***.Value
+***REMOVED***
+	}
+
+	if len(extractedDefaults***REMOVED*** != len(OCMProperties***REMOVED*** {
+		return true
+	}
+
+	for k, v := range OCMProperties {
+		if _, ok := extractedDefaults[k]; !ok {
+			return true
+***REMOVED*** else if extractedDefaults[k] != v {
+			return true
+***REMOVED***
+
+	}
+
+	return false
+
 }
 
 func propertiesValidators(***REMOVED*** []tfsdk.AttributeValidator {

@@ -1,3 +1,10 @@
+---
+page_title: "Upgrade Rosa Openshift Cluster"
+subcategory: ""
+description: |-
+  Instructions on how to upgrade Rosa Openshift cluster created by the terraform provider.
+---
+
 # Updating or upgrading your ROSA cluster
 
 You can update or upgrade your cluster using Terraform.

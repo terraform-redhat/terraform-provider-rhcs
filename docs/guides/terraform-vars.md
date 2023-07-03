@@ -1,3 +1,10 @@
+---
+page_title: "Use tfvars file"
+subcategory: ""
+description: |-
+  Instructions on how to add your variables using tfvars file.
+---
+
 # .tfvars file
 
 Terraform allows you to define variable files called `*.tfvars` to create a reusable file for all the variables for a project. The following is an example that covers all of the required variables to run a majority of the Terraform examples in this repository. 

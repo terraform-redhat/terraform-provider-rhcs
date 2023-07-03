@@ -1,3 +1,10 @@
+---
+page_title: "Create and modify Machine Pool"
+subcategory: ""
+description: |-
+  Instructions on how to create and modify Machine Pools.
+---
+
 # Using machine pools on your cluster
 
 ## Prerequisites

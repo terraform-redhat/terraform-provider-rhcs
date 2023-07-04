@@ -9,6 +9,12 @@ Prior to creating a ROSA STS cluster, you must create the required account-wide 
 * You have an offline OpenShift Cluster Manager token. This token can be generated in the [Red Hat Hybrid Cloud Console](https://console.redhat.com/openshift/token***REMOVED***.
 * You have installed Terraform. See the [Terraform page](https://developer.hashicorp.com/terraform/downloads***REMOVED*** for the latest version.
 
+## Open issue
+
+This example also creates the policies for the operator roles
+As result of that, the operator policies are managed by this example, for example: when you update the version,
+it also updated in the operator role policies.
+
 ## Account-wide IAM role creation
 
 1. To run `terraform apply` you need to set up some variables. This guide uses environmental variables. For more on Terraform variables, see [Managing Variables](https://developer.hashicorp.com/terraform/enterprise/workspaces/variables/managing-variables***REMOVED*** in the Terraform documentation.

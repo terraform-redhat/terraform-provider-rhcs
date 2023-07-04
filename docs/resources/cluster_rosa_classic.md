@@ -28,7 +28,7 @@ OpenShift managed cluster using rosa sts.
 - `aws_private_link` (Boolean***REMOVED*** Provides private connectivity between VPCs, AWS services, and your on-premises networks, without exposing your traffic to the public internet.
 - `aws_subnet_ids` (List of String***REMOVED*** AWS subnet IDs.
 - `channel_group` (String***REMOVED*** Name of the channel group where you select the OpenShift cluster version, for example 'stable'.
-- `compute_machine_type` (String***REMOVED*** Identifies the machine type used by the compute nodes, for example `r5.xlarge`. Use the `ocm_machine_types` data source to find the possible values.
+- `compute_machine_type` (String***REMOVED*** Identifies the machine type used by the compute nodes, for example `r5.xlarge`. Use the `rhcs_machine_types` data source to find the possible values.
 - `default_mp_labels` (Map of String***REMOVED*** This value is the default machine pool labels. Format should be a comma-separated list of '{"key1"="value1", "key2"="value2"}'. This list overwrites any modifications made to Node labels on an ongoing basis.
 - `destroy_timeout` (Number***REMOVED*** This value sets the maximum duration in minutes to allow for destroying resources. Default value is 60 minutes.
 - `disable_scp_checks` (Boolean***REMOVED*** Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE***REMOVED*** platform metrics.

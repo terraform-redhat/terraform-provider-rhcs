@@ -18,7 +18,7 @@ Machine pool.
 ### Required
 
 - `cluster` (String***REMOVED*** Identifier of the cluster.
-- `machine_type` (String***REMOVED*** Identifier of the machine type used by the nodes, for example `r5.xlarge`. Use the `ocm_machine_types` data source to find the possible values.
+- `machine_type` (String***REMOVED*** Identifier of the machine type used by the nodes, for example `r5.xlarge`. Use the `rhcs_machine_types` data source to find the possible values.
 - `name` (String***REMOVED*** Name of the machine pool.Must consist of lower-case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
 
 ### Optional

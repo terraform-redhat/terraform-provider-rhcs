@@ -69,6 +69,8 @@ The following items are limitations with the current release of the Red Hat Clou
 * The htpasswd identity provider does not support creating the identity provider with multiple users or adding additional users to the existing identity provider.
 * The S3 bucket that is created as part of the OIDC configuration must be created in the same region as your OIDC provider.
 * The Terraform provider does not support auto-generated `operator_role_prefix`. You must provide your `operator_role_prefix` when creating the account roles.
+* Creation of Machine Pool with single availability zone is not supported
+* Resource created by terraform provider and deleted not by the terraform provider might cause to issue, the terraform provider wouldn't be able to recreate the resource
 
 ## Prerequisites
 

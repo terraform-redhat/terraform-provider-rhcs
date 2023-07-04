@@ -96,7 +96,7 @@ If you want to build a local Red Hat Cloud Services provider to develop improvem
 ### Testing binary
 If you want to locally test the provider binary without building from sources, you can pull the `latest` binary container image and copy the binary file to your local by running `make binary` or the whole background command if you need to make custom changes:
 ```
-    podman run --pull=always --rm registry.ci.openshift.org/ci/rhcs-tf-bin:latest cat /root/terraform-provider-ocm > ~/terraform-provider-ocm && chmod +x ~/terraform-provider-ocm
+    podman run --pull=always --rm registry.ci.openshift.org/ci/rhcs-tf-bin:latest cat /root/terraform-provider-rhcs > ~/terraform-provider-rhcs && chmod +x ~/terraform-provider-rhcs
 ```
 You can also use specific commit images by substituting `latest` for the desired commit SHA.
 Binary image only runs on AMD64 architectures up to now.

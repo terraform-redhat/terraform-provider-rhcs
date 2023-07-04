@@ -2187,9 +2187,9 @@ func propertiesValidators(***REMOVED*** []tfsdk.AttributeValidator {
 		***REMOVED***
 				if !propertiesState.Null && !propertiesState.Unknown {
 					for k := range propertiesState.Elems {
-						if k == propertyRosaTfVersion || k == propertyRosaTfCommit {
+						if _, isDefaultKey := OCMProperties[k]; isDefaultKey {
 							errHead := "Invalid property key."
-							errDesc := fmt.Sprintf("Can not override reserved properties keys. Reserved keys: '%s'/'%s'", propertyRosaTfVersion, propertyRosaTfCommit***REMOVED***
+							errDesc := fmt.Sprintf("Can not override reserved properties keys. %s is a reserved property key", k***REMOVED***
 							resp.Diagnostics.AddError(errHead, errDesc***REMOVED***
 							return
 				***REMOVED***

@@ -124,4 +124,4 @@ destroy_folder: install
 
 .PHONY: binary
 binary:
-	podman run --pull=always --rm registry.ci.openshift.org/ci/rhcs-tf-bin:latest cat /root/terraform-provider-ocm > ~/terraform-provider-ocm && chmod +x ~/terraform-provider-ocm
+	podman run --pull=always --rm registry.ci.openshift.org/ci/rhcs-tf-bin:latest cat /root/terraform-provider-rhcs > ~/terraform-provider-rhcs && chmod +x ~/terraform-provider-rhcs

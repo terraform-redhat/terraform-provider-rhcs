@@ -31,7 +31,7 @@ provider "rhcs" {
 resource "rhcs_identity_provider" "github_idp" {
   cluster = var.cluster_id
   name    = "GitHub"
-  gitlab = {
+  github = {
     client_id     = var.github_client_id
     client_secret = var.github_client_secret
     organizations = var.github_orgs

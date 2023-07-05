@@ -21,7 +21,7 @@ terraform {
       version = ">= 4.20.0"
     }
     rhcs = {
-      version = ">= 1.0.5"
+      version = ">= 1.1.0"
       source  = "terraform-redhat/rhcs"
     }
   }
@@ -73,7 +73,7 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   max_replicas        = var.max_replicas
   version             = var.openshift_version
   properties = {
-    rosa_creator_arn  = data.aws_caller_identity.current.arn
+    rosa_creator_arn = data.aws_caller_identity.current.arn
   }
   sts = local.sts_roles
 }

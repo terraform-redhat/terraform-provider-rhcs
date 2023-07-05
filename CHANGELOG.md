@@ -1,3 +1,9 @@
+## 1.1.0 (Jul 5, 2023***REMOVED***
+-ENHANCEMENTS:
+* Update the documentation files
+* Openshift Cluster upgrade improvements
+* Add support for cluster properties update and delete
+
 ## 1.0.5 (Jun 29, 2023***REMOVED***
 -FEATURES:
 * Add an options to set version in oidc clusters

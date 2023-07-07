@@ -3385,3 +3385,107 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 ***REMOVED******REMOVED***
 	}***REMOVED***
 }***REMOVED***
+
+var _ = Describe("rhcs_cluster_rosa_classic - import", func(***REMOVED*** {
+	const template = `{
+		"id": "123",
+		"name": "my-cluster",
+		"region": {
+		  "id": "us-west-1"
+***REMOVED***,
+		"aws": {
+			"sts": {
+				"oidc_endpoint_url": "https://127.0.0.2",
+				"thumbprint": "111111",
+				"role_arn": "",
+				"support_role_arn": "",
+				"instance_iam_roles" : {
+					"master_role_arn" : "",
+					"worker_role_arn" : ""
+		***REMOVED***,
+				"operator_role_prefix" : "test"
+	***REMOVED***
+***REMOVED***,
+		"multi_az": true,
+		"api": {
+		  "url": "https://my-api.example.com"
+***REMOVED***,
+		"console": {
+		  "url": "https://my-console.example.com"
+***REMOVED***,
+		"network": {
+		  "machine_cidr": "10.0.0.0/16",
+		  "service_cidr": "172.30.0.0/16",
+		  "pod_cidr": "10.128.0.0/14",
+		  "host_prefix": 23
+***REMOVED***,
+		"nodes": {
+			"availability_zones": [
+				"us-west-1a",
+				"us-west-1b",
+				"us-west-1c"
+			],
+			"compute": 3,
+			"compute_machine_type": {
+				"id": "r5.xlarge"
+	***REMOVED***
+***REMOVED***,
+		"version": {
+			"id": "4.10.0"
+***REMOVED***
+	}`
+	It("can import a cluster", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			// CombineHandlers(
+			// 	VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+			// 	RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
+			// ***REMOVED***,
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+						  "op": "add",
+						  "path": "/aws",
+						  "value": {
+							  "sts" : {
+								  "oidc_endpoint_url": "https://127.0.0.2",
+								  "thumbprint": "111111",
+								  "role_arn": "",
+								  "support_role_arn": "",
+								  "instance_iam_roles" : {
+									"master_role_arn" : "",
+									"worker_role_arn" : ""
+								  },
+								  "operator_role_prefix" : "test"
+							  }
+						  }
+				***REMOVED***,
+						{
+						  "op": "add",
+						  "path": "/nodes",
+						  "value": {
+							"availability_zones": [
+								"us-west-1a",
+								"us-west-1b",
+								"us-west-1c"
+							],
+							"compute": 3,
+							"compute_machine_type": {
+								"id": "r5.xlarge"
+					***REMOVED***
+						  }
+				***REMOVED***]`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the apply command:
+		terraform.Source(`
+			  resource "rhcs_cluster_rosa_classic" "my_cluster" { }
+			`***REMOVED***
+		Expect(terraform.Import("rhcs_cluster_rosa_classic.my_cluster", "123"***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.current_version", "4.10.0"***REMOVED******REMOVED***
+	}***REMOVED***
+
+}***REMOVED***

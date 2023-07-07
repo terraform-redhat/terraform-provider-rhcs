@@ -242,6 +242,11 @@ func (r *TerraformRunner) Destroy() int {
 	return r.Run("destroy", "-auto-approve")
 }
 
+// Import runs the `import` command.
+func (r *TerraformRunner) Import(args ...string) int {
+	return r.Run(append([]string{"import"}, args...)...)
+}
+
 // State returns the reads the Terraform state and returns the result of parsing
 // it as a JSON document.
 func (r *TerraformRunner) State() interface{} {

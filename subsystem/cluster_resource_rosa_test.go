@@ -3385,3 +3385,107 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 		})
 	})
 })
+
+var _ = Describe("rhcs_cluster_rosa_classic - import", func() {
+	const template = `{
+		"id": "123",
+		"name": "my-cluster",
+		"region": {
+		  "id": "us-west-1"
+		},
+		"aws": {
+			"sts": {
+				"oidc_endpoint_url": "https://127.0.0.2",
+				"thumbprint": "111111",
+				"role_arn": "",
+				"support_role_arn": "",
+				"instance_iam_roles" : {
+					"master_role_arn" : "",
+					"worker_role_arn" : ""
+				},
+				"operator_role_prefix" : "test"
+			}
+		},
+		"multi_az": true,
+		"api": {
+		  "url": "https://my-api.example.com"
+		},
+		"console": {
+		  "url": "https://my-console.example.com"
+		},
+		"network": {
+		  "machine_cidr": "10.0.0.0/16",
+		  "service_cidr": "172.30.0.0/16",
+		  "pod_cidr": "10.128.0.0/14",
+		  "host_prefix": 23
+		},
+		"nodes": {
+			"availability_zones": [
+				"us-west-1a",
+				"us-west-1b",
+				"us-west-1c"
+			],
+			"compute": 3,
+			"compute_machine_type": {
+				"id": "r5.xlarge"
+			}
+		},
+		"version": {
+			"id": "4.10.0"
+		}
+	}`
+	It("can import a cluster", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			// CombineHandlers(
+			// 	VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+			// 	RespondWithJSON(http.StatusOK, versionListPage1),
+			// ),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+						  "op": "add",
+						  "path": "/aws",
+						  "value": {
+							  "sts" : {
+								  "oidc_endpoint_url": "https://127.0.0.2",
+								  "thumbprint": "111111",
+								  "role_arn": "",
+								  "support_role_arn": "",
+								  "instance_iam_roles" : {
+									"master_role_arn" : "",
+									"worker_role_arn" : ""
+								  },
+								  "operator_role_prefix" : "test"
+							  }
+						  }
+						},
+						{
+						  "op": "add",
+						  "path": "/nodes",
+						  "value": {
+							"availability_zones": [
+								"us-west-1a",
+								"us-west-1b",
+								"us-west-1c"
+							],
+							"compute": 3,
+							"compute_machine_type": {
+								"id": "r5.xlarge"
+							}
+						  }
+						}]`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+			  resource "rhcs_cluster_rosa_classic" "my_cluster" { }
+			`)
+		Expect(terraform.Import("rhcs_cluster_rosa_classic.my_cluster", "123")).To(BeZero())
+		resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+		Expect(resource).To(MatchJQ(".attributes.current_version", "4.10.0"))
+	})
+
+})

@@ -51,10 +51,10 @@ The following items are limitations with the current release of the OCM Terrafor
 
 The example Terraform files are all considered in development:
 ### Prior to creating clusters
-* [Account Roles terraform](/examples/create_rosa_cluster/create_rosa_sts_cluster/classic_sts/account_roles/***REMOVED***
+* [Account Roles terraform](/examples/create_account_roles/***REMOVED***
 ### Cluster creation examples
-* [Create a ROSA cluster that uses STS and has a managed OIDC configuration](/examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/***REMOVED***
-* [Create a ROSA cluster that uses STS and has an unmanaged OIDC configuration](/examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/***REMOVED***
+* [Create a ROSA cluster that uses STS and has a managed OIDC configuration](/examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/***REMOVED***
+* [Create a ROSA cluster that uses STS and has an unmanaged OIDC configuration](/examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/***REMOVED***
 
 ### Post cluster installation
 * Modifying default machine pools

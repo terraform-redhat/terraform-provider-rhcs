@@ -24,11 +24,14 @@ Machine pool.
 ### Optional
 
 - `autoscaling_enabled` (Boolean***REMOVED*** Enables autoscaling. This variable requires you to set a maximum and minimum replicas range using the `max_replicas` and `min_replicas` variables.
+- `availability_zone` (String***REMOVED*** Select availability zone to create a single AZ machine pool for a multi-AZ cluster
 - `labels` (Map of String***REMOVED*** Labels for the machine pool. Format should be a comma-separated list of 'key = value'. This list will overwrite any modifications made to node labels on an ongoing basis.
 - `max_replicas` (Number***REMOVED*** The maximum number of replicas for autoscaling functionality.
-- `max_spot_price` (Number***REMOVED*** Maximum Spot price.
+- `max_spot_price` (Number***REMOVED*** Max Spot price.
 - `min_replicas` (Number***REMOVED*** The minimum number of replicas for autoscaling.
+- `multi_availability_zone` (Boolean***REMOVED*** Create a multi-AZ machine pool for a multi-AZ cluster (default true***REMOVED***
 - `replicas` (Number***REMOVED*** The number of machines of the pool
+- `subnet_id` (String***REMOVED*** Select subnet to create a single AZ machine pool for BYOVPC cluster
 - `taints` (Attributes List***REMOVED*** Taints for machine pool. Format should be a comma-separated list of 'key=value:ScheduleType'. This list will overwrite any modifications made to node taints on an ongoing basis. (see [below for nested schema](#nestedatt--taints***REMOVED******REMOVED***
 - `use_spot_instances` (Boolean***REMOVED*** Use Spot Instances.
 

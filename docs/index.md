@@ -3,7 +3,7 @@
 page_title: "Red Hat Cloud Services (rhcs***REMOVED*** Provider"
 subcategory: ""
 description: |-
-  
+
 ---
 <a href="https://redhat.com">
     <img src="https://raw.githubusercontent.com/terraform-redhat/terraform-provider-rhcs/main/.github/Logo_Red_Hat.png" alt="RedHat logo" title="RedHat" align="right" height="50" />
@@ -19,12 +19,12 @@ The Red Hat Cloud Services provider allows Terraform to manage Red Hat OpenShift
 
 ### Red Hat OpenShift Cluster Manager
 
-Red Hat OpenShift Cluster Manager is a managed service where you can install, modify, operate, and upgrade your Red Hat OpenShift clusters. This service allows you to work with all of your organization’s clusters from a single dashboard. 
+Red Hat OpenShift Cluster Manager is a managed service where you can install, modify, operate, and upgrade your Red Hat OpenShift clusters. This service allows you to work with all of your organization’s clusters from a single dashboard.
 
 More information can be found [here](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/red_hat_openshift_cluster_manager/ocm-overview***REMOVED***.
 
 ### ROSA
-Red Hat OpenShift Service on AWS (ROSA***REMOVED*** is a fully-managed, turnkey application platform that allows you to focus on delivering value to your customers by building and deploying applications. 
+Red Hat OpenShift Service on AWS (ROSA***REMOVED*** is a fully-managed, turnkey application platform that allows you to focus on delivering value to your customers by building and deploying applications.
 
 ROSA provides seamless integration with a wide range of AWS compute, database, analytics, machine learning, networking, mobile, and other services to further accelerate the building and delivering of differentiating experiences to your customers.
 
@@ -62,14 +62,13 @@ The following items are limitations with the current release of the Red Hat Clou
 
 * The latest version is not backward compatible with version 1.0.1.
 * When creating a cluster, the cluster uses AWS credentials configured on your local machine. These credentials provide access to the AWS API for validating your account.
-* When creating a machine pool, you need to specify your replica count. You must define either the `replicas= "<count>"` variable or provide values for the following variables to build the machine pool:  
-   * `min_replicas = "<count>"` 
-   * `max_replicas="<count>"` 
+* When creating a machine pool, you need to specify your replica count. You must define either the `replicas= "<count>"` variable or provide values for the following variables to build the machine pool:
+   * `min_replicas = "<count>"`
+   * `max_replicas="<count>"`
    * `autoscaling_enabled=true`
 * The htpasswd identity provider does not support creating the identity provider with multiple users or adding additional users to the existing identity provider.
 * The S3 bucket that is created as part of the OIDC configuration must be created in the same region as your OIDC provider.
 * The Terraform provider does not support auto-generated `operator_role_prefix`. You must provide your `operator_role_prefix` when creating the account roles.
-* Creation of Machine Pool with single availability zone is not supported
 * Resource created by terraform provider and deleted not by the terraform provider might cause to issue, the terraform provider wouldn't be able to recreate the resource
 
 ## Prerequisites
@@ -78,10 +77,10 @@ To use the Red Hat Cloud Services provider inside your Terraform configuration y
 
 * Completed [the ROSA getting started](https://console.redhat.com/openshift/create/rosa/getstarted***REMOVED*** requirements
 
-  You must complete some AWS account and local configurations to create and managed ROSA clusters. 
+  You must complete some AWS account and local configurations to create and managed ROSA clusters.
 
 * An offline [OCM token](https://console.redhat.com/openshift/token/rosa***REMOVED***
-  
+
   This token is generated through the Red Hat Hybrid Cloud Console. The purpose of this token is to verify that you have access and permission to create and upgrade clusters. This token is unique to your account and should not be shared.
 
 * [GoLang version 1.20 or newer](https://go.dev/doc/install***REMOVED***
@@ -97,7 +96,7 @@ To use the Red Hat Cloud Services provider inside your Terraform configuration y
   A `*.tfvars` file is a definition sheet for all of your variables. This method allows you to reference a file that is safely stored due to the sensitive nature of some variable values. You can create multiple `*.tfvars` files with different variable values.
 
 * [ROSA account roles](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/introduction_to_rosa/rosa-sts-about-iam-resources***REMOVED***
-  
+
   You need to have created the AWS account-wide roles. The specific account-wide IAM roles and policies provide the STS permissions required for ROSA support, installation, control plane, and compute functionality. This includes account-wide Operator policies.
 
   To create the account roles using Terraform, see the [Account Roles Terraform example](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/main/examples/create_account_roles/***REMOVED***.

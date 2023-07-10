@@ -20,6 +20,7 @@ package provider
 	"context"
 	"errors"
 ***REMOVED***
+***REMOVED***
 	"regexp"
 	"time"
 
@@ -28,6 +29,7 @@ package provider
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -377,17 +379,23 @@ func (r *MachinePoolResource***REMOVED*** Read(ctx context.Context, request tfsd
 		MachinePools(***REMOVED***.
 		MachinePool(state.ID.Value***REMOVED***
 	get, err := resource.Get(***REMOVED***.SendContext(ctx***REMOVED***
-	if err != nil {
+	if err != nil && get.Status(***REMOVED*** == http.StatusNotFound {
+		tflog.Warn(ctx, fmt.Sprintf("machine pool (%s***REMOVED*** of cluster (%s***REMOVED*** not found, removing from state",
+			state.ID.Value, state.Cluster.Value,
+		***REMOVED******REMOVED***
+		response.State.RemoveResource(ctx***REMOVED***
+		return
+	} else if err != nil {
 		response.Diagnostics.AddError(
-			"Can't find machine pool",
+			"Failed to fetch machine pool",
 			fmt.Sprintf(
-				"Can't find machine pool with identifier '%s' for "+
-					"cluster '%s': %v",
-				state.ID.Value, state.Cluster.Value, err,
+				"Failed to fetch machine pool with identifier %s for cluster %s. Response code: %v",
+				state.ID.Value, state.Cluster.Value, get.Status(***REMOVED***,
 			***REMOVED***,
 		***REMOVED***
 		return
 	}
+
 	object := get.Body(***REMOVED***
 
 	// Save the state:

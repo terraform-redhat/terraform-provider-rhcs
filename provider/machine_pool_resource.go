@@ -77,7 +77,7 @@ func (t *MachinePoolResourceType) GetSchema(ctx context.Context) (result tfsdk.S
 			},
 			"machine_type": {
 				Description: "Identifier of the machine type used by the nodes, " +
-					"for example `r5.xlarge`. Use the `ocm_machine_types` data " +
+					"for example `r5.xlarge`. Use the `rhcs_machine_types` data " +
 					"source to find the possible values.",
 				Type:     types.StringType,
 				Required: true,

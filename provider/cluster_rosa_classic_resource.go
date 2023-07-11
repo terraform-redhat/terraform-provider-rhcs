@@ -32,17 +32,11 @@ package provider
 
 	"github.com/openshift/rosa/pkg/helper"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/openshift/rosa/pkg/ocm"
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/upgrade"
 
-	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/iam"
 	semver "github.com/hashicorp/go-version"
 	ver "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -74,11 +68,6 @@ var OCMProperties = map[string]string{
 var kmsArnRE = regexp.MustCompile(
 	`^arn:aws[\w-]*:kms:[\w-]+:\d{12}:key\/mrk-[0-9a-f]{32}$|[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`,
 ***REMOVED***
-
-var addTerraformProviderVersionToUserAgent = request.NamedHandler{
-	Name: "ocmTerraformProvider.VersionUserAgentHandler",
-	Fn:   request.MakeAddToUserAgentHandler("TERRAFORM_PROVIDER_OCM", build.Version***REMOVED***,
-}
 
 type ClusterRosaClassicResourceType struct {
 }
@@ -551,7 +540,7 @@ func createClassicClusterObject(ctx context.Context,
 	}
 	builder.CCS(ccs***REMOVED***
 
-	aws := cmv1.NewAWS(***REMOVED***
+	awsBuilder := cmv1.NewAWS(***REMOVED***
 
 	if !state.Tags.Unknown && !state.Tags.Null {
 		tags := map[string]string{}
@@ -569,12 +558,12 @@ func createClassicClusterObject(ctx context.Context,
 			tags[k] = v.(types.String***REMOVED***.Value
 ***REMOVED***
 
-		aws.Tags(tags***REMOVED***
+		awsBuilder.Tags(tags***REMOVED***
 	}
 
 	if !common.IsStringAttributeEmpty(state.Ec2MetadataHttpTokens***REMOVED*** {
 		// value validation was done before
-		aws.Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokens(state.Ec2MetadataHttpTokens.Value***REMOVED******REMOVED***
+		awsBuilder.Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokens(state.Ec2MetadataHttpTokens.Value***REMOVED******REMOVED***
 	}
 
 	if !state.KMSKeyArn.Unknown && !state.KMSKeyArn.Null && state.KMSKeyArn.Value != "" {
@@ -589,15 +578,15 @@ func createClassicClusterObject(ctx context.Context,
 			***REMOVED***
 			return nil, errors.New(errHeadline + "\n" + errDescription***REMOVED***
 ***REMOVED***
-		aws.KMSKeyArn(kmsKeyARN***REMOVED***
+		awsBuilder.KMSKeyArn(kmsKeyARN***REMOVED***
 	}
 
 	if !state.AWSAccountID.Unknown && !state.AWSAccountID.Null {
-		aws.AccountID(state.AWSAccountID.Value***REMOVED***
+		awsBuilder.AccountID(state.AWSAccountID.Value***REMOVED***
 	}
 
 	if !state.AWSPrivateLink.Unknown && !state.AWSPrivateLink.Null {
-		aws.PrivateLink((state.AWSPrivateLink.Value***REMOVED******REMOVED***
+		awsBuilder.PrivateLink((state.AWSPrivateLink.Value***REMOVED******REMOVED***
 		api := cmv1.NewClusterAPI(***REMOVED***
 		if state.AWSPrivateLink.Value {
 			api.Listening(cmv1.ListeningMethodInternal***REMOVED***
@@ -625,7 +614,7 @@ func createClassicClusterObject(ctx context.Context,
 ***REMOVED***
 
 		sts.OperatorRolePrefix(state.Sts.OperatorRolePrefix.Value***REMOVED***
-		aws.STS(sts***REMOVED***
+		awsBuilder.STS(sts***REMOVED***
 	}
 
 	if !state.AWSSubnetIDs.Unknown && !state.AWSSubnetIDs.Null {
@@ -633,11 +622,11 @@ func createClassicClusterObject(ctx context.Context,
 		for _, e := range state.AWSSubnetIDs.Elems {
 			subnetIds = append(subnetIds, e.(types.String***REMOVED***.Value***REMOVED***
 ***REMOVED***
-		aws.SubnetIDs(subnetIds...***REMOVED***
+		awsBuilder.SubnetIDs(subnetIds...***REMOVED***
 	}
 
-	if !aws.Empty(***REMOVED*** {
-		builder.AWS(aws***REMOVED***
+	if !awsBuilder.Empty(***REMOVED*** {
+		builder.AWS(awsBuilder***REMOVED***
 	}
 	network := cmv1.NewNetwork(***REMOVED***
 	if !state.MachineCIDR.Unknown && !state.MachineCIDR.Null {
@@ -784,210 +773,6 @@ func validateHttpTokensVersion(ctx context.Context, state *ClusterRosaClassicSta
 	return nil
 }
 
-func (r *ClusterRosaClassicResource***REMOVED*** validateAccountRoles(ctx context.Context, state *ClusterRosaClassicState, version string***REMOVED*** error {
-	tflog.Debug(ctx, "Validating if cluster version is compatible to account roles' version"***REMOVED***
-	region := state.CloudRegion.Value
-
-	tflog.Debug(ctx, fmt.Sprintf("Cluster version is %s", version***REMOVED******REMOVED***
-	roleARNs := []string{
-		state.Sts.RoleARN.Value,
-		state.Sts.SupportRoleArn.Value,
-		state.Sts.InstanceIAMRoles.MasterRoleARN.Value,
-		state.Sts.InstanceIAMRoles.WorkerRoleARN.Value,
-	}
-
-	for _, ARN := range roleARNs {
-		if ARN == "" {
-			continue
-***REMOVED***
-		// get role from arn
-		role, err := getRoleByARN(ARN, region***REMOVED***
-		if err != nil {
-			return fmt.Errorf("Could not get Role '%s' : %v", ARN, err***REMOVED***
-***REMOVED***
-
-		validVersion, err := r.hasCompatibleVersionTags(ctx, role.Tags, getOcmVersionMinor(version***REMOVED******REMOVED***
-		if err != nil {
-			return fmt.Errorf("Could not validate Role '%s' : %v", ARN, err***REMOVED***
-***REMOVED***
-		if !validVersion {
-			return fmt.Errorf("account role '%s' is not compatible with version %s. "+
-				"Run 'rosa create account-roles' to create compatible roles and try again",
-				ARN, version***REMOVED***
-***REMOVED***
-	}
-
-	return nil
-}
-
-// validateOperatorRolePolicies ensures that the operator role policies are
-// compatible with the requested cluster version
-func (r *ClusterRosaClassicResource***REMOVED*** validateOperatorRolePolicies(ctx context.Context, state *ClusterRosaClassicState, version string***REMOVED*** error {
-	tflog.Debug(ctx, "Validating if cluster version is compatible with the operator role policies"***REMOVED***
-
-	operRoles := []*cmv1.OperatorIAMRole{}
-	operRoleClient := r.clusterCollection.Cluster(state.ID.Value***REMOVED***.STSOperatorRoles(***REMOVED***
-	page := 1
-	size := 100
-	for {
-		resp, err := operRoleClient.List(***REMOVED***.Page(page***REMOVED***.Size(size***REMOVED***.SendContext(ctx***REMOVED***
-		if err != nil {
-			return fmt.Errorf("Could not list operator roles: %v", err***REMOVED***
-***REMOVED***
-		operRoles = append(operRoles, resp.Items(***REMOVED***.Slice(***REMOVED***...***REMOVED***
-		if resp.Size(***REMOVED*** < size {
-			break
-***REMOVED***
-		page++
-	}
-
-	region := state.CloudRegion.Value
-	var session *session.Session
-	var iamClient *iam.IAM
-	for _, operRole := range operRoles {
-		roleARN := operRole.RoleARN(***REMOVED***
-		if roleARN == "" {
-			continue
-***REMOVED***
-		if session == nil {
-			var err error
-			session, err = buildSession(region***REMOVED***
-			if err != nil {
-				return fmt.Errorf("Could not build session: %v", err***REMOVED***
-	***REMOVED***
-***REMOVED***
-		if iamClient == nil {
-			iamClient = iam.New(session***REMOVED***
-***REMOVED***
-		role, err := getRoleByARN(roleARN, state.CloudRegion.Value***REMOVED***
-		if err != nil {
-			return fmt.Errorf("Could not get Role '%s' : %v", roleARN, err***REMOVED***
-***REMOVED***
-		attachedPolicies, err := iamClient.ListAttachedRolePoliciesWithContext(ctx, &iam.ListAttachedRolePoliciesInput{
-			MaxItems: aws.Int64(100***REMOVED***,
-			RoleName: role.RoleName,
-***REMOVED******REMOVED***
-		if err != nil {
-			return fmt.Errorf("Could not list attached policies for role '%s' : %v", roleARN, err***REMOVED***
-***REMOVED***
-		for _, policy := range attachedPolicies.AttachedPolicies {
-			policyARN := policy.PolicyArn
-			policyOut, err := iamClient.GetPolicyWithContext(ctx, &iam.GetPolicyInput{
-				PolicyArn: policyARN,
-	***REMOVED******REMOVED***
-			if err != nil {
-				return fmt.Errorf("Could not get policy '%s' : %v", aws.StringValue(policyARN***REMOVED***, err***REMOVED***
-	***REMOVED***
-			tags := policyOut.Policy.Tags
-			validVersion, err := r.hasCompatibleVersionTags(ctx, tags, getOcmVersionMinor(version***REMOVED******REMOVED***
-			if err != nil {
-				return fmt.Errorf("Could not validate policy '%s' : %v", aws.StringValue(policyARN***REMOVED***, err***REMOVED***
-	***REMOVED***
-			if !validVersion {
-				return fmt.Errorf("operator role policy '%s' is not compatible with version %s. "+
-					"Upgrade operator roles and try again",
-					aws.StringValue(policyARN***REMOVED***, version***REMOVED***
-	***REMOVED***
-***REMOVED***
-	}
-	return nil
-}
-
-// Check whether the list of tags contains a tag indicating the version of
-// OpenShift it was creted for, and whether that version is at lest as new as
-// the provided version.
-func (r *ClusterRosaClassicResource***REMOVED*** hasCompatibleVersionTags(ctx context.Context, iamTags []*iam.Tag, version string***REMOVED*** (bool, error***REMOVED*** {
-	if len(iamTags***REMOVED*** == 0 {
-		return false, nil
-	}
-	for _, tag := range iamTags {
-		if aws.StringValue(tag.Key***REMOVED*** == tagsOpenShiftVersion {
-			tflog.Debug(ctx, fmt.Sprintf("tag version is %s", aws.StringValue(tag.Value***REMOVED******REMOVED******REMOVED***
-			if version == aws.StringValue(tag.Value***REMOVED*** {
-				return true, nil
-	***REMOVED***
-			wantedVersion, err := semver.NewVersion(version***REMOVED***
-			if err != nil {
-				return false, err
-	***REMOVED***
-			currentVersion, err := semver.NewVersion(aws.StringValue(tag.Value***REMOVED******REMOVED***
-			if err != nil {
-				return false, err
-	***REMOVED***
-			return currentVersion.GreaterThanOrEqual(wantedVersion***REMOVED***, nil
-***REMOVED***
-	}
-	return false, nil
-}
-
-func getRoleByARN(roleARN, region string***REMOVED*** (*iam.Role, error***REMOVED*** {
-	// validate arn
-	parsedARN, err := arn.Parse(roleARN***REMOVED***
-	if err != nil {
-		return nil, fmt.Errorf("expected a valid IAM role ARN: %s", err***REMOVED***
-	}
-	// validate arn is for a role resource
-	resource := parsedARN.Resource
-	isRole := strings.Contains(resource, "role/"***REMOVED***
-	if !isRole {
-		return nil, fmt.Errorf("expected ARN '%s' to be IAM role resource", roleARN***REMOVED***
-	}
-
-	// get resource name
-	m := strings.LastIndex(resource, "/"***REMOVED***
-	roleName := resource[m+1:]
-
-	sess, err := buildSession(region***REMOVED***
-	if err != nil {
-		return nil, err
-	}
-	iamClient := iam.New(sess***REMOVED***
-	roleOutput, err := iamClient.GetRole(&iam.GetRoleInput{
-		RoleName: aws.String(roleName***REMOVED***,
-	}***REMOVED***
-
-	if err != nil {
-		return nil, err
-	}
-	return roleOutput.Role, nil
-}
-
-func buildSession(region string***REMOVED*** (*session.Session, error***REMOVED*** {
-	sess, err := session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-		Profile:           "",
-		Config: aws.Config{
-			CredentialsChainVerboseErrors: aws.Bool(true***REMOVED***,
-			Region:                        &region,
-			Retryer:                       buildCustomRetryer(***REMOVED***,
-			HTTPClient: &http.Client{
-				Transport: http.DefaultTransport,
-	***REMOVED***,
-***REMOVED***,
-	}***REMOVED***
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create session. Check your AWS configuration and try again"***REMOVED***
-	}
-
-	sess.Handlers.Build.PushBackNamed(addTerraformProviderVersionToUserAgent***REMOVED***
-
-	if _, err = sess.Config.Credentials.Get(***REMOVED***; err != nil {
-		return nil, fmt.Errorf("Failed to find credentials. Check your AWS configuration and try again"***REMOVED***
-	}
-
-	return sess, nil
-}
-
-func buildCustomRetryer(***REMOVED*** client.DefaultRetryer {
-	return client.DefaultRetryer{
-		NumMaxRetries:    12,
-		MinRetryDelay:    1 * time.Second,
-		MinThrottleDelay: 5 * time.Second,
-		MaxThrottleDelay: 5 * time.Second,
-	}
-
-}
-
 func getOcmVersionMinor(ver string***REMOVED*** string {
 	version, err := semver.NewVersion(ver***REMOVED***
 	if err != nil {
@@ -1092,17 +877,6 @@ func (r *ClusterRosaClassicResource***REMOVED*** Create(ctx context.Context,
 		return
 	}
 
-	err = r.validateAccountRoles(ctx, state, version***REMOVED***
-	if err != nil {
-		response.Diagnostics.AddError(
-			summary,
-			fmt.Sprintf(
-				"Can't build cluster with name '%s', failed while validating account roles: %v",
-				state.Name.Value, err,
-			***REMOVED***,
-		***REMOVED***
-		return
-	}
 	err = validateHttpTokensVersion(ctx, state, version***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -1431,15 +1205,6 @@ func (r *ClusterRosaClassicResource***REMOVED*** validateUpgrade(ctx context.Con
 		return fmt.Errorf("desired version (%s***REMOVED*** is not in the list of available upgrades (%v***REMOVED***", desiredVersion, avail***REMOVED***
 	}
 
-	// Make sure the account roles have been upgraded
-	if err := r.validateAccountRoles(ctx, plan, desiredVersion.String(***REMOVED******REMOVED***; err != nil {
-		return fmt.Errorf("failed to validate account roles: %v", err***REMOVED***
-	}
-
-	// Make sure the operator role policies have been upgraded
-	if err := r.validateOperatorRolePolicies(ctx, plan, desiredVersion.String(***REMOVED******REMOVED***; err != nil {
-		return fmt.Errorf("failed to validate operator role policies: %v", err***REMOVED***
-	}
 	return nil
 }
 

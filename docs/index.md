@@ -61,7 +61,6 @@ For more information, see the [Terraform documentation](https://developer.hashic
 The following items are limitations with the current release of the Red Hat Cloud Services Terraform provider:
 
 * The latest version is not backward compatible with version 1.0.1.
-* When creating a cluster, the cluster uses AWS credentials configured on your local machine. These credentials provide access to the AWS API for validating your account.
 * When creating a machine pool, you need to specify your replica count. You must define either the `replicas= "<count>"` variable or provide values for the following variables to build the machine pool:
    * `min_replicas = "<count>"`
    * `max_replicas="<count>"`

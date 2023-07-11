@@ -34,24 +34,24 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
 					RespondWithJSON(http.StatusNotFound, `{
-				  "id": "123",
-				  "name": "my-cluster",
-				  "state": "ready"
-		***REMOVED***`***REMOVED***,
+			    	  "id": "123",
+			    	  "name": "my-cluster",
+			    	  "state": "ready"
+			    	}`***REMOVED***,
 				***REMOVED***,
 			***REMOVED***
 
 			// Run the apply command:
 			terraform.Source(`
-		  resource "rhcs_identity_provider" "my_ip" {
-		    cluster = "123"
-		    name    = "my-ip"
-		    htpasswd = {
-		      username = "my-user"
-		      password = "my-password"
-		    }
-		  }
-		`***REMOVED***
+	    	  resource "rhcs_identity_provider" "my_ip" {
+	    	    cluster = "123"
+	    	    name    = "my-ip"
+	    	    htpasswd = {
+	    	      username = "my-user"
+	    	      password = "my-password"
+	    	    }
+	    	  }
+	    	`***REMOVED***
 			Expect(terraform.Apply(***REMOVED******REMOVED***.Should(BeNumerically("==", 1***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 	}***REMOVED***
@@ -65,18 +65,18 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
 					RespondWithJSON(http.StatusOK, `{
-				  "id": "123",
-				  "name": "my-cluster",
-				  "state": "ready"
-		***REMOVED***`***REMOVED***,
+			    	  "id": "123",
+			    	  "name": "my-cluster",
+			    	  "state": "ready"
+			    	}`***REMOVED***,
 				***REMOVED***,
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
 					RespondWithJSON(http.StatusOK, `{
-				  "id": "123",
-				  "name": "my-cluster",
-				  "state": "ready"
-		***REMOVED***`***REMOVED***,
+			    	  "id": "123",
+			    	  "name": "my-cluster",
+			    	  "state": "ready"
+			    	}`***REMOVED***,
 				***REMOVED***,
 			***REMOVED***
 ***REMOVED******REMOVED***
@@ -90,38 +90,148 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 						"/api/clusters_mgmt/v1/clusters/123/identity_providers",
 					***REMOVED***,
 					VerifyJSON(`{
-				  "kind": "IdentityProvider",
-				  "type": "HTPasswdIdentityProvider",
-                  "mapping_method": "claim",
-				  "name": "my-ip",
-				  "htpasswd": {
-				    "password": "my-password",
-				    "username": "my-user"
-				  }
-		***REMOVED***`***REMOVED***,
+			    	  "kind": "IdentityProvider",
+			    	  "type": "HTPasswdIdentityProvider",
+                      "mapping_method": "claim",
+			    	  "name": "my-ip",
+			    	  "htpasswd": {
+			    	    "password": "my-password",
+			    	    "username": "my-user"
+			    	  }
+			    	}`***REMOVED***,
 					RespondWithJSON(http.StatusOK, `{
-				  "id": "456",
-				  "name": "my-ip",
-                  "mapping_method": "claim",
-				  "htpasswd": {
-				    "user": "my-user"
-				  }
-		***REMOVED***`***REMOVED***,
+			    	  "id": "456",
+			    	  "name": "my-ip",
+                      "mapping_method": "claim",
+			    	  "htpasswd": {
+			    	    "user": "my-user"
+			    	  }
+			    	}`***REMOVED***,
 				***REMOVED***,
 			***REMOVED***
 
 			// Run the apply command:
 			terraform.Source(`
-		  resource "rhcs_identity_provider" "my_ip" {
-		    cluster = "123"
-		    name    = "my-ip"
-		    htpasswd = {
-		      username = "my-user"
-		      password = "my-password"
-		    }
-		  }
-		`***REMOVED***
+	    	  resource "rhcs_identity_provider" "my_ip" {
+	    	    cluster = "123"
+	    	    name    = "my-ip"
+	    	    htpasswd = {
+	    	      username = "my-user"
+	    	      password = "my-password"
+	    	    }
+	    	  }
+	    	`***REMOVED***
 			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+***REMOVED******REMOVED***
+
+		It("Reconcile an 'htpasswd' identity provider, when state exists but 404 from server", func(***REMOVED*** {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+					***REMOVED***,
+					VerifyJSON(`{
+			    	  "kind": "IdentityProvider",
+			    	  "type": "HTPasswdIdentityProvider",
+                      "mapping_method": "claim",
+			    	  "name": "my-ip",
+			    	  "htpasswd": {
+			    	    "password": "my-password",
+			    	    "username": "my-user"
+			    	  }
+			    	}`***REMOVED***,
+					RespondWithJSON(http.StatusOK, `{
+			    	  "id": "456",
+			    	  "name": "my-ip",
+                      "mapping_method": "claim",
+			    	  "htpasswd": {
+			    	    "user": "my-user"
+			    	  }
+			    	}`***REMOVED***,
+				***REMOVED***,
+			***REMOVED***
+
+			// Run the apply command:
+			terraform.Source(`
+	    	  resource "rhcs_identity_provider" "my_ip" {
+	    	    cluster = "123"
+	    	    name    = "my-ip"
+	    	    htpasswd = {
+	    	      username = "my-user"
+	    	      password = "my-password"
+	    	    }
+	    	  }
+	    	`***REMOVED***
+			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+			// Prepare the server for upgrade
+			server.AppendHandlers(
+				// read from server (404***REMOVED***
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodGet,
+						"/api/clusters_mgmt/v1/clusters/123/identity_providers/456",
+					***REMOVED***,
+					RespondWithJSON(http.StatusNotFound, "{}"***REMOVED***,
+				***REMOVED***,
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					RespondWithJSON(http.StatusOK, `{
+			    	  "id": "123",
+			    	  "name": "my-cluster",
+			    	  "state": "ready"
+			    	}`***REMOVED***,
+				***REMOVED***,
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					RespondWithJSON(http.StatusOK, `{
+			    	  "id": "123",
+			    	  "name": "my-cluster",
+			    	  "state": "ready"
+			    	}`***REMOVED***,
+				***REMOVED***,
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+					***REMOVED***,
+					VerifyJSON(`{
+			    	  "kind": "IdentityProvider",
+			    	  "type": "HTPasswdIdentityProvider",
+                      "mapping_method": "claim",
+			    	  "name": "my-ip",
+			    	  "htpasswd": {
+			    	    "password": "my-password",
+			    	    "username": "my-user"
+			    	  }
+			    	}`***REMOVED***,
+					RespondWithJSON(http.StatusOK, `{
+			    	  "id": "457",
+			    	  "name": "my-ip",
+                      "mapping_method": "claim",
+			    	  "htpasswd": {
+			    	    "user": "my-user"
+			    	  }
+			    	}`***REMOVED***,
+				***REMOVED***,
+			***REMOVED***
+
+			// Run the apply command:
+			terraform.Source(`
+	    	  resource "rhcs_identity_provider" "my_ip" {
+	    	    cluster = "123"
+	    	    name    = "my-ip"
+	    	    htpasswd = {
+	    	      username = "my-user"
+	    	      password = "my-password"
+	    	    }
+	    	  }
+	    	`***REMOVED***
+			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+			resource := terraform.Resource("rhcs_identity_provider", "my_ip"***REMOVED***
+			Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "457"***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 
 		It("Can create a 'gitlab' identity provider", func(***REMOVED*** {
@@ -133,44 +243,44 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 						"/api/clusters_mgmt/v1/clusters/123/identity_providers",
 					***REMOVED***,
 					VerifyJSON(`{
-				  "kind": "IdentityProvider",
-				  "type": "GitlabIdentityProvider",
-                  "mapping_method": "claim",
-				  "name": "my-ip",
-				  "gitlab": {
-				    "ca": "test-ca",
-				    "url": "https://test.gitlab.com",
-				    "client_id": "test-client",
-				    "client_secret": "test-secret"
-				  }
-		***REMOVED***`***REMOVED***,
+	    			  "kind": "IdentityProvider",
+	    			  "type": "GitlabIdentityProvider",
+                      "mapping_method": "claim",
+	    			  "name": "my-ip",
+	    			  "gitlab": {
+	    			    "ca": "test-ca",
+	    			    "url": "https://test.gitlab.com",
+	    			    "client_id": "test-client",
+	    			    "client_secret": "test-secret"
+	    			  }
+	    	***REMOVED***`***REMOVED***,
 					RespondWithJSON(http.StatusOK, `{
-				  "id": "456",
-				  "name": "my-ip",
-                  "mapping_method": "claim",
-				  "gitlab": {
-				    "ca": "test-ca",
-				    "url": "https://test.gitlab.com",
-				    "client_id": "test-client",
-				    "client_secret": "test-secret"
-				  }
-		***REMOVED***`***REMOVED***,
+	    			  "id": "456",
+	    			  "name": "my-ip",
+                      "mapping_method": "claim",
+	    			  "gitlab": {
+	    			    "ca": "test-ca",
+	    			    "url": "https://test.gitlab.com",
+	    			    "client_id": "test-client",
+	    			    "client_secret": "test-secret"
+	    			  }
+	    	***REMOVED***`***REMOVED***,
 				***REMOVED***,
 			***REMOVED***
 
 			// Run the apply command:
 			terraform.Source(`
-		  resource "rhcs_identity_provider" "my_ip" {
-		    cluster = "123"
-		    name    = "my-ip"
-		    gitlab = {
-		      ca = "test-ca"
-		      url = "https://test.gitlab.com"
-			  client_id = "test-client"
-			  client_secret = "test-secret"
-		    }
-		  }
-		`***REMOVED***
+	    	  resource "rhcs_identity_provider" "my_ip" {
+	    	    cluster = "123"
+	    	    name    = "my-ip"
+	    	    gitlab = {
+	    	      ca = "test-ca"
+	    	      url = "https://test.gitlab.com"
+	    		  client_id = "test-client"
+	    		  client_secret = "test-secret"
+	    	    }
+	    	  }
+	    	`***REMOVED***
 			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 
@@ -178,79 +288,79 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 			Context("Invalid 'github' identity provider config", func(***REMOVED*** {
 				It("Should fail with both 'teams' and 'organizations'", func(***REMOVED*** {
 					terraform.Source(`
-		          resource "rhcs_identity_provider" "my_ip" {
-		            cluster = "123"
-		            name    = "my-ip"
-		            github = {
-		              ca = "test-ca"
-		        	  client_id = "test-client"
-		        	  client_secret = "test-secret"
-                      organizations = ["my-org"]
-                      teams = ["valid/team"]
-		            }
-		          }
-		        `***REMOVED***
+	    	          resource "rhcs_identity_provider" "my_ip" {
+	    	            cluster = "123"
+	    	            name    = "my-ip"
+	    	            github = {
+	    	              ca = "test-ca"
+	    	        	  client_id = "test-client"
+	    	        	  client_secret = "test-secret"
+                          organizations = ["my-org"]
+                          teams = ["valid/team"]
+	    	            }
+	    	          }
+	    	        `***REMOVED***
 					Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
 		***REMOVED******REMOVED***
 
 				It("Should fail without 'teams' or 'organizations'", func(***REMOVED*** {
 					terraform.Source(`
-		          resource "rhcs_identity_provider" "my_ip" {
-		            cluster = "123"
-		            name    = "my-ip"
-		            github = {
-		              ca = "test-ca"
-		        	  client_id = "test-client"
-		        	  client_secret = "test-secret"
-		            }
-		          }
-		        `***REMOVED***
+	    	          resource "rhcs_identity_provider" "my_ip" {
+	    	            cluster = "123"
+	    	            name    = "my-ip"
+	    	            github = {
+	    	              ca = "test-ca"
+	    	        	  client_id = "test-client"
+	    	        	  client_secret = "test-secret"
+	    	            }
+	    	          }
+	    	        `***REMOVED***
 					Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
 		***REMOVED******REMOVED***
 
 				It("Should fail if teams contain an invalid format", func(***REMOVED*** {
 					terraform.Source(`
-		          resource "rhcs_identity_provider" "my_ip" {
-		            cluster = "123"
-		            name    = "my-ip"
-		            github = {
-		              ca = "test-ca"
-		        	  client_id = "test-client"
-		        	  client_secret = "test-secret"
-                      teams = ["invalidteam"]
-		            }
-		          }
-		        `***REMOVED***
+	    	          resource "rhcs_identity_provider" "my_ip" {
+	    	            cluster = "123"
+	    	            name    = "my-ip"
+	    	            github = {
+	    	              ca = "test-ca"
+	    	        	  client_id = "test-client"
+	    	        	  client_secret = "test-secret"
+                          teams = ["invalidteam"]
+	    	            }
+	    	          }
+	    	        `***REMOVED***
 					Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
 					terraform.Source(`
-		          resource "rhcs_identity_provider" "my_ip" {
-		            cluster = "123"
-		            name    = "my-ip"
-		            github = {
-		              ca = "test-ca"
-		        	  client_id = "test-client"
-		        	  client_secret = "test-secret"
-                      teams = ["valid/team", "invalidteam"]
-		            }
-		          }
-		        `***REMOVED***
+	    	          resource "rhcs_identity_provider" "my_ip" {
+	    	            cluster = "123"
+	    	            name    = "my-ip"
+	    	            github = {
+	    	              ca = "test-ca"
+	    	        	  client_id = "test-client"
+	    	        	  client_secret = "test-secret"
+                          teams = ["valid/team", "invalidteam"]
+	    	            }
+	    	          }
+	    	        `***REMOVED***
 					Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
 		***REMOVED******REMOVED***
 
 				It("Should fail with an invalid hostname", func(***REMOVED*** {
 					terraform.Source(`
-		          resource "rhcs_identity_provider" "my_ip" {
-		            cluster = "123"
-		            name    = "my-ip"
-		            github = {
-		              ca = "test-ca"
-		        	  client_id = "test-client"
-		        	  client_secret = "test-secret"
-                      organizations = ["org"]
-                      hostname = "invalidhostname"
-		            }
-		          }
-		        `***REMOVED***
+	    	          resource "rhcs_identity_provider" "my_ip" {
+	    	            cluster = "123"
+	    	            name    = "my-ip"
+	    	            github = {
+	    	              ca = "test-ca"
+	    	        	  client_id = "test-client"
+	    	        	  client_secret = "test-secret"
+                          organizations = ["org"]
+                          hostname = "invalidhostname"
+	    	            }
+	    	          }
+	    	        `***REMOVED***
 					Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
 		***REMOVED******REMOVED***
 	***REMOVED******REMOVED***
@@ -263,45 +373,45 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 							"/api/clusters_mgmt/v1/clusters/123/identity_providers",
 						***REMOVED***,
 						VerifyJSON(`{
-				      "kind": "IdentityProvider",
-				      "type": "GithubIdentityProvider",
-                      "mapping_method": "claim",
-				      "name": "my-ip",
-				      "github": {
-				        "ca": "test-ca",
-				        "client_id": "test-client",
-				        "client_secret": "test-secret",
-                        "organizations": ["my-org"]
-				      }
-				    }`***REMOVED***,
+    				      "kind": "IdentityProvider",
+    				      "type": "GithubIdentityProvider",
+                          "mapping_method": "claim",
+    				      "name": "my-ip",
+    				      "github": {
+    				        "ca": "test-ca",
+    				        "client_id": "test-client",
+    				        "client_secret": "test-secret",
+                            "organizations": ["my-org"]
+    				      }
+    				    }`***REMOVED***,
 						RespondWithJSON(http.StatusOK, `{
-				      "id": "456",
-				      "name": "my-ip",
-                      "mapping_method": "claim",
-				      "github": {
-				        "ca": "test-ca",
-				        "url": "https://test.gitlab.com",
-				        "client_id": "test-client",
-				        "client_secret": "test-secret",
-                        "organizations": ["my-org"]
-				      }
-				    }`***REMOVED***,
+    				      "id": "456",
+    				      "name": "my-ip",
+                          "mapping_method": "claim",
+    				      "github": {
+    				        "ca": "test-ca",
+    				        "url": "https://test.gitlab.com",
+    				        "client_id": "test-client",
+    				        "client_secret": "test-secret",
+                            "organizations": ["my-org"]
+    				      }
+    				    }`***REMOVED***,
 					***REMOVED***,
 				***REMOVED***
 
 				// Run the apply command:
 				terraform.Source(`
-		      resource "rhcs_identity_provider" "my_ip" {
-		        cluster = "123"
-		        name    = "my-ip"
-		        github = {
-		          ca = "test-ca"
-		    	  client_id = "test-client"
-		    	  client_secret = "test-secret"
-                  organizations = ["my-org"]
-		        }
-		      }
-		    `***REMOVED***
+    		      resource "rhcs_identity_provider" "my_ip" {
+    		        cluster = "123"
+    		        name    = "my-ip"
+    		        github = {
+    		          ca = "test-ca"
+    		    	  client_id = "test-client"
+    		    	  client_secret = "test-secret"
+                      organizations = ["my-org"]
+    		        }
+    		      }
+    		    `***REMOVED***
 				Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 	***REMOVED******REMOVED***
 
@@ -314,29 +424,29 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 							"/api/clusters_mgmt/v1/clusters/123/identity_providers",
 						***REMOVED***,
 						VerifyJSON(`{
-				      "kind": "IdentityProvider",
-				      "type": "GithubIdentityProvider",
-                      "mapping_method": "claim",
-				      "name": "my-ip",
-				      "github": {
-				        "ca": "test-ca",
-				        "client_id": "test-client",
-				        "client_secret": "test-secret",
-                        "teams": ["valid/team"]
-				      }
-				    }`***REMOVED***,
+    				      "kind": "IdentityProvider",
+    				      "type": "GithubIdentityProvider",
+                          "mapping_method": "claim",
+    				      "name": "my-ip",
+    				      "github": {
+    				        "ca": "test-ca",
+    				        "client_id": "test-client",
+    				        "client_secret": "test-secret",
+                            "teams": ["valid/team"]
+    				      }
+    				    }`***REMOVED***,
 						RespondWithJSON(http.StatusOK, `{
-				      "id": "456",
-				      "name": "my-ip",
-                      "mapping_method": "claim",
-				      "github": {
-				        "ca": "test-ca",
-				        "url": "https://test.gitlab.com",
-				        "client_id": "test-client",
-				        "client_secret": "test-secret",
-                        "teams": ["valid/team"]
-				      }
-				    }`***REMOVED***,
+    				      "id": "456",
+    				      "name": "my-ip",
+                          "mapping_method": "claim",
+    				      "github": {
+    				        "ca": "test-ca",
+    				        "url": "https://test.gitlab.com",
+    				        "client_id": "test-client",
+    				        "client_secret": "test-secret",
+                            "teams": ["valid/team"]
+    				      }
+    				    }`***REMOVED***,
 					***REMOVED***,
 				***REMOVED***
 
@@ -603,31 +713,31 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 				It("Should fail with invalid hosted_domain", func(***REMOVED*** {
 					// Run the apply command:
 					terraform.Source(`
-		          resource "rhcs_identity_provider" "my_ip" {
-		            cluster = "123"
-		            name    = "my-ip"
-		            google = {
-		        	  client_id = "test-client"
-		        	  client_secret = "test-secret"
-                      hosted_domain = "examplecom"
-		            }
-		          }
-		        `***REMOVED***
+    		          resource "rhcs_identity_provider" "my_ip" {
+    		            cluster = "123"
+    		            name    = "my-ip"
+    		            google = {
+    		        	  client_id = "test-client"
+    		        	  client_secret = "test-secret"
+                          hosted_domain = "examplecom"
+    		            }
+    		          }
+    		        `***REMOVED***
 					Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
 		***REMOVED******REMOVED***
 
 				It("Should fail when mapping_method is not lookup and no hosted_domain", func(***REMOVED*** {
 					// Run the apply command:
 					terraform.Source(`
-		          resource "rhcs_identity_provider" "my_ip" {
-		            cluster = "123"
-		            name    = "my-ip"
-		            google = {
-		        	  client_id = "test-client"
-		        	  client_secret = "test-secret"
-		            }
-		          }
-		        `***REMOVED***
+    		          resource "rhcs_identity_provider" "my_ip" {
+    		            cluster = "123"
+    		            name    = "my-ip"
+    		            google = {
+    		        	  client_id = "test-client"
+    		        	  client_secret = "test-secret"
+    		            }
+    		          }
+    		        `***REMOVED***
 					Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
 		***REMOVED******REMOVED***
 
@@ -643,41 +753,41 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 								"/api/clusters_mgmt/v1/clusters/123/identity_providers",
 							***REMOVED***,
 							VerifyJSON(`{
-			    	      "kind": "IdentityProvider",
-			    	      "type": "GoogleIdentityProvider",
-                          "mapping_method": "claim",
-			    	      "name": "my-ip",
-			    	      "google": {
-			    	        "client_id": "test-client",
-			    	        "client_secret": "test-secret",
-                            "hosted_domain": "example.com"
-			    	      }
-			    	    }`***REMOVED***,
+    			    	      "kind": "IdentityProvider",
+    			    	      "type": "GoogleIdentityProvider",
+                              "mapping_method": "claim",
+    			    	      "name": "my-ip",
+    			    	      "google": {
+    			    	        "client_id": "test-client",
+    			    	        "client_secret": "test-secret",
+                                "hosted_domain": "example.com"
+    			    	      }
+    			    	    }`***REMOVED***,
 							RespondWithJSON(http.StatusOK, `{
-			    	      "id": "456",
-			    	      "name": "my-ip",
-                          "mapping_method": "claim",
-			    	      "google": {
-			    	        "client_id": "test-client",
-			    	        "client_secret": "test-secret",
-                            "hosted_domain": "example.com"
-			    	      }
-			    	    }`***REMOVED***,
+    			    	      "id": "456",
+    			    	      "name": "my-ip",
+                              "mapping_method": "claim",
+    			    	      "google": {
+    			    	        "client_id": "test-client",
+    			    	        "client_secret": "test-secret",
+                                "hosted_domain": "example.com"
+    			    	      }
+    			    	    }`***REMOVED***,
 						***REMOVED***,
 					***REMOVED***
 
 					// Run the apply command:
 					terraform.Source(`
-		          resource "rhcs_identity_provider" "my_ip" {
-		            cluster = "123"
-		            name    = "my-ip"
-		            google = {
-		        	  client_id = "test-client"
-		        	  client_secret = "test-secret"
-                      hosted_domain = "example.com"
-		            }
-		          }
-		        `***REMOVED***
+    		          resource "rhcs_identity_provider" "my_ip" {
+    		            cluster = "123"
+    		            name    = "my-ip"
+    		            google = {
+    		        	  client_id = "test-client"
+    		        	  client_secret = "test-secret"
+                          hosted_domain = "example.com"
+    		            }
+    		          }
+    		        `***REMOVED***
 					Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 		***REMOVED******REMOVED***
 
@@ -690,39 +800,39 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 								"/api/clusters_mgmt/v1/clusters/123/identity_providers",
 							***REMOVED***,
 							VerifyJSON(`{
-			    	      "kind": "IdentityProvider",
-			    	      "type": "GoogleIdentityProvider",
-			    	      "name": "my-ip",
-                          "mapping_method": "lookup",
-			    	      "google": {
-			    	        "client_id": "test-client",
-			    	        "client_secret": "test-secret"
-			    	      }
-			    	    }`***REMOVED***,
+    			    	      "kind": "IdentityProvider",
+    			    	      "type": "GoogleIdentityProvider",
+    			    	      "name": "my-ip",
+                              "mapping_method": "lookup",
+    			    	      "google": {
+    			    	        "client_id": "test-client",
+    			    	        "client_secret": "test-secret"
+    			    	      }
+    			    	    }`***REMOVED***,
 							RespondWithJSON(http.StatusOK, `{
-			    	      "id": "456",
-			    	      "name": "my-ip",
-                          "mapping_method": "lookup",
-			    	      "google": {
-			    	        "client_id": "test-client",
-			    	        "client_secret": "test-secret"
-			    	      }
-			    	    }`***REMOVED***,
+    			    	      "id": "456",
+    			    	      "name": "my-ip",
+                              "mapping_method": "lookup",
+    			    	      "google": {
+    			    	        "client_id": "test-client",
+    			    	        "client_secret": "test-secret"
+    			    	      }
+    			    	    }`***REMOVED***,
 						***REMOVED***,
 					***REMOVED***
 
 					// Run the apply command:
 					terraform.Source(`
-		          resource "rhcs_identity_provider" "my_ip" {
-		            cluster = "123"
-		            name    = "my-ip"
-                    mapping_method = "lookup"
-		            google = {
-		        	  client_id = "test-client"
-		        	  client_secret = "test-secret"
-		            }
-		          }
-		        `***REMOVED***
+    		          resource "rhcs_identity_provider" "my_ip" {
+    		            cluster = "123"
+    		            name    = "my-ip"
+                        mapping_method = "lookup"
+    		            google = {
+    		        	  client_id = "test-client"
+    		        	  client_secret = "test-secret"
+    		            }
+    		          }
+    		        `***REMOVED***
 					Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 		***REMOVED******REMOVED***
 	***REMOVED******REMOVED***
@@ -737,108 +847,108 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 						"/api/clusters_mgmt/v1/clusters/123/identity_providers",
 					***REMOVED***,
 					VerifyJSON(`{
-				  "kind": "IdentityProvider",
-				  "type": "OpenIDIdentityProvider",
-                  "mapping_method": "claim",
-				  "name": "my-ip",
-				  "open_id": {
-					"ca": "test_ca",
-					"claims": {
-						"email": [
-							"email"
-						],
-						"groups": [
-							"admins"
-						],
-						"name": [
-							"name",
-							"email"
-						],
-						"preferred_username": [
-							"preferred_username",
-							"email"
-						]
-			***REMOVED***,
-					"client_id": "test_client",
-					"client_secret": "test_secret",
-					"extra_scopes": [
-					  "email",
-					  "profile"
-					],
-					"issuer": "https://test.okta.com"
-			***REMOVED***
-		***REMOVED***`***REMOVED***,
+    				  "kind": "IdentityProvider",
+    				  "type": "OpenIDIdentityProvider",
+                      "mapping_method": "claim",
+    				  "name": "my-ip",
+    				  "open_id": {
+    					"ca": "test_ca",
+    					"claims": {
+    						"email": [
+    							"email"
+    						],
+    						"groups": [
+    							"admins"
+    						],
+    						"name": [
+    							"name",
+    							"email"
+    						],
+    						"preferred_username": [
+    							"preferred_username",
+    							"email"
+    						]
+    			***REMOVED***,
+    					"client_id": "test_client",
+    					"client_secret": "test_secret",
+    					"extra_scopes": [
+    					  "email",
+    					  "profile"
+    					],
+    					"issuer": "https://test.okta.com"
+    			***REMOVED***
+    		***REMOVED***`***REMOVED***,
 					RespondWithJSON(http.StatusOK, `{
-					"kind": "IdentityProvider",
-					"type": "OpenIDIdentityProvider",
-					"href": "/api/clusters_mgmt/v1/clusters/123/identity_providers/456",
-					"id": "456",
-					"name": "my-ip",
-                    "mapping_method": "claim",
-					"open_id": {
-						"claims": {
-							"email": [
-								"email"
-							],
-							"groups": [
-								"admins"
-							],
-							"name": [
-								"name",
-								"email"
-							],
-							"preferred_username": [
-								"preferred_username",
-								"email"
-							]
-				***REMOVED***,
-						"client_id": "test_client",
-						"extra_scopes": [
-							"email",
-							"profile"
-						],
-						"issuer": "https://test.okta.com"
-			***REMOVED***
-		***REMOVED***`***REMOVED***,
+    					"kind": "IdentityProvider",
+    					"type": "OpenIDIdentityProvider",
+    					"href": "/api/clusters_mgmt/v1/clusters/123/identity_providers/456",
+    					"id": "456",
+    					"name": "my-ip",
+                        "mapping_method": "claim",
+    					"open_id": {
+    						"claims": {
+    							"email": [
+    								"email"
+    							],
+    							"groups": [
+    								"admins"
+    							],
+    							"name": [
+    								"name",
+    								"email"
+    							],
+    							"preferred_username": [
+    								"preferred_username",
+    								"email"
+    							]
+    				***REMOVED***,
+    						"client_id": "test_client",
+    						"extra_scopes": [
+    							"email",
+    							"profile"
+    						],
+    						"issuer": "https://test.okta.com"
+    			***REMOVED***
+    		***REMOVED***`***REMOVED***,
 				***REMOVED***,
 			***REMOVED***
 
 			// Run the apply command:
 			terraform.Source(`
-		  resource "rhcs_identity_provider" "my_ip" {
-		    cluster    				= "123"
-		    name       				= "my-ip"
-		    openid = {
-				ca            			= "test_ca"
-				issuer					= "https://test.okta.com"
-				client_id 				= "test_client"
-				client_secret			= "test_secret"
-				extra_scopes 			= ["email","profile"]
-				claims = {
-					email              = ["email"]
-					groups			   = ["admins"]
-					name               = ["name","email"]
-					preferred_username = ["preferred_username","email"]
-		      	}
-		    }
-		  }
-		`***REMOVED***
+    		  resource "rhcs_identity_provider" "my_ip" {
+    		    cluster    				= "123"
+    		    name       				= "my-ip"
+    		    openid = {
+    				ca            			= "test_ca"
+    				issuer					= "https://test.okta.com"
+    				client_id 				= "test_client"
+    				client_secret			= "test_secret"
+    				extra_scopes 			= ["email","profile"]
+    				claims = {
+    					email              = ["email"]
+    					groups			   = ["admins"]
+    					name               = ["name","email"]
+    					preferred_username = ["preferred_username","email"]
+    		      	}
+    		    }
+    		  }
+    		`***REMOVED***
 			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 
 		It("Should fail with invalid mapping_method", func(***REMOVED*** {
 			// Run the apply command:
 			terraform.Source(`
-		  resource "rhcs_identity_provider" "my_ip" {
-		    cluster = "123"
-		    name    = "my-ip"
-            mapping_method = "invalid"
-		    htpasswd = {
-		      username = "my-user"
-		      password = "my-password"
-		    }
-		  }
-		`***REMOVED***
+    		  resource "rhcs_identity_provider" "my_ip" {
+    		    cluster = "123"
+    		    name    = "my-ip"
+                mapping_method = "invalid"
+    		    htpasswd = {
+    		      username = "my-user"
+    		      password = "my-password"
+    		    }
+    		  }
+    		`***REMOVED***
 			Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 	}***REMOVED***

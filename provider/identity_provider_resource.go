@@ -295,7 +295,13 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 		IdentityProviders(***REMOVED***.
 		IdentityProvider(state.ID.Value***REMOVED***
 	get, err := resource.Get(***REMOVED***.SendContext(ctx***REMOVED***
-	if err != nil {
+	if err != nil && get.Status(***REMOVED*** == http.StatusNotFound {
+		tflog.Warn(ctx, fmt.Sprintf("identity provider (%s***REMOVED*** of cluster (%s***REMOVED*** not found, removing from state",
+			state.ID.Value, state.Cluster.Value,
+		***REMOVED******REMOVED***
+		response.State.RemoveResource(ctx***REMOVED***
+		return
+	} else if err != nil {
 		response.Diagnostics.AddError(
 			"Can't find identity provider",
 			fmt.Sprintf(
@@ -306,6 +312,7 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 		***REMOVED***
 		return
 	}
+
 	object := get.Body(***REMOVED***
 
 	// Copy the identity provider data into the state:

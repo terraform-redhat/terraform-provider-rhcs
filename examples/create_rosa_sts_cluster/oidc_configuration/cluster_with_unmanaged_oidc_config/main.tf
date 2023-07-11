@@ -31,13 +31,17 @@ provider "rhcs" {
   url   = var.url
 }
 
+locals {
+  installer_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${var.account_role_prefix}-Installer-Role"
+}
+
 # Create unmanaged OIDC config
 module "oidc_config" {
   token                = var.token
   url                  = var.url
   source               = "../oidc_provider"
   managed              = false
-  installer_role_arn   = var.installer_role_arn
+  installer_role_arn   = local.installer_role_arn
   operator_role_prefix = var.operator_role_prefix
   account_role_prefix  = var.account_role_prefix
   cloud_region         = var.cloud_region
@@ -48,7 +52,7 @@ module "oidc_config" {
 locals {
   path = coalesce(var.path, "/"***REMOVED***
   sts_roles = {
-    role_arn         = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${var.account_role_prefix}-Installer-Role",
+    role_arn         = local.installer_role_arn,
     support_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${var.account_role_prefix}-Support-Role",
     instance_iam_roles = {
       master_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${var.account_role_prefix}-ControlPlane-Role",

@@ -35,27 +35,23 @@ This Terraform example creates a ROSA STS cluster that uses an unmanaged OIDC co
         ```
         export TF_VAR_cluster_name=<cluster_name>
         ```
-    5.  This value is your installer role's ARN. This role was created with the account roles Terraform process. 
-        ```
-        export TF_VAR_installer_role_arn=<cluster_name>
-        ```
-    6.  Your Operator-role prefix prepends all of your Operator roles and policies. You should use the same value as your account-role prefix for consistency, though it is not required.
+    5.  Your Operator-role prefix prepends all of your Operator roles and policies. You should use the same value as your account-role prefix for consistency, though it is not required.
         ```
         export TF_VAR_operator_role_prefix=<operator_role_prefix>
         ```
-    7.  This variable should be your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token) that you generated in the prerequisites.  
+    6.  This variable should be your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token) that you generated in the prerequisites.  
         ```
         export TF_VAR_token=<ocm_offline_token>
         ```
-    8.  This value should always point to `https://api.openshift.com`.  
+    7.  This value should always point to `https://api.openshift.com`.  
         ```
         export TF_VAR_url=<ocm_url>
         ```
-    9.  **Optional**: You can set the desired OpenShift version with this variable. The default is 4.13.
+    8.  **Optional**: You can set the desired OpenShift version with this variable. The default is 4.13.
         ```    
         export TF_VAR_openshift_version=<choose_openshift_version>
         ```
-    10.  **Optional**: If you want to set any specific AWS tags for your cluster, you can use this variable to declare those tags.   
+    9.  **Optional**: If you want to set any specific AWS tags for your cluster, you can use this variable to declare those tags.   
          ```    
          export TF_VAR_tags=<aws_resource_tags> (Optional) 
          ```         

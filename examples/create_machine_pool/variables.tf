@@ -30,9 +30,9 @@ variable "replicas" {
 }
 
 variable "autoscaling_enabled" {
-    description = "Enables autoscaling. This variable requires you to set a maximum and minimum replicas range using the `max_replicas` and `min_replicas` variables."
-    type        = string
-	default     = "false"
+  description = "Enables autoscaling. This variable requires you to set a maximum and minimum replicas range using the `max_replicas` and `min_replicas` variables."
+  type        = string
+  default     = "false"
 }
 
 variable "min_replicas" {

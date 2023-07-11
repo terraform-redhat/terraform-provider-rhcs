@@ -2581,44 +2581,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 		"available_upgrades": [],
 		"rosa_enabled": true
 	}`
-	const operIAMList = `{
-		"kind": "OperatorIAMRoleList",
-		"href": "/api/clusters_mgmt/v1/123/sts_operator_roles",
-		"page": 1,
-		"size": 6,
-		"total": 6,
-		"items": [
-		  {
-			"id": "",
-			"name": "ebs-cloud-credentials",
-			"role_arn": ""
-		  },
-		  {
-			"id": "",
-			"role_arn": ""
-		  },
-		  {
-			"id": "",
-			"name": "aws-cloud-credentials",
-			"role_arn": ""
-		  },
-		  {
-			"id": "",
-			"name": "cloud-credential-operator-iam-ro-creds",
-			"role_arn": ""
-		  },
-		  {
-			"id": "",
-			"name": "installer-cloud-credentials",
-			"role_arn": ""
-		  },
-		  {
-			"id": "",
-			"name": "cloud-credentials",
-			"role_arn": ""
-		  }
-		]
-	}`
 	const upgradePoliciesEmpty = `{
 		"kind": "UpgradePolicyList",
 		"page": 1,
@@ -2724,11 +2686,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
 				RespondWithJSON(http.StatusOK, v4_10_1Info),
-			),
-			// Validate roles
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/sts_operator_roles"),
-				RespondWithJSON(http.StatusOK, operIAMList),
 			),
 			// Look for existing upgrade policies
 			CombineHandlers(
@@ -2846,11 +2803,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
 				RespondWithJSON(http.StatusOK, v4_10_1Info),
 			),
-			// Validate roles
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/sts_operator_roles"),
-				RespondWithJSON(http.StatusOK, operIAMList),
-			),
 			// Look for existing upgrade policies
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
@@ -2967,11 +2919,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
 				RespondWithJSON(http.StatusOK, v4_10_1Info),
 			),
-			// Validate roles
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/sts_operator_roles"),
-				RespondWithJSON(http.StatusOK, operIAMList),
-			),
 			// Look for existing upgrade policies
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
@@ -3043,11 +2990,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
 				RespondWithJSON(http.StatusOK, v4_10_1Info),
-			),
-			// Validate roles
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/sts_operator_roles"),
-				RespondWithJSON(http.StatusOK, operIAMList),
 			),
 			// Look for existing upgrade policies
 			CombineHandlers(
@@ -3298,11 +3240,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
 					RespondWithJSON(http.StatusOK, v4_10_1Info),
-				),
-				// Validate roles
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/sts_operator_roles"),
-					RespondWithJSON(http.StatusOK, operIAMList),
 				),
 				// Look for existing upgrade policies
 				CombineHandlers(

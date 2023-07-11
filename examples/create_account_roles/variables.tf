@@ -9,7 +9,8 @@ variable "openshift_version" {
 }
 
 variable "account_role_prefix" {
-  type = string
+  type    = string
+  default = ""
 }
 
 variable "token" {
@@ -33,4 +34,3 @@ variable "tags" {
   type        = map(string***REMOVED***
   default     = null
 }
-

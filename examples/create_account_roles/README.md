@@ -21,18 +21,18 @@ it also updated in the operator role policies.
 
    Run the following commands to export your variables. Provide your values in lieu of the brackets. Note that any values declared in the `variables.tf` are the default values if you do not export a superseding value.
         
-    1. Your account-role prefix prepends to all of your created roles. This value cannot end with a hyphen (-).
-        ```
-        export TF_VAR_account_role_prefix=<account_role_prefix>
-        ```
-    2.  This variable should be your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token) that you generated in the prerequisites.  
+    1.  This variable should be your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token) that you generated in the prerequisites.  
         ```
         export TF_VAR_token=<ocm_offline_token>
         ```
-    3.  This value should always point to `https://api.openshift.com`.  
+    2.  This value should always point to `https://api.openshift.com`.  
         ```
         export TF_VAR_url=https://api.openshift.com
         ```
+    3.  **Optional**: You can set the account-role prefix with this variable. This value cannot end with a hyphen (-). If the value is empty, the module generates a string that starts with `account-role-` and concatenates it with a random string of length 4.
+       ```    
+       export TF_VAR_account_role_prefix=<account_role_prefix>
+       ```
     4.  **Optional**: You can set the desired OpenShift version with this variable. The default is available from the ROSA CLI with `rosa list version |grep yes`. This should be in the format of x.y.z, such as 4.13.2
         ```    
         export TF_VAR_openshift_version=<choose_openshift_version>

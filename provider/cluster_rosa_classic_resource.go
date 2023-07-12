@@ -30,7 +30,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/openshift/rosa/pkg/helper"
+	"github.com/openshift/rosa/pkg/properties"
 
 	"github.com/openshift/rosa/pkg/ocm"
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
@@ -43,6 +45,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	ocm_errors "github.com/openshift-online/ocm-sdk-go/errors"
@@ -98,6 +101,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.UseStateForUnknown(),
 					ValueCannotBeChangedModifier(),
 				},
 			},
@@ -126,6 +130,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.UseStateForUnknown(),
 					ValueCannotBeChangedModifier(),
 				},
 			},
@@ -181,6 +186,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.UseStateForUnknown(),
 					ValueCannotBeChangedModifier(),
 				},
 			},
@@ -281,6 +287,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.UseStateForUnknown(),
 					ValueCannotBeChangedModifier(),
 				},
 			},
@@ -300,6 +307,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.UseStateForUnknown(),
 					ValueCannotBeChangedModifier(),
 				},
 			},
@@ -336,6 +344,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.UseStateForUnknown(),
 					ValueCannotBeChangedModifier(),
 				},
 			},
@@ -345,6 +354,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.UseStateForUnknown(),
 					ValueCannotBeChangedModifier(),
 				},
 			},
@@ -354,6 +364,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.UseStateForUnknown(),
 					ValueCannotBeChangedModifier(),
 				},
 			},
@@ -363,6 +374,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.UseStateForUnknown(),
 					ValueCannotBeChangedModifier(),
 				},
 			},
@@ -1401,35 +1413,7 @@ func (r *ClusterRosaClassicResource) ImportState(ctx context.Context, request tf
 	response *tfsdk.ImportResourceStateResponse) {
 	tflog.Debug(ctx, "begin importstate()")
 
-	// Try to retrieve the object:
-	get, err := r.clusterCollection.Cluster(request.ID).Get().SendContext(ctx)
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't find cluster",
-			fmt.Sprintf(
-				"Can't find cluster with identifier '%s': %v",
-				request.ID, err,
-			),
-		)
-		return
-	}
-	object := get.Body()
-
-	// Save the state:
-	state := &ClusterRosaClassicState{}
-	err = populateRosaClassicClusterState(ctx, object, state, DefaultHttpClient{})
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't populate cluster state",
-			fmt.Sprintf(
-				"Received error %v", err,
-			),
-		)
-		return
-	}
-
-	diags := response.State.Set(ctx, state)
-	response.Diagnostics.Append(diags...)
+	tfsdk.ResourceImportStatePassthroughID(ctx, tftypes.NewAttributePath().WithAttributeName("id"), request, response)
 }
 
 // populateRosaClassicClusterState copies the data from the API object to the Terraform state.
@@ -1542,7 +1526,10 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 
 	azs, ok := object.Nodes().GetAvailabilityZones()
 	if ok {
-		state.AvailabilityZones.Elems = make([]attr.Value, 0)
+		state.AvailabilityZones = types.List{
+			ElemType: types.StringType,
+			Elems:    []attr.Value{},
+		}
 		for _, az := range azs {
 			state.AvailabilityZones.Elems = append(state.AvailabilityZones.Elems, types.String{
 				Value: az,
@@ -1565,12 +1552,24 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		Value: object.EtcdEncryption(),
 	}
 
-	//The API does not return account id
+	// Note: The API does not currently return account id, but we try to get it
+	// anyway. Failing that, we fetch the creator ARN from the properties like
+	// rosa cli does.
 	awsAccountID, ok := object.AWS().GetAccountID()
 	if ok {
 		state.AWSAccountID = types.String{
 			Value: awsAccountID,
 		}
+	} else {
+		// rosa cli gets it from the properties, so we do the same
+		if creatorARN, ok := object.Properties()[properties.CreatorARN]; ok {
+			if arn, err := arn.Parse(creatorARN); err == nil {
+				state.AWSAccountID = types.String{
+					Value: arn.AccountID,
+				}
+			}
+		}
+
 	}
 
 	awsPrivateLink, ok := object.AWS().GetPrivateLink()
@@ -1623,7 +1622,7 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 			}
 		}
 		// TODO: fix a bug in uhc-cluster-services
-		if state.Sts.OperatorRolePrefix.Unknown || state.Sts.OperatorRolePrefix.Null {
+		if common.IsStringAttributeEmpty(state.Sts.OperatorRolePrefix) {
 			operatorRolePrefix, ok := sts.GetOperatorRolePrefix()
 			if ok {
 				state.Sts.OperatorRolePrefix = types.String{
@@ -1759,6 +1758,12 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	}
 	state.State = types.String{
 		Value: string(object.State()),
+	}
+	state.Name = types.String{
+		Value: object.Name(),
+	}
+	state.CloudRegion = types.String{
+		Value: object.Region().ID(),
 	}
 
 	return nil

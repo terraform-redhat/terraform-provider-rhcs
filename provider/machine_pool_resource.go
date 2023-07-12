@@ -309,7 +309,7 @@ func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context,
 		response.Diagnostics.AddError(
 			"Can't build machine pool",
 			fmt.Sprintf(
-				"Can't build machine pool for cluster '%s', should hold either Autoscaling or Compute nodes",
+				"Can't build machine pool for cluster '%s', please provide a value for either the 'replicas' or 'autoscaling_enabled' parameter. It is mandatory to include at least one of these parameters in the resource plan.",
 				state.Cluster.Value,
 			***REMOVED***,
 		***REMOVED***

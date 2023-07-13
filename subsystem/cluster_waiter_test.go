@@ -105,7 +105,7 @@ var _ = Describe("Cluster creation", func() {
 	}`
 
 	Context("Create cluster waiter resource", func() {
-		BeforeEach(func() {
+		It("Create cluster waiter without a timeout", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
@@ -113,9 +113,6 @@ var _ = Describe("Cluster creation", func() {
 					RespondWithJSON(http.StatusOK, templateReadyState),
 				),
 			)
-		})
-
-		It("Create cluster waiter without a timeout", func() {
 			terraform.Source(`
 				resource "rhcs_cluster_wait" "rosa_cluster" {
 				  cluster = "123"
@@ -133,11 +130,22 @@ var _ = Describe("Cluster creation", func() {
 				}
 			`)
 
-			// it should return a warning so exit code will be "0":
-			Expect(terraform.Apply()).To(BeZero())
+			// it should throw an error so exit code will not be "0":
+			Expect(terraform.Apply()).ToNot(BeZero())
 		})
 
 		It("Create cluster with a positive timeout", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, templateReadyState),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, templateReadyState),
+				),
+			)
 			terraform.Source(`
 				resource "rhcs_cluster_wait" "rosa_cluster" {
 				  cluster = "123"

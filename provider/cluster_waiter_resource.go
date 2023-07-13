@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 
 type Waiter interface {
@@ -43,8 +44,9 @@ func (t *ClusterWaiterResourceType) GetSchema(ctx context.Context) (result tfsdk
 			"timeout": {
 				Description: "An optional timeout till the cluster is ready. The timeout value should be in minutes." +
 					" the default value is 60 minutes",
-				Type:     types.Int64Type,
-				Optional: true,
+				Type:       types.Int64Type,
+				Optional:   true,
+				Validators: timeoutValidators(),
 			},
 			"ready": {
 				Description: "Whether the cluster is ready",
@@ -81,39 +83,11 @@ func (r *ClusterWaiterResource) Create(ctx context.Context,
 		return
 	}
 
-	state.Ready = types.Bool{
-		Value: false,
-	}
+	state, err := r.startPolling(ctx, state)
 
-	timeout := defaultTimeoutInMinutes
-	if !state.Timeout.Unknown && !state.Timeout.Null {
-		if state.Timeout.Value <= 0 {
-			response.Diagnostics.AddWarning(nonPositiveTimeoutSummary, fmt.Sprintf(nonPositiveTimeoutFormat, state.Cluster.Value))
-		} else {
-			timeout = state.Timeout.Value
-		}
-	}
-
-	// Wait till the cluster is ready:
-	object, err := r.retryClusterReadiness(3, 30*time.Second, state.Cluster.Value, ctx, timeout)
 	if err != nil {
-
-		response.Diagnostics.AddError(
-			"Can't poll cluster state",
-			fmt.Sprintf(
-				"Can't poll state of cluster with identifier '%s': %v",
-				state.Cluster.Value, err,
-			),
-		)
+		response.Diagnostics.AddError("Can't poll cluster state (create resource)", err.Error())
 		return
-	}
-	isClusterReady := false
-	if object.State() == cmv1.ClusterStateReady {
-		isClusterReady = true
-	}
-
-	state.Ready = types.Bool{
-		Value: isClusterReady,
 	}
 
 	// Save the state:
@@ -128,7 +102,23 @@ func (r *ClusterWaiterResource) Read(ctx context.Context, request tfsdk.ReadReso
 
 func (r *ClusterWaiterResource) Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
 	response *tfsdk.UpdateResourceResponse) {
-	// Do Nothing
+	plan := &ClusterWaiterState{}
+	diags := request.Plan.Get(ctx, plan)
+	_ = request.Plan.Get(ctx, plan)
+	response.Diagnostics.Append(diags...)
+	if response.Diagnostics.HasError() {
+		return
+	}
+	state, err := r.startPolling(ctx, plan)
+
+	if err != nil {
+		response.Diagnostics.AddError("Can't poll cluster state (update resource)", err.Error())
+		return
+	}
+
+	// Save the state:
+	diags = response.State.Set(ctx, state)
+	response.Diagnostics.Append(diags...)
 }
 
 func (r *ClusterWaiterResource) Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
@@ -139,6 +129,35 @@ func (r *ClusterWaiterResource) Delete(ctx context.Context, request tfsdk.Delete
 func (r *ClusterWaiterResource) ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
 	response *tfsdk.ImportResourceStateResponse) {
 	// Do Nothing
+}
+
+func (r *ClusterWaiterResource) startPolling(ctx context.Context, state *ClusterWaiterState) (*ClusterWaiterState, error) {
+	state.Ready = types.Bool{
+		Value: false,
+	}
+
+	timeout := defaultTimeoutInMinutes
+	if !state.Timeout.Unknown && !state.Timeout.Null {
+		timeout = state.Timeout.Value
+	}
+
+	// Wait till the cluster is ready:
+	object, err := r.retryClusterReadiness(3, 30*time.Second, state.Cluster.Value, ctx, timeout)
+	if err != nil {
+		return state, fmt.Errorf(
+			"Can't poll state of cluster with identifier '%s': %v",
+			state.Cluster.Value, err,
+		)
+	}
+	isClusterReady := false
+	if object.State() == cmv1.ClusterStateReady {
+		isClusterReady = true
+	}
+
+	state.Ready = types.Bool{
+		Value: isClusterReady,
+	}
+	return state, nil
 }
 
 func (r *ClusterWaiterResource) isClusterReady(clusterId string, ctx context.Context, timeout int64) (*cmv1.Cluster, error) {
@@ -178,4 +197,24 @@ func (r *ClusterWaiterResource) retryClusterReadiness(attempts int, sleep time.D
 	}
 
 	return object, nil
+}
+
+func timeoutValidators() []tfsdk.AttributeValidator {
+	errSumm := "Invalid timeout configuration"
+	return []tfsdk.AttributeValidator{
+		&common.AttributeValidator{
+			Desc: "Timeout must be a positive number",
+			Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse) {
+				timeout := &types.Int64{}
+				diag := req.Config.GetAttribute(ctx, req.AttributePath, timeout)
+				if diag.HasError() {
+					// No attribute to validate
+					return
+				}
+				if !timeout.Null && !timeout.Unknown && timeout.Value <= 0 {
+					resp.Diagnostics.AddError(errSumm, "timeout must be positive")
+				}
+			},
+		},
+	}
 }

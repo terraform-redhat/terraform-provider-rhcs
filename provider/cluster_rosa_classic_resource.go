@@ -954,7 +954,13 @@ func (r *ClusterRosaClassicResource***REMOVED*** Read(ctx context.Context, reque
 
 	// Find the cluster:
 	get, err := r.clusterCollection.Cluster(state.ID.Value***REMOVED***.Get(***REMOVED***.SendContext(ctx***REMOVED***
-	if err != nil {
+	if err != nil && get.Status(***REMOVED*** == http.StatusNotFound {
+		tflog.Warn(ctx, fmt.Sprintf("cluster (%s***REMOVED*** not found, removing from state",
+			state.ID.Value,
+		***REMOVED******REMOVED***
+		response.State.RemoveResource(ctx***REMOVED***
+		return
+	} else if err != nil {
 		response.Diagnostics.AddError(
 			"Can't find cluster",
 			fmt.Sprintf(
@@ -964,6 +970,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** Read(ctx context.Context, reque
 		***REMOVED***
 		return
 	}
+
 	object := get.Body(***REMOVED***
 
 	// Save the state:

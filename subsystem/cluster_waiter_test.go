@@ -105,7 +105,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 	}`
 
 	Context("Create cluster waiter resource", func(***REMOVED*** {
-		BeforeEach(func(***REMOVED*** {
+		It("Create cluster waiter without a timeout", func(***REMOVED*** {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
@@ -113,9 +113,6 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 					RespondWithJSON(http.StatusOK, templateReadyState***REMOVED***,
 				***REMOVED***,
 			***REMOVED***
-***REMOVED******REMOVED***
-
-		It("Create cluster waiter without a timeout", func(***REMOVED*** {
 			terraform.Source(`
 				resource "rhcs_cluster_wait" "rosa_cluster" {
 				  cluster = "123"
@@ -133,11 +130,22 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		***REMOVED***
 			`***REMOVED***
 
-			// it should return a warning so exit code will be "0":
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+			// it should throw an error so exit code will not be "0":
+			Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 
 		It("Create cluster with a positive timeout", func(***REMOVED*** {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					RespondWithJSON(http.StatusOK, templateReadyState***REMOVED***,
+				***REMOVED***,
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					RespondWithJSON(http.StatusOK, templateReadyState***REMOVED***,
+				***REMOVED***,
+			***REMOVED***
 			terraform.Source(`
 				resource "rhcs_cluster_wait" "rosa_cluster" {
 				  cluster = "123"

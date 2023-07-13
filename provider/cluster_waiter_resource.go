@@ -10,6 +10,7 @@ package provider
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 ***REMOVED***
 
 type Waiter interface {
@@ -43,8 +44,9 @@ func (t *ClusterWaiterResourceType***REMOVED*** GetSchema(ctx context.Context***
 			"timeout": {
 				Description: "An optional timeout till the cluster is ready. The timeout value should be in minutes." +
 					" the default value is 60 minutes",
-				Type:     types.Int64Type,
-				Optional: true,
+				Type:       types.Int64Type,
+				Optional:   true,
+				Validators: timeoutValidators(***REMOVED***,
 	***REMOVED***,
 			"ready": {
 				Description: "Whether the cluster is ready",
@@ -81,39 +83,11 @@ func (r *ClusterWaiterResource***REMOVED*** Create(ctx context.Context,
 		return
 	}
 
-	state.Ready = types.Bool{
-		Value: false,
-	}
+	state, err := r.startPolling(ctx, state***REMOVED***
 
-	timeout := defaultTimeoutInMinutes
-	if !state.Timeout.Unknown && !state.Timeout.Null {
-		if state.Timeout.Value <= 0 {
-			response.Diagnostics.AddWarning(nonPositiveTimeoutSummary, fmt.Sprintf(nonPositiveTimeoutFormat, state.Cluster.Value***REMOVED******REMOVED***
-***REMOVED*** else {
-			timeout = state.Timeout.Value
-***REMOVED***
-	}
-
-	// Wait till the cluster is ready:
-	object, err := r.retryClusterReadiness(3, 30*time.Second, state.Cluster.Value, ctx, timeout***REMOVED***
 	if err != nil {
-
-		response.Diagnostics.AddError(
-			"Can't poll cluster state",
-			fmt.Sprintf(
-				"Can't poll state of cluster with identifier '%s': %v",
-				state.Cluster.Value, err,
-			***REMOVED***,
-		***REMOVED***
+		response.Diagnostics.AddError("Can't poll cluster state (create resource***REMOVED***", err.Error(***REMOVED******REMOVED***
 		return
-	}
-	isClusterReady := false
-	if object.State(***REMOVED*** == cmv1.ClusterStateReady {
-		isClusterReady = true
-	}
-
-	state.Ready = types.Bool{
-		Value: isClusterReady,
 	}
 
 	// Save the state:
@@ -128,7 +102,23 @@ func (r *ClusterWaiterResource***REMOVED*** Read(ctx context.Context, request tf
 
 func (r *ClusterWaiterResource***REMOVED*** Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
 	response *tfsdk.UpdateResourceResponse***REMOVED*** {
-	// Do Nothing
+	plan := &ClusterWaiterState{}
+	diags := request.Plan.Get(ctx, plan***REMOVED***
+	_ = request.Plan.Get(ctx, plan***REMOVED***
+	response.Diagnostics.Append(diags...***REMOVED***
+	if response.Diagnostics.HasError(***REMOVED*** {
+		return
+	}
+	state, err := r.startPolling(ctx, plan***REMOVED***
+
+	if err != nil {
+		response.Diagnostics.AddError("Can't poll cluster state (update resource***REMOVED***", err.Error(***REMOVED******REMOVED***
+		return
+	}
+
+	// Save the state:
+	diags = response.State.Set(ctx, state***REMOVED***
+	response.Diagnostics.Append(diags...***REMOVED***
 }
 
 func (r *ClusterWaiterResource***REMOVED*** Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
@@ -139,6 +129,35 @@ func (r *ClusterWaiterResource***REMOVED*** Delete(ctx context.Context, request 
 func (r *ClusterWaiterResource***REMOVED*** ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
 	response *tfsdk.ImportResourceStateResponse***REMOVED*** {
 	// Do Nothing
+}
+
+func (r *ClusterWaiterResource***REMOVED*** startPolling(ctx context.Context, state *ClusterWaiterState***REMOVED*** (*ClusterWaiterState, error***REMOVED*** {
+	state.Ready = types.Bool{
+		Value: false,
+	}
+
+	timeout := defaultTimeoutInMinutes
+	if !state.Timeout.Unknown && !state.Timeout.Null {
+		timeout = state.Timeout.Value
+	}
+
+	// Wait till the cluster is ready:
+	object, err := r.retryClusterReadiness(3, 30*time.Second, state.Cluster.Value, ctx, timeout***REMOVED***
+	if err != nil {
+		return state, fmt.Errorf(
+			"Can't poll state of cluster with identifier '%s': %v",
+			state.Cluster.Value, err,
+		***REMOVED***
+	}
+	isClusterReady := false
+	if object.State(***REMOVED*** == cmv1.ClusterStateReady {
+		isClusterReady = true
+	}
+
+	state.Ready = types.Bool{
+		Value: isClusterReady,
+	}
+	return state, nil
 }
 
 func (r *ClusterWaiterResource***REMOVED*** isClusterReady(clusterId string, ctx context.Context, timeout int64***REMOVED*** (*cmv1.Cluster, error***REMOVED*** {
@@ -178,4 +197,24 @@ func (r *ClusterWaiterResource***REMOVED*** retryClusterReadiness(attempts int, 
 	}
 
 	return object, nil
+}
+
+func timeoutValidators(***REMOVED*** []tfsdk.AttributeValidator {
+	errSumm := "Invalid timeout configuration"
+	return []tfsdk.AttributeValidator{
+		&common.AttributeValidator{
+			Desc: "Timeout must be a positive number",
+			Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse***REMOVED*** {
+				timeout := &types.Int64{}
+				diag := req.Config.GetAttribute(ctx, req.AttributePath, timeout***REMOVED***
+				if diag.HasError(***REMOVED*** {
+					// No attribute to validate
+					return
+		***REMOVED***
+				if !timeout.Null && !timeout.Unknown && timeout.Value <= 0 {
+					resp.Diagnostics.AddError(errSumm, "timeout must be positive"***REMOVED***
+		***REMOVED***
+	***REMOVED***,
+***REMOVED***,
+	}
 }

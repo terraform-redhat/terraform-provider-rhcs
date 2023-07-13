@@ -954,7 +954,13 @@ func (r *ClusterRosaClassicResource) Read(ctx context.Context, request tfsdk.Rea
 
 	// Find the cluster:
 	get, err := r.clusterCollection.Cluster(state.ID.Value).Get().SendContext(ctx)
-	if err != nil {
+	if err != nil && get.Status() == http.StatusNotFound {
+		tflog.Warn(ctx, fmt.Sprintf("cluster (%s) not found, removing from state",
+			state.ID.Value,
+		))
+		response.State.RemoveResource(ctx)
+		return
+	} else if err != nil {
 		response.Diagnostics.AddError(
 			"Can't find cluster",
 			fmt.Sprintf(
@@ -964,6 +970,7 @@ func (r *ClusterRosaClassicResource) Read(ctx context.Context, request tfsdk.Rea
 		)
 		return
 	}
+
 	object := get.Body()
 
 	// Save the state:

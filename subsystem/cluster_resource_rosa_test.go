@@ -381,6 +381,151 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
 	})
 
+	It("Creates basic cluster - and reconcile on a 404", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+				RespondWithJSON(http.StatusOK, versionListPage1),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+				VerifyJQ(`.name`, "my-cluster"),
+				VerifyJQ(`.cloud_provider.id`, "aws"),
+				VerifyJQ(`.region.id`, "us-west-1"),
+				VerifyJQ(`.product.id`, "rosa"),
+				VerifyJQ(`.properties.rosa_tf_version`, build.Version),
+				VerifyJQ(`.properties.rosa_tf_commit`, build.Commit),
+				RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+						}
+					  }
+					}]`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+				}
+			}
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+		resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+		Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
+		Expect(resource).To(MatchJQ(".attributes.id", "123")) // cluster has id 123
+
+		// Prepare the server for reconcile
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusNotFound, "{}"),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+				RespondWithJSON(http.StatusOK, versionListPage1),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+				VerifyJQ(`.name`, "my-cluster"),
+				VerifyJQ(`.cloud_provider.id`, "aws"),
+				VerifyJQ(`.region.id`, "us-west-1"),
+				VerifyJQ(`.product.id`, "rosa"),
+				VerifyJQ(`.properties.rosa_tf_version`, build.Version),
+				VerifyJQ(`.properties.rosa_tf_commit`, build.Commit),
+				RespondWithPatchedJSON(http.StatusCreated, template, `[
+                    {
+                      "op": "replace",
+                      "path": "/id",
+                      "value": "1234"
+                    },
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+						}
+					  }
+					}]`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+				}
+			}
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+		resource = terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+		Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
+		Expect(resource).To(MatchJQ(".attributes.id", "1234")) // reconciled cluster has id of 1234
+	})
+
 	It("Creates basic cluster with properties", func() {
 		prop_key := "my_prop_key"
 		prop_val := "my_prop_val"

@@ -73,7 +73,8 @@ func (m valueCannotBeChangedModifier) Modify(ctx context.Context, req tfsdk.Modi
 
 	// the attribute value was changes
 	tflog.Debug(ctx, "attribute plan was changed")
-	resp.Diagnostics.AddAttributeError(req.AttributePath, "Value cannot be changed", "This attribute is blocked for updating")
-	return
-
+	resp.Diagnostics.AddAttributeError(req.AttributePath,
+		"Value cannot be changed",
+		fmt.Sprintf("%s is blocked for updating", req.AttributePath),
+	)
 }

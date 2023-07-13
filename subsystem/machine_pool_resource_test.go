@@ -432,29 +432,13 @@ var _ = Describe("Machine pool creation", func() {
 				  "id": "my-pool",
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
-                  "replicas": 12,
+				  "replicas": 12,
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
 				  },
 				  "instance_type": "r5.xlarge"
 				}`),
-			),
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-				RespondWithJSON(http.StatusOK, `{
-					"id": "123",
-					"name": "my-cluster",
-					"multi_az": true,
-					"nodes": {
-					  "availability_zones": [
-						"us-east-1a",
-						"us-east-1b",
-						"us-east-1c"
-					  ]
-					},
-					"state": "ready"
-				  }`),
 			),
 			CombineHandlers(
 				VerifyRequest(
@@ -538,22 +522,6 @@ var _ = Describe("Machine pool creation", func() {
 				  },
 				  "instance_type": "r5.xlarge"
 				}`),
-			),
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-				RespondWithJSON(http.StatusOK, `{
-					"id": "123",
-					"name": "my-cluster",
-					"multi_az": true,
-					"nodes": {
-					  "availability_zones": [
-						"us-east-1a",
-						"us-east-1b",
-						"us-east-1c"
-					  ]
-					},
-					"state": "ready"
-				  }`),
 			),
 			CombineHandlers(
 				VerifyRequest(
@@ -714,22 +682,6 @@ var _ = Describe("Machine pool creation", func() {
 				  ],
 				  "instance_type": "r5.xlarge"
 				}`),
-			),
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-				RespondWithJSON(http.StatusOK, `{
-					"id": "123",
-					"name": "my-cluster",
-					"multi_az": true,
-					"nodes": {
-					  "availability_zones": [
-						"us-east-1a",
-						"us-east-1b",
-						"us-east-1c"
-					  ]
-					},
-					"state": "ready"
-				  }`),
 			),
 			CombineHandlers(
 				VerifyRequest(
@@ -930,23 +882,6 @@ var _ = Describe("Machine pool creation", func() {
 				  "instance_type": "r5.xlarge"
 				}`),
 			),
-			// 3rd get is for the Update function az verification
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-				RespondWithJSON(http.StatusOK, `{
-					"id": "123",
-					"name": "my-cluster",
-					"multi_az": true,
-					"nodes": {
-					  "availability_zones": [
-						"us-east-1a",
-						"us-east-1b",
-						"us-east-1c"
-					  ]
-					},
-					"state": "ready"
-				  }`),
-			),
 			CombineHandlers(
 				VerifyRequest(
 					http.MethodPatch,
@@ -1093,22 +1028,6 @@ var _ = Describe("Machine pool creation", func() {
 				  ],
 				  "instance_type": "r5.xlarge"
 				}`),
-			),
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-				RespondWithJSON(http.StatusOK, `{
-					"id": "123",
-					"name": "my-cluster",
-					"multi_az": true,
-					"nodes": {
-					  "availability_zones": [
-						"us-east-1a",
-						"us-east-1b",
-						"us-east-1c"
-					  ]
-					},
-					"state": "ready"
-				  }`),
 			),
 			CombineHandlers(
 				VerifyRequest(
@@ -1881,5 +1800,39 @@ var _ = Describe("Machine pool w/ 1AZ cluster", func() {
 	  }
 		`)
 		Expect(terraform.Apply()).NotTo(BeZero())
+	})
+})
+
+var _ = Describe("Machine pool import", func() {
+	It("Can import a machine pool", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			// Get is for the Read function
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool"),
+				RespondWithJSON(http.StatusOK, `
+				{
+				  "id": "my-pool",
+				  "kind": "MachinePool",
+				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
+				  "replicas": 12,
+				  "labels": {
+				    "label_key1": "label_value1",
+				    "label_key2": "label_value2"
+				  },
+				  "instance_type": "r5.xlarge"
+				}`),
+			),
+		)
+
+		// Run the import command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" { }
+		`)
+		Expect(terraform.Import("rhcs_machine_pool.my_pool", "123,my-pool")).To(BeZero())
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool")
+		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+		Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
+		Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 	})
 })

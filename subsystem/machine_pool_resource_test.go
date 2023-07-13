@@ -432,29 +432,13 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  "id": "my-pool",
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
-                  "replicas": 12,
+				  "replicas": 12,
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
 				  },
 				  "instance_type": "r5.xlarge"
 		***REMOVED***`***REMOVED***,
-			***REMOVED***,
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-				RespondWithJSON(http.StatusOK, `{
-					"id": "123",
-					"name": "my-cluster",
-					"multi_az": true,
-					"nodes": {
-					  "availability_zones": [
-						"us-east-1a",
-						"us-east-1b",
-						"us-east-1c"
-					  ]
-			***REMOVED***,
-					"state": "ready"
-				  }`***REMOVED***,
 			***REMOVED***,
 			CombineHandlers(
 				VerifyRequest(
@@ -538,22 +522,6 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  },
 				  "instance_type": "r5.xlarge"
 		***REMOVED***`***REMOVED***,
-			***REMOVED***,
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-				RespondWithJSON(http.StatusOK, `{
-					"id": "123",
-					"name": "my-cluster",
-					"multi_az": true,
-					"nodes": {
-					  "availability_zones": [
-						"us-east-1a",
-						"us-east-1b",
-						"us-east-1c"
-					  ]
-			***REMOVED***,
-					"state": "ready"
-				  }`***REMOVED***,
 			***REMOVED***,
 			CombineHandlers(
 				VerifyRequest(
@@ -714,22 +682,6 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  ],
 				  "instance_type": "r5.xlarge"
 		***REMOVED***`***REMOVED***,
-			***REMOVED***,
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-				RespondWithJSON(http.StatusOK, `{
-					"id": "123",
-					"name": "my-cluster",
-					"multi_az": true,
-					"nodes": {
-					  "availability_zones": [
-						"us-east-1a",
-						"us-east-1b",
-						"us-east-1c"
-					  ]
-			***REMOVED***,
-					"state": "ready"
-				  }`***REMOVED***,
 			***REMOVED***,
 			CombineHandlers(
 				VerifyRequest(
@@ -930,23 +882,6 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  "instance_type": "r5.xlarge"
 		***REMOVED***`***REMOVED***,
 			***REMOVED***,
-			// 3rd get is for the Update function az verification
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-				RespondWithJSON(http.StatusOK, `{
-					"id": "123",
-					"name": "my-cluster",
-					"multi_az": true,
-					"nodes": {
-					  "availability_zones": [
-						"us-east-1a",
-						"us-east-1b",
-						"us-east-1c"
-					  ]
-			***REMOVED***,
-					"state": "ready"
-				  }`***REMOVED***,
-			***REMOVED***,
 			CombineHandlers(
 				VerifyRequest(
 					http.MethodPatch,
@@ -1093,22 +1028,6 @@ var _ = Describe("Machine pool creation", func(***REMOVED*** {
 				  ],
 				  "instance_type": "r5.xlarge"
 		***REMOVED***`***REMOVED***,
-			***REMOVED***,
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-				RespondWithJSON(http.StatusOK, `{
-					"id": "123",
-					"name": "my-cluster",
-					"multi_az": true,
-					"nodes": {
-					  "availability_zones": [
-						"us-east-1a",
-						"us-east-1b",
-						"us-east-1c"
-					  ]
-			***REMOVED***,
-					"state": "ready"
-				  }`***REMOVED***,
 			***REMOVED***,
 			CombineHandlers(
 				VerifyRequest(
@@ -1881,5 +1800,39 @@ var _ = Describe("Machine pool w/ 1AZ cluster", func(***REMOVED*** {
 	  }
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
+	}***REMOVED***
+}***REMOVED***
+
+var _ = Describe("Machine pool import", func(***REMOVED*** {
+	It("Can import a machine pool", func(***REMOVED*** {
+		// Prepare the server:
+		server.AppendHandlers(
+			// Get is for the Read function
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool"***REMOVED***,
+				RespondWithJSON(http.StatusOK, `
+				{
+				  "id": "my-pool",
+				  "kind": "MachinePool",
+				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
+				  "replicas": 12,
+				  "labels": {
+				    "label_key1": "label_value1",
+				    "label_key2": "label_value2"
+				  },
+				  "instance_type": "r5.xlarge"
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Run the import command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" { }
+		`***REMOVED***
+		Expect(terraform.Import("rhcs_machine_pool.my_pool", "123,my-pool"***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool"***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-pool"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "my-pool"***REMOVED******REMOVED***
 	}***REMOVED***
 }***REMOVED***

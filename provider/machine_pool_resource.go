@@ -22,6 +22,7 @@ package provider
 ***REMOVED***
 ***REMOVED***
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -455,34 +456,11 @@ func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, request tf
 		return
 	}
 
-	// AZ settings can't be changed. We're just calling validate to determine whether it's a multi-AZ pool or not.
-	isMultiAZPool, err := r.validateAZConfig(plan***REMOVED***
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't build machine pool",
-			fmt.Sprintf(
-				"Can't build machine pool for cluster '%s': %v",
-				state.Cluster.Value, err,
-			***REMOVED***,
-		***REMOVED***
-		return
-	}
-
 	computeNodesEnabled := false
 	autoscalingEnabled := false
 
 	if !plan.Replicas.Unknown && !plan.Replicas.Null {
 		computeNodesEnabled = true
-		if isMultiAZPool && plan.Replicas.Value%3 != 0 {
-			response.Diagnostics.AddError(
-				"Can't build machine pool",
-				fmt.Sprintf(
-					"Can't build machine pool for cluster '%s', replicas must be a multiple of 3",
-					state.Cluster.Value,
-				***REMOVED***,
-			***REMOVED***
-			return
-***REMOVED***
 		mpBuilder.Replicas(int(plan.Replicas.Value***REMOVED******REMOVED***
 
 	}
@@ -727,12 +705,19 @@ func (r *MachinePoolResource***REMOVED*** Delete(ctx context.Context, request tf
 
 func (r *MachinePoolResource***REMOVED*** ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
 	response *tfsdk.ImportResourceStateResponse***REMOVED*** {
-	tfsdk.ResourceImportStatePassthroughID(
-		ctx,
-		tftypes.NewAttributePath(***REMOVED***.WithAttributeName("id"***REMOVED***,
-		request,
-		response,
-	***REMOVED***
+	// To import a machine pool, we need to know the cluster ID and the machine pool name
+	fields := strings.Split(request.ID, ","***REMOVED***
+	if len(fields***REMOVED*** != 2 || fields[0] == "" || fields[1] == "" {
+		response.Diagnostics.AddError(
+			"Invalid import identifier",
+			"Machine pool to import should be specified as <cluster_id>,<machine_pool_name>",
+		***REMOVED***
+		return
+	}
+	clusterID := fields[0]
+	machinePoolName := fields[1]
+	response.Diagnostics.Append(response.State.SetAttribute(ctx, tftypes.NewAttributePath(***REMOVED***.WithAttributeName("cluster"***REMOVED***, clusterID***REMOVED***...***REMOVED***
+	response.Diagnostics.Append(response.State.SetAttribute(ctx, tftypes.NewAttributePath(***REMOVED***.WithAttributeName("id"***REMOVED***, machinePoolName***REMOVED***...***REMOVED***
 }
 
 // populateState copies the data from the API object to the Terraform state.
@@ -772,8 +757,8 @@ func (r *MachinePoolResource***REMOVED*** populateState(object *cmv1.MachinePool
 	***REMOVED***
 ***REMOVED***
 	} else {
-		state.MaxReplicas.Null = true
-		state.MinReplicas.Null = true
+		state.MaxReplicas = types.Int64{Null: true}
+		state.MinReplicas = types.Int64{Null: true}
 	}
 
 	instanceType, ok := object.GetInstanceType(***REMOVED***

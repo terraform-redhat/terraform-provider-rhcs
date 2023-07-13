@@ -73,7 +73,8 @@ func (m valueCannotBeChangedModifier***REMOVED*** Modify(ctx context.Context, re
 
 	// the attribute value was changes
 	tflog.Debug(ctx, "attribute plan was changed"***REMOVED***
-	resp.Diagnostics.AddAttributeError(req.AttributePath, "Value cannot be changed", "This attribute is blocked for updating"***REMOVED***
-	return
-
+	resp.Diagnostics.AddAttributeError(req.AttributePath,
+		"Value cannot be changed",
+		fmt.Sprintf("%s is blocked for updating", req.AttributePath***REMOVED***,
+	***REMOVED***
 }

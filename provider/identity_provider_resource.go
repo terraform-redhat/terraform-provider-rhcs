@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -581,10 +582,62 @@ func (r *IdentityProviderResource) Delete(ctx context.Context, request tfsdk.Del
 
 func (r *IdentityProviderResource) ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
 	response *tfsdk.ImportResourceStateResponse) {
-	tfsdk.ResourceImportStatePassthroughID(
-		ctx,
-		tftypes.NewAttributePath().WithAttributeName("id"),
-		request,
-		response,
-	)
+	// To import an identity provider, we need to know the cluster ID and the provider name.
+	fields := strings.Split(request.ID, ",")
+	if len(fields) != 2 || fields[0] == "" || fields[1] == "" {
+		response.Diagnostics.AddError(
+			"Invalid import identifier",
+			"Identity provider to import should be specified as <cluster_id>,<provider_name>",
+		)
+		return
+	}
+	clusterID := fields[0]
+	providerName := fields[1]
+
+	client := r.collection.Cluster(clusterID)
+	providerID, err := getIDPIDFromName(ctx, client, providerName)
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't import identity provider",
+			err.Error(),
+		)
+		return
+	}
+	response.Diagnostics.Append(response.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("cluster"), clusterID)...)
+	response.Diagnostics.Append(response.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("id"), providerID)...)
+}
+
+// getIDPIDFromName returns the ID of the identity provider with the given name.
+func getIDPIDFromName(ctx context.Context, client *cmv1.ClusterClient, name string) (string, error) {
+	tflog.Debug(ctx, "Converting IDP name to ID", "name", name)
+	// Get the list of identity providers for the cluster:
+	pClient := client.IdentityProviders()
+	identityProviders := []*cmv1.IdentityProvider{}
+	page := 1
+	size := 100
+	for {
+		resp, err := pClient.List().
+			Page(page).
+			Size(size).
+			SendContext(ctx)
+		if err != nil {
+			return "", fmt.Errorf("failed to list identity providers: %v", err)
+		}
+		identityProviders = append(identityProviders, resp.Items().Slice()...)
+		if resp.Size() < size {
+			break
+		}
+		page++
+	}
+
+	// Find the identity provider with the given name
+	for _, item := range identityProviders {
+		if item.Name() == name {
+			id := item.ID()
+			tflog.Debug(ctx, "Found IDP", "name", name, "id", id)
+			return id, nil
+		}
+	}
+
+	return "", fmt.Errorf("identity provider '%s' not found", name)
 }

@@ -20,6 +20,7 @@ package provider
 	"context"
 ***REMOVED***
 ***REMOVED***
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -581,10 +582,62 @@ func (r *IdentityProviderResource***REMOVED*** Delete(ctx context.Context, reque
 
 func (r *IdentityProviderResource***REMOVED*** ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
 	response *tfsdk.ImportResourceStateResponse***REMOVED*** {
-	tfsdk.ResourceImportStatePassthroughID(
-		ctx,
-		tftypes.NewAttributePath(***REMOVED***.WithAttributeName("id"***REMOVED***,
-		request,
-		response,
-	***REMOVED***
+	// To import an identity provider, we need to know the cluster ID and the provider name.
+	fields := strings.Split(request.ID, ","***REMOVED***
+	if len(fields***REMOVED*** != 2 || fields[0] == "" || fields[1] == "" {
+		response.Diagnostics.AddError(
+			"Invalid import identifier",
+			"Identity provider to import should be specified as <cluster_id>,<provider_name>",
+		***REMOVED***
+		return
+	}
+	clusterID := fields[0]
+	providerName := fields[1]
+
+	client := r.collection.Cluster(clusterID***REMOVED***
+	providerID, err := getIDPIDFromName(ctx, client, providerName***REMOVED***
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't import identity provider",
+			err.Error(***REMOVED***,
+		***REMOVED***
+		return
+	}
+	response.Diagnostics.Append(response.State.SetAttribute(ctx, tftypes.NewAttributePath(***REMOVED***.WithAttributeName("cluster"***REMOVED***, clusterID***REMOVED***...***REMOVED***
+	response.Diagnostics.Append(response.State.SetAttribute(ctx, tftypes.NewAttributePath(***REMOVED***.WithAttributeName("id"***REMOVED***, providerID***REMOVED***...***REMOVED***
+}
+
+// getIDPIDFromName returns the ID of the identity provider with the given name.
+func getIDPIDFromName(ctx context.Context, client *cmv1.ClusterClient, name string***REMOVED*** (string, error***REMOVED*** {
+	tflog.Debug(ctx, "Converting IDP name to ID", "name", name***REMOVED***
+	// Get the list of identity providers for the cluster:
+	pClient := client.IdentityProviders(***REMOVED***
+	identityProviders := []*cmv1.IdentityProvider{}
+	page := 1
+	size := 100
+	for {
+		resp, err := pClient.List(***REMOVED***.
+			Page(page***REMOVED***.
+			Size(size***REMOVED***.
+			SendContext(ctx***REMOVED***
+		if err != nil {
+			return "", fmt.Errorf("failed to list identity providers: %v", err***REMOVED***
+***REMOVED***
+		identityProviders = append(identityProviders, resp.Items(***REMOVED***.Slice(***REMOVED***...***REMOVED***
+		if resp.Size(***REMOVED*** < size {
+			break
+***REMOVED***
+		page++
+	}
+
+	// Find the identity provider with the given name
+	for _, item := range identityProviders {
+		if item.Name(***REMOVED*** == name {
+			id := item.ID(***REMOVED***
+			tflog.Debug(ctx, "Found IDP", "name", name, "id", id***REMOVED***
+			return id, nil
+***REMOVED***
+	}
+
+	return "", fmt.Errorf("identity provider '%s' not found", name***REMOVED***
 }

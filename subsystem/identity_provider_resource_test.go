@@ -953,3 +953,117 @@ var _ = Describe("Identity provider creation", func() {
 		})
 	})
 })
+
+var _ = Describe("Identity provider import", func() {
+	It("Can import an identity provider", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			// List IDPs to map name to ID:
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodGet,
+					"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+				),
+				RespondWithJSON(http.StatusOK, `{
+					"kind": "IdentityProviderList",
+					"href": "/api/clusters_mgmt/v1/clusters/24vg6o424djht8h6lpoli2urg69t7vnt/identity_providers",
+					"page": 1,
+					"size": 1,
+					"total": 1,
+					"items": [
+						{
+						"kind": "IdentityProvider",
+						"type": "GithubIdentityProvider",
+						"href": "/api/clusters_mgmt/v1/clusters/24vg6o424djht8h6lpoli2urg69t7vnt/identity_providers/24vgs9hgnl5bukujvkcmgkvfgc01ss0r",
+						"id": "24vgs9hgnl5bukujvkcmgkvfgc01ss0r",
+						"name": "my-ip",
+						"mapping_method": "claim",
+						"github": {
+							"client_id": "99999",
+							"organizations": [
+								"myorg"
+							]
+						}
+						}
+					]
+				}`),
+			),
+			// Read the IDP to load the current state:
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodGet,
+					"/api/clusters_mgmt/v1/clusters/123/identity_providers/24vgs9hgnl5bukujvkcmgkvfgc01ss0r",
+				),
+				RespondWithJSON(http.StatusOK, `{
+					"kind": "IdentityProvider",
+					"type": "GithubIdentityProvider",
+					"href": "/api/clusters_mgmt/v1/clusters/24vg6o424djht8h6lpoli2urg69t7vnt/identity_providers/24vgs9hgnl5bukujvkcmgkvfgc01ss0r",
+					"id": "24vgs9hgnl5bukujvkcmgkvfgc01ss0r",
+					"name": "my-ip",
+					"mapping_method": "claim",
+					"github": {
+						"client_id": "99999",
+						"organizations": [
+							"myorg"
+						]
+					}
+				}`),
+			),
+		)
+
+		terraform.Source(`
+			resource "rhcs_identity_provider" "my-ip" {
+				# (resource arguments)
+			}
+		`)
+
+		Expect(terraform.Import("rhcs_identity_provider.my-ip", "123,my-ip")).To(BeZero())
+		resource := terraform.Resource("rhcs_identity_provider", "my-ip")
+		Expect(resource).To(MatchJQ(".attributes.name", "my-ip"))
+		Expect(resource).To(MatchJQ(".attributes.github.client_id", "99999"))
+	})
+
+	It("Is an error if the identity provider isn't found", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			// List IDPs to map name to ID:
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodGet,
+					"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+				),
+				RespondWithJSON(http.StatusOK, `{
+					"kind": "IdentityProviderList",
+					"href": "/api/clusters_mgmt/v1/clusters/24vg6o424djht8h6lpoli2urg69t7vnt/identity_providers",
+					"page": 1,
+					"size": 1,
+					"total": 1,
+					"items": [
+						{
+						"kind": "IdentityProvider",
+						"type": "GithubIdentityProvider",
+						"href": "/api/clusters_mgmt/v1/clusters/24vg6o424djht8h6lpoli2urg69t7vnt/identity_providers/24vgs9hgnl5bukujvkcmgkvfgc01ss0r",
+						"id": "24vgs9hgnl5bukujvkcmgkvfgc01ss0r",
+						"name": "my-ip",
+						"mapping_method": "claim",
+						"github": {
+							"client_id": "99999",
+							"organizations": [
+								"myorg"
+							]
+						}
+						}
+					]
+				}`),
+			),
+		)
+
+		terraform.Source(`
+			resource "rhcs_identity_provider" "my-ip" {
+				# (resource arguments)
+			}
+		`)
+
+		Expect(terraform.Import("rhcs_identity_provider.my-ip", "123,notfound")).NotTo(BeZero())
+	})
+})

@@ -189,7 +189,7 @@ The example Terraform files are all considered in development and should not be 
 * **Required**: [Account Roles Terraform](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/main/examples/create_account_roles/***REMOVED***
 
 ### Creating a ROSA cluster
-* [Create a ROSA cluster that usess STS and has a managed OIDC configuration](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/main/examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/***REMOVED***
+* [Create a ROSA cluster that uses STS and has a managed OIDC configuration](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/main/examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/***REMOVED***
 * [Create a ROSA cluster that uses STS and has an unmanaged OIDC configuration](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/main/examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/***REMOVED***
 
 ### After creating a cluster

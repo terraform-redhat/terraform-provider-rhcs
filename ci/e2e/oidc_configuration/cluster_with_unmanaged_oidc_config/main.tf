@@ -36,6 +36,12 @@ resource "rhcs_rosa_oidc_config_input" "oidc_input" {
   region = var.aws_region
 }
 
+provider "aws" {
+  access_key = var.aws_access_key
+  secret_key = var.aws_secret_key
+  region     = var.aws_region
+}
+
 # Create the OIDC config resources on AWS
 module "oidc_config_input_resources" {
   source  = "terraform-redhat/rosa-sts/aws"

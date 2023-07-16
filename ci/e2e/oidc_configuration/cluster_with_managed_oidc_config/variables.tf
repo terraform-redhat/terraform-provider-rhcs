@@ -8,15 +8,11 @@ variable url {
     default = "https://api.stage.openshift.com"
 }
 
-variable operator_role_prefix {
+variable aws_access_key {
     type = string
 }
 
-variable account_role_prefix {
-    type = string
-}
-
-variable cluster_name {
+variable aws_secret_key {
     type = string
 }
 
@@ -28,6 +24,18 @@ variable aws_region {
 variable aws_availability_zones {
     type      = list(string***REMOVED***
     default = ["us-east-1a"]
+}
+
+variable operator_role_prefix {
+    type = string
+}
+
+variable account_role_prefix {
+    type = string
+}
+
+variable cluster_name {
+    type = string
 }
 
 variable replicas {

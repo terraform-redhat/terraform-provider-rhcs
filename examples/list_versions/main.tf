@@ -24,12 +24,9 @@ terraform {
 }
 
 provider "rhcs" {
+  token = var.token
+  url   = var.url
 }
 
 data "rhcs_versions" "all" {
-}
-
-output "versions" {
-  description = "OpenShift versions"
-  value       = data.rhcs_versions.all
 }

@@ -73,7 +73,7 @@ unit-test:
 	ginkgo run \
 		--succinct \
 		-ldflags="$(ldflags)" \
-		-r provider
+		-r provider internal/...
 
 .PHONY: test tests
 test tests: unit-test subsystem-test

@@ -200,11 +200,13 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Description: "Minimum replicas.",
 				Type:        types.Int64Type,
 				Optional:    true,
+				Computed:    true,
 			},
 			"max_replicas": {
 				Description: "Maximum replicas.",
 				Type:        types.Int64Type,
 				Optional:    true,
+				Computed:    true,
 			},
 			"api_url": {
 				Description: "URL of the API server.",
@@ -501,9 +503,8 @@ func createClassicClusterObject(ctx context.Context,
 	builder.CloudProvider(cmv1.NewCloudProvider().ID(awsCloudProvider))
 	builder.Product(cmv1.NewProduct().ID(rosaProduct))
 	builder.Region(cmv1.NewCloudRegion().ID(state.CloudRegion.Value))
-	if !state.MultiAZ.Unknown && !state.MultiAZ.Null {
-		builder.MultiAZ(state.MultiAZ.Value)
-	}
+	multiAZ := common.Bool(state.MultiAZ)
+	builder.MultiAZ(multiAZ)
 	// Set default properties
 	properties := make(map[string]string)
 	for k, v := range OCMProperties {
@@ -529,9 +530,6 @@ func createClassicClusterObject(ctx context.Context,
 	}
 
 	nodes := cmv1.NewClusterNodes()
-	if !state.Replicas.Unknown && !state.Replicas.Null {
-		nodes.Compute(int(state.Replicas.Value))
-	}
 	if !state.ComputeMachineType.Unknown && !state.ComputeMachineType.Null {
 		nodes.ComputeMachineType(
 			cmv1.NewMachineType().ID(state.ComputeMachineType.Value),
@@ -554,17 +552,45 @@ func createClassicClusterObject(ctx context.Context,
 		nodes.AvailabilityZones(azs...)
 	}
 
-	if !state.AutoScalingEnabled.Unknown && !state.AutoScalingEnabled.Null && state.AutoScalingEnabled.Value {
+	replicas := common.OptionalInt64(state.Replicas)
+	minReplicas := common.OptionalInt64(state.MinReplicas)
+	maxReplicas := common.OptionalInt64(state.MaxReplicas)
+
+	if common.Bool(state.AutoScalingEnabled) {
+		if replicas != nil {
+			return nil, errors.New("When autoscaling is enabled, replicas should not be configured")
+		}
+
 		autoscaling := cmv1.NewMachinePoolAutoscaling()
-		if !state.MaxReplicas.Unknown && !state.MaxReplicas.Null {
-			autoscaling.MaxReplicas(int(state.MaxReplicas.Value))
+		minReplicasVal := int64(2)
+		if minReplicas == nil {
+			minReplicasVal = *minReplicas
 		}
-		if !state.MinReplicas.Unknown && !state.MinReplicas.Null {
-			autoscaling.MinReplicas(int(state.MinReplicas.Value))
+		if err := minReplicasValidator(minReplicasVal, multiAZ); err != nil {
+			return nil, err
 		}
+		autoscaling.MinReplicas(int(minReplicasVal))
+		maxReplicasVal := int64(2)
+		if maxReplicas != nil {
+			maxReplicasVal = *maxReplicas
+		}
+		if err := maxReplicasValidator(minReplicasVal, maxReplicasVal, multiAZ); err != nil {
+			return nil, err
+		}
+		autoscaling.MaxReplicas(int(maxReplicasVal))
 		if !autoscaling.Empty() {
 			nodes.AutoscaleCompute(autoscaling)
 		}
+	} else {
+		if maxReplicas != nil || maxReplicas != nil {
+			return nil, errors.New("Autoscaling must be enabled in order to set min and max replicas")
+		}
+
+		replicasVal := int64(2)
+		if replicas != nil {
+			replicasVal = *replicas
+		}
+		nodes.Compute(int(replicasVal))
 	}
 
 	if !nodes.Empty() {
@@ -744,6 +770,35 @@ func createClassicClusterObject(ctx context.Context,
 
 	object, err := builder.Build()
 	return object, err
+}
+
+func minReplicasValidator(minReplicas int64, multiAZ bool) error {
+	if minReplicas <= 0 {
+		return fmt.Errorf("min_replicas must be greater than zero")
+	}
+
+	if multiAZ {
+		if minReplicas < 3 {
+			return fmt.Errorf("Multi AZ cluster requires at least 3 compute nodes")
+		}
+		if minReplicas%3 != 0 {
+			return fmt.Errorf("Multi AZ clusters require that the number of compute nodes be a multiple of 3")
+		}
+	} else if minReplicas < 2 {
+		return fmt.Errorf("Cluster requires at least 2 compute nodes")
+	}
+	return nil
+}
+
+func maxReplicasValidator(minReplicas int64, maxReplicas int64, multiAZ bool) error {
+	if minReplicas > maxReplicas {
+		return fmt.Errorf("max_replicas must be greater or equal to min_replicas")
+	}
+
+	if multiAZ && maxReplicas%3 != 0 {
+		return fmt.Errorf("Multi AZ clusters require that the number of compute nodes be a multiple of 3")
+	}
+	return nil
 }
 
 func buildProxy(state *ClusterRosaClassicState, builder *cmv1.ClusterBuilder) (*cmv1.ClusterBuilder, error) {

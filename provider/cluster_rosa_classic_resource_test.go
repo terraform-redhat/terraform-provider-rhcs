@@ -138,9 +138,6 @@ func generateBasicRosaClassicClusterState() *ClusterRosaClassicState {
 				types.String{
 					Value: availabilityZone1,
 				},
-				types.String{
-					Value: availabilityZone2,
-				},
 			},
 		},
 		Properties: types.Map{
@@ -164,7 +161,10 @@ func generateBasicRosaClassicClusterState() *ClusterRosaClassicState {
 				Value: httpsProxy,
 			},
 		},
-		Sts: &Sts{},
+		Sts:         &Sts{},
+		Replicas:    types.Int64{Value: 2},
+		MinReplicas: types.Int64{Unknown: true},
+		MaxReplicas: types.Int64{Unknown: true},
 	}
 }
 
@@ -184,9 +184,8 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 			Expect(rosaClusterObject.AWS().AccountID()).To(Equal(awsAccountID))
 
 			availabilityZones := rosaClusterObject.Nodes().AvailabilityZones()
-			Expect(availabilityZones).To(HaveLen(2))
+			Expect(availabilityZones).To(HaveLen(1))
 			Expect(availabilityZones[0]).To(Equal(availabilityZone1))
-			Expect(availabilityZones[1]).To(Equal(availabilityZone2))
 
 			Expect(rosaClusterObject.Proxy().HTTPProxy()).To(Equal(httpProxy))
 			Expect(rosaClusterObject.Proxy().HTTPSProxy()).To(Equal(httpsProxy))

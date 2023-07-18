@@ -1960,7 +1960,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					{
 						"op": "add",
 						"path": "/availability_zones",
-						"value": ["az1", "az2", "az3"]
+						"value": ["az1"]
 					},
 					{
 					  "op": "add",
@@ -1981,7 +1981,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
-			availability_zones = ["az1","az2","az3"]
+			availability_zones = ["az1"]
 			aws_private_link = true
 			aws_subnet_ids = [
 				"id1", "id2", "id3"

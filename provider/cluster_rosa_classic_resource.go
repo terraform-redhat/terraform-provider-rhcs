@@ -36,6 +36,7 @@ package provider
 
 	"github.com/openshift/rosa/pkg/ocm"
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
+	"github.com/terraform-redhat/terraform-provider-rhcs/internal/ocm/resource"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/idps"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/upgrade"
@@ -484,7 +485,8 @@ const (
 func createClassicClusterObject(ctx context.Context,
 	state *ClusterRosaClassicState, diags diag.Diagnostics***REMOVED*** (*cmv1.Cluster, error***REMOVED*** {
 
-	builder := cmv1.NewCluster(***REMOVED***
+	ocmClusterResource := resource.NewCluster(***REMOVED***
+	builder := ocmClusterResource.GetClusterBuilder(***REMOVED***
 	clusterName := state.Name.Value
 	if len(clusterName***REMOVED*** > maxClusterNameLength {
 		errDescription := fmt.Sprintf("Expected a valid value for 'name' maximum of 15 characters in length. Provided Cluster name '%s' is of length '%d'",
@@ -529,72 +531,17 @@ func createClassicClusterObject(ctx context.Context,
 		builder.DisableUserWorkloadMonitoring(state.DisableWorkloadMonitoring.Value***REMOVED***
 	}
 
-	nodes := cmv1.NewClusterNodes(***REMOVED***
-	if !state.ComputeMachineType.Unknown && !state.ComputeMachineType.Null {
-		nodes.ComputeMachineType(
-			cmv1.NewMachineType(***REMOVED***.ID(state.ComputeMachineType.Value***REMOVED***,
-		***REMOVED***
-	}
-
-	if !state.DefaultMPLabels.Unknown && !state.DefaultMPLabels.Null {
-		labels := map[string]string{}
-		for k, v := range state.DefaultMPLabels.Elems {
-			labels[k] = v.(types.String***REMOVED***.Value
-***REMOVED***
-		nodes.ComputeLabels(labels***REMOVED***
-	}
-
-	if !state.AvailabilityZones.Unknown && !state.AvailabilityZones.Null {
-		azs := make([]string, 0***REMOVED***
-		for _, e := range state.AvailabilityZones.Elems {
-			azs = append(azs, e.(types.String***REMOVED***.Value***REMOVED***
-***REMOVED***
-		nodes.AvailabilityZones(azs...***REMOVED***
-	}
-
+	autoScalingEnabled := common.Bool(state.AutoScalingEnabled***REMOVED***
 	replicas := common.OptionalInt64(state.Replicas***REMOVED***
 	minReplicas := common.OptionalInt64(state.MinReplicas***REMOVED***
 	maxReplicas := common.OptionalInt64(state.MaxReplicas***REMOVED***
+	computeMachineType := common.OptionalString(state.ComputeMachineType***REMOVED***
+	labels := common.OptionalMap(state.DefaultMPLabels***REMOVED***
+	availabilityZones := common.OptionalList(state.AvailabilityZones***REMOVED***
 
-	if common.Bool(state.AutoScalingEnabled***REMOVED*** {
-		if replicas != nil {
-			return nil, errors.New("When autoscaling is enabled, replicas should not be configured"***REMOVED***
-***REMOVED***
-
-		autoscaling := cmv1.NewMachinePoolAutoscaling(***REMOVED***
-		minReplicasVal := int64(2***REMOVED***
-		if minReplicas == nil {
-			minReplicasVal = *minReplicas
-***REMOVED***
-		if err := minReplicasValidator(minReplicasVal, multiAZ***REMOVED***; err != nil {
-			return nil, err
-***REMOVED***
-		autoscaling.MinReplicas(int(minReplicasVal***REMOVED******REMOVED***
-		maxReplicasVal := int64(2***REMOVED***
-		if maxReplicas != nil {
-			maxReplicasVal = *maxReplicas
-***REMOVED***
-		if err := maxReplicasValidator(minReplicasVal, maxReplicasVal, multiAZ***REMOVED***; err != nil {
-			return nil, err
-***REMOVED***
-		autoscaling.MaxReplicas(int(maxReplicasVal***REMOVED******REMOVED***
-		if !autoscaling.Empty(***REMOVED*** {
-			nodes.AutoscaleCompute(autoscaling***REMOVED***
-***REMOVED***
-	} else {
-		if maxReplicas != nil || maxReplicas != nil {
-			return nil, errors.New("Autoscaling must be enabled in order to set min and max replicas"***REMOVED***
-***REMOVED***
-
-		replicasVal := int64(2***REMOVED***
-		if replicas != nil {
-			replicasVal = *replicas
-***REMOVED***
-		nodes.Compute(int(replicasVal***REMOVED******REMOVED***
-	}
-
-	if !nodes.Empty(***REMOVED*** {
-		builder.Nodes(nodes***REMOVED***
+	if err := ocmClusterResource.CreateNodes(ctx, autoScalingEnabled, replicas, minReplicas, maxReplicas,
+		computeMachineType, labels, availabilityZones, multiAZ***REMOVED***; err != nil {
+		return nil, err
 	}
 
 	// ccs should be enabled in ocm rosa clusters
@@ -770,35 +717,6 @@ func createClassicClusterObject(ctx context.Context,
 
 	object, err := builder.Build(***REMOVED***
 	return object, err
-}
-
-func minReplicasValidator(minReplicas int64, multiAZ bool***REMOVED*** error {
-	if minReplicas <= 0 {
-		return fmt.Errorf("min_replicas must be greater than zero"***REMOVED***
-	}
-
-	if multiAZ {
-		if minReplicas < 3 {
-			return fmt.Errorf("Multi AZ cluster requires at least 3 compute nodes"***REMOVED***
-***REMOVED***
-		if minReplicas%3 != 0 {
-			return fmt.Errorf("Multi AZ clusters require that the number of compute nodes be a multiple of 3"***REMOVED***
-***REMOVED***
-	} else if minReplicas < 2 {
-		return fmt.Errorf("Cluster requires at least 2 compute nodes"***REMOVED***
-	}
-	return nil
-}
-
-func maxReplicasValidator(minReplicas int64, maxReplicas int64, multiAZ bool***REMOVED*** error {
-	if minReplicas > maxReplicas {
-		return fmt.Errorf("max_replicas must be greater or equal to min_replicas"***REMOVED***
-	}
-
-	if multiAZ && maxReplicas%3 != 0 {
-		return fmt.Errorf("Multi AZ clusters require that the number of compute nodes be a multiple of 3"***REMOVED***
-	}
-	return nil
 }
 
 func buildProxy(state *ClusterRosaClassicState, builder *cmv1.ClusterBuilder***REMOVED*** (*cmv1.ClusterBuilder, error***REMOVED*** {

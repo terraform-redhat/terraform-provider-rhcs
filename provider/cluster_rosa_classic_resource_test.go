@@ -138,9 +138,6 @@ func generateBasicRosaClassicClusterState(***REMOVED*** *ClusterRosaClassicState
 				types.String{
 					Value: availabilityZone1,
 		***REMOVED***,
-				types.String{
-					Value: availabilityZone2,
-		***REMOVED***,
 	***REMOVED***,
 ***REMOVED***,
 		Properties: types.Map{
@@ -164,7 +161,10 @@ func generateBasicRosaClassicClusterState(***REMOVED*** *ClusterRosaClassicState
 				Value: httpsProxy,
 	***REMOVED***,
 ***REMOVED***,
-		Sts: &Sts{},
+		Sts:         &Sts{},
+		Replicas:    types.Int64{Value: 2},
+		MinReplicas: types.Int64{Unknown: true},
+		MaxReplicas: types.Int64{Unknown: true},
 	}
 }
 
@@ -184,9 +184,8 @@ var _ = Describe("Rosa Classic Sts cluster", func(***REMOVED*** {
 			Expect(rosaClusterObject.AWS(***REMOVED***.AccountID(***REMOVED******REMOVED***.To(Equal(awsAccountID***REMOVED******REMOVED***
 
 			availabilityZones := rosaClusterObject.Nodes(***REMOVED***.AvailabilityZones(***REMOVED***
-			Expect(availabilityZones***REMOVED***.To(HaveLen(2***REMOVED******REMOVED***
+			Expect(availabilityZones***REMOVED***.To(HaveLen(1***REMOVED******REMOVED***
 			Expect(availabilityZones[0]***REMOVED***.To(Equal(availabilityZone1***REMOVED******REMOVED***
-			Expect(availabilityZones[1]***REMOVED***.To(Equal(availabilityZone2***REMOVED******REMOVED***
 
 			Expect(rosaClusterObject.Proxy(***REMOVED***.HTTPProxy(***REMOVED******REMOVED***.To(Equal(httpProxy***REMOVED******REMOVED***
 			Expect(rosaClusterObject.Proxy(***REMOVED***.HTTPSProxy(***REMOVED******REMOVED***.To(Equal(httpsProxy***REMOVED******REMOVED***

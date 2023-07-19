@@ -10,6 +10,7 @@ variable openshift_version {
 
 variable account_role_prefix {
     type = string
+    default = ""
 }
 
 variable token {

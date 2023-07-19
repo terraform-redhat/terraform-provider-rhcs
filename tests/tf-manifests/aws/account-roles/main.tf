@@ -5,7 +5,7 @@ terraform {
       version = ">= 4.20.0"
     }
     rhcs = {
-      version = ">= 0.0.1"
+      version = ">= 1.1.0"
       source  = "terraform.local/local/rhcs"
     }
   }
@@ -20,7 +20,7 @@ data "rhcs_policies" "all_policies"{}
 
 module "create_account_roles"{
   source = "terraform-redhat/rosa-sts/aws"
-  version = "0.0.11"
+  version = ">= 0.0.12"
 
   create_operator_roles = false
   create_oidc_provider = false

@@ -5,7 +5,7 @@ terraform {
       version = ">= 4.20.0"
     }
     rhcs = {
-      version = ">= 1.0.1"
+      version = ">= 1.1.0"
       source  = "terraform.local/local/rhcs"
     }
   }
@@ -61,7 +61,7 @@ resource "rhcs_rosa_oidc_config_input" "oidc_input" {
 module "oidc_config_input_resources" {
   count   = var.oidc_config == "un-managed" ? 1 : 0
   source  = "terraform-redhat/rosa-sts/aws"
-  version = "0.0.11"
+  version = ">= 0.0.12"
 
   create_oidc_config_resources = var.oidc_config == "un-managed"
 
@@ -90,7 +90,7 @@ data "rhcs_rosa_operator_roles" "operator_roles" {
 module "operator_roles_and_oidc_provider" {
   count   = var.oidc_config == null ? 0 : 1
   source  = "terraform-redhat/rosa-sts/aws"
-  version = "0.0.11"
+  version = ">= 0.0.12"
 
   create_operator_roles = true
   create_oidc_provider  = true
@@ -175,7 +175,7 @@ resource "rhcs_cluster_wait" "rosa_cluster" {
 
 module "operator_roles" {
   source  = "terraform-redhat/rosa-sts/aws"
-  version = "0.0.11"
+  version = ">= 0.0.12"
 
   create_operator_roles = true
   create_oidc_provider  = var.oidc_config == null ? true : false

@@ -167,8 +167,7 @@ variable "oidc_config"{
   default = null
   
   validation {
-    condition = contains(["managed","unmanaged"], var.oidc_config***REMOVED***
-    error_message = "oidc_config only allows to be managed, unmanaged or null"
+    condition = contains(["managed","un-managed"], var.oidc_config***REMOVED***
+    error_message = "oidc_config only allows to be managed, un-managed or null"
   }
 }
-

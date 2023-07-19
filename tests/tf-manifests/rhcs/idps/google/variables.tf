@@ -4,7 +4,7 @@ variable "token" {
 }
 variable "gateway" {
   type    = string
-  default = "https://api.openshift.com" // default to production env. Once run on another gateway, set it 
+  default = "https://api.stage.openshift.com"
 }
 // Shared by all of the IDPs
 variable "cluster_id" {

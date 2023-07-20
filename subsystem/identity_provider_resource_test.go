@@ -25,6 +25,9 @@ import (
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
 )
 
+const htpasswdValidPass = "123PasS8901234"
+const htpasswdInValidPass = "my-pass"
+
 var _ = Describe("Identity provider creation", func() {
 
 	Context("Idebtity Provider Failure", func() {
@@ -48,7 +51,7 @@ var _ = Describe("Identity provider creation", func() {
 	    	    name    = "my-ip"
 	    	    htpasswd = {
 	    	      username = "my-user"
-	    	      password = "my-password"
+	    	      password = "` + htpasswdValidPass + `"
 	    	    }
 	    	  }
 	    	`)
@@ -95,7 +98,7 @@ var _ = Describe("Identity provider creation", func() {
                       "mapping_method": "claim",
 			    	  "name": "my-ip",
 			    	  "htpasswd": {
-			    	    "password": "my-password",
+                        "password": "`+htpasswdValidPass+`",
 			    	    "username": "my-user"
 			    	  }
 			    	}`),
@@ -117,7 +120,7 @@ var _ = Describe("Identity provider creation", func() {
 	    	    name    = "my-ip"
 	    	    htpasswd = {
 	    	      username = "my-user"
-	    	      password = "my-password"
+	    	      password = "` + htpasswdValidPass + `"
 	    	    }
 	    	  }
 	    	`)
@@ -139,6 +142,7 @@ var _ = Describe("Identity provider creation", func() {
 			    	  "name": "my-ip",
 			    	  "htpasswd": {
 			    	    "password": "my-password",
+                        "password": "`+htpasswdValidPass+`",
 			    	    "username": "my-user"
 			    	  }
 			    	}`),
@@ -160,7 +164,7 @@ var _ = Describe("Identity provider creation", func() {
 	    	    name    = "my-ip"
 	    	    htpasswd = {
 	    	      username = "my-user"
-	    	      password = "my-password"
+	    	      password = "` + htpasswdValidPass + `"
 	    	    }
 	    	  }
 	    	`)
@@ -203,7 +207,7 @@ var _ = Describe("Identity provider creation", func() {
                       "mapping_method": "claim",
 			    	  "name": "my-ip",
 			    	  "htpasswd": {
-			    	    "password": "my-password",
+                        "password": "`+htpasswdValidPass+`",
 			    	    "username": "my-user"
 			    	  }
 			    	}`),
@@ -225,7 +229,7 @@ var _ = Describe("Identity provider creation", func() {
 	    	    name    = "my-ip"
 	    	    htpasswd = {
 	    	      username = "my-user"
-	    	      password = "my-password"
+	    	      password = "` + htpasswdValidPass + `"
 	    	    }
 	    	  }
 	    	`)
@@ -945,7 +949,22 @@ var _ = Describe("Identity provider creation", func() {
                 mapping_method = "invalid"
     		    htpasswd = {
     		      username = "my-user"
-    		      password = "my-password"
+	    	      password = "` + htpasswdValidPass + `"
+    		    }
+    		  }
+    		`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
+		It("Should fail with invalid htpasswd password", func() {
+			// Run the apply command:
+			terraform.Source(`
+    		  resource "rhcs_identity_provider" "my_ip" {
+    		    cluster = "123"
+    		    name    = "my-ip"
+                mapping_method = "invalid"
+    		    htpasswd = {
+    		      username = "my-user"
+	    	      password = "` + htpasswdInValidPass + `"
     		    }
     		  }
     		`)

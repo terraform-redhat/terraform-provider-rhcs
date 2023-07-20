@@ -70,6 +70,7 @@ func (t *IdentityProviderResourceType) GetSchema(ctx context.Context) (result tf
 				Description: "Details of the 'htpasswd' identity provider.",
 				Attributes:  idps.HtpasswdSchema(),
 				Optional:    true,
+				Validators:  idps.HTPasswdValidators(),
 			},
 			"gitlab": {
 				Description: "Details of the Gitlab identity provider.",

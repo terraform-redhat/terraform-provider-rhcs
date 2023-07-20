@@ -23,38 +23,40 @@ This Terraform example creates a ROSA STS cluster that uses an unmanaged OIDC co
         ```
         export TF_VAR_account_role_prefix=<account_role_prefix>
         ```
-    2. The availability zones should be a zone within your AWS region, which you chose with the `TF_VAR_cloud_region` variable. This value must be enclosed by double quotes, a bracket pair, and single quotes.
+    1. The availability zone should be a zone within your AWS region, which you chose with the `TF_VAR_cloud_region` variable. This value must be enclosed by double quotes, a bracket pair, and single quotes.
         ```    
         export TF_VAR_availability_zones='["<aws_az_region"]' 
         ```
-    3. This value sets the AWS region where your cluster launches.
+    1. This value sets the AWS region where your cluster launches.
         ```
         export TF_VAR_cloud_region=<aws_region_name>
         ```
-    4.  This value is your cluster name. The cluster name cannot exceed 15 characters or the Terraform apply fails.  
+    1.  This value is your cluster name. The cluster name cannot exceed 15 characters or the `terraform apply` fails.
         ```
         export TF_VAR_cluster_name=<cluster_name>
         ```
-    5.  Your Operator-role prefix prepends all of your Operator roles and policies. You should use the same value as your account-role prefix for consistency, though it is not required.
+    1.  Your Operator-role prefix prepends all of your Operator roles and policies. You should use the same value as your account-role prefix for consistency, though it is not required.
         ```
         export TF_VAR_operator_role_prefix=<operator_role_prefix>
         ```
-    6.  This variable should be your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token***REMOVED*** that you generated in the prerequisites.  
+    1.  This variable should be your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token***REMOVED*** that you generated in the prerequisites.  
         ```
         export TF_VAR_token=<ocm_offline_token>
         ```
-    7.  This value should always point to `https://api.openshift.com`.  
+    1.  This value should always point to `https://api.openshift.com`.  
         ```
         export TF_VAR_url=<ocm_url>
         ```
-    8.  **Optional**: You can set the desired OpenShift version with this variable. The default is 4.13.
+    1.  **Optional**: You can set the desired OpenShift version with this variable. The default is 4.13.
         ```    
         export TF_VAR_openshift_version=<choose_openshift_version>
         ```
-    9.  **Optional**: If you want to set any specific AWS tags for your cluster, you can use this variable to declare those tags.   
+    1.  **Optional**: If you want to set any specific AWS tags for your cluster, you can use this variable to declare those tags.   
          ```    
-         export TF_VAR_tags=<aws_resource_tags> (Optional***REMOVED*** 
-         ```         
+         export TF_VAR_tags=<aws_resource_tags> 
+    1.  **Optional**: You can specify if you want to use IMDSv1 and IMDSv2 or require all of your ec2 instances to use IMDSv2 by setting this variable as either "required" or "optional." The default value is *optional*.
+         ```    
+         export TF_VAR_ec2_metadata_http_tokens=<required_or_optional>        
 1. In your local copy of the `cluster_with_managed_oidc_config` folder, run the following command:
    ````
    terraform init

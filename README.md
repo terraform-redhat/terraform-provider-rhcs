@@ -27,7 +27,7 @@ For more information about ROSA, see the Red Hat documentation [here](https://ac
 * [AWS account](https://aws.amazon.com/console/***REMOVED***
 * Completed [the ROSA getting started](https://console.redhat.com/openshift/create/rosa/getstarted***REMOVED*** requirements
 * [ROSA CLI](https://console.redhat.com/openshift/downloads#tool-rosa***REMOVED***
-* **Optional**: A [configured `*.tfvars` file](docs/terraform-vars.md***REMOVED***.
+* **Optional**: A [configured `*.tfvars` file](docs/guides/terraform-vars.md***REMOVED***.
 
 ## Provider documentation
 
@@ -51,19 +51,19 @@ The following items are limitations with the current release of the OCM Terrafor
 
 The example Terraform files are all considered in development:
 ### Prior to creating clusters
-* [Account Roles terraform](/examples/create_account_roles/***REMOVED***
+* [Account Roles Terraform](examples/create_account_roles/***REMOVED***
 ### Cluster creation examples
-* [Create a ROSA cluster that uses STS and has a managed OIDC configuration](/examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/***REMOVED***
-* [Create a ROSA cluster that uses STS and has an unmanaged OIDC configuration](/examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/***REMOVED***
+* [Create a ROSA cluster that uses STS and has a managed OIDC configuration](examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/***REMOVED***
+* [Create a ROSA cluster that uses STS and has an unmanaged OIDC configuration](examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/***REMOVED***
 
 ### Post cluster installation
 * Modifying default machine pools
-* The following [identity providers](/examples/create_identity_provider/***REMOVED*** are supported:
-  * [Github](/examples/create_identity_provider/github/***REMOVED***
-  * [Gitlab](/examples/create_identity_provider/gitlab/***REMOVED***
-  * [HTPasswd](/examples/create_identity_provider/htpasswd/***REMOVED***
-  * [Google](/examples/create_identity_provider/google/***REMOVED***
-  * [LDAP](/examples/create_identity_provider/ldap/***REMOVED***
+* The following [identity providers](examples/create_identity_provider/***REMOVED*** are supported:
+  * [Github](examples/create_identity_provider/github/***REMOVED***
+  * [Gitlab](examples/create_identity_provider/gitlab/***REMOVED***
+  * [HTPasswd](examples/create_identity_provider/htpasswd/***REMOVED***
+  * [Google](examples/create_identity_provider/google/***REMOVED***
+  * [LDAP](examples/create_identity_provider/ldap/***REMOVED***
 * [Upgrading or updating your cluster](docs/guides/upgrading-cluster.md***REMOVED***
 
 ## Contributing to the Red Hat Cloud Service Terraform provider

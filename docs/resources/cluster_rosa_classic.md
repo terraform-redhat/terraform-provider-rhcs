@@ -23,6 +23,7 @@ OpenShift managed cluster using rosa sts.
 
 ### Optional
 
+- `admin_credentials` (Attributes***REMOVED*** Admin user credentials (see [below for nested schema](#nestedatt--admin_credentials***REMOVED******REMOVED***
 - `autoscaling_enabled` (Boolean***REMOVED*** Enables autoscaling.
 - `availability_zones` (List of String***REMOVED*** Availability zones.
 - `aws_private_link` (Boolean***REMOVED*** Provides private connectivity between VPCs, AWS services, and your on-premises networks, without exposing your traffic to the public internet.
@@ -64,6 +65,15 @@ OpenShift managed cluster using rosa sts.
 - `id` (String***REMOVED*** Unique identifier of the cluster.
 - `ocm_properties` (Map of String***REMOVED*** Merged properties defined by OCM and the user defined 'properties'.
 - `state` (String***REMOVED*** State of the cluster.
+
+<a id="nestedatt--admin_credentials"></a>
+### Nested Schema for `admin_credentials`
+
+Required:
+
+- `password` (String, Sensitive***REMOVED*** Admin password that will be created with the cluster.
+- `username` (String***REMOVED*** Admin username that will be created with the cluster.
+
 
 <a id="nestedatt--proxy"></a>
 ### Nested Schema for `proxy`

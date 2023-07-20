@@ -25,6 +25,9 @@ package provider
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
 ***REMOVED***
 
+const htpasswdValidPass = "123PasS8901234"
+const htpasswdInValidPass = "my-pass"
+
 var _ = Describe("Identity provider creation", func(***REMOVED*** {
 
 	Context("Idebtity Provider Failure", func(***REMOVED*** {
@@ -48,7 +51,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 	    	    name    = "my-ip"
 	    	    htpasswd = {
 	    	      username = "my-user"
-	    	      password = "my-password"
+	    	      password = "` + htpasswdValidPass + `"
 	    	    }
 	    	  }
 	    	`***REMOVED***
@@ -95,7 +98,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
                       "mapping_method": "claim",
 			    	  "name": "my-ip",
 			    	  "htpasswd": {
-			    	    "password": "my-password",
+                        "password": "`+htpasswdValidPass+`",
 			    	    "username": "my-user"
 			    	  }
 			    	}`***REMOVED***,
@@ -117,7 +120,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 	    	    name    = "my-ip"
 	    	    htpasswd = {
 	    	      username = "my-user"
-	    	      password = "my-password"
+	    	      password = "` + htpasswdValidPass + `"
 	    	    }
 	    	  }
 	    	`***REMOVED***
@@ -139,6 +142,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 			    	  "name": "my-ip",
 			    	  "htpasswd": {
 			    	    "password": "my-password",
+                        "password": "`+htpasswdValidPass+`",
 			    	    "username": "my-user"
 			    	  }
 			    	}`***REMOVED***,
@@ -160,7 +164,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 	    	    name    = "my-ip"
 	    	    htpasswd = {
 	    	      username = "my-user"
-	    	      password = "my-password"
+	    	      password = "` + htpasswdValidPass + `"
 	    	    }
 	    	  }
 	    	`***REMOVED***
@@ -203,7 +207,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
                       "mapping_method": "claim",
 			    	  "name": "my-ip",
 			    	  "htpasswd": {
-			    	    "password": "my-password",
+                        "password": "`+htpasswdValidPass+`",
 			    	    "username": "my-user"
 			    	  }
 			    	}`***REMOVED***,
@@ -225,7 +229,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 	    	    name    = "my-ip"
 	    	    htpasswd = {
 	    	      username = "my-user"
-	    	      password = "my-password"
+	    	      password = "` + htpasswdValidPass + `"
 	    	    }
 	    	  }
 	    	`***REMOVED***
@@ -945,7 +949,22 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
                 mapping_method = "invalid"
     		    htpasswd = {
     		      username = "my-user"
-    		      password = "my-password"
+	    	      password = "` + htpasswdValidPass + `"
+    		    }
+    		  }
+    		`***REMOVED***
+			Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
+***REMOVED******REMOVED***
+		It("Should fail with invalid htpasswd password", func(***REMOVED*** {
+			// Run the apply command:
+			terraform.Source(`
+    		  resource "rhcs_identity_provider" "my_ip" {
+    		    cluster = "123"
+    		    name    = "my-ip"
+                mapping_method = "invalid"
+    		    htpasswd = {
+    		      username = "my-user"
+	    	      password = "` + htpasswdInValidPass + `"
     		    }
     		  }
     		`***REMOVED***

@@ -37,6 +37,7 @@ package provider
 	"github.com/openshift/rosa/pkg/ocm"
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/idps"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/upgrade"
 
 	semver "github.com/hashicorp/go-version"
@@ -229,7 +230,7 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 	***REMOVED***,
 			"compute_machine_type": {
 				Description: "Identifies the machine type used by the compute nodes, " +
-					"for example `r5.xlarge`. Use the `ocm_machine_types` data " +
+					"for example `r5.xlarge`. Use the `rhcs_machine_types` data " +
 					"source to find the possible values.",
 				Type:     types.StringType,
 				Optional: true,
@@ -421,6 +422,33 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 					"upgrade to OpenShift 4.12.z from 4.11 or before***REMOVED***.",
 				Type:     types.StringType,
 				Optional: true,
+	***REMOVED***,
+			"admin_credentials": {
+				Description: "Admin user credentials",
+				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+					"username": {
+						Description: "Admin username that will be created with the cluster.",
+						Type:        types.StringType,
+						Required:    true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							ValueCannotBeChangedModifier(***REMOVED***,
+				***REMOVED***,
+			***REMOVED***,
+					"password": {
+						Description: "Admin password that will be created with the cluster.",
+						Type:        types.StringType,
+						Required:    true,
+						Sensitive:   true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							ValueCannotBeChangedModifier(***REMOVED***,
+				***REMOVED***,
+			***REMOVED***,
+		***REMOVED******REMOVED***,
+				Optional: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(***REMOVED***,
+		***REMOVED***,
+				Validators: adminCredsValidators(***REMOVED***,
 	***REMOVED***,
 ***REMOVED***,
 	}
@@ -697,6 +725,15 @@ func createClassicClusterObject(ctx context.Context,
 		vBuilder.ID(versionID***REMOVED***
 		vBuilder.ChannelGroup(channelGroup***REMOVED***
 		builder.Version(vBuilder***REMOVED***
+	}
+
+	if state.AdminCredentials != nil {
+		htpasswdUsers := []*cmv1.HTPasswdUserBuilder{}
+		htpasswdUsers = append(htpasswdUsers, cmv1.NewHTPasswdUser(***REMOVED***.
+			Username(state.AdminCredentials.Username.Value***REMOVED***.Password(state.AdminCredentials.Password.Value***REMOVED******REMOVED***
+		htpassUserList := cmv1.NewHTPasswdUserList(***REMOVED***.Items(htpasswdUsers...***REMOVED***
+		htPasswdIDP := cmv1.NewHTPasswdIdentityProvider(***REMOVED***.Users(htpassUserList***REMOVED***
+		builder.Htpasswd(htPasswdIDP***REMOVED***
 	}
 
 	builder, err = buildProxy(state, builder***REMOVED***
@@ -1970,6 +2007,54 @@ func propertiesValidators(***REMOVED*** []tfsdk.AttributeValidator {
 							resp.Diagnostics.AddError(errHead, errDesc***REMOVED***
 							return
 				***REMOVED***
+			***REMOVED***
+		***REMOVED***
+	***REMOVED***,
+***REMOVED***,
+	}
+}
+
+func adminCredsValidators(***REMOVED*** []tfsdk.AttributeValidator {
+	errSumm := "Invalid admin_creedntials"
+	return []tfsdk.AttributeValidator{
+		&common.AttributeValidator{
+			Desc: "Validate admin username",
+			Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse***REMOVED*** {
+				var creds *AdminCredentials
+				diag := req.Config.GetAttribute(ctx, req.AttributePath, creds***REMOVED***
+				if diag.HasError(***REMOVED*** {
+					// No attribute to validate
+					return
+		***REMOVED***
+				if creds != nil {
+					if common.IsStringAttributeEmpty(creds.Username***REMOVED*** {
+						diag.AddError(errSumm, "Usename can't be empty"***REMOVED***
+						return
+			***REMOVED***
+					if err := idps.ValidateHTPasswdUsername(creds.Username.Value***REMOVED***; err != nil {
+						diag.AddError(errSumm, err.Error(***REMOVED******REMOVED***
+						return
+			***REMOVED***
+		***REMOVED***
+	***REMOVED***,
+***REMOVED***,
+		&common.AttributeValidator{
+			Desc: "Validate admin password",
+			Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse***REMOVED*** {
+				var creds *AdminCredentials
+				diag := req.Config.GetAttribute(ctx, req.AttributePath, creds***REMOVED***
+				if diag.HasError(***REMOVED*** {
+					// No attribute to validate
+					return
+		***REMOVED***
+				if creds != nil {
+					if common.IsStringAttributeEmpty(creds.Password***REMOVED*** {
+						diag.AddError(errSumm, "Usename can't be empty"***REMOVED***
+						return
+			***REMOVED***
+					if err := idps.ValidateHTPasswdPassword(creds.Password.Value***REMOVED***; err != nil {
+						diag.AddError(errSumm, err.Error(***REMOVED******REMOVED***
+						return
 			***REMOVED***
 		***REMOVED***
 	***REMOVED***,

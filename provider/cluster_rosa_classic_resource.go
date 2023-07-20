@@ -37,6 +37,7 @@ import (
 	"github.com/openshift/rosa/pkg/ocm"
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/idps"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/upgrade"
 
 	semver "github.com/hashicorp/go-version"
@@ -229,7 +230,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 			},
 			"compute_machine_type": {
 				Description: "Identifies the machine type used by the compute nodes, " +
-					"for example `r5.xlarge`. Use the `ocm_machine_types` data " +
+					"for example `r5.xlarge`. Use the `rhcs_machine_types` data " +
 					"source to find the possible values.",
 				Type:     types.StringType,
 				Optional: true,
@@ -421,6 +422,33 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 					"upgrade to OpenShift 4.12.z from 4.11 or before).",
 				Type:     types.StringType,
 				Optional: true,
+			},
+			"admin_credentials": {
+				Description: "Admin user credentials",
+				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+					"username": {
+						Description: "Admin username that will be created with the cluster.",
+						Type:        types.StringType,
+						Required:    true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							ValueCannotBeChangedModifier(),
+						},
+					},
+					"password": {
+						Description: "Admin password that will be created with the cluster.",
+						Type:        types.StringType,
+						Required:    true,
+						Sensitive:   true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							ValueCannotBeChangedModifier(),
+						},
+					},
+				}),
+				Optional: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(),
+				},
+				Validators: adminCredsValidators(),
 			},
 		},
 	}
@@ -697,6 +725,15 @@ func createClassicClusterObject(ctx context.Context,
 		vBuilder.ID(versionID)
 		vBuilder.ChannelGroup(channelGroup)
 		builder.Version(vBuilder)
+	}
+
+	if state.AdminCredentials != nil {
+		htpasswdUsers := []*cmv1.HTPasswdUserBuilder{}
+		htpasswdUsers = append(htpasswdUsers, cmv1.NewHTPasswdUser().
+			Username(state.AdminCredentials.Username.Value).Password(state.AdminCredentials.Password.Value))
+		htpassUserList := cmv1.NewHTPasswdUserList().Items(htpasswdUsers...)
+		htPasswdIDP := cmv1.NewHTPasswdIdentityProvider().Users(htpassUserList)
+		builder.Htpasswd(htPasswdIDP)
 	}
 
 	builder, err = buildProxy(state, builder)
@@ -1970,6 +2007,54 @@ func propertiesValidators() []tfsdk.AttributeValidator {
 							resp.Diagnostics.AddError(errHead, errDesc)
 							return
 						}
+					}
+				}
+			},
+		},
+	}
+}
+
+func adminCredsValidators() []tfsdk.AttributeValidator {
+	errSumm := "Invalid admin_creedntials"
+	return []tfsdk.AttributeValidator{
+		&common.AttributeValidator{
+			Desc: "Validate admin username",
+			Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse) {
+				var creds *AdminCredentials
+				diag := req.Config.GetAttribute(ctx, req.AttributePath, creds)
+				if diag.HasError() {
+					// No attribute to validate
+					return
+				}
+				if creds != nil {
+					if common.IsStringAttributeEmpty(creds.Username) {
+						diag.AddError(errSumm, "Usename can't be empty")
+						return
+					}
+					if err := idps.ValidateHTPasswdUsername(creds.Username.Value); err != nil {
+						diag.AddError(errSumm, err.Error())
+						return
+					}
+				}
+			},
+		},
+		&common.AttributeValidator{
+			Desc: "Validate admin password",
+			Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse) {
+				var creds *AdminCredentials
+				diag := req.Config.GetAttribute(ctx, req.AttributePath, creds)
+				if diag.HasError() {
+					// No attribute to validate
+					return
+				}
+				if creds != nil {
+					if common.IsStringAttributeEmpty(creds.Password) {
+						diag.AddError(errSumm, "Usename can't be empty")
+						return
+					}
+					if err := idps.ValidateHTPasswdPassword(creds.Password.Value); err != nil {
+						diag.AddError(errSumm, err.Error())
+						return
 					}
 				}
 			},

@@ -25,19 +25,23 @@ it also updated in the operator role policies.
         ```
         export TF_VAR_token=<ocm_offline_token>
         ```
-    2.  This value should always point to `https://api.openshift.com`.  
+    1.  This value should be the prefix for your Operator role.  
+        ```
+        export TF_operator_role_prefix=<prefix_name>
+        ```
+    1.  This value should always point to `https://api.openshift.com`.  
         ```
         export TF_VAR_url=https://api.openshift.com
         ```
-    3.  **Optional**: You can set the account-role prefix with this variable. This value cannot end with a hyphen (-). If the value is empty, the module generates a string that starts with `account-role-` and concatenates it with a random string of length 4.
-       ```    
-       export TF_VAR_account_role_prefix=<account_role_prefix>
-       ```
-    4.  **Optional**: You can set the desired OpenShift version with this variable. The default is available from the ROSA CLI with `rosa list version |grep yes`. This should be in the format of x.y, such as 4.13
+    1.  **Optional**: You can set the account-role prefix with this variable. This value cannot end with a hyphen (-). If the value is empty, the module generates a string that starts with `account-role-` and combines it with a string of four random characters.
+         ```    
+         export TF_VAR_account_role_prefix=<account_role_prefix>
+         ```
+    1.  **Optional**: You can set the desired OpenShift version with this variable. The default is available from the ROSA CLI with `rosa list version |grep yes`. This should be in the format of x.y, such as 4.13
         ```    
         export TF_VAR_openshift_version=<choose_openshift_version>
         ```
-    5.  **Optional**: If you want to set any specific AWS tags for your account roles, you can use this variable to declare those tags.   
+    1.  **Optional**: If you want to set any specific AWS tags for your account roles, you can use this variable to declare those tags.   
         ```    
         export TF_VAR_tags=<aws_resource_tags> (Optional) 
         ```   

@@ -148,7 +148,7 @@ To use the Red Hat Cloud Services provider inside your Terraform configuration y
                     "iam:TagOpenIDConnectProvider",
                     "secretsmanager:TagResource"
                 ],
-                "Resource": [
+            "Resource": [
                     "arn:aws:secretsmanager:*:<ACCOUNT_ID>:secret:*",
                     "arn:aws:iam::<ACCOUNT_ID>:instance-profile/*",
                     "arn:aws:iam::<ACCOUNT_ID>:role/*",

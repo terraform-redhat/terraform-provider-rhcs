@@ -33,7 +33,7 @@ it also updated in the operator role policies.
        ```    
        export TF_VAR_account_role_prefix=<account_role_prefix>
        ```
-    4.  **Optional**: You can set the desired OpenShift version with this variable. The default is available from the ROSA CLI with `rosa list version |grep yes`. This should be in the format of x.y.z, such as 4.13.2
+    4.  **Optional**: You can set the desired OpenShift version with this variable. The default is available from the ROSA CLI with `rosa list version |grep yes`. This should be in the format of x.y, such as 4.13
         ```    
         export TF_VAR_openshift_version=<choose_openshift_version>
         ```

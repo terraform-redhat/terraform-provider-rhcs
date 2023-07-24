@@ -45,7 +45,7 @@ locals {
 }
 // ************** Managed oidc ***************
 resource "rhcs_rosa_oidc_config" "oidc_config_managed" {
-  count = var.oidc_config=="managed"?1:0
+  count   = var.oidc_config == "managed" ? 1 : 0
   managed = true
 }
 
@@ -53,17 +53,17 @@ resource "rhcs_rosa_oidc_config" "oidc_config_managed" {
 // ************** UnManaged oidc **************
 # Generates the OIDC config resources' names
 resource "rhcs_rosa_oidc_config_input" "oidc_input" {
-  count = var.oidc_config=="un-managed"?1:0
+  count  = var.oidc_config == "un-managed" ? 1 : 0
   region = var.aws_region
 }
 
 # Create the OIDC config resources on AWS
 module "oidc_config_input_resources" {
-  count = var.oidc_config=="un-managed"?1:0
+  count   = var.oidc_config == "un-managed" ? 1 : 0
   source  = "terraform-redhat/rosa-sts/aws"
   version = "0.0.11"
 
-  create_oidc_config_resources = var.oidc_config=="un-managed"
+  create_oidc_config_resources = var.oidc_config == "un-managed"
 
   bucket_name             = rhcs_rosa_oidc_config_input.oidc_input[0].bucket_name
   discovery_doc           = rhcs_rosa_oidc_config_input.oidc_input[0].discovery_doc
@@ -75,7 +75,7 @@ module "oidc_config_input_resources" {
 
 # Create unmanaged OIDC config
 resource "rhcs_rosa_oidc_config" "oidc_config_unmanaged" {
-  count = var.oidc_config=="un-managed"?1:0
+  count              = var.oidc_config == "un-managed" ? 1 : 0
   managed            = false
   secret_arn         = module.oidc_config_input_resources[0].secret_arn
   issuer_url         = rhcs_rosa_oidc_config_input.oidc_input[0].issuer_url
@@ -88,7 +88,7 @@ data "rhcs_rosa_operator_roles" "operator_roles" {
 }
 
 module "operator_roles_and_oidc_provider" {
-  count = var.oidc_config==null?0:1
+  count   = var.oidc_config == null ? 0 : 1
   source  = "terraform-redhat/rosa-sts/aws"
   version = "0.0.11"
 
@@ -96,8 +96,8 @@ module "operator_roles_and_oidc_provider" {
   create_oidc_provider  = true
 
   cluster_id                  = ""
-  rh_oidc_provider_thumbprint = var.oidc_config=="managed"?rhcs_rosa_oidc_config.oidc_config_managed[0].thumbprint:rhcs_rosa_oidc_config.oidc_config_unmanaged[0].thumbprint
-  rh_oidc_provider_url        = var.oidc_config=="managed"?rhcs_rosa_oidc_config.oidc_config_managed[0].oidc_endpoint_url:rhcs_rosa_oidc_config.oidc_config_unmanaged[0].oidc_endpoint_url
+  rh_oidc_provider_thumbprint = var.oidc_config == "managed" ? rhcs_rosa_oidc_config.oidc_config_managed[0].thumbprint : rhcs_rosa_oidc_config.oidc_config_unmanaged[0].thumbprint
+  rh_oidc_provider_url        = var.oidc_config == "managed" ? rhcs_rosa_oidc_config.oidc_config_managed[0].oidc_endpoint_url : rhcs_rosa_oidc_config.oidc_config_unmanaged[0].oidc_endpoint_url
   operator_roles_properties   = data.rhcs_rosa_operator_roles.operator_roles.operator_iam_roles
 }
 locals {
@@ -109,7 +109,7 @@ locals {
       worker_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Worker-Role"
     },
     operator_role_prefix = var.operator_role_prefix,
-    oidc_config_id       = var.oidc_config=="managed"?rhcs_rosa_oidc_config.oidc_config_managed[0].id:rhcs_rosa_oidc_config.oidc_config_unmanaged[0].id
+    oidc_config_id       = var.oidc_config == "managed" ? rhcs_rosa_oidc_config.oidc_config_managed[0].id : rhcs_rosa_oidc_config.oidc_config_unmanaged[0].id
   }
 }
 /* locals {
@@ -178,7 +178,7 @@ module "operator_roles" {
   version = "0.0.11"
 
   create_operator_roles = true
-  create_oidc_provider  = var.oidc_config==null?true:false
+  create_oidc_provider  = var.oidc_config == null ? true : false
   create_account_roles  = false
 
   cluster_id                  = rhcs_cluster_rosa_classic.rosa_sts_cluster.id

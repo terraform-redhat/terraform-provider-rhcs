@@ -34,6 +34,6 @@ resource "rhcs_identity_provider" "github_idp" {
   github = {
     client_id     = var.github_client_id
     client_secret = var.github_client_secret
-    organizations = var.github_orgs
+    organizations = [var.github_org]
   }
 }

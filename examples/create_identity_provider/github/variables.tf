@@ -24,7 +24,7 @@ variable "github_client_secret" {
   type        = string
   description = "GitHub client secret"
 }
-variable "github_orgs" {
-  type        = list(string***REMOVED***
-  description = "List of GitHub organisations"
+variable "github_org" {
+  type        = string
+  description = "GitHub organization"
 }

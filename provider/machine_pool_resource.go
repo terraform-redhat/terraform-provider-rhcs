@@ -705,19 +705,19 @@ func (r *MachinePoolResource) Delete(ctx context.Context, request tfsdk.DeleteRe
 
 func (r *MachinePoolResource) ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
 	response *tfsdk.ImportResourceStateResponse) {
-	// To import a machine pool, we need to know the cluster ID and the machine pool name
+	// To import a machine pool, we need to know the cluster ID and the machine pool ID
 	fields := strings.Split(request.ID, ",")
 	if len(fields) != 2 || fields[0] == "" || fields[1] == "" {
 		response.Diagnostics.AddError(
 			"Invalid import identifier",
-			"Machine pool to import should be specified as <cluster_id>,<machine_pool_name>",
+			"Machine pool to import should be specified as <cluster_id>,<machine_pool_id>",
 		)
 		return
 	}
 	clusterID := fields[0]
-	machinePoolName := fields[1]
+	machinePoolID := fields[1]
 	response.Diagnostics.Append(response.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("cluster"), clusterID)...)
-	response.Diagnostics.Append(response.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("id"), machinePoolName)...)
+	response.Diagnostics.Append(response.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("id"), machinePoolID)...)
 }
 
 // populateState copies the data from the API object to the Terraform state.

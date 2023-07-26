@@ -64,7 +64,7 @@ The example Terraform files are all considered in development:
   * [HTPasswd](/examples/create_identity_provider/htpasswd/***REMOVED***
   * [Google](/examples/create_identity_provider/google/***REMOVED***
   * [LDAP](/examples/create_identity_provider/ldap/***REMOVED***
-* [Upgrading or updating your cluster](docs/upgrading-cluster.md***REMOVED***
+* [Upgrading or updating your cluster](docs/guides/upgrading-cluster.md***REMOVED***
 
 ## Contributing to the Red Hat Cloud Service Terraform provider
 If you want to build a local Red Hat Cloud Services provider to develop improvements for the Red Hat Cloud Services provider, you can run `terraform plan` against your local build with:

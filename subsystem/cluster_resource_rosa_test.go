@@ -56,6 +56,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 	  "region": {
 	    "id": "us-west-1"
 	  },
+	  "aws": {
+	    "ec2_metadata_http_tokens": "optional"
+	  },
 	  "multi_az": true,
 	  "api": {
 	    "url": "https://my-api.example.com"
@@ -139,6 +142,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 						  "op": "add",
 						  "path": "/aws",
 						  "value": {
+							  "ec2_metadata_http_tokens": "optional",
 							  "sts" : {
 								  "oidc_endpoint_url": "https://127.0.0.2",
 								  "thumbprint": "111111",
@@ -216,6 +220,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 						  "op": "add",
 						  "path": "/aws",
 						  "value": {
+                              "ec2_metadata_http_tokens": "optional",
 							  "sts" : {
 								  "oidc_endpoint_url": "https://127.0.0.2",
 								  "thumbprint": "111111",
@@ -333,6 +338,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -403,6 +409,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -475,6 +482,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+                          "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -551,6 +559,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+                          "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -623,6 +632,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+                          "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -702,6 +712,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+                          "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -773,6 +784,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+                          "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -816,6 +828,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -903,6 +916,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -976,6 +990,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -1019,6 +1034,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -1100,6 +1116,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -1172,6 +1189,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+					      "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -1341,6 +1359,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+					      "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -1404,6 +1423,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -1442,6 +1462,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -1520,6 +1541,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -1596,6 +1618,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -1645,6 +1668,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+                          "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -1734,6 +1758,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+                          "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -1792,6 +1817,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -1824,6 +1850,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -1944,6 +1971,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "value": {
 						  "private_link": true,
 						  "subnet_ids": ["id1", "id2", "id3"],
+						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -2021,6 +2049,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "path": "/aws",
 					  "value": {
 						  "private_link": false,
+						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -2096,6 +2125,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -2166,6 +2196,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -2208,6 +2239,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -2277,6 +2309,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -2317,6 +2350,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -2396,6 +2430,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "oidc_config": {
@@ -2468,6 +2503,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
 							  "thumbprint": "111111",
@@ -2718,6 +2754,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 		  "id": "us-west-1"
 ***REMOVED***,
 		"aws": {
+			"ec2_metadata_http_tokens": "optional",
 			"sts": {
 				"oidc_endpoint_url": "https://127.0.0.2",
 				"thumbprint": "111111",

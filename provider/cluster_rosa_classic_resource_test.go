@@ -300,7 +300,7 @@ var _ = Describe("Rosa Classic Sts cluster", func(***REMOVED*** {
 	Context("http tokens state validation", func(***REMOVED*** {
 		It("Fail validation with lower version than allowed", func(***REMOVED*** {
 			clusterState := generateBasicRosaClassicClusterState(***REMOVED***
-			clusterState.Ec2MetadataHttpTokens.Value = string(cmv1.Ec2MetadataHttpTokensOptional***REMOVED***
+			clusterState.Ec2MetadataHttpTokens.Value = string(cmv1.Ec2MetadataHttpTokensRequired***REMOVED***
 			err := validateHttpTokensVersion(context.Background(***REMOVED***, clusterState, "openshift-v4.10.0"***REMOVED***
 			Expect(err***REMOVED***.ToNot(BeNil(***REMOVED******REMOVED***
 			Expect(err.Error(***REMOVED******REMOVED***.To(ContainSubstring("is not supported with ec2_metadata_http_tokens"***REMOVED******REMOVED***

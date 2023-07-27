@@ -409,10 +409,11 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 	***REMOVED***,
 			"ec2_metadata_http_tokens": {
 				Description: "This value determines which EC2 metadata mode to use for metadata service interaction " +
-					"options for EC2 instances can be optional or required. This feature is available from " +
+					"options for EC2 instances can be optional or required. Required is available from " +
 					"OpenShift version 4.11.0 and newer.",
 				Type:     types.StringType,
 				Optional: true,
+				Computed: true,
 				Validators: EnumValueValidator([]string{string(cmv1.Ec2MetadataHttpTokensOptional***REMOVED***,
 					string(cmv1.Ec2MetadataHttpTokensRequired***REMOVED***}***REMOVED***,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
@@ -574,10 +575,11 @@ func createClassicClusterObject(ctx context.Context,
 		awsBuilder.Tags(tags***REMOVED***
 	}
 
-	if !common.IsStringAttributeEmpty(state.Ec2MetadataHttpTokens***REMOVED*** {
-		// value validation was done before
-		awsBuilder.Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokens(state.Ec2MetadataHttpTokens.Value***REMOVED******REMOVED***
+	// Set default for Ec2MetadataHttpTokens
+	if common.IsStringAttributeEmpty(state.Ec2MetadataHttpTokens***REMOVED*** {
+		state.Ec2MetadataHttpTokens.Value = string(cmv1.Ec2MetadataHttpTokensOptional***REMOVED***
 	}
+	awsBuilder.Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokens(state.Ec2MetadataHttpTokens.Value***REMOVED******REMOVED***
 
 	if !state.KMSKeyArn.Unknown && !state.KMSKeyArn.Null && state.KMSKeyArn.Value != "" {
 		kmsKeyARN := state.KMSKeyArn.Value
@@ -778,7 +780,8 @@ func (r *ClusterRosaClassicResource***REMOVED*** getAndValidateVersionInChannelG
 }
 
 func validateHttpTokensVersion(ctx context.Context, state *ClusterRosaClassicState, version string***REMOVED*** error {
-	if common.IsStringAttributeEmpty(state.Ec2MetadataHttpTokens***REMOVED*** {
+	if common.IsStringAttributeEmpty(state.Ec2MetadataHttpTokens***REMOVED*** ||
+		cmv1.Ec2MetadataHttpTokens(state.Ec2MetadataHttpTokens.Value***REMOVED*** == cmv1.Ec2MetadataHttpTokensOptional {
 		return nil
 	}
 

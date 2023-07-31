@@ -252,7 +252,6 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 			Expect(clusterState.APIURL.Value).To(Equal(apiUrl))
 			Expect(clusterState.ConsoleURL.Value).To(Equal(consoleUrl))
 			Expect(clusterState.Domain.Value).To(Equal(fmt.Sprintf("%s.%s", clusterName, baseDomain)))
-			Expect(clusterState.ComputeMachineType.Value).To(Equal(machineType))
 			Expect(clusterState.AvailabilityZones.Elems).To(HaveLen(1))
 			Expect(clusterState.AvailabilityZones.Elems[0].Equal(types.String{Value: availabilityZone1})).To(Equal(true))
 			Expect(clusterState.CCSEnabled.Value).To(Equal(ccsEnabled))

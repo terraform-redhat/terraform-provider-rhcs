@@ -36,6 +36,10 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
+// This is a magic name to trigger special handling for the cluster's default
+// machine pool
+const defaultMachinePoolName = "worker"
+
 type MachinePoolResourceType struct {
 }
 

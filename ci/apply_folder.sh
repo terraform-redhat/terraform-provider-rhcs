@@ -63,6 +63,24 @@ set -o xtrace
 export TF_LOG=${TF_LOG:-info}
 
 cd "${WORK_DIR}"
+
+
+# Check for provider source and version 'provider_source = "hashicorp/rhcs" (or "terraform.local/local/rhcs"'***REMOVED*** and 'provider_version = ">=1.0.1"'  
+provider=$(cat main.tf | awk '/required_providers/{line=1; next} line && /^\}/{exit} line' | awk '/rhcs(\s+?***REMOVED***=(\s+?***REMOVED***\{/{line=1; next} line && /\}/{exit} line'***REMOVED***
+
+src=$(echo "${TF_VARS}" | grep provider_source | sed -rEz 's/.+?provider_source\s+?=\s+?(\"[^\"]*\"***REMOVED***.*/\1/'***REMOVED*** || true
+if [[ "$src" != "" ]]; then
+  provider_src=$(echo ${provider} | sed -rEz 's/.+?source\s+?=\s+?(\"[^\"]*\"***REMOVED***.*/\1/'***REMOVED***
+  sed -i "s|${provider_src}|${src}|" main.tf
+fi
+
+ver=$(echo "${TF_VARS}" | grep provider_version | sed -rEz 's/.+?provider_version\s+?=\s+?(\"[^\"]*\"***REMOVED***.*/\1/'***REMOVED*** || true
+if [[ "$ver" != "" ]]; then
+  provider_ver=$(echo ${provider} | sed -rEz 's/.+?version\s+?=\s+?(\"[^\"]*\"***REMOVED***.*/\1/'***REMOVED***
+  sed -i "s|${provider_ver}|${ver}|" main.tf
+fi
+
+
 HOME=${TERRAFORM_D_DIR} terraform init
 HOME=${TERRAFORM_D_DIR} terraform apply -auto-approve || prow_archive_state "true"
 

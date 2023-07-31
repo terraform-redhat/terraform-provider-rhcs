@@ -53,7 +53,7 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
 
 ### Optional
 
-- `admin_credentials` (Attributes) Admin user credentials (see [below for nested schema](#nestedatt--admin_credentials))
+- `admin_credentials` (Attributes) This attribute list defines the user name and password for a cluster admin user. (see [below for nested schema](#nestedatt--admin_credentials))
 - `autoscaling_enabled` (Boolean) Enables autoscaling.
 - `availability_zones` (List of String) Availability zones.
 - `aws_private_link` (Boolean) Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet.
@@ -105,8 +105,8 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
 
 Required:
 
-- `password` (String, Sensitive) Admin password that will be created with the cluster.
-- `username` (String) Admin username that will be created with the cluster.
+- `password` (String, Sensitive) Enter the cluster admin's password that will be created with the cluster. NOTE: This field is case sensitive.
+- `username` (String) Enter your cluster admin's username that will be created with the cluster.
 
 
 <a id="nestedatt--private_hosted_zone"></a>

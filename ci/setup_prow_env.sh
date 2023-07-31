@@ -38,13 +38,6 @@ fi
 export TF_VAR_token=${OCM_TOKEN}
 
 #Expose aws credentials as explicit TF_VAR format, and do not use .awscred file
-#Take it from prow vault mounted at /var/run/..
-TF_VAR_aws_access_key=$(cat /var/run/aws-key/aws-key)
-export TF_VAR_aws_access_key
-TF_VAR_aws_secret_key=$(cat /var/run/aws-secret/aws-secret)
-export TF_VAR_aws_secret_key
-
-#next 4 lines to be removed once above is stable and not deleted
 TF_VAR_aws_access_key=$(cat ${CLUSTER_PROFILE_DIR}/.awscred | awk '/\[default\]/{line=1; next} line && /^\[/{exit} line' | grep aws_access_key_id     | awk -F '=' '{print $2}'| sed 's/ //g')
 export TF_VAR_aws_access_key
 TF_VAR_aws_secret_key=$(cat ${CLUSTER_PROFILE_DIR}/.awscred | awk '/\[default\]/{line=1; next} line && /^\[/{exit} line' | grep aws_secret_access_key | awk -F '=' '{print $2}'| sed 's/ //g')

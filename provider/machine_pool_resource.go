@@ -379,6 +379,13 @@ func (r *MachinePoolResource) Read(ctx context.Context, request tfsdk.ReadResour
 		return
 	}
 
+	// If the requested machine pool is the default one, handle it differently
+	if state.ID.Value == defaultMachinePoolName {
+		response.Diagnostics.Append(r.readDefaultMachinePool(ctx, state)...)
+		response.Diagnostics.Append(response.State.Set(ctx, state)...)
+		return
+	}
+
 	// Find the machine pool:
 	resource := r.collection.Cluster(state.Cluster.Value).
 		MachinePools().
@@ -407,6 +414,27 @@ func (r *MachinePoolResource) Read(ctx context.Context, request tfsdk.ReadResour
 	r.populateState(object, state)
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
+}
+
+// Reads the default machine pool from the cluster API and writes it to the state object
+func (r *MachinePoolResource) readDefaultMachinePool(ctx context.Context, state *MachinePoolState) diag.Diagnostics {
+	// Read the cluster object
+	cluster := r.collection.Cluster(state.Cluster.Value)
+	resp, err := cluster.Get().SendContext(ctx)
+	if err != nil {
+		return diag.Diagnostics{
+			diag.NewErrorDiagnostic(
+				"Failed to fetch cluster",
+				fmt.Sprintf(
+					"Failed to fetch cluster with identifier %s. Response code: %v",
+					state.Cluster.Value, resp.Status(),
+				),
+			),
+		}
+	}
+	clusterObject := resp.Body()
+	r.populateStateFromCluster(clusterObject, state)
+	return diag.Diagnostics{}
 }
 
 func (r *MachinePoolResource) Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
@@ -808,6 +836,79 @@ func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *Mac
 		}
 	} else {
 		state.Labels.Null = true
+	}
+}
+
+// populateStateFromCluster copies the data for the default machinepool from the cluster API object to the Terraform state.
+func (r *MachinePoolResource) populateStateFromCluster(object *cmv1.Cluster, state *MachinePoolState) {
+	state.ID = types.String{
+		Value: defaultMachinePoolName,
+	}
+	state.Name = types.String{
+		Value: defaultMachinePoolName,
+	}
+
+	// Default machine pool does not support spot instances
+	state.UseSpotInstances = types.Bool{Value: false}
+	state.MaxSpotPrice = types.Float64{Null: true}
+
+	nodes := object.Nodes()
+
+	autoscaling, ok := nodes.GetAutoscaleCompute()
+	state.AutoScalingEnabled = types.Bool{Value: ok}
+	if ok {
+		var minReplicas, maxReplicas int
+		minReplicas, ok = autoscaling.GetMinReplicas()
+		if ok {
+			state.MinReplicas = types.Int64{
+				Value: int64(minReplicas),
+			}
+		}
+		maxReplicas, ok = autoscaling.GetMaxReplicas()
+		if ok {
+			state.MaxReplicas = types.Int64{
+				Value: int64(maxReplicas),
+			}
+		}
+	} else {
+		state.MaxReplicas = types.Int64{Null: true}
+		state.MinReplicas = types.Int64{Null: true}
+	}
+
+	instanceType, ok := nodes.ComputeMachineType().GetID()
+	if ok {
+		{
+			state.MachineType = types.String{
+				Value: instanceType,
+			}
+		}
+	}
+
+	replicas, ok := nodes.GetCompute()
+	if ok {
+		state.Replicas = types.Int64{
+			Value: int64(replicas),
+		}
+	}
+
+	// Default machine pool does not support taints
+	state.Taints = nil
+
+	labels := nodes.ComputeLabels()
+	if len(labels) > 0 {
+		state.Labels = types.Map{
+			ElemType: types.StringType,
+			Elems:    map[string]attr.Value{},
+		}
+		for k, v := range labels {
+			state.Labels.Elems[k] = types.String{
+				Value: v,
+			}
+		}
+	} else {
+		state.Labels = types.Map{
+			Null: true,
+		}
 	}
 }
 

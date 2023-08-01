@@ -1,3 +1,25 @@
+## 1.2.0 (Aug 1, 2023)
+-FEATURES:
+* Enable creating cluster admin in cluster create
+* Add support for cluster properties update and delete
+
+-ENHANCEMENTS:
+* Update the documentation files
+* identity_provider resource can be imported by terraform import command
+* rosa_cluster resource can be imported by terraform import command
+* Remove AWS validations from rosa_cluster resource
+* Recreate IDP tf resource if it was deleted not from tf
+* Recreate rosa_cluster tf resource if it was deleted not from tf
+* Recreate MachinePool tf resource if it was deleted not from tf
+* Bug fixes:
+  * populate rosa_rf_version with cluster properties
+  * Cluster properties are now allowed to be added in Day1 and be changed in Day 2
+  * TF-provider support creating a single-az machinepool for multi-az cluster
+  * Improve error message: replica or autoscaling should be required parameters for creating additional machinepools
+  * Validate OCP version in create_account_roles module
+  * Support in generated account_role_prefix by terraform provider
+
+
 ## 1.1.0 (Jul 5, 2023)
 -ENHANCEMENTS:
 * Update the documentation files

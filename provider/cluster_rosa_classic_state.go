@@ -25,6 +25,7 @@ type ClusterRosaClassicState struct {
 	AWSAccountID              types.String      `tfsdk:"aws_account_id"`
 	AWSSubnetIDs              types.List        `tfsdk:"aws_subnet_ids"`
 	AWSPrivateLink            types.Bool        `tfsdk:"aws_private_link"`
+	Private                   types.Bool        `tfsdk:"private"`
 	Sts                       *Sts              `tfsdk:"sts"`
 	CCSEnabled                types.Bool        `tfsdk:"ccs_enabled"`
 	EtcdEncryption            types.Bool        `tfsdk:"etcd_encryption"`

@@ -1963,7 +1963,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				VerifyJQ(`.aws.subnet_ids.[0]`, "id1"***REMOVED***,
 				VerifyJQ(`.aws.private_link`, true***REMOVED***,
 				VerifyJQ(`.nodes.availability_zones.[0]`, "az1"***REMOVED***,
-				VerifyJQ(`.api.listening`, "internal"***REMOVED***,
 				RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -2027,6 +2026,87 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
+	// FIt("Creates cluster with aws subnet ids & private & private link", func(***REMOVED*** {
+	// 	// Prepare the server:
+	// 	server.AppendHandlers(
+	// 		CombineHandlers(
+	// 			VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+	// 			RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
+	// 		***REMOVED***,
+	// 		CombineHandlers(
+	// 			VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+	// 			VerifyJQ(`.name`, "my-cluster"***REMOVED***,
+	// 			VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
+	// 			VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
+	// 			VerifyJQ(`.product.id`, "rosa"***REMOVED***,
+	// 			VerifyJQ(`.aws.subnet_ids.[0]`, "id1"***REMOVED***,
+	// 			VerifyJQ(`.aws.private_link`, true***REMOVED***,
+	// 			VerifyJQ(`.nodes.availability_zones.[0]`, "az1"***REMOVED***,
+	// 			VerifyJQ(`.api.listening`, "internal"***REMOVED***,
+	// 			RespondWithPatchedJSON(http.StatusOK, template, `[
+	// 				{
+	// 				  "op": "add",
+	// 				  "path": "/aws",
+	// 				  "value": {
+	// 					  "private_link": true,
+	// 					  "subnet_ids": ["id1", "id2", "id3"],
+	// 					  "ec2_metadata_http_tokens": "optional",
+	// 					  "sts" : {
+	// 						  "oidc_endpoint_url": "https://127.0.0.2",
+	// 						  "thumbprint": "111111",
+	// 						  "role_arn": "",
+	// 						  "support_role_arn": "",
+	// 						  "instance_iam_roles" : {
+	// 							"master_role_arn" : "",
+	// 							"worker_role_arn" : ""
+	// 						  },
+	// 						  "operator_role_prefix" : "test"
+	// 					  }
+	// 				  }
+	// 		***REMOVED***,
+	// 				{
+	// 					"op": "add",
+	// 				***REMOVED***: "/availability_zones",
+	// 					"value": ["az1"]
+	// 		***REMOVED***,
+	// 				{
+	// 				  "op": "add",
+	// 				  "path": "/nodes",
+	// 				  "value": {
+	// 					"compute": 3,
+	// 					"compute_machine_type": {
+	// 						"id": "r5.xlarge"
+	// 			***REMOVED***
+	// 				  }
+	// 		***REMOVED***]`***REMOVED***,
+	// 		***REMOVED***,
+	// 	***REMOVED***
+
+	// 	// Run the apply command:
+	// 	terraform.Source(`
+	// 	  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+	// 	    name           = "my-cluster"
+	// 	    cloud_region   = "us-west-1"
+	// 		aws_account_id = "123"
+	// 		availability_zones = ["az1"]
+	// 		private = true
+	// 		aws_private_link = true
+	// 		aws_subnet_ids = [
+	// 			"id1", "id2", "id3"
+	// 		]
+	// 		sts = {
+	// 			operator_role_prefix = "test"
+	// 			role_arn = "",
+	// 			support_role_arn = "",
+	// 			instance_iam_roles = {
+	// 				master_role_arn = "",
+	// 				worker_role_arn = "",
+	// 	***REMOVED***
+	// ***REMOVED***
+	// 	  }
+	// 	`***REMOVED***
+	// 	Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+	// }***REMOVED***
 
 	It("Creates cluster when private link is false", func(***REMOVED*** {
 		// Prepare the server:

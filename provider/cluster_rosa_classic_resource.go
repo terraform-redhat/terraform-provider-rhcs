@@ -25,7 +25,6 @@ package provider
 ***REMOVED***
 	"net/url"
 	"os"
-	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -69,10 +68,6 @@ var OCMProperties = map[string]string{
 	propertyRosaTfVersion: build.Version,
 	propertyRosaTfCommit:  build.Commit,
 }
-
-var kmsArnRE = regexp.MustCompile(
-	`^arn:aws[\w-]*:kms:[\w-]+:\d{12}:key\/mrk-[0-9a-f]{32}$|[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`,
-***REMOVED***
 
 type ClusterRosaClassicResourceType struct {
 }
@@ -287,6 +282,16 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 	***REMOVED***,
 			"aws_private_link": {
 				Description: "Provides private connectivity between VPCs, AWS services, and your on-premises networks, without exposing your traffic to the public internet.",
+				Type:        types.BoolType,
+				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.UseStateForUnknown(***REMOVED***,
+					ValueCannotBeChangedModifier(***REMOVED***,
+		***REMOVED***,
+	***REMOVED***,
+			"private": {
+				Description: "Restrict master API endpoint and application routes to direct, private connectivity.",
 				Type:        types.BoolType,
 				Optional:    true,
 				Computed:    true,
@@ -554,95 +559,33 @@ func createClassicClusterObject(ctx context.Context,
 	}
 	builder.CCS(ccs***REMOVED***
 
-	awsBuilder := cmv1.NewAWS(***REMOVED***
-
-	if !state.Tags.Unknown && !state.Tags.Null {
-		tags := map[string]string{}
-		for k, v := range state.Tags.Elems {
-			if _, ok := tags[k]; ok {
-				errDescription := fmt.Sprintf("Invalid tags, user tag keys must be unique, duplicate key '%s' found", k***REMOVED***
-				tflog.Error(ctx, errDescription***REMOVED***
-
-				diags.AddError(
-					errHeadline,
-					errDescription,
-				***REMOVED***
-				return nil, errors.New(errHeadline + "\n" + errDescription***REMOVED***
-	***REMOVED***
-			tags[k] = v.(types.String***REMOVED***.Value
-***REMOVED***
-
-		awsBuilder.Tags(tags***REMOVED***
+	awsTags := common.OptionalMap(state.Tags***REMOVED***
+	ec2MetadataHttpTokens := common.OptionalString(state.Ec2MetadataHttpTokens***REMOVED***
+	kmsKeyARN := common.OptionalString(state.KMSKeyArn***REMOVED***
+	awsAccountID := common.OptionalString(state.AWSAccountID***REMOVED***
+	isPrivateLink := common.Bool(state.AWSPrivateLink***REMOVED***
+	isPrivate := common.Bool(state.Private***REMOVED***
+	awsSubnetIDs := common.OptionalList(state.AWSSubnetIDs***REMOVED***
+	var stsBuilder *cmv1.STSBuilder
+	if state.Sts != nil {
+		stsBuilder = resource.CreateSTS(state.Sts.RoleARN.Value, state.Sts.SupportRoleArn.Value,
+			state.Sts.InstanceIAMRoles.MasterRoleARN.Value, state.Sts.InstanceIAMRoles.WorkerRoleARN.Value,
+			state.Sts.OperatorRolePrefix.Value, common.OptionalString(state.Sts.OIDCConfigID***REMOVED******REMOVED***
 	}
 
-	// Set default for Ec2MetadataHttpTokens
-	if common.IsStringAttributeEmpty(state.Ec2MetadataHttpTokens***REMOVED*** {
-		state.Ec2MetadataHttpTokens.Value = string(cmv1.Ec2MetadataHttpTokensOptional***REMOVED***
-	}
-	awsBuilder.Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokens(state.Ec2MetadataHttpTokens.Value***REMOVED******REMOVED***
-
-	if !state.KMSKeyArn.Unknown && !state.KMSKeyArn.Null && state.KMSKeyArn.Value != "" {
-		kmsKeyARN := state.KMSKeyArn.Value
-		if !kmsArnRE.MatchString(kmsKeyARN***REMOVED*** {
-			errDescription := fmt.Sprintf("Expected a valid value for kms-key-arn matching %s", kmsArnRE***REMOVED***
-			tflog.Error(ctx, errDescription***REMOVED***
-
-			diags.AddError(
-				errHeadline,
-				errDescription,
-			***REMOVED***
-			return nil, errors.New(errHeadline + "\n" + errDescription***REMOVED***
-***REMOVED***
-		awsBuilder.KMSKeyArn(kmsKeyARN***REMOVED***
+	if err := ocmClusterResource.CreateAWSBuilder(awsTags, ec2MetadataHttpTokens, kmsKeyARN,
+		isPrivateLink, awsAccountID, stsBuilder, awsSubnetIDs***REMOVED***; err != nil {
+		return nil, err
 	}
 
-	if !state.AWSAccountID.Unknown && !state.AWSAccountID.Null {
-		awsBuilder.AccountID(state.AWSAccountID.Value***REMOVED***
-	}
-
-	if !state.AWSPrivateLink.Unknown && !state.AWSPrivateLink.Null {
-		awsBuilder.PrivateLink((state.AWSPrivateLink.Value***REMOVED******REMOVED***
-		api := cmv1.NewClusterAPI(***REMOVED***
-		if state.AWSPrivateLink.Value {
-			api.Listening(cmv1.ListeningMethodInternal***REMOVED***
-***REMOVED***
-		builder.API(api***REMOVED***
+	if err := ocmClusterResource.SetAPIPrivacy(isPrivate, isPrivateLink, stsBuilder != nil***REMOVED***; err != nil {
+		return nil, err
 	}
 
 	if !state.FIPS.Unknown && !state.FIPS.Null && state.FIPS.Value {
 		builder.FIPS(true***REMOVED***
 	}
 
-	sts := cmv1.NewSTS(***REMOVED***
-	var err error
-	if state.Sts != nil {
-		sts.RoleARN(state.Sts.RoleARN.Value***REMOVED***
-		sts.SupportRoleARN(state.Sts.SupportRoleArn.Value***REMOVED***
-		instanceIamRoles := cmv1.NewInstanceIAMRoles(***REMOVED***
-		instanceIamRoles.MasterRoleARN(state.Sts.InstanceIAMRoles.MasterRoleARN.Value***REMOVED***
-		instanceIamRoles.WorkerRoleARN(state.Sts.InstanceIAMRoles.WorkerRoleARN.Value***REMOVED***
-		sts.InstanceIAMRoles(instanceIamRoles***REMOVED***
-
-		// set OIDC config ID
-		if !state.Sts.OIDCConfigID.Unknown && !state.Sts.OIDCConfigID.Null && state.Sts.OIDCConfigID.Value != "" {
-			sts.OidcConfig(cmv1.NewOidcConfig(***REMOVED***.ID(state.Sts.OIDCConfigID.Value***REMOVED******REMOVED***
-***REMOVED***
-
-		sts.OperatorRolePrefix(state.Sts.OperatorRolePrefix.Value***REMOVED***
-		awsBuilder.STS(sts***REMOVED***
-	}
-
-	if !state.AWSSubnetIDs.Unknown && !state.AWSSubnetIDs.Null {
-		subnetIds := make([]string, 0***REMOVED***
-		for _, e := range state.AWSSubnetIDs.Elems {
-			subnetIds = append(subnetIds, e.(types.String***REMOVED***.Value***REMOVED***
-***REMOVED***
-		awsBuilder.SubnetIDs(subnetIds...***REMOVED***
-	}
-
-	if !awsBuilder.Empty(***REMOVED*** {
-		builder.AWS(awsBuilder***REMOVED***
-	}
 	network := cmv1.NewNetwork(***REMOVED***
 	if !state.MachineCIDR.Unknown && !state.MachineCIDR.Null {
 		network.MachineCIDR(state.MachineCIDR.Value***REMOVED***
@@ -711,7 +654,7 @@ func createClassicClusterObject(ctx context.Context,
 		builder.Htpasswd(htPasswdIDP***REMOVED***
 	}
 
-	builder, err = buildProxy(state, builder***REMOVED***
+	builder, err := buildProxy(state, builder***REMOVED***
 	if err != nil {
 		tflog.Error(ctx, "Failed to build the Proxy's attributes"***REMOVED***
 		return nil, err
@@ -1599,6 +1542,16 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 ***REMOVED***
 	} else {
 		state.AWSPrivateLink = types.Bool{
+			Null: true,
+***REMOVED***
+	}
+	listeningMethod, ok := object.API(***REMOVED***.GetListening(***REMOVED***
+	if ok {
+		state.Private = types.Bool{
+			Value: listeningMethod == cmv1.ListeningMethodInternal,
+***REMOVED***
+	} else {
+		state.Private = types.Bool{
 			Null: true,
 ***REMOVED***
 	}

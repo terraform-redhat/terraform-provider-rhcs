@@ -165,6 +165,7 @@ func generateBasicRosaClassicClusterState(***REMOVED*** *ClusterRosaClassicState
 		Replicas:    types.Int64{Value: 2},
 		MinReplicas: types.Int64{Unknown: true},
 		MaxReplicas: types.Int64{Unknown: true},
+		KMSKeyArn:   types.String{Unknown: true},
 	}
 }
 

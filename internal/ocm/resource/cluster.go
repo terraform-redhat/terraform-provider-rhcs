@@ -3,9 +3,15 @@ package resource
 ***REMOVED***
 	"context"
 	"errors"
+***REMOVED***
+	"regexp"
 
 	"github.com/openshift-online/ocm-common/pkg/cluster/validations"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+***REMOVED***
+
+var kmsArnRE = regexp.MustCompile(
+	`^arn:aws[\w-]*:kms:[\w-]+:\d{12}:key\/mrk-[0-9a-f]{32}$|[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`,
 ***REMOVED***
 
 type Cluster struct {
@@ -92,4 +98,82 @@ func (c *Cluster***REMOVED*** CreateNodes(ctx context.Context, autoScalingEnable
 	}
 
 	return nil
+}
+
+func (c *Cluster***REMOVED*** CreateAWSBuilder(awsTags map[string]string, ec2MetadataHttpTokens *string, kmsKeyARN *string,
+	isPrivateLink bool, awsAccountID *string, stsBuilder *cmv1.STSBuilder, awsSubnetIDs []string***REMOVED*** error {
+
+	if isPrivateLink && awsSubnetIDs == nil {
+		return errors.New("Clusters with PrivateLink must have a pre-configured VPC. Make sure to specify the subnet ids."***REMOVED***
+	}
+
+	awsBuilder := cmv1.NewAWS(***REMOVED***
+
+	if awsTags != nil {
+		awsBuilder.Tags(awsTags***REMOVED***
+	}
+
+	ec2MetadataHttpTokensVal := cmv1.Ec2MetadataHttpTokensOptional
+	if ec2MetadataHttpTokens != nil {
+		ec2MetadataHttpTokensVal = cmv1.Ec2MetadataHttpTokens(*ec2MetadataHttpTokens***REMOVED***
+	}
+	awsBuilder.Ec2MetadataHttpTokens(ec2MetadataHttpTokensVal***REMOVED***
+
+	if kmsKeyARN != nil {
+		if !kmsArnRE.MatchString(*kmsKeyARN***REMOVED*** {
+			return errors.New(fmt.Sprintf("Expected a valid value for kms-key-arn matching %s", kmsArnRE***REMOVED******REMOVED***
+***REMOVED***
+		awsBuilder.KMSKeyArn(*kmsKeyARN***REMOVED***
+	}
+
+	if awsAccountID != nil {
+		awsBuilder.AccountID(*awsAccountID***REMOVED***
+	}
+
+	awsBuilder.PrivateLink(isPrivateLink***REMOVED***
+
+	if awsSubnetIDs != nil {
+		awsBuilder.SubnetIDs(awsSubnetIDs...***REMOVED***
+	}
+
+	if stsBuilder != nil {
+		awsBuilder.STS(stsBuilder***REMOVED***
+	}
+
+	c.clusterBuilder.AWS(awsBuilder***REMOVED***
+
+	return nil
+}
+
+func (c *Cluster***REMOVED*** SetAPIPrivacy(isPrivate bool, isPrivateLink bool, isSTS bool***REMOVED*** error {
+	if isSTS && isPrivate && !isPrivateLink {
+		return errors.New("Private STS clusters are only supported through AWS PrivateLink"***REMOVED***
+	}
+	api := cmv1.NewClusterAPI(***REMOVED***
+	if isPrivate {
+		api.Listening(cmv1.ListeningMethodInternal***REMOVED***
+	} else {
+		api.Listening(cmv1.ListeningMethodExternal***REMOVED***
+	}
+	c.clusterBuilder.API(api***REMOVED***
+	return nil
+}
+
+func CreateSTS(installerRoleARN, supportRoleARN, masterRoleARN, workerRoleARN,
+	operatorRolePrefix string, oidcConfigID *string***REMOVED*** *cmv1.STSBuilder {
+	sts := cmv1.NewSTS(***REMOVED***
+	sts.RoleARN(installerRoleARN***REMOVED***
+	sts.SupportRoleARN(supportRoleARN***REMOVED***
+	instanceIamRoles := cmv1.NewInstanceIAMRoles(***REMOVED***
+	instanceIamRoles.MasterRoleARN(masterRoleARN***REMOVED***
+	instanceIamRoles.WorkerRoleARN(workerRoleARN***REMOVED***
+	sts.InstanceIAMRoles(instanceIamRoles***REMOVED***
+
+	// set OIDC config ID
+	if oidcConfigID != nil {
+		sts.OidcConfig(cmv1.NewOidcConfig(***REMOVED***.ID(*oidcConfigID***REMOVED******REMOVED***
+	}
+
+	sts.OperatorRolePrefix(operatorRolePrefix***REMOVED***
+	return sts
 }

@@ -38,7 +38,7 @@ import (
 
 // This is a magic name to trigger special handling for the cluster's default
 // machine pool
-const defaultMachinePoolName = "worker"
+const defaultMachinePoolID = "worker"
 
 type MachinePoolResourceType struct {
 }
@@ -380,7 +380,7 @@ func (r *MachinePoolResource) Read(ctx context.Context, request tfsdk.ReadResour
 	}
 
 	// If the requested machine pool is the default one, handle it differently
-	if state.ID.Value == defaultMachinePoolName {
+	if state.ID.Value == defaultMachinePoolID {
 		response.Diagnostics.Append(r.readDefaultMachinePool(ctx, state)...)
 		response.Diagnostics.Append(response.State.Set(ctx, state)...)
 		return
@@ -454,6 +454,13 @@ func (r *MachinePoolResource) Update(ctx context.Context, request tfsdk.UpdateRe
 	diags = request.Plan.Get(ctx, plan)
 	response.Diagnostics.Append(diags...)
 	if response.Diagnostics.HasError() {
+		return
+	}
+
+	// The default machine pool is handled differently
+	if state.ID.Value == defaultMachinePoolID {
+		response.Diagnostics.Append(r.updateDefaultMachinePool(ctx, state, plan)...)
+		response.Diagnostics.Append(response.State.Set(ctx, state)...)
 		return
 	}
 
@@ -570,6 +577,110 @@ func (r *MachinePoolResource) Update(ctx context.Context, request tfsdk.UpdateRe
 	r.populateState(object, state)
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
+}
+
+// Updates the default machine pool, given the current state and the plan. The result is stored in the state.
+func (r *MachinePoolResource) updateDefaultMachinePool(ctx context.Context, state *MachinePoolState, plan *MachinePoolState) diag.Diagnostics {
+	diags := diag.Diagnostics{}
+	// The default pool is a special case that only supports some of the machine pool options.
+	if !common.IsStringAttributeEmpty(plan.AvailabilityZone) {
+		diags.AddError(
+			"Can't update default machine pool",
+			"availability_zone cannot be set for the default machine pool",
+		)
+	}
+	if !common.IsStringAttributeEmpty(plan.SubnetID) {
+		diags.AddError(
+			"Can't update default machine pool",
+			"subnet_id cannot be set for the default machine pool",
+		)
+	}
+
+	// This function is also called during the "magic" import process where a
+	// Create() process actually imports and updates the pool. In this case, we
+	// need to validate that the plan is compatible with the existing pool. We
+	// don't have the PlanModifiers to rely on in this case since TF thinks
+	// it's a create.
+	if _, ok := common.ShouldPatchString(state.MachineType, plan.MachineType); ok {
+		diags.AddError(
+			"Can't update default machine pool",
+			"machine_type cannot be changed for the default machine pool",
+		)
+	}
+	if _, ok := common.ShouldPatchBool(state.UseSpotInstances, plan.UseSpotInstances); ok {
+		diags.AddError(
+			"Can't update default machine pool",
+			"use_spot_instances must be false for the default machine pool",
+		)
+	}
+	if !plan.MaxSpotPrice.Null {
+		diags.AddError(
+			"Can't update default machine pool",
+			"max_spot_price cannot be set for the default machine pool",
+		)
+	}
+	if plan.Taints != nil && len(plan.Taints) > 0 {
+		diags.AddError(
+			"Can't update default machine pool",
+			"taints cannot be set for the default machine pool",
+		)
+	}
+
+	// Stop here if there are any errors.
+	if diags.HasError() {
+		return diags
+	}
+
+	// Update the machine pool settings
+	autoScalingEnabled := common.Bool(plan.AutoScalingEnabled)
+	replicas := common.OptionalInt64(plan.Replicas)
+	minReplicas := common.OptionalInt64(plan.MinReplicas)
+	maxReplicas := common.OptionalInt64(plan.MaxReplicas)
+
+	nodes := cmv1.NewClusterNodes()
+	if autoScalingEnabled {
+		autoscaling := cmv1.NewMachinePoolAutoscaling()
+		if minReplicas != nil {
+			autoscaling.MinReplicas(int(*minReplicas))
+		}
+		if maxReplicas != nil {
+			autoscaling.MaxReplicas(int(*maxReplicas))
+		}
+		nodes.AutoscaleCompute(autoscaling)
+	} else {
+		if replicas != nil {
+			nodes.Compute(int(*replicas))
+		}
+	}
+
+	labels := common.OptionalMap(plan.Labels)
+	nodes.ComputeLabels(labels)
+
+	clusterBuilder := cmv1.NewCluster()
+	clusterBuilder.Nodes(nodes)
+
+	// Send modifications to the OCM API
+	clusterSpec, err := clusterBuilder.Build()
+	if err != nil {
+		diags.AddError(
+			"Can't update default machine pool",
+			fmt.Sprintf("Failed to build cluster spec: %v", err),
+		)
+		return diags
+	}
+	resp, err := r.collection.Cluster(state.Cluster.Value).Update().Body(clusterSpec).SendContext(ctx)
+	if err != nil {
+		diags.AddError(
+			"Can't update default machine pool",
+			fmt.Sprintf("Failed to update cluster spec: %v", err),
+		)
+		return diags
+	}
+
+	clusterSpec = resp.Body()
+	r.populateStateFromCluster(clusterSpec, state)
+
+	return diags
 }
 
 // Validate the machine pool's settings that pertain to availability zones.
@@ -842,10 +953,10 @@ func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *Mac
 // populateStateFromCluster copies the data for the default machinepool from the cluster API object to the Terraform state.
 func (r *MachinePoolResource) populateStateFromCluster(object *cmv1.Cluster, state *MachinePoolState) {
 	state.ID = types.String{
-		Value: defaultMachinePoolName,
+		Value: defaultMachinePoolID,
 	}
 	state.Name = types.String{
-		Value: defaultMachinePoolName,
+		Value: defaultMachinePoolID,
 	}
 
 	// Default machine pool does not support spot instances
@@ -889,6 +1000,8 @@ func (r *MachinePoolResource) populateStateFromCluster(object *cmv1.Cluster, sta
 		state.Replicas = types.Int64{
 			Value: int64(replicas),
 		}
+	} else {
+		state.Replicas = types.Int64{Null: true}
 	}
 
 	// Default machine pool does not support taints

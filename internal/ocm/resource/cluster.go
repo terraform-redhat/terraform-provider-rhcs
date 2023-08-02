@@ -3,9 +3,15 @@ package resource
 import (
 	"context"
 	"errors"
+	"fmt"
+	"regexp"
 
 	"github.com/openshift-online/ocm-common/pkg/cluster/validations"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+)
+
+var kmsArnRE = regexp.MustCompile(
+	`^arn:aws[\w-]*:kms:[\w-]+:\d{12}:key\/mrk-[0-9a-f]{32}$|[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`,
 )
 
 type Cluster struct {
@@ -92,4 +98,82 @@ func (c *Cluster) CreateNodes(ctx context.Context, autoScalingEnabled bool, repl
 	}
 
 	return nil
+}
+
+func (c *Cluster) CreateAWSBuilder(awsTags map[string]string, ec2MetadataHttpTokens *string, kmsKeyARN *string,
+	isPrivateLink bool, awsAccountID *string, stsBuilder *cmv1.STSBuilder, awsSubnetIDs []string) error {
+
+	if isPrivateLink && awsSubnetIDs == nil {
+		return errors.New("Clusters with PrivateLink must have a pre-configured VPC. Make sure to specify the subnet ids.")
+	}
+
+	awsBuilder := cmv1.NewAWS()
+
+	if awsTags != nil {
+		awsBuilder.Tags(awsTags)
+	}
+
+	ec2MetadataHttpTokensVal := cmv1.Ec2MetadataHttpTokensOptional
+	if ec2MetadataHttpTokens != nil {
+		ec2MetadataHttpTokensVal = cmv1.Ec2MetadataHttpTokens(*ec2MetadataHttpTokens)
+	}
+	awsBuilder.Ec2MetadataHttpTokens(ec2MetadataHttpTokensVal)
+
+	if kmsKeyARN != nil {
+		if !kmsArnRE.MatchString(*kmsKeyARN) {
+			return errors.New(fmt.Sprintf("Expected a valid value for kms-key-arn matching %s", kmsArnRE))
+		}
+		awsBuilder.KMSKeyArn(*kmsKeyARN)
+	}
+
+	if awsAccountID != nil {
+		awsBuilder.AccountID(*awsAccountID)
+	}
+
+	awsBuilder.PrivateLink(isPrivateLink)
+
+	if awsSubnetIDs != nil {
+		awsBuilder.SubnetIDs(awsSubnetIDs...)
+	}
+
+	if stsBuilder != nil {
+		awsBuilder.STS(stsBuilder)
+	}
+
+	c.clusterBuilder.AWS(awsBuilder)
+
+	return nil
+}
+
+func (c *Cluster) SetAPIPrivacy(isPrivate bool, isPrivateLink bool, isSTS bool) error {
+	if isSTS && isPrivate && !isPrivateLink {
+		return errors.New("Private STS clusters are only supported through AWS PrivateLink")
+	}
+	api := cmv1.NewClusterAPI()
+	if isPrivate {
+		api.Listening(cmv1.ListeningMethodInternal)
+	} else {
+		api.Listening(cmv1.ListeningMethodExternal)
+	}
+	c.clusterBuilder.API(api)
+	return nil
+}
+
+func CreateSTS(installerRoleARN, supportRoleARN, masterRoleARN, workerRoleARN,
+	operatorRolePrefix string, oidcConfigID *string) *cmv1.STSBuilder {
+	sts := cmv1.NewSTS()
+	sts.RoleARN(installerRoleARN)
+	sts.SupportRoleARN(supportRoleARN)
+	instanceIamRoles := cmv1.NewInstanceIAMRoles()
+	instanceIamRoles.MasterRoleARN(masterRoleARN)
+	instanceIamRoles.WorkerRoleARN(workerRoleARN)
+	sts.InstanceIAMRoles(instanceIamRoles)
+
+	// set OIDC config ID
+	if oidcConfigID != nil {
+		sts.OidcConfig(cmv1.NewOidcConfig().ID(*oidcConfigID))
+	}
+
+	sts.OperatorRolePrefix(operatorRolePrefix)
+	return sts
 }

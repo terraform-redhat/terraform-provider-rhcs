@@ -25,7 +25,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -69,10 +68,6 @@ var OCMProperties = map[string]string{
 	propertyRosaTfVersion: build.Version,
 	propertyRosaTfCommit:  build.Commit,
 }
-
-var kmsArnRE = regexp.MustCompile(
-	`^arn:aws[\w-]*:kms:[\w-]+:\d{12}:key\/mrk-[0-9a-f]{32}$|[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`,
-)
 
 type ClusterRosaClassicResourceType struct {
 }
@@ -287,6 +282,16 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 			},
 			"aws_private_link": {
 				Description: "Provides private connectivity between VPCs, AWS services, and your on-premises networks, without exposing your traffic to the public internet.",
+				Type:        types.BoolType,
+				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.UseStateForUnknown(),
+					ValueCannotBeChangedModifier(),
+				},
+			},
+			"private": {
+				Description: "Restrict master API endpoint and application routes to direct, private connectivity.",
 				Type:        types.BoolType,
 				Optional:    true,
 				Computed:    true,
@@ -554,95 +559,33 @@ func createClassicClusterObject(ctx context.Context,
 	}
 	builder.CCS(ccs)
 
-	awsBuilder := cmv1.NewAWS()
-
-	if !state.Tags.Unknown && !state.Tags.Null {
-		tags := map[string]string{}
-		for k, v := range state.Tags.Elems {
-			if _, ok := tags[k]; ok {
-				errDescription := fmt.Sprintf("Invalid tags, user tag keys must be unique, duplicate key '%s' found", k)
-				tflog.Error(ctx, errDescription)
-
-				diags.AddError(
-					errHeadline,
-					errDescription,
-				)
-				return nil, errors.New(errHeadline + "\n" + errDescription)
-			}
-			tags[k] = v.(types.String).Value
-		}
-
-		awsBuilder.Tags(tags)
+	awsTags := common.OptionalMap(state.Tags)
+	ec2MetadataHttpTokens := common.OptionalString(state.Ec2MetadataHttpTokens)
+	kmsKeyARN := common.OptionalString(state.KMSKeyArn)
+	awsAccountID := common.OptionalString(state.AWSAccountID)
+	isPrivateLink := common.Bool(state.AWSPrivateLink)
+	isPrivate := common.Bool(state.Private)
+	awsSubnetIDs := common.OptionalList(state.AWSSubnetIDs)
+	var stsBuilder *cmv1.STSBuilder
+	if state.Sts != nil {
+		stsBuilder = resource.CreateSTS(state.Sts.RoleARN.Value, state.Sts.SupportRoleArn.Value,
+			state.Sts.InstanceIAMRoles.MasterRoleARN.Value, state.Sts.InstanceIAMRoles.WorkerRoleARN.Value,
+			state.Sts.OperatorRolePrefix.Value, common.OptionalString(state.Sts.OIDCConfigID))
 	}
 
-	// Set default for Ec2MetadataHttpTokens
-	if common.IsStringAttributeEmpty(state.Ec2MetadataHttpTokens) {
-		state.Ec2MetadataHttpTokens.Value = string(cmv1.Ec2MetadataHttpTokensOptional)
-	}
-	awsBuilder.Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokens(state.Ec2MetadataHttpTokens.Value))
-
-	if !state.KMSKeyArn.Unknown && !state.KMSKeyArn.Null && state.KMSKeyArn.Value != "" {
-		kmsKeyARN := state.KMSKeyArn.Value
-		if !kmsArnRE.MatchString(kmsKeyARN) {
-			errDescription := fmt.Sprintf("Expected a valid value for kms-key-arn matching %s", kmsArnRE)
-			tflog.Error(ctx, errDescription)
-
-			diags.AddError(
-				errHeadline,
-				errDescription,
-			)
-			return nil, errors.New(errHeadline + "\n" + errDescription)
-		}
-		awsBuilder.KMSKeyArn(kmsKeyARN)
+	if err := ocmClusterResource.CreateAWSBuilder(awsTags, ec2MetadataHttpTokens, kmsKeyARN,
+		isPrivateLink, awsAccountID, stsBuilder, awsSubnetIDs); err != nil {
+		return nil, err
 	}
 
-	if !state.AWSAccountID.Unknown && !state.AWSAccountID.Null {
-		awsBuilder.AccountID(state.AWSAccountID.Value)
-	}
-
-	if !state.AWSPrivateLink.Unknown && !state.AWSPrivateLink.Null {
-		awsBuilder.PrivateLink((state.AWSPrivateLink.Value))
-		api := cmv1.NewClusterAPI()
-		if state.AWSPrivateLink.Value {
-			api.Listening(cmv1.ListeningMethodInternal)
-		}
-		builder.API(api)
+	if err := ocmClusterResource.SetAPIPrivacy(isPrivate, isPrivateLink, stsBuilder != nil); err != nil {
+		return nil, err
 	}
 
 	if !state.FIPS.Unknown && !state.FIPS.Null && state.FIPS.Value {
 		builder.FIPS(true)
 	}
 
-	sts := cmv1.NewSTS()
-	var err error
-	if state.Sts != nil {
-		sts.RoleARN(state.Sts.RoleARN.Value)
-		sts.SupportRoleARN(state.Sts.SupportRoleArn.Value)
-		instanceIamRoles := cmv1.NewInstanceIAMRoles()
-		instanceIamRoles.MasterRoleARN(state.Sts.InstanceIAMRoles.MasterRoleARN.Value)
-		instanceIamRoles.WorkerRoleARN(state.Sts.InstanceIAMRoles.WorkerRoleARN.Value)
-		sts.InstanceIAMRoles(instanceIamRoles)
-
-		// set OIDC config ID
-		if !state.Sts.OIDCConfigID.Unknown && !state.Sts.OIDCConfigID.Null && state.Sts.OIDCConfigID.Value != "" {
-			sts.OidcConfig(cmv1.NewOidcConfig().ID(state.Sts.OIDCConfigID.Value))
-		}
-
-		sts.OperatorRolePrefix(state.Sts.OperatorRolePrefix.Value)
-		awsBuilder.STS(sts)
-	}
-
-	if !state.AWSSubnetIDs.Unknown && !state.AWSSubnetIDs.Null {
-		subnetIds := make([]string, 0)
-		for _, e := range state.AWSSubnetIDs.Elems {
-			subnetIds = append(subnetIds, e.(types.String).Value)
-		}
-		awsBuilder.SubnetIDs(subnetIds...)
-	}
-
-	if !awsBuilder.Empty() {
-		builder.AWS(awsBuilder)
-	}
 	network := cmv1.NewNetwork()
 	if !state.MachineCIDR.Unknown && !state.MachineCIDR.Null {
 		network.MachineCIDR(state.MachineCIDR.Value)
@@ -711,7 +654,7 @@ func createClassicClusterObject(ctx context.Context,
 		builder.Htpasswd(htPasswdIDP)
 	}
 
-	builder, err = buildProxy(state, builder)
+	builder, err := buildProxy(state, builder)
 	if err != nil {
 		tflog.Error(ctx, "Failed to build the Proxy's attributes")
 		return nil, err
@@ -1599,6 +1542,16 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		}
 	} else {
 		state.AWSPrivateLink = types.Bool{
+			Null: true,
+		}
+	}
+	listeningMethod, ok := object.API().GetListening()
+	if ok {
+		state.Private = types.Bool{
+			Value: listeningMethod == cmv1.ListeningMethodInternal,
+		}
+	} else {
+		state.Private = types.Bool{
 			Null: true,
 		}
 	}

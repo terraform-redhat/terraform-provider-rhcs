@@ -251,6 +251,22 @@ func (r *MachinePoolResource) Create(ctx context.Context,
 		return
 	}
 
+	// Create() of the default machine pool is reall a "magic import" plus
+	// update.
+	if machinepoolName == defaultMachinePoolID {
+		// Read the machine pool state from the API
+		existingState := &MachinePoolState{
+			Cluster: state.Cluster, // Set the cluster ID so we can find the machine pool
+		}
+		response.Diagnostics.Append(r.readDefaultMachinePool(ctx, existingState)...)
+		// Perform the update as if Update() was called
+		// "state" during the Create() call is really the Plan
+		response.Diagnostics.Append(r.updateDefaultMachinePool(ctx, existingState, state)...)
+		// Save the resulting state
+		response.Diagnostics.Append(response.State.Set(ctx, state)...)
+		return
+	}
+
 	// Create the machine pool:
 	builder := cmv1.NewMachinePool().ID(state.ID.Value).InstanceType(state.MachineType.Value)
 	builder.ID(state.Name.Value)
@@ -583,13 +599,28 @@ func (r *MachinePoolResource) Update(ctx context.Context, request tfsdk.UpdateRe
 func (r *MachinePoolResource) updateDefaultMachinePool(ctx context.Context, state *MachinePoolState, plan *MachinePoolState) diag.Diagnostics {
 	diags := diag.Diagnostics{}
 	// The default pool is a special case that only supports some of the machine pool options.
-	if !common.IsStringAttributeEmpty(plan.AvailabilityZone) {
+	if plan.MultiAvailabilityZone.Unknown {
+		plan.MultiAvailabilityZone = state.MultiAvailabilityZone
+	}
+	if !plan.MultiAvailabilityZone.Null {
+		diags.AddError(
+			"Can't update default machine pool",
+			"multi_availability_zone cannot be set for the default machine pool",
+		)
+	}
+	if plan.AvailabilityZone.Unknown {
+		plan.AvailabilityZone = state.AvailabilityZone
+	}
+	if !plan.AvailabilityZone.Null {
 		diags.AddError(
 			"Can't update default machine pool",
 			"availability_zone cannot be set for the default machine pool",
 		)
 	}
-	if !common.IsStringAttributeEmpty(plan.SubnetID) {
+	if plan.SubnetID.Unknown {
+		plan.SubnetID = state.SubnetID
+	}
+	if !plan.SubnetID.Null {
 		diags.AddError(
 			"Can't update default machine pool",
 			"subnet_id cannot be set for the default machine pool",
@@ -963,6 +994,11 @@ func (r *MachinePoolResource) populateStateFromCluster(object *cmv1.Cluster, sta
 	state.UseSpotInstances = types.Bool{Value: false}
 	state.MaxSpotPrice = types.Float64{Null: true}
 
+	// MultiAZ fields are not relevant for the default machine pool
+	state.MultiAvailabilityZone = types.Bool{Null: true}
+	state.AvailabilityZone = types.String{Null: true}
+	state.SubnetID = types.String{Null: true}
+
 	nodes := object.Nodes()
 
 	autoscaling, ok := nodes.GetAutoscaleCompute()
@@ -986,13 +1022,8 @@ func (r *MachinePoolResource) populateStateFromCluster(object *cmv1.Cluster, sta
 		state.MinReplicas = types.Int64{Null: true}
 	}
 
-	instanceType, ok := nodes.ComputeMachineType().GetID()
-	if ok {
-		{
-			state.MachineType = types.String{
-				Value: instanceType,
-			}
-		}
+	state.MachineType = types.String{
+		Value: nodes.ComputeMachineType().ID(),
 	}
 
 	replicas, ok := nodes.GetCompute()

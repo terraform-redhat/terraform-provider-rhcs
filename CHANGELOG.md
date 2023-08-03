@@ -1,3 +1,8 @@
+## 1.2.1 (Aug 3, 2023)
+-ENHANCEMENTS:
+* Update the documentation files to point the correct links.
+* Fix the default value of openshift_version in the examples
+
 ## 1.2.0 (Aug 1, 2023)
 -FEATURES:
 * Enable creating cluster admin in cluster create

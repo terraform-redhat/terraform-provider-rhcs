@@ -1,3 +1,7 @@
+## 1.2.2 (Aug 3, 2023)
+-ENHANCEMENTS:
+* Update the documentation files to point the correct links.
+
 ## 1.2.1 (Aug 3, 2023)
 -ENHANCEMENTS:
 * Update the documentation files to point the correct links.

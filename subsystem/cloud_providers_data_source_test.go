@@ -147,9 +147,9 @@ var _ = Describe("Cloud providers data source", func() {
 
 		// Check the state:
 		resource := terraform.Resource("rhcs_cloud_providers", "a")
-		Expect(resource).To(MatchJQ(`.attributes.item.id`, "aws"))
-		Expect(resource).To(MatchJQ(`.attributes.item.name`, "aws"))
-		Expect(resource).To(MatchJQ(`.attributes.item.display_name`, "AWS"))
+		Expect(resource).To(MatchJQ(`.attributes.item[0].id`, "aws"))
+		Expect(resource).To(MatchJQ(`.attributes.item[0].name`, "aws"))
+		Expect(resource).To(MatchJQ(`.attributes.item[0].display_name`, "AWS"))
 	})
 
 	It("Doesn't populate `item` if there are zero results", func() {

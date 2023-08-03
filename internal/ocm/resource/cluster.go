@@ -31,8 +31,8 @@ func (c *Cluster) Build() (object *cmv1.Cluster, err error) {
 	return c.clusterBuilder.Build()
 }
 
-func (c *Cluster) CreateNodes(autoScalingEnabled bool, replicas *int64, minReplicas *int64,
-	maxReplicas *int64, computeMachineType *string, labels map[string]string,
+func (c *Cluster) CreateNodes(autoScalingEnabled bool, replicas *int, minReplicas *int,
+	maxReplicas *int, computeMachineType *string, labels map[string]string,
 	availabilityZones []string, multiAZ bool) error {
 	nodes := cmv1.NewClusterNodes()
 	if computeMachineType != nil {
@@ -100,7 +100,7 @@ func (c *Cluster) CreateNodes(autoScalingEnabled bool, replicas *int64, minRepli
 }
 
 func (c *Cluster) CreateAWSBuilder(awsTags map[string]string, ec2MetadataHttpTokens *string, kmsKeyARN *string,
-	isPrivateLink bool, awsAccountID *string, stsBuilder *cmv1.STSBuilder, awsSubnetIDs []string) error {
+	isPrivateLink bool, awsAccountID string, stsBuilder *cmv1.STSBuilder, awsSubnetIDs []string) error {
 
 	if isPrivateLink && awsSubnetIDs == nil {
 		return errors.New("Clusters with PrivateLink must have a pre-configured VPC. Make sure to specify the subnet ids.")
@@ -125,9 +125,7 @@ func (c *Cluster) CreateAWSBuilder(awsTags map[string]string, ec2MetadataHttpTok
 		awsBuilder.KMSKeyArn(*kmsKeyARN)
 	}
 
-	if awsAccountID != nil {
-		awsBuilder.AccountID(*awsAccountID)
-	}
+	awsBuilder.AccountID(awsAccountID)
 
 	awsBuilder.PrivateLink(isPrivateLink)
 

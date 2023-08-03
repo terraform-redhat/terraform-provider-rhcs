@@ -65,7 +65,7 @@ export TF_LOG=${TF_LOG:-info}
 cd "${WORK_DIR}"
 
 
-# Check for provider source and version 'provider_source = "hashicorp/rhcs" (or "terraform.local/local/rhcs"') and 'provider_version = ">=1.0.1"'  
+# Check for clusterservice source and version 'provider_source = "hashicorp/rhcs" (or "terraform.local/local/rhcs"') and 'provider_version = ">=1.0.1"'
 provider=$(cat main.tf | awk '/required_providers/{line=1; next} line && /^\}/{exit} line' | awk '/rhcs(\s+?)=(\s+?)\{/{line=1; next} line && /\}/{exit} line')
 
 src=$(echo "${TF_VARS}" | grep provider_source | sed -rEz 's/.+?provider_source\s+?=\s+?(\"[^\"]*\").*/\1/') || true

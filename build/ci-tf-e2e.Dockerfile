@@ -25,6 +25,6 @@ RUN yum install -y yum-utils && \
     go env -w GO111MODULE=on &&\
     go install github.com/onsi/ginkgo/v2/ginkgo@latest &&\
     go install github.com/golang/mock/mockgen@v1.6.0 &&\
-    cd terraform-provider-rhcs && go mod tidy && go mod vendor && make install &&\
+    cd terraform-cprovider-rhcs && go mod tidy && go mod vendor && make install &&\
     chmod -R 777 $GOPATH &&\
     echo 'RUN done'

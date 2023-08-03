@@ -31,7 +31,7 @@ provider "rhcs" {
 resource "rhcs_identity_provider" "ldap_idp" {
   cluster = var.cluster_id
   name    = "LDAP"
-  ldap = {
+  ldap {
     url        = var.ldap_url
     attributes = {}
     # Optional Attributes

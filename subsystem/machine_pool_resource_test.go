@@ -27,7 +27,7 @@ import (
 
 var _ = Describe("Machine pool creation", func() {
 	BeforeEach(func() {
-		// The first thing that the provider will do for any operation on machine pools
+		// The first thing that the clusterservice will do for any operation on machine pools
 		// is check that the cluster is ready, so we always need to prepare the server to
 		// respond to that:
 		server.AppendHandlers(
@@ -123,16 +123,14 @@ var _ = Describe("Machine pool creation", func() {
 		    machine_type = "r5.xlarge"
 		    replicas     = 12
 			labels = {
-				"label_key1" = "label_value1",
+				"label_key1" = "label_value1"
 				"label_key2" = "label_value2"
 			}
-			taints = [
-				{
-					key = "key1",
-					value = "value1",
-					schedule_type = "effect1",
-				},
-		    ]
+			taints {
+					key = "key1"
+					value = "value1"
+					schedule_type = "effect1"
+				}
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
@@ -207,13 +205,11 @@ var _ = Describe("Machine pool creation", func() {
 				"label_key1" = "label_value1",
 				"label_key2" = "label_value2"
 			}
-			taints = [
-				{
-					key = "key1",
-					value = "value1",
-					schedule_type = "effect1",
-				},
-		    ]
+			taints {
+					key = "key1"
+					value = "value1"
+					schedule_type = "effect1"
+				}
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
@@ -317,7 +313,6 @@ var _ = Describe("Machine pool creation", func() {
 		// Run the apply command:
 		terraform.Source(`
 		  resource "rhcs_machine_pool" "my_pool" {
-            id           = "my-pool"
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
@@ -326,13 +321,11 @@ var _ = Describe("Machine pool creation", func() {
 				"label_key1" = "label_value1",
 				"label_key2" = "label_value2"
 			}
-			taints = [
-				{
-					key = "key1",
-					value = "value1",
-					schedule_type = "effect1",
-				},
-		    ]
+			taints {
+					key = "key1"
+					value = "value1"
+					schedule_type = "effect1"
+				}
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
@@ -531,8 +524,7 @@ var _ = Describe("Machine pool creation", func() {
 				VerifyJSON(`{
 				  "kind": "MachinePool",
 				  "id": "my-pool",
-				  "replicas": 12,
-                  "labels": {}
+				  "replicas": 12
 				}`),
 				RespondWithJSON(http.StatusOK, `
 				{
@@ -578,6 +570,7 @@ var _ = Describe("Machine pool creation", func() {
 				  "kind": "MachinePool",
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
+				  "labels": {},
 				  "replicas": 12,
 				  "taints": [
 					  {
@@ -614,13 +607,11 @@ var _ = Describe("Machine pool creation", func() {
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
 		    replicas     = 12
-			taints = [
-				{
-					key = "key1",
-					value = "value1",
-					schedule_type = "effect1",
+			taints {
+					key = "key1"
+					value = "value1"
+					schedule_type = "effect1"
 				}
-		    ]
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
@@ -739,18 +730,16 @@ var _ = Describe("Machine pool creation", func() {
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
 		    replicas     = 12
-			taints = [
-				{
-					key = "key1",
-					value = "value1",
-					schedule_type = "effect1",
-				},
-				{
-					key = "key2",
-					value = "value2",
-					schedule_type = "effect2",
+			taints {
+					key = "key1"
+					value = "value1"
+					schedule_type = "effect1"
 				}
-		    ]
+			taints {
+					key = "key2"
+					value = "value2"
+					schedule_type = "effect2"
+				}
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
@@ -777,6 +766,7 @@ var _ = Describe("Machine pool creation", func() {
 				  "kind": "MachinePool",
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
+				  "labels": {},
 				  "replicas": 12,
 				  "taints": [
 					  {
@@ -813,13 +803,11 @@ var _ = Describe("Machine pool creation", func() {
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
 		    replicas     = 12
-			taints = [
-				{
-					key = "key1",
-					value = "value1",
-					schedule_type = "effect1",
+			taints {
+					key = "key1"
+					value = "value1"
+					schedule_type = "effect1"
 				}
-		    ]
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
@@ -945,7 +933,8 @@ var _ = Describe("Machine pool creation", func() {
 				  	"max_replicas": 3,
 				  	"min_replicas": 0
 				  },
-				  "instance_type": "r5.xlarge"
+				  "instance_type": "r5.xlarge",
+				  "labels": {}
 				}`),
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-pool",
@@ -1143,13 +1132,11 @@ var _ = Describe("Machine pool creation", func() {
 			}
 			use_spot_instances = "true"
             max_spot_price = -10
-			taints = [
-				{
+			taints {
 					key = "key1",
 					value = "value1",
 					schedule_type = "effect1",
-				},
-		    ]
+				}
 		  }
 		`)
 		Expect(terraform.Apply()).NotTo(BeZero())
@@ -1216,13 +1203,11 @@ var _ = Describe("Machine pool creation", func() {
 				"label_key1" = "label_value1",
 				"label_key2" = "label_value2"
 			}
-			taints = [
-				{
-					key = "key1",
-					value = "value1",
-					schedule_type = "effect1",
-				},
-		    ]
+			taints{
+					key = "key1"
+					value = "value1"
+					schedule_type = "effect1"
+				}
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
@@ -1311,13 +1296,11 @@ var _ = Describe("Machine pool creation", func() {
 			}
 			use_spot_instances = "true"
             max_spot_price = 0.5
-			taints = [
-				{
-					key = "key1",
-					value = "value1",
-					schedule_type = "effect1",
-				},
-		    ]
+			taints {
+					key = "key1"
+					value = "value1"
+					schedule_type = "effect1"
+				}
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
@@ -1406,13 +1389,11 @@ var _ = Describe("Machine pool creation", func() {
 				"label_key2" = "label_value2"
 			}
 			use_spot_instances = "true"
-			taints = [
-				{
-					key = "key1",
-					value = "value1",
-					schedule_type = "effect1",
-				},
-		    ]
+			taints {
+					key = "key1"
+					value = "value1"
+					schedule_type = "effect1"
+				}
 		  }
 		`)
 		Expect(terraform.Apply()).To(BeZero())
@@ -1432,7 +1413,7 @@ var _ = Describe("Machine pool creation", func() {
 
 var _ = Describe("Machine pool w/ mAZ cluster", func() {
 	BeforeEach(func() {
-		// The first thing that the provider will do for any operation on machine pools
+		// The first thing that the clusterservice will do for any operation on machine pools
 		// is check that the cluster is ready, so we always need to prepare the server to
 		// respond to that:
 		server.AppendHandlers(
@@ -1483,6 +1464,7 @@ var _ = Describe("Machine pool w/ mAZ cluster", func() {
 				  "kind": "MachinePool",
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
+				  "labels": {},
 				  "replicas": 6
 				}`),
 				RespondWithJSON(http.StatusOK, `{
@@ -1527,6 +1509,7 @@ var _ = Describe("Machine pool w/ mAZ cluster", func() {
 				  "kind": "MachinePool",
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
+				  "labels": {},
 				  "replicas": 6
 				}`),
 				RespondWithJSON(http.StatusOK, `{
@@ -1586,6 +1569,7 @@ var _ = Describe("Machine pool w/ mAZ cluster", func() {
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
 				  "replicas": 4,
+				  "labels": {},
 				  "availability_zones": [
 					"us-east-1b"
 				  ]
@@ -1632,6 +1616,7 @@ var _ = Describe("Machine pool w/ mAZ cluster", func() {
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
 				  "replicas": 4,
+				  "labels": {},
 				  "availability_zones": [
 					"us-east-1a"
 				  ]
@@ -1667,7 +1652,7 @@ var _ = Describe("Machine pool w/ mAZ cluster", func() {
 
 var _ = Describe("Machine pool w/ 1AZ cluster", func() {
 	BeforeEach(func() {
-		// The first thing that the provider will do for any operation on machine pools
+		// The first thing that the clusterservice will do for any operation on machine pools
 		// is check that the cluster is ready, so we always need to prepare the server to
 		// respond to that:
 		server.AppendHandlers(
@@ -1714,6 +1699,7 @@ var _ = Describe("Machine pool w/ 1AZ cluster", func() {
 				  "kind": "MachinePool",
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
+				  "labels": {},
 				  "replicas": 4
 				}`),
 				RespondWithJSON(http.StatusOK, `{
@@ -1756,6 +1742,7 @@ var _ = Describe("Machine pool w/ 1AZ cluster", func() {
 				  "kind": "MachinePool",
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
+				  "labels": {},
 				  "replicas": 4
 				}`),
 				RespondWithJSON(http.StatusOK, `{

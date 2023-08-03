@@ -18,7 +18,7 @@ type TfLogger struct {
 	errorEnabled bool
 }
 
-// New creates the provider.
+// New creates the clusterservice.
 func New() ocmlogging.Logger {
 	tfLogger := &TfLogger{}
 	logLevel := tflogging.LogLevel()

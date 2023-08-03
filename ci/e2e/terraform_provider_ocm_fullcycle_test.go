@@ -241,7 +241,7 @@ func defineVariablesValues() {
 
 }
 
-var _ = FDescribe("Terraform provider RHCS test", Ordered, func() {
+var _ = FDescribe("Terraform clusterservice RHCS test", Ordered, func() {
 	var terraformProviderRHCSClusterID string
 
 	BeforeAll(func() {
@@ -261,7 +261,7 @@ var _ = FDescribe("Terraform provider RHCS test", Ordered, func() {
 	})
 
 	Context("Cluster creation", func() {
-		It("creates a cluster using terraform-provider-rhcs", func() {
+		It("creates a cluster using terraform-cprovider-rhcs", func() {
 			resp, err := connection.ClustersMgmt().V1().Clusters().Cluster(terraformProviderRHCSClusterID).Get().Send()
 			helper.CheckResponse(resp, err, http.StatusOK)
 		})

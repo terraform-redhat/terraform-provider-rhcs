@@ -34,7 +34,7 @@ resource "rhcs_identity_provider" "openid_idp" {
   cluster        = var.cluster_id
   name           = var.name
   mapping_method = var.mapping_method
-  openid = {
+  openid {
     ca                         = var.ca
     claims                     = var.claims
     client_id                  = var.client_id

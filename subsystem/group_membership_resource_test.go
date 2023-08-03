@@ -27,7 +27,7 @@ import (
 
 var _ = Describe("Group membership creation", func() {
 	BeforeEach(func() {
-		// The first thing that the provider will do for any operation on groups is check
+		// The first thing that the clusterservice will do for any operation on groups is check
 		// that the cluster is ready, so we always need to prepare the server to respond to
 		// that:
 		server.AppendHandlers(

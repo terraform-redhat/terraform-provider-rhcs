@@ -28,7 +28,7 @@ import (
 const htpasswdValidPass = "123PasS8901234"
 const htpasswdInValidPass = "my-pass"
 
-var _ = Describe("Identity provider creation", func() {
+var _ = Describe("Identity clusterservice creation", func() {
 
 	Context("Idebtity Provider Failure", func() {
 		It("cluster_id not found", func() {
@@ -134,7 +134,7 @@ var _ = Describe("Identity provider creation", func() {
 
 	Context("Identity Provider Success", func() {
 		BeforeEach(func() {
-			// The first thing that the provider will do for any operation on identity providers
+			// The first thing that the clusterservice will do for any operation on identity providers
 			// is check that the cluster is ready, so we always need to prepare the server to
 			// respond to that:
 			server.AppendHandlers(
@@ -146,18 +146,10 @@ var _ = Describe("Identity provider creation", func() {
 			    	  "state": "ready"
 			    	}`),
 				),
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-					RespondWithJSON(http.StatusOK, `{
-			    	  "id": "123",
-			    	  "name": "my-cluster",
-			    	  "state": "ready"
-			    	}`),
-				),
 			)
 		})
 
-		It("Can create a 'htpasswd' identity provider", func() {
+		It("Can create a 'htpasswd' identity clusterservice", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
@@ -190,11 +182,11 @@ var _ = Describe("Identity provider creation", func() {
 	    	  resource "rhcs_identity_provider" "my_ip" {
 	    	    cluster = "123"
 	    	    name    = "my-ip"
-	    	    htpasswd = {
-                  users = [{
+	    	    htpasswd {
+                  users {
 	    	        username = "my-user"
 	    	        password = "` + htpasswdValidPass + `"
-                  }]
+                  }
 	    	    }
 	    	  }
 	    	`)
@@ -234,11 +226,11 @@ var _ = Describe("Identity provider creation", func() {
 	    	  resource "rhcs_identity_provider" "my_ip" {
 	    	    cluster = "123"
 	    	    name    = "my-ip"
-	    	    htpasswd = {
-                  users = [{
+	    	    htpasswd {
+                  users {
 	    	        username = "my-user"
 	    	        password = "` + htpasswdValidPass + `"
-                  }]
+                  }
 	    	    }
 	    	  }
 	    	`)
@@ -311,11 +303,11 @@ var _ = Describe("Identity provider creation", func() {
 	    	  resource "rhcs_identity_provider" "my_ip" {
 	    	    cluster = "123"
 	    	    name    = "my-ip"
-	    	    htpasswd = {
-                  users = [{
+	    	    htpasswd {
+                  users {
 	    	        username = "my-user"
 	    	        password = "` + htpasswdValidPass + `"
-                  }]
+                  }
 	    	    }
 	    	  }
 	    	`)
@@ -330,14 +322,6 @@ var _ = Describe("Identity provider creation", func() {
 						"/api/clusters_mgmt/v1/clusters/123/identity_providers/456",
 					),
 					RespondWithJSON(http.StatusNotFound, "{}"),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-					RespondWithJSON(http.StatusOK, `{
-			    	  "id": "123",
-			    	  "name": "my-cluster",
-			    	  "state": "ready"
-			    	}`),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
@@ -377,11 +361,11 @@ var _ = Describe("Identity provider creation", func() {
 	    	  resource "rhcs_identity_provider" "my_ip" {
 	    	    cluster = "123"
 	    	    name    = "my-ip"
-	    	    htpasswd = {
-                  users = [{
+	    	    htpasswd{
+                  users {
 	    	        username = "my-user"
 	    	        password = "` + htpasswdValidPass + `"
-                  }]
+                  }
 	    	    }
 	    	  }
 	    	`)
@@ -390,7 +374,7 @@ var _ = Describe("Identity provider creation", func() {
 			Expect(resource).To(MatchJQ(".attributes.id", "457"))
 		})
 
-		It("Can create a 'gitlab' identity provider", func() {
+		It("Can create a 'gitlab' identity clusterservice", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
@@ -429,7 +413,7 @@ var _ = Describe("Identity provider creation", func() {
 	    	  resource "rhcs_identity_provider" "my_ip" {
 	    	    cluster = "123"
 	    	    name    = "my-ip"
-	    	    gitlab = {
+	    	    gitlab {
 	    	      ca = "test-ca"
 	    	      url = "https://test.gitlab.com"
 	    		  client_id = "test-client"
@@ -440,8 +424,8 @@ var _ = Describe("Identity provider creation", func() {
 			Expect(terraform.Apply()).To(BeZero())
 		})
 
-		Context("Can create a 'github' identity provider", func() {
-			Context("Invalid 'github' identity provider config", func() {
+		Context("Can create a 'github' identity clusterservice", func() {
+			Context("Invalid 'github' identity clusterservice config", func() {
 				It("Should fail with both 'teams' and 'organizations'", func() {
 					terraform.Source(`
 	    	          resource "rhcs_identity_provider" "my_ip" {
@@ -560,7 +544,7 @@ var _ = Describe("Identity provider creation", func() {
     		      resource "rhcs_identity_provider" "my_ip" {
     		        cluster = "123"
     		        name    = "my-ip"
-    		        github = {
+    		        github {
     		          ca = "test-ca"
     		    	  client_id = "test-client"
     		    	  client_secret = "test-secret"
@@ -611,7 +595,7 @@ var _ = Describe("Identity provider creation", func() {
 		          resource "rhcs_identity_provider" "my_ip" {
 		            cluster = "123"
 		            name    = "my-ip"
-		            github = {
+		            github {
 		              ca = "test-ca"
 		        	  client_id = "test-client"
 		        	  client_secret = "test-secret"
@@ -623,7 +607,7 @@ var _ = Describe("Identity provider creation", func() {
 			})
 		})
 
-		Context("Can create 'LDDAP' Identity provider", func() {
+		Context("Can create 'LDDAP' Identity clusterservice", func() {
 			Context("Invalid LDAP config", func() {
 				It("Should fail with invalid email", func() {
 					// Run the apply command:
@@ -631,11 +615,11 @@ var _ = Describe("Identity provider creation", func() {
         		      resource "rhcs_identity_provider" "my_ip" {
         		        cluster    = "123"
         		        name       = "my-ip"
-        		        ldap = {
+        		        ldap {
         		          insecure      = false
         		          ca            = "my-ca"
         		          url           = "ldap://my-server.com"
-        		          attributes    = {
+        		          attributes    {
         		            id                 = ["my-id"]
         		            email              = ["my-email"]
         		            name               = ["my-name"]
@@ -652,12 +636,12 @@ var _ = Describe("Identity provider creation", func() {
         		      resource "rhcs_identity_provider" "my_ip" {
         		        cluster    = "123"
         		        name       = "my-ip"
-        		        ldap = {
+        		        ldap {
         		          bind_dn       = "my-bind-dn"
         		          insecure      = false
         		          ca            = "my-ca"
         		          url           = "ldap://my-server.com"
-        		          attributes    = {
+        		          attributes    {
         		            id                 = ["my-id"]
         		            email              = ["my@email.com"]
         		            name               = ["my-name"]
@@ -717,11 +701,11 @@ var _ = Describe("Identity provider creation", func() {
         		  resource "rhcs_identity_provider" "my_ip" {
         		    cluster    = "123"
         		    name       = "my-ip"
-        		    ldap = {
+        		    ldap {
         		      insecure      = false
         		      ca            = "my-ca"
         		      url           = "ldap://my-server.com"
-                      attributes    = {}
+                      attributes  {}
         		    }
         		  }
         		`)
@@ -780,13 +764,13 @@ var _ = Describe("Identity provider creation", func() {
         		  resource "rhcs_identity_provider" "my_ip" {
         		    cluster    = "123"
         		    name       = "my-ip"
-        		    ldap = {
+        		    ldap {
         		      bind_dn       = "my-bind-dn"
         		      bind_password = "my-bind-password"
         		      insecure      = false
         		      ca            = "my-ca"
         		      url           = "ldap://my-server.com"
-        		      attributes    = {
+        		      attributes {
         		        id                 = ["my-id"]
         		        email              = ["my@email.com"]
         		        name               = ["my-name"]
@@ -847,11 +831,11 @@ var _ = Describe("Identity provider creation", func() {
         		  resource "rhcs_identity_provider" "my_ip" {
         		    cluster    = "123"
         		    name       = "my-ip"
-        		    ldap = {
+        		    ldap {
         		      insecure      = false
         		      ca            = "my-ca"
         		      url           = "ldap://my-server.com"
-        		      attributes    = {
+        		      attributes {
         		        id                 = ["my-id"]
         		        email              = ["my@email.com"]
         		        name               = ["my-name"]
@@ -864,7 +848,7 @@ var _ = Describe("Identity provider creation", func() {
 			})
 		})
 
-		Context("Google identity provider", func() {
+		Context("Google identity clusterservice", func() {
 			Context("Invalid google config", func() {
 				It("Should fail with invalid hosted_domain", func() {
 					// Run the apply command:
@@ -900,7 +884,7 @@ var _ = Describe("Identity provider creation", func() {
 			})
 
 			Context("Happy flow", func() {
-				It("Should create provider", func() {
+				It("Should create clusterservice", func() {
 					// Prepare the server:
 					server.AppendHandlers(
 						CombineHandlers(
@@ -937,7 +921,7 @@ var _ = Describe("Identity provider creation", func() {
     		          resource "rhcs_identity_provider" "my_ip" {
     		            cluster = "123"
     		            name    = "my-ip"
-    		            google = {
+    		            google {
     		        	  client_id = "test-client"
     		        	  client_secret = "test-secret"
                           hosted_domain = "example.com"
@@ -947,7 +931,7 @@ var _ = Describe("Identity provider creation", func() {
 					Expect(terraform.Apply()).To(BeZero())
 				})
 
-				It("Should create provider without hosted_domain when mapping_method is set to 'lookup'", func() {
+				It("Should create clusterservice without hosted_domain when mapping_method is set to 'lookup'", func() {
 					// Prepare the server:
 					server.AppendHandlers(
 						CombineHandlers(
@@ -983,7 +967,7 @@ var _ = Describe("Identity provider creation", func() {
     		            cluster = "123"
     		            name    = "my-ip"
                         mapping_method = "lookup"
-    		            google = {
+    		            google {
     		        	  client_id = "test-client"
     		        	  client_secret = "test-secret"
     		            }
@@ -994,7 +978,7 @@ var _ = Describe("Identity provider creation", func() {
 			})
 		})
 
-		It("Can create an OpenID identity provider", func() {
+		It("Can create an OpenID identity clusterservice", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
@@ -1074,13 +1058,13 @@ var _ = Describe("Identity provider creation", func() {
     		  resource "rhcs_identity_provider" "my_ip" {
     		    cluster    				= "123"
     		    name       				= "my-ip"
-    		    openid = {
+    		    openid {
     				ca            			= "test_ca"
     				issuer					= "https://test.okta.com"
     				client_id 				= "test_client"
     				client_secret			= "test_secret"
     				extra_scopes 			= ["email","profile"]
-    				claims = {
+    				claims {
     					email              = ["email"]
     					groups			   = ["admins"]
     					name               = ["name","email"]
@@ -1129,8 +1113,8 @@ var _ = Describe("Identity provider creation", func() {
 	})
 })
 
-var _ = Describe("Identity provider import", func() {
-	It("Can import an identity provider", func() {
+var _ = Describe("Identity clusterservice import", func() {
+	It("Can import an identity clusterservice", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			// List IDPs to map name to ID:
@@ -1195,10 +1179,10 @@ var _ = Describe("Identity provider import", func() {
 		Expect(terraform.Import("rhcs_identity_provider.my-ip", "123,my-ip")).To(BeZero())
 		resource := terraform.Resource("rhcs_identity_provider", "my-ip")
 		Expect(resource).To(MatchJQ(".attributes.name", "my-ip"))
-		Expect(resource).To(MatchJQ(".attributes.github.client_id", "99999"))
+		Expect(resource).To(MatchJQ(".attributes.github[0].client_id", "99999"))
 	})
 
-	It("Is an error if the identity provider isn't found", func() {
+	It("Is an error if the identity clusterservice isn't found", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			// List IDPs to map name to ID:

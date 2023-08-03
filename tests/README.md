@@ -25,13 +25,13 @@ tests
 |       
 |____prow_ci.sh
 |
-|____tf-manifests                                 ---- tf-manifests folder will contain all of the tf configuration files, separated by provider
+|____tf-manifests                                 ---- tf-manifests folder will contain all of the tf configuration files, separated by clusterservice
       |__aws                                      ---- Prepare user data prepared on AWS for cluster creation 
       |     |__vpc                                ---- vpc created on AWS for cluster creation
       |     |__account-roles
       |     |__proxy
       |     |__…
-      |__rhcs                                     ---- rhcs provider, separated by resources
+      |__rhcs                                     ---- rhcs clusterservice, separated by resources
       |     |__clusters                           ---- clusters creation separated by resource key
       |     |   	|___rosa-classic
       |     |     |___osd-ccs
@@ -39,7 +39,7 @@ tests
       |     |     |___aro
       |     |___idps                              ---- idps creation
       |     |___machine-pools                     ---- machinepools creation
-      |__azure                                    ---- azure provider
+      |__azure                                    ---- azure clusterservice
 ```
 
 ## Contibute to terraform rhcs provider tests

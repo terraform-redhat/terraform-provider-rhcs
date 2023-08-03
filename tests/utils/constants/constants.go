@@ -28,14 +28,14 @@ const (
 	RHCSProviderDIR  = "rhcs"
 )
 
-// Dirs of aws provider
+// Dirs of aws clusterservice
 var (
 	AccountRolesDir  = path.Join(configrationDir, AWSProviderDIR, "account-roles")
 	OperatorRolesDir = path.Join(configrationDir, AWSProviderDIR, "operator-roles")
 	AWSVPCDir        = path.Join(configrationDir, AWSProviderDIR, "vpc")
 )
 
-// Dirs of rhcs provider
+// Dirs of rhcs clusterservice
 var (
 	ClusterDir     = path.Join(configrationDir, RHCSProviderDIR, "clusters")
 	IDPsDir        = path.Join(configrationDir, RHCSProviderDIR, "idps")

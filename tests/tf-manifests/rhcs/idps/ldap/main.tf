@@ -32,7 +32,7 @@ resource "rhcs_identity_provider" "ldap_idp" {
   cluster        = var.cluster_id
   name           = var.name
   mapping_method = var.mapping_method
-  ldap = {
+  ldap {
     bind_dn       = var.bind_dn
     bind_password = var.bind_password
     ca            = var.ca

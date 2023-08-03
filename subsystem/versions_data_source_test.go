@@ -137,8 +137,8 @@ var _ = Describe("Versions data source", func() {
 
 		// Check the state:
 		resource := terraform.Resource("rhcs_versions", "my_versions")
-		Expect(resource).To(MatchJQ(`.attributes.item.id`, "openshift-v4.8.1"))
-		Expect(resource).To(MatchJQ(`.attributes.item.name`, "4.8.1"))
+		Expect(resource).To(MatchJQ(`.attributes.item[0].id`, "openshift-v4.8.1"))
+		Expect(resource).To(MatchJQ(`.attributes.item[0].name`, "4.8.1"))
 	})
 
 	It("Doesn't populate `item` if there are zero results", func() {
@@ -165,6 +165,7 @@ var _ = Describe("Versions data source", func() {
 		// Check the state:
 		resource := terraform.Resource("rhcs_versions", "my_versions")
 		Expect(resource).To(MatchJQ(`.attributes.item`, nil))
+		Expect(resource).To(MatchJQ(`.attributes.items| length`, 0))
 	})
 
 	It("Doesn't populate `item` if there are multiple results", func() {
@@ -200,5 +201,6 @@ var _ = Describe("Versions data source", func() {
 		// Check the state:
 		resource := terraform.Resource("rhcs_versions", "my_versions")
 		Expect(resource).To(MatchJQ(`.attributes.item`, nil))
+		Expect(resource).To(MatchJQ(`.attributes.items| length`, 2))
 	})
 })

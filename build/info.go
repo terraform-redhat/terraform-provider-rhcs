@@ -19,7 +19,7 @@ package build
 // Information about the build of the project. These will be populated by the Go
 // linker with an options similar to this:
 //
-// -ldflags="-X github.com/terraform-redhat/terraform-provider-rhcs/build.Version=123"
+// -ldflags="-X github.com/terraform-redhat/terraform-cprovider-rhcs/build.Version=123"
 var (
 	Version string
 	Commit  string

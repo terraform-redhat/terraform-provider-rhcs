@@ -22,7 +22,7 @@ import (
 )
 
 var _ = Describe("Init", func() {
-	It("Downloads and installs the provider", func() {
+	It("Downloads and installs the clusterservice", func() {
 		Expect(terraform.Validate()).To(BeZero())
 	})
 })

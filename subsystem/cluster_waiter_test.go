@@ -166,6 +166,10 @@ var _ = Describe("Cluster creation", func() {
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, templateWaitingState),
 			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, templateWaitingState),
+			),
 		)
 
 		terraform.Source(`

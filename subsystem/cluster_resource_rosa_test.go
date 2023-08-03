@@ -52,6 +52,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 	// a cluster.
 	template := `{
 	  "id": "123",
+	  "additional_trust_bundle": "123",
 	  "name": "my-cluster",
 	  "region": {
 	    "id": "us-west-1"
@@ -75,6 +76,17 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 	    "service_cidr": "172.30.0.0/16",
 	    "pod_cidr": "10.128.0.0/14",
 	    "host_prefix": 23
+	  },
+	  "nodes": {
+			"availability_zones": [
+				"us-west-1a",
+				"us-west-1b",
+				"us-west-1c"
+			],
+			"compute": 3,
+			"compute_machine_type": {
+				"id": "r5.xlarge"
+			}
 	  },
 	  "version": {
 		  "id": "openshift-4.8.0"
@@ -112,13 +124,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			  name           = "my-cluster"
 			  cloud_region   = "us-west-1"
 			  aws_account_id = "123"
-			  sts = {
+			  sts {
 				  operator_role_prefix = "test"
-				  role_arn = "",
-				  support_role_arn = "",
-				  instance_iam_roles = {
-					  master_role_arn = "",
-					  worker_role_arn = "",
+				  role_arn = ""
+				  support_role_arn = ""
+				  instance_iam_roles {
+					  master_role_arn = ""
+					  worker_role_arn = ""
 				  }
 			  }
 			  version = "openshift-v4.11.1"
@@ -179,13 +191,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			  name           = "my-cluster"
 			  cloud_region   = "us-west-1"
 			  aws_account_id = "123"
-			  sts = {
+			  sts {
 				  operator_role_prefix = "test"
-				  role_arn = "",
-				  support_role_arn = "",
-				  instance_iam_roles = {
-					  master_role_arn = "",
-					  worker_role_arn = "",
+				  role_arn = ""
+				  support_role_arn = ""
+				  instance_iam_roles {
+					  master_role_arn = ""
+					  worker_role_arn = ""
 				  }
 			  }
 			  version = "4.11.1"
@@ -262,13 +274,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			  name           = "my-cluster"
 			  cloud_region   = "us-west-1"
 			  aws_account_id = "123"
-			  sts = {
+			  sts {
 				  operator_role_prefix = "test"
-				  role_arn = "",
-				  support_role_arn = "",
-				  instance_iam_roles = {
-					  master_role_arn = "",
-					  worker_role_arn = "",
+				  role_arn = ""
+				  support_role_arn = ""
+				  instance_iam_roles {
+					  master_role_arn = ""
+					  worker_role_arn = ""
 				  }
 			  }
 			  channel_group = "fast"
@@ -301,13 +313,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			  name           = "my-cluster"
 			  cloud_region   = "us-west-1"
 			  aws_account_id = "123"
-			  sts = {
+			  sts {
 				  operator_role_prefix = "test"
-				  role_arn = "",
-				  support_role_arn = "",
-				  instance_iam_roles = {
-					  master_role_arn = "",
-					  worker_role_arn = "",
+				  role_arn = ""
+				  support_role_arn = ""
+				  instance_iam_roles {
+					  master_role_arn = ""
+					  worker_role_arn = ""
 				  }
 			  }
 			  channel_group = "fast"
@@ -371,13 +383,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 		  }
@@ -401,7 +413,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				VerifyJQ(`.region.id`, "us-west-1"),
 				VerifyJQ(`.product.id`, "rosa"),
 				VerifyJQ(`.htpasswd.users.items[0].username`, "cluster_admin"),
-				VerifyJQ(`.htpasswd.users.items[0].password`, "1234AbB234"),
+				VerifyJQ(`.htpasswd.users.items[0].password`, "1234AbB2345612"),
 				VerifyJQ(`.properties.rosa_tf_version`, build.Version),
 				VerifyJQ(`.properties.rosa_tf_commit`, build.Commit),
 				RespondWithPatchedJSON(http.StatusCreated, template, `[
@@ -442,17 +454,17 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
-            admin_credentials = {
+            admin_credentials {
                 username = "cluster_admin"
-                password = "1234AbB234"
+                password = "1234AbB2345612"
             }
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 		  }
@@ -515,13 +527,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 		  }
@@ -592,13 +604,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 		  }
@@ -675,13 +687,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
             properties = { ` +
 			prop_key + ` = "` + prop_val + `"` +
 			`}
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 		  }
@@ -730,6 +742,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "op": "add",
 					  "path": "/nodes",
 					  "value": {
+						"availability_zones": [
+					  		"us-east-1a",
+					  		"us-east-1b",
+					  		"us-east-1c"
+						],
 						"compute": 3,
 						"compute_machine_type": {
 							"id": "r5.xlarge"
@@ -757,13 +774,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
             properties = { ` +
 			prop_key + ` = "` + prop_val + `"` +
 			`}
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 		  }
@@ -802,6 +819,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "op": "add",
 					  "path": "/nodes",
 					  "value": {
+						"availability_zones": [
+					  		"us-east-1a",
+					  		"us-east-1b",
+					  		"us-east-1c"
+						],
 						"compute": 3,
 						"compute_machine_type": {
 							"id": "r5.xlarge"
@@ -846,6 +868,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "op": "add",
 					  "path": "/nodes",
 					  "value": {
+					  	"availability_zones": [
+							"us-west-1a",
+							"us-west-1b",
+							"us-west-1c"
+					  	],
 						"compute": 3,
 						"compute_machine_type": {
 							"id": "r5.xlarge"
@@ -867,20 +894,19 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		// Run the apply command:
 		terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
-            id             = "123"
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
             properties = { ` +
 			prop_key + ` = "` + prop_val + `_1"` +
 			`}
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 		  }
@@ -934,6 +960,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "op": "add",
 					  "path": "/nodes",
 					  "value": {
+					  	"availability_zones": [
+							"us-west-1a",
+							"us-west-1b",
+							"us-west-1c"
+						],
 						"compute": 3,
 						"compute_machine_type": {
 							"id": "r5.xlarge"
@@ -961,13 +992,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
             properties = { ` +
 			prop_key + ` = "` + prop_val + `"` +
 			`}
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 		  }
@@ -1008,6 +1039,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "op": "add",
 					  "path": "/nodes",
 					  "value": {
+					  "availability_zones": [
+							"us-west-1a",
+							"us-west-1b",
+							"us-west-1c"
+						],
 						"compute": 3,
 						"compute_machine_type": {
 							"id": "r5.xlarge"
@@ -1072,18 +1108,17 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		// Run the apply command:
 		terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
-            id             = "123"
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
             properties = {}
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 		  }
@@ -1151,13 +1186,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			properties = {
    				rosa_tf_version = "bob"
 			}
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 		  }
@@ -1232,13 +1267,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
 					disable_waiting_in_destroy = true
-					sts = {
+					sts {
 						operator_role_prefix = "test"
-						role_arn = "",
-						support_role_arn = "",
-						instance_iam_roles = {
-							master_role_arn = "",
-							worker_role_arn = "",
+						role_arn = ""
+						support_role_arn = ""
+						instance_iam_roles {
+							master_role_arn = ""
+							worker_role_arn = ""
 						}
 					}
 				  }
@@ -1262,13 +1297,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
-					sts = {
+					sts {
 						operator_role_prefix = "test"
-						role_arn = "",
-						support_role_arn = "",
-						instance_iam_roles = {
-							master_role_arn = "",
-							worker_role_arn = "",
+						role_arn = ""
+						support_role_arn = ""
+						instance_iam_roles {
+							master_role_arn = ""
+							worker_role_arn = ""
 						}
 					}
 				  }
@@ -1292,13 +1327,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
 					destroy_timeout = -1
-					sts = {
+					sts {
 						operator_role_prefix = "test"
-						role_arn = "",
-						support_role_arn = "",
-						instance_iam_roles = {
-							master_role_arn = "",
-							worker_role_arn = "",
+						role_arn = ""
+						support_role_arn = ""
+						instance_iam_roles {
+							master_role_arn = ""
+							worker_role_arn = ""
 						}
 					}
 				  }
@@ -1322,13 +1357,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
 					destroy_timeout = 10
-					sts = {
+					sts {
 						operator_role_prefix = "test"
-						role_arn = "",
-						support_role_arn = "",
-						instance_iam_roles = {
-							master_role_arn = "",
-							worker_role_arn = "",
+						role_arn = ""
+						support_role_arn = ""
+						instance_iam_roles {
+							master_role_arn = ""
+							worker_role_arn = ""
 						}
 					}
 				  }
@@ -1384,6 +1419,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "op": "add",
 					  "path": "/nodes",
 					  "value": {
+					  	"availability_zones": [
+							"us-west-1a",
+							"us-west-1b",
+							"us-west-1c"
+					  	],
 						"compute": 3,
 						"compute_machine_type": {
 							"id": "r5.xlarge"
@@ -1398,13 +1438,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
 					disable_workload_monitoring = true
-					sts = {
+					sts {
 						operator_role_prefix = "test"
-						role_arn = "",
-						support_role_arn = "",
-						instance_iam_roles = {
-							master_role_arn = "",
-							worker_role_arn = "",
+						role_arn = ""
+						support_role_arn = ""
+						instance_iam_roles {
+							master_role_arn = ""
+							worker_role_arn = ""
 						}
 					}
 				  }
@@ -1448,6 +1488,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "op": "add",
 					  "path": "/nodes",
 					  "value": {
+					  	"availability_zones": [
+							"us-west-1a",
+							"us-west-1b",
+							"us-west-1c"
+					  	],
 						"compute": 3,
 						"compute_machine_type": {
 							"id": "r5.xlarge"
@@ -1487,6 +1532,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "op": "add",
 					  "path": "/nodes",
 					  "value": {
+					  	"availability_zones": [
+							"us-west-1a",
+							"us-west-1b",
+							"us-west-1c"
+					  	],
 						"compute": 3,
 						"compute_machine_type": {
 							"id": "r5.xlarge"
@@ -1502,13 +1552,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
 					disable_workload_monitoring = false
-					sts = {
+					sts {
 						operator_role_prefix = "test"
-						role_arn = "",
-						support_role_arn = "",
-						instance_iam_roles = {
-							master_role_arn = "",
-							worker_role_arn = "",
+						role_arn = ""
+						support_role_arn = ""
+						instance_iam_roles {
+							master_role_arn = ""
+							worker_role_arn = ""
 						}
 					}
 				  }
@@ -1568,13 +1618,18 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "op": "add",
 					  "path": "/",
 					  "value": {
-						  "additional_trust_bundle" : "123"
+						  "additional_trust_bundle" : "REDUCTED"
 					  }
 					},
 					{
 					  "op": "add",
 					  "path": "/nodes",
 					  "value": {
+					  	"availability_zones": [
+							"us-west-1a",
+							"us-west-1b",
+							"us-west-1c"
+					  	],
 						"compute": 3,
 						"compute_machine_type": {
 							"id": "r5.xlarge"
@@ -1590,18 +1645,18 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
-			proxy = {
-				http_proxy = "http://proxy.com",
-				https_proxy = "https://proxy.com",
-				additional_trust_bundle = "123",
+			proxy {
+				http_proxy = "http://proxy.com"
+				https_proxy = "https://proxy.com"
+				additional_trust_bundle = "123"
 			}
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 		  }
@@ -1652,6 +1707,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "op": "add",
 					  "path": "/nodes",
 					  "value": {
+					  	"availability_zones": [
+							"us-west-1a",
+							"us-west-1b",
+							"us-west-1c"
+					  	],
 						"compute": 3,
 						"compute_machine_type": {
 							"id": "r5.xlarge"
@@ -1702,6 +1762,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "op": "add",
 					  "path": "/nodes",
 					  "value": {
+					  	"availability_zones": [
+							"us-west-1a",
+							"us-west-1b",
+							"us-west-1c"
+					  	],
 						"compute": 3,
 						"compute_machine_type": {
 							"id": "r5.xlarge"
@@ -1717,27 +1782,27 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
-			proxy = {
-				https_proxy = "https://proxy2.com",
+			proxy {
+				https_proxy = "https://proxy2.com"
 				no_proxy = "test"
-				additional_trust_bundle = "123",
+				additional_trust_bundle = "123"
 			}
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 		  }
 		`)
 			Expect(terraform.Apply()).To(BeZero())
 			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
-			Expect(resource).To(MatchJQ(`.attributes.proxy.https_proxy`, "https://proxy2.com"))
-			Expect(resource).To(MatchJQ(`.attributes.proxy.no_proxy`, "test"))
-			Expect(resource).To(MatchJQ(`.attributes.proxy.additional_trust_bundle`, "123"))
+			Expect(resource).To(MatchJQ(`.attributes.proxy[0].https_proxy`, "https://proxy2.com"))
+			Expect(resource).To(MatchJQ(`.attributes.proxy[0].no_proxy`, "test"))
+			Expect(resource).To(MatchJQ(`.attributes.proxy[0].additional_trust_bundle`, "123"))
 		})
 		It("Creates cluster without http proxy and update trust bundle", func() {
 			// Prepare the server:
@@ -1775,6 +1840,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "op": "add",
 					  "path": "/nodes",
 					  "value": {
+					  	"availability_zones": [
+							"us-west-1a",
+							"us-west-1b",
+							"us-west-1c"
+					  	],
 						"compute": 3,
 						"compute_machine_type": {
 							"id": "r5.xlarge"
@@ -1790,13 +1860,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
-			sts = {
+			sts  {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 		  }
@@ -1832,6 +1902,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "op": "add",
 					  "path": "/nodes",
 					  "value": {
+					  	"availability_zones": [
+							"us-west-1a",
+							"us-west-1b",
+							"us-west-1c"
+					  	],
 						"compute": 3,
 						"compute_machine_type": {
 							"id": "r5.xlarge"
@@ -1865,13 +1940,18 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "op": "add",
 					  "path": "/",
 					  "value": {
-						  "additional_trust_bundle" : "123"
+						  "additional_trust_bundle" : "REDUCTED"
 					  }
 					},
 					{
 					  "op": "add",
 					  "path": "/nodes",
 					  "value": {
+					  	"availability_zones": [
+							"us-west-1a",
+							"us-west-1b",
+							"us-west-1c"
+					  	],
 						"compute": 3,
 						"compute_machine_type": {
 							"id": "r5.xlarge"
@@ -1887,23 +1967,23 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
-			proxy = {
-				additional_trust_bundle = "123",
+			proxy {
+				additional_trust_bundle = "123"
 			}
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 		  }
 		`)
 			Expect(terraform.Apply()).To(BeZero())
 			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
-			Expect(resource).To(MatchJQ(`.attributes.proxy.additional_trust_bundle`, "123"))
+			Expect(resource).To(MatchJQ(`.attributes.proxy[0].additional_trust_bundle`, "123"))
 		})
 	})
 	It("Creates cluster with default_mp_labels and update them", func() {
@@ -1943,6 +2023,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "op": "add",
 					  "path": "/nodes",
 					  "value": {
+					  	"availability_zones": [
+							"us-west-1a",
+							"us-west-1b",
+							"us-west-1c"
+					  	],
                         "compute_labels": {
                             "label_key1": "label_value1"
                         }
@@ -1960,13 +2045,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
             default_mp_labels = {
                 label_key1 = "label_value1"
             }
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 		  }
@@ -2002,6 +2087,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "op": "add",
 					  "path": "/nodes",
 					  "value": {
+					  	"availability_zones": [
+							"us-west-1a",
+							"us-west-1b",
+							"us-west-1c"
+					  	],
                         "compute_labels": {
                             "label_key1": "label_value1"
                         }
@@ -2035,6 +2125,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "op": "add",
 					  "path": "/nodes",
 					  "value": {
+					  	"availability_zones": [
+							"us-west-1a",
+							"us-west-1b",
+							"us-west-1c"
+					  	],
                         "compute_labels": {
                             "changed_label": "changed"
                         }
@@ -2052,13 +2147,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
             default_mp_labels = {
                 changed_label = "changed"
             }
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 		  }
@@ -2075,17 +2170,17 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
-			proxy = {
+			proxy {
 				no_proxy = "test1, test2"
-				additional_trust_bundle = "123",
+				additional_trust_bundle = "123"
 			}
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 		  }
@@ -2098,15 +2193,16 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
-			proxy = {
+			proxy {
+				no_proxy = "test1, test2"
 			}
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 		  }
@@ -2180,13 +2276,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			aws_subnet_ids = [
 				"id1", "id2", "id3"
 			]
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 		  }
@@ -2268,13 +2364,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			aws_subnet_ids = [
 				"id1", "id2", "id3"
 			]
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 		  }
@@ -2337,13 +2433,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			aws_private_link = false
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 		  }
@@ -2397,6 +2493,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "op": "add",
 					  "path": "/nodes",
 					  "value": {
+					  	"availability_zones": [
+							"us-west-1a",
+							"us-west-1b",
+							"us-west-1c"
+					  	],
 						"autoscale_compute": {
 							"min_replicas": 2,
 							"max_replicas": 4
@@ -2427,14 +2528,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				"label_key1" = "label_value1",
 				"label_key2" = "label_value2"
 			}
-			sts = {
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-				  master_role_arn = "",
+			sts {
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+				  master_role_arn = ""
 				  worker_role_arn = ""
-				},
-				"operator_role_prefix" : "terraform-operator"
+				}
+				operator_role_prefix = "terraform-operator"
 			}
 		  }
 		`)
@@ -2468,6 +2569,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "op": "add",
 					  "path": "/nodes",
 					  "value": {
+					  	"availability_zones": [
+							"us-west-1a",
+							"us-west-1b",
+							"us-west-1c"
+					  	],
 						"autoscale_compute": {
 							"min_replicas": 2,
 							"max_replicas": 4
@@ -2511,6 +2617,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "op": "add",
 					  "path": "/nodes",
 					  "value": {
+					  	"availability_zones": [
+							"us-west-1a",
+							"us-west-1b",
+							"us-west-1c"
+					  	],
 						"autoscale_compute": {
 							"min_replicas": 3,
 							"max_replicas": 4
@@ -2540,14 +2651,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				"label_key1" = "label_value1",
 				"label_key2" = "label_value2"
 			}
-			sts = {
-				role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
-				support_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
-				instance_iam_roles = {
-				  master_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role",
+			sts {
+				role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role"
+				support_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role"
+				instance_iam_roles {
+				  master_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role"
 				  worker_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"
-				},
-				"operator_role_prefix" : "terraform-operator"
+				}
+				operator_role_prefix= "terraform-operator"
 			}
 		  }
 		`)
@@ -2646,14 +2757,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				"label_key1" = "label_value1",
 				"label_key2" = "label_value2"
 			}
-			sts = {
-				role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
-				support_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
-				instance_iam_roles = {
-				  master_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role",
+			sts {
+				role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role"
+				support_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role"
+				instance_iam_roles {
+				  master_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role"
 				  worker_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"
-				},
-				"operator_role_prefix" : "terraform-operator"
+				}
+				operator_role_prefix = "terraform-operator"
 			}
 		  }
 		`)
@@ -2724,15 +2835,15 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
-			sts = {
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-				  master_role_arn = "",
+			sts {
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+				  master_role_arn = ""
 				  worker_role_arn = ""
-				},
-				"operator_role_prefix" : "terraform-operator",
-				"oidc_config_id" = "aaa"
+				}
+				operator_role_prefix= "terraform-operator"
+				oidc_config_id = "aaa"
 			}
 		  }
 		`)
@@ -2791,13 +2902,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			version = "openshift-v4.12"
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "arn:aws:iam::765374464689:role/terr-account-Installer-Role",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = "arn:aws:iam::765374464689:role/terr-account-Installer-Role"
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 		  }
@@ -2855,13 +2966,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			ec2_metadata_http_tokens = "required"
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 		  }
@@ -2919,13 +3030,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			aws_account_id = "123"
 			ec2_metadata_http_tokens = "required"
 			version = "openshift-v4.10"
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 		  }
@@ -2984,13 +3095,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			aws_account_id = "123"
 			ec2_metadata_http_tokens = "bad_string"
 			version = "4.12"
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 		  }
@@ -3035,6 +3146,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 		  "host_prefix": 23
 		},
 		"nodes": {
+			"availability_zones": [
+				"us-west-1a",
+				"us-west-1b",
+				"us-west-1c"
+			],
 			"compute": 3,
 			"compute_machine_type": {
 				"id": "r5.xlarge"
@@ -3118,58 +3234,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
-				},
-				"operator_iam_roles": [
-					{
-					  "id": "",
-					  "name": "ebs-cloud-credentials",
-					  "namespace": "openshift-cluster-csi-drivers",
-					  "role_arn": "",
-					  "service_account": ""
-					},
-					{
-					  "id": "",
-					  "name": "cloud-credentials",
-					  "namespace": "openshift-cloud-network-config-controller",
-					  "role_arn": "",
-					  "service_account": ""
-					},
-					{
-					  "id": "",
-					  "name": "aws-cloud-credentials",
-					  "namespace": "openshift-machine-api",
-					  "role_arn": "",
-					  "service_account": ""
-					},
-					{
-					  "id": "",
-					  "name": "cloud-credential-operator-iam-ro-creds",
-					  "namespace": "openshift-cloud-credential-operator",
-					  "role_arn": "",
-					  "service_account": ""
-					},
-					{
-					  "id": "",
-					  "name": "installer-cloud-credentials",
-					  "namespace": "openshift-image-registry",
-					  "role_arn": "",
-					  "service_account": ""
-					},
-					{
-					  "id": "",
-					  "name": "cloud-credentials",
-					  "namespace": "openshift-ingress-operator",
-					  "role_arn": "",
-					  "service_account": ""
-					}
-				]
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
+				}
 			}
 			version = "4.10.0"
 		}
@@ -3221,7 +3293,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 						"label": "api.openshift.com/gate-sts",
 						"value": "4.10",
 						"warning_message": "STS roles must be updated blah blah blah",
-						"description": "OpenShift STS clusters include new required cloud provider permissions in OpenShift 4.YY.",
+						"description": "OpenShift STS clusters include new required cloud clusterservice permissions in OpenShift 4.YY.",
 						"documentation_url": "https://access.redhat.com/solutions/0000000",
 						"sts_only": true,
 						"creation_timestamp": "2023-04-03T06:39:57.057613Z"
@@ -3246,7 +3318,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 					  "label": "api.openshift.com/gate-sts",
 					  "value": "4.10",
 					  "warning_message": "STS blah blah blah",
-					  "description": "OpenShift STS clusters include new required cloud provider permissions in OpenShift 4.YY.",
+					  "description": "OpenShift STS clusters include new required cloud clusterservice permissions in OpenShift 4.YY.",
 					  "documentation_url": "https://access.redhat.com/solutions/0000000",
 					  "sts_only": true,
 					  "creation_timestamp": "2023-04-03T06:39:57.057613Z"
@@ -3283,13 +3355,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 			version = "4.10.1"
@@ -3337,7 +3409,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 						"label": "api.openshift.com/gate-sts",
 						"value": "4.10",
 						"warning_message": "STS roles must be updated blah blah blah",
-						"description": "OpenShift STS clusters include new required cloud provider permissions in OpenShift 4.YY.",
+						"description": "OpenShift STS clusters include new required cloud clusterservice permissions in OpenShift 4.YY.",
 						"documentation_url": "https://access.redhat.com/solutions/0000000",
 						"sts_only": true,
 						"creation_timestamp": "2023-04-03T06:39:57.057613Z"
@@ -3362,7 +3434,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 					  "label": "api.openshift.com/gate-sts",
 					  "value": "4.10",
 					  "warning_message": "STS blah blah blah",
-					  "description": "OpenShift STS clusters include new required cloud provider permissions in OpenShift 4.YY.",
+					  "description": "OpenShift STS clusters include new required cloud clusterservice permissions in OpenShift 4.YY.",
 					  "documentation_url": "https://access.redhat.com/solutions/0000000",
 					  "sts_only": true,
 					  "creation_timestamp": "2023-04-03T06:39:57.057613Z"
@@ -3399,13 +3471,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 			version = "openshift-v4.10.1"
@@ -3470,13 +3542,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 			version = "4.10.1"
@@ -3575,13 +3647,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 			version = "4.10.1"
@@ -3646,13 +3718,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 			version = "4.10.0"
@@ -3680,13 +3752,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 			version = "4.10.1"
@@ -3720,13 +3792,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
 			aws_account_id = "123"
-			sts = {
+			sts {
 				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles {
+					master_role_arn = ""
+					worker_role_arn = ""
 				}
 			}
 			version = "4.10.0"
@@ -3792,13 +3864,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
 				aws_account_id = "123"
-				sts = {
+				sts {
 					operator_role_prefix = "test"
-					role_arn = "",
-					support_role_arn = "",
-					instance_iam_roles = {
-						master_role_arn = "",
-						worker_role_arn = "",
+					role_arn = ""
+					support_role_arn = ""
+					instance_iam_roles {
+						master_role_arn = ""
+						worker_role_arn = ""
 					}
 				}
 				version = "openshift-v4.10.1"
@@ -3811,13 +3883,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
 				aws_account_id = "123"
-				sts = {
+				sts {
 					operator_role_prefix = "test"
-					role_arn = "",
-					support_role_arn = "",
-					instance_iam_roles = {
-						master_role_arn = "",
-						worker_role_arn = "",
+					role_arn = ""
+					support_role_arn = ""
+					instance_iam_roles {
+						master_role_arn = ""
+						worker_role_arn = ""
 					}
 				}
 				version = "openshift-v4.10.1"
@@ -3879,13 +3951,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
 				aws_account_id = "123"
-				sts = {
+				sts {
 					operator_role_prefix = "test"
-					role_arn = "",
-					support_role_arn = "",
-					instance_iam_roles = {
-						master_role_arn = "",
-						worker_role_arn = "",
+					role_arn = ""
+					support_role_arn = ""
+					instance_iam_roles {
+						master_role_arn = ""
+						worker_role_arn = ""
 					}
 				}
 				version = "4.10.1"

@@ -34,14 +34,14 @@ FAILURE_TO = ", ".join([
 
 # Template used to generate the subject of the build failure message:
 FAILURE_SUBJECT = """
-[Jenkins] Terraform provider ocm full cycle tests job {{ BUILD_NUMBER }} has failed
+[Jenkins] Terraform clusterservice ocm full cycle tests job {{ BUILD_NUMBER }} has failed
 """
 
 # Template used to generate the body of the build failure message:
 FAILURE_BODY = """
 Hi,
 
-The terraform provider OCM full cycle tests job {{ BUILD_NUMBER }} has failed.
+The terraform clusterservice OCM full cycle tests job {{ BUILD_NUMBER }} has failed.
 
 You can find the details here:
 

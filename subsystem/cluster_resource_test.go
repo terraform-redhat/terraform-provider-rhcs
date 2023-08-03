@@ -79,6 +79,10 @@ var _ = Describe("Cluster creation", func() {
 				VerifyJQ(`.region.id`, "us-west-1"),
 				RespondWithJSON(http.StatusCreated, template),
 			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, template),
+			),
 		)
 
 		// Run the apply command:
@@ -99,6 +103,10 @@ var _ = Describe("Cluster creation", func() {
 			CombineHandlers(
 				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
 				RespondWithJSON(http.StatusCreated, template),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, template),
 			),
 		)
 
@@ -127,6 +135,10 @@ var _ = Describe("Cluster creation", func() {
 				VerifyJQ(`.nodes.compute`, 3.0),
 				VerifyJQ(`.nodes.compute_machine_type.id`, "r5.xlarge"),
 				RespondWithJSON(http.StatusCreated, template),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, template),
 			),
 		)
 
@@ -177,6 +189,10 @@ var _ = Describe("Cluster creation", func() {
 				  }
 				]`),
 			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, template),
+			),
 		)
 
 		// Run the apply command:
@@ -224,6 +240,10 @@ var _ = Describe("Cluster creation", func() {
 				  }
 				]`),
 			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, template),
+			),
 		)
 
 		// Run the apply command:
@@ -264,6 +284,10 @@ var _ = Describe("Cluster creation", func() {
 				    }
 				  }
 				]`),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, template),
 			),
 		)
 

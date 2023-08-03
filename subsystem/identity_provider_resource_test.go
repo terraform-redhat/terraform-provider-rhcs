@@ -127,6 +127,80 @@ var _ = Describe("Identity provider creation", func() {
 			Expect(terraform.Apply()).To(BeZero())
 		})
 
+		It("Can't update an identity provider", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+					),
+					VerifyJSON(`{
+			    	  "kind": "IdentityProvider",
+			    	  "type": "HTPasswdIdentityProvider",
+                      "mapping_method": "claim",
+			    	  "name": "my-ip",
+			    	  "htpasswd": {
+                        "password": "`+htpasswdValidPass+`",
+			    	    "username": "my-user"
+			    	  }
+			    	}`),
+					RespondWithJSON(http.StatusOK, `{
+			    	  "id": "456",
+			    	  "name": "my-ip",
+                      "mapping_method": "claim",
+			    	  "htpasswd": {
+			    	    "user": "my-user"
+			    	  }
+			    	}`),
+				),
+			)
+
+			// Run the apply command:
+			terraform.Source(`
+	    	  resource "rhcs_identity_provider" "my_ip" {
+	    	    cluster = "123"
+	    	    name    = "my-ip"
+	    	    htpasswd = {
+	    	      username = "my-user"
+	    	      password = "` + htpasswdValidPass + `"
+	    	    }
+	    	  }
+	    	`)
+			Expect(terraform.Apply()).To(BeZero())
+
+			// update
+
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodGet,
+						"/api/clusters_mgmt/v1/clusters/123/identity_providers/456",
+					),
+					RespondWithJSON(http.StatusOK, `{
+			    	  "id": "456",
+			    	  "name": "my-ip",
+                      "mapping_method": "claim",
+			    	  "htpasswd": {
+			    	    "user": "my-user"
+			    	  }
+			    	}`),
+				),
+			)
+			// Run the apply command for update:
+			terraform.Source(`
+	    	  resource "rhcs_identity_provider" "my_ip" {
+	    	    cluster = "123"
+	    	    name    = "my-ip"
+	    	    htpasswd = {
+	    	      username = "my-user-change"
+	    	      password = "` + htpasswdValidPass + `"
+	    	    }
+	    	  }
+	    	`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
 		It("Reconcile an 'htpasswd' identity provider, when state exists but 404 from server", func() {
 			// Prepare the server:
 			server.AppendHandlers(

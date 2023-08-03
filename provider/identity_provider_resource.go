@@ -547,6 +547,7 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request tfsdk.ReadR
 
 func (r *IdentityProviderResource) Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
 	response *tfsdk.UpdateResourceResponse) {
+	response.Diagnostics.AddError("IDP Update not supported.", "This RHCS provider version does not support updating an existing IDP")
 }
 
 func (r *IdentityProviderResource) Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,

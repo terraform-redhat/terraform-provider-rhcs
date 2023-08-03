@@ -11,8 +11,8 @@ You can update or upgrade your cluster using Terraform.
 
 ## Prerequisites
 
-1. You created your [account roles using Terraform](../examples/create_rosa_cluster/create_rosa_sts_cluster/classic_sts/account_roles/README.md).
-1. You created your cluster using Terraform. This cluster can either have [a managed OIDC configuration](../examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/README.md) or [an unmanaged OIDC configuration](../examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/README.md).
+1. You created your [account roles using Terraform](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.2.0/examples/create_account_roles/).
+1. You created your cluster using Terraform. This cluster can either have [a managed OIDC configuration](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.2.0/examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/) or [an unmanaged OIDC configuration](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.2.0/examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/).
 
 ## Upgrading your cluster
 

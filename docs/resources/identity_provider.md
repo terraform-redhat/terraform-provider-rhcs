@@ -82,8 +82,16 @@ Optional:
 
 Required:
 
+- `users` (Attributes List) A list of htpasswd user credentials (see [below for nested schema](#nestedatt--htpasswd--users))
+
+<a id="nestedatt--htpasswd--users"></a>
+### Nested Schema for `htpasswd.users`
+
+Required:
+
 - `password` (String, Sensitive) User password.
-- `username` (String) User name.
+- `username` (String) User username.
+
 
 
 <a id="nestedatt--ldap"></a>

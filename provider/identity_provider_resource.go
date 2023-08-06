@@ -333,17 +333,18 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request tfsdk.ReadR
 		if state.HTPasswd == nil {
 			state.HTPasswd = &idps.HTPasswdIdentityProvider{}
 		}
-		username, ok := htpasswdObject.GetUsername()
-		if ok {
-			state.HTPasswd.Username = types.String{
-				Value: username,
-			}
-		}
-		password, ok := htpasswdObject.GetPassword()
-		if ok {
-			state.HTPasswd.Password = types.String{
-				Value: password,
-			}
+		if users, ok := htpasswdObject.GetUsers(); ok {
+			users.Each(func(item *cmv1.HTPasswdUser) bool {
+				state.HTPasswd.Users = append(state.HTPasswd.Users, idps.HTPasswdUser{
+					Username: types.String{
+						Value: item.Username(),
+					},
+					Password: types.String{
+						Value: item.Password(),
+					},
+				})
+				return true
+			})
 		}
 	case gitlabObject != nil:
 		if state.Gitlab == nil {

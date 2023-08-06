@@ -13,13 +13,9 @@ Using htpasswd authentication in OpenShift Container Platform allows you to iden
 ## Applying the Terraform plan
 
 1. You need to either create a `terraform.tfvars` file in this directory or add the following items to your existing `*.tfvars` file. You may also export these variables as environmental variables with the following commands:
-      1.  This value sets the username for logging into your application.
+      1.  This value sets the user list for logging into your application.
           ```
-          export TF_VAR_htpasswd_username=<user-name-to-login>
-          ```
-      1.  This value is the password for the account that you are creating.   
-          ```
-          export TF_VAR_htpasswd_password=<password-for-user-name>
+          export TF_VAR_users=[{\"username\":\"<user-name-to-login>\",\"password\":\"<password-for-user-name>\"},...]
           ```
       1.  This variable should be your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token***REMOVED*** that you generated in the prerequisites.  
           ```

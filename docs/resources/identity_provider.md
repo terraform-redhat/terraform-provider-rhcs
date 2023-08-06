@@ -82,8 +82,16 @@ Optional:
 
 Required:
 
+- `users` (Attributes List***REMOVED*** A list of htpasswd user credentials (see [below for nested schema](#nestedatt--htpasswd--users***REMOVED******REMOVED***
+
+<a id="nestedatt--htpasswd--users"></a>
+### Nested Schema for `htpasswd.users`
+
+Required:
+
 - `password` (String, Sensitive***REMOVED*** User password.
-- `username` (String***REMOVED*** User name.
+- `username` (String***REMOVED*** User username.
+
 
 
 <a id="nestedatt--ldap"></a>

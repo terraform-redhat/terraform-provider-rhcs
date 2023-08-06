@@ -333,17 +333,18 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 		if state.HTPasswd == nil {
 			state.HTPasswd = &idps.HTPasswdIdentityProvider{}
 ***REMOVED***
-		username, ok := htpasswdObject.GetUsername(***REMOVED***
-		if ok {
-			state.HTPasswd.Username = types.String{
-				Value: username,
-	***REMOVED***
-***REMOVED***
-		password, ok := htpasswdObject.GetPassword(***REMOVED***
-		if ok {
-			state.HTPasswd.Password = types.String{
-				Value: password,
-	***REMOVED***
+		if users, ok := htpasswdObject.GetUsers(***REMOVED***; ok {
+			users.Each(func(item *cmv1.HTPasswdUser***REMOVED*** bool {
+				state.HTPasswd.Users = append(state.HTPasswd.Users, idps.HTPasswdUser{
+					Username: types.String{
+						Value: item.Username(***REMOVED***,
+			***REMOVED***,
+					Password: types.String{
+						Value: item.Password(***REMOVED***,
+			***REMOVED***,
+		***REMOVED******REMOVED***
+				return true
+	***REMOVED******REMOVED***
 ***REMOVED***
 	case gitlabObject != nil:
 		if state.Gitlab == nil {

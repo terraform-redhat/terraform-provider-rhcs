@@ -16,11 +16,10 @@ variable "url" {
 }
 
 # IDP Variables
-variable "htpasswd_username" {
-  type        = string
-  description = "Username"
-}
-variable "htpasswd_password" {
-  type        = string
-  description = "Password"
+variable "htpasswd_users" {
+  type = list(object({
+    username = string
+    password = string
+  }***REMOVED******REMOVED***
+  description = "htpasswd user list"
 }

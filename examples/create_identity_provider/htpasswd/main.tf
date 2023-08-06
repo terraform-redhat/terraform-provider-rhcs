@@ -32,8 +32,7 @@ resource "rhcs_identity_provider" "htpasswd_idp" {
   cluster = var.cluster_id
   name    = "htpasswd"
   htpasswd = {
-    username = var.htpasswd_username
-    password = var.htpasswd_password
+    users = var.htpasswd_users
   }
 }
 

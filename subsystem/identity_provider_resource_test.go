@@ -50,12 +50,85 @@ var _ = Describe("Identity provider creation", func() {
 	    	    cluster = "123"
 	    	    name    = "my-ip"
 	    	    htpasswd = {
-	    	      username = "my-user"
-	    	      password = "` + htpasswdValidPass + `"
+                  users = [{
+                    username = "my-user"
+	    	        password = "` + htpasswdValidPass + `"
+                  }]
 	    	    }
 	    	  }
 	    	`)
-			Expect(terraform.Apply()).Should(BeNumerically("==", 1))
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
+		Context("Cluster exists, but invalid config", func() {
+			BeforeEach(func() {
+				// The first thing that the provider will do for any operation on identity providers
+				// is check that the cluster is ready, so we always need to prepare the server to
+				// respond to that:
+				server.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+						RespondWithJSON(http.StatusOK, `{
+			        	  "id": "123",
+			        	  "name": "my-cluster",
+			        	  "state": "ready"
+			        	}`),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+						RespondWithJSON(http.StatusOK, `{
+			        	  "id": "123",
+			        	  "name": "my-cluster",
+			        	  "state": "ready"
+			        	}`),
+					),
+				)
+			})
+
+			It("Can't create a 'htpasswd' identity provider. No users provided", func() {
+				// Run the apply command:
+				terraform.Source(`
+	    	      resource "rhcs_identity_provider" "my_ip" {
+	    	        cluster = "123"
+	    	        name    = "my-ip"
+	    	        htpasswd = {
+                      users = []
+	    	        }
+	    	      }
+	    	    `)
+				Expect(terraform.Apply()).ToNot(BeZero())
+			})
+			It("Can't create a 'htpasswd' identity provider. invalid username", func() {
+				// Run the apply command:
+				terraform.Source(`
+	    	      resource "rhcs_identity_provider" "my_ip" {
+	    	        cluster = "123"
+	    	        name    = "my-ip"
+	    	        htpasswd = {
+                      users = [{
+	    	            username = "my%user"
+	    	            password = "` + htpasswdValidPass + `"
+                      }]
+	    	        }
+	    	      }
+	    	    `)
+				Expect(terraform.Apply()).ToNot(BeZero())
+			})
+			It("Can't create a 'htpasswd' identity provider. invalid password", func() {
+				// Run the apply command:
+				terraform.Source(`
+	    	      resource "rhcs_identity_provider" "my_ip" {
+	    	        cluster = "123"
+	    	        name    = "my-ip"
+	    	        htpasswd = {
+                      users = [{
+	    	            username = "my-user"
+	    	            password = "` + htpasswdInValidPass + `"
+                      }]
+	    	        }
+	    	      }
+	    	    `)
+				Expect(terraform.Apply()).ToNot(BeZero())
+			})
 		})
 	})
 
@@ -98,8 +171,7 @@ var _ = Describe("Identity provider creation", func() {
                       "mapping_method": "claim",
 			    	  "name": "my-ip",
 			    	  "htpasswd": {
-                        "password": "`+htpasswdValidPass+`",
-			    	    "username": "my-user"
+                        "users": {"items":[{"username": "my-user", "password": "`+htpasswdValidPass+`"}]}
 			    	  }
 			    	}`),
 					RespondWithJSON(http.StatusOK, `{
@@ -107,7 +179,7 @@ var _ = Describe("Identity provider creation", func() {
 			    	  "name": "my-ip",
                       "mapping_method": "claim",
 			    	  "htpasswd": {
-			    	    "user": "my-user"
+                        "users": {"items":[{"username": "my-user", "password": "`+htpasswdValidPass+`"}]}
 			    	  }
 			    	}`),
 				),
@@ -119,8 +191,10 @@ var _ = Describe("Identity provider creation", func() {
 	    	    cluster = "123"
 	    	    name    = "my-ip"
 	    	    htpasswd = {
-	    	      username = "my-user"
-	    	      password = "` + htpasswdValidPass + `"
+                  users = [{
+	    	        username = "my-user"
+	    	        password = "` + htpasswdValidPass + `"
+                  }]
 	    	    }
 	    	  }
 	    	`)
@@ -215,9 +289,7 @@ var _ = Describe("Identity provider creation", func() {
                       "mapping_method": "claim",
 			    	  "name": "my-ip",
 			    	  "htpasswd": {
-			    	    "password": "my-password",
-                        "password": "`+htpasswdValidPass+`",
-			    	    "username": "my-user"
+                        "users": {"items":[{"username": "my-user", "password": "`+htpasswdValidPass+`"}]}
 			    	  }
 			    	}`),
 					RespondWithJSON(http.StatusOK, `{
@@ -225,7 +297,7 @@ var _ = Describe("Identity provider creation", func() {
 			    	  "name": "my-ip",
                       "mapping_method": "claim",
 			    	  "htpasswd": {
-			    	    "user": "my-user"
+                        "users": {"items":[{"username": "my-user", "password": "`+htpasswdValidPass+`"}]}
 			    	  }
 			    	}`),
 				),
@@ -237,8 +309,10 @@ var _ = Describe("Identity provider creation", func() {
 	    	    cluster = "123"
 	    	    name    = "my-ip"
 	    	    htpasswd = {
-	    	      username = "my-user"
-	    	      password = "` + htpasswdValidPass + `"
+                  users = [{
+	    	        username = "my-user"
+	    	        password = "` + htpasswdValidPass + `"
+                  }]
 	    	    }
 	    	  }
 	    	`)
@@ -281,8 +355,7 @@ var _ = Describe("Identity provider creation", func() {
                       "mapping_method": "claim",
 			    	  "name": "my-ip",
 			    	  "htpasswd": {
-                        "password": "`+htpasswdValidPass+`",
-			    	    "username": "my-user"
+                        "users": {"items":[{"username": "my-user", "password": "`+htpasswdValidPass+`"}]}
 			    	  }
 			    	}`),
 					RespondWithJSON(http.StatusOK, `{
@@ -290,7 +363,7 @@ var _ = Describe("Identity provider creation", func() {
 			    	  "name": "my-ip",
                       "mapping_method": "claim",
 			    	  "htpasswd": {
-			    	    "user": "my-user"
+                        "users": {"items":[{"username": "my-user", "password": "`+htpasswdValidPass+`"}]}
 			    	  }
 			    	}`),
 				),
@@ -302,8 +375,10 @@ var _ = Describe("Identity provider creation", func() {
 	    	    cluster = "123"
 	    	    name    = "my-ip"
 	    	    htpasswd = {
-	    	      username = "my-user"
-	    	      password = "` + htpasswdValidPass + `"
+                  users = [{
+	    	        username = "my-user"
+	    	        password = "` + htpasswdValidPass + `"
+                  }]
 	    	    }
 	    	  }
 	    	`)

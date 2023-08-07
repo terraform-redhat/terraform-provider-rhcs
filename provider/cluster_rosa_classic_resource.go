@@ -545,7 +545,7 @@ func createClassicClusterObject(ctx context.Context,
 	labels := common.OptionalMap(state.DefaultMPLabels)
 	availabilityZones := common.OptionalList(state.AvailabilityZones)
 
-	if err := ocmClusterResource.CreateNodes(ctx, autoScalingEnabled, replicas, minReplicas, maxReplicas,
+	if err := ocmClusterResource.CreateNodes(autoScalingEnabled, replicas, minReplicas, maxReplicas,
 		computeMachineType, labels, availabilityZones, multiAZ); err != nil {
 		return nil, err
 	}

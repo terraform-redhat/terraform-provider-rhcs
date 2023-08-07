@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"regexp"
@@ -32,7 +31,7 @@ func (c *Cluster) Build() (object *cmv1.Cluster, err error) {
 	return c.clusterBuilder.Build()
 }
 
-func (c *Cluster) CreateNodes(ctx context.Context, autoScalingEnabled bool, replicas *int64, minReplicas *int64,
+func (c *Cluster) CreateNodes(autoScalingEnabled bool, replicas *int64, minReplicas *int64,
 	maxReplicas *int64, computeMachineType *string, labels map[string]string,
 	availabilityZones []string, multiAZ bool) error {
 	nodes := cmv1.NewClusterNodes()

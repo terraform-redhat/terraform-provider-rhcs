@@ -1,7 +1,6 @@
 package resource
 
 ***REMOVED***
-	"context"
 ***REMOVED***
 
 ***REMOVED***
@@ -11,28 +10,27 @@ package resource
 
 var _ = Describe("Cluster", func(***REMOVED*** {
 	var cluster *Cluster
-	ctx := context.TODO(***REMOVED***
 	BeforeEach(func(***REMOVED*** {
 		cluster = NewCluster(***REMOVED***
 	}***REMOVED***
 	Context("CreateNodes validation", func(***REMOVED*** {
 		It("Autoscaling disabled minReplicas set - failure", func(***REMOVED*** {
-			err := cluster.CreateNodes(ctx, false, nil, pointer(int64(2***REMOVED******REMOVED***, nil, nil, nil, nil, false***REMOVED***
+			err := cluster.CreateNodes(false, nil, pointer(int64(2***REMOVED******REMOVED***, nil, nil, nil, nil, false***REMOVED***
 			Expect(err***REMOVED***.To(HaveOccurred(***REMOVED******REMOVED***
 			Expect(err.Error(***REMOVED******REMOVED***.To(Equal("Autoscaling must be enabled in order to set min and max replicas"***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 		It("Autoscaling disabled maxReplicas set - failure", func(***REMOVED*** {
-			err := cluster.CreateNodes(ctx, false, nil, nil, pointer(int64(2***REMOVED******REMOVED***, nil, nil, nil, false***REMOVED***
+			err := cluster.CreateNodes(false, nil, nil, pointer(int64(2***REMOVED******REMOVED***, nil, nil, nil, false***REMOVED***
 			Expect(err***REMOVED***.To(HaveOccurred(***REMOVED******REMOVED***
 			Expect(err.Error(***REMOVED******REMOVED***.To(Equal("Autoscaling must be enabled in order to set min and max replicas"***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 		It("Autoscaling disabled replicas smaller than 2 - failure", func(***REMOVED*** {
-			err := cluster.CreateNodes(ctx, false, pointer(int64(1***REMOVED******REMOVED***, nil, nil, nil, nil, nil, false***REMOVED***
+			err := cluster.CreateNodes(false, pointer(int64(1***REMOVED******REMOVED***, nil, nil, nil, nil, nil, false***REMOVED***
 			Expect(err***REMOVED***.To(HaveOccurred(***REMOVED******REMOVED***
 			Expect(err.Error(***REMOVED******REMOVED***.To(Equal("Cluster requires at least 2 compute nodes"***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 		It("Autoscaling disabled default replicas - success", func(***REMOVED*** {
-			err := cluster.CreateNodes(ctx, false, nil, nil, nil, nil, nil, nil, false***REMOVED***
+			err := cluster.CreateNodes(false, nil, nil, nil, nil, nil, nil, false***REMOVED***
 			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
 			ocmCluster, err := cluster.Build(***REMOVED***
 			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
@@ -46,7 +44,7 @@ var _ = Describe("Cluster", func(***REMOVED*** {
 			Expect(autoscaleCompute***REMOVED***.To(BeNil(***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 		It("Autoscaling disabled 3 replicas - success", func(***REMOVED*** {
-			err := cluster.CreateNodes(ctx, false, pointer(int64(3***REMOVED******REMOVED***, nil, nil, nil, nil, nil, false***REMOVED***
+			err := cluster.CreateNodes(false, pointer(int64(3***REMOVED******REMOVED***, nil, nil, nil, nil, nil, false***REMOVED***
 			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
 			ocmCluster, err := cluster.Build(***REMOVED***
 			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
@@ -60,12 +58,12 @@ var _ = Describe("Cluster", func(***REMOVED*** {
 			Expect(autoscaleCompute***REMOVED***.To(BeNil(***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 		It("Autoscaling enabled replicas set - failure", func(***REMOVED*** {
-			err := cluster.CreateNodes(ctx, true, pointer(int64(2***REMOVED******REMOVED***, nil, nil, nil, nil, nil, false***REMOVED***
+			err := cluster.CreateNodes(true, pointer(int64(2***REMOVED******REMOVED***, nil, nil, nil, nil, nil, false***REMOVED***
 			Expect(err***REMOVED***.To(HaveOccurred(***REMOVED******REMOVED***
 			Expect(err.Error(***REMOVED******REMOVED***.To(Equal("When autoscaling is enabled, replicas should not be configured"***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 		It("Autoscaling enabled default minReplicas & maxReplicas - success", func(***REMOVED*** {
-			err := cluster.CreateNodes(ctx, true, nil, nil, nil, nil, nil, nil, false***REMOVED***
+			err := cluster.CreateNodes(true, nil, nil, nil, nil, nil, nil, false***REMOVED***
 			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
 			ocmCluster, err := cluster.Build(***REMOVED***
 			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
@@ -81,12 +79,12 @@ var _ = Describe("Cluster", func(***REMOVED*** {
 			Expect(autoscaleCompute.MaxReplicas(***REMOVED******REMOVED***.To(Equal(2***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 		It("Autoscaling enabled default maxReplicas smaller than minReplicas - failure", func(***REMOVED*** {
-			err := cluster.CreateNodes(ctx, true, nil, pointer(int64(4***REMOVED******REMOVED***, pointer(int64(3***REMOVED******REMOVED***, nil, nil, nil, false***REMOVED***
+			err := cluster.CreateNodes(true, nil, pointer(int64(4***REMOVED******REMOVED***, pointer(int64(3***REMOVED******REMOVED***, nil, nil, nil, false***REMOVED***
 			Expect(err***REMOVED***.To(HaveOccurred(***REMOVED******REMOVED***
 			Expect(err.Error(***REMOVED******REMOVED***.To(Equal("max-replicas must be greater or equal to min-replicas"***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 		It("Autoscaling enabled set minReplicas & maxReplicas - success", func(***REMOVED*** {
-			err := cluster.CreateNodes(ctx, true, nil, pointer(int64(2***REMOVED******REMOVED***, pointer(int64(4***REMOVED******REMOVED***, nil, nil, nil, false***REMOVED***
+			err := cluster.CreateNodes(true, nil, pointer(int64(2***REMOVED******REMOVED***, pointer(int64(4***REMOVED******REMOVED***, nil, nil, nil, false***REMOVED***
 			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
 			ocmCluster, err := cluster.Build(***REMOVED***
 			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
@@ -102,7 +100,7 @@ var _ = Describe("Cluster", func(***REMOVED*** {
 			Expect(autoscaleCompute.MaxReplicas(***REMOVED******REMOVED***.To(Equal(4***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 		It("Autoscaling disabled set ComputeMachineType - success", func(***REMOVED*** {
-			err := cluster.CreateNodes(ctx, false, nil, nil, nil, pointer("asdf"***REMOVED***, nil, nil, false***REMOVED***
+			err := cluster.CreateNodes(false, nil, nil, nil, pointer("asdf"***REMOVED***, nil, nil, false***REMOVED***
 			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
 			ocmCluster, err := cluster.Build(***REMOVED***
 			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
@@ -118,7 +116,7 @@ var _ = Describe("Cluster", func(***REMOVED*** {
 			Expect(autoscaleCompute***REMOVED***.To(BeNil(***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 		It("Autoscaling disabled set compute labels - success", func(***REMOVED*** {
-			err := cluster.CreateNodes(ctx, false, nil, nil, nil, nil, map[string]string{"key1": "val1"}, nil, false***REMOVED***
+			err := cluster.CreateNodes(false, nil, nil, nil, nil, map[string]string{"key1": "val1"}, nil, false***REMOVED***
 			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
 			ocmCluster, err := cluster.Build(***REMOVED***
 			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
@@ -134,7 +132,7 @@ var _ = Describe("Cluster", func(***REMOVED*** {
 			Expect(autoscaleCompute***REMOVED***.To(BeNil(***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 		It("Autoscaling disabled multiAZ false set one availability zone - success", func(***REMOVED*** {
-			err := cluster.CreateNodes(ctx, false, nil, nil, nil, nil, nil, []string{"us-east-1a"}, false***REMOVED***
+			err := cluster.CreateNodes(false, nil, nil, nil, nil, nil, []string{"us-east-1a"}, false***REMOVED***
 			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
 			ocmCluster, err := cluster.Build(***REMOVED***
 			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
@@ -149,17 +147,17 @@ var _ = Describe("Cluster", func(***REMOVED*** {
 			Expect(autoscaleCompute***REMOVED***.To(BeNil(***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 		It("Autoscaling disabled multiAZ false set three availability zones - failure", func(***REMOVED*** {
-			err := cluster.CreateNodes(ctx, false, nil, nil, nil, nil, nil, []string{"us-east-1a", "us-east-1b", "us-east-1c"}, false***REMOVED***
+			err := cluster.CreateNodes(false, nil, nil, nil, nil, nil, []string{"us-east-1a", "us-east-1b", "us-east-1c"}, false***REMOVED***
 			Expect(err***REMOVED***.To(HaveOccurred(***REMOVED******REMOVED***
 			Expect(err.Error(***REMOVED******REMOVED***.To(Equal("The number of availability zones for a single AZ cluster should be 1, instead received: 3"***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 		It("Autoscaling disabled multiAZ true set three availability zones and two replicas - failure", func(***REMOVED*** {
-			err := cluster.CreateNodes(ctx, false, pointer(int64(2***REMOVED******REMOVED***, nil, nil, nil, nil, []string{"us-east-1a", "us-east-1b", "us-east-1c"}, true***REMOVED***
+			err := cluster.CreateNodes(false, pointer(int64(2***REMOVED******REMOVED***, nil, nil, nil, nil, []string{"us-east-1a", "us-east-1b", "us-east-1c"}, true***REMOVED***
 			Expect(err***REMOVED***.To(HaveOccurred(***REMOVED******REMOVED***
 			Expect(err.Error(***REMOVED******REMOVED***.To(Equal("Multi AZ cluster requires at least 3 compute nodes"***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 		It("Autoscaling disabled multiAZ true set three availability zones and three replicas - success", func(***REMOVED*** {
-			err := cluster.CreateNodes(ctx, false, pointer(int64(3***REMOVED******REMOVED***, nil, nil, nil, nil, []string{"us-east-1a", "us-east-1b", "us-east-1c"}, true***REMOVED***
+			err := cluster.CreateNodes(false, pointer(int64(3***REMOVED******REMOVED***, nil, nil, nil, nil, []string{"us-east-1a", "us-east-1b", "us-east-1c"}, true***REMOVED***
 			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
 			ocmCluster, err := cluster.Build(***REMOVED***
 			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
@@ -174,7 +172,7 @@ var _ = Describe("Cluster", func(***REMOVED*** {
 			Expect(autoscaleCompute***REMOVED***.To(BeNil(***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 		It("Autoscaling disabled multiAZ true set one zone - failure", func(***REMOVED*** {
-			err := cluster.CreateNodes(ctx, false, nil, nil, nil, nil, nil, []string{"us-east-1a", "us-east-1b", "us-east-1c"}, true***REMOVED***
+			err := cluster.CreateNodes(false, nil, nil, nil, nil, nil, []string{"us-east-1a", "us-east-1b", "us-east-1c"}, true***REMOVED***
 			Expect(err***REMOVED***.To(HaveOccurred(***REMOVED******REMOVED***
 			Expect(err.Error(***REMOVED******REMOVED***.To(Equal("Multi AZ cluster requires at least 3 compute nodes"***REMOVED******REMOVED***
 ***REMOVED******REMOVED***

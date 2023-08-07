@@ -1,7 +1,6 @@
 package resource
 
 ***REMOVED***
-	"context"
 	"errors"
 ***REMOVED***
 	"regexp"
@@ -32,7 +31,7 @@ func (c *Cluster***REMOVED*** Build(***REMOVED*** (object *cmv1.Cluster, err err
 	return c.clusterBuilder.Build(***REMOVED***
 }
 
-func (c *Cluster***REMOVED*** CreateNodes(ctx context.Context, autoScalingEnabled bool, replicas *int64, minReplicas *int64,
+func (c *Cluster***REMOVED*** CreateNodes(autoScalingEnabled bool, replicas *int64, minReplicas *int64,
 	maxReplicas *int64, computeMachineType *string, labels map[string]string,
 	availabilityZones []string, multiAZ bool***REMOVED*** error {
 	nodes := cmv1.NewClusterNodes(***REMOVED***

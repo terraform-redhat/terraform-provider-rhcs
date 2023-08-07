@@ -215,8 +215,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
                       "mapping_method": "claim",
 			    	  "name": "my-ip",
 			    	  "htpasswd": {
-                        "password": "`+htpasswdValidPass+`",
-			    	    "username": "my-user"
+                        "users": {"items":[{"username": "my-user", "password": "`+htpasswdValidPass+`"}]}
 			    	  }
 			    	}`***REMOVED***,
 					RespondWithJSON(http.StatusOK, `{
@@ -224,7 +223,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 			    	  "name": "my-ip",
                       "mapping_method": "claim",
 			    	  "htpasswd": {
-			    	    "user": "my-user"
+                        "users": {"items":[{"username": "my-user", "password": "`+htpasswdValidPass+`"}]}
 			    	  }
 			    	}`***REMOVED***,
 				***REMOVED***,
@@ -236,8 +235,10 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 	    	    cluster = "123"
 	    	    name    = "my-ip"
 	    	    htpasswd = {
-	    	      username = "my-user"
-	    	      password = "` + htpasswdValidPass + `"
+                  users = [{
+	    	        username = "my-user"
+	    	        password = "` + htpasswdValidPass + `"
+                  }]
 	    	    }
 	    	  }
 	    	`***REMOVED***
@@ -257,7 +258,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 			    	  "name": "my-ip",
                       "mapping_method": "claim",
 			    	  "htpasswd": {
-			    	    "user": "my-user"
+                        "users": {"items":[{"username": "my-user", "password": "`+htpasswdValidPass+`"}]}
 			    	  }
 			    	}`***REMOVED***,
 				***REMOVED***,
@@ -268,8 +269,10 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 	    	    cluster = "123"
 	    	    name    = "my-ip"
 	    	    htpasswd = {
-	    	      username = "my-user-change"
-	    	      password = "` + htpasswdValidPass + `"
+                  users = [{
+	    	        username = "my-user"
+	    	        password = "` + htpasswdValidPass + `"
+                  }]
 	    	    }
 	    	  }
 	    	`***REMOVED***
@@ -1097,8 +1100,10 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
     		    name    = "my-ip"
                 mapping_method = "invalid"
     		    htpasswd = {
-    		      username = "my-user"
-	    	      password = "` + htpasswdValidPass + `"
+                  users = [{
+                    username = "my-user"
+                    password = "` + htpasswdValidPass + `"
+                  }]
     		    }
     		  }
     		`***REMOVED***
@@ -1112,8 +1117,10 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
     		    name    = "my-ip"
                 mapping_method = "invalid"
     		    htpasswd = {
-    		      username = "my-user"
-	    	      password = "` + htpasswdInValidPass + `"
+                  users = [{
+                    username = "my-user"
+                    password = "` + htpasswdInValidPass + `"
+                  }]
     		    }
     		  }
     		`***REMOVED***

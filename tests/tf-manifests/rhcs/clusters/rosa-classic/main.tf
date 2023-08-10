@@ -5,7 +5,7 @@ terraform {
       version = ">= 4.20.0"
     }
     rhcs = {
-      version = ">= 1.1.0"
+      version = ">= 1.0.1"
       source  = "terraform.local/local/rhcs"
     }
   }
@@ -146,6 +146,7 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   max_replicas                = var.autoscaling.max_replicas
   ec2_metadata_http_tokens    = var.aws_http_tokens_state
   aws_private_link            = var.private_link
+  private                     = var.private
   aws_subnet_ids              = local.aws_subnet_ids
   compute_machine_type        = var.compute_machine_type
   default_mp_labels           = var.default_mp_labels
@@ -161,6 +162,7 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   tags                        = var.tags
   destroy_timeout             = 120
 
+
   # depends_on = [
   #   module.vpc
   #   ]
@@ -175,7 +177,7 @@ resource "rhcs_cluster_wait" "rosa_cluster" {
 
 module "operator_roles" {
   source  = "terraform-redhat/rosa-sts/aws"
-  version = ">= 0.0.12"
+  version = "0.0.11"
 
   create_operator_roles = true
   create_oidc_provider  = var.oidc_config == null ? true : false

@@ -17,6 +17,8 @@ provider "rhcs" {
 }
 
 data "rhcs_policies" "all_policies"{}
+data "rhcs_versions" "all" {}
+
 
 module "create_account_roles"{
   source = "terraform-redhat/rosa-sts/aws"
@@ -25,10 +27,12 @@ module "create_account_roles"{
   create_operator_roles = false
   create_oidc_provider = false
   create_account_roles = true
+  all_versions           = data.rhcs_versions.all
 
   account_role_prefix    = var.account_role_prefix
   ocm_environment        = var.rhcs_environment
-  rosa_openshift_version = "${split(".", var.openshift_version***REMOVED***[0]}.${split(".", var.openshift_version***REMOVED***[1]}"
+  # rosa_openshift_version = "${split(".", var.openshift_version***REMOVED***[0]}.${split(".", var.openshift_version***REMOVED***[1]}"
+  rosa_openshift_version= var.openshift_version
   account_role_policies  = data.rhcs_policies.all_policies.account_role_policies
   operator_role_policies = data.rhcs_policies.all_policies.operator_role_policies
 }

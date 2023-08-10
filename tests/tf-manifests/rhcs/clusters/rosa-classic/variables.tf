@@ -9,15 +9,18 @@ variable "url" {
 }
 
 variable "operator_role_prefix" {
-  type = string
+  type    = string
+  default = null
 }
 
 variable "account_role_prefix" {
-  type = string
+  type    = string
+  default = null
 }
 
 variable "cluster_name" {
-  type = string
+  type    = string
+  default = "rhcs-tf"
 }
 
 variable "hosted_cp" {
@@ -41,14 +44,17 @@ variable "openshift_version" {
 }
 
 variable "channel_group" {
+  type    = string
   default = "stable"
 }
 
 variable "rhcs_environment" {
+  type    = string
   default = "staging"
 }
 
 variable "product" {
+  type    = string
   default = "rosa"
 }
 
@@ -73,8 +79,14 @@ variable "private_link" {
   default = false
 }
 
-variable "aws_subnet_ids"{
-  type = list(string***REMOVED***
+variable "private" {
+  type    = bool
+  default = false
+}
+
+
+variable "aws_subnet_ids" {
+  type    = list(string***REMOVED***
   default = null
 }
 
@@ -152,22 +164,18 @@ variable "tags" {
   default = null
 }
 
-variable "multi_az"{
-    type = bool
-    default = false
+variable "multi_az" {
+  type    = bool
+  default = false
 }
 variable "aws_region" {
   type        = string
   description = "The region to create the ROSA cluster in"
 }
 
-variable "oidc_config"{
-  type = string
+variable "oidc_config" {
+  type        = string
   description = "Set it to managed or un-managed, then the resources will be configured accordingly. When not set, traditional oidc provider will be created"
-  default = null
-  
-  validation {
-    condition = contains(["managed","un-managed"], var.oidc_config***REMOVED***
-    error_message = "oidc_config only allows to be managed, un-managed or null"
-  }
+  default     = null
+
 }

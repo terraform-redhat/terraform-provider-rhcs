@@ -203,6 +203,7 @@ func (p *Provider***REMOVED*** GetResources(ctx context.Context***REMOVED*** (re
 		"rhcs_cluster_wait":           &ClusterWaiterResourceType{},
 		"rhcs_rosa_oidc_config_input": &RosaOidcConfigInputResourceType{},
 		"rhcs_rosa_oidc_config":       &RosaOidcConfigResourceType{},
+		"rhcs_dns_domain":             &DNSDomainResourceType{},
 	}
 	return
 }

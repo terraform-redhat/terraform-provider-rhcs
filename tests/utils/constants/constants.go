@@ -1,13 +1,22 @@
 package constants
 
 import (
+	"fmt"
 	"os"
 	"path"
+	"strings"
 )
 
 func initDIR() string {
+	if os.Getenv("MANIFESTS_DIR") != "" {
+		return os.Getenv("MANIFESTS_DIR")
+	}
 	currentDir, _ := os.Getwd()
-	return path.Join(currentDir, "tf-manifests")
+	manifestsDir := path.Join(strings.SplitAfter(currentDir, "tests")[0], "tf-manifests")
+	if _, err := os.Stat(manifestsDir); err != nil {
+		panic(fmt.Sprintf("Manifests dir %s doesn't exist. Make sure you have the manifests dir in testing repo or set the correct env MANIFESTS_DIR value", manifestsDir))
+	}
+	return manifestsDir
 }
 
 var configrationDir = initDIR()
@@ -35,8 +44,25 @@ var (
 
 // Dirs of different types of clusters
 var (
-	ROSAclassic = path.Join(ClusterDir, "rosa-classic")
-	OSDccs      = path.Join(ClusterDir, "osd-ccs")
+	ROSAClassic = path.Join(ClusterDir, "rosa-classic")
+	OSDCCS      = path.Join(ClusterDir, "osd-ccs")
 )
 
+// Supports abs and relatives
+func GrantClusterManifestDir(manifestDir string) string {
+	var targetDir string
+	if strings.Contains(manifestDir, ClusterDir) {
+		targetDir = manifestDir
+	} else {
+		targetDir = path.Join(ClusterDir, manifestDir)
+	}
+	return targetDir
+}
+
 // Dirs of azure provider
+// Just a placeholder
+
+const (
+	DefaultAWSRegion = "us-east-2"
+	TokenENVName     = "RHCS_TOKEN"
+)

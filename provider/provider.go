@@ -143,7 +143,7 @@ func (p *Provider***REMOVED*** Configure(ctx context.Context, request tfsdk.Conf
 	if !config.URL.Null {
 		builder.URL(config.URL.Value***REMOVED***
 	} else {
-		url, ok := os.LookupEnv("OCM_URL"***REMOVED***
+		url, ok := os.LookupEnv("RHCS_URL"***REMOVED***
 		if ok {
 			builder.URL(url***REMOVED***
 ***REMOVED***
@@ -157,7 +157,7 @@ func (p *Provider***REMOVED*** Configure(ctx context.Context, request tfsdk.Conf
 	if !config.Token.Null {
 		builder.Tokens(config.Token.Value***REMOVED***
 	} else {
-		token, ok := os.LookupEnv("OCM_TOKEN"***REMOVED***
+		token, ok := os.LookupEnv("RHCS_TOKEN"***REMOVED***
 		if ok {
 			builder.Tokens(token***REMOVED***
 ***REMOVED***

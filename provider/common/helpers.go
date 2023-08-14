@@ -105,6 +105,14 @@ func StringArrayToList(arr []string) types.List {
 	return list
 }
 
+func EmptiableStringToStringType(s string) types.String {
+	if s == "" {
+		return types.String{Null: true}
+	}
+
+	return types.String{Value: s}
+}
+
 func StringListToArray(list types.List) ([]string, error) {
 	arr := []string{}
 	for _, elm := range list.Elems {

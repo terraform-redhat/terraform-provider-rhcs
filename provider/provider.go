@@ -206,7 +206,7 @@ func (p *Provider***REMOVED*** Resources(ctx context.Context***REMOVED*** []func
 		clusterrosaclassic.New,
 		identityprovider.New,
 		cluster.New,
-	}
+    }
 }
 
 func (p *Provider***REMOVED*** DataSources(ctx context.Context***REMOVED*** []func(***REMOVED*** datasource.DataSource {

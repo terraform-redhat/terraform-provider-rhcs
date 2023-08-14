@@ -307,6 +307,7 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 		***REMOVED***,
 				Optional: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.UseStateForUnknown(***REMOVED***,
 					ValueCannotBeChangedModifier(***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,

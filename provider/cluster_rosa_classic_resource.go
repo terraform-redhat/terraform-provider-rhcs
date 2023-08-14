@@ -307,6 +307,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				},
 				Optional: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.UseStateForUnknown(),
 					ValueCannotBeChangedModifier(),
 				},
 			},

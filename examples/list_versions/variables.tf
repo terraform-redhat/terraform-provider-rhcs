@@ -1,9 +1,9 @@
-variable token {
-  type = string
+variable "token" {
+  type      = string
   sensitive = true
 }
 
-variable url {
-    type = string
-    default = "https://api.stage.openshift.com"
+variable "url" {
+  type    = string
+  default = "https://api.stage.openshift.com"
 }

@@ -18,13 +18,13 @@ package provider
 
 import (
 	"encoding/json"
+	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 	"net/http"
 
 	. "github.com/onsi/ginkgo/v2/dsl/core"             // nolint
 	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
-	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 )
 
 const versionListPage1 = `{
@@ -37,6 +37,12 @@ const versionListPage1 = `{
 			"id": "openshift-v4.10.1",
 			"href": "/api/clusters_mgmt/v1/versions/openshift-v4.10.1",
 			"raw_id": "4.10.1"
+		},
+		{
+			"kind": "Version",
+			"id": "openshift-4.14.0",
+			"href": "/api/clusters_mgmt/v1/versions/openshift-4.14.0",
+			"raw_id": "4.14.0"
 		},
 		{
 			"kind": "Version",

@@ -4,7 +4,7 @@ variable "ocm_environment" {
 }
 
 variable "openshift_version" {
-  type = string
+  type    = string
   default = ""
 }
 

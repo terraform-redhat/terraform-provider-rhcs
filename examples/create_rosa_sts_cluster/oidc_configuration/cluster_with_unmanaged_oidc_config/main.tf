@@ -79,6 +79,6 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   properties = {
     rosa_creator_arn = data.aws_caller_identity.current.arn
   }
-  sts = local.sts_roles
+  sts                      = local.sts_roles
   wait_for_create_complete = true
 }

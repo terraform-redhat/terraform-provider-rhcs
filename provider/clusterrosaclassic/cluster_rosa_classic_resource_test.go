@@ -25,8 +25,6 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
-
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	. "github.com/onsi/ginkgo/v2/dsl/core" // nolint
@@ -35,6 +33,7 @@ import (
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 )
 
 type MockHttpClient struct {
@@ -231,7 +230,6 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 
 			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
 			Expect(err).To(BeNil())
-
 			Expect(populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)).To(Succeed())
 
 			Expect(clusterState.ID.ValueString()).To(Equal(clusterId))
@@ -263,7 +261,6 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 			Expect(clusterState.Sts.RoleARN.ValueString()).To(Equal(roleArn))
 			Expect(clusterState.Ec2MetadataHttpTokens.ValueString()).To(Equal(httpTokens))
 		})
-
 		It("Check trimming of oidc url with https perfix", func() {
 			clusterState := &ClusterRosaClassicState{}
 			clusterJson := generateBasicRosaClassicClusterJson()

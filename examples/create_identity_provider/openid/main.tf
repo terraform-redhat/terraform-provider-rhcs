@@ -32,10 +32,10 @@ resource "rhcs_identity_provider" "openid_idp" {
   cluster = var.cluster_id
   name    = "OpenID"
   openid = {
-     client_id                  = var.openid_client_id
-     client_secret              = var.openid_client_secret
-     issuer                     = var.openid_issuer
-     ca                         = var.openid_ca
-     claims                     = var.openid_claims
+    client_id     = var.openid_client_id
+    client_secret = var.openid_client_secret
+    issuer        = var.openid_issuer
+    ca            = var.openid_ca
+    claims        = var.openid_claims
   }
 }

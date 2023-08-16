@@ -36,6 +36,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterautoscaler"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosaclassic"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterwaiter"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/defaultingress"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/dnsdomain"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/group"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/groupmembership"
@@ -208,6 +209,7 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 		identityprovider.New,
 		cluster.New,
 		clusterautoscaler.New,
+		defaultingress.New,
 	}
 }
 

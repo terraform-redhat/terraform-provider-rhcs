@@ -63,7 +63,7 @@ var propertiesValidator = attrvalidators.NewMapValidator("properties map should 
 			return
 		}
 
-		for k, _ := range propertiesElements {
+		for k := range propertiesElements {
 			if _, isDefaultKey := OCMProperties[k]; isDefaultKey {
 				errHead := "Invalid property key."
 				errDesc := fmt.Sprintf("Can not override reserved properties keys. %s is a reserved property key", k)

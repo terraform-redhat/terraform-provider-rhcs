@@ -1,3 +1,4 @@
+profiles:
 - as: rosa-sts-pl
   cluster:
     multi_az: false
@@ -16,10 +17,11 @@
     autoscale: false
     byok: false
     version: "latest"
+    major_version: "4.13"
     proxy: false
     labeling: false
     tagging: false
-    channel_group: staging
+    channel_group: candidate
     zones: ""
     imdsv2: "optional"
     oidc_config: "managed"
@@ -41,14 +43,15 @@
     autoscale: true
     byok: true
     version: "latest"
+    major_version: "4.13"
     proxy: true
     labeling: true
     tagging: true
-    channel_group: staging
+    channel_group: candidate
     zones: "a,b,c"
     imdsv2: "required"
     oidc_config: "un-managed"
-- as: rosa-sts-upg
+- as: rosa-sts-up
   cluster:
     multi_az: false
     machine_type: "m5.xlarge"
@@ -66,6 +69,7 @@
     autoscale: false
     byok: true
     version: "z-1&y-1"
+    major_version: "4.13"
     proxy: false
     labeling: false
     tagging: false

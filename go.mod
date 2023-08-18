@@ -3,6 +3,7 @@ module github.com/terraform-redhat/terraform-provider-rhcs
 go 1.18
 
 require (
+	github.com/Masterminds/semver v1.5.0
 	github.com/aws/aws-sdk-go v1.39.3
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/terraform-plugin-docs v0.13.0
@@ -20,6 +21,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/thoas/go-funk v0.9.3
 	github.com/zgalor/weberr v0.6.0
+	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/apimachinery v0.26.2
 )
 
@@ -110,5 +112,4 @@ require (
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

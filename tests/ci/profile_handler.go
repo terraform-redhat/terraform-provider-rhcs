@@ -2,17 +2,19 @@ package ci
 
 import (
 	"fmt"
-	"os"
+	"path"
 	"strings"
 
-	// . "github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	EXE "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
+	HELPER "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
 // Profile Provides profile struct for cluster creation be matrix
 type Profile struct {
+	Name                  string `ini:"name,omitempty" json:"name,omitempty"`
 	ClusterName           string `ini:"cluster_name,omitempty" json:"cluster_name,omitempty"`
 	ProductID             string `ini:"product_id,omitempty" json:"product_id,omitempty"`
 	Version               string `ini:"version,omitempty" json:"version,omitempty"` //Version supports indicated version started with openshift-v or minor-1
@@ -68,8 +70,7 @@ func PrepareVPC(region string, privateLink bool, multiZone bool, azIDs []string,
 		vpcService.Destroy()
 	}
 	privateSubnets, publicSubnets, zones, err := vpcService.Output()
-	// privateSubnets, publicSubnets, zones, err := EXE.CreateAWSVPC(vpcArgs)
-	// Expect(err).ToNot(HaveOccurred())
+
 	if err != nil {
 		vpcService.Destroy()
 		return nil, nil, nil
@@ -87,13 +88,22 @@ func PrepareKMSKey() {}
 func PrepareRoute53() {}
 
 func GenerateClusterCreationArgsByProfile(profile *Profile) (clusterArgs *EXE.ClusterCreationArgs, manifestsDir string, err error) {
+
+	// Set majorVersion from prow job var env, or 4.13 as default
+	var majorVersion = GetEnvWithDefault(CON.MajorVersion, CON.DefaultMajorVersion)
+	var version = ""
+
 	clusterArgs = &EXE.ClusterCreationArgs{
-		Token: os.Getenv(CON.TokenENVName),
+		Token: GetEnvWithDefault(CON.TokenENVName, ""),
 	}
+
+	profile.ManifestsDIR = path.Join(profile.ManifestsDIR, GetEnvWithDefault(CON.ClusterTypeManifestDirEnv, CON.ROSAClassic))
+
 	if profile.ClusterName != "" {
 		clusterArgs.ClusterName = profile.ClusterName
 	} else {
-		clusterArgs.ClusterName = "rhcs-tf" // Generate random chars later
+		// Generate random chars later cluster name with profile name
+		clusterArgs.ClusterName = HELPER.GenerateClusterName(profile.Name)
 	}
 	if profile.AdminEnabled {
 		// clusterArgs.
@@ -107,21 +117,28 @@ func GenerateClusterCreationArgsByProfile(profile *Profile) (clusterArgs *EXE.Cl
 	if profile.STS {
 		accService := EXE.NewAccountRoleService()
 		acctPrefix := clusterArgs.ClusterName
-		majorVersion := ""
-		if profile.Version != "" {
-			majorVersion = strings.Join(strings.Split(profile.Version, ".")[0:2], ".")
-		}
 		accountRoleArgs := EXE.AccountRolesArgs{
+			Token:             GetEnvWithDefault(CON.TokenENVName, ""),
 			AccountRolePrefix: acctPrefix,
-			OpenshiftVersion:  majorVersion,
 			ChannelGroup:      profile.ChannelGroup,
-			Token:             os.Getenv(CON.TokenENVName),
 		}
 		err = accService.Create(&accountRoleArgs)
 		if err != nil {
 			defer accService.Destroy(&accountRoleArgs)
 			return
 		}
+
+		if profile.Version != "" {
+			if profile.Version != "latest" {
+				version = strings.Join(strings.Split(profile.Version, ".")[0:2], ".")
+			} else {
+				// todo: we are using backend code due to issue OCM-3562
+				versionsList := HELPER.GetGreaterOrEqualVersions(RHCSConnection, majorVersion, profile.ChannelGroup, true, true)
+				version = HELPER.SortRawVersions(versionsList)[len(versionsList)-1]
+			}
+			clusterArgs.OpenshiftVersion = version
+		}
+
 		clusterArgs.AccountRolePrefix = acctPrefix
 		if profile.OIDCConfig != "" {
 			clusterArgs.OIDCConfig = profile.OIDCConfig
@@ -159,10 +176,6 @@ func GenerateClusterCreationArgsByProfile(profile *Profile) (clusterArgs *EXE.Cl
 		}
 	}
 
-	if profile.Version != "" {
-		clusterArgs.OpenshiftVersion = profile.Version
-	}
-
 	if profile.ChannelGroup != "" {
 		clusterArgs.ChannelGroup = profile.ChannelGroup
 	}
@@ -185,17 +198,38 @@ func GenerateClusterCreationArgsByProfile(profile *Profile) (clusterArgs *EXE.Cl
 	return clusterArgs, profile.ManifestsDIR, err
 }
 
-func CreateRHCSClusterByProfile(profile *Profile) (string, error) {
-	creationArgs, manifests_dir, err := GenerateClusterCreationArgsByProfile(profile)
-	if err != nil {
-		return "", err
+func LoadProfileYamlFile() *Profile {
+	profileEnv := GetEnvWithDefault(CON.RhcsClusterProfileENV, "rosa-sts-pl")
+	if profileEnv == "" {
+		panic(fmt.Errorf("ENV Variable RHCS_PROFILE_ENV is empty, please make sure you set the env value"))
 	}
+	filename := GetYAMLProfileFile(CON.TFYAMLProfile)
+	p := HELPER.GetProfile(profileEnv, filename)
+	fmt.Println(p.Cluster)
+	profile := Profile{
+		Name: profileEnv,
+	}
+	err := HELPER.MapStructure(p.Cluster, &profile)
+	Expect(err).ToNot(HaveOccurred())
+	return &profile
+}
+
+func CreateRHCSClusterByProfile(profile *Profile, creationArgs *EXE.ClusterCreationArgs, manifests_dir string) (string, error) {
+
 	clusterService := EXE.NewClusterService(manifests_dir)
-	err = clusterService.Create(creationArgs)
+	err := clusterService.Create(creationArgs)
 	if err != nil {
 		clusterService.Destroy(creationArgs)
 		return "", err
 	}
 	clusterID, err := clusterService.Output()
 	return clusterID, err
+}
+
+func PrepareRHCSClusterByProfileENV() (*Profile, *EXE.ClusterCreationArgs, string) {
+
+	profile := LoadProfileYamlFile()
+	creationArgs, manifests_dir, err := GenerateClusterCreationArgsByProfile(profile)
+	Expect(err).ToNot(HaveOccurred())
+	return profile, creationArgs, manifests_dir
 }

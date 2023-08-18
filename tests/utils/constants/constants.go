@@ -7,9 +7,40 @@ import (
 	"strings"
 )
 
+const (
+	X = "x"
+	Y = "y"
+	Z = "z"
+
+	UnderscoreConnector string = "_"
+	DotConnector        string = "."
+	HyphenConnector     string = "-"
+)
+
+var (
+	TokenENVName              = "RHCS_TOKEN"
+	OCMEnv                    = "OCM_ENV"
+	RhcsClusterProfileENV     = "RHCS_PROFILE_ENV"
+	ClusterTypeManifestDirEnv = "CLUSTER_ROSA_TYPE"
+	MajorVersion              = "MAJOR_VERSION_ENV"
+	ManifestsDirENV           = os.Getenv("MANIFESTS_DIR")
+)
+
+var (
+	DefaultMajorVersion = "4.13"
+	CharsBytes          = "abcdefghijklmnopqrstuvwxyz123456789"
+	WorkSpace           = "WORKSPACE"
+	RHCSPrefix          = "rhcs"
+	TFYAMLProfile       = "tf_cluster_profile.yml"
+)
+
+const (
+	DefaultAWSRegion = "us-east-2"
+)
+
 func initDIR() string {
-	if os.Getenv("MANIFESTS_DIR") != "" {
-		return os.Getenv("MANIFESTS_DIR")
+	if ManifestsDirENV != "" {
+		return ManifestsDirENV
 	}
 	currentDir, _ := os.Getwd()
 	manifestsDir := path.Join(strings.SplitAfter(currentDir, "tests")[0], "tf-manifests")
@@ -58,11 +89,3 @@ func GrantClusterManifestDir(manifestDir string) string {
 	}
 	return targetDir
 }
-
-// Dirs of azure provider
-// Just a placeholder
-
-const (
-	DefaultAWSRegion = "us-east-2"
-	TokenENVName     = "RHCS_TOKEN"
-)

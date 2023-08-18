@@ -1,11 +1,6 @@
 ***REMOVED***
 
 ***REMOVED***
-
-	// nolint
-
-***REMOVED***
-
 ***REMOVED***
 ***REMOVED***
 	CI "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
@@ -20,7 +15,7 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 		It("TestExampleNegative", func(***REMOVED*** {
 
 			clusterParam := &EXE.ClusterCreationArgs{
-				Token:              token,
+				Token:              CI.GetEnvWithDefault(CON.TokenENVName, ""***REMOVED***,
 				OCMENV:             "staging",
 				ClusterName:        "xuelitf",
 				OperatorRolePrefix: "xueli",
@@ -50,7 +45,7 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 
 			By("Create account-roles"***REMOVED***
 			accRoleParam := &EXE.AccountRolesArgs{
-				Token:             token,
+				Token:             CI.GetEnvWithDefault(CON.TokenENVName, ""***REMOVED***,
 				AccountRolePrefix: accRolePrefix,
 	***REMOVED***
 			_, err = EXE.CreateMyTFAccountRoles(accRoleParam***REMOVED***
@@ -59,7 +54,7 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 
 			By("Create Cluster"***REMOVED***
 			clusterParam := &EXE.ClusterCreationArgs{
-				Token:                token,
+				Token:                CI.GetEnvWithDefault(CON.TokenENVName, ""***REMOVED***,
 				OCMENV:               "staging",
 				ClusterName:          "xuelitf",
 				OperatorRolePrefix:   "xuelitf",
@@ -74,29 +69,32 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 	***REMOVED***
 
 			clusterID, err := EXE.CreateMyTFCluster(clusterParam, CON.ROSAClassic***REMOVED***
-			defer EXE.DestroyMyTFCluster(clusterParam, CON.ROSAClassic***REMOVED***
+			defer EXE.DestroyMyTFCluster(clusterParam, CI.GetEnvWithDefault(CON.TokenENVName, ""***REMOVED******REMOVED***
 			Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 			Expect(clusterID***REMOVED***.ToNot(BeEmpty(***REMOVED******REMOVED***
 
 ***REMOVED******REMOVED***
 
 		It("TestCreateClusterByProfile", func(***REMOVED*** {
-			profile := &CI.Profile{
-				ClusterName:   "xueli-tf",
-				MultiAZ:       false,
-				OIDCConfig:    "managed",
-				BYOVPC:        true,
-				Region:        "us-west-2",
-				Version:       "4.13.4",
-				InstanceType:  "r5.xlarge",
-				STS:           true,
-				NetWorkingSet: true,
-				ManifestsDIR:  CON.ROSAClassic,
-				// OIDCConfig:    "managed",
+
+			// Generate/build cluster by profile selected
+			profile, creationArgs, manifests_dir := CI.PrepareRHCSClusterByProfileENV(***REMOVED***
+			accService := EXE.NewAccountRoleService(***REMOVED***
+			accRoleParam := &EXE.AccountRolesArgs{
+				Token:             CI.GetEnvWithDefault(CON.TokenENVName, ""***REMOVED***,
+				AccountRolePrefix: creationArgs.AccountRolePrefix,
 	***REMOVED***
-			clusterID, err := CI.CreateRHCSClusterByProfile(profile***REMOVED***
+			// destroy account roles
+			defer accService.Destroy(accRoleParam***REMOVED***
+
+			// Create rhcs cluster
+			clusterID, err := CI.CreateRHCSClusterByProfile(profile, creationArgs, manifests_dir***REMOVED***
 			Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-			fmt.Println(clusterID***REMOVED***
+			Expect(clusterID***REMOVED***.ToNot(BeEmpty(***REMOVED******REMOVED***
+
+			// destroy selected cluster
+			clusterService := EXE.NewClusterService(manifests_dir***REMOVED***
+			defer clusterService.Destroy(creationArgs***REMOVED***
 ***REMOVED******REMOVED***
 	}***REMOVED***
 }***REMOVED***

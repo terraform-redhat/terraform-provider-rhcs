@@ -76,13 +76,6 @@ func (vpc *VPCService***REMOVED*** Destroy(createArgs ...*VPCArgs***REMOVED*** e
 	}
 	args := combineStructArgs(destroyArgs***REMOVED***
 	err := runTerraformDestroyWithArgs(vpc.Context, vpc.ManifestDir, args***REMOVED***
-	// if err != nil {
-	// 	return err
-	// }
-
-	// getClusterIdCmd := exec.Command("terraform", "output", "-json", "cluster_id"***REMOVED***
-	// getClusterIdCmd.Dir = targetDir
-	// _, err = getClusterIdCmd.Output(***REMOVED***
 
 	return err
 }

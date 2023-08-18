@@ -16,9 +16,16 @@ provider "rhcs" {
   url = var.url
 }
 
-data "rhcs_policies" "all_policies"{}
-data "rhcs_versions" "all" {}
+locals {
+  versionfilter = var.openshift_version == null ? "" : " and id like '%${var.openshift_version}%'"
+}
 
+data "rhcs_policies" "all_policies"{}
+
+data "rhcs_versions" "all" {
+    search = "enabled='t' and rosa_enabled='t' and channel_group='${var.channel_group}'${local.versionfilter}"
+    order = "id"
+}
 
 module "create_account_roles"{
   source = "terraform-redhat/rosa-sts/aws"

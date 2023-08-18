@@ -40,26 +40,29 @@ type ClusterOutout struct {
 	ClusterID string `json:"cluster_id,omitempty"`
 }
 
-// *********************** Cluster CMS ***********************************
-// func CreateCluster(ctx context.Context,manifestsDir string, args ...string***REMOVED*** (string, error***REMOVED*** {
-// 	runTerraformInit(ctx, CON.ClusterDir***REMOVED***
+// ******************************************************
+// RHCS test cases used
+const (
 
-// 	runTerraformApplyWithArgs(ctx, CON.ClusterDir, args***REMOVED***
+	// MaxExpiration in unit of hour
+	MaxExpiration = 168
 
-// 	getClusterIdCmd := exec.Command("terraform", "output", "-json", "cluster_id"***REMOVED***
-// 	getClusterIdCmd.Dir = CON.ClusterDir
-// 	output, err := getClusterIdCmd.Output(***REMOVED***
-// 	if err != nil {
-// 		return "", err
-// 	}
+	// MaxNodeNumber means max node number per cluster/machinepool
+	MaxNodeNumber = 180
 
-// 	splitOutput := strings.Split(string(output***REMOVED***, "\""***REMOVED***
-// 	if len(splitOutput***REMOVED*** <= 1 {
-// 		return "", fmt.Errorf("got no cluster id from the output"***REMOVED***
-// 	}
+	// MaxNameLength means cluster name will be trimed when request certificate
+	MaxNameLength = 15
 
-// 	return splitOutput[1], nil
-// }
+	MaxIngressNumber = 2
+***REMOVED***
+
+// version channel_groups
+const (
+	FastChannel      = "fast"
+	StableChannel    = "stable"
+	NightlyChannel   = "nightly"
+	CandidateChannel = "candidate"
+***REMOVED***
 
 type ClusterService struct {
 	CreationArgs *ClusterCreationArgs
@@ -110,8 +113,6 @@ func NewClusterService(manifestDir string***REMOVED*** *ClusterService {
 	return sc
 }
 
-//******************************************************
-
 func CreateTFCluster(ctx context.Context, manifestsDir string,
 	varArgs map[string]interface{}, abArgs ...string***REMOVED*** (string, error***REMOVED*** {
 	targetDir := CON.GrantClusterManifestDir(manifestsDir***REMOVED***
@@ -152,13 +153,6 @@ func DestroyTFCluster(ctx context.Context, manifestDir string,
 
 	args := combineArgs(varArgs, abArgs...***REMOVED***
 	err = runTerraformDestroyWithArgs(ctx, targetDir, args***REMOVED***
-	// if err != nil {
-	// 	return err
-	// }
-
-	// getClusterIdCmd := exec.Command("terraform", "output", "-json", "cluster_id"***REMOVED***
-	// getClusterIdCmd.Dir = targetDir
-	// _, err = getClusterIdCmd.Output(***REMOVED***
 
 	return err
 }

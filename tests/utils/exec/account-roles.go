@@ -55,9 +55,10 @@ func (acc *AccountRoleService***REMOVED*** Output(***REMOVED*** (string, error**
 	if err != nil {
 		return "", err
 	}
-	clusterObj := out["cluster_id"]
-	clusterID := h.DigString(clusterObj, "value"***REMOVED***
-	return clusterID, nil
+
+	versionsObj := out["rhcs_versions"]
+	versionsList := h.DigString(versionsObj, "value"***REMOVED***
+	return versionsList, nil
 }
 
 func (acc *AccountRoleService***REMOVED*** Destroy(createArgs ...*AccountRolesArgs***REMOVED*** error {

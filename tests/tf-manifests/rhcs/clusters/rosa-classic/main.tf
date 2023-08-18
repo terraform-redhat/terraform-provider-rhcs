@@ -24,23 +24,13 @@ locals {
 
 data "rhcs_versions" "version" {
   search = "enabled='t' and rosa_enabled='t' and channel_group='${var.channel_group}'${local.versionfilter}"
-  # order = "id desc"
-
+  order = "id"
 }
 locals {
   version = data.rhcs_versions.version.items[0].name
 }
 
-
-
-# data "aws_subnet" "aws_subnets"{
-#   for_each = toset(var.aws_subnet_ids***REMOVED***
-#   id = each.key
-
-# }
-
 locals {
-  # aws_subnet_ids = var.private_link?module.vpc[0].private_subnets:concat(module.vpc[0].private_subnets,module.vpc[0].private_subnets***REMOVED***
   aws_subnet_ids = var.aws_subnet_ids
 }
 // ************** Managed oidc ***************
@@ -112,21 +102,10 @@ locals {
     oidc_config_id       = var.oidc_config == "managed" ? rhcs_rosa_oidc_config.oidc_config_managed[0].id : rhcs_rosa_oidc_config.oidc_config_unmanaged[0].id
   }
 }
-/* locals {
-  oidc_config_map = {
-    "":null,
-    managed: rhcs_rosa_oidc_config.oidc_config_managed[0].id,
-    unmanaged: rhcs_rosa_oidc_config.oidc_config_unmanaged[0].id
-  }
-} */
-
-/* locals{
-  local.sts_roles[]
-} */
 
 data "aws_caller_identity" "current" {
 }
-// **********
+
 resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   name               = var.cluster_name
   version            = local.version
@@ -146,7 +125,6 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   max_replicas                = var.autoscaling.max_replicas
   ec2_metadata_http_tokens    = var.aws_http_tokens_state
   aws_private_link            = var.private_link
-  private                     = var.private
   aws_subnet_ids              = local.aws_subnet_ids
   compute_machine_type        = var.compute_machine_type
   default_mp_labels           = var.default_mp_labels
@@ -161,31 +139,12 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   pod_cidr                    = var.pod_cidr
   tags                        = var.tags
   destroy_timeout             = 120
-
-
-  # depends_on = [
-  #   module.vpc
-  #   ]
+  lifecycle {
+    ignore_changes = [availability_zones]
+  }
 }
-
 
 resource "rhcs_cluster_wait" "rosa_cluster" {
   cluster = rhcs_cluster_rosa_classic.rosa_sts_cluster.id
   timeout = 120
 }
-
-
-module "operator_roles" {
-  source  = "terraform-redhat/rosa-sts/aws"
-  version = "0.0.11"
-
-  create_operator_roles = true
-  create_oidc_provider  = var.oidc_config == null ? true : false
-  create_account_roles  = false
-
-  cluster_id                  = rhcs_cluster_rosa_classic.rosa_sts_cluster.id
-  rh_oidc_provider_thumbprint = rhcs_cluster_rosa_classic.rosa_sts_cluster.sts.thumbprint
-  rh_oidc_provider_url        = rhcs_cluster_rosa_classic.rosa_sts_cluster.sts.oidc_endpoint_url
-  operator_roles_properties   = data.rhcs_rosa_operator_roles.operator_roles.operator_iam_roles
-}
-

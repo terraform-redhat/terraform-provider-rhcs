@@ -1,4 +1,4 @@
-package connection
+package ci
 
 /*
 Copyright (c***REMOVED*** 2018 Red Hat, Inc.
@@ -18,10 +18,18 @@ limitations under the License.
 
 ***REMOVED***
 ***REMOVED***
+	"os"
 
 ***REMOVED***
+	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+
+	// . "github.com/onsi/gomega"
 
 	client "github.com/openshift-online/ocm-sdk-go"
+***REMOVED***
+
+var (
+	RHCSOCMToken = os.Getenv(CON.TokenENVName***REMOVED***
 ***REMOVED***
 
 // Regular users in the organization 'Red Hat-Service Delivery-tester'
@@ -36,10 +44,6 @@ var (
 
 func createConnectionWithToken(token string***REMOVED*** *client.Connection {
 	gatewayURL := gatewayURL(***REMOVED***
-
-	if token == "" {
-		fmt.Println("[WARNING]: Token shouldn't be empty"***REMOVED***
-	}
 
 	// Create the connection:
 	connection, err := client.NewConnectionBuilder(***REMOVED***.
@@ -63,4 +67,20 @@ func createLogger(***REMOVED*** client.Logger {
 		Build(***REMOVED***
 
 	return logger
+}
+
+type Response struct {
+	StatusCode int
+	Body       []byte
+}
+
+func (r *Response***REMOVED*** Status(***REMOVED*** int {
+	return r.StatusCode
+}
+func (r *Response***REMOVED*** Bytes(***REMOVED*** []byte {
+	return r.Body
+}
+
+func (r *Response***REMOVED*** String(***REMOVED*** string {
+	return string(r.Bytes(***REMOVED******REMOVED***
 }

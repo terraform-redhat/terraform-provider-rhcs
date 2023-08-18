@@ -51,14 +51,18 @@ The cluster created by the automation scripts are shared across all of the test 
 ### Prerequisite
 Please read repo's [README.md](../README.md***REMOVED***
 #### Users and Tokens
-To execute the test cases, we need to prepare the [offline token](https://console.redhat.com/openshift/token/show***REMOVED***. Get the offline token and export as an ENV variable **rhcs_TF_TOKEN**.
-* export rhcs_TF_TOKEN=<offline token>
+To execute the test cases, we need to prepare the [offline token](https://console.redhat.com/openshift/token/show***REMOVED***. Get the offline token and export as an ENV variable 
 
+**rhcs_TF_TOKEN**.
+* export RHCS_TOKEN=<offline token>
 
 #### Global variables
 The default rhcs enviroment is `production`. To specify running on staging or local, can export the global vairable 
-* export GATE_WAY="https://api.stage.openshift.com"
+* export GATE_WAY = "https://api.stage.openshift.com"
+* export RHCSEnv = "staging"
 
+To declare the profile cluster type to be run, use the below variable::
+* export RHCS_PROFILE_ENV = <rosa-tf-profile>
 
 ### To run with ginkgo directly
 This only allow running the test cases one by one. option.

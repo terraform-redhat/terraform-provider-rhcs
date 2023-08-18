@@ -10,8 +10,8 @@
 ***REMOVED***
 ***REMOVED***
 	"github.com/openshift-online/ocm-sdk-go/logging"
+	conn "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	cms "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
-	conn "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/connection"
 ***REMOVED***
 ***REMOVED***
 ***REMOVED***

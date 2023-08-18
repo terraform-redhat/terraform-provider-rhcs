@@ -104,13 +104,6 @@ func (mp *MachinePoolService***REMOVED*** Destroy(createArgs ...*MachinePoolArgs
 	}
 	args := combineStructArgs(destroyArgs***REMOVED***
 	err := runTerraformDestroyWithArgs(mp.Context, mp.ManifestDir, args***REMOVED***
-	// if err != nil {
-	// 	return err
-	// }
-
-	// getClusterIdCmd := exec.Command("terraform", "output", "-json", "cluster_id"***REMOVED***
-	// getClusterIdCmd.Dir = targetDir
-	// _, err = getClusterIdCmd.Output(***REMOVED***
 
 	return err
 }

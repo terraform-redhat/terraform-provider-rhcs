@@ -1,11 +1,6 @@
 package e2e
 
 import (
-
-	// nolint
-
-	"fmt"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	CI "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
@@ -20,7 +15,7 @@ var _ = Describe("TF Test", func() {
 		It("TestExampleNegative", func() {
 
 			clusterParam := &EXE.ClusterCreationArgs{
-				Token:              token,
+				Token:              CI.GetEnvWithDefault(CON.TokenENVName, ""),
 				OCMENV:             "staging",
 				ClusterName:        "xuelitf",
 				OperatorRolePrefix: "xueli",
@@ -50,7 +45,7 @@ var _ = Describe("TF Test", func() {
 
 			By("Create account-roles")
 			accRoleParam := &EXE.AccountRolesArgs{
-				Token:             token,
+				Token:             CI.GetEnvWithDefault(CON.TokenENVName, ""),
 				AccountRolePrefix: accRolePrefix,
 			}
 			_, err = EXE.CreateMyTFAccountRoles(accRoleParam)
@@ -59,7 +54,7 @@ var _ = Describe("TF Test", func() {
 
 			By("Create Cluster")
 			clusterParam := &EXE.ClusterCreationArgs{
-				Token:                token,
+				Token:                CI.GetEnvWithDefault(CON.TokenENVName, ""),
 				OCMENV:               "staging",
 				ClusterName:          "xuelitf",
 				OperatorRolePrefix:   "xuelitf",
@@ -74,29 +69,32 @@ var _ = Describe("TF Test", func() {
 			}
 
 			clusterID, err := EXE.CreateMyTFCluster(clusterParam, CON.ROSAClassic)
-			defer EXE.DestroyMyTFCluster(clusterParam, CON.ROSAClassic)
+			defer EXE.DestroyMyTFCluster(clusterParam, CI.GetEnvWithDefault(CON.TokenENVName, ""))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clusterID).ToNot(BeEmpty())
 
 		})
 
 		It("TestCreateClusterByProfile", func() {
-			profile := &CI.Profile{
-				ClusterName:   "xueli-tf",
-				MultiAZ:       false,
-				OIDCConfig:    "managed",
-				BYOVPC:        true,
-				Region:        "us-west-2",
-				Version:       "4.13.4",
-				InstanceType:  "r5.xlarge",
-				STS:           true,
-				NetWorkingSet: true,
-				ManifestsDIR:  CON.ROSAClassic,
-				// OIDCConfig:    "managed",
+
+			// Generate/build cluster by profile selected
+			profile, creationArgs, manifests_dir := CI.PrepareRHCSClusterByProfileENV()
+			accService := EXE.NewAccountRoleService()
+			accRoleParam := &EXE.AccountRolesArgs{
+				Token:             CI.GetEnvWithDefault(CON.TokenENVName, ""),
+				AccountRolePrefix: creationArgs.AccountRolePrefix,
 			}
-			clusterID, err := CI.CreateRHCSClusterByProfile(profile)
+			// destroy account roles
+			defer accService.Destroy(accRoleParam)
+
+			// Create rhcs cluster
+			clusterID, err := CI.CreateRHCSClusterByProfile(profile, creationArgs, manifests_dir)
 			Expect(err).ToNot(HaveOccurred())
-			fmt.Println(clusterID)
+			Expect(clusterID).ToNot(BeEmpty())
+
+			// destroy selected cluster
+			clusterService := EXE.NewClusterService(manifests_dir)
+			defer clusterService.Destroy(creationArgs)
 		})
 	})
 })

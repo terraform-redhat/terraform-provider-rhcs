@@ -115,18 +115,13 @@ func combineStructArgs(argObj interface{}, abArgs ...string) []string {
 }
 
 func CleanTFTempFiles(providerDir string) error {
-	tempList := []string{
-		// ".terraform",
-		// ".terraform.lock.hcl",
-		// "terraform.tfstate",
-	}
+	tempList := []string{}
 	for _, temp := range tempList {
 		tempPath := path.Join(providerDir, temp)
 		err := os.RemoveAll(tempPath)
 		if err != nil {
 			return err
 		}
-
 	}
 	return nil
 }

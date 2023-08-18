@@ -10,8 +10,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift-online/ocm-sdk-go/logging"
+	conn "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	cms "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
-	conn "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/connection"
 	con "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	exe "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 )

@@ -40,26 +40,29 @@ type ClusterOutout struct {
 	ClusterID string `json:"cluster_id,omitempty"`
 }
 
-// *********************** Cluster CMS ***********************************
-// func CreateCluster(ctx context.Context,manifestsDir string, args ...string) (string, error) {
-// 	runTerraformInit(ctx, CON.ClusterDir)
+// ******************************************************
+// RHCS test cases used
+const (
 
-// 	runTerraformApplyWithArgs(ctx, CON.ClusterDir, args)
+	// MaxExpiration in unit of hour
+	MaxExpiration = 168
 
-// 	getClusterIdCmd := exec.Command("terraform", "output", "-json", "cluster_id")
-// 	getClusterIdCmd.Dir = CON.ClusterDir
-// 	output, err := getClusterIdCmd.Output()
-// 	if err != nil {
-// 		return "", err
-// 	}
+	// MaxNodeNumber means max node number per cluster/machinepool
+	MaxNodeNumber = 180
 
-// 	splitOutput := strings.Split(string(output), "\"")
-// 	if len(splitOutput) <= 1 {
-// 		return "", fmt.Errorf("got no cluster id from the output")
-// 	}
+	// MaxNameLength means cluster name will be trimed when request certificate
+	MaxNameLength = 15
 
-// 	return splitOutput[1], nil
-// }
+	MaxIngressNumber = 2
+)
+
+// version channel_groups
+const (
+	FastChannel      = "fast"
+	StableChannel    = "stable"
+	NightlyChannel   = "nightly"
+	CandidateChannel = "candidate"
+)
 
 type ClusterService struct {
 	CreationArgs *ClusterCreationArgs
@@ -110,8 +113,6 @@ func NewClusterService(manifestDir string) *ClusterService {
 	return sc
 }
 
-//******************************************************
-
 func CreateTFCluster(ctx context.Context, manifestsDir string,
 	varArgs map[string]interface{}, abArgs ...string) (string, error) {
 	targetDir := CON.GrantClusterManifestDir(manifestsDir)
@@ -152,13 +153,6 @@ func DestroyTFCluster(ctx context.Context, manifestDir string,
 
 	args := combineArgs(varArgs, abArgs...)
 	err = runTerraformDestroyWithArgs(ctx, targetDir, args)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// getClusterIdCmd := exec.Command("terraform", "output", "-json", "cluster_id")
-	// getClusterIdCmd.Dir = targetDir
-	// _, err = getClusterIdCmd.Output()
 
 	return err
 }

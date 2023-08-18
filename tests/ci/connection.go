@@ -1,4 +1,4 @@
-package connection
+package ci
 
 /*
 Copyright (c) 2018 Red Hat, Inc.
@@ -18,10 +18,18 @@ limitations under the License.
 
 import (
 	"fmt"
+	"os"
 
 	. "github.com/onsi/ginkgo/v2"
+	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+
+	// . "github.com/onsi/gomega"
 
 	client "github.com/openshift-online/ocm-sdk-go"
+)
+
+var (
+	RHCSOCMToken = os.Getenv(CON.TokenENVName)
 )
 
 // Regular users in the organization 'Red Hat-Service Delivery-tester'
@@ -36,10 +44,6 @@ var (
 
 func createConnectionWithToken(token string) *client.Connection {
 	gatewayURL := gatewayURL()
-
-	if token == "" {
-		fmt.Println("[WARNING]: Token shouldn't be empty")
-	}
 
 	// Create the connection:
 	connection, err := client.NewConnectionBuilder().
@@ -63,4 +67,20 @@ func createLogger() client.Logger {
 		Build()
 
 	return logger
+}
+
+type Response struct {
+	StatusCode int
+	Body       []byte
+}
+
+func (r *Response) Status() int {
+	return r.StatusCode
+}
+func (r *Response) Bytes() []byte {
+	return r.Body
+}
+
+func (r *Response) String() string {
+	return string(r.Bytes())
 }

@@ -46,20 +46,17 @@ func runTerraformApplyWithArgs(ctx context.Context, dir string, terraformArgs []
 	terraformApply := exec.Command("terraform", applyArgs...***REMOVED***
 	terraformApply.Dir = dir
 	var stdoutput bytes.Buffer
-	var stderroutput bytes.Buffer
+	// var stderroutput bytes.Buffer
 	terraformApply.Stdout = &stdoutput
-	terraformApply.Stderr = &stderroutput
-	if err = terraformApply.Run(***REMOVED***; err != nil {
+	terraformApply.Stderr = &stdoutput
+	err = terraformApply.Run(***REMOVED***
+	output = h.Strip(stdoutput.String(***REMOVED***, "\n"***REMOVED***
+	if err != nil {
+		logger.Errorf(output***REMOVED***
+		err = fmt.Errorf("%s: %s", err.Error(***REMOVED***, output***REMOVED***
 		return
 	}
-	output = h.Strip(stdoutput.String(***REMOVED***, "\n"***REMOVED***
-	stderr := h.Strip(stderroutput.String(***REMOVED***, "\n"***REMOVED***
-	logger.Info(output***REMOVED***
-	logger.Error(context.TODO(***REMOVED***, stderr***REMOVED***
-	if stderr != "" || err != nil {
-		err = fmt.Errorf("%s: %s", err.Error(***REMOVED***, stderr***REMOVED***
-	}
-
+	logger.Infof(output***REMOVED***
 	return
 }
 func runTerraformDestroyWithArgs(ctx context.Context, dir string, terraformArgs []string***REMOVED*** error {
@@ -108,6 +105,13 @@ func combineArgs(varAgrs map[string]interface{}, abArgs ...string***REMOVED*** [
 	}
 	args = append(args, abArgs...***REMOVED***
 	return args
+}
+
+func combineStructArgs(argObj interface{}, abArgs ...string***REMOVED*** []string {
+	parambytes, _ := json.Marshal(argObj***REMOVED***
+	args := map[string]interface{}{}
+	json.Unmarshal(parambytes, &args***REMOVED***
+	return combineArgs(args, abArgs...***REMOVED***
 }
 
 func CleanTFTempFiles(providerDir string***REMOVED*** error {

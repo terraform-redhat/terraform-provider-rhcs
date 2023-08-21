@@ -1,10 +1,11 @@
 package ci
 
 ***REMOVED***
+***REMOVED***
 	"os"
 	"strings"
 
-***REMOVED***
+	// . "github.com/onsi/gomega"
 
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	EXE "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
@@ -49,7 +50,8 @@ type Profile struct {
 
 func PrepareVPC(region string, privateLink bool, multiZone bool, azIDs []string, name ...string***REMOVED*** ([]string, []string, []string***REMOVED*** {
 
-	vpcArgs := &EXE.VPCVariables{
+	vpcService := EXE.NewVPCService(***REMOVED***
+	vpcArgs := &EXE.VPCArgs{
 		AWSRegion: region,
 		MultiAZ:   multiZone,
 		VPCCIDR:   CON.DefaultVPCCIDR,
@@ -61,9 +63,18 @@ func PrepareVPC(region string, privateLink bool, multiZone bool, azIDs []string,
 	if len(name***REMOVED*** == 1 {
 		vpcArgs.Name = name[0]
 	}
-	privateSubnets, publicSUbnets, zones, err := EXE.CreateAWSVPC(vpcArgs***REMOVED***
-	Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-	return privateSubnets, publicSUbnets, zones
+	err := vpcService.Create(vpcArgs***REMOVED***
+	if err != nil {
+		vpcService.Destroy(***REMOVED***
+	}
+	privateSubnets, publicSubnets, zones, err := vpcService.Output(***REMOVED***
+	// privateSubnets, publicSubnets, zones, err := EXE.CreateAWSVPC(vpcArgs***REMOVED***
+	// Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+	if err != nil {
+		vpcService.Destroy(***REMOVED***
+		return nil, nil, nil
+	}
+	return privateSubnets, publicSubnets, zones
 }
 
 func PrepareAccountRoles(***REMOVED*** {
@@ -75,7 +86,7 @@ func PrepareKMSKey(***REMOVED*** {}
 
 func PrepareRoute53(***REMOVED*** {}
 
-func GenerateClusterCreationArgsByProfile(profile *Profile***REMOVED*** (clusterArgs *EXE.ClusterCreationArgs, manifestsDir string***REMOVED*** {
+func GenerateClusterCreationArgsByProfile(profile *Profile***REMOVED*** (clusterArgs *EXE.ClusterCreationArgs, manifestsDir string, err error***REMOVED*** {
 	clusterArgs = &EXE.ClusterCreationArgs{
 		Token: os.Getenv(CON.TokenENVName***REMOVED***,
 	}
@@ -94,21 +105,28 @@ func GenerateClusterCreationArgsByProfile(profile *Profile***REMOVED*** (cluster
 	}
 
 	if profile.STS {
+		accService := EXE.NewAccountRoleService(***REMOVED***
 		acctPrefix := clusterArgs.ClusterName
+		majorVersion := ""
+		if profile.Version != "" {
+			majorVersion = strings.Join(strings.Split(profile.Version, "."***REMOVED***[0:2], "."***REMOVED***
+***REMOVED***
 		accountRoleArgs := EXE.AccountRolesArgs{
 			AccountRolePrefix: acctPrefix,
-			OpenshiftVersion:  profile.Version,
+			OpenshiftVersion:  majorVersion,
 			ChannelGroup:      profile.ChannelGroup,
 			Token:             os.Getenv(CON.TokenENVName***REMOVED***,
 ***REMOVED***
-		_, err := EXE.CreateMyTFAccountRoles(&accountRoleArgs***REMOVED***
+		err = accService.Create(&accountRoleArgs***REMOVED***
 		if err != nil {
-			defer EXE.DestroyMyTFAccountRoles(&accountRoleArgs***REMOVED***
+			defer accService.Destroy(&accountRoleArgs***REMOVED***
+			return
 ***REMOVED***
 		clusterArgs.AccountRolePrefix = acctPrefix
 		if profile.OIDCConfig != "" {
 			clusterArgs.OIDCConfig = profile.OIDCConfig
 ***REMOVED***
+		clusterArgs.OperatorRolePrefix = clusterArgs.ClusterName
 
 	}
 	if profile.Region == "" {
@@ -130,6 +148,10 @@ func GenerateClusterCreationArgsByProfile(profile *Profile***REMOVED*** (cluster
 
 		privateSubnets, publicSubnets, zones := PrepareVPC(profile.Region, profile.PrivateLink, profile.MultiAZ, zones, clusterArgs.ClusterName***REMOVED***
 		clusterArgs.AWSAvailabilityZones = zones
+		if privateSubnets == nil {
+			err = fmt.Errorf("error when creating the vpc, check the previous log. The created resources had been destroyed"***REMOVED***
+			return
+***REMOVED***
 		if profile.PrivateLink {
 			clusterArgs.AWSSubnetIDs = privateSubnets
 ***REMOVED*** else {
@@ -160,11 +182,20 @@ func GenerateClusterCreationArgsByProfile(profile *Profile***REMOVED*** (cluster
 	if profile.Proxy {
 	}
 
-	return clusterArgs, profile.ManifestsDIR
+	return clusterArgs, profile.ManifestsDIR, err
 }
 
 func CreateRHCSClusterByProfile(profile *Profile***REMOVED*** (string, error***REMOVED*** {
-	creationArgs, manifests_dir := GenerateClusterCreationArgsByProfile(profile***REMOVED***
-	clusterID, err := EXE.CreateMyTFCluster(creationArgs, manifests_dir***REMOVED***
+	creationArgs, manifests_dir, err := GenerateClusterCreationArgsByProfile(profile***REMOVED***
+	if err != nil {
+		return "", err
+	}
+	clusterService := EXE.NewClusterService(manifests_dir***REMOVED***
+	err = clusterService.Create(creationArgs***REMOVED***
+	if err != nil {
+		clusterService.Destroy(creationArgs***REMOVED***
+		return "", err
+	}
+	clusterID, err := clusterService.Output(***REMOVED***
 	return clusterID, err
 }

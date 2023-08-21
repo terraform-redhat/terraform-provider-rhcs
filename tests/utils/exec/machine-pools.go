@@ -9,6 +9,7 @@ package exec
 
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 ***REMOVED***
+***REMOVED***
 
 type MachinePoolArgs struct {
 	Cluster            string              `json:"cluster,omitempty"`
@@ -25,6 +26,77 @@ type MachinePoolArgs struct {
 	MaxSpotPrice       float64             `json:"max_spot_price,omitempty"`
 	Labels             map[string]string   `json:"labels,omitempty"`
 	Taints             []map[string]string `json:"taints,omitempty"`
+}
+type MachinePoolService struct {
+	CreationArgs *MachinePoolArgs
+	ManifestDir  string
+	Context      context.Context
+}
+
+func (mp *MachinePoolService***REMOVED*** Init(manifestDirs ...string***REMOVED*** error {
+	mp.ManifestDir = CON.AWSVPCDir
+	if len(manifestDirs***REMOVED*** != 0 {
+		mp.ManifestDir = manifestDirs[0]
+	}
+	ctx := context.TODO(***REMOVED***
+	mp.Context = ctx
+	err := runTerraformInit(ctx, mp.ManifestDir***REMOVED***
+	if err != nil {
+		return err
+	}
+	return nil
+
+}
+
+func (mp *MachinePoolService***REMOVED*** Create(createArgs *MachinePoolArgs, extraArgs ...string***REMOVED*** error {
+	mp.CreationArgs = createArgs
+	args := combineStructArgs(createArgs, extraArgs...***REMOVED***
+	_, err := runTerraformApplyWithArgs(mp.Context, mp.ManifestDir, args***REMOVED***
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (mp *MachinePoolService***REMOVED*** Output(***REMOVED*** (mpName string, err error***REMOVED*** {
+	mpDir := CON.MachinePoolDir
+	if mp.ManifestDir != "" {
+		mpDir = mp.ManifestDir
+	}
+	out, err := runTerraformOutput(context.TODO(***REMOVED***, mpDir***REMOVED***
+	if err != nil {
+		return "", err
+	}
+	mpNameObj := out["id"]
+	mpName = h.DigString(mpNameObj, "value"***REMOVED***
+	return
+}
+
+func (mp *MachinePoolService***REMOVED*** Destroy(createArgs ...*MachinePoolArgs***REMOVED*** error {
+	if mp.CreationArgs == nil && len(createArgs***REMOVED*** == 0 {
+		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter"***REMOVED***
+	}
+	destroyArgs := mp.CreationArgs
+	if len(createArgs***REMOVED*** != 0 {
+		destroyArgs = createArgs[0]
+	}
+	args := combineStructArgs(destroyArgs***REMOVED***
+	err := runTerraformDestroyWithArgs(mp.Context, mp.ManifestDir, args***REMOVED***
+	// if err != nil {
+	// 	return err
+	// }
+
+	// getClusterIdCmd := exec.Command("terraform", "output", "-json", "cluster_id"***REMOVED***
+	// getClusterIdCmd.Dir = targetDir
+	// _, err = getClusterIdCmd.Output(***REMOVED***
+
+	return err
+}
+
+func NewMachinePoolService(manifestDir ...string***REMOVED*** *MachinePoolService {
+	mp := &MachinePoolService{}
+	mp.Init(manifestDir...***REMOVED***
+	return mp
 }
 
 // ****************************** Machinepool CMD ***************************

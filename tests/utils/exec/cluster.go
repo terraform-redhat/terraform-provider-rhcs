@@ -9,6 +9,7 @@ package exec
 
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 ***REMOVED***
+***REMOVED***
 
 type ClusterCreationArgs struct {
 	AccountRolePrefix    string            `json:"account_role_prefix,omitempty"`
@@ -34,6 +35,11 @@ type ClusterCreationArgs struct {
 	OIDCConfig           string            `json:"oidc_config,omitempty"`
 }
 
+// Just a placeholder, not research what to output yet.
+type ClusterOutout struct {
+	ClusterID string `json:"cluster_id,omitempty"`
+}
+
 // *********************** Cluster CMS ***********************************
 // func CreateCluster(ctx context.Context,manifestsDir string, args ...string***REMOVED*** (string, error***REMOVED*** {
 // 	runTerraformInit(ctx, CON.ClusterDir***REMOVED***
@@ -54,6 +60,57 @@ type ClusterCreationArgs struct {
 
 // 	return splitOutput[1], nil
 // }
+
+type ClusterService struct {
+	CreationArgs *ClusterCreationArgs
+	ManifestDir  string
+	Context      context.Context
+}
+
+func (creator *ClusterService***REMOVED*** Init(manifestDir string***REMOVED*** error {
+	creator.ManifestDir = CON.GrantClusterManifestDir(manifestDir***REMOVED***
+	ctx := context.TODO(***REMOVED***
+	creator.Context = ctx
+	err := runTerraformInit(ctx, creator.ManifestDir***REMOVED***
+	if err != nil {
+		return err
+	}
+	return nil
+
+}
+
+func (creator *ClusterService***REMOVED*** Create(createArgs *ClusterCreationArgs, extraArgs ...string***REMOVED*** error {
+	args := combineStructArgs(createArgs, extraArgs...***REMOVED***
+	_, err := runTerraformApplyWithArgs(creator.Context, creator.ManifestDir, args***REMOVED***
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (creator *ClusterService***REMOVED*** Output(***REMOVED*** (string, error***REMOVED*** {
+	out, err := runTerraformOutput(creator.Context, creator.ManifestDir***REMOVED***
+	if err != nil {
+		return "", err
+	}
+	clusterObj := out["cluster_id"]
+	clusterID := h.DigString(clusterObj, "value"***REMOVED***
+	return clusterID, nil
+}
+
+func (creator *ClusterService***REMOVED*** Destroy(createArgs *ClusterCreationArgs, extraArgs ...string***REMOVED*** error {
+	args := combineStructArgs(createArgs, extraArgs...***REMOVED***
+	err := runTerraformDestroyWithArgs(creator.Context, creator.ManifestDir, args***REMOVED***
+	return err
+}
+
+func NewClusterService(manifestDir string***REMOVED*** *ClusterService {
+	sc := &ClusterService{}
+	sc.Init(manifestDir***REMOVED***
+	return sc
+}
+
+//******************************************************
 
 func CreateTFCluster(ctx context.Context, manifestsDir string,
 	varArgs map[string]interface{}, abArgs ...string***REMOVED*** (string, error***REMOVED*** {

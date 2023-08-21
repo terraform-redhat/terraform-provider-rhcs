@@ -219,6 +219,15 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Type:        types.StringType,
 				Computed:    true,
 			},
+			"base_dns_domain": {
+				Description: "Bade DNS domain identifier. (See resource rhcs_dns_domain)",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(),
+				},
+			},
 			"replicas": {
 				Description: "Number of worker nodes to provision. Single zone clusters need at least 2 nodes, " +
 					"multizone clusters need at least 3 nodes.",
@@ -460,6 +469,32 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				},
 				Validators: adminCredsValidators(),
 			},
+			"private_hosted_zone": {
+				Description: "Used in a shared VPC typology. HostedZone attributes",
+				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						Description: "HostedZone identifier",
+						Type:        types.StringType,
+						Required:    true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							ValueCannotBeChangedModifier(),
+						},
+					},
+					"role_arn": {
+						Description: "HostedZone Role ARN",
+						Type:        types.StringType,
+						Required:    true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							ValueCannotBeChangedModifier(),
+						},
+					},
+				}),
+				Optional: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(),
+				},
+				Validators: []tfsdk.AttributeValidator{privateHZValidators()},
+			},
 		},
 	}
 	return
@@ -538,6 +573,12 @@ func createClassicClusterObject(ctx context.Context,
 		builder.DisableUserWorkloadMonitoring(state.DisableWorkloadMonitoring.Value)
 	}
 
+	if !common.IsStringAttributeEmpty(state.BaseDNSDomain) {
+		dnsBuilder := cmv1.NewDNS()
+		dnsBuilder.BaseDomain(state.BaseDNSDomain.Value)
+		builder.DNS(dnsBuilder)
+	}
+
 	autoScalingEnabled := common.Bool(state.AutoScalingEnabled)
 	replicas := common.OptionalInt64(state.Replicas)
 	minReplicas := common.OptionalInt64(state.MinReplicas)
@@ -567,6 +608,13 @@ func createClassicClusterObject(ctx context.Context,
 	isPrivateLink := common.Bool(state.AWSPrivateLink)
 	isPrivate := common.Bool(state.Private)
 	awsSubnetIDs := common.OptionalList(state.AWSSubnetIDs)
+	var privateHostedZoneID, privateHostedZoneRoleARN *string = nil, nil
+	if state.PrivateHostedZone != nil &&
+		!common.IsStringAttributeEmpty(state.PrivateHostedZone.ID) &&
+		!common.IsStringAttributeEmpty(state.PrivateHostedZone.RoleARN) {
+		privateHostedZoneRoleARN = &state.PrivateHostedZone.RoleARN.Value
+		privateHostedZoneID = &state.PrivateHostedZone.ID.Value
+	}
 	var stsBuilder *cmv1.STSBuilder
 	if state.Sts != nil {
 		stsBuilder = resource.CreateSTS(state.Sts.RoleARN.Value, state.Sts.SupportRoleArn.Value,
@@ -575,7 +623,7 @@ func createClassicClusterObject(ctx context.Context,
 	}
 
 	if err := ocmClusterResource.CreateAWSBuilder(awsTags, ec2MetadataHttpTokens, kmsKeyARN,
-		isPrivateLink, awsAccountID, stsBuilder, awsSubnetIDs); err != nil {
+		isPrivateLink, awsAccountID, stsBuilder, awsSubnetIDs, privateHostedZoneID, privateHostedZoneRoleARN); err != nil {
 		return nil, err
 	}
 
@@ -1429,6 +1477,9 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	state.Domain = types.String{
 		Value: fmt.Sprintf("%s.%s", object.Name(), object.DNS().BaseDomain()),
 	}
+	state.BaseDNSDomain = types.String{
+		Value: object.DNS().BaseDomain(),
+	}
 	state.Replicas = types.Int64{
 		Value: int64(object.Nodes().Compute()),
 	}
@@ -1720,6 +1771,23 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 			Null: true,
 		}
 	}
+
+	if awsObj, ok := object.GetAWS(); ok {
+		id := awsObj.PrivateHostedZoneID()
+		arn := awsObj.PrivateHostedZoneRoleARN()
+
+		if len(id) > 0 && len(arn) > 0 {
+			state.PrivateHostedZone = &PrivateHostedZone{
+				RoleARN: types.String{
+					Value: arn,
+				},
+				ID: types.String{
+					Value: id,
+				},
+			}
+		}
+	}
+
 	version, ok := object.Version().GetID()
 	// If we're using a non-default channel group, it will have been appended to
 	// the version ID. Remove it before saving state.
@@ -1994,6 +2062,53 @@ func adminCredsValidators() []tfsdk.AttributeValidator {
 					}
 				}
 			},
+		},
+	}
+}
+
+func validatePrivateHostedZone(clusterState *ClusterRosaClassicState) error {
+	if clusterState.PrivateHostedZone == nil {
+		// Nothing to validate.
+		return nil
+	}
+	// validate ID and ARN are not empty
+	if common.IsStringAttributeEmpty(clusterState.PrivateHostedZone.ID) || common.IsStringAttributeEmpty(clusterState.PrivateHostedZone.RoleARN) {
+		return fmt.Errorf("Invalid configuration. 'private_hosted_zone.id' and 'private_hosted_zone.arn' are required")
+	}
+	// Validate running in STS mode
+	if clusterState.Sts == nil {
+		return fmt.Errorf("Invalid configuration. 'private_hosted_zone' requires 'sts' configueration")
+	}
+	// Validate subnets exists
+	if len(clusterState.AWSSubnetIDs.Elems) <= 0 {
+		return fmt.Errorf("Invalid configuration. 'private_hosted_zone' requires 'aws_subnet_ids' configueration")
+	}
+	// Validate availabilityZones exists
+	if len(clusterState.AvailabilityZones.Elems) <= 0 {
+		return fmt.Errorf("Invalid configuration. 'private_hosted_zone' requires 'aws_subnet_ids' configueration")
+	}
+	// Validate BaseDomain
+	if common.IsStringAttributeEmpty(clusterState.BaseDNSDomain) {
+		return fmt.Errorf("Invalid configuration. 'private_hosted_zone' requires 'base_dns_domain' configueration")
+	}
+	return nil
+}
+
+// Place holder until the v2 refactoring
+func privateHZValidators() tfsdk.AttributeValidator {
+	return &common.AttributeValidator{
+		Desc: "Validate private_hosted_zone",
+		Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse) {
+			var clusterState *ClusterRosaClassicState
+			diag := req.Config.Get(ctx, clusterState)
+			if diag.HasError() {
+				// No attribute to validate
+				return
+			}
+			// Validate
+			if err := validatePrivateHostedZone(clusterState); err != nil {
+				diag.AddError("Invalid private_hosted_zone configuration", err.Error())
+			}
 		},
 	}
 }

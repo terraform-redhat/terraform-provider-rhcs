@@ -1,10 +1,11 @@
 package ci
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
-	. "github.com/onsi/gomega"
+	// . "github.com/onsi/gomega"
 
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	EXE "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
@@ -49,7 +50,8 @@ type Profile struct {
 
 func PrepareVPC(region string, privateLink bool, multiZone bool, azIDs []string, name ...string) ([]string, []string, []string) {
 
-	vpcArgs := &EXE.VPCVariables{
+	vpcService := EXE.NewVPCService()
+	vpcArgs := &EXE.VPCArgs{
 		AWSRegion: region,
 		MultiAZ:   multiZone,
 		VPCCIDR:   CON.DefaultVPCCIDR,
@@ -61,9 +63,18 @@ func PrepareVPC(region string, privateLink bool, multiZone bool, azIDs []string,
 	if len(name) == 1 {
 		vpcArgs.Name = name[0]
 	}
-	privateSubnets, publicSUbnets, zones, err := EXE.CreateAWSVPC(vpcArgs)
-	Expect(err).ToNot(HaveOccurred())
-	return privateSubnets, publicSUbnets, zones
+	err := vpcService.Create(vpcArgs)
+	if err != nil {
+		vpcService.Destroy()
+	}
+	privateSubnets, publicSubnets, zones, err := vpcService.Output()
+	// privateSubnets, publicSubnets, zones, err := EXE.CreateAWSVPC(vpcArgs)
+	// Expect(err).ToNot(HaveOccurred())
+	if err != nil {
+		vpcService.Destroy()
+		return nil, nil, nil
+	}
+	return privateSubnets, publicSubnets, zones
 }
 
 func PrepareAccountRoles() {
@@ -75,7 +86,7 @@ func PrepareKMSKey() {}
 
 func PrepareRoute53() {}
 
-func GenerateClusterCreationArgsByProfile(profile *Profile) (clusterArgs *EXE.ClusterCreationArgs, manifestsDir string) {
+func GenerateClusterCreationArgsByProfile(profile *Profile) (clusterArgs *EXE.ClusterCreationArgs, manifestsDir string, err error) {
 	clusterArgs = &EXE.ClusterCreationArgs{
 		Token: os.Getenv(CON.TokenENVName),
 	}
@@ -94,21 +105,28 @@ func GenerateClusterCreationArgsByProfile(profile *Profile) (clusterArgs *EXE.Cl
 	}
 
 	if profile.STS {
+		accService := EXE.NewAccountRoleService()
 		acctPrefix := clusterArgs.ClusterName
+		majorVersion := ""
+		if profile.Version != "" {
+			majorVersion = strings.Join(strings.Split(profile.Version, ".")[0:2], ".")
+		}
 		accountRoleArgs := EXE.AccountRolesArgs{
 			AccountRolePrefix: acctPrefix,
-			OpenshiftVersion:  profile.Version,
+			OpenshiftVersion:  majorVersion,
 			ChannelGroup:      profile.ChannelGroup,
 			Token:             os.Getenv(CON.TokenENVName),
 		}
-		_, err := EXE.CreateMyTFAccountRoles(&accountRoleArgs)
+		err = accService.Create(&accountRoleArgs)
 		if err != nil {
-			defer EXE.DestroyMyTFAccountRoles(&accountRoleArgs)
+			defer accService.Destroy(&accountRoleArgs)
+			return
 		}
 		clusterArgs.AccountRolePrefix = acctPrefix
 		if profile.OIDCConfig != "" {
 			clusterArgs.OIDCConfig = profile.OIDCConfig
 		}
+		clusterArgs.OperatorRolePrefix = clusterArgs.ClusterName
 
 	}
 	if profile.Region == "" {
@@ -130,6 +148,10 @@ func GenerateClusterCreationArgsByProfile(profile *Profile) (clusterArgs *EXE.Cl
 
 		privateSubnets, publicSubnets, zones := PrepareVPC(profile.Region, profile.PrivateLink, profile.MultiAZ, zones, clusterArgs.ClusterName)
 		clusterArgs.AWSAvailabilityZones = zones
+		if privateSubnets == nil {
+			err = fmt.Errorf("error when creating the vpc, check the previous log. The created resources had been destroyed")
+			return
+		}
 		if profile.PrivateLink {
 			clusterArgs.AWSSubnetIDs = privateSubnets
 		} else {
@@ -160,11 +182,20 @@ func GenerateClusterCreationArgsByProfile(profile *Profile) (clusterArgs *EXE.Cl
 	if profile.Proxy {
 	}
 
-	return clusterArgs, profile.ManifestsDIR
+	return clusterArgs, profile.ManifestsDIR, err
 }
 
 func CreateRHCSClusterByProfile(profile *Profile) (string, error) {
-	creationArgs, manifests_dir := GenerateClusterCreationArgsByProfile(profile)
-	clusterID, err := EXE.CreateMyTFCluster(creationArgs, manifests_dir)
+	creationArgs, manifests_dir, err := GenerateClusterCreationArgsByProfile(profile)
+	if err != nil {
+		return "", err
+	}
+	clusterService := EXE.NewClusterService(manifests_dir)
+	err = clusterService.Create(creationArgs)
+	if err != nil {
+		clusterService.Destroy(creationArgs)
+		return "", err
+	}
+	clusterID, err := clusterService.Output()
 	return clusterID, err
 }

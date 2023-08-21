@@ -37,7 +37,7 @@ var _ = Describe("TF Test", func() {
 		It("TestExampleCritical", func() {
 			accRolePrefix := "xueli-2"
 			By("Create VPCs")
-			args := &EXE.VPCVariables{
+			args := &EXE.VPCArgs{
 				Name:      "xueli",
 				AWSRegion: region,
 				MultiAZ:   true,

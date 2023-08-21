@@ -108,7 +108,7 @@ locals {
       master_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-ControlPlane-Role",
       worker_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Worker-Role"
     },
-    operator_role_prefix = var.operator_role_prefix,
+    operator_role_prefix = var.operator_role_prefix==null?var.cluster_name:var.operator_role_prefix
     oidc_config_id       = var.oidc_config == "managed" ? rhcs_rosa_oidc_config.oidc_config_managed[0].id : rhcs_rosa_oidc_config.oidc_config_unmanaged[0].id
   }
 }

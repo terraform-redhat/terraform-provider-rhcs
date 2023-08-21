@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
 type ClusterCreationArgs struct {
@@ -34,6 +35,11 @@ type ClusterCreationArgs struct {
 	OIDCConfig           string            `json:"oidc_config,omitempty"`
 }
 
+// Just a placeholder, not research what to output yet.
+type ClusterOutout struct {
+	ClusterID string `json:"cluster_id,omitempty"`
+}
+
 // *********************** Cluster CMS ***********************************
 // func CreateCluster(ctx context.Context,manifestsDir string, args ...string) (string, error) {
 // 	runTerraformInit(ctx, CON.ClusterDir)
@@ -54,6 +60,57 @@ type ClusterCreationArgs struct {
 
 // 	return splitOutput[1], nil
 // }
+
+type ClusterService struct {
+	CreationArgs *ClusterCreationArgs
+	ManifestDir  string
+	Context      context.Context
+}
+
+func (creator *ClusterService) Init(manifestDir string) error {
+	creator.ManifestDir = CON.GrantClusterManifestDir(manifestDir)
+	ctx := context.TODO()
+	creator.Context = ctx
+	err := runTerraformInit(ctx, creator.ManifestDir)
+	if err != nil {
+		return err
+	}
+	return nil
+
+}
+
+func (creator *ClusterService) Create(createArgs *ClusterCreationArgs, extraArgs ...string) error {
+	args := combineStructArgs(createArgs, extraArgs...)
+	_, err := runTerraformApplyWithArgs(creator.Context, creator.ManifestDir, args)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (creator *ClusterService) Output() (string, error) {
+	out, err := runTerraformOutput(creator.Context, creator.ManifestDir)
+	if err != nil {
+		return "", err
+	}
+	clusterObj := out["cluster_id"]
+	clusterID := h.DigString(clusterObj, "value")
+	return clusterID, nil
+}
+
+func (creator *ClusterService) Destroy(createArgs *ClusterCreationArgs, extraArgs ...string) error {
+	args := combineStructArgs(createArgs, extraArgs...)
+	err := runTerraformDestroyWithArgs(creator.Context, creator.ManifestDir, args)
+	return err
+}
+
+func NewClusterService(manifestDir string) *ClusterService {
+	sc := &ClusterService{}
+	sc.Init(manifestDir)
+	return sc
+}
+
+//******************************************************
 
 func CreateTFCluster(ctx context.Context, manifestsDir string,
 	varArgs map[string]interface{}, abArgs ...string) (string, error) {

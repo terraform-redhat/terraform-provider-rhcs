@@ -12,6 +12,9 @@ import (
 var kmsArnRE = regexp.MustCompile(
 	`^arn:aws[\w-]*:kms:[\w-]+:\d{12}:key\/mrk-[0-9a-f]{32}$|[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`,
 )
+var privateHostedZoneRoleArnRE = regexp.MustCompile(
+	`^arn:aws:iam::\d{12}:role\/[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+$`,
+)
 
 type Cluster struct {
 	clusterBuilder *cmv1.ClusterBuilder
@@ -100,7 +103,8 @@ func (c *Cluster) CreateNodes(autoScalingEnabled bool, replicas *int64, minRepli
 }
 
 func (c *Cluster) CreateAWSBuilder(awsTags map[string]string, ec2MetadataHttpTokens *string, kmsKeyARN *string,
-	isPrivateLink bool, awsAccountID *string, stsBuilder *cmv1.STSBuilder, awsSubnetIDs []string) error {
+	isPrivateLink bool, awsAccountID *string, stsBuilder *cmv1.STSBuilder, awsSubnetIDs []string,
+	privateHostedZoneID *string, privateHostedZoneRoleARN *string) error {
 
 	if isPrivateLink && awsSubnetIDs == nil {
 		return errors.New("Clusters with PrivateLink must have a pre-configured VPC. Make sure to specify the subnet ids.")
@@ -137,6 +141,17 @@ func (c *Cluster) CreateAWSBuilder(awsTags map[string]string, ec2MetadataHttpTok
 
 	if stsBuilder != nil {
 		awsBuilder.STS(stsBuilder)
+	}
+
+	if privateHostedZoneID != nil && privateHostedZoneRoleARN != nil {
+		if !privateHostedZoneRoleArnRE.MatchString(*privateHostedZoneRoleARN) {
+			return errors.New(fmt.Sprintf("Expected a valid value for PrivateHostedZoneRoleARN matching %s. Got %s", privateHostedZoneRoleArnRE, *privateHostedZoneRoleARN))
+		}
+		if awsSubnetIDs == nil || stsBuilder == nil {
+			return errors.New("PrivateHostedZone parameters require STS and SubnetIDs configurations.")
+		}
+		awsBuilder.PrivateHostedZoneID(*privateHostedZoneID)
+		awsBuilder.PrivateHostedZoneRoleARN(*privateHostedZoneRoleARN)
 	}
 
 	c.clusterBuilder.AWS(awsBuilder)

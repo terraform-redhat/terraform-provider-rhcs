@@ -2351,6 +2351,98 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		Expect(terraform.Apply()).To(BeZero())
 	})
 
+	It("Creates cluster with shared VPC", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+				RespondWithJSON(http.StatusOK, versionListPage1),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+				VerifyJQ(`.name`, "my-cluster"),
+				VerifyJQ(`.cloud_provider.id`, "aws"),
+				VerifyJQ(`.region.id`, "us-west-1"),
+				VerifyJQ(`.product.id`, "rosa"),
+				VerifyJQ(`.dns.base_domain`, "mydomain.openshift.dev"),
+				VerifyJQ(`.aws.subnet_ids.[0]`, "id1"),
+				VerifyJQ(`.aws.private_hosted_zone_id`, "1234"),
+				VerifyJQ(`.aws.private_hosted_zone_role_arn`, "arn:aws:iam::111111111111:role/test-shared-vpc"),
+				VerifyJQ(`.nodes.availability_zones.[0]`, "az1"),
+				RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "subnet_ids": ["id1", "id2", "id3"],
+						  "ec2_metadata_http_tokens": "optional",
+                          "private_hosted_zone_id": "1234",
+                          "private_hosted_zone_role_arn": "arn:aws:iam::111111111111:role/test-shared-vpc",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					{
+						"op": "add",
+						"path": "/dns",
+                        "value": {"base_domain": "mydomain.openshift.dev"}
+					},
+					{
+						"op": "add",
+						"path": "/availability_zones",
+						"value": ["az1"]
+					},
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+						}
+					  }
+					}]`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			availability_zones = ["az1"]
+			aws_subnet_ids = [
+				"id1", "id2", "id3"
+			]
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+				}
+			}
+            private_hosted_zone = {
+                id = "1234"
+                role_arn = "arn:aws:iam::111111111111:role/test-shared-vpc"
+            }
+            base_dns_domain = "mydomain.openshift.dev"
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+	})
+
 	It("Creates rosa sts cluster with autoscaling and update the default machine pool", func() {
 		// Prepare the server:
 		server.AppendHandlers(

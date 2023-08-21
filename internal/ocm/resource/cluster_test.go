@@ -179,17 +179,17 @@ var _ = Describe("Cluster", func() {
 	})
 	Context("CreateAWSBuilder validation", func() {
 		It("PrivateLink true subnets IDs empty - failure", func() {
-			err := cluster.CreateAWSBuilder(nil, nil, nil, true, nil, nil, nil)
+			err := cluster.CreateAWSBuilder(nil, nil, nil, true, nil, nil, nil, nil, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("Clusters with PrivateLink must have a pre-configured VPC. Make sure to specify the subnet ids."))
 		})
 		It("PrivateLink false invalid kmsKeyARN - failure", func() {
-			err := cluster.CreateAWSBuilder(nil, nil, pointer("test"), false, nil, nil, nil)
+			err := cluster.CreateAWSBuilder(nil, nil, pointer("test"), false, nil, nil, nil, nil, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal(fmt.Sprintf("Expected a valid value for kms-key-arn matching %s", kmsArnRE)))
 		})
 		It("PrivateLink false empty kmsKeyARN - success", func() {
-			err := cluster.CreateAWSBuilder(nil, nil, nil, false, nil, nil, nil)
+			err := cluster.CreateAWSBuilder(nil, nil, nil, false, nil, nil, nil, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -204,7 +204,7 @@ var _ = Describe("Cluster", func() {
 		})
 		It("PrivateLink false invalid Ec2MetadataHttpTokens - success", func() {
 			// TODO Need to add validation for Ec2MetadataHttpTokens
-			err := cluster.CreateAWSBuilder(nil, pointer("test"), nil, false, nil, nil, nil)
+			err := cluster.CreateAWSBuilder(nil, pointer("test"), nil, false, nil, nil, nil, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -233,7 +233,7 @@ var _ = Describe("Cluster", func() {
 			err := cluster.CreateAWSBuilder(map[string]string{"key1": "val1"},
 				pointer(string(cmv1.Ec2MetadataHttpTokensRequired)),
 				pointer(validKmsKey), true, pointer(accountID),
-				sts, subnets)
+				sts, subnets, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -257,6 +257,82 @@ var _ = Describe("Cluster", func() {
 			Expect(stsResult.InstanceIAMRoles().MasterRoleARN()).To(Equal(masterRole))
 			Expect(stsResult.InstanceIAMRoles().WorkerRoleARN()).To(Equal(workerRole))
 			Expect(stsResult.OidcConfig().ID()).To(Equal(oidcConfigID))
+		})
+		It("PrivateHostedZone set with all needed parameters - success", func() {
+			validKmsKey := "arn:aws:kms:us-east-1:111111111111:key/mrk-0123456789abcdef0123456789abcdef"
+			accountID := "111111111111"
+			subnets := []string{"subnet-1a1a1a1a1a1a1a1a1", "subnet-2b2b2b2b2b2b2b2b2", "subnet-3c3c3c3c3c3c3c3c3"}
+			installerRole := "arn:aws:iam::111111111111:role/aaa-Installer-Role"
+			supportRole := "arn:aws:iam::111111111111:role/aaa-Support-Role"
+			masterRole := "arn:aws:iam::111111111111:role/aaa-ControlPlane-Role"
+			workerRole := "arn:aws:iam::111111111111:role/aaa-Worker-Role"
+			privateHZRoleArn := "arn:aws:iam::111111111111:role/aaa-hosted-zone-Role"
+			privateHZId := "123123"
+			operatorRolePrefix := "bbb"
+			oidcConfigID := "1234567dgsdfgh"
+			sts := CreateSTS(installerRole, supportRole, masterRole, workerRole,
+				operatorRolePrefix, pointer(oidcConfigID))
+			err := cluster.CreateAWSBuilder(map[string]string{"key1": "val1"},
+				pointer(string(cmv1.Ec2MetadataHttpTokensRequired)),
+				pointer(validKmsKey), true, pointer(accountID),
+				sts, subnets, &privateHZId, &privateHZRoleArn)
+			Expect(err).NotTo(HaveOccurred())
+			ocmCluster, err := cluster.Build()
+			Expect(err).NotTo(HaveOccurred())
+			aws := ocmCluster.AWS()
+			Expect(aws.PrivateHostedZoneID()).To(Equal(privateHZId))
+			Expect(aws.PrivateHostedZoneRoleARN()).To(Equal(privateHZRoleArn))
+		})
+		It("PrivateHostedZone set with invalid role ARN - fail", func() {
+			validKmsKey := "arn:aws:kms:us-east-1:111111111111:key/mrk-0123456789abcdef0123456789abcdef"
+			accountID := "111111111111"
+			subnets := []string{"subnet-1a1a1a1a1a1a1a1a1", "subnet-2b2b2b2b2b2b2b2b2", "subnet-3c3c3c3c3c3c3c3c3"}
+			installerRole := "arn:aws:iam::111111111111:role/aaa-Installer-Role"
+			supportRole := "arn:aws:iam::111111111111:role/aaa-Support-Role"
+			masterRole := "arn:aws:iam::111111111111:role/aaa-ControlPlane-Role"
+			workerRole := "arn:aws:iam::111111111111:role/aaa-Worker-Role"
+			privateHZRoleArn := "arn:aws:iam::234:role/invalidARN"
+			privateHZId := "123123"
+			operatorRolePrefix := "bbb"
+			oidcConfigID := "1234567dgsdfgh"
+			sts := CreateSTS(installerRole, supportRole, masterRole, workerRole,
+				operatorRolePrefix, pointer(oidcConfigID))
+			err := cluster.CreateAWSBuilder(map[string]string{"key1": "val1"},
+				pointer(string(cmv1.Ec2MetadataHttpTokensRequired)),
+				pointer(validKmsKey), true, pointer(accountID),
+				sts, subnets, &privateHZId, &privateHZRoleArn)
+			Expect(err).To(HaveOccurred())
+		})
+		It("PrivateHostedZone set missing STS - fail", func() {
+			validKmsKey := "arn:aws:kms:us-east-1:111111111111:key/mrk-0123456789abcdef0123456789abcdef"
+			accountID := "111111111111"
+			subnets := []string{"subnet-1a1a1a1a1a1a1a1a1", "subnet-2b2b2b2b2b2b2b2b2", "subnet-3c3c3c3c3c3c3c3c3"}
+			privateHZRoleArn := "arn:aws:iam::111111111111:role/aaa-hosted-zone-Role"
+			privateHZId := "123123"
+			err := cluster.CreateAWSBuilder(map[string]string{"key1": "val1"},
+				pointer(string(cmv1.Ec2MetadataHttpTokensRequired)),
+				pointer(validKmsKey), true, pointer(accountID),
+				nil, subnets, &privateHZId, &privateHZRoleArn)
+			Expect(err).To(HaveOccurred())
+		})
+		It("PrivateHostedZone set missing subnet ids - fail", func() {
+			validKmsKey := "arn:aws:kms:us-east-1:111111111111:key/mrk-0123456789abcdef0123456789abcdef"
+			accountID := "111111111111"
+			installerRole := "arn:aws:iam::111111111111:role/aaa-Installer-Role"
+			supportRole := "arn:aws:iam::111111111111:role/aaa-Support-Role"
+			masterRole := "arn:aws:iam::111111111111:role/aaa-ControlPlane-Role"
+			workerRole := "arn:aws:iam::111111111111:role/aaa-Worker-Role"
+			privateHZRoleArn := "arn:aws:iam::111111111111:role/aaa-hosted-zone-Role"
+			privateHZId := "123123"
+			operatorRolePrefix := "bbb"
+			oidcConfigID := "1234567dgsdfgh"
+			sts := CreateSTS(installerRole, supportRole, masterRole, workerRole,
+				operatorRolePrefix, pointer(oidcConfigID))
+			err := cluster.CreateAWSBuilder(map[string]string{"key1": "val1"},
+				pointer(string(cmv1.Ec2MetadataHttpTokensRequired)),
+				pointer(validKmsKey), true, pointer(accountID),
+				sts, nil, &privateHZId, &privateHZRoleArn)
+			Expect(err).To(HaveOccurred())
 		})
 	})
 	Context("SetAPIPrivacy validation", func() {

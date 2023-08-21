@@ -219,6 +219,15 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 				Type:        types.StringType,
 				Computed:    true,
 	***REMOVED***,
+			"base_dns_domain": {
+				Description: "Bade DNS domain identifier. (See resource rhcs_dns_domain***REMOVED***",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(***REMOVED***,
+		***REMOVED***,
+	***REMOVED***,
 			"replicas": {
 				Description: "Number of worker nodes to provision. Single zone clusters need at least 2 nodes, " +
 					"multizone clusters need at least 3 nodes.",
@@ -460,6 +469,32 @@ func (t *ClusterRosaClassicResourceType***REMOVED*** GetSchema(ctx context.Conte
 		***REMOVED***,
 				Validators: adminCredsValidators(***REMOVED***,
 	***REMOVED***,
+			"private_hosted_zone": {
+				Description: "Used in a shared VPC typology. HostedZone attributes",
+				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						Description: "HostedZone identifier",
+						Type:        types.StringType,
+						Required:    true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							ValueCannotBeChangedModifier(***REMOVED***,
+				***REMOVED***,
+			***REMOVED***,
+					"role_arn": {
+						Description: "HostedZone Role ARN",
+						Type:        types.StringType,
+						Required:    true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							ValueCannotBeChangedModifier(***REMOVED***,
+				***REMOVED***,
+			***REMOVED***,
+		***REMOVED******REMOVED***,
+				Optional: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					ValueCannotBeChangedModifier(***REMOVED***,
+		***REMOVED***,
+				Validators: []tfsdk.AttributeValidator{privateHZValidators(***REMOVED***},
+	***REMOVED***,
 ***REMOVED***,
 	}
 	return
@@ -538,6 +573,12 @@ func createClassicClusterObject(ctx context.Context,
 		builder.DisableUserWorkloadMonitoring(state.DisableWorkloadMonitoring.Value***REMOVED***
 	}
 
+	if !common.IsStringAttributeEmpty(state.BaseDNSDomain***REMOVED*** {
+		dnsBuilder := cmv1.NewDNS(***REMOVED***
+		dnsBuilder.BaseDomain(state.BaseDNSDomain.Value***REMOVED***
+		builder.DNS(dnsBuilder***REMOVED***
+	}
+
 	autoScalingEnabled := common.Bool(state.AutoScalingEnabled***REMOVED***
 	replicas := common.OptionalInt64(state.Replicas***REMOVED***
 	minReplicas := common.OptionalInt64(state.MinReplicas***REMOVED***
@@ -567,6 +608,13 @@ func createClassicClusterObject(ctx context.Context,
 	isPrivateLink := common.Bool(state.AWSPrivateLink***REMOVED***
 	isPrivate := common.Bool(state.Private***REMOVED***
 	awsSubnetIDs := common.OptionalList(state.AWSSubnetIDs***REMOVED***
+	var privateHostedZoneID, privateHostedZoneRoleARN *string = nil, nil
+	if state.PrivateHostedZone != nil &&
+		!common.IsStringAttributeEmpty(state.PrivateHostedZone.ID***REMOVED*** &&
+		!common.IsStringAttributeEmpty(state.PrivateHostedZone.RoleARN***REMOVED*** {
+		privateHostedZoneRoleARN = &state.PrivateHostedZone.RoleARN.Value
+		privateHostedZoneID = &state.PrivateHostedZone.ID.Value
+	}
 	var stsBuilder *cmv1.STSBuilder
 	if state.Sts != nil {
 		stsBuilder = resource.CreateSTS(state.Sts.RoleARN.Value, state.Sts.SupportRoleArn.Value,
@@ -575,7 +623,7 @@ func createClassicClusterObject(ctx context.Context,
 	}
 
 	if err := ocmClusterResource.CreateAWSBuilder(awsTags, ec2MetadataHttpTokens, kmsKeyARN,
-		isPrivateLink, awsAccountID, stsBuilder, awsSubnetIDs***REMOVED***; err != nil {
+		isPrivateLink, awsAccountID, stsBuilder, awsSubnetIDs, privateHostedZoneID, privateHostedZoneRoleARN***REMOVED***; err != nil {
 		return nil, err
 	}
 
@@ -1429,6 +1477,9 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	state.Domain = types.String{
 		Value: fmt.Sprintf("%s.%s", object.Name(***REMOVED***, object.DNS(***REMOVED***.BaseDomain(***REMOVED******REMOVED***,
 	}
+	state.BaseDNSDomain = types.String{
+		Value: object.DNS(***REMOVED***.BaseDomain(***REMOVED***,
+	}
 	state.Replicas = types.Int64{
 		Value: int64(object.Nodes(***REMOVED***.Compute(***REMOVED******REMOVED***,
 	}
@@ -1720,6 +1771,23 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 			Null: true,
 ***REMOVED***
 	}
+
+	if awsObj, ok := object.GetAWS(***REMOVED***; ok {
+		id := awsObj.PrivateHostedZoneID(***REMOVED***
+		arn := awsObj.PrivateHostedZoneRoleARN(***REMOVED***
+
+		if len(id***REMOVED*** > 0 && len(arn***REMOVED*** > 0 {
+			state.PrivateHostedZone = &PrivateHostedZone{
+				RoleARN: types.String{
+					Value: arn,
+		***REMOVED***,
+				ID: types.String{
+					Value: id,
+		***REMOVED***,
+	***REMOVED***
+***REMOVED***
+	}
+
 	version, ok := object.Version(***REMOVED***.GetID(***REMOVED***
 	// If we're using a non-default channel group, it will have been appended to
 	// the version ID. Remove it before saving state.
@@ -1994,6 +2062,53 @@ func adminCredsValidators(***REMOVED*** []tfsdk.AttributeValidator {
 			***REMOVED***
 		***REMOVED***
 	***REMOVED***,
+***REMOVED***,
+	}
+}
+
+func validatePrivateHostedZone(clusterState *ClusterRosaClassicState***REMOVED*** error {
+	if clusterState.PrivateHostedZone == nil {
+		// Nothing to validate.
+		return nil
+	}
+	// validate ID and ARN are not empty
+	if common.IsStringAttributeEmpty(clusterState.PrivateHostedZone.ID***REMOVED*** || common.IsStringAttributeEmpty(clusterState.PrivateHostedZone.RoleARN***REMOVED*** {
+		return fmt.Errorf("Invalid configuration. 'private_hosted_zone.id' and 'private_hosted_zone.arn' are required"***REMOVED***
+	}
+	// Validate running in STS mode
+	if clusterState.Sts == nil {
+		return fmt.Errorf("Invalid configuration. 'private_hosted_zone' requires 'sts' configueration"***REMOVED***
+	}
+	// Validate subnets exists
+	if len(clusterState.AWSSubnetIDs.Elems***REMOVED*** <= 0 {
+		return fmt.Errorf("Invalid configuration. 'private_hosted_zone' requires 'aws_subnet_ids' configueration"***REMOVED***
+	}
+	// Validate availabilityZones exists
+	if len(clusterState.AvailabilityZones.Elems***REMOVED*** <= 0 {
+		return fmt.Errorf("Invalid configuration. 'private_hosted_zone' requires 'aws_subnet_ids' configueration"***REMOVED***
+	}
+	// Validate BaseDomain
+	if common.IsStringAttributeEmpty(clusterState.BaseDNSDomain***REMOVED*** {
+		return fmt.Errorf("Invalid configuration. 'private_hosted_zone' requires 'base_dns_domain' configueration"***REMOVED***
+	}
+	return nil
+}
+
+// Place holder until the v2 refactoring
+func privateHZValidators(***REMOVED*** tfsdk.AttributeValidator {
+	return &common.AttributeValidator{
+		Desc: "Validate private_hosted_zone",
+		Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse***REMOVED*** {
+			var clusterState *ClusterRosaClassicState
+			diag := req.Config.Get(ctx, clusterState***REMOVED***
+			if diag.HasError(***REMOVED*** {
+				// No attribute to validate
+				return
+	***REMOVED***
+			// Validate
+			if err := validatePrivateHostedZone(clusterState***REMOVED***; err != nil {
+				diag.AddError("Invalid private_hosted_zone configuration", err.Error(***REMOVED******REMOVED***
+	***REMOVED***
 ***REMOVED***,
 	}
 }

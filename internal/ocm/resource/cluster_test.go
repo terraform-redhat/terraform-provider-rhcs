@@ -179,17 +179,17 @@ var _ = Describe("Cluster", func(***REMOVED*** {
 	}***REMOVED***
 	Context("CreateAWSBuilder validation", func(***REMOVED*** {
 		It("PrivateLink true subnets IDs empty - failure", func(***REMOVED*** {
-			err := cluster.CreateAWSBuilder(nil, nil, nil, true, nil, nil, nil***REMOVED***
+			err := cluster.CreateAWSBuilder(nil, nil, nil, true, nil, nil, nil, nil, nil***REMOVED***
 			Expect(err***REMOVED***.To(HaveOccurred(***REMOVED******REMOVED***
 			Expect(err.Error(***REMOVED******REMOVED***.To(Equal("Clusters with PrivateLink must have a pre-configured VPC. Make sure to specify the subnet ids."***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 		It("PrivateLink false invalid kmsKeyARN - failure", func(***REMOVED*** {
-			err := cluster.CreateAWSBuilder(nil, nil, pointer("test"***REMOVED***, false, nil, nil, nil***REMOVED***
+			err := cluster.CreateAWSBuilder(nil, nil, pointer("test"***REMOVED***, false, nil, nil, nil, nil, nil***REMOVED***
 			Expect(err***REMOVED***.To(HaveOccurred(***REMOVED******REMOVED***
 			Expect(err.Error(***REMOVED******REMOVED***.To(Equal(fmt.Sprintf("Expected a valid value for kms-key-arn matching %s", kmsArnRE***REMOVED******REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 		It("PrivateLink false empty kmsKeyARN - success", func(***REMOVED*** {
-			err := cluster.CreateAWSBuilder(nil, nil, nil, false, nil, nil, nil***REMOVED***
+			err := cluster.CreateAWSBuilder(nil, nil, nil, false, nil, nil, nil, nil, nil***REMOVED***
 			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
 			ocmCluster, err := cluster.Build(***REMOVED***
 			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
@@ -204,7 +204,7 @@ var _ = Describe("Cluster", func(***REMOVED*** {
 ***REMOVED******REMOVED***
 		It("PrivateLink false invalid Ec2MetadataHttpTokens - success", func(***REMOVED*** {
 			// TODO Need to add validation for Ec2MetadataHttpTokens
-			err := cluster.CreateAWSBuilder(nil, pointer("test"***REMOVED***, nil, false, nil, nil, nil***REMOVED***
+			err := cluster.CreateAWSBuilder(nil, pointer("test"***REMOVED***, nil, false, nil, nil, nil, nil, nil***REMOVED***
 			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
 			ocmCluster, err := cluster.Build(***REMOVED***
 			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
@@ -233,7 +233,7 @@ var _ = Describe("Cluster", func(***REMOVED*** {
 			err := cluster.CreateAWSBuilder(map[string]string{"key1": "val1"},
 				pointer(string(cmv1.Ec2MetadataHttpTokensRequired***REMOVED******REMOVED***,
 				pointer(validKmsKey***REMOVED***, true, pointer(accountID***REMOVED***,
-				sts, subnets***REMOVED***
+				sts, subnets, nil, nil***REMOVED***
 			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
 			ocmCluster, err := cluster.Build(***REMOVED***
 			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
@@ -257,6 +257,82 @@ var _ = Describe("Cluster", func(***REMOVED*** {
 			Expect(stsResult.InstanceIAMRoles(***REMOVED***.MasterRoleARN(***REMOVED******REMOVED***.To(Equal(masterRole***REMOVED******REMOVED***
 			Expect(stsResult.InstanceIAMRoles(***REMOVED***.WorkerRoleARN(***REMOVED******REMOVED***.To(Equal(workerRole***REMOVED******REMOVED***
 			Expect(stsResult.OidcConfig(***REMOVED***.ID(***REMOVED******REMOVED***.To(Equal(oidcConfigID***REMOVED******REMOVED***
+***REMOVED******REMOVED***
+		It("PrivateHostedZone set with all needed parameters - success", func(***REMOVED*** {
+			validKmsKey := "arn:aws:kms:us-east-1:111111111111:key/mrk-0123456789abcdef0123456789abcdef"
+			accountID := "111111111111"
+			subnets := []string{"subnet-1a1a1a1a1a1a1a1a1", "subnet-2b2b2b2b2b2b2b2b2", "subnet-3c3c3c3c3c3c3c3c3"}
+			installerRole := "arn:aws:iam::111111111111:role/aaa-Installer-Role"
+			supportRole := "arn:aws:iam::111111111111:role/aaa-Support-Role"
+			masterRole := "arn:aws:iam::111111111111:role/aaa-ControlPlane-Role"
+			workerRole := "arn:aws:iam::111111111111:role/aaa-Worker-Role"
+			privateHZRoleArn := "arn:aws:iam::111111111111:role/aaa-hosted-zone-Role"
+			privateHZId := "123123"
+			operatorRolePrefix := "bbb"
+			oidcConfigID := "1234567dgsdfgh"
+			sts := CreateSTS(installerRole, supportRole, masterRole, workerRole,
+				operatorRolePrefix, pointer(oidcConfigID***REMOVED******REMOVED***
+			err := cluster.CreateAWSBuilder(map[string]string{"key1": "val1"},
+				pointer(string(cmv1.Ec2MetadataHttpTokensRequired***REMOVED******REMOVED***,
+				pointer(validKmsKey***REMOVED***, true, pointer(accountID***REMOVED***,
+				sts, subnets, &privateHZId, &privateHZRoleArn***REMOVED***
+			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
+			ocmCluster, err := cluster.Build(***REMOVED***
+			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
+			aws := ocmCluster.AWS(***REMOVED***
+			Expect(aws.PrivateHostedZoneID(***REMOVED******REMOVED***.To(Equal(privateHZId***REMOVED******REMOVED***
+			Expect(aws.PrivateHostedZoneRoleARN(***REMOVED******REMOVED***.To(Equal(privateHZRoleArn***REMOVED******REMOVED***
+***REMOVED******REMOVED***
+		It("PrivateHostedZone set with invalid role ARN - fail", func(***REMOVED*** {
+			validKmsKey := "arn:aws:kms:us-east-1:111111111111:key/mrk-0123456789abcdef0123456789abcdef"
+			accountID := "111111111111"
+			subnets := []string{"subnet-1a1a1a1a1a1a1a1a1", "subnet-2b2b2b2b2b2b2b2b2", "subnet-3c3c3c3c3c3c3c3c3"}
+			installerRole := "arn:aws:iam::111111111111:role/aaa-Installer-Role"
+			supportRole := "arn:aws:iam::111111111111:role/aaa-Support-Role"
+			masterRole := "arn:aws:iam::111111111111:role/aaa-ControlPlane-Role"
+			workerRole := "arn:aws:iam::111111111111:role/aaa-Worker-Role"
+			privateHZRoleArn := "arn:aws:iam::234:role/invalidARN"
+			privateHZId := "123123"
+			operatorRolePrefix := "bbb"
+			oidcConfigID := "1234567dgsdfgh"
+			sts := CreateSTS(installerRole, supportRole, masterRole, workerRole,
+				operatorRolePrefix, pointer(oidcConfigID***REMOVED******REMOVED***
+			err := cluster.CreateAWSBuilder(map[string]string{"key1": "val1"},
+				pointer(string(cmv1.Ec2MetadataHttpTokensRequired***REMOVED******REMOVED***,
+				pointer(validKmsKey***REMOVED***, true, pointer(accountID***REMOVED***,
+				sts, subnets, &privateHZId, &privateHZRoleArn***REMOVED***
+			Expect(err***REMOVED***.To(HaveOccurred(***REMOVED******REMOVED***
+***REMOVED******REMOVED***
+		It("PrivateHostedZone set missing STS - fail", func(***REMOVED*** {
+			validKmsKey := "arn:aws:kms:us-east-1:111111111111:key/mrk-0123456789abcdef0123456789abcdef"
+			accountID := "111111111111"
+			subnets := []string{"subnet-1a1a1a1a1a1a1a1a1", "subnet-2b2b2b2b2b2b2b2b2", "subnet-3c3c3c3c3c3c3c3c3"}
+			privateHZRoleArn := "arn:aws:iam::111111111111:role/aaa-hosted-zone-Role"
+			privateHZId := "123123"
+			err := cluster.CreateAWSBuilder(map[string]string{"key1": "val1"},
+				pointer(string(cmv1.Ec2MetadataHttpTokensRequired***REMOVED******REMOVED***,
+				pointer(validKmsKey***REMOVED***, true, pointer(accountID***REMOVED***,
+				nil, subnets, &privateHZId, &privateHZRoleArn***REMOVED***
+			Expect(err***REMOVED***.To(HaveOccurred(***REMOVED******REMOVED***
+***REMOVED******REMOVED***
+		It("PrivateHostedZone set missing subnet ids - fail", func(***REMOVED*** {
+			validKmsKey := "arn:aws:kms:us-east-1:111111111111:key/mrk-0123456789abcdef0123456789abcdef"
+			accountID := "111111111111"
+			installerRole := "arn:aws:iam::111111111111:role/aaa-Installer-Role"
+			supportRole := "arn:aws:iam::111111111111:role/aaa-Support-Role"
+			masterRole := "arn:aws:iam::111111111111:role/aaa-ControlPlane-Role"
+			workerRole := "arn:aws:iam::111111111111:role/aaa-Worker-Role"
+			privateHZRoleArn := "arn:aws:iam::111111111111:role/aaa-hosted-zone-Role"
+			privateHZId := "123123"
+			operatorRolePrefix := "bbb"
+			oidcConfigID := "1234567dgsdfgh"
+			sts := CreateSTS(installerRole, supportRole, masterRole, workerRole,
+				operatorRolePrefix, pointer(oidcConfigID***REMOVED******REMOVED***
+			err := cluster.CreateAWSBuilder(map[string]string{"key1": "val1"},
+				pointer(string(cmv1.Ec2MetadataHttpTokensRequired***REMOVED******REMOVED***,
+				pointer(validKmsKey***REMOVED***, true, pointer(accountID***REMOVED***,
+				sts, nil, &privateHZId, &privateHZRoleArn***REMOVED***
+			Expect(err***REMOVED***.To(HaveOccurred(***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 	}***REMOVED***
 	Context("SetAPIPrivacy validation", func(***REMOVED*** {

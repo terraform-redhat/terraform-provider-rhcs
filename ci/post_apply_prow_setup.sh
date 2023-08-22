@@ -27,6 +27,12 @@ if [[ "${cluster_id_tf}" != "null" ]]; then
     echo "${creds}" | jq -r .admin.password > "${SHARED_DIR}/kubeadmin-password"
 
     echo "[INFO] Kubeconfig and kubeadmin-password have been stored in shared directory"
+
+    echo "[INFO] wait for CVO availability"
+    export KUBECONFIG="${SHARED_DIR}/kubeconfig"
+    oc wait nodes --all --for=condition=Ready=true --timeout=30m &
+    oc wait clusteroperators --all --for=condition=Progressing=false --timeout=30m &
+    wait
 fi
 
 echo "[INFO] Done post PROW setup"

@@ -26,11 +26,21 @@ type MachinePoolArgs struct {
 	MaxSpotPrice       float64             `json:"max_spot_price,omitempty"`
 	Labels             map[string]string   `json:"labels,omitempty"`
 	Taints             []map[string]string `json:"taints,omitempty"`
+	ID                 string              `json:"id,omitempty"`
 }
 type MachinePoolService struct {
 	CreationArgs *MachinePoolArgs
 	ManifestDir  string
 	Context      context.Context
+}
+
+type MachinePoolOutput struct {
+	ID                 string `json:"machine_pool_id,omitempty"`
+	Name               string `json:"name,omitempty"`
+	ClusterID          string `json:"cluster_id,omitempty"`
+	Replicas           int    `json:"replicas,omitempty"`
+	MachineType        string `json:"machine_type,omitempty"`
+	AutoscalingEnabled bool   `json:"autoscaling_enabled,omitempty"`
 }
 
 func (mp *MachinePoolService) Init(manifestDirs ...string) error {
@@ -58,18 +68,30 @@ func (mp *MachinePoolService) Create(createArgs *MachinePoolArgs, extraArgs ...s
 	return nil
 }
 
-func (mp *MachinePoolService) Output() (mpName string, err error) {
+func (mp *MachinePoolService) Output() (MachinePoolOutput, error) {
 	mpDir := CON.MachinePoolDir
 	if mp.ManifestDir != "" {
 		mpDir = mp.ManifestDir
 	}
+	var output MachinePoolOutput
 	out, err := runTerraformOutput(context.TODO(), mpDir)
 	if err != nil {
-		return "", err
+		return output, err
 	}
-	mpNameObj := out["id"]
-	mpName = h.DigString(mpNameObj, "value")
-	return
+	if err != nil {
+		return output, err
+	}
+	replicas := h.DigInt(out["replicas"], "value")
+	machine_type := h.DigString(out["machine_type"], "value")
+	name := h.DigString(out["name"], "value")
+	autoscaling_enabled := h.DigBool(out["autoscaling_enabled"])
+	output = MachinePoolOutput{
+		Replicas:           replicas,
+		MachineType:        machine_type,
+		Name:               name,
+		AutoscalingEnabled: autoscaling_enabled,
+	}
+	return output, nil
 }
 
 func (mp *MachinePoolService) Destroy(createArgs ...*MachinePoolArgs) error {

@@ -11,12 +11,13 @@ require (
 	github.com/hashicorp/terraform-plugin-log v0.2.0
 	github.com/hashicorp/terraform-plugin-sdk v1.17.2
 	github.com/onsi/ginkgo/v2 v2.11.0
-	github.com/onsi/gomega v1.27.8
+	github.com/onsi/gomega v1.27.10
 	github.com/openshift-online/ocm-common v0.0.0-20230724120046-183b85503854
 	github.com/openshift-online/ocm-sdk-go v0.1.356
 	github.com/openshift/rosa v1.2.21
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.4
+	github.com/sirupsen/logrus v1.9.3
 	github.com/thoas/go-funk v0.9.3
 	github.com/zgalor/weberr v0.6.0
 	k8s.io/apimachinery v0.26.2
@@ -92,17 +93,16 @@ require (
 	github.com/prometheus/procfs v0.9.0 // indirect
 	github.com/russross/blackfriday v1.6.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
-	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/cobra v1.1.3 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	github.com/zclconf/go-cty v1.10.0 // indirect
 	gitlab.com/c0b/go-ordered-json v0.0.0-20171130231205-49bbdab258c2 // indirect
-	golang.org/x/crypto v0.1.0 // indirect
-	golang.org/x/net v0.10.0 // indirect
-	golang.org/x/sys v0.9.0 // indirect
-	golang.org/x/text v0.9.0 // indirect
+	golang.org/x/crypto v0.11.0 // indirect
+	golang.org/x/net v0.12.0 // indirect
+	golang.org/x/sys v0.10.0 // indirect
+	golang.org/x/text v0.11.0 // indirect
 	golang.org/x/tools v0.9.3 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20201019141844-1ed22bb0c154 // indirect

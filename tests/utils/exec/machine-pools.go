@@ -26,11 +26,21 @@ type MachinePoolArgs struct {
 	MaxSpotPrice       float64             `json:"max_spot_price,omitempty"`
 	Labels             map[string]string   `json:"labels,omitempty"`
 	Taints             []map[string]string `json:"taints,omitempty"`
+	ID                 string              `json:"id,omitempty"`
 }
 type MachinePoolService struct {
 	CreationArgs *MachinePoolArgs
 	ManifestDir  string
 	Context      context.Context
+}
+
+type MachinePoolOutput struct {
+	ID                 string `json:"machine_pool_id,omitempty"`
+	Name               string `json:"name,omitempty"`
+	ClusterID          string `json:"cluster_id,omitempty"`
+	Replicas           int    `json:"replicas,omitempty"`
+	MachineType        string `json:"machine_type,omitempty"`
+	AutoscalingEnabled bool   `json:"autoscaling_enabled,omitempty"`
 }
 
 func (mp *MachinePoolService***REMOVED*** Init(manifestDirs ...string***REMOVED*** error {
@@ -58,18 +68,30 @@ func (mp *MachinePoolService***REMOVED*** Create(createArgs *MachinePoolArgs, ex
 	return nil
 }
 
-func (mp *MachinePoolService***REMOVED*** Output(***REMOVED*** (mpName string, err error***REMOVED*** {
+func (mp *MachinePoolService***REMOVED*** Output(***REMOVED*** (MachinePoolOutput, error***REMOVED*** {
 	mpDir := CON.MachinePoolDir
 	if mp.ManifestDir != "" {
 		mpDir = mp.ManifestDir
 	}
+	var output MachinePoolOutput
 	out, err := runTerraformOutput(context.TODO(***REMOVED***, mpDir***REMOVED***
 	if err != nil {
-		return "", err
+		return output, err
 	}
-	mpNameObj := out["id"]
-	mpName = h.DigString(mpNameObj, "value"***REMOVED***
-	return
+	if err != nil {
+		return output, err
+	}
+	replicas := h.DigInt(out["replicas"], "value"***REMOVED***
+	machine_type := h.DigString(out["machine_type"], "value"***REMOVED***
+	name := h.DigString(out["name"], "value"***REMOVED***
+	autoscaling_enabled := h.DigBool(out["autoscaling_enabled"]***REMOVED***
+	output = MachinePoolOutput{
+		Replicas:           replicas,
+		MachineType:        machine_type,
+		Name:               name,
+		AutoscalingEnabled: autoscaling_enabled,
+	}
+	return output, nil
 }
 
 func (mp *MachinePoolService***REMOVED*** Destroy(createArgs ...*MachinePoolArgs***REMOVED*** error {

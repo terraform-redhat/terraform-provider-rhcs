@@ -4,53 +4,72 @@
 
 	// nolint
 
+***REMOVED***
 	"os"
 
-	EXE "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
+***REMOVED***
+***REMOVED***
+	"github.com/openshift-online/ocm-sdk-go/logging"
+	cms "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
+	conn "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/connection"
+***REMOVED***
+***REMOVED***
+***REMOVED***
 
-***REMOVED***
-***REMOVED***
-***REMOVED***
+var logger logging.Logger
 
 var _ = Describe("TF Test", func(***REMOVED*** {
 	Describe("Create MachinePool test", func(***REMOVED*** {
 		var cluster_id string
+		var mpService *exe.MachinePoolService
 		BeforeEach(func(***REMOVED*** {
 			cluster_id = os.Getenv("CLUSTER_ID"***REMOVED***
+			mpService = exe.NewMachinePoolService(con.MachinePoolDir***REMOVED***
 ***REMOVED******REMOVED***
 		AfterEach(func(***REMOVED*** {
+			err := mpService.Destroy(***REMOVED***
+			Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 			return
 ***REMOVED******REMOVED***
 		It("MachinePoolExampleNegative", func(***REMOVED*** {
 
-			mpParam := &EXE.MachinePoolArgs{
-				Token: token,
-				// OCMENV:      "staging",
+			mpParam := &exe.MachinePoolArgs{
+				Token:       token,
 				Cluster:     cluster_id,
 				Replicas:    3,
 				MachineType: "invalid",
 				Name:        "testmp",
 	***REMOVED***
 
-			_, err := EXE.CreateMyTFMachinePool(mpParam, "-auto-approve", "-no-color"***REMOVED***
+			_, err := exe.CreateMyTFMachinePool(mpParam, "-auto-approve", "-no-color"***REMOVED***
 			Expect(err***REMOVED***.To(HaveOccurred(***REMOVED******REMOVED***
 			Expect(err.Error(***REMOVED******REMOVED***.Should(ContainSubstring("is not supported for cloud provider 'aws'"***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
-		It("MachinePoolExamplePositive", func(***REMOVED*** {
-			mpParam := &EXE.MachinePoolArgs{
-				Token: token,
-				// OCMENV:      "staging",
-				Cluster:     cluster_id,
-				Replicas:    3,
-				MachineType: "r5.xlarge",
-				Name:        "testmp3",
-	***REMOVED***
+		Context("Author:amalykhi-High-OCP-64757 @OCP-64757 @amalykhi", func(***REMOVED*** {
+			It("Create a second machine pool", func(***REMOVED*** {
+				token := os.Getenv(con.TokenENVName***REMOVED***
+				replicas := 3
+				machine_type := "r5.xlarge"
+				name := "testmp14"
+				MachinePoolArgs := &exe.MachinePoolArgs{
+					Token:       token,
+					Cluster:     cluster_id,
+					Replicas:    replicas,
+					MachineType: machine_type,
+					Name:        name,
+		***REMOVED***
 
-			_, err := EXE.CreateMyTFMachinePool(mpParam, "-no-color"***REMOVED***
-			Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-
-			err = EXE.DestroyMyTFMachinePool(mpParam, "-no-color"***REMOVED***
-			Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+				err := mpService.Create(MachinePoolArgs***REMOVED***
+				mp_out, err := mpService.Output(***REMOVED***
+				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+				mp_response, err := cms.RetrieveClusterMachinePool(conn.RHCSConnection, cluster_id, name***REMOVED***
+				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+				Expect(mp_response.Status(***REMOVED******REMOVED***.To(Equal(http.StatusOK***REMOVED******REMOVED***
+				respBody := mp_response.Body(***REMOVED***
+				Expect(respBody.Replicas(***REMOVED******REMOVED***.To(Equal(mp_out.Replicas***REMOVED******REMOVED***
+				Expect(respBody.InstanceType(***REMOVED******REMOVED***.To(Equal(mp_out.MachineType***REMOVED******REMOVED***
+				Expect(respBody.ID(***REMOVED******REMOVED***.To(Equal(mp_out.Name***REMOVED******REMOVED***
+	***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 	}***REMOVED***
 }***REMOVED***

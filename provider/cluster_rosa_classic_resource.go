@@ -1634,6 +1634,9 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 
 	proxy, ok := object.GetProxy(***REMOVED***
 	if ok {
+		if state.Proxy == nil {
+			state.Proxy = &Proxy{}
+***REMOVED***
 		httpProxy, ok := proxy.GetHTTPProxy(***REMOVED***
 		if ok {
 			state.Proxy.HttpProxy = types.String{
@@ -1658,6 +1661,9 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 
 	trustBundle, ok := object.GetAdditionalTrustBundle(***REMOVED***
 	if ok {
+		if state.Proxy == nil {
+			state.Proxy = &Proxy{}
+***REMOVED***
 		state.Proxy.AdditionalTrustBundle = types.String{
 			Value: trustBundle,
 ***REMOVED***

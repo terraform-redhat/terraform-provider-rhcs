@@ -1520,23 +1520,24 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 
 	}***REMOVED***
 
-	It("Creates cluster with http proxy and update it", func(***REMOVED*** {
-		// Prepare the server:
-		server.AppendHandlers(
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-				RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-			***REMOVED***,
-			CombineHandlers(
-				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-				VerifyJQ(`.name`, "my-cluster"***REMOVED***,
-				VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
-				VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
-				VerifyJQ(`.product.id`, "rosa"***REMOVED***,
-				VerifyJQ(`.proxy.http_proxy`, "http://proxy.com"***REMOVED***,
-				VerifyJQ(`.proxy.https_proxy`, "https://proxy.com"***REMOVED***,
-				VerifyJQ(`.additional_trust_bundle`, "123"***REMOVED***,
-				RespondWithPatchedJSON(http.StatusOK, template, `[
+	Context("Test Proxy", func(***REMOVED*** {
+		It("Creates cluster with http proxy and update it", func(***REMOVED*** {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
+				***REMOVED***,
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
+					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
+					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
+					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
+					VerifyJQ(`.proxy.http_proxy`, "http://proxy.com"***REMOVED***,
+					VerifyJQ(`.proxy.https_proxy`, "https://proxy.com"***REMOVED***,
+					VerifyJQ(`.additional_trust_bundle`, "123"***REMOVED***,
+					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
 					  "path": "/aws",
@@ -1580,11 +1581,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				***REMOVED***
 					  }
 			***REMOVED***]`***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				***REMOVED***,
+			***REMOVED***
 
-		// Run the apply command:
-		terraform.Source(`
+			// Run the apply command:
+			terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -1606,14 +1607,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 		  }
 		`***REMOVED***
 
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 
-		// apply for update the proxy's attributes
-		// Prepare the server:
-		server.AppendHandlers(
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-				RespondWithPatchedJSON(http.StatusOK, template, `[
+			// apply for update the proxy's attributes
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
 					  "path": "/aws",
@@ -1657,13 +1658,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				***REMOVED***
 					  }
 			***REMOVED***]`***REMOVED***,
-			***REMOVED***,
-			CombineHandlers(
-				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-				VerifyJQ(`.proxy.https_proxy`, "https://proxy2.com"***REMOVED***,
-				VerifyJQ(`.proxy.no_proxy`, "test"***REMOVED***,
-				VerifyJQ(`.additional_trust_bundle`, "123"***REMOVED***,
-				RespondWithPatchedJSON(http.StatusOK, template, `[
+				***REMOVED***,
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyJQ(`.proxy.https_proxy`, "https://proxy2.com"***REMOVED***,
+					VerifyJQ(`.proxy.no_proxy`, "test"***REMOVED***,
+					VerifyJQ(`.additional_trust_bundle`, "123"***REMOVED***,
+					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
 					  "path": "/aws",
@@ -1707,11 +1708,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				***REMOVED***
 					  }
 			***REMOVED***]`***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				***REMOVED***,
+			***REMOVED***
 
-		// update the attribute "proxy"
-		terraform.Source(`
+			// update the attribute "proxy"
+			terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -1732,13 +1733,179 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 	***REMOVED***
 		  }
 		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-		resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.proxy.https_proxy`, "https://proxy2.com"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.proxy.no_proxy`, "test"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.proxy.additional_trust_bundle`, "123"***REMOVED******REMOVED***
-	}***REMOVED***
+			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
+			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.proxy.https_proxy`, "https://proxy2.com"***REMOVED******REMOVED***
+			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.proxy.no_proxy`, "test"***REMOVED******REMOVED***
+			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.proxy.additional_trust_bundle`, "123"***REMOVED******REMOVED***
+***REMOVED******REMOVED***
+		It("Creates cluster without http proxy and update trust bundle", func(***REMOVED*** {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
+				***REMOVED***,
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
+					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
+					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
+					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+				***REMOVED***
+					  }
+			***REMOVED***]`***REMOVED***,
+				***REMOVED***,
+			***REMOVED***
 
+			// Run the apply command:
+			terraform.Source(`
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+		***REMOVED***
+	***REMOVED***
+		  }
+		`***REMOVED***
+
+			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+
+			// apply for update the proxy's attributes
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+				***REMOVED***
+					  }
+			***REMOVED***]`***REMOVED***,
+				***REMOVED***,
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyJQ(`.additional_trust_bundle`, "123"***REMOVED***,
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/",
+					  "value": {
+						  "additional_trust_bundle" : "123"
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+				***REMOVED***
+					  }
+			***REMOVED***]`***REMOVED***,
+				***REMOVED***,
+			***REMOVED***
+
+			// update the attribute "proxy"
+			terraform.Source(`
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			proxy = {
+				additional_trust_bundle = "123",
+	***REMOVED***
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+		***REMOVED***
+	***REMOVED***
+		  }
+		`***REMOVED***
+			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
+			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.proxy.additional_trust_bundle`, "123"***REMOVED******REMOVED***
+***REMOVED******REMOVED***
+	}***REMOVED***
 	It("Creates cluster with default_mp_labels and update them", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(

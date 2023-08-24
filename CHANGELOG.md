@@ -1,3 +1,7 @@
+## 1.2.3 (Aug 24, 2023)
+-ENHANCEMENTS:
+* Fixed a bug in cluster_rosa_resource -Terraform provider panic after adding additional CA bundle to ROSA cluster
+
 ## 1.2.2 (Aug 3, 2023)
 ENHANCEMENTS:
 * Update the documentation files to point the correct links.

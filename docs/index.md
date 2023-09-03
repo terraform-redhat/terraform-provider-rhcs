@@ -146,7 +146,9 @@ To use the Red Hat Cloud Services provider inside your Terraform configuration y
                     "iam:UpdateRole",
                     "iam:GetOpenIDConnectProvider",
                     "iam:TagOpenIDConnectProvider",
-                    "secretsmanager:TagResource"
+                    "secretsmanager:TagResource",
+                    "sts:AssumeRoleWithWebIdentity",
+                    "iam:ListRoles"
                 ],
             "Resource": [
                     "arn:aws:secretsmanager:*:<ACCOUNT_ID>:secret:*",
@@ -160,20 +162,7 @@ To use the Red Hat Cloud Services provider inside your Terraform configuration y
                 "Sid": "VisualEditor1",
                 "Effect": "Allow",
                 "Action": [
-                   "s3:PutObject",
-                   "s3:GetObject",
-                   "s3:AbortMultipartUpload",
-                   "iam:ListRoles",
-                   "s3:ListBucket",
-                   "sts:AssumeRoleWithWebIdentity",
-                   "s3:DeleteObject",
-                   "s3:GetBucketPolicy",
-                   "s3:GetObjectVersion",
-                   "s3:ListMultipartUploadParts",
-                   "s3:PutInventoryConfiguration",
-                   "s3:CreateBucket",
-                   "s3:PutBucketPolicy",
-                   "s3:DeleteBucketPolicy"
+                   "s3:*"
                 ],
                 "Resource": "*"
             }

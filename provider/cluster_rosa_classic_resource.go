@@ -1660,7 +1660,7 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	}
 
 	trustBundle, ok := object.GetAdditionalTrustBundle(***REMOVED***
-	if ok {
+	if ok && common.IsStringAttributeEmpty(state.Proxy.AdditionalTrustBundle***REMOVED*** {
 		if state.Proxy == nil {
 			state.Proxy = &Proxy{}
 ***REMOVED***

@@ -1645,7 +1645,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/",
 					  "value": {
-						  "additional_trust_bundle" : "123"
+						  "additional_trust_bundle" : "REDUCTED"
 					  }
 			***REMOVED***,
 					{
@@ -1695,7 +1695,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					  "op": "add",
 					  "path": "/",
 					  "value": {
-						  "additional_trust_bundle" : "123"
+						  "additional_trust_bundle" : "REDUCTED"
 					  }
 			***REMOVED***,
 					{

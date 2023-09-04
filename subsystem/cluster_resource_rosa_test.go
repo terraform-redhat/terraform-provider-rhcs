@@ -2114,7 +2114,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		Expect(terraform.Apply()).NotTo(BeZero())
 
 	})
-	It("Creates cluster with aws subnet ids & private link", func() {
+	It("Creates private cluster with aws subnet ids without private link", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
@@ -2128,14 +2128,15 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				VerifyJQ(`.region.id`, "us-west-1"),
 				VerifyJQ(`.product.id`, "rosa"),
 				VerifyJQ(`.aws.subnet_ids.[0]`, "id1"),
-				VerifyJQ(`.aws.private_link`, true),
+				VerifyJQ(`.aws.private_link`, false),
 				VerifyJQ(`.nodes.availability_zones.[0]`, "az1"),
+				VerifyJQ(`.api.listening`, "internal"),
 				RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
-						  "private_link": true,
+						  "private_link": false,
 						  "subnet_ids": ["id1", "id2", "id3"],
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
@@ -2149,6 +2150,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							  },
 							  "operator_role_prefix" : "test"
 						  }
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/api",
+					  "value": {
+					  	"listening": "internal"
 					  }
 					},
 					{
@@ -2176,7 +2184,8 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			availability_zones = ["az1"]
-			aws_private_link = true
+			aws_private_link = false
+			private = true
 			aws_subnet_ids = [
 				"id1", "id2", "id3"
 			]
@@ -2193,7 +2202,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		`)
 		Expect(terraform.Apply()).To(BeZero())
 	})
-	It("Creates cluster with aws subnet ids & private & private link", func() {
+	It("Creates private cluster with aws subnet ids & private link", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(

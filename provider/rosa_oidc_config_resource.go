@@ -19,6 +19,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -200,7 +201,13 @@ func (r *RosaOidcConfigResource) Read(ctx context.Context, request tfsdk.ReadRes
 
 	// Find the oidc config:
 	get, err := r.oidcConfigClient.OidcConfig(state.ID.Value).Get().SendContext(ctx)
-	if err != nil {
+	if err != nil && get.Status() == http.StatusNotFound {
+		tflog.Warn(ctx, fmt.Sprintf("oidc config (%s) not found, removing from state",
+			state.ID.Value,
+		))
+		response.State.RemoveResource(ctx)
+		return
+	} else if err != nil {
 		response.Diagnostics.AddError(
 			"Can't find OIDC config",
 			fmt.Sprintf(

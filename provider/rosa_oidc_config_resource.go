@@ -19,6 +19,7 @@ package provider
 ***REMOVED***
 	"context"
 ***REMOVED***
+***REMOVED***
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -200,7 +201,13 @@ func (r *RosaOidcConfigResource***REMOVED*** Read(ctx context.Context, request t
 
 	// Find the oidc config:
 	get, err := r.oidcConfigClient.OidcConfig(state.ID.Value***REMOVED***.Get(***REMOVED***.SendContext(ctx***REMOVED***
-	if err != nil {
+	if err != nil && get.Status(***REMOVED*** == http.StatusNotFound {
+		tflog.Warn(ctx, fmt.Sprintf("oidc config (%s***REMOVED*** not found, removing from state",
+			state.ID.Value,
+		***REMOVED******REMOVED***
+		response.State.RemoveResource(ctx***REMOVED***
+		return
+	} else if err != nil {
 		response.Diagnostics.AddError(
 			"Can't find OIDC config",
 			fmt.Sprintf(

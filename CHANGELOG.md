@@ -1,3 +1,7 @@
+## 1.2.4 (Sep 4, 2023)
+-ENHANCEMENTS:
+* Fix for "Provider produced inconsistent result after apply" error when setting proxy.additional_trust_bundle
+
 ## 1.2.3 (Aug 24, 2023)
 -ENHANCEMENTS:
 * Fixed a bug in cluster_rosa_resource -Terraform provider panic after adding additional CA bundle to ROSA cluster

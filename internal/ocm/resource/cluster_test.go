@@ -260,10 +260,18 @@ var _ = Describe("Cluster", func() {
 		})
 	})
 	Context("SetAPIPrivacy validation", func() {
-		It("Private STS cluster without private link - failure", func() {
+		It("Private STS cluster without private link - success", func() {
 			err := cluster.SetAPIPrivacy(true, false, true)
+			Expect(err).NotTo(HaveOccurred())
+			ocmCluster, err := cluster.Build()
+			Expect(err).NotTo(HaveOccurred())
+			api := ocmCluster.API()
+			Expect(api.Listening()).To(Equal(cmv1.ListeningMethodInternal))
+		})
+		It("Public STS cluster with private link - failure", func() {
+			err := cluster.SetAPIPrivacy(false, true, true)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal("Private STS clusters are only supported through AWS PrivateLink"))
+			Expect(err.Error()).To(Equal("PrivateLink is only supported on private clusters"))
 		})
 		It("Private cluster - success", func() {
 			err := cluster.SetAPIPrivacy(true, true, true)
@@ -274,7 +282,7 @@ var _ = Describe("Cluster", func() {
 			Expect(api.Listening()).To(Equal(cmv1.ListeningMethodInternal))
 		})
 		It("Non private cluster - success", func() {
-			err := cluster.SetAPIPrivacy(false, true, true)
+			err := cluster.SetAPIPrivacy(false, false, true)
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
 			Expect(err).NotTo(HaveOccurred())

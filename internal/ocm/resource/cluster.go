@@ -160,8 +160,8 @@ func (c *Cluster***REMOVED*** CreateAWSBuilder(awsTags map[string]string, ec2Met
 }
 
 func (c *Cluster***REMOVED*** SetAPIPrivacy(isPrivate bool, isPrivateLink bool, isSTS bool***REMOVED*** error {
-	if isSTS && isPrivate && !isPrivateLink {
-		return errors.New("Private STS clusters are only supported through AWS PrivateLink"***REMOVED***
+	if isSTS && !isPrivate && isPrivateLink {
+		return errors.New("PrivateLink is only supported on private clusters"***REMOVED***
 	}
 	api := cmv1.NewClusterAPI(***REMOVED***
 	if isPrivate {

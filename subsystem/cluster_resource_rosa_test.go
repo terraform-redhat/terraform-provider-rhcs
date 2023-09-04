@@ -2114,7 +2114,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 		Expect(terraform.Apply(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
 
 	}***REMOVED***
-	It("Creates cluster with aws subnet ids & private link", func(***REMOVED*** {
+	It("Creates private cluster with aws subnet ids without private link", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
@@ -2128,14 +2128,15 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
 				VerifyJQ(`.product.id`, "rosa"***REMOVED***,
 				VerifyJQ(`.aws.subnet_ids.[0]`, "id1"***REMOVED***,
-				VerifyJQ(`.aws.private_link`, true***REMOVED***,
+				VerifyJQ(`.aws.private_link`, false***REMOVED***,
 				VerifyJQ(`.nodes.availability_zones.[0]`, "az1"***REMOVED***,
+				VerifyJQ(`.api.listening`, "internal"***REMOVED***,
 				RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
-						  "private_link": true,
+						  "private_link": false,
 						  "subnet_ids": ["id1", "id2", "id3"],
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
@@ -2149,6 +2150,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  },
 							  "operator_role_prefix" : "test"
 						  }
+					  }
+			***REMOVED***,
+					{
+					  "op": "add",
+					  "path": "/api",
+					  "value": {
+					  	"listening": "internal"
 					  }
 			***REMOVED***,
 					{
@@ -2176,7 +2184,8 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			availability_zones = ["az1"]
-			aws_private_link = true
+			aws_private_link = false
+			private = true
 			aws_subnet_ids = [
 				"id1", "id2", "id3"
 			]
@@ -2193,7 +2202,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 		`***REMOVED***
 		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
-	It("Creates cluster with aws subnet ids & private & private link", func(***REMOVED*** {
+	It("Creates private cluster with aws subnet ids & private link", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(

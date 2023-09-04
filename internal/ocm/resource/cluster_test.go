@@ -336,10 +336,18 @@ var _ = Describe("Cluster", func(***REMOVED*** {
 ***REMOVED******REMOVED***
 	}***REMOVED***
 	Context("SetAPIPrivacy validation", func(***REMOVED*** {
-		It("Private STS cluster without private link - failure", func(***REMOVED*** {
+		It("Private STS cluster without private link - success", func(***REMOVED*** {
 			err := cluster.SetAPIPrivacy(true, false, true***REMOVED***
+			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
+			ocmCluster, err := cluster.Build(***REMOVED***
+			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
+			api := ocmCluster.API(***REMOVED***
+			Expect(api.Listening(***REMOVED******REMOVED***.To(Equal(cmv1.ListeningMethodInternal***REMOVED******REMOVED***
+***REMOVED******REMOVED***
+		It("Public STS cluster with private link - failure", func(***REMOVED*** {
+			err := cluster.SetAPIPrivacy(false, true, true***REMOVED***
 			Expect(err***REMOVED***.To(HaveOccurred(***REMOVED******REMOVED***
-			Expect(err.Error(***REMOVED******REMOVED***.To(Equal("Private STS clusters are only supported through AWS PrivateLink"***REMOVED******REMOVED***
+			Expect(err.Error(***REMOVED******REMOVED***.To(Equal("PrivateLink is only supported on private clusters"***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 		It("Private cluster - success", func(***REMOVED*** {
 			err := cluster.SetAPIPrivacy(true, true, true***REMOVED***
@@ -350,7 +358,7 @@ var _ = Describe("Cluster", func(***REMOVED*** {
 			Expect(api.Listening(***REMOVED******REMOVED***.To(Equal(cmv1.ListeningMethodInternal***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 		It("Non private cluster - success", func(***REMOVED*** {
-			err := cluster.SetAPIPrivacy(false, true, true***REMOVED***
+			err := cluster.SetAPIPrivacy(false, false, true***REMOVED***
 			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***
 			ocmCluster, err := cluster.Build(***REMOVED***
 			Expect(err***REMOVED***.NotTo(HaveOccurred(***REMOVED******REMOVED***

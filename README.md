@@ -55,6 +55,8 @@ The example Terraform files are all considered in development:
 ### Cluster creation examples
 * [Create a ROSA cluster that uses STS and has a managed OIDC configuration](examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/)
 * [Create a ROSA cluster that uses STS and has an unmanaged OIDC configuration](examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/)
+### HCP Cluster creation examples
+* [Create a ROSA HCP cluster that uses STS and has a managed OIDC configuration](examples/create_rosa_hcp_cluster/hcp_cluster_with_managed_oidc_config/)
 
 ### Post cluster installation
 * Modifying default machine pools

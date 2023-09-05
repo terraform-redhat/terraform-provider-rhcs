@@ -65,6 +65,11 @@ func (t *RosaOperatorRolesDataSourceType) GetSchema(ctx context.Context) (result
 				),
 				Computed: true,
 			},
+			"hypershift_enabled": {
+				Description: "Enables hypershift.",
+				Type:        types.BoolType,
+				Optional:    true,
+			},
 		},
 	}
 	return
@@ -127,7 +132,12 @@ func (t *RosaOperatorRolesDataSource) Read(ctx context.Context, request tfsdk.Re
 		return
 	}
 
-	stsOperatorRolesList, err := t.awsInquiries.STSCredentialRequests().List().Send()
+	var is_hypershift bool
+	if !state.HypershiftEnabled.Unknown && !state.HypershiftEnabled.Null {
+		is_hypershift = state.HypershiftEnabled.Value
+	}
+
+	stsOperatorRolesList, err := t.awsInquiries.STSCredentialRequests().List().Parameter("is_hypershift", is_hypershift).Send()
 	if err != nil {
 		description := fmt.Sprintf("Failed to get STS Operator Roles list with error: %v", err)
 		tflog.Error(ctx, description)
@@ -139,7 +149,7 @@ func (t *RosaOperatorRolesDataSource) Read(ctx context.Context, request tfsdk.Re
 	}
 
 	stsOperatorMap := make(map[string]*cmv1.STSOperator)
-	roleNameSpaces := make([]string, 0)
+	roleServiceAccounts := make([]string, 0)
 	stsOperatorRolesList.Items().Each(func(stsCredentialRequest *cmv1.STSCredentialRequest) bool {
 		// TODO: check the MinVersion of the operator role
 		tflog.Debug(ctx, fmt.Sprintf("Operator name: %s, namespace %s, service account %s",
@@ -150,8 +160,8 @@ func (t *RosaOperatorRolesDataSource) Read(ctx context.Context, request tfsdk.Re
 		// The key can't be stsCredentialRequest.Operator().Name() because of constants between
 		// the name of `ingress_operator_cloud_credentials` and `cloud_network_config_controller_cloud_credentials`
 		// both of them includes the same Name `cloud-credentials` and it cannot be fixed
-		roleNameSpaces = append(roleNameSpaces, stsCredentialRequest.Operator().Namespace())
-		stsOperatorMap[stsCredentialRequest.Operator().Namespace()] = stsCredentialRequest.Operator()
+		roleServiceAccounts = append(roleServiceAccounts, stsCredentialRequest.Operator().ServiceAccounts()[0])
+		stsOperatorMap[stsCredentialRequest.Operator().ServiceAccounts()[0]] = stsCredentialRequest.Operator()
 		return true
 	})
 
@@ -162,8 +172,8 @@ func (t *RosaOperatorRolesDataSource) Read(ctx context.Context, request tfsdk.Re
 
 	// TODO: use the sts.OperatorRolePrefix() if not empty
 	// There is a bug in the return value of sts.OperatorRolePrefix() - it's always empty string
-	sort.Strings(roleNameSpaces)
-	for _, key := range roleNameSpaces {
+	sort.Strings(roleServiceAccounts)
+	for _, key := range roleServiceAccounts {
 		r := OperatorIAMRole{
 			Name: types.String{
 				Value: stsOperatorMap[key].Name(),
@@ -177,7 +187,7 @@ func (t *RosaOperatorRolesDataSource) Read(ctx context.Context, request tfsdk.Re
 			PolicyName: types.String{
 				Value: getPolicyName(accountRolePrefix, stsOperatorMap[key].Namespace(), stsOperatorMap[key].Name()),
 			},
-			ServiceAccounts: buildServiceAccountsArray(stsOperatorMap[stsOperatorMap[key].Namespace()].ServiceAccounts(), stsOperatorMap[key].Namespace()),
+			ServiceAccounts: buildServiceAccountsArray(stsOperatorMap[key].ServiceAccounts(), stsOperatorMap[key].Namespace()),
 		}
 		state.OperatorIAMRoles = append(state.OperatorIAMRoles, &r)
 	}

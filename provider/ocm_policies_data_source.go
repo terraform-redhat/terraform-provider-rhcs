@@ -35,6 +35,10 @@ const (
 	ImageRegistry   = "openshift_image_registry_installer_cloud_credentials_policy"
 	IngressOperator = "openshift_ingress_operator_cloud_credentials_policy"
 	MachineAPI      = "openshift_machine_api_aws_cloud_credentials_policy"
+	CapaController  = "openshift_capa_controller_manager_credentials_policy"
+	ControlPlane    = "openshift_control_plane_operator_credentials_policy"
+	KmsProvider     = "openshift_kms_provider_credentials_policy"
+	KubeController  = "openshift_kube_controller_manager_credentials_policy"
 
 	// Policy IDs from type account roles
 	Installer            = "sts_installer_permission_policy"
@@ -117,6 +121,22 @@ func operatorRolePoliciesNames() tfsdk.NestedAttributes {
 			Type:     types.StringType,
 			Computed: true,
 		},
+		CapaController: {
+			Type:     types.StringType,
+			Computed: true,
+		},
+		ControlPlane: {
+			Type:     types.StringType,
+			Computed: true,
+		},
+		KmsProvider: {
+			Type:     types.StringType,
+			Computed: true,
+		},
+		KubeController: {
+			Type:     types.StringType,
+			Computed: true,
+		},
 	})
 }
 
@@ -169,6 +189,14 @@ func (t *OcmPoliciesDataSource) Read(ctx context.Context, request tfsdk.ReadData
 			operatorRolePolicies.IngressOperator = types.String{Value: awsPolicy.Details()}
 		case MachineAPI:
 			operatorRolePolicies.MachineAPI = types.String{Value: awsPolicy.Details()}
+		case CapaController:
+			operatorRolePolicies.CapaController = types.String{Value: awsPolicy.Details()}
+		case ControlPlane:
+			operatorRolePolicies.ControlPlane = types.String{Value: awsPolicy.Details()}
+		case KmsProvider:
+			operatorRolePolicies.KmsProvider = types.String{Value: awsPolicy.Details()}
+		case KubeController:
+			operatorRolePolicies.KubeController = types.String{Value: awsPolicy.Details()}
 		// account roles
 		case Installer:
 			accountRolePolicies.Installer = types.String{Value: awsPolicy.Details()}

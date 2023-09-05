@@ -30,6 +30,10 @@ type OperatorRolePolicies struct {
 	ImageRegistry   types.String `tfsdk:"openshift_image_registry_installer_cloud_credentials_policy"`
 	IngressOperator types.String `tfsdk:"openshift_ingress_operator_cloud_credentials_policy"`
 	MachineAPI      types.String `tfsdk:"openshift_machine_api_aws_cloud_credentials_policy"`
+	CapaController  types.String `tfsdk:"openshift_capa_controller_manager_credentials_policy"`
+	ControlPlane    types.String `tfsdk:"openshift_control_plane_operator_credentials_policy"`
+	KmsProvider     types.String `tfsdk:"openshift_kms_provider_credentials_policy"`
+	KubeController  types.String `tfsdk:"openshift_kube_controller_manager_credentials_policy"`
 }
 
 type AccountRolePolicies struct {

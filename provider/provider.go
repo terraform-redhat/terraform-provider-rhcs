@@ -197,10 +197,12 @@ func (p *Provider) GetResources(ctx context.Context) (result map[string]tfsdk.Re
 	result = map[string]tfsdk.ResourceType{
 		"rhcs_cluster":                &ClusterResourceType{},
 		"rhcs_cluster_rosa_classic":   &ClusterRosaClassicResourceType{},
+		"rhcs_cluster_rosa_hcp":       &ClusterRosaHCPResourceType{},
 		"rhcs_group_membership":       &GroupMembershipResourceType{},
 		"rhcs_identity_provider":      &IdentityProviderResourceType{},
 		"rhcs_machine_pool":           &MachinePoolResourceType{},
 		"rhcs_cluster_wait":           &ClusterWaiterResourceType{},
+		"rhcs_cluster_hcp_wait":       &ClusterHCPWaiterResourceType{},
 		"rhcs_rosa_oidc_config_input": &RosaOidcConfigInputResourceType{},
 		"rhcs_rosa_oidc_config":       &RosaOidcConfigResourceType{},
 		"rhcs_dns_domain":             &DNSDomainResourceType{},
@@ -218,6 +220,7 @@ func (p *Provider) GetDataSources(ctx context.Context) (result map[string]tfsdk.
 		"rhcs_groups":              &GroupsDataSourceType{},
 		"rhcs_machine_types":       &MachineTypesDataSourceType{},
 		"rhcs_versions":            &VersionsDataSourceType{},
+		"rhcs_cluster_data":        &ClusterDataSourceType{},
 	}
 	return
 }

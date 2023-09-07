@@ -28,7 +28,7 @@ import (
 const htpasswdValidPass = "123PasS8901234"
 const htpasswdInValidPass = "my-pass"
 
-var _ = Describe("Identity clusterservice creation", func() {
+var _ = Describe("Identity provider creation", func() {
 
 	Context("Idebtity Provider Failure", func() {
 		It("cluster_id not found", func() {
@@ -134,7 +134,7 @@ var _ = Describe("Identity clusterservice creation", func() {
 
 	Context("Identity Provider Success", func() {
 		BeforeEach(func() {
-			// The first thing that the clusterservice will do for any operation on identity providers
+			// The first thing that the provider will do for any operation on identity providers
 			// is check that the cluster is ready, so we always need to prepare the server to
 			// respond to that:
 			server.AppendHandlers(
@@ -149,7 +149,7 @@ var _ = Describe("Identity clusterservice creation", func() {
 			)
 		})
 
-		It("Can create a 'htpasswd' identity clusterservice", func() {
+		It("Can create a 'htpasswd' identity provider", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
@@ -374,7 +374,7 @@ var _ = Describe("Identity clusterservice creation", func() {
 			Expect(resource).To(MatchJQ(".attributes.id", "457"))
 		})
 
-		It("Can create a 'gitlab' identity clusterservice", func() {
+		It("Can create a 'gitlab' identity provider", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
@@ -424,8 +424,8 @@ var _ = Describe("Identity clusterservice creation", func() {
 			Expect(terraform.Apply()).To(BeZero())
 		})
 
-		Context("Can create a 'github' identity clusterservice", func() {
-			Context("Invalid 'github' identity clusterservice config", func() {
+		Context("Can create a 'github' identity provider", func() {
+			Context("Invalid 'github' identity provider config", func() {
 				It("Should fail with both 'teams' and 'organizations'", func() {
 					terraform.Source(`
 	    	          resource "rhcs_identity_provider" "my_ip" {
@@ -607,7 +607,7 @@ var _ = Describe("Identity clusterservice creation", func() {
 			})
 		})
 
-		Context("Can create 'LDDAP' Identity clusterservice", func() {
+		Context("Can create 'LDDAP' Identity provider", func() {
 			Context("Invalid LDAP config", func() {
 				It("Should fail with invalid email", func() {
 					// Run the apply command:
@@ -848,7 +848,7 @@ var _ = Describe("Identity clusterservice creation", func() {
 			})
 		})
 
-		Context("Google identity clusterservice", func() {
+		Context("Google identity provider", func() {
 			Context("Invalid google config", func() {
 				It("Should fail with invalid hosted_domain", func() {
 					// Run the apply command:
@@ -884,7 +884,7 @@ var _ = Describe("Identity clusterservice creation", func() {
 			})
 
 			Context("Happy flow", func() {
-				It("Should create clusterservice", func() {
+				It("Should create provider", func() {
 					// Prepare the server:
 					server.AppendHandlers(
 						CombineHandlers(
@@ -931,7 +931,7 @@ var _ = Describe("Identity clusterservice creation", func() {
 					Expect(terraform.Apply()).To(BeZero())
 				})
 
-				It("Should create clusterservice without hosted_domain when mapping_method is set to 'lookup'", func() {
+				It("Should create provider without hosted_domain when mapping_method is set to 'lookup'", func() {
 					// Prepare the server:
 					server.AppendHandlers(
 						CombineHandlers(
@@ -978,7 +978,7 @@ var _ = Describe("Identity clusterservice creation", func() {
 			})
 		})
 
-		It("Can create an OpenID identity clusterservice", func() {
+		It("Can create an OpenID identity provider", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
@@ -1113,8 +1113,8 @@ var _ = Describe("Identity clusterservice creation", func() {
 	})
 })
 
-var _ = Describe("Identity clusterservice import", func() {
-	It("Can import an identity clusterservice", func() {
+var _ = Describe("Identity provider import", func() {
+	It("Can import an identity provider", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			// List IDPs to map name to ID:
@@ -1182,7 +1182,7 @@ var _ = Describe("Identity clusterservice import", func() {
 		Expect(resource).To(MatchJQ(".attributes.github[0].client_id", "99999"))
 	})
 
-	It("Is an error if the identity clusterservice isn't found", func() {
+	It("Is an error if the identity provider isn't found", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			// List IDPs to map name to ID:

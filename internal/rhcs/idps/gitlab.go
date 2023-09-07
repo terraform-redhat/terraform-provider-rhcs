@@ -2,8 +2,9 @@ package idps
 
 import (
 	"fmt"
-	common2 "github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/common"
 	"net/url"
+
+	common "github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/common"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -65,7 +66,7 @@ func ExpandGitlabFromInterface(i interface{}) *GitlabIdentityProvider {
 		ClientID:     gitlabMap["client_id"].(string),
 		ClientSecret: gitlabMap["client_secret"].(string),
 		URL:          gitlabMap["url"].(string),
-		CA:           common2.GetOptionalStringFromMapString(gitlabMap, "ca"),
+		CA:           common.GetOptionalStringFromMapString(gitlabMap, "ca"),
 	}
 }
 func GitlabValidators(i interface{}) error {
@@ -77,7 +78,7 @@ func GitlabValidators(i interface{}) error {
 	u, err := url.ParseRequestURI(gitlab.URL)
 	if err != nil || u.Scheme != "https" || u.RawQuery != "" || u.Fragment != "" {
 		return fmt.Errorf("Invalid Gitlab IDP resource configuration." +
-			" Expected a valid GitLab clusterservice URL: to use an https:// scheme, must not have query parameters and not have a fragment.")
+			" Expected a valid GitLab provider URL: to use an https:// scheme, must not have query parameters and not have a fragment.")
 	}
 
 	return nil
@@ -85,7 +86,7 @@ func GitlabValidators(i interface{}) error {
 
 func CreateGitlabIDPBuilder(state *GitlabIdentityProvider) *cmv1.GitlabIdentityProviderBuilder {
 	gitlabBuilder := cmv1.NewGitlabIdentityProvider()
-	if !common2.IsStringAttributeEmpty(state.CA) {
+	if !common.IsStringAttributeEmpty(state.CA) {
 		gitlabBuilder.CA(*state.CA)
 	}
 	gitlabBuilder.ClientID(state.ClientID)

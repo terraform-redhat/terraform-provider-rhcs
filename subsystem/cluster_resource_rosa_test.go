@@ -3293,7 +3293,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 						"label": "api.openshift.com/gate-sts",
 						"value": "4.10",
 						"warning_message": "STS roles must be updated blah blah blah",
-						"description": "OpenShift STS clusters include new required cloud clusterservice permissions in OpenShift 4.YY.",
+						"description": "OpenShift STS clusters include new required cloud provider permissions in OpenShift 4.YY.",
 						"documentation_url": "https://access.redhat.com/solutions/0000000",
 						"sts_only": true,
 						"creation_timestamp": "2023-04-03T06:39:57.057613Z"
@@ -3318,7 +3318,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 					  "label": "api.openshift.com/gate-sts",
 					  "value": "4.10",
 					  "warning_message": "STS blah blah blah",
-					  "description": "OpenShift STS clusters include new required cloud clusterservice permissions in OpenShift 4.YY.",
+					  "description": "OpenShift STS clusters include new required cloud provider permissions in OpenShift 4.YY.",
 					  "documentation_url": "https://access.redhat.com/solutions/0000000",
 					  "sts_only": true,
 					  "creation_timestamp": "2023-04-03T06:39:57.057613Z"
@@ -3409,7 +3409,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 						"label": "api.openshift.com/gate-sts",
 						"value": "4.10",
 						"warning_message": "STS roles must be updated blah blah blah",
-						"description": "OpenShift STS clusters include new required cloud clusterservice permissions in OpenShift 4.YY.",
+						"description": "OpenShift STS clusters include new required cloud provider permissions in OpenShift 4.YY.",
 						"documentation_url": "https://access.redhat.com/solutions/0000000",
 						"sts_only": true,
 						"creation_timestamp": "2023-04-03T06:39:57.057613Z"
@@ -3434,7 +3434,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 					  "label": "api.openshift.com/gate-sts",
 					  "value": "4.10",
 					  "warning_message": "STS blah blah blah",
-					  "description": "OpenShift STS clusters include new required cloud clusterservice permissions in OpenShift 4.YY.",
+					  "description": "OpenShift STS clusters include new required cloud provider permissions in OpenShift 4.YY.",
 					  "documentation_url": "https://access.redhat.com/solutions/0000000",
 					  "sts_only": true,
 					  "creation_timestamp": "2023-04-03T06:39:57.057613Z"

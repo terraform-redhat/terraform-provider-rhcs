@@ -32,7 +32,7 @@ func IdentityProviderFields() map[string]*schema.Schema {
 			Required:    true,
 		},
 		"name": {
-			Description: "Name of the identity clusterservice.",
+			Description: "Name of the identity provider.",
 			Type:        schema.TypeString,
 			Required:    true,
 		},
@@ -44,7 +44,7 @@ func IdentityProviderFields() map[string]*schema.Schema {
 			ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice(validMappingMethods, false)),
 		},
 		"htpasswd": {
-			Description: "Details of the 'htpasswd' identity clusterservice.",
+			Description: "Details of the 'htpasswd' identity provider.",
 			Type:        schema.TypeList,
 			MaxItems:    1,
 			Elem: &schema.Resource{
@@ -53,7 +53,7 @@ func IdentityProviderFields() map[string]*schema.Schema {
 			Optional: true,
 		},
 		"gitlab": {
-			Description: "Details of the Gitlab identity clusterservice.",
+			Description: "Details of the Gitlab identity provider.",
 			Type:        schema.TypeList,
 			MaxItems:    1,
 			Elem: &schema.Resource{
@@ -62,7 +62,7 @@ func IdentityProviderFields() map[string]*schema.Schema {
 			Optional: true,
 		},
 		"github": {
-			Description: "Details of the Github identity clusterservice.",
+			Description: "Details of the Github identity provider.",
 			Type:        schema.TypeList,
 			MaxItems:    1,
 			Elem: &schema.Resource{
@@ -71,7 +71,7 @@ func IdentityProviderFields() map[string]*schema.Schema {
 			Optional: true,
 		},
 		"google": {
-			Description: "Details of the Google identity clusterservice.",
+			Description: "Details of the Google identity provider.",
 			Type:        schema.TypeList,
 			MaxItems:    1,
 			Elem: &schema.Resource{
@@ -80,7 +80,7 @@ func IdentityProviderFields() map[string]*schema.Schema {
 			Optional: true,
 		},
 		"ldap": {
-			Description: "Details of the LDAP identity clusterservice.",
+			Description: "Details of the LDAP identity provider.",
 			Type:        schema.TypeList,
 			MaxItems:    1,
 			Elem: &schema.Resource{
@@ -89,7 +89,7 @@ func IdentityProviderFields() map[string]*schema.Schema {
 			Optional: true,
 		},
 		"openid": {
-			Description: "Details of the OpenID identity clusterservice.",
+			Description: "Details of the OpenID identity provider.",
 			Type:        schema.TypeList,
 			MaxItems:    1,
 			Elem: &schema.Resource{

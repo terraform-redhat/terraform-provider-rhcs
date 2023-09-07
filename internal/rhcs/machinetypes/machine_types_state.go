@@ -50,7 +50,7 @@ func itemSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"cloud_provider": {
 			Description: "Unique identifier of the " +
-				"cloud clusterservice where the machine " +
+				"cloud provider where the machine " +
 				"type is supported.",
 			Type:     schema.TypeString,
 			Computed: true,

@@ -20,6 +20,8 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"os"
+
 	"github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/cloudprovider"
 	cluster2 "github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/cluster"
 	"github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/dnsdomain"
@@ -31,7 +33,6 @@ import (
 	oidcconfig2 "github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/oidcconfig"
 	rolesandpolicies2 "github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/rolesandpolicies"
 	"github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/versions"
-	"os"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -87,7 +88,7 @@ func Provider() *schema.Provider {
 			"trusted_cas": {
 				Description: "PEM encoded certificates of authorities that will " +
 					"be trusted. If this is not explicitly specified, then " +
-					"the clusterservice will trust the certificate authorities " +
+					"the provider will trust the certificate authorities " +
 					"trusted by default by the system.",
 				Type:     schema.TypeString,
 				Optional: true,

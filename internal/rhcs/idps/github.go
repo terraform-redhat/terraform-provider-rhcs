@@ -2,7 +2,7 @@ package idps
 
 import (
 	"fmt"
-	common2 "github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/common"
+	"github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/common"
 	"net/url"
 	"strings"
 
@@ -34,16 +34,18 @@ func GithubSchema() map[string]*schema.Schema {
 			Optional:    true,
 		},
 		"organizations": {
-			Description: "Only users that are members of at least one of the listed organizations will be allowed to log in.",
-			Type:        schema.TypeList,
-			Elem:        &schema.Schema{Type: schema.TypeString},
-			Optional:    true,
+			Description:  "Only users that are members of at least one of the listed organizations will be allowed to log in.",
+			Type:         schema.TypeList,
+			Elem:         &schema.Schema{Type: schema.TypeString},
+			Optional:     true,
+			ExactlyOneOf: []string{"organizations", "teams"},
 		},
 		"teams": {
-			Description: "Only users that are members of at least one of the listed teams will be allowed to log in. The format is <org>/<team>.",
-			Type:        schema.TypeList,
-			Elem:        &schema.Schema{Type: schema.TypeString},
-			Optional:    true,
+			Description:  "Only users that are members of at least one of the listed teams will be allowed to log in. The format is <org>/<team>.",
+			Type:         schema.TypeList,
+			Elem:         &schema.Schema{Type: schema.TypeString},
+			Optional:     true,
+			ExactlyOneOf: []string{"organizations", "teams"},
 		},
 	}
 }
@@ -78,10 +80,10 @@ func ExpandGithubFromInterface(i interface{}) *GithubIdentityProvider {
 	return &GithubIdentityProvider{
 		ClientID:      githubMap["client_id"].(string),
 		ClientSecret:  githubMap["client_secret"].(string),
-		CA:            common2.GetOptionalStringFromMapString(githubMap, "ca"),
-		Hostname:      common2.GetOptionalStringFromMapString(githubMap, "hostname"),
-		Organizations: common2.GetOptionalListOfValueStrings(githubMap, "organizations"),
-		Teams:         common2.GetOptionalListOfValueStrings(githubMap, "teams"),
+		CA:            common.GetOptionalStringFromMapString(githubMap, "ca"),
+		Hostname:      common.GetOptionalStringFromMapString(githubMap, "hostname"),
+		Organizations: common.GetOptionalListOfValueStrings(githubMap, "organizations"),
+		Teams:         common.GetOptionalListOfValueStrings(githubMap, "teams"),
 	}
 }
 
@@ -90,16 +92,6 @@ func GithubValidators(i interface{}) error {
 	github := ExpandGithubFromInterface(i)
 	if github == nil {
 		return nil
-	}
-
-	// At only one restriction plan is required
-	areTeamsDefined := github.Teams != nil && len(github.Teams) > 0
-	areOrgsDefined := github.Organizations != nil && len(github.Organizations) > 0
-	if !areOrgsDefined && !areTeamsDefined {
-		return fmt.Errorf(errSumm, "GitHub IDP requires missing attributes 'organizations' OR 'teams'")
-	}
-	if areOrgsDefined && areTeamsDefined {
-		return fmt.Errorf(errSumm, "GitHub IDP requires either 'organizations' or 'teams', not both.")
 	}
 
 	// Validate teams format
@@ -131,16 +123,16 @@ func CreateGithubIDPBuilder(state *GithubIdentityProvider) *cmv1.GithubIdentityP
 	githubBuilder := cmv1.NewGithubIdentityProvider()
 	githubBuilder.ClientID(state.ClientID)
 	githubBuilder.ClientSecret(state.ClientSecret)
-	if !common2.IsStringAttributeEmpty(state.CA) {
+	if !common.IsStringAttributeEmpty(state.CA) {
 		githubBuilder.CA(*state.CA)
 	}
-	if !common2.IsStringAttributeEmpty(state.Hostname) {
+	if !common.IsStringAttributeEmpty(state.Hostname) {
 		githubBuilder.Hostname(*state.Hostname)
 	}
-	if !common2.IsListAttributeEmpty(state.Teams) {
+	if !common.IsListAttributeEmpty(state.Teams) {
 		githubBuilder.Teams(state.Teams...)
 	}
-	if !common2.IsListAttributeEmpty(state.Organizations) {
+	if !common.IsListAttributeEmpty(state.Organizations) {
 		githubBuilder.Organizations(state.Organizations...)
 	}
 	return githubBuilder

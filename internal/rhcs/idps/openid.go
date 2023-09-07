@@ -2,7 +2,7 @@ package idps
 
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	common2 "github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/common"
+	"github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/common"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
@@ -120,9 +120,9 @@ func ExpandOpenIDFromResourceData(resourceData *schema.ResourceData) *OpenIDIden
 		ClientSecret: openidMap["client_secret"].(string),
 		Issuer:       openidMap["issuer"].(string),
 
-		CA:                       common2.GetOptionalStringFromMapString(openidMap, "ca"),
-		ExtraScopes:              common2.GetOptionalListOfValueStrings(openidMap, "extra_scopes"),
-		ExtraAuthorizeParameters: common2.GetOptionalMapString(openidMap, "extra_authorize_parameters"),
+		CA:                       common.GetOptionalStringFromMapString(openidMap, "ca"),
+		ExtraScopes:              common.GetOptionalListOfValueStrings(openidMap, "extra_scopes"),
+		ExtraAuthorizeParameters: common.GetOptionalMapString(openidMap, "extra_authorize_parameters"),
 	}
 }
 
@@ -132,31 +132,31 @@ func expandOpenIDIdentityProviderClaims(l []interface{}) OpenIDIdentityProviderC
 	}
 	claimsMap := l[0].(map[string]interface{})
 	return OpenIDIdentityProviderClaims{
-		EMail:             common2.GetOptionalListOfValueStrings(claimsMap, "email"),
-		Groups:            common2.GetOptionalListOfValueStrings(claimsMap, "groups"),
-		Name:              common2.GetOptionalListOfValueStrings(claimsMap, "name"),
-		PreferredUsername: common2.GetOptionalListOfValueStrings(claimsMap, "preferred_username"),
+		EMail:             common.GetOptionalListOfValueStrings(claimsMap, "email"),
+		Groups:            common.GetOptionalListOfValueStrings(claimsMap, "groups"),
+		Name:              common.GetOptionalListOfValueStrings(claimsMap, "name"),
+		PreferredUsername: common.GetOptionalListOfValueStrings(claimsMap, "preferred_username"),
 	}
 }
 
 func CreateOpenIDIDPBuilder(state *OpenIDIdentityProvider) *cmv1.OpenIDIdentityProviderBuilder {
 	builder := cmv1.NewOpenIDIdentityProvider()
-	if !common2.IsStringAttributeEmpty(state.CA) {
+	if !common.IsStringAttributeEmpty(state.CA) {
 		builder.CA(*state.CA)
 	}
 
 	claimsBuilder := cmv1.NewOpenIDClaims()
 
-	if !common2.IsListAttributeEmpty(state.Claims.Groups) {
+	if !common.IsListAttributeEmpty(state.Claims.Groups) {
 		claimsBuilder.Groups(state.Claims.Groups...)
 	}
-	if !common2.IsListAttributeEmpty(state.Claims.EMail) {
+	if !common.IsListAttributeEmpty(state.Claims.EMail) {
 		claimsBuilder.Email(state.Claims.EMail...)
 	}
-	if !common2.IsListAttributeEmpty(state.Claims.Name) {
+	if !common.IsListAttributeEmpty(state.Claims.Name) {
 		claimsBuilder.Name(state.Claims.Name...)
 	}
-	if !common2.IsListAttributeEmpty(state.Claims.PreferredUsername) {
+	if !common.IsListAttributeEmpty(state.Claims.PreferredUsername) {
 		claimsBuilder.PreferredUsername(state.Claims.PreferredUsername...)
 	}
 
@@ -169,7 +169,7 @@ func CreateOpenIDIDPBuilder(state *OpenIDIdentityProvider) *cmv1.OpenIDIdentityP
 	if state.ExtraAuthorizeParameters != nil {
 		builder.ExtraAuthorizeParameters(state.ExtraAuthorizeParameters)
 	}
-	if !common2.IsListAttributeEmpty(state.ExtraScopes) {
+	if !common.IsListAttributeEmpty(state.ExtraScopes) {
 		builder.ExtraScopes(state.ExtraScopes...)
 	}
 	return builder

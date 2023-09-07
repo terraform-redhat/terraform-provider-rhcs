@@ -23,6 +23,7 @@ import (
 
 var validMappingMethods = []string{"claim", "add", "generate", "lookup"} // Default is @ index 0
 var DefaultMappingMethod = validMappingMethods[0]
+var idpTypeList = []string{"htpasswd", "gitlab", "github", "google", "ldap", "openid"}
 
 func IdentityProviderFields() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
@@ -42,6 +43,7 @@ func IdentityProviderFields() map[string]*schema.Schema {
 			Optional:         true,
 			Computed:         true,
 			ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice(validMappingMethods, false)),
+			Default:          DefaultMappingMethod,
 		},
 		"htpasswd": {
 			Description: "Details of the 'htpasswd' identity provider.",
@@ -50,7 +52,8 @@ func IdentityProviderFields() map[string]*schema.Schema {
 			Elem: &schema.Resource{
 				Schema: HtpasswdSchema(),
 			},
-			Optional: true,
+			Optional:     true,
+			ExactlyOneOf: idpTypeList,
 		},
 		"gitlab": {
 			Description: "Details of the Gitlab identity provider.",
@@ -59,7 +62,8 @@ func IdentityProviderFields() map[string]*schema.Schema {
 			Elem: &schema.Resource{
 				Schema: GitlabSchema(),
 			},
-			Optional: true,
+			Optional:     true,
+			ExactlyOneOf: idpTypeList,
 		},
 		"github": {
 			Description: "Details of the Github identity provider.",
@@ -68,7 +72,8 @@ func IdentityProviderFields() map[string]*schema.Schema {
 			Elem: &schema.Resource{
 				Schema: GithubSchema(),
 			},
-			Optional: true,
+			Optional:     true,
+			ExactlyOneOf: idpTypeList,
 		},
 		"google": {
 			Description: "Details of the Google identity provider.",
@@ -77,7 +82,8 @@ func IdentityProviderFields() map[string]*schema.Schema {
 			Elem: &schema.Resource{
 				Schema: GoogleSchema(),
 			},
-			Optional: true,
+			Optional:     true,
+			ExactlyOneOf: idpTypeList,
 		},
 		"ldap": {
 			Description: "Details of the LDAP identity provider.",
@@ -86,7 +92,8 @@ func IdentityProviderFields() map[string]*schema.Schema {
 			Elem: &schema.Resource{
 				Schema: LDAPSchema(),
 			},
-			Optional: true,
+			Optional:     true,
+			ExactlyOneOf: idpTypeList,
 		},
 		"openid": {
 			Description: "Details of the OpenID identity provider.",
@@ -95,7 +102,8 @@ func IdentityProviderFields() map[string]*schema.Schema {
 			Elem: &schema.Resource{
 				Schema: OpenidSchema(),
 			},
-			Optional: true,
+			Optional:     true,
+			ExactlyOneOf: idpTypeList,
 		},
 	}
 }

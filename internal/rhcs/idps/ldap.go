@@ -2,7 +2,7 @@ package idps
 
 import (
 	"fmt"
-	common2 "github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/common"
+	"github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/common"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -122,10 +122,10 @@ func ExpandLDAPFromInterface(i interface{}) *LDAPIdentityProvider {
 	ldapMap := l[0].(map[string]interface{})
 	return &LDAPIdentityProvider{
 		URL:          ldapMap["url"].(string),
-		BindDN:       common2.GetOptionalStringFromMapString(ldapMap, "bind_dn"),
-		BindPassword: common2.GetOptionalStringFromMapString(ldapMap, "bind_password"),
-		CA:           common2.GetOptionalStringFromMapString(ldapMap, "ca"),
-		Insecure:     common2.GetOptionalBoolFromMapString(ldapMap, "insecure"),
+		BindDN:       common.GetOptionalStringFromMapString(ldapMap, "bind_dn"),
+		BindPassword: common.GetOptionalStringFromMapString(ldapMap, "bind_password"),
+		CA:           common.GetOptionalStringFromMapString(ldapMap, "ca"),
+		Insecure:     common.GetOptionalBoolFromMapString(ldapMap, "insecure"),
 		Attributes:   expandLDAPIdentityProviderAttributes(ldapMap["attributes"].([]interface{})),
 	}
 }
@@ -136,17 +136,17 @@ func expandLDAPIdentityProviderAttributes(l []interface{}) LDAPIdentityProviderA
 	}
 	attributesMap := l[0].(map[string]interface{})
 	return LDAPIdentityProviderAttributes{
-		EMail:             common2.GetOptionalListOfValueStrings(attributesMap, "email"),
-		ID:                common2.GetOptionalListOfValueStrings(attributesMap, "id"),
-		Name:              common2.GetOptionalListOfValueStrings(attributesMap, "name"),
-		PreferredUsername: common2.GetOptionalListOfValueStrings(attributesMap, "preferred_username"),
+		EMail:             common.GetOptionalListOfValueStrings(attributesMap, "email"),
+		ID:                common.GetOptionalListOfValueStrings(attributesMap, "id"),
+		Name:              common.GetOptionalListOfValueStrings(attributesMap, "name"),
+		PreferredUsername: common.GetOptionalListOfValueStrings(attributesMap, "preferred_username"),
 	}
 }
 func LDAPValidators(i interface{}) error {
 	ldap := ExpandLDAPFromInterface(i)
 
-	containsBindDN := !common2.IsStringAttributeEmpty(ldap.BindDN)
-	containsBindPassword := !common2.IsStringAttributeEmpty(ldap.BindPassword)
+	containsBindDN := !common.IsStringAttributeEmpty(ldap.BindDN)
+	containsBindPassword := !common.IsStringAttributeEmpty(ldap.BindPassword)
 	if containsBindDN != containsBindPassword {
 		return fmt.Errorf("Invalid LDAP IDP resource configuration. Must provide both `bind_dn` and `bind_password` OR none of them")
 	}
@@ -160,7 +160,7 @@ func ldapAttrsValidator(i interface{}) error {
 		return nil
 	}
 	for _, email := range ldapAttrs.EMail {
-		if !common2.IsValidEmail(email) {
+		if !common.IsValidEmail(email) {
 			return fmt.Errorf(fmt.Sprintf("Invalid LDAP IDP 'attributes' resource configuration. Invalid email '%s'", email))
 		}
 	}
@@ -170,13 +170,13 @@ func ldapAttrsValidator(i interface{}) error {
 
 func CreateLDAPIDPBuilder(state *LDAPIdentityProvider) *cmv1.LDAPIdentityProviderBuilder {
 	builder := cmv1.NewLDAPIdentityProvider()
-	if !common2.IsStringAttributeEmpty(state.BindDN) {
+	if !common.IsStringAttributeEmpty(state.BindDN) {
 		builder.BindDN(*state.BindDN)
 	}
-	if !common2.IsStringAttributeEmpty(state.BindPassword) {
+	if !common.IsStringAttributeEmpty(state.BindPassword) {
 		builder.BindPassword(*state.BindPassword)
 	}
-	if !common2.IsStringAttributeEmpty(state.CA) {
+	if !common.IsStringAttributeEmpty(state.CA) {
 		builder.CA(*state.CA)
 	}
 	if state.Insecure != nil {
@@ -189,7 +189,7 @@ func CreateLDAPIDPBuilder(state *LDAPIdentityProvider) *cmv1.LDAPIdentityProvide
 	attributesBuilder := cmv1.NewLDAPAttributes()
 
 	var ids []string
-	if !common2.IsListAttributeEmpty(state.Attributes.ID) {
+	if !common.IsListAttributeEmpty(state.Attributes.ID) {
 		ids = state.Attributes.ID
 	} else {
 		ids = LDAPAttrDefaultID
@@ -197,12 +197,12 @@ func CreateLDAPIDPBuilder(state *LDAPIdentityProvider) *cmv1.LDAPIdentityProvide
 	}
 	attributesBuilder.ID(ids...)
 
-	if !common2.IsListAttributeEmpty(state.Attributes.EMail) {
+	if !common.IsListAttributeEmpty(state.Attributes.EMail) {
 		attributesBuilder.Email(state.Attributes.EMail...)
 	}
 
 	var names []string
-	if !common2.IsListAttributeEmpty(state.Attributes.Name) {
+	if !common.IsListAttributeEmpty(state.Attributes.Name) {
 		names = state.Attributes.Name
 	} else {
 		names = LDAPAttrDefaultName
@@ -211,7 +211,7 @@ func CreateLDAPIDPBuilder(state *LDAPIdentityProvider) *cmv1.LDAPIdentityProvide
 	attributesBuilder.Name(names...)
 
 	var preferredUsernames []string
-	if !common2.IsListAttributeEmpty(state.Attributes.PreferredUsername) {
+	if !common.IsListAttributeEmpty(state.Attributes.PreferredUsername) {
 		preferredUsernames = state.Attributes.PreferredUsername
 
 	} else {

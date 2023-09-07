@@ -2,7 +2,7 @@ package idps
 
 import (
 	"fmt"
-	common2 "github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/common"
+	"github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/common"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -56,14 +56,14 @@ func ExpandGoogleFromInterface(i interface{}) *GoogleIdentityProvider {
 	return &GoogleIdentityProvider{
 		ClientID:     googleMap["client_id"].(string),
 		ClientSecret: googleMap["client_secret"].(string),
-		HostedDomain: common2.GetOptionalStringFromMapString(googleMap, "hosted_domain"),
+		HostedDomain: common.GetOptionalStringFromMapString(googleMap, "hosted_domain"),
 	}
 }
 
 func GoogleValidators(i interface{}) error {
 	google := ExpandGoogleFromInterface(i)
 	if google.HostedDomain != nil && *google.HostedDomain != "" {
-		if !common2.IsValidDomain(*google.HostedDomain) {
+		if !common.IsValidDomain(*google.HostedDomain) {
 			return fmt.Errorf(
 				fmt.Sprintf("Invalid Google IDP resource configuration. Expected a valid Google hosted_domain. Got %s",
 					*google.HostedDomain),
@@ -80,12 +80,12 @@ func CreateGoogleIDPBuilder(mappingMethod string, state *GoogleIdentityProvider)
 
 	// Mapping method validation. if mappingMethod != lookup, then hosted-domain is mandatory.
 	if mappingMethod != string(cmv1.IdentityProviderMappingMethodLookup) {
-		if common2.IsStringAttributeEmpty(state.HostedDomain) {
+		if common.IsStringAttributeEmpty(state.HostedDomain) {
 			return nil, fmt.Errorf("Expected a valid hosted_domain since mapping_method is set to %s", mappingMethod)
 		}
 	}
 
-	if !common2.IsStringAttributeEmpty(state.HostedDomain) {
+	if !common.IsStringAttributeEmpty(state.HostedDomain) {
 		builder.HostedDomain(*state.HostedDomain)
 	}
 

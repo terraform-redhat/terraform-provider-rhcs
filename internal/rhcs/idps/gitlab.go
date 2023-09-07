@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"net/url"
 
-	common "github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/common"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	"github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/common"
 )
 
 func GitlabSchema() map[string]*schema.Schema {

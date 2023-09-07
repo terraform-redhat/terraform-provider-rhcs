@@ -27,7 +27,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	common2 "github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/common"
+	"github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/common"
 )
 
 func ResourceIdentityProvider() *schema.Resource {
@@ -58,7 +58,7 @@ func resourceIdentityProviderCreate(ctx context.Context, resourceData *schema.Re
 
 	identityProviderState := identityProviderFromResourceData(resourceData)
 	// Wait till the cluster is ready:
-	if err := common2.WaitTillClusterIsReadyOrFail(ctx, clusterCollection, identityProviderState.Cluster); err != nil {
+	if err := common.WaitTillClusterIsReadyOrFail(ctx, clusterCollection, identityProviderState.Cluster); err != nil {
 		return []diag.Diagnostic{
 			{
 				Severity: diag.Error,
@@ -71,13 +71,11 @@ func resourceIdentityProviderCreate(ctx context.Context, resourceData *schema.Re
 
 	// Create the identity provider:
 	builder := cmv1.NewIdentityProvider()
+	mappingMethod := *identityProviderState.MappingMethod
+
 	builder.Name(identityProviderState.Name)
-	// handle mapping_method
-	mappingMethod := DefaultMappingMethod
-	if identityProviderState.MappingMethod != nil && *identityProviderState.MappingMethod != "" {
-		mappingMethod = *identityProviderState.MappingMethod
-	}
 	builder.MappingMethod(cmv1.IdentityProviderMappingMethod(mappingMethod))
+
 	switch {
 	case identityProviderState.HTPasswd != nil:
 		builder.Type(cmv1.IdentityProviderTypeHtpasswd)
@@ -161,38 +159,38 @@ func identityProviderToResourceData(object *cmv1.IdentityProvider,
 
 func validateAttributes(resourceData *schema.ResourceData) error {
 	if github, ok := resourceData.GetOk("github"); ok {
-		err := common2.ValidAllDiag(common2.ListOfMapValidator, GithubValidators)(github)
+		err := common.ValidAllDiag(common.ListOfMapValidator, GithubValidators)(github)
 		if err != nil {
 			return err
 		}
 	}
 	if htpasswd, ok := resourceData.GetOk("htpasswd"); ok {
-		err := common2.ValidAllDiag(common2.ListOfMapValidator, HTPasswdValidators)(htpasswd)
+		err := common.ValidAllDiag(common.ListOfMapValidator, HTPasswdValidators)(htpasswd)
 		if err != nil {
 			return err
 		}
 	}
 	if gitlab, ok := resourceData.GetOk("gitlab"); ok {
-		err := common2.ValidAllDiag(common2.ListOfMapValidator, GitlabValidators)(gitlab)
+		err := common.ValidAllDiag(common.ListOfMapValidator, GitlabValidators)(gitlab)
 		if err != nil {
 			return err
 		}
 	}
 	if google, ok := resourceData.GetOk("google"); ok {
-		err := common2.ValidAllDiag(common2.ListOfMapValidator, GoogleValidators)(google)
+		err := common.ValidAllDiag(common.ListOfMapValidator, GoogleValidators)(google)
 		if err != nil {
 			return err
 		}
 	}
 	if ldap, ok := resourceData.GetOk("ldap"); ok {
-		err := common2.ValidAllDiag(common2.ListOfMapValidator, LDAPValidators)(ldap)
+		err := common.ValidAllDiag(common.ListOfMapValidator, LDAPValidators)(ldap)
 		if err != nil {
 			return err
 		}
 		// validate `attributes` which it's a required attribute
 		l := ldap.([]interface{})
 		ldapMap := l[0].(map[string]interface{})
-		err = common2.ValidAllDiag(common2.ListOfMapValidator, ldapAttrsValidator)(ldapMap["attributes"])
+		err = common.ValidAllDiag(common.ListOfMapValidator, ldapAttrsValidator)(ldapMap["attributes"])
 		if err != nil {
 			return err
 		}
@@ -207,7 +205,7 @@ func identityProviderFromResourceData(resourceData *schema.ResourceData) *Identi
 		ID:      resourceData.Id(),
 	}
 
-	result.MappingMethod = common2.GetOptionalString(resourceData, "mapping_method")
+	result.MappingMethod = common.GetOptionalString(resourceData, "mapping_method")
 	result.HTPasswd = ExpandHTPASSFromResourceData(resourceData)
 	result.Gitlab = ExpandGitlabFromResourceData(resourceData)
 	result.Github = ExpandGithubFromResourceData(resourceData)
@@ -267,6 +265,7 @@ func resourceIdentityProviderUpdate(ctx context.Context, resourceData *schema.Re
 			Detail:   "This RHCS provider version does not support updating an existing IDP",
 		}}
 }
+
 func resourceIdentityProviderDelete(ctx context.Context, resourceData *schema.ResourceData, meta any) (diags diag.Diagnostics) {
 	tflog.Debug(ctx, "begin deleting")
 	clusterCollection := meta.(*sdk.Connection).ClustersMgmt().V1().Clusters()

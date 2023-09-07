@@ -22,8 +22,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	tfprovider "github.com/hashicorp/terraform-plugin-framework/provider"
+	tfschema "github.com/hashicorp/terraform-plugin-framework/provider/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
@@ -49,67 +52,58 @@ type Config struct {
 }
 
 // New creates the provider.
-func New() tfsdk.Provider {
+func New() tfprovider.Provider {
 	return &Provider{}
 }
 
 // Provider creates the schema for the provider.
-func (p *Provider) GetSchema(ctx context.Context) (schema tfsdk.Schema, diags diag.Diagnostics) {
-	schema = tfsdk.Schema{
-		Attributes: map[string]tfsdk.Attribute{
-			"url": {
+func (p *Provider) Schema(ctx context.Context) (schema tfschema.Schema, diags diag.Diagnostics) {
+	schema = tfschema.Schema{
+		Attributes: map[string]tfschema.Attribute{
+			"url": tfschema.StringAttribute{
 				Description: "URL of the API server.",
-				Type:        types.StringType,
 				Optional:    true,
 			},
-			"token_url": {
+			"token_url": tfschema.StringAttribute{
 				Description: "OpenID token URL.",
-				Type:        types.StringType,
 				Optional:    true,
 			},
-			"user": {
+			"user": tfschema.StringAttribute{
 				Description: "User name.",
-				Type:        types.StringType,
 				Optional:    true,
 			},
-			"password": {
+			"password": tfschema.StringAttribute{
 				Description: "User password.",
-				Type:        types.StringType,
 				Optional:    true,
 				Sensitive:   true,
 			},
-			"token": {
+			"token": tfschema.StringAttribute{
 				Description: "Access or refresh token that is " +
 					"generated from https://console.redhat.com/openshift/token/rosa.",
-				Type:      types.StringType,
 				Optional:  true,
 				Sensitive: true,
 			},
-			"client_id": {
+			"client_id": tfschema.StringAttribute{
 				Description: "OpenID client identifier.",
-				Type:        types.StringType,
 				Optional:    true,
 			},
-			"client_secret": {
+			"client_secret": tfschema.StringAttribute{
 				Description: "OpenID client secret.",
-				Type:        types.StringType,
 				Optional:    true,
 				Sensitive:   true,
 			},
-			"trusted_cas": {
+			"trusted_cas": tfschema.StringAttribute{
 				Description: "PEM encoded certificates of authorities that will " +
 					"be trusted. If this is not explicitly specified, then " +
 					"the provider will trust the certificate authorities " +
 					"trusted by default by the system.",
-				Type:     types.StringType,
 				Optional: true,
 			},
-			"insecure": {
+			"insecure": tfschema.BoolAttribute{
 				Description: "When set to 'true' enables insecure communication " +
 					"with the server. This disables verification of TLS " +
 					"certificates and host names, and it is not recommended " +
 					"for production environments.",
-				Type:     types.BoolType,
 				Optional: true,
 			},
 		},
@@ -119,8 +113,8 @@ func (p *Provider) GetSchema(ctx context.Context) (schema tfsdk.Schema, diags di
 
 // configure is the configuration function of the provider. It is responsible for checking the
 // connection parameters and creating the connection that will be used by the resources.
-func (p *Provider) Configure(ctx context.Context, request tfsdk.ConfigureProviderRequest,
-	response *tfsdk.ConfigureProviderResponse) {
+func (p *Provider) Configure(ctx context.Context, request tfprovider.ConfigureRequest,
+	response *tfprovider.ConfigureResponse) {
 	// Retrieve the provider configuration:
 	var config Config
 	diags := request.Config.Get(ctx, &config)
@@ -140,37 +134,37 @@ func (p *Provider) Configure(ctx context.Context, request tfsdk.ConfigureProvide
 	builder.Agent(fmt.Sprintf("OCM-TF/%s-%s", build.Version, build.Commit))
 
 	// Copy the settings:
-	if !config.URL.Null {
-		builder.URL(config.URL.Value)
+	if !config.URL.IsNull() {
+		builder.URL(config.URL.ValueString())
 	} else {
 		url, ok := os.LookupEnv("RHCS_URL")
 		if ok {
 			builder.URL(url)
 		}
 	}
-	if !config.TokenURL.Null {
-		builder.TokenURL(config.TokenURL.Value)
+	if !config.TokenURL.IsNull() {
+		builder.TokenURL(config.TokenURL.ValueString())
 	}
-	if !config.User.Null && !config.Password.Null {
-		builder.User(config.User.Value, config.Password.Value)
+	if !config.User.IsNull() && !config.Password.IsNull() {
+		builder.User(config.User.ValueString(), config.Password.ValueString())
 	}
-	if !config.Token.Null {
-		builder.Tokens(config.Token.Value)
+	if !config.Token.IsNull() {
+		builder.Tokens(config.Token.ValueString())
 	} else {
 		token, ok := os.LookupEnv("RHCS_TOKEN")
 		if ok {
 			builder.Tokens(token)
 		}
 	}
-	if !config.ClientID.Null && !config.ClientSecret.Null {
-		builder.Client(config.ClientID.Value, config.ClientSecret.Value)
+	if !config.ClientID.IsNull() && !config.ClientSecret.IsNull() {
+		builder.Client(config.ClientID.ValueString(), config.ClientSecret.ValueString())
 	}
-	if !config.Insecure.Null {
-		builder.Insecure(config.Insecure.Value)
+	if !config.Insecure.IsNull() {
+		builder.Insecure(config.Insecure.ValueBool())
 	}
-	if !config.TrustedCAs.Null {
+	if !config.TrustedCAs.IsNull() {
 		pool := x509.NewCertPool()
-		if !pool.AppendCertsFromPEM([]byte(config.TrustedCAs.Value)) {
+		if !pool.AppendCertsFromPEM([]byte(config.TrustedCAs.ValueString())) {
 			response.Diagnostics.AddError(
 				"the value of 'trusted_cas' doesn't contain any certificate",
 				"",
@@ -191,10 +185,14 @@ func (p *Provider) Configure(ctx context.Context, request tfsdk.ConfigureProvide
 	p.connection = connection
 }
 
-// GetResources returns the resources supported by the provider.
-func (p *Provider) GetResources(ctx context.Context) (result map[string]tfsdk.ResourceType,
+// Resources returns the resources supported by the provider.
+func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
+	return []func() resource.Resource{}
+}
+
+func (p *Provider) Resources(ctx context.Context) (result map[string]resource.Resource,
 	diags diag.Diagnostics) {
-	result = map[string]tfsdk.ResourceType{
+	result = map[string]resource.Resource{
 		"rhcs_cluster":                &ClusterResourceType{},
 		"rhcs_cluster_rosa_classic":   &ClusterRosaClassicResourceType{},
 		"rhcs_group_membership":       &GroupMembershipResourceType{},
@@ -209,9 +207,9 @@ func (p *Provider) GetResources(ctx context.Context) (result map[string]tfsdk.Re
 }
 
 // GetDataSources returns the data sources supported by the provider.
-func (p *Provider) GetDataSources(ctx context.Context) (result map[string]tfsdk.DataSourceType,
+func (p *Provider) DataSources(ctx context.Context) (result map[string]datasource.DataSource,
 	diags diag.Diagnostics) {
-	result = map[string]tfsdk.DataSourceType{
+	result = map[string]datasource.DataSource{
 		"rhcs_cloud_providers":     &CloudProvidersDataSourceType{},
 		"rhcs_rosa_operator_roles": &RosaOperatorRolesDataSourceType{},
 		"rhcs_policies":            &OcmPoliciesDataSourceType{},

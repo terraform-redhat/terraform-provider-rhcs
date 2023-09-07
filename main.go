@@ -18,8 +18,10 @@ package main
 
 import (
 	"context"
+	"flag"
+	"log"
 
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider"
 )
@@ -27,12 +29,21 @@ import (
 // Generate the Terraform provider documentation using `tfplugindocs`:
 //go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
 
+const rhcsProviderAddress = "registry.terraform.io/terraform-redhat/rhcs"
+
 func main() {
-	tfsdk.Serve(
-		context.Background(),
-		provider.New,
-		tfsdk.ServeOpts{
-			Name: "rhcs",
-		},
-	)
+	var debug bool
+
+	flag.BoolVar(&debug, "debug", false, "set to true to run the provider with support for debuggers like delve")
+	flag.Parse()
+
+	opts := providerserver.ServeOpts{
+		// TODO: Update this string with the published name of your provider.
+		Address: rhcsProviderAddress,
+		Debug:   debug,
+	}
+
+	if err := providerserver.Serve(context.Background(), provider.New, opts); err != nil {
+		log.Fatal(err.Error())
+	}
 }

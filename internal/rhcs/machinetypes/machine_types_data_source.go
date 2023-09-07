@@ -133,7 +133,14 @@ func machineTypesDataSourceRead(ctx context.Context, resourceData *schema.Resour
 	}
 
 	resourceData.SetId(DataSourceID)
-	resourceData.Set("items", listOfMachineTypes)
+	if err := resourceData.Set("items", listOfMachineTypes); err != nil {
+		return []diag.Diagnostic{
+			{
+				Severity: diag.Error,
+				Summary:  "Can't set list of machine types",
+				Detail:   err.Error(),
+			}}
+	}
 
-	return
+	return nil
 }

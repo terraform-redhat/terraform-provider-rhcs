@@ -48,7 +48,7 @@ type VersionState struct {
 	Name string `tfsdk:"name"`
 }
 
-func versionsDataSourcSchema() map[string]*schema.Schema {
+func versionsDataSourceSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"search": {
 			Description: "Search criteria.",
@@ -96,11 +96,13 @@ func itemSchema() map[string]*schema.Schema {
 	}
 }
 
-func versionsStateToResourceData(versionsState *VersionsState, resourceData *schema.ResourceData) {
+func versionsStateToResourceData(versionsState *VersionsState, resourceData *schema.ResourceData) error {
 	if versionsState.Item != nil {
-		resourceData.Set("item", []interface{}{flatVersion(*versionsState.Item)})
+		if err := resourceData.Set("item", []interface{}{flatVersion(*versionsState.Item)}); err != nil {
+			return err
+		}
 	}
-	resourceData.Set("items", flatVersions(versionsState))
+	return resourceData.Set("items", flatVersions(versionsState))
 }
 
 func flatVersions(VersionsState *VersionsState) []interface{} {

@@ -124,7 +124,7 @@ func DatasourceMap() map[string]*schema.Resource {
 		"rhcs_policies":            rolesandpolicies2.OcmPoliciesDataSource(),
 		"rhcs_groups":              groups.GroupsDataSource(),
 		"rhcs_machine_types":       machinetypes.MachineTypesDataSource(),
-		"rhcs_versions":            versions.VersionsDataSourc(),
+		"rhcs_versions":            versions.VersionsDataSource(),
 	}
 }
 func ResourceMap() map[string]*schema.Resource {

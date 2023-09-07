@@ -18,25 +18,25 @@ package versions
 
 import (
 	"context"
-	"github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/common"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	"github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/common"
 )
 
 const DataSourceID = "versions"
 
-func VersionsDataSourc() *schema.Resource {
+func VersionsDataSource() *schema.Resource {
 	return &schema.Resource{
-		ReadContext: versionsDataSourcRead,
-		Schema:      versionsDataSourcSchema(),
+		ReadContext: versionsDataSourceRead,
+		Schema:      versionsDataSourceSchema(),
 	}
 }
 
-func versionsDataSourcRead(ctx context.Context, resourceData *schema.ResourceData, meta interface{}) (diags diag.Diagnostics) {
-	// Get the collection of machines:
+func versionsDataSourceRead(ctx context.Context, resourceData *schema.ResourceData, meta interface{}) (diags diag.Diagnostics) {
+	// Get the collection of versions:
 	collection := meta.(*sdk.Connection).ClustersMgmt().V1().Versions()
 
 	versionsState := versionsStateFromResourceData(resourceData)
@@ -95,6 +95,13 @@ func versionsDataSourcRead(ctx context.Context, resourceData *schema.ResourceDat
 	}
 
 	resourceData.SetId(DataSourceID)
-	versionsStateToResourceData(versionsState, resourceData)
+	if err := versionsStateToResourceData(versionsState, resourceData); err != nil {
+		return []diag.Diagnostic{
+			{
+				Severity: diag.Error,
+				Summary:  "Can't populate data source",
+				Detail:   err.Error(),
+			}}
+	}
 	return nil
 }

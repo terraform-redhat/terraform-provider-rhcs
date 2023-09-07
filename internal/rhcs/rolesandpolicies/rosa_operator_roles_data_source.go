@@ -19,8 +19,9 @@ package rolesandpolicies
 import (
 	"context"
 	"fmt"
-	"github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/common"
 	"sort"
+
+	"github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/common"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -54,7 +55,7 @@ func operatorRolesDataSourceRead(ctx context.Context, resourceData *schema.Resou
 			{
 				Severity: diag.Error,
 				Summary:  description,
-				Detail:   "hint: validate the credetials (token) used to run this clusterservice",
+				Detail:   "hint: validate the credentials (token) used to run this provider",
 			}}
 	}
 

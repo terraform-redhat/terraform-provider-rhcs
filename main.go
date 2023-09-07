@@ -22,7 +22,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/provider"
 )
 
-// Generate the Terraform clusterservice documentation using `tfplugindocs`:
+// Generate the Terraform provider documentation using `tfplugindocs`:
 //go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
 
 func main() {

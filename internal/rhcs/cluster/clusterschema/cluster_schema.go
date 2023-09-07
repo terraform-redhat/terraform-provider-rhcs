@@ -17,7 +17,7 @@ func ClusterFields() map[string]*schema.Schema {
 			Required:    true,
 		},
 		"cloud_provider": {
-			Description: "Cloud clusterservice identifier, for example 'aws'.",
+			Description: "Cloud provider identifier, for example 'aws'.",
 			Type:        schema.TypeString,
 			Required:    true,
 		},

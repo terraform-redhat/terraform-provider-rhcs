@@ -27,7 +27,7 @@ import (
 
 var _ = Describe("Machine pool creation", func() {
 	BeforeEach(func() {
-		// The first thing that the clusterservice will do for any operation on machine pools
+		// The first thing that the provider will do for any operation on machine pools
 		// is check that the cluster is ready, so we always need to prepare the server to
 		// respond to that:
 		server.AppendHandlers(
@@ -1413,7 +1413,7 @@ var _ = Describe("Machine pool creation", func() {
 
 var _ = Describe("Machine pool w/ mAZ cluster", func() {
 	BeforeEach(func() {
-		// The first thing that the clusterservice will do for any operation on machine pools
+		// The first thing that the provider will do for any operation on machine pools
 		// is check that the cluster is ready, so we always need to prepare the server to
 		// respond to that:
 		server.AppendHandlers(
@@ -1652,7 +1652,7 @@ var _ = Describe("Machine pool w/ mAZ cluster", func() {
 
 var _ = Describe("Machine pool w/ 1AZ cluster", func() {
 	BeforeEach(func() {
-		// The first thing that the clusterservice will do for any operation on machine pools
+		// The first thing that the provider will do for any operation on machine pools
 		// is check that the cluster is ready, so we always need to prepare the server to
 		// respond to that:
 		server.AppendHandlers(

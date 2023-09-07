@@ -54,21 +54,21 @@ func cloudProviderSchema() map[string]*schema.Schema {
 func itemAttributes() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"id": {
-			Description: "Unique identifier of the cloud clusterservice. This is what " +
-				"should be used when referencing the cloud clusterservice from other " +
+			Description: "Unique identifier of the cloud provider. This is what " +
+				"should be used when referencing the cloud provider from other " +
 				"places, for example in the 'cloud_provider' attribute " +
 				"of the cluster resource.",
 			Type:     schema.TypeString,
 			Computed: true,
 		},
 		"name": {
-			Description: "Short name of the cloud clusterservice, for example 'aws' " +
+			Description: "Short name of the cloud provider, for example 'aws' " +
 				"or 'gcp'.",
 			Type:     schema.TypeString,
 			Computed: true,
 		},
 		"display_name": {
-			Description: "Human friendly name of the cloud clusterservice, for example " +
+			Description: "Human friendly name of the cloud provider, for example " +
 				"'AWS' or 'GCP'",
 			Type:     schema.TypeString,
 			Computed: true,

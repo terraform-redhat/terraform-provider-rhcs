@@ -19,14 +19,15 @@ package idps
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	common2 "github.com/terraform-redhat/terraform-provider-rhcs/internal/rhcs/common"
-	"net/http"
-	"strings"
 )
 
 func ResourceIdentityProvider() *schema.Resource {
@@ -68,7 +69,7 @@ func resourceIdentityProviderCreate(ctx context.Context, resourceData *schema.Re
 			}}
 	}
 
-	// Create the identity clusterservice:
+	// Create the identity provider:
 	builder := cmv1.NewIdentityProvider()
 	builder.Name(identityProviderState.Name)
 	// handle mapping_method
@@ -117,9 +118,9 @@ func resourceIdentityProviderCreate(ctx context.Context, resourceData *schema.Re
 		return []diag.Diagnostic{
 			{
 				Severity: diag.Error,
-				Summary:  "Can't build identity clusterservice",
+				Summary:  "Can't build identity provider",
 				Detail: fmt.Sprintf(
-					"Can't build identity clusterservice with name '%s': %v",
+					"Can't build identity provider with name '%s': %v",
 					identityProviderState.Name, err),
 			}}
 	}
@@ -129,9 +130,9 @@ func resourceIdentityProviderCreate(ctx context.Context, resourceData *schema.Re
 		return []diag.Diagnostic{
 			{
 				Severity: diag.Error,
-				Summary:  "Can't create identity clusterservice",
+				Summary:  "Can't create identity provider",
 				Detail: fmt.Sprintf(
-					"Can't create identity clusterservice with name '%s' for "+
+					"Can't create identity provider with name '%s' for "+
 						"cluster '%s': %v",
 					identityProviderState.Name, identityProviderState.Cluster, err,
 				),
@@ -221,13 +222,13 @@ func resourceIdentityProviderRead(ctx context.Context, resourceData *schema.Reso
 	clusterCollection := meta.(*sdk.Connection).ClustersMgmt().V1().Clusters()
 	identityProviderState := identityProviderFromResourceData(resourceData)
 
-	// Find the identity clusterservice:
+	// Find the identity provider:
 	resource := clusterCollection.Cluster(identityProviderState.Cluster).
 		IdentityProviders().
 		IdentityProvider(identityProviderState.ID)
 	get, err := resource.Get().SendContext(ctx)
 	if err != nil && get.Status() == http.StatusNotFound {
-		summary := fmt.Sprintf("identity clusterservice (%s) of cluster (%s) not found, removing from state",
+		summary := fmt.Sprintf("identity provider (%s) of cluster (%s) not found, removing from state",
 			identityProviderState.ID, identityProviderState.Cluster,
 		)
 		tflog.Warn(ctx, summary)
@@ -244,9 +245,9 @@ func resourceIdentityProviderRead(ctx context.Context, resourceData *schema.Reso
 		return []diag.Diagnostic{
 			{
 				Severity: diag.Error,
-				Summary:  "Can't find identity clusterservice",
+				Summary:  "Can't find identity provider",
 				Detail: fmt.Sprintf(
-					"Can't find identity clusterservice with identifier '%s' for "+
+					"Can't find identity provider with identifier '%s' for "+
 						"cluster '%s': %v",
 					identityProviderState.ID, identityProviderState.Cluster, err),
 			}}
@@ -271,7 +272,7 @@ func resourceIdentityProviderDelete(ctx context.Context, resourceData *schema.Re
 	clusterCollection := meta.(*sdk.Connection).ClustersMgmt().V1().Clusters()
 	identityProviderState := identityProviderFromResourceData(resourceData)
 
-	// Send the request to delete the identity clusterservice:
+	// Send the request to delete the identity provider:
 	resource := clusterCollection.Cluster(identityProviderState.Cluster).
 		IdentityProviders().
 		IdentityProvider(identityProviderState.ID)
@@ -280,9 +281,9 @@ func resourceIdentityProviderDelete(ctx context.Context, resourceData *schema.Re
 		return []diag.Diagnostic{
 			{
 				Severity: diag.Error,
-				Summary:  "Can't delete identity clusterservice",
+				Summary:  "Can't delete identity provider",
 				Detail: fmt.Sprintf(
-					"Can't delete identity clusterservice with identifier '%s' for "+
+					"Can't delete identity provider with identifier '%s' for "+
 						"cluster '%s': %v",
 					identityProviderState.ID, identityProviderState.Cluster, err,
 				),
@@ -295,7 +296,7 @@ func resourceIdentityProviderDelete(ctx context.Context, resourceData *schema.Re
 }
 
 func resourceIDPImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	// To import an identity clusterservice, we need to know the cluster ID and the clusterservice name.
+	// To import an identity provider, we need to know the cluster ID and the provider name.
 	fields := strings.Split(d.Id(), ",")
 	if len(fields) != 2 || fields[0] == "" || fields[1] == "" {
 		return nil, fmt.Errorf("Invalid import identifier (%s), expected <cluster_id>,<provider_name>", d.Id())
@@ -307,7 +308,7 @@ func resourceIDPImport(ctx context.Context, d *schema.ResourceData, meta interfa
 
 	providerID, err := getIDPIDFromName(ctx, clusterCollection, providerName)
 	if err != nil {
-		return nil, fmt.Errorf("Can't import identity clusterservice %v", err.Error())
+		return nil, fmt.Errorf("Can't import identity provider %v", err.Error())
 	}
 
 	d.SetId(providerID)
@@ -317,7 +318,7 @@ func resourceIDPImport(ctx context.Context, d *schema.ResourceData, meta interfa
 	return []*schema.ResourceData{d}, nil
 }
 
-// getIDPIDFromName returns the ID of the identity clusterservice with the given name.
+// getIDPIDFromName returns the ID of the identity provider with the given name.
 func getIDPIDFromName(ctx context.Context, client *cmv1.ClusterClient, name string) (string, error) {
 	tflog.Debug(ctx, fmt.Sprintf("Converting IDP name to ID, name %s", name))
 	// Get the list of identity providers for the cluster:
@@ -340,7 +341,7 @@ func getIDPIDFromName(ctx context.Context, client *cmv1.ClusterClient, name stri
 		page++
 	}
 
-	// Find the identity clusterservice with the given name
+	// Find the identity provider with the given name
 	for _, item := range identityProviders {
 
 		if item.Name() == name {
@@ -350,5 +351,5 @@ func getIDPIDFromName(ctx context.Context, client *cmv1.ClusterClient, name stri
 		}
 	}
 
-	return "", fmt.Errorf("identity clusterservice '%s' not found", name)
+	return "", fmt.Errorf("identity provider '%s' not found", name)
 }

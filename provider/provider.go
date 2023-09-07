@@ -22,8 +22,11 @@ package provider
 ***REMOVED***
 	"os"
 
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	tfprovider "github.com/hashicorp/terraform-plugin-framework/provider"
+	tfschema "github.com/hashicorp/terraform-plugin-framework/provider/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
@@ -49,67 +52,58 @@ type Config struct {
 }
 
 // New creates the provider.
-func New(***REMOVED*** tfsdk.Provider {
+func New(***REMOVED*** tfprovider.Provider {
 	return &Provider{}
 }
 
 // Provider creates the schema for the provider.
-func (p *Provider***REMOVED*** GetSchema(ctx context.Context***REMOVED*** (schema tfsdk.Schema, diags diag.Diagnostics***REMOVED*** {
-	schema = tfsdk.Schema{
-		Attributes: map[string]tfsdk.Attribute{
-			"url": {
+func (p *Provider***REMOVED*** Schema(ctx context.Context***REMOVED*** (schema tfschema.Schema, diags diag.Diagnostics***REMOVED*** {
+	schema = tfschema.Schema{
+		Attributes: map[string]tfschema.Attribute{
+			"url": tfschema.StringAttribute{
 				Description: "URL of the API server.",
-				Type:        types.StringType,
 				Optional:    true,
 	***REMOVED***,
-			"token_url": {
+			"token_url": tfschema.StringAttribute{
 				Description: "OpenID token URL.",
-				Type:        types.StringType,
 				Optional:    true,
 	***REMOVED***,
-			"user": {
+			"user": tfschema.StringAttribute{
 				Description: "User name.",
-				Type:        types.StringType,
 				Optional:    true,
 	***REMOVED***,
-			"password": {
+			"password": tfschema.StringAttribute{
 				Description: "User password.",
-				Type:        types.StringType,
 				Optional:    true,
 				Sensitive:   true,
 	***REMOVED***,
-			"token": {
+			"token": tfschema.StringAttribute{
 				Description: "Access or refresh token that is " +
 					"generated from https://console.redhat.com/openshift/token/rosa.",
-				Type:      types.StringType,
 				Optional:  true,
 				Sensitive: true,
 	***REMOVED***,
-			"client_id": {
+			"client_id": tfschema.StringAttribute{
 				Description: "OpenID client identifier.",
-				Type:        types.StringType,
 				Optional:    true,
 	***REMOVED***,
-			"client_secret": {
+			"client_secret": tfschema.StringAttribute{
 				Description: "OpenID client secret.",
-				Type:        types.StringType,
 				Optional:    true,
 				Sensitive:   true,
 	***REMOVED***,
-			"trusted_cas": {
+			"trusted_cas": tfschema.StringAttribute{
 				Description: "PEM encoded certificates of authorities that will " +
 					"be trusted. If this is not explicitly specified, then " +
 					"the provider will trust the certificate authorities " +
 					"trusted by default by the system.",
-				Type:     types.StringType,
 				Optional: true,
 	***REMOVED***,
-			"insecure": {
+			"insecure": tfschema.BoolAttribute{
 				Description: "When set to 'true' enables insecure communication " +
 					"with the server. This disables verification of TLS " +
 					"certificates and host names, and it is not recommended " +
 					"for production environments.",
-				Type:     types.BoolType,
 				Optional: true,
 	***REMOVED***,
 ***REMOVED***,
@@ -119,8 +113,8 @@ func (p *Provider***REMOVED*** GetSchema(ctx context.Context***REMOVED*** (schem
 
 // configure is the configuration function of the provider. It is responsible for checking the
 // connection parameters and creating the connection that will be used by the resources.
-func (p *Provider***REMOVED*** Configure(ctx context.Context, request tfsdk.ConfigureProviderRequest,
-	response *tfsdk.ConfigureProviderResponse***REMOVED*** {
+func (p *Provider***REMOVED*** Configure(ctx context.Context, request tfprovider.ConfigureRequest,
+	response *tfprovider.ConfigureResponse***REMOVED*** {
 	// Retrieve the provider configuration:
 	var config Config
 	diags := request.Config.Get(ctx, &config***REMOVED***
@@ -140,37 +134,37 @@ func (p *Provider***REMOVED*** Configure(ctx context.Context, request tfsdk.Conf
 	builder.Agent(fmt.Sprintf("OCM-TF/%s-%s", build.Version, build.Commit***REMOVED******REMOVED***
 
 	// Copy the settings:
-	if !config.URL.Null {
-		builder.URL(config.URL.Value***REMOVED***
+	if !config.URL.IsNull(***REMOVED*** {
+		builder.URL(config.URL.ValueString(***REMOVED******REMOVED***
 	} else {
 		url, ok := os.LookupEnv("RHCS_URL"***REMOVED***
 		if ok {
 			builder.URL(url***REMOVED***
 ***REMOVED***
 	}
-	if !config.TokenURL.Null {
-		builder.TokenURL(config.TokenURL.Value***REMOVED***
+	if !config.TokenURL.IsNull(***REMOVED*** {
+		builder.TokenURL(config.TokenURL.ValueString(***REMOVED******REMOVED***
 	}
-	if !config.User.Null && !config.Password.Null {
-		builder.User(config.User.Value, config.Password.Value***REMOVED***
+	if !config.User.IsNull(***REMOVED*** && !config.Password.IsNull(***REMOVED*** {
+		builder.User(config.User.ValueString(***REMOVED***, config.Password.ValueString(***REMOVED******REMOVED***
 	}
-	if !config.Token.Null {
-		builder.Tokens(config.Token.Value***REMOVED***
+	if !config.Token.IsNull(***REMOVED*** {
+		builder.Tokens(config.Token.ValueString(***REMOVED******REMOVED***
 	} else {
 		token, ok := os.LookupEnv("RHCS_TOKEN"***REMOVED***
 		if ok {
 			builder.Tokens(token***REMOVED***
 ***REMOVED***
 	}
-	if !config.ClientID.Null && !config.ClientSecret.Null {
-		builder.Client(config.ClientID.Value, config.ClientSecret.Value***REMOVED***
+	if !config.ClientID.IsNull(***REMOVED*** && !config.ClientSecret.IsNull(***REMOVED*** {
+		builder.Client(config.ClientID.ValueString(***REMOVED***, config.ClientSecret.ValueString(***REMOVED******REMOVED***
 	}
-	if !config.Insecure.Null {
-		builder.Insecure(config.Insecure.Value***REMOVED***
+	if !config.Insecure.IsNull(***REMOVED*** {
+		builder.Insecure(config.Insecure.ValueBool(***REMOVED******REMOVED***
 	}
-	if !config.TrustedCAs.Null {
+	if !config.TrustedCAs.IsNull(***REMOVED*** {
 		pool := x509.NewCertPool(***REMOVED***
-		if !pool.AppendCertsFromPEM([]byte(config.TrustedCAs.Value***REMOVED******REMOVED*** {
+		if !pool.AppendCertsFromPEM([]byte(config.TrustedCAs.ValueString(***REMOVED******REMOVED******REMOVED*** {
 			response.Diagnostics.AddError(
 				"the value of 'trusted_cas' doesn't contain any certificate",
 				"",
@@ -191,10 +185,14 @@ func (p *Provider***REMOVED*** Configure(ctx context.Context, request tfsdk.Conf
 	p.connection = connection
 }
 
-// GetResources returns the resources supported by the provider.
-func (p *Provider***REMOVED*** GetResources(ctx context.Context***REMOVED*** (result map[string]tfsdk.ResourceType,
+// Resources returns the resources supported by the provider.
+func (p *Provider***REMOVED*** Resources(ctx context.Context***REMOVED*** []func(***REMOVED*** resource.Resource {
+	return []func(***REMOVED*** resource.Resource{}
+}
+
+func (p *Provider***REMOVED*** Resources(ctx context.Context***REMOVED*** (result map[string]resource.Resource,
 	diags diag.Diagnostics***REMOVED*** {
-	result = map[string]tfsdk.ResourceType{
+	result = map[string]resource.Resource{
 		"rhcs_cluster":                &ClusterResourceType{},
 		"rhcs_cluster_rosa_classic":   &ClusterRosaClassicResourceType{},
 		"rhcs_group_membership":       &GroupMembershipResourceType{},
@@ -209,9 +207,9 @@ func (p *Provider***REMOVED*** GetResources(ctx context.Context***REMOVED*** (re
 }
 
 // GetDataSources returns the data sources supported by the provider.
-func (p *Provider***REMOVED*** GetDataSources(ctx context.Context***REMOVED*** (result map[string]tfsdk.DataSourceType,
+func (p *Provider***REMOVED*** DataSources(ctx context.Context***REMOVED*** (result map[string]datasource.DataSource,
 	diags diag.Diagnostics***REMOVED*** {
-	result = map[string]tfsdk.DataSourceType{
+	result = map[string]datasource.DataSource{
 		"rhcs_cloud_providers":     &CloudProvidersDataSourceType{},
 		"rhcs_rosa_operator_roles": &RosaOperatorRolesDataSourceType{},
 		"rhcs_policies":            &OcmPoliciesDataSourceType{},

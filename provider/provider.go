@@ -23,9 +23,8 @@ package provider
 	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	tfprovider "github.com/hashicorp/terraform-plugin-framework/provider"
-	tfschema "github.com/hashicorp/terraform-plugin-framework/provider/schema"
+	tfpschema "github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	sdk "github.com/openshift-online/ocm-sdk-go"
@@ -34,9 +33,9 @@ package provider
 ***REMOVED***
 
 // Provider is the implementation of the Provider.
-type Provider struct {
-	connection *sdk.Connection
-}
+type Provider struct{}
+
+var _ tfprovider.Provider = &Provider{}
 
 // Config contains the configuration of the provider.
 type Config struct {
@@ -56,50 +55,55 @@ func New(***REMOVED*** tfprovider.Provider {
 	return &Provider{}
 }
 
+func (p *Provider***REMOVED*** Metadata(ctx context.Context, req tfprovider.MetadataRequest, resp *tfprovider.MetadataResponse***REMOVED*** {
+	resp.TypeName = "rhcs"
+	resp.Version = build.Version
+}
+
 // Provider creates the schema for the provider.
-func (p *Provider***REMOVED*** Schema(ctx context.Context***REMOVED*** (schema tfschema.Schema, diags diag.Diagnostics***REMOVED*** {
-	schema = tfschema.Schema{
-		Attributes: map[string]tfschema.Attribute{
-			"url": tfschema.StringAttribute{
+func (p *Provider***REMOVED*** Schema(ctx context.Context, req tfprovider.SchemaRequest, resp *tfprovider.SchemaResponse***REMOVED*** {
+	resp.Schema = tfpschema.Schema{
+		Attributes: map[string]tfpschema.Attribute{
+			"url": tfpschema.StringAttribute{
 				Description: "URL of the API server.",
 				Optional:    true,
 	***REMOVED***,
-			"token_url": tfschema.StringAttribute{
+			"token_url": tfpschema.StringAttribute{
 				Description: "OpenID token URL.",
 				Optional:    true,
 	***REMOVED***,
-			"user": tfschema.StringAttribute{
+			"user": tfpschema.StringAttribute{
 				Description: "User name.",
 				Optional:    true,
 	***REMOVED***,
-			"password": tfschema.StringAttribute{
+			"password": tfpschema.StringAttribute{
 				Description: "User password.",
 				Optional:    true,
 				Sensitive:   true,
 	***REMOVED***,
-			"token": tfschema.StringAttribute{
+			"token": tfpschema.StringAttribute{
 				Description: "Access or refresh token that is " +
 					"generated from https://console.redhat.com/openshift/token/rosa.",
 				Optional:  true,
 				Sensitive: true,
 	***REMOVED***,
-			"client_id": tfschema.StringAttribute{
+			"client_id": tfpschema.StringAttribute{
 				Description: "OpenID client identifier.",
 				Optional:    true,
 	***REMOVED***,
-			"client_secret": tfschema.StringAttribute{
+			"client_secret": tfpschema.StringAttribute{
 				Description: "OpenID client secret.",
 				Optional:    true,
 				Sensitive:   true,
 	***REMOVED***,
-			"trusted_cas": tfschema.StringAttribute{
+			"trusted_cas": tfpschema.StringAttribute{
 				Description: "PEM encoded certificates of authorities that will " +
 					"be trusted. If this is not explicitly specified, then " +
 					"the provider will trust the certificate authorities " +
 					"trusted by default by the system.",
 				Optional: true,
 	***REMOVED***,
-			"insecure": tfschema.BoolAttribute{
+			"insecure": tfpschema.BoolAttribute{
 				Description: "When set to 'true' enables insecure communication " +
 					"with the server. This disables verification of TLS " +
 					"certificates and host names, and it is not recommended " +
@@ -113,13 +117,13 @@ func (p *Provider***REMOVED*** Schema(ctx context.Context***REMOVED*** (schema t
 
 // configure is the configuration function of the provider. It is responsible for checking the
 // connection parameters and creating the connection that will be used by the resources.
-func (p *Provider***REMOVED*** Configure(ctx context.Context, request tfprovider.ConfigureRequest,
-	response *tfprovider.ConfigureResponse***REMOVED*** {
+func (p *Provider***REMOVED*** Configure(ctx context.Context, req tfprovider.ConfigureRequest,
+	resp *tfprovider.ConfigureResponse***REMOVED*** {
 	// Retrieve the provider configuration:
 	var config Config
-	diags := request.Config.Get(ctx, &config***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
-	if response.Diagnostics.HasError(***REMOVED*** {
+	diags := req.Config.Get(ctx, &config***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
+	if resp.Diagnostics.HasError(***REMOVED*** {
 		return
 	}
 
@@ -165,7 +169,7 @@ func (p *Provider***REMOVED*** Configure(ctx context.Context, request tfprovider
 	if !config.TrustedCAs.IsNull(***REMOVED*** {
 		pool := x509.NewCertPool(***REMOVED***
 		if !pool.AppendCertsFromPEM([]byte(config.TrustedCAs.ValueString(***REMOVED******REMOVED******REMOVED*** {
-			response.Diagnostics.AddError(
+			resp.Diagnostics.AddError(
 				"the value of 'trusted_cas' doesn't contain any certificate",
 				"",
 			***REMOVED***
@@ -177,45 +181,52 @@ func (p *Provider***REMOVED*** Configure(ctx context.Context, request tfprovider
 	// Create the connection:
 	connection, err := builder.BuildContext(ctx***REMOVED***
 	if err != nil {
-		response.Diagnostics.AddError(err.Error(***REMOVED***, ""***REMOVED***
+		resp.Diagnostics.AddError(err.Error(***REMOVED***, ""***REMOVED***
 		return
 	}
 
 	// Save the connection:
-	p.connection = connection
+	resp.DataSourceData = connection
+	resp.ResourceData = connection
 }
 
 // Resources returns the resources supported by the provider.
 func (p *Provider***REMOVED*** Resources(ctx context.Context***REMOVED*** []func(***REMOVED*** resource.Resource {
-	return []func(***REMOVED*** resource.Resource{}
+	return []func(***REMOVED*** resource.Resource{
+		NewClusterWaiterResource,
+	}
 }
 
-func (p *Provider***REMOVED*** Resources(ctx context.Context***REMOVED*** (result map[string]resource.Resource,
-	diags diag.Diagnostics***REMOVED*** {
-	result = map[string]resource.Resource{
-		"rhcs_cluster":                &ClusterResourceType{},
-		"rhcs_cluster_rosa_classic":   &ClusterRosaClassicResourceType{},
-		"rhcs_group_membership":       &GroupMembershipResourceType{},
-		"rhcs_identity_provider":      &IdentityProviderResourceType{},
-		"rhcs_machine_pool":           &MachinePoolResourceType{},
-		"rhcs_cluster_wait":           &ClusterWaiterResourceType{},
-		"rhcs_rosa_oidc_config_input": &RosaOidcConfigInputResourceType{},
-		"rhcs_rosa_oidc_config":       &RosaOidcConfigResourceType{},
-		"rhcs_dns_domain":             &DNSDomainResourceType{},
-	}
-	return
+// func (p *Provider***REMOVED*** Resources(ctx context.Context***REMOVED*** (result map[string]resource.Resource,
+// 	diags diag.Diagnostics***REMOVED*** {
+// 	result = map[string]resource.Resource{
+// 		"rhcs_cluster":                &ClusterResourceType{},
+// 		"rhcs_cluster_rosa_classic":   &ClusterRosaClassicResourceType{},
+// 		"rhcs_group_membership":       &GroupMembershipResourceType{},
+// 		"rhcs_identity_provider":      &IdentityProviderResourceType{},
+// 		"rhcs_machine_pool":           &MachinePoolResourceType{},
+// 		"rhcs_cluster_wait":           &ClusterWaiterResourceType{},
+// 		"rhcs_rosa_oidc_config_input": &RosaOidcConfigInputResourceType{},
+// 		"rhcs_rosa_oidc_config":       &RosaOidcConfigResourceType{},
+// 		"rhcs_dns_domain":             &DNSDomainResourceType{},
+// 	}
+// 	return
+// }
+
+func (p *Provider***REMOVED*** DataSources(ctx context.Context***REMOVED*** []func(***REMOVED*** datasource.DataSource {
+	return []func(***REMOVED*** datasource.DataSource{}
 }
 
 // GetDataSources returns the data sources supported by the provider.
-func (p *Provider***REMOVED*** DataSources(ctx context.Context***REMOVED*** (result map[string]datasource.DataSource,
-	diags diag.Diagnostics***REMOVED*** {
-	result = map[string]datasource.DataSource{
-		"rhcs_cloud_providers":     &CloudProvidersDataSourceType{},
-		"rhcs_rosa_operator_roles": &RosaOperatorRolesDataSourceType{},
-		"rhcs_policies":            &OcmPoliciesDataSourceType{},
-		"rhcs_groups":              &GroupsDataSourceType{},
-		"rhcs_machine_types":       &MachineTypesDataSourceType{},
-		"rhcs_versions":            &VersionsDataSourceType{},
-	}
-	return
-}
+// func (p *Provider***REMOVED*** DataSources(ctx context.Context***REMOVED*** (result map[string]datasource.DataSource,
+// 	diags diag.Diagnostics***REMOVED*** {
+// 	result = map[string]datasource.DataSource{
+// 		"rhcs_cloud_providers":     &CloudProvidersDataSourceType{},
+// 		"rhcs_rosa_operator_roles": &RosaOperatorRolesDataSourceType{},
+// 		"rhcs_policies":            &OcmPoliciesDataSourceType{},
+// 		"rhcs_groups":              &GroupsDataSourceType{},
+// 		"rhcs_machine_types":       &MachineTypesDataSourceType{},
+// 		"rhcs_versions":            &VersionsDataSourceType{},
+// 	}
+// 	return
+// }

@@ -23,9 +23,8 @@ import (
 	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	tfprovider "github.com/hashicorp/terraform-plugin-framework/provider"
-	tfschema "github.com/hashicorp/terraform-plugin-framework/provider/schema"
+	tfpschema "github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	sdk "github.com/openshift-online/ocm-sdk-go"
@@ -34,9 +33,9 @@ import (
 )
 
 // Provider is the implementation of the Provider.
-type Provider struct {
-	connection *sdk.Connection
-}
+type Provider struct{}
+
+var _ tfprovider.Provider = &Provider{}
 
 // Config contains the configuration of the provider.
 type Config struct {
@@ -56,50 +55,55 @@ func New() tfprovider.Provider {
 	return &Provider{}
 }
 
+func (p *Provider) Metadata(ctx context.Context, req tfprovider.MetadataRequest, resp *tfprovider.MetadataResponse) {
+	resp.TypeName = "rhcs"
+	resp.Version = build.Version
+}
+
 // Provider creates the schema for the provider.
-func (p *Provider) Schema(ctx context.Context) (schema tfschema.Schema, diags diag.Diagnostics) {
-	schema = tfschema.Schema{
-		Attributes: map[string]tfschema.Attribute{
-			"url": tfschema.StringAttribute{
+func (p *Provider) Schema(ctx context.Context, req tfprovider.SchemaRequest, resp *tfprovider.SchemaResponse) {
+	resp.Schema = tfpschema.Schema{
+		Attributes: map[string]tfpschema.Attribute{
+			"url": tfpschema.StringAttribute{
 				Description: "URL of the API server.",
 				Optional:    true,
 			},
-			"token_url": tfschema.StringAttribute{
+			"token_url": tfpschema.StringAttribute{
 				Description: "OpenID token URL.",
 				Optional:    true,
 			},
-			"user": tfschema.StringAttribute{
+			"user": tfpschema.StringAttribute{
 				Description: "User name.",
 				Optional:    true,
 			},
-			"password": tfschema.StringAttribute{
+			"password": tfpschema.StringAttribute{
 				Description: "User password.",
 				Optional:    true,
 				Sensitive:   true,
 			},
-			"token": tfschema.StringAttribute{
+			"token": tfpschema.StringAttribute{
 				Description: "Access or refresh token that is " +
 					"generated from https://console.redhat.com/openshift/token/rosa.",
 				Optional:  true,
 				Sensitive: true,
 			},
-			"client_id": tfschema.StringAttribute{
+			"client_id": tfpschema.StringAttribute{
 				Description: "OpenID client identifier.",
 				Optional:    true,
 			},
-			"client_secret": tfschema.StringAttribute{
+			"client_secret": tfpschema.StringAttribute{
 				Description: "OpenID client secret.",
 				Optional:    true,
 				Sensitive:   true,
 			},
-			"trusted_cas": tfschema.StringAttribute{
+			"trusted_cas": tfpschema.StringAttribute{
 				Description: "PEM encoded certificates of authorities that will " +
 					"be trusted. If this is not explicitly specified, then " +
 					"the provider will trust the certificate authorities " +
 					"trusted by default by the system.",
 				Optional: true,
 			},
-			"insecure": tfschema.BoolAttribute{
+			"insecure": tfpschema.BoolAttribute{
 				Description: "When set to 'true' enables insecure communication " +
 					"with the server. This disables verification of TLS " +
 					"certificates and host names, and it is not recommended " +
@@ -113,13 +117,13 @@ func (p *Provider) Schema(ctx context.Context) (schema tfschema.Schema, diags di
 
 // configure is the configuration function of the provider. It is responsible for checking the
 // connection parameters and creating the connection that will be used by the resources.
-func (p *Provider) Configure(ctx context.Context, request tfprovider.ConfigureRequest,
-	response *tfprovider.ConfigureResponse) {
+func (p *Provider) Configure(ctx context.Context, req tfprovider.ConfigureRequest,
+	resp *tfprovider.ConfigureResponse) {
 	// Retrieve the provider configuration:
 	var config Config
-	diags := request.Config.Get(ctx, &config)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
+	diags := req.Config.Get(ctx, &config)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -165,7 +169,7 @@ func (p *Provider) Configure(ctx context.Context, request tfprovider.ConfigureRe
 	if !config.TrustedCAs.IsNull() {
 		pool := x509.NewCertPool()
 		if !pool.AppendCertsFromPEM([]byte(config.TrustedCAs.ValueString())) {
-			response.Diagnostics.AddError(
+			resp.Diagnostics.AddError(
 				"the value of 'trusted_cas' doesn't contain any certificate",
 				"",
 			)
@@ -177,45 +181,52 @@ func (p *Provider) Configure(ctx context.Context, request tfprovider.ConfigureRe
 	// Create the connection:
 	connection, err := builder.BuildContext(ctx)
 	if err != nil {
-		response.Diagnostics.AddError(err.Error(), "")
+		resp.Diagnostics.AddError(err.Error(), "")
 		return
 	}
 
 	// Save the connection:
-	p.connection = connection
+	resp.DataSourceData = connection
+	resp.ResourceData = connection
 }
 
 // Resources returns the resources supported by the provider.
 func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
-	return []func() resource.Resource{}
+	return []func() resource.Resource{
+		NewClusterWaiterResource,
+	}
 }
 
-func (p *Provider) Resources(ctx context.Context) (result map[string]resource.Resource,
-	diags diag.Diagnostics) {
-	result = map[string]resource.Resource{
-		"rhcs_cluster":                &ClusterResourceType{},
-		"rhcs_cluster_rosa_classic":   &ClusterRosaClassicResourceType{},
-		"rhcs_group_membership":       &GroupMembershipResourceType{},
-		"rhcs_identity_provider":      &IdentityProviderResourceType{},
-		"rhcs_machine_pool":           &MachinePoolResourceType{},
-		"rhcs_cluster_wait":           &ClusterWaiterResourceType{},
-		"rhcs_rosa_oidc_config_input": &RosaOidcConfigInputResourceType{},
-		"rhcs_rosa_oidc_config":       &RosaOidcConfigResourceType{},
-		"rhcs_dns_domain":             &DNSDomainResourceType{},
-	}
-	return
+// func (p *Provider) Resources(ctx context.Context) (result map[string]resource.Resource,
+// 	diags diag.Diagnostics) {
+// 	result = map[string]resource.Resource{
+// 		"rhcs_cluster":                &ClusterResourceType{},
+// 		"rhcs_cluster_rosa_classic":   &ClusterRosaClassicResourceType{},
+// 		"rhcs_group_membership":       &GroupMembershipResourceType{},
+// 		"rhcs_identity_provider":      &IdentityProviderResourceType{},
+// 		"rhcs_machine_pool":           &MachinePoolResourceType{},
+// 		"rhcs_cluster_wait":           &ClusterWaiterResourceType{},
+// 		"rhcs_rosa_oidc_config_input": &RosaOidcConfigInputResourceType{},
+// 		"rhcs_rosa_oidc_config":       &RosaOidcConfigResourceType{},
+// 		"rhcs_dns_domain":             &DNSDomainResourceType{},
+// 	}
+// 	return
+// }
+
+func (p *Provider) DataSources(ctx context.Context) []func() datasource.DataSource {
+	return []func() datasource.DataSource{}
 }
 
 // GetDataSources returns the data sources supported by the provider.
-func (p *Provider) DataSources(ctx context.Context) (result map[string]datasource.DataSource,
-	diags diag.Diagnostics) {
-	result = map[string]datasource.DataSource{
-		"rhcs_cloud_providers":     &CloudProvidersDataSourceType{},
-		"rhcs_rosa_operator_roles": &RosaOperatorRolesDataSourceType{},
-		"rhcs_policies":            &OcmPoliciesDataSourceType{},
-		"rhcs_groups":              &GroupsDataSourceType{},
-		"rhcs_machine_types":       &MachineTypesDataSourceType{},
-		"rhcs_versions":            &VersionsDataSourceType{},
-	}
-	return
-}
+// func (p *Provider) DataSources(ctx context.Context) (result map[string]datasource.DataSource,
+// 	diags diag.Diagnostics) {
+// 	result = map[string]datasource.DataSource{
+// 		"rhcs_cloud_providers":     &CloudProvidersDataSourceType{},
+// 		"rhcs_rosa_operator_roles": &RosaOperatorRolesDataSourceType{},
+// 		"rhcs_policies":            &OcmPoliciesDataSourceType{},
+// 		"rhcs_groups":              &GroupsDataSourceType{},
+// 		"rhcs_machine_types":       &MachineTypesDataSourceType{},
+// 		"rhcs_versions":            &VersionsDataSourceType{},
+// 	}
+// 	return
+// }

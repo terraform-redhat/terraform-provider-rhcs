@@ -19,45 +19,49 @@ package provider
 import (
 	"context"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	tfdschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
-
-type CloudProvidersDataSourceType struct {
-}
 
 type CloudProvidersDataSource struct {
 	collection *cmv1.CloudProvidersClient
 }
 
-func (t *CloudProvidersDataSourceType) GetSchema(ctx context.Context) (result tfsdk.Schema,
-	diags diag.Diagnostics) {
-	result = tfsdk.Schema{
+var _ datasource.DataSource = &CloudProvidersDataSource{}
+var _ datasource.DataSourceWithConfigure = &CloudProvidersDataSource{}
+
+func NewCloudProvidersDataSource() datasource.DataSource {
+	return &CloudProvidersDataSource{}
+}
+
+func (s *CloudProvidersDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_cloud_providers"
+}
+
+func (s *CloudProvidersDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = tfdschema.Schema{
 		Description: "List of cloud providers.",
-		Attributes: map[string]tfsdk.Attribute{
-			"search": {
+		Attributes: map[string]tfdschema.Attribute{
+			"search": tfdschema.StringAttribute{
 				Description: "Search criteria.",
-				Type:        types.StringType,
 				Optional:    true,
 			},
-			"order": {
+			"order": tfdschema.StringAttribute{
 				Description: "Order criteria.",
-				Type:        types.StringType,
 				Optional:    true,
 			},
-			"item": {
+			"item": tfdschema.SingleNestedAttribute{
 				Description: "Content of the list when there is exactly one item.",
-				Attributes:  tfsdk.SingleNestedAttributes(t.itemAttributes()),
+				Attributes:  s.itemAttributes(),
 				Computed:    true,
 			},
-			"items": {
+			"items": tfdschema.ListNestedAttribute{
 				Description: "Content of the list.",
-				Attributes: tfsdk.ListNestedAttributes(
-					t.itemAttributes(),
-					tfsdk.ListNestedAttributesOptions{},
-				),
+				NestedObject: tfdschema.NestedAttributeObject{
+					Attributes: s.itemAttributes(),
+				},
 				Computed: true,
 			},
 		},
@@ -65,53 +69,47 @@ func (t *CloudProvidersDataSourceType) GetSchema(ctx context.Context) (result tf
 	return
 }
 
-func (t *CloudProvidersDataSourceType) itemAttributes() map[string]tfsdk.Attribute {
-	return map[string]tfsdk.Attribute{
-		"id": {
+func (s *CloudProvidersDataSource) itemAttributes() map[string]tfdschema.Attribute {
+	return map[string]tfdschema.Attribute{
+		"id": tfdschema.StringAttribute{
 			Description: "Unique identifier of the cloud provider. This is what " +
 				"should be used when referencing the cloud provider from other " +
 				"places, for example in the 'cloud_provider' attribute " +
 				"of the cluster resource.",
-			Type:     types.StringType,
 			Computed: true,
 		},
-		"name": {
+		"name": tfdschema.StringAttribute{
 			Description: "Short name of the cloud provider, for example 'aws' " +
 				"or 'gcp'.",
-			Type:     types.StringType,
 			Computed: true,
 		},
-		"display_name": {
+		"display_name": tfdschema.StringAttribute{
 			Description: "Human friendly name of the cloud provider, for example " +
 				"'AWS' or 'GCP'",
-			Type:     types.StringType,
 			Computed: true,
 		},
 	}
 }
 
-func (t *CloudProvidersDataSourceType) NewDataSource(ctx context.Context,
-	p tfsdk.Provider) (result tfsdk.DataSource, diags diag.Diagnostics) {
-	// Cast the provider interface to the specific implementation:
-	parent := p.(*Provider)
-
-	// Get the collection of clusters:
-	collection := parent.connection.ClustersMgmt().V1().CloudProviders()
-
-	// Create the resource:
-	result = &CloudProvidersDataSource{
-		collection: collection,
+func (s *CloudProvidersDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured:
+	if req.ProviderData == nil {
+		return
 	}
-	return
+
+	// Cast the provider data to the specific implementation:
+	connection := req.ProviderData.(*sdk.Connection)
+
+	// Get the collection of cloud providers:
+	s.collection = connection.ClustersMgmt().V1().CloudProviders()
 }
 
-func (s *CloudProvidersDataSource) Read(ctx context.Context, request tfsdk.ReadDataSourceRequest,
-	response *tfsdk.ReadDataSourceResponse) {
+func (s *CloudProvidersDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	// Get the state:
 	state := &CloudProvidersState{}
-	diags := request.Config.Get(ctx, state)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
+	diags := req.Config.Get(ctx, state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -120,16 +118,16 @@ func (s *CloudProvidersDataSource) Read(ctx context.Context, request tfsdk.ReadD
 	listSize := 100
 	listPage := 1
 	listRequest := s.collection.List().Size(listSize)
-	if !state.Search.Unknown && !state.Search.Null {
-		listRequest.Search(state.Search.Value)
+	if !state.Search.IsUnknown() && !state.Search.IsNull() {
+		listRequest.Search(state.Search.ValueString())
 	}
-	if !state.Order.Unknown && !state.Order.Null {
-		listRequest.Order(state.Order.Value)
+	if !state.Order.IsUnknown() && !state.Order.IsNull() {
+		listRequest.Order(state.Order.ValueString())
 	}
 	for {
 		listResponse, err := listRequest.SendContext(ctx)
 		if err != nil {
-			response.Diagnostics.AddError(
+			resp.Diagnostics.AddError(
 				"Can't list cloud providers",
 				err.Error(),
 			)
@@ -165,6 +163,6 @@ func (s *CloudProvidersDataSource) Read(ctx context.Context, request tfsdk.ReadD
 	}
 
 	// Save the state:
-	diags = response.State.Set(ctx, state)
-	response.Diagnostics.Append(diags...)
+	diags = resp.State.Set(ctx, state)
+	resp.Diagnostics.Append(diags...)
 }

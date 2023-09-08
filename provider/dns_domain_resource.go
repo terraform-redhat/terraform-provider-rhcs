@@ -21,79 +21,84 @@ package provider
 ***REMOVED***
 ***REMOVED***
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	tfrschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/terraform-redhat/terraform-provider-rhcs/internal/ocm/resource"
+	ocmr "github.com/terraform-redhat/terraform-provider-rhcs/internal/ocm/resource"
 ***REMOVED***
-
-type DNSDomainResourceType struct {
-}
 
 type DNSDomainResource struct {
 	collection *cmv1.DNSDomainsClient
 }
 
-func (t *DNSDomainResourceType***REMOVED*** NewResource(ctx context.Context, p tfsdk.Provider***REMOVED*** (result tfsdk.Resource, diags diag.Diagnostics***REMOVED*** {
-	// Cast the provider interface to the specific implementation:
-	// use it directly when needed.
-	parent := p.(*Provider***REMOVED***
+var _ resource.ResourceWithConfigure = &DNSDomainResource{}
+var _ resource.ResourceWithImportState = &DNSDomainResource{}
 
-	//Create DNS Clients - not related to a cluster.
-	collection := parent.connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.DNSDomains(***REMOVED***
-
-	// Create the resource
-	result = &DNSDomainResource{
-		collection: collection,
-	}
-
-	return
+func NewDNSDomainResource(***REMOVED*** resource.Resource {
+	return &DNSDomainResource{}
 }
 
-func (t *DNSDomainResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVED*** (result tfsdk.Schema,
-	diags diag.Diagnostics***REMOVED*** {
-	result = tfsdk.Schema{
+func (r *DNSDomainResource***REMOVED*** Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse***REMOVED*** {
+	resp.TypeName = req.ProviderTypeName + "_dns_domain"
+}
+
+func (r *DNSDomainResource***REMOVED*** Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse***REMOVED*** {
+	resp.Schema = tfrschema.Schema{
 		Description: "DNS Domain",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+		Attributes: map[string]tfrschema.Attribute{
+			"id": tfrschema.StringAttribute{
 				Description: "Unique identifier of the DNS Domain",
-				Type:        types.StringType,
 				Computed:    true,
 	***REMOVED***,
 ***REMOVED***,
 	}
-
-	return
 }
 
-func (r *DNSDomainResource***REMOVED*** Read(ctx context.Context,
-	request tfsdk.ReadResourceRequest, response *tfsdk.ReadResourceResponse***REMOVED*** {
-
-	// Get the current state
-	state := &DNSDomainState{}
-	diags := request.State.Get(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
-	if response.Diagnostics.HasError(***REMOVED*** {
+func (r *DNSDomainResource***REMOVED*** Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse***REMOVED*** {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
 		return
 	}
 
-	// Find the identity provider
-	dnsDomain := resource.NewDNSDomain(r.collection***REMOVED***
-	get, err := dnsDomain.Get(state.ID.Value***REMOVED***
+	connection, ok := req.ProviderData.(*sdk.Connection***REMOVED***
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *sdk.Connaction, got: %T. Please report this issue to the provider developers.", req.ProviderData***REMOVED***,
+		***REMOVED***
+		return
+	}
+
+	r.collection = connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.DNSDomains(***REMOVED***
+}
+
+func (r *DNSDomainResource***REMOVED*** Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse***REMOVED*** {
+	// Get the current state
+	state := &DNSDomainState{}
+	diags := req.State.Get(ctx, state***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
+	if resp.Diagnostics.HasError(***REMOVED*** {
+		return
+	}
+
+	// Find the DNS domain
+	dnsDomain := ocmr.NewDNSDomain(r.collection***REMOVED***
+	get, err := dnsDomain.Get(state.ID.ValueString(***REMOVED******REMOVED***
 	if err != nil && get.Status(***REMOVED*** == http.StatusNotFound {
-		tflog.Warn(ctx, fmt.Sprintf("DNS domain (%s***REMOVED*** not found, removing from state",
-			state.ID.Value,
-		***REMOVED******REMOVED***
-		response.State.RemoveResource(ctx***REMOVED***
+		tflog.Warn(ctx, "DNS domain not found, removing from state", map[string]interface{}{
+			"id": state.ID.ValueString(***REMOVED***,
+***REMOVED******REMOVED***
+		resp.State.RemoveResource(ctx***REMOVED***
 		return
 	} else if err != nil {
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			fmt.Sprintf(
 				"Can't find DNS domain with identifier '%s'",
-				state.ID.Value,
+				state.ID.ValueString(***REMOVED***,
 			***REMOVED***,
 			err.Error(***REMOVED***,
 		***REMOVED***
@@ -103,83 +108,72 @@ func (r *DNSDomainResource***REMOVED*** Read(ctx context.Context,
 	object := get.Body(***REMOVED***
 
 	if id, ok := object.GetID(***REMOVED***; ok {
-		state.ID = types.String{
-			Value: id,
-***REMOVED***
+		state.ID = types.StringValue(id***REMOVED***
 	}
 
 	// Save the state
-	diags = response.State.Set(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
+	diags = resp.State.Set(ctx, state***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
 }
 
-func (r *DNSDomainResource***REMOVED*** Create(ctx context.Context,
-	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse***REMOVED*** {
-
+func (r *DNSDomainResource***REMOVED*** Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse***REMOVED*** {
 	// Get the plan
 	plan := &DNSDomainState{}
-	diags := request.Plan.Get(ctx, plan***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
-	if response.Diagnostics.HasError(***REMOVED*** {
+	diags := req.Plan.Get(ctx, plan***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
+	if resp.Diagnostics.HasError(***REMOVED*** {
 		return
 	}
 
-	dnsDomain := resource.NewDNSDomain(r.collection***REMOVED***
-	resp, err := dnsDomain.Create(***REMOVED***
+	dnsDomain := ocmr.NewDNSDomain(r.collection***REMOVED***
+	createResp, err := dnsDomain.Create(***REMOVED***
 
 	if err != nil {
-		response.Diagnostics.AddError("Failed to create DNS Domain.", err.Error(***REMOVED******REMOVED***
+		resp.Diagnostics.AddError("Failed to create DNS Domain.", err.Error(***REMOVED******REMOVED***
 		return
 	}
 
-	if id, ok := resp.Body(***REMOVED***.GetID(***REMOVED***; ok {
-		plan.ID = types.String{
-			Value: id,
-***REMOVED***
+	if id, ok := createResp.Body(***REMOVED***.GetID(***REMOVED***; ok {
+		plan.ID = types.StringValue(id***REMOVED***
 	} else {
-		response.Diagnostics.AddError("Failed to create DNS Domain.", "Failed to get an ID"***REMOVED***
+		resp.Diagnostics.AddError("Failed to create DNS Domain.", "Failed to get an ID"***REMOVED***
 		return
 	}
 
 	// Save the state
-	diags = response.State.Set(ctx, plan***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
+	diags = resp.State.Set(ctx, plan***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
 }
 
-func (r *DNSDomainResource***REMOVED*** Update(ctx context.Context,
-	request tfsdk.UpdateResourceRequest, response *tfsdk.UpdateResourceResponse***REMOVED*** {
+func (r *DNSDomainResource***REMOVED*** Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse***REMOVED*** {
 	// Until we support. return an informative error
-	response.Diagnostics.AddError("Can't update DNS domain", "Update is currently not supported."***REMOVED***
+	resp.Diagnostics.AddError("Can't update DNS domain", "Update is currently not supported."***REMOVED***
 }
 
-func (r *DNSDomainResource***REMOVED*** Delete(ctx context.Context,
-	request tfsdk.DeleteResourceRequest, response *tfsdk.DeleteResourceResponse***REMOVED*** {
+func (r *DNSDomainResource***REMOVED*** Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse***REMOVED*** {
 	// Get the state
 	state := &DNSDomainState{}
-	diags := request.State.Get(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
-	if response.Diagnostics.HasError(***REMOVED*** {
+	diags := req.State.Get(ctx, state***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
+	if resp.Diagnostics.HasError(***REMOVED*** {
 		return
 	}
 
-	dnsDomain := resource.NewDNSDomain(r.collection***REMOVED***
-	err := dnsDomain.Delete(state.ID.Value***REMOVED***
+	dnsDomain := ocmr.NewDNSDomain(r.collection***REMOVED***
+	err := dnsDomain.Delete(state.ID.ValueString(***REMOVED******REMOVED***
 
 	if err != nil {
-		response.Diagnostics.AddError(
-			fmt.Sprintf("Can't delete DNS domain with identifier '%s'", state.ID.Value***REMOVED***,
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("Can't delete DNS domain with identifier '%s'", state.ID.ValueString(***REMOVED******REMOVED***,
 			err.Error(***REMOVED***,
 		***REMOVED***
 		return
 	}
 
 	// Remove the state
-	response.State.RemoveResource(ctx***REMOVED***
+	resp.State.RemoveResource(ctx***REMOVED***
 }
 
-func (r *DNSDomainResource***REMOVED*** ImportState(ctx context.Context,
-	request tfsdk.ImportResourceStateRequest, response *tfsdk.ImportResourceStateResponse***REMOVED*** {
-	// To import a dns domain, we need the id (same as the domain itself***REMOVED***
-	id := request.ID
-	response.Diagnostics.Append(response.State.SetAttribute(ctx, tftypes.NewAttributePath(***REMOVED***.WithAttributeName("id"***REMOVED***, id***REMOVED***...***REMOVED***
+func (r *DNSDomainResource***REMOVED*** ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse***REMOVED*** {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"***REMOVED***, req, resp***REMOVED***
 }

@@ -194,6 +194,7 @@ func (p *Provider***REMOVED*** Configure(ctx context.Context, req tfprovider.Con
 func (p *Provider***REMOVED*** Resources(ctx context.Context***REMOVED*** []func(***REMOVED*** resource.Resource {
 	return []func(***REMOVED*** resource.Resource{
 		NewClusterWaiterResource,
+		NewDNSDomainResource,
 	}
 }
 

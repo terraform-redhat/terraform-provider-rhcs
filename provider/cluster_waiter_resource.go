@@ -23,7 +23,7 @@ type ClusterWaiterResource struct {
 	collection *cmv1.ClustersClient
 }
 
-var _ resource.Resource = &ClusterWaiterResource{}
+var _ resource.ResourceWithConfigure = &ClusterWaiterResource{}
 
 const (
 	defaultTimeoutInMinutes   = int64(60)

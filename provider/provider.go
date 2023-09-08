@@ -194,6 +194,7 @@ func (p *Provider) Configure(ctx context.Context, req tfprovider.ConfigureReques
 func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewClusterWaiterResource,
+		NewDNSDomainResource,
 	}
 }
 

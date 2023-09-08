@@ -19,45 +19,49 @@ package provider
 ***REMOVED***
 	"context"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	tfdschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 ***REMOVED***
-
-type CloudProvidersDataSourceType struct {
-}
 
 type CloudProvidersDataSource struct {
 	collection *cmv1.CloudProvidersClient
 }
 
-func (t *CloudProvidersDataSourceType***REMOVED*** GetSchema(ctx context.Context***REMOVED*** (result tfsdk.Schema,
-	diags diag.Diagnostics***REMOVED*** {
-	result = tfsdk.Schema{
+var _ datasource.DataSource = &CloudProvidersDataSource{}
+var _ datasource.DataSourceWithConfigure = &CloudProvidersDataSource{}
+
+func NewCloudProvidersDataSource(***REMOVED*** datasource.DataSource {
+	return &CloudProvidersDataSource{}
+}
+
+func (s *CloudProvidersDataSource***REMOVED*** Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse***REMOVED*** {
+	resp.TypeName = req.ProviderTypeName + "_cloud_providers"
+}
+
+func (s *CloudProvidersDataSource***REMOVED*** Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse***REMOVED*** {
+	resp.Schema = tfdschema.Schema{
 		Description: "List of cloud providers.",
-		Attributes: map[string]tfsdk.Attribute{
-			"search": {
+		Attributes: map[string]tfdschema.Attribute{
+			"search": tfdschema.StringAttribute{
 				Description: "Search criteria.",
-				Type:        types.StringType,
 				Optional:    true,
 	***REMOVED***,
-			"order": {
+			"order": tfdschema.StringAttribute{
 				Description: "Order criteria.",
-				Type:        types.StringType,
 				Optional:    true,
 	***REMOVED***,
-			"item": {
+			"item": tfdschema.SingleNestedAttribute{
 				Description: "Content of the list when there is exactly one item.",
-				Attributes:  tfsdk.SingleNestedAttributes(t.itemAttributes(***REMOVED******REMOVED***,
+				Attributes:  s.itemAttributes(***REMOVED***,
 				Computed:    true,
 	***REMOVED***,
-			"items": {
+			"items": tfdschema.ListNestedAttribute{
 				Description: "Content of the list.",
-				Attributes: tfsdk.ListNestedAttributes(
-					t.itemAttributes(***REMOVED***,
-					tfsdk.ListNestedAttributesOptions{},
-				***REMOVED***,
+				NestedObject: tfdschema.NestedAttributeObject{
+					Attributes: s.itemAttributes(***REMOVED***,
+		***REMOVED***,
 				Computed: true,
 	***REMOVED***,
 ***REMOVED***,
@@ -65,53 +69,47 @@ func (t *CloudProvidersDataSourceType***REMOVED*** GetSchema(ctx context.Context
 	return
 }
 
-func (t *CloudProvidersDataSourceType***REMOVED*** itemAttributes(***REMOVED*** map[string]tfsdk.Attribute {
-	return map[string]tfsdk.Attribute{
-		"id": {
+func (s *CloudProvidersDataSource***REMOVED*** itemAttributes(***REMOVED*** map[string]tfdschema.Attribute {
+	return map[string]tfdschema.Attribute{
+		"id": tfdschema.StringAttribute{
 			Description: "Unique identifier of the cloud provider. This is what " +
 				"should be used when referencing the cloud provider from other " +
 				"places, for example in the 'cloud_provider' attribute " +
 				"of the cluster resource.",
-			Type:     types.StringType,
 			Computed: true,
 ***REMOVED***,
-		"name": {
+		"name": tfdschema.StringAttribute{
 			Description: "Short name of the cloud provider, for example 'aws' " +
 				"or 'gcp'.",
-			Type:     types.StringType,
 			Computed: true,
 ***REMOVED***,
-		"display_name": {
+		"display_name": tfdschema.StringAttribute{
 			Description: "Human friendly name of the cloud provider, for example " +
 				"'AWS' or 'GCP'",
-			Type:     types.StringType,
 			Computed: true,
 ***REMOVED***,
 	}
 }
 
-func (t *CloudProvidersDataSourceType***REMOVED*** NewDataSource(ctx context.Context,
-	p tfsdk.Provider***REMOVED*** (result tfsdk.DataSource, diags diag.Diagnostics***REMOVED*** {
-	// Cast the provider interface to the specific implementation:
-	parent := p.(*Provider***REMOVED***
-
-	// Get the collection of clusters:
-	collection := parent.connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.CloudProviders(***REMOVED***
-
-	// Create the resource:
-	result = &CloudProvidersDataSource{
-		collection: collection,
+func (s *CloudProvidersDataSource***REMOVED*** Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse***REMOVED*** {
+	// Prevent panic if the provider has not been configured:
+	if req.ProviderData == nil {
+		return
 	}
-	return
+
+	// Cast the provider data to the specific implementation:
+	connection := req.ProviderData.(*sdk.Connection***REMOVED***
+
+	// Get the collection of cloud providers:
+	s.collection = connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.CloudProviders(***REMOVED***
 }
 
-func (s *CloudProvidersDataSource***REMOVED*** Read(ctx context.Context, request tfsdk.ReadDataSourceRequest,
-	response *tfsdk.ReadDataSourceResponse***REMOVED*** {
+func (s *CloudProvidersDataSource***REMOVED*** Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse***REMOVED*** {
 	// Get the state:
 	state := &CloudProvidersState{}
-	diags := request.Config.Get(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
-	if response.Diagnostics.HasError(***REMOVED*** {
+	diags := req.Config.Get(ctx, state***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
+	if resp.Diagnostics.HasError(***REMOVED*** {
 		return
 	}
 
@@ -120,16 +118,16 @@ func (s *CloudProvidersDataSource***REMOVED*** Read(ctx context.Context, request
 	listSize := 100
 	listPage := 1
 	listRequest := s.collection.List(***REMOVED***.Size(listSize***REMOVED***
-	if !state.Search.Unknown && !state.Search.Null {
-		listRequest.Search(state.Search.Value***REMOVED***
+	if !state.Search.IsUnknown(***REMOVED*** && !state.Search.IsNull(***REMOVED*** {
+		listRequest.Search(state.Search.ValueString(***REMOVED******REMOVED***
 	}
-	if !state.Order.Unknown && !state.Order.Null {
-		listRequest.Order(state.Order.Value***REMOVED***
+	if !state.Order.IsUnknown(***REMOVED*** && !state.Order.IsNull(***REMOVED*** {
+		listRequest.Order(state.Order.ValueString(***REMOVED******REMOVED***
 	}
 	for {
 		listResponse, err := listRequest.SendContext(ctx***REMOVED***
 		if err != nil {
-			response.Diagnostics.AddError(
+			resp.Diagnostics.AddError(
 				"Can't list cloud providers",
 				err.Error(***REMOVED***,
 			***REMOVED***
@@ -165,6 +163,6 @@ func (s *CloudProvidersDataSource***REMOVED*** Read(ctx context.Context, request
 	}
 
 	// Save the state:
-	diags = response.State.Set(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
+	diags = resp.State.Set(ctx, state***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
 }

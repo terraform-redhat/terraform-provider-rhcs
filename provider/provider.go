@@ -214,7 +214,9 @@ func (p *Provider***REMOVED*** Resources(ctx context.Context***REMOVED*** []func
 // }
 
 func (p *Provider***REMOVED*** DataSources(ctx context.Context***REMOVED*** []func(***REMOVED*** datasource.DataSource {
-	return []func(***REMOVED*** datasource.DataSource{}
+	return []func(***REMOVED*** datasource.DataSource{
+		NewCloudProvidersDataSource,
+	}
 }
 
 // GetDataSources returns the data sources supported by the provider.

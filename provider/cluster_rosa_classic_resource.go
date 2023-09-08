@@ -35,7 +35,7 @@ import (
 
 	"github.com/openshift/rosa/pkg/ocm"
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
-	"github.com/terraform-redhat/terraform-provider-rhcs/internal/ocm/resource"
+	ocmr "github.com/terraform-redhat/terraform-provider-rhcs/internal/ocm/resource"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/idps"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/upgrade"
@@ -44,10 +44,18 @@ import (
 	ver "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	tfrschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	ocm_errors "github.com/openshift-online/ocm-sdk-go/errors"
 )
@@ -69,433 +77,385 @@ var OCMProperties = map[string]string{
 	propertyRosaTfCommit:  build.Commit,
 }
 
-type ClusterRosaClassicResourceType struct {
-}
-
 type ClusterRosaClassicResource struct {
 	clusterCollection *cmv1.ClustersClient
 	versionCollection *cmv1.VersionsClient
 }
 
-func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result tfsdk.Schema,
-	diags diag.Diagnostics) {
-	result = tfsdk.Schema{
+var _ resource.ResourceWithConfigure = &ClusterRosaClassicResource{}
+var _ resource.ResourceWithImportState = &ClusterRosaClassicResource{}
+
+func NewClusterRosaClassicResource() resource.Resource {
+	return &ClusterRosaClassicResource{}
+}
+
+func (r *ClusterRosaClassicResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_cluster_rosa_classic"
+}
+
+func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = tfrschema.Schema{
 		Description: "OpenShift managed cluster using rosa sts.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+		Attributes: map[string]tfrschema.Attribute{
+			"id": tfrschema.StringAttribute{
 				Description: "Unique identifier of the cluster.",
-				Type:        types.StringType,
 				Computed:    true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
+				PlanModifiers: []planmodifier.String{
 					// This passes the state through to the plan, preventing
 					// "known after apply" since we know it won't change.
-					tfsdk.UseStateForUnknown(),
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"external_id": {
+			"external_id": tfrschema.StringAttribute{
 				Description: "Unique external identifier of the cluster.",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 					ValueCannotBeChangedModifier(),
 				},
 			},
-			"name": {
+			"name": tfrschema.StringAttribute{
 				Description: "Name of the cluster. Cannot exceed 15 characters in length.",
-				Type:        types.StringType,
 				Required:    true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
+				PlanModifiers: []planmodifier.String{
 					ValueCannotBeChangedModifier(),
 				},
 			},
-			"cloud_region": {
+			"cloud_region": tfrschema.StringAttribute{
 				Description: "Cloud region identifier, for example 'us-east-1'.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"sts": {
+			"sts": tfrschema.SingleNestedAttribute{
 				Description: "STS configuration.",
 				Attributes:  stsResource(),
 				Optional:    true,
 			},
-			"multi_az": {
+			"multi_az": tfrschema.BoolAttribute{
 				Description: "Indicates if the cluster should be deployed to " +
 					"multiple availability zones. Default value is 'false'.",
-				Type:     types.BoolType,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
 					ValueCannotBeChangedModifier(),
 				},
 			},
-			"disable_workload_monitoring": {
+			"disable_workload_monitoring": tfrschema.BoolAttribute{
 				Description: "Enables you to monitor your own projects in isolation from Red Hat " +
 					"Site Reliability Engineer (SRE) platform metrics.",
-				Type:     types.BoolType,
 				Optional: true,
 			},
-			"disable_scp_checks": {
+			"disable_scp_checks": tfrschema.BoolAttribute{
 				Description: "Enables you to monitor your own projects in isolation from Red Hat " +
 					"Site Reliability Engineer (SRE) platform metrics.",
-				Type:     types.BoolType,
 				Optional: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
+				PlanModifiers: []planmodifier.Bool{
 					ValueCannotBeChangedModifier(),
 				},
 			},
-			"properties": {
+			"properties": tfrschema.MapAttribute{
 				Description: "User defined properties.",
-				Type: types.MapType{
-					ElemType: types.StringType,
-				},
-				Optional:   true,
-				Computed:   true,
-				Validators: propertiesValidators(),
+				ElementType: types.StringType,
+				Optional:    true,
+				Computed:    true,
+				Validators:  propertiesValidators(),
 			},
-			"ocm_properties": {
+			"ocm_properties": tfrschema.MapAttribute{
 				Description: "Merged properties defined by OCM and the user defined 'properties'.",
-				Type: types.MapType{
-					ElemType: types.StringType,
-				},
-				Computed: true,
+				ElementType: types.StringType,
+				Computed:    true,
 			},
-			"tags": {
+			"tags": tfrschema.MapAttribute{
 				Description: "Apply user defined tags to all resources created in AWS.",
-				Type: types.MapType{
-					ElemType: types.StringType,
-				},
-				Optional: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
+				ElementType: types.StringType,
+				Optional:    true,
+				PlanModifiers: []planmodifier.Map{
 					ValueCannotBeChangedModifier(),
 				},
 			},
-			"ccs_enabled": {
+			"ccs_enabled": tfrschema.BoolAttribute{
 				Description: "Enables customer cloud subscription.",
-				Type:        types.BoolType,
 				Computed:    true,
 			},
-			"etcd_encryption": {
+			"etcd_encryption": tfrschema.BoolAttribute{
 				Description: "Encrypt etcd data.",
-				Type:        types.BoolType,
 				Optional:    true,
 				Computed:    true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
 					ValueCannotBeChangedModifier(),
 				},
 			},
-			"autoscaling_enabled": {
+			"autoscaling_enabled": tfrschema.BoolAttribute{
 				Description: "Enables autoscaling.",
-				Type:        types.BoolType,
 				Optional:    true,
 			},
-			"min_replicas": {
+			"min_replicas": tfrschema.Int64Attribute{
 				Description: "Minimum replicas.",
-				Type:        types.Int64Type,
 				Optional:    true,
 				Computed:    true,
 			},
-			"max_replicas": {
+			"max_replicas": tfrschema.Int64Attribute{
 				Description: "Maximum replicas.",
-				Type:        types.Int64Type,
 				Optional:    true,
 				Computed:    true,
 			},
-			"api_url": {
+			"api_url": tfrschema.StringAttribute{
 				Description: "URL of the API server.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"console_url": {
+			"console_url": tfrschema.StringAttribute{
 				Description: "URL of the console.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"domain": {
+			"domain": tfrschema.StringAttribute{
 				Description: "DNS domain of cluster.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"base_dns_domain": {
+			"base_dns_domain": tfrschema.StringAttribute{
 				Description: "Base DNS domain name previously reserved and matching the hosted " +
 					"zone name of the private Route 53 hosted zone associated with intended shared " +
 					"VPC, e.g., '1vo8.p1.openshiftapps.com'.",
-				Type:     types.StringType,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"replicas": {
+			"replicas": tfrschema.Int64Attribute{
 				Description: "Number of worker nodes to provision. Single zone clusters need at least 2 nodes, " +
 					"multizone clusters need at least 3 nodes.",
-				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
 			},
-			"compute_machine_type": {
+			"compute_machine_type": tfrschema.StringAttribute{
 				Description: "Identifies the machine type used by the compute nodes, " +
 					"for example `r5.xlarge`. Use the `rhcs_machine_types` data " +
 					"source to find the possible values.",
-				Type:     types.StringType,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"default_mp_labels": {
+			"default_mp_labels": tfrschema.MapAttribute{
 				Description: "This value is the default machine pool labels. Format should be a comma-separated list of '{\"key1\"=\"value1\", \"key2\"=\"value2\"}'. " +
 					"This list overwrites any modifications made to Node labels on an ongoing basis. ",
-				Type: types.MapType{
-					ElemType: types.StringType,
-				},
-				Optional: true,
+				ElementType: types.StringType,
+				Optional:    true,
 			},
-			"aws_account_id": {
+			"aws_account_id": tfrschema.StringAttribute{
 				Description: "Identifier of the AWS account.",
-				Type:        types.StringType,
 				Required:    true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
+				PlanModifiers: []planmodifier.String{
 					ValueCannotBeChangedModifier(),
 				},
 			},
-			"aws_subnet_ids": {
+			"aws_subnet_ids": tfrschema.ListAttribute{
 				Description: "AWS subnet IDs.",
-				Type: types.ListType{
-					ElemType: types.StringType,
-				},
-				Optional: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
+				ElementType: types.StringType,
+				Optional:    true,
+				PlanModifiers: []planmodifier.List{
 					ValueCannotBeChangedModifier(),
 				},
 			},
-			"kms_key_arn": {
+			"kms_key_arn": tfrschema.StringAttribute{
 				Description: "The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, " +
 					"fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID.",
-				Type:     types.StringType,
 				Optional: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
+				PlanModifiers: []planmodifier.String{
 					ValueCannotBeChangedModifier(),
 				},
 			},
-			"fips": {
+			"fips": tfrschema.BoolAttribute{
 				Description: "Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries.",
-				Type:        types.BoolType,
 				Optional:    true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
+				PlanModifiers: []planmodifier.Bool{
 					ValueCannotBeChangedModifier(),
 				},
 			},
-			"aws_private_link": {
+			"aws_private_link": tfrschema.BoolAttribute{
 				Description: "Provides private connectivity between VPCs, AWS services, and your on-premises networks, without exposing your traffic to the public internet.",
-				Type:        types.BoolType,
 				Optional:    true,
 				Computed:    true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
 					ValueCannotBeChangedModifier(),
 				},
 			},
-			"private": {
+			"private": tfrschema.BoolAttribute{
 				Description: "Restrict master API endpoint and application routes to direct, private connectivity.",
-				Type:        types.BoolType,
 				Optional:    true,
 				Computed:    true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
 					ValueCannotBeChangedModifier(),
 				},
 			},
-			"availability_zones": {
+			"availability_zones": tfrschema.ListAttribute{
 				Description: "Availability zones.",
-				Type: types.ListType{
-					ElemType: types.StringType,
-				},
-				Optional: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.UseStateForUnknown(),
+				ElementType: types.StringType,
+				Optional:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.UseStateForUnknown(),
 					ValueCannotBeChangedModifier(),
 				},
 			},
-			"machine_cidr": {
+			"machine_cidr": tfrschema.StringAttribute{
 				Description: "Block of IP addresses for nodes.",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 					ValueCannotBeChangedModifier(),
 				},
 			},
-			"proxy": {
+			"proxy": tfrschema.SingleNestedAttribute{
 				Description: "proxy",
-				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-					"http_proxy": {
+				Attributes: map[string]tfrschema.Attribute{
+					"http_proxy": tfrschema.StringAttribute{
 						Description: "HTTP proxy.",
-						Type:        types.StringType,
 						Optional:    true,
 					},
-					"https_proxy": {
+					"https_proxy": tfrschema.StringAttribute{
 						Description: "HTTPS proxy.",
-						Type:        types.StringType,
 						Optional:    true,
 					},
-					"no_proxy": {
+					"no_proxy": tfrschema.StringAttribute{
 						Description: "No proxy.",
-						Type:        types.StringType,
 						Optional:    true,
 					},
-					"additional_trust_bundle": {
+					"additional_trust_bundle": tfrschema.StringAttribute{
 						Description: "A string containing a PEM-encoded X.509 certificate bundle that will be added to the nodes' trusted certificate store.",
-						Type:        types.StringType,
 						Optional:    true,
 					},
-				}),
+				},
 				Optional:   true,
 				Validators: proxyValidators(),
 			},
-			"service_cidr": {
+			"service_cidr": tfrschema.StringAttribute{
 				Description: "Block of IP addresses for services.",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 					ValueCannotBeChangedModifier(),
 				},
 			},
-			"pod_cidr": {
+			"pod_cidr": tfrschema.StringAttribute{
 				Description: "Block of IP addresses for pods.",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 					ValueCannotBeChangedModifier(),
 				},
 			},
-			"host_prefix": {
+			"host_prefix": tfrschema.Int64Attribute{
 				Description: "Length of the prefix of the subnet assigned to each node.",
-				Type:        types.Int64Type,
 				Optional:    true,
 				Computed:    true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
 					ValueCannotBeChangedModifier(),
 				},
 			},
-			"channel_group": {
+			"channel_group": tfrschema.StringAttribute{
 				Description: "Name of the channel group where you select the OpenShift cluster version, for example 'stable'.",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 					ValueCannotBeChangedModifier(),
 				},
 			},
-			"version": {
+			"version": tfrschema.StringAttribute{
 				Description: "Desired version of OpenShift for the cluster, for example '4.1.0'. If version is greater than the currently running version, an upgrade will be scheduled.",
-				Type:        types.StringType,
 				Optional:    true,
 			},
-			"current_version": {
+			"current_version": tfrschema.StringAttribute{
 				Description: "The currently running version of OpenShift on the cluster, for example '4.1.0'.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"disable_waiting_in_destroy": {
+			"disable_waiting_in_destroy": tfrschema.BoolAttribute{
 				Description: "Disable addressing cluster state in the destroy resource. Default value is false.",
-				Type:        types.BoolType,
 				Optional:    true,
 			},
-			"destroy_timeout": {
+			"destroy_timeout": tfrschema.Int64Attribute{
 				Description: "This value sets the maximum duration in minutes to allow for destroying resources. Default value is 60 minutes.",
-				Type:        types.Int64Type,
 				Optional:    true,
 			},
-			"state": {
+			"state": tfrschema.StringAttribute{
 				Description: "State of the cluster.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"ec2_metadata_http_tokens": {
+			"ec2_metadata_http_tokens": tfrschema.StringAttribute{
 				Description: "This value determines which EC2 metadata mode to use for metadata service interaction " +
 					"options for EC2 instances can be optional or required. This feature is available from " +
 					"OpenShift version 4.11.0 and newer.",
-				Type:     types.StringType,
 				Optional: true,
 				Computed: true,
 				Validators: EnumValueValidator([]string{string(cmv1.Ec2MetadataHttpTokensOptional),
 					string(cmv1.Ec2MetadataHttpTokensRequired)}),
-				PlanModifiers: []tfsdk.AttributePlanModifier{
+				PlanModifiers: []planmodifier.String{
 					ValueCannotBeChangedModifier(),
 				},
 			},
-			"upgrade_acknowledgements_for": {
+			"upgrade_acknowledgements_for": tfrschema.StringAttribute{
 				Description: "Indicates acknowledgement of agreements required to upgrade the cluster version between" +
 					" minor versions (e.g. a value of \"4.12\" indicates acknowledgement of any agreements required to " +
 					"upgrade to OpenShift 4.12.z from 4.11 or before).",
-				Type:     types.StringType,
 				Optional: true,
 			},
-			"admin_credentials": {
+			"admin_credentials": tfrschema.SingleNestedAttribute{
 				Description: "Admin user credentials",
-				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-					"username": {
+				Attributes: map[string]tfrschema.Attribute{
+					"username": tfrschema.StringAttribute{
 						Description: "Admin username that will be created with the cluster.",
-						Type:        types.StringType,
 						Required:    true,
-						PlanModifiers: []tfsdk.AttributePlanModifier{
+						PlanModifiers: []planmodifier.String{
 							ValueCannotBeChangedModifier(),
 						},
 					},
-					"password": {
+					"password": tfrschema.StringAttribute{
 						Description: "Admin password that will be created with the cluster.",
-						Type:        types.StringType,
 						Required:    true,
 						Sensitive:   true,
-						PlanModifiers: []tfsdk.AttributePlanModifier{
+						PlanModifiers: []planmodifier.String{
 							ValueCannotBeChangedModifier(),
 						},
 					},
-				}),
+				},
 				Optional: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
+				PlanModifiers: []planmodifier.Object{
 					ValueCannotBeChangedModifier(),
 				},
 				Validators: adminCredsValidators(),
 			},
-			"private_hosted_zone": {
+			"private_hosted_zone": tfrschema.SingleNestedAttribute{
 				Description: "Used in a shared VPC typology. HostedZone attributes",
-				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
+				Attributes: map[string]tfrschema.Attribute{
+					"id": tfrschema.StringAttribute{
 						Description: "ID assigned by AWS to private Route 53 hosted zone associated with intended shared VPC, " +
 							"e.g. 'Z05646003S02O1ENCDCSN'.",
-						Type:     types.StringType,
 						Required: true,
-						PlanModifiers: []tfsdk.AttributePlanModifier{
+						PlanModifiers: []planmodifier.String{
 							ValueCannotBeChangedModifier(),
 						},
 					},
-					"role_arn": {
+					"role_arn": tfrschema.StringAttribute{
 						Description: "AWS IAM role ARN with a policy attached, granting permissions necessary to " +
 							"create and manage Route 53 DNS records in private Route 53 hosted zone associated with " +
 							"intended shared VPC.",
-						Type:     types.StringType,
 						Required: true,
-						PlanModifiers: []tfsdk.AttributePlanModifier{
+						PlanModifiers: []planmodifier.String{
 							ValueCannotBeChangedModifier(),
 						},
 					},
-				}),
+				},
 				Optional: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
+				PlanModifiers: []planmodifier.Object{
 					ValueCannotBeChangedModifier(),
 				},
 				Validators: []tfsdk.AttributeValidator{privateHZValidators()},
@@ -505,24 +465,23 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 	return
 }
 
-func (t *ClusterRosaClassicResourceType) NewResource(ctx context.Context,
-	p tfsdk.Provider) (result tfsdk.Resource, diags diag.Diagnostics) {
-	// Cast the provider interface to the specific implementation:
-	parent := p.(*Provider)
-
-	// Get the cluster collection:
-	clusterCollection := parent.connection.ClustersMgmt().V1().Clusters()
-
-	// Get the version collection
-	versionCollection := parent.connection.ClustersMgmt().V1().Versions()
-
-	// Create the resource:
-	result = &ClusterRosaClassicResource{
-		clusterCollection: clusterCollection,
-		versionCollection: versionCollection,
+func (r *ClusterRosaClassicResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
 	}
 
-	return
+	connection, ok := req.ProviderData.(*sdk.Connection)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *sdk.Connaction, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
+	}
+
+	r.clusterCollection = connection.ClustersMgmt().V1().Clusters()
+	r.versionCollection = connection.ClustersMgmt().V1().Versions()
 }
 
 const (
@@ -532,9 +491,9 @@ const (
 func createClassicClusterObject(ctx context.Context,
 	state *ClusterRosaClassicState, diags diag.Diagnostics) (*cmv1.Cluster, error) {
 
-	ocmClusterResource := resource.NewCluster()
+	ocmClusterResource := ocmr.NewCluster()
 	builder := ocmClusterResource.GetClusterBuilder()
-	clusterName := state.Name.Value
+	clusterName := state.Name.ValueString()
 	if len(clusterName) > maxClusterNameLength {
 		errDescription := fmt.Sprintf("Expected a valid value for 'name' maximum of 15 characters in length. Provided Cluster name '%s' is of length '%d'",
 			clusterName, len(clusterName),
@@ -548,10 +507,10 @@ func createClassicClusterObject(ctx context.Context,
 		return nil, errors.New(errHeadline + "\n" + errDescription)
 	}
 
-	builder.Name(state.Name.Value)
+	builder.Name(state.Name.ValueString())
 	builder.CloudProvider(cmv1.NewCloudProvider().ID(awsCloudProvider))
 	builder.Product(cmv1.NewProduct().ID(rosaProduct))
-	builder.Region(cmv1.NewCloudRegion().ID(state.CloudRegion.Value))
+	builder.Region(cmv1.NewCloudRegion().ID(state.CloudRegion.ValueString()))
 	multiAZ := common.Bool(state.MultiAZ)
 	builder.MultiAZ(multiAZ)
 	// Set default properties
@@ -559,23 +518,23 @@ func createClassicClusterObject(ctx context.Context,
 	for k, v := range OCMProperties {
 		properties[k] = v
 	}
-	if !state.Properties.Unknown && !state.Properties.Null {
-		for k, v := range state.Properties.Elems {
-			properties[k] = v.(types.String).Value
+	if !state.Properties.IsUnknown() && !state.Properties.IsNull() {
+		for k, v := range state.Properties.Elements() {
+			properties[k] = v.(types.String).ValueString()
 		}
 	}
 	builder.Properties(properties)
 
-	if !state.EtcdEncryption.Unknown && !state.EtcdEncryption.Null {
-		builder.EtcdEncryption(state.EtcdEncryption.Value)
+	if !state.EtcdEncryption.IsUnknown() && !state.EtcdEncryption.IsNull() {
+		builder.EtcdEncryption(state.EtcdEncryption.ValueBool())
 	}
 
-	if !state.ExternalID.Unknown && !state.ExternalID.Null {
-		builder.ExternalID(state.ExternalID.Value)
+	if !state.ExternalID.IsUnknown() && !state.ExternalID.IsNull() {
+		builder.ExternalID(state.ExternalID.ValueString())
 	}
 
-	if !state.DisableWorkloadMonitoring.Unknown && !state.DisableWorkloadMonitoring.Null {
-		builder.DisableUserWorkloadMonitoring(state.DisableWorkloadMonitoring.Value)
+	if !state.DisableWorkloadMonitoring.IsUnknown() && !state.DisableWorkloadMonitoring.IsNull() {
+		builder.DisableUserWorkloadMonitoring(state.DisableWorkloadMonitoring.ValueBool())
 	}
 
 	if !common.IsStringAttributeEmpty(state.BaseDNSDomain) {
@@ -601,7 +560,7 @@ func createClassicClusterObject(ctx context.Context,
 	ccs := cmv1.NewCCS()
 	ccs.Enabled(true)
 
-	if !state.DisableSCPChecks.Unknown && !state.DisableSCPChecks.Null && state.DisableSCPChecks.Value {
+	if !state.DisableSCPChecks.IsUnknown() && !state.DisableSCPChecks.IsNull() && state.DisableSCPChecks.ValueBool() {
 		ccs.DisableSCPChecks(true)
 	}
 	builder.CCS(ccs)
@@ -622,9 +581,9 @@ func createClassicClusterObject(ctx context.Context,
 	}
 	var stsBuilder *cmv1.STSBuilder
 	if state.Sts != nil {
-		stsBuilder = resource.CreateSTS(state.Sts.RoleARN.Value, state.Sts.SupportRoleArn.Value,
-			state.Sts.InstanceIAMRoles.MasterRoleARN.Value, state.Sts.InstanceIAMRoles.WorkerRoleARN.Value,
-			state.Sts.OperatorRolePrefix.Value, common.OptionalString(state.Sts.OIDCConfigID))
+		stsBuilder = ocmr.CreateSTS(state.Sts.RoleARN.ValueString(), state.Sts.SupportRoleArn.ValueString(),
+			state.Sts.InstanceIAMRoles.MasterRoleARN.ValueString(), state.Sts.InstanceIAMRoles.WorkerRoleARN.ValueString(),
+			state.Sts.OperatorRolePrefix.ValueString(), common.OptionalString(state.Sts.OIDCConfigID))
 	}
 
 	if err := ocmClusterResource.CreateAWSBuilder(awsTags, ec2MetadataHttpTokens, kmsKeyARN,
@@ -636,40 +595,40 @@ func createClassicClusterObject(ctx context.Context,
 		return nil, err
 	}
 
-	if !state.FIPS.Unknown && !state.FIPS.Null && state.FIPS.Value {
+	if !state.FIPS.IsUnknown() && !state.FIPS.IsNull() && state.FIPS.ValueBool() {
 		builder.FIPS(true)
 	}
 
 	network := cmv1.NewNetwork()
-	if !state.MachineCIDR.Unknown && !state.MachineCIDR.Null {
-		network.MachineCIDR(state.MachineCIDR.Value)
+	if !state.MachineCIDR.IsUnknown() && !state.MachineCIDR.IsNull() {
+		network.MachineCIDR(state.MachineCIDR.ValueString())
 	}
-	if !state.ServiceCIDR.Unknown && !state.ServiceCIDR.Null {
-		network.ServiceCIDR(state.ServiceCIDR.Value)
+	if !state.ServiceCIDR.IsUnknown() && !state.ServiceCIDR.IsNull() {
+		network.ServiceCIDR(state.ServiceCIDR.ValueString())
 	}
-	if !state.PodCIDR.Unknown && !state.PodCIDR.Null {
-		network.PodCIDR(state.PodCIDR.Value)
+	if !state.PodCIDR.IsUnknown() && !state.PodCIDR.IsNull() {
+		network.PodCIDR(state.PodCIDR.ValueString())
 	}
-	if !state.HostPrefix.Unknown && !state.HostPrefix.Null {
-		network.HostPrefix(int(state.HostPrefix.Value))
+	if !state.HostPrefix.IsUnknown() && !state.HostPrefix.IsNull() {
+		network.HostPrefix(int(state.HostPrefix.ValueInt64()))
 	}
 	if !network.Empty() {
 		builder.Network(network)
 	}
 
 	channelGroup := ocm.DefaultChannelGroup
-	if !state.ChannelGroup.Unknown && !state.ChannelGroup.Null {
-		channelGroup = state.ChannelGroup.Value
+	if !state.ChannelGroup.IsUnknown() && !state.ChannelGroup.IsNull() {
+		channelGroup = state.ChannelGroup.ValueString()
 	}
 
-	if !state.Version.Unknown && !state.Version.Null {
+	if !state.Version.IsUnknown() && !state.Version.IsNull() {
 		// TODO: update it to support all cluster versions
-		isSupported, err := common.IsGreaterThanOrEqual(state.Version.Value, MinVersion)
+		isSupported, err := common.IsGreaterThanOrEqual(state.Version.ValueString(), MinVersion)
 		if err != nil {
 			tflog.Error(ctx, fmt.Sprintf("Error validating required cluster version %s", err))
 			errDescription := fmt.Sprintf(
 				"Can't check if cluster version is supported '%s': %v",
-				state.Version.Value, err,
+				state.Version.ValueString(), err,
 			)
 			diags.AddError(
 				errHeadline,
@@ -678,7 +637,7 @@ func createClassicClusterObject(ctx context.Context,
 			return nil, errors.New(errHeadline + "\n" + errDescription)
 		}
 		if !isSupported {
-			description := fmt.Sprintf("Cluster version %s is not supported (minimal supported version is %s)", state.Version.Value, MinVersion)
+			description := fmt.Sprintf("Cluster version %s is not supported (minimal supported version is %s)", state.Version.ValueString(), MinVersion)
 			tflog.Error(ctx, description)
 			diags.AddError(
 				errHeadline,
@@ -687,7 +646,7 @@ func createClassicClusterObject(ctx context.Context,
 			return nil, errors.New(errHeadline + "\n" + description)
 		}
 		vBuilder := cmv1.NewVersion()
-		versionID := fmt.Sprintf("openshift-v%s", state.Version.Value)
+		versionID := fmt.Sprintf("openshift-v%s", state.Version.ValueString())
 		// When using a channel group other than the default, the channel name
 		// must be appended to the version ID or the API server will return an
 		// error stating unexpected channel group.
@@ -702,7 +661,7 @@ func createClassicClusterObject(ctx context.Context,
 	if state.AdminCredentials != nil {
 		htpasswdUsers := []*cmv1.HTPasswdUserBuilder{}
 		htpasswdUsers = append(htpasswdUsers, cmv1.NewHTPasswdUser().
-			Username(state.AdminCredentials.Username.Value).Password(state.AdminCredentials.Password.Value))
+			Username(state.AdminCredentials.Username.ValueString()).Password(state.AdminCredentials.Password.ValueString()))
 		htpassUserList := cmv1.NewHTPasswdUserList().Items(htpasswdUsers...)
 		htPasswdIDP := cmv1.NewHTPasswdIdentityProvider().Users(htpassUserList)
 		builder.Htpasswd(htPasswdIDP)
@@ -717,6 +676,10 @@ func createClassicClusterObject(ctx context.Context,
 	object, err := builder.Build()
 	return object, err
 }
+
+// =====================================================
+// XXX: This is as far as I've gotten with the refactor
+// =====================================================
 
 func buildProxy(state *ClusterRosaClassicState, builder *cmv1.ClusterBuilder) (*cmv1.ClusterBuilder, error) {
 	proxy := cmv1.NewProxy()

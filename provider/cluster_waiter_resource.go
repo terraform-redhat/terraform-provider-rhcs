@@ -5,24 +5,25 @@ package provider
 ***REMOVED***
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	tfrschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 ***REMOVED***
 
 type Waiter interface {
 	Ready(***REMOVED*** bool
 }
 
-type ClusterWaiterResourceType struct {
-}
-
 type ClusterWaiterResource struct {
 	collection *cmv1.ClustersClient
 }
+
+var _ resource.Resource = &ClusterWaiterResource{}
 
 const (
 	defaultTimeoutInMinutes   = int64(60***REMOVED***
@@ -31,145 +32,138 @@ const (
 	pollingIntervalInMinutes  = 2
 ***REMOVED***
 
-func (t *ClusterWaiterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVED*** (result tfsdk.Schema,
-	diags diag.Diagnostics***REMOVED*** {
-	result = tfsdk.Schema{
+func NewClusterWaiterResource(***REMOVED*** resource.Resource {
+	return &ClusterWaiterResource{}
+}
+
+func (r *ClusterWaiterResource***REMOVED*** Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse***REMOVED*** {
+	resp.TypeName = req.ProviderTypeName + "_cluster_wait"
+}
+
+func (r *ClusterWaiterResource***REMOVED*** Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse***REMOVED*** {
+	resp.Schema = tfrschema.Schema{
 		Description: "Wait Cluster Resource To be Ready",
-		Attributes: map[string]tfsdk.Attribute{
-			"cluster": {
+		Attributes: map[string]tfrschema.Attribute{
+			"cluster": tfrschema.StringAttribute{
 				Description: "Identifier of the cluster.",
-				Type:        types.StringType,
 				Required:    true,
 	***REMOVED***,
-			"timeout": {
+			"timeout": tfrschema.Int64Attribute{
 				Description: "An optional timeout till the cluster is ready. The timeout value should be in minutes." +
 					" the default value is 60 minutes",
-				Type:       types.Int64Type,
-				Optional:   true,
-				Validators: timeoutValidators(***REMOVED***,
+				Optional: true,
+				Validators: []validator.Int64{
+					int64validator.AtLeast(1***REMOVED***, // Timeout must be positive
+		***REMOVED***,
 	***REMOVED***,
-			"ready": {
+			"ready": tfrschema.BoolAttribute{
 				Description: "Whether the cluster is ready",
-				Type:        types.BoolType,
 				Computed:    true,
 	***REMOVED***,
 ***REMOVED***,
 	}
-	return
 }
 
-func (t *ClusterWaiterResourceType***REMOVED*** NewResource(ctx context.Context,
-	p tfsdk.Provider***REMOVED*** (result tfsdk.Resource, diags diag.Diagnostics***REMOVED*** {
-	// Cast the provider interface to the specific implementation: use it directly when needed.
-	parent := p.(*Provider***REMOVED***
-
-	// Get the collection of clusters:
-	collection := parent.connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Clusters(***REMOVED***
-
-	// Create the resource:
-	result = &ClusterWaiterResource{
-		collection: collection,
+func (r *ClusterWaiterResource***REMOVED*** Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse***REMOVED*** {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
 	}
-	return
+
+	connection, ok := req.ProviderData.(*sdk.Connection***REMOVED***
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *sdk.Connaction, got: %T. Please report this issue to the provider developers.", req.ProviderData***REMOVED***,
+		***REMOVED***
+		return
+	}
+
+	r.collection = connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Clusters(***REMOVED***
 }
 
-func (r *ClusterWaiterResource***REMOVED*** Create(ctx context.Context,
-	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse***REMOVED*** {
+func (r *ClusterWaiterResource***REMOVED*** Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse***REMOVED*** {
 	// Get the plan:
 	state := &ClusterWaiterState{}
-	diags := request.Plan.Get(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
-	if response.Diagnostics.HasError(***REMOVED*** {
+	diags := req.Plan.Get(ctx, state***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
+	if resp.Diagnostics.HasError(***REMOVED*** {
 		return
 	}
 
 	state, err := r.startPolling(ctx, state***REMOVED***
 
 	if err != nil {
-		response.Diagnostics.AddError("Can't poll cluster state (create resource***REMOVED***", err.Error(***REMOVED******REMOVED***
+		resp.Diagnostics.AddError("Can't poll cluster state (create resource***REMOVED***", err.Error(***REMOVED******REMOVED***
 		return
 	}
 
 	// Save the state:
-	diags = response.State.Set(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
+	diags = resp.State.Set(ctx, state***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
 }
 
-func (r *ClusterWaiterResource***REMOVED*** Read(ctx context.Context, request tfsdk.ReadResourceRequest,
-	response *tfsdk.ReadResourceResponse***REMOVED*** {
+func (r *ClusterWaiterResource***REMOVED*** Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse***REMOVED*** {
 	// Do Nothing
 }
 
-func (r *ClusterWaiterResource***REMOVED*** Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
-	response *tfsdk.UpdateResourceResponse***REMOVED*** {
+func (r *ClusterWaiterResource***REMOVED*** Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse***REMOVED*** {
 	plan := &ClusterWaiterState{}
-	diags := request.Plan.Get(ctx, plan***REMOVED***
-	_ = request.Plan.Get(ctx, plan***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
-	if response.Diagnostics.HasError(***REMOVED*** {
+	diags := req.Plan.Get(ctx, plan***REMOVED***
+	_ = req.Plan.Get(ctx, plan***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
+	if resp.Diagnostics.HasError(***REMOVED*** {
 		return
 	}
 	state, err := r.startPolling(ctx, plan***REMOVED***
 
 	if err != nil {
-		response.Diagnostics.AddError("Can't poll cluster state (update resource***REMOVED***", err.Error(***REMOVED******REMOVED***
+		resp.Diagnostics.AddError("Can't poll cluster state (update resource***REMOVED***", err.Error(***REMOVED******REMOVED***
 		return
 	}
 
 	// Save the state:
-	diags = response.State.Set(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
+	diags = resp.State.Set(ctx, state***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
 }
 
-func (r *ClusterWaiterResource***REMOVED*** Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
-	response *tfsdk.DeleteResourceResponse***REMOVED*** {
-	response.State.RemoveResource(ctx***REMOVED***
-}
-
-func (r *ClusterWaiterResource***REMOVED*** ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
-	response *tfsdk.ImportResourceStateResponse***REMOVED*** {
-	// Do Nothing
+func (r *ClusterWaiterResource***REMOVED*** Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse***REMOVED*** {
+	resp.State.RemoveResource(ctx***REMOVED***
 }
 
 func (r *ClusterWaiterResource***REMOVED*** startPolling(ctx context.Context, state *ClusterWaiterState***REMOVED*** (*ClusterWaiterState, error***REMOVED*** {
-	state.Ready = types.Bool{
-		Value: false,
-	}
+	state.Ready = types.BoolValue(false***REMOVED***
 
 	timeout := defaultTimeoutInMinutes
-	if !state.Timeout.Unknown && !state.Timeout.Null {
-		timeout = state.Timeout.Value
+	if !state.Timeout.IsUnknown(***REMOVED*** && !state.Timeout.IsNull(***REMOVED*** {
+		timeout = state.Timeout.ValueInt64(***REMOVED***
 	}
 
 	// Wait till the cluster is ready:
-	object, err := r.retryClusterReadiness(3, 30*time.Second, state.Cluster.Value, ctx, timeout***REMOVED***
+	object, err := r.retryClusterReadiness(3, 30*time.Second, state.Cluster.ValueString(***REMOVED***, ctx, timeout***REMOVED***
 	if err != nil {
 		return state, fmt.Errorf(
 			"Can't poll state of cluster with identifier '%s': %v",
-			state.Cluster.Value, err,
+			state.Cluster.ValueString(***REMOVED***, err,
 		***REMOVED***
 	}
-	isClusterReady := false
-	if object.State(***REMOVED*** == cmv1.ClusterStateReady {
-		isClusterReady = true
-	}
 
-	state.Ready = types.Bool{
-		Value: isClusterReady,
-	}
+	state.Ready = types.BoolValue(object.State(***REMOVED*** == cmv1.ClusterStateReady***REMOVED***
 	return state, nil
 }
 
 func (r *ClusterWaiterResource***REMOVED*** isClusterReady(clusterId string, ctx context.Context, timeout int64***REMOVED*** (*cmv1.Cluster, error***REMOVED*** {
-	resource := r.collection.Cluster(clusterId***REMOVED***
+	client := r.collection.Cluster(clusterId***REMOVED***
 	var object *cmv1.Cluster
 	pollCtx, cancel := context.WithTimeout(ctx, time.Duration(timeout***REMOVED****time.Minute***REMOVED***
 	defer cancel(***REMOVED***
-	_, err := resource.Poll(***REMOVED***.
+	_, err := client.Poll(***REMOVED***.
 		Interval(pollingIntervalInMinutes * time.Minute***REMOVED***.
 		Predicate(func(getClusterResponse *cmv1.ClusterGetResponse***REMOVED*** bool {
 			object = getClusterResponse.Body(***REMOVED***
-			tflog.Debug(ctx, fmt.Sprintf("cluster state is %s", object.State(***REMOVED******REMOVED******REMOVED***
+			tflog.Debug(ctx, "polled cluster state", map[string]interface{}{
+				"state": object.State(***REMOVED***,
+	***REMOVED******REMOVED***
 			switch object.State(***REMOVED*** {
 			case cmv1.ClusterStateReady,
 				cmv1.ClusterStateError:
@@ -197,24 +191,4 @@ func (r *ClusterWaiterResource***REMOVED*** retryClusterReadiness(attempts int, 
 	}
 
 	return object, nil
-}
-
-func timeoutValidators(***REMOVED*** []tfsdk.AttributeValidator {
-	errSumm := "Invalid timeout configuration"
-	return []tfsdk.AttributeValidator{
-		&common.AttributeValidator{
-			Desc: "Timeout must be a positive number",
-			Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse***REMOVED*** {
-				timeout := &types.Int64{}
-				diag := req.Config.GetAttribute(ctx, req.AttributePath, timeout***REMOVED***
-				if diag.HasError(***REMOVED*** {
-					// No attribute to validate
-					return
-		***REMOVED***
-				if !timeout.Null && !timeout.Unknown && timeout.Value <= 0 {
-					resp.Diagnostics.AddError(errSumm, "timeout must be positive"***REMOVED***
-		***REMOVED***
-	***REMOVED***,
-***REMOVED***,
-	}
 }

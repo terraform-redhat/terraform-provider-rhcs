@@ -195,6 +195,7 @@ func (p *Provider***REMOVED*** Resources(ctx context.Context***REMOVED*** []func
 	return []func(***REMOVED*** resource.Resource{
 		NewClusterWaiterResource,
 		NewDNSDomainResource,
+		NewClusterRosaClassicResource,
 	}
 }
 

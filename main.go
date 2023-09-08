@@ -38,7 +38,6 @@ func main(***REMOVED*** {
 	flag.Parse(***REMOVED***
 
 	opts := providerserver.ServeOpts{
-		// TODO: Update this string with the published name of your provider.
 		Address: rhcsProviderAddress,
 		Debug:   debug,
 	}

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package machinepool
 
 ***REMOVED***
 	"context"
@@ -27,6 +27,12 @@ package provider
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
@@ -47,79 +53,76 @@ type MachinePoolResource struct {
 	collection *cmv1.ClustersClient
 }
 
-func (t *MachinePoolResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVED*** (result tfsdk.Schema,
-	diags diag.Diagnostics***REMOVED*** {
-	result = tfsdk.Schema{
+func New(***REMOVED*** resource.Resource {
+	return &MachinePoolResource{}
+}
+
+func (r *MachinePoolResource***REMOVED*** Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse***REMOVED*** {
+	resp.TypeName = req.ProviderTypeName + "_machine_pool"
+}
+
+func (r *MachinePoolResource***REMOVED*** Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse***REMOVED*** {
+	resp.Schema = schema.Schema{
 		Description: "Machine pool.",
-		Attributes: map[string]tfsdk.Attribute{
-			"cluster": {
+		Attributes: map[string]schema.Attribute{
+			"cluster": schema.StringAttribute{
 				Description: "Identifier of the cluster.",
-				Type:        types.StringType,
 				Required:    true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(***REMOVED***,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,
-			"id": {
+			"id": schema.StringAttribute{
 				Description: "Unique identifier of the machine pool.",
-				Type:        types.StringType,
 				Computed:    true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.UseStateForUnknown(***REMOVED***,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,
-			"name": {
+			"name": schema.StringAttribute{
 				Description: "Name of the machine pool.Must consist of lower-case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.",
-				Type:        types.StringType,
 				Required:    true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(***REMOVED***,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,
-			"machine_type": {
+			"machine_type": schema.StringAttribute{
 				Description: "Identifier of the machine type used by the nodes, " +
 					"for example `r5.xlarge`. Use the `rhcs_machine_types` data " +
 					"source to find the possible values.",
-				Type:     types.StringType,
 				Required: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(***REMOVED***,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,
-			"replicas": {
+			"replicas": schema.Int64Attribute{
 				Description: "The number of machines of the pool",
-				Type:        types.Int64Type,
 				Optional:    true,
 	***REMOVED***,
-			"use_spot_instances": {
+			"use_spot_instances": schema.BoolAttribute{
 				Description: "Use Spot Instances.",
-				Type:        types.BoolType,
 				Optional:    true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(***REMOVED***,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,
-			"max_spot_price": {
+			"max_spot_price": schema.Float64Attribute{
 				Description: "Max Spot price.",
-				Type:        types.Float64Type,
 				Optional:    true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(***REMOVED***,
+				PlanModifiers: []planmodifier.Float64{
+					float64planmodifier.RequiresReplace(***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,
-			"autoscaling_enabled": {
+			"autoscaling_enabled": schema.BoolAttribute{
 				Description: "Enables autoscaling. This variable requires you to set a maximum and minimum replicas range using the `max_replicas` and `min_replicas` variables.",
-				Type:        types.BoolType,
 				Optional:    true,
 	***REMOVED***,
-			"min_replicas": {
+			"min_replicas": schema.Int64Attribute{
 				Description: "The minimum number of replicas for autoscaling.",
-				Type:        types.Int64Type,
 				Optional:    true,
 	***REMOVED***,
-			"max_replicas": {
+			"max_replicas": schema.Int64Attribute{
 				Description: "The maximum number of replicas for autoscaling functionality.",
-				Type:        types.Int64Type,
 				Optional:    true,
 	***REMOVED***,
 			"taints": {

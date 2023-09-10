@@ -16,49 +16,53 @@ limitations under the License.
 package clusterrosaclassic
 
 import (
-	"bytes"
 	"context"
-	"crypto/sha1"
-	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
 	"net/http"
-	"net/url"
-	"os"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/openshift/rosa/pkg/helper"
-	"github.com/openshift/rosa/pkg/properties"
-
 	"github.com/openshift/rosa/pkg/ocm"
+	"github.com/openshift/rosa/pkg/properties"
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 	ocmr "github.com/terraform-redhat/terraform-provider-rhcs/internal/ocm/resource"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 
 	semver "github.com/hashicorp/go-version"
 	ver "github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	tfrschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	_ "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	ocm_errors "github.com/openshift-online/ocm-sdk-go/errors"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosaclassic/upgrade"
 )
 
 const (
+	defaultTimeoutInMinutes   = int64(60)
+	nonPositiveTimeoutSummary = "Can't poll cluster state with a non-positive timeout"
+	nonPositiveTimeoutFormat  = "Can't poll state of cluster with identifier '%s', the timeout that was set is not a positive number"
+	pollingIntervalInMinutes  = 2
+
 	awsCloudProvider      = "aws"
 	rosaProduct           = "rosa"
 	MinVersion            = "4.10.0"
@@ -83,7 +87,7 @@ type ClusterRosaClassicResource struct {
 var _ resource.ResourceWithConfigure = &ClusterRosaClassicResource{}
 var _ resource.ResourceWithImportState = &ClusterRosaClassicResource{}
 
-func NewClusterRosaClassicResource() resource.Resource {
+func New() resource.Resource {
 	return &ClusterRosaClassicResource{}
 }
 
@@ -92,10 +96,10 @@ func (r *ClusterRosaClassicResource) Metadata(ctx context.Context, req resource.
 }
 
 func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = tfrschema.Schema{
+	resp.Schema = schema.Schema{
 		Description: "OpenShift managed cluster using rosa sts.",
-		Attributes: map[string]tfrschema.Attribute{
-			"id": tfrschema.StringAttribute{
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Description: "Unique identifier of the cluster.",
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
@@ -104,114 +108,114 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"external_id": tfrschema.StringAttribute{
+			"external_id": schema.StringAttribute{
 				Description: "Unique external identifier of the cluster.",
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
-					ValueCannotBeChangedModifier(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"name": tfrschema.StringAttribute{
+			"name": schema.StringAttribute{
 				Description: "Name of the cluster. Cannot exceed 15 characters in length.",
 				Required:    true,
 				PlanModifiers: []planmodifier.String{
-					ValueCannotBeChangedModifier(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"cloud_region": tfrschema.StringAttribute{
+			"cloud_region": schema.StringAttribute{
 				Description: "Cloud region identifier, for example 'us-east-1'.",
 				Required:    true,
 			},
-			"sts": tfrschema.SingleNestedAttribute{
+			"sts": schema.SingleNestedAttribute{
 				Description: "STS configuration.",
 				Attributes:  stsResource(),
 				Optional:    true,
 			},
-			"multi_az": tfrschema.BoolAttribute{
+			"multi_az": schema.BoolAttribute{
 				Description: "Indicates if the cluster should be deployed to " +
 					"multiple availability zones. Default value is 'false'.",
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
-					ValueCannotBeChangedModifier(),
+					boolplanmodifier.RequiresReplace(),
 				},
 			},
-			"disable_workload_monitoring": tfrschema.BoolAttribute{
+			"disable_workload_monitoring": schema.BoolAttribute{
 				Description: "Enables you to monitor your own projects in isolation from Red Hat " +
 					"Site Reliability Engineer (SRE) platform metrics.",
 				Optional: true,
 			},
-			"disable_scp_checks": tfrschema.BoolAttribute{
+			"disable_scp_checks": schema.BoolAttribute{
 				Description: "Enables you to monitor your own projects in isolation from Red Hat " +
 					"Site Reliability Engineer (SRE) platform metrics.",
 				Optional: true,
 				PlanModifiers: []planmodifier.Bool{
-					ValueCannotBeChangedModifier(),
+					boolplanmodifier.RequiresReplace(),
 				},
 			},
-			"properties": tfrschema.MapAttribute{
+			"properties": schema.MapAttribute{
 				Description: "User defined properties.",
 				ElementType: types.StringType,
 				Optional:    true,
 				Computed:    true,
-				Validators:  propertiesValidators(),
+				Validators:  []validator.Map{PropertiesValidator()},
 			},
-			"ocm_properties": tfrschema.MapAttribute{
+			"ocm_properties": schema.MapAttribute{
 				Description: "Merged properties defined by OCM and the user defined 'properties'.",
 				ElementType: types.StringType,
 				Computed:    true,
 			},
-			"tags": tfrschema.MapAttribute{
+			"tags": schema.MapAttribute{
 				Description: "Apply user defined tags to all resources created in AWS.",
 				ElementType: types.StringType,
 				Optional:    true,
 				PlanModifiers: []planmodifier.Map{
-					ValueCannotBeChangedModifier(),
+					mapplanmodifier.RequiresReplace(),
 				},
 			},
-			"ccs_enabled": tfrschema.BoolAttribute{
+			"ccs_enabled": schema.BoolAttribute{
 				Description: "Enables customer cloud subscription.",
 				Computed:    true,
 			},
-			"etcd_encryption": tfrschema.BoolAttribute{
+			"etcd_encryption": schema.BoolAttribute{
 				Description: "Encrypt etcd data.",
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
-					ValueCannotBeChangedModifier(),
+					boolplanmodifier.RequiresReplace(),
 				},
 			},
-			"autoscaling_enabled": tfrschema.BoolAttribute{
+			"autoscaling_enabled": schema.BoolAttribute{
 				Description: "Enables autoscaling.",
 				Optional:    true,
 			},
-			"min_replicas": tfrschema.Int64Attribute{
+			"min_replicas": schema.Int64Attribute{
 				Description: "Minimum replicas.",
 				Optional:    true,
 				Computed:    true,
 			},
-			"max_replicas": tfrschema.Int64Attribute{
+			"max_replicas": schema.Int64Attribute{
 				Description: "Maximum replicas.",
 				Optional:    true,
 				Computed:    true,
 			},
-			"api_url": tfrschema.StringAttribute{
+			"api_url": schema.StringAttribute{
 				Description: "URL of the API server.",
 				Computed:    true,
 			},
-			"console_url": tfrschema.StringAttribute{
+			"console_url": schema.StringAttribute{
 				Description: "URL of the console.",
 				Computed:    true,
 			},
-			"domain": tfrschema.StringAttribute{
+			"domain": schema.StringAttribute{
 				Description: "DNS domain of cluster.",
 				Computed:    true,
 			},
-			"base_dns_domain": tfrschema.StringAttribute{
+			"base_dns_domain": schema.StringAttribute{
 				Description: "Base DNS domain name previously reserved and matching the hosted " +
 					"zone name of the private Route 53 hosted zone associated with intended shared " +
 					"VPC, e.g., '1vo8.p1.openshiftapps.com'.",
@@ -221,242 +225,251 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"replicas": tfrschema.Int64Attribute{
+			"replicas": schema.Int64Attribute{
 				Description: "Number of worker nodes to provision. Single zone clusters need at least 2 nodes, " +
 					"multizone clusters need at least 3 nodes.",
 				Optional: true,
 				Computed: true,
 			},
-			"compute_machine_type": tfrschema.StringAttribute{
+			"compute_machine_type": schema.StringAttribute{
 				Description: "Identifies the machine type used by the compute nodes, " +
 					"for example `r5.xlarge`. Use the `rhcs_machine_types` data " +
 					"source to find the possible values.",
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"default_mp_labels": tfrschema.MapAttribute{
+			"default_mp_labels": schema.MapAttribute{
 				Description: "This value is the default machine pool labels. Format should be a comma-separated list of '{\"key1\"=\"value1\", \"key2\"=\"value2\"}'. " +
 					"This list overwrites any modifications made to Node labels on an ongoing basis. ",
 				ElementType: types.StringType,
 				Optional:    true,
 			},
-			"aws_account_id": tfrschema.StringAttribute{
+			"aws_account_id": schema.StringAttribute{
 				Description: "Identifier of the AWS account.",
 				Required:    true,
 				PlanModifiers: []planmodifier.String{
-					ValueCannotBeChangedModifier(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"aws_subnet_ids": tfrschema.ListAttribute{
+			"aws_subnet_ids": schema.ListAttribute{
 				Description: "AWS subnet IDs.",
 				ElementType: types.StringType,
 				Optional:    true,
 				PlanModifiers: []planmodifier.List{
-					ValueCannotBeChangedModifier(),
+					listplanmodifier.RequiresReplace(),
 				},
 			},
-			"kms_key_arn": tfrschema.StringAttribute{
+			"kms_key_arn": schema.StringAttribute{
 				Description: "The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, " +
 					"fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID.",
 				Optional: true,
 				PlanModifiers: []planmodifier.String{
-					ValueCannotBeChangedModifier(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"fips": tfrschema.BoolAttribute{
+			"fips": schema.BoolAttribute{
 				Description: "Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries.",
 				Optional:    true,
 				PlanModifiers: []planmodifier.Bool{
-					ValueCannotBeChangedModifier(),
+					boolplanmodifier.RequiresReplace(),
 				},
 			},
-			"aws_private_link": tfrschema.BoolAttribute{
+			"aws_private_link": schema.BoolAttribute{
 				Description: "Provides private connectivity between VPCs, AWS services, and your on-premises networks, without exposing your traffic to the public internet.",
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
-					ValueCannotBeChangedModifier(),
+					boolplanmodifier.RequiresReplace(),
 				},
 			},
-			"private": tfrschema.BoolAttribute{
+			"private": schema.BoolAttribute{
 				Description: "Restrict master API endpoint and application routes to direct, private connectivity.",
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
-					ValueCannotBeChangedModifier(),
+					boolplanmodifier.RequiresReplace(),
 				},
 			},
-			"availability_zones": tfrschema.ListAttribute{
+			"availability_zones": schema.ListAttribute{
 				Description: "Availability zones.",
 				ElementType: types.StringType,
 				Optional:    true,
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.UseStateForUnknown(),
-					ValueCannotBeChangedModifier(),
+					listplanmodifier.RequiresReplace(),
 				},
 			},
-			"machine_cidr": tfrschema.StringAttribute{
+			"machine_cidr": schema.StringAttribute{
 				Description: "Block of IP addresses for nodes.",
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
-					ValueCannotBeChangedModifier(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"proxy": tfrschema.SingleNestedAttribute{
+			"proxy": schema.SingleNestedAttribute{
 				Description: "proxy",
-				Attributes: map[string]tfrschema.Attribute{
-					"http_proxy": tfrschema.StringAttribute{
+				Attributes: map[string]schema.Attribute{
+					"http_proxy": schema.StringAttribute{
 						Description: "HTTP proxy.",
 						Optional:    true,
 					},
-					"https_proxy": tfrschema.StringAttribute{
+					"https_proxy": schema.StringAttribute{
 						Description: "HTTPS proxy.",
 						Optional:    true,
 					},
-					"no_proxy": tfrschema.StringAttribute{
+					"no_proxy": schema.StringAttribute{
 						Description: "No proxy.",
 						Optional:    true,
 					},
-					"additional_trust_bundle": tfrschema.StringAttribute{
+					"additional_trust_bundle": schema.StringAttribute{
 						Description: "A string containing a PEM-encoded X.509 certificate bundle that will be added to the nodes' trusted certificate store.",
 						Optional:    true,
 					},
 				},
 				Optional:   true,
-				Validators: proxyValidators(),
+				Validators: []validator.Object{ProxyValidator()},
 			},
-			"service_cidr": tfrschema.StringAttribute{
+			"service_cidr": schema.StringAttribute{
 				Description: "Block of IP addresses for services.",
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
-					ValueCannotBeChangedModifier(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"pod_cidr": tfrschema.StringAttribute{
+			"pod_cidr": schema.StringAttribute{
 				Description: "Block of IP addresses for pods.",
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
-					ValueCannotBeChangedModifier(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"host_prefix": tfrschema.Int64Attribute{
+			"host_prefix": schema.Int64Attribute{
 				Description: "Length of the prefix of the subnet assigned to each node.",
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.UseStateForUnknown(),
-					ValueCannotBeChangedModifier(),
+					int64planmodifier.RequiresReplace(),
 				},
 			},
-			"channel_group": tfrschema.StringAttribute{
+			"channel_group": schema.StringAttribute{
 				Description: "Name of the channel group where you select the OpenShift cluster version, for example 'stable'.",
 				Optional:    true,
 				Computed:    true,
+				Default:     stringdefault.StaticString(ocm.DefaultChannelGroup),
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
-					ValueCannotBeChangedModifier(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
-			"version": tfrschema.StringAttribute{
+			"version": schema.StringAttribute{
 				Description: "Desired version of OpenShift for the cluster, for example '4.1.0'. If version is greater than the currently running version, an upgrade will be scheduled.",
 				Optional:    true,
 			},
-			"current_version": tfrschema.StringAttribute{
+			"current_version": schema.StringAttribute{
 				Description: "The currently running version of OpenShift on the cluster, for example '4.1.0'.",
 				Computed:    true,
 			},
-			"disable_waiting_in_destroy": tfrschema.BoolAttribute{
+			"disable_waiting_in_destroy": schema.BoolAttribute{
 				Description: "Disable addressing cluster state in the destroy resource. Default value is false.",
 				Optional:    true,
 			},
-			"destroy_timeout": tfrschema.Int64Attribute{
+			"destroy_timeout": schema.Int64Attribute{
 				Description: "This value sets the maximum duration in minutes to allow for destroying resources. Default value is 60 minutes.",
 				Optional:    true,
 			},
-			"state": tfrschema.StringAttribute{
+			"state": schema.StringAttribute{
 				Description: "State of the cluster.",
 				Computed:    true,
 			},
-			"ec2_metadata_http_tokens": tfrschema.StringAttribute{
+			"ec2_metadata_http_tokens": schema.StringAttribute{
 				Description: "This value determines which EC2 metadata mode to use for metadata service interaction " +
 					"options for EC2 instances can be optional or required. This feature is available from " +
 					"OpenShift version 4.11.0 and newer.",
 				Optional: true,
 				Computed: true,
-				Validators: EnumValueValidator([]string{string(cmv1.Ec2MetadataHttpTokensOptional),
-					string(cmv1.Ec2MetadataHttpTokensRequired)}),
+				Validators: []validator.String{attrvalidators.EnumValueValidator([]string{string(cmv1.Ec2MetadataHttpTokensOptional),
+					string(cmv1.Ec2MetadataHttpTokensRequired)})},
 				PlanModifiers: []planmodifier.String{
-					ValueCannotBeChangedModifier(),
+					stringplanmodifier.RequiresReplace(),
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"upgrade_acknowledgements_for": tfrschema.StringAttribute{
+			"upgrade_acknowledgements_for": schema.StringAttribute{
 				Description: "Indicates acknowledgement of agreements required to upgrade the cluster version between" +
 					" minor versions (e.g. a value of \"4.12\" indicates acknowledgement of any agreements required to " +
 					"upgrade to OpenShift 4.12.z from 4.11 or before).",
 				Optional: true,
 			},
-			"admin_credentials": tfrschema.SingleNestedAttribute{
+			"admin_credentials": schema.SingleNestedAttribute{
 				Description: "Admin user credentials",
-				Attributes: map[string]tfrschema.Attribute{
-					"username": tfrschema.StringAttribute{
+				Attributes: map[string]schema.Attribute{
+					"username": schema.StringAttribute{
 						Description: "Admin username that will be created with the cluster.",
 						Required:    true,
 						PlanModifiers: []planmodifier.String{
-							ValueCannotBeChangedModifier(),
+							stringplanmodifier.RequiresReplace(),
 						},
 					},
-					"password": tfrschema.StringAttribute{
+					"password": schema.StringAttribute{
 						Description: "Admin password that will be created with the cluster.",
 						Required:    true,
 						Sensitive:   true,
 						PlanModifiers: []planmodifier.String{
-							ValueCannotBeChangedModifier(),
+							stringplanmodifier.RequiresReplace(),
 						},
 					},
 				},
 				Optional: true,
 				PlanModifiers: []planmodifier.Object{
-					ValueCannotBeChangedModifier(),
+					objectplanmodifier.RequiresReplace(),
 				},
-				Validators: adminCredsValidators(),
+				Validators: []validator.Object{AdminCredsValidator()},
 			},
-			"private_hosted_zone": tfrschema.SingleNestedAttribute{
+			"private_hosted_zone": schema.SingleNestedAttribute{
 				Description: "Used in a shared VPC typology. HostedZone attributes",
-				Attributes: map[string]tfrschema.Attribute{
-					"id": tfrschema.StringAttribute{
+				Attributes: map[string]schema.Attribute{
+					"id": schema.StringAttribute{
 						Description: "ID assigned by AWS to private Route 53 hosted zone associated with intended shared VPC, " +
 							"e.g. 'Z05646003S02O1ENCDCSN'.",
 						Required: true,
 						PlanModifiers: []planmodifier.String{
-							ValueCannotBeChangedModifier(),
+							stringplanmodifier.RequiresReplace(),
 						},
 					},
-					"role_arn": tfrschema.StringAttribute{
+					"role_arn": schema.StringAttribute{
 						Description: "AWS IAM role ARN with a policy attached, granting permissions necessary to " +
 							"create and manage Route 53 DNS records in private Route 53 hosted zone associated with " +
 							"intended shared VPC.",
 						Required: true,
 						PlanModifiers: []planmodifier.String{
-							ValueCannotBeChangedModifier(),
+							stringplanmodifier.RequiresReplace(),
 						},
 					},
 				},
 				Optional: true,
 				PlanModifiers: []planmodifier.Object{
-					ValueCannotBeChangedModifier(),
+					objectplanmodifier.RequiresReplace(),
 				},
-				Validators: []tfsdk.AttributeValidator{privateHZValidators()},
+				Validators: []validator.Object{
+					objectvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("sts")),
+					objectvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("base_dns_domain")),
+					objectvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("availability_zones")),
+					objectvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("aws_subnet_ids")),
+					PrivateHZValidator(),
+				},
 			},
 		},
 	}
@@ -509,29 +522,44 @@ func createClassicClusterObject(ctx context.Context,
 	builder.CloudProvider(cmv1.NewCloudProvider().ID(awsCloudProvider))
 	builder.Product(cmv1.NewProduct().ID(rosaProduct))
 	builder.Region(cmv1.NewCloudRegion().ID(state.CloudRegion.ValueString()))
-	multiAZ := common.Bool(state.MultiAZ)
+	multiAZ := common.BoolWithFalseDefault(state.MultiAZ)
 	builder.MultiAZ(multiAZ)
+
 	// Set default properties
 	properties := make(map[string]string)
 	for k, v := range OCMProperties {
 		properties[k] = v
 	}
-	if !state.Properties.IsUnknown() && !state.Properties.IsNull() {
-		for k, v := range state.Properties.Elements() {
-			properties[k] = v.(types.String).ValueString()
+	if common.HasValue(state.Properties) {
+		propertiesElements, err := common.OptionalMap(ctx, state.Properties)
+		if err != nil {
+			errDescription := fmt.Sprintf("Expected a valid Map for 'properties' '%v'",
+				diags.Errors()[0].Detail(),
+			)
+			tflog.Error(ctx, errDescription)
+
+			diags.AddError(
+				errHeadline,
+				errDescription,
+			)
+			return nil, errors.New(errHeadline + "\n" + errDescription)
+		}
+
+		for k, v := range propertiesElements {
+			properties[k] = v
 		}
 	}
 	builder.Properties(properties)
 
-	if !state.EtcdEncryption.IsUnknown() && !state.EtcdEncryption.IsNull() {
+	if common.HasValue(state.EtcdEncryption) {
 		builder.EtcdEncryption(state.EtcdEncryption.ValueBool())
 	}
 
-	if !state.ExternalID.IsUnknown() && !state.ExternalID.IsNull() {
+	if common.HasValue(state.ExternalID) {
 		builder.ExternalID(state.ExternalID.ValueString())
 	}
 
-	if !state.DisableWorkloadMonitoring.IsUnknown() && !state.DisableWorkloadMonitoring.IsNull() {
+	if common.HasValue(state.DisableWorkloadMonitoring) {
 		builder.DisableUserWorkloadMonitoring(state.DisableWorkloadMonitoring.ValueBool())
 	}
 
@@ -541,15 +569,22 @@ func createClassicClusterObject(ctx context.Context,
 		builder.DNS(dnsBuilder)
 	}
 
-	autoScalingEnabled := common.Bool(state.AutoScalingEnabled)
+	autoScalingEnabled := common.BoolWithFalseDefault(state.AutoScalingEnabled)
+
 	replicas := common.OptionalInt64(state.Replicas)
 	minReplicas := common.OptionalInt64(state.MinReplicas)
 	maxReplicas := common.OptionalInt64(state.MaxReplicas)
 	computeMachineType := common.OptionalString(state.ComputeMachineType)
-	labels := common.OptionalMap(state.DefaultMPLabels)
-	availabilityZones := common.OptionalList(state.AvailabilityZones)
+	labels, err := common.OptionalMap(ctx, state.DefaultMPLabels)
+	if err != nil {
+		return nil, err
+	}
+	availabilityZones, err := common.StringListToArray(ctx, state.AvailabilityZones)
+	if err != nil {
+		return nil, err
+	}
 
-	if err := ocmClusterResource.CreateNodes(autoScalingEnabled, replicas, minReplicas, maxReplicas,
+	if err = ocmClusterResource.CreateNodes(autoScalingEnabled, replicas, minReplicas, maxReplicas,
 		computeMachineType, labels, availabilityZones, multiAZ); err != nil {
 		return nil, err
 	}
@@ -558,24 +593,27 @@ func createClassicClusterObject(ctx context.Context,
 	ccs := cmv1.NewCCS()
 	ccs.Enabled(true)
 
-	if !state.DisableSCPChecks.IsUnknown() && !state.DisableSCPChecks.IsNull() && state.DisableSCPChecks.ValueBool() {
+	if common.HasValue(state.DisableSCPChecks) && state.DisableSCPChecks.ValueBool() {
 		ccs.DisableSCPChecks(true)
 	}
 	builder.CCS(ccs)
 
-	awsTags := common.OptionalMap(state.Tags)
 	ec2MetadataHttpTokens := common.OptionalString(state.Ec2MetadataHttpTokens)
 	kmsKeyARN := common.OptionalString(state.KMSKeyArn)
 	awsAccountID := common.OptionalString(state.AWSAccountID)
-	isPrivateLink := common.Bool(state.AWSPrivateLink)
-	isPrivate := common.Bool(state.Private)
-	awsSubnetIDs := common.OptionalList(state.AWSSubnetIDs)
+
 	var privateHostedZoneID, privateHostedZoneRoleARN *string = nil, nil
 	if state.PrivateHostedZone != nil &&
 		!common.IsStringAttributeEmpty(state.PrivateHostedZone.ID) &&
 		!common.IsStringAttributeEmpty(state.PrivateHostedZone.RoleARN) {
 		privateHostedZoneRoleARN = &state.PrivateHostedZone.RoleARN.Value
 		privateHostedZoneID = &state.PrivateHostedZone.ID.Value
+
+	isPrivateLink := common.BoolWithFalseDefault(state.AWSPrivateLink)
+	isPrivate := common.BoolWithFalseDefault(state.Private)
+	awsSubnetIDs, err := common.StringListToArray(ctx, state.AWSSubnetIDs)
+	if err != nil {
+		return nil, err
 	}
 	var stsBuilder *cmv1.STSBuilder
 	if state.Sts != nil {
@@ -584,6 +622,10 @@ func createClassicClusterObject(ctx context.Context,
 			state.Sts.OperatorRolePrefix.ValueString(), common.OptionalString(state.Sts.OIDCConfigID))
 	}
 
+	awsTags, err := common.OptionalMap(ctx, state.Tags)
+	if err != nil {
+		return nil, err
+	}
 	if err := ocmClusterResource.CreateAWSBuilder(awsTags, ec2MetadataHttpTokens, kmsKeyARN,
 		isPrivateLink, awsAccountID, stsBuilder, awsSubnetIDs, privateHostedZoneID, privateHostedZoneRoleARN); err != nil {
 		return nil, err
@@ -593,21 +635,21 @@ func createClassicClusterObject(ctx context.Context,
 		return nil, err
 	}
 
-	if !state.FIPS.IsUnknown() && !state.FIPS.IsNull() && state.FIPS.ValueBool() {
+	if common.HasValue(state.FIPS) && state.FIPS.ValueBool() {
 		builder.FIPS(true)
 	}
 
 	network := cmv1.NewNetwork()
-	if !state.MachineCIDR.IsUnknown() && !state.MachineCIDR.IsNull() {
+	if common.HasValue(state.MachineCIDR) {
 		network.MachineCIDR(state.MachineCIDR.ValueString())
 	}
-	if !state.ServiceCIDR.IsUnknown() && !state.ServiceCIDR.IsNull() {
+	if common.HasValue(state.ServiceCIDR) {
 		network.ServiceCIDR(state.ServiceCIDR.ValueString())
 	}
-	if !state.PodCIDR.IsUnknown() && !state.PodCIDR.IsNull() {
+	if common.HasValue(state.PodCIDR) {
 		network.PodCIDR(state.PodCIDR.ValueString())
 	}
-	if !state.HostPrefix.IsUnknown() && !state.HostPrefix.IsNull() {
+	if common.HasValue(state.HostPrefix) {
 		network.HostPrefix(int(state.HostPrefix.ValueInt64()))
 	}
 	if !network.Empty() {
@@ -615,11 +657,11 @@ func createClassicClusterObject(ctx context.Context,
 	}
 
 	channelGroup := ocm.DefaultChannelGroup
-	if !state.ChannelGroup.IsUnknown() && !state.ChannelGroup.IsNull() {
+	if common.HasValue(state.ChannelGroup) {
 		channelGroup = state.ChannelGroup.ValueString()
 	}
 
-	if !state.Version.IsUnknown() && !state.Version.IsNull() {
+	if common.HasValue(state.Version) {
 		// TODO: update it to support all cluster versions
 		isSupported, err := common.IsGreaterThanOrEqual(state.Version.ValueString(), MinVersion)
 		if err != nil {
@@ -665,7 +707,7 @@ func createClassicClusterObject(ctx context.Context,
 		builder.Htpasswd(htPasswdIDP)
 	}
 
-	builder, err := buildProxy(state, builder)
+	builder, err = buildProxy(state, builder)
 	if err != nil {
 		tflog.Error(ctx, "Failed to build the Proxy's attributes")
 		return nil, err
@@ -675,10 +717,6 @@ func createClassicClusterObject(ctx context.Context,
 	return object, err
 }
 
-// =====================================================
-// XXX: This is as far as I've gotten with the refactor
-// =====================================================
-
 func buildProxy(state *ClusterRosaClassicState, builder *cmv1.ClusterBuilder) (*cmv1.ClusterBuilder, error) {
 	proxy := cmv1.NewProxy()
 	if state.Proxy != nil {
@@ -687,19 +725,19 @@ func buildProxy(state *ClusterRosaClassicState, builder *cmv1.ClusterBuilder) (*
 		additionalTrustBundle := ""
 
 		if !common.IsStringAttributeEmpty(state.Proxy.HttpProxy) {
-			httpProxy = state.Proxy.HttpProxy.Value
+			httpProxy = state.Proxy.HttpProxy.ValueString()
 			proxy.HTTPProxy(httpProxy)
 		}
 		if !common.IsStringAttributeEmpty(state.Proxy.HttpsProxy) {
-			httpsProxy = state.Proxy.HttpsProxy.Value
+			httpsProxy = state.Proxy.HttpsProxy.ValueString()
 			proxy.HTTPSProxy(httpsProxy)
 		}
 		if !common.IsStringAttributeEmpty(state.Proxy.NoProxy) {
-			proxy.NoProxy(state.Proxy.NoProxy.Value)
+			proxy.NoProxy(state.Proxy.NoProxy.ValueString())
 		}
 
 		if !common.IsStringAttributeEmpty(state.Proxy.AdditionalTrustBundle) {
-			additionalTrustBundle = state.Proxy.AdditionalTrustBundle.Value
+			additionalTrustBundle = state.Proxy.AdditionalTrustBundle.ValueString()
 			builder.AdditionalTrustBundle(additionalTrustBundle)
 		}
 
@@ -713,8 +751,8 @@ func buildProxy(state *ClusterRosaClassicState, builder *cmv1.ClusterBuilder) (*
 // available in the channel group
 func (r *ClusterRosaClassicResource) getAndValidateVersionInChannelGroup(ctx context.Context, state *ClusterRosaClassicState) (string, error) {
 	channelGroup := ocm.DefaultChannelGroup
-	if !state.ChannelGroup.Unknown && !state.ChannelGroup.Null {
-		channelGroup = state.ChannelGroup.Value
+	if common.HasValue(state.ChannelGroup) {
+		channelGroup = state.ChannelGroup.ValueString()
 	}
 
 	versionList, err := r.getVersionList(ctx, channelGroup)
@@ -723,8 +761,8 @@ func (r *ClusterRosaClassicResource) getAndValidateVersionInChannelGroup(ctx con
 	}
 
 	version := versionList[0]
-	if !state.Version.Unknown && !state.Version.Null {
-		version = state.Version.Value
+	if common.HasValue(state.Version) {
+		version = state.Version.ValueString()
 	}
 
 	tflog.Debug(ctx, fmt.Sprintf("Validating if cluster version %s is in the list of supported versions: %v", version, versionList))
@@ -739,7 +777,7 @@ func (r *ClusterRosaClassicResource) getAndValidateVersionInChannelGroup(ctx con
 
 func validateHttpTokensVersion(ctx context.Context, state *ClusterRosaClassicState, version string) error {
 	if common.IsStringAttributeEmpty(state.Ec2MetadataHttpTokens) ||
-		cmv1.Ec2MetadataHttpTokens(state.Ec2MetadataHttpTokens.Value) == cmv1.Ec2MetadataHttpTokensOptional {
+		cmv1.Ec2MetadataHttpTokens(state.Ec2MetadataHttpTokens.ValueString()) == cmv1.Ec2MetadataHttpTokensOptional {
 		return nil
 	}
 
@@ -826,9 +864,10 @@ func (r *ClusterRosaClassicResource) getVersions(ctx context.Context, channelGro
 	return
 }
 
-func (r *ClusterRosaClassicResource) Create(ctx context.Context,
-	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse) {
+func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resource.CreateRequest,
+	response *resource.CreateResponse) {
 	tflog.Debug(ctx, "begin create()")
+
 	// Get the plan:
 	state := &ClusterRosaClassicState{}
 	diags := request.Plan.Get(ctx, state)
@@ -840,7 +879,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 
 	// In case version with "openshift-v" prefix was used here,
 	// Give a meaningful message to inform the user that it not supported any more
-	if !state.Version.Unknown && !state.Version.Null && strings.HasPrefix(state.Version.Value, "openshift-v") {
+	if common.HasValue(state.Version) && strings.HasPrefix(state.Version.ValueString(), "openshift-v") {
 		response.Diagnostics.AddError(
 			summary,
 			"Openshift version must be provided without the \"openshift-v\" prefix",
@@ -854,7 +893,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 			summary,
 			fmt.Sprintf(
 				"Can't build cluster with name '%s': %v",
-				state.Name.Value, err,
+				state.Name.ValueString(), err,
 			),
 		)
 		return
@@ -866,7 +905,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 			summary,
 			fmt.Sprintf(
 				"Can't build cluster with name '%s': %v",
-				state.Name.Value, err,
+				state.Name.ValueString(), err,
 			),
 		)
 		return
@@ -878,7 +917,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 			summary,
 			fmt.Sprintf(
 				"Can't build cluster with name '%s': %v",
-				state.Name.Value, err,
+				state.Name.ValueString(), err,
 			),
 		)
 		return
@@ -890,7 +929,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 			summary,
 			fmt.Sprintf(
 				"Can't create cluster with name '%s': %v",
-				state.Name.Value, err,
+				state.Name.ValueString(), err,
 			),
 		)
 		return
@@ -898,7 +937,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 	object = add.Body()
 
 	// Save the state:
-	err = populateRosaClassicClusterState(ctx, object, state, DefaultHttpClient{})
+	err = populateRosaClassicClusterState(ctx, object, state, common.DefaultHttpClient{})
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -912,8 +951,8 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context,
 	response.Diagnostics.Append(diags...)
 }
 
-func (r *ClusterRosaClassicResource) Read(ctx context.Context, request tfsdk.ReadResourceRequest,
-	response *tfsdk.ReadResourceResponse) {
+func (r *ClusterRosaClassicResource) Read(ctx context.Context, request resource.ReadRequest,
+	response *resource.ReadResponse) {
 	tflog.Debug(ctx, "begin Read()")
 	// Get the current state:
 	state := &ClusterRosaClassicState{}
@@ -924,10 +963,10 @@ func (r *ClusterRosaClassicResource) Read(ctx context.Context, request tfsdk.Rea
 	}
 
 	// Find the cluster:
-	get, err := r.clusterCollection.Cluster(state.ID.Value).Get().SendContext(ctx)
+	get, err := r.clusterCollection.Cluster(state.ID.ValueString()).Get().SendContext(ctx)
 	if err != nil && get.Status() == http.StatusNotFound {
 		tflog.Warn(ctx, fmt.Sprintf("cluster (%s) not found, removing from state",
-			state.ID.Value,
+			state.ID.ValueString(),
 		))
 		response.State.RemoveResource(ctx)
 		return
@@ -936,7 +975,7 @@ func (r *ClusterRosaClassicResource) Read(ctx context.Context, request tfsdk.Rea
 			"Can't find cluster",
 			fmt.Sprintf(
 				"Can't find cluster with identifier '%s': %v",
-				state.ID.Value, err,
+				state.ID.ValueString(), err,
 			),
 		)
 		return
@@ -945,7 +984,7 @@ func (r *ClusterRosaClassicResource) Read(ctx context.Context, request tfsdk.Rea
 	object := get.Body()
 
 	// Save the state:
-	err = populateRosaClassicClusterState(ctx, object, state, DefaultHttpClient{})
+	err = populateRosaClassicClusterState(ctx, object, state, common.DefaultHttpClient{})
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -955,12 +994,13 @@ func (r *ClusterRosaClassicResource) Read(ctx context.Context, request tfsdk.Rea
 		)
 		return
 	}
+
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
 }
 
-func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
-	response *tfsdk.UpdateResourceResponse) {
+func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resource.UpdateRequest,
+	response *resource.UpdateResponse) {
 	var diags diag.Diagnostics
 
 	tflog.Debug(ctx, "begin update()")
@@ -985,20 +1025,19 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 	if err := r.upgradeClusterIfNeeded(ctx, state, plan); err != nil {
 		response.Diagnostics.AddError(
 			"Can't upgrade cluster",
-			fmt.Sprintf("Can't upgrade cluster version with identifier: `%s`, %v", state.ID.Value, err),
+			fmt.Sprintf("Can't upgrade cluster version with identifier: `%s`, %v", state.ID.ValueString(), err),
 		)
 		return
 	}
 
 	clusterBuilder := cmv1.NewCluster()
-
-	clusterBuilder, _, err := updateNodes(state, plan, clusterBuilder)
+	clusterBuilder, _, err := updateNodes(ctx, state, plan, clusterBuilder)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't update cluster",
 			fmt.Sprintf(
 				"Can't update cluster nodes for cluster with identifier: `%s`, %v",
-				state.ID.Value, err,
+				state.ID.ValueString(), err,
 			),
 		)
 		return
@@ -1010,7 +1049,7 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 			"Can't update cluster",
 			fmt.Sprintf(
 				"Can't update proxy's configuration for cluster with identifier: `%s`, %v",
-				state.ID.Value, err,
+				state.ID.ValueString(), err,
 			),
 		)
 		return
@@ -1018,22 +1057,25 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 
 	_, shouldPatchDisableWorkloadMonitoring := common.ShouldPatchBool(state.DisableWorkloadMonitoring, plan.DisableWorkloadMonitoring)
 	if shouldPatchDisableWorkloadMonitoring {
-		clusterBuilder.DisableUserWorkloadMonitoring(plan.DisableWorkloadMonitoring.Value)
+		clusterBuilder.DisableUserWorkloadMonitoring(plan.DisableWorkloadMonitoring.ValueBool())
 	}
 
-	shouldPatchProperties := shouldPatchProperties(state, plan)
-
-	if shouldPatchProperties {
-		properties := make(map[string]string)
-		for k, v := range OCMProperties {
-			properties[k] = v
+	patchProperties := shouldPatchProperties(state, plan)
+	if patchProperties {
+		propertiesElements, err := common.OptionalMap(ctx, plan.Properties)
+		if err != nil {
+			response.Diagnostics.AddError(
+				"Can't upgrade cluster",
+				fmt.Sprintf("Can't upgrade cluster version with identifier: `%s`, %v", state.ID.ValueString(), err),
+			)
+			return
 		}
-		if !plan.Properties.Unknown && !plan.Properties.Null {
-			for k, v := range plan.Properties.Elems {
-				properties[k] = v.(types.String).Value
+		if propertiesElements != nil {
+			for k, v := range OCMProperties {
+				propertiesElements[k] = v
 			}
+			clusterBuilder.Properties(propertiesElements)
 		}
-		clusterBuilder.Properties(properties)
 	}
 
 	clusterSpec, err := clusterBuilder.Build()
@@ -1042,13 +1084,13 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 			"Can't build cluster patch",
 			fmt.Sprintf(
 				"Can't build patch for cluster with identifier '%s': %v",
-				state.ID.Value, err,
+				state.ID.ValueString(), err,
 			),
 		)
 		return
 	}
 
-	update, err := r.clusterCollection.Cluster(state.ID.Value).Update().
+	update, err := r.clusterCollection.Cluster(state.ID.ValueString()).Update().
 		Body(clusterSpec).
 		SendContext(ctx)
 	if err != nil {
@@ -1056,7 +1098,7 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 			"Can't update cluster",
 			fmt.Sprintf(
 				"Can't update cluster with identifier '%s': %v",
-				state.ID.Value, err,
+				state.ID.ValueString(), err,
 			),
 		)
 		return
@@ -1064,13 +1106,14 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 
 	// update the autoscaling enabled with the plan value (important for nil and false cases)
 	state.AutoScalingEnabled = plan.AutoScalingEnabled
+
 	// update the Replicas with the plan value (important for nil and zero value cases)
 	state.Replicas = plan.Replicas
 
 	object := update.Body()
 
 	// Update the state:
-	err = populateRosaClassicClusterState(ctx, object, plan, DefaultHttpClient{})
+	err = populateRosaClassicClusterState(ctx, object, plan, common.DefaultHttpClient{})
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -1080,6 +1123,7 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request tfsdk.U
 		)
 		return
 	}
+
 	diags = response.State.Set(ctx, plan)
 	response.Diagnostics.Append(diags...)
 }
@@ -1094,27 +1138,29 @@ func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context,
 	}
 
 	tflog.Debug(ctx, "Cluster versions",
-		"current_version", state.CurrentVersion.Value,
-		"plan-version", plan.Version.Value,
-		"state-version", state.Version.Value)
+		map[string]interface{}{
+			"current_version": state.CurrentVersion.ValueString(),
+			"plan-version":    plan.Version.ValueString(),
+			"state-version":   state.Version.ValueString(),
+		})
 
 	// See if the user has changed the requested version for this run
 	requestedVersionChanged := true
 	if !common.IsStringAttributeEmpty(plan.Version) && !common.IsStringAttributeEmpty(state.Version) {
-		if plan.Version.Value == state.Version.Value {
+		if plan.Version.ValueString() == state.Version.ValueString() {
 			requestedVersionChanged = false
 		}
 	}
 
 	// Check the versions to see if we need to upgrade
-	currentVersion, err := semver.NewVersion(state.CurrentVersion.Value)
+	currentVersion, err := semver.NewVersion(state.CurrentVersion.ValueString())
 	if err != nil {
 		return fmt.Errorf("failed to parse current cluster version: %v", err)
 	}
 	// For backward compatibility
 	// In case version format with "openshift-v" was already used
 	// remove the prefix to adapt the right format and avoid failure
-	fixedVersion := strings.TrimPrefix(plan.Version.Value, "openshift-v")
+	fixedVersion := strings.TrimPrefix(plan.Version.ValueString(), "openshift-v")
 	desiredVersion, err := semver.NewVersion(fixedVersion)
 	if err != nil {
 		return fmt.Errorf("failed to parse desired cluster version: %v", err)
@@ -1137,7 +1183,7 @@ func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context,
 	}
 
 	// Fetch existing upgrade policies
-	upgrades, err := upgrade.GetScheduledUpgrades(ctx, r.clusterCollection, state.ID.Value)
+	upgrades, err := upgrade.GetScheduledUpgrades(ctx, r.clusterCollection, state.ID.ValueString())
 	if err != nil {
 		return fmt.Errorf("failed to get upgrade policies: %v", err)
 	}
@@ -1150,8 +1196,8 @@ func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context,
 
 	// Schedule a new upgrade
 	if !correctUpgradePending && !cancelingUpgradeOnly {
-		ackString := plan.UpgradeAcksFor.Value
-		if err = scheduleUpgrade(ctx, r.clusterCollection, state.ID.Value, desiredVersion, ackString); err != nil {
+		ackString := plan.UpgradeAcksFor.ValueString()
+		if err = scheduleUpgrade(ctx, r.clusterCollection, state.ID.ValueString(), desiredVersion, ackString); err != nil {
 			return err
 		}
 	}
@@ -1163,15 +1209,15 @@ func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context,
 
 func (r *ClusterRosaClassicResource) validateUpgrade(ctx context.Context, state, plan *ClusterRosaClassicState) error {
 	// Make sure the desired version is available
-	versionId := fmt.Sprintf("openshift-v%s", state.CurrentVersion.Value)
-	if !state.ChannelGroup.Unknown && !state.ChannelGroup.Null && state.ChannelGroup.Value != ocm.DefaultChannelGroup {
-		versionId += "-" + state.ChannelGroup.Value
+	versionId := fmt.Sprintf("openshift-v%s", state.CurrentVersion.ValueString())
+	if common.HasValue(state.ChannelGroup) && state.ChannelGroup.ValueString() != ocm.DefaultChannelGroup {
+		versionId += "-" + state.ChannelGroup.ValueString()
 	}
 	availableVersions, err := upgrade.GetAvailableUpgradeVersions(ctx, r.versionCollection, versionId)
 	if err != nil {
 		return fmt.Errorf("failed to get available upgrades: %v", err)
 	}
-	trimmedDesiredVersion := strings.TrimPrefix(plan.Version.Value, "openshift-v")
+	trimmedDesiredVersion := strings.TrimPrefix(plan.Version.ValueString(), "openshift-v")
 	desiredVersion, err := semver.NewVersion(trimmedDesiredVersion)
 	if err != nil {
 		return fmt.Errorf("failed to parse desired version: %v", err)
@@ -1225,7 +1271,7 @@ func scheduleUpgrade(ctx context.Context, client *cmv1.ClustersClient, clusterID
 	// Ack all gates to OCM
 	for _, gate := range gates {
 		gateID := gate.ID()
-		tflog.Debug(ctx, "Acknowledging version gate", "gateID", gateID)
+		tflog.Debug(ctx, "Acknowledging version gate", map[string]interface{}{"gateID": gateID})
 		gateAgreementsClient := clusterClient.GateAgreements()
 		err := upgrade.AckVersionGate(gateAgreementsClient, gateID)
 		if err != nil {
@@ -1278,7 +1324,7 @@ func updateProxy(state, plan *ClusterRosaClassicState, clusterBuilder *cmv1.Clus
 
 	return clusterBuilder, shouldUpdateProxy, nil
 }
-func updateNodes(state, plan *ClusterRosaClassicState, clusterBuilder *cmv1.ClusterBuilder) (*cmv1.ClusterBuilder, bool, error) {
+func updateNodes(ctx context.Context, state, plan *ClusterRosaClassicState, clusterBuilder *cmv1.ClusterBuilder) (*cmv1.ClusterBuilder, bool, error) {
 	// Send request to update the cluster:
 	shouldUpdateNodes := false
 	clusterNodesBuilder := cmv1.NewClusterNodes()
@@ -1287,33 +1333,32 @@ func updateNodes(state, plan *ClusterRosaClassicState, clusterBuilder *cmv1.Clus
 		clusterNodesBuilder = clusterNodesBuilder.Compute(int(compute))
 		shouldUpdateNodes = true
 	}
-
-	if !plan.AutoScalingEnabled.Unknown && !plan.AutoScalingEnabled.Null && plan.AutoScalingEnabled.Value {
+	if common.HasValue(plan.AutoScalingEnabled) && common.HasValue(plan.AutoScalingEnabled) {
 		// autoscaling enabled
 		autoscaling := cmv1.NewMachinePoolAutoscaling()
 
-		if !plan.MaxReplicas.Unknown && !plan.MaxReplicas.Null {
-			autoscaling = autoscaling.MaxReplicas(int(plan.MaxReplicas.Value))
+		if common.HasValue(plan.MaxReplicas) {
+			autoscaling = autoscaling.MaxReplicas(int(plan.MaxReplicas.ValueInt64()))
 		}
-		if !plan.MinReplicas.Unknown && !plan.MinReplicas.Null {
-			autoscaling = autoscaling.MinReplicas(int(plan.MinReplicas.Value))
+		if common.HasValue(plan.MinReplicas) {
+			autoscaling = autoscaling.MinReplicas(int(plan.MinReplicas.ValueInt64()))
 		}
 
 		clusterNodesBuilder = clusterNodesBuilder.AutoscaleCompute(autoscaling)
 		shouldUpdateNodes = true
 
 	} else {
-		if (!plan.MaxReplicas.Unknown && !plan.MaxReplicas.Null) || (!plan.MinReplicas.Unknown && !plan.MinReplicas.Null) {
+		if common.HasValue(plan.MaxReplicas) || common.HasValue(plan.MinReplicas) {
 			return nil, false, fmt.Errorf("Can't update MaxReplica and/or MinReplica of cluster when autoscaling is not enabled")
 		}
 	}
 
 	// MP labels update
-	if !plan.DefaultMPLabels.Unknown && !plan.DefaultMPLabels.Null {
+	if common.HasValue(plan.DefaultMPLabels) {
 		if labelsPlan, ok := common.ShouldPatchMap(state.DefaultMPLabels, plan.DefaultMPLabels); ok {
 			labels := map[string]string{}
-			for k, v := range labelsPlan.Elems {
-				labels[k] = v.(types.String).Value
+			for k, v := range labelsPlan.Elements() {
+				labels[k] = v.(types.String).ValueString()
 			}
 			clusterNodesBuilder.ComputeLabels(labels)
 			shouldUpdateNodes = true
@@ -1327,8 +1372,8 @@ func updateNodes(state, plan *ClusterRosaClassicState, clusterBuilder *cmv1.Clus
 	return clusterBuilder, shouldUpdateNodes, nil
 }
 
-func (r *ClusterRosaClassicResource) Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
-	response *tfsdk.DeleteResourceResponse) {
+func (r *ClusterRosaClassicResource) Delete(ctx context.Context, request resource.DeleteRequest,
+	response *resource.DeleteResponse) {
 	tflog.Debug(ctx, "begin delete()")
 
 	// Get the state:
@@ -1340,27 +1385,27 @@ func (r *ClusterRosaClassicResource) Delete(ctx context.Context, request tfsdk.D
 	}
 
 	// Send the request to delete the cluster:
-	resource := r.clusterCollection.Cluster(state.ID.Value)
+	resource := r.clusterCollection.Cluster(state.ID.ValueString())
 	_, err := resource.Delete().SendContext(ctx)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't delete cluster",
 			fmt.Sprintf(
 				"Can't delete cluster with identifier '%s': %v",
-				state.ID.Value, err,
+				state.ID.ValueString(), err,
 			),
 		)
 		return
 	}
-	if !state.DisableWaitingInDestroy.Unknown && !state.DisableWaitingInDestroy.Null && state.DisableWaitingInDestroy.Value {
+	if common.HasValue(state.DisableWaitingInDestroy) && state.DisableWaitingInDestroy.ValueBool() {
 		tflog.Info(ctx, "Waiting for destroy to be completed, is disabled")
 	} else {
 		timeout := defaultTimeoutInMinutes
-		if !state.DestroyTimeout.Unknown && !state.DestroyTimeout.Null {
-			if state.DestroyTimeout.Value <= 0 {
-				response.Diagnostics.AddWarning(nonPositiveTimeoutSummary, fmt.Sprintf(nonPositiveTimeoutFormat, state.ID.Value))
+		if common.HasValue(state.DestroyTimeout) {
+			if state.DestroyTimeout.ValueInt64() <= 0 {
+				response.Diagnostics.AddWarning(nonPositiveTimeoutSummary, fmt.Sprintf(nonPositiveTimeoutFormat, state.ID.ValueString()))
 			} else {
-				timeout = state.DestroyTimeout.Value
+				timeout = state.DestroyTimeout.ValueInt64()
 			}
 		}
 		isNotFound, err := r.retryClusterNotFoundWithTimeout(3, 1*time.Minute, ctx, timeout, resource)
@@ -1369,7 +1414,7 @@ func (r *ClusterRosaClassicResource) Delete(ctx context.Context, request tfsdk.D
 				"Can't poll cluster state",
 				fmt.Sprintf(
 					"Can't poll state of cluster with identifier '%s': %v",
-					state.ID.Value, err,
+					state.ID.ValueString(), err,
 				),
 			)
 			return
@@ -1378,7 +1423,7 @@ func (r *ClusterRosaClassicResource) Delete(ctx context.Context, request tfsdk.D
 		if !isNotFound {
 			response.Diagnostics.AddWarning(
 				"Cluster wasn't deleted yet",
-				fmt.Sprintf("The cluster with identifier '%s' is not deleted yet, but the polling finisehd due to a timeout", state.ID.Value),
+				fmt.Sprintf("The cluster with identifier '%s' is not deleted yet, but the polling finisehd due to a timeout", state.ID.ValueString()),
 			)
 		}
 
@@ -1387,50 +1432,41 @@ func (r *ClusterRosaClassicResource) Delete(ctx context.Context, request tfsdk.D
 	response.State.RemoveResource(ctx)
 }
 
-func (r *ClusterRosaClassicResource) ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
-	response *tfsdk.ImportResourceStateResponse) {
+func (r *ClusterRosaClassicResource) ImportState(ctx context.Context, request resource.ImportStateRequest,
+	response *resource.ImportStateResponse) {
 	tflog.Debug(ctx, "begin importstate()")
 
-	tfsdk.ResourceImportStatePassthroughID(ctx, tftypes.NewAttributePath().WithAttributeName("id"), request, response)
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), request, response)
 }
 
 // populateRosaClassicClusterState copies the data from the API object to the Terraform state.
-func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, state *ClusterRosaClassicState, httpClient HttpClient) error {
-	state.ID = types.String{
-		Value: object.ID(),
-	}
-	state.ExternalID = types.String{
-		Value: object.ExternalID(),
-	}
+func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, state *ClusterRosaClassicState, httpClient common.HttpClient) error {
+	state.ID = types.StringValue(object.ID())
+	state.ExternalID = types.StringValue(object.ExternalID())
 	object.API()
-	state.Name = types.String{
-		Value: object.Name(),
-	}
-	state.CloudRegion = types.String{
-		Value: object.Region().ID(),
-	}
-	state.MultiAZ = types.Bool{
-		Value: object.MultiAZ(),
-	}
-
-	state.Properties = types.Map{
-		ElemType: types.StringType,
-		Elems:    map[string]attr.Value{},
-	}
-	state.OCMProperties = types.Map{
-		ElemType: types.StringType,
-		Elems:    map[string]attr.Value{},
-	}
+	state.Name = types.StringValue(object.Name())
+	state.CloudRegion = types.StringValue(object.Region().ID())
+	state.MultiAZ = types.BoolValue(object.MultiAZ())
 	if props, ok := object.GetProperties(); ok {
+		propertiesMap := map[string]string{}
+		ocmPropertiesMap := map[string]string{}
 		for k, v := range props {
-			state.OCMProperties.Elems[k] = types.String{
-				Value: v,
-			}
+			ocmPropertiesMap[k] = v
 			if _, isDefault := OCMProperties[k]; !isDefault {
-				state.Properties.Elems[k] = types.String{
-					Value: v,
-				}
+				propertiesMap[k] = v
 			}
+		}
+		mapValue, err := common.ConvertStringMapToMapType(propertiesMap)
+		if err != nil {
+			return err
+		} else {
+			state.Properties = mapValue
+		}
+		mapValue, err = common.ConvertStringMapToMapType(ocmPropertiesMap)
+		if err != nil {
+			return err
+		} else {
+			state.OCMProperties = mapValue
 		}
 	}
 
@@ -1446,108 +1482,81 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	state.BaseDNSDomain = types.String{
 		Value: object.DNS().BaseDomain(),
 	}
-	state.Replicas = types.Int64{
-		Value: int64(object.Nodes().Compute()),
-	}
-	state.ComputeMachineType = types.String{
-		Value: object.Nodes().ComputeMachineType().ID(),
-	}
-
+	state.APIURL = types.StringValue(object.API().URL())
+	state.ConsoleURL = types.StringValue(object.Console().URL())
+	state.Domain = types.StringValue(fmt.Sprintf("%s.%s", object.Name(), object.DNS().BaseDomain()))
+	state.Replicas = types.Int64Value(int64(object.Nodes().Compute()))
+	state.ComputeMachineType = types.StringValue(object.Nodes().ComputeMachineType().ID())
+	state.BaseDNSDomain =types.StringValue(object.DNS().BaseDomain())
 	labels, ok := object.Nodes().GetComputeLabels()
 	if ok {
-		state.DefaultMPLabels = types.Map{
-			ElemType: types.StringType,
-			Elems:    map[string]attr.Value{},
-		}
-		for k, v := range labels {
-			state.DefaultMPLabels.Elems[k] = types.String{
-				Value: v,
-			}
+		mapValue, err := common.ConvertStringMapToMapType(labels)
+		if err != nil {
+			return err
+		} else {
+			state.DefaultMPLabels = mapValue
 		}
 	}
 
 	disableUserWorkload, ok := object.GetDisableUserWorkloadMonitoring()
 	if ok && disableUserWorkload {
-		state.DisableWorkloadMonitoring = types.Bool{
-			Value: true,
-		}
+		state.DisableWorkloadMonitoring = types.BoolValue(true)
 	}
 
 	isFips, ok := object.GetFIPS()
 	if ok && isFips {
-		state.FIPS = types.Bool{
-			Value: true,
-		}
+		state.FIPS = types.BoolValue(true)
 	}
 	autoScaleCompute, ok := object.Nodes().GetAutoscaleCompute()
 	if ok {
 		var maxReplicas, minReplicas int
-		state.AutoScalingEnabled = types.Bool{
-			Value: true,
-		}
+		state.AutoScalingEnabled = types.BoolValue(true)
 
 		maxReplicas, ok = autoScaleCompute.GetMaxReplicas()
 		if ok {
-			state.MaxReplicas = types.Int64{
-				Value: int64(maxReplicas),
-			}
+			state.MaxReplicas = types.Int64Value(int64(maxReplicas))
 		}
 
 		minReplicas, ok = autoScaleCompute.GetMinReplicas()
 		if ok {
-			state.MinReplicas = types.Int64{
-				Value: int64(minReplicas),
-			}
+			state.MinReplicas = types.Int64Value(int64(minReplicas))
 		}
 	} else {
 		// autoscaling not enabled - initialize the MaxReplica and MinReplica
-		state.MaxReplicas.Null = true
-		state.MinReplicas.Null = true
+		state.MaxReplicas = types.Int64Null()
+		state.MinReplicas = types.Int64Null()
 	}
 
 	azs, ok := object.Nodes().GetAvailabilityZones()
 	if ok {
-		state.AvailabilityZones = types.List{
-			ElemType: types.StringType,
-			Elems:    []attr.Value{},
-		}
-		for _, az := range azs {
-			state.AvailabilityZones.Elems = append(state.AvailabilityZones.Elems, types.String{
-				Value: az,
-			})
+		listValue, err := common.StringArrayToList(azs)
+		if err != nil {
+			return err
+		} else {
+			state.AvailabilityZones = listValue
 		}
 	}
 
-	state.CCSEnabled = types.Bool{
-		Value: object.CCS().Enabled(),
-	}
+	state.CCSEnabled = types.BoolValue(object.CCS().Enabled())
 
 	disableSCPChecks, ok := object.CCS().GetDisableSCPChecks()
 	if ok && disableSCPChecks {
-		state.DisableSCPChecks = types.Bool{
-			Value: true,
-		}
+		state.DisableSCPChecks = types.BoolValue(true)
 	}
 
-	state.EtcdEncryption = types.Bool{
-		Value: object.EtcdEncryption(),
-	}
+	state.EtcdEncryption = types.BoolValue(object.EtcdEncryption())
 
 	// Note: The API does not currently return account id, but we try to get it
 	// anyway. Failing that, we fetch the creator ARN from the properties like
 	// rosa cli does.
 	awsAccountID, ok := object.AWS().GetAccountID()
 	if ok {
-		state.AWSAccountID = types.String{
-			Value: awsAccountID,
-		}
+		state.AWSAccountID = types.StringValue(awsAccountID)
 	} else {
 		// rosa cli gets it from the properties, so we do the same
 		if creatorARN, ok := object.Properties()[properties.CreatorARN]; ok {
 			if arn, err := arn.Parse(creatorARN); err == nil {
-				state.AWSAccountID = types.String{
-					Value: arn.AccountID,
-				}
+				state.AWSAccountID = types.StringValue(arn.AccountID)
 			}
 		}
 
@@ -1555,36 +1564,24 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 
 	awsPrivateLink, ok := object.AWS().GetPrivateLink()
 	if ok {
-		state.AWSPrivateLink = types.Bool{
-			Value: awsPrivateLink,
-		}
+		state.AWSPrivateLink = types.BoolValue(awsPrivateLink)
 	} else {
-		state.AWSPrivateLink = types.Bool{
-			Null: true,
-		}
+		state.AWSPrivateLink = types.BoolValue(true)
 	}
 	listeningMethod, ok := object.API().GetListening()
 	if ok {
-		state.Private = types.Bool{
-			Value: listeningMethod == cmv1.ListeningMethodInternal,
-		}
+		state.Private = types.BoolValue(listeningMethod == cmv1.ListeningMethodInternal)
 	} else {
-		state.Private = types.Bool{
-			Null: true,
-		}
+		state.Private = types.BoolValue(true)
 	}
 	kmsKeyArn, ok := object.AWS().GetKMSKeyArn()
 	if ok {
-		state.KMSKeyArn = types.String{
-			Value: kmsKeyArn,
-		}
+		state.KMSKeyArn = types.StringValue(kmsKeyArn)
 	}
 
 	httpTokensState, ok := object.AWS().GetEc2MetadataHttpTokens()
 	if ok && httpTokensState != "" {
-		state.Ec2MetadataHttpTokens = types.String{
-			Value: string(httpTokensState),
-		}
+		state.Ec2MetadataHttpTokens = types.StringValue(string(httpTokensState))
 	}
 
 	sts, ok := object.AWS().GetSTS()
@@ -1594,60 +1591,41 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		}
 		oidc_endpoint_url := strings.TrimPrefix(sts.OIDCEndpointURL(), "https://")
 
-		state.Sts.OIDCEndpointURL = types.String{
-			Value: oidc_endpoint_url,
-		}
-		state.Sts.RoleARN = types.String{
-			Value: sts.RoleARN(),
-		}
-		state.Sts.SupportRoleArn = types.String{
-			Value: sts.SupportRoleARN(),
-		}
+		state.Sts.OIDCEndpointURL = types.StringValue(oidc_endpoint_url)
+		state.Sts.RoleARN = types.StringValue(sts.RoleARN())
+		state.Sts.SupportRoleArn = types.StringValue(sts.SupportRoleARN())
 		instanceIAMRoles := sts.InstanceIAMRoles()
 		if instanceIAMRoles != nil {
-			state.Sts.InstanceIAMRoles.MasterRoleARN = types.String{
-				Value: instanceIAMRoles.MasterRoleARN(),
-			}
-			state.Sts.InstanceIAMRoles.WorkerRoleARN = types.String{
-				Value: instanceIAMRoles.WorkerRoleARN(),
-			}
+			state.Sts.InstanceIAMRoles.MasterRoleARN = types.StringValue(instanceIAMRoles.MasterRoleARN())
+			state.Sts.InstanceIAMRoles.WorkerRoleARN = types.StringValue(instanceIAMRoles.WorkerRoleARN())
 		}
 		// TODO: fix a bug in uhc-cluster-services
 		if common.IsStringAttributeEmpty(state.Sts.OperatorRolePrefix) {
 			operatorRolePrefix, ok := sts.GetOperatorRolePrefix()
 			if ok {
-				state.Sts.OperatorRolePrefix = types.String{
-					Value: operatorRolePrefix,
-				}
+				state.Sts.OperatorRolePrefix = types.StringValue(operatorRolePrefix)
 			}
 		}
-		thumbprint, err := getThumbprint(sts.OIDCEndpointURL(), httpClient)
+		thumbprint, err := common.GetThumbprint(sts.OIDCEndpointURL(), httpClient)
 		if err != nil {
-			tflog.Error(ctx, "cannot get thumbprint", err)
-			state.Sts.Thumbprint = types.String{
-				Value: "",
-			}
+			tflog.Error(ctx, fmt.Sprintf("cannot get thumbprint %v", err))
+			state.Sts.Thumbprint = types.StringValue("")
 		} else {
-			state.Sts.Thumbprint = types.String{
-				Value: thumbprint,
-			}
+			state.Sts.Thumbprint = types.StringValue(thumbprint)
 		}
 		oidcConfig, ok := sts.GetOidcConfig()
 		if ok && oidcConfig != nil {
-			state.Sts.OIDCConfigID = types.String{
-				Value: oidcConfig.ID(),
-			}
+			state.Sts.OIDCConfigID = types.StringValue(oidcConfig.ID())
 		}
 	}
 
 	subnetIds, ok := object.AWS().GetSubnetIDs()
 	if ok {
-		state.AWSSubnetIDs.Elems = make([]attr.Value, 0)
-		for _, subnetId := range subnetIds {
-			state.AWSSubnetIDs.Elems = append(state.AWSSubnetIDs.Elems, types.String{
-				Value: subnetId,
-			})
+		awsSubnetIds, err := common.StringArrayToList(subnetIds)
+		if err != nil {
+			return err
 		}
+		state.AWSSubnetIDs = awsSubnetIds
 	}
 
 	proxy, ok := object.GetProxy()
@@ -1657,23 +1635,17 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		}
 		httpProxy, ok := proxy.GetHTTPProxy()
 		if ok {
-			state.Proxy.HttpProxy = types.String{
-				Value: httpProxy,
-			}
+			state.Proxy.HttpProxy = types.StringValue(httpProxy)
 		}
 
 		httpsProxy, ok := proxy.GetHTTPSProxy()
 		if ok {
-			state.Proxy.HttpsProxy = types.String{
-				Value: httpsProxy,
-			}
+			state.Proxy.HttpsProxy = types.StringValue(httpsProxy)
 		}
 
 		noProxy, ok := proxy.GetNoProxy()
 		if ok {
-			state.Proxy.NoProxy = types.String{
-				Value: noProxy,
-			}
+			state.Proxy.NoProxy = types.StringValue(noProxy)
 		}
 	}
 
@@ -1682,60 +1654,36 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		if state.Proxy == nil {
 			state.Proxy = &Proxy{}
 		}
-		state.Proxy.AdditionalTrustBundle = types.String{
-			Value: trustBundle,
-		}
+		state.Proxy.AdditionalTrustBundle = types.StringValue(trustBundle)
 	}
 
 	machineCIDR, ok := object.Network().GetMachineCIDR()
 	if ok {
-		state.MachineCIDR = types.String{
-			Value: machineCIDR,
-		}
+		state.MachineCIDR = types.StringValue(machineCIDR)
 	} else {
-		state.MachineCIDR = types.String{
-			Null: true,
-		}
+		state.MachineCIDR = types.StringNull()
 	}
 	serviceCIDR, ok := object.Network().GetServiceCIDR()
 	if ok {
-		state.ServiceCIDR = types.String{
-			Value: serviceCIDR,
-		}
+		state.ServiceCIDR = types.StringValue(serviceCIDR)
 	} else {
-		state.ServiceCIDR = types.String{
-			Null: true,
-		}
+		state.ServiceCIDR = types.StringNull()
 	}
 	podCIDR, ok := object.Network().GetPodCIDR()
 	if ok {
-		state.PodCIDR = types.String{
-			Value: podCIDR,
-		}
+		state.PodCIDR = types.StringValue(podCIDR)
 	} else {
-		state.PodCIDR = types.String{
-			Null: true,
-		}
+		state.PodCIDR = types.StringNull()
 	}
 	hostPrefix, ok := object.Network().GetHostPrefix()
 	if ok {
-		state.HostPrefix = types.Int64{
-			Value: int64(hostPrefix),
-		}
+		state.HostPrefix = types.Int64Value(int64(hostPrefix))
 	} else {
-		state.HostPrefix = types.Int64{
-			Null: true,
-		}
+		state.HostPrefix = types.Int64Null()
 	}
 	channel_group, ok := object.Version().GetChannelGroup()
 	if ok {
-		state.ChannelGroup = types.String{
-			Value: channel_group,
-		}
-	} else {
-		state.ChannelGroup = types.String{
-			Null: true,
-		}
+		state.ChannelGroup = types.StringValue(channel_group)
 	}
 
 	if awsObj, ok := object.GetAWS(); ok {
@@ -1760,89 +1708,18 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	version = strings.TrimSuffix(version, fmt.Sprintf("-%s", channel_group))
 	version = strings.TrimPrefix(version, "openshift-v")
 	if ok {
-		tflog.Debug(ctx, "actual cluster version: %v", version)
-		state.CurrentVersion = types.String{
-			Value: version,
-		}
+		tflog.Debug(ctx, fmt.Sprintf("actual cluster version: %v", version))
+		state.CurrentVersion = types.StringValue(version)
 	} else {
-		tflog.Debug(ctx, "unknown cluster version")
-		state.CurrentVersion = types.String{
-			Null: true,
-		}
+		tflog.Debug(ctx, "Unknown cluster version")
+		state.CurrentVersion = types.StringNull()
+
 	}
-	state.State = types.String{
-		Value: string(object.State()),
-	}
-	state.Name = types.String{
-		Value: object.Name(),
-	}
-	state.CloudRegion = types.String{
-		Value: object.Region().ID(),
-	}
+	state.State = types.StringValue(string(object.State()))
+	state.Name = types.StringValue(object.Name())
+	state.CloudRegion = types.StringValue(object.Region().ID())
 
 	return nil
-}
-
-type HttpClient interface {
-	Get(url string) (resp *http.Response, err error)
-}
-
-type DefaultHttpClient struct {
-}
-
-func (c DefaultHttpClient) Get(url string) (resp *http.Response, err error) {
-	return http.Get(url)
-}
-
-func getThumbprint(oidcEndpointURL string, httpClient HttpClient) (thumbprint string, err error) {
-	defer func() {
-		if panicErr := recover(); panicErr != nil {
-			fmt.Fprintf(os.Stderr, "recovering from: %q\n", panicErr)
-			thumbprint = ""
-			err = fmt.Errorf("recovering from: %q", panicErr)
-		}
-	}()
-
-	connect, err := url.ParseRequestURI(oidcEndpointURL)
-	if err != nil {
-		return "", err
-	}
-
-	response, err := httpClient.Get(fmt.Sprintf("https://%s:443", connect.Host))
-	if err != nil {
-		return "", err
-	}
-
-	certChain := response.TLS.PeerCertificates
-
-	// Grab the CA in the chain
-	for _, cert := range certChain {
-		if cert.IsCA {
-			if bytes.Equal(cert.RawIssuer, cert.RawSubject) {
-				hash, err := sha1Hash(cert.Raw)
-				if err != nil {
-					return "", err
-				}
-				return hash, nil
-			}
-		}
-	}
-
-	// Fall back to using the last certficiate in the chain
-	cert := certChain[len(certChain)-1]
-	return sha1Hash(cert.Raw)
-}
-
-// sha1Hash computes the SHA1 of the byte array and returns the hex encoding as a string.
-func sha1Hash(data []byte) (string, error) {
-	// nolint:gosec
-	hasher := sha1.New()
-	_, err := hasher.Write(data)
-	if err != nil {
-		return "", fmt.Errorf("Couldn't calculate hash:\n %v", err)
-	}
-	hashed := hasher.Sum(nil)
-	return hex.EncodeToString(hashed), nil
 }
 
 func (r *ClusterRosaClassicResource) retryClusterNotFoundWithTimeout(attempts int, sleep time.Duration, ctx context.Context, timeout int64,
@@ -1881,51 +1758,6 @@ func (r *ClusterRosaClassicResource) waitTillClusterIsNotFoundWithTimeout(ctx co
 	return false, nil
 }
 
-func proxyValidators() []tfsdk.AttributeValidator {
-	return []tfsdk.AttributeValidator{
-		&common.AttributeValidator{
-			Desc: "Validate proxy's attributes",
-			Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse) {
-				state := &Proxy{}
-				diag := req.Config.GetAttribute(ctx, req.AttributePath, state)
-				if diag.HasError() {
-					// No attribute to validate
-					return
-				}
-				errSum := "Invalid proxy's attribute assignment"
-				httpsProxy := ""
-				httpProxy := ""
-				additionalTrustBundle := ""
-				var noProxySlice []string
-
-				if !common.IsStringAttributeEmpty(state.HttpProxy) {
-					httpProxy = state.HttpProxy.Value
-				}
-				if !common.IsStringAttributeEmpty(state.HttpsProxy) {
-					httpsProxy = state.HttpsProxy.Value
-				}
-				if !common.IsStringAttributeEmpty(state.NoProxy) {
-					noProxySlice = helper.HandleEmptyStringOnSlice(strings.Split(state.NoProxy.Value, ","))
-				}
-
-				if !common.IsStringAttributeEmpty(state.AdditionalTrustBundle) {
-					additionalTrustBundle = state.AdditionalTrustBundle.Value
-				}
-
-				if httpProxy == "" && httpsProxy == "" && noProxySlice != nil && len(noProxySlice) > 0 {
-					resp.Diagnostics.AddError(errSum, "Expected at least one of the following: http-proxy, https-proxy")
-					return
-				}
-
-				if httpProxy == "" && httpsProxy == "" && additionalTrustBundle == "" {
-					resp.Diagnostics.AddError(errSum, "Expected at least one of the following: http-proxy, https-proxy, additional-trust-bundle")
-					return
-				}
-			},
-		},
-	}
-}
-
 func shouldPatchProperties(state, plan *ClusterRosaClassicState) bool {
 	// User defined properties needs update
 	if _, should := common.ShouldPatchMap(state.Properties, plan.Properties); should {
@@ -1933,9 +1765,9 @@ func shouldPatchProperties(state, plan *ClusterRosaClassicState) bool {
 	}
 
 	extractedDefaults := map[string]string{}
-	for k, v := range state.OCMProperties.Elems {
-		if _, ok := state.Properties.Elems[k]; !ok {
-			extractedDefaults[k] = v.(types.String).Value
+	for k, v := range state.OCMProperties.Elements() {
+		if _, ok := state.Properties.Elements()[k]; !ok {
+			extractedDefaults[k] = v.(types.String).ValueString()
 		}
 	}
 

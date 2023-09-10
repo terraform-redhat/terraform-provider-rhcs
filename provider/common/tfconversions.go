@@ -9,14 +9,27 @@ import (
 )
 
 func BoolWithFalseDefault(tfVal types.Bool) bool {
-	if !tfVal.IsNull() && !tfVal.IsUnknown() {
+	if HasValue(tfVal) {
 		return tfVal.ValueBool()
 	}
 	return false
 }
 
+func OptionalInt64(tfVal types.Int64) *int64 {
+	if HasValue(tfVal) {
+		return tfVal.ValueInt64Pointer()
+	}
+	return nil
+}
+
+func OptionalString(tfVal types.String) *string {
+	if HasValue(tfVal) {
+		return tfVal.ValueStringPointer()
+	}
+	return nil
+}
 func OptionalMap(ctx context.Context, tfVal types.Map) (map[string]string, error) {
-	if tfVal.IsNull() || tfVal.IsUnknown() {
+	if !HasValue(tfVal) {
 		return nil, nil
 	}
 	result := make(map[string]string, len(tfVal.Elements()))
@@ -29,7 +42,7 @@ func OptionalMap(ctx context.Context, tfVal types.Map) (map[string]string, error
 }
 
 func StringListToArray(ctx context.Context, tfVal types.List) ([]string, error) {
-	if tfVal.IsNull() || tfVal.IsUnknown() {
+	if !HasValue(tfVal) {
 		return nil, nil
 	}
 	result := make([]string, len(tfVal.Elements()))

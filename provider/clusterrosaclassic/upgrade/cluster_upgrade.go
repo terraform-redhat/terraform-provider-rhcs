@@ -138,7 +138,7 @@ func CheckAndCancelUpgrades(ctx context.Context, client *cmv1.ClustersClient, up
 	tenMinFromNow := time.Now().UTC().Add(10 * time.Minute)
 
 	for _, upgrade := range upgrades {
-		tflog.Debug(ctx, "Found existing upgrade policy to %s in state %s", upgrade.Version(), upgrade.State())
+		tflog.Debug(ctx, fmt.Sprintf("Found existing upgrade policy to %s in state %s", upgrade.Version(), upgrade.State()))
 		toVersion, err := semver.NewVersion(upgrade.Version())
 		if err != nil {
 			return false, fmt.Errorf("failed to parse upgrade version: %v", err)

@@ -2,11 +2,15 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Attach to provider",
+      "name": "Debug Terraform Provider",
       "type": "go",
-      "request": "attach",
-      "mode": "local",
-      "processId": "${command:pickGoProcess}"
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}",
+      "env": {},
+      "args": [
+          "-debug",
+      ]
     },
   ]
 }

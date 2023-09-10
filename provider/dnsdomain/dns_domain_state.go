@@ -14,10 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package dnsdomain
 
-type CloudProviderState struct {
-	ID          string `tfsdk:"id"`
-	Name        string `tfsdk:"name"`
-	DisplayName string `tfsdk:"display_name"`
+***REMOVED***
+	"github.com/hashicorp/terraform-plugin-framework/types"
+***REMOVED***
+
+type DNSDomainState struct {
+	ID types.String `tfsdk:"id"`
 }

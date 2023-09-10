@@ -1,4 +1,4 @@
-package provider
+package clusterwaiter
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"

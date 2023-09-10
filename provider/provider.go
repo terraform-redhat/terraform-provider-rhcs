@@ -30,6 +30,9 @@ import (
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 	"github.com/terraform-redhat/terraform-provider-rhcs/logging"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cloudprovider"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterwaiter"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/dnsdomain"
 )
 
 // Provider is the implementation of the Provider.
@@ -112,7 +115,6 @@ func (p *Provider) Schema(ctx context.Context, req tfprovider.SchemaRequest, res
 			},
 		},
 	}
-	return
 }
 
 // configure is the configuration function of the provider. It is responsible for checking the
@@ -193,9 +195,10 @@ func (p *Provider) Configure(ctx context.Context, req tfprovider.ConfigureReques
 // Resources returns the resources supported by the provider.
 func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewClusterWaiterResource,
-		NewDNSDomainResource,
-		NewClusterRosaClassicResource,
+		clusterwaiter.NewClusterWaiterResource,
+		dnsdomain.NewDNSDomainResource,
+		// TODO uncomment this after ClusterRosaClassic resource is fixed
+		// clusterwaiter.NewClusterRosaClassicResource,
 	}
 }
 
@@ -217,7 +220,7 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 
 func (p *Provider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewCloudProvidersDataSource,
+		cloudprovider.NewCloudProvidersDataSource,
 	}
 }
 

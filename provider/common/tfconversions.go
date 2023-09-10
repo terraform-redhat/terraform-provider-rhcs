@@ -9,14 +9,27 @@ package common
 ***REMOVED***
 
 func BoolWithFalseDefault(tfVal types.Bool***REMOVED*** bool {
-	if !tfVal.IsNull(***REMOVED*** && !tfVal.IsUnknown(***REMOVED*** {
+	if HasValue(tfVal***REMOVED*** {
 		return tfVal.ValueBool(***REMOVED***
 	}
 	return false
 }
 
+func OptionalInt64(tfVal types.Int64***REMOVED*** *int64 {
+	if HasValue(tfVal***REMOVED*** {
+		return tfVal.ValueInt64Pointer(***REMOVED***
+	}
+	return nil
+}
+
+func OptionalString(tfVal types.String***REMOVED*** *string {
+	if HasValue(tfVal***REMOVED*** {
+		return tfVal.ValueStringPointer(***REMOVED***
+	}
+	return nil
+}
 func OptionalMap(ctx context.Context, tfVal types.Map***REMOVED*** (map[string]string, error***REMOVED*** {
-	if tfVal.IsNull(***REMOVED*** || tfVal.IsUnknown(***REMOVED*** {
+	if !HasValue(tfVal***REMOVED*** {
 		return nil, nil
 	}
 	result := make(map[string]string, len(tfVal.Elements(***REMOVED******REMOVED******REMOVED***
@@ -29,7 +42,7 @@ func OptionalMap(ctx context.Context, tfVal types.Map***REMOVED*** (map[string]s
 }
 
 func StringListToArray(ctx context.Context, tfVal types.List***REMOVED*** ([]string, error***REMOVED*** {
-	if tfVal.IsNull(***REMOVED*** || tfVal.IsUnknown(***REMOVED*** {
+	if !HasValue(tfVal***REMOVED*** {
 		return nil, nil
 	}
 	result := make([]string, len(tfVal.Elements(***REMOVED******REMOVED******REMOVED***

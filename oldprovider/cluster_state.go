@@ -48,10 +48,3 @@ type ClusterState struct {
 	Version            types.String `tfsdk:"version"`
 	Wait               types.Bool   `tfsdk:"wait"`
 }
-
-type Proxy struct {
-	HttpProxy             types.String `tfsdk:"http_proxy"`
-	HttpsProxy            types.String `tfsdk:"https_proxy"`
-	NoProxy               types.String `tfsdk:"no_proxy"`
-	AdditionalTrustBundle types.String `tfsdk:"additional_trust_bundle"`
-}

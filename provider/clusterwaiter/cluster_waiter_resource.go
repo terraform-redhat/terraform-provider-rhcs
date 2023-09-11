@@ -15,10 +15,6 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
-type Waiter interface {
-	Ready() bool
-}
-
 type ClusterWaiterResource struct {
 	collection *cmv1.ClustersClient
 }

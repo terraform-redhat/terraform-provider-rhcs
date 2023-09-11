@@ -220,10 +220,12 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Computed:    true,
 			},
 			"base_dns_domain": {
-				Description: "Bade DNS domain identifier. (See resource rhcs_dns_domain)",
-				Type:        types.StringType,
-				Optional:    true,
-				Computed:    true,
+				Description: "Base DNS domain name previously reserved and matching the hosted " +
+					"zone name of the private Route 53 hosted zone associated with intended shared " +
+					"VPC, e.g., '1vo8.p1.openshiftapps.com'.",
+				Type:     types.StringType,
+				Optional: true,
+				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
 					ValueCannotBeChangedModifier(),
 				},
@@ -424,7 +426,7 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 			},
 			"ec2_metadata_http_tokens": {
 				Description: "This value determines which EC2 metadata mode to use for metadata service interaction " +
-					"options for EC2 instances can be optional or required. Required is available from " +
+					"options for EC2 instances can be optional or required. This feature is available from " +
 					"OpenShift version 4.11.0 and newer.",
 				Type:     types.StringType,
 				Optional: true,
@@ -473,17 +475,20 @@ func (t *ClusterRosaClassicResourceType) GetSchema(ctx context.Context) (result 
 				Description: "Used in a shared VPC typology. HostedZone attributes",
 				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
 					"id": {
-						Description: "HostedZone identifier",
-						Type:        types.StringType,
-						Required:    true,
+						Description: "ID assigned by AWS to private Route 53 hosted zone associated with intended shared VPC, " +
+							"e.g. 'Z05646003S02O1ENCDCSN'.",
+						Type:     types.StringType,
+						Required: true,
 						PlanModifiers: []tfsdk.AttributePlanModifier{
 							ValueCannotBeChangedModifier(),
 						},
 					},
 					"role_arn": {
-						Description: "HostedZone Role ARN",
-						Type:        types.StringType,
-						Required:    true,
+						Description: "AWS IAM role ARN with a policy attached, granting permissions necessary to " +
+							"create and manage Route 53 DNS records in private Route 53 hosted zone associated with " +
+							"intended shared VPC.",
+						Type:     types.StringType,
+						Required: true,
 						PlanModifiers: []tfsdk.AttributePlanModifier{
 							ValueCannotBeChangedModifier(),
 						},

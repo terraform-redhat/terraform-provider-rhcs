@@ -3,6 +3,7 @@ package common
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -46,7 +47,7 @@ func ConvertStringMapToMapType(stringMap map[string]string) (types.Map, error) {
 	}
 	mapValue, diags := types.MapValue(types.StringType, elements)
 	if diags != nil && diags.HasError() {
-		fmt.Errorf("failed to convert to MapType %v", diags.Errors()[0].Detail())
+		return mapValue, fmt.Errorf("failed to convert to MapType %v", diags.Errors()[0].Detail())
 	}
 	return mapValue, nil
 }
@@ -58,7 +59,7 @@ func StringArrayToList(stringList []string) (types.List, error) {
 	}
 	listValue, diags := types.ListValue(types.StringType, elements)
 	if diags != nil && diags.HasError() {
-		fmt.Errorf("failed to convert to List type %v", diags.Errors()[0].Detail())
+		return listValue, fmt.Errorf("failed to convert to List type %v", diags.Errors()[0].Detail())
 	}
 	return listValue, nil
 }

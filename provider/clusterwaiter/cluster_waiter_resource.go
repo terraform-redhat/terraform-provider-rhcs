@@ -15,10 +15,6 @@ package clusterwaiter
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 ***REMOVED***
 
-type Waiter interface {
-	Ready(***REMOVED*** bool
-}
-
 type ClusterWaiterResource struct {
 	collection *cmv1.ClustersClient
 }

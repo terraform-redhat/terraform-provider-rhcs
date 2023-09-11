@@ -35,6 +35,7 @@ package provider
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterwaiter"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/dnsdomain"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/groupmembership"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfig"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfiginput"
 ***REMOVED***
@@ -201,8 +202,9 @@ func (p *Provider***REMOVED*** Resources(ctx context.Context***REMOVED*** []func
 	return []func(***REMOVED*** resource.Resource{
 		clusterwaiter.New,
 		dnsdomain.New,
-		oidcconfig.New,
 		groupmembership.New,
+		machinepool.New,
+		oidcconfig.New,
 		oidcconfiginput.New,
 		// TODO uncomment this after ClusterRosaClassic resource is fixed
 		// clusterwaiter.NewClusterRosaClassicResource,

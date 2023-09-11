@@ -25,25 +25,22 @@ package machinepool
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 ***REMOVED***
-
-type MachinePoolResourceType struct {
-}
 
 var machinepoolNameRE = regexp.MustCompile(
 	`^[a-z]([-a-z0-9]*[a-z0-9]***REMOVED***?$`,
@@ -52,6 +49,9 @@ var machinepoolNameRE = regexp.MustCompile(
 type MachinePoolResource struct {
 	collection *cmv1.ClustersClient
 }
+
+var _ resource.ResourceWithConfigure = &MachinePoolResource{}
+var _ resource.ResourceWithImportState = &MachinePoolResource{}
 
 func New(***REMOVED*** resource.Resource {
 	return &MachinePoolResource{}
@@ -125,66 +125,62 @@ func (r *MachinePoolResource***REMOVED*** Schema(ctx context.Context, req resour
 				Description: "The maximum number of replicas for autoscaling functionality.",
 				Optional:    true,
 	***REMOVED***,
-			"taints": {
+			"taints": schema.ListNestedAttribute{
 				Description: "Taints for machine pool. Format should be a comma-separated " +
 					"list of 'key=value:ScheduleType'. This list will overwrite any modifications " +
 					"made to node taints on an ongoing basis.\n",
-				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
-					"key": {
-						Description: "Taints key",
-						Type:        types.StringType,
-						Required:    true,
-			***REMOVED***,
-					"value": {
-						Description: "Taints value",
-						Type:        types.StringType,
-						Required:    true,
-			***REMOVED***,
-					"schedule_type": {
-						Description: "Taints schedule type",
-						Type:        types.StringType,
-						Required:    true,
-			***REMOVED***,
-		***REMOVED***, tfsdk.ListNestedAttributesOptions{},
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"key": schema.StringAttribute{
+							Description: "Taints key",
+							Required:    true,
 				***REMOVED***,
+						"value": schema.StringAttribute{
+							Description: "Taints value",
+							Required:    true,
+				***REMOVED***,
+						"schedule_type": schema.StringAttribute{
+							Description: "Taints schedule type",
+							Required:    true,
+							Validators: []validator.String{
+								stringvalidator.OneOf("NoSchedule", "PreferNoSchedule", "NoExecute"***REMOVED***,
+					***REMOVED***,
+				***REMOVED***,
+			***REMOVED***,
+		***REMOVED***,
 				Optional: true,
 	***REMOVED***,
-			"labels": {
+			"labels": schema.MapAttribute{
 				Description: "Labels for the machine pool. Format should be a comma-separated list of 'key = value'." +
 					" This list will overwrite any modifications made to node labels on an ongoing basis.",
-				Type: types.MapType{
-					ElemType: types.StringType,
-		***REMOVED***,
-				Optional: true,
+				ElementType: types.StringType,
+				Optional:    true,
 	***REMOVED***,
-			"multi_availability_zone": {
+			"multi_availability_zone": schema.BoolAttribute{
 				Description: "Create a multi-AZ machine pool for a multi-AZ cluster (default true***REMOVED***",
-				Type:        types.BoolType,
 				Optional:    true,
 				Computed:    true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.UseStateForUnknown(***REMOVED***,
-					ValueCannotBeChangedModifier(***REMOVED***,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(***REMOVED***,
+					//ValueCannotBeChangedModifier(***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,
-			"availability_zone": {
+			"availability_zone": schema.StringAttribute{
 				Description: "Select availability zone to create a single AZ machine pool for a multi-AZ cluster",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.UseStateForUnknown(***REMOVED***,
-					ValueCannotBeChangedModifier(***REMOVED***,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(***REMOVED***,
+					//ValueCannotBeChangedModifier(***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,
-			"subnet_id": {
+			"subnet_id": schema.StringAttribute{
 				Description: "Select subnet to create a single AZ machine pool for BYOVPC cluster",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.UseStateForUnknown(***REMOVED***,
-					ValueCannotBeChangedModifier(***REMOVED***,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(***REMOVED***,
+					//ValueCannotBeChangedModifier(***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,
 ***REMOVED***,
@@ -192,45 +188,45 @@ func (r *MachinePoolResource***REMOVED*** Schema(ctx context.Context, req resour
 	return
 }
 
-func (t *MachinePoolResourceType***REMOVED*** NewResource(ctx context.Context,
-	p tfsdk.Provider***REMOVED*** (result tfsdk.Resource, diags diag.Diagnostics***REMOVED*** {
-	// Cast the provider interface to the specific implementation: use it directly when needed.
-	parent := p.(*Provider***REMOVED***
-
-	// Get the collection of clusters:
-	collection := parent.connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Clusters(***REMOVED***
-
-	// Create the resource:
-	result = &MachinePoolResource{
-		collection: collection,
-	}
-
-	return
-}
-
-func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context,
-	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse***REMOVED*** {
-	// Get the plan:
-	state := &MachinePoolState{}
-	diags := request.Plan.Get(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
-	if response.Diagnostics.HasError(***REMOVED*** {
+func (r *MachinePoolResource***REMOVED*** Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse***REMOVED*** {
+	if req.ProviderData == nil {
 		return
 	}
 
-	machinepoolName := state.Name.Value
+	connection, ok := req.ProviderData.(*sdk.Connection***REMOVED***
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *sdk.Connaction, got: %T. Please report this issue to the provider developers.", req.ProviderData***REMOVED***,
+		***REMOVED***
+		return
+	}
+
+	r.collection = connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Clusters(***REMOVED***
+}
+
+func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse***REMOVED*** {
+	// Get the plan:
+	state := &MachinePoolState{}
+	diags := req.Plan.Get(ctx, state***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
+	if resp.Diagnostics.HasError(***REMOVED*** {
+		return
+	}
+
+	machinepoolName := state.Name.ValueString(***REMOVED***
 	if !machinepoolNameRE.MatchString(machinepoolName***REMOVED*** {
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			"Can't create machine pool: ",
 			fmt.Sprintf("Can't create machine pool for cluster '%s' with name '%s'. Expected a valid value for 'name' matching %s",
-				state.Cluster.Value, state.Name.Value, machinepoolNameRE,
+				state.Cluster.ValueString(***REMOVED***, state.Name.ValueString(***REMOVED***, machinepoolNameRE,
 			***REMOVED***,
 		***REMOVED***
 		return
 	}
 
 	// Wait till the cluster is ready:
-	resource := r.collection.Cluster(state.Cluster.Value***REMOVED***
+	resource := r.collection.Cluster(state.Cluster.ValueString(***REMOVED******REMOVED***
 	pollCtx, cancel := context.WithTimeout(ctx, 1*time.Hour***REMOVED***
 	defer cancel(***REMOVED***
 	_, err := resource.Poll(***REMOVED***.
@@ -240,25 +236,25 @@ func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context,
 ***REMOVED******REMOVED***.
 		StartContext(pollCtx***REMOVED***
 	if err != nil {
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			"Can't poll cluster state",
 			fmt.Sprintf(
 				"Can't poll state of cluster with identifier '%s': %v",
-				state.Cluster.Value, err,
+				state.Cluster.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
 	}
 
 	// Create the machine pool:
-	builder := cmv1.NewMachinePool(***REMOVED***.ID(state.ID.Value***REMOVED***.InstanceType(state.MachineType.Value***REMOVED***
-	builder.ID(state.Name.Value***REMOVED***
+	builder := cmv1.NewMachinePool(***REMOVED***.ID(state.ID.ValueString(***REMOVED******REMOVED***.InstanceType(state.MachineType.ValueString(***REMOVED******REMOVED***
+	builder.ID(state.Name.ValueString(***REMOVED******REMOVED***
 
 	if err := setSpotInstances(state, builder***REMOVED***; err != nil {
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			"Can't build machine pool",
 			fmt.Sprintf(
-				"Can't build machine pool for cluster '%s: %v'", state.Cluster.Value, err,
+				"Can't build machine pool for cluster '%s: %v'", state.Cluster.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -266,55 +262,55 @@ func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context,
 
 	isMultiAZPool, err := r.validateAZConfig(state***REMOVED***
 	if err != nil {
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			"Can't build machine pool",
 			fmt.Sprintf(
 				"Can't build machine pool for cluster '%s': %v",
-				state.Cluster.Value, err,
+				state.Cluster.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
 	}
 	if !common.IsStringAttributeEmpty(state.AvailabilityZone***REMOVED*** {
-		builder.AvailabilityZones(state.AvailabilityZone.Value***REMOVED***
+		builder.AvailabilityZones(state.AvailabilityZone.ValueString(***REMOVED******REMOVED***
 	}
 	if !common.IsStringAttributeEmpty(state.SubnetID***REMOVED*** {
-		builder.Subnets(state.SubnetID.Value***REMOVED***
+		builder.Subnets(state.SubnetID.ValueString(***REMOVED******REMOVED***
 	}
 
 	autoscalingEnabled := false
 	computeNodeEnabled := false
 	autoscalingEnabled, errMsg := getAutoscaling(state, builder***REMOVED***
 	if errMsg != "" {
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			"Can't build machine pool",
 			fmt.Sprintf(
-				"Can't build machine pool for cluster '%s, %s'", state.Cluster.Value, errMsg,
+				"Can't build machine pool for cluster '%s, %s'", state.Cluster.ValueString(***REMOVED***, errMsg,
 			***REMOVED***,
 		***REMOVED***
 		return
 	}
 
-	if !state.Replicas.Unknown && !state.Replicas.Null {
+	if !state.Replicas.IsUnknown(***REMOVED*** && !state.Replicas.IsNull(***REMOVED*** {
 		computeNodeEnabled = true
-		if isMultiAZPool && state.Replicas.Value%3 != 0 {
-			response.Diagnostics.AddError(
+		if isMultiAZPool && state.Replicas.ValueInt64(***REMOVED***%3 != 0 {
+			resp.Diagnostics.AddError(
 				"Can't build machine pool",
 				fmt.Sprintf(
 					"Can't build machine pool for cluster '%s', replicas must be a multiple of 3",
-					state.Cluster.Value,
+					state.Cluster.ValueString(***REMOVED***,
 				***REMOVED***,
 			***REMOVED***
 			return
 ***REMOVED***
-		builder.Replicas(int(state.Replicas.Value***REMOVED******REMOVED***
+		builder.Replicas(int(state.Replicas.ValueInt64(***REMOVED******REMOVED******REMOVED***
 	}
 	if (!autoscalingEnabled && !computeNodeEnabled***REMOVED*** || (autoscalingEnabled && computeNodeEnabled***REMOVED*** {
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			"Can't build machine pool",
 			fmt.Sprintf(
 				"Can't build machine pool for cluster '%s', please provide a value for either the 'replicas' or 'autoscaling_enabled' parameter. It is mandatory to include at least one of these parameters in the resource plan.",
-				state.Cluster.Value,
+				state.Cluster.ValueString(***REMOVED***,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -323,26 +319,29 @@ func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context,
 	if state.Taints != nil && len(state.Taints***REMOVED*** > 0 {
 		var taintBuilders []*cmv1.TaintBuilder
 		for _, taint := range state.Taints {
-			taintBuilders = append(taintBuilders, cmv1.NewTaint(***REMOVED***.Key(taint.Key.Value***REMOVED***.Value(taint.Value.Value***REMOVED***.Effect(taint.ScheduleType.Value***REMOVED******REMOVED***
+			taintBuilders = append(taintBuilders, cmv1.NewTaint(***REMOVED***.
+				Key(taint.Key.ValueString(***REMOVED******REMOVED***.
+				Value(taint.Value.ValueString(***REMOVED******REMOVED***.
+				Effect(taint.ScheduleType.ValueString(***REMOVED******REMOVED******REMOVED***
 ***REMOVED***
 		builder.Taints(taintBuilders...***REMOVED***
 	}
 
-	if !state.Labels.Unknown && !state.Labels.Null {
+	if !state.Labels.IsUnknown(***REMOVED*** && !state.Labels.IsNull(***REMOVED*** {
 		labels := map[string]string{}
-		for k, v := range state.Labels.Elems {
-			labels[k] = v.(types.String***REMOVED***.Value
+		for k, v := range state.Labels.Elements(***REMOVED*** {
+			labels[k] = v.(types.String***REMOVED***.ValueString(***REMOVED***
 ***REMOVED***
 		builder.Labels(labels***REMOVED***
 	}
 
 	object, err := builder.Build(***REMOVED***
 	if err != nil {
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			"Can't build machine pool",
 			fmt.Sprintf(
 				"Can't build machine pool for cluster '%s': %v",
-				state.Cluster.Value, err,
+				state.Cluster.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -351,11 +350,11 @@ func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context,
 	collection := resource.MachinePools(***REMOVED***
 	add, err := collection.Add(***REMOVED***.Body(object***REMOVED***.SendContext(ctx***REMOVED***
 	if err != nil {
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			"Can't create machine pool",
 			fmt.Sprintf(
 				"Can't create machine pool for cluster '%s': %v",
-				state.Cluster.Value, err,
+				state.Cluster.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -364,37 +363,36 @@ func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context,
 
 	// Save the state:
 	r.populateState(object, state***REMOVED***
-	diags = response.State.Set(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
+	diags = resp.State.Set(ctx, state***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
 }
 
-func (r *MachinePoolResource***REMOVED*** Read(ctx context.Context, request tfsdk.ReadResourceRequest,
-	response *tfsdk.ReadResourceResponse***REMOVED*** {
+func (r *MachinePoolResource***REMOVED*** Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse***REMOVED*** {
 	// Get the current state:
 	state := &MachinePoolState{}
-	diags := request.State.Get(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
-	if response.Diagnostics.HasError(***REMOVED*** {
+	diags := req.State.Get(ctx, state***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
+	if resp.Diagnostics.HasError(***REMOVED*** {
 		return
 	}
 
 	// Find the machine pool:
-	resource := r.collection.Cluster(state.Cluster.Value***REMOVED***.
+	resource := r.collection.Cluster(state.Cluster.ValueString(***REMOVED******REMOVED***.
 		MachinePools(***REMOVED***.
-		MachinePool(state.ID.Value***REMOVED***
+		MachinePool(state.ID.ValueString(***REMOVED******REMOVED***
 	get, err := resource.Get(***REMOVED***.SendContext(ctx***REMOVED***
 	if err != nil && get.Status(***REMOVED*** == http.StatusNotFound {
 		tflog.Warn(ctx, fmt.Sprintf("machine pool (%s***REMOVED*** of cluster (%s***REMOVED*** not found, removing from state",
-			state.ID.Value, state.Cluster.Value,
+			state.ID.ValueString(***REMOVED***, state.Cluster.ValueString(***REMOVED***,
 		***REMOVED******REMOVED***
-		response.State.RemoveResource(ctx***REMOVED***
+		resp.State.RemoveResource(ctx***REMOVED***
 		return
 	} else if err != nil {
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			"Failed to fetch machine pool",
 			fmt.Sprintf(
 				"Failed to fetch machine pool with identifier %s for cluster %s. Response code: %v",
-				state.ID.Value, state.Cluster.Value, get.Status(***REMOVED***,
+				state.ID.ValueString(***REMOVED***, state.Cluster.ValueString(***REMOVED***, get.Status(***REMOVED***,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -404,56 +402,53 @@ func (r *MachinePoolResource***REMOVED*** Read(ctx context.Context, request tfsd
 
 	// Save the state:
 	r.populateState(object, state***REMOVED***
-	diags = response.State.Set(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
+	diags = resp.State.Set(ctx, state***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
 }
 
-func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
-	response *tfsdk.UpdateResourceResponse***REMOVED*** {
-	var diags diag.Diagnostics
-
+func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse***REMOVED*** {
 	// Get the state:
 	state := &MachinePoolState{}
-	diags = request.State.Get(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
-	if response.Diagnostics.HasError(***REMOVED*** {
+	diags := req.State.Get(ctx, state***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
+	if resp.Diagnostics.HasError(***REMOVED*** {
 		return
 	}
 
 	// Get the plan:
 	plan := &MachinePoolState{}
-	diags = request.Plan.Get(ctx, plan***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
-	if response.Diagnostics.HasError(***REMOVED*** {
+	diags = req.Plan.Get(ctx, plan***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
+	if resp.Diagnostics.HasError(***REMOVED*** {
 		return
 	}
 
-	resource := r.collection.Cluster(state.Cluster.Value***REMOVED***.
+	resource := r.collection.Cluster(state.Cluster.ValueString(***REMOVED******REMOVED***.
 		MachinePools(***REMOVED***.
-		MachinePool(state.ID.Value***REMOVED***
+		MachinePool(state.ID.ValueString(***REMOVED******REMOVED***
 	_, err := resource.Get(***REMOVED***.SendContext(ctx***REMOVED***
 
 	if err != nil {
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			"Can't find machine pool",
 			fmt.Sprintf(
 				"Can't find machine pool with identifier '%s' for "+
 					"cluster '%s': %v",
-				state.ID.Value, state.Cluster.Value, err,
+				state.ID.ValueString(***REMOVED***, state.Cluster.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
 	}
 
-	mpBuilder := cmv1.NewMachinePool(***REMOVED***.ID(state.ID.Value***REMOVED***
+	mpBuilder := cmv1.NewMachinePool(***REMOVED***.ID(state.ID.ValueString(***REMOVED******REMOVED***
 
 	_, ok := common.ShouldPatchString(state.MachineType, plan.MachineType***REMOVED***
 	if ok {
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			"Can't update machine pool",
 			fmt.Sprintf(
 				"Can't update machine pool for cluster '%s', machine type cannot be updated",
-				state.Cluster.Value,
+				state.Cluster.ValueString(***REMOVED***,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -462,28 +457,28 @@ func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, request tf
 	computeNodesEnabled := false
 	autoscalingEnabled := false
 
-	if !plan.Replicas.Unknown && !plan.Replicas.Null {
+	if !plan.Replicas.IsUnknown(***REMOVED*** && !plan.Replicas.IsNull(***REMOVED*** {
 		computeNodesEnabled = true
-		mpBuilder.Replicas(int(plan.Replicas.Value***REMOVED******REMOVED***
+		mpBuilder.Replicas(int(plan.Replicas.ValueInt64(***REMOVED******REMOVED******REMOVED***
 
 	}
 
 	autoscalingEnabled, errMsg := getAutoscaling(plan, mpBuilder***REMOVED***
 	if errMsg != "" {
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			"Can't update machine pool",
 			fmt.Sprintf(
-				"Can't update machine pool for cluster '%s, %s ", state.Cluster.Value, errMsg,
+				"Can't update machine pool for cluster '%s, %s ", state.Cluster.ValueString(***REMOVED***, errMsg,
 			***REMOVED***,
 		***REMOVED***
 		return
 	}
 
 	if (autoscalingEnabled && computeNodesEnabled***REMOVED*** || (!autoscalingEnabled && !computeNodesEnabled***REMOVED*** {
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			"Can't update machine pool",
 			fmt.Sprintf(
-				"Can't update machine pool for cluster '%s: either autoscaling or compute nodes should be enabled", state.Cluster.Value,
+				"Can't update machine pool for cluster '%s: either autoscaling or compute nodes should be enabled", state.Cluster.ValueString(***REMOVED***,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -492,8 +487,8 @@ func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, request tf
 	patchLabels, shouldPatchLabels := common.ShouldPatchMap(state.Labels, plan.Labels***REMOVED***
 	if shouldPatchLabels {
 		labels := map[string]string{}
-		for k, v := range patchLabels.Elems {
-			labels[k] = v.(types.String***REMOVED***.Value
+		for k, v := range patchLabels.Elements(***REMOVED*** {
+			labels[k] = v.(types.String***REMOVED***.ValueString(***REMOVED***
 ***REMOVED***
 		mpBuilder.Labels(labels***REMOVED***
 	}
@@ -501,30 +496,33 @@ func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, request tf
 	if shouldPatchTaints(state.Taints, plan.Taints***REMOVED*** {
 		var taintBuilders []*cmv1.TaintBuilder
 		for _, taint := range plan.Taints {
-			taintBuilders = append(taintBuilders, cmv1.NewTaint(***REMOVED***.Key(taint.Key.Value***REMOVED***.Value(taint.Value.Value***REMOVED***.Effect(taint.ScheduleType.Value***REMOVED******REMOVED***
+			taintBuilders = append(taintBuilders, cmv1.NewTaint(***REMOVED***.
+				Key(taint.Key.ValueString(***REMOVED******REMOVED***.
+				Value(taint.Value.ValueString(***REMOVED******REMOVED***.
+				Effect(taint.ScheduleType.ValueString(***REMOVED******REMOVED******REMOVED***
 ***REMOVED***
 		mpBuilder.Taints(taintBuilders...***REMOVED***
 	}
 
 	machinePool, err := mpBuilder.Build(***REMOVED***
 	if err != nil {
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			"Can't update machine pool",
 			fmt.Sprintf(
-				"Can't update machine pool for cluster '%s: %v ", state.Cluster.Value, err,
+				"Can't update machine pool for cluster '%s: %v ", state.Cluster.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
 	}
-	update, err := r.collection.Cluster(state.Cluster.Value***REMOVED***.
+	update, err := r.collection.Cluster(state.Cluster.ValueString(***REMOVED******REMOVED***.
 		MachinePools(***REMOVED***.
-		MachinePool(state.ID.Value***REMOVED***.Update(***REMOVED***.Body(machinePool***REMOVED***.SendContext(ctx***REMOVED***
+		MachinePool(state.ID.ValueString(***REMOVED******REMOVED***.Update(***REMOVED***.Body(machinePool***REMOVED***.SendContext(ctx***REMOVED***
 	if err != nil {
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			"Failed to update machine pool",
 			fmt.Sprintf(
 				"Failed to update machine pool '%s'  on cluster '%s': %v",
-				state.ID.Value, state.Cluster.Value, err,
+				state.ID.ValueString(***REMOVED***, state.Cluster.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -539,16 +537,16 @@ func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, request tf
 
 	// Save the state:
 	r.populateState(object, state***REMOVED***
-	diags = response.State.Set(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
+	diags = resp.State.Set(ctx, state***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
 }
 
 // Validate the machine pool's settings that pertain to availability zones.
 // Returns whether the machine pool is/will be multi-AZ.
 func (r *MachinePoolResource***REMOVED*** validateAZConfig(state *MachinePoolState***REMOVED*** (bool, error***REMOVED*** {
-	resp, err := r.collection.Cluster(state.Cluster.Value***REMOVED***.Get(***REMOVED***.Send(***REMOVED***
+	resp, err := r.collection.Cluster(state.Cluster.ValueString(***REMOVED******REMOVED***.Get(***REMOVED***.Send(***REMOVED***
 	if err != nil {
-		return false, fmt.Errorf("failed to get information for cluster %s: %v", state.Cluster.Value, err***REMOVED***
+		return false, fmt.Errorf("failed to get information for cluster %s: %v", state.Cluster.ValueString(***REMOVED***, err***REMOVED***
 	}
 	cluster := resp.Body(***REMOVED***
 	isMultiAZCluster := cluster.MultiAZ(***REMOVED***
@@ -563,12 +561,12 @@ func (r *MachinePoolResource***REMOVED*** validateAZConfig(state *MachinePoolSta
 
 		// multi_availability_zone setting must be consistent with availability_zone and subnet_id
 		azOrSubnet := !common.IsStringAttributeEmpty(state.AvailabilityZone***REMOVED*** || !common.IsStringAttributeEmpty(state.SubnetID***REMOVED***
-		if !state.MultiAvailabilityZone.Null && !state.MultiAvailabilityZone.Unknown {
-			if azOrSubnet && state.MultiAvailabilityZone.Value {
+		if !state.MultiAvailabilityZone.IsNull(***REMOVED*** && !state.MultiAvailabilityZone.IsUnknown(***REMOVED*** {
+			if azOrSubnet && state.MultiAvailabilityZone.ValueBool(***REMOVED*** {
 				return false, fmt.Errorf("multi_availability_zone must be False when availability_zone or subnet_id is set"***REMOVED***
 	***REMOVED***
 ***REMOVED*** else {
-			state.MultiAvailabilityZone = types.Bool{Value: !azOrSubnet}
+			state.MultiAvailabilityZone = types.BoolValue(!azOrSubnet***REMOVED***
 ***REMOVED***
 	} else { // not a multi-AZ cluster
 		if !common.IsStringAttributeEmpty(state.AvailabilityZone***REMOVED*** {
@@ -577,10 +575,10 @@ func (r *MachinePoolResource***REMOVED*** validateAZConfig(state *MachinePoolSta
 		if !common.IsStringAttributeEmpty(state.SubnetID***REMOVED*** {
 			return false, fmt.Errorf("subnet_id can only be set for multi-AZ clusters"***REMOVED***
 ***REMOVED***
-		if !state.MultiAvailabilityZone.Null && !state.MultiAvailabilityZone.Unknown && state.MultiAvailabilityZone.Value {
+		if !state.MultiAvailabilityZone.IsNull(***REMOVED*** && !state.MultiAvailabilityZone.IsUnknown(***REMOVED*** && state.MultiAvailabilityZone.ValueBool(***REMOVED*** {
 			return false, fmt.Errorf("multi_availability_zone can only be set for multi-AZ clusters"***REMOVED***
 ***REMOVED***
-		state.MultiAvailabilityZone = types.Bool{Value: false}
+		state.MultiAvailabilityZone = types.BoolValue(false***REMOVED***
 	}
 
 	// Ensure that the machine pool's AZ and subnet are valid for the cluster
@@ -588,56 +586,56 @@ func (r *MachinePoolResource***REMOVED*** validateAZConfig(state *MachinePoolSta
 	if !common.IsStringAttributeEmpty(state.SubnetID***REMOVED*** {
 		inClusterSubnet := false
 		for _, subnet := range clusterSubnets {
-			if subnet == state.SubnetID.Value {
+			if subnet == state.SubnetID.ValueString(***REMOVED*** {
 				inClusterSubnet = true
 				break
 	***REMOVED***
 ***REMOVED***
 		if !inClusterSubnet {
-			return false, fmt.Errorf("subnet_id %s is not valid for cluster %s", state.SubnetID.Value, state.Cluster.Value***REMOVED***
+			return false, fmt.Errorf("subnet_id %s is not valid for cluster %s", state.SubnetID.ValueString(***REMOVED***, state.Cluster.ValueString(***REMOVED******REMOVED***
 ***REMOVED***
 	} else {
-		state.SubnetID = types.String{Null: true}
+		state.SubnetID = types.StringNull(***REMOVED***
 	}
 	// If AZ is set, we make sure it's valid for the cluster. If not set and neither is subnet, we default it to the 1st AZ in the cluster
 	if !common.IsStringAttributeEmpty(state.AvailabilityZone***REMOVED*** {
 		inClusterAZ := false
 		for _, az := range clusterAZs {
-			if az == state.AvailabilityZone.Value {
+			if az == state.AvailabilityZone.ValueString(***REMOVED*** {
 				inClusterAZ = true
 				break
 	***REMOVED***
 ***REMOVED***
 		if !inClusterAZ {
-			return false, fmt.Errorf("availability_zone %s is not valid for cluster %s", state.AvailabilityZone.Value, state.Cluster.Value***REMOVED***
+			return false, fmt.Errorf("availability_zone %s is not valid for cluster %s", state.AvailabilityZone.ValueString(***REMOVED***, state.Cluster.ValueString(***REMOVED******REMOVED***
 ***REMOVED***
 	} else {
-		if len(clusterAZs***REMOVED*** > 0 && !state.MultiAvailabilityZone.Value && isMultiAZCluster && common.IsStringAttributeEmpty(state.SubnetID***REMOVED*** {
-			state.AvailabilityZone = types.String{Value: clusterAZs[0]}
+		if len(clusterAZs***REMOVED*** > 0 && !state.MultiAvailabilityZone.ValueBool(***REMOVED*** && isMultiAZCluster && common.IsStringAttributeEmpty(state.SubnetID***REMOVED*** {
+			state.AvailabilityZone = types.StringValue(clusterAZs[0]***REMOVED***
 ***REMOVED*** else {
-			state.AvailabilityZone = types.String{Null: true}
+			state.AvailabilityZone = types.StringNull(***REMOVED***
 ***REMOVED***
 	}
-	return state.MultiAvailabilityZone.Value, nil
+	return state.MultiAvailabilityZone.ValueBool(***REMOVED***, nil
 }
 
 func setSpotInstances(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilder***REMOVED*** error {
-	useSpotInstances := !state.UseSpotInstances.Unknown && !state.UseSpotInstances.Null && state.UseSpotInstances.Value
-	isSpotMaxPriceSet := !state.MaxSpotPrice.Unknown && !state.MaxSpotPrice.Null
+	useSpotInstances := !state.UseSpotInstances.IsUnknown(***REMOVED*** && !state.UseSpotInstances.IsNull(***REMOVED*** && state.UseSpotInstances.ValueBool(***REMOVED***
+	isSpotMaxPriceSet := !state.MaxSpotPrice.IsUnknown(***REMOVED*** && !state.MaxSpotPrice.IsNull(***REMOVED***
 
 	if isSpotMaxPriceSet && !useSpotInstances {
 		return errors.New("Can't set max price when not using spot instances (set \"use_spot_instances\" to true***REMOVED***"***REMOVED***
 	}
 
 	if useSpotInstances {
-		if isSpotMaxPriceSet && state.MaxSpotPrice.Value <= 0 {
+		if isSpotMaxPriceSet && state.MaxSpotPrice.ValueFloat64(***REMOVED*** <= 0 {
 			return errors.New("To use Spot instances, you must set \"max_spot_price\" with positive value"***REMOVED***
 ***REMOVED***
 
 		awsMachinePool := cmv1.NewAWSMachinePool(***REMOVED***
 		spotMarketOptions := cmv1.NewAWSSpotMarketOptions(***REMOVED***
 		if isSpotMaxPriceSet {
-			spotMarketOptions.MaxPrice(float64(state.MaxSpotPrice.Value***REMOVED******REMOVED***
+			spotMarketOptions.MaxPrice(state.MaxSpotPrice.ValueFloat64(***REMOVED******REMOVED***
 ***REMOVED***
 		awsMachinePool.SpotMarketOptions(spotMarketOptions***REMOVED***
 		mpBuilder.AWS(awsMachinePool***REMOVED***
@@ -649,17 +647,17 @@ func setSpotInstances(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilde
 func getAutoscaling(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilder***REMOVED*** (
 	autoscalingEnabled bool, errMsg string***REMOVED*** {
 	autoscalingEnabled = false
-	if !state.AutoScalingEnabled.Unknown && !state.AutoScalingEnabled.Null && state.AutoScalingEnabled.Value {
+	if !state.AutoScalingEnabled.IsUnknown(***REMOVED*** && !state.AutoScalingEnabled.IsNull(***REMOVED*** && state.AutoScalingEnabled.ValueBool(***REMOVED*** {
 		autoscalingEnabled = true
 
 		autoscaling := cmv1.NewMachinePoolAutoscaling(***REMOVED***
-		if !state.MaxReplicas.Unknown && !state.MaxReplicas.Null {
-			autoscaling.MaxReplicas(int(state.MaxReplicas.Value***REMOVED******REMOVED***
+		if !state.MaxReplicas.IsUnknown(***REMOVED*** && !state.MaxReplicas.IsNull(***REMOVED*** {
+			autoscaling.MaxReplicas(int(state.MaxReplicas.ValueInt64(***REMOVED******REMOVED******REMOVED***
 ***REMOVED*** else {
 			return false, "when enabling autoscaling, should set value for maxReplicas"
 ***REMOVED***
-		if !state.MinReplicas.Unknown && !state.MinReplicas.Null {
-			autoscaling.MinReplicas(int(state.MinReplicas.Value***REMOVED******REMOVED***
+		if !state.MinReplicas.IsUnknown(***REMOVED*** && !state.MinReplicas.IsNull(***REMOVED*** {
+			autoscaling.MinReplicas(int(state.MinReplicas.ValueInt64(***REMOVED******REMOVED******REMOVED***
 ***REMOVED*** else {
 			return false, "when enabling autoscaling, should set value for minReplicas"
 ***REMOVED***
@@ -667,7 +665,7 @@ func getAutoscaling(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilder*
 			mpBuilder.Autoscaling(autoscaling***REMOVED***
 ***REMOVED***
 	} else {
-		if (!state.MaxReplicas.Unknown && !state.MaxReplicas.Null***REMOVED*** || (!state.MinReplicas.Unknown && !state.MinReplicas.Null***REMOVED*** {
+		if (!state.MaxReplicas.IsUnknown(***REMOVED*** && !state.MaxReplicas.IsNull(***REMOVED******REMOVED*** || (!state.MinReplicas.IsUnknown(***REMOVED*** && !state.MinReplicas.IsNull(***REMOVED******REMOVED*** {
 			return false, "when disabling autoscaling, can't set min_replicas and/or max_replicas"
 ***REMOVED***
 	}
@@ -675,43 +673,41 @@ func getAutoscaling(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilder*
 	return autoscalingEnabled, ""
 }
 
-func (r *MachinePoolResource***REMOVED*** Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
-	response *tfsdk.DeleteResourceResponse***REMOVED*** {
+func (r *MachinePoolResource***REMOVED*** Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse***REMOVED*** {
 	// Get the state:
 	state := &MachinePoolState{}
-	diags := request.State.Get(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
-	if response.Diagnostics.HasError(***REMOVED*** {
+	diags := req.State.Get(ctx, state***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
+	if resp.Diagnostics.HasError(***REMOVED*** {
 		return
 	}
 
 	// Send the request to delete the machine pool:
-	resource := r.collection.Cluster(state.Cluster.Value***REMOVED***.
+	resource := r.collection.Cluster(state.Cluster.ValueString(***REMOVED******REMOVED***.
 		MachinePools(***REMOVED***.
-		MachinePool(state.ID.Value***REMOVED***
+		MachinePool(state.ID.ValueString(***REMOVED******REMOVED***
 	_, err := resource.Delete(***REMOVED***.SendContext(ctx***REMOVED***
 	if err != nil {
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			"Can't delete machine pool",
 			fmt.Sprintf(
 				"Can't delete machine pool with identifier '%s' for "+
 					"cluster '%s': %v",
-				state.ID.Value, state.Cluster.Value, err,
+				state.ID.ValueString(***REMOVED***, state.Cluster.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
 	}
 
 	// Remove the state:
-	response.State.RemoveResource(ctx***REMOVED***
+	resp.State.RemoveResource(ctx***REMOVED***
 }
 
-func (r *MachinePoolResource***REMOVED*** ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
-	response *tfsdk.ImportResourceStateResponse***REMOVED*** {
+func (r *MachinePoolResource***REMOVED*** ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse***REMOVED*** {
 	// To import a machine pool, we need to know the cluster ID and the machine pool ID
-	fields := strings.Split(request.ID, ","***REMOVED***
+	fields := strings.Split(req.ID, ","***REMOVED***
 	if len(fields***REMOVED*** != 2 || fields[0] == "" || fields[1] == "" {
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			"Invalid import identifier",
 			"Machine pool to import should be specified as <cluster_id>,<machine_pool_id>",
 		***REMOVED***
@@ -719,26 +715,20 @@ func (r *MachinePoolResource***REMOVED*** ImportState(ctx context.Context, reque
 	}
 	clusterID := fields[0]
 	machinePoolID := fields[1]
-	response.Diagnostics.Append(response.State.SetAttribute(ctx, tftypes.NewAttributePath(***REMOVED***.WithAttributeName("cluster"***REMOVED***, clusterID***REMOVED***...***REMOVED***
-	response.Diagnostics.Append(response.State.SetAttribute(ctx, tftypes.NewAttributePath(***REMOVED***.WithAttributeName("id"***REMOVED***, machinePoolID***REMOVED***...***REMOVED***
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("cluster"***REMOVED***, clusterID***REMOVED***...***REMOVED***
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"***REMOVED***, machinePoolID***REMOVED***...***REMOVED***
 }
 
 // populateState copies the data from the API object to the Terraform state.
 func (r *MachinePoolResource***REMOVED*** populateState(object *cmv1.MachinePool, state *MachinePoolState***REMOVED*** {
-	state.ID = types.String{
-		Value: object.ID(***REMOVED***,
-	}
-	state.Name = types.String{
-		Value: object.ID(***REMOVED***,
-	}
+	state.ID = types.StringValue(object.ID(***REMOVED******REMOVED***
+	state.Name = types.StringValue(object.ID(***REMOVED******REMOVED***
 
 	if getAWS, ok := object.GetAWS(***REMOVED***; ok {
 		if spotMarketOptions, ok := getAWS.GetSpotMarketOptions(***REMOVED***; ok {
-			state.UseSpotInstances = types.Bool{Value: true}
+			state.UseSpotInstances = types.BoolValue(true***REMOVED***
 			if spotMarketOptions.MaxPrice(***REMOVED*** != 0 {
-				state.MaxSpotPrice = types.Float64{
-					Value: float64(spotMarketOptions.MaxPrice(***REMOVED******REMOVED***,
-		***REMOVED***
+				state.MaxSpotPrice = types.Float64Value(spotMarketOptions.MaxPrice(***REMOVED******REMOVED***
 	***REMOVED***
 ***REMOVED***
 	}
@@ -746,38 +736,26 @@ func (r *MachinePoolResource***REMOVED*** populateState(object *cmv1.MachinePool
 	autoscaling, ok := object.GetAutoscaling(***REMOVED***
 	if ok {
 		var minReplicas, maxReplicas int
-		state.AutoScalingEnabled = types.Bool{Value: true}
+		state.AutoScalingEnabled = types.BoolValue(true***REMOVED***
 		minReplicas, ok = autoscaling.GetMinReplicas(***REMOVED***
 		if ok {
-			state.MinReplicas = types.Int64{
-				Value: int64(minReplicas***REMOVED***,
-	***REMOVED***
+			state.MinReplicas = types.Int64Value(int64(minReplicas***REMOVED******REMOVED***
 ***REMOVED***
 		maxReplicas, ok = autoscaling.GetMaxReplicas(***REMOVED***
 		if ok {
-			state.MaxReplicas = types.Int64{
-				Value: int64(maxReplicas***REMOVED***,
-	***REMOVED***
+			state.MaxReplicas = types.Int64Value(int64(maxReplicas***REMOVED******REMOVED***
 ***REMOVED***
 	} else {
-		state.MaxReplicas = types.Int64{Null: true}
-		state.MinReplicas = types.Int64{Null: true}
+		state.MaxReplicas = types.Int64Null(***REMOVED***
+		state.MinReplicas = types.Int64Null(***REMOVED***
 	}
 
-	instanceType, ok := object.GetInstanceType(***REMOVED***
-	if ok {
-		{
-			state.MachineType = types.String{
-				Value: instanceType,
-	***REMOVED***
-***REMOVED***
+	if instanceType, ok := object.GetInstanceType(***REMOVED***; ok {
+		state.MachineType = types.StringValue(instanceType***REMOVED***
 	}
 
-	replicas, ok := object.GetReplicas(***REMOVED***
-	if ok {
-		state.Replicas = types.Int64{
-			Value: int64(replicas***REMOVED***,
-***REMOVED***
+	if replicas, ok := object.GetReplicas(***REMOVED***; ok {
+		state.Replicas = types.Int64Value(int64(replicas***REMOVED******REMOVED***
 	}
 
 	taints := object.Taints(***REMOVED***
@@ -785,9 +763,9 @@ func (r *MachinePoolResource***REMOVED*** populateState(object *cmv1.MachinePool
 		state.Taints = make([]Taints, len(taints***REMOVED******REMOVED***
 		for i, taint := range taints {
 			state.Taints[i] = Taints{
-				Key:          types.String{Value: taint.Key(***REMOVED***},
-				Value:        types.String{Value: taint.Value(***REMOVED***},
-				ScheduleType: types.String{Value: taint.Effect(***REMOVED***},
+				Key:          types.StringValue(taint.Key(***REMOVED******REMOVED***,
+				Value:        types.StringValue(taint.Value(***REMOVED******REMOVED***,
+				ScheduleType: types.StringValue(taint.Effect(***REMOVED******REMOVED***,
 	***REMOVED***
 ***REMOVED***
 	} else {
@@ -796,17 +774,10 @@ func (r *MachinePoolResource***REMOVED*** populateState(object *cmv1.MachinePool
 
 	labels := object.Labels(***REMOVED***
 	if len(labels***REMOVED*** > 0 {
-		state.Labels = types.Map{
-			ElemType: types.StringType,
-			Elems:    map[string]attr.Value{},
-***REMOVED***
-		for k, v := range labels {
-			state.Labels.Elems[k] = types.String{
-				Value: v,
-	***REMOVED***
-***REMOVED***
+		// XXX: We should be checking diags here, but we don't have a way to return the error
+		state.Labels, _ = types.MapValueFrom(context.TODO(***REMOVED***, types.StringType, labels***REMOVED***
 	} else {
-		state.Labels.Null = true
+		state.Labels = types.MapNull(types.StringType***REMOVED***
 	}
 }
 

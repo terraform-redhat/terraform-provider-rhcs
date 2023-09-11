@@ -185,7 +185,6 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 			},
 		},
 	}
-	return
 }
 
 func (r *MachinePoolResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -774,8 +773,8 @@ func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *Mac
 
 	labels := object.Labels()
 	if len(labels) > 0 {
-		// XXX: We should be checking diags here, but we don't have a way to return the error
-		state.Labels, _ = types.MapValueFrom(context.TODO(), types.StringType, labels)
+		// XXX: We should be checking error here, but we don't have a way to return the error
+		state.Labels, _ = common.ConvertStringMapToMapType(labels)
 	} else {
 		state.Labels = types.MapNull(types.StringType)
 	}

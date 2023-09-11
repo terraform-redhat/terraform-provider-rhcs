@@ -32,7 +32,7 @@ const (
 	pollingIntervalInMinutes  = 2
 ***REMOVED***
 
-func NewClusterWaiterResource(***REMOVED*** resource.Resource {
+func New(***REMOVED*** resource.Resource {
 	return &ClusterWaiterResource{}
 }
 

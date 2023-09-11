@@ -38,7 +38,7 @@ type DNSDomainResource struct {
 var _ resource.ResourceWithConfigure = &DNSDomainResource{}
 var _ resource.ResourceWithImportState = &DNSDomainResource{}
 
-func NewDNSDomainResource(***REMOVED*** resource.Resource {
+func New(***REMOVED*** resource.Resource {
 	return &DNSDomainResource{}
 }
 

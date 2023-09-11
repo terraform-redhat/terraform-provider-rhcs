@@ -195,8 +195,8 @@ func (p *Provider***REMOVED*** Configure(ctx context.Context, req tfprovider.Con
 // Resources returns the resources supported by the provider.
 func (p *Provider***REMOVED*** Resources(ctx context.Context***REMOVED*** []func(***REMOVED*** resource.Resource {
 	return []func(***REMOVED*** resource.Resource{
-		clusterwaiter.NewClusterWaiterResource,
-		dnsdomain.NewDNSDomainResource,
+		clusterwaiter.New,
+		dnsdomain.New,
 		// TODO uncomment this after ClusterRosaClassic resource is fixed
 		// clusterwaiter.NewClusterRosaClassicResource,
 	}
@@ -220,7 +220,7 @@ func (p *Provider***REMOVED*** Resources(ctx context.Context***REMOVED*** []func
 
 func (p *Provider***REMOVED*** DataSources(ctx context.Context***REMOVED*** []func(***REMOVED*** datasource.DataSource {
 	return []func(***REMOVED*** datasource.DataSource{
-		cloudprovider.NewCloudProvidersDataSource,
+		cloudprovider.New,
 	}
 }
 

@@ -3,6 +3,7 @@ package common
 ***REMOVED***
 	"context"
 ***REMOVED***
+
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 ***REMOVED***
@@ -46,7 +47,7 @@ func ConvertStringMapToMapType(stringMap map[string]string***REMOVED*** (types.M
 	}
 	mapValue, diags := types.MapValue(types.StringType, elements***REMOVED***
 	if diags != nil && diags.HasError(***REMOVED*** {
-		fmt.Errorf("failed to convert to MapType %v", diags.Errors(***REMOVED***[0].Detail(***REMOVED******REMOVED***
+		return mapValue, fmt.Errorf("failed to convert to MapType %v", diags.Errors(***REMOVED***[0].Detail(***REMOVED******REMOVED***
 	}
 	return mapValue, nil
 }
@@ -58,7 +59,7 @@ func StringArrayToList(stringList []string***REMOVED*** (types.List, error***REM
 	}
 	listValue, diags := types.ListValue(types.StringType, elements***REMOVED***
 	if diags != nil && diags.HasError(***REMOVED*** {
-		fmt.Errorf("failed to convert to List type %v", diags.Errors(***REMOVED***[0].Detail(***REMOVED******REMOVED***
+		return listValue, fmt.Errorf("failed to convert to List type %v", diags.Errors(***REMOVED***[0].Detail(***REMOVED******REMOVED***
 	}
 	return listValue, nil
 }

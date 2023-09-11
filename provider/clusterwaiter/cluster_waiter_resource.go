@@ -7,7 +7,7 @@ package clusterwaiter
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	tfrschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -41,14 +41,14 @@ func (r *ClusterWaiterResource***REMOVED*** Metadata(ctx context.Context, req re
 }
 
 func (r *ClusterWaiterResource***REMOVED*** Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse***REMOVED*** {
-	resp.Schema = tfrschema.Schema{
+	resp.Schema = schema.Schema{
 		Description: "Wait Cluster Resource To be Ready",
-		Attributes: map[string]tfrschema.Attribute{
-			"cluster": tfrschema.StringAttribute{
+		Attributes: map[string]schema.Attribute{
+			"cluster": schema.StringAttribute{
 				Description: "Identifier of the cluster.",
 				Required:    true,
 	***REMOVED***,
-			"timeout": tfrschema.Int64Attribute{
+			"timeout": schema.Int64Attribute{
 				Description: "An optional timeout till the cluster is ready. The timeout value should be in minutes." +
 					" the default value is 60 minutes",
 				Optional: true,
@@ -56,7 +56,7 @@ func (r *ClusterWaiterResource***REMOVED*** Schema(ctx context.Context, req reso
 					int64validator.AtLeast(1***REMOVED***, // Timeout must be positive
 		***REMOVED***,
 	***REMOVED***,
-			"ready": tfrschema.BoolAttribute{
+			"ready": schema.BoolAttribute{
 				Description: "Whether the cluster is ready",
 				Computed:    true,
 	***REMOVED***,

@@ -7,36 +7,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-func OptionalInt64(tfVal types.Int64) *int64 {
-	if !tfVal.IsNull() && !tfVal.IsUnknown() {
-		return pointer(tfVal.ValueInt64())
-	}
-	return nil
-}
-
-func OptionalBool(tfVal types.Bool) *bool {
-	if !tfVal.IsNull() && !tfVal.IsUnknown() {
-		return pointer(tfVal.ValueBool())
-	}
-	return nil
-}
-
 func BoolWithFalseDefault(tfVal types.Bool) bool {
 	if !tfVal.IsNull() && !tfVal.IsUnknown() {
 		return tfVal.ValueBool()
 	}
 	return false
-}
-
-func pointer[T any](src T) *T {
-	return &src
-}
-
-func OptionalString(tfVal types.String) *string {
-	if tfVal.IsNull() || tfVal.IsUnknown() {
-		return nil
-	}
-	return pointer(tfVal.ValueString())
 }
 
 func OptionalMap(ctx context.Context, tfVal types.Map) (map[string]string, error) {
@@ -52,7 +27,7 @@ func OptionalMap(ctx context.Context, tfVal types.Map) (map[string]string, error
 	return result, nil
 }
 
-func OptionalList(ctx context.Context, tfVal types.List) ([]string, error) {
+func StringListToArray(ctx context.Context, tfVal types.List) ([]string, error) {
 	if tfVal.IsNull() || tfVal.IsUnknown() {
 		return nil, nil
 	}
@@ -76,7 +51,7 @@ func ConvertStringMapToMapType(stringMap map[string]string) (types.Map, error) {
 	return mapValue, nil
 }
 
-func ConvertStringListToListType(stringList []string) (types.List, error) {
+func StringArrayToList(stringList []string) (types.List, error) {
 	elements := []attr.Value{}
 	for _, e := range stringList {
 		elements = append(elements, types.StringValue(e))

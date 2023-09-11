@@ -23,7 +23,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	tfrschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	sdk "github.com/openshift-online/ocm-sdk-go"
@@ -47,10 +47,10 @@ func (r *DNSDomainResource) Metadata(ctx context.Context, req resource.MetadataR
 }
 
 func (r *DNSDomainResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = tfrschema.Schema{
+	resp.Schema = schema.Schema{
 		Description: "DNS Domain",
-		Attributes: map[string]tfrschema.Attribute{
-			"id": tfrschema.StringAttribute{
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Description: "Unique identifier of the DNS Domain",
 				Computed:    true,
 			},

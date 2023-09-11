@@ -85,7 +85,7 @@ var _ = Describe("Machine pool creation", func() {
 				  "replicas": 12,
 				  "taints": [
 					  {
-						"effect": "effect1",
+						"effect": "NoSchedule",
 						"key": "key1",
 						"value": "value1"
 					  }
@@ -106,7 +106,7 @@ var _ = Describe("Machine pool creation", func() {
 				  ],
 			  	  "taints": [
 					  {
-						"effect": "effect1",
+						"effect": "NoSchedule",
 						"key": "key1",
 						"value": "value1"
 					  }
@@ -130,7 +130,7 @@ var _ = Describe("Machine pool creation", func() {
 				{
 					key = "key1",
 					value = "value1",
-					schedule_type = "effect1",
+					schedule_type = "NoSchedule",
 				},
 		    ]
 		  }
@@ -166,7 +166,7 @@ var _ = Describe("Machine pool creation", func() {
 				  "replicas": 12,
 				  "taints": [
 					  {
-						"effect": "effect1",
+						"effect": "NoSchedule",
 						"key": "key1",
 						"value": "value1"
 					  }
@@ -187,7 +187,7 @@ var _ = Describe("Machine pool creation", func() {
 				  ],
 			  	  "taints": [
 					  {
-						"effect": "effect1",
+						"effect": "NoSchedule",
 						"key": "key1",
 						"value": "value1"
 					  }
@@ -211,7 +211,7 @@ var _ = Describe("Machine pool creation", func() {
 				{
 					key = "key1",
 					value = "value1",
-					schedule_type = "effect1",
+					schedule_type = "NoSchedule",
 				},
 		    ]
 		  }
@@ -284,7 +284,7 @@ var _ = Describe("Machine pool creation", func() {
 				  "replicas": 12,
 				  "taints": [
 					  {
-						"effect": "effect1",
+						"effect": "NoSchedule",
 						"key": "key1",
 						"value": "value1"
 					  }
@@ -305,7 +305,7 @@ var _ = Describe("Machine pool creation", func() {
 				  ],
 			  	  "taints": [
 					  {
-						"effect": "effect1",
+						"effect": "NoSchedule",
 						"key": "key1",
 						"value": "value1"
 					  }
@@ -317,7 +317,6 @@ var _ = Describe("Machine pool creation", func() {
 		// Run the apply command:
 		terraform.Source(`
 		  resource "rhcs_machine_pool" "my_pool" {
-            id           = "my-pool"
 		    cluster      = "123"
 		    name         = "my-pool"
 		    machine_type = "r5.xlarge"
@@ -330,7 +329,7 @@ var _ = Describe("Machine pool creation", func() {
 				{
 					key = "key1",
 					value = "value1",
-					schedule_type = "effect1",
+					schedule_type = "NoSchedule",
 				},
 		    ]
 		  }
@@ -581,7 +580,7 @@ var _ = Describe("Machine pool creation", func() {
 				  "replicas": 12,
 				  "taints": [
 					  {
-						"effect": "effect1",
+						"effect": "NoSchedule",
 						"key": "key1",
 						"value": "value1"
 					  }
@@ -598,7 +597,7 @@ var _ = Describe("Machine pool creation", func() {
 				  ],
 				  "taints": [
 					  {
-						"effect": "effect1",
+						"effect": "NoSchedule",
 						"key": "key1",
 						"value": "value1"
 					  }
@@ -618,7 +617,7 @@ var _ = Describe("Machine pool creation", func() {
 				{
 					key = "key1",
 					value = "value1",
-					schedule_type = "effect1",
+					schedule_type = "NoSchedule",
 				}
 		    ]
 		  }
@@ -651,7 +650,7 @@ var _ = Describe("Machine pool creation", func() {
 				  ],
 				  "taints": [
 					  {
-						"effect": "effect1",
+						"effect": "NoSchedule",
 						"key": "key1",
 						"value": "value1"
 					  }
@@ -675,7 +674,7 @@ var _ = Describe("Machine pool creation", func() {
 				  ],
 				  "taints": [
 					  {
-						"effect": "effect1",
+						"effect": "NoSchedule",
 						"key": "key1",
 						"value": "value1"
 					  }
@@ -694,12 +693,12 @@ var _ = Describe("Machine pool creation", func() {
 				  "replicas": 12,
 				  "taints": [
 					  {
-						"effect": "effect1",
+						"effect": "NoSchedule",
 						"key": "key1",
 						"value": "value1"
 					  },
 					  {
-						"effect": "effect2",
+						"effect": "NoExecute",
 						"key": "key2",
 						"value": "value2"
 					  }
@@ -719,12 +718,12 @@ var _ = Describe("Machine pool creation", func() {
 				  ],
 				  "taints": [
 					  {
-						"effect": "effect1",
+						"effect": "NoSchedule",
 						"key": "key1",
 						"value": "value1"
 					  },
 					  {
-						"effect": "effect2",
+						"effect": "NoExecute",
 						"key": "key2",
 						"value": "value2"
 					  }
@@ -743,12 +742,12 @@ var _ = Describe("Machine pool creation", func() {
 				{
 					key = "key1",
 					value = "value1",
-					schedule_type = "effect1",
+					schedule_type = "NoSchedule",
 				},
 				{
 					key = "key2",
 					value = "value2",
-					schedule_type = "effect2",
+					schedule_type = "NoExecute",
 				}
 		    ]
 		  }
@@ -780,7 +779,7 @@ var _ = Describe("Machine pool creation", func() {
 				  "replicas": 12,
 				  "taints": [
 					  {
-						"effect": "effect1",
+						"effect": "NoSchedule",
 						"key": "key1",
 						"value": "value1"
 					  }
@@ -797,7 +796,7 @@ var _ = Describe("Machine pool creation", func() {
 				  "replicas": 12,
 				  "taints": [
 					  {
-						"effect": "effect1",
+						"effect": "NoSchedule",
 						"key": "key1",
 						"value": "value1"
 					  }
@@ -817,7 +816,7 @@ var _ = Describe("Machine pool creation", func() {
 				{
 					key = "key1",
 					value = "value1",
-					schedule_type = "effect1",
+					schedule_type = "NoSchedule",
 				}
 		    ]
 		  }
@@ -850,7 +849,7 @@ var _ = Describe("Machine pool creation", func() {
 				  ],
 				  "taints": [
 					  {
-						"effect": "effect1",
+						"effect": "NoSchedule",
 						"key": "key1",
 						"value": "value1"
 					  }
@@ -874,7 +873,7 @@ var _ = Describe("Machine pool creation", func() {
 				  ],
 				  "taints": [
 					  {
-						"effect": "effect1",
+						"effect": "NoSchedule",
 						"key": "key1",
 						"value": "value1"
 					  }
@@ -1100,7 +1099,7 @@ var _ = Describe("Machine pool creation", func() {
 				  "replicas": 12,
 				  "taints": [
 					  {
-						"effect": "effect1",
+						"effect": "NoSchedule",
 						"key": "key1",
 						"value": "value1"
 					  }
@@ -1121,7 +1120,7 @@ var _ = Describe("Machine pool creation", func() {
 				  },
 				  "taints": [
 					  {
-						"effect": "effect1",
+						"effect": "NoSchedule",
 						"key": "key1",
 						"value": "value1"
 					  }
@@ -1147,7 +1146,7 @@ var _ = Describe("Machine pool creation", func() {
 				{
 					key = "key1",
 					value = "value1",
-					schedule_type = "effect1",
+					schedule_type = "NoSchedule",
 				},
 		    ]
 		  }
@@ -1174,7 +1173,7 @@ var _ = Describe("Machine pool creation", func() {
 				  "replicas": 12,
 				  "taints": [
 					  {
-						"effect": "effect1",
+						"effect": "NoSchedule",
 						"key": "key1",
 						"value": "value1"
 					  }
@@ -1195,7 +1194,7 @@ var _ = Describe("Machine pool creation", func() {
 				  },
 				  "taints": [
 					  {
-						"effect": "effect1",
+						"effect": "NoSchedule",
 						"key": "key1",
 						"value": "value1"
 					  }
@@ -1220,7 +1219,7 @@ var _ = Describe("Machine pool creation", func() {
 				{
 					key = "key1",
 					value = "value1",
-					schedule_type = "effect1",
+					schedule_type = "NoSchedule",
 				},
 		    ]
 		  }
@@ -1263,7 +1262,7 @@ var _ = Describe("Machine pool creation", func() {
 				  "replicas": 12,
 				  "taints": [
 					  {
-						"effect": "effect1",
+						"effect": "NoSchedule",
 						"key": "key1",
 						"value": "value1"
 					  }
@@ -1289,7 +1288,7 @@ var _ = Describe("Machine pool creation", func() {
 				  },
 				  "taints": [
 					  {
-						"effect": "effect1",
+						"effect": "NoSchedule",
 						"key": "key1",
 						"value": "value1"
 					  }
@@ -1315,7 +1314,7 @@ var _ = Describe("Machine pool creation", func() {
 				{
 					key = "key1",
 					value = "value1",
-					schedule_type = "effect1",
+					schedule_type = "NoSchedule",
 				},
 		    ]
 		  }
@@ -1360,7 +1359,7 @@ var _ = Describe("Machine pool creation", func() {
 				  "replicas": 12,
 				  "taints": [
 					  {
-						"effect": "effect1",
+						"effect": "NoSchedule",
 						"key": "key1",
 						"value": "value1"
 					  }
@@ -1385,7 +1384,7 @@ var _ = Describe("Machine pool creation", func() {
 				  },
 				  "taints": [
 					  {
-						"effect": "effect1",
+						"effect": "NoSchedule",
 						"key": "key1",
 						"value": "value1"
 					  }
@@ -1410,7 +1409,7 @@ var _ = Describe("Machine pool creation", func() {
 				{
 					key = "key1",
 					value = "value1",
-					schedule_type = "effect1",
+					schedule_type = "NoSchedule",
 				},
 		    ]
 		  }

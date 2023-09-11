@@ -28,7 +28,7 @@ OpenShift managed cluster using rosa sts.
 - `availability_zones` (List of String***REMOVED*** Availability zones.
 - `aws_private_link` (Boolean***REMOVED*** Provides private connectivity between VPCs, AWS services, and your on-premises networks, without exposing your traffic to the public internet.
 - `aws_subnet_ids` (List of String***REMOVED*** AWS subnet IDs.
-- `base_dns_domain` (String***REMOVED*** Bade DNS domain identifier. (See resource rhcs_dns_domain***REMOVED***
+- `base_dns_domain` (String***REMOVED*** Base DNS domain name previously reserved and matching the hosted zone name of the private Route 53 hosted zone associated with intended shared VPC, e.g., '1vo8.p1.openshiftapps.com'.
 - `channel_group` (String***REMOVED*** Name of the channel group where you select the OpenShift cluster version, for example 'stable'.
 - `compute_machine_type` (String***REMOVED*** Identifies the machine type used by the compute nodes, for example `r5.xlarge`. Use the `rhcs_machine_types` data source to find the possible values.
 - `default_mp_labels` (Map of String***REMOVED*** This value is the default machine pool labels. Format should be a comma-separated list of '{"key1"="value1", "key2"="value2"}'. This list overwrites any modifications made to Node labels on an ongoing basis.
@@ -36,7 +36,7 @@ OpenShift managed cluster using rosa sts.
 - `disable_scp_checks` (Boolean***REMOVED*** Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE***REMOVED*** platform metrics.
 - `disable_waiting_in_destroy` (Boolean***REMOVED*** Disable addressing cluster state in the destroy resource. Default value is false.
 - `disable_workload_monitoring` (Boolean***REMOVED*** Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE***REMOVED*** platform metrics.
-- `ec2_metadata_http_tokens` (String***REMOVED*** This value determines which EC2 metadata mode to use for metadata service interaction options for EC2 instances can be optional or required. Required is available from OpenShift version 4.11.0 and newer.
+- `ec2_metadata_http_tokens` (String***REMOVED*** This value determines which EC2 metadata mode to use for metadata service interaction options for EC2 instances can be optional or required. This feature is available from OpenShift version 4.11.0 and newer.
 - `etcd_encryption` (Boolean***REMOVED*** Encrypt etcd data.
 - `external_id` (String***REMOVED*** Unique external identifier of the cluster.
 - `fips` (Boolean***REMOVED*** Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries.
@@ -83,8 +83,8 @@ Required:
 
 Required:
 
-- `id` (String***REMOVED*** HostedZone identifier
-- `role_arn` (String***REMOVED*** HostedZone Role ARN
+- `id` (String***REMOVED*** ID assigned by AWS to private Route 53 hosted zone associated with intended shared VPC, e.g. 'Z05646003S02O1ENCDCSN'.
+- `role_arn` (String***REMOVED*** AWS IAM role ARN with a policy attached, granting permissions necessary to create and manage Route 53 DNS records in private Route 53 hosted zone associated with intended shared VPC.
 
 
 <a id="nestedatt--proxy"></a>
@@ -124,5 +124,3 @@ Required:
 
 - `master_role_arn` (String***REMOVED*** Master/Controller Plane Role ARN
 - `worker_role_arn` (String***REMOVED*** Worker Node Role ARN
-
-

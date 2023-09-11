@@ -1,7 +1,6 @@
 package common
 
 import (
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	. "github.com/onsi/ginkgo/v2/dsl/core" // nolint
 	. "github.com/onsi/gomega"             // nolint
@@ -10,41 +9,19 @@ import (
 var _ = Describe("Helper function tests", func() {
 	Context("ShouldPatchStringMap", func() {
 		map0 := types.Map{}
-		map1 := types.Map{
-			ElemType: types.StringType,
-			Elems: map[string]attr.Value{
-				"key1": types.String{
-					Value: "val1",
-				},
-			},
-		}
-		map2 := types.Map{
-			ElemType: types.StringType,
-			Elems: map[string]attr.Value{
-				"key": types.String{
-					Value: "val1",
-				},
-			},
-		}
-		map3 := types.Map{
-			ElemType: types.StringType,
-			Elems: map[string]attr.Value{
-				"key1": types.String{
-					Value: "val",
-				},
-			},
-		}
-		map4 := types.Map{
-			ElemType: types.StringType,
-			Elems: map[string]attr.Value{
-				"key1": types.String{
-					Value: "val",
-				},
-				"key2": types.String{
-					Value: "val2",
-				},
-			},
-		}
+		map1, _ := ConvertStringMapToMapType(map[string]string{
+			"key1": "val1",
+		})
+		map2, _ := ConvertStringMapToMapType(map[string]string{
+			"key": "val1",
+		})
+		map3, _ := ConvertStringMapToMapType(map[string]string{
+			"key1": "val",
+		})
+		map4, _ := ConvertStringMapToMapType(map[string]string{
+			"key1": "val",
+			"key2": "val2",
+		})
 
 		It("Should return true when maps are different", func() {
 			r, ok := ShouldPatchMap(map0, map1)

@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	ocmerrors "github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/pkg/errors"
@@ -34,16 +33,16 @@ const versionPrefix = "openshift-v"
 // shouldPatchInt changed checks if the change between the given state and plan requires sending a
 // patch request to the server. If it does it returns the value to add to the patch.
 func ShouldPatchInt(state, plan types.Int64) (value int64, ok bool) {
-	if plan.Unknown || plan.Null {
+	if plan.IsUnknown() || plan.IsNull() {
 		return
 	}
-	if state.Unknown || state.Null {
-		value = plan.Value
+	if state.IsUnknown() || state.IsNull() {
+		value = plan.ValueInt64()
 		ok = true
 		return
 	}
-	if plan.Value != state.Value {
-		value = plan.Value
+	if plan.ValueInt64() != state.ValueInt64() {
+		value = plan.ValueInt64()
 		ok = true
 	}
 	return
@@ -52,16 +51,16 @@ func ShouldPatchInt(state, plan types.Int64) (value int64, ok bool) {
 // shouldPatchString changed checks if the change between the given state and plan requires sending
 // a patch request to the server. If it does it returns the value to add to the patch.
 func ShouldPatchString(state, plan types.String) (value string, ok bool) {
-	if plan.Unknown || plan.Null {
+	if plan.IsUnknown() || plan.IsNull() {
 		return
 	}
-	if state.Unknown || state.Null {
-		value = plan.Value
+	if state.IsUnknown() || state.IsNull() {
+		value = plan.ValueString()
 		ok = true
 		return
 	}
-	if plan.Value != state.Value {
-		value = plan.Value
+	if plan.ValueString() != state.ValueString() {
+		value = plan.ValueString()
 		ok = true
 	}
 	return
@@ -70,16 +69,16 @@ func ShouldPatchString(state, plan types.String) (value string, ok bool) {
 // ShouldPatchBool changed checks if the change between the given state and plan requires sending
 // a patch request to the server. If it does it return the value to add to the patch.
 func ShouldPatchBool(state, plan types.Bool) (value bool, ok bool) {
-	if plan.Unknown || plan.Null {
+	if plan.IsUnknown() || plan.IsNull() {
 		return
 	}
-	if state.Unknown || state.Null {
-		value = plan.Value
+	if state.IsUnknown() || state.IsNull() {
+		value = plan.ValueBool()
 		ok = true
 		return
 	}
-	if plan.Value != state.Value {
-		value = plan.Value
+	if plan.ValueBool() != state.ValueBool() {
+		value = plan.ValueBool()
 		ok = true
 	}
 	return
@@ -88,33 +87,7 @@ func ShouldPatchBool(state, plan types.Bool) (value bool, ok bool) {
 // ShouldPatchMap changed checks if the change between the given state and plan requires sending
 // a patch request to the server. If it does it return the value to add to the patch.
 func ShouldPatchMap(state, plan types.Map) (types.Map, bool) {
-	return plan, !reflect.DeepEqual(state.Elems, plan.Elems)
-}
-
-// TF types converter functions
-func StringArrayToList(arr []string) types.List {
-	list := types.List{
-		ElemType: types.StringType,
-		Elems:    []attr.Value{},
-	}
-
-	for _, elm := range arr {
-		list.Elems = append(list.Elems, types.String{Value: elm})
-	}
-
-	return list
-}
-
-func StringListToArray(list types.List) ([]string, error) {
-	arr := []string{}
-	for _, elm := range list.Elems {
-		stype, ok := elm.(types.String)
-		if !ok {
-			return arr, errors.New("Failed to convert TF list to string slice.")
-		}
-		arr = append(arr, stype.Value)
-	}
-	return arr, nil
+	return plan, !reflect.DeepEqual(state.Elements(), plan.Elements())
 }
 
 func IsValidDomain(candidate string) bool {
@@ -128,7 +101,7 @@ func IsValidEmail(candidate string) bool {
 }
 
 func IsStringAttributeEmpty(param types.String) bool {
-	return param.Unknown || param.Null || param.Value == ""
+	return param.IsUnknown() || param.IsNull() || param.ValueString() == ""
 }
 
 func IsGreaterThanOrEqual(version1, version2 string) (bool, error) {

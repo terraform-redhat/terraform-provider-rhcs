@@ -22,7 +22,6 @@ package common
 	"strings"
 
 	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	ocmerrors "github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/pkg/errors"
@@ -34,16 +33,16 @@ const versionPrefix = "openshift-v"
 // shouldPatchInt changed checks if the change between the given state and plan requires sending a
 // patch request to the server. If it does it returns the value to add to the patch.
 func ShouldPatchInt(state, plan types.Int64***REMOVED*** (value int64, ok bool***REMOVED*** {
-	if plan.Unknown || plan.Null {
+	if plan.IsUnknown(***REMOVED*** || plan.IsNull(***REMOVED*** {
 		return
 	}
-	if state.Unknown || state.Null {
-		value = plan.Value
+	if state.IsUnknown(***REMOVED*** || state.IsNull(***REMOVED*** {
+		value = plan.ValueInt64(***REMOVED***
 		ok = true
 		return
 	}
-	if plan.Value != state.Value {
-		value = plan.Value
+	if plan.ValueInt64(***REMOVED*** != state.ValueInt64(***REMOVED*** {
+		value = plan.ValueInt64(***REMOVED***
 		ok = true
 	}
 	return
@@ -52,16 +51,16 @@ func ShouldPatchInt(state, plan types.Int64***REMOVED*** (value int64, ok bool**
 // shouldPatchString changed checks if the change between the given state and plan requires sending
 // a patch request to the server. If it does it returns the value to add to the patch.
 func ShouldPatchString(state, plan types.String***REMOVED*** (value string, ok bool***REMOVED*** {
-	if plan.Unknown || plan.Null {
+	if plan.IsUnknown(***REMOVED*** || plan.IsNull(***REMOVED*** {
 		return
 	}
-	if state.Unknown || state.Null {
-		value = plan.Value
+	if state.IsUnknown(***REMOVED*** || state.IsNull(***REMOVED*** {
+		value = plan.ValueString(***REMOVED***
 		ok = true
 		return
 	}
-	if plan.Value != state.Value {
-		value = plan.Value
+	if plan.ValueString(***REMOVED*** != state.ValueString(***REMOVED*** {
+		value = plan.ValueString(***REMOVED***
 		ok = true
 	}
 	return
@@ -70,16 +69,16 @@ func ShouldPatchString(state, plan types.String***REMOVED*** (value string, ok b
 // ShouldPatchBool changed checks if the change between the given state and plan requires sending
 // a patch request to the server. If it does it return the value to add to the patch.
 func ShouldPatchBool(state, plan types.Bool***REMOVED*** (value bool, ok bool***REMOVED*** {
-	if plan.Unknown || plan.Null {
+	if plan.IsUnknown(***REMOVED*** || plan.IsNull(***REMOVED*** {
 		return
 	}
-	if state.Unknown || state.Null {
-		value = plan.Value
+	if state.IsUnknown(***REMOVED*** || state.IsNull(***REMOVED*** {
+		value = plan.ValueBool(***REMOVED***
 		ok = true
 		return
 	}
-	if plan.Value != state.Value {
-		value = plan.Value
+	if plan.ValueBool(***REMOVED*** != state.ValueBool(***REMOVED*** {
+		value = plan.ValueBool(***REMOVED***
 		ok = true
 	}
 	return
@@ -88,33 +87,7 @@ func ShouldPatchBool(state, plan types.Bool***REMOVED*** (value bool, ok bool***
 // ShouldPatchMap changed checks if the change between the given state and plan requires sending
 // a patch request to the server. If it does it return the value to add to the patch.
 func ShouldPatchMap(state, plan types.Map***REMOVED*** (types.Map, bool***REMOVED*** {
-	return plan, !reflect.DeepEqual(state.Elems, plan.Elems***REMOVED***
-}
-
-// TF types converter functions
-func StringArrayToList(arr []string***REMOVED*** types.List {
-	list := types.List{
-		ElemType: types.StringType,
-		Elems:    []attr.Value{},
-	}
-
-	for _, elm := range arr {
-		list.Elems = append(list.Elems, types.String{Value: elm}***REMOVED***
-	}
-
-	return list
-}
-
-func StringListToArray(list types.List***REMOVED*** ([]string, error***REMOVED*** {
-	arr := []string{}
-	for _, elm := range list.Elems {
-		stype, ok := elm.(types.String***REMOVED***
-		if !ok {
-			return arr, errors.New("Failed to convert TF list to string slice."***REMOVED***
-***REMOVED***
-		arr = append(arr, stype.Value***REMOVED***
-	}
-	return arr, nil
+	return plan, !reflect.DeepEqual(state.Elements(***REMOVED***, plan.Elements(***REMOVED******REMOVED***
 }
 
 func IsValidDomain(candidate string***REMOVED*** bool {
@@ -128,7 +101,7 @@ func IsValidEmail(candidate string***REMOVED*** bool {
 }
 
 func IsStringAttributeEmpty(param types.String***REMOVED*** bool {
-	return param.Unknown || param.Null || param.Value == ""
+	return param.IsUnknown(***REMOVED*** || param.IsNull(***REMOVED*** || param.ValueString(***REMOVED*** == ""
 }
 
 func IsGreaterThanOrEqual(version1, version2 string***REMOVED*** (bool, error***REMOVED*** {

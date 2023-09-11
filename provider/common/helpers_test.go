@@ -1,7 +1,6 @@
 package common
 
 ***REMOVED***
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	. "github.com/onsi/ginkgo/v2/dsl/core" // nolint
 ***REMOVED***             // nolint
@@ -10,41 +9,19 @@ package common
 var _ = Describe("Helper function tests", func(***REMOVED*** {
 	Context("ShouldPatchStringMap", func(***REMOVED*** {
 		map0 := types.Map{}
-		map1 := types.Map{
-			ElemType: types.StringType,
-			Elems: map[string]attr.Value{
-				"key1": types.String{
-					Value: "val1",
-		***REMOVED***,
-	***REMOVED***,
-***REMOVED***
-		map2 := types.Map{
-			ElemType: types.StringType,
-			Elems: map[string]attr.Value{
-				"key": types.String{
-					Value: "val1",
-		***REMOVED***,
-	***REMOVED***,
-***REMOVED***
-		map3 := types.Map{
-			ElemType: types.StringType,
-			Elems: map[string]attr.Value{
-				"key1": types.String{
-					Value: "val",
-		***REMOVED***,
-	***REMOVED***,
-***REMOVED***
-		map4 := types.Map{
-			ElemType: types.StringType,
-			Elems: map[string]attr.Value{
-				"key1": types.String{
-					Value: "val",
-		***REMOVED***,
-				"key2": types.String{
-					Value: "val2",
-		***REMOVED***,
-	***REMOVED***,
-***REMOVED***
+		map1, _ := ConvertStringMapToMapType(map[string]string{
+			"key1": "val1",
+***REMOVED******REMOVED***
+		map2, _ := ConvertStringMapToMapType(map[string]string{
+			"key": "val1",
+***REMOVED******REMOVED***
+		map3, _ := ConvertStringMapToMapType(map[string]string{
+			"key1": "val",
+***REMOVED******REMOVED***
+		map4, _ := ConvertStringMapToMapType(map[string]string{
+			"key1": "val",
+			"key2": "val2",
+***REMOVED******REMOVED***
 
 		It("Should return true when maps are different", func(***REMOVED*** {
 			r, ok := ShouldPatchMap(map0, map1***REMOVED***

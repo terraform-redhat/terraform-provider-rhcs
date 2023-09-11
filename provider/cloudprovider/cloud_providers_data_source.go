@@ -32,7 +32,7 @@ type CloudProvidersDataSource struct {
 var _ datasource.DataSource = &CloudProvidersDataSource{}
 var _ datasource.DataSourceWithConfigure = &CloudProvidersDataSource{}
 
-func NewCloudProvidersDataSource() datasource.DataSource {
+func New() datasource.DataSource {
 	return &CloudProvidersDataSource{}
 }
 

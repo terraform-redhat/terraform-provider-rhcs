@@ -20,7 +20,7 @@ import (
 	"context"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	tfdschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
@@ -41,49 +41,48 @@ func (s *CloudProvidersDataSource) Metadata(ctx context.Context, req datasource.
 }
 
 func (s *CloudProvidersDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	resp.Schema = tfdschema.Schema{
+	resp.Schema = schema.Schema{
 		Description: "List of cloud providers.",
-		Attributes: map[string]tfdschema.Attribute{
-			"search": tfdschema.StringAttribute{
+		Attributes: map[string]schema.Attribute{
+			"search": schema.StringAttribute{
 				Description: "Search criteria.",
 				Optional:    true,
 			},
-			"order": tfdschema.StringAttribute{
+			"order": schema.StringAttribute{
 				Description: "Order criteria.",
 				Optional:    true,
 			},
-			"item": tfdschema.SingleNestedAttribute{
+			"item": schema.SingleNestedAttribute{
 				Description: "Content of the list when there is exactly one item.",
 				Attributes:  s.itemAttributes(),
 				Computed:    true,
 			},
-			"items": tfdschema.ListNestedAttribute{
+			"items": schema.ListNestedAttribute{
 				Description: "Content of the list.",
-				NestedObject: tfdschema.NestedAttributeObject{
+				NestedObject: schema.NestedAttributeObject{
 					Attributes: s.itemAttributes(),
 				},
 				Computed: true,
 			},
 		},
 	}
-	return
 }
 
-func (s *CloudProvidersDataSource) itemAttributes() map[string]tfdschema.Attribute {
-	return map[string]tfdschema.Attribute{
-		"id": tfdschema.StringAttribute{
+func (s *CloudProvidersDataSource) itemAttributes() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"id": schema.StringAttribute{
 			Description: "Unique identifier of the cloud provider. This is what " +
 				"should be used when referencing the cloud provider from other " +
 				"places, for example in the 'cloud_provider' attribute " +
 				"of the cluster resource.",
 			Computed: true,
 		},
-		"name": tfdschema.StringAttribute{
+		"name": schema.StringAttribute{
 			Description: "Short name of the cloud provider, for example 'aws' " +
 				"or 'gcp'.",
 			Computed: true,
 		},
-		"display_name": tfdschema.StringAttribute{
+		"display_name": schema.StringAttribute{
 			Description: "Human friendly name of the cloud provider, for example " +
 				"'AWS' or 'GCP'",
 			Computed: true,

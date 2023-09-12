@@ -24,12 +24,13 @@ type OcmPoliciesState struct {
 }
 
 type OperatorRolePolicies struct {
-	CloudCred       types.String `tfsdk:"openshift_cloud_credential_operator_cloud_credential_operator_iam_ro_creds_policy"`
-	CloudNetwork    types.String `tfsdk:"openshift_cloud_network_config_controller_cloud_credentials_policy"`
-	ClusterCSI      types.String `tfsdk:"openshift_cluster_csi_drivers_ebs_cloud_credentials_policy"`
-	ImageRegistry   types.String `tfsdk:"openshift_image_registry_installer_cloud_credentials_policy"`
-	IngressOperator types.String `tfsdk:"openshift_ingress_operator_cloud_credentials_policy"`
-	MachineAPI      types.String `tfsdk:"openshift_machine_api_aws_cloud_credentials_policy"`
+	CloudCred                types.String `tfsdk:"openshift_cloud_credential_operator_cloud_credential_operator_iam_ro_creds_policy"`
+	CloudNetwork             types.String `tfsdk:"openshift_cloud_network_config_controller_cloud_credentials_policy"`
+	ClusterCSI               types.String `tfsdk:"openshift_cluster_csi_drivers_ebs_cloud_credentials_policy"`
+	ImageRegistry            types.String `tfsdk:"openshift_image_registry_installer_cloud_credentials_policy"`
+	IngressOperator          types.String `tfsdk:"openshift_ingress_operator_cloud_credentials_policy"`
+	SharedVpcIngressOperator types.String `tfsdk:"shared_vpc_openshift_ingress_operator_cloud_credentials_policy"`
+	MachineAPI               types.String `tfsdk:"openshift_machine_api_aws_cloud_credentials_policy"`
 }
 
 type AccountRolePolicies struct {

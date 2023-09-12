@@ -28,6 +28,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	ocmerrors "github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/pkg/errors"
@@ -180,4 +181,9 @@ func Sha1Hash(data []byte) (string, error) {
 	}
 	hashed := hasher.Sum(nil)
 	return hex.EncodeToString(hashed), nil
+}
+
+// HasValue checks if the given terraform value is set.
+func HasValue(val attr.Value) bool {
+	return !val.IsUnknown() && !val.IsNull()
 }

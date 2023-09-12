@@ -29,12 +29,13 @@ package provider
 
 const (
 	// Policy IDs from type operator roles
-	CloudCred       = "openshift_cloud_credential_operator_cloud_credential_operator_iam_ro_creds_policy"
-	CloudNetwork    = "openshift_cloud_network_config_controller_cloud_credentials_policy"
-	ClusterCSI      = "openshift_cluster_csi_drivers_ebs_cloud_credentials_policy"
-	ImageRegistry   = "openshift_image_registry_installer_cloud_credentials_policy"
-	IngressOperator = "openshift_ingress_operator_cloud_credentials_policy"
-	MachineAPI      = "openshift_machine_api_aws_cloud_credentials_policy"
+	CloudCred                = "openshift_cloud_credential_operator_cloud_credential_operator_iam_ro_creds_policy"
+	CloudNetwork             = "openshift_cloud_network_config_controller_cloud_credentials_policy"
+	ClusterCSI               = "openshift_cluster_csi_drivers_ebs_cloud_credentials_policy"
+	ImageRegistry            = "openshift_image_registry_installer_cloud_credentials_policy"
+	IngressOperator          = "openshift_ingress_operator_cloud_credentials_policy"
+	SharedVpcIngressOperator = "shared_vpc_openshift_ingress_operator_cloud_credentials_policy"
+	MachineAPI               = "openshift_machine_api_aws_cloud_credentials_policy"
 
 	// Policy IDs from type account roles
 	Installer            = "sts_installer_permission_policy"
@@ -113,6 +114,10 @@ func operatorRolePoliciesNames(***REMOVED*** tfsdk.NestedAttributes {
 			Type:     types.StringType,
 			Computed: true,
 ***REMOVED***,
+		SharedVpcIngressOperator: {
+			Type:     types.StringType,
+			Computed: true,
+***REMOVED***,
 		MachineAPI: {
 			Type:     types.StringType,
 			Computed: true,
@@ -167,6 +172,8 @@ func (t *OcmPoliciesDataSource***REMOVED*** Read(ctx context.Context, request tf
 			operatorRolePolicies.ImageRegistry = types.String{Value: awsPolicy.Details(***REMOVED***}
 		case IngressOperator:
 			operatorRolePolicies.IngressOperator = types.String{Value: awsPolicy.Details(***REMOVED***}
+		case SharedVpcIngressOperator:
+			operatorRolePolicies.SharedVpcIngressOperator = types.String{Value: awsPolicy.Details(***REMOVED***}
 		case MachineAPI:
 			operatorRolePolicies.MachineAPI = types.String{Value: awsPolicy.Details(***REMOVED***}
 		// account roles

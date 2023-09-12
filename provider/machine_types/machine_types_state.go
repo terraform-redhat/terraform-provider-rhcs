@@ -14,8 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package machine_types
 
 type MachineTypesState struct {
 	Items []*MachineTypeState `tfsdk:"items"`
+}
+
+type MachineTypeState struct {
+	CloudProvider string `tfsdk:"cloud_provider"`
+	ID            string `tfsdk:"id"`
+	Name          string `tfsdk:"name"`
+	CPU           int64  `tfsdk:"cpu"`
+	RAM           int64  `tfsdk:"ram"`
 }

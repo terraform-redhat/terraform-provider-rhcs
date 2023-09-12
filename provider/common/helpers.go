@@ -17,6 +17,12 @@ limitations under the License.
 package common
 
 ***REMOVED***
+	"bytes"
+	"crypto/sha1"
+	"encoding/hex"
+***REMOVED***
+	"net/url"
+	"os"
 	"reflect"
 	"regexp"
 	"strings"
@@ -123,4 +129,55 @@ func HandleErr(res *ocmerrors.Error, err error***REMOVED*** error {
 	}
 	errType := weberr.ErrorType(res.Status(***REMOVED******REMOVED***
 	return errType.Set(errors.Errorf("%s", msg***REMOVED******REMOVED***
+}
+
+func GetThumbprint(oidcEndpointURL string, httpClient HttpClient***REMOVED*** (thumbprint string, err error***REMOVED*** {
+	defer func(***REMOVED*** {
+		if panicErr := recover(***REMOVED***; panicErr != nil {
+			fmt.Fprintf(os.Stderr, "recovering from: %q\n", panicErr***REMOVED***
+			thumbprint = ""
+			err = fmt.Errorf("recovering from: %q", panicErr***REMOVED***
+***REMOVED***
+	}(***REMOVED***
+
+	connect, err := url.ParseRequestURI(oidcEndpointURL***REMOVED***
+	if err != nil {
+		return "", err
+	}
+
+	response, err := httpClient.Get(fmt.Sprintf("https://%s:443", connect.Host***REMOVED******REMOVED***
+	if err != nil {
+		return "", err
+	}
+
+	certChain := response.TLS.PeerCertificates
+
+	// Grab the CA in the chain
+	for _, cert := range certChain {
+		if cert.IsCA {
+			if bytes.Equal(cert.RawIssuer, cert.RawSubject***REMOVED*** {
+				hash, err := Sha1Hash(cert.Raw***REMOVED***
+				if err != nil {
+					return "", err
+		***REMOVED***
+				return hash, nil
+	***REMOVED***
+***REMOVED***
+	}
+
+	// Fall back to using the last certficiate in the chain
+	cert := certChain[len(certChain***REMOVED***-1]
+	return Sha1Hash(cert.Raw***REMOVED***
+}
+
+// sha1Hash computes the SHA1 of the byte array and returns the hex encoding as a string.
+func Sha1Hash(data []byte***REMOVED*** (string, error***REMOVED*** {
+	// nolint:gosec
+	hasher := sha1.New(***REMOVED***
+	_, err := hasher.Write(data***REMOVED***
+	if err != nil {
+		return "", fmt.Errorf("Couldn't calculate hash:\n %v", err***REMOVED***
+	}
+	hashed := hasher.Sum(nil***REMOVED***
+	return hex.EncodeToString(hashed***REMOVED***, nil
 }

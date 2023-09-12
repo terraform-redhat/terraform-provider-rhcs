@@ -34,6 +34,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cloudprovider"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterwaiter"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/dnsdomain"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/group"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/groupmembership"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfig"
@@ -232,6 +233,7 @@ func (p *Provider) DataSources(ctx context.Context) []func() datasource.DataSour
 	return []func() datasource.DataSource{
 		cloudprovider.New,
 		versions.New,
+		group.New,
 	}
 }
 

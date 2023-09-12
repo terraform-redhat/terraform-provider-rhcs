@@ -13,67 +13,66 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package provider
+package oidcconfiginput
 
 import (
 	"context"
 	"fmt"
-
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	rosaoidcconfig "github.com/openshift/rosa/pkg/helper/oidc_config"
 )
 
-type RosaOidcConfigInputResourceType struct {
-}
-
 type RosaOidcConfigInputResource struct {
 }
 
-func (t *RosaOidcConfigInputResourceType) GetSchema(ctx context.Context) (result tfsdk.Schema,
-	diags diag.Diagnostics) {
-	result = tfsdk.Schema{
+var _ resource.ResourceWithConfigure = &RosaOidcConfigInputResource{}
+var _ resource.ResourceWithImportState = &RosaOidcConfigInputResource{}
+
+func New() resource.Resource {
+	return &RosaOidcConfigInputResource{}
+}
+
+func (o *RosaOidcConfigInputResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_rosa_oidc_config_input"
+}
+
+func (o *RosaOidcConfigInputResource) Schema(ctx context.Context, request resource.SchemaRequest,
+	response *resource.SchemaResponse) {
+	response.Schema = schema.Schema{
 		Description: "OIDC config input resources' names",
-		Attributes: map[string]tfsdk.Attribute{
-			"region": {
+		Attributes: map[string]schema.Attribute{
+			"region": schema.StringAttribute{
 				Description: "Unique identifier of the cluster.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"bucket_name": {
+			"bucket_name": schema.StringAttribute{
 				Description: "The S3 bucket name",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"discovery_doc": {
+			"discovery_doc": schema.StringAttribute{
 				Description: "The discovery document string file",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"jwks": {
+			"jwks": schema.StringAttribute{
 				Description: "Json web key set string file",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"private_key": {
+			"private_key": schema.StringAttribute{
 				Description: "RSA private key",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"private_key_file_name": {
+			"private_key_file_name": schema.StringAttribute{
 				Description: "The private key file name",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"private_key_secret_name": {
+			"private_key_secret_name": schema.StringAttribute{
 				Description: "The secret name that store the private key",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"issuer_url": {
+			"issuer_url": schema.StringAttribute{
 				Description: "The issuer URL",
-				Type:        types.StringType,
 				Computed:    true,
 			},
 		},
@@ -81,16 +80,12 @@ func (t *RosaOidcConfigInputResourceType) GetSchema(ctx context.Context) (result
 	return
 }
 
-func (t *RosaOidcConfigInputResourceType) NewResource(ctx context.Context,
-	p tfsdk.Provider) (result tfsdk.Resource, diags diag.Diagnostics) {
-	// Create the resource:
-	result = &RosaOidcConfigInputResource{}
-
-	return
+func (o *RosaOidcConfigInputResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Do nothing
 }
 
-func (r *RosaOidcConfigInputResource) Create(ctx context.Context,
-	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse) {
+func (o *RosaOidcConfigInputResource) Create(ctx context.Context, request resource.CreateRequest,
+	response *resource.CreateResponse) {
 	// Get the plan:
 	var state RosaOidcConfigInputState
 	diags := request.Plan.Get(ctx, &state)
@@ -99,7 +94,7 @@ func (r *RosaOidcConfigInputResource) Create(ctx context.Context,
 		return
 	}
 
-	region := state.Region.Value
+	region := state.Region.ValueString()
 	oidcConfigInput, err := rosaoidcconfig.BuildOidcConfigInput("", region)
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -111,39 +106,27 @@ func (r *RosaOidcConfigInputResource) Create(ctx context.Context,
 		)
 		return
 	}
-	state.BucketName = types.String{
-		Value: oidcConfigInput.BucketName,
-	}
-	state.IssuerUrl = types.String{
-		Value: oidcConfigInput.IssuerUrl,
-	}
-	state.PrivateKey = types.String{
-		Value: string(oidcConfigInput.PrivateKey[:]),
-	}
-	state.PrivateKeyFileName = types.String{
-		Value: oidcConfigInput.PrivateKeyFilename,
-	}
-	state.DiscoveryDoc = types.String{
-		Value: oidcConfigInput.DiscoveryDocument,
-	}
-	state.Jwks = types.String{
-		Value: string(oidcConfigInput.Jwks[:]),
-	}
-	state.PrivateKeySecretName = types.String{
-		Value: oidcConfigInput.PrivateKeySecretName,
-	}
+	state.BucketName = types.StringValue(oidcConfigInput.BucketName)
+	state.IssuerUrl = types.StringValue(oidcConfigInput.IssuerUrl)
+	state.PrivateKey = types.StringValue(string(oidcConfigInput.PrivateKey[:]))
+	state.PrivateKeyFileName = types.StringValue(oidcConfigInput.PrivateKeyFilename)
+	state.DiscoveryDoc = types.StringValue(oidcConfigInput.DiscoveryDocument)
+
+	state.Jwks = types.StringValue(string(oidcConfigInput.Jwks[:]))
+
+	state.PrivateKeySecretName = types.StringValue(oidcConfigInput.PrivateKeySecretName)
 
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
 }
 
-func (r *RosaOidcConfigInputResource) Read(ctx context.Context, request tfsdk.ReadResourceRequest,
-	response *tfsdk.ReadResourceResponse) {
+func (o *RosaOidcConfigInputResource) Read(ctx context.Context, request resource.ReadRequest,
+	response *resource.ReadResponse) {
 	// Do Nothing
 }
 
-func (r *RosaOidcConfigInputResource) Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
-	response *tfsdk.UpdateResourceResponse) {
+func (o *RosaOidcConfigInputResource) Update(ctx context.Context, request resource.UpdateRequest,
+	response *resource.UpdateResponse) {
 	response.Diagnostics.AddError(
 		"Update methode is not supported for that resource",
 		fmt.Sprintf(
@@ -153,12 +136,13 @@ func (r *RosaOidcConfigInputResource) Update(ctx context.Context, request tfsdk.
 	return
 }
 
-func (r *RosaOidcConfigInputResource) Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
-	response *tfsdk.DeleteResourceResponse) {
+func (o *RosaOidcConfigInputResource) Delete(ctx context.Context, request resource.DeleteRequest,
+	response *resource.DeleteResponse) {
 	response.State.RemoveResource(ctx)
 }
 
-func (r *RosaOidcConfigInputResource) ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
-	response *tfsdk.ImportResourceStateResponse) {
+func (o *RosaOidcConfigInputResource) ImportState(ctx context.Context, request resource.ImportStateRequest,
+	response *resource.ImportStateResponse) {
 	// Do Nothing
+
 }

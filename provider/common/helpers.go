@@ -17,6 +17,12 @@ limitations under the License.
 package common
 
 import (
+	"bytes"
+	"crypto/sha1"
+	"encoding/hex"
+	"fmt"
+	"net/url"
+	"os"
 	"reflect"
 	"regexp"
 	"strings"
@@ -123,4 +129,55 @@ func HandleErr(res *ocmerrors.Error, err error) error {
 	}
 	errType := weberr.ErrorType(res.Status())
 	return errType.Set(errors.Errorf("%s", msg))
+}
+
+func GetThumbprint(oidcEndpointURL string, httpClient HttpClient) (thumbprint string, err error) {
+	defer func() {
+		if panicErr := recover(); panicErr != nil {
+			fmt.Fprintf(os.Stderr, "recovering from: %q\n", panicErr)
+			thumbprint = ""
+			err = fmt.Errorf("recovering from: %q", panicErr)
+		}
+	}()
+
+	connect, err := url.ParseRequestURI(oidcEndpointURL)
+	if err != nil {
+		return "", err
+	}
+
+	response, err := httpClient.Get(fmt.Sprintf("https://%s:443", connect.Host))
+	if err != nil {
+		return "", err
+	}
+
+	certChain := response.TLS.PeerCertificates
+
+	// Grab the CA in the chain
+	for _, cert := range certChain {
+		if cert.IsCA {
+			if bytes.Equal(cert.RawIssuer, cert.RawSubject) {
+				hash, err := Sha1Hash(cert.Raw)
+				if err != nil {
+					return "", err
+				}
+				return hash, nil
+			}
+		}
+	}
+
+	// Fall back to using the last certficiate in the chain
+	cert := certChain[len(certChain)-1]
+	return Sha1Hash(cert.Raw)
+}
+
+// sha1Hash computes the SHA1 of the byte array and returns the hex encoding as a string.
+func Sha1Hash(data []byte) (string, error) {
+	// nolint:gosec
+	hasher := sha1.New()
+	_, err := hasher.Write(data)
+	if err != nil {
+		return "", fmt.Errorf("Couldn't calculate hash:\n %v", err)
+	}
+	hashed := hasher.Sum(nil)
+	return hex.EncodeToString(hashed), nil
 }

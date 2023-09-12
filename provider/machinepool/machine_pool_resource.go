@@ -161,8 +161,8 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
 					boolplanmodifier.UseStateForUnknown(),
-					//ValueCannotBeChangedModifier(),
 				},
 			},
 			"availability_zone": schema.StringAttribute{
@@ -170,8 +170,8 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
-					//ValueCannotBeChangedModifier(),
 				},
 			},
 			"subnet_id": schema.StringAttribute{
@@ -179,8 +179,8 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
-					//ValueCannotBeChangedModifier(),
 				},
 			},
 		},
@@ -290,7 +290,7 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	if !state.Replicas.IsUnknown() && !state.Replicas.IsNull() {
+	if common.HasValue(state.Replicas) {
 		computeNodeEnabled = true
 		if isMultiAZPool && state.Replicas.ValueInt64()%3 != 0 {
 			resp.Diagnostics.AddError(
@@ -326,7 +326,7 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 		builder.Taints(taintBuilders...)
 	}
 
-	if !state.Labels.IsUnknown() && !state.Labels.IsNull() {
+	if common.HasValue(state.Labels) {
 		labels := map[string]string{}
 		for k, v := range state.Labels.Elements() {
 			labels[k] = v.(types.String).ValueString()
@@ -456,7 +456,7 @@ func (r *MachinePoolResource) Update(ctx context.Context, req resource.UpdateReq
 	computeNodesEnabled := false
 	autoscalingEnabled := false
 
-	if !plan.Replicas.IsUnknown() && !plan.Replicas.IsNull() {
+	if common.HasValue(plan.Replicas) {
 		computeNodesEnabled = true
 		mpBuilder.Replicas(int(plan.Replicas.ValueInt64()))
 
@@ -560,7 +560,7 @@ func (r *MachinePoolResource) validateAZConfig(state *MachinePoolState) (bool, e
 
 		// multi_availability_zone setting must be consistent with availability_zone and subnet_id
 		azOrSubnet := !common.IsStringAttributeEmpty(state.AvailabilityZone) || !common.IsStringAttributeEmpty(state.SubnetID)
-		if !state.MultiAvailabilityZone.IsNull() && !state.MultiAvailabilityZone.IsUnknown() {
+		if common.HasValue(state.MultiAvailabilityZone) {
 			if azOrSubnet && state.MultiAvailabilityZone.ValueBool() {
 				return false, fmt.Errorf("multi_availability_zone must be False when availability_zone or subnet_id is set")
 			}
@@ -574,7 +574,7 @@ func (r *MachinePoolResource) validateAZConfig(state *MachinePoolState) (bool, e
 		if !common.IsStringAttributeEmpty(state.SubnetID) {
 			return false, fmt.Errorf("subnet_id can only be set for multi-AZ clusters")
 		}
-		if !state.MultiAvailabilityZone.IsNull() && !state.MultiAvailabilityZone.IsUnknown() && state.MultiAvailabilityZone.ValueBool() {
+		if common.HasValue(state.MultiAvailabilityZone) && state.MultiAvailabilityZone.ValueBool() {
 			return false, fmt.Errorf("multi_availability_zone can only be set for multi-AZ clusters")
 		}
 		state.MultiAvailabilityZone = types.BoolValue(false)
@@ -619,8 +619,8 @@ func (r *MachinePoolResource) validateAZConfig(state *MachinePoolState) (bool, e
 }
 
 func setSpotInstances(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilder) error {
-	useSpotInstances := !state.UseSpotInstances.IsUnknown() && !state.UseSpotInstances.IsNull() && state.UseSpotInstances.ValueBool()
-	isSpotMaxPriceSet := !state.MaxSpotPrice.IsUnknown() && !state.MaxSpotPrice.IsNull()
+	useSpotInstances := common.HasValue(state.UseSpotInstances) && state.UseSpotInstances.ValueBool()
+	isSpotMaxPriceSet := common.HasValue(state.MaxSpotPrice)
 
 	if isSpotMaxPriceSet && !useSpotInstances {
 		return errors.New("Can't set max price when not using spot instances (set \"use_spot_instances\" to true)")
@@ -646,16 +646,16 @@ func setSpotInstances(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilde
 func getAutoscaling(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilder) (
 	autoscalingEnabled bool, errMsg string) {
 	autoscalingEnabled = false
-	if !state.AutoScalingEnabled.IsUnknown() && !state.AutoScalingEnabled.IsNull() && state.AutoScalingEnabled.ValueBool() {
+	if common.HasValue(state.AutoScalingEnabled) && state.AutoScalingEnabled.ValueBool() {
 		autoscalingEnabled = true
 
 		autoscaling := cmv1.NewMachinePoolAutoscaling()
-		if !state.MaxReplicas.IsUnknown() && !state.MaxReplicas.IsNull() {
+		if common.HasValue(state.MaxReplicas) {
 			autoscaling.MaxReplicas(int(state.MaxReplicas.ValueInt64()))
 		} else {
 			return false, "when enabling autoscaling, should set value for maxReplicas"
 		}
-		if !state.MinReplicas.IsUnknown() && !state.MinReplicas.IsNull() {
+		if common.HasValue(state.MinReplicas) {
 			autoscaling.MinReplicas(int(state.MinReplicas.ValueInt64()))
 		} else {
 			return false, "when enabling autoscaling, should set value for minReplicas"
@@ -664,7 +664,7 @@ func getAutoscaling(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilder)
 			mpBuilder.Autoscaling(autoscaling)
 		}
 	} else {
-		if (!state.MaxReplicas.IsUnknown() && !state.MaxReplicas.IsNull()) || (!state.MinReplicas.IsUnknown() && !state.MinReplicas.IsNull()) {
+		if common.HasValue(state.MaxReplicas) || common.HasValue(state.MinReplicas) {
 			return false, "when disabling autoscaling, can't set min_replicas and/or max_replicas"
 		}
 	}

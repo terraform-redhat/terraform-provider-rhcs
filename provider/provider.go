@@ -34,6 +34,7 @@ package provider
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cloudprovider"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterwaiter"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/dnsdomain"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/group"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/groupmembership"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfig"
@@ -232,6 +233,7 @@ func (p *Provider***REMOVED*** DataSources(ctx context.Context***REMOVED*** []fu
 	return []func(***REMOVED*** datasource.DataSource{
 		cloudprovider.New,
 		versions.New,
+		group.New,
 	}
 }
 

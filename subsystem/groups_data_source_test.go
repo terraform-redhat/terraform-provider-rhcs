@@ -38,6 +38,9 @@ var _ = Describe("Groups data source", func(***REMOVED*** {
 				  "items": [
 				    {
 				      "id": "dedicated-admins"
+				    },
+					{
+				      "id": "dedicated-admins2"
 				    }
 				  ]
 		***REMOVED***`***REMOVED***,
@@ -54,8 +57,10 @@ var _ = Describe("Groups data source", func(***REMOVED*** {
 
 		// Check the state:
 		resource := terraform.Resource("rhcs_groups", "my_groups"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items |length`, 1***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items |length`, 2***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].id`, "dedicated-admins"***REMOVED******REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].name`, "dedicated-admins"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].id`, "dedicated-admins2"***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].name`, "dedicated-admins2"***REMOVED******REMOVED***
 	}***REMOVED***
 }***REMOVED***

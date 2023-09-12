@@ -38,6 +38,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfig"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfiginput"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/versions"
 )
 
 // Provider is the implementation of the Provider.
@@ -230,6 +231,7 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 func (p *Provider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		cloudprovider.New,
+		versions.New,
 	}
 }
 

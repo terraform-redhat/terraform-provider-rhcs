@@ -15,7 +15,7 @@ type adminCredsValidator struct {
 
 // Description describes the validation in plain text formatting.
 func (v adminCredsValidator***REMOVED*** Description(_ context.Context***REMOVED*** string {
-	return fmt.Sprintf("proxy map should not include an hard coded OCM proxy"***REMOVED***
+	return fmt.Sprintf("admin creds validators"***REMOVED***
 }
 
 // MarkdownDescription describes the validation in Markdown formatting.

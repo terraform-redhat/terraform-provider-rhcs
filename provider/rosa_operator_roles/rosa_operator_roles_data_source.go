@@ -14,55 +14,82 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package rosa_operator_roles
 
 import (
 	"context"
 	"fmt"
 	"sort"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
-
-type RosaOperatorRolesDataSourceType struct {
-}
 
 type RosaOperatorRolesDataSource struct {
 	awsInquiries *cmv1.AWSInquiriesClient
 }
+
+var _ datasource.DataSource = &RosaOperatorRolesDataSource{}
+var _ datasource.DataSourceWithConfigure = &RosaOperatorRolesDataSource{}
 
 const (
 	DefaultAccountRolePrefix = "ManagedOpenShift"
 	serviceAccountFmt        = "system:serviceaccount:%s:%s"
 )
 
-func (t *RosaOperatorRolesDataSourceType) GetSchema(ctx context.Context) (result tfsdk.Schema,
-	diags diag.Diagnostics) {
-	result = tfsdk.Schema{
+func New() datasource.DataSource {
+	return &RosaOperatorRolesDataSource{}
+}
+
+func (s *RosaOperatorRolesDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_rosa_operator_roles"
+}
+
+func (s *RosaOperatorRolesDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "List of rosa operator role for a specific cluster.",
-		Attributes: map[string]tfsdk.Attribute{
-			"operator_role_prefix": {
+		Attributes: map[string]schema.Attribute{
+			"operator_role_prefix": schema.StringAttribute{
 				Description: "Operator role prefix.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"account_role_prefix": {
+			"account_role_prefix": schema.StringAttribute{
 				Description: "Account role prefix.",
-				Type:        types.StringType,
 				Optional:    true,
 			},
-			"operator_iam_roles": {
+			"operator_iam_roles": schema.ListNestedAttribute{
 				Description: "Operator IAM Roles.",
-				Attributes: tfsdk.ListNestedAttributes(
-					t.itemAttributes(),
-					tfsdk.ListNestedAttributesOptions{},
-				),
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"operator_name": schema.StringAttribute{
+							Description: "Operator Name",
+							Computed:    true,
+						},
+						"operator_namespace": schema.StringAttribute{
+							Description: "Kubernetes Namespace",
+							Computed:    true,
+						},
+						"role_name": schema.StringAttribute{
+							Description: "policy name",
+							Computed:    true,
+						},
+						"policy_name": schema.StringAttribute{
+							Description: "policy name",
+							Computed:    true,
+						},
+						"service_accounts": schema.ListAttribute{
+							Description: "service accounts",
+							ElementType: types.StringType,
+							Computed:    true,
+						},
+					},
+				},
 				Computed: true,
 			},
 		},
@@ -70,68 +97,33 @@ func (t *RosaOperatorRolesDataSourceType) GetSchema(ctx context.Context) (result
 	return
 }
 
-func (t *RosaOperatorRolesDataSourceType) itemAttributes() map[string]tfsdk.Attribute {
-	return map[string]tfsdk.Attribute{
-		"operator_name": {
-			Description: "Operator Name",
-			Type:        types.StringType,
-			Computed:    true,
-		},
-		"operator_namespace": {
-			Description: "Kubernetes Namespace",
-			Type:        types.StringType,
-			Computed:    true,
-		},
-		"role_name": {
-			Description: "policy name",
-			Type:        types.StringType,
-			Computed:    true,
-		},
-		"policy_name": {
-			Description: "policy name",
-			Type:        types.StringType,
-			Computed:    true,
-		},
-		"service_accounts": {
-			Description: "service accounts",
-			Type: types.ListType{
-				ElemType: types.StringType,
-			},
-			Computed: true,
-		},
-	}
-}
-
-func (t *RosaOperatorRolesDataSourceType) NewDataSource(ctx context.Context,
-	p tfsdk.Provider) (result tfsdk.DataSource, diags diag.Diagnostics) {
-	// Cast the provider interface to the specific implementation:
-	parent := p.(*Provider)
-
-	// Get the collection of clusters:
-	awsInquiries := parent.connection.ClustersMgmt().V1().AWSInquiries()
-
-	// Create the resource:
-	result = &RosaOperatorRolesDataSource{
-		awsInquiries: awsInquiries,
-	}
-	return
-}
-
-func (t *RosaOperatorRolesDataSource) Read(ctx context.Context, request tfsdk.ReadDataSourceRequest,
-	response *tfsdk.ReadDataSourceResponse) {
-	// Get the state:
-	state := &RosaOperatorRolesState{}
-	diags := request.Config.Get(ctx, state)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
+func (s *RosaOperatorRolesDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured:
+	if req.ProviderData == nil {
 		return
 	}
 
-	stsOperatorRolesList, err := t.awsInquiries.STSCredentialRequests().List().Send()
+	// Cast the provider data to the specific implementation:
+	connection := req.ProviderData.(*sdk.Connection)
+
+	// Get the collection of cloud providers:
+	s.awsInquiries = connection.ClustersMgmt().V1().AWSInquiries()
+}
+
+func (s *RosaOperatorRolesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	// Get the state:
+	state := &RosaOperatorRolesState{}
+	diags := req.Config.Get(ctx, state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	stsOperatorRolesList, err := s.awsInquiries.STSCredentialRequests().List().Send()
 	if err != nil {
 		description := fmt.Sprintf("Failed to get STS Operator Roles list with error: %v", err)
 		tflog.Error(ctx, description)
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			description,
 			"hint: validate the credetials (token) used to run this provider",
 		)
@@ -156,35 +148,28 @@ func (t *RosaOperatorRolesDataSource) Read(ctx context.Context, request tfsdk.Re
 	})
 
 	accountRolePrefix := DefaultAccountRolePrefix
-	if !state.AccountRolePrefix.Unknown && !state.AccountRolePrefix.Null && state.AccountRolePrefix.Value != "" {
-		accountRolePrefix = state.AccountRolePrefix.Value
+	if !common.IsStringAttributeEmpty(state.AccountRolePrefix) {
+		accountRolePrefix = state.AccountRolePrefix.ValueString()
 	}
 
 	// TODO: use the sts.OperatorRolePrefix() if not empty
 	// There is a bug in the return value of sts.OperatorRolePrefix() - it's always empty string
 	sort.Strings(roleNameSpaces)
 	for _, key := range roleNameSpaces {
+		v := stsOperatorMap[key]
 		r := OperatorIAMRole{
-			Name: types.String{
-				Value: stsOperatorMap[key].Name(),
-			},
-			Namespace: types.String{
-				Value: stsOperatorMap[key].Namespace(),
-			},
-			RoleName: types.String{
-				Value: getRoleName(state.OperatorRolePrefix.Value, stsOperatorMap[key]),
-			},
-			PolicyName: types.String{
-				Value: getPolicyName(accountRolePrefix, stsOperatorMap[key].Namespace(), stsOperatorMap[key].Name()),
-			},
-			ServiceAccounts: buildServiceAccountsArray(stsOperatorMap[stsOperatorMap[key].Namespace()].ServiceAccounts(), stsOperatorMap[key].Namespace()),
+			Name:            types.StringValue(v.Name()),
+			Namespace:       types.StringValue(v.Namespace()),
+			RoleName:        types.StringValue(getRoleName(state.OperatorRolePrefix.ValueString(), v)),
+			PolicyName:      types.StringValue(getPolicyName(accountRolePrefix, v.Namespace(), v.Name())),
+			ServiceAccounts: buildServiceAccountsArray(stsOperatorMap[v.Namespace()].ServiceAccounts(), v.Namespace()),
 		}
 		state.OperatorIAMRoles = append(state.OperatorIAMRoles, &r)
 	}
 
 	// Save the state:
-	diags = response.State.Set(ctx, state)
-	response.Diagnostics.Append(diags...)
+	diags = resp.State.Set(ctx, state)
+	resp.Diagnostics.Append(diags...)
 }
 
 // TODO: should be in a separate repo
@@ -206,15 +191,11 @@ func getPolicyName(prefix string, namespace string, name string) string {
 }
 
 func buildServiceAccountsArray(serviceAccountArr []string, operatorNamespace string) types.List {
-	serviceAccounts := types.List{
-		ElemType: types.StringType,
-		Elems:    []attr.Value{},
-	}
-
+	svcAcctList := []string{}
 	for _, v := range serviceAccountArr {
-		serviceAccount := fmt.Sprintf(serviceAccountFmt, operatorNamespace, v)
-		serviceAccounts.Elems = append(serviceAccounts.Elems, types.String{Value: serviceAccount})
+		svcAcctList = append(svcAcctList, fmt.Sprintf(serviceAccountFmt, operatorNamespace, v))
 	}
 
+	serviceAccounts, _ := types.ListValueFrom(context.TODO(), types.StringType, svcAcctList)
 	return serviceAccounts
 }

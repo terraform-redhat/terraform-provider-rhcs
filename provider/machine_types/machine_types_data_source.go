@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package machine_types
 
 ***REMOVED***
 	"context"
@@ -22,84 +22,77 @@ package provider
 	"math"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 ***REMOVED***
-
-type MachineTypesDataSourceType struct {
-}
 
 type MachineTypesDataSource struct {
 	collection *cmv1.MachineTypesClient
 }
 
-func (t *MachineTypesDataSourceType***REMOVED*** GetSchema(ctx context.Context***REMOVED*** (result tfsdk.Schema,
-	diags diag.Diagnostics***REMOVED*** {
-	result = tfsdk.Schema{
-		Description: "List of cloud providers.",
-		Attributes: map[string]tfsdk.Attribute{
-			"items": {
+var _ datasource.DataSource = &MachineTypesDataSource{}
+var _ datasource.DataSourceWithConfigure = &MachineTypesDataSource{}
+
+func New(***REMOVED*** datasource.DataSource {
+	return &MachineTypesDataSource{}
+}
+
+func (s *MachineTypesDataSource***REMOVED*** Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse***REMOVED*** {
+	resp.TypeName = req.ProviderTypeName + "_machine_types"
+}
+
+func (s *MachineTypesDataSource***REMOVED*** Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse***REMOVED*** {
+	resp.Schema = schema.Schema{
+		Description: "List of machine types",
+		Attributes: map[string]schema.Attribute{
+			"items": schema.ListNestedAttribute{
 				Description: "Items of the list.",
-				Attributes: tfsdk.ListNestedAttributes(
-					map[string]tfsdk.Attribute{
-						"cloud_provider": {
-							Description: "Unique identifier of the " +
-								"cloud provider where the machine " +
-								"type is supported.",
-							Type:     types.StringType,
-							Computed: true,
-				***REMOVED***,
-						"id": {
-							Description: "Unique identifier of the " +
-								"machine type.",
-							Type:     types.StringType,
-							Computed: true,
-				***REMOVED***,
-						"name": {
-							Description: "Short name of the machine " +
-								"type.",
-							Type:     types.StringType,
-							Computed: true,
-				***REMOVED***,
-						"cpu": {
-							Description: "Number of CPU cores.",
-							Type:        types.Int64Type,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"cloud_provider": schema.StringAttribute{
+							Description: "Unique identifier of the cloud provider where the machine type is supported.",
 							Computed:    true,
 				***REMOVED***,
-						"ram": {
+						"id": schema.StringAttribute{
+							Description: "Unique identifier of the machine type.",
+							Computed:    true,
+				***REMOVED***,
+						"name": schema.StringAttribute{
+							Description: "Short name of the machine type.",
+							Computed:    true,
+				***REMOVED***,
+						"cpu": schema.Int64Attribute{
+							Description: "Number of CPU cores.",
+							Computed:    true,
+				***REMOVED***,
+						"ram": schema.Int64Attribute{
 							Description: "Amount of RAM in bytes.",
-							Type:        types.Int64Type,
 							Computed:    true,
 				***REMOVED***,
 			***REMOVED***,
-					tfsdk.ListNestedAttributesOptions{},
-				***REMOVED***,
+		***REMOVED***,
 				Computed: true,
 	***REMOVED***,
 ***REMOVED***,
 	}
-	return
 }
 
-func (t *MachineTypesDataSourceType***REMOVED*** NewDataSource(ctx context.Context,
-	p tfsdk.Provider***REMOVED*** (result tfsdk.DataSource, diags diag.Diagnostics***REMOVED*** {
-	// Cast the provider interface to the specific implementation:
-	parent := p.(*Provider***REMOVED***
-
-	// Get the collection of machine types:
-	collection := parent.connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.MachineTypes(***REMOVED***
-
-	// Create the resource:
-	result = &MachineTypesDataSource{
-		collection: collection,
+func (s *MachineTypesDataSource***REMOVED*** Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse***REMOVED*** {
+	// Prevent panic if the provider has not been configured:
+	if req.ProviderData == nil {
+		return
 	}
-	return
+
+	// Cast the provider data to the specific implementation:
+	connection := req.ProviderData.(*sdk.Connection***REMOVED***
+
+	// Get the collection of cloud providers:
+	s.collection = connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.MachineTypes(***REMOVED***
 }
 
-func (s *MachineTypesDataSource***REMOVED*** Read(ctx context.Context, request tfsdk.ReadDataSourceRequest,
-	response *tfsdk.ReadDataSourceResponse***REMOVED*** {
+func (s *MachineTypesDataSource***REMOVED*** Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse***REMOVED*** {
 	// Fetch the complete list of machine types:
 	var listItems []*cmv1.MachineType
 	listSize := 10
@@ -108,7 +101,7 @@ func (s *MachineTypesDataSource***REMOVED*** Read(ctx context.Context, request t
 	for {
 		listResponse, err := listRequest.SendContext(ctx***REMOVED***
 		if err != nil {
-			response.Diagnostics.AddError(
+			resp.Diagnostics.AddError(
 				"Can't list machine types",
 				err.Error(***REMOVED***,
 			***REMOVED***
@@ -140,7 +133,7 @@ func (s *MachineTypesDataSource***REMOVED*** Read(ctx context.Context, request t
 		case "vCPU":
 			// Nothing.
 		default:
-			response.Diagnostics.AddError(
+			resp.Diagnostics.AddError(
 				"Unknown CPU unit",
 				fmt.Sprintf("Don't know how to convert CPU unit '%s'", cpuUnit***REMOVED***,
 			***REMOVED***
@@ -173,7 +166,7 @@ func (s *MachineTypesDataSource***REMOVED*** Read(ctx context.Context, request t
 		case "pib":
 			ramValue *= math.Pow(2, 50***REMOVED***
 		default:
-			response.Diagnostics.AddError(
+			resp.Diagnostics.AddError(
 				"Unknown RAM unit",
 				fmt.Sprintf("Don't know how to convert RAM unit '%s'", ramUnit***REMOVED***,
 			***REMOVED***
@@ -189,6 +182,6 @@ func (s *MachineTypesDataSource***REMOVED*** Read(ctx context.Context, request t
 	}
 
 	// Save the state:
-	diags := response.State.Set(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
+	diags := resp.State.Set(ctx, state***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
 }

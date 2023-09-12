@@ -38,6 +38,7 @@ package provider
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfig"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfiginput"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/versions"
 ***REMOVED***
 
 // Provider is the implementation of the Provider.
@@ -230,6 +231,7 @@ func (p *Provider***REMOVED*** Resources(ctx context.Context***REMOVED*** []func
 func (p *Provider***REMOVED*** DataSources(ctx context.Context***REMOVED*** []func(***REMOVED*** datasource.DataSource {
 	return []func(***REMOVED*** datasource.DataSource{
 		cloudprovider.New,
+		versions.New,
 	}
 }
 

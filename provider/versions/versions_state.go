@@ -14,11 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package versions
 
-***REMOVED***
-	"github.com/hashicorp/terraform-plugin-framework/types"
-***REMOVED***
+import "github.com/hashicorp/terraform-plugin-framework/types"
+
+type VersionsState struct {
+	Search types.String    `tfsdk:"search"`
+	Order  types.String    `tfsdk:"order"`
+	Item   *VersionState   `tfsdk:"item"`
+	Items  []*VersionState `tfsdk:"items"`
+}
 
 type VersionState struct {
 	ID   types.String `tfsdk:"id"`

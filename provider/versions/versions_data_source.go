@@ -14,96 +14,95 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package versions
 
 ***REMOVED***
 	"context"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 ***REMOVED***
-
-type VersionsDataSourceType struct {
-}
 
 type VersionsDataSource struct {
 	collection *cmv1.VersionsClient
 }
 
-func (t *VersionsDataSourceType***REMOVED*** GetSchema(ctx context.Context***REMOVED*** (result tfsdk.Schema,
-	diags diag.Diagnostics***REMOVED*** {
-	result = tfsdk.Schema{
+var _ datasource.DataSource = &VersionsDataSource{}
+var _ datasource.DataSourceWithConfigure = &VersionsDataSource{}
+
+func New(***REMOVED*** datasource.DataSource {
+	return &VersionsDataSource{}
+}
+
+func (s *VersionsDataSource***REMOVED*** Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse***REMOVED*** {
+	resp.TypeName = req.ProviderTypeName + "_versions"
+}
+
+func (s *VersionsDataSource***REMOVED*** Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse***REMOVED*** {
+	resp.Schema = schema.Schema{
 		Description: "List of OpenShift versions.",
-		Attributes: map[string]tfsdk.Attribute{
-			"search": {
+		Attributes: map[string]schema.Attribute{
+			"search": schema.StringAttribute{
 				Description: "Search criteria.",
-				Type:        types.StringType,
 				Optional:    true,
 	***REMOVED***,
-			"order": {
+			"order": schema.StringAttribute{
 				Description: "Order criteria.",
-				Type:        types.StringType,
 				Optional:    true,
 	***REMOVED***,
-			"item": {
+			"item": schema.SingleNestedAttribute{
 				Description: "Content of the list when there is exactly one item.",
-				Attributes:  tfsdk.SingleNestedAttributes(t.itemAttributes(***REMOVED******REMOVED***,
+				Attributes:  s.itemAttributes(***REMOVED***,
 				Computed:    true,
 	***REMOVED***,
-			"items": {
+			"items": schema.ListNestedAttribute{
 				Description: "Content of the list.",
-				Attributes: tfsdk.ListNestedAttributes(
-					t.itemAttributes(***REMOVED***,
-					tfsdk.ListNestedAttributesOptions{},
-				***REMOVED***,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: s.itemAttributes(***REMOVED***,
+		***REMOVED***,
 				Computed: true,
 	***REMOVED***,
 ***REMOVED***,
 	}
-	return
 }
 
-func (t *VersionsDataSourceType***REMOVED*** itemAttributes(***REMOVED*** map[string]tfsdk.Attribute {
-	return map[string]tfsdk.Attribute{
-		"id": {
+func (t *VersionsDataSource***REMOVED*** itemAttributes(***REMOVED*** map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"id": schema.StringAttribute{
 			Description: "Unique identifier of the version. This is what should be " +
 				"used when referencing the versions from other places, for " +
 				"example in the 'version' attribute of the cluster resource.",
-			Type:     types.StringType,
 			Computed: true,
 ***REMOVED***,
-		"name": {
+		"name": schema.StringAttribute{
 			Description: "Short name of the version, for example '4.1.0'.",
-			Type:        types.StringType,
 			Computed:    true,
 ***REMOVED***,
 	}
 }
 
-func (t *VersionsDataSourceType***REMOVED*** NewDataSource(ctx context.Context,
-	p tfsdk.Provider***REMOVED*** (result tfsdk.DataSource, diags diag.Diagnostics***REMOVED*** {
-	// Cast the provider interface to the specific implementation:
-	parent := p.(*Provider***REMOVED***
-
-	// Get the collection of versions:
-	collection := parent.connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Versions(***REMOVED***
-
-	// Create the resource:
-	result = &VersionsDataSource{
-		collection: collection,
+func (s *VersionsDataSource***REMOVED*** Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse***REMOVED*** {
+	// Prevent panic if the provider has not been configured:
+	if req.ProviderData == nil {
+		return
 	}
-	return
+
+	// Cast the provider data to the specific implementation:
+	connection := req.ProviderData.(*sdk.Connection***REMOVED***
+
+	// Get the collection of cloud providers:
+	s.collection = connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Versions(***REMOVED***
 }
 
-func (s *VersionsDataSource***REMOVED*** Read(ctx context.Context, request tfsdk.ReadDataSourceRequest,
-	response *tfsdk.ReadDataSourceResponse***REMOVED*** {
+func (s *VersionsDataSource***REMOVED*** Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse***REMOVED*** {
 	// Get the state:
 	state := &VersionsState{}
-	diags := request.Config.Get(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
-	if response.Diagnostics.HasError(***REMOVED*** {
+	diags := req.Config.Get(ctx, state***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
+	if resp.Diagnostics.HasError(***REMOVED*** {
 		return
 	}
 
@@ -112,18 +111,18 @@ func (s *VersionsDataSource***REMOVED*** Read(ctx context.Context, request tfsdk
 	listSize := 100
 	listPage := 1
 	listRequest := s.collection.List(***REMOVED***.Size(listSize***REMOVED***
-	if !state.Search.Unknown && !state.Search.Null {
-		listRequest.Search(state.Search.Value***REMOVED***
+	if !state.Search.IsUnknown(***REMOVED*** && !state.Search.IsNull(***REMOVED*** {
+		listRequest.Search(state.Search.ValueString(***REMOVED******REMOVED***
 	} else {
 		listRequest.Search("enabled = 't'"***REMOVED***
 	}
-	if !state.Order.Unknown && !state.Order.Null {
-		listRequest.Order(state.Order.Value***REMOVED***
+	if !state.Order.IsUnknown(***REMOVED*** && !state.Order.IsNull(***REMOVED*** {
+		listRequest.Order(state.Order.ValueString(***REMOVED******REMOVED***
 	}
 	for {
 		listResponse, err := listRequest.SendContext(ctx***REMOVED***
 		if err != nil {
-			response.Diagnostics.AddError(
+			resp.Diagnostics.AddError(
 				"Can't list versions",
 				err.Error(***REMOVED***,
 			***REMOVED***
@@ -147,12 +146,8 @@ func (s *VersionsDataSource***REMOVED*** Read(ctx context.Context, request tfsdk
 	state.Items = make([]*VersionState, len(listItems***REMOVED******REMOVED***
 	for i, listItem := range listItems {
 		state.Items[i] = &VersionState{
-			ID: types.String{
-				Value: listItem.ID(***REMOVED***,
-	***REMOVED***,
-			Name: types.String{
-				Value: listItem.RawID(***REMOVED***,
-	***REMOVED***,
+			ID:   types.StringValue(listItem.ID(***REMOVED******REMOVED***,
+			Name: types.StringValue(listItem.RawID(***REMOVED******REMOVED***,
 ***REMOVED***
 	}
 	if len(state.Items***REMOVED*** == 1 {
@@ -162,6 +157,6 @@ func (s *VersionsDataSource***REMOVED*** Read(ctx context.Context, request tfsdk
 	}
 
 	// Save the state:
-	diags = response.State.Set(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
+	diags = resp.State.Set(ctx, state***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
 }

@@ -14,50 +14,55 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package groupmembership
 
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-)
 
-type GroupMembershipResourceType struct {
-}
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
+)
 
 type GroupMembershipResource struct {
 	collection *cmv1.ClustersClient
 }
 
-func (t *GroupMembershipResourceType) GetSchema(ctx context.Context) (result tfsdk.Schema,
-	diags diag.Diagnostics) {
-	result = tfsdk.Schema{
+var _ resource.ResourceWithConfigure = &GroupMembershipResource{}
+var _ resource.ResourceWithImportState = &GroupMembershipResource{}
+
+func New() resource.Resource {
+	return &GroupMembershipResource{}
+}
+
+func (g *GroupMembershipResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_group_membership"
+}
+
+func (g *GroupMembershipResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "Manages user group membership.",
-		Attributes: map[string]tfsdk.Attribute{
-			"cluster": {
+		Attributes: map[string]schema.Attribute{
+			"cluster": schema.StringAttribute{
 				Description: "Identifier of the cluster.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"group": {
+			"group": schema.StringAttribute{
 				Description: "Identifier of the group.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"id": {
+			"id": schema.StringAttribute{
 				Description: "Identifier of the membership.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"user": {
+			"user": schema.StringAttribute{
 				Description: "user name.",
-				Type:        types.StringType,
 				Required:    true,
 			},
 		},
@@ -65,48 +70,41 @@ func (t *GroupMembershipResourceType) GetSchema(ctx context.Context) (result tfs
 	return
 }
 
-func (t *GroupMembershipResourceType) NewResource(ctx context.Context,
-	p tfsdk.Provider) (result tfsdk.Resource, diags diag.Diagnostics) {
-	// Cast the provider interface to the specific implementation: use it directly when needed.
-	parent := p.(*Provider)
-
-	// Get the collection of clusters:
-	collection := parent.connection.ClustersMgmt().V1().Clusters()
-
-	// Create the resource:
-	result = &GroupMembershipResource{
-		collection: collection,
+func (g *GroupMembershipResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
 	}
 
-	return
+	connection, ok := req.ProviderData.(*sdk.Connection)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *sdk.Connaction, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
+	}
+
+	g.collection = connection.ClustersMgmt().V1().Clusters()
 }
 
-func (r *GroupMembershipResource) Create(ctx context.Context,
-	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse) {
+func (g *GroupMembershipResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Get the plan:
 	state := &GroupMembershipState{}
-	diags := request.Plan.Get(ctx, state)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
+	diags := req.Plan.Get(ctx, state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Wait till the cluster is ready:
-	resource := r.collection.Cluster(state.Cluster.Value)
-	pollCtx, cancel := context.WithTimeout(ctx, 1*time.Hour)
-	defer cancel()
-	_, err := resource.Poll().
-		Interval(30 * time.Second).
-		Predicate(func(get *cmv1.ClusterGetResponse) bool {
-			return get.Body().State() == cmv1.ClusterStateReady
-		}).
-		StartContext(pollCtx)
+	err := common.WaitTillClusterReady(ctx, g.collection, state.Cluster.ValueString())
 	if err != nil {
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			"Can't poll cluster state",
 			fmt.Sprintf(
 				"Can't poll state of cluster with identifier '%s': %v",
-				state.Cluster.Value, err,
+				state.Cluster.ValueString(), err,
 			),
 		)
 		return
@@ -114,26 +112,26 @@ func (r *GroupMembershipResource) Create(ctx context.Context,
 
 	// Create the membership:
 	builder := cmv1.NewUser()
-	builder.ID(state.User.Value)
+	builder.ID(state.User.ValueString())
 	object, err := builder.Build()
 	if err != nil {
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			"Can't build group membership",
 			fmt.Sprintf(
 				"Can't build group membership for cluster '%s' and group '%s': %v",
-				state.Cluster.Value, state.Group.Value, err,
+				state.Cluster.ValueString(), state.Group.ValueString(), err,
 			),
 		)
 		return
 	}
-	collection := resource.Groups().Group(state.Group.Value).Users()
+	collection := g.collection.Cluster(state.Cluster.ValueString()).Groups().Group(state.Group.ValueString()).Users()
 	add, err := collection.Add().Body(object).SendContext(ctx)
 	if err != nil {
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			"Can't create group membership",
 			fmt.Sprintf(
 				"Can't create group membership for cluster '%s' and group '%s': %v",
-				state.Cluster.Value, state.Group.Value, err,
+				state.Cluster.ValueString(), state.Group.ValueString(), err,
 			),
 		)
 		return
@@ -141,33 +139,32 @@ func (r *GroupMembershipResource) Create(ctx context.Context,
 	object = add.Body()
 
 	// Save the state:
-	r.populateState(object, state)
-	diags = response.State.Set(ctx, state)
-	response.Diagnostics.Append(diags...)
+	g.populateState(object, state)
+	diags = resp.State.Set(ctx, state)
+	resp.Diagnostics.Append(diags...)
 }
 
-func (r *GroupMembershipResource) Read(ctx context.Context, request tfsdk.ReadResourceRequest,
-	response *tfsdk.ReadResourceResponse) {
+func (g *GroupMembershipResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Get the current state:
 	state := &GroupMembershipState{}
-	diags := request.State.Get(ctx, state)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
+	diags := req.State.Get(ctx, state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Find the group membership:
-	resource := r.collection.Cluster(state.Cluster.Value).Groups().Group(state.Group.Value).
+	obj := g.collection.Cluster(state.Cluster.ValueString()).Groups().Group(state.Group.ValueString()).
 		Users().
-		User(state.ID.Value)
-	get, err := resource.Get().SendContext(ctx)
+		User(state.ID.ValueString())
+	get, err := obj.Get().SendContext(ctx)
 	if err != nil {
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			"Can't find group membership",
 			fmt.Sprintf(
 				"Can't find user group membership identifier '%s' for "+
 					"cluster '%s' and group '%s': %v",
-				state.ID.Value, state.Cluster.Value, state.Group.Value, err,
+				state.ID.ValueString(), state.Cluster.ValueString(), state.Group.ValueString(), err,
 			),
 		)
 		return
@@ -175,62 +172,55 @@ func (r *GroupMembershipResource) Read(ctx context.Context, request tfsdk.ReadRe
 	object := get.Body()
 
 	// Save the state:
-	r.populateState(object, state)
-	diags = response.State.Set(ctx, state)
-	response.Diagnostics.Append(diags...)
+	g.populateState(object, state)
+
+	diags = resp.State.Set(ctx, state)
+	resp.Diagnostics.Append(diags...)
 }
 
-func (r *GroupMembershipResource) Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
-	response *tfsdk.UpdateResourceResponse) {
+func (g *GroupMembershipResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	// Until we support. return an informative error
+	resp.Diagnostics.AddError("Can't update group membership", "Update is currently not supported.")
 }
 
-func (r *GroupMembershipResource) Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
-	response *tfsdk.DeleteResourceResponse) {
+func (g *GroupMembershipResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	// Get the state:
 	state := &GroupMembershipState{}
-	diags := request.State.Get(ctx, state)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
+	diags := req.State.Get(ctx, state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Send the request to delete group membership:
-	resource := r.collection.Cluster(state.Cluster.Value).Groups().Group(state.Group.Value).
+	obj := g.collection.Cluster(state.Cluster.ValueString()).Groups().Group(state.Group.ValueString()).
 		Users().
-		User(state.ID.Value)
-	_, err := resource.Delete().SendContext(ctx)
+		User(state.ID.ValueString())
+	_, err := obj.Delete().SendContext(ctx)
 	if err != nil {
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			"Can't delete group membership",
 			fmt.Sprintf(
 				"Can't delete group membership with identifier '%s' for "+
 					"cluster '%s' and group '%s': %v",
-				state.ID.Value, state.Cluster.Value, state.Group.Value, err,
+				state.ID.ValueString(), state.Cluster.ValueString(), state.Group.ValueString(), err,
 			),
 		)
 		return
 	}
 
 	// Remove the state:
-	response.State.RemoveResource(ctx)
+	resp.State.RemoveResource(ctx)
 }
 
-func (r *GroupMembershipResource) ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
-	response *tfsdk.ImportResourceStateResponse) {
-	tfsdk.ResourceImportStatePassthroughID(
-		ctx,
-		tftypes.NewAttributePath().WithAttributeName("id"),
-		request,
-		response,
-	)
+func (g *GroupMembershipResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
 // populateState copies the data from the API object to the Terraform state.
-func (r *GroupMembershipResource) populateState(object *cmv1.User, state *GroupMembershipState) {
-	state.ID = types.String{
-		Value: object.ID(),
-	}
-	state.User = types.String{
-		Value: object.ID(),
+func (g *GroupMembershipResource) populateState(object *cmv1.User, state *GroupMembershipState) {
+	if id, ok := object.GetID(); ok {
+		state.ID = types.StringValue(id)
+		state.User = types.StringValue(id)
 	}
 }

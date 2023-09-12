@@ -41,6 +41,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfig"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfiginput"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/versions"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/rosa_operator_roles"
 )
 
 // Provider is the implementation of the Provider.
@@ -236,6 +237,7 @@ func (p *Provider) DataSources(ctx context.Context) []func() datasource.DataSour
 		versions.New,
 		group.New,
 		machine_types.New,
+		rosa_operator_roles.New,
 	}
 }
 

@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package group
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-type GroupsState struct {
-	Cluster types.String  `tfsdk:"cluster"`
-	Items   []*GroupState `tfsdk:"items"`
+type GroupState struct {
+	ID   types.String `tfsdk:"id"`
+	Name types.String `tfsdk:"name"`
 }

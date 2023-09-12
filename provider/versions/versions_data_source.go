@@ -14,96 +14,95 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package versions
 
 import (
 	"context"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
-
-type VersionsDataSourceType struct {
-}
 
 type VersionsDataSource struct {
 	collection *cmv1.VersionsClient
 }
 
-func (t *VersionsDataSourceType) GetSchema(ctx context.Context) (result tfsdk.Schema,
-	diags diag.Diagnostics) {
-	result = tfsdk.Schema{
+var _ datasource.DataSource = &VersionsDataSource{}
+var _ datasource.DataSourceWithConfigure = &VersionsDataSource{}
+
+func New() datasource.DataSource {
+	return &VersionsDataSource{}
+}
+
+func (s *VersionsDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_versions"
+}
+
+func (s *VersionsDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "List of OpenShift versions.",
-		Attributes: map[string]tfsdk.Attribute{
-			"search": {
+		Attributes: map[string]schema.Attribute{
+			"search": schema.StringAttribute{
 				Description: "Search criteria.",
-				Type:        types.StringType,
 				Optional:    true,
 			},
-			"order": {
+			"order": schema.StringAttribute{
 				Description: "Order criteria.",
-				Type:        types.StringType,
 				Optional:    true,
 			},
-			"item": {
+			"item": schema.SingleNestedAttribute{
 				Description: "Content of the list when there is exactly one item.",
-				Attributes:  tfsdk.SingleNestedAttributes(t.itemAttributes()),
+				Attributes:  s.itemAttributes(),
 				Computed:    true,
 			},
-			"items": {
+			"items": schema.ListNestedAttribute{
 				Description: "Content of the list.",
-				Attributes: tfsdk.ListNestedAttributes(
-					t.itemAttributes(),
-					tfsdk.ListNestedAttributesOptions{},
-				),
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: s.itemAttributes(),
+				},
 				Computed: true,
 			},
 		},
 	}
-	return
 }
 
-func (t *VersionsDataSourceType) itemAttributes() map[string]tfsdk.Attribute {
-	return map[string]tfsdk.Attribute{
-		"id": {
+func (t *VersionsDataSource) itemAttributes() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"id": schema.StringAttribute{
 			Description: "Unique identifier of the version. This is what should be " +
 				"used when referencing the versions from other places, for " +
 				"example in the 'version' attribute of the cluster resource.",
-			Type:     types.StringType,
 			Computed: true,
 		},
-		"name": {
+		"name": schema.StringAttribute{
 			Description: "Short name of the version, for example '4.1.0'.",
-			Type:        types.StringType,
 			Computed:    true,
 		},
 	}
 }
 
-func (t *VersionsDataSourceType) NewDataSource(ctx context.Context,
-	p tfsdk.Provider) (result tfsdk.DataSource, diags diag.Diagnostics) {
-	// Cast the provider interface to the specific implementation:
-	parent := p.(*Provider)
-
-	// Get the collection of versions:
-	collection := parent.connection.ClustersMgmt().V1().Versions()
-
-	// Create the resource:
-	result = &VersionsDataSource{
-		collection: collection,
+func (s *VersionsDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured:
+	if req.ProviderData == nil {
+		return
 	}
-	return
+
+	// Cast the provider data to the specific implementation:
+	connection := req.ProviderData.(*sdk.Connection)
+
+	// Get the collection of cloud providers:
+	s.collection = connection.ClustersMgmt().V1().Versions()
 }
 
-func (s *VersionsDataSource) Read(ctx context.Context, request tfsdk.ReadDataSourceRequest,
-	response *tfsdk.ReadDataSourceResponse) {
+func (s *VersionsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	// Get the state:
 	state := &VersionsState{}
-	diags := request.Config.Get(ctx, state)
-	response.Diagnostics.Append(diags...)
-	if response.Diagnostics.HasError() {
+	diags := req.Config.Get(ctx, state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -112,18 +111,18 @@ func (s *VersionsDataSource) Read(ctx context.Context, request tfsdk.ReadDataSou
 	listSize := 100
 	listPage := 1
 	listRequest := s.collection.List().Size(listSize)
-	if !state.Search.Unknown && !state.Search.Null {
-		listRequest.Search(state.Search.Value)
+	if !state.Search.IsUnknown() && !state.Search.IsNull() {
+		listRequest.Search(state.Search.ValueString())
 	} else {
 		listRequest.Search("enabled = 't'")
 	}
-	if !state.Order.Unknown && !state.Order.Null {
-		listRequest.Order(state.Order.Value)
+	if !state.Order.IsUnknown() && !state.Order.IsNull() {
+		listRequest.Order(state.Order.ValueString())
 	}
 	for {
 		listResponse, err := listRequest.SendContext(ctx)
 		if err != nil {
-			response.Diagnostics.AddError(
+			resp.Diagnostics.AddError(
 				"Can't list versions",
 				err.Error(),
 			)
@@ -147,12 +146,8 @@ func (s *VersionsDataSource) Read(ctx context.Context, request tfsdk.ReadDataSou
 	state.Items = make([]*VersionState, len(listItems))
 	for i, listItem := range listItems {
 		state.Items[i] = &VersionState{
-			ID: types.String{
-				Value: listItem.ID(),
-			},
-			Name: types.String{
-				Value: listItem.RawID(),
-			},
+			ID:   types.StringValue(listItem.ID()),
+			Name: types.StringValue(listItem.RawID()),
 		}
 	}
 	if len(state.Items) == 1 {
@@ -162,6 +157,6 @@ func (s *VersionsDataSource) Read(ctx context.Context, request tfsdk.ReadDataSou
 	}
 
 	// Save the state:
-	diags = response.State.Set(ctx, state)
-	response.Diagnostics.Append(diags...)
+	diags = resp.State.Set(ctx, state)
+	resp.Diagnostics.Append(diags...)
 }

@@ -14,55 +14,82 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package rosa_operator_roles
 
 ***REMOVED***
 	"context"
 ***REMOVED***
 	"sort"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 ***REMOVED***
-
-type RosaOperatorRolesDataSourceType struct {
-}
 
 type RosaOperatorRolesDataSource struct {
 	awsInquiries *cmv1.AWSInquiriesClient
 }
+
+var _ datasource.DataSource = &RosaOperatorRolesDataSource{}
+var _ datasource.DataSourceWithConfigure = &RosaOperatorRolesDataSource{}
 
 const (
 	DefaultAccountRolePrefix = "ManagedOpenShift"
 	serviceAccountFmt        = "system:serviceaccount:%s:%s"
 ***REMOVED***
 
-func (t *RosaOperatorRolesDataSourceType***REMOVED*** GetSchema(ctx context.Context***REMOVED*** (result tfsdk.Schema,
-	diags diag.Diagnostics***REMOVED*** {
-	result = tfsdk.Schema{
+func New(***REMOVED*** datasource.DataSource {
+	return &RosaOperatorRolesDataSource{}
+}
+
+func (s *RosaOperatorRolesDataSource***REMOVED*** Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse***REMOVED*** {
+	resp.TypeName = req.ProviderTypeName + "_rosa_operator_roles"
+}
+
+func (s *RosaOperatorRolesDataSource***REMOVED*** Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse***REMOVED*** {
+	resp.Schema = schema.Schema{
 		Description: "List of rosa operator role for a specific cluster.",
-		Attributes: map[string]tfsdk.Attribute{
-			"operator_role_prefix": {
+		Attributes: map[string]schema.Attribute{
+			"operator_role_prefix": schema.StringAttribute{
 				Description: "Operator role prefix.",
-				Type:        types.StringType,
 				Required:    true,
 	***REMOVED***,
-			"account_role_prefix": {
+			"account_role_prefix": schema.StringAttribute{
 				Description: "Account role prefix.",
-				Type:        types.StringType,
 				Optional:    true,
 	***REMOVED***,
-			"operator_iam_roles": {
+			"operator_iam_roles": schema.ListNestedAttribute{
 				Description: "Operator IAM Roles.",
-				Attributes: tfsdk.ListNestedAttributes(
-					t.itemAttributes(***REMOVED***,
-					tfsdk.ListNestedAttributesOptions{},
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"operator_name": schema.StringAttribute{
+							Description: "Operator Name",
+							Computed:    true,
 				***REMOVED***,
+						"operator_namespace": schema.StringAttribute{
+							Description: "Kubernetes Namespace",
+							Computed:    true,
+				***REMOVED***,
+						"role_name": schema.StringAttribute{
+							Description: "policy name",
+							Computed:    true,
+				***REMOVED***,
+						"policy_name": schema.StringAttribute{
+							Description: "policy name",
+							Computed:    true,
+				***REMOVED***,
+						"service_accounts": schema.ListAttribute{
+							Description: "service accounts",
+							ElementType: types.StringType,
+							Computed:    true,
+				***REMOVED***,
+			***REMOVED***,
+		***REMOVED***,
 				Computed: true,
 	***REMOVED***,
 ***REMOVED***,
@@ -70,68 +97,33 @@ func (t *RosaOperatorRolesDataSourceType***REMOVED*** GetSchema(ctx context.Cont
 	return
 }
 
-func (t *RosaOperatorRolesDataSourceType***REMOVED*** itemAttributes(***REMOVED*** map[string]tfsdk.Attribute {
-	return map[string]tfsdk.Attribute{
-		"operator_name": {
-			Description: "Operator Name",
-			Type:        types.StringType,
-			Computed:    true,
-***REMOVED***,
-		"operator_namespace": {
-			Description: "Kubernetes Namespace",
-			Type:        types.StringType,
-			Computed:    true,
-***REMOVED***,
-		"role_name": {
-			Description: "policy name",
-			Type:        types.StringType,
-			Computed:    true,
-***REMOVED***,
-		"policy_name": {
-			Description: "policy name",
-			Type:        types.StringType,
-			Computed:    true,
-***REMOVED***,
-		"service_accounts": {
-			Description: "service accounts",
-			Type: types.ListType{
-				ElemType: types.StringType,
-	***REMOVED***,
-			Computed: true,
-***REMOVED***,
-	}
-}
-
-func (t *RosaOperatorRolesDataSourceType***REMOVED*** NewDataSource(ctx context.Context,
-	p tfsdk.Provider***REMOVED*** (result tfsdk.DataSource, diags diag.Diagnostics***REMOVED*** {
-	// Cast the provider interface to the specific implementation:
-	parent := p.(*Provider***REMOVED***
-
-	// Get the collection of clusters:
-	awsInquiries := parent.connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.AWSInquiries(***REMOVED***
-
-	// Create the resource:
-	result = &RosaOperatorRolesDataSource{
-		awsInquiries: awsInquiries,
-	}
-	return
-}
-
-func (t *RosaOperatorRolesDataSource***REMOVED*** Read(ctx context.Context, request tfsdk.ReadDataSourceRequest,
-	response *tfsdk.ReadDataSourceResponse***REMOVED*** {
-	// Get the state:
-	state := &RosaOperatorRolesState{}
-	diags := request.Config.Get(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
-	if response.Diagnostics.HasError(***REMOVED*** {
+func (s *RosaOperatorRolesDataSource***REMOVED*** Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse***REMOVED*** {
+	// Prevent panic if the provider has not been configured:
+	if req.ProviderData == nil {
 		return
 	}
 
-	stsOperatorRolesList, err := t.awsInquiries.STSCredentialRequests(***REMOVED***.List(***REMOVED***.Send(***REMOVED***
+	// Cast the provider data to the specific implementation:
+	connection := req.ProviderData.(*sdk.Connection***REMOVED***
+
+	// Get the collection of cloud providers:
+	s.awsInquiries = connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.AWSInquiries(***REMOVED***
+}
+
+func (s *RosaOperatorRolesDataSource***REMOVED*** Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse***REMOVED*** {
+	// Get the state:
+	state := &RosaOperatorRolesState{}
+	diags := req.Config.Get(ctx, state***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
+	if resp.Diagnostics.HasError(***REMOVED*** {
+		return
+	}
+
+	stsOperatorRolesList, err := s.awsInquiries.STSCredentialRequests(***REMOVED***.List(***REMOVED***.Send(***REMOVED***
 	if err != nil {
 		description := fmt.Sprintf("Failed to get STS Operator Roles list with error: %v", err***REMOVED***
 		tflog.Error(ctx, description***REMOVED***
-		response.Diagnostics.AddError(
+		resp.Diagnostics.AddError(
 			description,
 			"hint: validate the credetials (token***REMOVED*** used to run this provider",
 		***REMOVED***
@@ -156,35 +148,28 @@ func (t *RosaOperatorRolesDataSource***REMOVED*** Read(ctx context.Context, requ
 	}***REMOVED***
 
 	accountRolePrefix := DefaultAccountRolePrefix
-	if !state.AccountRolePrefix.Unknown && !state.AccountRolePrefix.Null && state.AccountRolePrefix.Value != "" {
-		accountRolePrefix = state.AccountRolePrefix.Value
+	if !common.IsStringAttributeEmpty(state.AccountRolePrefix***REMOVED*** {
+		accountRolePrefix = state.AccountRolePrefix.ValueString(***REMOVED***
 	}
 
 	// TODO: use the sts.OperatorRolePrefix(***REMOVED*** if not empty
 	// There is a bug in the return value of sts.OperatorRolePrefix(***REMOVED*** - it's always empty string
 	sort.Strings(roleNameSpaces***REMOVED***
 	for _, key := range roleNameSpaces {
+		v := stsOperatorMap[key]
 		r := OperatorIAMRole{
-			Name: types.String{
-				Value: stsOperatorMap[key].Name(***REMOVED***,
-	***REMOVED***,
-			Namespace: types.String{
-				Value: stsOperatorMap[key].Namespace(***REMOVED***,
-	***REMOVED***,
-			RoleName: types.String{
-				Value: getRoleName(state.OperatorRolePrefix.Value, stsOperatorMap[key]***REMOVED***,
-	***REMOVED***,
-			PolicyName: types.String{
-				Value: getPolicyName(accountRolePrefix, stsOperatorMap[key].Namespace(***REMOVED***, stsOperatorMap[key].Name(***REMOVED******REMOVED***,
-	***REMOVED***,
-			ServiceAccounts: buildServiceAccountsArray(stsOperatorMap[stsOperatorMap[key].Namespace(***REMOVED***].ServiceAccounts(***REMOVED***, stsOperatorMap[key].Namespace(***REMOVED******REMOVED***,
+			Name:            types.StringValue(v.Name(***REMOVED******REMOVED***,
+			Namespace:       types.StringValue(v.Namespace(***REMOVED******REMOVED***,
+			RoleName:        types.StringValue(getRoleName(state.OperatorRolePrefix.ValueString(***REMOVED***, v***REMOVED******REMOVED***,
+			PolicyName:      types.StringValue(getPolicyName(accountRolePrefix, v.Namespace(***REMOVED***, v.Name(***REMOVED******REMOVED******REMOVED***,
+			ServiceAccounts: buildServiceAccountsArray(stsOperatorMap[v.Namespace(***REMOVED***].ServiceAccounts(***REMOVED***, v.Namespace(***REMOVED******REMOVED***,
 ***REMOVED***
 		state.OperatorIAMRoles = append(state.OperatorIAMRoles, &r***REMOVED***
 	}
 
 	// Save the state:
-	diags = response.State.Set(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
+	diags = resp.State.Set(ctx, state***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
 }
 
 // TODO: should be in a separate repo
@@ -206,15 +191,11 @@ func getPolicyName(prefix string, namespace string, name string***REMOVED*** str
 }
 
 func buildServiceAccountsArray(serviceAccountArr []string, operatorNamespace string***REMOVED*** types.List {
-	serviceAccounts := types.List{
-		ElemType: types.StringType,
-		Elems:    []attr.Value{},
-	}
-
+	svcAcctList := []string{}
 	for _, v := range serviceAccountArr {
-		serviceAccount := fmt.Sprintf(serviceAccountFmt, operatorNamespace, v***REMOVED***
-		serviceAccounts.Elems = append(serviceAccounts.Elems, types.String{Value: serviceAccount}***REMOVED***
+		svcAcctList = append(svcAcctList, fmt.Sprintf(serviceAccountFmt, operatorNamespace, v***REMOVED******REMOVED***
 	}
 
+	serviceAccounts, _ := types.ListValueFrom(context.TODO(***REMOVED***, types.StringType, svcAcctList***REMOVED***
 	return serviceAccounts
 }

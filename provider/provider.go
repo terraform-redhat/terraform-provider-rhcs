@@ -41,6 +41,7 @@ package provider
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfig"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfiginput"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/versions"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/rosa_operator_roles"
 ***REMOVED***
 
 // Provider is the implementation of the Provider.
@@ -236,6 +237,7 @@ func (p *Provider***REMOVED*** DataSources(ctx context.Context***REMOVED*** []fu
 		versions.New,
 		group.New,
 		machine_types.New,
+		rosa_operator_roles.New,
 	}
 }
 

@@ -33,6 +33,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cloudprovider"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterwaiter"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/dnsdomain"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfig"
 )
 
 // Provider is the implementation of the Provider.
@@ -197,6 +198,7 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		clusterwaiter.New,
 		dnsdomain.New,
+		oidcconfig.New,
 		// TODO uncomment this after ClusterRosaClassic resource is fixed
 		// clusterwaiter.NewClusterRosaClassicResource,
 	}

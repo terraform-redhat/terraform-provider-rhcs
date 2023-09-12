@@ -14,83 +14,85 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package group
 
 import (
 	"context"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
-
-type GroupsDataSourceType struct {
-}
 
 type GroupsDataSource struct {
 	collection *cmv1.ClustersClient
 }
 
-func (t *GroupsDataSourceType) GetSchema(ctx context.Context) (result tfsdk.Schema,
-	diags diag.Diagnostics) {
-	result = tfsdk.Schema{
+var _ datasource.DataSource = &GroupsDataSource{}
+var _ datasource.DataSourceWithConfigure = &GroupsDataSource{}
+
+func New() datasource.DataSource {
+	return &GroupsDataSource{}
+}
+
+func (g *GroupsDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_groups"
+}
+
+func (g *GroupsDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "List of groups.",
-		Attributes: map[string]tfsdk.Attribute{
-			"cluster": {
+		Attributes: map[string]schema.Attribute{
+			"cluster": schema.StringAttribute{
 				Description: "Identifier of the cluster.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"items": {
-				Description: "Items of the list.",
-				Attributes:  t.itemSchema(),
-				Computed:    true,
+			"items": schema.ListNestedAttribute{
+				Description: "Content of the list.",
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: g.itemAttributes(),
+				},
+				Computed: true,
 			},
 		},
 	}
 	return
 }
 
-func (t *GroupsDataSourceType) itemSchema() tfsdk.NestedAttributes {
-	return tfsdk.ListNestedAttributes(
-		map[string]tfsdk.Attribute{
-			"id": {
-				Description: "Unique identifier of the group. This is what " +
-					"should be used when referencing the group from other " +
-					"places, for example in the 'group' attribute of the " +
-					"user resource.",
-				Type:     types.StringType,
-				Computed: true,
-			},
-			"name": {
-				Description: "Short name of the group for example " +
-					"'dedicated-admins'.",
-				Type:     types.StringType,
-				Computed: true,
-			},
+func (g *GroupsDataSource) itemAttributes() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"id": schema.StringAttribute{
+			Description: "Unique identifier of the group. This is what " +
+				"should be used when referencing the group from other " +
+				"places, for example in the 'group' attribute of the " +
+				"user resource.",
+			Computed: true,
 		},
-		tfsdk.ListNestedAttributesOptions{},
-	)
-}
-
-func (t *GroupsDataSourceType) NewDataSource(ctx context.Context,
-	p tfsdk.Provider) (result tfsdk.DataSource, diags diag.Diagnostics) {
-	// Cast the provider interface to the specific implementation:
-	parent := p.(*Provider)
-
-	// Get the collection of clusters:
-	collection := parent.connection.ClustersMgmt().V1().Clusters()
-
-	// Create the resource:
-	result = &GroupsDataSource{
-		collection: collection,
+		"name": schema.StringAttribute{
+			Description: "Short name of the group for example " +
+				"'dedicated-admins'.",
+			Computed: true,
+		},
 	}
-	return
 }
 
-func (s *GroupsDataSource) Read(ctx context.Context, request tfsdk.ReadDataSourceRequest,
-	response *tfsdk.ReadDataSourceResponse) {
+func (g *GroupsDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured:
+	if req.ProviderData == nil {
+		return
+	}
+
+	// Cast the provider data to the specific implementation:
+	connection := req.ProviderData.(*sdk.Connection)
+
+	// Get the collection of cloud providers:
+	g.collection = connection.ClustersMgmt().V1().Clusters()
+}
+
+func (g *GroupsDataSource) Read(ctx context.Context, request datasource.ReadRequest,
+	response *datasource.ReadResponse) {
 	// Get the state:
 	state := &GroupsState{}
 	diags := request.Config.Get(ctx, state)
@@ -103,7 +105,7 @@ func (s *GroupsDataSource) Read(ctx context.Context, request tfsdk.ReadDataSourc
 	var listItems []*cmv1.Group
 	listSize := 10
 	listPage := 1
-	listRequest := s.collection.Cluster(state.Cluster.Value).Groups().List()
+	listRequest := g.collection.Cluster(state.Cluster.ValueString()).Groups().List()
 	for {
 		listResponse, err := listRequest.SendContext(ctx)
 		if err != nil {
@@ -131,12 +133,8 @@ func (s *GroupsDataSource) Read(ctx context.Context, request tfsdk.ReadDataSourc
 	state.Items = make([]*GroupState, len(listItems))
 	for i, listItem := range listItems {
 		state.Items[i] = &GroupState{
-			ID: types.String{
-				Value: listItem.ID(),
-			},
-			Name: types.String{
-				Value: listItem.ID(),
-			},
+			ID:   types.StringValue(listItem.ID()),
+			Name: types.StringValue(listItem.ID()),
 		}
 	}
 

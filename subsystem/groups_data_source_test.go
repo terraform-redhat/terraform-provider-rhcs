@@ -38,6 +38,9 @@ var _ = Describe("Groups data source", func() {
 				  "items": [
 				    {
 				      "id": "dedicated-admins"
+				    },
+					{
+				      "id": "dedicated-admins2"
 				    }
 				  ]
 				}`),
@@ -54,8 +57,10 @@ var _ = Describe("Groups data source", func() {
 
 		// Check the state:
 		resource := terraform.Resource("rhcs_groups", "my_groups")
-		Expect(resource).To(MatchJQ(`.attributes.items |length`, 1))
+		Expect(resource).To(MatchJQ(`.attributes.items |length`, 2))
 		Expect(resource).To(MatchJQ(`.attributes.items[0].id`, "dedicated-admins"))
 		Expect(resource).To(MatchJQ(`.attributes.items[0].name`, "dedicated-admins"))
+		Expect(resource).To(MatchJQ(`.attributes.items[1].id`, "dedicated-admins2"))
+		Expect(resource).To(MatchJQ(`.attributes.items[1].name`, "dedicated-admins2"))
 	})
 })

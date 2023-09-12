@@ -36,6 +36,7 @@ package provider
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/dnsdomain"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/groupmembership"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfig"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfiginput"
 ***REMOVED***
 
 // Provider is the implementation of the Provider.
@@ -202,6 +203,7 @@ func (p *Provider***REMOVED*** Resources(ctx context.Context***REMOVED*** []func
 		dnsdomain.New,
 		oidcconfig.New,
 		groupmembership.New,
+		oidcconfiginput.New,
 		// TODO uncomment this after ClusterRosaClassic resource is fixed
 		// clusterwaiter.NewClusterRosaClassicResource,
 	}

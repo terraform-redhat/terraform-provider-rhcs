@@ -69,7 +69,7 @@ func (s *VersionsDataSource) Schema(ctx context.Context, req datasource.SchemaRe
 	}
 }
 
-func (t *VersionsDataSource) itemAttributes() map[string]schema.Attribute {
+func (s *VersionsDataSource) itemAttributes() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"id": schema.StringAttribute{
 			Description: "Unique identifier of the version. This is what should be " +

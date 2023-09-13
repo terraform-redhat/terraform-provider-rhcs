@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 	"net/http"
 	"sort"
 	"strings"
@@ -316,26 +317,9 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 			},
 			"proxy": schema.SingleNestedAttribute{
 				Description: "proxy",
-				Attributes: map[string]schema.Attribute{
-					"http_proxy": schema.StringAttribute{
-						Description: "HTTP proxy.",
-						Optional:    true,
-					},
-					"https_proxy": schema.StringAttribute{
-						Description: "HTTPS proxy.",
-						Optional:    true,
-					},
-					"no_proxy": schema.StringAttribute{
-						Description: "No proxy.",
-						Optional:    true,
-					},
-					"additional_trust_bundle": schema.StringAttribute{
-						Description: "A string containing a PEM-encoded X.509 certificate bundle that will be added to the nodes' trusted certificate store.",
-						Optional:    true,
-					},
-				},
-				Optional:   true,
-				Validators: []validator.Object{ProxyValidator()},
+				Attributes:  proxy.ProxyResource(),
+				Optional:    true,
+				Validators:  []validator.Object{proxy.ProxyValidator()},
 			},
 			"service_cidr": schema.StringAttribute{
 				Description: "Block of IP addresses for services.",
@@ -1628,22 +1612,22 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		state.AWSSubnetIDs = awsSubnetIds
 	}
 
-	proxy, ok := object.GetProxy()
+	proxyObj, ok := object.GetProxy()
 	if ok {
 		if state.Proxy == nil {
-			state.Proxy = &Proxy{}
+			state.Proxy = &proxy.Proxy{}
 		}
-		httpProxy, ok := proxy.GetHTTPProxy()
+		httpProxy, ok := proxyObj.GetHTTPProxy()
 		if ok {
 			state.Proxy.HttpProxy = types.StringValue(httpProxy)
 		}
 
-		httpsProxy, ok := proxy.GetHTTPSProxy()
+		httpsProxy, ok := proxyObj.GetHTTPSProxy()
 		if ok {
 			state.Proxy.HttpsProxy = types.StringValue(httpsProxy)
 		}
 
-		noProxy, ok := proxy.GetNoProxy()
+		noProxy, ok := proxyObj.GetNoProxy()
 		if ok {
 			state.Proxy.NoProxy = types.StringValue(noProxy)
 		}
@@ -1652,7 +1636,7 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	trustBundle, ok := object.GetAdditionalTrustBundle()
 	if ok && common.IsStringAttributeEmpty(state.Proxy.AdditionalTrustBundle) {
 		if state.Proxy == nil {
-			state.Proxy = &Proxy{}
+			state.Proxy = &proxy.Proxy{}
 		}
 		state.Proxy.AdditionalTrustBundle = types.StringValue(trustBundle)
 	}

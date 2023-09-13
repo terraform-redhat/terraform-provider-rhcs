@@ -69,7 +69,7 @@ func (s *VersionsDataSource***REMOVED*** Schema(ctx context.Context, req datasou
 	}
 }
 
-func (t *VersionsDataSource***REMOVED*** itemAttributes(***REMOVED*** map[string]schema.Attribute {
+func (s *VersionsDataSource***REMOVED*** itemAttributes(***REMOVED*** map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"id": schema.StringAttribute{
 			Description: "Unique identifier of the version. This is what should be " +

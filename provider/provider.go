@@ -37,6 +37,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/dnsdomain"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/group"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/groupmembership"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/identityprovider"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/machine_types"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/ocm_policies"
@@ -213,26 +214,11 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 		oidcconfig.New,
 		oidcconfiginput.New,
 		clusterrosaclassic.New,
-		// TODO uncomment this after ClusterRosaClassic resource is fixed
-		// clusterwaiter.NewClusterRosaClassicResource,
+		identityprovider.New,
+		// TODO: add other resources:
+		// cluster.New,
 	}
 }
-
-// func (p *Provider) Resources(ctx context.Context) (result map[string]resource.Resource,
-// 	diags diag.Diagnostics) {
-// 	result = map[string]resource.Resource{
-// 		"rhcs_cluster":                &ClusterResourceType{},
-// 		"rhcs_cluster_rosa_classic":   &ClusterRosaClassicResourceType{},
-// 		"rhcs_group_membership":       &GroupMembershipResourceType{},
-// 		"rhcs_identity_provider":      &IdentityProviderResourceType{},
-// 		"rhcs_machine_pool":           &MachinePoolResourceType{},
-// 		"rhcs_cluster_wait":           &ClusterWaiterResourceType{},
-// 		"rhcs_rosa_oidc_config_input": &RosaOidcConfigInputResourceType{},
-// 		"rhcs_rosa_oidc_config":       &RosaOidcConfigResourceType{},
-// 		"rhcs_dns_domain":             &DNSDomainResourceType{},
-// 	}
-// 	return
-// }
 
 func (p *Provider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
@@ -242,19 +228,8 @@ func (p *Provider) DataSources(ctx context.Context) []func() datasource.DataSour
 		ocm_policies.New,
 		rosa_operator_roles.New,
 		versions.New,
+		// TODO: add other data sources:
+		// policies.New,
+
 	}
 }
-
-// GetDataSources returns the data sources supported by the provider.
-// func (p *Provider) DataSources(ctx context.Context) (result map[string]datasource.DataSource,
-// 	diags diag.Diagnostics) {
-// 	result = map[string]datasource.DataSource{
-// 		"rhcs_cloud_providers":     &CloudProvidersDataSourceType{},
-// 		"rhcs_rosa_operator_roles": &RosaOperatorRolesDataSourceType{},
-// 		"rhcs_policies":            &OcmPoliciesDataSourceType{},
-// 		"rhcs_groups":              &GroupsDataSourceType{},
-// 		"rhcs_machine_types":       &MachineTypesDataSourceType{},
-// 		"rhcs_versions":            &VersionsDataSourceType{},
-// 	}
-// 	return
-// }

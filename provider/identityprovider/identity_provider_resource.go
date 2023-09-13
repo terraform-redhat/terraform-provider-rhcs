@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package identityprovider
 
 ***REMOVED***
 	"context"
@@ -23,82 +23,86 @@ package provider
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 ***REMOVED***
 
-type IdentityProviderResourceType struct {
-}
+var _ resource.ResourceWithConfigure = &IdentityProviderResource{}
+var _ resource.ResourceWithImportState = &IdentityProviderResource{}
+var _ resource.ResourceWithValidateConfig = &IdentityProviderResource{}
 
 type IdentityProviderResource struct {
 	collection *cmv1.ClustersClient
 }
 
-func (t *IdentityProviderResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVED*** (result tfsdk.Schema,
-	diags diag.Diagnostics***REMOVED*** {
-	result = tfsdk.Schema{
+func New(***REMOVED*** resource.Resource {
+	return &IdentityProviderResource{}
+}
+func (r *IdentityProviderResource***REMOVED*** Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse***REMOVED*** {
+	resp.TypeName = req.ProviderTypeName + "_identity_provider"
+}
+
+func (r *IdentityProviderResource***REMOVED*** Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse***REMOVED*** {
+	resp.Schema = schema.Schema{
 		Description: "Identity provider.",
-		Attributes: map[string]tfsdk.Attribute{
-			"cluster": {
+		Attributes: map[string]schema.Attribute{
+			"cluster": schema.StringAttribute{
 				Description: "Identifier of the cluster.",
-				Type:        types.StringType,
 				Required:    true,
 	***REMOVED***,
-			"id": {
+			"id": schema.StringAttribute{
 				Description: "Unique identifier of the identity provider.",
-				Type:        types.StringType,
 				Computed:    true,
 	***REMOVED***,
-			"name": {
+			"name": schema.StringAttribute{
 				Description: "Name of the identity provider.",
-				Type:        types.StringType,
 				Required:    true,
 	***REMOVED***,
-			"mapping_method": {
+			"mapping_method": schema.StringAttribute{
 				Description: "Specifies how new identities are mapped to users when they log in. Options are [add claim generate lookup] (default 'claim'***REMOVED***",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
-				Validators:  idps.MappingMethodValidators(***REMOVED***,
+				Validators:  MappingMethodValidators(***REMOVED***,
 	***REMOVED***,
-			"htpasswd": {
+			"htpasswd": schema.SingleNestedAttribute{
 				Description: "Details of the 'htpasswd' identity provider.",
-				Attributes:  idps.HtpasswdSchema(***REMOVED***,
+				Attributes:  htpasswdSchema,
 				Optional:    true,
-				Validators:  idps.HTPasswdValidators(***REMOVED***,
 	***REMOVED***,
-			"gitlab": {
+			"gitlab": schema.SingleNestedAttribute{
 				Description: "Details of the Gitlab identity provider.",
-				Attributes:  idps.GitlabSchema(***REMOVED***,
+				Attributes:  gitlabSchema,
 				Optional:    true,
-				Validators:  idps.GitlabValidators(***REMOVED***,
+				Validators:  GitlabValidators(***REMOVED***,
 	***REMOVED***,
-			"github": {
+			"github": schema.SingleNestedAttribute{
 				Description: "Details of the Github identity provider.",
-				Attributes:  idps.GithubSchema(***REMOVED***,
+				Attributes:  githubSchema,
 				Optional:    true,
-				Validators:  idps.GithubValidators(***REMOVED***,
+				Validators:  GitlabValidators(***REMOVED***,
 	***REMOVED***,
-			"google": {
+			"google": schema.SingleNestedAttribute{
 				Description: "Details of the Google identity provider.",
-				Attributes:  idps.GoogleSchema(***REMOVED***,
+				Attributes:  googleSchema,
 				Optional:    true,
-				Validators:  idps.GoogleValidators(***REMOVED***,
+				Validators:  GoogleValidators(***REMOVED***,
 	***REMOVED***,
-			"ldap": {
+			"ldap": schema.SingleNestedAttribute{
 				Description: "Details of the LDAP identity provider.",
-				Attributes:  idps.LDAPSchema(***REMOVED***,
+				Attributes:  ldapSchema,
 				Optional:    true,
-				Validators:  idps.LDAPValidators(***REMOVED***,
+				Validators:  LDAPValidators(***REMOVED***,
 	***REMOVED***,
-			"openid": {
+			"openid": schema.SingleNestedAttribute{
 				Description: "Details of the OpenID identity provider.",
-				Attributes:  idps.OpenidSchema(***REMOVED***,
+				Attributes:  openidSchema,
 				Optional:    true,
 	***REMOVED***,
 ***REMOVED***,
@@ -106,25 +110,35 @@ func (t *IdentityProviderResourceType***REMOVED*** GetSchema(ctx context.Context
 	return
 }
 
-func (t *IdentityProviderResourceType***REMOVED*** NewResource(ctx context.Context,
-	p tfsdk.Provider***REMOVED*** (result tfsdk.Resource, diags diag.Diagnostics***REMOVED*** {
-	// Cast the provider interface to the specific implementation:
-	// use it directly when needed.
-	parent := p.(*Provider***REMOVED***
-
-	// Get the collection of clusters:
-	collection := parent.connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Clusters(***REMOVED***
-
-	// Create the resource:
-	result = &IdentityProviderResource{
-		collection: collection,
+func (r *IdentityProviderResource***REMOVED*** Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse***REMOVED*** {
+	if req.ProviderData == nil {
+		return
 	}
 
-	return
+	collection, ok := req.ProviderData.(*sdk.Connection***REMOVED***
+	if !ok {
+		resp.Diagnostics.AddError("Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *sdk.Connaction, got: %T. Please report this issue to the provider developers.", req.ProviderData***REMOVED***,
+		***REMOVED***
+		return
+	}
+
+	r.collection = collection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Clusters(***REMOVED***
 }
 
-func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
-	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse***REMOVED*** {
+func (r *IdentityProviderResource***REMOVED*** ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse***REMOVED*** {
+	idp := &IdentityProviderState{}
+	diag := req.Config.Get(ctx, idp***REMOVED***
+
+	if diag.HasError(***REMOVED*** {
+		return
+	}
+
+	//TODO: add validations
+
+}
+
+func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context, request resource.CreateRequest, response *resource.CreateResponse***REMOVED*** {
 	// Get the plan:
 	state := &IdentityProviderState{}
 	diags := request.Plan.Get(ctx, state***REMOVED***
@@ -133,11 +147,11 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 		return
 	}
 
-	resource := r.collection.Cluster(state.Cluster.Value***REMOVED***
+	resource := r.collection.Cluster(state.Cluster.ValueString(***REMOVED******REMOVED***
 	// We expect the cluster to be already exist
 	// Try to get it and if result with NotFound error, return error to user
 	if resp, err := resource.Get(***REMOVED***.SendContext(ctx***REMOVED***; err != nil && resp.Status(***REMOVED*** == http.StatusNotFound {
-		message := fmt.Sprintf("Cluster %s not found, error: %v", state.Cluster.Value, err***REMOVED***
+		message := fmt.Sprintf("Cluster %s not found, error: %v", state.Cluster.ValueString(***REMOVED***, err***REMOVED***
 		tflog.Error(ctx, message***REMOVED***
 		response.Diagnostics.AddError(
 			"Can't poll cluster state",
@@ -160,7 +174,7 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 			"Can't poll cluster state",
 			fmt.Sprintf(
 				"Can't poll state of cluster with identifier '%s': %v",
-				state.Cluster.Value, err,
+				state.Cluster.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -168,21 +182,21 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 
 	// Create the identity provider:
 	builder := cmv1.NewIdentityProvider(***REMOVED***
-	builder.Name(state.Name.Value***REMOVED***
+	builder.Name(state.Name.ValueString(***REMOVED******REMOVED***
 	// handle mapping_method
-	mappingMethod := idps.DefaultMappingMethod
-	if !state.MappingMethod.Unknown && !state.MappingMethod.Null {
-		mappingMethod = state.MappingMethod.Value
+	mappingMethod := DefaultMappingMethod
+	if !state.MappingMethod.IsUnknown(***REMOVED*** && !state.MappingMethod.IsNull(***REMOVED*** {
+		mappingMethod = state.MappingMethod.ValueString(***REMOVED***
 	}
 	builder.MappingMethod(cmv1.IdentityProviderMappingMethod(mappingMethod***REMOVED******REMOVED***
 	switch {
 	case state.HTPasswd != nil:
 		builder.Type(cmv1.IdentityProviderTypeHtpasswd***REMOVED***
-		htpasswdBuilder := idps.CreateHTPasswdIDPBuilder(ctx, state.HTPasswd***REMOVED***
+		htpasswdBuilder := CreateHTPasswdIDPBuilder(ctx, state.HTPasswd***REMOVED***
 		builder.Htpasswd(htpasswdBuilder***REMOVED***
 	case state.Gitlab != nil:
 		builder.Type(cmv1.IdentityProviderTypeGitlab***REMOVED***
-		gitlabBuilder, err := idps.CreateGitlabIDPBuilder(ctx, state.Gitlab***REMOVED***
+		gitlabBuilder, err := CreateGitlabIDPBuilder(ctx, state.Gitlab***REMOVED***
 		if err != nil {
 			response.Diagnostics.AddError(err.Error(***REMOVED***, err.Error(***REMOVED******REMOVED***
 			return
@@ -190,7 +204,7 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 		builder.Gitlab(gitlabBuilder***REMOVED***
 	case state.Github != nil:
 		builder.Type(cmv1.IdentityProviderTypeGithub***REMOVED***
-		githubBuilder, err := idps.CreateGithubIDPBuilder(ctx, state.Github***REMOVED***
+		githubBuilder, err := CreateGithubIDPBuilder(ctx, state.Github***REMOVED***
 		if err != nil {
 			response.Diagnostics.AddError(err.Error(***REMOVED***, err.Error(***REMOVED******REMOVED***
 			return
@@ -198,7 +212,7 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 		builder.Github(githubBuilder***REMOVED***
 	case state.Google != nil:
 		builder.Type(cmv1.IdentityProviderTypeGoogle***REMOVED***
-		googleBuilder, err := idps.CreateGoogleIDPBuilder(ctx, mappingMethod, state.Google***REMOVED***
+		googleBuilder, err := CreateGoogleIDPBuilder(ctx, mappingMethod, state.Google***REMOVED***
 		if err != nil {
 			response.Diagnostics.AddError(err.Error(***REMOVED***, err.Error(***REMOVED******REMOVED***
 			return
@@ -206,7 +220,7 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 		builder.Google(googleBuilder***REMOVED***
 	case state.LDAP != nil:
 		builder.Type(cmv1.IdentityProviderTypeLDAP***REMOVED***
-		ldapBuilder, err := idps.CreateLDAPIDPBuilder(ctx, state.LDAP***REMOVED***
+		ldapBuilder, err := CreateLDAPIDPBuilder(ctx, state.LDAP***REMOVED***
 		if err != nil {
 			response.Diagnostics.AddError(err.Error(***REMOVED***, err.Error(***REMOVED******REMOVED***
 			return
@@ -214,7 +228,7 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 		builder.LDAP(ldapBuilder***REMOVED***
 	case state.OpenID != nil:
 		builder.Type(cmv1.IdentityProviderTypeOpenID***REMOVED***
-		openidBuilder, err := idps.CreateOpenIDIDPBuilder(ctx, state.OpenID***REMOVED***
+		openidBuilder, err := CreateOpenIDIDPBuilder(ctx, state.OpenID***REMOVED***
 		if err != nil {
 			response.Diagnostics.AddError(err.Error(***REMOVED***, err.Error(***REMOVED******REMOVED***
 			return
@@ -227,7 +241,7 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 			"Can't build identity provider",
 			fmt.Sprintf(
 				"Can't build identity provider with name '%s': %v",
-				state.Name.Value, err,
+				state.Name.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -240,20 +254,16 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 			fmt.Sprintf(
 				"Can't create identity provider with name '%s' for "+
 					"cluster '%s': %v",
-				state.Name.Value, state.Cluster.Value, err,
+				state.Name.ValueString(***REMOVED***, state.Cluster.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
 	}
 	object = add.Body(***REMOVED***
 
-	// Set the computed attributes:
-	state.ID = types.String{
-		Value: object.ID(***REMOVED***,
-	}
-	state.MappingMethod = types.String{
-		Value: string(object.MappingMethod(***REMOVED******REMOVED***,
-	}
+	state.ID = types.StringValue(object.ID(***REMOVED******REMOVED***
+
+	state.MappingMethod = types.StringValue(string(object.MappingMethod(***REMOVED******REMOVED******REMOVED***
 	htpasswdObject := object.Htpasswd(***REMOVED***
 	gitlabObject := object.Gitlab(***REMOVED***
 	ldapObject := object.LDAP(***REMOVED***
@@ -265,13 +275,11 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 		// Nothing, there are no computed attributes for `gitlab` identity providers.
 	case ldapObject != nil:
 		if state.LDAP == nil {
-			state.LDAP = &idps.LDAPIdentityProvider{}
+			state.LDAP = &LDAPIdentityProvider{}
 ***REMOVED***
 		insecure, ok := ldapObject.GetInsecure(***REMOVED***
 		if ok {
-			state.LDAP.Insecure = types.Bool{
-				Value: insecure,
-	***REMOVED***
+			state.LDAP.Insecure = types.BoolValue(insecure***REMOVED***
 ***REMOVED***
 	case openidObject != nil:
 	}
@@ -281,8 +289,7 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context,
 	response.Diagnostics.Append(diags...***REMOVED***
 }
 
-func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request tfsdk.ReadResourceRequest,
-	response *tfsdk.ReadResourceResponse***REMOVED*** {
+func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request resource.ReadRequest, response *resource.ReadResponse***REMOVED*** {
 	// Get the current state:
 	state := &IdentityProviderState{}
 	diags := request.State.Get(ctx, state***REMOVED***
@@ -292,13 +299,13 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 	}
 
 	// Find the identity provider:
-	resource := r.collection.Cluster(state.Cluster.Value***REMOVED***.
+	resource := r.collection.Cluster(state.Cluster.ValueString(***REMOVED******REMOVED***.
 		IdentityProviders(***REMOVED***.
-		IdentityProvider(state.ID.Value***REMOVED***
+		IdentityProvider(state.ID.ValueString(***REMOVED******REMOVED***
 	get, err := resource.Get(***REMOVED***.SendContext(ctx***REMOVED***
 	if err != nil && get.Status(***REMOVED*** == http.StatusNotFound {
 		tflog.Warn(ctx, fmt.Sprintf("identity provider (%s***REMOVED*** of cluster (%s***REMOVED*** not found, removing from state",
-			state.ID.Value, state.Cluster.Value,
+			state.ID.ValueString(***REMOVED***, state.Cluster.ValueString(***REMOVED***,
 		***REMOVED******REMOVED***
 		response.State.RemoveResource(ctx***REMOVED***
 		return
@@ -308,7 +315,7 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 			fmt.Sprintf(
 				"Can't find identity provider with identifier '%s' for "+
 					"cluster '%s': %v",
-				state.ID.Value, state.Cluster.Value, err,
+				state.ID.ValueString(***REMOVED***, state.Cluster.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -317,10 +324,7 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 	object := get.Body(***REMOVED***
 
 	// Copy the identity provider data into the state:
-	state.Name = types.String{
-		Value: object.Name(***REMOVED***,
-	}
-
+	state.Name = types.StringValue(object.Name(***REMOVED******REMOVED***
 	htpasswdObject := object.Htpasswd(***REMOVED***
 	gitlabObject := object.Gitlab(***REMOVED***
 	ldapObject := object.LDAP(***REMOVED***
@@ -330,209 +334,195 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 	switch {
 	case htpasswdObject != nil:
 		if state.HTPasswd == nil {
-			state.HTPasswd = &idps.HTPasswdIdentityProvider{}
+			state.HTPasswd = &HTPasswdIdentityProvider{}
 ***REMOVED***
 		if users, ok := htpasswdObject.GetUsers(***REMOVED***; ok {
 			users.Each(func(item *cmv1.HTPasswdUser***REMOVED*** bool {
-				state.HTPasswd.Users = append(state.HTPasswd.Users, idps.HTPasswdUser{
-					Username: types.String{
-						Value: item.Username(***REMOVED***,
-			***REMOVED***,
-					Password: types.String{
-						Value: item.Password(***REMOVED***,
-			***REMOVED***,
+				state.HTPasswd.Users = append(state.HTPasswd.Users, HTPasswdUser{
+					Username: types.StringValue(item.Username(***REMOVED******REMOVED***,
+					Password: types.StringValue(item.Password(***REMOVED******REMOVED***,
 		***REMOVED******REMOVED***
 				return true
 	***REMOVED******REMOVED***
 ***REMOVED***
 	case gitlabObject != nil:
 		if state.Gitlab == nil {
-			state.Gitlab = &idps.GitlabIdentityProvider{}
+			state.Gitlab = &GitlabIdentityProvider{}
 ***REMOVED***
 		ca, ok := gitlabObject.GetCA(***REMOVED***
 		if ok {
-			state.Gitlab.CA = types.String{
-				Value: ca,
-	***REMOVED***
+			state.Gitlab.CA = types.StringValue(ca***REMOVED***
 ***REMOVED***
 		client_id, ok := gitlabObject.GetClientID(***REMOVED***
 		if ok {
-			state.Gitlab.ClientID = types.String{
-				Value: client_id,
-	***REMOVED***
+			state.Gitlab.ClientID = types.StringValue(client_id***REMOVED***
 ***REMOVED***
 		client_secret, ok := gitlabObject.GetClientSecret(***REMOVED***
 		if ok {
-			state.Gitlab.ClientSecret = types.String{
-				Value: client_secret,
-	***REMOVED***
+			state.Gitlab.ClientSecret = types.StringValue(client_secret***REMOVED***
 ***REMOVED***
 		url, ok := gitlabObject.GetURL(***REMOVED***
 		if ok {
-			state.Gitlab.URL = types.String{
-				Value: url,
-	***REMOVED***
+			state.Gitlab.URL = types.StringValue(url***REMOVED***
 ***REMOVED***
 	case githubObject != nil:
 		if state.Github == nil {
-			state.Github = &idps.GithubIdentityProvider{}
+			state.Github = &GithubIdentityProvider{}
 ***REMOVED***
 		ca, ok := githubObject.GetCA(***REMOVED***
 		if ok {
-			state.Github.CA = types.String{
-				Value: ca,
-	***REMOVED***
+			state.Github.CA = types.StringValue(ca***REMOVED***
 ***REMOVED***
 		client_id, ok := githubObject.GetClientID(***REMOVED***
 		if ok {
-			state.Github.ClientID = types.String{
-				Value: client_id,
-	***REMOVED***
+			state.Github.ClientID = types.StringValue(client_id***REMOVED***
 ***REMOVED***
 		client_secret, ok := githubObject.GetClientSecret(***REMOVED***
 		if ok {
-			state.Github.ClientSecret = types.String{
-				Value: client_secret,
-	***REMOVED***
+			state.Github.ClientSecret = types.StringValue(client_secret***REMOVED***
 ***REMOVED***
 		hostname, ok := githubObject.GetHostname(***REMOVED***
 		if ok {
-			state.Github.Hostname = types.String{
-				Value: hostname,
-	***REMOVED***
+			state.Github.Hostname = types.StringValue(hostname***REMOVED***
 ***REMOVED***
 		teams, ok := githubObject.GetTeams(***REMOVED***
 		if ok {
-			state.Github.Teams = common.StringArrayToList(teams***REMOVED***
+			state.Github.Teams, err = common.StringArrayToList(teams***REMOVED***
+			if err != nil {
+				response.Diagnostics.AddError("failed to convert string slice to tf list", "GitHub Teams conversion failed"***REMOVED***
+	***REMOVED***
 ***REMOVED***
 		orgs, ok := githubObject.GetOrganizations(***REMOVED***
 		if ok {
-			state.Github.Organizations = common.StringArrayToList(orgs***REMOVED***
+			state.Github.Organizations, err = common.StringArrayToList(orgs***REMOVED***
+			if err != nil {
+				response.Diagnostics.AddError("failed to convert string slice to tf list", "GitHub Organizations conversion failed"***REMOVED***
+	***REMOVED***
 ***REMOVED***
 	case googleObject != nil:
 		if state.Google == nil {
-			state.Google = &idps.GoogleIdentityProvider{}
+			state.Google = &GoogleIdentityProvider{}
 ***REMOVED***
 		if client_id, ok := googleObject.GetClientID(***REMOVED***; ok {
-			state.Google.ClientID = types.String{
-				Value: client_id,
-	***REMOVED***
+			state.Google.ClientID = types.StringValue(client_id***REMOVED***
 ***REMOVED***
 		if client_secret, ok := googleObject.GetClientSecret(***REMOVED***; ok {
-			state.Google.ClientSecret = types.String{
-				Value: client_secret,
-	***REMOVED***
+			state.Google.ClientSecret = types.StringValue(client_secret***REMOVED***
 ***REMOVED***
 		if hosted_domain, ok := googleObject.GetHostedDomain(***REMOVED***; ok {
-			state.Google.HostedDomain = types.String{
-				Value: hosted_domain,
-	***REMOVED***
+			state.Google.HostedDomain = types.StringValue(hosted_domain***REMOVED***
 ***REMOVED***
 	case ldapObject != nil:
 		if state.LDAP == nil {
-			state.LDAP = &idps.LDAPIdentityProvider{}
+			state.LDAP = &LDAPIdentityProvider{}
 ***REMOVED***
 		bindDN, ok := ldapObject.GetBindDN(***REMOVED***
 		if ok {
-			state.LDAP.BindDN = types.String{
-				Value: bindDN,
-	***REMOVED***
+			state.LDAP.BindDN = types.StringValue(bindDN***REMOVED***
 ***REMOVED***
 		bindPassword, ok := ldapObject.GetBindPassword(***REMOVED***
 		if ok {
-			state.LDAP.BindPassword = types.String{
-				Value: bindPassword,
-	***REMOVED***
+			state.LDAP.BindPassword = types.StringValue(bindPassword***REMOVED***
 ***REMOVED***
 		ca, ok := ldapObject.GetCA(***REMOVED***
 		if ok {
-			state.LDAP.CA = types.String{
-				Value: ca,
-	***REMOVED***
+			state.LDAP.CA = types.StringValue(ca***REMOVED***
 ***REMOVED***
 		insecure, ok := ldapObject.GetInsecure(***REMOVED***
 		if ok {
-			state.LDAP.Insecure = types.Bool{
-				Value: insecure,
-	***REMOVED***
+			state.LDAP.Insecure = types.BoolValue(insecure***REMOVED***
 ***REMOVED***
 		url, ok := ldapObject.GetURL(***REMOVED***
 		if ok {
-			state.LDAP.URL = types.String{
-				Value: url,
-	***REMOVED***
+			state.LDAP.URL = types.StringValue(url***REMOVED***
 ***REMOVED***
 		attributes, ok := ldapObject.GetAttributes(***REMOVED***
 		if ok {
 			if state.LDAP.Attributes == nil {
-				state.LDAP.Attributes = &idps.LDAPIdentityProviderAttributes{}
+				state.LDAP.Attributes = &LDAPIdentityProviderAttributes{}
 	***REMOVED***
 			id, ok := attributes.GetID(***REMOVED***
 			if ok {
-				state.LDAP.Attributes.ID = common.StringArrayToList(id***REMOVED***
+				state.LDAP.Attributes.ID, err = common.StringArrayToList(id***REMOVED***
+				if err != nil {
+					response.Diagnostics.AddError("failed to convert LDAP attribute ID to tf list", err.Error(***REMOVED******REMOVED***
+		***REMOVED***
 	***REMOVED***
 			email, ok := attributes.GetEmail(***REMOVED***
 			if ok {
-				state.LDAP.Attributes.EMail = common.StringArrayToList(email***REMOVED***
+				state.LDAP.Attributes.EMail, err = common.StringArrayToList(email***REMOVED***
+				if err != nil {
+					response.Diagnostics.AddError("failed to convert LDAP attribute EMail to tf list", err.Error(***REMOVED******REMOVED***
+		***REMOVED***
 	***REMOVED***
 			name, ok := attributes.GetName(***REMOVED***
 			if ok {
-				state.LDAP.Attributes.Name = common.StringArrayToList(name***REMOVED***
+				state.LDAP.Attributes.Name, err = common.StringArrayToList(name***REMOVED***
+				if err != nil {
+					response.Diagnostics.AddError("failed to convert LDAP attribute Name to tf list", err.Error(***REMOVED******REMOVED***
+		***REMOVED***
 	***REMOVED***
 			preferredUsername, ok := attributes.GetPreferredUsername(***REMOVED***
 			if ok {
-				state.LDAP.Attributes.PreferredUsername = common.StringArrayToList(preferredUsername***REMOVED***
+				state.LDAP.Attributes.PreferredUsername, err = common.StringArrayToList(preferredUsername***REMOVED***
+				if err != nil {
+					response.Diagnostics.AddError("failed to convert LDAP attribute PreferredUsername to tf list", err.Error(***REMOVED******REMOVED***
+		***REMOVED***
 	***REMOVED***
 ***REMOVED***
 	case openidObject != nil:
 		if state.OpenID == nil {
-			state.OpenID = &idps.OpenIDIdentityProvider{}
+			state.OpenID = &OpenIDIdentityProvider{}
 ***REMOVED***
 		ca, ok := openidObject.GetCA(***REMOVED***
 		if ok {
-			state.OpenID.CA = types.String{
-				Value: ca,
-	***REMOVED***
+			state.OpenID.CA = types.StringValue(ca***REMOVED***
 ***REMOVED***
 		client_id, ok := openidObject.GetClientID(***REMOVED***
 		if ok {
-			state.OpenID.ClientID = types.String{
-				Value: client_id,
-	***REMOVED***
+			state.OpenID.ClientID = types.StringValue(client_id***REMOVED***
 ***REMOVED***
 		client_secret, ok := openidObject.GetClientSecret(***REMOVED***
 		if ok {
-			state.OpenID.ClientSecret = types.String{
-				Value: client_secret,
-	***REMOVED***
+			state.OpenID.ClientSecret = types.StringValue(client_secret***REMOVED***
 ***REMOVED***
 		claims, ok := openidObject.GetClaims(***REMOVED***
 		if ok {
 			if state.OpenID.Claims == nil {
-				state.OpenID.Claims = &idps.OpenIDIdentityProviderClaims{}
+				state.OpenID.Claims = &OpenIDIdentityProviderClaims{}
 	***REMOVED***
 			email, ok := claims.GetEmail(***REMOVED***
 			if ok {
-				state.OpenID.Claims.EMail = common.StringArrayToList(email***REMOVED***
+				state.OpenID.Claims.EMail, err = common.StringArrayToList(email***REMOVED***
+				if err != nil {
+					response.Diagnostics.AddError("failed to convert OpenID claims EMail to tf list", err.Error(***REMOVED******REMOVED***
+		***REMOVED***
 	***REMOVED***
 			groups, ok := claims.GetGroups(***REMOVED***
 			if ok {
-				state.OpenID.Claims.Groups = common.StringArrayToList(groups***REMOVED***
+				state.OpenID.Claims.Groups, err = common.StringArrayToList(groups***REMOVED***
+				if err != nil {
+					response.Diagnostics.AddError("failed to convert OpenID claims Groups to tf list", err.Error(***REMOVED******REMOVED***
+		***REMOVED***
 	***REMOVED***
 			name, ok := claims.GetName(***REMOVED***
 			if ok {
-				state.OpenID.Claims.Name = common.StringArrayToList(name***REMOVED***
+				state.OpenID.Claims.Name, err = common.StringArrayToList(name***REMOVED***
+				if err != nil {
+					response.Diagnostics.AddError("failed to convert OpenID claims Name to tf list", err.Error(***REMOVED******REMOVED***
+		***REMOVED***
 	***REMOVED***
 			preferredUsername, ok := claims.GetPreferredUsername(***REMOVED***
 			if ok {
-				state.OpenID.Claims.PreferredUsername = common.StringArrayToList(preferredUsername***REMOVED***
+				state.OpenID.Claims.PreferredUsername, err = common.StringArrayToList(preferredUsername***REMOVED***
+				if err != nil {
+					response.Diagnostics.AddError("failed to convert OpenID claims PreferredUsername to tf list", err.Error(***REMOVED******REMOVED***
+		***REMOVED***
 	***REMOVED***
 ***REMOVED***
 		issuer, ok := openidObject.GetIssuer(***REMOVED***
 		if ok {
-			state.OpenID.Issuer = types.String{
-				Value: issuer,
-	***REMOVED***
+			state.OpenID.Issuer = types.StringValue(issuer***REMOVED***
 ***REMOVED***
 	}
 	response.Diagnostics.Append(diags...***REMOVED***
@@ -545,13 +535,13 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 	response.Diagnostics.Append(diags...***REMOVED***
 }
 
-func (r *IdentityProviderResource***REMOVED*** Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
-	response *tfsdk.UpdateResourceResponse***REMOVED*** {
+func (r *IdentityProviderResource***REMOVED*** Update(ctx context.Context, request resource.UpdateRequest,
+	response *resource.UpdateResponse***REMOVED*** {
 	response.Diagnostics.AddError("IDP Update not supported.", "This RHCS provider version does not support updating an existing IDP"***REMOVED***
 }
 
-func (r *IdentityProviderResource***REMOVED*** Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
-	response *tfsdk.DeleteResourceResponse***REMOVED*** {
+func (r *IdentityProviderResource***REMOVED*** Delete(ctx context.Context, request resource.DeleteRequest,
+	response *resource.DeleteResponse***REMOVED*** {
 	// Get the state:
 	state := &IdentityProviderState{}
 	diags := request.State.Get(ctx, state***REMOVED***
@@ -561,9 +551,9 @@ func (r *IdentityProviderResource***REMOVED*** Delete(ctx context.Context, reque
 	}
 
 	// Send the request to delete the identity provider:
-	resource := r.collection.Cluster(state.Cluster.Value***REMOVED***.
+	resource := r.collection.Cluster(state.Cluster.ValueString(***REMOVED******REMOVED***.
 		IdentityProviders(***REMOVED***.
-		IdentityProvider(state.ID.Value***REMOVED***
+		IdentityProvider(state.ID.ValueString(***REMOVED******REMOVED***
 	_, err := resource.Delete(***REMOVED***.SendContext(ctx***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -571,7 +561,7 @@ func (r *IdentityProviderResource***REMOVED*** Delete(ctx context.Context, reque
 			fmt.Sprintf(
 				"Can't delete identity provider with identifier '%s' for "+
 					"cluster '%s': %v",
-				state.ID.Value, state.Cluster.Value, err,
+				state.ID.ValueString(***REMOVED***, state.Cluster.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -581,8 +571,8 @@ func (r *IdentityProviderResource***REMOVED*** Delete(ctx context.Context, reque
 	response.State.RemoveResource(ctx***REMOVED***
 }
 
-func (r *IdentityProviderResource***REMOVED*** ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
-	response *tfsdk.ImportResourceStateResponse***REMOVED*** {
+func (r *IdentityProviderResource***REMOVED*** ImportState(ctx context.Context, request resource.ImportStateRequest,
+	response *resource.ImportStateResponse***REMOVED*** {
 	// To import an identity provider, we need to know the cluster ID and the provider name.
 	fields := strings.Split(request.ID, ","***REMOVED***
 	if len(fields***REMOVED*** != 2 || fields[0] == "" || fields[1] == "" {
@@ -604,13 +594,13 @@ func (r *IdentityProviderResource***REMOVED*** ImportState(ctx context.Context, 
 		***REMOVED***
 		return
 	}
-	response.Diagnostics.Append(response.State.SetAttribute(ctx, tftypes.NewAttributePath(***REMOVED***.WithAttributeName("cluster"***REMOVED***, clusterID***REMOVED***...***REMOVED***
-	response.Diagnostics.Append(response.State.SetAttribute(ctx, tftypes.NewAttributePath(***REMOVED***.WithAttributeName("id"***REMOVED***, providerID***REMOVED***...***REMOVED***
+	response.Diagnostics.Append(response.State.SetAttribute(ctx, path.Root("cluster"***REMOVED***, clusterID***REMOVED***...***REMOVED***
+	response.Diagnostics.Append(response.State.SetAttribute(ctx, path.Root("id"***REMOVED***, providerID***REMOVED***...***REMOVED***
 }
 
 // getIDPIDFromName returns the ID of the identity provider with the given name.
 func getIDPIDFromName(ctx context.Context, client *cmv1.ClusterClient, name string***REMOVED*** (string, error***REMOVED*** {
-	tflog.Debug(ctx, "Converting IDP name to ID", "name", name***REMOVED***
+	tflog.Debug(ctx, "Converting IDP name to ID", map[string]interface{}{"name": name}***REMOVED***
 	// Get the list of identity providers for the cluster:
 	pClient := client.IdentityProviders(***REMOVED***
 	identityProviders := []*cmv1.IdentityProvider{}
@@ -635,7 +625,7 @@ func getIDPIDFromName(ctx context.Context, client *cmv1.ClusterClient, name stri
 	for _, item := range identityProviders {
 		if item.Name(***REMOVED*** == name {
 			id := item.ID(***REMOVED***
-			tflog.Debug(ctx, "Found IDP", "name", name, "id", id***REMOVED***
+			tflog.Debug(ctx, "Found IDP", map[string]interface{}{"name": name, "id": id}***REMOVED***
 			return id, nil
 ***REMOVED***
 	}

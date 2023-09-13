@@ -19,14 +19,21 @@ package cluster
 ***REMOVED***
 	"context"
 	"encoding/json"
+	"testing"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	. "github.com/onsi/ginkgo/v2/dsl/core" // nolint
 ***REMOVED***             // nolint
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 ***REMOVED***
+
+func TestResource(t *testing.T***REMOVED*** {
+	RegisterFailHandler(Fail***REMOVED***
+	RunSpecs(t, "Cluster Resource Suite"***REMOVED***
+}
 
 var _ = Describe("Cluster creation", func(***REMOVED*** {
 	clusterId := "1n2j3k4l5m6n7o8p9q0r"
@@ -48,36 +55,18 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 	privateLink := false
 
 	It("Creates ClusterBuilder with correct field values", func(***REMOVED*** {
+		azs, _ := common.StringArrayToList([]string{availabilityZone}***REMOVED***
+		properties, _ := common.ConvertStringMapToMapType(map[string]string{"rosa_creator_arn": rosaCreatorArn}***REMOVED***
+
 		clusterState := &ClusterState{
-			Name: types.String{
-				Value: clusterName,
-	***REMOVED***,
-			Version: types.String{
-				Value: clusterVersion,
-	***REMOVED***,
-			CloudRegion: types.String{
-				Value: regionId,
-	***REMOVED***,
-			AWSAccountID: types.String{
-				Value: awsAccountID,
-	***REMOVED***,
-			AvailabilityZones: types.List{
-				Elems: []attr.Value{
-					types.String{
-						Value: availabilityZone,
-			***REMOVED***,
-		***REMOVED***,
-	***REMOVED***,
-			Properties: types.Map{
-				Elems: map[string]attr.Value{
-					"rosa_creator_arn": types.String{
-						Value: rosaCreatorArn,
-			***REMOVED***,
-		***REMOVED***,
-	***REMOVED***,
-			Wait: types.Bool{
-				Value: false,
-	***REMOVED***,
+			Name:    types.StringValue(clusterName***REMOVED***,
+			Version: types.StringValue(clusterVersion***REMOVED***,
+
+			CloudRegion:       types.StringValue(regionId***REMOVED***,
+			AWSAccountID:      types.StringValue(awsAccountID***REMOVED***,
+			AvailabilityZones: azs,
+			Properties:        properties,
+			Wait:              types.BoolValue(false***REMOVED***,
 ***REMOVED***
 		clusterObject, err := createClusterObject(context.Background(***REMOVED***, clusterState, diag.Diagnostics{}***REMOVED***
 		Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
@@ -155,24 +144,25 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 
 		//We convert the Cluster object into a ClusterState and check that the conversion is correct
 		clusterState := &ClusterState{}
-		populateClusterState(clusterObject, clusterState***REMOVED***
+		err = populateClusterState(clusterObject, clusterState***REMOVED***
+		Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
 
-		Expect(clusterState.ID.Value***REMOVED***.To(Equal(clusterId***REMOVED******REMOVED***
-		Expect(clusterState.Version.Value***REMOVED***.To(Equal(clusterVersion***REMOVED******REMOVED***
-		Expect(clusterState.Product.Value***REMOVED***.To(Equal(productId***REMOVED******REMOVED***
-		Expect(clusterState.CloudProvider.Value***REMOVED***.To(Equal(cloudProviderId***REMOVED******REMOVED***
-		Expect(clusterState.CloudRegion.Value***REMOVED***.To(Equal(regionId***REMOVED******REMOVED***
-		Expect(clusterState.MultiAZ.Value***REMOVED***.To(Equal(multiAz***REMOVED******REMOVED***
-		Expect(clusterState.Properties.Elems["rosa_creator_arn"].Equal(types.String{Value: rosaCreatorArn}***REMOVED******REMOVED***.To(Equal(true***REMOVED******REMOVED***
-		Expect(clusterState.APIURL.Value***REMOVED***.To(Equal(apiUrl***REMOVED******REMOVED***
-		Expect(clusterState.ConsoleURL.Value***REMOVED***.To(Equal(consoleUrl***REMOVED******REMOVED***
-		Expect(clusterState.ComputeMachineType.Value***REMOVED***.To(Equal(machineType***REMOVED******REMOVED***
-		Expect(clusterState.AvailabilityZones.Elems***REMOVED***.To(HaveLen(1***REMOVED******REMOVED***
-		Expect(clusterState.AvailabilityZones.Elems[0].Equal(types.String{Value: availabilityZone}***REMOVED******REMOVED***.To(Equal(true***REMOVED******REMOVED***
-		Expect(clusterState.CCSEnabled.Value***REMOVED***.To(Equal(ccsEnabled***REMOVED******REMOVED***
-		Expect(clusterState.AWSAccountID.Value***REMOVED***.To(Equal(awsAccountID***REMOVED******REMOVED***
-		Expect(clusterState.AWSAccessKeyID.Value***REMOVED***.To(Equal(awsAccessKeyID***REMOVED******REMOVED***
-		Expect(clusterState.AWSSecretAccessKey.Value***REMOVED***.To(Equal(awsSecretAccessKey***REMOVED******REMOVED***
-		Expect(clusterState.AWSPrivateLink.Value***REMOVED***.To(Equal(privateLink***REMOVED******REMOVED***
+		Expect(clusterState.ID.ValueString(***REMOVED******REMOVED***.To(Equal(clusterId***REMOVED******REMOVED***
+		Expect(clusterState.Version.ValueString(***REMOVED******REMOVED***.To(Equal(clusterVersion***REMOVED******REMOVED***
+		Expect(clusterState.Product.ValueString(***REMOVED******REMOVED***.To(Equal(productId***REMOVED******REMOVED***
+		Expect(clusterState.CloudProvider.ValueString(***REMOVED******REMOVED***.To(Equal(cloudProviderId***REMOVED******REMOVED***
+		Expect(clusterState.CloudRegion.ValueString(***REMOVED******REMOVED***.To(Equal(regionId***REMOVED******REMOVED***
+		Expect(clusterState.MultiAZ.ValueBool(***REMOVED******REMOVED***.To(Equal(multiAz***REMOVED******REMOVED***
+		Expect(clusterState.Properties.Elements(***REMOVED***["rosa_creator_arn"].Equal(types.StringValue(rosaCreatorArn***REMOVED******REMOVED******REMOVED***.To(Equal(true***REMOVED******REMOVED***
+		Expect(clusterState.APIURL.ValueString(***REMOVED******REMOVED***.To(Equal(apiUrl***REMOVED******REMOVED***
+		Expect(clusterState.ConsoleURL.ValueString(***REMOVED******REMOVED***.To(Equal(consoleUrl***REMOVED******REMOVED***
+		Expect(clusterState.ComputeMachineType.ValueString(***REMOVED******REMOVED***.To(Equal(machineType***REMOVED******REMOVED***
+		Expect(clusterState.AvailabilityZones.Elements(***REMOVED******REMOVED***.To(HaveLen(1***REMOVED******REMOVED***
+		Expect(clusterState.AvailabilityZones.Elements(***REMOVED***[0].Equal(types.StringValue(availabilityZone***REMOVED******REMOVED******REMOVED***.To(Equal(true***REMOVED******REMOVED***
+		Expect(clusterState.CCSEnabled.ValueBool(***REMOVED******REMOVED***.To(Equal(ccsEnabled***REMOVED******REMOVED***
+		Expect(clusterState.AWSAccountID.ValueString(***REMOVED******REMOVED***.To(Equal(awsAccountID***REMOVED******REMOVED***
+		Expect(clusterState.AWSAccessKeyID.ValueString(***REMOVED******REMOVED***.To(Equal(awsAccessKeyID***REMOVED******REMOVED***
+		Expect(clusterState.AWSSecretAccessKey.ValueString(***REMOVED******REMOVED***.To(Equal(awsSecretAccessKey***REMOVED******REMOVED***
+		Expect(clusterState.AWSPrivateLink.ValueBool(***REMOVED******REMOVED***.To(Equal(privateLink***REMOVED******REMOVED***
 	}***REMOVED***
 }***REMOVED***

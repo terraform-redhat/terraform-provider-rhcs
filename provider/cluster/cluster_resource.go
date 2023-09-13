@@ -19,205 +19,186 @@ package cluster
 ***REMOVED***
 	"context"
 ***REMOVED***
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 ***REMOVED***
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift-online/ocm-sdk-go/errors"
+
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 ***REMOVED***
-
-type ClusterResourceType struct {
-}
 
 type ClusterResource struct {
 	collection *cmv1.ClustersClient
 }
 
-func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVED*** (result tfsdk.Schema,
-	diags diag.Diagnostics***REMOVED*** {
-	result = tfsdk.Schema{
+var _ resource.ResourceWithConfigure = &ClusterResource{}
+var _ resource.ResourceWithImportState = &ClusterResource{}
+
+func New(***REMOVED*** resource.Resource {
+	return &ClusterResource{}
+}
+
+func (r *ClusterResource***REMOVED*** Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse***REMOVED*** {
+	resp.TypeName = req.ProviderTypeName + "_cluster"
+}
+
+func (r *ClusterResource***REMOVED*** Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse***REMOVED*** {
+	resp.Schema = schema.Schema{
 		Description: "OpenShift managed cluster.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Description: "Unique identifier of the cluster.",
-				Type:        types.StringType,
 				Computed:    true,
 	***REMOVED***,
-			"product": {
+			"product": schema.StringAttribute{
 				Description: "Product ID OSD or Rosa",
-				Type:        types.StringType,
 				Required:    true,
 	***REMOVED***,
-			"name": {
+			"name": schema.StringAttribute{
 				Description: "Name of the cluster.",
-				Type:        types.StringType,
 				Required:    true,
 	***REMOVED***,
-			"cloud_provider": {
+			"cloud_provider": schema.StringAttribute{
 				Description: "Cloud provider identifier, for example 'aws'.",
-				Type:        types.StringType,
 				Required:    true,
 	***REMOVED***,
-			"cloud_region": {
+			"cloud_region": schema.StringAttribute{
 				Description: "Cloud region identifier, for example 'us-east-1'.",
-				Type:        types.StringType,
 				Required:    true,
 	***REMOVED***,
-			"multi_az": {
+			"multi_az": schema.BoolAttribute{
 				Description: "Indicates if the cluster should be deployed to " +
 					"multiple availability zones. Default value is 'false'.",
-				Type:     types.BoolType,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(***REMOVED***,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,
-			"properties": {
+			"properties": schema.MapAttribute{
 				Description: "User defined properties.",
-				Type: types.MapType{
-					ElemType: types.StringType,
-		***REMOVED***,
-				Optional: true,
-				Computed: true,
-	***REMOVED***,
-			"api_url": {
-				Description: "URL of the API server.",
-				Type:        types.StringType,
-				Computed:    true,
-	***REMOVED***,
-			"console_url": {
-				Description: "URL of the console.",
-				Type:        types.StringType,
-				Computed:    true,
-	***REMOVED***,
-			"compute_nodes": {
-				Description: "Number of compute nodes of the cluster.",
-				Type:        types.Int64Type,
+				ElementType: types.StringType,
 				Optional:    true,
 				Computed:    true,
 	***REMOVED***,
-			"compute_machine_type": {
+			"api_url": schema.StringAttribute{
+				Description: "URL of the API server.",
+				Computed:    true,
+	***REMOVED***,
+			"console_url": schema.StringAttribute{
+				Description: "URL of the console.",
+				Computed:    true,
+	***REMOVED***,
+			"compute_nodes": schema.Int64Attribute{
+				Description: "Number of compute nodes of the cluster.",
+				Optional:    true,
+				Computed:    true,
+	***REMOVED***,
+			"compute_machine_type": schema.StringAttribute{
 				Description: "Identifier of the machine type used by the compute nodes, " +
 					"for example `r5.xlarge`. Use the `ocm_machine_types` data " +
 					"source to find the possible values.",
-				Type:     types.StringType,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(***REMOVED***,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,
-			"ccs_enabled": {
+			"ccs_enabled": schema.BoolAttribute{
 				Description: "Enables customer cloud subscription.",
-				Type:        types.BoolType,
 				Optional:    true,
 				Computed:    true,
 	***REMOVED***,
-			"aws_account_id": {
+			"aws_account_id": schema.StringAttribute{
 				Description: "Identifier of the AWS account.",
-				Type:        types.StringType,
 				Optional:    true,
 	***REMOVED***,
-			"aws_access_key_id": {
+			"aws_access_key_id": schema.StringAttribute{
 				Description: "Identifier of the AWS access key.",
-				Type:        types.StringType,
 				Optional:    true,
 				Sensitive:   true,
 	***REMOVED***,
-			"aws_secret_access_key": {
+			"aws_secret_access_key": schema.StringAttribute{
 				Description: "AWS access key.",
-				Type:        types.StringType,
 				Optional:    true,
 				Sensitive:   true,
 	***REMOVED***,
-			"aws_subnet_ids": {
-				Description: "aws subnet ids",
-				Type: types.ListType{
-					ElemType: types.StringType,
+			"aws_subnet_ids": schema.ListAttribute{
+				Description: "AWS subnet IDs.",
+				ElementType: types.StringType,
+				Optional:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplace(***REMOVED***,
 		***REMOVED***,
-				Optional: true,
 	***REMOVED***,
-			"aws_private_link": {
-				Description: "aws subnet ids",
-				Type:        types.BoolType,
+			"aws_private_link": schema.BoolAttribute{
+				Description: "Provides private connectivity between VPCs, AWS services, and your on-premises networks, without exposing your traffic to the public internet.",
 				Optional:    true,
 				Computed:    true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(***REMOVED***,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(***REMOVED***,
+					boolplanmodifier.RequiresReplace(***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,
-			"availability_zones": {
-				Description: "availability zones",
-				Type: types.ListType{
-					ElemType: types.StringType,
+			"availability_zones": schema.ListAttribute{
+				Description: "Availability zones.",
+				ElementType: types.StringType,
+				Optional:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.UseStateForUnknown(***REMOVED***,
+					listplanmodifier.RequiresReplace(***REMOVED***,
 		***REMOVED***,
-				Optional: true,
 	***REMOVED***,
-			"machine_cidr": {
+			"machine_cidr": schema.StringAttribute{
 				Description: "Block of IP addresses for nodes.",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
 	***REMOVED***,
-			"proxy": {
+			"proxy": schema.SingleNestedAttribute{
 				Description: "proxy",
-				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-					"http_proxy": {
-						Description: "http proxy",
-						Type:        types.StringType,
-						Required:    true,
-			***REMOVED***,
-					"https_proxy": {
-						Description: "https proxy",
-						Type:        types.StringType,
-						Required:    true,
-			***REMOVED***,
-					"no_proxy": {
-						Description: "no proxy",
-						Type:        types.StringType,
-						Optional:    true,
-			***REMOVED***,
-		***REMOVED******REMOVED***,
-				Optional: true,
+				Attributes:  proxy.ProxyResource(***REMOVED***,
+				Optional:    true,
+				Validators:  []validator.Object{proxy.ProxyValidator(***REMOVED***},
 	***REMOVED***,
-			"service_cidr": {
+			"service_cidr": schema.StringAttribute{
 				Description: "Block of IP addresses for services.",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
 	***REMOVED***,
-			"pod_cidr": {
+			"pod_cidr": schema.StringAttribute{
 				Description: "Block of IP addresses for pods.",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
 	***REMOVED***,
-			"host_prefix": {
+			"host_prefix": schema.Int64Attribute{
 				Description: "Length of the prefix of the subnet assigned to each node.",
-				Type:        types.Int64Type,
 				Optional:    true,
 				Computed:    true,
 	***REMOVED***,
-			"version": {
+			"version": schema.StringAttribute{
 				Description: "Identifier of the version of OpenShift, for example 'openshift-v4.1.0'.",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
 	***REMOVED***,
-			"state": {
+			"state": schema.StringAttribute{
 				Description: "State of the cluster.",
-				Type:        types.StringType,
 				Computed:    true,
 	***REMOVED***,
-			"wait": {
+			"wait": schema.BoolAttribute{
 				Description: "Wait till the cluster is ready.",
-				Type:        types.BoolType,
 				Optional:    true,
 	***REMOVED***,
 ***REMOVED***,
@@ -225,19 +206,22 @@ func (t *ClusterResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVE
 	return
 }
 
-func (t *ClusterResourceType***REMOVED*** NewResource(ctx context.Context,
-	p tfsdk.Provider***REMOVED*** (result tfsdk.Resource, diags diag.Diagnostics***REMOVED*** {
-	// Cast the provider interface to the specific implementation:
-	parent := p.(*Provider***REMOVED***
-
-	// Get the collection of clusters:
-	collection := parent.connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Clusters(***REMOVED***
-
-	// Create the resource:
-	result = &ClusterResource{
-		collection: collection,
+func (r *ClusterResource***REMOVED*** Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse***REMOVED*** {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
 	}
 
+	connection, ok := req.ProviderData.(*sdk.Connection***REMOVED***
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *sdk.Connaction, got: %T. Please report this issue to the provider developers.", req.ProviderData***REMOVED***,
+		***REMOVED***
+		return
+	}
+
+	r.collection = connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Clusters(***REMOVED***
 	return
 }
 
@@ -245,71 +229,75 @@ func createClusterObject(ctx context.Context,
 	state *ClusterState, diags diag.Diagnostics***REMOVED*** (*cmv1.Cluster, error***REMOVED*** {
 	// Create the cluster:
 	builder := cmv1.NewCluster(***REMOVED***
-	builder.Name(state.Name.Value***REMOVED***
-	builder.CloudProvider(cmv1.NewCloudProvider(***REMOVED***.ID(state.CloudProvider.Value***REMOVED******REMOVED***
-	builder.Product(cmv1.NewProduct(***REMOVED***.ID(state.Product.Value***REMOVED******REMOVED***
-	builder.Region(cmv1.NewCloudRegion(***REMOVED***.ID(state.CloudRegion.Value***REMOVED******REMOVED***
-	if !state.MultiAZ.Unknown && !state.MultiAZ.Null {
-		builder.MultiAZ(state.MultiAZ.Value***REMOVED***
+	builder.Name(state.Name.ValueString(***REMOVED******REMOVED***
+	builder.CloudProvider(cmv1.NewCloudProvider(***REMOVED***.ID(state.CloudProvider.ValueString(***REMOVED******REMOVED******REMOVED***
+	builder.Product(cmv1.NewProduct(***REMOVED***.ID(state.Product.ValueString(***REMOVED******REMOVED******REMOVED***
+	builder.Region(cmv1.NewCloudRegion(***REMOVED***.ID(state.CloudRegion.ValueString(***REMOVED******REMOVED******REMOVED***
+	if common.HasValue(state.MultiAZ***REMOVED*** {
+		builder.MultiAZ(state.MultiAZ.ValueBool(***REMOVED******REMOVED***
 	}
-	if !state.Properties.Unknown && !state.Properties.Null {
+	if common.HasValue(state.Properties***REMOVED*** {
 		properties := map[string]string{}
-		for k, v := range state.Properties.Elems {
-			properties[k] = v.(types.String***REMOVED***.Value
+		propertiesElements, err := common.OptionalMap(ctx, state.Properties***REMOVED***
+		if err != nil {
+			return nil, err
+***REMOVED***
+		for k, v := range propertiesElements {
+			properties[k] = v
 ***REMOVED***
 		builder.Properties(properties***REMOVED***
 	}
 	nodes := cmv1.NewClusterNodes(***REMOVED***
-	if !state.ComputeNodes.Unknown && !state.ComputeNodes.Null {
-		nodes.Compute(int(state.ComputeNodes.Value***REMOVED******REMOVED***
+	if common.HasValue(state.ComputeNodes***REMOVED*** {
+		nodes.Compute(int(state.ComputeNodes.ValueInt64(***REMOVED******REMOVED******REMOVED***
 	}
-	if !state.ComputeMachineType.Unknown && !state.ComputeMachineType.Null {
+	if common.HasValue(state.ComputeMachineType***REMOVED*** {
 		nodes.ComputeMachineType(
-			cmv1.NewMachineType(***REMOVED***.ID(state.ComputeMachineType.Value***REMOVED***,
+			cmv1.NewMachineType(***REMOVED***.ID(state.ComputeMachineType.ValueString(***REMOVED******REMOVED***,
 		***REMOVED***
 	}
 
-	if !state.AvailabilityZones.Unknown && !state.AvailabilityZones.Null {
-		azs := make([]string, 0***REMOVED***
-		for _, e := range state.AvailabilityZones.Elems {
-			azs = append(azs, e.(types.String***REMOVED***.Value***REMOVED***
+	if common.HasValue(state.AvailabilityZones***REMOVED*** {
+		availabilityZones, err := common.StringListToArray(ctx, state.AvailabilityZones***REMOVED***
+		if err != nil {
+			return nil, err
 ***REMOVED***
-		nodes.AvailabilityZones(azs...***REMOVED***
+		nodes.AvailabilityZones(availabilityZones...***REMOVED***
 	}
 
 	if !nodes.Empty(***REMOVED*** {
 		builder.Nodes(nodes***REMOVED***
 	}
 	ccs := cmv1.NewCCS(***REMOVED***
-	if !state.CCSEnabled.Unknown && !state.CCSEnabled.Null {
-		ccs.Enabled(state.CCSEnabled.Value***REMOVED***
+	if common.HasValue(state.CCSEnabled***REMOVED*** {
+		ccs.Enabled(state.CCSEnabled.ValueBool(***REMOVED******REMOVED***
 	}
 	if !ccs.Empty(***REMOVED*** {
 		builder.CCS(ccs***REMOVED***
 	}
 	aws := cmv1.NewAWS(***REMOVED***
-	if !state.AWSAccountID.Unknown && !state.AWSAccountID.Null {
-		aws.AccountID(state.AWSAccountID.Value***REMOVED***
+	if common.HasValue(state.AWSAccountID***REMOVED*** {
+		aws.AccountID(state.AWSAccountID.ValueString(***REMOVED******REMOVED***
 	}
-	if !state.AWSAccessKeyID.Unknown && !state.AWSAccessKeyID.Null {
-		aws.AccessKeyID(state.AWSAccessKeyID.Value***REMOVED***
+	if common.HasValue(state.AWSAccessKeyID***REMOVED*** {
+		aws.AccessKeyID(state.AWSAccessKeyID.ValueString(***REMOVED******REMOVED***
 	}
-	if !state.AWSSecretAccessKey.Unknown && !state.AWSSecretAccessKey.Null {
-		aws.SecretAccessKey(state.AWSSecretAccessKey.Value***REMOVED***
+	if common.HasValue(state.AWSSecretAccessKey***REMOVED*** {
+		aws.SecretAccessKey(state.AWSSecretAccessKey.ValueString(***REMOVED******REMOVED***
 	}
-	if !state.AWSPrivateLink.Unknown && !state.AWSPrivateLink.Null {
-		aws.PrivateLink((state.AWSPrivateLink.Value***REMOVED******REMOVED***
+	if common.HasValue(state.AWSPrivateLink***REMOVED*** {
+		aws.PrivateLink(state.AWSPrivateLink.ValueBool(***REMOVED******REMOVED***
 		api := cmv1.NewClusterAPI(***REMOVED***
-		if state.AWSPrivateLink.Value {
+		if state.AWSPrivateLink.ValueBool(***REMOVED*** {
 			api.Listening(cmv1.ListeningMethodInternal***REMOVED***
 ***REMOVED***
 		builder.API(api***REMOVED***
 	}
 
-	if !state.AWSSubnetIDs.Unknown && !state.AWSSubnetIDs.Null {
-		subnetIds := make([]string, 0***REMOVED***
-		for _, e := range state.AWSSubnetIDs.Elems {
-			subnetIds = append(subnetIds, e.(types.String***REMOVED***.Value***REMOVED***
+	if common.HasValue(state.AWSSubnetIDs***REMOVED*** {
+		subnetIds, err := common.StringListToArray(ctx, state.AWSSubnetIDs***REMOVED***
+		if err != nil {
+			return nil, err
 ***REMOVED***
 		aws.SubnetIDs(subnetIds...***REMOVED***
 	}
@@ -318,30 +306,30 @@ func createClusterObject(ctx context.Context,
 		builder.AWS(aws***REMOVED***
 	}
 	network := cmv1.NewNetwork(***REMOVED***
-	if !state.MachineCIDR.Unknown && !state.MachineCIDR.Null {
-		network.MachineCIDR(state.MachineCIDR.Value***REMOVED***
+	if common.HasValue(state.MachineCIDR***REMOVED*** {
+		network.MachineCIDR(state.MachineCIDR.ValueString(***REMOVED******REMOVED***
 	}
-	if !state.ServiceCIDR.Unknown && !state.ServiceCIDR.Null {
-		network.ServiceCIDR(state.ServiceCIDR.Value***REMOVED***
+	if common.HasValue(state.ServiceCIDR***REMOVED*** {
+		network.ServiceCIDR(state.ServiceCIDR.ValueString(***REMOVED******REMOVED***
 	}
-	if !state.PodCIDR.Unknown && !state.PodCIDR.Null {
-		network.PodCIDR(state.PodCIDR.Value***REMOVED***
+	if common.HasValue(state.PodCIDR***REMOVED*** {
+		network.PodCIDR(state.PodCIDR.ValueString(***REMOVED******REMOVED***
 	}
-	if !state.HostPrefix.Unknown && !state.HostPrefix.Null {
-		network.HostPrefix(int(state.HostPrefix.Value***REMOVED******REMOVED***
+	if common.HasValue(state.HostPrefix***REMOVED*** {
+		network.HostPrefix(int(state.HostPrefix.ValueInt64(***REMOVED******REMOVED******REMOVED***
 	}
 	if !network.Empty(***REMOVED*** {
 		builder.Network(network***REMOVED***
 	}
-	if !state.Version.Unknown && !state.Version.Null {
-		builder.Version(cmv1.NewVersion(***REMOVED***.ID(state.Version.Value***REMOVED******REMOVED***
+	if common.HasValue(state.Version***REMOVED*** {
+		builder.Version(cmv1.NewVersion(***REMOVED***.ID(state.Version.ValueString(***REMOVED******REMOVED******REMOVED***
 	}
 
-	proxy := cmv1.NewProxy(***REMOVED***
+	proxyObj := cmv1.NewProxy(***REMOVED***
 	if state.Proxy != nil {
-		proxy.HTTPProxy(state.Proxy.HttpProxy.Value***REMOVED***
-		proxy.HTTPSProxy(state.Proxy.HttpsProxy.Value***REMOVED***
-		builder.Proxy(proxy***REMOVED***
+		proxyObj.HTTPProxy(state.Proxy.HttpProxy.ValueString(***REMOVED******REMOVED***
+		proxyObj.HTTPSProxy(state.Proxy.HttpsProxy.ValueString(***REMOVED******REMOVED***
+		builder.Proxy(proxyObj***REMOVED***
 	}
 
 	object, err := builder.Build(***REMOVED***
@@ -349,8 +337,8 @@ func createClusterObject(ctx context.Context,
 	return object, err
 }
 
-func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
-	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse***REMOVED*** {
+func (r *ClusterResource***REMOVED*** Create(ctx context.Context, request resource.CreateRequest,
+	response *resource.CreateResponse***REMOVED*** {
 	// Get the plan:
 	state := &ClusterState{}
 	diags := request.Plan.Get(ctx, state***REMOVED***
@@ -365,7 +353,7 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 			"Can't build cluster",
 			fmt.Sprintf(
 				"Can't build cluster with name '%s': %v",
-				state.Name.Value, err,
+				state.Name.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -377,7 +365,7 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 			"Can't create cluster",
 			fmt.Sprintf(
 				"Can't create cluster with name '%s': %v",
-				state.Name.Value, err,
+				state.Name.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -385,7 +373,7 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 	object = add.Body(***REMOVED***
 
 	// Wait till the cluster is ready unless explicitly disabled:
-	wait := state.Wait.Unknown || state.Wait.Null || state.Wait.Value
+	wait := state.Wait.IsUnknown(***REMOVED*** || state.Wait.IsNull(***REMOVED*** || state.Wait.ValueBool(***REMOVED***
 	ready := object.State(***REMOVED*** == cmv1.ClusterStateReady
 	if wait && !ready {
 		pollCtx, cancel := context.WithTimeout(ctx, 1*time.Hour***REMOVED***
@@ -410,13 +398,22 @@ func (r *ClusterResource***REMOVED*** Create(ctx context.Context,
 	}
 
 	// Save the state:
-	populateClusterState(object, state***REMOVED***
+	err = populateClusterState(object, state***REMOVED***
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't populate cluster state",
+			fmt.Sprintf(
+				"Received error %v", err,
+			***REMOVED***,
+		***REMOVED***
+		return
+	}
 	diags = response.State.Set(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
 }
 
-func (r *ClusterResource***REMOVED*** Read(ctx context.Context, request tfsdk.ReadResourceRequest,
-	response *tfsdk.ReadResourceResponse***REMOVED*** {
+func (r *ClusterResource***REMOVED*** Read(ctx context.Context, request resource.ReadRequest,
+	response *resource.ReadResponse***REMOVED*** {
 	// Get the current state:
 	state := &ClusterState{}
 	diags := request.State.Get(ctx, state***REMOVED***
@@ -426,13 +423,13 @@ func (r *ClusterResource***REMOVED*** Read(ctx context.Context, request tfsdk.Re
 	}
 
 	// Find the cluster:
-	get, err := r.collection.Cluster(state.ID.Value***REMOVED***.Get(***REMOVED***.SendContext(ctx***REMOVED***
+	get, err := r.collection.Cluster(state.ID.ValueString(***REMOVED******REMOVED***.Get(***REMOVED***.SendContext(ctx***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't find cluster",
 			fmt.Sprintf(
 				"Can't find cluster with identifier '%s': %v",
-				state.ID.Value, err,
+				state.ID.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -440,13 +437,22 @@ func (r *ClusterResource***REMOVED*** Read(ctx context.Context, request tfsdk.Re
 	object := get.Body(***REMOVED***
 
 	// Save the state:
-	populateClusterState(object, state***REMOVED***
+	err = populateClusterState(object, state***REMOVED***
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't populate cluster state",
+			fmt.Sprintf(
+				"Received error %v", err,
+			***REMOVED***,
+		***REMOVED***
+		return
+	}
 	diags = response.State.Set(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
 }
 
-func (r *ClusterResource***REMOVED*** Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
-	response *tfsdk.UpdateResourceResponse***REMOVED*** {
+func (r *ClusterResource***REMOVED*** Update(ctx context.Context, request resource.UpdateRequest,
+	response *resource.UpdateResponse***REMOVED*** {
 	var diags diag.Diagnostics
 
 	// Get the state:
@@ -481,12 +487,12 @@ func (r *ClusterResource***REMOVED*** Update(ctx context.Context, request tfsdk.
 			"Can't build cluster patch",
 			fmt.Sprintf(
 				"Can't build patch for cluster with identifier '%s': %v",
-				state.ID.Value, err,
+				state.ID.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
 	}
-	update, err := r.collection.Cluster(state.ID.Value***REMOVED***.Update(***REMOVED***.
+	update, err := r.collection.Cluster(state.ID.ValueString(***REMOVED******REMOVED***.Update(***REMOVED***.
 		Body(patch***REMOVED***.
 		SendContext(ctx***REMOVED***
 	if err != nil {
@@ -494,7 +500,7 @@ func (r *ClusterResource***REMOVED*** Update(ctx context.Context, request tfsdk.
 			"Can't update cluster",
 			fmt.Sprintf(
 				"Can't update cluster with identifier '%s': %v",
-				state.ID.Value, err,
+				state.ID.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -502,13 +508,22 @@ func (r *ClusterResource***REMOVED*** Update(ctx context.Context, request tfsdk.
 	object := update.Body(***REMOVED***
 
 	// Update the state:
-	populateClusterState(object, state***REMOVED***
+	err = populateClusterState(object, state***REMOVED***
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't populate cluster state",
+			fmt.Sprintf(
+				"Received error %v", err,
+			***REMOVED***,
+		***REMOVED***
+		return
+	}
 	diags = response.State.Set(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
 }
 
-func (r *ClusterResource***REMOVED*** Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
-	response *tfsdk.DeleteResourceResponse***REMOVED*** {
+func (r *ClusterResource***REMOVED*** Delete(ctx context.Context, request resource.DeleteRequest,
+	response *resource.DeleteResponse***REMOVED*** {
 	// Get the state:
 	state := &ClusterState{}
 	diags := request.State.Get(ctx, state***REMOVED***
@@ -518,21 +533,21 @@ func (r *ClusterResource***REMOVED*** Delete(ctx context.Context, request tfsdk.
 	}
 
 	// Send the request to delete the cluster:
-	resource := r.collection.Cluster(state.ID.Value***REMOVED***
+	resource := r.collection.Cluster(state.ID.ValueString(***REMOVED******REMOVED***
 	_, err := resource.Delete(***REMOVED***.SendContext(ctx***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't delete cluster",
 			fmt.Sprintf(
 				"Can't delete cluster with identifier '%s': %v",
-				state.ID.Value, err,
+				state.ID.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
 	}
 
 	// Wait till the cluster has been effectively deleted:
-	if state.Wait.Unknown || state.Wait.Null || state.Wait.Value {
+	if state.Wait.IsUnknown(***REMOVED*** || state.Wait.IsNull(***REMOVED*** || state.Wait.ValueBool(***REMOVED*** {
 		pollCtx, cancel := context.WithTimeout(ctx, 10*time.Minute***REMOVED***
 		defer cancel(***REMOVED***
 		_, err := resource.Poll(***REMOVED***.
@@ -548,7 +563,7 @@ func (r *ClusterResource***REMOVED*** Delete(ctx context.Context, request tfsdk.
 				"Can't poll cluster deletion",
 				fmt.Sprintf(
 					"Can't poll deletion of cluster with identifier '%s': %v",
-					state.ID.Value, err,
+					state.ID.ValueString(***REMOVED***, err,
 				***REMOVED***,
 			***REMOVED***
 			return
@@ -559,195 +574,112 @@ func (r *ClusterResource***REMOVED*** Delete(ctx context.Context, request tfsdk.
 	response.State.RemoveResource(ctx***REMOVED***
 }
 
-func (r *ClusterResource***REMOVED*** ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
-	response *tfsdk.ImportResourceStateResponse***REMOVED*** {
-	// Try to retrieve the object:
-	get, err := r.collection.Cluster(request.ID***REMOVED***.Get(***REMOVED***.SendContext(ctx***REMOVED***
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't find cluster",
-			fmt.Sprintf(
-				"Can't find cluster with identifier '%s': %v",
-				request.ID, err,
-			***REMOVED***,
-		***REMOVED***
-		return
-	}
-	object := get.Body(***REMOVED***
-
-	// Save the state:
-	state := &ClusterState{}
-	populateClusterState(object, state***REMOVED***
-	diags := response.State.Set(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
+func (r *ClusterResource***REMOVED*** ImportState(ctx context.Context, request resource.ImportStateRequest,
+	response *resource.ImportStateResponse***REMOVED*** {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"***REMOVED***, request, response***REMOVED***
 }
 
 // populateClusterState copies the data from the API object to the Terraform state.
-func populateClusterState(object *cmv1.Cluster, state *ClusterState***REMOVED*** {
-	state.ID = types.String{
-		Value: object.ID(***REMOVED***,
-	}
+func populateClusterState(object *cmv1.Cluster, state *ClusterState***REMOVED*** error {
+	state.ID = types.StringValue(object.ID(***REMOVED******REMOVED***
 
 	object.API(***REMOVED***
-	state.Product = types.String{
-		Value: object.Product(***REMOVED***.ID(***REMOVED***,
+	state.Product = types.StringValue(object.Product(***REMOVED***.ID(***REMOVED******REMOVED***
+	state.Name = types.StringValue(object.Name(***REMOVED******REMOVED***
+	state.CloudProvider = types.StringValue(object.CloudProvider(***REMOVED***.ID(***REMOVED******REMOVED***
+	state.CloudRegion = types.StringValue(object.Region(***REMOVED***.ID(***REMOVED******REMOVED***
+	state.MultiAZ = types.BoolValue(object.MultiAZ(***REMOVED******REMOVED***
+
+	mapValue, err := common.ConvertStringMapToMapType(object.Properties(***REMOVED******REMOVED***
+	if err != nil {
+		return err
+	} else {
+		state.Properties = mapValue
 	}
-	state.Name = types.String{
-		Value: object.Name(***REMOVED***,
-	}
-	state.CloudProvider = types.String{
-		Value: object.CloudProvider(***REMOVED***.ID(***REMOVED***,
-	}
-	state.CloudRegion = types.String{
-		Value: object.Region(***REMOVED***.ID(***REMOVED***,
-	}
-	state.MultiAZ = types.Bool{
-		Value: object.MultiAZ(***REMOVED***,
-	}
-	state.Properties = types.Map{
-		ElemType: types.StringType,
-		Elems:    map[string]attr.Value{},
-	}
-	for k, v := range object.Properties(***REMOVED*** {
-		state.Properties.Elems[k] = types.String{
-			Value: v,
-***REMOVED***
-	}
-	state.APIURL = types.String{
-		Value: object.API(***REMOVED***.URL(***REMOVED***,
-	}
-	state.ConsoleURL = types.String{
-		Value: object.Console(***REMOVED***.URL(***REMOVED***,
-	}
-	state.ComputeNodes = types.Int64{
-		Value: int64(object.Nodes(***REMOVED***.Compute(***REMOVED******REMOVED***,
-	}
-	state.ComputeMachineType = types.String{
-		Value: object.Nodes(***REMOVED***.ComputeMachineType(***REMOVED***.ID(***REMOVED***,
-	}
+
+	state.APIURL = types.StringValue(object.API(***REMOVED***.URL(***REMOVED******REMOVED***
+	state.ConsoleURL = types.StringValue(object.Console(***REMOVED***.URL(***REMOVED******REMOVED***
+	state.ComputeNodes = types.Int64Value(int64(object.Nodes(***REMOVED***.Compute(***REMOVED******REMOVED******REMOVED***
+	state.ComputeMachineType = types.StringValue(object.Nodes(***REMOVED***.ComputeMachineType(***REMOVED***.ID(***REMOVED******REMOVED***
 
 	azs, ok := object.Nodes(***REMOVED***.GetAvailabilityZones(***REMOVED***
 	if ok {
-		state.AvailabilityZones.Elems = make([]attr.Value, 0***REMOVED***
-		for _, az := range azs {
-			state.AvailabilityZones.Elems = append(state.AvailabilityZones.Elems, types.String{
-				Value: az,
-	***REMOVED******REMOVED***
+		listValue, err := common.StringArrayToList(azs***REMOVED***
+		if err != nil {
+			return err
+***REMOVED*** else {
+			state.AvailabilityZones = listValue
 ***REMOVED***
 	}
 
-	state.CCSEnabled = types.Bool{
-		Value: object.CCS(***REMOVED***.Enabled(***REMOVED***,
-	}
+	state.CCSEnabled = types.BoolValue(object.CCS(***REMOVED***.Enabled(***REMOVED******REMOVED***
 	//The API does not return account id
 	awsAccountID, ok := object.AWS(***REMOVED***.GetAccountID(***REMOVED***
 	if ok {
-		state.AWSAccountID = types.String{
-			Value: awsAccountID,
-***REMOVED***
+		state.AWSAccountID = types.StringValue(awsAccountID***REMOVED***
 	}
 	awsAccessKeyID, ok := object.AWS(***REMOVED***.GetAccessKeyID(***REMOVED***
 	if ok {
-		state.AWSAccessKeyID = types.String{
-			Value: awsAccessKeyID,
-***REMOVED***
-	} else {
-		state.AWSAccessKeyID = types.String{
-			Null: true,
-***REMOVED***
+		state.AWSAccessKeyID = types.StringValue(awsAccessKeyID***REMOVED***
 	}
+
 	awsSecretAccessKey, ok := object.AWS(***REMOVED***.GetSecretAccessKey(***REMOVED***
 	if ok {
-		state.AWSSecretAccessKey = types.String{
-			Value: awsSecretAccessKey,
-***REMOVED***
-	} else {
-		state.AWSSecretAccessKey = types.String{
-			Null: true,
-***REMOVED***
+		state.AWSSecretAccessKey = types.StringValue(awsSecretAccessKey***REMOVED***
 	}
 	awsPrivateLink, ok := object.AWS(***REMOVED***.GetPrivateLink(***REMOVED***
 	if ok {
-		state.AWSPrivateLink = types.Bool{
-			Value: awsPrivateLink,
-***REMOVED***
+		state.AWSPrivateLink = types.BoolValue(awsPrivateLink***REMOVED***
 	} else {
-		state.AWSPrivateLink = types.Bool{
-			Null: true,
-***REMOVED***
+		state.AWSPrivateLink = types.BoolValue(true***REMOVED***
 	}
 
 	subnetIds, ok := object.AWS(***REMOVED***.GetSubnetIDs(***REMOVED***
 	if ok {
-		state.AWSSubnetIDs.Elems = make([]attr.Value, 0***REMOVED***
-		for _, subnetId := range subnetIds {
-			state.AWSSubnetIDs.Elems = append(state.AWSSubnetIDs.Elems, types.String{
-				Value: subnetId,
-	***REMOVED******REMOVED***
+		awsSubnetIds, err := common.StringArrayToList(subnetIds***REMOVED***
+		if err != nil {
+			return err
 ***REMOVED***
+		state.AWSSubnetIDs = awsSubnetIds
 	}
 
-	proxy, ok := object.GetProxy(***REMOVED***
+	proxyObj, ok := object.GetProxy(***REMOVED***
 	if ok {
-		state.Proxy.HttpProxy = types.String{
-			Value: proxy.HTTPProxy(***REMOVED***,
-***REMOVED***
-		state.Proxy.HttpsProxy = types.String{
-			Value: proxy.HTTPSProxy(***REMOVED***,
-***REMOVED***
+		state.Proxy.HttpProxy = types.StringValue(proxyObj.HTTPProxy(***REMOVED******REMOVED***
+		state.Proxy.HttpsProxy = types.StringValue(proxyObj.HTTPSProxy(***REMOVED******REMOVED***
 	}
+
 	machineCIDR, ok := object.Network(***REMOVED***.GetMachineCIDR(***REMOVED***
 	if ok {
-		state.MachineCIDR = types.String{
-			Value: machineCIDR,
-***REMOVED***
+		state.MachineCIDR = types.StringValue(machineCIDR***REMOVED***
 	} else {
-		state.MachineCIDR = types.String{
-			Null: true,
-***REMOVED***
+		state.MachineCIDR = types.StringNull(***REMOVED***
 	}
 	serviceCIDR, ok := object.Network(***REMOVED***.GetServiceCIDR(***REMOVED***
 	if ok {
-		state.ServiceCIDR = types.String{
-			Value: serviceCIDR,
-***REMOVED***
+		state.ServiceCIDR = types.StringValue(serviceCIDR***REMOVED***
 	} else {
-		state.ServiceCIDR = types.String{
-			Null: true,
-***REMOVED***
+		state.ServiceCIDR = types.StringNull(***REMOVED***
 	}
 	podCIDR, ok := object.Network(***REMOVED***.GetPodCIDR(***REMOVED***
 	if ok {
-		state.PodCIDR = types.String{
-			Value: podCIDR,
-***REMOVED***
+		state.PodCIDR = types.StringValue(podCIDR***REMOVED***
 	} else {
-		state.PodCIDR = types.String{
-			Null: true,
-***REMOVED***
+		state.PodCIDR = types.StringNull(***REMOVED***
 	}
 	hostPrefix, ok := object.Network(***REMOVED***.GetHostPrefix(***REMOVED***
 	if ok {
-		state.HostPrefix = types.Int64{
-			Value: int64(hostPrefix***REMOVED***,
-***REMOVED***
+		state.HostPrefix = types.Int64Value(int64(hostPrefix***REMOVED******REMOVED***
 	} else {
-		state.HostPrefix = types.Int64{
-			Null: true,
-***REMOVED***
+		state.HostPrefix = types.Int64Null(***REMOVED***
 	}
 	version, ok := object.Version(***REMOVED***.GetID(***REMOVED***
 	if ok {
-		state.Version = types.String{
-			Value: version,
-***REMOVED***
+		state.Version = types.StringValue(version***REMOVED***
 	} else {
-		state.Version = types.String{
-			Null: true,
-***REMOVED***
+		state.Version = types.StringNull(***REMOVED***
 	}
-	state.State = types.String{
-		Value: string(object.State(***REMOVED******REMOVED***,
-	}
+	state.State = types.StringValue(string(object.State(***REMOVED******REMOVED******REMOVED***
 
+	return nil
 }

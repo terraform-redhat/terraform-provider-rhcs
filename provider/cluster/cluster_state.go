@@ -18,6 +18,8 @@ package cluster
 
 ***REMOVED***
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 ***REMOVED***
 
 type ClusterState struct {
@@ -43,7 +45,7 @@ type ClusterState struct {
 	PodCIDR            types.String `tfsdk:"pod_cidr"`
 	Properties         types.Map    `tfsdk:"properties"`
 	ServiceCIDR        types.String `tfsdk:"service_cidr"`
-	Proxy              *Proxy       `tfsdk:"proxy"`
+	Proxy              *proxy.Proxy `tfsdk:"proxy"`
 	State              types.String `tfsdk:"state"`
 	Version            types.String `tfsdk:"version"`
 	Wait               types.Bool   `tfsdk:"wait"`

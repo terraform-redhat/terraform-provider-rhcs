@@ -22,6 +22,7 @@ package clusterrosaclassic
 	"crypto/x509"
 	"encoding/json"
 ***REMOVED***
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 ***REMOVED***
 	"testing"
 
@@ -141,7 +142,7 @@ func generateBasicRosaClassicClusterState(***REMOVED*** *ClusterRosaClassicState
 		Properties:        properties,
 		ChannelGroup:      types.StringValue("stable"***REMOVED***,
 		Version:           types.StringValue("4.10"***REMOVED***,
-		Proxy: &Proxy{
+		Proxy: &proxy.Proxy{
 			HttpProxy:  types.StringValue(httpProxy***REMOVED***,
 			HttpsProxy: types.StringValue(httpsProxy***REMOVED***,
 ***REMOVED***,

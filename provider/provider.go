@@ -32,6 +32,7 @@ package provider
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 	"github.com/terraform-redhat/terraform-provider-rhcs/logging"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cloudprovider"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cluster"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosaclassic"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterwaiter"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/dnsdomain"
@@ -215,8 +216,7 @@ func (p *Provider***REMOVED*** Resources(ctx context.Context***REMOVED*** []func
 		oidcconfiginput.New,
 		clusterrosaclassic.New,
 		identityprovider.New,
-		// TODO: add other resources:
-		// cluster.New,
+		cluster.New,
 	}
 }
 
@@ -228,8 +228,5 @@ func (p *Provider***REMOVED*** DataSources(ctx context.Context***REMOVED*** []fu
 		ocm_policies.New,
 		rosa_operator_roles.New,
 		versions.New,
-		// TODO: add other data sources:
-		// policies.New,
-
 	}
 }

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package identityprovider
 
 import (
 	"context"
@@ -23,82 +23,86 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 
-type IdentityProviderResourceType struct {
-}
+var _ resource.ResourceWithConfigure = &IdentityProviderResource{}
+var _ resource.ResourceWithImportState = &IdentityProviderResource{}
+var _ resource.ResourceWithValidateConfig = &IdentityProviderResource{}
 
 type IdentityProviderResource struct {
 	collection *cmv1.ClustersClient
 }
 
-func (t *IdentityProviderResourceType) GetSchema(ctx context.Context) (result tfsdk.Schema,
-	diags diag.Diagnostics) {
-	result = tfsdk.Schema{
+func New() resource.Resource {
+	return &IdentityProviderResource{}
+}
+func (r *IdentityProviderResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_identity_provider"
+}
+
+func (r *IdentityProviderResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "Identity provider.",
-		Attributes: map[string]tfsdk.Attribute{
-			"cluster": {
+		Attributes: map[string]schema.Attribute{
+			"cluster": schema.StringAttribute{
 				Description: "Identifier of the cluster.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"id": {
+			"id": schema.StringAttribute{
 				Description: "Unique identifier of the identity provider.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"name": {
+			"name": schema.StringAttribute{
 				Description: "Name of the identity provider.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"mapping_method": {
+			"mapping_method": schema.StringAttribute{
 				Description: "Specifies how new identities are mapped to users when they log in. Options are [add claim generate lookup] (default 'claim')",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
-				Validators:  idps.MappingMethodValidators(),
+				Validators:  MappingMethodValidators(),
 			},
-			"htpasswd": {
+			"htpasswd": schema.SingleNestedAttribute{
 				Description: "Details of the 'htpasswd' identity provider.",
-				Attributes:  idps.HtpasswdSchema(),
+				Attributes:  htpasswdSchema,
 				Optional:    true,
-				Validators:  idps.HTPasswdValidators(),
 			},
-			"gitlab": {
+			"gitlab": schema.SingleNestedAttribute{
 				Description: "Details of the Gitlab identity provider.",
-				Attributes:  idps.GitlabSchema(),
+				Attributes:  gitlabSchema,
 				Optional:    true,
-				Validators:  idps.GitlabValidators(),
+				Validators:  GitlabValidators(),
 			},
-			"github": {
+			"github": schema.SingleNestedAttribute{
 				Description: "Details of the Github identity provider.",
-				Attributes:  idps.GithubSchema(),
+				Attributes:  githubSchema,
 				Optional:    true,
-				Validators:  idps.GithubValidators(),
+				Validators:  GitlabValidators(),
 			},
-			"google": {
+			"google": schema.SingleNestedAttribute{
 				Description: "Details of the Google identity provider.",
-				Attributes:  idps.GoogleSchema(),
+				Attributes:  googleSchema,
 				Optional:    true,
-				Validators:  idps.GoogleValidators(),
+				Validators:  GoogleValidators(),
 			},
-			"ldap": {
+			"ldap": schema.SingleNestedAttribute{
 				Description: "Details of the LDAP identity provider.",
-				Attributes:  idps.LDAPSchema(),
+				Attributes:  ldapSchema,
 				Optional:    true,
-				Validators:  idps.LDAPValidators(),
+				Validators:  LDAPValidators(),
 			},
-			"openid": {
+			"openid": schema.SingleNestedAttribute{
 				Description: "Details of the OpenID identity provider.",
-				Attributes:  idps.OpenidSchema(),
+				Attributes:  openidSchema,
 				Optional:    true,
 			},
 		},
@@ -106,25 +110,35 @@ func (t *IdentityProviderResourceType) GetSchema(ctx context.Context) (result tf
 	return
 }
 
-func (t *IdentityProviderResourceType) NewResource(ctx context.Context,
-	p tfsdk.Provider) (result tfsdk.Resource, diags diag.Diagnostics) {
-	// Cast the provider interface to the specific implementation:
-	// use it directly when needed.
-	parent := p.(*Provider)
-
-	// Get the collection of clusters:
-	collection := parent.connection.ClustersMgmt().V1().Clusters()
-
-	// Create the resource:
-	result = &IdentityProviderResource{
-		collection: collection,
+func (r *IdentityProviderResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
 	}
 
-	return
+	collection, ok := req.ProviderData.(*sdk.Connection)
+	if !ok {
+		resp.Diagnostics.AddError("Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *sdk.Connaction, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
+	}
+
+	r.collection = collection.ClustersMgmt().V1().Clusters()
 }
 
-func (r *IdentityProviderResource) Create(ctx context.Context,
-	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse) {
+func (r *IdentityProviderResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	idp := &IdentityProviderState{}
+	diag := req.Config.Get(ctx, idp)
+
+	if diag.HasError() {
+		return
+	}
+
+	//TODO: add validations
+
+}
+
+func (r *IdentityProviderResource) Create(ctx context.Context, request resource.CreateRequest, response *resource.CreateResponse) {
 	// Get the plan:
 	state := &IdentityProviderState{}
 	diags := request.Plan.Get(ctx, state)
@@ -133,11 +147,11 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 		return
 	}
 
-	resource := r.collection.Cluster(state.Cluster.Value)
+	resource := r.collection.Cluster(state.Cluster.ValueString())
 	// We expect the cluster to be already exist
 	// Try to get it and if result with NotFound error, return error to user
 	if resp, err := resource.Get().SendContext(ctx); err != nil && resp.Status() == http.StatusNotFound {
-		message := fmt.Sprintf("Cluster %s not found, error: %v", state.Cluster.Value, err)
+		message := fmt.Sprintf("Cluster %s not found, error: %v", state.Cluster.ValueString(), err)
 		tflog.Error(ctx, message)
 		response.Diagnostics.AddError(
 			"Can't poll cluster state",
@@ -160,7 +174,7 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 			"Can't poll cluster state",
 			fmt.Sprintf(
 				"Can't poll state of cluster with identifier '%s': %v",
-				state.Cluster.Value, err,
+				state.Cluster.ValueString(), err,
 			),
 		)
 		return
@@ -168,21 +182,21 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 
 	// Create the identity provider:
 	builder := cmv1.NewIdentityProvider()
-	builder.Name(state.Name.Value)
+	builder.Name(state.Name.ValueString())
 	// handle mapping_method
-	mappingMethod := idps.DefaultMappingMethod
-	if !state.MappingMethod.Unknown && !state.MappingMethod.Null {
-		mappingMethod = state.MappingMethod.Value
+	mappingMethod := DefaultMappingMethod
+	if !state.MappingMethod.IsUnknown() && !state.MappingMethod.IsNull() {
+		mappingMethod = state.MappingMethod.ValueString()
 	}
 	builder.MappingMethod(cmv1.IdentityProviderMappingMethod(mappingMethod))
 	switch {
 	case state.HTPasswd != nil:
 		builder.Type(cmv1.IdentityProviderTypeHtpasswd)
-		htpasswdBuilder := idps.CreateHTPasswdIDPBuilder(ctx, state.HTPasswd)
+		htpasswdBuilder := CreateHTPasswdIDPBuilder(ctx, state.HTPasswd)
 		builder.Htpasswd(htpasswdBuilder)
 	case state.Gitlab != nil:
 		builder.Type(cmv1.IdentityProviderTypeGitlab)
-		gitlabBuilder, err := idps.CreateGitlabIDPBuilder(ctx, state.Gitlab)
+		gitlabBuilder, err := CreateGitlabIDPBuilder(ctx, state.Gitlab)
 		if err != nil {
 			response.Diagnostics.AddError(err.Error(), err.Error())
 			return
@@ -190,7 +204,7 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 		builder.Gitlab(gitlabBuilder)
 	case state.Github != nil:
 		builder.Type(cmv1.IdentityProviderTypeGithub)
-		githubBuilder, err := idps.CreateGithubIDPBuilder(ctx, state.Github)
+		githubBuilder, err := CreateGithubIDPBuilder(ctx, state.Github)
 		if err != nil {
 			response.Diagnostics.AddError(err.Error(), err.Error())
 			return
@@ -198,7 +212,7 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 		builder.Github(githubBuilder)
 	case state.Google != nil:
 		builder.Type(cmv1.IdentityProviderTypeGoogle)
-		googleBuilder, err := idps.CreateGoogleIDPBuilder(ctx, mappingMethod, state.Google)
+		googleBuilder, err := CreateGoogleIDPBuilder(ctx, mappingMethod, state.Google)
 		if err != nil {
 			response.Diagnostics.AddError(err.Error(), err.Error())
 			return
@@ -206,7 +220,7 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 		builder.Google(googleBuilder)
 	case state.LDAP != nil:
 		builder.Type(cmv1.IdentityProviderTypeLDAP)
-		ldapBuilder, err := idps.CreateLDAPIDPBuilder(ctx, state.LDAP)
+		ldapBuilder, err := CreateLDAPIDPBuilder(ctx, state.LDAP)
 		if err != nil {
 			response.Diagnostics.AddError(err.Error(), err.Error())
 			return
@@ -214,7 +228,7 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 		builder.LDAP(ldapBuilder)
 	case state.OpenID != nil:
 		builder.Type(cmv1.IdentityProviderTypeOpenID)
-		openidBuilder, err := idps.CreateOpenIDIDPBuilder(ctx, state.OpenID)
+		openidBuilder, err := CreateOpenIDIDPBuilder(ctx, state.OpenID)
 		if err != nil {
 			response.Diagnostics.AddError(err.Error(), err.Error())
 			return
@@ -227,7 +241,7 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 			"Can't build identity provider",
 			fmt.Sprintf(
 				"Can't build identity provider with name '%s': %v",
-				state.Name.Value, err,
+				state.Name.ValueString(), err,
 			),
 		)
 		return
@@ -240,20 +254,16 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 			fmt.Sprintf(
 				"Can't create identity provider with name '%s' for "+
 					"cluster '%s': %v",
-				state.Name.Value, state.Cluster.Value, err,
+				state.Name.ValueString(), state.Cluster.ValueString(), err,
 			),
 		)
 		return
 	}
 	object = add.Body()
 
-	// Set the computed attributes:
-	state.ID = types.String{
-		Value: object.ID(),
-	}
-	state.MappingMethod = types.String{
-		Value: string(object.MappingMethod()),
-	}
+	state.ID = types.StringValue(object.ID())
+
+	state.MappingMethod = types.StringValue(string(object.MappingMethod()))
 	htpasswdObject := object.Htpasswd()
 	gitlabObject := object.Gitlab()
 	ldapObject := object.LDAP()
@@ -265,13 +275,11 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 		// Nothing, there are no computed attributes for `gitlab` identity providers.
 	case ldapObject != nil:
 		if state.LDAP == nil {
-			state.LDAP = &idps.LDAPIdentityProvider{}
+			state.LDAP = &LDAPIdentityProvider{}
 		}
 		insecure, ok := ldapObject.GetInsecure()
 		if ok {
-			state.LDAP.Insecure = types.Bool{
-				Value: insecure,
-			}
+			state.LDAP.Insecure = types.BoolValue(insecure)
 		}
 	case openidObject != nil:
 	}
@@ -281,8 +289,7 @@ func (r *IdentityProviderResource) Create(ctx context.Context,
 	response.Diagnostics.Append(diags...)
 }
 
-func (r *IdentityProviderResource) Read(ctx context.Context, request tfsdk.ReadResourceRequest,
-	response *tfsdk.ReadResourceResponse) {
+func (r *IdentityProviderResource) Read(ctx context.Context, request resource.ReadRequest, response *resource.ReadResponse) {
 	// Get the current state:
 	state := &IdentityProviderState{}
 	diags := request.State.Get(ctx, state)
@@ -292,13 +299,13 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request tfsdk.ReadR
 	}
 
 	// Find the identity provider:
-	resource := r.collection.Cluster(state.Cluster.Value).
+	resource := r.collection.Cluster(state.Cluster.ValueString()).
 		IdentityProviders().
-		IdentityProvider(state.ID.Value)
+		IdentityProvider(state.ID.ValueString())
 	get, err := resource.Get().SendContext(ctx)
 	if err != nil && get.Status() == http.StatusNotFound {
 		tflog.Warn(ctx, fmt.Sprintf("identity provider (%s) of cluster (%s) not found, removing from state",
-			state.ID.Value, state.Cluster.Value,
+			state.ID.ValueString(), state.Cluster.ValueString(),
 		))
 		response.State.RemoveResource(ctx)
 		return
@@ -308,7 +315,7 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request tfsdk.ReadR
 			fmt.Sprintf(
 				"Can't find identity provider with identifier '%s' for "+
 					"cluster '%s': %v",
-				state.ID.Value, state.Cluster.Value, err,
+				state.ID.ValueString(), state.Cluster.ValueString(), err,
 			),
 		)
 		return
@@ -317,10 +324,7 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request tfsdk.ReadR
 	object := get.Body()
 
 	// Copy the identity provider data into the state:
-	state.Name = types.String{
-		Value: object.Name(),
-	}
-
+	state.Name = types.StringValue(object.Name())
 	htpasswdObject := object.Htpasswd()
 	gitlabObject := object.Gitlab()
 	ldapObject := object.LDAP()
@@ -330,209 +334,195 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request tfsdk.ReadR
 	switch {
 	case htpasswdObject != nil:
 		if state.HTPasswd == nil {
-			state.HTPasswd = &idps.HTPasswdIdentityProvider{}
+			state.HTPasswd = &HTPasswdIdentityProvider{}
 		}
 		if users, ok := htpasswdObject.GetUsers(); ok {
 			users.Each(func(item *cmv1.HTPasswdUser) bool {
-				state.HTPasswd.Users = append(state.HTPasswd.Users, idps.HTPasswdUser{
-					Username: types.String{
-						Value: item.Username(),
-					},
-					Password: types.String{
-						Value: item.Password(),
-					},
+				state.HTPasswd.Users = append(state.HTPasswd.Users, HTPasswdUser{
+					Username: types.StringValue(item.Username()),
+					Password: types.StringValue(item.Password()),
 				})
 				return true
 			})
 		}
 	case gitlabObject != nil:
 		if state.Gitlab == nil {
-			state.Gitlab = &idps.GitlabIdentityProvider{}
+			state.Gitlab = &GitlabIdentityProvider{}
 		}
 		ca, ok := gitlabObject.GetCA()
 		if ok {
-			state.Gitlab.CA = types.String{
-				Value: ca,
-			}
+			state.Gitlab.CA = types.StringValue(ca)
 		}
 		client_id, ok := gitlabObject.GetClientID()
 		if ok {
-			state.Gitlab.ClientID = types.String{
-				Value: client_id,
-			}
+			state.Gitlab.ClientID = types.StringValue(client_id)
 		}
 		client_secret, ok := gitlabObject.GetClientSecret()
 		if ok {
-			state.Gitlab.ClientSecret = types.String{
-				Value: client_secret,
-			}
+			state.Gitlab.ClientSecret = types.StringValue(client_secret)
 		}
 		url, ok := gitlabObject.GetURL()
 		if ok {
-			state.Gitlab.URL = types.String{
-				Value: url,
-			}
+			state.Gitlab.URL = types.StringValue(url)
 		}
 	case githubObject != nil:
 		if state.Github == nil {
-			state.Github = &idps.GithubIdentityProvider{}
+			state.Github = &GithubIdentityProvider{}
 		}
 		ca, ok := githubObject.GetCA()
 		if ok {
-			state.Github.CA = types.String{
-				Value: ca,
-			}
+			state.Github.CA = types.StringValue(ca)
 		}
 		client_id, ok := githubObject.GetClientID()
 		if ok {
-			state.Github.ClientID = types.String{
-				Value: client_id,
-			}
+			state.Github.ClientID = types.StringValue(client_id)
 		}
 		client_secret, ok := githubObject.GetClientSecret()
 		if ok {
-			state.Github.ClientSecret = types.String{
-				Value: client_secret,
-			}
+			state.Github.ClientSecret = types.StringValue(client_secret)
 		}
 		hostname, ok := githubObject.GetHostname()
 		if ok {
-			state.Github.Hostname = types.String{
-				Value: hostname,
-			}
+			state.Github.Hostname = types.StringValue(hostname)
 		}
 		teams, ok := githubObject.GetTeams()
 		if ok {
-			state.Github.Teams = common.StringArrayToList(teams)
+			state.Github.Teams, err = common.StringArrayToList(teams)
+			if err != nil {
+				response.Diagnostics.AddError("failed to convert string slice to tf list", "GitHub Teams conversion failed")
+			}
 		}
 		orgs, ok := githubObject.GetOrganizations()
 		if ok {
-			state.Github.Organizations = common.StringArrayToList(orgs)
+			state.Github.Organizations, err = common.StringArrayToList(orgs)
+			if err != nil {
+				response.Diagnostics.AddError("failed to convert string slice to tf list", "GitHub Organizations conversion failed")
+			}
 		}
 	case googleObject != nil:
 		if state.Google == nil {
-			state.Google = &idps.GoogleIdentityProvider{}
+			state.Google = &GoogleIdentityProvider{}
 		}
 		if client_id, ok := googleObject.GetClientID(); ok {
-			state.Google.ClientID = types.String{
-				Value: client_id,
-			}
+			state.Google.ClientID = types.StringValue(client_id)
 		}
 		if client_secret, ok := googleObject.GetClientSecret(); ok {
-			state.Google.ClientSecret = types.String{
-				Value: client_secret,
-			}
+			state.Google.ClientSecret = types.StringValue(client_secret)
 		}
 		if hosted_domain, ok := googleObject.GetHostedDomain(); ok {
-			state.Google.HostedDomain = types.String{
-				Value: hosted_domain,
-			}
+			state.Google.HostedDomain = types.StringValue(hosted_domain)
 		}
 	case ldapObject != nil:
 		if state.LDAP == nil {
-			state.LDAP = &idps.LDAPIdentityProvider{}
+			state.LDAP = &LDAPIdentityProvider{}
 		}
 		bindDN, ok := ldapObject.GetBindDN()
 		if ok {
-			state.LDAP.BindDN = types.String{
-				Value: bindDN,
-			}
+			state.LDAP.BindDN = types.StringValue(bindDN)
 		}
 		bindPassword, ok := ldapObject.GetBindPassword()
 		if ok {
-			state.LDAP.BindPassword = types.String{
-				Value: bindPassword,
-			}
+			state.LDAP.BindPassword = types.StringValue(bindPassword)
 		}
 		ca, ok := ldapObject.GetCA()
 		if ok {
-			state.LDAP.CA = types.String{
-				Value: ca,
-			}
+			state.LDAP.CA = types.StringValue(ca)
 		}
 		insecure, ok := ldapObject.GetInsecure()
 		if ok {
-			state.LDAP.Insecure = types.Bool{
-				Value: insecure,
-			}
+			state.LDAP.Insecure = types.BoolValue(insecure)
 		}
 		url, ok := ldapObject.GetURL()
 		if ok {
-			state.LDAP.URL = types.String{
-				Value: url,
-			}
+			state.LDAP.URL = types.StringValue(url)
 		}
 		attributes, ok := ldapObject.GetAttributes()
 		if ok {
 			if state.LDAP.Attributes == nil {
-				state.LDAP.Attributes = &idps.LDAPIdentityProviderAttributes{}
+				state.LDAP.Attributes = &LDAPIdentityProviderAttributes{}
 			}
 			id, ok := attributes.GetID()
 			if ok {
-				state.LDAP.Attributes.ID = common.StringArrayToList(id)
+				state.LDAP.Attributes.ID, err = common.StringArrayToList(id)
+				if err != nil {
+					response.Diagnostics.AddError("failed to convert LDAP attribute ID to tf list", err.Error())
+				}
 			}
 			email, ok := attributes.GetEmail()
 			if ok {
-				state.LDAP.Attributes.EMail = common.StringArrayToList(email)
+				state.LDAP.Attributes.EMail, err = common.StringArrayToList(email)
+				if err != nil {
+					response.Diagnostics.AddError("failed to convert LDAP attribute EMail to tf list", err.Error())
+				}
 			}
 			name, ok := attributes.GetName()
 			if ok {
-				state.LDAP.Attributes.Name = common.StringArrayToList(name)
+				state.LDAP.Attributes.Name, err = common.StringArrayToList(name)
+				if err != nil {
+					response.Diagnostics.AddError("failed to convert LDAP attribute Name to tf list", err.Error())
+				}
 			}
 			preferredUsername, ok := attributes.GetPreferredUsername()
 			if ok {
-				state.LDAP.Attributes.PreferredUsername = common.StringArrayToList(preferredUsername)
+				state.LDAP.Attributes.PreferredUsername, err = common.StringArrayToList(preferredUsername)
+				if err != nil {
+					response.Diagnostics.AddError("failed to convert LDAP attribute PreferredUsername to tf list", err.Error())
+				}
 			}
 		}
 	case openidObject != nil:
 		if state.OpenID == nil {
-			state.OpenID = &idps.OpenIDIdentityProvider{}
+			state.OpenID = &OpenIDIdentityProvider{}
 		}
 		ca, ok := openidObject.GetCA()
 		if ok {
-			state.OpenID.CA = types.String{
-				Value: ca,
-			}
+			state.OpenID.CA = types.StringValue(ca)
 		}
 		client_id, ok := openidObject.GetClientID()
 		if ok {
-			state.OpenID.ClientID = types.String{
-				Value: client_id,
-			}
+			state.OpenID.ClientID = types.StringValue(client_id)
 		}
 		client_secret, ok := openidObject.GetClientSecret()
 		if ok {
-			state.OpenID.ClientSecret = types.String{
-				Value: client_secret,
-			}
+			state.OpenID.ClientSecret = types.StringValue(client_secret)
 		}
 		claims, ok := openidObject.GetClaims()
 		if ok {
 			if state.OpenID.Claims == nil {
-				state.OpenID.Claims = &idps.OpenIDIdentityProviderClaims{}
+				state.OpenID.Claims = &OpenIDIdentityProviderClaims{}
 			}
 			email, ok := claims.GetEmail()
 			if ok {
-				state.OpenID.Claims.EMail = common.StringArrayToList(email)
+				state.OpenID.Claims.EMail, err = common.StringArrayToList(email)
+				if err != nil {
+					response.Diagnostics.AddError("failed to convert OpenID claims EMail to tf list", err.Error())
+				}
 			}
 			groups, ok := claims.GetGroups()
 			if ok {
-				state.OpenID.Claims.Groups = common.StringArrayToList(groups)
+				state.OpenID.Claims.Groups, err = common.StringArrayToList(groups)
+				if err != nil {
+					response.Diagnostics.AddError("failed to convert OpenID claims Groups to tf list", err.Error())
+				}
 			}
 			name, ok := claims.GetName()
 			if ok {
-				state.OpenID.Claims.Name = common.StringArrayToList(name)
+				state.OpenID.Claims.Name, err = common.StringArrayToList(name)
+				if err != nil {
+					response.Diagnostics.AddError("failed to convert OpenID claims Name to tf list", err.Error())
+				}
 			}
 			preferredUsername, ok := claims.GetPreferredUsername()
 			if ok {
-				state.OpenID.Claims.PreferredUsername = common.StringArrayToList(preferredUsername)
+				state.OpenID.Claims.PreferredUsername, err = common.StringArrayToList(preferredUsername)
+				if err != nil {
+					response.Diagnostics.AddError("failed to convert OpenID claims PreferredUsername to tf list", err.Error())
+				}
 			}
 		}
 		issuer, ok := openidObject.GetIssuer()
 		if ok {
-			state.OpenID.Issuer = types.String{
-				Value: issuer,
-			}
+			state.OpenID.Issuer = types.StringValue(issuer)
 		}
 	}
 	response.Diagnostics.Append(diags...)
@@ -545,13 +535,13 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request tfsdk.ReadR
 	response.Diagnostics.Append(diags...)
 }
 
-func (r *IdentityProviderResource) Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
-	response *tfsdk.UpdateResourceResponse) {
+func (r *IdentityProviderResource) Update(ctx context.Context, request resource.UpdateRequest,
+	response *resource.UpdateResponse) {
 	response.Diagnostics.AddError("IDP Update not supported.", "This RHCS provider version does not support updating an existing IDP")
 }
 
-func (r *IdentityProviderResource) Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
-	response *tfsdk.DeleteResourceResponse) {
+func (r *IdentityProviderResource) Delete(ctx context.Context, request resource.DeleteRequest,
+	response *resource.DeleteResponse) {
 	// Get the state:
 	state := &IdentityProviderState{}
 	diags := request.State.Get(ctx, state)
@@ -561,9 +551,9 @@ func (r *IdentityProviderResource) Delete(ctx context.Context, request tfsdk.Del
 	}
 
 	// Send the request to delete the identity provider:
-	resource := r.collection.Cluster(state.Cluster.Value).
+	resource := r.collection.Cluster(state.Cluster.ValueString()).
 		IdentityProviders().
-		IdentityProvider(state.ID.Value)
+		IdentityProvider(state.ID.ValueString())
 	_, err := resource.Delete().SendContext(ctx)
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -571,7 +561,7 @@ func (r *IdentityProviderResource) Delete(ctx context.Context, request tfsdk.Del
 			fmt.Sprintf(
 				"Can't delete identity provider with identifier '%s' for "+
 					"cluster '%s': %v",
-				state.ID.Value, state.Cluster.Value, err,
+				state.ID.ValueString(), state.Cluster.ValueString(), err,
 			),
 		)
 		return
@@ -581,8 +571,8 @@ func (r *IdentityProviderResource) Delete(ctx context.Context, request tfsdk.Del
 	response.State.RemoveResource(ctx)
 }
 
-func (r *IdentityProviderResource) ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
-	response *tfsdk.ImportResourceStateResponse) {
+func (r *IdentityProviderResource) ImportState(ctx context.Context, request resource.ImportStateRequest,
+	response *resource.ImportStateResponse) {
 	// To import an identity provider, we need to know the cluster ID and the provider name.
 	fields := strings.Split(request.ID, ",")
 	if len(fields) != 2 || fields[0] == "" || fields[1] == "" {
@@ -604,13 +594,13 @@ func (r *IdentityProviderResource) ImportState(ctx context.Context, request tfsd
 		)
 		return
 	}
-	response.Diagnostics.Append(response.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("cluster"), clusterID)...)
-	response.Diagnostics.Append(response.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("id"), providerID)...)
+	response.Diagnostics.Append(response.State.SetAttribute(ctx, path.Root("cluster"), clusterID)...)
+	response.Diagnostics.Append(response.State.SetAttribute(ctx, path.Root("id"), providerID)...)
 }
 
 // getIDPIDFromName returns the ID of the identity provider with the given name.
 func getIDPIDFromName(ctx context.Context, client *cmv1.ClusterClient, name string) (string, error) {
-	tflog.Debug(ctx, "Converting IDP name to ID", "name", name)
+	tflog.Debug(ctx, "Converting IDP name to ID", map[string]interface{}{"name": name})
 	// Get the list of identity providers for the cluster:
 	pClient := client.IdentityProviders()
 	identityProviders := []*cmv1.IdentityProvider{}
@@ -635,7 +625,7 @@ func getIDPIDFromName(ctx context.Context, client *cmv1.ClusterClient, name stri
 	for _, item := range identityProviders {
 		if item.Name() == name {
 			id := item.ID()
-			tflog.Debug(ctx, "Found IDP", "name", name, "id", id)
+			tflog.Debug(ctx, "Found IDP", map[string]interface{}{"name": name, "id": id})
 			return id, nil
 		}
 	}

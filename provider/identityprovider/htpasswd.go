@@ -51,12 +51,13 @@ func htpasswdListValidators(***REMOVED*** []validator.List {
 	return []validator.List{
 		attrvalidators.NewListValidator("User list can not be empty",
 			func(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse***REMOVED*** {
-				state := &HTPasswdIdentityProvider{}
-				diag := req.Config.GetAttribute(ctx, req.Path, state***REMOVED***
-				if diag.HasError(***REMOVED*** {
+				users := make([]HTPasswdUser, len(req.ConfigValue.Elements(***REMOVED******REMOVED******REMOVED***
+				d := req.ConfigValue.ElementsAs(ctx, &users, false***REMOVED***
+				if d.HasError(***REMOVED*** {
+					// No attribute to validate
 					return
 		***REMOVED***
-				if len(state.Users***REMOVED*** < 1 {
+				if len(users***REMOVED*** < 1 {
 					resp.Diagnostics.AddAttributeError(req.Path, "user list must contain at least one user object", ""***REMOVED***
 					return
 		***REMOVED***

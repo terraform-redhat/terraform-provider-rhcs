@@ -86,7 +86,7 @@ func (r *IdentityProviderResource***REMOVED*** Schema(ctx context.Context, req r
 				Description: "Details of the Github identity provider.",
 				Attributes:  githubSchema,
 				Optional:    true,
-				Validators:  GitlabValidators(***REMOVED***,
+				Validators:  githubValidators(***REMOVED***,
 	***REMOVED***,
 			"google": schema.SingleNestedAttribute{
 				Description: "Details of the Google identity provider.",
@@ -185,7 +185,7 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context, reque
 	builder.Name(state.Name.ValueString(***REMOVED******REMOVED***
 	// handle mapping_method
 	mappingMethod := DefaultMappingMethod
-	if !state.MappingMethod.IsUnknown(***REMOVED*** && !state.MappingMethod.IsNull(***REMOVED*** {
+	if common.HasValue(state.MappingMethod***REMOVED*** {
 		mappingMethod = state.MappingMethod.ValueString(***REMOVED***
 	}
 	builder.MappingMethod(cmv1.IdentityProviderMappingMethod(mappingMethod***REMOVED******REMOVED***
@@ -320,7 +320,6 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 		***REMOVED***
 		return
 	}
-
 	object := get.Body(***REMOVED***
 
 	// Copy the identity provider data into the state:
@@ -391,6 +390,8 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 			if err != nil {
 				response.Diagnostics.AddError("failed to convert string slice to tf list", "GitHub Teams conversion failed"***REMOVED***
 	***REMOVED***
+***REMOVED*** else {
+			state.Github.Teams = types.ListUnknown(types.StringType***REMOVED***
 ***REMOVED***
 		orgs, ok := githubObject.GetOrganizations(***REMOVED***
 		if ok {
@@ -398,6 +399,8 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 			if err != nil {
 				response.Diagnostics.AddError("failed to convert string slice to tf list", "GitHub Organizations conversion failed"***REMOVED***
 	***REMOVED***
+***REMOVED*** else {
+			state.Github.Organizations = types.ListUnknown(types.StringType***REMOVED***
 ***REMOVED***
 	case googleObject != nil:
 		if state.Google == nil {
@@ -502,7 +505,6 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 			if ok {
 				state.OpenID.Claims.Groups, err = common.StringArrayToList(groups***REMOVED***
 				if err != nil {
-					response.Diagnostics.AddError("failed to convert OpenID claims Groups to tf list", err.Error(***REMOVED******REMOVED***
 		***REMOVED***
 	***REMOVED***
 			name, ok := claims.GetName(***REMOVED***
@@ -525,6 +527,7 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 			state.OpenID.Issuer = types.StringValue(issuer***REMOVED***
 ***REMOVED***
 	}
+
 	response.Diagnostics.Append(diags...***REMOVED***
 	if response.Diagnostics.HasError(***REMOVED*** {
 		return
@@ -584,7 +587,6 @@ func (r *IdentityProviderResource***REMOVED*** ImportState(ctx context.Context, 
 	}
 	clusterID := fields[0]
 	providerName := fields[1]
-
 	client := r.collection.Cluster(clusterID***REMOVED***
 	providerID, err := getIDPIDFromName(ctx, client, providerName***REMOVED***
 	if err != nil {
@@ -594,6 +596,7 @@ func (r *IdentityProviderResource***REMOVED*** ImportState(ctx context.Context, 
 		***REMOVED***
 		return
 	}
+
 	response.Diagnostics.Append(response.State.SetAttribute(ctx, path.Root("cluster"***REMOVED***, clusterID***REMOVED***...***REMOVED***
 	response.Diagnostics.Append(response.State.SetAttribute(ctx, path.Root("id"***REMOVED***, providerID***REMOVED***...***REMOVED***
 }

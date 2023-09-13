@@ -1,4 +1,4 @@
-package clusterrosaclassic
+package proxy
 
 import (
 	"context"

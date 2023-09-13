@@ -22,6 +22,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 	"net/http"
 	"testing"
 
@@ -141,7 +142,7 @@ func generateBasicRosaClassicClusterState() *ClusterRosaClassicState {
 		Properties:        properties,
 		ChannelGroup:      types.StringValue("stable"),
 		Version:           types.StringValue("4.10"),
-		Proxy: &Proxy{
+		Proxy: &proxy.Proxy{
 			HttpProxy:  types.StringValue(httpProxy),
 			HttpsProxy: types.StringValue(httpsProxy),
 		},

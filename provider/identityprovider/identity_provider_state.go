@@ -14,21 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package identityprovider
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 type IdentityProviderState struct {
-	Cluster       types.String                   `tfsdk:"cluster"`
-	ID            types.String                   `tfsdk:"id"`
-	Name          types.String                   `tfsdk:"name"`
-	MappingMethod types.String                   `tfsdk:"mapping_method"`
-	HTPasswd      *idps.HTPasswdIdentityProvider `tfsdk:"htpasswd"`
-	Gitlab        *idps.GitlabIdentityProvider   `tfsdk:"gitlab"`
-	Github        *idps.GithubIdentityProvider   `tfsdk:"github"`
-	Google        *idps.GoogleIdentityProvider   `tfsdk:"google"`
-	LDAP          *idps.LDAPIdentityProvider     `tfsdk:"ldap"`
-	OpenID        *idps.OpenIDIdentityProvider   `tfsdk:"openid"`
+	Cluster       types.String              `tfsdk:"cluster"`
+	ID            types.String              `tfsdk:"id"`
+	Name          types.String              `tfsdk:"name"`
+	MappingMethod types.String              `tfsdk:"mapping_method"`
+	HTPasswd      *HTPasswdIdentityProvider `tfsdk:"htpasswd"`
+	Gitlab        *GitlabIdentityProvider   `tfsdk:"gitlab"`
+	Github        *GithubIdentityProvider   `tfsdk:"github"`
+	Google        *GoogleIdentityProvider   `tfsdk:"google"`
+	LDAP          *LDAPIdentityProvider     `tfsdk:"ldap"`
+	OpenID        *OpenIDIdentityProvider   `tfsdk:"openid"`
 }

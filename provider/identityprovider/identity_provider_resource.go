@@ -86,7 +86,7 @@ func (r *IdentityProviderResource) Schema(ctx context.Context, req resource.Sche
 				Description: "Details of the Github identity provider.",
 				Attributes:  githubSchema,
 				Optional:    true,
-				Validators:  GitlabValidators(),
+				Validators:  githubValidators(),
 			},
 			"google": schema.SingleNestedAttribute{
 				Description: "Details of the Google identity provider.",
@@ -185,7 +185,7 @@ func (r *IdentityProviderResource) Create(ctx context.Context, request resource.
 	builder.Name(state.Name.ValueString())
 	// handle mapping_method
 	mappingMethod := DefaultMappingMethod
-	if !state.MappingMethod.IsUnknown() && !state.MappingMethod.IsNull() {
+	if common.HasValue(state.MappingMethod) {
 		mappingMethod = state.MappingMethod.ValueString()
 	}
 	builder.MappingMethod(cmv1.IdentityProviderMappingMethod(mappingMethod))
@@ -320,7 +320,6 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request resource.Re
 		)
 		return
 	}
-
 	object := get.Body()
 
 	// Copy the identity provider data into the state:
@@ -391,6 +390,8 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request resource.Re
 			if err != nil {
 				response.Diagnostics.AddError("failed to convert string slice to tf list", "GitHub Teams conversion failed")
 			}
+		} else {
+			state.Github.Teams = types.ListUnknown(types.StringType)
 		}
 		orgs, ok := githubObject.GetOrganizations()
 		if ok {
@@ -398,6 +399,8 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request resource.Re
 			if err != nil {
 				response.Diagnostics.AddError("failed to convert string slice to tf list", "GitHub Organizations conversion failed")
 			}
+		} else {
+			state.Github.Organizations = types.ListUnknown(types.StringType)
 		}
 	case googleObject != nil:
 		if state.Google == nil {
@@ -502,7 +505,6 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request resource.Re
 			if ok {
 				state.OpenID.Claims.Groups, err = common.StringArrayToList(groups)
 				if err != nil {
-					response.Diagnostics.AddError("failed to convert OpenID claims Groups to tf list", err.Error())
 				}
 			}
 			name, ok := claims.GetName()
@@ -525,6 +527,7 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request resource.Re
 			state.OpenID.Issuer = types.StringValue(issuer)
 		}
 	}
+
 	response.Diagnostics.Append(diags...)
 	if response.Diagnostics.HasError() {
 		return
@@ -584,7 +587,6 @@ func (r *IdentityProviderResource) ImportState(ctx context.Context, request reso
 	}
 	clusterID := fields[0]
 	providerName := fields[1]
-
 	client := r.collection.Cluster(clusterID)
 	providerID, err := getIDPIDFromName(ctx, client, providerName)
 	if err != nil {
@@ -594,6 +596,7 @@ func (r *IdentityProviderResource) ImportState(ctx context.Context, request reso
 		)
 		return
 	}
+
 	response.Diagnostics.Append(response.State.SetAttribute(ctx, path.Root("cluster"), clusterID)...)
 	response.Diagnostics.Append(response.State.SetAttribute(ctx, path.Root("id"), providerID)...)
 }

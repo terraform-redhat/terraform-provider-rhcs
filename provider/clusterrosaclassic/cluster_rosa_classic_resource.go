@@ -37,8 +37,6 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 	ocmr "github.com/terraform-redhat/terraform-provider-rhcs/internal/ocm/resource"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/idps"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/upgrade"
 
 	semver "github.com/hashicorp/go-version"
 	ver "github.com/hashicorp/go-version"

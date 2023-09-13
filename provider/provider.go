@@ -32,6 +32,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 	"github.com/terraform-redhat/terraform-provider-rhcs/logging"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cloudprovider"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cluster"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosaclassic"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterwaiter"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/dnsdomain"
@@ -215,8 +216,7 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 		oidcconfiginput.New,
 		clusterrosaclassic.New,
 		identityprovider.New,
-		// TODO: add other resources:
-		// cluster.New,
+		cluster.New,
 	}
 }
 
@@ -228,8 +228,5 @@ func (p *Provider) DataSources(ctx context.Context) []func() datasource.DataSour
 		ocm_policies.New,
 		rosa_operator_roles.New,
 		versions.New,
-		// TODO: add other data sources:
-		// policies.New,
-
 	}
 }

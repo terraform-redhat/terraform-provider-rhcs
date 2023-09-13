@@ -19,14 +19,21 @@ package cluster
 import (
 	"context"
 	"encoding/json"
+	"testing"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	. "github.com/onsi/ginkgo/v2/dsl/core" // nolint
 	. "github.com/onsi/gomega"             // nolint
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
+
+func TestResource(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Cluster Resource Suite")
+}
 
 var _ = Describe("Cluster creation", func() {
 	clusterId := "1n2j3k4l5m6n7o8p9q0r"
@@ -48,36 +55,18 @@ var _ = Describe("Cluster creation", func() {
 	privateLink := false
 
 	It("Creates ClusterBuilder with correct field values", func() {
+		azs, _ := common.StringArrayToList([]string{availabilityZone})
+		properties, _ := common.ConvertStringMapToMapType(map[string]string{"rosa_creator_arn": rosaCreatorArn})
+
 		clusterState := &ClusterState{
-			Name: types.String{
-				Value: clusterName,
-			},
-			Version: types.String{
-				Value: clusterVersion,
-			},
-			CloudRegion: types.String{
-				Value: regionId,
-			},
-			AWSAccountID: types.String{
-				Value: awsAccountID,
-			},
-			AvailabilityZones: types.List{
-				Elems: []attr.Value{
-					types.String{
-						Value: availabilityZone,
-					},
-				},
-			},
-			Properties: types.Map{
-				Elems: map[string]attr.Value{
-					"rosa_creator_arn": types.String{
-						Value: rosaCreatorArn,
-					},
-				},
-			},
-			Wait: types.Bool{
-				Value: false,
-			},
+			Name:    types.StringValue(clusterName),
+			Version: types.StringValue(clusterVersion),
+
+			CloudRegion:       types.StringValue(regionId),
+			AWSAccountID:      types.StringValue(awsAccountID),
+			AvailabilityZones: azs,
+			Properties:        properties,
+			Wait:              types.BoolValue(false),
 		}
 		clusterObject, err := createClusterObject(context.Background(), clusterState, diag.Diagnostics{})
 		Expect(err).To(BeNil())
@@ -155,24 +144,25 @@ var _ = Describe("Cluster creation", func() {
 
 		//We convert the Cluster object into a ClusterState and check that the conversion is correct
 		clusterState := &ClusterState{}
-		populateClusterState(clusterObject, clusterState)
+		err = populateClusterState(clusterObject, clusterState)
+		Expect(err).To(BeNil())
 
-		Expect(clusterState.ID.Value).To(Equal(clusterId))
-		Expect(clusterState.Version.Value).To(Equal(clusterVersion))
-		Expect(clusterState.Product.Value).To(Equal(productId))
-		Expect(clusterState.CloudProvider.Value).To(Equal(cloudProviderId))
-		Expect(clusterState.CloudRegion.Value).To(Equal(regionId))
-		Expect(clusterState.MultiAZ.Value).To(Equal(multiAz))
-		Expect(clusterState.Properties.Elems["rosa_creator_arn"].Equal(types.String{Value: rosaCreatorArn})).To(Equal(true))
-		Expect(clusterState.APIURL.Value).To(Equal(apiUrl))
-		Expect(clusterState.ConsoleURL.Value).To(Equal(consoleUrl))
-		Expect(clusterState.ComputeMachineType.Value).To(Equal(machineType))
-		Expect(clusterState.AvailabilityZones.Elems).To(HaveLen(1))
-		Expect(clusterState.AvailabilityZones.Elems[0].Equal(types.String{Value: availabilityZone})).To(Equal(true))
-		Expect(clusterState.CCSEnabled.Value).To(Equal(ccsEnabled))
-		Expect(clusterState.AWSAccountID.Value).To(Equal(awsAccountID))
-		Expect(clusterState.AWSAccessKeyID.Value).To(Equal(awsAccessKeyID))
-		Expect(clusterState.AWSSecretAccessKey.Value).To(Equal(awsSecretAccessKey))
-		Expect(clusterState.AWSPrivateLink.Value).To(Equal(privateLink))
+		Expect(clusterState.ID.ValueString()).To(Equal(clusterId))
+		Expect(clusterState.Version.ValueString()).To(Equal(clusterVersion))
+		Expect(clusterState.Product.ValueString()).To(Equal(productId))
+		Expect(clusterState.CloudProvider.ValueString()).To(Equal(cloudProviderId))
+		Expect(clusterState.CloudRegion.ValueString()).To(Equal(regionId))
+		Expect(clusterState.MultiAZ.ValueBool()).To(Equal(multiAz))
+		Expect(clusterState.Properties.Elements()["rosa_creator_arn"].Equal(types.StringValue(rosaCreatorArn))).To(Equal(true))
+		Expect(clusterState.APIURL.ValueString()).To(Equal(apiUrl))
+		Expect(clusterState.ConsoleURL.ValueString()).To(Equal(consoleUrl))
+		Expect(clusterState.ComputeMachineType.ValueString()).To(Equal(machineType))
+		Expect(clusterState.AvailabilityZones.Elements()).To(HaveLen(1))
+		Expect(clusterState.AvailabilityZones.Elements()[0].Equal(types.StringValue(availabilityZone))).To(Equal(true))
+		Expect(clusterState.CCSEnabled.ValueBool()).To(Equal(ccsEnabled))
+		Expect(clusterState.AWSAccountID.ValueString()).To(Equal(awsAccountID))
+		Expect(clusterState.AWSAccessKeyID.ValueString()).To(Equal(awsAccessKeyID))
+		Expect(clusterState.AWSSecretAccessKey.ValueString()).To(Equal(awsSecretAccessKey))
+		Expect(clusterState.AWSPrivateLink.ValueBool()).To(Equal(privateLink))
 	})
 })

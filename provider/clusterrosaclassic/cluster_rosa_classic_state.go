@@ -18,6 +18,7 @@ package clusterrosaclassic
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 )
 
 type ClusterRosaClassicState struct {
@@ -55,7 +56,7 @@ type ClusterRosaClassicState struct {
 	OCMProperties             types.Map         `tfsdk:"ocm_properties"`
 	Tags                      types.Map         `tfsdk:"tags"`
 	ServiceCIDR               types.String      `tfsdk:"service_cidr"`
-	Proxy                     *Proxy            `tfsdk:"proxy"`
+	Proxy                     *proxy.Proxy      `tfsdk:"proxy"`
 	State                     types.String      `tfsdk:"state"`
 	Version                   types.String      `tfsdk:"version"`
 	CurrentVersion            types.String      `tfsdk:"current_version"`
@@ -84,11 +85,4 @@ type InstanceIAMRole struct {
 type AdminCredentials struct {
 	Username types.String `tfsdk:"username"`
 	Password types.String `tfsdk:"password"`
-}
-
-type Proxy struct {
-	HttpProxy             types.String `tfsdk:"http_proxy"`
-	HttpsProxy            types.String `tfsdk:"https_proxy"`
-	NoProxy               types.String `tfsdk:"no_proxy"`
-	AdditionalTrustBundle types.String `tfsdk:"additional_trust_bundle"`
 }

@@ -14,16 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package ocm_policies
 
 ***REMOVED***
 	"context"
 ***REMOVED***
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 ***REMOVED***
 
@@ -44,113 +45,97 @@ const (
 	InstanceControlPlane = "sts_instance_controlplane_permission_policy"
 ***REMOVED***
 
-type OcmPoliciesDataSourceType struct {
-}
-
 type OcmPoliciesDataSource struct {
 	awsInquiries *cmv1.AWSInquiriesClient
 }
 
-func (t *OcmPoliciesDataSourceType***REMOVED*** GetSchema(ctx context.Context***REMOVED*** (result tfsdk.Schema,
-	diags diag.Diagnostics***REMOVED*** {
-	result = tfsdk.Schema{
+var _ datasource.DataSource = &OcmPoliciesDataSource{}
+var _ datasource.DataSourceWithConfigure = &OcmPoliciesDataSource{}
+
+func New(***REMOVED*** datasource.DataSource {
+	return &OcmPoliciesDataSource{}
+}
+
+func (s *OcmPoliciesDataSource***REMOVED*** Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse***REMOVED*** {
+	resp.TypeName = req.ProviderTypeName + "_policies"
+}
+
+func (s *OcmPoliciesDataSource***REMOVED*** Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse***REMOVED*** {
+	resp.Schema = schema.Schema{
 		Description: "List of rosa operator role and account roles for a specific cluster.",
-		Attributes: map[string]tfsdk.Attribute{
-			"operator_role_policies": {
+		Attributes: map[string]schema.Attribute{
+			"operator_role_policies": schema.SingleNestedAttribute{
 				Description: "Operator role policies.",
-				Attributes:  operatorRolePoliciesNames(***REMOVED***,
-				Computed:    true,
+				Attributes: map[string]schema.Attribute{
+					CloudCred: schema.StringAttribute{
+						Computed: true,
+			***REMOVED***,
+					CloudNetwork: schema.StringAttribute{
+						Computed: true,
+			***REMOVED***,
+					ClusterCSI: schema.StringAttribute{
+						Computed: true,
+			***REMOVED***,
+					ImageRegistry: schema.StringAttribute{
+						Computed: true,
+			***REMOVED***,
+					IngressOperator: schema.StringAttribute{
+						Computed: true,
+			***REMOVED***,
+					SharedVpcIngressOperator: schema.StringAttribute{
+						Computed: true,
+			***REMOVED***,
+					MachineAPI: schema.StringAttribute{
+						Computed: true,
+			***REMOVED***,
+		***REMOVED***,
+				Computed: true,
 	***REMOVED***,
-			"account_role_policies": {
+			"account_role_policies": schema.SingleNestedAttribute{
 				Description: "Account role policies.",
-				Attributes:  accountRolePoliciesNames(***REMOVED***,
-				Computed:    true,
+				Attributes: map[string]schema.Attribute{
+					Installer: schema.StringAttribute{
+						Computed: true,
+			***REMOVED***,
+					Support: schema.StringAttribute{
+						Computed: true,
+			***REMOVED***,
+					InstanceWorker: schema.StringAttribute{
+						Computed: true,
+			***REMOVED***,
+					InstanceControlPlane: schema.StringAttribute{
+						Computed: true,
+			***REMOVED***,
+		***REMOVED***,
+				Computed: true,
 	***REMOVED***,
 ***REMOVED***,
 	}
-	return
 }
 
-func accountRolePoliciesNames(***REMOVED*** tfsdk.NestedAttributes {
-	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-		Installer: {
-			Type:     types.StringType,
-			Computed: true,
-***REMOVED***,
-		Support: {
-			Type:     types.StringType,
-			Computed: true,
-***REMOVED***,
-		InstanceWorker: {
-			Type:     types.StringType,
-			Computed: true,
-***REMOVED***,
-		InstanceControlPlane: {
-			Type:     types.StringType,
-			Computed: true,
-***REMOVED***,
-	}***REMOVED***
-}
-
-func operatorRolePoliciesNames(***REMOVED*** tfsdk.NestedAttributes {
-	return tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-		CloudCred: {
-			Type:     types.StringType,
-			Computed: true,
-***REMOVED***,
-		CloudNetwork: {
-			Type:     types.StringType,
-			Computed: true,
-***REMOVED***,
-		ClusterCSI: {
-			Type:     types.StringType,
-			Computed: true,
-***REMOVED***,
-		ImageRegistry: {
-			Type:     types.StringType,
-			Computed: true,
-***REMOVED***,
-		IngressOperator: {
-			Type:     types.StringType,
-			Computed: true,
-***REMOVED***,
-		SharedVpcIngressOperator: {
-			Type:     types.StringType,
-			Computed: true,
-***REMOVED***,
-		MachineAPI: {
-			Type:     types.StringType,
-			Computed: true,
-***REMOVED***,
-	}***REMOVED***
-}
-
-func (t *OcmPoliciesDataSourceType***REMOVED*** NewDataSource(ctx context.Context,
-	p tfsdk.Provider***REMOVED*** (result tfsdk.DataSource, diags diag.Diagnostics***REMOVED*** {
-	// Cast the provider interface to the specific implementation:
-	parent := p.(*Provider***REMOVED***
-
-	// Get the collection of aws inquiries:
-	awsInquiries := parent.connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.AWSInquiries(***REMOVED***
-
-	// Create the resource:
-	result = &OcmPoliciesDataSource{
-		awsInquiries: awsInquiries,
-	}
-	return
-}
-
-func (t *OcmPoliciesDataSource***REMOVED*** Read(ctx context.Context, request tfsdk.ReadDataSourceRequest,
-	response *tfsdk.ReadDataSourceResponse***REMOVED*** {
-	// Get the state:
-	state := &OcmPoliciesState{}
-	diags := request.Config.Get(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
-	if response.Diagnostics.HasError(***REMOVED*** {
+func (s *OcmPoliciesDataSource***REMOVED*** Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse***REMOVED*** {
+	// Prevent panic if the provider has not been configured:
+	if req.ProviderData == nil {
 		return
 	}
 
-	policiesResponse, err := t.awsInquiries.STSPolicies(***REMOVED***.List(***REMOVED***.Send(***REMOVED***
+	// Cast the provider data to the specific implementation:
+	connection := req.ProviderData.(*sdk.Connection***REMOVED***
+
+	// Get the collection of cloud providers:
+	s.awsInquiries = connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.AWSInquiries(***REMOVED***
+}
+
+func (s *OcmPoliciesDataSource***REMOVED*** Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse***REMOVED*** {
+	// Get the state:
+	state := &OcmPoliciesState{}
+	diags := req.Config.Get(ctx, state***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
+	if resp.Diagnostics.HasError(***REMOVED*** {
+		return
+	}
+
+	policiesResponse, err := s.awsInquiries.STSPolicies(***REMOVED***.List(***REMOVED***.Send(***REMOVED***
 	if err != nil {
 		tflog.Error(ctx, "Failed to get policies"***REMOVED***
 		return
@@ -163,28 +148,28 @@ func (t *OcmPoliciesDataSource***REMOVED*** Read(ctx context.Context, request tf
 		switch awsPolicy.ID(***REMOVED*** {
 		// operator roles
 		case CloudCred:
-			operatorRolePolicies.CloudCred = types.String{Value: awsPolicy.Details(***REMOVED***}
+			operatorRolePolicies.CloudCred = types.StringValue(awsPolicy.Details(***REMOVED******REMOVED***
 		case CloudNetwork:
-			operatorRolePolicies.CloudNetwork = types.String{Value: awsPolicy.Details(***REMOVED***}
+			operatorRolePolicies.CloudNetwork = types.StringValue(awsPolicy.Details(***REMOVED******REMOVED***
 		case ClusterCSI:
-			operatorRolePolicies.ClusterCSI = types.String{Value: awsPolicy.Details(***REMOVED***}
+			operatorRolePolicies.ClusterCSI = types.StringValue(awsPolicy.Details(***REMOVED******REMOVED***
 		case ImageRegistry:
-			operatorRolePolicies.ImageRegistry = types.String{Value: awsPolicy.Details(***REMOVED***}
+			operatorRolePolicies.ImageRegistry = types.StringValue(awsPolicy.Details(***REMOVED******REMOVED***
 		case IngressOperator:
-			operatorRolePolicies.IngressOperator = types.String{Value: awsPolicy.Details(***REMOVED***}
+			operatorRolePolicies.IngressOperator = types.StringValue(awsPolicy.Details(***REMOVED******REMOVED***
 		case SharedVpcIngressOperator:
-			operatorRolePolicies.SharedVpcIngressOperator = types.String{Value: awsPolicy.Details(***REMOVED***}
+			operatorRolePolicies.SharedVpcIngressOperator = types.StringValue(awsPolicy.Details(***REMOVED******REMOVED***
 		case MachineAPI:
-			operatorRolePolicies.MachineAPI = types.String{Value: awsPolicy.Details(***REMOVED***}
+			operatorRolePolicies.MachineAPI = types.StringValue(awsPolicy.Details(***REMOVED******REMOVED***
 		// account roles
 		case Installer:
-			accountRolePolicies.Installer = types.String{Value: awsPolicy.Details(***REMOVED***}
+			accountRolePolicies.Installer = types.StringValue(awsPolicy.Details(***REMOVED******REMOVED***
 		case Support:
-			accountRolePolicies.Support = types.String{Value: awsPolicy.Details(***REMOVED***}
+			accountRolePolicies.Support = types.StringValue(awsPolicy.Details(***REMOVED******REMOVED***
 		case InstanceWorker:
-			accountRolePolicies.InstanceWorker = types.String{Value: awsPolicy.Details(***REMOVED***}
+			accountRolePolicies.InstanceWorker = types.StringValue(awsPolicy.Details(***REMOVED******REMOVED***
 		case InstanceControlPlane:
-			accountRolePolicies.InstanceControlPlane = types.String{Value: awsPolicy.Details(***REMOVED***}
+			accountRolePolicies.InstanceControlPlane = types.StringValue(awsPolicy.Details(***REMOVED******REMOVED***
 		default:
 			tflog.Debug(ctx, "This is neither operator role policy nor account role policy"***REMOVED***
 ***REMOVED***
@@ -195,6 +180,6 @@ func (t *OcmPoliciesDataSource***REMOVED*** Read(ctx context.Context, request tf
 	state.AccountRolePolicies = &accountRolePolicies
 
 	// Save the state:
-	diags = response.State.Set(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
+	diags = resp.State.Set(ctx, state***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
 }

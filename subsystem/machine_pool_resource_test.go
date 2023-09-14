@@ -40,6 +40,44 @@ var _ = Describe("Machine pool (static) validation", func() {
 		`)
 		Expect(terraform.Validate()).NotTo(BeZero())
 	})
+
+	It("is necessary to specify both min and max replicas", func() {
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+			auto_scaling = true
+			min_replicas = 1
+		  }
+		`)
+		Expect(terraform.Validate()).NotTo(BeZero())
+
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+			auto_scaling = true
+			max_replicas = 5
+		  }
+		`)
+		Expect(terraform.Validate()).NotTo(BeZero())
+	})
+
+	It("is invalid to specify min_replicas or max_replicas and replicas", func() {
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+			auto_scaling = true
+			min_replicas = 1
+			replicas     = 5
+		  }
+		`)
+		Expect(terraform.Validate()).NotTo(BeZero())
+	})
 })
 
 var _ = Describe("Machine pool creation", func() {

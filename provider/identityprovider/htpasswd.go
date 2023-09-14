@@ -2,15 +2,38 @@ package identityprovider
 
 ***REMOVED***
 	"context"
-***REMOVED***
 	"regexp"
-	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
+***REMOVED***
+
+const (
+	HTPasswdMinPassLength = 14
+***REMOVED***
+
+var (
+	HTPasswdPassRegexAscii          = regexp.MustCompile(`^[\x20-\x7E]+$`***REMOVED***
+	HTPasswdPassRegexHasUpper       = regexp.MustCompile(`[A-Z]`***REMOVED***
+	HTPasswdPassRegexHasLower       = regexp.MustCompile(`[a-z]`***REMOVED***
+	HTPasswdPassRegexHasNumOrSymbol = regexp.MustCompile(`[^a-zA-Z]`***REMOVED***
+
+	HTPasswdPasswordValidators = []validator.String{
+		stringvalidator.LengthAtLeast(HTPasswdMinPassLength***REMOVED***,
+		stringvalidator.RegexMatches(HTPasswdPassRegexAscii, "password should use ASCII-standard characters only"***REMOVED***,
+		stringvalidator.RegexMatches(HTPasswdPassRegexHasUpper, "password must contain uppercase characters"***REMOVED***,
+		stringvalidator.RegexMatches(HTPasswdPassRegexHasLower, "password must contain lowercase characters"***REMOVED***,
+		stringvalidator.RegexMatches(HTPasswdPassRegexHasNumOrSymbol, "password must contain numbers or symbols"***REMOVED***,
+	}
+
+	HTPasswdUsernameValidators = []validator.String{
+		stringvalidator.RegexMatches(regexp.MustCompile(`^[^/:%]*$`***REMOVED***, "username may not contain the characters: '/:%'"***REMOVED***,
+	}
 ***REMOVED***
 
 type HTPasswdUser struct {
@@ -28,8 +51,10 @@ var htpasswdSchema = map[string]schema.Attribute{
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: htpasswdUserList,
 ***REMOVED***,
-		Validators: htpasswdListValidators(***REMOVED***,
-		Required:   true,
+		Validators: []validator.List{
+			listvalidator.SizeAtLeast(1***REMOVED***,
+***REMOVED***,
+		Required: true,
 	},
 }
 
@@ -37,58 +62,14 @@ var htpasswdUserList = map[string]schema.Attribute{
 	"username": schema.StringAttribute{
 		Description: "User username.",
 		Required:    true,
-		Validators:  htpasswdUsernameValidators(***REMOVED***,
+		Validators:  HTPasswdUsernameValidators,
 	},
 	"password": schema.StringAttribute{
 		Description: "User password.",
 		Required:    true,
 		Sensitive:   true,
-		Validators:  htpasswdPasswordValidators(***REMOVED***,
+		Validators:  HTPasswdPasswordValidators,
 	},
-}
-
-func htpasswdListValidators(***REMOVED*** []validator.List {
-	return []validator.List{
-		attrvalidators.NewListValidator("User list can not be empty",
-			func(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse***REMOVED*** {
-				users := make([]HTPasswdUser, len(req.ConfigValue.Elements(***REMOVED******REMOVED******REMOVED***
-				d := req.ConfigValue.ElementsAs(ctx, &users, false***REMOVED***
-				if d.HasError(***REMOVED*** {
-					// No attribute to validate
-					return
-		***REMOVED***
-				if len(users***REMOVED*** < 1 {
-					resp.Diagnostics.AddAttributeError(req.Path, "user list must contain at least one user object", ""***REMOVED***
-					return
-		***REMOVED***
-	***REMOVED******REMOVED***,
-	}
-}
-
-func htpasswdUsernameValidators(***REMOVED*** []validator.String {
-	return []validator.String{
-		attrvalidators.NewStringValidator("Validate username",
-			func(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse***REMOVED*** {
-				username := req.ConfigValue
-				if err := ValidateHTPasswdUsername(username.ValueString(***REMOVED******REMOVED***; err != nil {
-					resp.Diagnostics.AddAttributeError(req.Path, "invalid username", err.Error(***REMOVED******REMOVED***
-					return
-		***REMOVED***
-	***REMOVED******REMOVED***,
-	}
-}
-
-func htpasswdPasswordValidators(***REMOVED*** []validator.String {
-	return []validator.String{
-		attrvalidators.NewStringValidator("Validate password",
-			func(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse***REMOVED*** {
-				password := req.ConfigValue
-				if err := ValidateHTPasswdPassword(password.ValueString(***REMOVED******REMOVED***; err != nil {
-					resp.Diagnostics.AddAttributeError(req.Path, "invalid password", err.Error(***REMOVED******REMOVED***
-					return
-		***REMOVED***
-	***REMOVED******REMOVED***,
-	}
 }
 
 func CreateHTPasswdIDPBuilder(ctx context.Context, state *HTPasswdIdentityProvider***REMOVED*** *cmv1.HTPasswdIdentityProviderBuilder {
@@ -104,31 +85,4 @@ func CreateHTPasswdIDPBuilder(ctx context.Context, state *HTPasswdIdentityProvid
 	userListBuilder.Items(userList...***REMOVED***
 	builder.Users(userListBuilder***REMOVED***
 	return builder
-}
-
-func ValidateHTPasswdUsername(username string***REMOVED*** error {
-	if strings.ContainsAny(username, "/:%"***REMOVED*** {
-		return fmt.Errorf("invalid username '%s': "+
-			"username must not contain /, :, or %%", username***REMOVED***
-	}
-	return nil
-}
-
-func ValidateHTPasswdPassword(password string***REMOVED*** error {
-	notAsciiOnly, _ := regexp.MatchString(`[^\x20-\x7E]`, password***REMOVED***
-	containsSpace := strings.Contains(password, " "***REMOVED***
-	tooShort := len(password***REMOVED*** < 14
-	if notAsciiOnly || containsSpace || tooShort {
-		return fmt.Errorf(
-			"password must be at least 14 characters (ASCII-standard***REMOVED*** without whitespaces"***REMOVED***
-	}
-	hasUppercase, _ := regexp.MatchString(`[A-Z]`, password***REMOVED***
-	hasLowercase, _ := regexp.MatchString(`[a-z]`, password***REMOVED***
-	hasNumberOrSymbol, _ := regexp.MatchString(`[^a-zA-Z]`, password***REMOVED***
-	if !hasUppercase || !hasLowercase || !hasNumberOrSymbol {
-		return fmt.Errorf(
-			"password must include uppercase letters, lowercase letters, and numbers " +
-				"or symbols (ASCII-standard characters only***REMOVED***"***REMOVED***
-	}
-	return nil
 }

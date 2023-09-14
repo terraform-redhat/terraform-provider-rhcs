@@ -32,31 +32,23 @@ var googleSchema = map[string]schema.Attribute{
 	"hosted_domain": schema.StringAttribute{
 		Description: "Restrict users to a Google Apps domain.",
 		Optional:    true,
+		Validators: []validator.String{
+			googleHostedDomainValidator(***REMOVED***,
+***REMOVED***,
 	},
 }
 
-func GoogleValidators(***REMOVED*** []validator.Object {
+func googleHostedDomainValidator(***REMOVED*** validator.String {
 	errSumm := "Invalid Google IDP resource configuration"
-	return []validator.Object{
-		attrvalidators.NewObjectValidator("Validate hosted_domain",
-			func(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse***REMOVED*** {
-				state := &GoogleIdentityProvider{}
-				diag := req.Config.GetAttribute(ctx, req.Path, state***REMOVED***
-				if diag.HasError(***REMOVED*** {
-					// No attribute to validate
-					return
-		***REMOVED***
+	return attrvalidators.NewStringValidator("", func(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse***REMOVED*** {
+		hostedDomain := req.ConfigValue
+		if !hostedDomain.IsNull(***REMOVED*** && !hostedDomain.IsNull(***REMOVED*** && !common.IsValidDomain(hostedDomain.ValueString(***REMOVED******REMOVED*** {
+			resp.Diagnostics.AddAttributeError(req.Path, errSumm,
+				fmt.Sprintf("Expected a valid Google hosted_domain. Got %v",
+					hostedDomain.ValueString(***REMOVED******REMOVED******REMOVED***
 
-				if !state.HostedDomain.IsUnknown(***REMOVED*** && !state.HostedDomain.IsNull(***REMOVED*** {
-					if !common.IsValidDomain(state.HostedDomain.ValueString(***REMOVED******REMOVED*** {
-						resp.Diagnostics.AddError(errSumm,
-							fmt.Sprintf("Expected a valid Google hosted_domain. Got %v",
-								state.HostedDomain.ValueString(***REMOVED******REMOVED***,
-						***REMOVED***
-			***REMOVED***
-		***REMOVED***
-	***REMOVED******REMOVED***,
-	}
+***REMOVED***
+	}***REMOVED***
 }
 
 func CreateGoogleIDPBuilder(ctx context.Context, mappingMethod string, state *GoogleIdentityProvider***REMOVED*** (*cmv1.GoogleIdentityProviderBuilder, error***REMOVED*** {

@@ -2,6 +2,7 @@ package identityprovider
 
 ***REMOVED***
 	"context"
+***REMOVED***
 	"net/url"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -32,6 +33,9 @@ var gitlabSchema = map[string]schema.Attribute{
 	"url": schema.StringAttribute{
 		Description: "URL of the Gitlab instance.",
 		Required:    true,
+		Validators: []validator.String{
+			gitlabUrlValidator(***REMOVED***,
+***REMOVED***,
 	},
 	"ca": schema.StringAttribute{
 		Description: "Optional trusted certificate authority bundle.",
@@ -39,24 +43,20 @@ var gitlabSchema = map[string]schema.Attribute{
 	},
 }
 
-func GitlabValidators(***REMOVED*** []validator.Object {
-	errSumm := "Invalid Gitlab IDP resource configuration"
-	return []validator.Object{
-		attrvalidators.NewObjectValidator("Validate GitLab 'url'",
-			func(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse***REMOVED*** {
-				state := &GitlabIdentityProvider{}
-				diag := req.Config.GetAttribute(ctx, req.Path, state***REMOVED***
-				if diag.HasError(***REMOVED*** {
-					// No attribute to validate
-					return
-		***REMOVED***
-				u, err := url.ParseRequestURI(state.URL.ValueString(***REMOVED******REMOVED***
-				if err != nil || u.Scheme != "https" || u.RawQuery != "" || u.Fragment != "" {
-					resp.Diagnostics.AddError(errSumm,
-						"Expected a valid GitLab provider URL: to use an https:// scheme, must not have query parameters and not have a fragment."***REMOVED***
-		***REMOVED***
-	***REMOVED******REMOVED***,
-	}
+func gitlabUrlValidator(***REMOVED*** validator.String {
+	return attrvalidators.NewStringValidator("url validator", func(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse***REMOVED*** {
+		gitlabUrl := req.ConfigValue
+		// Validate hostname
+		if !gitlabUrl.IsUnknown(***REMOVED*** && !gitlabUrl.IsNull(***REMOVED*** && len(gitlabUrl.ValueString(***REMOVED******REMOVED*** > 0 {
+			_, err := url.ParseRequestURI(gitlabUrl.ValueString(***REMOVED******REMOVED***
+			if err != nil {
+				resp.Diagnostics.AddAttributeError(req.Path, "invalid url",
+					fmt.Sprintf("Expected a valid GitLab url. Got %v", gitlabUrl.ValueString(***REMOVED******REMOVED***,
+				***REMOVED***
+	***REMOVED***
+***REMOVED***
+
+	}***REMOVED***
 }
 
 func CreateGitlabIDPBuilder(ctx context.Context, state *GitlabIdentityProvider***REMOVED*** (*cmv1.GitlabIdentityProviderBuilder, error***REMOVED*** {

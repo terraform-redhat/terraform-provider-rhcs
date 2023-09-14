@@ -6,6 +6,8 @@ package identityprovider
 	"net/url"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -41,86 +43,60 @@ var githubSchema = map[string]schema.Attribute{
 	"hostname": schema.StringAttribute{
 		Description: "Optional domain to use with a hosted instance of GitHub Enterprise.",
 		Optional:    true,
+		Validators: []validator.String{
+			githubHostnameValidator(***REMOVED***,
+***REMOVED***,
 	},
 	"organizations": schema.ListAttribute{
 		Description: "Only users that are members of at least one of the listed organizations will be allowed to log in.",
 		ElementType: types.StringType,
 		Optional:    true,
+		Validators: []validator.List{
+			listvalidator.ConflictsWith(path.MatchRelative(***REMOVED***.AtParent(***REMOVED***.AtName("teams"***REMOVED******REMOVED***,
+			listvalidator.ExactlyOneOf(path.MatchRelative(***REMOVED***.AtParent(***REMOVED***.AtName("teams"***REMOVED***, path.MatchRelative(***REMOVED***.AtParent(***REMOVED***.AtName("organizations"***REMOVED******REMOVED***,
+***REMOVED***,
 	},
 	"teams": schema.ListAttribute{
 		Description: "Only users that are members of at least one of the listed teams will be allowed to log in. The format is <org>/<team>.",
 		ElementType: types.StringType,
 		Optional:    true,
+		Validators: []validator.List{
+			listvalidator.ConflictsWith(path.MatchRelative(***REMOVED***.AtParent(***REMOVED***.AtName("organizations"***REMOVED******REMOVED***,
+			listvalidator.ExactlyOneOf(path.MatchRelative(***REMOVED***.AtParent(***REMOVED***.AtName("teams"***REMOVED***, path.MatchRelative(***REMOVED***.AtParent(***REMOVED***.AtName("organizations"***REMOVED******REMOVED***,
+			listvalidator.ValueStringsAre(
+				githubTeamsFormatValidator(***REMOVED***,
+			***REMOVED***,
+***REMOVED***,
 	},
 }
 
-func githubValidators(***REMOVED*** []validator.Object {
-	errSumm := "Invalid GitHub IDP resource configuration"
-	return []validator.Object{
-		attrvalidators.NewObjectValidator("GitHub IDP requires either organizations or teams",
-			func(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse***REMOVED*** {
-				ghState := &GithubIdentityProvider{}
-				diag := req.Config.GetAttribute(ctx, req.Path, ghState***REMOVED***
-				if diag.HasError(***REMOVED*** {
-					// No attribute to validate
-					return
-		***REMOVED***
-				// At only one restriction plan is required
-				areTeamsDefined := !ghState.Teams.IsUnknown(***REMOVED*** && !ghState.Teams.IsNull(***REMOVED***
-				areOrgsDefined := !ghState.Organizations.IsUnknown(***REMOVED*** && !ghState.Organizations.IsNull(***REMOVED***
-				if !areOrgsDefined && !areTeamsDefined {
-					resp.Diagnostics.AddError(errSumm, "GitHub IDP requires missing attributes 'organizations' OR 'teams'"***REMOVED***
-		***REMOVED***
-				if areOrgsDefined && areTeamsDefined {
-					resp.Diagnostics.AddError(errSumm, "GitHub IDP requires either 'organizations' or 'teams', not both."***REMOVED***
-		***REMOVED***
-	***REMOVED******REMOVED***,
-		attrvalidators.NewObjectValidator("GitHub IDP teams format validation",
-			func(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse***REMOVED*** {
-				ghState := &GithubIdentityProvider{}
-				diag := req.Config.GetAttribute(ctx, req.Path, ghState***REMOVED***
-				if diag.HasError(***REMOVED*** {
-					// No attribute to validate
-					return
-		***REMOVED***
-				// Validate teams format
-				teams := []string{}
-				dig := ghState.Teams.ElementsAs(ctx, &teams, false***REMOVED***
-				if dig.HasError(***REMOVED*** {
-					// Nothing to validate
-					return
-		***REMOVED***
-				for i, team := range teams {
-					parts := strings.Split(team, "/"***REMOVED***
-					if len(parts***REMOVED*** != 2 {
-						resp.Diagnostics.AddError(errSumm,
-							fmt.Sprintf("Expected a GitHub team to follow the form '<org>/<team>', Got %v at index %d",
-								team, i***REMOVED***,
-						***REMOVED***
-						return
+func githubTeamsFormatValidator(***REMOVED*** validator.String {
+	return attrvalidators.NewStringValidator("validate teams format", func(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse***REMOVED*** {
+		team := req.ConfigValue
+		parts := strings.Split(team.ValueString(***REMOVED***, "/"***REMOVED***
+		if len(parts***REMOVED*** != 2 {
+			resp.Diagnostics.AddAttributeError(req.Path, "invalid team format",
+				fmt.Sprintf("Expected a GitHub team to follow the form '<org>/<team>', Got %s", team.ValueString(***REMOVED******REMOVED***,
 			***REMOVED***
-		***REMOVED***
-	***REMOVED******REMOVED***,
-		attrvalidators.NewObjectValidator("GitHub IDP hostname validator",
-			func(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse***REMOVED*** {
-				ghState := &GithubIdentityProvider{}
-				diag := req.Config.GetAttribute(ctx, req.Path, ghState***REMOVED***
-				if diag.HasError(***REMOVED*** {
-					// No attribute to validate
-					return
-		***REMOVED***
-				// Validate hostname
-				if !ghState.Hostname.IsUnknown(***REMOVED*** && !ghState.Hostname.IsNull(***REMOVED*** && len(ghState.Hostname.ValueString(***REMOVED******REMOVED*** > 0 {
-					_, err := url.ParseRequestURI(ghState.Hostname.ValueString(***REMOVED******REMOVED***
-					if err != nil {
-						resp.Diagnostics.AddError(errSumm,
-							fmt.Sprintf("Expected a valid GitHub hostname. Got %v",
-								ghState.Hostname.ValueString(***REMOVED******REMOVED***,
-						***REMOVED***
-			***REMOVED***
-		***REMOVED***
-	***REMOVED******REMOVED***,
-	}
+			return
+***REMOVED***
+	}***REMOVED***
+}
+
+func githubHostnameValidator(***REMOVED*** validator.String {
+	return attrvalidators.NewStringValidator("hostname validator", func(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse***REMOVED*** {
+		hostname := req.ConfigValue
+		// Validate hostname
+		if !hostname.IsUnknown(***REMOVED*** && !hostname.IsNull(***REMOVED*** && len(hostname.ValueString(***REMOVED******REMOVED*** > 0 {
+			_, err := url.ParseRequestURI(hostname.ValueString(***REMOVED******REMOVED***
+			if err != nil {
+				resp.Diagnostics.AddAttributeError(req.Path, "invalid hostname",
+					fmt.Sprintf("Expected a valid GitHub hostname. Got %v", hostname.ValueString(***REMOVED******REMOVED***,
+				***REMOVED***
+	***REMOVED***
+***REMOVED***
+
+	}***REMOVED***
 }
 
 func CreateGithubIDPBuilder(ctx context.Context, state *GithubIdentityProvider***REMOVED*** (*cmv1.GithubIdentityProviderBuilder, error***REMOVED*** {

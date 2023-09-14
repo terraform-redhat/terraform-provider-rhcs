@@ -23,9 +23,13 @@ package identityprovider
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	sdk "github.com/openshift-online/ocm-sdk-go"
@@ -37,6 +41,18 @@ package identityprovider
 var _ resource.ResourceWithConfigure = &IdentityProviderResource{}
 var _ resource.ResourceWithImportState = &IdentityProviderResource{}
 var _ resource.ResourceWithValidateConfig = &IdentityProviderResource{}
+
+var validMappingMethods = []string{"claim", "add", "generate", "lookup"} // Default is @ index 0
+var defaultMappingMethod = validMappingMethods[0]
+
+var listOfIDPTypesPathes = []path.Expression{
+	path.MatchRoot("github"***REMOVED***,
+	path.MatchRoot("gitlab"***REMOVED***,
+	path.MatchRoot("google"***REMOVED***,
+	path.MatchRoot("htpasswd"***REMOVED***,
+	path.MatchRoot("ldap"***REMOVED***,
+	path.MatchRoot("openid"***REMOVED***,
+}
 
 type IdentityProviderResource struct {
 	collection *cmv1.ClustersClient
@@ -69,41 +85,58 @@ func (r *IdentityProviderResource***REMOVED*** Schema(ctx context.Context, req r
 				Description: "Specifies how new identities are mapped to users when they log in. Options are [add claim generate lookup] (default 'claim'***REMOVED***",
 				Optional:    true,
 				Computed:    true,
-				Validators:  MappingMethodValidators(***REMOVED***,
+				Validators: []validator.String{
+					stringvalidator.OneOf(validMappingMethods...***REMOVED***,
+		***REMOVED***,
+				Default: stringdefault.StaticString(defaultMappingMethod***REMOVED***,
 	***REMOVED***,
 			"htpasswd": schema.SingleNestedAttribute{
 				Description: "Details of the 'htpasswd' identity provider.",
 				Attributes:  htpasswdSchema,
 				Optional:    true,
+				Validators: []validator.Object{
+					objectvalidator.ExactlyOneOf(listOfIDPTypesPathes...***REMOVED***,
+		***REMOVED***,
 	***REMOVED***,
 			"gitlab": schema.SingleNestedAttribute{
 				Description: "Details of the Gitlab identity provider.",
 				Attributes:  gitlabSchema,
 				Optional:    true,
-				Validators:  GitlabValidators(***REMOVED***,
+				Validators: []validator.Object{
+					objectvalidator.ExactlyOneOf(listOfIDPTypesPathes...***REMOVED***,
+		***REMOVED***,
 	***REMOVED***,
 			"github": schema.SingleNestedAttribute{
 				Description: "Details of the Github identity provider.",
 				Attributes:  githubSchema,
 				Optional:    true,
-				Validators:  githubValidators(***REMOVED***,
+				Validators: []validator.Object{
+					objectvalidator.ExactlyOneOf(listOfIDPTypesPathes...***REMOVED***,
+		***REMOVED***,
 	***REMOVED***,
 			"google": schema.SingleNestedAttribute{
 				Description: "Details of the Google identity provider.",
 				Attributes:  googleSchema,
 				Optional:    true,
-				Validators:  GoogleValidators(***REMOVED***,
+				Validators: []validator.Object{
+					objectvalidator.ExactlyOneOf(listOfIDPTypesPathes...***REMOVED***,
+		***REMOVED***,
 	***REMOVED***,
 			"ldap": schema.SingleNestedAttribute{
 				Description: "Details of the LDAP identity provider.",
 				Attributes:  ldapSchema,
 				Optional:    true,
-				Validators:  LDAPValidators(***REMOVED***,
+				Validators: []validator.Object{
+					objectvalidator.ExactlyOneOf(listOfIDPTypesPathes...***REMOVED***,
+		***REMOVED***,
 	***REMOVED***,
 			"openid": schema.SingleNestedAttribute{
 				Description: "Details of the OpenID identity provider.",
 				Attributes:  openidSchema,
 				Optional:    true,
+				Validators: []validator.Object{
+					objectvalidator.ExactlyOneOf(listOfIDPTypesPathes...***REMOVED***,
+		***REMOVED***,
 	***REMOVED***,
 ***REMOVED***,
 	}
@@ -184,7 +217,7 @@ func (r *IdentityProviderResource***REMOVED*** Create(ctx context.Context, reque
 	builder := cmv1.NewIdentityProvider(***REMOVED***
 	builder.Name(state.Name.ValueString(***REMOVED******REMOVED***
 	// handle mapping_method
-	mappingMethod := DefaultMappingMethod
+	mappingMethod := defaultMappingMethod
 	if common.HasValue(state.MappingMethod***REMOVED*** {
 		mappingMethod = state.MappingMethod.ValueString(***REMOVED***
 	}

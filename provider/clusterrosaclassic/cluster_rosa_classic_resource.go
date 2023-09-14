@@ -19,21 +19,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 	"net/http"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/openshift/rosa/pkg/ocm"
-	"github.com/openshift/rosa/pkg/properties"
-	"github.com/terraform-redhat/terraform-provider-rhcs/build"
-	ocmr "github.com/terraform-redhat/terraform-provider-rhcs/internal/ocm/resource"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
-
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 	semver "github.com/hashicorp/go-version"
 	ver "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -55,7 +49,16 @@ import (
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	ocm_errors "github.com/openshift-online/ocm-sdk-go/errors"
+	"github.com/openshift/rosa/pkg/ocm"
+	"github.com/openshift/rosa/pkg/properties"
+
+	"github.com/terraform-redhat/terraform-provider-rhcs/build"
+	ocmr "github.com/terraform-redhat/terraform-provider-rhcs/internal/ocm/resource"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosaclassic/upgrade"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/identityprovider"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 )
 
 const (
@@ -406,6 +409,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 						PlanModifiers: []planmodifier.String{
 							stringplanmodifier.RequiresReplace(),
 						},
+						Validators: identityprovider.HTPasswdUsernameValidators,
 					},
 					"password": schema.StringAttribute{
 						Description: "Admin password that will be created with the cluster.",
@@ -414,13 +418,13 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 						PlanModifiers: []planmodifier.String{
 							stringplanmodifier.RequiresReplace(),
 						},
+						Validators: identityprovider.HTPasswdPasswordValidators,
 					},
 				},
 				Optional: true,
 				PlanModifiers: []planmodifier.Object{
 					objectplanmodifier.RequiresReplace(),
 				},
-				Validators: []validator.Object{AdminCredsValidator()},
 			},
 			"private_hosted_zone": schema.SingleNestedAttribute{
 				Description: "Used in a shared VPC typology. HostedZone attributes",

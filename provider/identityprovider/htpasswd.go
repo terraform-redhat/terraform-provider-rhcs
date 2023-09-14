@@ -2,15 +2,38 @@ package identityprovider
 
 import (
 	"context"
-	"fmt"
 	"regexp"
-	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
+)
+
+const (
+	HTPasswdMinPassLength = 14
+)
+
+var (
+	HTPasswdPassRegexAscii          = regexp.MustCompile(`^[\x20-\x7E]+$`)
+	HTPasswdPassRegexHasUpper       = regexp.MustCompile(`[A-Z]`)
+	HTPasswdPassRegexHasLower       = regexp.MustCompile(`[a-z]`)
+	HTPasswdPassRegexHasNumOrSymbol = regexp.MustCompile(`[^a-zA-Z]`)
+
+	HTPasswdPasswordValidators = []validator.String{
+		stringvalidator.LengthAtLeast(HTPasswdMinPassLength),
+		stringvalidator.RegexMatches(HTPasswdPassRegexAscii, "password should use ASCII-standard characters only"),
+		stringvalidator.RegexMatches(HTPasswdPassRegexHasUpper, "password must contain uppercase characters"),
+		stringvalidator.RegexMatches(HTPasswdPassRegexHasLower, "password must contain lowercase characters"),
+		stringvalidator.RegexMatches(HTPasswdPassRegexHasNumOrSymbol, "password must contain numbers or symbols"),
+	}
+
+	HTPasswdUsernameValidators = []validator.String{
+		stringvalidator.RegexMatches(regexp.MustCompile(`^[^/:%]*$`), "username may not contain the characters: '/:%'"),
+	}
 )
 
 type HTPasswdUser struct {
@@ -28,8 +51,10 @@ var htpasswdSchema = map[string]schema.Attribute{
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: htpasswdUserList,
 		},
-		Validators: htpasswdListValidators(),
-		Required:   true,
+		Validators: []validator.List{
+			listvalidator.SizeAtLeast(1),
+		},
+		Required: true,
 	},
 }
 
@@ -37,58 +62,14 @@ var htpasswdUserList = map[string]schema.Attribute{
 	"username": schema.StringAttribute{
 		Description: "User username.",
 		Required:    true,
-		Validators:  htpasswdUsernameValidators(),
+		Validators:  HTPasswdUsernameValidators,
 	},
 	"password": schema.StringAttribute{
 		Description: "User password.",
 		Required:    true,
 		Sensitive:   true,
-		Validators:  htpasswdPasswordValidators(),
+		Validators:  HTPasswdPasswordValidators,
 	},
-}
-
-func htpasswdListValidators() []validator.List {
-	return []validator.List{
-		attrvalidators.NewListValidator("User list can not be empty",
-			func(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
-				users := make([]HTPasswdUser, len(req.ConfigValue.Elements()))
-				d := req.ConfigValue.ElementsAs(ctx, &users, false)
-				if d.HasError() {
-					// No attribute to validate
-					return
-				}
-				if len(users) < 1 {
-					resp.Diagnostics.AddAttributeError(req.Path, "user list must contain at least one user object", "")
-					return
-				}
-			}),
-	}
-}
-
-func htpasswdUsernameValidators() []validator.String {
-	return []validator.String{
-		attrvalidators.NewStringValidator("Validate username",
-			func(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
-				username := req.ConfigValue
-				if err := ValidateHTPasswdUsername(username.ValueString()); err != nil {
-					resp.Diagnostics.AddAttributeError(req.Path, "invalid username", err.Error())
-					return
-				}
-			}),
-	}
-}
-
-func htpasswdPasswordValidators() []validator.String {
-	return []validator.String{
-		attrvalidators.NewStringValidator("Validate password",
-			func(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
-				password := req.ConfigValue
-				if err := ValidateHTPasswdPassword(password.ValueString()); err != nil {
-					resp.Diagnostics.AddAttributeError(req.Path, "invalid password", err.Error())
-					return
-				}
-			}),
-	}
 }
 
 func CreateHTPasswdIDPBuilder(ctx context.Context, state *HTPasswdIdentityProvider) *cmv1.HTPasswdIdentityProviderBuilder {
@@ -104,31 +85,4 @@ func CreateHTPasswdIDPBuilder(ctx context.Context, state *HTPasswdIdentityProvid
 	userListBuilder.Items(userList...)
 	builder.Users(userListBuilder)
 	return builder
-}
-
-func ValidateHTPasswdUsername(username string) error {
-	if strings.ContainsAny(username, "/:%") {
-		return fmt.Errorf("invalid username '%s': "+
-			"username must not contain /, :, or %%", username)
-	}
-	return nil
-}
-
-func ValidateHTPasswdPassword(password string) error {
-	notAsciiOnly, _ := regexp.MatchString(`[^\x20-\x7E]`, password)
-	containsSpace := strings.Contains(password, " ")
-	tooShort := len(password) < 14
-	if notAsciiOnly || containsSpace || tooShort {
-		return fmt.Errorf(
-			"password must be at least 14 characters (ASCII-standard) without whitespaces")
-	}
-	hasUppercase, _ := regexp.MatchString(`[A-Z]`, password)
-	hasLowercase, _ := regexp.MatchString(`[a-z]`, password)
-	hasNumberOrSymbol, _ := regexp.MatchString(`[^a-zA-Z]`, password)
-	if !hasUppercase || !hasLowercase || !hasNumberOrSymbol {
-		return fmt.Errorf(
-			"password must include uppercase letters, lowercase letters, and numbers " +
-				"or symbols (ASCII-standard characters only)")
-	}
-	return nil
 }

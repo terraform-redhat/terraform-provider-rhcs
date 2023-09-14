@@ -23,9 +23,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	sdk "github.com/openshift-online/ocm-sdk-go"
@@ -37,6 +41,18 @@ import (
 var _ resource.ResourceWithConfigure = &IdentityProviderResource{}
 var _ resource.ResourceWithImportState = &IdentityProviderResource{}
 var _ resource.ResourceWithValidateConfig = &IdentityProviderResource{}
+
+var validMappingMethods = []string{"claim", "add", "generate", "lookup"} // Default is @ index 0
+var defaultMappingMethod = validMappingMethods[0]
+
+var listOfIDPTypesPathes = []path.Expression{
+	path.MatchRoot("github"),
+	path.MatchRoot("gitlab"),
+	path.MatchRoot("google"),
+	path.MatchRoot("htpasswd"),
+	path.MatchRoot("ldap"),
+	path.MatchRoot("openid"),
+}
 
 type IdentityProviderResource struct {
 	collection *cmv1.ClustersClient
@@ -69,41 +85,58 @@ func (r *IdentityProviderResource) Schema(ctx context.Context, req resource.Sche
 				Description: "Specifies how new identities are mapped to users when they log in. Options are [add claim generate lookup] (default 'claim')",
 				Optional:    true,
 				Computed:    true,
-				Validators:  MappingMethodValidators(),
+				Validators: []validator.String{
+					stringvalidator.OneOf(validMappingMethods...),
+				},
+				Default: stringdefault.StaticString(defaultMappingMethod),
 			},
 			"htpasswd": schema.SingleNestedAttribute{
 				Description: "Details of the 'htpasswd' identity provider.",
 				Attributes:  htpasswdSchema,
 				Optional:    true,
+				Validators: []validator.Object{
+					objectvalidator.ExactlyOneOf(listOfIDPTypesPathes...),
+				},
 			},
 			"gitlab": schema.SingleNestedAttribute{
 				Description: "Details of the Gitlab identity provider.",
 				Attributes:  gitlabSchema,
 				Optional:    true,
-				Validators:  GitlabValidators(),
+				Validators: []validator.Object{
+					objectvalidator.ExactlyOneOf(listOfIDPTypesPathes...),
+				},
 			},
 			"github": schema.SingleNestedAttribute{
 				Description: "Details of the Github identity provider.",
 				Attributes:  githubSchema,
 				Optional:    true,
-				Validators:  githubValidators(),
+				Validators: []validator.Object{
+					objectvalidator.ExactlyOneOf(listOfIDPTypesPathes...),
+				},
 			},
 			"google": schema.SingleNestedAttribute{
 				Description: "Details of the Google identity provider.",
 				Attributes:  googleSchema,
 				Optional:    true,
-				Validators:  GoogleValidators(),
+				Validators: []validator.Object{
+					objectvalidator.ExactlyOneOf(listOfIDPTypesPathes...),
+				},
 			},
 			"ldap": schema.SingleNestedAttribute{
 				Description: "Details of the LDAP identity provider.",
 				Attributes:  ldapSchema,
 				Optional:    true,
-				Validators:  LDAPValidators(),
+				Validators: []validator.Object{
+					objectvalidator.ExactlyOneOf(listOfIDPTypesPathes...),
+				},
 			},
 			"openid": schema.SingleNestedAttribute{
 				Description: "Details of the OpenID identity provider.",
 				Attributes:  openidSchema,
 				Optional:    true,
+				Validators: []validator.Object{
+					objectvalidator.ExactlyOneOf(listOfIDPTypesPathes...),
+				},
 			},
 		},
 	}
@@ -184,7 +217,7 @@ func (r *IdentityProviderResource) Create(ctx context.Context, request resource.
 	builder := cmv1.NewIdentityProvider()
 	builder.Name(state.Name.ValueString())
 	// handle mapping_method
-	mappingMethod := DefaultMappingMethod
+	mappingMethod := defaultMappingMethod
 	if common.HasValue(state.MappingMethod) {
 		mappingMethod = state.MappingMethod.ValueString()
 	}

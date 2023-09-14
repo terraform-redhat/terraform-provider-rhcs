@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -114,6 +115,9 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				PlanModifiers: []planmodifier.Float64{
 					float64planmodifier.RequiresReplace(),
 				},
+				Validators: []validator.Float64{
+					float64validator.AtLeast(1e-6), // Greater than zero
+				},
 			},
 			"autoscaling_enabled": schema.BoolAttribute{
 				Description: "Enables autoscaling. This variable requires you to set a maximum and minimum replicas range using the `max_replicas` and `min_replicas` variables.",
@@ -192,6 +196,9 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 func (r *MachinePoolResource) ConfigValidators(context.Context) []resource.ConfigValidator {
 	return []resource.ConfigValidator{
 		resourcevalidator.Conflicting(path.MatchRoot("availability_zone"), path.MatchRoot("subnet_id")),
+		resourcevalidator.RequiredTogether(path.MatchRoot("min_replicas"), path.MatchRoot("max_replicas")),
+		resourcevalidator.Conflicting(path.MatchRoot("replicas"), path.MatchRoot("min_replicas")),
+		resourcevalidator.Conflicting(path.MatchRoot("replicas"), path.MatchRoot("max_replicas")),
 	}
 }
 
@@ -635,10 +642,6 @@ func setSpotInstances(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilde
 	}
 
 	if useSpotInstances {
-		if isSpotMaxPriceSet && state.MaxSpotPrice.ValueFloat64() <= 0 {
-			return errors.New("To use Spot instances, you must set \"max_spot_price\" with positive value")
-		}
-
 		awsMachinePool := cmv1.NewAWSMachinePool()
 		spotMarketOptions := cmv1.NewAWSSpotMarketOptions()
 		if isSpotMaxPriceSet {

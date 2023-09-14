@@ -290,6 +290,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Description: "Availability zones.",
 				ElementType: types.StringType,
 				Optional:    true,
+				Computed:    true,
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.UseStateForUnknown(),
 					listplanmodifier.RequiresReplace(),

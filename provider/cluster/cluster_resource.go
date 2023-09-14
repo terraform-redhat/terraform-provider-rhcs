@@ -157,6 +157,7 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 				Description: "Availability zones.",
 				ElementType: types.StringType,
 				Optional:    true,
+				Computed:    true,
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.UseStateForUnknown(),
 					listplanmodifier.RequiresReplace(),

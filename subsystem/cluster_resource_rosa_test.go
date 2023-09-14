@@ -70,12 +70,20 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
          "rosa_tf_version": "` + build.Version + `",
          "rosa_tf_commit": "` + build.Commit + `"
       },
+	  "nodes": {
+	    "compute": 3,
+        "availability_zones": ["az"],
+	    "compute_machine_type": {
+	      "id": "r5.xlarge"
+	    }
+	  },
 	  "network": {
 	    "machine_cidr": "10.0.0.0/16",
 	    "service_cidr": "172.30.0.0/16",
 	    "pod_cidr": "10.128.0.0/14",
 	    "host_prefix": 23
 	  },
+	  
 	  "version": {
 		  "id": "openshift-4.8.0"
 	  }
@@ -103,6 +111,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 	  },
 	  "version": {
 		  "id": "openshift-4.8.0"
+	  },
+      "nodes": {
+	    "compute": 3,
+        "availability_zones": ["az"],
+	    "compute_machine_type": {
+	      "id": "r5.xlarge"
+	    }
 	  }
 	}`
 	Context("rhcs_cluster_rosa_classic - create", func() {
@@ -156,16 +171,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							  }
 						  }
 						},
-						{
-						  "op": "add",
-						  "path": "/nodes",
-						  "value": {
-							"compute": 3,
-							"compute_machine_type": {
-								"id": "r5.xlarge"
-							}
-						  }
-						},
+						 
 						{
 							"op": "replace",
 							"path": "/version/id",
@@ -234,16 +240,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							  }
 						  }
 						},
-						{
-						  "op": "add",
-						  "path": "/nodes",
-						  "value": {
-							"compute": 3,
-							"compute_machine_type": {
-								"id": "r5.xlarge"
-							}
-						  }
-						},
+						 
 						{
 							"op": "replace",
 							"path": "/version/id",
@@ -351,16 +348,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
-					  }
 					}]`),
 				),
 			)
@@ -421,16 +408,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							  },
 							  "operator_role_prefix" : "test"
 						  }
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
 					  }
 					}]`),
 				),
@@ -494,16 +471,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							  },
 							  "operator_role_prefix" : "test"
 						  }
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
 					  }
 					}]`),
 				),
@@ -572,16 +539,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
-					  }
 					}]`),
 				),
 			)
@@ -644,16 +601,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							  },
 							  "operator_role_prefix" : "test"
 						  }
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
 					  }
 					},
                     {
@@ -726,16 +673,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						  }
 					  }
 					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
-					  }
-					},
                     {
                       "op": "add",
                       "path": "/properties",
@@ -798,16 +735,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						  }
 					  }
 					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
-					  }
-					},
+					 
                     {
                       "op": "add",
                       "path": "/properties",
@@ -840,16 +768,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							  },
 							  "operator_role_prefix" : "test"
 						  }
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
 					  }
 					},
                     {
@@ -929,16 +847,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						  }
 					  }
 					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
-					  }
-					},
                     {
                       "op": "add",
                       "path": "/properties",
@@ -1003,16 +911,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						  }
 					  }
 					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
-					  }
-					},
                     {
                       "op": "add",
                       "path": "/properties",
@@ -1045,16 +943,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							  },
 							  "operator_role_prefix" : "test"
 						  }
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
 					  }
 					},
                     {
@@ -1127,16 +1015,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
-					  }
 					}]`),
 				),
 			)
@@ -1199,16 +1077,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							  },
 							  "operator_role_prefix" : "test"
 						  }
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
 					  }
 					}]`),
 					),
@@ -1377,16 +1245,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "disable_user_workload_monitoring" : true
 					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
-					  }
 					}]`),
 				),
 			)
@@ -1480,16 +1338,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "disable_user_workload_monitoring" : "false"
 					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
-					  }
 					}]`),
 				),
 			)
@@ -1568,16 +1416,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "additional_trust_bundle" : "123"
 					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
-					  }
 					}]`),
 					),
 				)
@@ -1645,16 +1483,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "additional_trust_bundle" : "REDUCTED"
 					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
-					  }
 					}]`),
 					),
 					CombineHandlers(
@@ -1694,16 +1522,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "path": "/",
 					  "value": {
 						  "additional_trust_bundle" : "REDUCTED"
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
 					  }
 					}]`),
 					),
@@ -1768,16 +1586,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
-					  }
 					}]`),
 					),
 				)
@@ -1825,16 +1633,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
-					  }
 					}]`),
 					),
 					CombineHandlers(
@@ -1857,16 +1655,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							  },
 							  "operator_role_prefix" : "test"
 						  }
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
 					  }
 					},
 					{
@@ -1937,12 +1725,18 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  }
 					},
 					{
-					  "op": "add",
+					  "op": "replace",
 					  "path": "/nodes",
 					  "value": {
                         "compute_labels": {
                             "label_key1": "label_value1"
-                        }
+                        },
+						"availability_zones": [
+      						"az"
+    					],
+						"compute_machine_type": {
+						   "id": "r5.xlarge"
+	    				}
 					  }
 					}]`),
 				),
@@ -1994,15 +1788,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-                        "compute_labels": {
-                            "label_key1": "label_value1"
-                        }
-					  }
 					}]`),
 				),
 				// Update handler and response
@@ -2029,14 +1814,21 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  }
 					},
 					{
-					  "op": "add",
+					  "op": "replace",
 					  "path": "/nodes",
 					  "value": {
                         "compute_labels": {
                             "changed_label": "changed"
-                        }
+                        },
+						"availability_zones": [
+      						"az"
+    					],
+						"compute_machine_type": {
+						   "id": "r5.xlarge"
+	    				}
 					  }
-					}]`),
+					}
+					]`),
 				),
 			)
 
@@ -2161,15 +1953,18 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						"value": ["az1"]
 					},
 					{
-					  "op": "add",
+					  "op": "replace",
 					  "path": "/nodes",
 					  "value": {
-						"compute": 3,
+						"availability_zones": [
+      						"az1"
+    					],
 						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
+						   "id": "r5.xlarge"
+	    				}
 					  }
-					}]`),
+					}
+					]`),
 				),
 			)
 
@@ -2244,20 +2039,18 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  }
 					},
 					{
-						"op": "add",
-						"path": "/availability_zones",
-						"value": ["az1"]
-					},
-					{
-					  "op": "add",
+					  "op": "replace",
 					  "path": "/nodes",
 					  "value": {
-						"compute": 3,
+						"availability_zones": [
+      						"az1"
+    					],
 						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
+						   "id": "r5.xlarge"
+	    				}
 					  }
-					}]`),
+					}
+					]`),
 				),
 			)
 
@@ -2320,16 +2113,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							  },
 							  "operator_role_prefix" : "test"
 						  }
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
 					  }
 					}]`),
 				),
@@ -2504,7 +2287,10 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						"compute_labels": {
 							"label_key1": "label_value1",
 				    		"label_key2": "label_value2"
-						}
+						},
+						"availability_zones": [
+							"az"
+						]
 					  }
 					}
 				  ]`),
@@ -2575,7 +2361,10 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						"compute_labels": {
 							"label_key1": "label_value1",
 				    		"label_key2": "label_value2"
-						}
+						},
+                        "availability_zones": [
+							"az"
+						]
 					  }
 					}
 				  ]`),
@@ -2615,6 +2404,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						"compute_machine_type": {
 							"id": "r5.xlarge"
 						},
+						"availability_zones": ["az"],
 						"compute_labels": {
 							"label_key1": "label_value1",
 				    		"label_key2": "label_value2"
@@ -2682,6 +2472,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							"min_replicas": 3,
 							"max_replicas": 4
 						},
+						"availability_zones": ["az"],
 						"compute_machine_type": {
 							"id": "r5.xlarge"
 						},
@@ -2720,6 +2511,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "path": "/nodes",
 					  "value": {
 						"compute": 4,
+						"availability_zones": ["az"],
 						"compute_machine_type": {
 							"id": "r5.xlarge"
 						},
@@ -2801,18 +2593,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							  "operator_role_prefix" : "terraform-operator"
 						  }
 					  }
-					},
-					{
-						"op": "add",
-						"path": "/nodes",
-						"value": {
-						  "compute": 3,
-						  "compute_machine_type": {
-							  "id": "r5.xlarge"
-						  }
-						}
-					  }
-				  ]`),
+					}]`),
 				),
 			)
 			// Run the apply command:
@@ -2866,16 +2647,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							  },
 							  "operator_role_prefix" : "test"
 						  }
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
 					  }
 					}]`),
 				),
@@ -2931,16 +2702,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
-					  }
 					}]`),
 				),
 			)
@@ -2993,16 +2754,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							  },
 							  "operator_role_prefix" : "test"
 						  }
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
 					  }
 					}]`),
 				),
@@ -3058,16 +2809,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							  },
 							  "operator_role_prefix" : "test"
 						  }
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
 					  }
 					}]`),
 				),
@@ -3134,6 +2875,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 		},
 		"nodes": {
 			"compute": 3,
+	        "availability_zones": ["az"],
 			"compute_machine_type": {
 				"id": "r5.xlarge"
 			}

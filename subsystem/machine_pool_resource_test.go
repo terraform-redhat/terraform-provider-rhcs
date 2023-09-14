@@ -40,6 +40,44 @@ var _ = Describe("Machine pool (static***REMOVED*** validation", func(***REMOVED
 		`***REMOVED***
 		Expect(terraform.Validate(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
 	}***REMOVED***
+
+	It("is necessary to specify both min and max replicas", func(***REMOVED*** {
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+			auto_scaling = true
+			min_replicas = 1
+		  }
+		`***REMOVED***
+		Expect(terraform.Validate(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
+
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+			auto_scaling = true
+			max_replicas = 5
+		  }
+		`***REMOVED***
+		Expect(terraform.Validate(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
+	}***REMOVED***
+
+	It("is invalid to specify min_replicas or max_replicas and replicas", func(***REMOVED*** {
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+			auto_scaling = true
+			min_replicas = 1
+			replicas     = 5
+		  }
+		`***REMOVED***
+		Expect(terraform.Validate(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
+	}***REMOVED***
 }***REMOVED***
 
 var _ = Describe("Machine pool creation", func(***REMOVED*** {

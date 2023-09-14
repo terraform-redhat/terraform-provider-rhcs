@@ -25,6 +25,7 @@ package machinepool
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -114,6 +115,9 @@ func (r *MachinePoolResource***REMOVED*** Schema(ctx context.Context, req resour
 				PlanModifiers: []planmodifier.Float64{
 					float64planmodifier.RequiresReplace(***REMOVED***,
 		***REMOVED***,
+				Validators: []validator.Float64{
+					float64validator.AtLeast(1e-6***REMOVED***, // Greater than zero
+		***REMOVED***,
 	***REMOVED***,
 			"autoscaling_enabled": schema.BoolAttribute{
 				Description: "Enables autoscaling. This variable requires you to set a maximum and minimum replicas range using the `max_replicas` and `min_replicas` variables.",
@@ -192,6 +196,9 @@ func (r *MachinePoolResource***REMOVED*** Schema(ctx context.Context, req resour
 func (r *MachinePoolResource***REMOVED*** ConfigValidators(context.Context***REMOVED*** []resource.ConfigValidator {
 	return []resource.ConfigValidator{
 		resourcevalidator.Conflicting(path.MatchRoot("availability_zone"***REMOVED***, path.MatchRoot("subnet_id"***REMOVED******REMOVED***,
+		resourcevalidator.RequiredTogether(path.MatchRoot("min_replicas"***REMOVED***, path.MatchRoot("max_replicas"***REMOVED******REMOVED***,
+		resourcevalidator.Conflicting(path.MatchRoot("replicas"***REMOVED***, path.MatchRoot("min_replicas"***REMOVED******REMOVED***,
+		resourcevalidator.Conflicting(path.MatchRoot("replicas"***REMOVED***, path.MatchRoot("max_replicas"***REMOVED******REMOVED***,
 	}
 }
 
@@ -635,10 +642,6 @@ func setSpotInstances(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilde
 	}
 
 	if useSpotInstances {
-		if isSpotMaxPriceSet && state.MaxSpotPrice.ValueFloat64(***REMOVED*** <= 0 {
-			return errors.New("To use Spot instances, you must set \"max_spot_price\" with positive value"***REMOVED***
-***REMOVED***
-
 		awsMachinePool := cmv1.NewAWSMachinePool(***REMOVED***
 		spotMarketOptions := cmv1.NewAWSSpotMarketOptions(***REMOVED***
 		if isSpotMaxPriceSet {

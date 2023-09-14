@@ -168,7 +168,6 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 			"availability_zone": schema.StringAttribute{
 				Description: "Select availability zone to create a single AZ machine pool for a multi-AZ cluster",
 				Optional:    true,
-				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
@@ -177,7 +176,6 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 			"subnet_id": schema.StringAttribute{
 				Description: "Select subnet to create a single AZ machine pool for BYOVPC cluster",
 				Optional:    true,
-				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),

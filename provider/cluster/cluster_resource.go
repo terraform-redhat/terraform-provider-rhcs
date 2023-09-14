@@ -157,6 +157,7 @@ func (r *ClusterResource***REMOVED*** Schema(ctx context.Context, req resource.S
 				Description: "Availability zones.",
 				ElementType: types.StringType,
 				Optional:    true,
+				Computed:    true,
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.UseStateForUnknown(***REMOVED***,
 					listplanmodifier.RequiresReplace(***REMOVED***,

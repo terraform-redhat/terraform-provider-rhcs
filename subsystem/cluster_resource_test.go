@@ -50,6 +50,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 	  },
 	  "nodes": {
 	    "compute": 3,
+        "availability_zones": ["az"],
 	    "compute_machine_type": {
 	      "id": "r5.xlarge"
 	    }

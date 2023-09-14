@@ -25,6 +25,7 @@ package machinepool
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -52,6 +53,7 @@ type MachinePoolResource struct {
 
 var _ resource.ResourceWithConfigure = &MachinePoolResource{}
 var _ resource.ResourceWithImportState = &MachinePoolResource{}
+var _ resource.ResourceWithConfigValidators = &MachinePoolResource{}
 
 func New(***REMOVED*** resource.Resource {
 	return &MachinePoolResource{}
@@ -184,6 +186,12 @@ func (r *MachinePoolResource***REMOVED*** Schema(ctx context.Context, req resour
 		***REMOVED***,
 	***REMOVED***,
 ***REMOVED***,
+	}
+}
+
+func (r *MachinePoolResource***REMOVED*** ConfigValidators(context.Context***REMOVED*** []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.Conflicting(path.MatchRoot("availability_zone"***REMOVED***, path.MatchRoot("subnet_id"***REMOVED******REMOVED***,
 	}
 }
 
@@ -777,6 +785,25 @@ func (r *MachinePoolResource***REMOVED*** populateState(object *cmv1.MachinePool
 		state.Labels, _ = common.ConvertStringMapToMapType(labels***REMOVED***
 	} else {
 		state.Labels = types.MapNull(types.StringType***REMOVED***
+	}
+
+	// Due to RequiresReplace(***REMOVED***, we need to ensure these fields always have a
+	// value, even if it's empty. It will be empty if the cluster is multi-AZ or
+	// if the other (AZ/subnet***REMOVED*** value is set. We don't need to set
+	// MultiAvailibilityZone here, because it's set in the validation function
+	// during create.
+	azs := object.AvailabilityZones(***REMOVED***
+	if len(azs***REMOVED*** == 1 {
+		state.AvailabilityZone = types.StringValue(azs[0]***REMOVED***
+	} else {
+		state.AvailabilityZone = types.StringValue(""***REMOVED***
+	}
+
+	subnets := object.Subnets(***REMOVED***
+	if len(subnets***REMOVED*** == 1 {
+		state.SubnetID = types.StringValue(subnets[0]***REMOVED***
+	} else {
+		state.SubnetID = types.StringValue(""***REMOVED***
 	}
 }
 

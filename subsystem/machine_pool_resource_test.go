@@ -25,6 +25,23 @@ package provider
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
 ***REMOVED***
 
+var _ = Describe("Machine pool (static***REMOVED*** validation", func(***REMOVED*** {
+	It("is invalid to specify both availability_zone and subnet_id", func(***REMOVED*** {
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 12
+			multi_availability_zone = true
+			availability_zone = "us-east-1a"
+			subnet_id = "subnet-123"
+		  }
+		`***REMOVED***
+		Expect(terraform.Validate(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
+	}***REMOVED***
+}***REMOVED***
+
 var _ = Describe("Machine pool creation", func(***REMOVED*** {
 	BeforeEach(func(***REMOVED*** {
 		// The first thing that the provider will do for any operation on machine pools
@@ -1511,7 +1528,8 @@ var _ = Describe("Machine pool w/ mAZ cluster", func(***REMOVED*** {
 		// Check the state:
 		resource := terraform.Resource("rhcs_machine_pool", "my_pool"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.availability_zone", nil***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.availability_zone", ""***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.subnet_id", ""***REMOVED******REMOVED***
 	}***REMOVED***
 
 	It("Can create mAZ pool, setting multi_availbility_zone", func(***REMOVED*** {
@@ -1556,7 +1574,7 @@ var _ = Describe("Machine pool w/ mAZ cluster", func(***REMOVED*** {
 		// Check the state:
 		resource := terraform.Resource("rhcs_machine_pool", "my_pool"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.availability_zone", nil***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.availability_zone", ""***REMOVED******REMOVED***
 	}***REMOVED***
 
 	It("Fails to create mAZ pool if replicas not multiple of 3", func(***REMOVED*** {
@@ -1740,10 +1758,10 @@ var _ = Describe("Machine pool w/ 1AZ cluster", func(***REMOVED*** {
 		// Check the state:
 		resource := terraform.Resource("rhcs_machine_pool", "my_pool"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.availability_zone", nil***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.availability_zone", "us-east-1a"***REMOVED******REMOVED***
 	}***REMOVED***
 
-	It("Can create 1az pool w/ multi_availability_zone", func(***REMOVED*** {
+	It("Can create 1az pool by setting multi_availability_zone", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
@@ -1783,7 +1801,7 @@ var _ = Describe("Machine pool w/ 1AZ cluster", func(***REMOVED*** {
 		// Check the state:
 		resource := terraform.Resource("rhcs_machine_pool", "my_pool"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", "123"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.availability_zone", nil***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.availability_zone", "us-east-1a"***REMOVED******REMOVED***
 	}***REMOVED***
 
 	It("Fails to create pool if az and subnet supplied", func(***REMOVED*** {

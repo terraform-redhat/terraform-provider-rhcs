@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -41,86 +43,60 @@ var githubSchema = map[string]schema.Attribute{
 	"hostname": schema.StringAttribute{
 		Description: "Optional domain to use with a hosted instance of GitHub Enterprise.",
 		Optional:    true,
+		Validators: []validator.String{
+			githubHostnameValidator(),
+		},
 	},
 	"organizations": schema.ListAttribute{
 		Description: "Only users that are members of at least one of the listed organizations will be allowed to log in.",
 		ElementType: types.StringType,
 		Optional:    true,
+		Validators: []validator.List{
+			listvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("teams")),
+			listvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("teams"), path.MatchRelative().AtParent().AtName("organizations")),
+		},
 	},
 	"teams": schema.ListAttribute{
 		Description: "Only users that are members of at least one of the listed teams will be allowed to log in. The format is <org>/<team>.",
 		ElementType: types.StringType,
 		Optional:    true,
+		Validators: []validator.List{
+			listvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("organizations")),
+			listvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("teams"), path.MatchRelative().AtParent().AtName("organizations")),
+			listvalidator.ValueStringsAre(
+				githubTeamsFormatValidator(),
+			),
+		},
 	},
 }
 
-func githubValidators() []validator.Object {
-	errSumm := "Invalid GitHub IDP resource configuration"
-	return []validator.Object{
-		attrvalidators.NewObjectValidator("GitHub IDP requires either organizations or teams",
-			func(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
-				ghState := &GithubIdentityProvider{}
-				diag := req.Config.GetAttribute(ctx, req.Path, ghState)
-				if diag.HasError() {
-					// No attribute to validate
-					return
-				}
-				// At only one restriction plan is required
-				areTeamsDefined := !ghState.Teams.IsUnknown() && !ghState.Teams.IsNull()
-				areOrgsDefined := !ghState.Organizations.IsUnknown() && !ghState.Organizations.IsNull()
-				if !areOrgsDefined && !areTeamsDefined {
-					resp.Diagnostics.AddError(errSumm, "GitHub IDP requires missing attributes 'organizations' OR 'teams'")
-				}
-				if areOrgsDefined && areTeamsDefined {
-					resp.Diagnostics.AddError(errSumm, "GitHub IDP requires either 'organizations' or 'teams', not both.")
-				}
-			}),
-		attrvalidators.NewObjectValidator("GitHub IDP teams format validation",
-			func(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
-				ghState := &GithubIdentityProvider{}
-				diag := req.Config.GetAttribute(ctx, req.Path, ghState)
-				if diag.HasError() {
-					// No attribute to validate
-					return
-				}
-				// Validate teams format
-				teams := []string{}
-				dig := ghState.Teams.ElementsAs(ctx, &teams, false)
-				if dig.HasError() {
-					// Nothing to validate
-					return
-				}
-				for i, team := range teams {
-					parts := strings.Split(team, "/")
-					if len(parts) != 2 {
-						resp.Diagnostics.AddError(errSumm,
-							fmt.Sprintf("Expected a GitHub team to follow the form '<org>/<team>', Got %v at index %d",
-								team, i),
-						)
-						return
-					}
-				}
-			}),
-		attrvalidators.NewObjectValidator("GitHub IDP hostname validator",
-			func(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
-				ghState := &GithubIdentityProvider{}
-				diag := req.Config.GetAttribute(ctx, req.Path, ghState)
-				if diag.HasError() {
-					// No attribute to validate
-					return
-				}
-				// Validate hostname
-				if !ghState.Hostname.IsUnknown() && !ghState.Hostname.IsNull() && len(ghState.Hostname.ValueString()) > 0 {
-					_, err := url.ParseRequestURI(ghState.Hostname.ValueString())
-					if err != nil {
-						resp.Diagnostics.AddError(errSumm,
-							fmt.Sprintf("Expected a valid GitHub hostname. Got %v",
-								ghState.Hostname.ValueString()),
-						)
-					}
-				}
-			}),
-	}
+func githubTeamsFormatValidator() validator.String {
+	return attrvalidators.NewStringValidator("validate teams format", func(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+		team := req.ConfigValue
+		parts := strings.Split(team.ValueString(), "/")
+		if len(parts) != 2 {
+			resp.Diagnostics.AddAttributeError(req.Path, "invalid team format",
+				fmt.Sprintf("Expected a GitHub team to follow the form '<org>/<team>', Got %s", team.ValueString()),
+			)
+			return
+		}
+	})
+}
+
+func githubHostnameValidator() validator.String {
+	return attrvalidators.NewStringValidator("hostname validator", func(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+		hostname := req.ConfigValue
+		// Validate hostname
+		if !hostname.IsUnknown() && !hostname.IsNull() && len(hostname.ValueString()) > 0 {
+			_, err := url.ParseRequestURI(hostname.ValueString())
+			if err != nil {
+				resp.Diagnostics.AddAttributeError(req.Path, "invalid hostname",
+					fmt.Sprintf("Expected a valid GitHub hostname. Got %v", hostname.ValueString()),
+				)
+			}
+		}
+
+	})
 }
 
 func CreateGithubIDPBuilder(ctx context.Context, state *GithubIdentityProvider) (*cmv1.GithubIdentityProviderBuilder, error) {

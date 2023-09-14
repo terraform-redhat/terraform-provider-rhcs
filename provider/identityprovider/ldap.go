@@ -2,14 +2,15 @@ package identityprovider
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
 )
 
 var LDAPAttrDefaultID []string = []string{"dn"}
@@ -36,11 +37,17 @@ var ldapSchema = map[string]schema.Attribute{
 	"bind_dn": schema.StringAttribute{
 		Description: "DN to bind with during the search phase.",
 		Optional:    true,
+		Validators: []validator.String{
+			stringvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("bind_password")),
+		},
 	},
 	"bind_password": schema.StringAttribute{
 		Description: "Password to bind with during the search phase.",
 		Optional:    true,
 		Sensitive:   true,
+		Validators: []validator.String{
+			stringvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("bind_dn")),
+		},
 	},
 	"ca": schema.StringAttribute{
 		Description: "Optional trusted certificate authority bundle.",
@@ -59,7 +66,6 @@ var ldapSchema = map[string]schema.Attribute{
 		Description: "",
 		Attributes:  ldapAttrSchema,
 		Required:    true,
-		Validators:  ldapAttrsValidators(),
 	},
 }
 
@@ -68,6 +74,11 @@ var ldapAttrSchema = map[string]schema.Attribute{
 		Description: "The list of attributes whose values should be used as the email address.",
 		ElementType: types.StringType,
 		Optional:    true,
+		Validators: []validator.List{
+			listvalidator.ValueStringsAre(
+				stringvalidator.RegexMatches(common.EmailRegexp, "Invalid email"),
+			),
+		},
 	},
 	"id": schema.ListAttribute{
 		Description: "The list of attributes whose values should be used as the user ID. (default ['dn'])",
@@ -87,53 +98,6 @@ var ldapAttrSchema = map[string]schema.Attribute{
 		Optional:    true,
 		Computed:    true,
 	},
-}
-
-func LDAPValidators() []validator.Object {
-	errSumm := "Invalid LDAP IDP resource configuration"
-	return []validator.Object{
-		attrvalidators.NewObjectValidator("Validate bind values",
-			func(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
-				state := &LDAPIdentityProvider{}
-				diag := req.Config.GetAttribute(ctx, req.Path, state)
-				if diag.HasError() {
-					// No attribute to validate
-					return
-				}
-				containsBindDN := common.IsStringAttributeEmpty(state.BindDN)
-				containsBindPassword := common.IsStringAttributeEmpty(state.BindPassword)
-				if containsBindDN != containsBindPassword {
-					resp.Diagnostics.AddError(errSumm, "Must provide both `bind_dn` and `bind_password` OR none of them")
-				}
-			}),
-	}
-}
-
-func ldapAttrsValidators() []validator.Object {
-	errSumm := "Invalid LDAP IDP 'attributes' resource configuration"
-	return []validator.Object{
-		attrvalidators.NewObjectValidator("Validate email",
-			func(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
-				state := &LDAPIdentityProviderAttributes{}
-				diag := req.Config.GetAttribute(ctx, req.Path, state)
-				if diag.HasError() {
-					// No attribute to validate
-					return
-				}
-
-				emails, err := common.StringListToArray(ctx, state.EMail)
-				if err != nil {
-					resp.Diagnostics.AddError(errSumm, "Failed to parse 'email' attribute")
-					return
-				}
-				for _, email := range emails {
-					if !common.IsValidEmail(email) {
-						resp.Diagnostics.AddAttributeError(req.Path, errSumm, fmt.Sprintf("Invalid email '%s'", email))
-						return
-					}
-				}
-			}),
-	}
 }
 
 func CreateLDAPIDPBuilder(ctx context.Context, state *LDAPIdentityProvider) (*cmv1.LDAPIdentityProviderBuilder, error) {

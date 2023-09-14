@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -52,6 +53,7 @@ type MachinePoolResource struct {
 
 var _ resource.ResourceWithConfigure = &MachinePoolResource{}
 var _ resource.ResourceWithImportState = &MachinePoolResource{}
+var _ resource.ResourceWithConfigValidators = &MachinePoolResource{}
 
 func New() resource.Resource {
 	return &MachinePoolResource{}
@@ -184,6 +186,12 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				},
 			},
 		},
+	}
+}
+
+func (r *MachinePoolResource) ConfigValidators(context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.Conflicting(path.MatchRoot("availability_zone"), path.MatchRoot("subnet_id")),
 	}
 }
 
@@ -777,6 +785,25 @@ func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *Mac
 		state.Labels, _ = common.ConvertStringMapToMapType(labels)
 	} else {
 		state.Labels = types.MapNull(types.StringType)
+	}
+
+	// Due to RequiresReplace(), we need to ensure these fields always have a
+	// value, even if it's empty. It will be empty if the cluster is multi-AZ or
+	// if the other (AZ/subnet) value is set. We don't need to set
+	// MultiAvailibilityZone here, because it's set in the validation function
+	// during create.
+	azs := object.AvailabilityZones()
+	if len(azs) == 1 {
+		state.AvailabilityZone = types.StringValue(azs[0])
+	} else {
+		state.AvailabilityZone = types.StringValue("")
+	}
+
+	subnets := object.Subnets()
+	if len(subnets) == 1 {
+		state.SubnetID = types.StringValue(subnets[0])
+	} else {
+		state.SubnetID = types.StringValue("")
 	}
 }
 

@@ -19,17 +19,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"net/http"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
-	semver "github.com/hashicorp/go-version"
 	ver "github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -51,14 +49,14 @@ import (
 	ocm_errors "github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift/rosa/pkg/ocm"
 	"github.com/openshift/rosa/pkg/properties"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 	ocmr "github.com/terraform-redhat/terraform-provider-rhcs/internal/ocm/resource"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosaclassic/upgrade"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/identityprovider"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 )
 
 const (
@@ -554,7 +552,7 @@ func createClassicClusterObject(ctx context.Context,
 
 	if !common.IsStringAttributeEmpty(state.BaseDNSDomain) {
 		dnsBuilder := cmv1.NewDNS()
-		dnsBuilder.BaseDomain(state.BaseDNSDomain.Value)
+		dnsBuilder.BaseDomain(state.BaseDNSDomain.ValueString())
 		builder.DNS(dnsBuilder)
 	}
 
@@ -595,9 +593,9 @@ func createClassicClusterObject(ctx context.Context,
 	if state.PrivateHostedZone != nil &&
 		!common.IsStringAttributeEmpty(state.PrivateHostedZone.ID) &&
 		!common.IsStringAttributeEmpty(state.PrivateHostedZone.RoleARN) {
-		privateHostedZoneRoleARN = &state.PrivateHostedZone.RoleARN.Value
-		privateHostedZoneID = &state.PrivateHostedZone.ID.Value
-
+		privateHostedZoneRoleARN = state.PrivateHostedZone.RoleARN.ValueStringPointer()
+		privateHostedZoneID = state.PrivateHostedZone.ID.ValueStringPointer()
+	}
 	isPrivateLink := common.BoolWithFalseDefault(state.AWSPrivateLink)
 	isPrivate := common.BoolWithFalseDefault(state.Private)
 	awsSubnetIDs, err := common.StringListToArray(ctx, state.AWSSubnetIDs)
@@ -1458,25 +1456,12 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 			state.OCMProperties = mapValue
 		}
 	}
-
-	state.APIURL = types.String{
-		Value: object.API().URL(),
-	}
-	state.ConsoleURL = types.String{
-		Value: object.Console().URL(),
-	}
-	state.Domain = types.String{
-		Value: fmt.Sprintf("%s.%s", object.Name(), object.DNS().BaseDomain()),
-	}
-	state.BaseDNSDomain = types.String{
-		Value: object.DNS().BaseDomain(),
-	}
 	state.APIURL = types.StringValue(object.API().URL())
 	state.ConsoleURL = types.StringValue(object.Console().URL())
 	state.Domain = types.StringValue(fmt.Sprintf("%s.%s", object.Name(), object.DNS().BaseDomain()))
 	state.Replicas = types.Int64Value(int64(object.Nodes().Compute()))
 	state.ComputeMachineType = types.StringValue(object.Nodes().ComputeMachineType().ID())
-	state.BaseDNSDomain =types.StringValue(object.DNS().BaseDomain())
+	state.BaseDNSDomain = types.StringValue(object.DNS().BaseDomain())
 	labels, ok := object.Nodes().GetComputeLabels()
 	if ok {
 		mapValue, err := common.ConvertStringMapToMapType(labels)
@@ -1681,12 +1666,8 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 
 		if len(id) > 0 && len(arn) > 0 {
 			state.PrivateHostedZone = &PrivateHostedZone{
-				RoleARN: types.String{
-					Value: arn,
-				},
-				ID: types.String{
-					Value: id,
-				},
+				RoleARN: types.StringValue(arn),
+				ID:      types.StringValue(id),
 			}
 		}
 	}
@@ -1775,127 +1756,4 @@ func shouldPatchProperties(state, plan *ClusterRosaClassicState) bool {
 
 	return false
 
-}
-
-func propertiesValidators() []tfsdk.AttributeValidator {
-	return []tfsdk.AttributeValidator{
-		&common.AttributeValidator{
-			Desc: "Validate property key override",
-			Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse) {
-				propertiesState := &types.Map{
-					ElemType: types.StringType,
-				}
-				diag := req.Config.GetAttribute(ctx, req.AttributePath, propertiesState)
-				if diag.HasError() {
-					// No attribute to validate
-					return
-				}
-				if !propertiesState.Null && !propertiesState.Unknown {
-					for k := range propertiesState.Elems {
-						if _, isDefaultKey := OCMProperties[k]; isDefaultKey {
-							errHead := "Invalid property key."
-							errDesc := fmt.Sprintf("Can not override reserved properties keys. %s is a reserved property key", k)
-							resp.Diagnostics.AddError(errHead, errDesc)
-							return
-						}
-					}
-				}
-			},
-		},
-	}
-}
-
-func adminCredsValidators() []tfsdk.AttributeValidator {
-	errSumm := "Invalid admin_creedntials"
-	return []tfsdk.AttributeValidator{
-		&common.AttributeValidator{
-			Desc: "Validate admin username",
-			Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse) {
-				var creds *AdminCredentials
-				diag := req.Config.GetAttribute(ctx, req.AttributePath, creds)
-				if diag.HasError() {
-					// No attribute to validate
-					return
-				}
-				if creds != nil {
-					if common.IsStringAttributeEmpty(creds.Username) {
-						diag.AddError(errSumm, "Usename can't be empty")
-						return
-					}
-					if err := idps.ValidateHTPasswdUsername(creds.Username.Value); err != nil {
-						diag.AddError(errSumm, err.Error())
-						return
-					}
-				}
-			},
-		},
-		&common.AttributeValidator{
-			Desc: "Validate admin password",
-			Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse) {
-				var creds *AdminCredentials
-				diag := req.Config.GetAttribute(ctx, req.AttributePath, creds)
-				if diag.HasError() {
-					// No attribute to validate
-					return
-				}
-				if creds != nil {
-					if common.IsStringAttributeEmpty(creds.Password) {
-						diag.AddError(errSumm, "Usename can't be empty")
-						return
-					}
-					if err := idps.ValidateHTPasswdPassword(creds.Password.Value); err != nil {
-						diag.AddError(errSumm, err.Error())
-						return
-					}
-				}
-			},
-		},
-	}
-}
-
-func validatePrivateHostedZone(clusterState *ClusterRosaClassicState) error {
-	if clusterState.PrivateHostedZone == nil {
-		// Nothing to validate.
-		return nil
-	}
-	// validate ID and ARN are not empty
-	if common.IsStringAttributeEmpty(clusterState.PrivateHostedZone.ID) || common.IsStringAttributeEmpty(clusterState.PrivateHostedZone.RoleARN) {
-		return fmt.Errorf("Invalid configuration. 'private_hosted_zone.id' and 'private_hosted_zone.arn' are required")
-	}
-	// Validate running in STS mode
-	if clusterState.Sts == nil {
-		return fmt.Errorf("Invalid configuration. 'private_hosted_zone' requires 'sts' configueration")
-	}
-	// Validate subnets exists
-	if len(clusterState.AWSSubnetIDs.Elems) <= 0 {
-		return fmt.Errorf("Invalid configuration. 'private_hosted_zone' requires 'aws_subnet_ids' configueration")
-	}
-	// Validate availabilityZones exists
-	if len(clusterState.AvailabilityZones.Elems) <= 0 {
-		return fmt.Errorf("Invalid configuration. 'private_hosted_zone' requires 'aws_subnet_ids' configueration")
-	}
-	// Validate BaseDomain
-	if common.IsStringAttributeEmpty(clusterState.BaseDNSDomain) {
-		return fmt.Errorf("Invalid configuration. 'private_hosted_zone' requires 'base_dns_domain' configueration")
-	}
-	return nil
-}
-
-// Place holder until the v2 refactoring
-func privateHZValidators() tfsdk.AttributeValidator {
-	return &common.AttributeValidator{
-		Desc: "Validate private_hosted_zone",
-		Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse) {
-			var clusterState *ClusterRosaClassicState
-			diag := req.Config.Get(ctx, clusterState)
-			if diag.HasError() {
-				// No attribute to validate
-				return
-			}
-			// Validate
-			if err := validatePrivateHostedZone(clusterState); err != nil {
-				diag.AddError("Invalid private_hosted_zone configuration", err.Error())
-			}
-		},
-	}
 }

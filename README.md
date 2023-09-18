@@ -9,7 +9,7 @@ description: |-
     <img src=".github/Logo_Red_Hat.png" alt="Red Hat logo" title="Red Hat" align="right" height="50" />
 </a>
 
-# Red Hat Cloud Services Terraform Provider
+# Red Hat Cloud Services Terraform Provider 
 
 > Please note that this Terraform provider and its modules are open source and will continue to iterate features, gradually maturing this code.
 > If you encounter any issues, please report them in this repo.

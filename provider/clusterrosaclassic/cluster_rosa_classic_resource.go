@@ -225,6 +225,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** Schema(ctx context.Context, req
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(***REMOVED***,
+					stringplanmodifier.UseStateForUnknown(***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,
 			"replicas": schema.Int64Attribute{

@@ -86,7 +86,10 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 	  
 	  "version": {
 		  "id": "openshift-4.8.0"
-	  }
+	  },
+      "dns" : {
+          "base_domain": "mycluster-api.example.com"
+      }
 	}`
 
 	const templateReadyState = `{
@@ -118,7 +121,10 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 	    "compute_machine_type": {
 	      "id": "r5.xlarge"
 	    }
-	  }
+	  },
+      "dns" : {
+          "base_domain": "mycluster-api.example.com"
+      }
 	}`
 	Context("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 		It("version with unsupported prefix error", func(***REMOVED*** {

@@ -19,13 +19,13 @@ package clusterrosaclassic
 	"context"
 	"errors"
 ***REMOVED***
-	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 ***REMOVED***
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
+	semver "github.com/hashicorp/go-version"
 	ver "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"

@@ -19,17 +19,15 @@ package clusterrosaclassic
 	"context"
 	"errors"
 ***REMOVED***
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 ***REMOVED***
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
-	semver "github.com/hashicorp/go-version"
 	ver "github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -51,14 +49,14 @@ package clusterrosaclassic
 	ocm_errors "github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift/rosa/pkg/ocm"
 	"github.com/openshift/rosa/pkg/properties"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 	ocmr "github.com/terraform-redhat/terraform-provider-rhcs/internal/ocm/resource"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosaclassic/upgrade"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/identityprovider"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 ***REMOVED***
 
 const (
@@ -554,7 +552,7 @@ func createClassicClusterObject(ctx context.Context,
 
 	if !common.IsStringAttributeEmpty(state.BaseDNSDomain***REMOVED*** {
 		dnsBuilder := cmv1.NewDNS(***REMOVED***
-		dnsBuilder.BaseDomain(state.BaseDNSDomain.Value***REMOVED***
+		dnsBuilder.BaseDomain(state.BaseDNSDomain.ValueString(***REMOVED******REMOVED***
 		builder.DNS(dnsBuilder***REMOVED***
 	}
 
@@ -595,9 +593,9 @@ func createClassicClusterObject(ctx context.Context,
 	if state.PrivateHostedZone != nil &&
 		!common.IsStringAttributeEmpty(state.PrivateHostedZone.ID***REMOVED*** &&
 		!common.IsStringAttributeEmpty(state.PrivateHostedZone.RoleARN***REMOVED*** {
-		privateHostedZoneRoleARN = &state.PrivateHostedZone.RoleARN.Value
-		privateHostedZoneID = &state.PrivateHostedZone.ID.Value
-
+		privateHostedZoneRoleARN = state.PrivateHostedZone.RoleARN.ValueStringPointer(***REMOVED***
+		privateHostedZoneID = state.PrivateHostedZone.ID.ValueStringPointer(***REMOVED***
+	}
 	isPrivateLink := common.BoolWithFalseDefault(state.AWSPrivateLink***REMOVED***
 	isPrivate := common.BoolWithFalseDefault(state.Private***REMOVED***
 	awsSubnetIDs, err := common.StringListToArray(ctx, state.AWSSubnetIDs***REMOVED***
@@ -1458,25 +1456,12 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 			state.OCMProperties = mapValue
 ***REMOVED***
 	}
-
-	state.APIURL = types.String{
-		Value: object.API(***REMOVED***.URL(***REMOVED***,
-	}
-	state.ConsoleURL = types.String{
-		Value: object.Console(***REMOVED***.URL(***REMOVED***,
-	}
-	state.Domain = types.String{
-		Value: fmt.Sprintf("%s.%s", object.Name(***REMOVED***, object.DNS(***REMOVED***.BaseDomain(***REMOVED******REMOVED***,
-	}
-	state.BaseDNSDomain = types.String{
-		Value: object.DNS(***REMOVED***.BaseDomain(***REMOVED***,
-	}
 	state.APIURL = types.StringValue(object.API(***REMOVED***.URL(***REMOVED******REMOVED***
 	state.ConsoleURL = types.StringValue(object.Console(***REMOVED***.URL(***REMOVED******REMOVED***
 	state.Domain = types.StringValue(fmt.Sprintf("%s.%s", object.Name(***REMOVED***, object.DNS(***REMOVED***.BaseDomain(***REMOVED******REMOVED******REMOVED***
 	state.Replicas = types.Int64Value(int64(object.Nodes(***REMOVED***.Compute(***REMOVED******REMOVED******REMOVED***
 	state.ComputeMachineType = types.StringValue(object.Nodes(***REMOVED***.ComputeMachineType(***REMOVED***.ID(***REMOVED******REMOVED***
-	state.BaseDNSDomain =types.StringValue(object.DNS(***REMOVED***.BaseDomain(***REMOVED******REMOVED***
+	state.BaseDNSDomain = types.StringValue(object.DNS(***REMOVED***.BaseDomain(***REMOVED******REMOVED***
 	labels, ok := object.Nodes(***REMOVED***.GetComputeLabels(***REMOVED***
 	if ok {
 		mapValue, err := common.ConvertStringMapToMapType(labels***REMOVED***
@@ -1681,12 +1666,8 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 
 		if len(id***REMOVED*** > 0 && len(arn***REMOVED*** > 0 {
 			state.PrivateHostedZone = &PrivateHostedZone{
-				RoleARN: types.String{
-					Value: arn,
-		***REMOVED***,
-				ID: types.String{
-					Value: id,
-		***REMOVED***,
+				RoleARN: types.StringValue(arn***REMOVED***,
+				ID:      types.StringValue(id***REMOVED***,
 	***REMOVED***
 ***REMOVED***
 	}
@@ -1775,127 +1756,4 @@ func shouldPatchProperties(state, plan *ClusterRosaClassicState***REMOVED*** boo
 
 	return false
 
-}
-
-func propertiesValidators(***REMOVED*** []tfsdk.AttributeValidator {
-	return []tfsdk.AttributeValidator{
-		&common.AttributeValidator{
-			Desc: "Validate property key override",
-			Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse***REMOVED*** {
-				propertiesState := &types.Map{
-					ElemType: types.StringType,
-		***REMOVED***
-				diag := req.Config.GetAttribute(ctx, req.AttributePath, propertiesState***REMOVED***
-				if diag.HasError(***REMOVED*** {
-					// No attribute to validate
-					return
-		***REMOVED***
-				if !propertiesState.Null && !propertiesState.Unknown {
-					for k := range propertiesState.Elems {
-						if _, isDefaultKey := OCMProperties[k]; isDefaultKey {
-							errHead := "Invalid property key."
-							errDesc := fmt.Sprintf("Can not override reserved properties keys. %s is a reserved property key", k***REMOVED***
-							resp.Diagnostics.AddError(errHead, errDesc***REMOVED***
-							return
-				***REMOVED***
-			***REMOVED***
-		***REMOVED***
-	***REMOVED***,
-***REMOVED***,
-	}
-}
-
-func adminCredsValidators(***REMOVED*** []tfsdk.AttributeValidator {
-	errSumm := "Invalid admin_creedntials"
-	return []tfsdk.AttributeValidator{
-		&common.AttributeValidator{
-			Desc: "Validate admin username",
-			Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse***REMOVED*** {
-				var creds *AdminCredentials
-				diag := req.Config.GetAttribute(ctx, req.AttributePath, creds***REMOVED***
-				if diag.HasError(***REMOVED*** {
-					// No attribute to validate
-					return
-		***REMOVED***
-				if creds != nil {
-					if common.IsStringAttributeEmpty(creds.Username***REMOVED*** {
-						diag.AddError(errSumm, "Usename can't be empty"***REMOVED***
-						return
-			***REMOVED***
-					if err := idps.ValidateHTPasswdUsername(creds.Username.Value***REMOVED***; err != nil {
-						diag.AddError(errSumm, err.Error(***REMOVED******REMOVED***
-						return
-			***REMOVED***
-		***REMOVED***
-	***REMOVED***,
-***REMOVED***,
-		&common.AttributeValidator{
-			Desc: "Validate admin password",
-			Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse***REMOVED*** {
-				var creds *AdminCredentials
-				diag := req.Config.GetAttribute(ctx, req.AttributePath, creds***REMOVED***
-				if diag.HasError(***REMOVED*** {
-					// No attribute to validate
-					return
-		***REMOVED***
-				if creds != nil {
-					if common.IsStringAttributeEmpty(creds.Password***REMOVED*** {
-						diag.AddError(errSumm, "Usename can't be empty"***REMOVED***
-						return
-			***REMOVED***
-					if err := idps.ValidateHTPasswdPassword(creds.Password.Value***REMOVED***; err != nil {
-						diag.AddError(errSumm, err.Error(***REMOVED******REMOVED***
-						return
-			***REMOVED***
-		***REMOVED***
-	***REMOVED***,
-***REMOVED***,
-	}
-}
-
-func validatePrivateHostedZone(clusterState *ClusterRosaClassicState***REMOVED*** error {
-	if clusterState.PrivateHostedZone == nil {
-		// Nothing to validate.
-		return nil
-	}
-	// validate ID and ARN are not empty
-	if common.IsStringAttributeEmpty(clusterState.PrivateHostedZone.ID***REMOVED*** || common.IsStringAttributeEmpty(clusterState.PrivateHostedZone.RoleARN***REMOVED*** {
-		return fmt.Errorf("Invalid configuration. 'private_hosted_zone.id' and 'private_hosted_zone.arn' are required"***REMOVED***
-	}
-	// Validate running in STS mode
-	if clusterState.Sts == nil {
-		return fmt.Errorf("Invalid configuration. 'private_hosted_zone' requires 'sts' configueration"***REMOVED***
-	}
-	// Validate subnets exists
-	if len(clusterState.AWSSubnetIDs.Elems***REMOVED*** <= 0 {
-		return fmt.Errorf("Invalid configuration. 'private_hosted_zone' requires 'aws_subnet_ids' configueration"***REMOVED***
-	}
-	// Validate availabilityZones exists
-	if len(clusterState.AvailabilityZones.Elems***REMOVED*** <= 0 {
-		return fmt.Errorf("Invalid configuration. 'private_hosted_zone' requires 'aws_subnet_ids' configueration"***REMOVED***
-	}
-	// Validate BaseDomain
-	if common.IsStringAttributeEmpty(clusterState.BaseDNSDomain***REMOVED*** {
-		return fmt.Errorf("Invalid configuration. 'private_hosted_zone' requires 'base_dns_domain' configueration"***REMOVED***
-	}
-	return nil
-}
-
-// Place holder until the v2 refactoring
-func privateHZValidators(***REMOVED*** tfsdk.AttributeValidator {
-	return &common.AttributeValidator{
-		Desc: "Validate private_hosted_zone",
-		Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse***REMOVED*** {
-			var clusterState *ClusterRosaClassicState
-			diag := req.Config.Get(ctx, clusterState***REMOVED***
-			if diag.HasError(***REMOVED*** {
-				// No attribute to validate
-				return
-	***REMOVED***
-			// Validate
-			if err := validatePrivateHostedZone(clusterState***REMOVED***; err != nil {
-				diag.AddError("Invalid private_hosted_zone configuration", err.Error(***REMOVED******REMOVED***
-	***REMOVED***
-***REMOVED***,
-	}
 }

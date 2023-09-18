@@ -225,6 +225,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"replicas": schema.Int64Attribute{

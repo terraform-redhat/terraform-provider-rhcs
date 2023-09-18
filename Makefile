@@ -33,7 +33,7 @@ TARGET_ARCH=$(shell go env GOOS***REMOVED***_${GO_ARCH}
 import_path:=github.com/terraform-redhat/terraform-provider-rhcs
 
 # Version of the project:
-version=$(shell git describe --abbrev=0 | sed 's/^v//'***REMOVED***
+version=$(shell git describe --abbrev=0 | sed 's/^v//' | sed 's/-prerelease\.[0-9]*//'***REMOVED***
 commit:=$(shell git rev-parse --short HEAD***REMOVED***
 
 # Set the linker flags so that the version will be included in the binaries:

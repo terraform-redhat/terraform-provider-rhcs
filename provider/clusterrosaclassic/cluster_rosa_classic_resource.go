@@ -1097,7 +1097,6 @@ func (r *ClusterRosaClassicResource***REMOVED*** Update(ctx context.Context, req
 
 	// update the Replicas with the plan value (important for nil and zero value cases***REMOVED***
 	state.Replicas = plan.Replicas
-
 	object := update.Body(***REMOVED***
 
 	// Update the state:
@@ -1321,7 +1320,7 @@ func updateNodes(ctx context.Context, state, plan *ClusterRosaClassicState, clus
 		clusterNodesBuilder = clusterNodesBuilder.Compute(int(compute***REMOVED******REMOVED***
 		shouldUpdateNodes = true
 	}
-	if common.HasValue(plan.AutoScalingEnabled***REMOVED*** && common.HasValue(plan.AutoScalingEnabled***REMOVED*** {
+	if common.HasValue(plan.AutoScalingEnabled***REMOVED*** && plan.AutoScalingEnabled.ValueBool(***REMOVED*** {
 		// autoscaling enabled
 		autoscaling := cmv1.NewMachinePoolAutoscaling(***REMOVED***
 
@@ -1331,10 +1330,8 @@ func updateNodes(ctx context.Context, state, plan *ClusterRosaClassicState, clus
 		if common.HasValue(plan.MinReplicas***REMOVED*** {
 			autoscaling = autoscaling.MinReplicas(int(plan.MinReplicas.ValueInt64(***REMOVED******REMOVED******REMOVED***
 ***REMOVED***
-
 		clusterNodesBuilder = clusterNodesBuilder.AutoscaleCompute(autoscaling***REMOVED***
 		shouldUpdateNodes = true
-
 	} else {
 		if common.HasValue(plan.MaxReplicas***REMOVED*** || common.HasValue(plan.MinReplicas***REMOVED*** {
 			return nil, false, fmt.Errorf("Can't update MaxReplica and/or MinReplica of cluster when autoscaling is not enabled"***REMOVED***

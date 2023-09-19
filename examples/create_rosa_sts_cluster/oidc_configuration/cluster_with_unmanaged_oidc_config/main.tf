@@ -76,7 +76,6 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   min_replicas        = var.min_replicas
   max_replicas        = var.max_replicas
   version             = var.openshift_version
-  channel_group="candidate"
   properties = {
     rosa_creator_arn = data.aws_caller_identity.current.arn
   }

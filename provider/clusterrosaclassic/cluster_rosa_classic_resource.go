@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	semver "github.com/hashicorp/go-version"
 	ver "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
@@ -1554,6 +1555,9 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	httpTokensState, ok := object.AWS().GetEc2MetadataHttpTokens()
 	if ok && httpTokensState != "" {
 		state.Ec2MetadataHttpTokens = types.StringValue(string(httpTokensState))
+	} else {
+		// Need to add default as future ocm versions will have this flag as default and not empty string
+		state.Ec2MetadataHttpTokens = types.StringValue(ec2.HttpTokensStateOptional)
 	}
 
 	sts, ok := object.AWS().GetSTS()

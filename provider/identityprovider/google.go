@@ -42,7 +42,7 @@ func googleHostedDomainValidator(***REMOVED*** validator.String {
 	errSumm := "Invalid Google IDP resource configuration"
 	return attrvalidators.NewStringValidator("", func(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse***REMOVED*** {
 		hostedDomain := req.ConfigValue
-		if !hostedDomain.IsNull(***REMOVED*** && !hostedDomain.IsNull(***REMOVED*** && !common.IsValidDomain(hostedDomain.ValueString(***REMOVED******REMOVED*** {
+		if !hostedDomain.IsNull(***REMOVED*** && !hostedDomain.IsUnknown(***REMOVED*** && !common.IsValidDomain(hostedDomain.ValueString(***REMOVED******REMOVED*** {
 			resp.Diagnostics.AddAttributeError(req.Path, errSumm,
 				fmt.Sprintf("Expected a valid Google hosted_domain. Got %v",
 					hostedDomain.ValueString(***REMOVED******REMOVED******REMOVED***

@@ -2303,3 +2303,211 @@ var _ = Describe("Day-1 machine pool (worker)", func() {
 		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 1))
 	})
 })
+
+var _ = Describe("Machine pool delete", func() {
+	clusterId := "123"
+
+	prepareClusterRead := func(clusterId string) {
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/"+clusterId),
+				RespondWithJSONTemplate(http.StatusOK, `{
+				  "id": "{{.ClusterId}}",
+				  "name": "my-cluster",
+				  "multi_az": true,
+				  "nodes": {
+					"availability_zones": [
+					  "us-east-1a",
+					  "us-east-1b",
+					  "us-east-1c"
+					]
+				  },
+				  "state": "ready"
+				}`,
+					"ClusterId", clusterId),
+			),
+		)
+	}
+
+	preparePoolRead := func(clusterId string, poolId string) {
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/machine_pools/"+poolId),
+				RespondWithJSONTemplate(http.StatusOK, `
+			{
+				"id": "{{.PoolId}}",
+				"kind": "MachinePool",
+				"href": "/api/clusters_mgmt/v1/clusters/{{.ClusterId}}/machine_pools/{{.PoolId}}",
+				"replicas": 3,
+				"instance_type": "r5.xlarge"
+			}`,
+					"PoolId", poolId,
+					"ClusterId", clusterId),
+			),
+		)
+	}
+
+	createPool := func(clusterId string, poolId string) {
+		prepareClusterRead(clusterId)
+		prepareClusterRead(clusterId)
+		prepareClusterRead(clusterId)
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/"+clusterId+"/machine_pools",
+				),
+				RespondWithJSONTemplate(http.StatusOK, `{
+				  "id": "{{.PoolId}}",
+				  "name": "{{.PoolId}}",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 3,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ]
+				}`,
+					"PoolId", poolId),
+			),
+		)
+
+		terraform.Source(EvaluateTemplate(`
+		resource "rhcs_machine_pool" "{{.PoolId}}" {
+		  cluster      = "{{.ClusterId}}"
+		  name         = "{{.PoolId}}"
+		  machine_type = "r5.xlarge"
+		  replicas     = 3
+		}
+	  `,
+			"PoolId", poolId,
+			"ClusterId", clusterId))
+
+		// Run the apply command:
+		Expect(terraform.Apply()).To(BeZero())
+		resource := terraform.Resource("rhcs_machine_pool", poolId)
+		Expect(resource).To(MatchJQ(".attributes.cluster", clusterId))
+		Expect(resource).To(MatchJQ(".attributes.id", poolId))
+		Expect(resource).To(MatchJQ(".attributes.name", poolId))
+	}
+
+	BeforeEach(func() {
+		createPool(clusterId, "pool1")
+	})
+
+	It("can delete a machine pool", func() {
+		// Prepare for refresh (Read) of the pools prior to changes
+		preparePoolRead(clusterId, "pool1")
+		// Prepare for the delete of pool1
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/machine_pools/pool1"),
+				RespondWithJSON(http.StatusOK, `{}`),
+			),
+		)
+
+		// Re-apply w/ empty source so that pool1 is deleted
+		terraform.Source("")
+		Expect(terraform.Apply()).To(BeZero())
+	})
+	It("will return an error if delete fails and not the last pool", func() {
+		// Prepare for refresh (Read) of the pools prior to changes
+		preparePoolRead(clusterId, "pool1")
+		// Prepare for the delete of pool1
+		server.AppendHandlers(
+			CombineHandlers( // Fail the delete
+				VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/machine_pools/pool1"),
+				RespondWithJSON(http.StatusBadRequest, `{}`), // XXX Fix description
+			),
+			CombineHandlers( // List returns more than 1 pool
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/machine_pools"),
+				RespondWithJSONTemplate(http.StatusOK, `{
+					"kind": "MachinePoolList",
+					"href": "/api/clusters_mgmt/v1/clusters/{{.ClusterId}}/machine_pools",
+					"page": 1,
+					"size": 2,
+					"total": 2,
+					"items": [
+					  {
+						"kind": "MachinePool",
+						"href": "/api/clusters_mgmt/v1/clusters/{{.ClusterId}}/machine_pools/worker",
+						"id": "worker",
+						"replicas": 2,
+						"instance_type": "m5.xlarge",
+						"availability_zones": [
+						  "us-east-1a"
+						],
+						"root_volume": {
+						  "aws": {
+							"size": 300
+						  }
+						}
+					  },
+					  {
+						"kind": "MachinePool",
+						"href": "/api/clusters_mgmt/v1/clusters/{{.ClusterId}}/machine_pools/pool1",
+						"id": "pool1",
+						"replicas": 2,
+						"instance_type": "m5.xlarge",
+						"availability_zones": [
+						  "us-east-1a"
+						],
+						"root_volume": {
+						  "aws": {
+							"size": 300
+						  }
+						}
+					  }
+					]
+				  }`),
+			),
+		)
+
+		// Re-apply w/ empty source so that pool1 is (attempted) deleted
+		terraform.Source("")
+		Expect(terraform.Apply()).NotTo(BeZero())
+	})
+	It("will ignore the error if delete fails and is the last pool", func() {
+		// Prepare for refresh (Read) of the pools prior to changes
+		preparePoolRead(clusterId, "pool1")
+		// Prepare for the delete of pool1
+		server.AppendHandlers(
+			CombineHandlers( // Fail the delete
+				VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/machine_pools/pool1"),
+				RespondWithJSON(http.StatusBadRequest, `{}`), // XXX Fix description
+			),
+			CombineHandlers( // List returns only 1 pool
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/machine_pools"),
+				RespondWithJSONTemplate(http.StatusOK, `{
+					"kind": "MachinePoolList",
+					"href": "/api/clusters_mgmt/v1/clusters/{{.ClusterId}}/machine_pools",
+					"page": 1,
+					"size": 1,
+					"total": 1,
+					"items": [
+					  {
+						"kind": "MachinePool",
+						"href": "/api/clusters_mgmt/v1/clusters/{{.ClusterId}}/machine_pools/pool1",
+						"id": "pool1",
+						"replicas": 2,
+						"instance_type": "m5.xlarge",
+						"availability_zones": [
+						  "us-east-1a"
+						],
+						"root_volume": {
+						  "aws": {
+							"size": 300
+						  }
+						}
+					  }
+					]
+				  }`),
+			),
+		)
+
+		// Re-apply w/ empty source so that pool1 is (attempted) deleted
+		terraform.Source("")
+		// Last pool, we ignore the error, so this succeeds
+		Expect(terraform.Apply()).To(BeZero())
+	})
+})

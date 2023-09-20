@@ -1624,6 +1624,10 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		state.Ec2MetadataHttpTokens = types.String{
 			Value: string(httpTokensState),
 		}
+	} else {
+		state.Ec2MetadataHttpTokens = types.String{
+			Value: string(cmv1.Ec2MetadataHttpTokensOptional),
+		}
 	}
 
 	sts, ok := object.AWS().GetSTS()

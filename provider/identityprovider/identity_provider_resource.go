@@ -357,6 +357,7 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request resource.Re
 
 	// Copy the identity provider data into the state:
 	state.Name = types.StringValue(object.Name())
+	state.MappingMethod = types.StringValue(string(object.MappingMethod()))
 	htpasswdObject := object.Htpasswd()
 	gitlabObject := object.Gitlab()
 	ldapObject := object.LDAP()

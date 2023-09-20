@@ -44,6 +44,10 @@ package machinepool
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 ***REMOVED***
 
+// This is a magic name to trigger special handling for the cluster's default
+// machine pool
+const defaultMachinePoolName = "worker"
+
 var machinepoolNameRE = regexp.MustCompile(
 	`^[a-z]([-a-z0-9]*[a-z0-9]***REMOVED***?$`,
 ***REMOVED***
@@ -261,6 +265,13 @@ func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context, req resour
 		return
 	}
 
+	// The default machine pool is created automatically when the cluster is created.
+	// We want to import it instead of creating it.
+	if machinepoolName == defaultMachinePoolName {
+		r.magicImport(ctx, state, resp***REMOVED***
+		return
+	}
+
 	// Create the machine pool:
 	resource := r.collection.Cluster(state.Cluster.ValueString(***REMOVED******REMOVED***
 	builder := cmv1.NewMachinePool(***REMOVED***.ID(state.ID.ValueString(***REMOVED******REMOVED***.InstanceType(state.MachineType.ValueString(***REMOVED******REMOVED***
@@ -391,6 +402,59 @@ func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context, req resour
 	resp.Diagnostics.Append(diags...***REMOVED***
 }
 
+// This handles the "magic" import of the default machine pool, allowing the
+// user to include it in their config w/o having to specifically `terraform
+// import` it.
+func (r *MachinePoolResource***REMOVED*** magicImport(ctx context.Context, state *MachinePoolState, resp *resource.CreateResponse***REMOVED*** {
+	machinepoolName := state.Name.ValueString(***REMOVED***
+	existingState := &MachinePoolState{
+		ID:      types.StringValue(machinepoolName***REMOVED***,
+		Cluster: state.Cluster,
+		Name:    types.StringValue(machinepoolName***REMOVED***,
+	}
+	state.ID = types.StringValue(machinepoolName***REMOVED***
+
+	notFound, diags := r.readState(ctx, existingState***REMOVED***
+	if notFound {
+		// We disallow creating a machine pool with the default name. This
+		// case can only happen if the default machine pool was deleted and
+		// the user tries to recreate it.
+		diags.AddError(
+			"Can't create machine pool",
+			fmt.Sprintf(
+				"Can't create machine pool for cluster '%s': "+
+					"the default machine pool '%s' was deleted and a new machine pool with that name may not be created. "+
+					"Please use a different name.",
+				state.Cluster.ValueString(***REMOVED***,
+				machinepoolName,
+			***REMOVED***,
+		***REMOVED***
+	}
+	resp.Diagnostics.Append(diags...***REMOVED***
+	if resp.Diagnostics.HasError(***REMOVED*** {
+		return
+	}
+	diags = r.doUpdate(ctx, existingState, state***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
+	if resp.Diagnostics.HasError(***REMOVED*** {
+		return
+	}
+
+	// the 1AZ-related settings don't apply to the default machine pool
+	if state.MultiAvailabilityZone.IsUnknown(***REMOVED*** {
+		state.MultiAvailabilityZone = types.BoolNull(***REMOVED***
+	}
+	if state.AvailabilityZone.IsUnknown(***REMOVED*** {
+		state.AvailabilityZone = types.StringNull(***REMOVED***
+	}
+	if state.SubnetID.IsUnknown(***REMOVED*** {
+		state.SubnetID = types.StringNull(***REMOVED***
+	}
+
+	// Save the state:
+	resp.Diagnostics.Append(resp.State.Set(ctx, state***REMOVED***...***REMOVED***
+}
+
 func (r *MachinePoolResource***REMOVED*** Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse***REMOVED*** {
 	// Get the current state:
 	state := &MachinePoolState{}
@@ -462,13 +526,27 @@ func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, req resour
 		return
 	}
 
+	diags = r.doUpdate(ctx, state, plan***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
+	if resp.Diagnostics.HasError(***REMOVED*** {
+		return
+	}
+
+	// Save the state:
+	diags = resp.State.Set(ctx, state***REMOVED***
+	resp.Diagnostics.Append(diags...***REMOVED***
+}
+
+func (r *MachinePoolResource***REMOVED*** doUpdate(ctx context.Context, state *MachinePoolState, plan *MachinePoolState***REMOVED*** (diags diag.Diagnostics***REMOVED*** {
+	diags = diag.Diagnostics{}
+
 	resource := r.collection.Cluster(state.Cluster.ValueString(***REMOVED******REMOVED***.
 		MachinePools(***REMOVED***.
 		MachinePool(state.ID.ValueString(***REMOVED******REMOVED***
 	_, err := resource.Get(***REMOVED***.SendContext(ctx***REMOVED***
 
 	if err != nil {
-		resp.Diagnostics.AddError(
+		diags.AddError(
 			"Cannot find machine pool",
 			fmt.Sprintf(
 				"Cannot find machine pool with identifier '%s' for "+
@@ -483,7 +561,7 @@ func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, req resour
 
 	_, ok := common.ShouldPatchString(state.MachineType, plan.MachineType***REMOVED***
 	if ok {
-		resp.Diagnostics.AddError(
+		diags.AddError(
 			"Cannot update machine pool",
 			fmt.Sprintf(
 				"Cannot update machine pool for cluster '%s', machine type cannot be updated",
@@ -504,7 +582,7 @@ func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, req resour
 
 	autoscalingEnabled, errMsg := getAutoscaling(plan, mpBuilder***REMOVED***
 	if errMsg != "" {
-		resp.Diagnostics.AddError(
+		diags.AddError(
 			"Cannot update machine pool",
 			fmt.Sprintf(
 				"Cannot update machine pool for cluster '%s, %s ", state.Cluster.ValueString(***REMOVED***, errMsg,
@@ -514,7 +592,7 @@ func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, req resour
 	}
 
 	if (autoscalingEnabled && computeNodesEnabled***REMOVED*** || (!autoscalingEnabled && !computeNodesEnabled***REMOVED*** {
-		resp.Diagnostics.AddError(
+		diags.AddError(
 			"Cannot update machine pool",
 			fmt.Sprintf(
 				"Cannot update machine pool for cluster '%s: either autoscaling or compute nodes should be enabled", state.Cluster.ValueString(***REMOVED***,
@@ -545,7 +623,7 @@ func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, req resour
 
 	machinePool, err := mpBuilder.Build(***REMOVED***
 	if err != nil {
-		resp.Diagnostics.AddError(
+		diags.AddError(
 			"Cannot update machine pool",
 			fmt.Sprintf(
 				"Cannot update machine pool for cluster '%s: %v ", state.Cluster.ValueString(***REMOVED***, err,
@@ -557,7 +635,7 @@ func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, req resour
 		MachinePools(***REMOVED***.
 		MachinePool(state.ID.ValueString(***REMOVED******REMOVED***.Update(***REMOVED***.Body(machinePool***REMOVED***.SendContext(ctx***REMOVED***
 	if err != nil {
-		resp.Diagnostics.AddError(
+		diags.AddError(
 			"Failed to update machine pool",
 			fmt.Sprintf(
 				"Failed to update machine pool '%s'  on cluster '%s': %v",
@@ -569,10 +647,14 @@ func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, req resour
 
 	object := update.Body(***REMOVED***
 
+	// update the autoscaling enabled with the plan value (important for nil and false cases***REMOVED***
+	state.AutoScalingEnabled = plan.AutoScalingEnabled
+	// update the Replicas with the plan value (important for nil and zero value cases***REMOVED***
+	state.Replicas = plan.Replicas
+
 	// Save the state:
-	r.populateState(object, plan***REMOVED***
-	diags = resp.State.Set(ctx, plan***REMOVED***
-	resp.Diagnostics.Append(diags...***REMOVED***
+	r.populateState(object, state***REMOVED***
+	return
 }
 
 // Validate the machine pool's settings that pertain to availability zones.
@@ -812,9 +894,11 @@ func (r *MachinePoolResource***REMOVED*** populateState(object *cmv1.MachinePool
 	// if the other (AZ/subnet***REMOVED*** value is set. We don't need to set
 	// MultiAvailibilityZone here, because it's set in the validation function
 	// during create.
+	state.MultiAvailabilityZone = types.BoolValue(true***REMOVED***
 	azs := object.AvailabilityZones(***REMOVED***
 	if len(azs***REMOVED*** == 1 {
 		state.AvailabilityZone = types.StringValue(azs[0]***REMOVED***
+		state.MultiAvailabilityZone = types.BoolValue(false***REMOVED***
 	} else {
 		state.AvailabilityZone = types.StringValue(""***REMOVED***
 	}
@@ -822,6 +906,7 @@ func (r *MachinePoolResource***REMOVED*** populateState(object *cmv1.MachinePool
 	subnets := object.Subnets(***REMOVED***
 	if len(subnets***REMOVED*** == 1 {
 		state.SubnetID = types.StringValue(subnets[0]***REMOVED***
+		state.MultiAvailabilityZone = types.BoolValue(false***REMOVED***
 	} else {
 		state.SubnetID = types.StringValue(""***REMOVED***
 	}

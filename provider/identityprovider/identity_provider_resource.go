@@ -357,6 +357,7 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 
 	// Copy the identity provider data into the state:
 	state.Name = types.StringValue(object.Name(***REMOVED******REMOVED***
+	state.MappingMethod = types.StringValue(string(object.MappingMethod(***REMOVED******REMOVED******REMOVED***
 	htpasswdObject := object.Htpasswd(***REMOVED***
 	gitlabObject := object.Gitlab(***REMOVED***
 	ldapObject := object.LDAP(***REMOVED***

@@ -22,9 +22,10 @@ package clusterrosaclassic
 	"crypto/x509"
 	"encoding/json"
 ***REMOVED***
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 ***REMOVED***
 	"testing"
+
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -249,7 +250,6 @@ var _ = Describe("Rosa Classic Sts cluster", func(***REMOVED*** {
 			Expect(clusterState.APIURL.ValueString(***REMOVED******REMOVED***.To(Equal(apiUrl***REMOVED******REMOVED***
 			Expect(clusterState.ConsoleURL.ValueString(***REMOVED******REMOVED***.To(Equal(consoleUrl***REMOVED******REMOVED***
 			Expect(clusterState.Domain.ValueString(***REMOVED******REMOVED***.To(Equal(fmt.Sprintf("%s.%s", clusterName, baseDomain***REMOVED******REMOVED******REMOVED***
-			Expect(clusterState.ComputeMachineType.ValueString(***REMOVED******REMOVED***.To(Equal(machineType***REMOVED******REMOVED***
 
 			Expect(clusterState.AvailabilityZones.Elements(***REMOVED******REMOVED***.To(HaveLen(1***REMOVED******REMOVED***
 			azs, err := common.StringListToArray(context.Background(***REMOVED***, clusterState.AvailabilityZones***REMOVED***

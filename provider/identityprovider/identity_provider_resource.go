@@ -424,7 +424,7 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 				response.Diagnostics.AddError("failed to convert string slice to tf list", "GitHub Teams conversion failed"***REMOVED***
 	***REMOVED***
 ***REMOVED*** else {
-			state.Github.Teams = types.ListUnknown(types.StringType***REMOVED***
+			state.Github.Teams = types.ListNull(types.StringType***REMOVED***
 ***REMOVED***
 		orgs, ok := githubObject.GetOrganizations(***REMOVED***
 		if ok {
@@ -433,7 +433,7 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 				response.Diagnostics.AddError("failed to convert string slice to tf list", "GitHub Organizations conversion failed"***REMOVED***
 	***REMOVED***
 ***REMOVED*** else {
-			state.Github.Organizations = types.ListUnknown(types.StringType***REMOVED***
+			state.Github.Organizations = types.ListNull(types.StringType***REMOVED***
 ***REMOVED***
 	case googleObject != nil:
 		if state.Google == nil {
@@ -490,6 +490,8 @@ func (r *IdentityProviderResource***REMOVED*** Read(ctx context.Context, request
 				if err != nil {
 					response.Diagnostics.AddError("failed to convert LDAP attribute EMail to tf list", err.Error(***REMOVED******REMOVED***
 		***REMOVED***
+	***REMOVED*** else {
+				state.LDAP.Attributes.EMail = types.ListNull(types.StringType***REMOVED***
 	***REMOVED***
 			name, ok := attributes.GetName(***REMOVED***
 			if ok {

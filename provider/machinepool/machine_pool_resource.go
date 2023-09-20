@@ -27,6 +27,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -399,19 +400,37 @@ func (r *MachinePoolResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	// Find the machine pool:
-	resource := r.collection.Cluster(state.Cluster.ValueString()).
-		MachinePools().
-		MachinePool(state.ID.ValueString())
-	get, err := resource.Get().SendContext(ctx)
-	if err != nil && get.Status() == http.StatusNotFound {
+	notFound, diags := r.readState(ctx, state)
+	if notFound {
+		// If we can't find the machine pool, it was deleted. Remove if from the
+		// state and don't return an error so the TF apply() will automatically
+		// recreate it.
 		tflog.Warn(ctx, fmt.Sprintf("machine pool (%s) of cluster (%s) not found, removing from state",
 			state.ID.ValueString(), state.Cluster.ValueString(),
 		))
 		resp.State.RemoveResource(ctx)
 		return
+	}
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+}
+
+func (r *MachinePoolResource) readState(ctx context.Context, state *MachinePoolState) (poolNotFound bool, diags diag.Diagnostics) {
+	diags = diag.Diagnostics{}
+
+	resource := r.collection.Cluster(state.Cluster.ValueString()).
+		MachinePools().
+		MachinePool(state.ID.ValueString())
+	get, err := resource.Get().SendContext(ctx)
+	if err != nil && get.Status() == http.StatusNotFound {
+		poolNotFound = true
+		return
 	} else if err != nil {
-		resp.Diagnostics.AddError(
+		diags.AddError(
 			"Failed to fetch machine pool",
 			fmt.Sprintf(
 				"Failed to fetch machine pool with identifier %s for cluster %s. Response code: %v",
@@ -422,11 +441,8 @@ func (r *MachinePoolResource) Read(ctx context.Context, req resource.ReadRequest
 	}
 
 	object := get.Body()
-
-	// Save the state:
 	r.populateState(object, state)
-	diags = resp.State.Set(ctx, state)
-	resp.Diagnostics.Append(diags...)
+	return
 }
 
 func (r *MachinePoolResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {

@@ -797,19 +797,48 @@ func (r *MachinePoolResource***REMOVED*** Delete(ctx context.Context, req resour
 		MachinePool(state.ID.ValueString(***REMOVED******REMOVED***
 	_, err := resource.Delete(***REMOVED***.SendContext(ctx***REMOVED***
 	if err != nil {
-		resp.Diagnostics.AddError(
-			"Cannot delete machine pool",
-			fmt.Sprintf(
-				"Cannot delete machine pool with identifier '%s' for "+
-					"cluster '%s': %v",
-				state.ID.ValueString(***REMOVED***, state.Cluster.ValueString(***REMOVED***, err,
-			***REMOVED***,
-		***REMOVED***
-		return
+		// We can't delete the pool, see if it's the last one:
+		numPools, err2 := r.countPools(ctx, state.Cluster.ValueString(***REMOVED******REMOVED***
+		if numPools == 1 && err2 == nil {
+			// It's the last one, issue warning instead of error
+			resp.Diagnostics.AddWarning(
+				"Cannot delete machine pool",
+				fmt.Sprintf(
+					"Cannot delete the last machine pool for cluster '%s'. "+
+						"ROSA Classic clusters must have at least one machine pool. "+
+						"It is being removed from the Terraform state only. "+
+						"To resume managing this machine pool, import it again. "+
+						"It will be automatically deleted when the cluster is deleted.",
+					state.Cluster.ValueString(***REMOVED***,
+				***REMOVED***,
+			***REMOVED***
+			// No return, we want to remove the state
+***REMOVED*** else {
+			// Wasn't the last one, return error
+			resp.Diagnostics.AddError(
+				"Cannot delete machine pool",
+				fmt.Sprintf(
+					"Cannot delete machine pool with identifier '%s' for "+
+						"cluster '%s': %v",
+					state.ID.ValueString(***REMOVED***, state.Cluster.ValueString(***REMOVED***, err,
+				***REMOVED***,
+			***REMOVED***
+			return
+***REMOVED***
 	}
 
 	// Remove the state:
 	resp.State.RemoveResource(ctx***REMOVED***
+}
+
+// countPools returns the number of machine pools in the given cluster
+func (r *MachinePoolResource***REMOVED*** countPools(ctx context.Context, clusterID string***REMOVED*** (int, error***REMOVED*** {
+	resource := r.collection.Cluster(clusterID***REMOVED***.MachinePools(***REMOVED***
+	resp, err := resource.List(***REMOVED***.SendContext(ctx***REMOVED***
+	if err != nil {
+		return 0, err
+	}
+	return resp.Size(***REMOVED***, nil
 }
 
 func (r *MachinePoolResource***REMOVED*** ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse***REMOVED*** {

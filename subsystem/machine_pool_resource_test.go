@@ -2457,3 +2457,211 @@ var _ = Describe("Day-1 machine pool (worker***REMOVED***", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.labels | length`, 1***REMOVED******REMOVED***
 	}***REMOVED***
 }***REMOVED***
+
+var _ = Describe("Machine pool delete", func(***REMOVED*** {
+	clusterId := "123"
+
+	prepareClusterRead := func(clusterId string***REMOVED*** {
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/"+clusterId***REMOVED***,
+				RespondWithJSONTemplate(http.StatusOK, `{
+				  "id": "{{.ClusterId}}",
+				  "name": "my-cluster",
+				  "multi_az": true,
+				  "nodes": {
+					"availability_zones": [
+					  "us-east-1a",
+					  "us-east-1b",
+					  "us-east-1c"
+					]
+				  },
+				  "state": "ready"
+		***REMOVED***`,
+					"ClusterId", clusterId***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+	}
+
+	preparePoolRead := func(clusterId string, poolId string***REMOVED*** {
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/machine_pools/"+poolId***REMOVED***,
+				RespondWithJSONTemplate(http.StatusOK, `
+			{
+				"id": "{{.PoolId}}",
+				"kind": "MachinePool",
+				"href": "/api/clusters_mgmt/v1/clusters/{{.ClusterId}}/machine_pools/{{.PoolId}}",
+				"replicas": 3,
+				"instance_type": "r5.xlarge"
+	***REMOVED***`,
+					"PoolId", poolId,
+					"ClusterId", clusterId***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+	}
+
+	createPool := func(clusterId string, poolId string***REMOVED*** {
+		prepareClusterRead(clusterId***REMOVED***
+		prepareClusterRead(clusterId***REMOVED***
+		prepareClusterRead(clusterId***REMOVED***
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/"+clusterId+"/machine_pools",
+				***REMOVED***,
+				RespondWithJSONTemplate(http.StatusOK, `{
+				  "id": "{{.PoolId}}",
+				  "name": "{{.PoolId}}",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 3,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ]
+		***REMOVED***`,
+					"PoolId", poolId***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		terraform.Source(EvaluateTemplate(`
+		resource "rhcs_machine_pool" "{{.PoolId}}" {
+		  cluster      = "{{.ClusterId}}"
+		  name         = "{{.PoolId}}"
+		  machine_type = "r5.xlarge"
+		  replicas     = 3
+***REMOVED***
+	  `,
+			"PoolId", poolId,
+			"ClusterId", clusterId***REMOVED******REMOVED***
+
+		// Run the apply command:
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		resource := terraform.Resource("rhcs_machine_pool", poolId***REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.cluster", clusterId***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", poolId***REMOVED******REMOVED***
+		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", poolId***REMOVED******REMOVED***
+	}
+
+	BeforeEach(func(***REMOVED*** {
+		createPool(clusterId, "pool1"***REMOVED***
+	}***REMOVED***
+
+	It("can delete a machine pool", func(***REMOVED*** {
+		// Prepare for refresh (Read***REMOVED*** of the pools prior to changes
+		preparePoolRead(clusterId, "pool1"***REMOVED***
+		// Prepare for the delete of pool1
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/machine_pools/pool1"***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{}`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Re-apply w/ empty source so that pool1 is deleted
+		terraform.Source(""***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+	}***REMOVED***
+	It("will return an error if delete fails and not the last pool", func(***REMOVED*** {
+		// Prepare for refresh (Read***REMOVED*** of the pools prior to changes
+		preparePoolRead(clusterId, "pool1"***REMOVED***
+		// Prepare for the delete of pool1
+		server.AppendHandlers(
+			CombineHandlers( // Fail the delete
+				VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/machine_pools/pool1"***REMOVED***,
+				RespondWithJSON(http.StatusBadRequest, `{}`***REMOVED***, // XXX Fix description
+			***REMOVED***,
+			CombineHandlers( // List returns more than 1 pool
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/machine_pools"***REMOVED***,
+				RespondWithJSONTemplate(http.StatusOK, `{
+					"kind": "MachinePoolList",
+					"href": "/api/clusters_mgmt/v1/clusters/{{.ClusterId}}/machine_pools",
+					"page": 1,
+					"size": 2,
+					"total": 2,
+					"items": [
+					  {
+						"kind": "MachinePool",
+						"href": "/api/clusters_mgmt/v1/clusters/{{.ClusterId}}/machine_pools/worker",
+						"id": "worker",
+						"replicas": 2,
+						"instance_type": "m5.xlarge",
+						"availability_zones": [
+						  "us-east-1a"
+						],
+						"root_volume": {
+						  "aws": {
+							"size": 300
+						  }
+				***REMOVED***
+					  },
+					  {
+						"kind": "MachinePool",
+						"href": "/api/clusters_mgmt/v1/clusters/{{.ClusterId}}/machine_pools/pool1",
+						"id": "pool1",
+						"replicas": 2,
+						"instance_type": "m5.xlarge",
+						"availability_zones": [
+						  "us-east-1a"
+						],
+						"root_volume": {
+						  "aws": {
+							"size": 300
+						  }
+				***REMOVED***
+					  }
+					]
+				  }`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Re-apply w/ empty source so that pool1 is (attempted***REMOVED*** deleted
+		terraform.Source(""***REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
+	}***REMOVED***
+	It("will ignore the error if delete fails and is the last pool", func(***REMOVED*** {
+		// Prepare for refresh (Read***REMOVED*** of the pools prior to changes
+		preparePoolRead(clusterId, "pool1"***REMOVED***
+		// Prepare for the delete of pool1
+		server.AppendHandlers(
+			CombineHandlers( // Fail the delete
+				VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/machine_pools/pool1"***REMOVED***,
+				RespondWithJSON(http.StatusBadRequest, `{}`***REMOVED***, // XXX Fix description
+			***REMOVED***,
+			CombineHandlers( // List returns only 1 pool
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/machine_pools"***REMOVED***,
+				RespondWithJSONTemplate(http.StatusOK, `{
+					"kind": "MachinePoolList",
+					"href": "/api/clusters_mgmt/v1/clusters/{{.ClusterId}}/machine_pools",
+					"page": 1,
+					"size": 1,
+					"total": 1,
+					"items": [
+					  {
+						"kind": "MachinePool",
+						"href": "/api/clusters_mgmt/v1/clusters/{{.ClusterId}}/machine_pools/pool1",
+						"id": "pool1",
+						"replicas": 2,
+						"instance_type": "m5.xlarge",
+						"availability_zones": [
+						  "us-east-1a"
+						],
+						"root_volume": {
+						  "aws": {
+							"size": 300
+						  }
+				***REMOVED***
+					  }
+					]
+				  }`***REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+
+		// Re-apply w/ empty source so that pool1 is (attempted***REMOVED*** deleted
+		terraform.Source(""***REMOVED***
+		// Last pool, we ignore the error, so this succeeds
+		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+	}***REMOVED***
+}***REMOVED***

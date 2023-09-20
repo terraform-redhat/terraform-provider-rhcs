@@ -2257,6 +2257,203 @@ var _ = Describe("Machine pool creation for non exist cluster", func() {
 		  }
 		`)
 		Expect(terraform.Apply()).NotTo(BeZero())
+	})
+})
 
+var _ = Describe("Day-1 machine pool (worker)", func() {
+	BeforeEach(func() {
+		// The first thing that the provider will do for any operation on machine pools
+		// is check that the cluster is ready, so we always need to prepare the server to
+		// respond to that:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, `{
+					  "id": "123",
+					  "name": "my-cluster",
+					  "multi_az": false,
+					  "nodes": {
+						"availability_zones": [
+						  "us-east-1a"
+						]
+					  },
+					  "state": "ready"
+				}`),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, `{
+					  "id": "123",
+					  "name": "my-cluster",
+					  "multi_az": false,
+					  "nodes": {
+						"availability_zones": [
+						  "us-east-1a"
+						]
+					  },
+					  "state": "ready"
+				}`),
+			),
+		)
+	})
+
+	It("cannot be created", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			// Get is for the Read function
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker"),
+				RespondWithJSON(http.StatusNotFound, `
+					{
+						"kind": "Error",
+						"id": "404",
+						"href": "/api/clusters_mgmt/v1/errors/404",
+						"code": "CLUSTERS-MGMT-404",
+						"reason": "Machine pool with id 'worker' not found.",
+						"operation_id": "df359e0c-b1d3-4feb-9b58-50f7a20d0096"
+					}`),
+			),
+		)
+		terraform.Source(`
+			  resource "rhcs_machine_pool" "worker" {
+				cluster      = "123"
+			    name         = "worker"
+			    machine_type = "r5.xlarge"
+			    replicas     = 2
+			  }
+			`)
+		Expect(terraform.Apply()).NotTo(BeZero())
+	})
+
+	It("is automatically imported and updates applied", func() {
+		// Import automatically "Create()", and update the # of replicas: 2 -> 4
+		// Prepare the server:
+		server.AppendHandlers(
+			// Get is for the Read function
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker"),
+				RespondWithJSON(http.StatusOK, `
+					{
+						"id": "worker",
+						"kind": "MachinePool",
+						"href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker",
+						"replicas": 2,
+						"instance_type": "r5.xlarge"
+					}`),
+			),
+			// Get is for the read during update
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker"),
+				RespondWithJSON(http.StatusOK, `
+					{
+						"id": "worker",
+						"kind": "MachinePool",
+						"href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker",
+						"replicas": 2,
+						"instance_type": "r5.xlarge"
+					}`),
+			),
+			// Patch is for the update
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker"),
+				VerifyJSON(`{
+					  "kind": "MachinePool",
+					  "id": "worker",
+					  "replicas": 4
+					}`),
+				RespondWithJSON(http.StatusOK, `
+					{
+					  "id": "worker",
+					  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker",
+					  "kind": "MachinePool",
+					  "instance_type": "r5.xlarge",
+					  "replicas": 4
+					}`),
+			),
+		)
+		terraform.Source(`
+			resource "rhcs_machine_pool" "worker" {
+			  cluster      = "123"
+			  name         = "worker"
+			  machine_type = "r5.xlarge"
+			  replicas     = 4
+			}
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+		resource := terraform.Resource("rhcs_machine_pool", "worker")
+		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+		Expect(resource).To(MatchJQ(".attributes.name", "worker"))
+		Expect(resource).To(MatchJQ(".attributes.id", "worker"))
+		Expect(resource).To(MatchJQ(".attributes.replicas", 4.0))
+	})
+
+	It("can update labels", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			// Get is for the Read function
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker"),
+				RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"kind": "MachinePool",
+							"href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker",
+							"replicas": 2,
+							"instance_type": "r5.xlarge"
+						}`),
+			),
+			// Get is for the read during update
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker"),
+				RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"kind": "MachinePool",
+							"href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker",
+							"replicas": 2,
+							"instance_type": "r5.xlarge"
+						}`),
+			),
+			// Patch is for the update
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker"),
+				VerifyJSON(`{
+					  "kind": "MachinePool",
+						  "id": "worker",
+						  "labels": {
+						    "label_key1": "label_value1"
+						  },
+						  "replicas": 2
+						}`),
+				RespondWithJSON(http.StatusOK, `
+						{
+						  "id": "worker",
+						  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker",
+						  "kind": "MachinePool",
+						  "instance_type": "r5.xlarge",
+						  "labels": {
+						    "label_key1": "label_value1"
+						  },
+						  "replicas": 2
+						}`),
+			),
+		)
+		terraform.Source(`
+			resource "rhcs_machine_pool" "worker" {
+				cluster      = "123"
+				name         = "worker"
+				machine_type = "r5.xlarge"
+				replicas     = 2
+				labels = {
+					"label_key1" = "label_value1"
+				}
+			}
+			`)
+		Expect(terraform.Apply()).To(BeZero())
+		resource := terraform.Resource("rhcs_machine_pool", "worker")
+		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+		Expect(resource).To(MatchJQ(".attributes.name", "worker"))
+		Expect(resource).To(MatchJQ(".attributes.id", "worker"))
+		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 1))
 	})
 })

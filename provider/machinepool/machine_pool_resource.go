@@ -797,19 +797,48 @@ func (r *MachinePoolResource) Delete(ctx context.Context, req resource.DeleteReq
 		MachinePool(state.ID.ValueString())
 	_, err := resource.Delete().SendContext(ctx)
 	if err != nil {
-		resp.Diagnostics.AddError(
-			"Cannot delete machine pool",
-			fmt.Sprintf(
-				"Cannot delete machine pool with identifier '%s' for "+
-					"cluster '%s': %v",
-				state.ID.ValueString(), state.Cluster.ValueString(), err,
-			),
-		)
-		return
+		// We can't delete the pool, see if it's the last one:
+		numPools, err2 := r.countPools(ctx, state.Cluster.ValueString())
+		if numPools == 1 && err2 == nil {
+			// It's the last one, issue warning instead of error
+			resp.Diagnostics.AddWarning(
+				"Cannot delete machine pool",
+				fmt.Sprintf(
+					"Cannot delete the last machine pool for cluster '%s'. "+
+						"ROSA Classic clusters must have at least one machine pool. "+
+						"It is being removed from the Terraform state only. "+
+						"To resume managing this machine pool, import it again. "+
+						"It will be automatically deleted when the cluster is deleted.",
+					state.Cluster.ValueString(),
+				),
+			)
+			// No return, we want to remove the state
+		} else {
+			// Wasn't the last one, return error
+			resp.Diagnostics.AddError(
+				"Cannot delete machine pool",
+				fmt.Sprintf(
+					"Cannot delete machine pool with identifier '%s' for "+
+						"cluster '%s': %v",
+					state.ID.ValueString(), state.Cluster.ValueString(), err,
+				),
+			)
+			return
+		}
 	}
 
 	// Remove the state:
 	resp.State.RemoveResource(ctx)
+}
+
+// countPools returns the number of machine pools in the given cluster
+func (r *MachinePoolResource) countPools(ctx context.Context, clusterID string) (int, error) {
+	resource := r.collection.Cluster(clusterID).MachinePools()
+	resp, err := resource.List().SendContext(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return resp.Size(), nil
 }
 
 func (r *MachinePoolResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

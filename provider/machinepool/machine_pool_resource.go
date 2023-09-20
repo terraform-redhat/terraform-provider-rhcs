@@ -27,6 +27,7 @@ package machinepool
 	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -399,19 +400,37 @@ func (r *MachinePoolResource***REMOVED*** Read(ctx context.Context, req resource
 		return
 	}
 
-	// Find the machine pool:
-	resource := r.collection.Cluster(state.Cluster.ValueString(***REMOVED******REMOVED***.
-		MachinePools(***REMOVED***.
-		MachinePool(state.ID.ValueString(***REMOVED******REMOVED***
-	get, err := resource.Get(***REMOVED***.SendContext(ctx***REMOVED***
-	if err != nil && get.Status(***REMOVED*** == http.StatusNotFound {
+	notFound, diags := r.readState(ctx, state***REMOVED***
+	if notFound {
+		// If we can't find the machine pool, it was deleted. Remove if from the
+		// state and don't return an error so the TF apply(***REMOVED*** will automatically
+		// recreate it.
 		tflog.Warn(ctx, fmt.Sprintf("machine pool (%s***REMOVED*** of cluster (%s***REMOVED*** not found, removing from state",
 			state.ID.ValueString(***REMOVED***, state.Cluster.ValueString(***REMOVED***,
 		***REMOVED******REMOVED***
 		resp.State.RemoveResource(ctx***REMOVED***
 		return
+	}
+	resp.Diagnostics.Append(diags...***REMOVED***
+	if resp.Diagnostics.HasError(***REMOVED*** {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, state***REMOVED***...***REMOVED***
+}
+
+func (r *MachinePoolResource***REMOVED*** readState(ctx context.Context, state *MachinePoolState***REMOVED*** (poolNotFound bool, diags diag.Diagnostics***REMOVED*** {
+	diags = diag.Diagnostics{}
+
+	resource := r.collection.Cluster(state.Cluster.ValueString(***REMOVED******REMOVED***.
+		MachinePools(***REMOVED***.
+		MachinePool(state.ID.ValueString(***REMOVED******REMOVED***
+	get, err := resource.Get(***REMOVED***.SendContext(ctx***REMOVED***
+	if err != nil && get.Status(***REMOVED*** == http.StatusNotFound {
+		poolNotFound = true
+		return
 	} else if err != nil {
-		resp.Diagnostics.AddError(
+		diags.AddError(
 			"Failed to fetch machine pool",
 			fmt.Sprintf(
 				"Failed to fetch machine pool with identifier %s for cluster %s. Response code: %v",
@@ -422,11 +441,8 @@ func (r *MachinePoolResource***REMOVED*** Read(ctx context.Context, req resource
 	}
 
 	object := get.Body(***REMOVED***
-
-	// Save the state:
 	r.populateState(object, state***REMOVED***
-	diags = resp.State.Set(ctx, state***REMOVED***
-	resp.Diagnostics.Append(diags...***REMOVED***
+	return
 }
 
 func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse***REMOVED*** {

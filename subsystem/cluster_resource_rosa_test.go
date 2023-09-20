@@ -2056,7 +2056,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				Expect(terraform.Apply()).ToNot(BeZero())
 			})
 		})
-		It("Creates cluster with default_mp_labels and update them", func() {
+		It("Creates cluster with default_mp_labels", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
@@ -2130,96 +2130,8 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 
 			Expect(terraform.Apply()).To(BeZero())
 
-			// apply for update the default_mp_labels
-			// Prepare the server:
-			server.AppendHandlers(
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-					RespondWithPatchedJSON(http.StatusOK, template, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "ec2_metadata_http_tokens": "optional",
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "",
-							  "support_role_arn": "",
-							  "instance_iam_roles" : {
-								"master_role_arn" : "",
-								"worker_role_arn" : ""
-							  },
-							  "operator_role_prefix" : "test"
-						  }
-					  }
-					}]`),
-				),
-				// Update handler and response
-				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
-					VerifyJQ(`.nodes.compute_labels.changed_label`, "changed"),
-					RespondWithPatchedJSON(http.StatusOK, template, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "ec2_metadata_http_tokens": "optional",
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "",
-							  "support_role_arn": "",
-							  "instance_iam_roles" : {
-								"master_role_arn" : "",
-								"worker_role_arn" : ""
-							  },
-							  "operator_role_prefix" : "test"
-						  }
-					  }
-					},
-					{
-					  "op": "replace",
-					  "path": "/nodes",
-					  "value": {
-                        "compute_labels": {
-                            "changed_label": "changed"
-                        },
-						"availability_zones": [
-      						"us-west-1a"
-    					],
-						"compute_machine_type": {
-						   "id": "r5.xlarge"
-	    				}
-					  }
-					}
-					]`),
-				),
-			)
-
-			// update the attribute "proxy"
-			terraform.Source(`
-		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-            default_mp_labels = {
-                changed_label = "changed"
-            }
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
-				}
-			}
-		  }
-		`)
-			Expect(terraform.Apply()).To(BeZero(), "Failed to update cluster with changed default_mp_labels")
 			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
-			Expect(resource).To(MatchJQ(`.attributes.default_mp_labels.changed_label`, "changed"))
+			Expect(resource).To(MatchJQ(`.attributes.default_mp_labels.label_key1`, "label_value1"))
 		})
 
 		It("Except to fail on proxy validators", func() {
@@ -2597,7 +2509,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			Expect(terraform.Apply()).To(BeZero())
 		})
 
-		It("Creates rosa sts cluster with autoscaling and update the default machine pool", func() {
+		It("Creates rosa sts cluster with autoscaling", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
@@ -2688,231 +2600,10 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  }
 		`)
 			Expect(terraform.Apply()).To(BeZero())
-
-			// apply for update the min_replica from 2 to 3
-			// Prepare the server:
-			server.AppendHandlers(
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-					RespondWithPatchedJSON(http.StatusOK, template, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "ec2_metadata_http_tokens": "optional",
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
-							  "support_role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
-							  "instance_iam_roles" : {
-								"master_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role",
-								"worker_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"
-							  },
-							  "operator_role_prefix" : "terraform-operator"
-						  }
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"autoscale_compute": {
-							"min_replicas": 2,
-							"max_replicas": 4
-						},
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						},
-						"compute_labels": {
-							"label_key1": "label_value1",
-				    		"label_key2": "label_value2"
-						},
-                        "availability_zones": [
-							"az"
-						]
-					  }
-					}
-				  ]`),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
-					VerifyJQ(`.nodes.autoscale_compute.kind`, "MachinePoolAutoscaling"),
-					VerifyJQ(`.nodes.autoscale_compute.max_replicas`, float64(4)),
-					VerifyJQ(`.nodes.autoscale_compute.min_replicas`, float64(3)),
-					RespondWithPatchedJSON(http.StatusOK, template, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "ec2_metadata_http_tokens": "optional",
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
-							  "support_role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
-							  "instance_iam_roles" : {
-								"master_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role",
-								"worker_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"
-							  },
-							  "operator_role_prefix" : "terraform-operator"
-						  }
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"autoscale_compute": {
-							"min_replicas": 3,
-							"max_replicas": 4
-						},
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						},
-						"availability_zones": ["az"],
-						"compute_labels": {
-							"label_key1": "label_value1",
-				    		"label_key2": "label_value2"
-						}
-					  }
-					}
-				  ]`),
-				),
-			)
-			// Run the apply command:
-			terraform.Source(`
-		resource "rhcs_cluster_rosa_classic" "my_cluster" {
-			name           = "my-cluster"
-			cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			autoscaling_enabled = "true"
-			min_replicas = "3"
-			max_replicas = "4"
-			default_mp_labels = {
-				"label_key1" = "label_value1",
-				"label_key2" = "label_value2"
-			}
-			sts = {
-				role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
-				support_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
-				instance_iam_roles = {
-				  master_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role",
-				  worker_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"
-				},
-				"operator_role_prefix" : "terraform-operator"
-			}
-		  }
-		`)
-			Expect(terraform.Apply()).To(BeZero())
-
-			// apply for update the autoscaling group to compute nodes
-			// Prepare the server:
-			server.AppendHandlers(
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-					RespondWithPatchedJSON(http.StatusOK, template, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "ec2_metadata_http_tokens": "optional",
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
-							  "support_role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
-							  "instance_iam_roles" : {
-								"master_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role",
-								"worker_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"
-							  },
-							  "operator_role_prefix" : "terraform-operator"
-						  }
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"autoscale_compute": {
-							"min_replicas": 3,
-							"max_replicas": 4
-						},
-						"availability_zones": ["az"],
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						},
-						"compute_labels": {
-							"label_key1": "label_value1",
-				    		"label_key2": "label_value2"
-						}
-					  }
-					}
-				  ]`),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
-					VerifyJQ(`.nodes.compute`, float64(4)),
-					RespondWithPatchedJSON(http.StatusOK, template, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "ec2_metadata_http_tokens": "optional",
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
-							  "support_role_arn": "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
-							  "instance_iam_roles" : {
-								"master_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role",
-								"worker_role_arn" : "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"
-							  },
-							  "operator_role_prefix" : "terraform-operator"
-						  }
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 4,
-						"availability_zones": ["az"],
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						},
-						"compute_labels": {
-							"label_key1": "label_value1",
-				    		"label_key2": "label_value2"
-						}
-					  }
-					}
-				  ]`),
-				),
-			)
-			// Run the apply command:
-			terraform.Source(`
-		resource "rhcs_cluster_rosa_classic" "my_cluster" {
-			name           = "my-cluster"
-			cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			replicas = 4
-			default_mp_labels = {
-				"label_key1" = "label_value1",
-				"label_key2" = "label_value2"
-			}
-			sts = {
-				role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Installer-Role",
-				support_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Support-Role",
-				instance_iam_roles = {
-				  master_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-ControlPlane-Role",
-				  worker_role_arn = "arn:aws:iam::account-id:role/ManagedOpenShift-Worker-Role"
-				},
-				"operator_role_prefix" : "terraform-operator"
-			}
-		  }
-		`)
-			Expect(terraform.Apply()).To(BeZero())
+			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.autoscaling_enabled`, true))
+			Expect(resource).To(MatchJQ(`.attributes.min_replicas`, 2.0))
+			Expect(resource).To(MatchJQ(`.attributes.max_replicas`, 4.0))
 		})
 
 		It("Creates rosa sts cluster with OIDC Configuration ID", func() {

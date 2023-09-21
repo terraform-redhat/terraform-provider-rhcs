@@ -36,11 +36,19 @@ func (c *Cluster) Build() (object *cmv1.Cluster, err error) {
 
 func (c *Cluster) CreateNodes(autoScalingEnabled bool, replicas *int64, minReplicas *int64,
 	maxReplicas *int64, computeMachineType *string, labels map[string]string,
-	availabilityZones []string, multiAZ bool) error {
+	availabilityZones []string, multiAZ bool, workerDiskSize *int64) error {
 	nodes := cmv1.NewClusterNodes()
 	if computeMachineType != nil {
 		nodes.ComputeMachineType(
 			cmv1.NewMachineType().ID(*computeMachineType),
+		)
+	}
+
+	if workerDiskSize != nil {
+		nodes.ComputeRootVolume(
+			cmv1.NewRootVolume().AWS(
+				cmv1.NewAWSVolume().Size(int(*workerDiskSize)),
+			),
 		)
 	}
 

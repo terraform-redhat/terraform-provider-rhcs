@@ -1561,7 +1561,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				Expect(resource).To(MatchJQ(`.attributes.proxy.no_proxy`, "test"))
 				Expect(resource).To(MatchJQ(`.attributes.proxy.additional_trust_bundle`, "123"))
 			})
-			It("Creates cluster without http proxy and update trust bundle", func() {
+			It("Creates cluster without http proxy and update trust bundle - should fail", func() {
 				// Prepare the server:
 				server.AppendHandlers(
 					CombineHandlers(
@@ -1692,9 +1692,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`)
-				Expect(terraform.Apply()).To(BeZero())
-				resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
-				Expect(resource).To(MatchJQ(`.attributes.proxy.additional_trust_bundle`, "123"))
+				Expect(terraform.Apply()).ToNot(BeZero())
 			})
 		})
 		It("Creates cluster with default_mp_labels and update them", func() {
@@ -1889,23 +1887,23 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 
 			// Expected at least one of the following: http-proxy, https-proxy, additional-trust-bundle
 			terraform.Source(`
-		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			proxy = {
-			}
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+			 resource "rhcs_cluster_rosa_classic" "my_cluster" {
+			   name           = "my-cluster"
+			   cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				proxy = {
 				}
-			}
-		  }
-		`)
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						master_role_arn = "",
+						worker_role_arn = "",
+					}
+				}
+			 }
+			`)
 			Expect(terraform.Apply()).NotTo(BeZero())
 		})
 		It("Creates private cluster with aws subnet ids without private link", func() {

@@ -29,6 +29,7 @@ package clusterrosaclassic
 	semver "github.com/hashicorp/go-version"
 	ver "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -123,6 +124,9 @@ func (r *ClusterRosaClassicResource***REMOVED*** Schema(ctx context.Context, req
 			"name": schema.StringAttribute{
 				Description: "Name of the cluster. Cannot exceed 15 characters in length.",
 				Required:    true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtMost(15***REMOVED***,
+		***REMOVED***,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(***REMOVED***,
 		***REMOVED***,

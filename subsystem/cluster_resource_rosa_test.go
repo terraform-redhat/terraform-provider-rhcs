@@ -1046,6 +1046,31 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 		`***REMOVED***
 			Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
+		
+		It("Should fail cluster creation when cluster name length is more than 15", func(***REMOVED*** {
+			// Run the apply command:
+			terraform.Source(`
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster-234567"
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			properties = {
+   				cluster_name = "too_long"
+	***REMOVED***
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+		***REMOVED***
+	***REMOVED***
+		  }
+		`***REMOVED***
+			Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
+
+***REMOVED******REMOVED***
 
 		Context("Test destroy cluster", func(***REMOVED*** {
 			BeforeEach(func(***REMOVED*** {

@@ -15,22 +15,22 @@ var _ = Describe("Cluster", func() {
 	})
 	Context("CreateNodes validation", func() {
 		It("Autoscaling disabled minReplicas set - failure", func() {
-			err := cluster.CreateNodes(false, nil, pointer(int64(2)), nil, nil, nil, nil, false)
+			err := cluster.CreateNodes(false, nil, pointer(int64(2)), nil, nil, nil, nil, false, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("Autoscaling must be enabled in order to set min and max replicas"))
 		})
 		It("Autoscaling disabled maxReplicas set - failure", func() {
-			err := cluster.CreateNodes(false, nil, nil, pointer(int64(2)), nil, nil, nil, false)
+			err := cluster.CreateNodes(false, nil, nil, pointer(int64(2)), nil, nil, nil, false, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("Autoscaling must be enabled in order to set min and max replicas"))
 		})
 		It("Autoscaling disabled replicas smaller than 2 - failure", func() {
-			err := cluster.CreateNodes(false, pointer(int64(1)), nil, nil, nil, nil, nil, false)
+			err := cluster.CreateNodes(false, pointer(int64(1)), nil, nil, nil, nil, nil, false, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("Cluster requires at least 2 compute nodes"))
 		})
 		It("Autoscaling disabled default replicas - success", func() {
-			err := cluster.CreateNodes(false, nil, nil, nil, nil, nil, nil, false)
+			err := cluster.CreateNodes(false, nil, nil, nil, nil, nil, nil, false, nil)
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -44,7 +44,7 @@ var _ = Describe("Cluster", func() {
 			Expect(autoscaleCompute).To(BeNil())
 		})
 		It("Autoscaling disabled 3 replicas - success", func() {
-			err := cluster.CreateNodes(false, pointer(int64(3)), nil, nil, nil, nil, nil, false)
+			err := cluster.CreateNodes(false, pointer(int64(3)), nil, nil, nil, nil, nil, false, nil)
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -58,12 +58,12 @@ var _ = Describe("Cluster", func() {
 			Expect(autoscaleCompute).To(BeNil())
 		})
 		It("Autoscaling enabled replicas set - failure", func() {
-			err := cluster.CreateNodes(true, pointer(int64(2)), nil, nil, nil, nil, nil, false)
+			err := cluster.CreateNodes(true, pointer(int64(2)), nil, nil, nil, nil, nil, false, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("When autoscaling is enabled, replicas should not be configured"))
 		})
 		It("Autoscaling enabled default minReplicas & maxReplicas - success", func() {
-			err := cluster.CreateNodes(true, nil, nil, nil, nil, nil, nil, false)
+			err := cluster.CreateNodes(true, nil, nil, nil, nil, nil, nil, false, nil)
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -79,12 +79,12 @@ var _ = Describe("Cluster", func() {
 			Expect(autoscaleCompute.MaxReplicas()).To(Equal(2))
 		})
 		It("Autoscaling enabled default maxReplicas smaller than minReplicas - failure", func() {
-			err := cluster.CreateNodes(true, nil, pointer(int64(4)), pointer(int64(3)), nil, nil, nil, false)
+			err := cluster.CreateNodes(true, nil, pointer(int64(4)), pointer(int64(3)), nil, nil, nil, false, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("max-replicas must be greater or equal to min-replicas"))
 		})
 		It("Autoscaling enabled set minReplicas & maxReplicas - success", func() {
-			err := cluster.CreateNodes(true, nil, pointer(int64(2)), pointer(int64(4)), nil, nil, nil, false)
+			err := cluster.CreateNodes(true, nil, pointer(int64(2)), pointer(int64(4)), nil, nil, nil, false, nil)
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -100,7 +100,7 @@ var _ = Describe("Cluster", func() {
 			Expect(autoscaleCompute.MaxReplicas()).To(Equal(4))
 		})
 		It("Autoscaling disabled set ComputeMachineType - success", func() {
-			err := cluster.CreateNodes(false, nil, nil, nil, pointer("asdf"), nil, nil, false)
+			err := cluster.CreateNodes(false, nil, nil, nil, pointer("asdf"), nil, nil, false, nil)
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -116,7 +116,7 @@ var _ = Describe("Cluster", func() {
 			Expect(autoscaleCompute).To(BeNil())
 		})
 		It("Autoscaling disabled set compute labels - success", func() {
-			err := cluster.CreateNodes(false, nil, nil, nil, nil, map[string]string{"key1": "val1"}, nil, false)
+			err := cluster.CreateNodes(false, nil, nil, nil, nil, map[string]string{"key1": "val1"}, nil, false, nil)
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -132,7 +132,7 @@ var _ = Describe("Cluster", func() {
 			Expect(autoscaleCompute).To(BeNil())
 		})
 		It("Autoscaling disabled multiAZ false set one availability zone - success", func() {
-			err := cluster.CreateNodes(false, nil, nil, nil, nil, nil, []string{"us-east-1a"}, false)
+			err := cluster.CreateNodes(false, nil, nil, nil, nil, nil, []string{"us-east-1a"}, false, nil)
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -147,17 +147,17 @@ var _ = Describe("Cluster", func() {
 			Expect(autoscaleCompute).To(BeNil())
 		})
 		It("Autoscaling disabled multiAZ false set three availability zones - failure", func() {
-			err := cluster.CreateNodes(false, nil, nil, nil, nil, nil, []string{"us-east-1a", "us-east-1b", "us-east-1c"}, false)
+			err := cluster.CreateNodes(false, nil, nil, nil, nil, nil, []string{"us-east-1a", "us-east-1b", "us-east-1c"}, false, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("The number of availability zones for a single AZ cluster should be 1, instead received: 3"))
 		})
 		It("Autoscaling disabled multiAZ true set three availability zones and two replicas - failure", func() {
-			err := cluster.CreateNodes(false, pointer(int64(2)), nil, nil, nil, nil, []string{"us-east-1a", "us-east-1b", "us-east-1c"}, true)
+			err := cluster.CreateNodes(false, pointer(int64(2)), nil, nil, nil, nil, []string{"us-east-1a", "us-east-1b", "us-east-1c"}, true, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("Multi AZ cluster requires at least 3 compute nodes"))
 		})
 		It("Autoscaling disabled multiAZ true set three availability zones and three replicas - success", func() {
-			err := cluster.CreateNodes(false, pointer(int64(3)), nil, nil, nil, nil, []string{"us-east-1a", "us-east-1b", "us-east-1c"}, true)
+			err := cluster.CreateNodes(false, pointer(int64(3)), nil, nil, nil, nil, []string{"us-east-1a", "us-east-1b", "us-east-1c"}, true, nil)
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -172,9 +172,23 @@ var _ = Describe("Cluster", func() {
 			Expect(autoscaleCompute).To(BeNil())
 		})
 		It("Autoscaling disabled multiAZ true set one zone - failure", func() {
-			err := cluster.CreateNodes(false, nil, nil, nil, nil, nil, []string{"us-east-1a", "us-east-1b", "us-east-1c"}, true)
+			err := cluster.CreateNodes(false, nil, nil, nil, nil, nil, []string{"us-east-1a", "us-east-1b", "us-east-1c"}, true, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("Multi AZ cluster requires at least 3 compute nodes"))
+		})
+		It("Custom disk size", func() {
+			diskSize := int64(543)
+			err := cluster.CreateNodes(false, pointer(int64(3)), nil, nil, nil, nil, nil, false, &diskSize)
+			Expect(err).NotTo(HaveOccurred())
+			ocmCluster, err := cluster.Build()
+			Expect(err).NotTo(HaveOccurred())
+			ocmClusterNode := ocmCluster.Nodes()
+			Expect(ocmClusterNode).NotTo(BeNil())
+			rootVolume := ocmClusterNode.ComputeRootVolume()
+			Expect(rootVolume).NotTo(BeNil())
+			awsVolume := rootVolume.AWS()
+			Expect(awsVolume).NotTo(BeNil())
+			Expect(awsVolume.Size()).To(Equal(int(diskSize)))
 		})
 	})
 	Context("CreateAWSBuilder validation", func() {

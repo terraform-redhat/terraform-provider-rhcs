@@ -252,6 +252,10 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
+			"worker_disk_size": schema.Int64Attribute{
+				Description: "Compute node root disk size, in GiB. (only valid during cluster creation)",
+				Optional:    true,
+			},
 			"default_mp_labels": schema.MapAttribute{
 				Description: "This value is the default/initial machine pool labels. Format should be a comma-separated list of '{\"key1\"=\"value1\", \"key2\"=\"value2\"}'. " +
 					"This list overwrites any modifications made to node labels on an ongoing basis. ",
@@ -586,9 +590,10 @@ func createClassicClusterObject(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
+	workerDiskSize := common.OptionalInt64(state.WorkerDiskSize)
 
 	if err = ocmClusterResource.CreateNodes(autoScalingEnabled, replicas, minReplicas, maxReplicas,
-		computeMachineType, labels, availabilityZones, multiAZ); err != nil {
+		computeMachineType, labels, availabilityZones, multiAZ, workerDiskSize); err != nil {
 		return nil, err
 	}
 

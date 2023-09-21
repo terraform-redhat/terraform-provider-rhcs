@@ -61,6 +61,7 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
 - `base_dns_domain` (String) Base DNS domain name previously reserved and matching the hosted zone name of the private Route 53 hosted zone associated with intended shared VPC, e.g., '1vo8.p1.openshiftapps.com'.
 - `channel_group` (String) Name of the channel group where you select the OpenShift cluster version, for example 'stable'. For ROSA, only 'stable' is supported.
 - `compute_machine_type` (String) Identifies the machine type used by the default/initial worker nodes, for example `m5.xlarge`. Use the `rhcs_machine_types` data source to find the possible values.
+- `worker_disk_size` (Number) Compute node root disk size, in GiB. (only valid during cluster creation)
 - `default_mp_labels` (Map of String) This value is the default/initial machine pool labels. Format should be a comma-separated list of '{"key1"="value1", "key2"="value2"}'. This list overwrites any modifications made to node labels on an ongoing basis.
 - `destroy_timeout` (Number) This value sets the maximum duration in minutes to allow for destroying resources. Default value is 60 minutes.
 - `disable_scp_checks` (Boolean) Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE) platform metrics.

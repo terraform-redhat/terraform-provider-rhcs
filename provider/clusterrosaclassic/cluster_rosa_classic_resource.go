@@ -20,6 +20,7 @@ package clusterrosaclassic
 	"errors"
 ***REMOVED***
 ***REMOVED***
+	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -715,24 +716,26 @@ func buildProxy(state *ClusterRosaClassicState, builder *cmv1.ClusterBuilder***R
 	if state.Proxy != nil {
 		httpsProxy := ""
 		httpProxy := ""
+		httpNoProxy := ""
 		additionalTrustBundle := ""
 
 		if !common.IsStringAttributeEmpty(state.Proxy.HttpProxy***REMOVED*** {
 			httpProxy = state.Proxy.HttpProxy.ValueString(***REMOVED***
-			proxy.HTTPProxy(httpProxy***REMOVED***
 ***REMOVED***
+		proxy.HTTPProxy(httpProxy***REMOVED***
 		if !common.IsStringAttributeEmpty(state.Proxy.HttpsProxy***REMOVED*** {
 			httpsProxy = state.Proxy.HttpsProxy.ValueString(***REMOVED***
-			proxy.HTTPSProxy(httpsProxy***REMOVED***
 ***REMOVED***
+		proxy.HTTPSProxy(httpsProxy***REMOVED***
 		if !common.IsStringAttributeEmpty(state.Proxy.NoProxy***REMOVED*** {
-			proxy.NoProxy(state.Proxy.NoProxy.ValueString(***REMOVED******REMOVED***
+			httpNoProxy = state.Proxy.NoProxy.ValueString(***REMOVED***
 ***REMOVED***
+		proxy.NoProxy(httpNoProxy***REMOVED***
 
 		if !common.IsStringAttributeEmpty(state.Proxy.AdditionalTrustBundle***REMOVED*** {
 			additionalTrustBundle = state.Proxy.AdditionalTrustBundle.ValueString(***REMOVED***
-			builder.AdditionalTrustBundle(additionalTrustBundle***REMOVED***
 ***REMOVED***
+		builder.AdditionalTrustBundle(additionalTrustBundle***REMOVED***
 
 		builder.Proxy(proxy***REMOVED***
 	}
@@ -1036,7 +1039,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** Update(ctx context.Context, req
 		return
 	}
 
-	clusterBuilder, _, err = updateProxy(state, plan, clusterBuilder***REMOVED***
+	clusterBuilder, err = updateProxy(state, plan, clusterBuilder***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't update cluster",
@@ -1292,30 +1295,21 @@ func scheduleUpgrade(ctx context.Context, client *cmv1.ClustersClient, clusterID
 	return nil
 }
 
-func updateProxy(state, plan *ClusterRosaClassicState, clusterBuilder *cmv1.ClusterBuilder***REMOVED*** (*cmv1.ClusterBuilder, bool, error***REMOVED*** {
-	shouldUpdateProxy := false
-	if (state.Proxy == nil && plan.Proxy != nil***REMOVED*** || (state.Proxy != nil && plan.Proxy == nil***REMOVED*** {
-		shouldUpdateProxy = true
-	} else if state.Proxy != nil && plan.Proxy != nil {
-		_, patchNoProxy := common.ShouldPatchString(state.Proxy.NoProxy, plan.Proxy.NoProxy***REMOVED***
-		_, patchHttpProxy := common.ShouldPatchString(state.Proxy.HttpProxy, plan.Proxy.HttpProxy***REMOVED***
-		_, patchHttpsProxy := common.ShouldPatchString(state.Proxy.HttpsProxy, plan.Proxy.HttpsProxy***REMOVED***
-		_, patchAdditionalTrustBundle := common.ShouldPatchString(state.Proxy.AdditionalTrustBundle, plan.Proxy.AdditionalTrustBundle***REMOVED***
-		if patchNoProxy || patchHttpProxy || patchHttpsProxy || patchAdditionalTrustBundle {
-			shouldUpdateProxy = true
-***REMOVED***
-	}
-
-	if shouldUpdateProxy {
+func updateProxy(state, plan *ClusterRosaClassicState, clusterBuilder *cmv1.ClusterBuilder***REMOVED*** (*cmv1.ClusterBuilder, error***REMOVED*** {
+	if !reflect.DeepEqual(state.Proxy, plan.Proxy***REMOVED*** {
 		var err error
+		if plan.Proxy == nil {
+			plan.Proxy = &proxy.Proxy{}
+***REMOVED***
 		clusterBuilder, err = buildProxy(plan, clusterBuilder***REMOVED***
 		if err != nil {
-			return nil, false, err
+			return nil, err
 ***REMOVED***
 	}
 
-	return clusterBuilder, shouldUpdateProxy, nil
+	return clusterBuilder, nil
 }
+
 func updateNodes(ctx context.Context, state, plan *ClusterRosaClassicState, clusterBuilder *cmv1.ClusterBuilder***REMOVED*** (*cmv1.ClusterBuilder, bool, error***REMOVED*** {
 	// Send request to update the cluster:
 	shouldUpdateNodes := false
@@ -1627,6 +1621,8 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		if ok {
 			state.Proxy.NoProxy = types.StringValue(noProxy***REMOVED***
 ***REMOVED***
+	} else {
+		state.Proxy = nil
 	}
 
 	trustBundle, ok := object.GetAdditionalTrustBundle(***REMOVED***

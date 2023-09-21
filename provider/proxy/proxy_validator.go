@@ -3,12 +3,9 @@ package proxy
 ***REMOVED***
 	"context"
 ***REMOVED***
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"github.com/openshift/rosa/pkg/helper"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
-	"strings"
-
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 ***REMOVED***
 
 // atLeastValidator validates that an integer Attribute's value is at least a certain value.
@@ -40,8 +37,6 @@ func (v proxyValidator***REMOVED*** ValidateObject(ctx context.Context, request 
 	errSum := "Invalid proxy's attribute assignment"
 	httpsProxy := ""
 	httpProxy := ""
-	additionalTrustBundle := ""
-	var noProxySlice []string
 
 	if !common.IsStringAttributeEmpty(proxy.HttpProxy***REMOVED*** {
 		httpProxy = proxy.HttpProxy.ValueString(***REMOVED***
@@ -49,20 +44,9 @@ func (v proxyValidator***REMOVED*** ValidateObject(ctx context.Context, request 
 	if !common.IsStringAttributeEmpty(proxy.HttpsProxy***REMOVED*** {
 		httpsProxy = proxy.HttpsProxy.ValueString(***REMOVED***
 	}
-	if !common.IsStringAttributeEmpty(proxy.NoProxy***REMOVED*** {
-		noProxySlice = helper.HandleEmptyStringOnSlice(strings.Split(proxy.NoProxy.ValueString(***REMOVED***, ","***REMOVED******REMOVED***
-	}
 
-	if !common.IsStringAttributeEmpty(proxy.AdditionalTrustBundle***REMOVED*** {
-		additionalTrustBundle = proxy.AdditionalTrustBundle.ValueString(***REMOVED***
-	}
-
-	if httpProxy == "" && httpsProxy == "" && noProxySlice != nil && len(noProxySlice***REMOVED*** > 0 {
+	if httpProxy == "" && httpsProxy == "" {
 		response.Diagnostics.AddError(errSum, "Expected at least one of the following: http-proxy, https-proxy"***REMOVED***
-		return
-	}
-	if httpProxy == "" && httpsProxy == "" && additionalTrustBundle == "" {
-		response.Diagnostics.AddError(errSum, "Expected at least one of the following: http-proxy, https-proxy, additional-trust-bundle"***REMOVED***
 		return
 	}
 }

@@ -1586,7 +1586,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				Expect(resource***REMOVED***.To(MatchJQ(`.attributes.proxy.no_proxy`, "test"***REMOVED******REMOVED***
 				Expect(resource***REMOVED***.To(MatchJQ(`.attributes.proxy.additional_trust_bundle`, "123"***REMOVED******REMOVED***
 	***REMOVED******REMOVED***
-			It("Creates cluster without http proxy and update trust bundle", func(***REMOVED*** {
+			It("Creates cluster without http proxy and update trust bundle - should fail", func(***REMOVED*** {
 				// Prepare the server:
 				server.AppendHandlers(
 					CombineHandlers(
@@ -1717,9 +1717,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 	***REMOVED***
 		  }
 		`***REMOVED***
-				Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-				resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
-				Expect(resource***REMOVED***.To(MatchJQ(`.attributes.proxy.additional_trust_bundle`, "123"***REMOVED******REMOVED***
+				Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
 	***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 		It("Creates cluster with default_mp_labels and update them", func(***REMOVED*** {
@@ -1914,23 +1912,23 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 
 			// Expected at least one of the following: http-proxy, https-proxy, additional-trust-bundle
 			terraform.Source(`
-		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			proxy = {
-	***REMOVED***
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
+			 resource "rhcs_cluster_rosa_classic" "my_cluster" {
+			   name           = "my-cluster"
+			   cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				proxy = {
 		***REMOVED***
-	***REMOVED***
-		  }
-		`***REMOVED***
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						master_role_arn = "",
+						worker_role_arn = "",
+			***REMOVED***
+		***REMOVED***
+			 }
+			`***REMOVED***
 			Expect(terraform.Apply(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 		It("Creates private cluster with aws subnet ids without private link", func(***REMOVED*** {

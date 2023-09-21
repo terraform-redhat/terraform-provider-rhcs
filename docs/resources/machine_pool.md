@@ -35,6 +35,7 @@ resource "rhcs_machine_pool" "machine_pool" {
 
 - `autoscaling_enabled` (Boolean***REMOVED*** Enables autoscaling. If `true`, this variable requires you to set a maximum and minimum replicas range using the `max_replicas` and `min_replicas` variables.
 - `availability_zone` (String***REMOVED*** Select the availability zone in which to create a single AZ machine pool for a multi-AZ cluster
+- `disk_size` (Number***REMOVED*** Root disk size, in GiB.
 - `labels` (Map of String***REMOVED*** Labels for the machine pool. Format should be a comma-separated list of 'key = value'. This list will overwrite any modifications made to node labels on an ongoing basis.
 - `max_replicas` (Number***REMOVED*** The maximum number of replicas for autoscaling functionality.
 - `max_spot_price` (Number***REMOVED*** Max Spot price.

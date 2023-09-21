@@ -36,6 +36,7 @@ type MachinePoolState struct {
 	MultiAvailabilityZone types.Bool    `tfsdk:"multi_availability_zone"`
 	AvailabilityZone      types.String  `tfsdk:"availability_zone"`
 	SubnetID              types.String  `tfsdk:"subnet_id"`
+	DiskSize              types.Int64   `tfsdk:"disk_size"`
 }
 
 type Taints struct {

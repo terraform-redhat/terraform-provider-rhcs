@@ -32,6 +32,7 @@ package machinepool
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -187,6 +188,15 @@ func (r *MachinePoolResource***REMOVED*** Schema(ctx context.Context, req resour
 					stringplanmodifier.UseStateForUnknown(***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,
+			"disk_size": schema.Int64Attribute{
+				Description: "Root disk size, in GiB.",
+				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.RequiresReplace(***REMOVED***,
+					int64planmodifier.UseStateForUnknown(***REMOVED***,
+		***REMOVED***,
+	***REMOVED***,
 ***REMOVED***,
 	}
 }
@@ -254,6 +264,14 @@ func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context, req resour
 	resource := r.collection.Cluster(state.Cluster.ValueString(***REMOVED******REMOVED***
 	builder := cmv1.NewMachinePool(***REMOVED***.ID(state.ID.ValueString(***REMOVED******REMOVED***.InstanceType(state.MachineType.ValueString(***REMOVED******REMOVED***
 	builder.ID(state.Name.ValueString(***REMOVED******REMOVED***
+
+	if workerDiskSize := common.OptionalInt64(state.DiskSize***REMOVED***; workerDiskSize != nil {
+		builder.RootVolume(
+			cmv1.NewRootVolume(***REMOVED***.AWS(
+				cmv1.NewAWSVolume(***REMOVED***.Size(int(*workerDiskSize***REMOVED******REMOVED***,
+			***REMOVED***,
+		***REMOVED***
+	}
 
 	if err := setSpotInstances(state, builder***REMOVED***; err != nil {
 		resp.Diagnostics.AddError(
@@ -790,6 +808,15 @@ func (r *MachinePoolResource***REMOVED*** populateState(object *cmv1.MachinePool
 		state.SubnetID = types.StringValue(subnets[0]***REMOVED***
 	} else {
 		state.SubnetID = types.StringValue(""***REMOVED***
+	}
+
+	state.DiskSize = types.Int64Null(***REMOVED***
+	if rv, ok := object.GetRootVolume(***REMOVED***; ok {
+		if aws, ok := rv.GetAWS(***REMOVED***; ok {
+			if workerDiskSize, ok := aws.GetSize(***REMOVED***; ok {
+				state.DiskSize = types.Int64Value(int64(workerDiskSize***REMOVED******REMOVED***
+	***REMOVED***
+***REMOVED***
 	}
 }
 

@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -715,24 +716,26 @@ func buildProxy(state *ClusterRosaClassicState, builder *cmv1.ClusterBuilder) (*
 	if state.Proxy != nil {
 		httpsProxy := ""
 		httpProxy := ""
+		httpNoProxy := ""
 		additionalTrustBundle := ""
 
 		if !common.IsStringAttributeEmpty(state.Proxy.HttpProxy) {
 			httpProxy = state.Proxy.HttpProxy.ValueString()
-			proxy.HTTPProxy(httpProxy)
 		}
+		proxy.HTTPProxy(httpProxy)
 		if !common.IsStringAttributeEmpty(state.Proxy.HttpsProxy) {
 			httpsProxy = state.Proxy.HttpsProxy.ValueString()
-			proxy.HTTPSProxy(httpsProxy)
 		}
+		proxy.HTTPSProxy(httpsProxy)
 		if !common.IsStringAttributeEmpty(state.Proxy.NoProxy) {
-			proxy.NoProxy(state.Proxy.NoProxy.ValueString())
+			httpNoProxy = state.Proxy.NoProxy.ValueString()
 		}
+		proxy.NoProxy(httpNoProxy)
 
 		if !common.IsStringAttributeEmpty(state.Proxy.AdditionalTrustBundle) {
 			additionalTrustBundle = state.Proxy.AdditionalTrustBundle.ValueString()
-			builder.AdditionalTrustBundle(additionalTrustBundle)
 		}
+		builder.AdditionalTrustBundle(additionalTrustBundle)
 
 		builder.Proxy(proxy)
 	}
@@ -1036,7 +1039,7 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resourc
 		return
 	}
 
-	clusterBuilder, _, err = updateProxy(state, plan, clusterBuilder)
+	clusterBuilder, err = updateProxy(state, plan, clusterBuilder)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't update cluster",
@@ -1292,30 +1295,21 @@ func scheduleUpgrade(ctx context.Context, client *cmv1.ClustersClient, clusterID
 	return nil
 }
 
-func updateProxy(state, plan *ClusterRosaClassicState, clusterBuilder *cmv1.ClusterBuilder) (*cmv1.ClusterBuilder, bool, error) {
-	shouldUpdateProxy := false
-	if (state.Proxy == nil && plan.Proxy != nil) || (state.Proxy != nil && plan.Proxy == nil) {
-		shouldUpdateProxy = true
-	} else if state.Proxy != nil && plan.Proxy != nil {
-		_, patchNoProxy := common.ShouldPatchString(state.Proxy.NoProxy, plan.Proxy.NoProxy)
-		_, patchHttpProxy := common.ShouldPatchString(state.Proxy.HttpProxy, plan.Proxy.HttpProxy)
-		_, patchHttpsProxy := common.ShouldPatchString(state.Proxy.HttpsProxy, plan.Proxy.HttpsProxy)
-		_, patchAdditionalTrustBundle := common.ShouldPatchString(state.Proxy.AdditionalTrustBundle, plan.Proxy.AdditionalTrustBundle)
-		if patchNoProxy || patchHttpProxy || patchHttpsProxy || patchAdditionalTrustBundle {
-			shouldUpdateProxy = true
-		}
-	}
-
-	if shouldUpdateProxy {
+func updateProxy(state, plan *ClusterRosaClassicState, clusterBuilder *cmv1.ClusterBuilder) (*cmv1.ClusterBuilder, error) {
+	if !reflect.DeepEqual(state.Proxy, plan.Proxy) {
 		var err error
+		if plan.Proxy == nil {
+			plan.Proxy = &proxy.Proxy{}
+		}
 		clusterBuilder, err = buildProxy(plan, clusterBuilder)
 		if err != nil {
-			return nil, false, err
+			return nil, err
 		}
 	}
 
-	return clusterBuilder, shouldUpdateProxy, nil
+	return clusterBuilder, nil
 }
+
 func updateNodes(ctx context.Context, state, plan *ClusterRosaClassicState, clusterBuilder *cmv1.ClusterBuilder) (*cmv1.ClusterBuilder, bool, error) {
 	// Send request to update the cluster:
 	shouldUpdateNodes := false
@@ -1627,6 +1621,8 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		if ok {
 			state.Proxy.NoProxy = types.StringValue(noProxy)
 		}
+	} else {
+		state.Proxy = nil
 	}
 
 	trustBundle, ok := object.GetAdditionalTrustBundle()

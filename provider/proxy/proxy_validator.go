@@ -3,12 +3,9 @@ package proxy
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"github.com/openshift/rosa/pkg/helper"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
-	"strings"
-
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 
 // atLeastValidator validates that an integer Attribute's value is at least a certain value.
@@ -40,8 +37,6 @@ func (v proxyValidator) ValidateObject(ctx context.Context, request validator.Ob
 	errSum := "Invalid proxy's attribute assignment"
 	httpsProxy := ""
 	httpProxy := ""
-	additionalTrustBundle := ""
-	var noProxySlice []string
 
 	if !common.IsStringAttributeEmpty(proxy.HttpProxy) {
 		httpProxy = proxy.HttpProxy.ValueString()
@@ -49,20 +44,9 @@ func (v proxyValidator) ValidateObject(ctx context.Context, request validator.Ob
 	if !common.IsStringAttributeEmpty(proxy.HttpsProxy) {
 		httpsProxy = proxy.HttpsProxy.ValueString()
 	}
-	if !common.IsStringAttributeEmpty(proxy.NoProxy) {
-		noProxySlice = helper.HandleEmptyStringOnSlice(strings.Split(proxy.NoProxy.ValueString(), ","))
-	}
 
-	if !common.IsStringAttributeEmpty(proxy.AdditionalTrustBundle) {
-		additionalTrustBundle = proxy.AdditionalTrustBundle.ValueString()
-	}
-
-	if httpProxy == "" && httpsProxy == "" && noProxySlice != nil && len(noProxySlice) > 0 {
+	if httpProxy == "" && httpsProxy == "" {
 		response.Diagnostics.AddError(errSum, "Expected at least one of the following: http-proxy, https-proxy")
-		return
-	}
-	if httpProxy == "" && httpsProxy == "" && additionalTrustBundle == "" {
-		response.Diagnostics.AddError(errSum, "Expected at least one of the following: http-proxy, https-proxy, additional-trust-bundle")
 		return
 	}
 }

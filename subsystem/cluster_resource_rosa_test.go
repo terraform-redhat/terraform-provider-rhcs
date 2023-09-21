@@ -1046,6 +1046,30 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		`)
 			Expect(terraform.Apply()).ToNot(BeZero())
 		})
+		It("Should fail cluster creation when cluster name length is more than 15", func() {
+			// Run the apply command:
+			terraform.Source(`
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster-234567"
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			properties = {
+   				cluster_name = "too_long"
+			}
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+				}
+			}
+		  }
+		`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+
+		})
 
 		Context("Test destroy cluster", func() {
 			BeforeEach(func() {
@@ -1740,6 +1764,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					CombineHandlers(
 						VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
 						VerifyJQ(`.additional_trust_bundle`, "123"),
+						VerifyJQ(`.proxy.https_proxy`, "https://proxy.com"),
 						RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
@@ -1761,6 +1786,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					},
 					{
 					  "op": "add",
+					  "path": "/proxy",
+					  "value": {
+						  "https_proxy" : "https://proxy.com"
+					  }
+					},
+					{
+					  "op": "add",
 					  "path": "/",
 					  "value": {
 						  "additional_trust_bundle" : "123"
@@ -1775,6 +1807,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			proxy = {
+			    https_proxy = "https://proxy.com",
 				additional_trust_bundle = "123",
 			}
 			sts = {
@@ -1969,27 +2002,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			proxy = {
 				no_proxy = "test1, test2"
 				additional_trust_bundle = "123",
-			}
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
-				}
-			}
-		  }
-		`)
-			Expect(terraform.Apply()).NotTo(BeZero())
-
-			// Expected at least one of the following: http-proxy, https-proxy, additional-trust-bundle
-			terraform.Source(`
-		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			proxy = {
 			}
 			sts = {
 				operator_role_prefix = "test"

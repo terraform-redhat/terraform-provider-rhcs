@@ -19,6 +19,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"net/http"
 	"sort"
 	"strings"
@@ -123,6 +124,9 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 			"name": schema.StringAttribute{
 				Description: "Name of the cluster. Cannot exceed 15 characters in length.",
 				Required:    true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtMost(15),
+				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},

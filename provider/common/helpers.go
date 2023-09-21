@@ -60,17 +60,21 @@ func ShouldPatchInt(state, plan types.Int64) (value int64, ok bool) {
 // shouldPatchString changed checks if the change between the given state and plan requires sending
 // a patch request to the server. If it does it returns the value to add to the patch.
 func ShouldPatchString(state, plan types.String) (value string, ok bool) {
-	if plan.IsUnknown() || plan.IsNull() {
+	// if the value wasn't set in the state and the plan - there is no change
+	if !HasValue(plan) && !HasValue(state) {
 		return
 	}
-	if state.IsUnknown() || state.IsNull() {
+	// if the value wasn't set in the plan but was set in the state - the change is deleting the attribute
+	if !HasValue(plan) {
+		ok = true
+		value = ""
+		return
+	}
+	// if the value wasn't set in the state OR the value was change
+	if !HasValue(state) || plan.ValueString() != state.ValueString() {
 		value = plan.ValueString()
 		ok = true
 		return
-	}
-	if plan.ValueString() != state.ValueString() {
-		value = plan.ValueString()
-		ok = true
 	}
 	return
 }

@@ -57,12 +57,8 @@ func (v proxyValidator) ValidateObject(ctx context.Context, request validator.Ob
 		additionalTrustBundle = proxy.AdditionalTrustBundle.ValueString()
 	}
 
-	if httpProxy == "" && httpsProxy == "" && noProxySlice != nil && len(noProxySlice) > 0 {
+	if httpProxy == "" && httpsProxy == "" && (additionalTrustBundle != "" || len(noProxySlice) > 0) {
 		response.Diagnostics.AddError(errSum, "Expected at least one of the following: http-proxy, https-proxy")
-		return
-	}
-	if httpProxy == "" && httpsProxy == "" && additionalTrustBundle == "" {
-		response.Diagnostics.AddError(errSum, "Expected at least one of the following: http-proxy, https-proxy, additional-trust-bundle")
 		return
 	}
 }

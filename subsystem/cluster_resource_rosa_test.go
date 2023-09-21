@@ -1560,6 +1560,102 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				Expect(resource).To(MatchJQ(`.attributes.proxy.https_proxy`, "https://proxy2.com"))
 				Expect(resource).To(MatchJQ(`.attributes.proxy.no_proxy`, "test"))
 				Expect(resource).To(MatchJQ(`.attributes.proxy.additional_trust_bundle`, "123"))
+
+				// update proxy to be empty
+				// Prepare the server:
+				server.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/proxy",
+					  "value": {
+						  "http_proxy" : "http://proxy.com",
+						  "https_proxy" : "https://proxy.com"
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/",
+					  "value": {
+						  "additional_trust_bundle" : "REDUCTED"
+					  }
+					}]`),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+                          "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/",
+					  "value": {
+						  "additional_trust_bundle" : "REDUCTED"
+					  }
+					}]`),
+					),
+				)
+
+				// update the attribute "proxy"
+				terraform.Source(`
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			proxy = {}
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+				}
+			}
+		  }
+		`)
+				Expect(terraform.Apply()).To(BeZero())
+				resource = terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+				Expect(resource).To(MatchJQ(`.attributes.proxy.https_proxy`, nil))
+				Expect(resource).To(MatchJQ(`.attributes.proxy.http_proxy`, nil))
+				Expect(resource).To(MatchJQ(`.attributes.proxy.no_proxy`, nil))
+				Expect(resource).To(MatchJQ(`.attributes.proxy.additional_trust_bundle`, nil))
 			})
 			It("Creates cluster without http proxy and update trust bundle", func() {
 				// Prepare the server:

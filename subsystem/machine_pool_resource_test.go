@@ -454,6 +454,11 @@ var _ = Describe("Machine pool creation", func() {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "replicas": 12,
 				  "availability_zones": [
 					"us-east-1a",
@@ -507,6 +512,11 @@ var _ = Describe("Machine pool creation", func() {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
 				  },
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "instance_type": "r5.xlarge"
 				}`),
 			),
@@ -522,6 +532,11 @@ var _ = Describe("Machine pool creation", func() {
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
+				  },
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
 				  },
 				  "instance_type": "r5.xlarge"
 				}`),
@@ -545,6 +560,11 @@ var _ = Describe("Machine pool creation", func() {
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
 				  "kind": "MachinePool",
 				  "instance_type": "r5.xlarge",
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "replicas": 12,
 				  "labels": {
 				    "label_key3": "label_value3"
@@ -586,6 +606,11 @@ var _ = Describe("Machine pool creation", func() {
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
                   "replicas": 12,
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
@@ -602,6 +627,11 @@ var _ = Describe("Machine pool creation", func() {
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
                   "replicas": 12,
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
@@ -626,6 +656,11 @@ var _ = Describe("Machine pool creation", func() {
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
 				  "kind": "MachinePool",
 				  "instance_type": "r5.xlarge",
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "replicas": 12,
                   "labels": {}
 				}`),
@@ -676,6 +711,11 @@ var _ = Describe("Machine pool creation", func() {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "replicas": 12,
 				  "availability_zones": [
 					"us-east-1a",
@@ -730,6 +770,11 @@ var _ = Describe("Machine pool creation", func() {
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
                   "replicas": 12,
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "availability_zones": [
 					"us-east-1a",
 					"us-east-1b",
@@ -754,6 +799,11 @@ var _ = Describe("Machine pool creation", func() {
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
                   "replicas": 12,
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "availability_zones": [
 					"us-east-1a",
 					"us-east-1b",
@@ -797,6 +847,11 @@ var _ = Describe("Machine pool creation", func() {
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
 				  "kind": "MachinePool",
 				  "instance_type": "r5.xlarge",
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "replicas": 12,
 				  "availability_zones": [
 					"us-east-1a",
@@ -880,6 +935,11 @@ var _ = Describe("Machine pool creation", func() {
 					"us-east-1b",
 					"us-east-1c"
 				  ],
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "replicas": 12,
 				  "taints": [
 					  {
@@ -929,6 +989,11 @@ var _ = Describe("Machine pool creation", func() {
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
                   "replicas": 12,
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "availability_zones": [
 					"us-east-1a",
 					"us-east-1b",
@@ -953,6 +1018,11 @@ var _ = Describe("Machine pool creation", func() {
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
                   "replicas": 12,
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "availability_zones": [
 					"us-east-1a",
 					"us-east-1b",
@@ -984,6 +1054,11 @@ var _ = Describe("Machine pool creation", func() {
 				  "id": "my-pool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
 				  "kind": "MachinePool",
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "instance_type": "r5.xlarge",
 				  "replicas": 12,
 				  "availability_zones": [
@@ -1036,6 +1111,11 @@ var _ = Describe("Machine pool creation", func() {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "availability_zones": [
 					"us-east-1a",
 					"us-east-1b",
@@ -1086,6 +1166,11 @@ var _ = Describe("Machine pool creation", func() {
 				  	"max_replicas": 3,
 				  	"min_replicas": 0
 				  },
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "availability_zones": [
 					"us-east-1a",
 					"us-east-1b",
@@ -1106,6 +1191,11 @@ var _ = Describe("Machine pool creation", func() {
 				  	"kind": "MachinePoolAutoscaling",
 				  	"max_replicas": 3,
 				  	"min_replicas": 0
+				  },
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
 				  },
 				  "availability_zones": [
 					"us-east-1a",
@@ -1132,6 +1222,11 @@ var _ = Describe("Machine pool creation", func() {
 				  "kind": "MachinePool",
 				  "instance_type": "r5.xlarge",
 				  "replicas": 12,
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "availability_zones": [
 					"us-east-1a",
 					"us-east-1b",
@@ -1513,6 +1608,65 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 2))
 		Expect(resource).To(MatchJQ(`.attributes.taints | length`, 1))
 		Expect(resource).To(MatchJQ(".attributes.use_spot_instances", true))
+	})
+
+	It("Can create machine pool with custom disk size", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				),
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "root_volume": {
+					"aws": {
+					  "size": 400
+					}
+				  },
+				  "replicas": 12
+				}`),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 12,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
+				  "root_volume": {
+					"aws": {
+					  "size": 400
+					}
+				  }
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 12
+			disk_size    = 400
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		// Check the state:
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool")
+		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+		Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
+		Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
+		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
+		Expect(resource).To(MatchJQ(".attributes.replicas", 12.0))
+		Expect(resource).To(MatchJQ(".attributes.disk_size", 400.0))
 	})
 })
 

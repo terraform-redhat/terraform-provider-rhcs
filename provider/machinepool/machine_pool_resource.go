@@ -32,6 +32,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -187,6 +188,15 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"disk_size": schema.Int64Attribute{
+				Description: "Root disk size, in GiB.",
+				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.RequiresReplace(),
+					int64planmodifier.UseStateForUnknown(),
+				},
+			},
 		},
 	}
 }
@@ -254,6 +264,14 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 	resource := r.collection.Cluster(state.Cluster.ValueString())
 	builder := cmv1.NewMachinePool().ID(state.ID.ValueString()).InstanceType(state.MachineType.ValueString())
 	builder.ID(state.Name.ValueString())
+
+	if workerDiskSize := common.OptionalInt64(state.DiskSize); workerDiskSize != nil {
+		builder.RootVolume(
+			cmv1.NewRootVolume().AWS(
+				cmv1.NewAWSVolume().Size(int(*workerDiskSize)),
+			),
+		)
+	}
 
 	if err := setSpotInstances(state, builder); err != nil {
 		resp.Diagnostics.AddError(
@@ -790,6 +808,15 @@ func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *Mac
 		state.SubnetID = types.StringValue(subnets[0])
 	} else {
 		state.SubnetID = types.StringValue("")
+	}
+
+	state.DiskSize = types.Int64Null()
+	if rv, ok := object.GetRootVolume(); ok {
+		if aws, ok := rv.GetAWS(); ok {
+			if workerDiskSize, ok := aws.GetSize(); ok {
+				state.DiskSize = types.Int64Value(int64(workerDiskSize))
+			}
+		}
 	}
 }
 

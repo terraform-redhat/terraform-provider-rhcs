@@ -2,6 +2,7 @@ package identityprovider
 
 ***REMOVED***
 	"context"
+***REMOVED***
 	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
@@ -9,6 +10,7 @@ package identityprovider
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 ***REMOVED***
@@ -53,6 +55,7 @@ var htpasswdSchema = map[string]schema.Attribute{
 ***REMOVED***,
 		Validators: []validator.List{
 			listvalidator.SizeAtLeast(1***REMOVED***,
+			uniqueUsernameValidator(***REMOVED***,
 ***REMOVED***,
 		Required: true,
 	},
@@ -85,4 +88,25 @@ func CreateHTPasswdIDPBuilder(ctx context.Context, state *HTPasswdIdentityProvid
 	userListBuilder.Items(userList...***REMOVED***
 	builder.Users(userListBuilder***REMOVED***
 	return builder
+}
+
+func uniqueUsernameValidator(***REMOVED*** validator.List {
+	return attrvalidators.NewListValidator("userlist unique username", func(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse***REMOVED*** {
+		usersList := req.ConfigValue
+		htusers := []HTPasswdUser{}
+		err := usersList.ElementsAs(ctx, &htusers, true***REMOVED***
+		if err != nil {
+			resp.Diagnostics.AddAttributeError(req.Path, "Invalid list conversion", "Failed to parse userlist"***REMOVED***
+			return
+***REMOVED***
+		usernames := make(map[string]bool***REMOVED***
+		for _, user := range htusers {
+			if _, ok := usernames[user.Username.ValueString(***REMOVED***]; ok {
+				// Username already exists
+				resp.Diagnostics.AddAttributeError(req.Path, fmt.Sprintf("Found duplicate username: '%s'", user.Username.ValueString(***REMOVED******REMOVED***, "Usernames in HTPasswd user list must be unique"***REMOVED***
+				return
+	***REMOVED***
+			usernames[user.Username.ValueString(***REMOVED***] = true
+***REMOVED***
+	}***REMOVED***
 }

@@ -98,7 +98,7 @@ To use the Red Hat Cloud Services provider inside your Terraform configuration y
 
   You need to have created the AWS account-wide roles. The specific account-wide IAM roles and policies provide the STS permissions required for ROSA support, installation, control plane, and compute functionality. This includes account-wide Operator policies.
 
-  To create the account roles using Terraform, see the [Account Roles Terraform example](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/main/examples/create_account_roles/).
+  To create the account roles using Terraform, see the [Account Roles Terraform example](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.3.0-branch/examples/create_account_roles/).
 
 * AWS Permissions
 
@@ -175,20 +175,20 @@ To use the Red Hat Cloud Services provider inside your Terraform configuration y
 The example Terraform files are all considered in development and should not be used for production environments:
 
 ### Before creating a cluster
-* **Required**: [Account Roles Terraform](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/main/examples/create_account_roles/)
+* **Required**: [Account Roles Terraform](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.3.0-branch/examples/create_account_roles/)
 
 ### Creating a ROSA cluster
-* [Create a ROSA cluster that uses STS and has a managed OIDC configuration](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/main/examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/)
-* [Create a ROSA cluster that uses STS and has an unmanaged OIDC configuration](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/main/examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/)
+* [Create a ROSA cluster that uses STS and has a managed OIDC configuration](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.3.0-branch/examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/)
+* [Create a ROSA cluster that uses STS and has an unmanaged OIDC configuration](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.3.0-branch/examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/)
 
 ### After creating a cluster
-* [Machine pools](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/main/examples/create_machine_pool/)
+* [Machine pools](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.3.0-branch/examples/create_machine_pool/)
 * Supported identity providers:
-    * [Github](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/main/examples/create_identity_provider/github/)
-    * [Gitlab](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/main/examples/create_identity_provider/gitlab/)
-    * [Google](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/main/examples/create_identity_provider/google/)
-    * [HTPasswd](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/main/examples/create_identity_provider/google/)
-    * [LDAP](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/main/examples/create_identity_provider/ldap/)
+    * [Github](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.3.0-branch/examples/create_identity_provider/github/)
+    * [Gitlab](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.3.0-branch/examples/create_identity_provider/gitlab/)
+    * [Google](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.3.0-branch/examples/create_identity_provider/google/)
+    * [HTPasswd](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.3.0-branch/examples/create_identity_provider/google/)
+    * [LDAP](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.3.0-branch/examples/create_identity_provider/ldap/)
 * [Upgrading or updating your cluster](upgrading-cluster.md)
 ### Create your Operator IAM roles prefix name
 

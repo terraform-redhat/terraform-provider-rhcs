@@ -47,7 +47,7 @@ module "oidc_config_input_resources" {
   count = var.managed ? 0 : 1
 
   source  = "terraform-redhat/rosa-sts/aws"
-  version = "0.0.12"
+  version = "0.0.14"
 
   create_oidc_config_resources = true
 
@@ -73,7 +73,7 @@ data "rhcs_rosa_operator_roles" "operator_roles" {
 
 module "operator_roles_and_oidc_provider" {
   source  = "terraform-redhat/rosa-sts/aws"
-  version = "0.0.12"
+  version = "0.0.14"
 
   create_operator_roles = true
   create_oidc_provider  = true

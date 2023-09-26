@@ -1498,14 +1498,14 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		state.MinReplicas = types.Int64Null()
 	}
 
-	azs, ok := object.Nodes().GetAvailabilityZones()
-	if ok {
+	if azs, ok := object.Nodes().GetAvailabilityZones(); ok {
 		listValue, err := common.StringArrayToList(azs)
 		if err != nil {
 			return err
-		} else {
-			state.AvailabilityZones = listValue
 		}
+		state.AvailabilityZones = listValue
+	} else {
+		state.AvailabilityZones = types.ListNull(types.StringType)
 	}
 
 	state.CCSEnabled = types.BoolValue(object.CCS().Enabled())

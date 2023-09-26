@@ -97,6 +97,28 @@ var _ = Describe("Identity provider creation", func() {
 	    	    `)
 				Expect(terraform.Apply()).ToNot(BeZero())
 			})
+			It("Can't create a 'htpasswd' identity provider. duplication of username", func() {
+				// Run the apply command:
+				terraform.Source(`
+	    	      resource "rhcs_identity_provider" "my_ip" {
+	    	        cluster = "123"
+	    	        name    = "my-ip"
+	    	        htpasswd = {
+                      users = [
+                        {
+                            username = "foo"
+                            password = "` + htpasswdValidPass + `"
+                        },
+                        {
+                            username = "foo"
+                            password = "` + htpasswdValidPass + `"
+                        }
+                      ]
+	    	        }
+	    	      }
+	    	    `)
+				Expect(terraform.Apply()).ToNot(BeZero())
+			})
 			It("Can't create a 'htpasswd' identity provider. invalid username", func() {
 				// Run the apply command:
 				terraform.Source(`

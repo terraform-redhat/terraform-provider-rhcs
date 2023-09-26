@@ -2,6 +2,7 @@ package identityprovider
 
 import (
 	"context"
+	"fmt"
 	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
@@ -9,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
@@ -53,6 +55,7 @@ var htpasswdSchema = map[string]schema.Attribute{
 		},
 		Validators: []validator.List{
 			listvalidator.SizeAtLeast(1),
+			uniqueUsernameValidator(),
 		},
 		Required: true,
 	},
@@ -85,4 +88,25 @@ func CreateHTPasswdIDPBuilder(ctx context.Context, state *HTPasswdIdentityProvid
 	userListBuilder.Items(userList...)
 	builder.Users(userListBuilder)
 	return builder
+}
+
+func uniqueUsernameValidator() validator.List {
+	return attrvalidators.NewListValidator("userlist unique username", func(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
+		usersList := req.ConfigValue
+		htusers := []HTPasswdUser{}
+		err := usersList.ElementsAs(ctx, &htusers, true)
+		if err != nil {
+			resp.Diagnostics.AddAttributeError(req.Path, "Invalid list conversion", "Failed to parse userlist")
+			return
+		}
+		usernames := make(map[string]bool)
+		for _, user := range htusers {
+			if _, ok := usernames[user.Username.ValueString()]; ok {
+				// Username already exists
+				resp.Diagnostics.AddAttributeError(req.Path, fmt.Sprintf("Found duplicate username: '%s'", user.Username.ValueString()), "Usernames in HTPasswd user list must be unique")
+				return
+			}
+			usernames[user.Username.ValueString()] = true
+		}
+	})
 }

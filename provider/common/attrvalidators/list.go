@@ -26,5 +26,4 @@ func NewListValidator(desc string, validator func(ctx context.Context, req valid
 		desc:      desc,
 		validator: validator,
 	}
-
 }

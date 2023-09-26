@@ -1842,7 +1842,7 @@ var _ = Describe("Machine pool w/ 1AZ cluster", func() {
 		Expect(resource).To(MatchJQ(".attributes.availability_zone", "us-east-1a"))
 	})
 
-	It("Fails to create pool if az and subnet supplied", func() {
+	It("Fails to create pool if az supplied", func() {
 		// Run the apply command:
 		terraform.Source(`
 		  resource "rhcs_machine_pool" "my_pool" {
@@ -1851,8 +1851,116 @@ var _ = Describe("Machine pool w/ 1AZ cluster", func() {
 		    machine_type = "r5.xlarge"
 		    replicas     = 2
 			availability_zone: "us-east-1b"
-			subnet_id: "subnet-123"
 	  }
+		`)
+		Expect(terraform.Apply()).NotTo(BeZero())
+	})
+})
+
+var _ = Describe("Machine pool w/ 1AZ byo VPC cluster", func() {
+	BeforeEach(func() {
+		// The first thing that the provider will do for any operation on machine pools
+		// is check that the cluster is ready, so we always need to prepare the server to
+		// respond to that:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, `{
+					  "id": "123",
+					  "name": "my-cluster",
+					  "multi_az": false,
+					  "nodes": {
+						"availability_zones": [
+						  "us-east-1a"
+						]
+					  },
+					  "aws": {
+						"subnet_ids": [
+							"id1"
+						]
+					},
+				  "state": "ready"
+					}`),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, `{
+						"id": "123",
+						"name": "my-cluster",
+						"multi_az": false,
+						"nodes": {
+						  "availability_zones": [
+						    "us-east-1a"
+						  ]
+						},
+						"aws": {
+							"subnet_ids": [
+								"id1"
+							]
+						},
+						"state": "ready"
+					  }`),
+			),
+		)
+	})
+
+	It("Can create pool w/ subnet_id for byo vpc", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				),
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 4,
+				  "subnets": ["id1"]
+				}`),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 4,
+				  "availability_zones": [
+					"us-east-1a"
+				  ],
+				  "subnets": [
+					"id1"
+				  ]
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 4
+			subnet_id = "id1"
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		// Check the state:
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool")
+		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+		Expect(resource).To(MatchJQ(".attributes.subnet_id", "id1"))
+	})
+
+	It("Fails to create pool if subnet_id not in byo vpc subnets", func() {
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 4
+			subnet_id = "not-in-vpc-of-cluster"
+		  }
 		`)
 		Expect(terraform.Apply()).NotTo(BeZero())
 	})

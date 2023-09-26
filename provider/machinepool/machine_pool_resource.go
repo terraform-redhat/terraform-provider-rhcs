@@ -586,9 +586,6 @@ func (r *MachinePoolResource) validateAZConfig(state *MachinePoolState) (bool, e
 		if !common.IsStringAttributeEmpty(state.AvailabilityZone) {
 			return false, fmt.Errorf("availability_zone can only be set for multi-AZ clusters")
 		}
-		if !common.IsStringAttributeEmpty(state.SubnetID) {
-			return false, fmt.Errorf("subnet_id can only be set for multi-AZ clusters")
-		}
 		if common.HasValue(state.MultiAvailabilityZone) && state.MultiAvailabilityZone.ValueBool() {
 			return false, fmt.Errorf("multi_availability_zone can only be set for multi-AZ clusters")
 		}

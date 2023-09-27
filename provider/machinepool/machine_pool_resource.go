@@ -544,14 +544,9 @@ func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, req resour
 
 	object := update.Body(***REMOVED***
 
-	// update the autoscaling enabled with the plan value (important for nil and false cases***REMOVED***
-	state.AutoScalingEnabled = plan.AutoScalingEnabled
-	// update the Replicas with the plan value (important for nil and zero value cases***REMOVED***
-	state.Replicas = plan.Replicas
-
 	// Save the state:
-	r.populateState(object, state***REMOVED***
-	diags = resp.State.Set(ctx, state***REMOVED***
+	r.populateState(object, plan***REMOVED***
+	diags = resp.State.Set(ctx, plan***REMOVED***
 	resp.Diagnostics.Append(diags...***REMOVED***
 }
 

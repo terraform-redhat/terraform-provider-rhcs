@@ -1,9 +1,27 @@
+## 1.3.0 (Sep 27, 2023)
+FEATURES:
+* Private cluster - add new variable "private" indicates if the cluster has private connection
+* Add support for creating cluster with pre-defined shared VPC
+* Added new "rhcs_dns_domain" resource to allow reserving base domain before cluster creation.
+* Support resources reconciliation - if a resource was removed without the use of the Terraform provider, executing "terraform apply" should prompt its recreation.
+* Htpasswd identity provider - allow creating with multiple users
+* Support MachinePool import into the terraform state
+
+ENHANCEMENTS:
+* Bug fixes
+  * Adding http tokens default to terraform state in case its not returned
+  * Terraform run or import failing after configuring 'additional-trust-bundle-file'
+  * Provider produced inconsistent result after apply - additional_trust_bundle
+  * Day one MachinePool - fix auto scaling/replicas validations
+* Docs:
+  * Add s3 missing permission for OIDC provider
+
 ## 1.2.4 (Sep 4, 2023)
--ENHANCEMENTS:
+ENHANCEMENTS:
 * Fix for "Provider produced inconsistent result after apply" error when setting proxy.additional_trust_bundle
 
 ## 1.2.3 (Aug 24, 2023)
--ENHANCEMENTS:
+ENHANCEMENTS:
 * Fixed a bug in cluster_rosa_resource -Terraform provider panic after adding additional CA bundle to ROSA cluster
 
 ## 1.2.2 (Aug 3, 2023)

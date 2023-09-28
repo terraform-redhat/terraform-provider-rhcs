@@ -12,9 +12,11 @@ import (
 
 var ctx context.Context
 var token string
+var clusterID string
 
 func TestRHCSProvider(t *testing.T) {
 	token = CI.GetEnvWithDefault(CON.TokenENVName, "")
+	clusterID = CI.GetEnvWithDefault(CON.ClusterIDEnv, "")
 	ctx = context.Background()
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "RHCS Provider Test")

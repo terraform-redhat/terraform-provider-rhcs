@@ -19,6 +19,7 @@ const (
 
 var (
 	TokenENVName              = "RHCS_TOKEN"
+	ClusterIDEnv              = "CLUSTER_ID"
 	OCMEnv                    = "OCM_ENV"
 	RhcsClusterProfileENV     = "RHCS_PROFILE_ENV"
 	ClusterTypeManifestDirEnv = "CLUSTER_ROSA_TYPE"
@@ -77,6 +78,16 @@ var (
 var (
 	ROSAClassic = path.Join(ClusterDir, "rosa-classic")
 	OSDCCS      = path.Join(ClusterDir, "osd-ccs")
+)
+
+// Dirs of identity providers
+var (
+	HtpasswdDir = path.Join(IDPsDir, "htpasswd")
+	GitlabDir   = path.Join(IDPsDir, "gitlab")
+	GithubDir   = path.Join(IDPsDir, "github")
+	LdapDir     = path.Join(IDPsDir, "ldap")
+	OpenidDir   = path.Join(IDPsDir, "openid")
+	GoogleDir   = path.Join(IDPsDir, "google")
 )
 
 // Supports abs and relatives

@@ -226,6 +226,21 @@ func CreateRHCSClusterByProfile(profile *Profile, creationArgs *EXE.ClusterCreat
 	return clusterID, err
 }
 
+func DestroyRHCSClusterByCreationArgs(creationArgs *EXE.ClusterCreationArgs, manifests_dir string) {
+
+	// destroy selected cluster
+	clusterService := EXE.NewClusterService(manifests_dir)
+	clusterService.Destroy(creationArgs)
+
+	// destroy account roles
+	accService := EXE.NewAccountRoleService()
+	accRoleParam := &EXE.AccountRolesArgs{
+		Token:             GetEnvWithDefault(CON.TokenENVName, ""),
+		AccountRolePrefix: creationArgs.AccountRolePrefix,
+	}
+	accService.Destroy(accRoleParam)
+}
+
 func PrepareRHCSClusterByProfileENV() (*Profile, *EXE.ClusterCreationArgs, string) {
 
 	profile := LoadProfileYamlFile()

@@ -75,26 +75,18 @@ var _ = Describe("TF Test", func() {
 
 		})
 
-		It("TestCreateClusterByProfile", func() {
+		It("TestClusterE2EFlowByProfile", func() {
 
 			// Generate/build cluster by profile selected
 			profile, creationArgs, manifests_dir := CI.PrepareRHCSClusterByProfileENV()
-			accService := EXE.NewAccountRoleService()
-			accRoleParam := &EXE.AccountRolesArgs{
-				Token:             CI.GetEnvWithDefault(CON.TokenENVName, ""),
-				AccountRolePrefix: creationArgs.AccountRolePrefix,
-			}
-			// destroy account roles
-			defer accService.Destroy(accRoleParam)
 
 			// Create rhcs cluster
 			clusterID, err := CI.CreateRHCSClusterByProfile(profile, creationArgs, manifests_dir)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clusterID).ToNot(BeEmpty())
 
-			// destroy selected cluster
-			clusterService := EXE.NewClusterService(manifests_dir)
-			defer clusterService.Destroy(creationArgs)
+			// Destroy cluster's resources
+			CI.DestroyRHCSClusterByCreationArgs(creationArgs, manifests_dir)
 		})
 	})
 })

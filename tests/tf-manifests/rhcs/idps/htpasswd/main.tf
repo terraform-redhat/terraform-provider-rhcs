@@ -22,17 +22,17 @@ terraform {
   }
 }
 
+
 provider "rhcs" {
   token = var.token
   url   = var.gateway
 }
 
-resource "rhcs_identity_provider" "htpassed_idp" {
-  cluster        = var.cluster_id
-  name           = var.name
+resource "rhcs_identity_provider" "htpasswd_idp" {
+  cluster = var.cluster_id
+  name    = var.name
   mapping_method = var.mapping_method
   htpasswd = {
-    username = var.username
-    password = var.password
+    users = var.htpasswd_users
   }
 }

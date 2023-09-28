@@ -17,11 +17,10 @@ variable "mapping_method" {
   type    = string
   default = "claim"
 }
-variable "username" {
-  type    = string
-  default = null
-}
-variable "password" {
-  type    = string
-  default = null
+variable "htpasswd_users" {
+  type = list(object({
+    username = string
+    password = string
+  }***REMOVED******REMOVED***
+  description = "htpasswd user list"
 }

@@ -2,11 +2,14 @@ package ci
 
 import (
 	"fmt"
-	"path"
+	"os"
+	"regexp"
 	"strings"
 
 	. "github.com/onsi/gomega"
+	client "github.com/openshift-online/ocm-sdk-go"
 
+	cms "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	EXE "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	HELPER "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
@@ -50,7 +53,7 @@ type Profile struct {
 	ManifestsDIR          string `ini:"manifests_dir,omitempty" json:"manifests_dir,omitempty"`
 }
 
-func PrepareVPC(region string, privateLink bool, multiZone bool, azIDs []string, name ...string) ([]string, []string, []string) {
+func PrepareVPC(region string, privateLink bool, multiZone bool, azIDs []string, name ...string) (*EXE.VPCOutput, error) {
 
 	vpcService := EXE.NewVPCService()
 	vpcArgs := &EXE.VPCArgs{
@@ -60,7 +63,15 @@ func PrepareVPC(region string, privateLink bool, multiZone bool, azIDs []string,
 	}
 
 	if len(azIDs) != 0 {
-		vpcArgs.AZIDs = azIDs
+		turnedZoneIDs := []string{}
+		for _, zone := range azIDs {
+			if strings.Contains(zone, region) {
+				turnedZoneIDs = append(turnedZoneIDs, zone)
+			} else {
+				turnedZoneIDs = append(turnedZoneIDs, region+zone)
+			}
+		}
+		vpcArgs.AZIDs = turnedZoneIDs
 	}
 	if len(name) == 1 {
 		vpcArgs.Name = name[0]
@@ -69,36 +80,102 @@ func PrepareVPC(region string, privateLink bool, multiZone bool, azIDs []string,
 	if err != nil {
 		vpcService.Destroy()
 	}
-	privateSubnets, publicSubnets, zones, err := vpcService.Output()
+	output, err := vpcService.Output()
 
 	if err != nil {
 		vpcService.Destroy()
-		return nil, nil, nil
+		return nil, err
 	}
-	return privateSubnets, publicSubnets, zones
+	return output, err
 }
 
-func PrepareAccountRoles() {
+func PrepareAccountRoles(token string, accountRolePrefix string, awsRegion string, openshiftVersion string, channelGroup string) (
+	*EXE.AccountRolesOutput, error) {
+	accService, err := EXE.NewAccountRoleService()
+	if err != nil {
+		return nil, err
+	}
+	args := &EXE.AccountRolesArgs{
+		AccountRolePrefix: accountRolePrefix,
+		// OCMENV            string `json:"ocm_environment,omitempty"`
+		OpenshiftVersion: openshiftVersion,
+		Token:            token,
+		// URL               string `json:"url,omitempty"`
+		ChannelGroup: channelGroup,
+	}
+	accRoleOutput, err := accService.Create(args)
+	if err != nil {
+		accService.Destroy()
+	}
+	return accRoleOutput, err
 }
 
+func PrepareOIDCProviderAndOperatorRoles(token string, oidcConfigType string, operatorRolePrefix string, accountRolePrefix string, awsRegion string) (
+	*EXE.OIDCProviderOperatorRolesOutput, error) {
+	oidcOpService, err := EXE.NewOIDCProviderOperatorRolesService()
+	if err != nil {
+		return nil, err
+	}
+	args := &EXE.OIDCProviderOperatorRolesArgs{
+		AccountRolePrefix:  accountRolePrefix,
+		OperatorRolePrefix: operatorRolePrefix,
+		Token:              token,
+		OIDCConfig:         oidcConfigType,
+		AWSRegion:          awsRegion,
+		// URL                string `json:"url,omitempty"`
+	}
+	oidcOpOutput, err := oidcOpService.Create(args)
+	if err != nil {
+		oidcOpService.Destroy()
+	}
+	return oidcOpOutput, err
+
+}
+
+// PrepareVersion supports below types
+// version with a openshift version like 4.13.12
+// version with latest
+// verion with x-1, it means the version will choose one with x-1 version which can be used for x stream upgrade
+// version with y-1, it means the version will choose one with y-1 version which can be used for y stream upgrade
+func PrepareVersion(connection *client.Connection, versionTag string, channelGroup string) string {
+	versionRegex := regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+\-*[\s\S]*$`)
+	// Check that the version is matching openshift version regexp
+	if versionRegex.MatchString(versionTag) {
+		return versionTag
+	}
+	var vResult string
+	switch versionTag {
+	case "", "latest":
+		versions := cms.EnabledVersions(connection, channelGroup, "", true)
+		versions = cms.SortVersions(versions)
+		vResult = versions[len(versions)-1].RawID
+	case "y-1":
+		versions, _ := cms.GetVersionsWithUpgrades(connection, channelGroup, CON.Y, true, false, 1)
+		vResult = versions[len(versions)-1].RawID
+	case "z-1":
+		versions, _ := cms.GetVersionsWithUpgrades(connection, channelGroup, CON.Z, true, false, 1)
+		vResult = versions[len(versions)-1].RawID
+	case "eol":
+		vResult = ""
+	}
+	return vResult
+}
 func PrepareProxy() {}
 
 func PrepareKMSKey() {}
 
 func PrepareRoute53() {}
 
-func GenerateClusterCreationArgsByProfile(profile *Profile) (clusterArgs *EXE.ClusterCreationArgs, manifestsDir string, err error) {
-
-	// Set majorVersion from prow job var env, or 4.13 as default
-	var majorVersion = GetEnvWithDefault(CON.MajorVersion, CON.DefaultMajorVersion)
-	var version = ""
+func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clusterArgs *EXE.ClusterCreationArgs, manifestsDir string, err error) {
+	profile.Version = PrepareVersion(RHCSConnection, profile.Version, profile.ChannelGroup)
 
 	clusterArgs = &EXE.ClusterCreationArgs{
-		Token: GetEnvWithDefault(CON.TokenENVName, ""),
+		Token:            token,
+		OpenshiftVersion: profile.Version,
 	}
-
-	profile.ManifestsDIR = path.Join(profile.ManifestsDIR, GetEnvWithDefault(CON.ClusterTypeManifestDirEnv, CON.ROSAClassic))
-
+	if profile.ManifestsDIR == "" {
+		profile.ManifestsDIR = CON.ROSAClassic
+	}
 	if profile.ClusterName != "" {
 		clusterArgs.ClusterName = profile.ClusterName
 	} else {
@@ -106,7 +183,7 @@ func GenerateClusterCreationArgsByProfile(profile *Profile) (clusterArgs *EXE.Cl
 		clusterArgs.ClusterName = HELPER.GenerateClusterName(profile.Name)
 	}
 	if profile.AdminEnabled {
-		// clusterArgs.
+
 	}
 	if profile.Region != "" {
 		clusterArgs.AWSRegion = profile.Region
@@ -115,36 +192,14 @@ func GenerateClusterCreationArgsByProfile(profile *Profile) (clusterArgs *EXE.Cl
 	}
 
 	if profile.STS {
-		accService := EXE.NewAccountRoleService()
-		acctPrefix := clusterArgs.ClusterName
-		accountRoleArgs := EXE.AccountRolesArgs{
-			Token:             GetEnvWithDefault(CON.TokenENVName, ""),
-			AccountRolePrefix: acctPrefix,
-			ChannelGroup:      profile.ChannelGroup,
-		}
-		err = accService.Create(&accountRoleArgs)
-		if err != nil {
-			defer accService.Destroy(&accountRoleArgs)
-			return
-		}
+		accountRolesOutput, err := PrepareAccountRoles(token, clusterArgs.ClusterName, clusterArgs.AWSRegion, profile.Version, profile.ChannelGroup)
+		Expect(err).ToNot(HaveOccurred())
+		clusterArgs.AccountRolePrefix = accountRolesOutput.AccountRolePrefix
 
-		if profile.Version != "" {
-			if profile.Version != "latest" {
-				version = strings.Join(strings.Split(profile.Version, ".")[0:2], ".")
-			} else {
-				// todo: we are using backend code due to issue OCM-3562
-				versionsList := HELPER.GetGreaterOrEqualVersions(RHCSConnection, majorVersion, profile.ChannelGroup, true, true)
-				version = HELPER.SortRawVersions(versionsList)[len(versionsList)-1]
-			}
-			clusterArgs.OpenshiftVersion = version
-		}
-
-		clusterArgs.AccountRolePrefix = acctPrefix
-		if profile.OIDCConfig != "" {
-			clusterArgs.OIDCConfig = profile.OIDCConfig
-		}
-		clusterArgs.OperatorRolePrefix = clusterArgs.ClusterName
-
+		oidcOutput, err := PrepareOIDCProviderAndOperatorRoles(token, profile.OIDCConfig, clusterArgs.ClusterName, accountRolesOutput.AccountRolePrefix, clusterArgs.AWSRegion)
+		Expect(err).ToNot(HaveOccurred())
+		clusterArgs.OIDCConfigID = oidcOutput.OIDCConfigID
+		clusterArgs.OperatorRolePrefix = oidcOutput.OperatorRolePrefix
 	}
 	if profile.Region == "" {
 		profile.Region = CON.DefaultAWSRegion
@@ -159,21 +214,26 @@ func GenerateClusterCreationArgsByProfile(profile *Profile) (clusterArgs *EXE.Cl
 
 	if profile.BYOVPC {
 		var zones []string
+		var vpcOutput *EXE.VPCOutput
 		if profile.Zones != "" {
 			zones = strings.Split(profile.Zones, ",")
 		}
 
-		privateSubnets, publicSubnets, zones := PrepareVPC(profile.Region, profile.PrivateLink, profile.MultiAZ, zones, clusterArgs.ClusterName)
-		clusterArgs.AWSAvailabilityZones = zones
-		if privateSubnets == nil {
+		vpcOutput, err = PrepareVPC(profile.Region, profile.PrivateLink, profile.MultiAZ, zones, clusterArgs.ClusterName)
+		if err != nil {
+			return
+		}
+		clusterArgs.AWSAvailabilityZones = vpcOutput.AZs
+		if vpcOutput.ClusterPrivateSubnets == nil {
 			err = fmt.Errorf("error when creating the vpc, check the previous log. The created resources had been destroyed")
 			return
 		}
 		if profile.PrivateLink {
-			clusterArgs.AWSSubnetIDs = privateSubnets
+			clusterArgs.AWSSubnetIDs = vpcOutput.ClusterPrivateSubnets
 		} else {
-			clusterArgs.AWSSubnetIDs = append(privateSubnets, publicSubnets...)
+			clusterArgs.AWSSubnetIDs = append(vpcOutput.ClusterPrivateSubnets, vpcOutput.ClusterPublicSubnets...)
 		}
+		clusterArgs.MachineCIDR = vpcOutput.VPCCIDR
 	}
 
 	if profile.ChannelGroup != "" {
@@ -198,26 +258,35 @@ func GenerateClusterCreationArgsByProfile(profile *Profile) (clusterArgs *EXE.Cl
 	return clusterArgs, profile.ManifestsDIR, err
 }
 
-func LoadProfileYamlFile() *Profile {
-	profileEnv := GetEnvWithDefault(CON.RhcsClusterProfileENV, "rosa-sts-pl")
-	if profileEnv == "" {
-		panic(fmt.Errorf("ENV Variable RHCS_PROFILE_ENV is empty, please make sure you set the env value"))
-	}
+func LoadProfileYamlFile(profileName string) *Profile {
 	filename := GetYAMLProfileFile(CON.TFYAMLProfile)
-	p := HELPER.GetProfile(profileEnv, filename)
+	p := HELPER.GetProfile(profileName, filename)
 	fmt.Println(p.Cluster)
 	profile := Profile{
-		Name: profileEnv,
+		Name: profileName,
 	}
 	err := HELPER.MapStructure(p.Cluster, &profile)
+	if profile.ManifestsDIR == "" {
+		profile.ManifestsDIR = CON.ROSAClassic
+	}
 	Expect(err).ToNot(HaveOccurred())
 	return &profile
 }
 
-func CreateRHCSClusterByProfile(profile *Profile, creationArgs *EXE.ClusterCreationArgs, manifests_dir string) (string, error) {
+func LoadProfileYamlFileByENV() *Profile {
+	profileEnv := os.Getenv("CLUSTER_PROFILE")
+	if profileEnv == "" {
+		panic(fmt.Errorf("ENV Variable CLUSTER_PROFILE is empty, please make sure you set the env value"))
+	}
+	return LoadProfileYamlFile(profileEnv)
+}
 
-	clusterService := EXE.NewClusterService(manifests_dir)
-	err := clusterService.Create(creationArgs)
+func CreateRHCSClusterByProfile(token string, profile *Profile) (string, error) {
+
+	creationArgs, _, err := GenerateClusterCreationArgsByProfile(token, profile)
+
+	clusterService, err := EXE.NewClusterService(profile.ManifestsDIR)
+	err = clusterService.Create(creationArgs)
 	if err != nil {
 		clusterService.Destroy(creationArgs)
 		return "", err
@@ -226,10 +295,62 @@ func CreateRHCSClusterByProfile(profile *Profile, creationArgs *EXE.ClusterCreat
 	return clusterID, err
 }
 
-func PrepareRHCSClusterByProfileENV() (*Profile, *EXE.ClusterCreationArgs, string) {
+func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 
-	profile := LoadProfileYamlFile()
-	creationArgs, manifests_dir, err := GenerateClusterCreationArgsByProfile(profile)
+	// Destroy cluster
+	clusterService, err := EXE.NewClusterService(profile.ManifestsDIR)
 	Expect(err).ToNot(HaveOccurred())
-	return profile, creationArgs, manifests_dir
+	clusterArgs := &EXE.ClusterCreationArgs{
+		Token:              token,
+		AWSRegion:          profile.Region,
+		AccountRolePrefix:  "",
+		OperatorRolePrefix: "",
+	}
+	err = clusterService.Destroy(clusterArgs)
+	Expect(err).ToNot(HaveOccurred())
+
+	// Destroy VPC
+	if profile.BYOVPC {
+		vpcService := EXE.NewVPCService()
+		vpcArgs := &EXE.VPCArgs{
+			AWSRegion: profile.Region,
+		}
+		err := vpcService.Destroy(vpcArgs)
+		Expect(err).ToNot(HaveOccurred())
+	}
+	if profile.STS {
+		// Destroy oidc and operator roles
+		oidcOpService, err := EXE.NewOIDCProviderOperatorRolesService()
+		Expect(err).ToNot(HaveOccurred())
+		args := &EXE.OIDCProviderOperatorRolesArgs{
+			Token:      token,
+			OIDCConfig: profile.OIDCConfig,
+			AWSRegion:  profile.Region,
+			// URL                string `json:"url,omitempty"`
+		}
+		err = oidcOpService.Destroy(args)
+		Expect(err).ToNot(HaveOccurred())
+
+		//  Destroy Account roles
+		accService, err := EXE.NewAccountRoleService()
+		Expect(err).ToNot(HaveOccurred())
+		accargs := &EXE.AccountRolesArgs{
+			Token: token,
+		}
+		err = accService.Destroy(accargs)
+		Expect(err).ToNot(HaveOccurred())
+
+	}
+	return nil
+}
+func PrepareRHCSClusterByProfileENV() string {
+	profile := LoadProfileYamlFileByENV()
+	if profile.ManifestsDIR == "" {
+		profile.ManifestsDIR = CON.ROSAClassic
+	}
+	clusterService, err := EXE.NewClusterService(profile.ManifestsDIR)
+	Expect(err).ToNot(HaveOccurred())
+	clusterID, err := clusterService.Output()
+	Expect(err).ToNot(HaveOccurred())
+	return clusterID
 }

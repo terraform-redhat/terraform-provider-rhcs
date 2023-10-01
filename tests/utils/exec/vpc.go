@@ -11,10 +11,18 @@ import (
 
 type VPCArgs struct {
 	Name      string   `json:"name,omitempty"`
-	AZIDs     []string `json:"az_ids,omitempty"`
 	AWSRegion string   `json:"aws_region,omitempty"`
-	MultiAZ   bool     `json:"multi_az,omitempty"`
 	VPCCIDR   string   `json:"vpc_cidr,omitempty"`
+	MultiAZ   bool     `json:"multi_az,omitempty"`
+	AZIDs     []string `json:"az_ids,omitempty"`
+}
+
+type VPCOutput struct {
+	ClusterPublicSubnets  []string `json:"cluster-public-subnet,omitempty"`
+	VPCCIDR               string   `json:"vpc-cidr,omitempty"`
+	ClusterPrivateSubnets []string `json:"cluster-private-subnet,omitempty"`
+	AZs                   []string `json:"azs,omitempty"`
+	NodePrivateSubnets    []string `json:"node-private-subnet,omitempty"`
 }
 
 type VPCService struct {
@@ -48,22 +56,21 @@ func (vpc *VPCService) Create(createArgs *VPCArgs, extraArgs ...string) error {
 	return nil
 }
 
-func (vpc *VPCService) Output() (privateSubnets []string, publicSubnets []string, zones []string, err error) {
+func (vpc *VPCService) Output() (*VPCOutput, error) {
 	vpcDir := CON.AWSVPCDir
 	if vpc.ManifestDir != "" {
 		vpcDir = vpc.ManifestDir
 	}
 	out, err := runTerraformOutput(context.TODO(), vpcDir)
-	if err != nil {
-		return nil, nil, nil, err
+	vpcOutput := &VPCOutput{
+		VPCCIDR:               h.DigString(out["vpc-cidr"], "value"),
+		ClusterPrivateSubnets: h.DigArrayToString(out["cluster-private-subnet"], "value"),
+		ClusterPublicSubnets:  h.DigArrayToString(out["cluster-public-subnet"], "value"),
+		NodePrivateSubnets:    h.DigArrayToString(out["node-private-subnet"], "value"),
+		AZs:                   h.DigArrayToString(out["azs"], "value"),
 	}
-	privateObj := out["cluster-private-subnet"]
-	publicObj := out["cluster-public-subnet"]
-	zonesObj := out["azs"]
-	privateSubnets = h.DigStringArray(privateObj, "value")
-	publicSubnets = h.DigStringArray(publicObj, "value")
-	zones = h.DigStringArray(zonesObj, "value")
-	return
+
+	return vpcOutput, err
 }
 
 func (vpc *VPCService) Destroy(createArgs ...*VPCArgs) error {
@@ -86,7 +93,6 @@ func NewVPCService(manifestDir ...string) *VPCService {
 	return vpc
 }
 
-// ************ AWS resources ***************************
 func CreateAWSVPC(vpcArgs *VPCArgs, arg ...string) (
 	privateSubnets []string,
 	publicSubnets []string,

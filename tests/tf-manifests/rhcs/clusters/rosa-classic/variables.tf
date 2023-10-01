@@ -10,12 +10,12 @@ variable "url" {
 
 variable "operator_role_prefix" {
   type    = string
-  default = null
+  default = ""
 }
 
 variable "account_role_prefix" {
   type    = string
-  default = null
+  default = ""
 }
 
 variable "cluster_name" {
@@ -173,9 +173,8 @@ variable "aws_region" {
   description = "The region to create the ROSA cluster in"
 }
 
-variable "oidc_config" {
+variable "oidc_config_id" {
   type        = string
-  description = "Set it to managed or un-managed, then the resources will be configured accordingly. When not set, traditional oidc provider will be created"
   default     = null
 
 }

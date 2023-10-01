@@ -102,8 +102,8 @@ tools:
 	go install github.com/onsi/ginkgo/v2/ginkgo@v2.1.1
 	go install github.com/golang/mock/mockgen@v1.6.0
 
-.PHONY: e2e_test
-e2e_test: tools install
+.PHONY: e2e_sanity_test
+e2e_sanity_test: tools install
 	ginkgo run $(ginkgo_flags) \
 		--timeout 5h \
 		-r \
@@ -126,3 +126,12 @@ destroy_folder: install
 .PHONY: binary
 binary:
 	podman run --pull=always --rm registry.ci.openshift.org/ci/rhcs-tf-bin:latest cat /root/terraform-provider-rhcs > ~/terraform-provider-rhcs && chmod +x ~/terraform-provider-rhcs
+
+.PHONY: e2e_test
+e2e_test: tools install
+	ginkgo run \
+        --label-filter $(LabelFilter)\
+        --timeout 5h \
+        -r \
+        --focus-file tests/e2e/.* \
+		$(NULL)

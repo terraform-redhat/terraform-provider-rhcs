@@ -25,6 +25,7 @@ else
 	BINARY=terraform-provider-rhcs
 	DESTINATION_PREFIX=$(HOME)/.terraform.d/plugins
 endif
+RHCS_LOCAL_DIR=$(DESTINATION_PREFIX)/terraform.local/local/rhcs
 
 GO_ARCH=$(shell go env GOARCH)
 TARGET_ARCH=$(shell go env GOOS)_${GO_ARCH}
@@ -47,7 +48,7 @@ build:
 	go build -ldflags="$(ldflags)" -o ${BINARY}
 
 .PHONY: install
-install: build
+install: clean build
 	platform=$$(terraform version -json | jq -r .platform); \
 	extension=""; \
 	if [[ "$${platform}" =~ ^windows_.*$$ ]]; then \
@@ -56,7 +57,7 @@ install: build
 	if [ -z "${version}" ]; then \
     	version="0.0.2"; \
     fi; \
-    dir="$(DESTINATION_PREFIX)/terraform.local/local/rhcs/$${version}/$(TARGET_ARCH)"; \
+    dir="$(RHCS_LOCAL_DIR)/$${version}/$(TARGET_ARCH)"; \
 	file="terraform-provider-rhcs$${extension}"; \
 	mkdir -p "$${dir}"; \
 	mv ${BINARY} "$${dir}/$${file}"
@@ -91,7 +92,7 @@ fmt: fmt_go fmt_tf
 
 .PHONY: clean
 clean:
-	rm -rf .terraform.d
+	rm -rf "$(RHCS_LOCAL_DIR)"
 
 generate:
 	go generate ./...

@@ -13,7 +13,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
 )
 
-var availabilityZoneValidator = attrvalidators.NewStringValidator("", func(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+var availabilityZoneValidator = attrvalidators.NewStringValidator("AZ should be valid for cloud_region", func(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
 	az := req.ConfigValue.ValueString()
 	regionAttr := basetypes.StringValue{}
 	err := req.Config.GetAttribute(ctx, path.Root("cloud_region"), &regionAttr)

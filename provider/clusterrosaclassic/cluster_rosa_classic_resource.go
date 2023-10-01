@@ -29,6 +29,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 	semver "github.com/hashicorp/go-version"
 	ver "github.com/hashicorp/go-version"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -310,6 +311,9 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				ElementType: types.StringType,
 				Optional:    true,
 				Computed:    true,
+				Validators: []validator.List{
+					listvalidator.ValueStringsAre(availabilityZoneValidator),
+				},
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.UseStateForUnknown(),
 					listplanmodifier.RequiresReplace(),

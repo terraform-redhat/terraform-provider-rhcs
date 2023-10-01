@@ -72,7 +72,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
       },
 	  "nodes": {
 	    "compute": 3,
-        "availability_zones": ["az"],
+        "availability_zones": ["us-west-1a"],
 	    "compute_machine_type": {
 	      "id": "r5.xlarge"
 	    }
@@ -117,7 +117,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 	  },
       "nodes": {
 	    "compute": 3,
-        "availability_zones": ["az"],
+        "availability_zones": ["us-west-1a"],
 	    "compute_machine_type": {
 	      "id": "r5.xlarge"
 	    }
@@ -127,7 +127,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
       }
 	}`
 	Context("rhcs_cluster_rosa_classic - create", func() {
-		It("version with unsupported prefix error", func() {
+		It("invalid az for region", func() {
 			terraform.Source(`
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			  name           = "my-cluster"
@@ -143,6 +143,28 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				  }
 			  }
 			  version = "openshift-v4.11.1"
+			}
+		  `)
+			Expect(terraform.Apply()).NotTo(BeZero())
+		})
+
+		It("version with unsupported prefix error", func() {
+			terraform.Source(`
+			resource "rhcs_cluster_rosa_classic" "my_cluster" {
+			  name           = "my-cluster"
+			  cloud_region   = "us-west-1"
+              availability_zones = ["us-east-1a"]
+			  aws_account_id = "123"
+			  sts = {
+				  operator_role_prefix = "test"
+				  role_arn = "",
+				  support_role_arn = "",
+				  instance_iam_roles = {
+					  master_role_arn = "",
+					  worker_role_arn = "",
+				  }
+			  }
+			  version = "4.11.1"
 			}
 		  `)
 			Expect(terraform.Apply()).NotTo(BeZero())
@@ -1406,7 +1428,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "path": "/nodes",
 					  "value": {
 						"compute": 3,
-            "availability_zones": ["az"],
+                        "availability_zones": ["us-west-1a"],
 						"compute_machine_type": {
 							"id": "r5.xlarge"
 						}
@@ -1832,7 +1854,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
                             "label_key1": "label_value1"
                         },
 						"availability_zones": [
-      						"az"
+      						"us-west-1a"
     					],
 						"compute_machine_type": {
 						   "id": "r5.xlarge"
@@ -1921,7 +1943,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
                             "changed_label": "changed"
                         },
 						"availability_zones": [
-      						"az"
+      						"us-west-1a"
     					],
 						"compute_machine_type": {
 						   "id": "r5.xlarge"
@@ -2017,7 +2039,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					VerifyJQ(`.product.id`, "rosa"),
 					VerifyJQ(`.aws.subnet_ids.[0]`, "id1"),
 					VerifyJQ(`.aws.private_link`, false),
-					VerifyJQ(`.nodes.availability_zones.[0]`, "az1"),
+					VerifyJQ(`.nodes.availability_zones.[0]`, "us-west-1a"),
 					VerifyJQ(`.api.listening`, "internal"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
@@ -2050,14 +2072,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					{
 						"op": "add",
 						"path": "/availability_zones",
-						"value": ["az1"]
+						"value": ["us-west-1a"]
 					},
 					{
 					  "op": "replace",
 					  "path": "/nodes",
 					  "value": {
 						"availability_zones": [
-      						"az1"
+      						"us-west-1a"
     					],
 						"compute_machine_type": {
 						   "id": "r5.xlarge"
@@ -2074,7 +2096,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
-			availability_zones = ["az1"]
+			availability_zones = ["us-west-1a"]
 			aws_private_link = false
 			private = true
 			aws_subnet_ids = [
@@ -2108,7 +2130,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					VerifyJQ(`.product.id`, "rosa"),
 					VerifyJQ(`.aws.subnet_ids.[0]`, "id1"),
 					VerifyJQ(`.aws.private_link`, true),
-					VerifyJQ(`.nodes.availability_zones.[0]`, "az1"),
+					VerifyJQ(`.nodes.availability_zones.[0]`, "us-west-1a"),
 					VerifyJQ(`.api.listening`, "internal"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
@@ -2143,7 +2165,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "path": "/nodes",
 					  "value": {
 						"availability_zones": [
-      						"az1"
+      						"us-west-1a"
     					],
 						"compute_machine_type": {
 						   "id": "r5.xlarge"
@@ -2160,7 +2182,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
-			availability_zones = ["az1"]
+			availability_zones = ["us-west-1a"]
 			private = true
 			aws_private_link = true
 			aws_subnet_ids = [
@@ -2256,7 +2278,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					VerifyJQ(`.aws.subnet_ids.[0]`, "id1"),
 					VerifyJQ(`.aws.private_hosted_zone_id`, "1234"),
 					VerifyJQ(`.aws.private_hosted_zone_role_arn`, "arn:aws:iam::111111111111:role/test-shared-vpc"),
-					VerifyJQ(`.nodes.availability_zones.[0]`, "az1"),
+					VerifyJQ(`.nodes.availability_zones.[0]`, "us-west-1a"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -2287,14 +2309,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					{
 						"op": "add",
 						"path": "/availability_zones",
-						"value": ["az1"]
+						"value": ["us-west-1a"]
 					},
 					{
 					  "op": "add",
 					  "path": "/nodes",
 					  "value": {
 						"compute": 3,
-            "availability_zones": ["az1"],
+            "availability_zones": ["us-west-1a"],
 						"compute_machine_type": {
 							"id": "r5.xlarge"
 						}
@@ -2309,7 +2331,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
-			availability_zones = ["az1"]
+			availability_zones = ["us-west-1a"]
 			aws_subnet_ids = [
 				"id1", "id2", "id3"
 			]

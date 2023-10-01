@@ -170,7 +170,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				ElementType: types.StringType,
 				Optional:    true,
 				Computed:    true,
-				Validators:  []validator.Map{PropertiesValidator()},
+				Validators:  []validator.Map{propertiesValidator},
 			},
 			"ocm_properties": schema.MapAttribute{
 				Description: "Merged properties defined by OCM and the user defined 'properties'.",
@@ -466,7 +466,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 					objectvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("base_dns_domain")),
 					objectvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("availability_zones")),
 					objectvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("aws_subnet_ids")),
-					PrivateHZValidator(),
+					privateHZValidator,
 				},
 			},
 		},

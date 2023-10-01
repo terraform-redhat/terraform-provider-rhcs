@@ -2,11 +2,14 @@ package ci
 
 ***REMOVED***
 ***REMOVED***
-***REMOVED***
+	"os"
+	"regexp"
 	"strings"
 
 ***REMOVED***
+	client "github.com/openshift-online/ocm-sdk-go"
 
+	cms "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	EXE "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	HELPER "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
@@ -50,7 +53,7 @@ type Profile struct {
 	ManifestsDIR          string `ini:"manifests_dir,omitempty" json:"manifests_dir,omitempty"`
 }
 
-func PrepareVPC(region string, privateLink bool, multiZone bool, azIDs []string, name ...string***REMOVED*** ([]string, []string, []string***REMOVED*** {
+func PrepareVPC(region string, privateLink bool, multiZone bool, azIDs []string, name ...string***REMOVED*** (*EXE.VPCOutput, error***REMOVED*** {
 
 	vpcService := EXE.NewVPCService(***REMOVED***
 	vpcArgs := &EXE.VPCArgs{
@@ -60,7 +63,15 @@ func PrepareVPC(region string, privateLink bool, multiZone bool, azIDs []string,
 	}
 
 	if len(azIDs***REMOVED*** != 0 {
-		vpcArgs.AZIDs = azIDs
+		turnedZoneIDs := []string{}
+		for _, zone := range azIDs {
+			if strings.Contains(zone, region***REMOVED*** {
+				turnedZoneIDs = append(turnedZoneIDs, zone***REMOVED***
+	***REMOVED*** else {
+				turnedZoneIDs = append(turnedZoneIDs, region+zone***REMOVED***
+	***REMOVED***
+***REMOVED***
+		vpcArgs.AZIDs = turnedZoneIDs
 	}
 	if len(name***REMOVED*** == 1 {
 		vpcArgs.Name = name[0]
@@ -69,36 +80,102 @@ func PrepareVPC(region string, privateLink bool, multiZone bool, azIDs []string,
 	if err != nil {
 		vpcService.Destroy(***REMOVED***
 	}
-	privateSubnets, publicSubnets, zones, err := vpcService.Output(***REMOVED***
+	output, err := vpcService.Output(***REMOVED***
 
 	if err != nil {
 		vpcService.Destroy(***REMOVED***
-		return nil, nil, nil
+		return nil, err
 	}
-	return privateSubnets, publicSubnets, zones
+	return output, err
 }
 
-func PrepareAccountRoles(***REMOVED*** {
+func PrepareAccountRoles(token string, accountRolePrefix string, awsRegion string, openshiftVersion string, channelGroup string***REMOVED*** (
+	*EXE.AccountRolesOutput, error***REMOVED*** {
+	accService, err := EXE.NewAccountRoleService(***REMOVED***
+	if err != nil {
+		return nil, err
+	}
+	args := &EXE.AccountRolesArgs{
+		AccountRolePrefix: accountRolePrefix,
+		// OCMENV            string `json:"ocm_environment,omitempty"`
+		OpenshiftVersion: openshiftVersion,
+		Token:            token,
+		// URL               string `json:"url,omitempty"`
+		ChannelGroup: channelGroup,
+	}
+	accRoleOutput, err := accService.Create(args***REMOVED***
+	if err != nil {
+		accService.Destroy(***REMOVED***
+	}
+	return accRoleOutput, err
 }
 
+func PrepareOIDCProviderAndOperatorRoles(token string, oidcConfigType string, operatorRolePrefix string, accountRolePrefix string, awsRegion string***REMOVED*** (
+	*EXE.OIDCProviderOperatorRolesOutput, error***REMOVED*** {
+	oidcOpService, err := EXE.NewOIDCProviderOperatorRolesService(***REMOVED***
+	if err != nil {
+		return nil, err
+	}
+	args := &EXE.OIDCProviderOperatorRolesArgs{
+		AccountRolePrefix:  accountRolePrefix,
+		OperatorRolePrefix: operatorRolePrefix,
+		Token:              token,
+		OIDCConfig:         oidcConfigType,
+		AWSRegion:          awsRegion,
+		// URL                string `json:"url,omitempty"`
+	}
+	oidcOpOutput, err := oidcOpService.Create(args***REMOVED***
+	if err != nil {
+		oidcOpService.Destroy(***REMOVED***
+	}
+	return oidcOpOutput, err
+
+}
+
+// PrepareVersion supports below types
+// version with a openshift version like 4.13.12
+// version with latest
+// verion with x-1, it means the version will choose one with x-1 version which can be used for x stream upgrade
+// version with y-1, it means the version will choose one with y-1 version which can be used for y stream upgrade
+func PrepareVersion(connection *client.Connection, versionTag string, channelGroup string***REMOVED*** string {
+	versionRegex := regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+\-*[\s\S]*$`***REMOVED***
+	// Check that the version is matching openshift version regexp
+	if versionRegex.MatchString(versionTag***REMOVED*** {
+		return versionTag
+	}
+	var vResult string
+	switch versionTag {
+	case "", "latest":
+		versions := cms.EnabledVersions(connection, channelGroup, "", true***REMOVED***
+		versions = cms.SortVersions(versions***REMOVED***
+		vResult = versions[len(versions***REMOVED***-1].RawID
+	case "y-1":
+		versions, _ := cms.GetVersionsWithUpgrades(connection, channelGroup, CON.Y, true, false, 1***REMOVED***
+		vResult = versions[len(versions***REMOVED***-1].RawID
+	case "z-1":
+		versions, _ := cms.GetVersionsWithUpgrades(connection, channelGroup, CON.Z, true, false, 1***REMOVED***
+		vResult = versions[len(versions***REMOVED***-1].RawID
+	case "eol":
+		vResult = ""
+	}
+	return vResult
+}
 func PrepareProxy(***REMOVED*** {}
 
 func PrepareKMSKey(***REMOVED*** {}
 
 func PrepareRoute53(***REMOVED*** {}
 
-func GenerateClusterCreationArgsByProfile(profile *Profile***REMOVED*** (clusterArgs *EXE.ClusterCreationArgs, manifestsDir string, err error***REMOVED*** {
-
-	// Set majorVersion from prow job var env, or 4.13 as default
-	var majorVersion = GetEnvWithDefault(CON.MajorVersion, CON.DefaultMajorVersion***REMOVED***
-	var version = ""
+func GenerateClusterCreationArgsByProfile(token string, profile *Profile***REMOVED*** (clusterArgs *EXE.ClusterCreationArgs, manifestsDir string, err error***REMOVED*** {
+	profile.Version = PrepareVersion(RHCSConnection, profile.Version, profile.ChannelGroup***REMOVED***
 
 	clusterArgs = &EXE.ClusterCreationArgs{
-		Token: GetEnvWithDefault(CON.TokenENVName, ""***REMOVED***,
+		Token:            token,
+		OpenshiftVersion: profile.Version,
 	}
-
-	profile.ManifestsDIR = path.Join(profile.ManifestsDIR, GetEnvWithDefault(CON.ClusterTypeManifestDirEnv, CON.ROSAClassic***REMOVED******REMOVED***
-
+	if profile.ManifestsDIR == "" {
+		profile.ManifestsDIR = CON.ROSAClassic
+	}
 	if profile.ClusterName != "" {
 		clusterArgs.ClusterName = profile.ClusterName
 	} else {
@@ -106,7 +183,7 @@ func GenerateClusterCreationArgsByProfile(profile *Profile***REMOVED*** (cluster
 		clusterArgs.ClusterName = HELPER.GenerateClusterName(profile.Name***REMOVED***
 	}
 	if profile.AdminEnabled {
-		// clusterArgs.
+
 	}
 	if profile.Region != "" {
 		clusterArgs.AWSRegion = profile.Region
@@ -115,36 +192,14 @@ func GenerateClusterCreationArgsByProfile(profile *Profile***REMOVED*** (cluster
 	}
 
 	if profile.STS {
-		accService := EXE.NewAccountRoleService(***REMOVED***
-		acctPrefix := clusterArgs.ClusterName
-		accountRoleArgs := EXE.AccountRolesArgs{
-			Token:             GetEnvWithDefault(CON.TokenENVName, ""***REMOVED***,
-			AccountRolePrefix: acctPrefix,
-			ChannelGroup:      profile.ChannelGroup,
-***REMOVED***
-		err = accService.Create(&accountRoleArgs***REMOVED***
-		if err != nil {
-			defer accService.Destroy(&accountRoleArgs***REMOVED***
-			return
-***REMOVED***
+		accountRolesOutput, err := PrepareAccountRoles(token, clusterArgs.ClusterName, clusterArgs.AWSRegion, profile.Version, profile.ChannelGroup***REMOVED***
+		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+		clusterArgs.AccountRolePrefix = accountRolesOutput.AccountRolePrefix
 
-		if profile.Version != "" {
-			if profile.Version != "latest" {
-				version = strings.Join(strings.Split(profile.Version, "."***REMOVED***[0:2], "."***REMOVED***
-	***REMOVED*** else {
-				// todo: we are using backend code due to issue OCM-3562
-				versionsList := HELPER.GetGreaterOrEqualVersions(RHCSConnection, majorVersion, profile.ChannelGroup, true, true***REMOVED***
-				version = HELPER.SortRawVersions(versionsList***REMOVED***[len(versionsList***REMOVED***-1]
-	***REMOVED***
-			clusterArgs.OpenshiftVersion = version
-***REMOVED***
-
-		clusterArgs.AccountRolePrefix = acctPrefix
-		if profile.OIDCConfig != "" {
-			clusterArgs.OIDCConfig = profile.OIDCConfig
-***REMOVED***
-		clusterArgs.OperatorRolePrefix = clusterArgs.ClusterName
-
+		oidcOutput, err := PrepareOIDCProviderAndOperatorRoles(token, profile.OIDCConfig, clusterArgs.ClusterName, accountRolesOutput.AccountRolePrefix, clusterArgs.AWSRegion***REMOVED***
+		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+		clusterArgs.OIDCConfigID = oidcOutput.OIDCConfigID
+		clusterArgs.OperatorRolePrefix = oidcOutput.OperatorRolePrefix
 	}
 	if profile.Region == "" {
 		profile.Region = CON.DefaultAWSRegion
@@ -159,21 +214,26 @@ func GenerateClusterCreationArgsByProfile(profile *Profile***REMOVED*** (cluster
 
 	if profile.BYOVPC {
 		var zones []string
+		var vpcOutput *EXE.VPCOutput
 		if profile.Zones != "" {
 			zones = strings.Split(profile.Zones, ","***REMOVED***
 ***REMOVED***
 
-		privateSubnets, publicSubnets, zones := PrepareVPC(profile.Region, profile.PrivateLink, profile.MultiAZ, zones, clusterArgs.ClusterName***REMOVED***
-		clusterArgs.AWSAvailabilityZones = zones
-		if privateSubnets == nil {
+		vpcOutput, err = PrepareVPC(profile.Region, profile.PrivateLink, profile.MultiAZ, zones, clusterArgs.ClusterName***REMOVED***
+		if err != nil {
+			return
+***REMOVED***
+		clusterArgs.AWSAvailabilityZones = vpcOutput.AZs
+		if vpcOutput.ClusterPrivateSubnets == nil {
 			err = fmt.Errorf("error when creating the vpc, check the previous log. The created resources had been destroyed"***REMOVED***
 			return
 ***REMOVED***
 		if profile.PrivateLink {
-			clusterArgs.AWSSubnetIDs = privateSubnets
+			clusterArgs.AWSSubnetIDs = vpcOutput.ClusterPrivateSubnets
 ***REMOVED*** else {
-			clusterArgs.AWSSubnetIDs = append(privateSubnets, publicSubnets...***REMOVED***
+			clusterArgs.AWSSubnetIDs = append(vpcOutput.ClusterPrivateSubnets, vpcOutput.ClusterPublicSubnets...***REMOVED***
 ***REMOVED***
+		clusterArgs.MachineCIDR = vpcOutput.VPCCIDR
 	}
 
 	if profile.ChannelGroup != "" {
@@ -198,26 +258,35 @@ func GenerateClusterCreationArgsByProfile(profile *Profile***REMOVED*** (cluster
 	return clusterArgs, profile.ManifestsDIR, err
 }
 
-func LoadProfileYamlFile(***REMOVED*** *Profile {
-	profileEnv := GetEnvWithDefault(CON.RhcsClusterProfileENV, "rosa-sts-pl"***REMOVED***
-	if profileEnv == "" {
-		panic(fmt.Errorf("ENV Variable RHCS_PROFILE_ENV is empty, please make sure you set the env value"***REMOVED******REMOVED***
-	}
+func LoadProfileYamlFile(profileName string***REMOVED*** *Profile {
 	filename := GetYAMLProfileFile(CON.TFYAMLProfile***REMOVED***
-	p := HELPER.GetProfile(profileEnv, filename***REMOVED***
+	p := HELPER.GetProfile(profileName, filename***REMOVED***
 	fmt.Println(p.Cluster***REMOVED***
 	profile := Profile{
-		Name: profileEnv,
+		Name: profileName,
 	}
 	err := HELPER.MapStructure(p.Cluster, &profile***REMOVED***
+	if profile.ManifestsDIR == "" {
+		profile.ManifestsDIR = CON.ROSAClassic
+	}
 	Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 	return &profile
 }
 
-func CreateRHCSClusterByProfile(profile *Profile, creationArgs *EXE.ClusterCreationArgs, manifests_dir string***REMOVED*** (string, error***REMOVED*** {
+func LoadProfileYamlFileByENV(***REMOVED*** *Profile {
+	profileEnv := os.Getenv("CLUSTER_PROFILE"***REMOVED***
+	if profileEnv == "" {
+		panic(fmt.Errorf("ENV Variable CLUSTER_PROFILE is empty, please make sure you set the env value"***REMOVED******REMOVED***
+	}
+	return LoadProfileYamlFile(profileEnv***REMOVED***
+}
 
-	clusterService := EXE.NewClusterService(manifests_dir***REMOVED***
-	err := clusterService.Create(creationArgs***REMOVED***
+func CreateRHCSClusterByProfile(token string, profile *Profile***REMOVED*** (string, error***REMOVED*** {
+
+	creationArgs, _, err := GenerateClusterCreationArgsByProfile(token, profile***REMOVED***
+
+	clusterService, err := EXE.NewClusterService(profile.ManifestsDIR***REMOVED***
+	err = clusterService.Create(creationArgs***REMOVED***
 	if err != nil {
 		clusterService.Destroy(creationArgs***REMOVED***
 		return "", err
@@ -226,10 +295,62 @@ func CreateRHCSClusterByProfile(profile *Profile, creationArgs *EXE.ClusterCreat
 	return clusterID, err
 }
 
-func PrepareRHCSClusterByProfileENV(***REMOVED*** (*Profile, *EXE.ClusterCreationArgs, string***REMOVED*** {
+func DestroyRHCSClusterByProfile(token string, profile *Profile***REMOVED*** error {
 
-	profile := LoadProfileYamlFile(***REMOVED***
-	creationArgs, manifests_dir, err := GenerateClusterCreationArgsByProfile(profile***REMOVED***
+	// Destroy cluster
+	clusterService, err := EXE.NewClusterService(profile.ManifestsDIR***REMOVED***
 	Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-	return profile, creationArgs, manifests_dir
+	clusterArgs := &EXE.ClusterCreationArgs{
+		Token:              token,
+		AWSRegion:          profile.Region,
+		AccountRolePrefix:  "",
+		OperatorRolePrefix: "",
+	}
+	err = clusterService.Destroy(clusterArgs***REMOVED***
+	Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+
+	// Destroy VPC
+	if profile.BYOVPC {
+		vpcService := EXE.NewVPCService(***REMOVED***
+		vpcArgs := &EXE.VPCArgs{
+			AWSRegion: profile.Region,
+***REMOVED***
+		err := vpcService.Destroy(vpcArgs***REMOVED***
+		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+	}
+	if profile.STS {
+		// Destroy oidc and operator roles
+		oidcOpService, err := EXE.NewOIDCProviderOperatorRolesService(***REMOVED***
+		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+		args := &EXE.OIDCProviderOperatorRolesArgs{
+			Token:      token,
+			OIDCConfig: profile.OIDCConfig,
+			AWSRegion:  profile.Region,
+			// URL                string `json:"url,omitempty"`
+***REMOVED***
+		err = oidcOpService.Destroy(args***REMOVED***
+		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+
+		//  Destroy Account roles
+		accService, err := EXE.NewAccountRoleService(***REMOVED***
+		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+		accargs := &EXE.AccountRolesArgs{
+			Token: token,
+***REMOVED***
+		err = accService.Destroy(accargs***REMOVED***
+		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+
+	}
+	return nil
+}
+func PrepareRHCSClusterByProfileENV(***REMOVED*** string {
+	profile := LoadProfileYamlFileByENV(***REMOVED***
+	if profile.ManifestsDIR == "" {
+		profile.ManifestsDIR = CON.ROSAClassic
+	}
+	clusterService, err := EXE.NewClusterService(profile.ManifestsDIR***REMOVED***
+	Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+	clusterID, err := clusterService.Output(***REMOVED***
+	Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+	return clusterID
 }

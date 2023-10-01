@@ -1,8 +1,9 @@
-package helper
+package cms
 
 ***REMOVED***
 ***REMOVED***
 	"sort"
+	"strings"
 	"time"
 
 ***REMOVED***
@@ -13,6 +14,7 @@ package helper
 	v1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 ***REMOVED***
+***REMOVED***
 
 // ImageVersion
 type ImageVersion struct {
@@ -22,17 +24,6 @@ type ImageVersion struct {
 	Enabled      bool   `json:"enabled,omitempty"`
 	Default      bool   `json:"default,omitempty"`
 	RosaEnabled  bool   `json:"rosa_enabled,omitempty"`
-}
-
-func ListVersions(connection *client.Connection, parameter ...map[string]interface{}***REMOVED*** (resp *v1.VersionsListResponse, err error***REMOVED*** {
-	request := connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Versions(***REMOVED***.List(***REMOVED***
-	if len(parameter***REMOVED*** == 1 {
-		for k, v := range parameter[0] {
-			request = request.Parameter(k, v***REMOVED***
-***REMOVED***
-	}
-	resp, err = request.Send(***REMOVED***
-	return
 }
 
 func EnabledVersions(connection *client.Connection, channel string, throttleVersion string, onlyRosa bool, upgradeAvailable ...bool***REMOVED*** []*ImageVersion {
@@ -79,12 +70,10 @@ func EnabledVersions(connection *client.Connection, channel string, throttleVers
 }
 
 func HCPEnabledVersions(connection *client.Connection, channel string, upgradeAvailable ...bool***REMOVED*** []*ImageVersion {
-	// currentTime := time.Now(***REMOVED***.UTC(***REMOVED***.Format(time.RFC3339***REMOVED***
 	search := "enabled = 't' and hosted_control_plane_enabled='t' and rosa_enabled='t'"
 	if channel != "" {
 		search = fmt.Sprintf("%s and channel_group is '%s' ", search, channel***REMOVED***
 	}
-	// search = search + fmt.Sprintf(" and (end_of_life_timestamp >'%s' or end_of_life_timestamp is null***REMOVED***", currentTime***REMOVED***
 	if len(upgradeAvailable***REMOVED*** == 1 && upgradeAvailable[0] {
 		search = fmt.Sprintf("%s and available_upgrades != ''", search***REMOVED***
 	}
@@ -174,7 +163,7 @@ func GetOneSpecifiedVersion(versionList []*ImageVersion, index string***REMOVED*
 	case "oldest":
 		version = versionList[0]
 	default:
-		randomIndex := NewRand(***REMOVED***.Intn(length***REMOVED***
+		randomIndex := h.NewRand(***REMOVED***.Intn(length***REMOVED***
 		version = versionList[randomIndex]
 	}
 
@@ -190,7 +179,7 @@ func FindAnUpgradeVersion(connection *client.Connection***REMOVED*** string {
 	Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 	Expect(resp.Status(***REMOVED******REMOVED***.To(Equal(http.StatusOK***REMOVED******REMOVED***
 	versionItems := resp.Items(***REMOVED***.Slice(***REMOVED***
-	randNum := NewRand(***REMOVED***.Intn(len(versionItems***REMOVED******REMOVED***
+	randNum := h.NewRand(***REMOVED***.Intn(len(versionItems***REMOVED******REMOVED***
 	return versionItems[randNum].ID(***REMOVED***
 }
 
@@ -331,22 +320,32 @@ func IsStreamUpgrade(version string, upgradeVersion string, stream string***REMO
 }
 
 // It will return a list of versions which have available upgrades in the specified stream (x,y,z***REMOVED***
-func GetVersionsWithUpgrades(connection *client.Connection, channel string, stream string, hcpEnabled bool***REMOVED*** (imageVersionList []*ImageVersion, err error***REMOVED*** {
-	timeNow := time.Now(***REMOVED***.UTC(***REMOVED***.Format(time.RFC3339***REMOVED***
-	var enabledString = ""
-	if hcpEnabled {
-		enabledString = "t"
-	} else {
-		enabledString = "f"
+// channel mean channel group you are going to test
+// stream means minor or patch upgrade like 4.x.y if you want x upgrade set stream=x, y upgrade set to stream=y
+// step is a placeholder for future implementation. Only 1 supported now
+func GetVersionsWithUpgrades(connection *client.Connection, channel string, stream string, rosaEnabled bool, hcpEnableRequired bool, step int***REMOVED*** (imageVersionList []*ImageVersion, err error***REMOVED*** {
+	if step != 1 {
+		return nil, fmt.Errorf("only 1 step support right now"***REMOVED***
 	}
+	filters := []string{
+		"enabled='t'",
+		fmt.Sprintf("channel_group='%s'", channel***REMOVED***,
+		"available_upgrades != ''",
+	}
+	if rosaEnabled {
+		filters = append(filters, "rosa_enabled='t'"***REMOVED***
+	}
+	if hcpEnableRequired {
+		filters = append(filters, "hosted_control_plane_enabled='t'"***REMOVED***
+	}
+
 	filterParam := map[string]interface{}{
-		"search": fmt.Sprintf("enabled='t' and hosted_control_plane_enabled='%s' and rosa_enabled='t' and channel_group='%s' and available_upgrades != '' and (end_of_life_timestamp > '%s' or end_of_life_timestamp is null***REMOVED***", enabledString, channel, timeNow***REMOVED***,
+		"search": strings.Join(filters, " and "***REMOVED***,
 		"size":   "-1",
 	}
 
 	resp, err := ListVersions(connection, filterParam***REMOVED***
 	Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-	Expect(resp.Status(***REMOVED******REMOVED***.To(Equal(http.StatusOK***REMOVED******REMOVED***
 
 	for _, ver := range resp.Items(***REMOVED***.Slice(***REMOVED*** {
 
@@ -354,30 +353,12 @@ func GetVersionsWithUpgrades(connection *client.Connection, channel string, stre
 		if semVersionError != nil {
 			continue
 ***REMOVED***
-
-		var upgrade semver.Version
-		switch stream {
-		case CON.X:
-			upgrade = semVersion.IncMajor(***REMOVED***
-		case CON.Y:
-			semVersion.IncMinor(***REMOVED***
-		case CON.Z:
-			upgrade = semVersion.IncPatch(***REMOVED***
-		default:
-			err = fmt.Errorf("the stream %s is invalid", stream***REMOVED***
-***REMOVED***
-
 		for _, avUpgrade := range ver.AvailableUpgrades(***REMOVED*** {
-			semUpgrade, _ := semver.NewVersion(avUpgrade***REMOVED***
-			semUpgradeNoPreRelease, _ := semUpgrade.SetPrerelease(""***REMOVED*** // removing pre-release from version string
-			// fmt.Printf("avUpgrade=%s, reference upgrade = %s\n", semUpgradeNoPreRelease, &upgrade***REMOVED***
-			if semUpgradeNoPreRelease.GreaterThan(&upgrade***REMOVED*** || semUpgradeNoPreRelease.Equal(&upgrade***REMOVED*** {
-
-				zStreamAndIsZStreamUpgrade := stream == CON.Z && semUpgradeNoPreRelease.Minor(***REMOVED*** == semVersion.Minor(***REMOVED*** && semUpgradeNoPreRelease.Major(***REMOVED*** == semVersion.Major(***REMOVED***
-				yStreamAndIsYStreamUpgrade := stream == CON.Y && semUpgradeNoPreRelease.Major(***REMOVED*** == semVersion.Major(***REMOVED***
-				xStreamAndIsXStreamUpgrade := stream == CON.X
-
-				if zStreamAndIsZStreamUpgrade || yStreamAndIsYStreamUpgrade || xStreamAndIsXStreamUpgrade {
+			semHigherVersion, _ := semver.NewVersion(avUpgrade***REMOVED***
+			gocha := false
+			switch stream {
+			case CON.Z:
+				if semVersion.Minor(***REMOVED*** == semHigherVersion.Minor(***REMOVED*** {
 					imageVersion := &ImageVersion{
 						ID:           ver.ID(***REMOVED***,
 						RawID:        ver.RawID(***REMOVED***,
@@ -388,8 +369,27 @@ func GetVersionsWithUpgrades(connection *client.Connection, channel string, stre
 			***REMOVED***
 
 					imageVersionList = append(imageVersionList, imageVersion***REMOVED***
-					break
+					gocha = true
 		***REMOVED***
+			case CON.Y:
+				if semVersion.Minor(***REMOVED***+1 == semHigherVersion.Minor(***REMOVED*** {
+					imageVersion := &ImageVersion{
+						ID:           ver.ID(***REMOVED***,
+						RawID:        ver.RawID(***REMOVED***,
+						ChannelGroup: ver.ChannelGroup(***REMOVED***,
+						Enabled:      ver.Enabled(***REMOVED***,
+						Default:      ver.Default(***REMOVED***,
+						RosaEnabled:  ver.ROSAEnabled(***REMOVED***,
+			***REMOVED***
+
+					imageVersionList = append(imageVersionList, imageVersion***REMOVED***
+					gocha = true
+		***REMOVED***
+			default:
+				return nil, fmt.Errorf("only y or z is allowed"***REMOVED***
+	***REMOVED***
+			if gocha {
+				break
 	***REMOVED***
 ***REMOVED***
 	}
@@ -398,29 +398,28 @@ func GetVersionsWithUpgrades(connection *client.Connection, channel string, stre
 }
 
 // It will return a list of versions which have available upgrades in both y and z Streams
-func GetVersionsWithZYUpgrades(connection *client.Connection, channel string, hcpEnabled bool***REMOVED*** (imageVersionList *ImageVersion, err error***REMOVED*** {
-	lowVersionWithZUpgList, _ := GetVersionsWithUpgrades(connection, channel, CON.Z, true***REMOVED***
-	lowVersionWithYUpgList, _ := GetVersionsWithUpgrades(connection, channel, CON.Y, true***REMOVED***
-	var versionWithXYUpgrade *ImageVersion
-
-	if len(lowVersionWithZUpgList***REMOVED*** == 0 || len(lowVersionWithYUpgList***REMOVED*** == 0 {
-		err = fmt.Errorf("No lower version was found"***REMOVED***
-	} else {
-		for index := len(lowVersionWithZUpgList***REMOVED*** - 1; index >= 0; index-- {
-			versionWithZUpg := lowVersionWithZUpgList[index]
-			for yIndex := len(lowVersionWithYUpgList***REMOVED*** - 1; yIndex >= 0; yIndex-- {
-				versionWithYUpg := lowVersionWithYUpgList[yIndex]
-				if versionWithZUpg.RawID == versionWithYUpg.RawID {
-					versionWithXYUpgrade = versionWithYUpg
-					fmt.Sprintf("Found version: %s", versionWithYUpg.RawID***REMOVED***
-					break
-		***REMOVED***
-				if versionWithXYUpgrade != nil {
-					break
-		***REMOVED***
-	***REMOVED***
-***REMOVED***
+func GetVersionUpgradeTarget(orginalVersion string, stream string, availableUpgrades []string***REMOVED*** (targetV string, err error***REMOVED*** {
+	semVersion, semVersionError := semver.NewVersion(orginalVersion***REMOVED***
+	if semVersionError != nil {
+		return "", err
 	}
+	for _, avUpgrade := range availableUpgrades {
+		semHigherVersion, _ := semver.NewVersion(avUpgrade***REMOVED***
+		switch stream {
+		case CON.Z:
+			if semVersion.Minor(***REMOVED*** == semHigherVersion.Minor(***REMOVED*** {
+				targetV = avUpgrade
+				return
+	***REMOVED***
+		case CON.Y:
+			if semVersion.Minor(***REMOVED***+1 == semHigherVersion.Minor(***REMOVED*** {
+				targetV = avUpgrade
+				return
+	***REMOVED***
+		default:
+			return "", fmt.Errorf("only y or z is allowed"***REMOVED***
+***REMOVED***
 
-	return versionWithXYUpgrade, err
+	}
+	return
 }

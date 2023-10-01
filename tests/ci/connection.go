@@ -23,8 +23,6 @@ limitations under the License.
 ***REMOVED***
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 
-	// . "github.com/onsi/gomega"
-
 	client "github.com/openshift-online/ocm-sdk-go"
 ***REMOVED***
 

@@ -2,7 +2,6 @@ package exec
 
 ***REMOVED***
 	"context"
-	"encoding/json"
 ***REMOVED***
 
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
@@ -11,12 +10,19 @@ package exec
 
 type AccountRolesArgs struct {
 	AccountRolePrefix string `json:"account_role_prefix,omitempty"`
-	OCMENV            string `json:"ocm_environment,omitempty"`
+	OCMENV            string `json:"rhcs_environment,omitempty"`
 	OpenshiftVersion  string `json:"openshift_version,omitempty"`
 	Token             string `json:"token,omitempty"`
 	URL               string `json:"url,omitempty"`
 	ChannelGroup      string `json:"channel_group,omitempty"`
-	// Fake              []string `json:"fake,omitempty"`
+}
+
+type AccountRolesOutput struct {
+	AccountRolePrefix string        `json:"account_role_prefix,omitempty"`
+	MajorVersion      string        `json:"major_version,omitempty"`
+	ChannelGroup      string        `json:"channel_group,omitempty"`
+	RHCSGatewayUrl    string        `json:"rhcs_gateway_url,omitempty"`
+	RHCSVersions      []interface{} `json:"rhcs_versions,omitempty"`
 }
 
 type AccountRoleService struct {
@@ -40,25 +46,30 @@ func (acc *AccountRoleService***REMOVED*** Init(manifestDirs ...string***REMOVED
 
 }
 
-func (acc *AccountRoleService***REMOVED*** Create(createArgs *AccountRolesArgs, extraArgs ...string***REMOVED*** error {
+func (acc *AccountRoleService***REMOVED*** Create(createArgs *AccountRolesArgs, extraArgs ...string***REMOVED*** (*AccountRolesOutput, error***REMOVED*** {
 	acc.CreationArgs = createArgs
 	args := combineStructArgs(createArgs, extraArgs...***REMOVED***
 	_, err := runTerraformApplyWithArgs(acc.Context, acc.ManifestDir, args***REMOVED***
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	output, err := acc.Output(***REMOVED***
+	return output, nil
 }
 
-func (acc *AccountRoleService***REMOVED*** Output(***REMOVED*** (string, error***REMOVED*** {
+func (acc *AccountRoleService***REMOVED*** Output(***REMOVED*** (*AccountRolesOutput, error***REMOVED*** {
 	out, err := runTerraformOutput(acc.Context, acc.ManifestDir***REMOVED***
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-
-	versionsObj := out["rhcs_versions"]
-	versionsList := h.DigString(versionsObj, "value"***REMOVED***
-	return versionsList, nil
+	var accOutput = &AccountRolesOutput{
+		AccountRolePrefix: h.DigString(out["account_roles_prefix"], "value"***REMOVED***,
+		MajorVersion:      h.DigString(out["major_version"], "value"***REMOVED***,
+		ChannelGroup:      h.DigString(out["channel_group"], "value"***REMOVED***,
+		RHCSGatewayUrl:    h.DigString(out["rhcs_gateway_url"], "value"***REMOVED***,
+		RHCSVersions:      h.DigArray(out["rhcs_versions"], "value"***REMOVED***,
+	}
+	return accOutput, nil
 }
 
 func (acc *AccountRoleService***REMOVED*** Destroy(createArgs ...*AccountRolesArgs***REMOVED*** error {
@@ -71,48 +82,11 @@ func (acc *AccountRoleService***REMOVED*** Destroy(createArgs ...*AccountRolesAr
 	}
 	args := combineStructArgs(destroyArgs***REMOVED***
 	err := runTerraformDestroyWithArgs(acc.Context, acc.ManifestDir, args***REMOVED***
-	// if err != nil {
-	// 	return err
-	// }
-
-	// getClusterIdCmd := exec.Command("terraform", "output", "-json", "cluster_id"***REMOVED***
-	// getClusterIdCmd.Dir = targetDir
-	// _, err = getClusterIdCmd.Output(***REMOVED***
-
 	return err
 }
 
-func NewAccountRoleService(manifestDir ...string***REMOVED*** *AccountRoleService {
+func NewAccountRoleService(manifestDir ...string***REMOVED*** (*AccountRoleService, error***REMOVED*** {
 	acc := &AccountRoleService{}
-	acc.Init(manifestDir...***REMOVED***
-	return acc
-}
-
-// ********************** AccountRoles CMD ******************************
-func CreateAccountRoles(varArgs map[string]interface{}, abArgs ...string***REMOVED*** (string, error***REMOVED*** {
-	runTerraformInit(context.TODO(***REMOVED***, CON.AccountRolesDir***REMOVED***
-
-	args := combineArgs(varArgs, abArgs...***REMOVED***
-	return runTerraformApplyWithArgs(context.TODO(***REMOVED***, CON.AccountRolesDir, args***REMOVED***
-}
-
-func DestroyAccountRoles(varArgs map[string]interface{}, abArgs ...string***REMOVED*** error {
-	runTerraformInit(context.TODO(***REMOVED***, CON.AccountRolesDir***REMOVED***
-
-	args := combineArgs(varArgs, abArgs...***REMOVED***
-	return runTerraformDestroyWithArgs(context.TODO(***REMOVED***, CON.AccountRolesDir, args***REMOVED***
-}
-
-func CreateMyTFAccountRoles(accRoleArgs *AccountRolesArgs, arg ...string***REMOVED*** (string, error***REMOVED*** {
-	parambytes, _ := json.Marshal(accRoleArgs***REMOVED***
-	args := map[string]interface{}{}
-	json.Unmarshal(parambytes, &args***REMOVED***
-	return CreateAccountRoles(args, arg...***REMOVED***
-}
-
-func DestroyMyTFAccountRoles(accRoleArgs *AccountRolesArgs, arg ...string***REMOVED*** error {
-	parambytes, _ := json.Marshal(accRoleArgs***REMOVED***
-	args := map[string]interface{}{}
-	json.Unmarshal(parambytes, &args***REMOVED***
-	return DestroyAccountRoles(args, arg...***REMOVED***
+	err := acc.Init(manifestDir...***REMOVED***
+	return acc, err
 }

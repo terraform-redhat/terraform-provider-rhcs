@@ -6,18 +6,15 @@
 	CI "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 ***REMOVED***
 
-var region = "us-west-2"
-
 var _ = Describe("TF Test", func(***REMOVED*** {
 	Describe("Create cluster test", func(***REMOVED*** {
-		It("CreateClusterByProfile", CI.Day1Prepare,
+		It("DestroyClusterByProfile", CI.Destroy,
 			func(***REMOVED*** {
 
 				// Generate/build cluster by profile selected
 				profile := CI.LoadProfileYamlFileByENV(***REMOVED***
-				clusterID, err := CI.CreateRHCSClusterByProfile(token, profile***REMOVED***
+				err := CI.DestroyRHCSClusterByProfile(token, profile***REMOVED***
 				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-				Expect(clusterID***REMOVED***.ToNot(BeEmpty(***REMOVED******REMOVED***
 	***REMOVED******REMOVED***
 	}***REMOVED***
 }***REMOVED***

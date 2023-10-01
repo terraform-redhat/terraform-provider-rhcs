@@ -13,3 +13,7 @@ output "node-private-subnet" {
 output "azs"{
   value = module.vpc.azs
 }
+
+output "vpc-cidr"{
+  value = var.vpc_cidr
+}

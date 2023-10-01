@@ -56,14 +56,12 @@ func convertToString(searchMap map[string]interface{}***REMOVED*** (filter strin
 	for key, value := range searchMap {
 		switch value := value.(type***REMOVED*** {
 		case string:
-			// fmt.Printf("[Debug][String]: %s -> %s\n", key, value***REMOVED***
 			if h.StartsWith(value, "like "***REMOVED*** {
 				parameterArry = append(parameterArry, fmt.Sprintf("%s like '%s'", key, h.Lstrip(value, "like "***REMOVED******REMOVED******REMOVED***
 	***REMOVED*** else {
 				parameterArry = append(parameterArry, fmt.Sprintf("%s='%s'", key, value***REMOVED******REMOVED***
 	***REMOVED***
 		case map[string]string:
-			// fmt.Printf("[Debug][Map]: %s -> %v\n", key, value***REMOVED***
 			for subKey, subValue := range value {
 				if h.StartsWith(subValue, "like "***REMOVED*** {
 					parameterArry = append(parameterArry, fmt.Sprintf("%s like '%s'", h.Join(key, subKey***REMOVED***, subValue***REMOVED******REMOVED***

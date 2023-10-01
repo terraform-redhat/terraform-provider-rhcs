@@ -21,7 +21,7 @@ var (
 	TokenENVName              = "RHCS_TOKEN"
 	ClusterIDEnv              = "CLUSTER_ID"
 	OCMEnv                    = "OCM_ENV"
-	RhcsClusterProfileENV     = "RHCS_PROFILE_ENV"
+	RhcsClusterProfileENV     = "CLUSTER_PROFILE"
 	ClusterTypeManifestDirEnv = "CLUSTER_ROSA_TYPE"
 	MajorVersion              = "MAJOR_VERSION_ENV"
 	ManifestsDirENV           = os.Getenv("MANIFESTS_DIR"***REMOVED***
@@ -62,9 +62,9 @@ const (
 
 // Dirs of aws provider
 var (
-	AccountRolesDir  = path.Join(configrationDir, AWSProviderDIR, "account-roles"***REMOVED***
-	OperatorRolesDir = path.Join(configrationDir, AWSProviderDIR, "operator-roles"***REMOVED***
-	AWSVPCDir        = path.Join(configrationDir, AWSProviderDIR, "vpc"***REMOVED***
+	AccountRolesDir                      = path.Join(configrationDir, AWSProviderDIR, "account-roles"***REMOVED***
+	OIDCProviderOperatorRolesManifestDir = path.Join(configrationDir, AWSProviderDIR, "oidc-provider-operator-roles"***REMOVED***
+	AWSVPCDir                            = path.Join(configrationDir, AWSProviderDIR, "vpc"***REMOVED***
 ***REMOVED***
 
 // Dirs of rhcs provider

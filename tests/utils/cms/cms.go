@@ -139,7 +139,6 @@ func ListAvailableRegions(connection *client.Connection, providerID string, body
 }
 
 // version
-
 func ListVersions(connection *client.Connection, parameter ...map[string]interface{}) (resp *cmv1.VersionsListResponse, err error) {
 	request := connection.ClustersMgmt().V1().Versions().List()
 	if len(parameter) == 1 {

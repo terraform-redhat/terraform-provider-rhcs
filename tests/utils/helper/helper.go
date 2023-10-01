@@ -58,11 +58,20 @@ func DigStringArray(object interface{}, keys ...interface{}) []string {
 // value. If there is no attribute with the given path then the test will be aborted with an error.
 func DigArray(object interface{}, keys ...interface{}) []interface{} {
 	value := Dig(object, keys)
-	//ExpectWithOffset(1, value).ToNot(BeNil())
 	var result []interface{}
-	//ExpectWithOffset(1, value).To(BeAssignableToTypeOf(result))
 	result = value.([]interface{})
 	return result
+}
+
+func DigArrayToString(object interface{}, keys ...interface{}) []string {
+	value := Dig(object, keys)
+	var result []interface{}
+	result = value.([]interface{})
+	strR := []string{}
+	for _, r := range result {
+		strR = append(strR, r.(string))
+	}
+	return strR
 }
 
 // DigInt tries to find an attribute inside the given object with the given path, and returns its

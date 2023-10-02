@@ -10,9 +10,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 
 type ClusterWaiterResource struct {
@@ -22,10 +22,7 @@ type ClusterWaiterResource struct {
 var _ resource.ResourceWithConfigure = &ClusterWaiterResource{}
 
 const (
-	defaultTimeoutInMinutes   = int64(60)
-	nonPositiveTimeoutSummary = "Can't poll cluster state with a non-positive timeout"
-	nonPositiveTimeoutFormat  = "Can't poll state of cluster with identifier '%s', the timeout that was set is not a positive number"
-	pollingIntervalInMinutes  = 2
+	defaultTimeoutInMinutes = int64(60)
 )
 
 func New() resource.Resource {
@@ -90,8 +87,13 @@ func (r *ClusterWaiterResource) Create(ctx context.Context, req resource.CreateR
 	state, err := r.startPolling(ctx, state)
 
 	if err != nil {
-		resp.Diagnostics.AddError("Can't poll cluster state (create resource)", err.Error())
-		return
+		resp.Diagnostics.AddError(
+			"Waiting for cluster creation finished with error",
+			fmt.Sprintf("Waiting for cluster creation finished with the error %v", err),
+		)
+		if state == nil {
+			return
+		}
 	}
 
 	// Save the state:
@@ -136,7 +138,7 @@ func (r *ClusterWaiterResource) startPolling(ctx context.Context, state *Cluster
 	}
 
 	// Wait till the cluster is ready:
-	object, err := r.retryClusterReadiness(3, 30*time.Second, state.Cluster.ValueString(), ctx, timeout)
+	object, err := common.RetryClusterReadiness(3, 30*time.Second, state.Cluster.ValueString(), ctx, timeout, r.collection)
 	if err != nil {
 		return state, fmt.Errorf(
 			"Can't poll state of cluster with identifier '%s': %v",
@@ -146,45 +148,4 @@ func (r *ClusterWaiterResource) startPolling(ctx context.Context, state *Cluster
 
 	state.Ready = types.BoolValue(object.State() == cmv1.ClusterStateReady)
 	return state, nil
-}
-
-func (r *ClusterWaiterResource) isClusterReady(clusterId string, ctx context.Context, timeout int64) (*cmv1.Cluster, error) {
-	client := r.collection.Cluster(clusterId)
-	var object *cmv1.Cluster
-	pollCtx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Minute)
-	defer cancel()
-	_, err := client.Poll().
-		Interval(pollingIntervalInMinutes * time.Minute).
-		Predicate(func(getClusterResponse *cmv1.ClusterGetResponse) bool {
-			object = getClusterResponse.Body()
-			tflog.Debug(ctx, "polled cluster state", map[string]interface{}{
-				"state": object.State(),
-			})
-			switch object.State() {
-			case cmv1.ClusterStateReady,
-				cmv1.ClusterStateError:
-				return true
-			}
-			return false
-		}).
-		StartContext(pollCtx)
-	if err != nil {
-		tflog.Error(ctx, "Can't  poll cluster state")
-		return nil, err
-	}
-
-	return object, err
-}
-
-func (r *ClusterWaiterResource) retryClusterReadiness(attempts int, sleep time.Duration, clusterId string, ctx context.Context, timeout int64) (*cmv1.Cluster, error) {
-	object, err := r.isClusterReady(clusterId, ctx, timeout)
-	if err != nil {
-		if attempts--; attempts > 0 {
-			time.Sleep(sleep)
-			return r.retryClusterReadiness(attempts, 2*sleep, clusterId, ctx, timeout)
-		}
-		return object, err
-	}
-
-	return object, nil
 }

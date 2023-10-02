@@ -180,7 +180,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ready`, false***REMOVED******REMOVED***
 	}***REMOVED***
 
-	It("Create cluster with a positive timeout and get cluster in error state", func(***REMOVED*** {
+	It("Create cluster with a positive timeout and failed cause cluster in error state", func(***REMOVED*** {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
@@ -196,7 +196,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		***REMOVED***
 			`***REMOVED***
 
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
 		resource := terraform.Resource("rhcs_cluster_wait", "rosa_cluster"***REMOVED***
 		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ready`, false***REMOVED******REMOVED***
 	}***REMOVED***

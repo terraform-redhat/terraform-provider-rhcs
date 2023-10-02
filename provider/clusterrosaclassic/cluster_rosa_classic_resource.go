@@ -43,7 +43,6 @@ package clusterrosaclassic
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
-	_ "github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -78,6 +77,7 @@ const (
 	lowestHttpTokensVer   = "4.11.0"
 	propertyRosaTfVersion = tagsPrefix + "tf_version"
 	propertyRosaTfCommit  = tagsPrefix + "tf_commit"
+	waitTimeoutInMinutes  = 60
 ***REMOVED***
 
 var OCMProperties = map[string]string{
@@ -468,6 +468,10 @@ func (r *ClusterRosaClassicResource***REMOVED*** Schema(ctx context.Context, req
 					objectvalidator.AlsoRequires(path.MatchRelative(***REMOVED***.AtParent(***REMOVED***.AtName("aws_subnet_ids"***REMOVED******REMOVED***,
 					privateHZValidator,
 		***REMOVED***,
+	***REMOVED***,
+			"wait_for_create_complete": schema.BoolAttribute{
+				Description: "Wait until the cluster is either in a ready state or in an error state. The waiter has a timeout of 60 minutes, with the default value set to false",
+				Optional:    true,
 	***REMOVED***,
 ***REMOVED***,
 	}
@@ -936,6 +940,20 @@ func (r *ClusterRosaClassicResource***REMOVED*** Create(ctx context.Context, req
 	}
 	object = add.Body(***REMOVED***
 
+	if common.HasValue(state.WaitForCreateComplete***REMOVED*** && state.WaitForCreateComplete.ValueBool(***REMOVED*** {
+		object, err = common.RetryClusterReadiness(3, 30*time.Second, object.ID(***REMOVED***,
+			ctx, waitTimeoutInMinutes, r.clusterCollection***REMOVED***
+		if err != nil {
+			response.Diagnostics.AddError(
+				"Waiting for cluster creation finished with error",
+				fmt.Sprintf("Waiting for cluster creation finished with the error %v", err***REMOVED***,
+			***REMOVED***
+			if object == nil {
+				return
+	***REMOVED***
+***REMOVED***
+	}
+
 	// Save the state:
 	err = populateRosaClassicClusterState(ctx, object, state, common.DefaultHttpClient{}***REMOVED***
 	if err != nil {
@@ -947,6 +965,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** Create(ctx context.Context, req
 		***REMOVED***
 		return
 	}
+
 	diags = response.State.Set(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
 }
@@ -1018,6 +1037,20 @@ func (r *ClusterRosaClassicResource***REMOVED*** Update(ctx context.Context, req
 	diags = request.Plan.Get(ctx, plan***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
 	if response.Diagnostics.HasError(***REMOVED*** {
+		return
+	}
+
+	clusterState := "Unknown"
+	if common.HasValue(state.State***REMOVED*** && state.State.ValueString(***REMOVED*** != "" {
+		clusterState = state.State.ValueString(***REMOVED***
+	}
+	if clusterState != string(cmv1.ClusterStateReady***REMOVED*** {
+		response.Diagnostics.AddError(
+			"Update cluster operation is only supported while cluster is ready",
+			fmt.Sprintf(
+				"Update cluster operation is only supported while cluster is ready, cluster state is %s", clusterState,
+			***REMOVED***,
+		***REMOVED***
 		return
 	}
 

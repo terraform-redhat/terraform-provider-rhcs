@@ -53,6 +53,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 	template := `{
 	  "id": "123",
 	  "name": "my-cluster",
+	  "state": "ready",
 	  "region": {
 	    "id": "us-west-1"
 	  },
@@ -126,6 +127,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
           "base_domain": "mycluster-api.example.com"
       }
 	}`
+
 	Context("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 		It("invalid az for region", func(***REMOVED*** {
 			terraform.Source(`
@@ -343,6 +345,169 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 	***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 
+		Context("Test wait attribute", func(***REMOVED*** {
+			It("Create cluster and wait till it will be in error state", func(***REMOVED*** {
+				// Prepare the server:
+				server.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+						RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
+					***REMOVED***,
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+						RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***]`***REMOVED***,
+					***REMOVED***,
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***,
+					{
+                      "op": "add",
+                      "path": "/state",
+					  "value": "error"
+			***REMOVED***]`***REMOVED***,
+					***REMOVED***,
+				***REMOVED***
+
+				// Run the apply command:
+				terraform.Source(`
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+		***REMOVED***
+	***REMOVED***
+			wait_for_create_complete = true
+		  }
+		`***REMOVED***
+				Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
+				resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
+				Expect(resource***REMOVED***.To(MatchJQ(".attributes.state", "error"***REMOVED******REMOVED***
+	***REMOVED******REMOVED***
+
+			It("Create cluster and wait till it will be in ready state", func(***REMOVED*** {
+				// Prepare the server:
+				server.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+						RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
+					***REMOVED***,
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+						RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***]`***REMOVED***,
+					***REMOVED***,
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+			***REMOVED***,
+					{
+                      "op": "add",
+                      "path": "/state",
+					  "value": "ready"
+			***REMOVED***]`***REMOVED***,
+					***REMOVED***,
+				***REMOVED***
+
+				// Run the apply command:
+				terraform.Source(`
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+		***REMOVED***
+	***REMOVED***
+			wait_for_create_complete = true
+		  }
+		`***REMOVED***
+				Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+				resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
+				Expect(resource***REMOVED***.To(MatchJQ(".attributes.state", "ready"***REMOVED******REMOVED***
+	***REMOVED******REMOVED***
+***REMOVED******REMOVED***
 		It("Creates basic cluster", func(***REMOVED*** {
 			// Prepare the server:
 			server.AppendHandlers(
@@ -2966,6 +3131,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 	const template = `{
 		"id": "123",
 		"name": "my-cluster",
+		"state": "ready",
 		"region": {
 		  "id": "us-west-1"
 ***REMOVED***,

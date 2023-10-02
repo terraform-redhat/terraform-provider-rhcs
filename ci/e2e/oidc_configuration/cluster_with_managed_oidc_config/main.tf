@@ -88,10 +88,5 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   sts             = local.sts_roles
   replicas        = var.replicas
   destroy_timeout = 120
-}
-
-resource "rhcs_cluster_wait" "rosa_cluster" {
-  cluster = rhcs_cluster_rosa_classic.rosa_sts_cluster.id
-  # timeout in minutes
-  timeout = 60
+  wait_for_create_complete = true
 }

@@ -23,7 +23,6 @@ package machinepool
 ***REMOVED***
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
@@ -38,10 +37,9 @@ package machinepool
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
-
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 ***REMOVED***
 
 var machinepoolNameRE = regexp.MustCompile(
@@ -240,15 +238,7 @@ func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context, req resour
 	}
 
 	// Wait till the cluster is ready:
-	resource := r.collection.Cluster(state.Cluster.ValueString(***REMOVED******REMOVED***
-	pollCtx, cancel := context.WithTimeout(ctx, 1*time.Hour***REMOVED***
-	defer cancel(***REMOVED***
-	_, err := resource.Poll(***REMOVED***.
-		Interval(30 * time.Second***REMOVED***.
-		Predicate(func(get *cmv1.ClusterGetResponse***REMOVED*** bool {
-			return get.Body(***REMOVED***.State(***REMOVED*** == cmv1.ClusterStateReady
-***REMOVED******REMOVED***.
-		StartContext(pollCtx***REMOVED***
+	err := common.WaitTillClusterReady(ctx, r.collection, state.Cluster.ValueString(***REMOVED******REMOVED***
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Can't poll cluster state",
@@ -261,6 +251,7 @@ func (r *MachinePoolResource***REMOVED*** Create(ctx context.Context, req resour
 	}
 
 	// Create the machine pool:
+	resource := r.collection.Cluster(state.Cluster.ValueString(***REMOVED******REMOVED***
 	builder := cmv1.NewMachinePool(***REMOVED***.ID(state.ID.ValueString(***REMOVED******REMOVED***.InstanceType(state.MachineType.ValueString(***REMOVED******REMOVED***
 	builder.ID(state.Name.ValueString(***REMOVED******REMOVED***
 

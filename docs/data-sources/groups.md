@@ -21,7 +21,7 @@ List of groups.
 
 ### Read-Only
 
-- `items` (Attributes List***REMOVED*** Items of the list. (see [below for nested schema](#nestedatt--items***REMOVED******REMOVED***
+- `items` (Attributes List***REMOVED*** Content of the list. (see [below for nested schema](#nestedatt--items***REMOVED******REMOVED***
 
 <a id="nestedatt--items"></a>
 ### Nested Schema for `items`

@@ -124,3 +124,5 @@ Required:
 
 - `master_role_arn` (String***REMOVED*** Master/Controller Plane Role ARN
 - `worker_role_arn` (String***REMOVED*** Worker Node Role ARN
+
+

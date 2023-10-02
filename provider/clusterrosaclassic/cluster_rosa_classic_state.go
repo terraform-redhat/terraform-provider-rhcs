@@ -67,6 +67,7 @@ type ClusterRosaClassicState struct {
 	AdminCredentials          *AdminCredentials  `tfsdk:"admin_credentials"`
 	PrivateHostedZone         *PrivateHostedZone `tfsdk:"private_hosted_zone"`
 	BaseDNSDomain             types.String       `tfsdk:"base_dns_domain"`
+	WaitForCreateComplete     types.Bool         `tfsdk:"wait_for_create_complete"`
 }
 
 type Sts struct {

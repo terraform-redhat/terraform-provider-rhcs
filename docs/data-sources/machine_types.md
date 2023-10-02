@@ -3,12 +3,12 @@
 page_title: "rhcs_machine_types Data Source - terraform-provider-rhcs"
 subcategory: ""
 description: |-
-  List of cloud providers.
+  List of machine types
 ---
 
 # rhcs_machine_types (Data Source)
 
-List of cloud providers.
+List of machine types
 
 
 

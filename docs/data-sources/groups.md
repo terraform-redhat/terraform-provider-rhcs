@@ -21,7 +21,7 @@ List of groups.
 
 ### Read-Only
 
-- `items` (Attributes List) Items of the list. (see [below for nested schema](#nestedatt--items))
+- `items` (Attributes List) Content of the list. (see [below for nested schema](#nestedatt--items))
 
 <a id="nestedatt--items"></a>
 ### Nested Schema for `items`

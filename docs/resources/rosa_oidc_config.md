@@ -3,12 +3,12 @@
 page_title: "rhcs_rosa_oidc_config Resource - terraform-provider-rhcs"
 subcategory: ""
 description: |-
-  OIDC config
+  Manages OIDC config
 ---
 
 # rhcs_rosa_oidc_config (Resource)
 
-OIDC config
+Manages OIDC config
 
 
 

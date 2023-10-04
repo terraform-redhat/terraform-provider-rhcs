@@ -58,8 +58,6 @@ var _ tfprovider.Provider = &Provider{}
 type Config struct {
 	URL          types.String `tfsdk:"url"`
 	TokenURL     types.String `tfsdk:"token_url"`
-	User         types.String `tfsdk:"user"`
-	Password     types.String `tfsdk:"password"`
 	Token        types.String `tfsdk:"token"`
 	ClientID     types.String `tfsdk:"client_id"`
 	ClientSecret types.String `tfsdk:"client_secret"`
@@ -82,21 +80,12 @@ func (p *Provider***REMOVED*** Schema(ctx context.Context, req tfprovider.Schema
 	resp.Schema = tfpschema.Schema{
 		Attributes: map[string]tfpschema.Attribute{
 			"url": tfpschema.StringAttribute{
-				Description: "URL of the API server.",
+				Description: fmt.Sprintf("URL sets the base URL of the API gateway. The default is `%s`", sdk.DefaultURL***REMOVED***,
 				Optional:    true,
 	***REMOVED***,
 			"token_url": tfpschema.StringAttribute{
-				Description: "OpenID token URL.",
+				Description: fmt.Sprintf("TokenURL returns the URL that the connection is using request OpenID access tokens. The default value is '%s'", sdk.DefaultTokenURL***REMOVED***,
 				Optional:    true,
-	***REMOVED***,
-			"user": tfpschema.StringAttribute{
-				Description: "User name.",
-				Optional:    true,
-	***REMOVED***,
-			"password": tfpschema.StringAttribute{
-				Description: "User password.",
-				Optional:    true,
-				Sensitive:   true,
 	***REMOVED***,
 			"token": tfpschema.StringAttribute{
 				Description: "Access or refresh token that is " +
@@ -105,7 +94,7 @@ func (p *Provider***REMOVED*** Schema(ctx context.Context, req tfprovider.Schema
 				Sensitive: true,
 	***REMOVED***,
 			"client_id": tfpschema.StringAttribute{
-				Description: "OpenID client identifier.",
+				Description: fmt.Sprintf("OpenID client identifier. The default value is '%s'.", sdk.DefaultClientID***REMOVED***,
 				Optional:    true,
 	***REMOVED***,
 			"client_secret": tfpschema.StringAttribute{
@@ -131,6 +120,16 @@ func (p *Provider***REMOVED*** Schema(ctx context.Context, req tfprovider.Schema
 	}
 }
 
+func (p *Provider***REMOVED*** getAttrValueOrConfig(attr types.String, envSuffix string***REMOVED*** (string, bool***REMOVED*** {
+	if !attr.IsNull(***REMOVED*** {
+		return attr.ValueString(***REMOVED***, true
+	}
+	if value, ok := os.LookupEnv(fmt.Sprintf("RHCS_%s", envSuffix***REMOVED******REMOVED***; ok {
+		return value, true
+	}
+	return "", false
+}
+
 // configure is the configuration function of the provider. It is responsible for checking the
 // connection parameters and creating the connection that will be used by the resources.
 func (p *Provider***REMOVED*** Configure(ctx context.Context, req tfprovider.ConfigureRequest,
@@ -154,37 +153,23 @@ func (p *Provider***REMOVED*** Configure(ctx context.Context, req tfprovider.Con
 	builder.Agent(fmt.Sprintf("OCM-TF/%s-%s", build.Version, build.Commit***REMOVED******REMOVED***
 
 	// Copy the settings:
-	if !config.URL.IsNull(***REMOVED*** {
-		builder.URL(config.URL.ValueString(***REMOVED******REMOVED***
-	} else {
-		url, ok := os.LookupEnv("RHCS_URL"***REMOVED***
-		if ok {
-			builder.URL(url***REMOVED***
-***REMOVED***
+	if url, ok := p.getAttrValueOrConfig(config.URL, "URL"***REMOVED***; ok {
+		builder.URL(url***REMOVED***
 	}
-	if !config.TokenURL.IsNull(***REMOVED*** {
-		builder.TokenURL(config.TokenURL.ValueString(***REMOVED******REMOVED***
+	if tokenURL, ok := p.getAttrValueOrConfig(config.TokenURL, "TOKEN_URL"***REMOVED***; ok {
+		builder.TokenURL(tokenURL***REMOVED***
 	}
-	if !config.User.IsNull(***REMOVED*** && !config.Password.IsNull(***REMOVED*** {
-		builder.User(config.User.ValueString(***REMOVED***, config.Password.ValueString(***REMOVED******REMOVED***
+	if token, ok := p.getAttrValueOrConfig(config.Token, "TOKEN"***REMOVED***; ok {
+		builder.Tokens(token***REMOVED***
 	}
-	if !config.Token.IsNull(***REMOVED*** {
-		builder.Tokens(config.Token.ValueString(***REMOVED******REMOVED***
-	} else {
-		token, ok := os.LookupEnv("RHCS_TOKEN"***REMOVED***
-		if ok {
-			builder.Tokens(token***REMOVED***
-***REMOVED***
+	clientID, clientIdExists := p.getAttrValueOrConfig(config.ClientID, "CLIENT_ID"***REMOVED***
+	clientSecret, clientSecretExists := p.getAttrValueOrConfig(config.ClientSecret, "CLIENT_SECRET"***REMOVED***
+	if clientIdExists && clientSecretExists {
+		builder.Client(clientID, clientSecret***REMOVED***
 	}
-	if !config.ClientID.IsNull(***REMOVED*** && !config.ClientSecret.IsNull(***REMOVED*** {
-		builder.Client(config.ClientID.ValueString(***REMOVED***, config.ClientSecret.ValueString(***REMOVED******REMOVED***
-	}
-	if !config.Insecure.IsNull(***REMOVED*** {
-		builder.Insecure(config.Insecure.ValueBool(***REMOVED******REMOVED***
-	}
-	if !config.TrustedCAs.IsNull(***REMOVED*** {
+	if trustedCAs, ok := p.getAttrValueOrConfig(config.TrustedCAs, "TRUSTED_CAS"***REMOVED***; ok {
 		pool := x509.NewCertPool(***REMOVED***
-		if !pool.AppendCertsFromPEM([]byte(config.TrustedCAs.ValueString(***REMOVED******REMOVED******REMOVED*** {
+		if !pool.AppendCertsFromPEM([]byte(trustedCAs***REMOVED******REMOVED*** {
 			resp.Diagnostics.AddError(
 				"the value of 'trusted_cas' doesn't contain any certificate",
 				"",
@@ -192,6 +177,9 @@ func (p *Provider***REMOVED*** Configure(ctx context.Context, req tfprovider.Con
 			return
 ***REMOVED***
 		builder.TrustedCAs(pool***REMOVED***
+	}
+	if !config.Insecure.IsNull(***REMOVED*** {
+		builder.Insecure(config.Insecure.ValueBool(***REMOVED******REMOVED***
 	}
 
 	// Create the connection:

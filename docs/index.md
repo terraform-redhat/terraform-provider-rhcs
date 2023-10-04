@@ -170,6 +170,45 @@ To use the Red Hat Cloud Services provider inside your Terraform configuration y
     }
     ```
 
+## Authentication and configuration
+
+The login to your Red Hat account is done by private offline access token which can be generate at https://console.redhat.com/openshift/token/rosa
+
+Configuration for the RHCS Provider can be derived from several sources, which are applied in the following order:
+
+1. Parameters in the provider configuration
+1. Environment Variables
+
+## Provider Configuration
+
+!> **Warning:** Hard-coded credentials are not recommended in any Terraform
+configuration and risks secret leakage should this file ever be committed to a
+public version control system.
+
+The Red Hat Cloud Services token can be provided by adding a `token` to the `rhcs` provider block.
+
+Usage:
+
+```terraform
+provider "rhcs" {
+  token = "my-token"
+}
+```
+
+### Environment Variables
+
+The Red Hat Cloud Services token can be provided by using the `RHCS_TOKEN` environment variables.
+
+For example:
+
+```terraform
+provider "rhcs" {}
+```
+
+```console
+% export RHCS_TOKEN="my-token"
+```
+
 ## Terraform examples
 
 The example Terraform files are all considered in development and should not be used for production environments:
@@ -193,17 +232,3 @@ The example Terraform files are all considered in development and should not be 
 ### Create your Operator IAM roles prefix name
 
 The Operator IAM roles will be created per cluster with the [rosa-sts](https://registry.terraform.io/modules/terraform-redhat/rosa-sts***REMOVED*** module.
-
-## Variables for Red Hat Cloud Services Terraform provider
-
-The following variables are used to create a ROSA cluster with the Terraform provider:
-
-- `client_id` (String***REMOVED*** - OpenID client identifier.
-- `client_secret` (String, Sensitive***REMOVED*** - OpenID client secret.
-- `insecure` (Boolean***REMOVED*** - When set to 'true' enables insecure communication with the server. This disables verification of TLS certificates and host names, and it is not recommended for production environments.
-- `password` (String, Sensitive***REMOVED*** - User password.
-- `token` (String, Sensitive***REMOVED*** - Access or refresh token that is generated from https://console.redhat.com/openshift/token/rosa.
-- `token_url` (String***REMOVED*** - OpenID token URL.
-- `trusted_cas` (String***REMOVED*** - PEM encoded certificates of authorities that will be trusted. If this is not explicitly specified, then the provider will trust the default certificate authorities trusted by the system.
-- `url` (String***REMOVED*** - URL of the API server.
-- `user` (String***REMOVED*** - User name.

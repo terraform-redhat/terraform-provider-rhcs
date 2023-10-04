@@ -35,12 +35,13 @@ type MachinePoolService struct {
 }
 
 type MachinePoolOutput struct {
-	ID                 string `json:"machine_pool_id,omitempty"`
-	Name               string `json:"name,omitempty"`
-	ClusterID          string `json:"cluster_id,omitempty"`
-	Replicas           int    `json:"replicas,omitempty"`
-	MachineType        string `json:"machine_type,omitempty"`
-	AutoscalingEnabled bool   `json:"autoscaling_enabled,omitempty"`
+	ID                 string            `json:"machine_pool_id,omitempty"`
+	Name               string            `json:"name,omitempty"`
+	ClusterID          string            `json:"cluster_id,omitempty"`
+	Replicas           int               `json:"replicas,omitempty"`
+	MachineType        string            `json:"machine_type,omitempty"`
+	AutoscalingEnabled bool              `json:"autoscaling_enabled,omitempty"`
+	Labels             map[string]string `json:"labels,omitempty"`
 }
 
 func (mp *MachinePoolService) Init(manifestDirs ...string) error {

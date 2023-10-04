@@ -19,3 +19,11 @@ output "machine_type" {
 output "autoscaling_enabled" {
   value = rhcs_machine_pool.mp.autoscaling_enabled
 }
+
+output "labels" {
+  value = rhcs_machine_pool.mp.labels
+}
+
+output "taints" {
+  value = rhcs_machine_pool.mp.taints
+}

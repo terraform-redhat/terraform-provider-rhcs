@@ -17,4 +17,6 @@ resource "rhcs_machine_pool" "mp" {
   machine_type = var.machine_type
   name         = var.name
   replicas     = var.replicas
+  labels       = var.labels
+  taints       = var.taints
 }

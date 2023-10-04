@@ -223,9 +223,9 @@ func ListMachinePool(connection *client.Connection, clusterID string, params ...
 	}
 	return request.Send(***REMOVED***
 }
-func RetrieveClusterMachinePool(connection *client.Connection, clusterID string, machinePoolID string***REMOVED*** (*cmv1.MachinePoolGetResponse, error***REMOVED*** {
+func RetrieveClusterMachinePool(connection *client.Connection, clusterID string, machinePoolID string***REMOVED*** (*cmv1.MachinePool, error***REMOVED*** {
 	resp, err := connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Clusters(***REMOVED***.Cluster(clusterID***REMOVED***.MachinePools(***REMOVED***.MachinePool(machinePoolID***REMOVED***.Get(***REMOVED***.Send(***REMOVED***
-	return resp, err
+	return resp.Body(***REMOVED***, err
 }
 
 // Upgrade policies related

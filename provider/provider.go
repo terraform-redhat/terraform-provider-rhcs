@@ -39,6 +39,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/group"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/groupmembership"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/identityprovider"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/info"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/machine_types"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/ocm_policies"
@@ -228,5 +229,6 @@ func (p *Provider) DataSources(ctx context.Context) []func() datasource.DataSour
 		ocm_policies.New,
 		rosa_operator_roles.New,
 		versions.New,
+		info.New,
 	}
 }

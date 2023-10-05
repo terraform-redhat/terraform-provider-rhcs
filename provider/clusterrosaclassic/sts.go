@@ -47,11 +47,11 @@ func stsResource(***REMOVED*** map[string]tfrschema.Attribute {
 			Description: "Instance IAM Roles",
 			Attributes: map[string]tfrschema.Attribute{
 				"master_role_arn": tfrschema.StringAttribute{
-					Description: "Master/Controller Plane Role ARN",
+					Description: "Master/Control Plane Node Role ARN",
 					Required:    true,
 		***REMOVED***,
 				"worker_role_arn": tfrschema.StringAttribute{
-					Description: "Worker Node Role ARN",
+					Description: "Worker/Compute Node Role ARN",
 					Required:    true,
 		***REMOVED***,
 	***REMOVED***,

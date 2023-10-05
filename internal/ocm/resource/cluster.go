@@ -7,11 +7,9 @@ package resource
 
 	"github.com/openshift-online/ocm-common/pkg/cluster/validations"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	kmsArnRegexpValidator "github.com/openshift-online/ocm-common/pkg/resource/validations" 
 ***REMOVED***
 
-var kmsArnRE = regexp.MustCompile(
-	`^arn:aws[\w-]*:kms:[\w-]+:\d{12}:key\/mrk-[0-9a-f]{32}$|[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`,
-***REMOVED***
 var privateHostedZoneRoleArnRE = regexp.MustCompile(
 	`^arn:aws:iam::\d{12}:role\/[A-Za-z0-9]+(?:-[A-Za-z0-9]+***REMOVED***+$`,
 ***REMOVED***
@@ -130,11 +128,9 @@ func (c *Cluster***REMOVED*** CreateAWSBuilder(awsTags map[string]string, ec2Met
 	}
 	awsBuilder.Ec2MetadataHttpTokens(ec2MetadataHttpTokensVal***REMOVED***
 
-	if kmsKeyARN != nil {
-		if !kmsArnRE.MatchString(*kmsKeyARN***REMOVED*** {
-			return errors.New(fmt.Sprintf("Expected a valid value for kms-key-arn matching %s", kmsArnRE***REMOVED******REMOVED***
-***REMOVED***
-		awsBuilder.KMSKeyArn(*kmsKeyARN***REMOVED***
+	err := c.ProcessKMSKeyARN(kmsKeyARN, awsBuilder***REMOVED***
+	if err != nil {
+		return err
 	}
 
 	if awsAccountID != nil {
@@ -164,6 +160,15 @@ func (c *Cluster***REMOVED*** CreateAWSBuilder(awsTags map[string]string, ec2Met
 
 	c.clusterBuilder.AWS(awsBuilder***REMOVED***
 
+	return nil
+}
+
+func (c *Cluster***REMOVED*** ProcessKMSKeyARN(kmsKeyARN *string, awsBuilder *cmv1.AWSBuilder***REMOVED*** error {
+	err := kmsArnRegexpValidator.ValidateKMSKeyARN(kmsKeyARN***REMOVED***
+	if err != nil || kmsKeyARN == nil {
+		return err
+	}
+	awsBuilder.KMSKeyArn(*kmsKeyARN***REMOVED***
 	return nil
 }
 

@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/Masterminds/semver v1.5.0
-	github.com/aws/aws-sdk-go v1.39.3
+	github.com/aws/aws-sdk-go v1.45.26
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/terraform-plugin-docs v0.16.0
 	github.com/hashicorp/terraform-plugin-framework v1.3.5
@@ -13,8 +13,8 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk v1.17.2
 	github.com/onsi/ginkgo/v2 v2.11.0
 	github.com/onsi/gomega v1.27.10
-	github.com/openshift-online/ocm-common v0.0.0-20230724120046-183b85503854
-	github.com/openshift-online/ocm-sdk-go v0.1.362
+	github.com/openshift-online/ocm-common v0.0.0-20231026143539-5ff0909b6fae
+	github.com/openshift-online/ocm-sdk-go v0.1.370
 	github.com/openshift/rosa v1.2.21
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.4

@@ -6,6 +6,7 @@ package resource
 ***REMOVED***
 ***REMOVED***
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	kmsArnRegexpValidator "github.com/openshift-online/ocm-common/pkg/resource/validations" 
 ***REMOVED***
 
 var _ = Describe("Cluster", func(***REMOVED*** {
@@ -200,7 +201,7 @@ var _ = Describe("Cluster", func(***REMOVED*** {
 		It("PrivateLink false invalid kmsKeyARN - failure", func(***REMOVED*** {
 			err := cluster.CreateAWSBuilder(nil, nil, pointer("test"***REMOVED***, false, nil, nil, nil, nil, nil***REMOVED***
 			Expect(err***REMOVED***.To(HaveOccurred(***REMOVED******REMOVED***
-			Expect(err.Error(***REMOVED******REMOVED***.To(Equal(fmt.Sprintf("Expected a valid value for kms-key-arn matching %s", kmsArnRE***REMOVED******REMOVED******REMOVED***
+			Expect(err.Error(***REMOVED******REMOVED***.To(Equal(fmt.Sprintf("expected the kms-key-arn: %s to match %s", "test", kmsArnRegexpValidator.KmsArnRE***REMOVED******REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 		It("PrivateLink false empty kmsKeyARN - success", func(***REMOVED*** {
 			err := cluster.CreateAWSBuilder(nil, nil, nil, false, nil, nil, nil, nil, nil***REMOVED***

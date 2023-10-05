@@ -57,7 +57,7 @@ var githubSchema = map[string]schema.Attribute{
 		},
 	},
 	"teams": schema.ListAttribute{
-		Description: "Only users that are members of at least one of the listed teams will be allowed to log in. The format is <org>/<team>.",
+		Description: "Only users that are members of at least one of the listed teams will be allowed to log in. The format is `\<org\>`/`\<team\>`.",
 		ElementType: types.StringType,
 		Optional:    true,
 		Validators: []validator.List{

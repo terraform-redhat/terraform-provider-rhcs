@@ -62,7 +62,7 @@ func (s *OcmPoliciesDataSource) Metadata(ctx context.Context, req datasource.Met
 
 func (s *OcmPoliciesDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "List of rosa operator role and account roles for a specific cluster.",
+		Description: "List of ROSA operator role policies and account role policies.",
 		Attributes: map[string]schema.Attribute{
 			"operator_role_policies": schema.SingleNestedAttribute{
 				Description: "Operator role policies.",

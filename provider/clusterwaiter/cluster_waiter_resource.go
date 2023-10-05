@@ -23,8 +23,8 @@ var _ resource.ResourceWithConfigure = &ClusterWaiterResource{}
 
 const (
 	defaultTimeoutInMinutes   = int64(60)
-	nonPositiveTimeoutSummary = "Can't poll cluster state with a non-positive timeout"
-	nonPositiveTimeoutFormat  = "Can't poll state of cluster with identifier '%s', the timeout that was set is not a positive number"
+	nonPositiveTimeoutSummary = "Cannot poll cluster state with a non-positive timeout"
+	nonPositiveTimeoutFormat  = "Cannot poll state of cluster with identifier '%s', the timeout that was set is not a positive number"
 	pollingIntervalInMinutes  = 2
 )
 
@@ -45,15 +45,16 @@ func (r *ClusterWaiterResource) Schema(ctx context.Context, req resource.SchemaR
 				Required:    true,
 			},
 			"timeout": schema.Int64Attribute{
-				Description: "An optional timeout till the cluster is ready. The timeout value should be in minutes." +
-					" the default value is 60 minutes",
+				Description: "An optional timeout until the cluster is ready. The timeout value is set in minutes." +
+					" The default value is 60 minutes.",
 				Optional: true,
 				Validators: []validator.Int64{
 					int64validator.AtLeast(1), // Timeout must be positive
 				},
 			},
 			"ready": schema.BoolAttribute{
-				Description: "Whether the cluster is ready",
+				Description: "Whether the cluster is ready." +
+					"Note: this does not account for cluster operators still progressing to completion.",
 				Computed:    true,
 			},
 		},

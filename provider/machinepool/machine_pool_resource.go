@@ -83,7 +83,7 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				},
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the machine pool.Must consist of lower-case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.",
+				Description: "Name of the machine pool. Must consist of lower-case alphanumeric characters or '-', start and end with an alphanumeric character.",
 				Required:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -91,7 +91,7 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 			},
 			"machine_type": schema.StringAttribute{
 				Description: "Identifier of the machine type used by the nodes, " +
-					"for example `r5.xlarge`. Use the `rhcs_machine_types` data " +
+					"for example `m5.xlarge`. Use the `rhcs_machine_types` data " +
 					"source to find the possible values.",
 				Required: true,
 				PlanModifiers: []planmodifier.String{
@@ -103,7 +103,7 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				Optional:    true,
 			},
 			"use_spot_instances": schema.BoolAttribute{
-				Description: "Use Spot Instances.",
+				Description: "Use Amazon EC2 Spot Instances.",
 				Optional:    true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.RequiresReplace(),
@@ -120,11 +120,11 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				},
 			},
 			"autoscaling_enabled": schema.BoolAttribute{
-				Description: "Enables autoscaling. This variable requires you to set a maximum and minimum replicas range using the `max_replicas` and `min_replicas` variables.",
+				Description: "Enables autoscaling. If `true`, this variable requires you to set a maximum and minimum replicas range using the `max_replicas` and `min_replicas` variables.",
 				Optional:    true,
 			},
 			"min_replicas": schema.Int64Attribute{
-				Description: "The minimum number of replicas for autoscaling.",
+				Description: "The minimum number of replicas for autoscaling functionality.",
 				Optional:    true,
 			},
 			"max_replicas": schema.Int64Attribute{
@@ -132,8 +132,8 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				Optional:    true,
 			},
 			"taints": schema.ListNestedAttribute{
-				Description: "Taints for machine pool. Format should be a comma-separated " +
-					"list of 'key=value:ScheduleType'. This list will overwrite any modifications " +
+				Description: "Taints for a machine pool. Format should be a comma-separated " +
+					"list of 'key=value'. This list will overwrite any modifications " +
 					"made to node taints on an ongoing basis.\n",
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
@@ -163,7 +163,7 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				Optional:    true,
 			},
 			"multi_availability_zone": schema.BoolAttribute{
-				Description: "Create a multi-AZ machine pool for a multi-AZ cluster (default true)",
+				Description: "Create a multi-AZ machine pool for a multi-AZ cluster (default is `true`)",
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.Bool{
@@ -172,7 +172,7 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				},
 			},
 			"availability_zone": schema.StringAttribute{
-				Description: "Select availability zone to create a single AZ machine pool for a multi-AZ cluster",
+				Description: "Select the availability zone in which to create a single AZ machine pool for a multi-AZ cluster",
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
@@ -181,7 +181,7 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				},
 			},
 			"subnet_id": schema.StringAttribute{
-				Description: "Select subnet to create a single AZ machine pool for BYOVPC cluster",
+				Description: "Select the subnet in which to create a single AZ machine pool for BYO-VPC cluster",
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
@@ -231,8 +231,8 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 	machinepoolName := state.Name.ValueString()
 	if !machinepoolNameRE.MatchString(machinepoolName) {
 		resp.Diagnostics.AddError(
-			"Can't create machine pool: ",
-			fmt.Sprintf("Can't create machine pool for cluster '%s' with name '%s'. Expected a valid value for 'name' matching %s",
+			"Cannot create machine pool: ",
+			fmt.Sprintf("Cannot create machine pool for cluster '%s' with name '%s'. Expected a valid value for 'name' matching %s",
 				state.Cluster.ValueString(), state.Name.ValueString(), machinepoolNameRE,
 			),
 		)
@@ -251,9 +251,9 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 		StartContext(pollCtx)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Can't poll cluster state",
+			"Cannot poll cluster state",
 			fmt.Sprintf(
-				"Can't poll state of cluster with identifier '%s': %v",
+				"Cannot poll state of cluster with identifier '%s': %v",
 				state.Cluster.ValueString(), err,
 			),
 		)
@@ -266,9 +266,9 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 
 	if err := setSpotInstances(state, builder); err != nil {
 		resp.Diagnostics.AddError(
-			"Can't build machine pool",
+			"Cannot build machine pool",
 			fmt.Sprintf(
-				"Can't build machine pool for cluster '%s: %v'", state.Cluster.ValueString(), err,
+				"Cannot build machine pool for cluster '%s: %v'", state.Cluster.ValueString(), err,
 			),
 		)
 		return
@@ -277,9 +277,9 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 	isMultiAZPool, err := r.validateAZConfig(state)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Can't build machine pool",
+			"Cannot build machine pool",
 			fmt.Sprintf(
-				"Can't build machine pool for cluster '%s': %v",
+				"Cannot build machine pool for cluster '%s': %v",
 				state.Cluster.ValueString(), err,
 			),
 		)
@@ -297,9 +297,9 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 	autoscalingEnabled, errMsg := getAutoscaling(state, builder)
 	if errMsg != "" {
 		resp.Diagnostics.AddError(
-			"Can't build machine pool",
+			"Cannot build machine pool",
 			fmt.Sprintf(
-				"Can't build machine pool for cluster '%s, %s'", state.Cluster.ValueString(), errMsg,
+				"Cannot build machine pool for cluster '%s, %s'", state.Cluster.ValueString(), errMsg,
 			),
 		)
 		return
@@ -309,9 +309,9 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 		computeNodeEnabled = true
 		if isMultiAZPool && state.Replicas.ValueInt64()%3 != 0 {
 			resp.Diagnostics.AddError(
-				"Can't build machine pool",
+				"Cannot build machine pool",
 				fmt.Sprintf(
-					"Can't build machine pool for cluster '%s', replicas must be a multiple of 3",
+					"Cannot build machine pool for cluster '%s', replicas must be a multiple of 3",
 					state.Cluster.ValueString(),
 				),
 			)
@@ -321,9 +321,9 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 	}
 	if (!autoscalingEnabled && !computeNodeEnabled) || (autoscalingEnabled && computeNodeEnabled) {
 		resp.Diagnostics.AddError(
-			"Can't build machine pool",
+			"Cannot build machine pool",
 			fmt.Sprintf(
-				"Can't build machine pool for cluster '%s', please provide a value for either the 'replicas' or 'autoscaling_enabled' parameter. It is mandatory to include at least one of these parameters in the resource plan.",
+				"Cannot build machine pool for cluster '%s', please provide a value for either the 'replicas' or 'autoscaling_enabled' parameter. It is mandatory to include at least one of these parameters in the resource plan.",
 				state.Cluster.ValueString(),
 			),
 		)
@@ -352,9 +352,9 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 	object, err := builder.Build()
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Can't build machine pool",
+			"Cannot build machine pool",
 			fmt.Sprintf(
-				"Can't build machine pool for cluster '%s': %v",
+				"Cannot build machine pool for cluster '%s': %v",
 				state.Cluster.ValueString(), err,
 			),
 		)
@@ -365,9 +365,9 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 	add, err := collection.Add().Body(object).SendContext(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Can't create machine pool",
+			"Cannot create machine pool",
 			fmt.Sprintf(
-				"Can't create machine pool for cluster '%s': %v",
+				"Cannot create machine pool for cluster '%s': %v",
 				state.Cluster.ValueString(), err,
 			),
 		)
@@ -444,9 +444,9 @@ func (r *MachinePoolResource) Update(ctx context.Context, req resource.UpdateReq
 
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Can't find machine pool",
+			"Cannot find machine pool",
 			fmt.Sprintf(
-				"Can't find machine pool with identifier '%s' for "+
+				"Cannot find machine pool with identifier '%s' for "+
 					"cluster '%s': %v",
 				state.ID.ValueString(), state.Cluster.ValueString(), err,
 			),
@@ -459,9 +459,9 @@ func (r *MachinePoolResource) Update(ctx context.Context, req resource.UpdateReq
 	_, ok := common.ShouldPatchString(state.MachineType, plan.MachineType)
 	if ok {
 		resp.Diagnostics.AddError(
-			"Can't update machine pool",
+			"Cannot update machine pool",
 			fmt.Sprintf(
-				"Can't update machine pool for cluster '%s', machine type cannot be updated",
+				"Cannot update machine pool for cluster '%s', machine type cannot be updated",
 				state.Cluster.ValueString(),
 			),
 		)
@@ -480,9 +480,9 @@ func (r *MachinePoolResource) Update(ctx context.Context, req resource.UpdateReq
 	autoscalingEnabled, errMsg := getAutoscaling(plan, mpBuilder)
 	if errMsg != "" {
 		resp.Diagnostics.AddError(
-			"Can't update machine pool",
+			"Cannot update machine pool",
 			fmt.Sprintf(
-				"Can't update machine pool for cluster '%s, %s ", state.Cluster.ValueString(), errMsg,
+				"Cannot update machine pool for cluster '%s, %s ", state.Cluster.ValueString(), errMsg,
 			),
 		)
 		return
@@ -490,9 +490,9 @@ func (r *MachinePoolResource) Update(ctx context.Context, req resource.UpdateReq
 
 	if (autoscalingEnabled && computeNodesEnabled) || (!autoscalingEnabled && !computeNodesEnabled) {
 		resp.Diagnostics.AddError(
-			"Can't update machine pool",
+			"Cannot update machine pool",
 			fmt.Sprintf(
-				"Can't update machine pool for cluster '%s: either autoscaling or compute nodes should be enabled", state.Cluster.ValueString(),
+				"Cannot update machine pool for cluster '%s: either autoscaling or compute nodes should be enabled", state.Cluster.ValueString(),
 			),
 		)
 		return
@@ -521,9 +521,9 @@ func (r *MachinePoolResource) Update(ctx context.Context, req resource.UpdateReq
 	machinePool, err := mpBuilder.Build()
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Can't update machine pool",
+			"Cannot update machine pool",
 			fmt.Sprintf(
-				"Can't update machine pool for cluster '%s: %v ", state.Cluster.ValueString(), err,
+				"Cannot update machine pool for cluster '%s: %v ", state.Cluster.ValueString(), err,
 			),
 		)
 		return
@@ -630,7 +630,7 @@ func setSpotInstances(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilde
 	isSpotMaxPriceSet := common.HasValue(state.MaxSpotPrice)
 
 	if isSpotMaxPriceSet && !useSpotInstances {
-		return errors.New("Can't set max price when not using spot instances (set \"use_spot_instances\" to true)")
+		return errors.New("Cannot set max price when not using spot instances (set \"use_spot_instances\" to true)")
 	}
 
 	if useSpotInstances {
@@ -668,7 +668,7 @@ func getAutoscaling(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilder)
 		}
 	} else {
 		if common.HasValue(state.MaxReplicas) || common.HasValue(state.MinReplicas) {
-			return false, "when disabling autoscaling, can't set min_replicas and/or max_replicas"
+			return false, "when disabling autoscaling, cannot set min_replicas and/or max_replicas"
 		}
 	}
 
@@ -691,9 +691,9 @@ func (r *MachinePoolResource) Delete(ctx context.Context, req resource.DeleteReq
 	_, err := resource.Delete().SendContext(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Can't delete machine pool",
+			"Cannot delete machine pool",
 			fmt.Sprintf(
-				"Can't delete machine pool with identifier '%s' for "+
+				"Cannot delete machine pool with identifier '%s' for "+
 					"cluster '%s': %v",
 				state.ID.ValueString(), state.Cluster.ValueString(), err,
 			),

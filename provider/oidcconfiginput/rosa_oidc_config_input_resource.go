@@ -56,7 +56,7 @@ func (o *RosaOidcConfigInputResource***REMOVED*** Schema(ctx context.Context, re
 				Computed:    true,
 	***REMOVED***,
 			"jwks": schema.StringAttribute{
-				Description: "Json web key set string file",
+				Description: "JSON web key set string file",
 				Computed:    true,
 	***REMOVED***,
 			"private_key": schema.StringAttribute{
@@ -68,7 +68,7 @@ func (o *RosaOidcConfigInputResource***REMOVED*** Schema(ctx context.Context, re
 				Computed:    true,
 	***REMOVED***,
 			"private_key_secret_name": schema.StringAttribute{
-				Description: "The secret name that store the private key",
+				Description: "The secret name that stores the private key",
 				Computed:    true,
 	***REMOVED***,
 			"issuer_url": schema.StringAttribute{
@@ -98,9 +98,9 @@ func (o *RosaOidcConfigInputResource***REMOVED*** Create(ctx context.Context, re
 	oidcConfigInput, err := rosaoidcconfig.BuildOidcConfigInput("", region***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
-			"Can't generate oidc config input object",
+			"Cannot generate oidc config input object",
 			fmt.Sprintf(
-				"Can't generate oidc config input object: %v",
+				"Cannot generate oidc config input object: %v",
 				err,
 			***REMOVED***,
 		***REMOVED***

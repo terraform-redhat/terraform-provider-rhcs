@@ -59,6 +59,7 @@ func New() resource.Resource {
 }
 
 func (r *MachinePoolResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	tflog.Error(ctx, fmt.Sprintf("********************   Provider Type Name   %s", req.ProviderTypeName))
 	resp.TypeName = req.ProviderTypeName + "_machine_pool"
 }
 

@@ -42,16 +42,17 @@ func (r *ClusterWaiterResource***REMOVED*** Schema(ctx context.Context, req reso
 				Required:    true,
 	***REMOVED***,
 			"timeout": schema.Int64Attribute{
-				Description: "An optional timeout till the cluster is ready. The timeout value should be in minutes." +
-					" the default value is 60 minutes",
+				Description: "An optional timeout until the cluster is ready. The timeout value is set in minutes." +
+					" The default value is 60 minutes.",
 				Optional: true,
 				Validators: []validator.Int64{
 					int64validator.AtLeast(1***REMOVED***, // Timeout must be positive
 		***REMOVED***,
 	***REMOVED***,
 			"ready": schema.BoolAttribute{
-				Description: "Whether the cluster is ready",
-				Computed:    true,
+				Description: "Whether the cluster is ready." +
+					"Note: this does not account for cluster operators still progressing to completion.",
+				Computed: true,
 	***REMOVED***,
 ***REMOVED***,
 	}

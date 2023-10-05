@@ -20,7 +20,7 @@ COPY . ./terraform-provider-rhcs
 
 RUN yum install -y yum-utils && \
     yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo &&\
-    yum -y install terraform python3 make jq httpd-tools git &&\
+    yum -y install terraform-1.5.7 python3 make jq httpd-tools git &&\
     pip3 install PyYAML jinja2 &&\
     go env -w GO111MODULE=on &&\
     go install github.com/onsi/ginkgo/v2/ginkgo@latest &&\

@@ -82,7 +82,7 @@ func (r *IdentityProviderResource***REMOVED*** Schema(ctx context.Context, req r
 				Required:    true,
 	***REMOVED***,
 			"mapping_method": schema.StringAttribute{
-				Description: "Specifies how new identities are mapped to users when they log in. Options are [add claim generate lookup] (default 'claim'***REMOVED***",
+				Description: "Specifies how new identities are mapped to users when they log in. Options are `add`, `claim`, `generate` and `lookup`. (default is `claim`***REMOVED***",
 				Optional:    true,
 				Computed:    true,
 				Validators: []validator.String{

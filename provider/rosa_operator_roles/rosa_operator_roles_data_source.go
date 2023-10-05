@@ -53,7 +53,7 @@ func (s *RosaOperatorRolesDataSource***REMOVED*** Metadata(ctx context.Context, 
 
 func (s *RosaOperatorRolesDataSource***REMOVED*** Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse***REMOVED*** {
 	resp.Schema = schema.Schema{
-		Description: "List of rosa operator role for a specific cluster.",
+		Description: "List of ROSA operator role for a specific cluster.",
 		Attributes: map[string]schema.Attribute{
 			"operator_role_prefix": schema.StringAttribute{
 				Description: "Operator role prefix.",

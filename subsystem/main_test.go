@@ -17,8 +17,10 @@ limitations under the License.
 package provider
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -187,6 +189,16 @@ func (b *TerraformRunnerBuilder) Build() *TerraformRunner {
 			initCmd.ProcessState.ExitCode(),
 		)
 		Fail(message, 1)
+	}
+
+	tflog.Error(context.Background(), "************** terraform providers command ")
+	cmd := exec.Command(tfBinary, "providers", "schema", "-json")
+	cmd.Env = envList
+	cmd.Dir = tmpDir
+	cmd.Stdout = GinkgoWriter
+	cmd.Stderr = GinkgoWriter
+	err = cmd.Run()
+	if err != nil {
 	}
 
 	// Create and populate the object:

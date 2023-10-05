@@ -54,7 +54,7 @@ func (o *RosaOidcConfigResource***REMOVED*** Schema(ctx context.Context, req res
 		Description: "Manages OIDC config",
 		Attributes: map[string]schema.Attribute{
 			"managed": schema.BoolAttribute{
-				Description: "Indicates whether it is a Red Hat managed or unmanaged (Customer hosted***REMOVED*** OIDC Configuration",
+				Description: "Indicates whether it is a Red Hat managed or unmanaged (Customer hosted***REMOVED*** OIDC configuration, for the cluster's OIDC provider.",
 				Required:    true,
 	***REMOVED***,
 			"secret_arn": schema.StringAttribute{
@@ -62,12 +62,12 @@ func (o *RosaOidcConfigResource***REMOVED*** Schema(ctx context.Context, req res
 				Optional:    true,
 	***REMOVED***,
 			"issuer_url": schema.StringAttribute{
-				Description: "The bucket URL",
+				Description: "The bucket/issuer URL",
 				Optional:    true,
 				Computed:    true,
 	***REMOVED***,
 			"installer_role_arn": schema.StringAttribute{
-				Description: "STS Role ARN with get secrets permission",
+				Description: "AWS STS Role ARN for cluster install (with get-secrets permission in the attached policy***REMOVED***",
 				Optional:    true,
 	***REMOVED***,
 			"id": schema.StringAttribute{
@@ -211,9 +211,9 @@ func (o *RosaOidcConfigResource***REMOVED*** Read(ctx context.Context, request r
 		return
 	} else if err != nil {
 		response.Diagnostics.AddError(
-			"Can't find OIDC config",
+			"Cannot find OIDC config",
 			fmt.Sprintf(
-				"Can't find OIDC config with ID %s, %v",
+				"Cannot find OIDC config with ID %s, %v",
 				state.ID.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
@@ -252,9 +252,9 @@ func (o *RosaOidcConfigResource***REMOVED*** Delete(ctx context.Context, request
 	get, err := o.oidcConfigClient.OidcConfig(state.ID.ValueString(***REMOVED******REMOVED***.Get(***REMOVED***.SendContext(ctx***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
-			"Can't find OIDC config",
+			"Cannot find OIDC config",
 			fmt.Sprintf(
-				"Can't find OIDC config with ID %s, %v",
+				"Cannot find OIDC config with ID %s, %v",
 				state.ID.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***

@@ -178,7 +178,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** Schema(ctx context.Context, req
 				Computed:    true,
 	***REMOVED***,
 			"tags": schema.MapAttribute{
-				Description: "Apply user defined tags to all resources created in AWS.",
+				Description: "Apply user defined tags to all cluster resources created in AWS.",
 				ElementType: types.StringType,
 				Optional:    true,
 				PlanModifiers: []planmodifier.Map{
@@ -186,11 +186,11 @@ func (r *ClusterRosaClassicResource***REMOVED*** Schema(ctx context.Context, req
 		***REMOVED***,
 	***REMOVED***,
 			"ccs_enabled": schema.BoolAttribute{
-				Description: "Enables customer cloud subscription.",
+				Description: "Enables customer cloud subscription (Immutable with ROSA***REMOVED***",
 				Computed:    true,
 	***REMOVED***,
 			"etcd_encryption": schema.BoolAttribute{
-				Description: "Encrypt etcd data.",
+				Description: "Encrypt etcd data. Note that all AWS storage is already encrypted.",
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.Bool{
@@ -203,12 +203,12 @@ func (r *ClusterRosaClassicResource***REMOVED*** Schema(ctx context.Context, req
 				Optional:    true,
 	***REMOVED***,
 			"min_replicas": schema.Int64Attribute{
-				Description: "Minimum replicas.",
+				Description: "Minimum replicas of worker nodes in a machine pool.",
 				Optional:    true,
 				Computed:    true,
 	***REMOVED***,
 			"max_replicas": schema.Int64Attribute{
-				Description: "Maximum replicas.",
+				Description: "Maximum replicas of worker nodes in a machine pool.",
 				Optional:    true,
 				Computed:    true,
 	***REMOVED***,
@@ -236,14 +236,14 @@ func (r *ClusterRosaClassicResource***REMOVED*** Schema(ctx context.Context, req
 		***REMOVED***,
 	***REMOVED***,
 			"replicas": schema.Int64Attribute{
-				Description: "Number of worker nodes to provision. Single zone clusters need at least 2 nodes, " +
+				Description: "Number of worker/compute nodes to provision. Single zone clusters need at least 2 nodes, " +
 					"multizone clusters need at least 3 nodes.",
 				Optional: true,
 				Computed: true,
 	***REMOVED***,
 			"compute_machine_type": schema.StringAttribute{
-				Description: "Identifies the machine type used by the compute nodes, " +
-					"for example `r5.xlarge`. Use the `rhcs_machine_types` data " +
+				Description: "Identifies the machine type used by the default/initial worker nodes, " +
+					"for example `m5.xlarge`. Use the `rhcs_machine_types` data " +
 					"source to find the possible values.",
 				Optional: true,
 				Computed: true,
@@ -253,8 +253,8 @@ func (r *ClusterRosaClassicResource***REMOVED*** Schema(ctx context.Context, req
 		***REMOVED***,
 	***REMOVED***,
 			"default_mp_labels": schema.MapAttribute{
-				Description: "This value is the default machine pool labels. Format should be a comma-separated list of '{\"key1\"=\"value1\", \"key2\"=\"value2\"}'. " +
-					"This list overwrites any modifications made to Node labels on an ongoing basis. ",
+				Description: "This value is the default/initial machine pool labels. Format should be a comma-separated list of '{\"key1\"=\"value1\", \"key2\"=\"value2\"}'. " +
+					"This list overwrites any modifications made to node labels on an ongoing basis. ",
 				ElementType: types.StringType,
 				Optional:    true,
 	***REMOVED***,
@@ -275,7 +275,8 @@ func (r *ClusterRosaClassicResource***REMOVED*** Schema(ctx context.Context, req
 	***REMOVED***,
 			"kms_key_arn": schema.StringAttribute{
 				Description: "The key ARN is the Amazon Resource Name (ARN***REMOVED*** of a AWS Key Management Service (KMS***REMOVED*** Key. It is a unique, " +
-					"fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID.",
+					"fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID" + 
+					"(optional***REMOVED***.",
 				Optional: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(***REMOVED***,
@@ -289,7 +290,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** Schema(ctx context.Context, req
 		***REMOVED***,
 	***REMOVED***,
 			"aws_private_link": schema.BoolAttribute{
-				Description: "Provides private connectivity between VPCs, AWS services, and your on-premises networks, without exposing your traffic to the public internet.",
+				Description: "Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet.",
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.Bool{
@@ -298,7 +299,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** Schema(ctx context.Context, req
 		***REMOVED***,
 	***REMOVED***,
 			"private": schema.BoolAttribute{
-				Description: "Restrict master API endpoint and application routes to direct, private connectivity.",
+				Description: "Restrict cluster API endpoint and application routes to, private connectivity. This requires that PrivateLink be enabled and by extension, your own VPC.",
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.Bool{
@@ -335,7 +336,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** Schema(ctx context.Context, req
 				Validators:  []validator.Object{proxy.ProxyValidator(***REMOVED***},
 	***REMOVED***,
 			"service_cidr": schema.StringAttribute{
-				Description: "Block of IP addresses for services.",
+				Description: "Block of IP addresses for the cluster service network.",
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
@@ -362,7 +363,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** Schema(ctx context.Context, req
 		***REMOVED***,
 	***REMOVED***,
 			"channel_group": schema.StringAttribute{
-				Description: "Name of the channel group where you select the OpenShift cluster version, for example 'stable'.",
+				Description: "Name of the channel group where you select the OpenShift cluster version, for example 'stable'. For ROSA, only 'stable' is supported.",
 				Optional:    true,
 				Computed:    true,
 				Default:     stringdefault.StaticString(ocm.DefaultChannelGroup***REMOVED***,
@@ -372,15 +373,15 @@ func (r *ClusterRosaClassicResource***REMOVED*** Schema(ctx context.Context, req
 		***REMOVED***,
 	***REMOVED***,
 			"version": schema.StringAttribute{
-				Description: "Desired version of OpenShift for the cluster, for example '4.1.0'. If version is greater than the currently running version, an upgrade will be scheduled.",
+				Description: "Desired version of OpenShift for the cluster, for example '4.11.0'. If version is greater than the currently running version, an upgrade will be scheduled.",
 				Optional:    true,
 	***REMOVED***,
 			"current_version": schema.StringAttribute{
-				Description: "The currently running version of OpenShift on the cluster, for example '4.1.0'.",
+				Description: "The currently running version of OpenShift on the cluster, for example '4.11.0'.",
 				Computed:    true,
 	***REMOVED***,
 			"disable_waiting_in_destroy": schema.BoolAttribute{
-				Description: "Disable addressing cluster state in the destroy resource. Default value is false.",
+				Description: "Disable addressing cluster state in the destroy resource. Default value is false, and so a `destroy` will wait for the cluster to be deleted.",
 				Optional:    true,
 	***REMOVED***,
 			"destroy_timeout": schema.Int64Attribute{
@@ -392,8 +393,8 @@ func (r *ClusterRosaClassicResource***REMOVED*** Schema(ctx context.Context, req
 				Computed:    true,
 	***REMOVED***,
 			"ec2_metadata_http_tokens": schema.StringAttribute{
-				Description: "This value determines which EC2 metadata mode to use for metadata service interaction " +
-					"options for EC2 instances can be optional or required. This feature is available from " +
+				Description: "This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the cluster." +
+					"This can be set as `optional` (IMDS v1 or v2***REMOVED*** or `required` (IMDSv2 only***REMOVED***. This feature is available from " +
 					"OpenShift version 4.11.0 and newer.",
 				Optional: true,
 				Computed: true,
@@ -437,7 +438,7 @@ func (r *ClusterRosaClassicResource***REMOVED*** Schema(ctx context.Context, req
 		***REMOVED***,
 	***REMOVED***,
 			"private_hosted_zone": schema.SingleNestedAttribute{
-				Description: "Used in a shared VPC typology. HostedZone attributes",
+				Description: "Used in a shared VPC topology. HostedZone attributes",
 				Attributes: map[string]schema.Attribute{
 					"id": schema.StringAttribute{
 						Description: "ID assigned by AWS to private Route 53 hosted zone associated with intended shared VPC, " +

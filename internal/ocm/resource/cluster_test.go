@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	kmsArnRegexpValidator "github.com/openshift-online/ocm-common/pkg/resource/validations" 
 )
 
 var _ = Describe("Cluster", func() {
@@ -200,7 +201,7 @@ var _ = Describe("Cluster", func() {
 		It("PrivateLink false invalid kmsKeyARN - failure", func() {
 			err := cluster.CreateAWSBuilder(nil, nil, pointer("test"), false, nil, nil, nil, nil, nil)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal(fmt.Sprintf("Expected a valid value for kms-key-arn matching %s", kmsArnRE)))
+			Expect(err.Error()).To(Equal(fmt.Sprintf("expected the kms-key-arn: %s to match %s", "test", kmsArnRegexpValidator.KmsArnRE)))
 		})
 		It("PrivateLink false empty kmsKeyARN - success", func() {
 			err := cluster.CreateAWSBuilder(nil, nil, nil, false, nil, nil, nil, nil, nil)

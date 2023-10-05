@@ -116,6 +116,7 @@ e2e_test: tools install
 
 .PHONY: apply_folder
 apply_folder: install
+	sleep 1h
 	bash ./ci/apply_folder.sh
 
 .PHONY: destroy_folder

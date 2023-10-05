@@ -64,7 +64,7 @@ func (s *MachineTypesDataSource***REMOVED*** Schema(ctx context.Context, req dat
 							Computed:    true,
 				***REMOVED***,
 						"cpu": schema.Int64Attribute{
-							Description: "Number of CPU cores.",
+							Description: "Number of vCPU cores.",
 							Computed:    true,
 				***REMOVED***,
 						"ram": schema.Int64Attribute{

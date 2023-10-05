@@ -53,7 +53,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 	template := `{
 	  "id": "123",
 	  "name": "my-cluster",
-	  "state": "ready",
 	  "region": {
 	    "id": "us-west-1"
 	  },
@@ -127,7 +126,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
           "base_domain": "mycluster-api.example.com"
       }
 	}`
-
 	Context("rhcs_cluster_rosa_classic - create", func() {
 		It("invalid az for region", func() {
 			terraform.Source(`
@@ -345,169 +343,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			})
 		})
 
-		Context("Test wait attribute", func() {
-			It("Create cluster and wait till it will be in error state", func() {
-				// Prepare the server:
-				server.AppendHandlers(
-					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-						RespondWithJSON(http.StatusOK, versionListPage1),
-					),
-					CombineHandlers(
-						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
-						RespondWithPatchedJSON(http.StatusCreated, template, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "ec2_metadata_http_tokens": "optional",
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "",
-							  "support_role_arn": "",
-							  "instance_iam_roles" : {
-								"master_role_arn" : "",
-								"worker_role_arn" : ""
-							  },
-							  "operator_role_prefix" : "test"
-						  }
-					  }
-					}]`),
-					),
-					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-						RespondWithPatchedJSON(http.StatusOK, template, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "ec2_metadata_http_tokens": "optional",
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "",
-							  "support_role_arn": "",
-							  "instance_iam_roles" : {
-								"master_role_arn" : "",
-								"worker_role_arn" : ""
-							  },
-							  "operator_role_prefix" : "test"
-						  }
-					  }
-					},
-					{
-                      "op": "add",
-                      "path": "/state",
-					  "value": "error"
-					}]`),
-					),
-				)
-
-				// Run the apply command:
-				terraform.Source(`
-		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
-				}
-			}
-			wait_for_create_complete = true
-		  }
-		`)
-				Expect(terraform.Apply()).ToNot(BeZero())
-				resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
-				Expect(resource).To(MatchJQ(".attributes.state", "error"))
-			})
-
-			It("Create cluster and wait till it will be in ready state", func() {
-				// Prepare the server:
-				server.AppendHandlers(
-					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-						RespondWithJSON(http.StatusOK, versionListPage1),
-					),
-					CombineHandlers(
-						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
-						RespondWithPatchedJSON(http.StatusCreated, template, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "ec2_metadata_http_tokens": "optional",
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "",
-							  "support_role_arn": "",
-							  "instance_iam_roles" : {
-								"master_role_arn" : "",
-								"worker_role_arn" : ""
-							  },
-							  "operator_role_prefix" : "test"
-						  }
-					  }
-					}]`),
-					),
-					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-						RespondWithPatchedJSON(http.StatusOK, template, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "ec2_metadata_http_tokens": "optional",
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "",
-							  "support_role_arn": "",
-							  "instance_iam_roles" : {
-								"master_role_arn" : "",
-								"worker_role_arn" : ""
-							  },
-							  "operator_role_prefix" : "test"
-						  }
-					  }
-					},
-					{
-                      "op": "add",
-                      "path": "/state",
-					  "value": "ready"
-					}]`),
-					),
-				)
-
-				// Run the apply command:
-				terraform.Source(`
-		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
-				}
-			}
-			wait_for_create_complete = true
-		  }
-		`)
-				Expect(terraform.Apply()).To(BeZero())
-				resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
-				Expect(resource).To(MatchJQ(".attributes.state", "ready"))
-			})
-		})
 		It("Creates basic cluster", func() {
 			// Prepare the server:
 			server.AppendHandlers(
@@ -3131,7 +2966,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 	const template = `{
 		"id": "123",
 		"name": "my-cluster",
-		"state": "ready",
 		"region": {
 		  "id": "us-west-1"
 		},

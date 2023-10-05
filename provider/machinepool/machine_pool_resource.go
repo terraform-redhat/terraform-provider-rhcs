@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
@@ -37,9 +38,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
+
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 
 var machinepoolNameRE = regexp.MustCompile(
@@ -239,7 +241,15 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 	}
 
 	// Wait till the cluster is ready:
-	err := common.WaitTillClusterReady(ctx, r.collection, state.Cluster.ValueString())
+	resource := r.collection.Cluster(state.Cluster.ValueString())
+	pollCtx, cancel := context.WithTimeout(ctx, 1*time.Hour)
+	defer cancel()
+	_, err := resource.Poll().
+		Interval(30 * time.Second).
+		Predicate(func(get *cmv1.ClusterGetResponse) bool {
+			return get.Body().State() == cmv1.ClusterStateReady
+		}).
+		StartContext(pollCtx)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Can't poll cluster state",
@@ -252,7 +262,6 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 	}
 
 	// Create the machine pool:
-	resource := r.collection.Cluster(state.Cluster.ValueString())
 	builder := cmv1.NewMachinePool().ID(state.ID.ValueString()).InstanceType(state.MachineType.ValueString())
 	builder.ID(state.Name.ValueString())
 

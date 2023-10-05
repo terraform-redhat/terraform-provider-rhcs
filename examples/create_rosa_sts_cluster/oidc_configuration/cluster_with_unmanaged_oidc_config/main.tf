@@ -80,5 +80,10 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
     rosa_creator_arn = data.aws_caller_identity.current.arn
   }
   sts = local.sts_roles
-  wait_for_create_complete = true
+}
+
+resource "rhcs_cluster_wait" "rosa_cluster" {
+  cluster = rhcs_cluster_rosa_classic.rosa_sts_cluster.id
+  # timeout in minutes
+  timeout = 60
 }

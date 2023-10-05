@@ -54,7 +54,7 @@ func (o *RosaOidcConfigResource) Schema(ctx context.Context, req resource.Schema
 		Description: "Manages OIDC config",
 		Attributes: map[string]schema.Attribute{
 			"managed": schema.BoolAttribute{
-				Description: "Indicates whether it is a Red Hat managed or unmanaged (Customer hosted) OIDC Configuration",
+				Description: "Indicates whether it is a Red Hat managed or unmanaged (Customer hosted) OIDC configuration, for the cluster's OIDC provider.",
 				Required:    true,
 			},
 			"secret_arn": schema.StringAttribute{
@@ -62,12 +62,12 @@ func (o *RosaOidcConfigResource) Schema(ctx context.Context, req resource.Schema
 				Optional:    true,
 			},
 			"issuer_url": schema.StringAttribute{
-				Description: "The bucket URL",
+				Description: "The bucket/issuer URL",
 				Optional:    true,
 				Computed:    true,
 			},
 			"installer_role_arn": schema.StringAttribute{
-				Description: "STS Role ARN with get secrets permission",
+				Description: "AWS STS Role ARN for cluster install (with get-secrets permission in the attached policy)",
 				Optional:    true,
 			},
 			"id": schema.StringAttribute{
@@ -211,9 +211,9 @@ func (o *RosaOidcConfigResource) Read(ctx context.Context, request resource.Read
 		return
 	} else if err != nil {
 		response.Diagnostics.AddError(
-			"Can't find OIDC config",
+			"Cannot find OIDC config",
 			fmt.Sprintf(
-				"Can't find OIDC config with ID %s, %v",
+				"Cannot find OIDC config with ID %s, %v",
 				state.ID.ValueString(), err,
 			),
 		)
@@ -252,9 +252,9 @@ func (o *RosaOidcConfigResource) Delete(ctx context.Context, request resource.De
 	get, err := o.oidcConfigClient.OidcConfig(state.ID.ValueString()).Get().SendContext(ctx)
 	if err != nil {
 		response.Diagnostics.AddError(
-			"Can't find OIDC config",
+			"Cannot find OIDC config",
 			fmt.Sprintf(
-				"Can't find OIDC config with ID %s, %v",
+				"Cannot find OIDC config with ID %s, %v",
 				state.ID.ValueString(), err,
 			),
 		)

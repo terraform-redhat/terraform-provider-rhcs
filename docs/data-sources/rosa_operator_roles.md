@@ -3,12 +3,12 @@
 page_title: "rhcs_rosa_operator_roles Data Source - terraform-provider-rhcs"
 subcategory: ""
 description: |-
-  List of rosa operator role for a specific cluster.
+  List of ROSA operator role for a specific cluster.
 ---
 
 # rhcs_rosa_operator_roles (Data Source)
 
-List of rosa operator role for a specific cluster.
+List of ROSA operator role for a specific cluster.
 
 
 

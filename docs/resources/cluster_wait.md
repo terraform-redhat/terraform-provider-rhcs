@@ -21,10 +21,10 @@ Wait Cluster Resource To be Ready
 
 ### Optional
 
-- `timeout` (Number) An optional timeout till the cluster is ready. The timeout value should be in minutes. the default value is 60 minutes
+- `timeout` (Number) An optional timeout until the cluster is ready. The timeout value is set in minutes. The default value is 60 minutes.
 
 ### Read-Only
 
-- `ready` (Boolean) Whether the cluster is ready
+- `ready` (Boolean) Whether the cluster is ready.Note: this does not account for cluster operators still progressing to completion.
 
 

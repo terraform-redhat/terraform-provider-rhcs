@@ -18,22 +18,22 @@ Machine pool.
 ### Required
 
 - `cluster` (String***REMOVED*** Identifier of the cluster.
-- `machine_type` (String***REMOVED*** Identifier of the machine type used by the nodes, for example `r5.xlarge`. Use the `rhcs_machine_types` data source to find the possible values.
-- `name` (String***REMOVED*** Name of the machine pool.Must consist of lower-case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+- `machine_type` (String***REMOVED*** Identifier of the machine type used by the nodes, for example `m5.xlarge`. Use the `rhcs_machine_types` data source to find the possible values.
+- `name` (String***REMOVED*** Name of the machine pool. Must consist of lower-case alphanumeric characters or '-', start and end with an alphanumeric character.
 
 ### Optional
 
-- `autoscaling_enabled` (Boolean***REMOVED*** Enables autoscaling. This variable requires you to set a maximum and minimum replicas range using the `max_replicas` and `min_replicas` variables.
-- `availability_zone` (String***REMOVED*** Select availability zone to create a single AZ machine pool for a multi-AZ cluster
+- `autoscaling_enabled` (Boolean***REMOVED*** Enables autoscaling. If `true`, this variable requires you to set a maximum and minimum replicas range using the `max_replicas` and `min_replicas` variables.
+- `availability_zone` (String***REMOVED*** Select the availability zone in which to create a single AZ machine pool for a multi-AZ cluster
 - `labels` (Map of String***REMOVED*** Labels for the machine pool. Format should be a comma-separated list of 'key = value'. This list will overwrite any modifications made to node labels on an ongoing basis.
 - `max_replicas` (Number***REMOVED*** The maximum number of replicas for autoscaling functionality.
 - `max_spot_price` (Number***REMOVED*** Max Spot price.
-- `min_replicas` (Number***REMOVED*** The minimum number of replicas for autoscaling.
-- `multi_availability_zone` (Boolean***REMOVED*** Create a multi-AZ machine pool for a multi-AZ cluster (default true***REMOVED***
+- `min_replicas` (Number***REMOVED*** The minimum number of replicas for autoscaling functionality.
+- `multi_availability_zone` (Boolean***REMOVED*** Create a multi-AZ machine pool for a multi-AZ cluster (default is `true`***REMOVED***
 - `replicas` (Number***REMOVED*** The number of machines of the pool
-- `subnet_id` (String***REMOVED*** Select subnet to create a single AZ machine pool for BYOVPC cluster
-- `taints` (Attributes List***REMOVED*** Taints for machine pool. Format should be a comma-separated list of 'key=value:ScheduleType'. This list will overwrite any modifications made to node taints on an ongoing basis. (see [below for nested schema](#nestedatt--taints***REMOVED******REMOVED***
-- `use_spot_instances` (Boolean***REMOVED*** Use Spot Instances.
+- `subnet_id` (String***REMOVED*** Select the subnet in which to create a single AZ machine pool for BYO-VPC cluster
+- `taints` (Attributes List***REMOVED*** Taints for a machine pool. Format should be a comma-separated list of 'key=value'. This list will overwrite any modifications made to node taints on an ongoing basis. (see [below for nested schema](#nestedatt--taints***REMOVED******REMOVED***
+- `use_spot_instances` (Boolean***REMOVED*** Use Amazon EC2 Spot Instances.
 
 ### Read-Only
 

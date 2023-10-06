@@ -24,9 +24,9 @@ OIDC config input resources' names
 - `bucket_name` (String***REMOVED*** The S3 bucket name
 - `discovery_doc` (String***REMOVED*** The discovery document string file
 - `issuer_url` (String***REMOVED*** The issuer URL
-- `jwks` (String***REMOVED*** Json web key set string file
+- `jwks` (String***REMOVED*** JSON web key set string file
 - `private_key` (String***REMOVED*** RSA private key
 - `private_key_file_name` (String***REMOVED*** The private key file name
-- `private_key_secret_name` (String***REMOVED*** The secret name that store the private key
+- `private_key_secret_name` (String***REMOVED*** The secret name that stores the private key
 
 

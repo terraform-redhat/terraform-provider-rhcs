@@ -27,7 +27,7 @@ Identity provider.
 - `google` (Attributes***REMOVED*** Details of the Google identity provider. (see [below for nested schema](#nestedatt--google***REMOVED******REMOVED***
 - `htpasswd` (Attributes***REMOVED*** Details of the 'htpasswd' identity provider. (see [below for nested schema](#nestedatt--htpasswd***REMOVED******REMOVED***
 - `ldap` (Attributes***REMOVED*** Details of the LDAP identity provider. (see [below for nested schema](#nestedatt--ldap***REMOVED******REMOVED***
-- `mapping_method` (String***REMOVED*** Specifies how new identities are mapped to users when they log in. Options are [add claim generate lookup] (default 'claim'***REMOVED***
+- `mapping_method` (String***REMOVED*** Specifies how new identities are mapped to users when they log in. Options are `add`, `claim`, `generate` and `lookup`. (default is `claim`***REMOVED***
 - `openid` (Attributes***REMOVED*** Details of the OpenID identity provider. (see [below for nested schema](#nestedatt--openid***REMOVED******REMOVED***
 
 ### Read-Only
@@ -47,7 +47,7 @@ Optional:
 - `ca` (String***REMOVED*** Path to PEM-encoded certificate file to use when making requests to the server.
 - `hostname` (String***REMOVED*** Optional domain to use with a hosted instance of GitHub Enterprise.
 - `organizations` (List of String***REMOVED*** Only users that are members of at least one of the listed organizations will be allowed to log in.
-- `teams` (List of String***REMOVED*** Only users that are members of at least one of the listed teams will be allowed to log in. The format is <org>/<team>.
+- `teams` (List of String***REMOVED*** Only users that are members of at least one of the listed teams will be allowed to log in. The format is `<org>`/`<team>`.
 
 
 <a id="nestedatt--gitlab"></a>

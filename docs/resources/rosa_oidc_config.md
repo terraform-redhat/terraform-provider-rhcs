@@ -17,12 +17,12 @@ Manages OIDC config
 
 ### Required
 
-- `managed` (Boolean***REMOVED*** Indicates whether it is a Red Hat managed or unmanaged (Customer hosted***REMOVED*** OIDC Configuration
+- `managed` (Boolean***REMOVED*** Indicates whether it is a Red Hat managed or unmanaged (Customer hosted***REMOVED*** OIDC configuration, for the cluster's OIDC provider.
 
 ### Optional
 
-- `installer_role_arn` (String***REMOVED*** STS Role ARN with get secrets permission
-- `issuer_url` (String***REMOVED*** The bucket URL
+- `installer_role_arn` (String***REMOVED*** AWS STS Role ARN for cluster install (with get-secrets permission in the attached policy***REMOVED***
+- `issuer_url` (String***REMOVED*** The bucket/issuer URL
 - `secret_arn` (String***REMOVED*** Indicates for unmanaged OIDC config, the secret ARN
 
 ### Read-Only

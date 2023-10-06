@@ -3,12 +3,12 @@
 page_title: "rhcs_policies Data Source - terraform-provider-rhcs"
 subcategory: ""
 description: |-
-  List of rosa operator role and account roles for a specific cluster.
+  List of ROSA operator role policies and account role policies.
 ---
 
 # rhcs_policies (Data Source***REMOVED***
 
-List of rosa operator role and account roles for a specific cluster.
+List of ROSA operator role policies and account role policies.
 
 
 

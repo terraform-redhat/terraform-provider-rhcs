@@ -26,45 +26,45 @@ OpenShift managed cluster using rosa sts.
 - `admin_credentials` (Attributes***REMOVED*** Admin user credentials (see [below for nested schema](#nestedatt--admin_credentials***REMOVED******REMOVED***
 - `autoscaling_enabled` (Boolean***REMOVED*** Enables autoscaling.
 - `availability_zones` (List of String***REMOVED*** Availability zones.
-- `aws_private_link` (Boolean***REMOVED*** Provides private connectivity between VPCs, AWS services, and your on-premises networks, without exposing your traffic to the public internet.
+- `aws_private_link` (Boolean***REMOVED*** Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet.
 - `aws_subnet_ids` (List of String***REMOVED*** AWS subnet IDs.
 - `base_dns_domain` (String***REMOVED*** Base DNS domain name previously reserved and matching the hosted zone name of the private Route 53 hosted zone associated with intended shared VPC, e.g., '1vo8.p1.openshiftapps.com'.
-- `channel_group` (String***REMOVED*** Name of the channel group where you select the OpenShift cluster version, for example 'stable'.
-- `compute_machine_type` (String***REMOVED*** Identifies the machine type used by the compute nodes, for example `r5.xlarge`. Use the `rhcs_machine_types` data source to find the possible values.
-- `default_mp_labels` (Map of String***REMOVED*** This value is the default machine pool labels. Format should be a comma-separated list of '{"key1"="value1", "key2"="value2"}'. This list overwrites any modifications made to Node labels on an ongoing basis.
+- `channel_group` (String***REMOVED*** Name of the channel group where you select the OpenShift cluster version, for example 'stable'. For ROSA, only 'stable' is supported.
+- `compute_machine_type` (String***REMOVED*** Identifies the machine type used by the default/initial worker nodes, for example `m5.xlarge`. Use the `rhcs_machine_types` data source to find the possible values.
+- `default_mp_labels` (Map of String***REMOVED*** This value is the default/initial machine pool labels. Format should be a comma-separated list of '{"key1"="value1", "key2"="value2"}'. This list overwrites any modifications made to node labels on an ongoing basis.
 - `destroy_timeout` (Number***REMOVED*** This value sets the maximum duration in minutes to allow for destroying resources. Default value is 60 minutes.
 - `disable_scp_checks` (Boolean***REMOVED*** Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE***REMOVED*** platform metrics.
-- `disable_waiting_in_destroy` (Boolean***REMOVED*** Disable addressing cluster state in the destroy resource. Default value is false.
+- `disable_waiting_in_destroy` (Boolean***REMOVED*** Disable addressing cluster state in the destroy resource. Default value is false, and so a `destroy` will wait for the cluster to be deleted.
 - `disable_workload_monitoring` (Boolean***REMOVED*** Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE***REMOVED*** platform metrics.
-- `ec2_metadata_http_tokens` (String***REMOVED*** This value determines which EC2 metadata mode to use for metadata service interaction options for EC2 instances can be optional or required. This feature is available from OpenShift version 4.11.0 and newer.
-- `etcd_encryption` (Boolean***REMOVED*** Encrypt etcd data.
+- `ec2_metadata_http_tokens` (String***REMOVED*** This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the cluster.This can be set as `optional` (IMDS v1 or v2***REMOVED*** or `required` (IMDSv2 only***REMOVED***. This feature is available from OpenShift version 4.11.0 and newer.
+- `etcd_encryption` (Boolean***REMOVED*** Encrypt etcd data. Note that all AWS storage is already encrypted.
 - `external_id` (String***REMOVED*** Unique external identifier of the cluster.
 - `fips` (Boolean***REMOVED*** Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries.
 - `host_prefix` (Number***REMOVED*** Length of the prefix of the subnet assigned to each node.
-- `kms_key_arn` (String***REMOVED*** The key ARN is the Amazon Resource Name (ARN***REMOVED*** of a AWS Key Management Service (KMS***REMOVED*** Key. It is a unique, fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID.
+- `kms_key_arn` (String***REMOVED*** The key ARN is the Amazon Resource Name (ARN***REMOVED*** of a AWS Key Management Service (KMS***REMOVED*** Key. It is a unique, fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID(optional***REMOVED***.
 - `machine_cidr` (String***REMOVED*** Block of IP addresses for nodes.
-- `max_replicas` (Number***REMOVED*** Maximum replicas.
-- `min_replicas` (Number***REMOVED*** Minimum replicas.
+- `max_replicas` (Number***REMOVED*** Maximum replicas of worker nodes in a machine pool.
+- `min_replicas` (Number***REMOVED*** Minimum replicas of worker nodes in a machine pool.
 - `multi_az` (Boolean***REMOVED*** Indicates if the cluster should be deployed to multiple availability zones. Default value is 'false'.
 - `pod_cidr` (String***REMOVED*** Block of IP addresses for pods.
-- `private` (Boolean***REMOVED*** Restrict master API endpoint and application routes to direct, private connectivity.
-- `private_hosted_zone` (Attributes***REMOVED*** Used in a shared VPC typology. HostedZone attributes (see [below for nested schema](#nestedatt--private_hosted_zone***REMOVED******REMOVED***
+- `private` (Boolean***REMOVED*** Restrict cluster API endpoint and application routes to, private connectivity. This requires that PrivateLink be enabled and by extension, your own VPC.
+- `private_hosted_zone` (Attributes***REMOVED*** Used in a shared VPC topology. HostedZone attributes (see [below for nested schema](#nestedatt--private_hosted_zone***REMOVED******REMOVED***
 - `properties` (Map of String***REMOVED*** User defined properties.
 - `proxy` (Attributes***REMOVED*** proxy (see [below for nested schema](#nestedatt--proxy***REMOVED******REMOVED***
-- `replicas` (Number***REMOVED*** Number of worker nodes to provision. Single zone clusters need at least 2 nodes, multizone clusters need at least 3 nodes.
-- `service_cidr` (String***REMOVED*** Block of IP addresses for services.
+- `replicas` (Number***REMOVED*** Number of worker/compute nodes to provision. Single zone clusters need at least 2 nodes, multizone clusters need at least 3 nodes.
+- `service_cidr` (String***REMOVED*** Block of IP addresses for the cluster service network.
 - `sts` (Attributes***REMOVED*** STS configuration. (see [below for nested schema](#nestedatt--sts***REMOVED******REMOVED***
-- `tags` (Map of String***REMOVED*** Apply user defined tags to all resources created in AWS.
+- `tags` (Map of String***REMOVED*** Apply user defined tags to all cluster resources created in AWS.
 - `upgrade_acknowledgements_for` (String***REMOVED*** Indicates acknowledgement of agreements required to upgrade the cluster version between minor versions (e.g. a value of "4.12" indicates acknowledgement of any agreements required to upgrade to OpenShift 4.12.z from 4.11 or before***REMOVED***.
-- `version` (String***REMOVED*** Desired version of OpenShift for the cluster, for example '4.1.0'. If version is greater than the currently running version, an upgrade will be scheduled.
+- `version` (String***REMOVED*** Desired version of OpenShift for the cluster, for example '4.11.0'. If version is greater than the currently running version, an upgrade will be scheduled.
 - `wait_for_create_complete` (Boolean***REMOVED*** Wait until the cluster is either in a ready state or in an error state. The waiter has a timeout of 60 minutes, with the default value set to false
 
 ### Read-Only
 
 - `api_url` (String***REMOVED*** URL of the API server.
-- `ccs_enabled` (Boolean***REMOVED*** Enables customer cloud subscription.
+- `ccs_enabled` (Boolean***REMOVED*** Enables customer cloud subscription (Immutable with ROSA***REMOVED***
 - `console_url` (String***REMOVED*** URL of the console.
-- `current_version` (String***REMOVED*** The currently running version of OpenShift on the cluster, for example '4.1.0'.
+- `current_version` (String***REMOVED*** The currently running version of OpenShift on the cluster, for example '4.11.0'.
 - `domain` (String***REMOVED*** DNS domain of cluster.
 - `id` (String***REMOVED*** Unique identifier of the cluster.
 - `ocm_properties` (Map of String***REMOVED*** Merged properties defined by OCM and the user defined 'properties'.
@@ -123,7 +123,7 @@ Read-Only:
 
 Required:
 
-- `master_role_arn` (String***REMOVED*** Master/Controller Plane Role ARN
-- `worker_role_arn` (String***REMOVED*** Worker Node Role ARN
+- `master_role_arn` (String***REMOVED*** Master/Control Plane Node Role ARN
+- `worker_role_arn` (String***REMOVED*** Worker/Compute Node Role ARN
 
 

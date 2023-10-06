@@ -25,7 +25,7 @@ List of machine types
 Read-Only:
 
 - `cloud_provider` (String) Unique identifier of the cloud provider where the machine type is supported.
-- `cpu` (Number) Number of CPU cores.
+- `cpu` (Number) Number of vCPU cores.
 - `id` (String) Unique identifier of the machine type.
 - `name` (String) Short name of the machine type.
 - `ram` (Number) Amount of RAM in bytes.

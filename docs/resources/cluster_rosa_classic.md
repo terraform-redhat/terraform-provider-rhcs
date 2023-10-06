@@ -26,45 +26,45 @@ OpenShift managed cluster using rosa sts.
 - `admin_credentials` (Attributes) Admin user credentials (see [below for nested schema](#nestedatt--admin_credentials))
 - `autoscaling_enabled` (Boolean) Enables autoscaling.
 - `availability_zones` (List of String) Availability zones.
-- `aws_private_link` (Boolean) Provides private connectivity between VPCs, AWS services, and your on-premises networks, without exposing your traffic to the public internet.
+- `aws_private_link` (Boolean) Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet.
 - `aws_subnet_ids` (List of String) AWS subnet IDs.
 - `base_dns_domain` (String) Base DNS domain name previously reserved and matching the hosted zone name of the private Route 53 hosted zone associated with intended shared VPC, e.g., '1vo8.p1.openshiftapps.com'.
-- `channel_group` (String) Name of the channel group where you select the OpenShift cluster version, for example 'stable'.
-- `compute_machine_type` (String) Identifies the machine type used by the compute nodes, for example `r5.xlarge`. Use the `rhcs_machine_types` data source to find the possible values.
-- `default_mp_labels` (Map of String) This value is the default machine pool labels. Format should be a comma-separated list of '{"key1"="value1", "key2"="value2"}'. This list overwrites any modifications made to Node labels on an ongoing basis.
+- `channel_group` (String) Name of the channel group where you select the OpenShift cluster version, for example 'stable'. For ROSA, only 'stable' is supported.
+- `compute_machine_type` (String) Identifies the machine type used by the default/initial worker nodes, for example `m5.xlarge`. Use the `rhcs_machine_types` data source to find the possible values.
+- `default_mp_labels` (Map of String) This value is the default/initial machine pool labels. Format should be a comma-separated list of '{"key1"="value1", "key2"="value2"}'. This list overwrites any modifications made to node labels on an ongoing basis.
 - `destroy_timeout` (Number) This value sets the maximum duration in minutes to allow for destroying resources. Default value is 60 minutes.
 - `disable_scp_checks` (Boolean) Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE) platform metrics.
-- `disable_waiting_in_destroy` (Boolean) Disable addressing cluster state in the destroy resource. Default value is false.
+- `disable_waiting_in_destroy` (Boolean) Disable addressing cluster state in the destroy resource. Default value is false, and so a `destroy` will wait for the cluster to be deleted.
 - `disable_workload_monitoring` (Boolean) Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE) platform metrics.
-- `ec2_metadata_http_tokens` (String) This value determines which EC2 metadata mode to use for metadata service interaction options for EC2 instances can be optional or required. This feature is available from OpenShift version 4.11.0 and newer.
-- `etcd_encryption` (Boolean) Encrypt etcd data.
+- `ec2_metadata_http_tokens` (String) This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the cluster.This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). This feature is available from OpenShift version 4.11.0 and newer.
+- `etcd_encryption` (Boolean) Encrypt etcd data. Note that all AWS storage is already encrypted.
 - `external_id` (String) Unique external identifier of the cluster.
 - `fips` (Boolean) Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries.
 - `host_prefix` (Number) Length of the prefix of the subnet assigned to each node.
-- `kms_key_arn` (String) The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID.
+- `kms_key_arn` (String) The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID(optional).
 - `machine_cidr` (String) Block of IP addresses for nodes.
-- `max_replicas` (Number) Maximum replicas.
-- `min_replicas` (Number) Minimum replicas.
+- `max_replicas` (Number) Maximum replicas of worker nodes in a machine pool.
+- `min_replicas` (Number) Minimum replicas of worker nodes in a machine pool.
 - `multi_az` (Boolean) Indicates if the cluster should be deployed to multiple availability zones. Default value is 'false'.
 - `pod_cidr` (String) Block of IP addresses for pods.
-- `private` (Boolean) Restrict master API endpoint and application routes to direct, private connectivity.
-- `private_hosted_zone` (Attributes) Used in a shared VPC typology. HostedZone attributes (see [below for nested schema](#nestedatt--private_hosted_zone))
+- `private` (Boolean) Restrict cluster API endpoint and application routes to, private connectivity. This requires that PrivateLink be enabled and by extension, your own VPC.
+- `private_hosted_zone` (Attributes) Used in a shared VPC topology. HostedZone attributes (see [below for nested schema](#nestedatt--private_hosted_zone))
 - `properties` (Map of String) User defined properties.
 - `proxy` (Attributes) proxy (see [below for nested schema](#nestedatt--proxy))
-- `replicas` (Number) Number of worker nodes to provision. Single zone clusters need at least 2 nodes, multizone clusters need at least 3 nodes.
-- `service_cidr` (String) Block of IP addresses for services.
+- `replicas` (Number) Number of worker/compute nodes to provision. Single zone clusters need at least 2 nodes, multizone clusters need at least 3 nodes.
+- `service_cidr` (String) Block of IP addresses for the cluster service network.
 - `sts` (Attributes) STS configuration. (see [below for nested schema](#nestedatt--sts))
-- `tags` (Map of String) Apply user defined tags to all resources created in AWS.
+- `tags` (Map of String) Apply user defined tags to all cluster resources created in AWS.
 - `upgrade_acknowledgements_for` (String) Indicates acknowledgement of agreements required to upgrade the cluster version between minor versions (e.g. a value of "4.12" indicates acknowledgement of any agreements required to upgrade to OpenShift 4.12.z from 4.11 or before).
-- `version` (String) Desired version of OpenShift for the cluster, for example '4.1.0'. If version is greater than the currently running version, an upgrade will be scheduled.
+- `version` (String) Desired version of OpenShift for the cluster, for example '4.11.0'. If version is greater than the currently running version, an upgrade will be scheduled.
 - `wait_for_create_complete` (Boolean) Wait until the cluster is either in a ready state or in an error state. The waiter has a timeout of 60 minutes, with the default value set to false
 
 ### Read-Only
 
 - `api_url` (String) URL of the API server.
-- `ccs_enabled` (Boolean) Enables customer cloud subscription.
+- `ccs_enabled` (Boolean) Enables customer cloud subscription (Immutable with ROSA)
 - `console_url` (String) URL of the console.
-- `current_version` (String) The currently running version of OpenShift on the cluster, for example '4.1.0'.
+- `current_version` (String) The currently running version of OpenShift on the cluster, for example '4.11.0'.
 - `domain` (String) DNS domain of cluster.
 - `id` (String) Unique identifier of the cluster.
 - `ocm_properties` (Map of String) Merged properties defined by OCM and the user defined 'properties'.
@@ -123,7 +123,7 @@ Read-Only:
 
 Required:
 
-- `master_role_arn` (String) Master/Controller Plane Role ARN
-- `worker_role_arn` (String) Worker Node Role ARN
+- `master_role_arn` (String) Master/Control Plane Node Role ARN
+- `worker_role_arn` (String) Worker/Compute Node Role ARN
 
 

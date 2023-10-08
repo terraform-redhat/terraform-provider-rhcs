@@ -50,7 +50,6 @@ jobs:
       uses: hashicorp/setup-terraform@v2
       with:
         terraform_wrapper: false
-        terraform_version: 1.5.7
 
     - name: Run the tests
       run: make tests

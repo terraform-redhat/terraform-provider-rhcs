@@ -225,7 +225,10 @@ func ListMachinePool(connection *client.Connection, clusterID string, params ...
 }
 func RetrieveClusterMachinePool(connection *client.Connection, clusterID string, machinePoolID string) (*cmv1.MachinePool, error) {
 	resp, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).MachinePools().MachinePool(machinePoolID).Get().Send()
-	return resp.Body(), err
+        if err != nil {
+            return nil, err
+        }
+	return resp.Body(), nil
 }
 
 // Upgrade policies related

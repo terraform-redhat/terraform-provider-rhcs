@@ -146,5 +146,3 @@ Optional:
 - `groups` (List of String***REMOVED*** List of claims to use as the groups names.
 - `name` (List of String***REMOVED*** List of claims to use as the display name.
 - `preferred_username` (List of String***REMOVED*** List of claims to use as the preferred username when provisioning a user.
-
-

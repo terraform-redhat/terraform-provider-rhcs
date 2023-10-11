@@ -29,5 +29,3 @@ Read-Only:
 - `id` (String***REMOVED*** Unique identifier of the machine type.
 - `name` (String***REMOVED*** Short name of the machine type.
 - `ram` (Number***REMOVED*** Amount of RAM in bytes.
-
-

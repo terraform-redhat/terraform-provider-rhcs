@@ -37,5 +37,3 @@ Read-Only:
 - `policy_name` (String***REMOVED*** policy name
 - `role_name` (String***REMOVED*** policy name
 - `service_accounts` (List of String***REMOVED*** service accounts
-
-

@@ -26,5 +26,3 @@ Wait Cluster Resource To be Ready
 ### Read-Only
 
 - `ready` (Boolean***REMOVED*** Whether the cluster is ready.Note: this does not account for cluster operators still progressing to completion.
-
-

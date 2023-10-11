@@ -30,5 +30,3 @@ Manages OIDC config
 - `id` (String***REMOVED*** The OIDC config ID
 - `oidc_endpoint_url` (String***REMOVED*** OIDC Endpoint URL
 - `thumbprint` (String***REMOVED*** SHA1-hash value of the root CA of the issuer URL
-
-

@@ -26,5 +26,3 @@ description: |-
 - `organization_external_id` (String***REMOVED*** OCM account organization external id
 - `organization_id` (String***REMOVED*** OCM account organization id
 - `organization_name` (String***REMOVED*** OCM account organization name
-
-

@@ -47,5 +47,3 @@ Required:
 - `key` (String***REMOVED*** Taints key
 - `schedule_type` (String***REMOVED*** Taints schedule type
 - `value` (String***REMOVED*** Taints value
-
-

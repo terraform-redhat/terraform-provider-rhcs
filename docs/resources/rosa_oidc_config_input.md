@@ -28,5 +28,3 @@ OIDC config input resources' names
 - `private_key` (String***REMOVED*** RSA private key
 - `private_key_file_name` (String***REMOVED*** The private key file name
 - `private_key_secret_name` (String***REMOVED*** The secret name that stores the private key
-
-

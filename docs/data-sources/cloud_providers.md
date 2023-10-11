@@ -43,5 +43,3 @@ Read-Only:
 - `display_name` (String***REMOVED*** Human friendly name of the cloud provider, for example 'AWS' or 'GCP'
 - `id` (String***REMOVED*** Unique identifier of the cloud provider. This is what should be used when referencing the cloud provider from other places, for example in the 'cloud_provider' attribute of the cluster resource.
 - `name` (String***REMOVED*** Short name of the cloud provider, for example 'aws' or 'gcp'.
-
-

@@ -18,5 +18,3 @@ DNS Domain
 ### Read-Only
 
 - `id` (String***REMOVED*** Unique identifier of the DNS Domain
-
-

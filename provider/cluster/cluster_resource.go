@@ -58,6 +58,8 @@ func (r *ClusterResource***REMOVED*** Metadata(ctx context.Context, req resource
 func (r *ClusterResource***REMOVED*** Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse***REMOVED*** {
 	resp.Schema = schema.Schema{
 		Description: "OpenShift managed cluster.",
+		DeprecationMessage: fmt.Sprintf(
+			"using cluster as a resource is deprecated; consider using the cluster_rosa_classic resource instead"***REMOVED***,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "Unique identifier of the cluster.",

@@ -6,7 +6,7 @@ description: |-
   
 ---
 <a href="https://redhat.com">
-    <img src=".github/Logo_Red_Hat.png" alt="Red Hat logo" title="Red Hat" align="right" height="50" />
+    <img src=".github/Logo_Red_Hat.png" alt="Red Hat logo" title="Red Hat" align="right" max-width="60px" />
 </a>
 
 # Red Hat Cloud Services Terraform Provider

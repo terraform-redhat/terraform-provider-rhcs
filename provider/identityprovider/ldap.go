@@ -74,11 +74,7 @@ var ldapAttrSchema = map[string]schema.Attribute{
 		Description: "The list of attributes whose values should be used as the email address.",
 		ElementType: types.StringType,
 		Optional:    true,
-		Validators: []validator.List{
-			listvalidator.ValueStringsAre(
-				stringvalidator.RegexMatches(common.EmailRegexp, "Invalid email"),
-			),
-		},
+		Computed:    true,
 	},
 	"id": schema.ListAttribute{
 		Description: "The list of attributes whose values should be used as the user ID. (default ['dn'])",

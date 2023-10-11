@@ -48,6 +48,8 @@ func (g *GroupMembershipResource) Metadata(ctx context.Context, req resource.Met
 func (g *GroupMembershipResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "Manages user group membership.",
+		DeprecationMessage: fmt.Sprintf(
+			"using group membership as a resource is deprecated"),
 		Attributes: map[string]schema.Attribute{
 			"cluster": schema.StringAttribute{
 				Description: "Identifier of the cluster.",

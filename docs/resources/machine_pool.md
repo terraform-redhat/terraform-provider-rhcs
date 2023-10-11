@@ -47,5 +47,3 @@ Required:
 - `key` (String) Taints key
 - `schedule_type` (String) Taints schedule type
 - `value` (String) Taints value
-
-

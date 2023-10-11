@@ -43,5 +43,3 @@ Read-Only:
 - `openshift_ingress_operator_cloud_credentials_policy` (String)
 - `openshift_machine_api_aws_cloud_credentials_policy` (String)
 - `shared_vpc_openshift_ingress_operator_cloud_credentials_policy` (String)
-
-

@@ -37,8 +37,6 @@ package common
 
 const versionPrefix = "openshift-v"
 
-var EmailRegexp = regexp.MustCompile("^[a-zA-Z0-9+_.-]+@[a-zA-Z0-9.-]+$"***REMOVED***
-
 // shouldPatchInt changed checks if the change between the given state and plan requires sending a
 // patch request to the server. If it does it returns the value to add to the patch.
 func ShouldPatchInt(state, plan types.Int64***REMOVED*** (value int64, ok bool***REMOVED*** {
@@ -102,10 +100,6 @@ func ShouldPatchMap(state, plan types.Map***REMOVED*** (types.Map, bool***REMOVE
 func IsValidDomain(candidate string***REMOVED*** bool {
 	var domainRegexp = regexp.MustCompile(`^(?i***REMOVED***[a-z0-9-]+(\.[a-z0-9-]+***REMOVED***+\.?$`***REMOVED***
 	return domainRegexp.MatchString(candidate***REMOVED***
-}
-
-func IsValidEmail(candidate string***REMOVED*** bool {
-	return EmailRegexp.MatchString(candidate***REMOVED***
 }
 
 func IsStringAttributeEmpty(param types.String***REMOVED*** bool {

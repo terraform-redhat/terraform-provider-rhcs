@@ -39,6 +39,14 @@ var _ = Describe("Group membership creation", func(***REMOVED*** {
 				  "state": "ready"
 		***REMOVED***`***REMOVED***,
 			***REMOVED***,
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "123",
+				  "name": "my-cluster",
+				  "state": "ready"
+		***REMOVED***`***REMOVED***,
+			***REMOVED***,
 		***REMOVED***
 	}***REMOVED***
 

@@ -3,6 +3,7 @@ package common
 ***REMOVED***
 	"context"
 ***REMOVED***
+***REMOVED***
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -13,6 +14,14 @@ const pollingIntervalInMinutes = 2
 
 func WaitTillClusterReady(ctx context.Context, collection *cmv1.ClustersClient, clusterId string***REMOVED*** error {
 	resource := collection.Cluster(clusterId***REMOVED***
+	// We expect the cluster to be already exist
+	// Try to get it and if result with NotFound error, return error to user
+	if resp, err := resource.Get(***REMOVED***.SendContext(ctx***REMOVED***; err != nil && resp.Status(***REMOVED*** == http.StatusNotFound {
+		message := fmt.Sprintf("Cluster %s not found, error: %v", clusterId, err***REMOVED***
+		tflog.Error(ctx, message***REMOVED***
+		return fmt.Errorf(message***REMOVED***
+	}
+
 	pollCtx, cancel := context.WithTimeout(ctx, 1*time.Hour***REMOVED***
 	defer cancel(***REMOVED***
 	_, err := resource.Poll(***REMOVED***.

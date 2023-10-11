@@ -105,6 +105,22 @@ var _ = Describe("Machine pool creation", func() {
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, `{
+				  "id": "123",
+				  "name": "my-cluster",
+				  "multi_az": true,
+				  "nodes": {
+					"availability_zones": [
+					  "us-east-1a",
+					  "us-east-1b",
+					  "us-east-1c"
+					]
+				  },
+				  "state": "ready"
+				}`),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, `{
 					"id": "123",
 					"name": "my-cluster",
 					"multi_az": true,
@@ -290,6 +306,22 @@ var _ = Describe("Machine pool creation", func() {
 					"/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
 				),
 				RespondWithJSON(http.StatusNotFound, "{}"),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "123",
+				  "name": "my-cluster",
+				  "multi_az": true,
+				  "nodes": {
+					"availability_zones": [
+					  "us-east-1a",
+					  "us-east-1b",
+					  "us-east-1c"
+					]
+				  },
+				  "state": "ready"
+				}`),
 			),
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
@@ -1509,6 +1541,22 @@ var _ = Describe("Machine pool w/ mAZ cluster", func() {
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, `{
+				  "id": "123",
+				  "name": "my-cluster",
+				  "multi_az": true,
+				  "nodes": {
+					"availability_zones": [
+					  "us-east-1a",
+					  "us-east-1b",
+					  "us-east-1c"
+					]
+				  },
+				  "state": "ready"
+				}`),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, `{
 					"id": "123",
 					"name": "my-cluster",
 					"multi_az": true,
@@ -1723,9 +1771,23 @@ var _ = Describe("Machine pool w/ mAZ cluster", func() {
 var _ = Describe("Machine pool w/ 1AZ cluster", func() {
 	BeforeEach(func() {
 		// The first thing that the provider will do for any operation on machine pools
-		// is check that the cluster is ready, so we always need to prepare the server to
+		// is checking that the cluster is ready, so we always need to prepare the server to
 		// respond to that:
 		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "123",
+				  "name": "my-cluster",
+				  "multi_az": false,
+				  "nodes": {
+					"availability_zones": [
+					  "us-east-1a"
+					]
+				  },
+				  "state": "ready"
+				}`),
+			),
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, `{
@@ -1885,6 +1947,25 @@ var _ = Describe("Machine pool w/ 1AZ byo VPC cluster", func() {
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, `{
+					  "id": "123",
+					  "name": "my-cluster",
+					  "multi_az": false,
+					  "nodes": {
+						"availability_zones": [
+						  "us-east-1a"
+						]
+					  },
+					  "aws": {
+						"subnet_ids": [
+							"id1"
+						]
+					},
+				  "state": "ready"
+					}`),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, `{
 						"id": "123",
 						"name": "my-cluster",
 						"multi_az": false,
@@ -1997,5 +2078,31 @@ var _ = Describe("Machine pool import", func() {
 		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 		Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
 		Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
+	})
+})
+
+var _ = Describe("Machine pool creation for non exist cluster", func() {
+	It("Fail to create machine pool if cluster is not exist", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			// Get is for the Read function
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusNotFound, `{}`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 4
+			subnet_id = "not-in-vpc-of-cluster"
+		  }
+		`)
+		Expect(terraform.Apply()).NotTo(BeZero())
+
 	})
 })

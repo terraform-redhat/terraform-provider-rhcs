@@ -3,6 +3,7 @@ package common
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -13,6 +14,14 @@ const pollingIntervalInMinutes = 2
 
 func WaitTillClusterReady(ctx context.Context, collection *cmv1.ClustersClient, clusterId string) error {
 	resource := collection.Cluster(clusterId)
+	// We expect the cluster to be already exist
+	// Try to get it and if result with NotFound error, return error to user
+	if resp, err := resource.Get().SendContext(ctx); err != nil && resp.Status() == http.StatusNotFound {
+		message := fmt.Sprintf("Cluster %s not found, error: %v", clusterId, err)
+		tflog.Error(ctx, message)
+		return fmt.Errorf(message)
+	}
+
 	pollCtx, cancel := context.WithTimeout(ctx, 1*time.Hour)
 	defer cancel()
 	_, err := resource.Poll().

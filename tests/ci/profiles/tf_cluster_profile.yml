@@ -68,7 +68,7 @@ profiles:
     fips: false
     autoscale: false
     byok: true
-    version: "z-1&y-1"
+    version: "z-1"
     major_version: "4.13"
     proxy: false
     labeling: false

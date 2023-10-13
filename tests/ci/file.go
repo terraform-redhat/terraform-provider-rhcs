@@ -13,7 +13,7 @@ import (
 )
 
 // The cfg will be used to define the testing environment
-var cfg = RHCS
+var cfg = CON.RHCS
 
 func GetYAMLProfileFile(fileName string) (filename string) {
 	fPath := cfg.YAMLProfilesDir

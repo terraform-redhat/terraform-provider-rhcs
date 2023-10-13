@@ -15,6 +15,7 @@ type OIDCProviderOperatorRolesArgs struct {
 	URL                string `json:"url,omitempty"`
 	OIDCConfig         string `json:"oidc_config,omitempty"`
 	AWSRegion          string `json:"aws_region,omitempty"`
+	OCMENV             string `json:"rhcs_environment,omitempty"`
 }
 
 type OIDCProviderOperatorRolesOutput struct {
@@ -46,6 +47,8 @@ func (oidcOP *OIDCProviderOperatorRolesService) Init(manifestDirs ...string) err
 
 func (oidcOP *OIDCProviderOperatorRolesService) Create(createArgs *OIDCProviderOperatorRolesArgs, extraArgs ...string) (
 	*OIDCProviderOperatorRolesOutput, error) {
+	createArgs.URL = CON.GateWayURL
+	createArgs.OCMENV = CON.OCMENV
 	oidcOP.CreationArgs = createArgs
 	args := combineStructArgs(createArgs, extraArgs...)
 	_, err := runTerraformApplyWithArgs(oidcOP.Context, oidcOP.ManifestDir, args)
@@ -80,6 +83,8 @@ func (oidcOP *OIDCProviderOperatorRolesService) Destroy(createArgs ...*OIDCProvi
 	if len(createArgs) != 0 {
 		destroyArgs = createArgs[0]
 	}
+	destroyArgs.URL = CON.GateWayURL
+	destroyArgs.OCMENV = CON.OCMENV
 	args := combineStructArgs(destroyArgs)
 	err := runTerraformDestroyWithArgs(oidcOP.Context, oidcOP.ManifestDir, args)
 	return err

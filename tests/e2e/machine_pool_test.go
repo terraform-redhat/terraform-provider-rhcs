@@ -6,14 +6,11 @@
 
 ***REMOVED***
 ***REMOVED***
-	"github.com/openshift-online/ocm-sdk-go/logging"
 ***REMOVED***
 	cms "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 ***REMOVED***
 ***REMOVED***
 ***REMOVED***
-
-var logger logging.Logger
 
 var _ = Describe("TF Test", func(***REMOVED*** {
 	Describe("Create MachinePool test cases", func(***REMOVED*** {
@@ -24,7 +21,6 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 		AfterEach(func(***REMOVED*** {
 			err := mpService.Destroy(***REMOVED***
 			Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-			return
 ***REMOVED******REMOVED***
 		It("MachinePoolExampleNegative", func(***REMOVED*** {
 
@@ -56,6 +52,9 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 
 				err := mpService.Create(MachinePoolArgs***REMOVED***
 				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+				_, err = mpService.Output(***REMOVED***
+				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+
 				By("Verify the parameters of the created machinepool"***REMOVED***
 				mpOut, err := mpService.Output(***REMOVED***
 				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***

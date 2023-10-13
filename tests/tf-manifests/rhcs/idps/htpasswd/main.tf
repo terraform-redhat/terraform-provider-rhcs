@@ -25,7 +25,7 @@ terraform {
 
 provider "rhcs" {
   token = var.token
-  url   = var.gateway
+  url   = var.url
 }
 
 resource "rhcs_identity_provider" "htpasswd_idp" {

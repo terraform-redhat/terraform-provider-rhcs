@@ -45,6 +45,7 @@ func (idp *IDPService***REMOVED*** Init(manifestDirs ...string***REMOVED*** erro
 }
 
 func (idp *IDPService***REMOVED*** Create(createArgs *IDPArgs, extraArgs ...string***REMOVED*** error {
+	createArgs.URL = CON.GateWayURL
 	idp.CreationArgs = createArgs
 	args := combineStructArgs(createArgs, extraArgs...***REMOVED***
 	_, err := runTerraformApplyWithArgs(idp.Context, idp.ManifestDir, args***REMOVED***
@@ -83,6 +84,7 @@ func (idp *IDPService***REMOVED*** Destroy(createArgs ...*IDPArgs***REMOVED*** e
 	destroyArgs := idp.CreationArgs
 	if len(createArgs***REMOVED*** != 0 {
 		destroyArgs = createArgs[0]
+		destroyArgs.URL = CON.GateWayURL
 	}
 	args := combineStructArgs(destroyArgs***REMOVED***
 	err := runTerraformDestroyWithArgs(idp.Context, idp.ManifestDir, args***REMOVED***

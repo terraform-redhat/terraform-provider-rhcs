@@ -47,6 +47,8 @@ func (acc *AccountRoleService***REMOVED*** Init(manifestDirs ...string***REMOVED
 }
 
 func (acc *AccountRoleService***REMOVED*** Create(createArgs *AccountRolesArgs, extraArgs ...string***REMOVED*** (*AccountRolesOutput, error***REMOVED*** {
+	createArgs.URL = CON.GateWayURL
+	createArgs.OCMENV = CON.OCMENV
 	acc.CreationArgs = createArgs
 	args := combineStructArgs(createArgs, extraArgs...***REMOVED***
 	_, err := runTerraformApplyWithArgs(acc.Context, acc.ManifestDir, args***REMOVED***
@@ -54,7 +56,7 @@ func (acc *AccountRoleService***REMOVED*** Create(createArgs *AccountRolesArgs, 
 		return nil, err
 	}
 	output, err := acc.Output(***REMOVED***
-	return output, nil
+	return output, err
 }
 
 func (acc *AccountRoleService***REMOVED*** Output(***REMOVED*** (*AccountRolesOutput, error***REMOVED*** {
@@ -80,6 +82,8 @@ func (acc *AccountRoleService***REMOVED*** Destroy(createArgs ...*AccountRolesAr
 	if len(createArgs***REMOVED*** != 0 {
 		destroyArgs = createArgs[0]
 	}
+	destroyArgs.URL = CON.GateWayURL
+	destroyArgs.OCMENV = CON.OCMENV
 	args := combineStructArgs(destroyArgs***REMOVED***
 	err := runTerraformDestroyWithArgs(acc.Context, acc.ManifestDir, args***REMOVED***
 	return err

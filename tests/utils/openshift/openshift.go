@@ -1,4 +1,4 @@
-package exec
+package openshift
 
 ***REMOVED***
 ***REMOVED***
@@ -6,6 +6,7 @@ package exec
 	"time"
 
 ***REMOVED***
+	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 ***REMOVED***
 
 type OcAttributes struct {
@@ -31,9 +32,11 @@ func RetryCMDRun(cmd string, timeout time.Duration***REMOVED*** (string, error**
 	var stdout string
 	var stderr string
 	var err error
+	Logger.Infof("Retrying command %s in %d mins", cmd, timeout***REMOVED***
 	for time.Now(***REMOVED***.Before(now.Add(timeout * time.Minute***REMOVED******REMOVED*** {
 		stdout, stderr, err = h.RunCMD(cmd***REMOVED***
 		if err == nil {
+			Logger.Debugf("Run command %s successffly", cmd***REMOVED***
 			return stdout, nil
 ***REMOVED***
 		err = fmt.Errorf(stdout + stderr***REMOVED***
@@ -42,16 +45,14 @@ func RetryCMDRun(cmd string, timeout time.Duration***REMOVED*** (string, error**
 	return "", fmt.Errorf("timeout %d mins for command run %s with error: %s", timeout, cmd, err.Error(***REMOVED******REMOVED***
 }
 
-func OcLogin(ocLoginAtter OcAttributes***REMOVED*** error {
+func OcLogin(ocLoginAtter OcAttributes***REMOVED*** (string, error***REMOVED*** {
 	cmd := GenerateOCLoginCMD(ocLoginAtter.Server,
 		ocLoginAtter.Username,
 		ocLoginAtter.Password,
 		ocLoginAtter.ClusterID,
 		ocLoginAtter.AdditioanlFlags...***REMOVED***
 
-	errMsg, errStatus := RetryCMDRun(cmd, ocLoginAtter.Timeout***REMOVED***
-	if errMsg != "" {
-		fmt.Errorf("timeout %d mins for command run %s with error: %s", ocLoginAtter.Timeout, cmd, errStatus.Error(***REMOVED******REMOVED***
-	}
-	return errStatus
+	output, err := RetryCMDRun(cmd, ocLoginAtter.Timeout***REMOVED***
+	return output, err
+
 }

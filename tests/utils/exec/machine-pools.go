@@ -2,10 +2,7 @@ package exec
 
 ***REMOVED***
 	"context"
-	"encoding/json"
 ***REMOVED***
-	"os/exec"
-	"strings"
 
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 ***REMOVED***
@@ -60,6 +57,7 @@ func (mp *MachinePoolService***REMOVED*** Init(manifestDirs ...string***REMOVED*
 }
 
 func (mp *MachinePoolService***REMOVED*** Create(createArgs *MachinePoolArgs, extraArgs ...string***REMOVED*** error {
+	createArgs.URL = CON.GateWayURL
 	mp.CreationArgs = createArgs
 	args := combineStructArgs(createArgs, extraArgs...***REMOVED***
 	_, err := runTerraformApplyWithArgs(mp.Context, mp.ManifestDir, args***REMOVED***
@@ -103,6 +101,7 @@ func (mp *MachinePoolService***REMOVED*** Destroy(createArgs ...*MachinePoolArgs
 	if len(createArgs***REMOVED*** != 0 {
 		destroyArgs = createArgs[0]
 	}
+	destroyArgs.URL = CON.GateWayURL
 	args := combineStructArgs(destroyArgs***REMOVED***
 	err := runTerraformDestroyWithArgs(mp.Context, mp.ManifestDir, args***REMOVED***
 
@@ -113,80 +112,4 @@ func NewMachinePoolService(manifestDir ...string***REMOVED*** *MachinePoolServic
 	mp := &MachinePoolService{}
 	mp.Init(manifestDir...***REMOVED***
 	return mp
-}
-
-// ****************************** Machinepool CMD ***************************
-
-func CreateMachinePool(ctx context.Context, args ...string***REMOVED*** (string, error***REMOVED*** {
-	runTerraformInit(ctx, CON.MachinePoolDir***REMOVED***
-
-	runTerraformApplyWithArgs(ctx, CON.MachinePoolDir, args***REMOVED***
-
-	getClusterIdCmd := exec.Command("terraform", "output", "-json", "cluster_id"***REMOVED***
-	getClusterIdCmd.Dir = CON.MachinePoolDir
-	output, err := getClusterIdCmd.Output(***REMOVED***
-	if err != nil {
-		return "", err
-	}
-
-	splitOutput := strings.Split(string(output***REMOVED***, "\""***REMOVED***
-	if len(splitOutput***REMOVED*** <= 1 {
-		return "", fmt.Errorf("got no cluster id from the output"***REMOVED***
-	}
-
-	return splitOutput[1], nil
-}
-
-func CreateTFMachinePool(ctx context.Context,
-	varArgs map[string]interface{}, abArgs ...string***REMOVED*** (string, error***REMOVED*** {
-	err := runTerraformInit(ctx, CON.MachinePoolDir***REMOVED***
-	if err != nil {
-		return "", err
-	}
-
-	args := combineArgs(varArgs, abArgs...***REMOVED***
-	_, err = runTerraformApplyWithArgs(ctx, CON.MachinePoolDir, args***REMOVED***
-	if err != nil {
-		return "", err
-	}
-
-	getClusterIdCmd := exec.Command("terraform", "output", "-json", "cluster_id"***REMOVED***
-	getClusterIdCmd.Dir = CON.MachinePoolDir
-	output, err := getClusterIdCmd.Output(***REMOVED***
-	if err != nil {
-		return "", err
-	}
-
-	splitOutput := strings.Split(string(output***REMOVED***, "\""***REMOVED***
-	if len(splitOutput***REMOVED*** <= 1 {
-		return "", fmt.Errorf("got no cluster id from the output"***REMOVED***
-	}
-
-	return splitOutput[1], nil
-}
-
-func DestroyTFMachinePool(ctx context.Context,
-	varArgs map[string]interface{}, abArgs ...string***REMOVED*** error {
-	err := runTerraformInit(ctx, CON.MachinePoolDir***REMOVED***
-	if err != nil {
-		return err
-	}
-
-	args := combineArgs(varArgs, abArgs...***REMOVED***
-	err = runTerraformDestroyWithArgs(ctx, CON.MachinePoolDir, args***REMOVED***
-	return err
-}
-
-func CreateMyTFMachinePool(clusterArgs *MachinePoolArgs, arg ...string***REMOVED*** (string, error***REMOVED*** {
-	parambytes, _ := json.Marshal(clusterArgs***REMOVED***
-	args := map[string]interface{}{}
-	json.Unmarshal(parambytes, &args***REMOVED***
-	return CreateTFMachinePool(context.TODO(***REMOVED***, args, arg...***REMOVED***
-}
-
-func DestroyMyTFMachinePool(mpArgs *MachinePoolArgs, arg ...string***REMOVED*** error {
-	parambytes, _ := json.Marshal(mpArgs***REMOVED***
-	args := map[string]interface{}{}
-	json.Unmarshal(parambytes, &args***REMOVED***
-	return DestroyTFMachinePool(context.TODO(***REMOVED***, args, arg...***REMOVED***
 }

@@ -2,6 +2,7 @@
 
 ***REMOVED***
 	"context"
+	"os"
 	"testing"
 
 ***REMOVED***
@@ -15,10 +16,10 @@ var token string
 var clusterID string
 
 func TestRHCSProvider(t *testing.T***REMOVED*** {
-	token = CI.GetEnvWithDefault(CON.TokenENVName, ""***REMOVED***
-	clusterID = CI.GetEnvWithDefault(CON.ClusterIDEnv, ""***REMOVED***
-	ctx = context.Background(***REMOVED***
 	RegisterFailHandler(Fail***REMOVED***
+	token = os.Getenv(CON.TokenENVName***REMOVED***
+	clusterID = CI.PrepareRHCSClusterByProfileENV(***REMOVED***
+	ctx = context.Background(***REMOVED***
 	RunSpecs(t, "RHCS Provider Test"***REMOVED***
 
 }

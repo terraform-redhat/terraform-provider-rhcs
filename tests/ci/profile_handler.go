@@ -13,6 +13,7 @@ package ci
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	EXE "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	HELPER "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 ***REMOVED***
 
 // Profile Provides profile struct for cluster creation be matrix
@@ -97,11 +98,9 @@ func PrepareAccountRoles(token string, accountRolePrefix string, awsRegion strin
 	}
 	args := &EXE.AccountRolesArgs{
 		AccountRolePrefix: accountRolePrefix,
-		// OCMENV            string `json:"ocm_environment,omitempty"`
-		OpenshiftVersion: openshiftVersion,
-		Token:            token,
-		// URL               string `json:"url,omitempty"`
-		ChannelGroup: channelGroup,
+		OpenshiftVersion:  openshiftVersion,
+		Token:             token,
+		ChannelGroup:      channelGroup,
 	}
 	accRoleOutput, err := accService.Create(args***REMOVED***
 	if err != nil {
@@ -122,7 +121,6 @@ func PrepareOIDCProviderAndOperatorRoles(token string, oidcConfigType string, op
 		Token:              token,
 		OIDCConfig:         oidcConfigType,
 		AWSRegion:          awsRegion,
-		// URL                string `json:"url,omitempty"`
 	}
 	oidcOpOutput, err := oidcOpService.Create(args***REMOVED***
 	if err != nil {
@@ -183,7 +181,7 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile***REMOV
 		clusterArgs.ClusterName = HELPER.GenerateClusterName(profile.Name***REMOVED***
 	}
 	if profile.AdminEnabled {
-
+		// placeholder for admin enabled automation
 	}
 	if profile.Region != "" {
 		clusterArgs.AWSRegion = profile.Region
@@ -215,25 +213,35 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile***REMOV
 	if profile.BYOVPC {
 		var zones []string
 		var vpcOutput *EXE.VPCOutput
-		if profile.Zones != "" {
-			zones = strings.Split(profile.Zones, ","***REMOVED***
-***REMOVED***
-
-		vpcOutput, err = PrepareVPC(profile.Region, profile.PrivateLink, profile.MultiAZ, zones, clusterArgs.ClusterName***REMOVED***
-		if err != nil {
-			return
-***REMOVED***
-		clusterArgs.AWSAvailabilityZones = vpcOutput.AZs
-		if vpcOutput.ClusterPrivateSubnets == nil {
-			err = fmt.Errorf("error when creating the vpc, check the previous log. The created resources had been destroyed"***REMOVED***
-			return
-***REMOVED***
-		if profile.PrivateLink {
-			clusterArgs.AWSSubnetIDs = vpcOutput.ClusterPrivateSubnets
+		// Supports ENV set passed to make cluster provision more flexy in prow
+		// Export the subnetIDs via env variable if you have existing ones export SubnetIDs=<subnet1>,<subnet2>,<subnet3>
+		// Export the availability zones via env variable export AvailabilitiZones=<az1>,<az2>,<az3>
+		if os.Getenv("SubnetIDs"***REMOVED*** != "" && os.Getenv("AvailabilitiZones"***REMOVED*** != "" {
+			subnetIDs := strings.Split(os.Getenv("SubnetIDs"***REMOVED***, ","***REMOVED***
+			azs := strings.Split(os.Getenv("AvailabilitiZones"***REMOVED***, ","***REMOVED***
+			clusterArgs.AWSAvailabilityZones = azs
+			clusterArgs.AWSSubnetIDs = subnetIDs
 ***REMOVED*** else {
-			clusterArgs.AWSSubnetIDs = append(vpcOutput.ClusterPrivateSubnets, vpcOutput.ClusterPublicSubnets...***REMOVED***
+			if profile.Zones != "" {
+				zones = strings.Split(profile.Zones, ","***REMOVED***
+	***REMOVED***
+
+			vpcOutput, err = PrepareVPC(profile.Region, profile.PrivateLink, profile.MultiAZ, zones, clusterArgs.ClusterName***REMOVED***
+			if err != nil {
+				return
+	***REMOVED***
+			clusterArgs.AWSAvailabilityZones = vpcOutput.AZs
+			if vpcOutput.ClusterPrivateSubnets == nil {
+				err = fmt.Errorf("error when creating the vpc, check the previous log. The created resources had been destroyed"***REMOVED***
+				return
+	***REMOVED***
+			if profile.PrivateLink {
+				clusterArgs.AWSSubnetIDs = vpcOutput.ClusterPrivateSubnets
+	***REMOVED*** else {
+				clusterArgs.AWSSubnetIDs = append(vpcOutput.ClusterPrivateSubnets, vpcOutput.ClusterPublicSubnets...***REMOVED***
+	***REMOVED***
+			clusterArgs.MachineCIDR = vpcOutput.VPCCIDR
 ***REMOVED***
-		clusterArgs.MachineCIDR = vpcOutput.VPCCIDR
 	}
 
 	if profile.ChannelGroup != "" {
@@ -261,7 +269,7 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile***REMOV
 func LoadProfileYamlFile(profileName string***REMOVED*** *Profile {
 	filename := GetYAMLProfileFile(CON.TFYAMLProfile***REMOVED***
 	p := HELPER.GetProfile(profileName, filename***REMOVED***
-	fmt.Println(p.Cluster***REMOVED***
+	Logger.Infof("Loaded cluster profile configuration from profile %s : %v", profileName, p.Cluster***REMOVED***
 	profile := Profile{
 		Name: profileName,
 	}
@@ -274,18 +282,38 @@ func LoadProfileYamlFile(profileName string***REMOVED*** *Profile {
 }
 
 func LoadProfileYamlFileByENV(***REMOVED*** *Profile {
-	profileEnv := os.Getenv("CLUSTER_PROFILE"***REMOVED***
+	profileEnv := os.Getenv(CON.RhcsClusterProfileENV***REMOVED***
 	if profileEnv == "" {
 		panic(fmt.Errorf("ENV Variable CLUSTER_PROFILE is empty, please make sure you set the env value"***REMOVED******REMOVED***
 	}
-	return LoadProfileYamlFile(profileEnv***REMOVED***
+	profile := LoadProfileYamlFile(profileEnv***REMOVED***
+	// Supporting global env setting to overrite profile settings
+	if os.Getenv("CHANNEL_GROUP"***REMOVED*** != "" {
+		Logger.Infof("Got global env settings for CHANNEL_GROUP, overwritten the profile setting with value %s", os.Getenv("CHANNEL_GROUP"***REMOVED******REMOVED***
+		profile.ChannelGroup = os.Getenv("CHANNEL_GROUP"***REMOVED***
+	}
+	if os.Getenv("VERSION"***REMOVED*** != "" {
+		Logger.Infof("Got global env settings for VERSION, overwritten the profile setting with value %s", os.Getenv("VERSION"***REMOVED******REMOVED***
+		profile.Version = os.Getenv("VERSION"***REMOVED***
+	}
+	if os.Getenv("REGION"***REMOVED*** != "" {
+		Logger.Infof("Got global env settings for REGION, overwritten the profile setting with value %s", os.Getenv("REGION"***REMOVED******REMOVED***
+		profile.Region = os.Getenv("REGION"***REMOVED***
+	}
+	return profile
 }
 
 func CreateRHCSClusterByProfile(token string, profile *Profile***REMOVED*** (string, error***REMOVED*** {
-
 	creationArgs, _, err := GenerateClusterCreationArgsByProfile(token, profile***REMOVED***
-
+	if err != nil {
+		defer DestroyRHCSClusterByProfile(token, profile***REMOVED***
+	}
+	Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 	clusterService, err := EXE.NewClusterService(profile.ManifestsDIR***REMOVED***
+	if err != nil {
+		defer DestroyRHCSClusterByProfile(token, profile***REMOVED***
+	}
+	Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 	err = clusterService.Create(creationArgs***REMOVED***
 	if err != nil {
 		clusterService.Destroy(creationArgs***REMOVED***
@@ -326,7 +354,6 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile***REMOVED*** err
 			Token:      token,
 			OIDCConfig: profile.OIDCConfig,
 			AWSRegion:  profile.Region,
-			// URL                string `json:"url,omitempty"`
 ***REMOVED***
 		err = oidcOpService.Destroy(args***REMOVED***
 		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
@@ -343,7 +370,22 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile***REMOVED*** err
 	}
 	return nil
 }
+
+// PrepareRHCSClusterByProfileENV will be used for all day2 tests.
+// Do not need to create a cluster, it needs an existing cluster
+// Two ways:
+//   - If you created a cluster by other way, you can Export CLUSTER_ID=<cluster id>
+//   - If you are using this CI created the cluster, just need to Export CLUSTER_PROFILE=<profile name>
 func PrepareRHCSClusterByProfileENV(***REMOVED*** string {
+	// Support the cluster ID to set to ENV in case somebody created cluster by other way
+	// Export CLUSTER_ID=<cluster id>
+	if os.Getenv(CON.ClusterIDEnv***REMOVED*** != "" {
+		return os.Getenv(CON.ClusterIDEnv***REMOVED***
+	}
+	if os.Getenv(CON.RhcsClusterProfileENV***REMOVED*** == "" {
+		Logger.Warnf("Either env variables %s and %s set. Will return an empty string.", CON.ClusterIDEnv, CON.RhcsClusterProfileENV***REMOVED***
+		return ""
+	}
 	profile := LoadProfileYamlFileByENV(***REMOVED***
 	if profile.ManifestsDIR == "" {
 		profile.ManifestsDIR = CON.ROSAClassic

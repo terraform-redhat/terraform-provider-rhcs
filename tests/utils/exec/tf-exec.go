@@ -9,22 +9,14 @@ package exec
 	"os/exec"
 ***REMOVED***
 
-	logging "github.com/sirupsen/logrus"
 ***REMOVED***
+	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 ***REMOVED***
 
 // ************************ TF CMD***********************************
-func GetLogger(***REMOVED*** *logging.Logger {
-	// Create the logger:
-	logger := logging.New(***REMOVED***
-	logger.SetLevel(logging.InfoLevel***REMOVED***
-	return logger
-}
-
-var logger *logging.Logger = GetLogger(***REMOVED***
 
 func runTerraformInit(ctx context.Context, dir string***REMOVED*** error {
-	logger.Infof("Running terraform init against the dir %s", dir***REMOVED***
+	Logger.Infof("Running terraform init against the dir %s", dir***REMOVED***
 	terraformInitCmd := exec.Command("terraform", "init", "-no-color"***REMOVED***
 	terraformInitCmd.Dir = dir
 	var stdoutput bytes.Buffer
@@ -32,9 +24,9 @@ func runTerraformInit(ctx context.Context, dir string***REMOVED*** error {
 	terraformInitCmd.Stderr = &stdoutput
 	err := terraformInitCmd.Run(***REMOVED***
 	output := h.Strip(stdoutput.String(***REMOVED***, "\n"***REMOVED***
-	logger.Debugf(output***REMOVED***
+	Logger.Debugf(output***REMOVED***
 	if err != nil {
-		logger.Errorf(output***REMOVED***
+		Logger.Errorf(output***REMOVED***
 		err = fmt.Errorf("terraform init failed %s: %s", err.Error(***REMOVED***, output***REMOVED***
 	}
 
@@ -43,8 +35,8 @@ func runTerraformInit(ctx context.Context, dir string***REMOVED*** error {
 
 func runTerraformApplyWithArgs(ctx context.Context, dir string, terraformArgs []string***REMOVED*** (output string, err error***REMOVED*** {
 	applyArgs := append([]string{"apply", "-auto-approve", "-no-color"}, terraformArgs...***REMOVED***
-	logger.Infof("Running terraform apply against the dir: %s ", dir***REMOVED***
-	logger.Debugf("Running terraform apply against the dir: %s with args %v", dir, terraformArgs***REMOVED***
+	Logger.Infof("Running terraform apply against the dir: %s ", dir***REMOVED***
+	Logger.Debugf("Running terraform apply against the dir: %s with args %v", dir, terraformArgs***REMOVED***
 	terraformApply := exec.Command("terraform", applyArgs...***REMOVED***
 	terraformApply.Dir = dir
 	var stdoutput bytes.Buffer
@@ -54,16 +46,16 @@ func runTerraformApplyWithArgs(ctx context.Context, dir string, terraformArgs []
 	err = terraformApply.Run(***REMOVED***
 	output = h.Strip(stdoutput.String(***REMOVED***, "\n"***REMOVED***
 	if err != nil {
-		logger.Errorf(output***REMOVED***
+		Logger.Errorf(output***REMOVED***
 		err = fmt.Errorf("%s: %s", err.Error(***REMOVED***, output***REMOVED***
 		return
 	}
-	logger.Debugf(output***REMOVED***
+	Logger.Debugf(output***REMOVED***
 	return
 }
 func runTerraformDestroyWithArgs(ctx context.Context, dir string, terraformArgs []string***REMOVED*** (err error***REMOVED*** {
 	destroyArgs := append([]string{"destroy", "-auto-approve", "-no-color"}, terraformArgs...***REMOVED***
-	logger.Infof("Running terraform destroy against the dir: %s", dir***REMOVED***
+	Logger.Infof("Running terraform destroy against the dir: %s", dir***REMOVED***
 	terraformDestroy := exec.Command("terraform", destroyArgs...***REMOVED***
 	terraformDestroy.Dir = dir
 	var stdoutput bytes.Buffer
@@ -72,16 +64,16 @@ func runTerraformDestroyWithArgs(ctx context.Context, dir string, terraformArgs 
 	err = terraformDestroy.Run(***REMOVED***
 	var output string = h.Strip(stdoutput.String(***REMOVED***, "\n"***REMOVED***
 	if err != nil {
-		logger.Errorf(output***REMOVED***
+		Logger.Errorf(output***REMOVED***
 		err = fmt.Errorf("%s: %s", err.Error(***REMOVED***, output***REMOVED***
 		return
 	}
-	logger.Debugf(output***REMOVED***
+	Logger.Debugf(output***REMOVED***
 	return err
 }
 func runTerraformOutput(ctx context.Context, dir string***REMOVED*** (map[string]interface{}, error***REMOVED*** {
 	outputArgs := []string{"output", "-json"}
-	logger.Infof("Running terraform output against the dir: %s", dir***REMOVED***
+	Logger.Infof("Running terraform output against the dir: %s", dir***REMOVED***
 	terraformOutput := exec.Command("terraform", outputArgs...***REMOVED***
 	terraformOutput.Dir = dir
 	output, err := terraformOutput.Output(***REMOVED***
@@ -90,11 +82,11 @@ func runTerraformOutput(ctx context.Context, dir string***REMOVED*** (map[string
 	}
 	parsedResult := h.Parse(output***REMOVED***
 	if err != nil {
-		logger.Errorf(string(output***REMOVED******REMOVED***
+		Logger.Errorf(string(output***REMOVED******REMOVED***
 		err = fmt.Errorf("%s: %s", err.Error(***REMOVED***, output***REMOVED***
 		return nil, err
 	}
-	logger.Debugf(string(output***REMOVED******REMOVED***
+	Logger.Debugf(string(output***REMOVED******REMOVED***
 	return parsedResult, err
 }
 

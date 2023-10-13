@@ -14,6 +14,7 @@ package helper
 	"github.com/onsi/gomega"
 ***REMOVED***
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 ***REMOVED***
 
 // Parse parses the given JSON data and returns a map of strings containing the result.
@@ -131,15 +132,23 @@ func Dig(object interface{}, keys []interface{}***REMOVED*** interface{} {
 }
 
 func RunCMD(cmd string***REMOVED*** (stdout string, stderr string, err error***REMOVED*** {
-	fmt.Println("[>>] Running CMD: ", cmd***REMOVED***
+	Logger.Infof("[>>] Running CMD: %s", cmd***REMOVED***
 	var stdoutput bytes.Buffer
 	var stderroutput bytes.Buffer
 	CMD := exec.Command("bash", "-c", cmd***REMOVED***
 	CMD.Stderr = &stderroutput
 	CMD.Stdout = &stdoutput
 	err = CMD.Run(***REMOVED***
+	if err != nil {
+		Logger.Errorf("Got error status: %v", err***REMOVED***
+	}
+
 	stdout = strings.Trim(stdoutput.String(***REMOVED***, "\n"***REMOVED***
 	stderr = strings.Trim(stderroutput.String(***REMOVED***, "\n"***REMOVED***
+	Logger.Infof("Got output %s", stdout***REMOVED***
+	if stderr != "" {
+		Logger.Errorf("Got error output %s", stderr***REMOVED***
+	}
 	return
 }
 
@@ -313,7 +322,7 @@ func NeedFiltered(filterList []string, key string***REMOVED*** bool {
 		pattern := regexp.MustCompile(regex***REMOVED***
 		if pattern.MatchString(key***REMOVED*** {
 			if key == "network.type" {
-				fmt.Printf(">>>> network.type matched regex: %s\n", regex***REMOVED***
+				Logger.Infof(">>>> network.type matched regex: %s\n", regex***REMOVED***
 	***REMOVED***
 			return true
 ***REMOVED***

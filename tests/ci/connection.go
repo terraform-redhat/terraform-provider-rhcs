@@ -41,15 +41,14 @@ var (
 ***REMOVED***
 
 func createConnectionWithToken(token string***REMOVED*** *client.Connection {
-	gatewayURL := gatewayURL(***REMOVED***
 
 	// Create the connection:
 	connection, err := client.NewConnectionBuilder(***REMOVED***.
 		Logger(logger***REMOVED***.
 		Insecure(true***REMOVED***.
-		TokenURL(tokenURL***REMOVED***.
-		URL(gatewayURL***REMOVED***.
-		Client(clientID, clientSecret***REMOVED***.
+		TokenURL(CON.TokenURL***REMOVED***.
+		URL(CON.GateWayURL***REMOVED***.
+		Client(CON.ClientID, CON.ClientSecret***REMOVED***.
 		Tokens(token***REMOVED***.
 		Build(***REMOVED***
 	if err != nil {

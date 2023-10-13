@@ -69,13 +69,12 @@ data "rhcs_rosa_operator_roles" "operator_roles" {
 
 # Create oidc provider and operator roles on AWS
 module "operator_roles_and_oidc_provider" {
-  count   = var.oidc_config == null ? 0 : 1
-  source  = "terraform-redhat/rosa-sts/aws"
-  version = ">= 0.0.14"
-
-  create_operator_roles = true
-  create_oidc_provider  = true
-
+  count                       = var.oidc_config == null ? 0 : 1
+  source                      = "terraform-redhat/rosa-sts/aws"
+  version                     = ">= 0.0.14"
+  ocm_environment             = var.rhcs_environment
+  create_operator_roles       = true
+  create_oidc_provider        = true
   cluster_id                  = ""
   rh_oidc_provider_thumbprint = var.oidc_config == "managed" ? rhcs_rosa_oidc_config.oidc_config_managed[0].thumbprint : rhcs_rosa_oidc_config.oidc_config_unmanaged[0].thumbprint
   rh_oidc_provider_url        = var.oidc_config == "managed" ? rhcs_rosa_oidc_config.oidc_config_managed[0].oidc_endpoint_url : rhcs_rosa_oidc_config.oidc_config_unmanaged[0].oidc_endpoint_url

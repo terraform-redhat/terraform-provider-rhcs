@@ -13,7 +13,7 @@ package ci
 ***REMOVED***
 
 // The cfg will be used to define the testing environment
-var cfg = RHCS
+var cfg = CON.RHCS
 
 func GetYAMLProfileFile(fileName string***REMOVED*** (filename string***REMOVED*** {
 	fPath := cfg.YAMLProfilesDir

@@ -121,9 +121,34 @@ This allows run by case filter to simulate CI. Anybody can customize the case la
   * Export the token
     * `export RHCS_TOKEN=<rhcs token>` #If it had been run, then you can skip
   * Export the label filter to locate the preparation case
-    * `export LabelFilter="destroy"` #This filter only choose all critical and high priority cases with day1-post and day2
+    * `export LabelFilter="destroy"` #This filter only choose the destroy case for resources destroy
   * Run make command
     * `make e2e_test`
+### To run on local simulate CI without make file
+This allows run by case filter to simulate CI. Anybody can customize the case label filter to filter out the cases want to run
+* Prepare cluster with profile
+  * Check file terraform-provider-rhcs/tests/ci/profiles/tf_cluster_profile.yml to find the supported profiles and detailed configuration
+    * `export CLUSTER_PROFILE=<profile name>`
+  * Export the token
+    * `export RHCS_TOKEN=<rhcs token>`
+  * Run ginkgo run command
+    * `ginkgo run --label-filter day1-prepare tests/e2e`
+* Run day2 day1 post cases with profile
+  * Check file terraform-provider-rhcs/tests/ci/profiles/tf_cluster_profile.yml to find the supported profiles and detailed configuration
+    * `export CLUSTER_PROFILE=<profile name>` #If it had been run, then you can skip
+  * Export the token
+    * `export RHCS_TOKEN=<rhcs token>` #If it had been run, then you can skip
+  * Run ginkgo run command
+    * `ginkgo run --label-filter (Critical,High***REMOVED***&&(day1-post,day2***REMOVED***&&!Exclude tests/e2e`
+   * Run a specified case to debug
+    * `ginkgo -focus <case id> tests/e2e`
+* Run destroy with profile
+  * Check file terraform-provider-rhcs/tests/ci/profiles/tf_cluster_profile.yml to find the supported profiles and detailed configuration
+    * `export CLUSTER_PROFILE=<profile name>` #If it had been run, then you can skip
+  * Export the token
+    * `export RHCS_TOKEN=<rhcs token>` #If it had been run, then you can skip
+  * Run ginkgo run command
+    * `ginkgo run --label-filter destroy tests/e2e`
 
 ### Set log level
 * Log level defined in terraform-provider-rhcs/tests/utils/exec/tf-exec.go

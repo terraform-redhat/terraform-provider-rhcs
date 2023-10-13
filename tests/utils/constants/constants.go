@@ -20,11 +20,11 @@ const (
 var (
 	TokenENVName              = "RHCS_TOKEN"
 	ClusterIDEnv              = "CLUSTER_ID"
-	OCMEnv                    = "OCM_ENV"
+	RHCSENV                   = "RHCS_ENV"
 	RhcsClusterProfileENV     = "CLUSTER_PROFILE"
 	ClusterTypeManifestDirEnv = "CLUSTER_ROSA_TYPE"
 	MajorVersion              = "MAJOR_VERSION_ENV"
-	ManifestsDirENV           = os.Getenv("MANIFESTS_DIR"***REMOVED***
+	ManifestsDirENV           = os.Getenv("MANIFESTS_FOLDER"***REMOVED***
 ***REMOVED***
 
 var (

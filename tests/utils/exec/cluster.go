@@ -79,6 +79,7 @@ func (creator *ClusterService***REMOVED*** Init(manifestDir string***REMOVED*** 
 }
 
 func (creator *ClusterService***REMOVED*** Create(createArgs *ClusterCreationArgs, extraArgs ...string***REMOVED*** error {
+	createArgs.URL = CON.GateWayURL
 	args := combineStructArgs(createArgs, extraArgs...***REMOVED***
 	_, err := runTerraformApplyWithArgs(creator.Context, creator.ManifestDir, args***REMOVED***
 	if err != nil {
@@ -98,6 +99,7 @@ func (creator *ClusterService***REMOVED*** Output(***REMOVED*** (string, error**
 }
 
 func (creator *ClusterService***REMOVED*** Destroy(createArgs *ClusterCreationArgs, extraArgs ...string***REMOVED*** error {
+	createArgs.URL = CON.GateWayURL
 	args := combineStructArgs(createArgs, extraArgs...***REMOVED***
 	err := runTerraformDestroyWithArgs(creator.Context, creator.ManifestDir, args***REMOVED***
 	return err

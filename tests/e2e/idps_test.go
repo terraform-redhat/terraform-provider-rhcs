@@ -10,6 +10,7 @@
 ***REMOVED***
 ***REMOVED***
 ***REMOVED***
+***REMOVED***
 
 var _ = Describe("TF Test", func(***REMOVED*** {
 	Describe("Identity Providers test cases", func(***REMOVED*** {
@@ -68,7 +69,7 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 					server := getResp.Body(***REMOVED***.API(***REMOVED***.URL(***REMOVED***
 
-					ocAtter := &exe.OcAttributes{
+					ocAtter := &openshift.OcAttributes{
 						Server:          server,
 						Username:        htpasswdUsername,
 						Password:        htpasswdPassword,
@@ -76,7 +77,7 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 						AdditioanlFlags: nil,
 						Timeout:         5,
 			***REMOVED***
-					err = exe.OcLogin(*ocAtter***REMOVED***
+					_, err = openshift.OcLogin(*ocAtter***REMOVED***
 					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 
 		***REMOVED******REMOVED***

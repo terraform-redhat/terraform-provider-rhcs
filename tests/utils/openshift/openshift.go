@@ -1,4 +1,4 @@
-package exec
+package openshift
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"time"
 
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
 type OcAttributes struct {
@@ -31,9 +32,11 @@ func RetryCMDRun(cmd string, timeout time.Duration) (string, error) {
 	var stdout string
 	var stderr string
 	var err error
+	Logger.Infof("Retrying command %s in %d mins", cmd, timeout)
 	for time.Now().Before(now.Add(timeout * time.Minute)) {
 		stdout, stderr, err = h.RunCMD(cmd)
 		if err == nil {
+			Logger.Debugf("Run command %s successffly", cmd)
 			return stdout, nil
 		}
 		err = fmt.Errorf(stdout + stderr)
@@ -42,16 +45,14 @@ func RetryCMDRun(cmd string, timeout time.Duration) (string, error) {
 	return "", fmt.Errorf("timeout %d mins for command run %s with error: %s", timeout, cmd, err.Error())
 }
 
-func OcLogin(ocLoginAtter OcAttributes) error {
+func OcLogin(ocLoginAtter OcAttributes) (string, error) {
 	cmd := GenerateOCLoginCMD(ocLoginAtter.Server,
 		ocLoginAtter.Username,
 		ocLoginAtter.Password,
 		ocLoginAtter.ClusterID,
 		ocLoginAtter.AdditioanlFlags...)
 
-	errMsg, errStatus := RetryCMDRun(cmd, ocLoginAtter.Timeout)
-	if errMsg != "" {
-		fmt.Errorf("timeout %d mins for command run %s with error: %s", ocLoginAtter.Timeout, cmd, errStatus.Error())
-	}
-	return errStatus
+	output, err := RetryCMDRun(cmd, ocLoginAtter.Timeout)
+	return output, err
+
 }

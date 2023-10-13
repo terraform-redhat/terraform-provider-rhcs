@@ -9,6 +9,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	con "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	exe "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/openshift"
 )
 
 var _ = Describe("TF Test", func() {
@@ -68,7 +69,7 @@ var _ = Describe("TF Test", func() {
 					Expect(err).ToNot(HaveOccurred())
 					server := getResp.Body().API().URL()
 
-					ocAtter := &exe.OcAttributes{
+					ocAtter := &openshift.OcAttributes{
 						Server:          server,
 						Username:        htpasswdUsername,
 						Password:        htpasswdPassword,
@@ -76,7 +77,7 @@ var _ = Describe("TF Test", func() {
 						AdditioanlFlags: nil,
 						Timeout:         5,
 					}
-					err = exe.OcLogin(*ocAtter)
+					_, err = openshift.OcLogin(*ocAtter)
 					Expect(err).ToNot(HaveOccurred())
 
 				})

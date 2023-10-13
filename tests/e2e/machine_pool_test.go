@@ -6,14 +6,11 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/openshift-online/ocm-sdk-go/logging"
 	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	cms "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	con "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	exe "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 )
-
-var logger logging.Logger
 
 var _ = Describe("TF Test", func() {
 	Describe("Create MachinePool test cases", func() {
@@ -24,7 +21,6 @@ var _ = Describe("TF Test", func() {
 		AfterEach(func() {
 			err := mpService.Destroy()
 			Expect(err).ToNot(HaveOccurred())
-			return
 		})
 		It("MachinePoolExampleNegative", func() {
 
@@ -56,6 +52,9 @@ var _ = Describe("TF Test", func() {
 
 				err := mpService.Create(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
+				_, err = mpService.Output()
+				Expect(err).ToNot(HaveOccurred())
+
 				By("Verify the parameters of the created machinepool")
 				mpOut, err := mpService.Output()
 				Expect(err).ToNot(HaveOccurred())

@@ -14,6 +14,7 @@ import (
 	"github.com/onsi/gomega"
 	. "github.com/onsi/gomega"
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
 // Parse parses the given JSON data and returns a map of strings containing the result.
@@ -131,15 +132,23 @@ func Dig(object interface{}, keys []interface{}) interface{} {
 }
 
 func RunCMD(cmd string) (stdout string, stderr string, err error) {
-	fmt.Println("[>>] Running CMD: ", cmd)
+	Logger.Infof("[>>] Running CMD: %s", cmd)
 	var stdoutput bytes.Buffer
 	var stderroutput bytes.Buffer
 	CMD := exec.Command("bash", "-c", cmd)
 	CMD.Stderr = &stderroutput
 	CMD.Stdout = &stdoutput
 	err = CMD.Run()
+	if err != nil {
+		Logger.Errorf("Got error status: %v", err)
+	}
+
 	stdout = strings.Trim(stdoutput.String(), "\n")
 	stderr = strings.Trim(stderroutput.String(), "\n")
+	Logger.Infof("Got output %s", stdout)
+	if stderr != "" {
+		Logger.Errorf("Got error output %s", stderr)
+	}
 	return
 }
 
@@ -313,7 +322,7 @@ func NeedFiltered(filterList []string, key string) bool {
 		pattern := regexp.MustCompile(regex)
 		if pattern.MatchString(key) {
 			if key == "network.type" {
-				fmt.Printf(">>>> network.type matched regex: %s\n", regex)
+				Logger.Infof(">>>> network.type matched regex: %s\n", regex)
 			}
 			return true
 		}

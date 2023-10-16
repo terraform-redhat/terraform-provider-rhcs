@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -23,6 +24,13 @@ func Parse(data []byte) map[string]interface{} {
 	err := json.Unmarshal(data, &object)
 	Expect(err).ToNot(HaveOccurred())
 	return object
+}
+
+func GetJsonFromPath(path string, filename string) map[string]interface{} {
+	combinedFilePath := path + "/" + filename
+	file, err := os.ReadFile(combinedFilePath)
+	Expect(err).ToNot(HaveOccurred())
+	return Parse(file)
 }
 
 // If there is no attribute with the given path then the return value will be an empty string.
@@ -168,6 +176,22 @@ func MapStructure(m map[string]interface{}, i interface{}) error {
 // Join will link the strings with "."
 func Join(s ...string) string {
 	return strings.Join(s, ".")
+}
+
+func JoinStringWithArray(s string, strArray []string) []string {
+
+	// create tmp map for joining strings
+	var tmpMap = make(map[int]string)
+	for i, str := range strArray {
+		tmpMap[i] = s + str
+	}
+
+	// create array from map
+	var newArray = make([]string, len(tmpMap))
+	for i, value := range tmpMap {
+		newArray[i] = value
+	}
+	return newArray
 }
 
 // IsSorted will return whether the array is sorted by mode
@@ -333,6 +357,22 @@ func NeedFiltered(filterList []string, key string) bool {
 func BoolPoint(b bool) *bool {
 	boolVar := b
 	return &boolVar
+}
+
+func RandStringWithUpper(n int) string {
+	b := make([]string, n)
+
+	for i := range b {
+
+		// make each even alphabetic char as uppercase letter
+		if i%2 == 0 {
+			b[i] = strings.ToUpper(string(CON.CharsBytes[rand.Intn(len(CON.CharsBytes))]))
+		} else {
+			b[i] = string(CON.CharsBytes[rand.Intn(len(CON.CharsBytes))])
+		}
+	}
+
+	return strings.Join(b, "")
 }
 
 func subfix() string {

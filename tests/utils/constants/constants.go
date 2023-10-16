@@ -33,6 +33,7 @@ var (
 	WorkSpace           = "WORKSPACE"
 	RHCSPrefix          = "rhcs"
 	TFYAMLProfile       = "tf_cluster_profile.yml"
+	LdapURL             = "ldap://ldap.forumsys.com/dc=example,dc=com?uid"
 )
 
 const (

@@ -5,10 +5,12 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	conn "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	con "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	exe "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
+	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/openshift"
 )
 
@@ -26,16 +28,16 @@ var _ = Describe("TF Test", func() {
 		}
 
 		var idpService IDPServices
+		var userName, password string
 
 		Describe("Htpasswd IDP test cases", func() {
 			var htpasswdMap = []interface{}{map[string]string{}}
-			var htpasswdUsername, htpasswdPassword string
 
 			BeforeEach(func() {
 
-				htpasswdUsername = "jacko"
-				htpasswdPassword = "1q2wFe4rpoe2318"
-				htpasswdMap = []interface{}{map[string]string{"username": htpasswdUsername, "password": htpasswdPassword}}
+				userName = "jacko"
+				password = h.RandStringWithUpper(15)
+				htpasswdMap = []interface{}{map[string]string{"username": userName, "password": password}}
 				idpService.htpasswd = *exe.NewIDPService(con.HtpasswdDir) // init new htpasswd service
 			})
 
@@ -45,7 +47,7 @@ var _ = Describe("TF Test", func() {
 			})
 
 			Context("Author:smiron-High-OCP-63151 @OCP-63151 @smiron", func() {
-				It("OCP-63151 - Provision HTPASSWD IDP against cluster using TF", func() {
+				It("OCP-63151 - Provision HTPASSWD IDP against cluster using TF", ci.Day2, ci.High, ci.FeatureIDP, func() {
 					By("Create htpasswd idp for an existing cluster")
 
 					idpParam := &exe.IDPArgs{
@@ -62,7 +64,7 @@ var _ = Describe("TF Test", func() {
 					htpasswdUsersList, _ := cms.ListHtpasswdUsers(conn.RHCSConnection, clusterID, idpID.ID)
 					Expect(htpasswdUsersList.Status()).To(Equal(http.StatusOK))
 					respUserName, _ := htpasswdUsersList.Items().Slice()[0].GetUsername()
-					Expect(respUserName).To(Equal(htpasswdUsername))
+					Expect(respUserName).To(Equal(userName))
 
 					By("Login with created htpasswd idp")
 					getResp, err := cms.RetrieveClusterDetail(conn.RHCSConnection, clusterID)
@@ -71,8 +73,8 @@ var _ = Describe("TF Test", func() {
 
 					ocAtter := &openshift.OcAttributes{
 						Server:          server,
-						Username:        htpasswdUsername,
-						Password:        htpasswdPassword,
+						Username:        userName,
+						Password:        password,
 						ClusterID:       clusterID,
 						AdditioanlFlags: nil,
 						Timeout:         5,
@@ -80,6 +82,53 @@ var _ = Describe("TF Test", func() {
 					_, err = openshift.OcLogin(*ocAtter)
 					Expect(err).ToNot(HaveOccurred())
 
+				})
+			})
+		})
+		Describe("LDAP IDP test cases", func() {
+
+			BeforeEach(func() {
+
+				userName = "newton"
+				password = "password"
+				idpService.ldap = *exe.NewIDPService(con.LdapDir) // init new ldap service
+			})
+
+			AfterEach(func() {
+				err := idpService.ldap.Destroy()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			Context("Author:smiron-High-OCP-63332 @OCP-63332 @smiron", func() {
+				It("OCP-63332 - Provision LDAP IDP against cluster using TF", ci.Day2, ci.High, ci.FeatureIDP, func() {
+					By("Create LDAP idp for an existing cluster")
+
+					idpParam := &exe.IDPArgs{
+						Token:     token,
+						ClusterID: clusterID,
+						Name:      "ldap-idp-test",
+						CA:        "",
+						URL:       con.LdapURL,
+						Insecure:  true,
+					}
+					err := idpService.ldap.Create(idpParam, "-auto-approve", "-no-color")
+					Expect(err).ToNot(HaveOccurred())
+
+					By("Login with created ldap idp")
+					getResp, err := cms.RetrieveClusterDetail(conn.RHCSConnection, clusterID)
+					Expect(err).ToNot(HaveOccurred())
+					server := getResp.Body().API().URL()
+
+					ocAtter := &openshift.OcAttributes{
+						Server:          server,
+						Username:        userName,
+						Password:        password,
+						ClusterID:       clusterID,
+						AdditioanlFlags: nil,
+						Timeout:         5,
+					}
+					_, err = openshift.OcLogin(*ocAtter)
+					Expect(err).ToNot(HaveOccurred())
 				})
 			})
 		})

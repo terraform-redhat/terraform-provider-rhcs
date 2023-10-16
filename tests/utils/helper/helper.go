@@ -5,6 +5,7 @@ package helper
 	"encoding/json"
 ***REMOVED***
 	"math/rand"
+	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -23,6 +24,13 @@ func Parse(data []byte***REMOVED*** map[string]interface{} {
 	err := json.Unmarshal(data, &object***REMOVED***
 	Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 	return object
+}
+
+func GetJsonFromPath(path string, filename string***REMOVED*** map[string]interface{} {
+	combinedFilePath := path + "/" + filename
+	file, err := os.ReadFile(combinedFilePath***REMOVED***
+	Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+	return Parse(file***REMOVED***
 }
 
 // If there is no attribute with the given path then the return value will be an empty string.
@@ -168,6 +176,22 @@ func MapStructure(m map[string]interface{}, i interface{}***REMOVED*** error {
 // Join will link the strings with "."
 func Join(s ...string***REMOVED*** string {
 	return strings.Join(s, "."***REMOVED***
+}
+
+func JoinStringWithArray(s string, strArray []string***REMOVED*** []string {
+
+	// create tmp map for joining strings
+	var tmpMap = make(map[int]string***REMOVED***
+	for i, str := range strArray {
+		tmpMap[i] = s + str
+	}
+
+	// create array from map
+	var newArray = make([]string, len(tmpMap***REMOVED******REMOVED***
+	for i, value := range tmpMap {
+		newArray[i] = value
+	}
+	return newArray
 }
 
 // IsSorted will return whether the array is sorted by mode
@@ -333,6 +357,22 @@ func NeedFiltered(filterList []string, key string***REMOVED*** bool {
 func BoolPoint(b bool***REMOVED*** *bool {
 	boolVar := b
 	return &boolVar
+}
+
+func RandStringWithUpper(n int***REMOVED*** string {
+	b := make([]string, n***REMOVED***
+
+	for i := range b {
+
+		// make each even alphabetic char as uppercase letter
+		if i%2 == 0 {
+			b[i] = strings.ToUpper(string(CON.CharsBytes[rand.Intn(len(CON.CharsBytes***REMOVED******REMOVED***]***REMOVED******REMOVED***
+***REMOVED*** else {
+			b[i] = string(CON.CharsBytes[rand.Intn(len(CON.CharsBytes***REMOVED******REMOVED***]***REMOVED***
+***REMOVED***
+	}
+
+	return strings.Join(b, ""***REMOVED***
 }
 
 func subfix(***REMOVED*** string {

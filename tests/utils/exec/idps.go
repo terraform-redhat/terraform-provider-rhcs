@@ -15,6 +15,8 @@ type IDPArgs struct {
 	Token         string        `json:"token,omitempty"`
 	OCMENV        string        `json:"ocm_environment,omitempty"`
 	URL           string        `json:"url,omitempty"`
+	CA            string        `json:"ca,omitempty"`
+	Insecure      bool          `json:"insecure,omitempty"`
 	MappingMethod string        `json:"mapping_method,omitempty"`
 	HtpasswdUsers []interface{} `json:"htpasswd_users,omitempty"`
 }

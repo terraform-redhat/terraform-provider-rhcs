@@ -6,6 +6,7 @@ package ci
 
 // Features
 var FeatureMachinepool = Label("feature-machinepool"***REMOVED***
+var FeatureIDP = Label("feature-idp"***REMOVED***
 
 // day1/day1-post and day2
 var Day1 = Label("day1"***REMOVED***

@@ -17,8 +17,7 @@ var clusterID string
 
 func TestRHCSProvider(t *testing.T***REMOVED*** {
 	RegisterFailHandler(Fail***REMOVED***
-	RunSpecs(t, "RHCS Provider Test"***REMOVED***
-
+	RunSpecs(t, "e2e tests suite"***REMOVED***
 }
 
 var _ = BeforeSuite(func(***REMOVED*** {

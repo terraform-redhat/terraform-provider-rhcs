@@ -5,8 +5,7 @@
 
 ***REMOVED***
 ***REMOVED***
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
-	conn "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
+***REMOVED***
 ***REMOVED***
 ***REMOVED***
 ***REMOVED***
@@ -32,6 +31,7 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 
 		Describe("Htpasswd IDP test cases", func(***REMOVED*** {
 ***REMOVED***
+	***REMOVED***
 
 			BeforeEach(func(***REMOVED*** {
 
@@ -61,13 +61,13 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 					idpID, _ := idpService.htpasswd.Output(***REMOVED***
 
 					By("List existing HtpasswdUsers and compare to the created one"***REMOVED***
-					htpasswdUsersList, _ := cms.ListHtpasswdUsers(conn.RHCSConnection, clusterID, idpID.ID***REMOVED***
+					htpasswdUsersList, _ := cms.ListHtpasswdUsers(ci.RHCSConnection, clusterID, idpID.ID***REMOVED***
 					Expect(htpasswdUsersList.Status(***REMOVED******REMOVED***.To(Equal(http.StatusOK***REMOVED******REMOVED***
 					respUserName, _ := htpasswdUsersList.Items(***REMOVED***.Slice(***REMOVED***[0].GetUsername(***REMOVED***
 					Expect(respUserName***REMOVED***.To(Equal(userName***REMOVED******REMOVED***
 
 					By("Login with created htpasswd idp"***REMOVED***
-					getResp, err := cms.RetrieveClusterDetail(conn.RHCSConnection, clusterID***REMOVED***
+					getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID***REMOVED***
 					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 					server := getResp.Body(***REMOVED***.API(***REMOVED***.URL(***REMOVED***
 
@@ -115,7 +115,7 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 
 					By("Login with created ldap idp"***REMOVED***
-					getResp, err := cms.RetrieveClusterDetail(conn.RHCSConnection, clusterID***REMOVED***
+					getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID***REMOVED***
 					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 					server := getResp.Body(***REMOVED***.API(***REMOVED***.URL(***REMOVED***
 

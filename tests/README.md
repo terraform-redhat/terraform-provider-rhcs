@@ -4,12 +4,14 @@ This package is the automation package for Function Verification Testing on the 
 ## Structure of tests
 ```sh
 tests
-|____e2e                                          ---- e2e folder contains all of the e2e cases
-|    |____init_test.go
-|    |____machine_pool_test.go
-|    |____...
-|    |____cluster_creation_validation_test.go
-|    |____cluster_creation.go                     ---- cluster_creation.go will handle cluster creation by profile
+|____e2e      
+    |____cluster_creation_test.go                 ---- handles cluster creation by profile
+    |____cluster_destroy_test.go
+    |____e2e_suite_test.go                        ---- test suite for all the e2e tests
+    |____idps_test.go
+    |____...
+    |____machine_pool_test.go
+    |____verfication_post_day1_test.go            ---- post day1 verification tests
 |____utils
 |    |____exec                                    ---- exec will package the tf commands like init state apply destroy
 |    |    |____tf.go

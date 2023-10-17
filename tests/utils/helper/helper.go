@@ -7,6 +7,7 @@ package helper
 	"math/rand"
 	"os"
 	"os/exec"
+***REMOVED***
 	"regexp"
 	"strconv"
 	"strings"
@@ -26,8 +27,8 @@ func Parse(data []byte***REMOVED*** map[string]interface{} {
 	return object
 }
 
-func GetJsonFromPath(path string, filename string***REMOVED*** map[string]interface{} {
-	combinedFilePath := path + "/" + filename
+func GetJsonFromPath(filePath string, filename string***REMOVED*** map[string]interface{} {
+	combinedFilePath := path.Join(filePath, filename***REMOVED***
 	file, err := os.ReadFile(combinedFilePath***REMOVED***
 	Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 	return Parse(file***REMOVED***

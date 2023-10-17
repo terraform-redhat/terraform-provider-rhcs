@@ -5,8 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
-	conn "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
+	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	con "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	exe "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
@@ -32,6 +31,7 @@ var _ = Describe("TF Test", func() {
 
 		Describe("Htpasswd IDP test cases", func() {
 			var htpasswdMap = []interface{}{map[string]string{}}
+			var userName, password string
 
 			BeforeEach(func() {
 
@@ -61,13 +61,13 @@ var _ = Describe("TF Test", func() {
 					idpID, _ := idpService.htpasswd.Output()
 
 					By("List existing HtpasswdUsers and compare to the created one")
-					htpasswdUsersList, _ := cms.ListHtpasswdUsers(conn.RHCSConnection, clusterID, idpID.ID)
+					htpasswdUsersList, _ := cms.ListHtpasswdUsers(ci.RHCSConnection, clusterID, idpID.ID)
 					Expect(htpasswdUsersList.Status()).To(Equal(http.StatusOK))
 					respUserName, _ := htpasswdUsersList.Items().Slice()[0].GetUsername()
 					Expect(respUserName).To(Equal(userName))
 
 					By("Login with created htpasswd idp")
-					getResp, err := cms.RetrieveClusterDetail(conn.RHCSConnection, clusterID)
+					getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
 					Expect(err).ToNot(HaveOccurred())
 					server := getResp.Body().API().URL()
 
@@ -115,7 +115,7 @@ var _ = Describe("TF Test", func() {
 					Expect(err).ToNot(HaveOccurred())
 
 					By("Login with created ldap idp")
-					getResp, err := cms.RetrieveClusterDetail(conn.RHCSConnection, clusterID)
+					getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
 					Expect(err).ToNot(HaveOccurred())
 					server := getResp.Body().API().URL()
 

@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -26,8 +27,8 @@ func Parse(data []byte) map[string]interface{} {
 	return object
 }
 
-func GetJsonFromPath(path string, filename string) map[string]interface{} {
-	combinedFilePath := path + "/" + filename
+func GetJsonFromPath(filePath string, filename string) map[string]interface{} {
+	combinedFilePath := path.Join(filePath, filename)
 	file, err := os.ReadFile(combinedFilePath)
 	Expect(err).ToNot(HaveOccurred())
 	return Parse(file)

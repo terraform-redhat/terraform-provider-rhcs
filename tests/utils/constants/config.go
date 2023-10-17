@@ -26,14 +26,15 @@ type RHCSconfig struct {
 	RHCSEnv           string `env:"RHCS_ENV" default:"staging" yaml:"env"`
 	ClusterProfile    string `env:"CLUSTER_PROFILE" yaml:"clusterProfile,omitempty"`
 	ClusterProfileDir string `env:"CLUSTER_PROFILE_DIR" yaml:"clusterProfileDir,omitempty"`
-
-	YAMLProfilesDir string
+	RhcsOutputDir     string
+	YAMLProfilesDir   string
+	RootDir           string
 }
 
 func init() {
 	currentDir, _ := os.Getwd()
 	project := "terraform-provider-rhcs"
-	rootDir := GetEnvWithDefault(WorkSpace, strings.SplitAfter(currentDir, project)[0])
+	RHCS.RootDir = GetEnvWithDefault(WorkSpace, strings.SplitAfter(currentDir, project)[0])
 
 	// defaulted to staging
 	RHCS.RHCSEnv = GetEnvWithDefault(RHCSENV, RHCS.RHCSEnv)
@@ -45,7 +46,8 @@ func init() {
 		RHCS.ClusterProfileDir = os.Getenv("CLUSTER_PROFILE_DIR")
 	}
 
-	RHCS.YAMLProfilesDir = path.Join(rootDir, "tests", "ci", "profiles")
+	RHCS.RhcsOutputDir = GetRhcsOutputDir()
+	RHCS.YAMLProfilesDir = path.Join(RHCS.RootDir, "tests", "ci", "profiles")
 }
 
 // gatewayURL is used to get the global env of default gateway for testing
@@ -91,4 +93,16 @@ func GetEnvWithDefault(key string, defaultValue string) string {
 		}
 	}
 	return defaultValue
+}
+
+func GetRhcsOutputDir() string {
+	var rhcsNewOutPath string
+
+	if GetEnvWithDefault("RHCS_OUTPUT", "") != "" {
+		rhcsNewOutPath = os.Getenv("RHCS_OUTPUT")
+		return rhcsNewOutPath
+	}
+	rhcsNewOutPath = path.Join(RHCS.RootDir, "tests", "rhcs_output")
+	os.MkdirAll(rhcsNewOutPath, 0777)
+	return rhcsNewOutPath
 }

@@ -22,6 +22,11 @@ type ClusterCreationArgs struct {
 	AWSHttpTokensState   string            `json:"aws_http_tokens_state,omitempty"`
 	PrivateLink          string            `json:"private_link,omitempty"`
 	Private              string            `json:"private,omitempty"`
+	Fips                 bool              `json:"fips,omitempty"`
+	Tagging              map[string]string `json:"tags,omitempty"`
+	AuditLogForward      bool              `json:"audit_log_forward,omitempty"`
+	Autoscale            bool              `json:"autoscaling_enabled,omitempty"`
+	Etcd                 bool              `json:"etcd_encryption,omitempty"`
 	AWSSubnetIDs         []string          `json:"aws_subnet_ids,omitempty"`
 	ComputeMachineType   string            `json:"compute_machine_type,omitempty"`
 	DefaultMPLabels      map[string]string `json:"default_mp_labels,omitempty"`

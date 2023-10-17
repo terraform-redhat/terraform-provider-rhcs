@@ -31,11 +31,11 @@ type Profile struct {
 	StorageLB             bool   `ini:"storage_lb,omitempty" json:"storage_lb,omitempty"` // the unit is GIB, don't support unit set
 	Tagging               bool   `ini:"tagging,omitempty" json:"tagging,omitempty"`
 	Labeling              bool   `ini:"labeling,omitempty" json:"labeling,omitempty"`
-	Etcd                  bool   `ini:"etcd,omitempty" json:"etcd,omitempty"`
+	Etcd                  bool   `ini:"etcd_encryption,omitempty" json:"etcd_encryption,omitempty"`
 	FIPS                  bool   `ini:"fips,omitempty" json:"fips,omitempty"`
 	CCS                   bool   `ini:"ccs,omitempty" json:"ccs,omitempty"`
 	STS                   bool   `ini:"sts,omitempty" json:"sts,omitempty"`
-	Autoscale             bool   `ini:"autoscale,omitempty" json:"autoscale,omitempty"`
+	Autoscale             bool   `ini:"autoscaling_enabled,omitempty" json:"autoscaling_enabled,omitempty"`
 	MultiAZ               bool   `ini:"multi_az,omitempty" json:"multi_az,omitempty"`
 	BYOVPC                bool   `ini:"byovpc,omitempty" json:"byovpc,omitempty"`
 	PrivateLink           bool   `ini:"private_link,omitempty" json:"private_link,omitempty"`
@@ -48,6 +48,7 @@ type Profile struct {
 	OIDCConfig            string `ini:"oidc_config,omitempty" json:"oidc_config,omitempty"`
 	ProvisionShard        string `ini:"provisionShard,omitempty" json:"provisionShard,omitempty"`
 	Ec2MetadataHttpTokens string `ini:"imdsv2,omitempty" json:"imdsv2,omitempty"`
+	ComputeMachineType    string `ini:"compute_tachine_type,omitempty" json:"compute_tachine_type,omitempty"`
 	AuditLogForward       bool   `ini:"auditlog_forward,omitempty" json:"auditlog_forward,omitempty"`
 	AdminEnabled          bool   `ini:"admin_enabled,omitempty" json:"admin_enabled,omitempty"`
 	ManagedPolicies       bool   `ini:"managed_policies,omitempty" json:"managed_policies,omitempty"`
@@ -173,18 +174,72 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 		Token:            token,
 		OpenshiftVersion: profile.Version,
 	}
+
+	// Init cluster's args by profile's attributes
+
+	if profile.FIPS {
+		clusterArgs.Fips = profile.FIPS
+	}
+
+	if profile.Etcd {
+		clusterArgs.Etcd = profile.Etcd
+	}
+
+	if profile.MultiAZ {
+		clusterArgs.MultiAZ = profile.MultiAZ
+	}
+
+	if profile.NetWorkingSet {
+		clusterArgs.MachineCIDR = CON.DefaultVPCCIDR
+	}
+
+	if profile.Autoscale {
+		clusterArgs.Autoscale = profile.Autoscale
+	}
+
+	if profile.ComputeMachineType != "" {
+		clusterArgs.ComputeMachineType = profile.ComputeMachineType
+	}
+
+	if profile.ChannelGroup != "" {
+		clusterArgs.ChannelGroup = profile.ChannelGroup
+	}
+
+	if profile.Region == "" {
+		profile.Region = CON.DefaultAWSRegion
+	}
+
 	if profile.ManifestsDIR == "" {
 		profile.ManifestsDIR = CON.ROSAClassic
 	}
+
+	if profile.Labeling {
+		clusterArgs.DefaultMPLabels = CON.DefaultMPLabels
+	}
+
+	if profile.Tagging {
+		// ToDo
+	}
+
+	if profile.AdminEnabled {
+		// ToDo
+	}
+
+	if profile.AuditLogForward {
+		// ToDo
+	}
+
+	if profile.Proxy {
+		// ToDo
+	}
+
 	if profile.ClusterName != "" {
 		clusterArgs.ClusterName = profile.ClusterName
 	} else {
 		// Generate random chars later cluster name with profile name
 		clusterArgs.ClusterName = HELPER.GenerateClusterName(profile.Name)
 	}
-	if profile.AdminEnabled {
-		// placeholder for admin enabled automation
-	}
+
 	if profile.Region != "" {
 		clusterArgs.AWSRegion = profile.Region
 	} else {
@@ -205,20 +260,11 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 		clusterArgs.OIDCConfigID = oidcOutput.OIDCConfigID
 		clusterArgs.OperatorRolePrefix = oidcOutput.OperatorRolePrefix
 	}
-	if profile.Region == "" {
-		profile.Region = CON.DefaultAWSRegion
-	}
-
-	if profile.AuditLogForward {
-
-	}
-	if profile.MultiAZ {
-		clusterArgs.MultiAZ = true
-	}
 
 	if profile.BYOVPC {
 		var zones []string
 		var vpcOutput *EXE.VPCOutput
+
 		// Supports ENV set passed to make cluster provision more flexy in prow
 		// Export the subnetIDs via env variable if you have existing ones export SubnetIDs=<subnet1>,<subnet2>,<subnet3>
 		// Export the availability zones via env variable export AvailabilitiZones=<az1>,<az2>,<az3>
@@ -250,25 +296,6 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 		}
 	}
 
-	if profile.ChannelGroup != "" {
-		clusterArgs.ChannelGroup = profile.ChannelGroup
-	}
-
-	if profile.Tagging {
-
-	}
-	if profile.Labeling {
-		clusterArgs.DefaultMPLabels = map[string]string{
-			"test1": "testdata1",
-		}
-	}
-	if profile.NetWorkingSet {
-		clusterArgs.MachineCIDR = CON.DefaultVPCCIDR
-	}
-
-	if profile.Proxy {
-	}
-
 	return clusterArgs, profile.ManifestsDIR, err
 }
 
@@ -293,6 +320,7 @@ func LoadProfileYamlFileByENV() *Profile {
 		panic(fmt.Errorf("ENV Variable CLUSTER_PROFILE is empty, please make sure you set the env value"))
 	}
 	profile := LoadProfileYamlFile(profileEnv)
+
 	// Supporting global env setting to overrite profile settings
 	if os.Getenv("CHANNEL_GROUP") != "" {
 		Logger.Infof("Got global env settings for CHANNEL_GROUP, overwritten the profile setting with value %s", os.Getenv("CHANNEL_GROUP"))
@@ -396,7 +424,6 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 //   - If you are using this CI created the cluster, just need to Export CLUSTER_PROFILE=<profile name>
 func PrepareRHCSClusterByProfileENV() (string, error) {
 	// Support the cluster ID to set to ENV in case somebody created cluster by other way
-	// Export CLUSTER_ID=<cluster id>
 	if os.Getenv(CON.ClusterIDEnv) != "" {
 		return os.Getenv(CON.ClusterIDEnv), nil
 	}

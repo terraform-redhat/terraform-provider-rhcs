@@ -142,11 +142,11 @@ To use the Red Hat Cloud Services provider inside your Terraform configuration y
                     "iam:ListRoles"
                 ],
             "Resource": [
-                    "arn:aws:secretsmanager:*:<ACCOUNT_ID>:secret:*",
-                    "arn:aws:iam::<ACCOUNT_ID>:instance-profile/*",
-                    "arn:aws:iam::<ACCOUNT_ID>:role/*",
-                    "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/*",
-                    "arn:aws:iam::<ACCOUNT_ID>:policy/*"
+                    "arn:aws:secretsmanager:*:\<ACCOUNT_ID>:secret<a>:*",
+                    "arn:aws:iam::\<ACCOUNT_ID>:instance-profile/*",
+                    "arn:aws:iam::\<ACCOUNT_ID>:role/*",
+                    "arn:aws:iam::\<ACCOUNT_ID>:oidc-provider/*",
+                    "arn:aws:iam::\<ACCOUNT_ID>:policy/*"
                 ]
             },
             {

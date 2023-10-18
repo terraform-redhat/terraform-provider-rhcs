@@ -56,19 +56,14 @@ Terraform creates and manages resources through application programming interfac
 
 For more information, see the [Terraform documentation](https://developer.hashicorp.com/terraform***REMOVED***.
 
-## Limitations of the Red Hat Cloud Services Terraform provider
+## Provider releases
 
-The following items are limitations with the current release of the Red Hat Cloud Services Terraform provider:
+This provider is currently under development, and new releases are regularly made available on the Terraform provider registry.
 
-* The latest version is not backward compatible with version 1.0.1.
-* When creating a machine pool, you need to specify your replica count. You must define either the `replicas= "<count>"` variable or provide values for the following variables to build the machine pool:
-   * `min_replicas = "<count>"`
-   * `max_replicas="<count>"`
-   * `autoscaling_enabled=true`
-* The htpasswd identity provider does not support creating the identity provider with multiple users or adding additional users to the existing identity provider.
-* The S3 bucket that is created as part of the OIDC configuration must be created in the same region as your OIDC provider.
-* The Terraform provider does not support auto-generated `operator_role_prefix`. You must provide your `operator_role_prefix` when creating the account roles.
-* Resource created by terraform provider and deleted not by the terraform provider might cause to issue, the terraform provider wouldn't be able to recreate the resource
+There are two distinct types of releases:
+
+* Stable releases: Any release identified by a version number without any preffix, such as 1.2.0. These versions are officially supported by RedHat.
+* Pre-release versions: These are beta versions of the provider, identified by a version number with a suffix introduced by a dash, such as 1.2.0-beta. While users can utilize these pre-release versions, it's important to note that doing so comes with the responsibility of the user, as they may not be as stable or fully supported as official releases.
 
 ## Prerequisites
 
@@ -89,10 +84,6 @@ To use the Red Hat Cloud Services provider inside your Terraform configuration y
 * [Terraform version 1.4.6 or newer](https://developer.hashicorp.com/terraform/downloads***REMOVED***
 
   You need to have Terraform configured for your local system. The Terraform website contains installation options for MacOS, Windows, and Linux.
-
-* **Optional**: A [configured `*.tfvars` file](docs/terraform-vars.md***REMOVED***.
-
-  A `*.tfvars` file is a definition sheet for all of your variables. This method allows you to reference a file that is safely stored due to the sensitive nature of some variable values. You can create multiple `*.tfvars` files with different variable values.
 
 * [ROSA account roles](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/introduction_to_rosa/rosa-sts-about-iam-resources***REMOVED***
 

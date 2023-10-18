@@ -124,8 +124,8 @@ This allows run by case filter to simulate CI. Anybody can customize the case la
     * `export LabelFilter="destroy"` #This filter only choose the destroy case for resources destroy
   * Run make command
     * `make e2e_test`
-### To run on local simulate CI without make file
-This allows run by case filter to simulate CI. Anybody can customize the case label filter to filter out the cases want to run
+### Running a local CI simulation
+This feature allows for running tests through a case filter to simulate CI. Anyone can customize the case label filter to select the specific cases that would be run. 
 * Prepare cluster with profile
   * Check file terraform-provider-rhcs/tests/ci/profiles/tf_cluster_profile.yml to find the supported profiles and detailed configuration
     * `export CLUSTER_PROFILE=<profile name>`

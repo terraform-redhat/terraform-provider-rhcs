@@ -1,3 +1,22 @@
+## 1.4.0 (Oct 19, 2023)
+FEATURES:
+* Add wait attribute in `cluster_rosa_classic` resource for waiting cluster readiness in the creation flow
+* Added new `rhcs_info` data source for OCM account details.
+
+ENHANCEMENTS:
+* Docs - adjust descriptions
+* Upgrade framework version - update `terraform-plugin-framework` to `v1.3.5` (and not `v1.4.0` due to issues with Terraform CLI version `1.6.0`)
+* Provider Attributes changes
+  * Remove unused attributes
+  * Remove all attributes but Token from the docs - internal attributes
+  * Add option for environment variables for all string attributes
+  * Add "Authentication and configuration" section in the main index and remove attributes section
+* Bug fixes:
+  * Add verification that cluster exists for machine pool resource
+  * Add validation for IDP htpassward with duplicate username
+  * missing availability zones in region validation
+  * Allow specifying pool subnet even for 1AZ clusters in machine pool resource
+
 ## 1.3.0 (Sep 27, 2023)
 FEATURES:
 * Private cluster - add new variable "private" indicates if the cluster has private connection

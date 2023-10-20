@@ -537,8 +537,8 @@ func (r *MachinePoolResource***REMOVED*** Update(ctx context.Context, req resour
 	resp.Diagnostics.Append(diags...***REMOVED***
 }
 
-func (r *MachinePoolResource***REMOVED*** doUpdate(ctx context.Context, state *MachinePoolState, plan *MachinePoolState***REMOVED*** (diags diag.Diagnostics***REMOVED*** {
-	diags = diag.Diagnostics{}
+func (r *MachinePoolResource***REMOVED*** doUpdate(ctx context.Context, state *MachinePoolState, plan *MachinePoolState***REMOVED*** diag.Diagnostics {
+	diags := diag.Diagnostics{}
 
 	resource := r.collection.Cluster(state.Cluster.ValueString(***REMOVED******REMOVED***.
 		MachinePools(***REMOVED***.
@@ -554,7 +554,7 @@ func (r *MachinePoolResource***REMOVED*** doUpdate(ctx context.Context, state *M
 				state.ID.ValueString(***REMOVED***, state.Cluster.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
-		return
+		return diags
 	}
 
 	mpBuilder := cmv1.NewMachinePool(***REMOVED***.ID(state.ID.ValueString(***REMOVED******REMOVED***
@@ -568,7 +568,7 @@ func (r *MachinePoolResource***REMOVED*** doUpdate(ctx context.Context, state *M
 				state.Cluster.ValueString(***REMOVED***,
 			***REMOVED***,
 		***REMOVED***
-		return
+		return diags
 	}
 
 	computeNodesEnabled := false
@@ -588,7 +588,7 @@ func (r *MachinePoolResource***REMOVED*** doUpdate(ctx context.Context, state *M
 				"Cannot update machine pool for cluster '%s, %s ", state.Cluster.ValueString(***REMOVED***, errMsg,
 			***REMOVED***,
 		***REMOVED***
-		return
+		return diags
 	}
 
 	if (autoscalingEnabled && computeNodesEnabled***REMOVED*** || (!autoscalingEnabled && !computeNodesEnabled***REMOVED*** {
@@ -598,7 +598,7 @@ func (r *MachinePoolResource***REMOVED*** doUpdate(ctx context.Context, state *M
 				"Cannot update machine pool for cluster '%s: either autoscaling or compute nodes should be enabled", state.Cluster.ValueString(***REMOVED***,
 			***REMOVED***,
 		***REMOVED***
-		return
+		return diags
 	}
 
 	patchLabels, shouldPatchLabels := common.ShouldPatchMap(state.Labels, plan.Labels***REMOVED***
@@ -629,7 +629,7 @@ func (r *MachinePoolResource***REMOVED*** doUpdate(ctx context.Context, state *M
 				"Cannot update machine pool for cluster '%s: %v ", state.Cluster.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
-		return
+		return diags
 	}
 	update, err := r.collection.Cluster(state.Cluster.ValueString(***REMOVED******REMOVED***.
 		MachinePools(***REMOVED***.
@@ -642,7 +642,7 @@ func (r *MachinePoolResource***REMOVED*** doUpdate(ctx context.Context, state *M
 				state.ID.ValueString(***REMOVED***, state.Cluster.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
-		return
+		return diags
 	}
 
 	object := update.Body(***REMOVED***
@@ -654,7 +654,7 @@ func (r *MachinePoolResource***REMOVED*** doUpdate(ctx context.Context, state *M
 
 	// Save the state:
 	r.populateState(object, state***REMOVED***
-	return
+	return diags
 }
 
 // Validate the machine pool's settings that pertain to availability zones.

@@ -519,8 +519,8 @@ func (r *MachinePoolResource) Update(ctx context.Context, req resource.UpdateReq
 	resp.Diagnostics.Append(diags...)
 }
 
-func (r *MachinePoolResource) doUpdate(ctx context.Context, state *MachinePoolState, plan *MachinePoolState) (diags diag.Diagnostics) {
-	diags = diag.Diagnostics{}
+func (r *MachinePoolResource) doUpdate(ctx context.Context, state *MachinePoolState, plan *MachinePoolState) diag.Diagnostics {
+	diags := diag.Diagnostics{}
 
 	resource := r.collection.Cluster(state.Cluster.ValueString()).
 		MachinePools().
@@ -536,7 +536,7 @@ func (r *MachinePoolResource) doUpdate(ctx context.Context, state *MachinePoolSt
 				state.ID.ValueString(), state.Cluster.ValueString(), err,
 			),
 		)
-		return
+		return diags
 	}
 
 	mpBuilder := cmv1.NewMachinePool().ID(state.ID.ValueString())
@@ -550,7 +550,7 @@ func (r *MachinePoolResource) doUpdate(ctx context.Context, state *MachinePoolSt
 				state.Cluster.ValueString(),
 			),
 		)
-		return
+		return diags
 	}
 
 	computeNodesEnabled := false
@@ -570,7 +570,7 @@ func (r *MachinePoolResource) doUpdate(ctx context.Context, state *MachinePoolSt
 				"Cannot update machine pool for cluster '%s, %s ", state.Cluster.ValueString(), errMsg,
 			),
 		)
-		return
+		return diags
 	}
 
 	if (autoscalingEnabled && computeNodesEnabled) || (!autoscalingEnabled && !computeNodesEnabled) {
@@ -580,7 +580,7 @@ func (r *MachinePoolResource) doUpdate(ctx context.Context, state *MachinePoolSt
 				"Cannot update machine pool for cluster '%s: either autoscaling or compute nodes should be enabled", state.Cluster.ValueString(),
 			),
 		)
-		return
+		return diags
 	}
 
 	patchLabels, shouldPatchLabels := common.ShouldPatchMap(state.Labels, plan.Labels)
@@ -611,7 +611,7 @@ func (r *MachinePoolResource) doUpdate(ctx context.Context, state *MachinePoolSt
 				"Cannot update machine pool for cluster '%s: %v ", state.Cluster.ValueString(), err,
 			),
 		)
-		return
+		return diags
 	}
 	update, err := r.collection.Cluster(state.Cluster.ValueString()).
 		MachinePools().
@@ -624,7 +624,7 @@ func (r *MachinePoolResource) doUpdate(ctx context.Context, state *MachinePoolSt
 				state.ID.ValueString(), state.Cluster.ValueString(), err,
 			),
 		)
-		return
+		return diags
 	}
 
 	object := update.Body()
@@ -636,7 +636,7 @@ func (r *MachinePoolResource) doUpdate(ctx context.Context, state *MachinePoolSt
 
 	// Save the state:
 	r.populateState(object, state)
-	return
+	return diags
 }
 
 // Validate the machine pool's settings that pertain to availability zones.

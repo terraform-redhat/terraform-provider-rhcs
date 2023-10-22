@@ -100,3 +100,10 @@ func GrantClusterManifestDir(manifestDir string) string {
 	}
 	return targetDir
 }
+
+// Machine pool taints effect
+const (
+	NoExecute        = "NoExecute"
+	NoSchedule       = "NoSchedule"
+	PreferNoSchedule = "PreferNoSchedule"
+)

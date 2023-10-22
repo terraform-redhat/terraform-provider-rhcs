@@ -19,8 +19,8 @@ resource "rhcs_identity_provider" "htpasswd_idp" {
   name    = "htpasswd"
   htpasswd = {
     users = [{
-      username = "user1"
-      password = "423!@edf#@S29e!"
+      username = "<user-name>"
+      password = "<user-password>"
     },
     ]
   }

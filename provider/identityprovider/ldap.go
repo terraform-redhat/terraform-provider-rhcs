@@ -13,6 +13,7 @@ package identityprovider
 ***REMOVED***
 
 var LDAPAttrDefaultID []string = []string{"dn"}
+var LDAPAttrDefaultEmail []string = []string{"mail"}
 var LDAPAttrDefaultName []string = []string{"cn"}
 var LDAPAttrDefaultPrefferedUsername []string = []string{"uid"}
 
@@ -131,13 +132,20 @@ func CreateLDAPIDPBuilder(ctx context.Context, state *LDAPIdentityProvider***REM
 	}
 	attributesBuilder.ID(ids...***REMOVED***
 
+	var emails []string
 	if !state.Attributes.EMail.IsUnknown(***REMOVED*** && !state.Attributes.EMail.IsNull(***REMOVED*** {
-		emails, err := common.StringListToArray(ctx, state.Attributes.EMail***REMOVED***
+		emails, err = common.StringListToArray(ctx, state.Attributes.EMail***REMOVED***
 		if err != nil {
 			return nil, err
 ***REMOVED***
-		attributesBuilder.Email(emails...***REMOVED***
+	} else {
+		emails = LDAPAttrDefaultEmail
+		state.Attributes.EMail, err = common.StringArrayToList(emails***REMOVED***
+		if err != nil {
+			return nil, err
+***REMOVED***
 	}
+	attributesBuilder.Email(emails...***REMOVED***
 
 	var names []string
 	if !state.Attributes.Name.IsUnknown(***REMOVED*** && !state.Attributes.Name.IsNull(***REMOVED*** {

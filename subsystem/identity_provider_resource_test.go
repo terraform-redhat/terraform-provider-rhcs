@@ -645,7 +645,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 	***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 
-		Context("Can create 'LDDAP' Identity provider", func(***REMOVED*** {
+		Context("Can create 'LDAP' Identity provider", func(***REMOVED*** {
 			Context("Invalid LDAP config", func(***REMOVED*** {
 				It("Should fail if not both bind properties are set", func(***REMOVED*** {
 					// Run the apply command:
@@ -690,6 +690,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 				            "url": "ldap://my-server.com",
 				            "attributes": {
 				              "id": ["dn"],
+				              "email": ["mail"],
 				              "name": ["cn"],
 				              "preferred_username": ["uid"]
 				            }
@@ -705,6 +706,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 				            "url": "ldap://my-server.com",
 				            "attributes": {
 				              "id": ["dn"],
+				              "email": ["mail"],
 				              "name": ["cn"],
 				              "preferred_username": ["uid"]
 				            }
@@ -722,7 +724,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
         		      insecure      = false
         		      ca            = "my-ca"
         		      url           = "ldap://my-server.com"
-                      attributes    = {}
+									attributes    = {}
         		    }
         		  }
         		`***REMOVED***
@@ -748,10 +750,10 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 				            "insecure": false,
 				            "url": "ldap://my-server.com",
 				            "attributes": {
-				              "id": ["my-id"],
-				              "email": ["my@email.com"],
-				              "name": ["my-name"],
-				              "preferred_username": ["my-preferred-username"]
+				              "id": ["dn"],
+				              "email": ["mail"],
+				              "name": ["cn"],
+				              "preferred_username": ["uid"]
 				            }
 				          }
 				        }`***REMOVED***,
@@ -766,10 +768,10 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 				            "insecure": false,
 				            "url": "ldap://my-server.com",
 				            "attributes": {
-				              "id": ["my-id"],
-				              "email": ["my@email.com"],
-				              "name": ["my-name"],
-				              "preferred_username": ["my-preferred-username"]
+				              "id": ["dn"],
+				              "email": ["mail"],
+				              "name": ["cn"],
+				              "preferred_username": ["uid"]
 				            }
 				          }
 				        }`***REMOVED***,
@@ -817,10 +819,10 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 				            "insecure": false,
 				            "url": "ldap://my-server.com",
 				            "attributes": {
-				              "id": ["my-id"],
-				              "email": ["my@email.com"],
-				              "name": ["my-name"],
-				              "preferred_username": ["my-preferred-username"]
+				              "id": ["dn"],
+				              "email": ["mail"],
+				              "name": ["cn"],
+				              "preferred_username": ["uid"]
 				            }
 				          }
 				        }`***REMOVED***,
@@ -833,10 +835,10 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 				            "insecure": false,
 				            "url": "ldap://my-server.com",
 				            "attributes": {
-				              "id": ["my-id"],
-				              "email": ["my@email.com"],
-				              "name": ["my-name"],
-				              "preferred_username": ["my-preferred-username"]
+				              "id": ["dn"],
+				              "email": ["mail"],
+				              "name": ["cn"],
+				              "preferred_username": ["uid"]
 				            }
 				          }
 				        }`***REMOVED***,

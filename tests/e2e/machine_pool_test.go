@@ -3,7 +3,6 @@ package e2e
 import (
 
 	// nolint
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
@@ -15,6 +14,7 @@ import (
 var _ = Describe("TF Test", func() {
 	Describe("Create MachinePool test cases", func() {
 		var mpService *exe.MachinePoolService
+		profile := ci.LoadProfileYamlFileByENV()
 		BeforeEach(func() {
 			mpService = exe.NewMachinePoolService(con.MachinePoolDir)
 		})
@@ -234,5 +234,125 @@ var _ = Describe("TF Test", func() {
 
 			})
 		})
+		Context("Author:amalykhi-High-OCP-68283 @OCP-68283 @amalykhi", func() {
+			It("Author:amalykhi-High-OCP-68283 Check the validations for the machinepool creation rosa clusters", ci.Day2, ci.High, ci.FeatureMachinepool, func() {
+				By("Check the validations for the machinepool creation rosa cluster")
+				var (
+					machinepoolName                                                                                                           = "ocp-68283"
+					invalidMachinepoolName                                                                                                    = "%^#@"
+					machineType, InvalidInstanceType                                                                                          = "r5.xlarge", "custom-4-16384"
+					mpReplicas, minReplicas, maxReplicas, invalidMpReplicas, invalidMinReplicas4Mutilcluster, invalidMaxReplicas4Mutilcluster = 3, 3, 6, -3, 4, 7
+				)
+				By("Create machinepool with invalid name")
+				MachinePoolArgs := &exe.MachinePoolArgs{
+					Token:       token,
+					Cluster:     clusterID,
+					Replicas:    invalidMpReplicas,
+					Name:        invalidMachinepoolName,
+					MachineType: machineType,
+				}
+				err := mpService.Create(MachinePoolArgs)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).Should(ContainSubstring("Expected a valid value for 'name'"))
+
+				By("Create machinepool with invalid replica value")
+				MachinePoolArgs = &exe.MachinePoolArgs{
+					Token:       token,
+					Cluster:     clusterID,
+					Replicas:    invalidMpReplicas,
+					Name:        machinepoolName,
+					MachineType: machineType,
+				}
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).Should(ContainSubstring("Attribute 'replicas'\nmust be a non-negative integer"))
+
+				By("Create machinepool with invalid instance type")
+				MachinePoolArgs = &exe.MachinePoolArgs{
+					Token:       token,
+					Cluster:     clusterID,
+					Replicas:    mpReplicas,
+					Name:        machinepoolName,
+					MachineType: InvalidInstanceType,
+				}
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).Should(ContainSubstring("Machine type\n'%s' is not supported for cloud provider", InvalidInstanceType))
+
+				By("Create machinepool with setting replicas and enable-autoscaling at the same time")
+				MachinePoolArgs = &exe.MachinePoolArgs{
+					Token:              token,
+					Cluster:            clusterID,
+					Replicas:           mpReplicas,
+					Name:               machinepoolName,
+					AutoscalingEnabled: true,
+					MachineType:        machineType,
+				}
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).Should(ContainSubstring("when\nenabling autoscaling, should set value for maxReplicas"))
+
+				By("Create machinepool with setting min-replicas large than max-replicas")
+				MachinePoolArgs = &exe.MachinePoolArgs{
+					Token:              token,
+					Cluster:            clusterID,
+					MinReplicas:        maxReplicas,
+					MaxReplicas:        minReplicas,
+					Name:               machinepoolName,
+					AutoscalingEnabled: true,
+					MachineType:        machineType,
+				}
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).Should(ContainSubstring("'min_replicas' must be less than or equal to 'max_replicas'"))
+
+				By("Create machinepool with setting min-replicas and max-replicas but without setting --enable-autoscaling")
+				MachinePoolArgs = &exe.MachinePoolArgs{
+					Token:       token,
+					Cluster:     clusterID,
+					MinReplicas: minReplicas,
+					MaxReplicas: maxReplicas,
+					Name:        machinepoolName,
+					MachineType: machineType,
+				}
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).Should(ContainSubstring("when\ndisabling autoscaling, cannot set min_replicas and/or max_replicas"))
+
+				By("Create machinepool with setting min-replicas large than max-replicas")
+
+				if profile.MultiAZ {
+					By("Create machinepool with setting min-replicas and max-replicas not multiple 3 for multi-az")
+					MachinePoolArgs = &exe.MachinePoolArgs{
+						Token:              token,
+						Cluster:            clusterID,
+						MinReplicas:        minReplicas,
+						MaxReplicas:        invalidMaxReplicas4Mutilcluster,
+						Name:               machinepoolName,
+						MachineType:        machineType,
+						AutoscalingEnabled: true,
+					}
+					err = mpService.Create(MachinePoolArgs)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).Should(ContainSubstring("Multi AZ clusters require that the number of replicas be a\nmultiple of 3"))
+
+					MachinePoolArgs = &exe.MachinePoolArgs{
+						Token:              token,
+						Cluster:            clusterID,
+						MinReplicas:        invalidMinReplicas4Mutilcluster,
+						MaxReplicas:        maxReplicas,
+						Name:               machinepoolName,
+						MachineType:        machineType,
+						AutoscalingEnabled: true,
+					}
+					err = mpService.Create(MachinePoolArgs)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).Should(ContainSubstring("Multi AZ clusters require that the number of replicas be a\nmultiple of 3"))
+
+				}
+
+			})
+		})
+
 	})
 })

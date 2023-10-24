@@ -48,7 +48,7 @@ profiles:
     labeling: true
     tagging: true
     channel_group: candidate
-    zones: "a,b,c"
+    zones: ""
     imdsv2: "required"
     oidc_config: "un-managed"
 - as: rosa-sts-up

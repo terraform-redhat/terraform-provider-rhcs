@@ -80,6 +80,7 @@ func PrepareVPC(region string, privateLink bool, multiZone bool, azIDs []string,
 	err := vpcService.Create(vpcArgs***REMOVED***
 	if err != nil {
 		vpcService.Destroy(***REMOVED***
+		return nil, err
 	}
 	output, err := vpcService.Output(***REMOVED***
 

@@ -13,6 +13,7 @@ import (
 )
 
 var LDAPAttrDefaultID []string = []string{"dn"}
+var LDAPAttrDefaultEmail []string = []string{"mail"}
 var LDAPAttrDefaultName []string = []string{"cn"}
 var LDAPAttrDefaultPrefferedUsername []string = []string{"uid"}
 
@@ -131,13 +132,20 @@ func CreateLDAPIDPBuilder(ctx context.Context, state *LDAPIdentityProvider) (*cm
 	}
 	attributesBuilder.ID(ids...)
 
+	var emails []string
 	if !state.Attributes.EMail.IsUnknown() && !state.Attributes.EMail.IsNull() {
-		emails, err := common.StringListToArray(ctx, state.Attributes.EMail)
+		emails, err = common.StringListToArray(ctx, state.Attributes.EMail)
 		if err != nil {
 			return nil, err
 		}
-		attributesBuilder.Email(emails...)
+	} else {
+		emails = LDAPAttrDefaultEmail
+		state.Attributes.EMail, err = common.StringArrayToList(emails)
+		if err != nil {
+			return nil, err
+		}
 	}
+	attributesBuilder.Email(emails...)
 
 	var names []string
 	if !state.Attributes.Name.IsUnknown() && !state.Attributes.Name.IsNull() {

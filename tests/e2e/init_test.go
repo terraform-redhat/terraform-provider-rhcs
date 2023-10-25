@@ -17,9 +17,14 @@ var clusterID string
 
 func TestRHCSProvider(t *testing.T***REMOVED*** {
 	RegisterFailHandler(Fail***REMOVED***
-	token = os.Getenv(CON.TokenENVName***REMOVED***
-	clusterID = CI.PrepareRHCSClusterByProfileENV(***REMOVED***
-	ctx = context.Background(***REMOVED***
 	RunSpecs(t, "RHCS Provider Test"***REMOVED***
 
 }
+
+var _ = BeforeSuite(func(***REMOVED*** {
+	token = os.Getenv(CON.TokenENVName***REMOVED***
+	var err error
+	clusterID, err = CI.PrepareRHCSClusterByProfileENV(***REMOVED***
+	Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+	ctx = context.Background(***REMOVED***
+}***REMOVED***

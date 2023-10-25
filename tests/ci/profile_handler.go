@@ -5,6 +5,7 @@ package ci
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 ***REMOVED***
 	client "github.com/openshift-online/ocm-sdk-go"
@@ -194,6 +195,10 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile***REMOV
 		accountRolesOutput, err := PrepareAccountRoles(token, clusterArgs.ClusterName, clusterArgs.AWSRegion, profile.Version, profile.ChannelGroup***REMOVED***
 		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 		clusterArgs.AccountRolePrefix = accountRolesOutput.AccountRolePrefix
+		Logger.Infof("Created account roles with prefix %s", accountRolesOutput.AccountRolePrefix***REMOVED***
+
+		Logger.Infof("Sleep for 10 sec to let aws account role async creation finished"***REMOVED***
+		time.Sleep(10 * time.Second***REMOVED***
 
 		oidcOutput, err := PrepareOIDCProviderAndOperatorRoles(token, profile.OIDCConfig, clusterArgs.ClusterName, accountRolesOutput.AccountRolePrefix, clusterArgs.AWSRegion***REMOVED***
 		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
@@ -336,7 +341,9 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile***REMOVED*** err
 		OperatorRolePrefix: "",
 	}
 	err = clusterService.Destroy(clusterArgs***REMOVED***
-	Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+	if err != nil {
+		return err
+	}
 
 	// Destroy VPC
 	if profile.BYOVPC {
@@ -345,28 +352,38 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile***REMOVED*** err
 			AWSRegion: profile.Region,
 ***REMOVED***
 		err := vpcService.Destroy(vpcArgs***REMOVED***
-		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+		if err != nil {
+			return err
+***REMOVED***
 	}
 	if profile.STS {
 		// Destroy oidc and operator roles
 		oidcOpService, err := EXE.NewOIDCProviderOperatorRolesService(***REMOVED***
-		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+		if err != nil {
+			return err
+***REMOVED***
 		args := &EXE.OIDCProviderOperatorRolesArgs{
 			Token:      token,
 			OIDCConfig: profile.OIDCConfig,
 			AWSRegion:  profile.Region,
 ***REMOVED***
 		err = oidcOpService.Destroy(args***REMOVED***
-		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+		if err != nil {
+			return err
+***REMOVED***
 
 		//  Destroy Account roles
 		accService, err := EXE.NewAccountRoleService(***REMOVED***
-		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+		if err != nil {
+			return err
+***REMOVED***
 		accargs := &EXE.AccountRolesArgs{
 			Token: token,
 ***REMOVED***
 		err = accService.Destroy(accargs***REMOVED***
-		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+		if err != nil {
+			return err
+***REMOVED***
 
 	}
 	return nil
@@ -377,23 +394,24 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile***REMOVED*** err
 // Two ways:
 //   - If you created a cluster by other way, you can Export CLUSTER_ID=<cluster id>
 //   - If you are using this CI created the cluster, just need to Export CLUSTER_PROFILE=<profile name>
-func PrepareRHCSClusterByProfileENV(***REMOVED*** string {
+func PrepareRHCSClusterByProfileENV(***REMOVED*** (string, error***REMOVED*** {
 	// Support the cluster ID to set to ENV in case somebody created cluster by other way
 	// Export CLUSTER_ID=<cluster id>
 	if os.Getenv(CON.ClusterIDEnv***REMOVED*** != "" {
-		return os.Getenv(CON.ClusterIDEnv***REMOVED***
+		return os.Getenv(CON.ClusterIDEnv***REMOVED***, nil
 	}
 	if os.Getenv(CON.RhcsClusterProfileENV***REMOVED*** == "" {
 		Logger.Warnf("Either env variables %s and %s set. Will return an empty string.", CON.ClusterIDEnv, CON.RhcsClusterProfileENV***REMOVED***
-		return ""
+		return "", nil
 	}
 	profile := LoadProfileYamlFileByENV(***REMOVED***
 	if profile.ManifestsDIR == "" {
 		profile.ManifestsDIR = CON.ROSAClassic
 	}
 	clusterService, err := EXE.NewClusterService(profile.ManifestsDIR***REMOVED***
-	Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+	if err != nil {
+		return "", err
+	}
 	clusterID, err := clusterService.Output(***REMOVED***
-	Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-	return clusterID
+	return clusterID, err
 }

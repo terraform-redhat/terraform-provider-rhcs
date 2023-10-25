@@ -5,6 +5,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	. "github.com/onsi/gomega"
 	client "github.com/openshift-online/ocm-sdk-go"
@@ -194,6 +195,10 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 		accountRolesOutput, err := PrepareAccountRoles(token, clusterArgs.ClusterName, clusterArgs.AWSRegion, profile.Version, profile.ChannelGroup)
 		Expect(err).ToNot(HaveOccurred())
 		clusterArgs.AccountRolePrefix = accountRolesOutput.AccountRolePrefix
+		Logger.Infof("Created account roles with prefix %s", accountRolesOutput.AccountRolePrefix)
+
+		Logger.Infof("Sleep for 10 sec to let aws account role async creation finished")
+		time.Sleep(10 * time.Second)
 
 		oidcOutput, err := PrepareOIDCProviderAndOperatorRoles(token, profile.OIDCConfig, clusterArgs.ClusterName, accountRolesOutput.AccountRolePrefix, clusterArgs.AWSRegion)
 		Expect(err).ToNot(HaveOccurred())
@@ -336,7 +341,9 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 		OperatorRolePrefix: "",
 	}
 	err = clusterService.Destroy(clusterArgs)
-	Expect(err).ToNot(HaveOccurred())
+	if err != nil {
+		return err
+	}
 
 	// Destroy VPC
 	if profile.BYOVPC {
@@ -345,28 +352,38 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 			AWSRegion: profile.Region,
 		}
 		err := vpcService.Destroy(vpcArgs)
-		Expect(err).ToNot(HaveOccurred())
+		if err != nil {
+			return err
+		}
 	}
 	if profile.STS {
 		// Destroy oidc and operator roles
 		oidcOpService, err := EXE.NewOIDCProviderOperatorRolesService()
-		Expect(err).ToNot(HaveOccurred())
+		if err != nil {
+			return err
+		}
 		args := &EXE.OIDCProviderOperatorRolesArgs{
 			Token:      token,
 			OIDCConfig: profile.OIDCConfig,
 			AWSRegion:  profile.Region,
 		}
 		err = oidcOpService.Destroy(args)
-		Expect(err).ToNot(HaveOccurred())
+		if err != nil {
+			return err
+		}
 
 		//  Destroy Account roles
 		accService, err := EXE.NewAccountRoleService()
-		Expect(err).ToNot(HaveOccurred())
+		if err != nil {
+			return err
+		}
 		accargs := &EXE.AccountRolesArgs{
 			Token: token,
 		}
 		err = accService.Destroy(accargs)
-		Expect(err).ToNot(HaveOccurred())
+		if err != nil {
+			return err
+		}
 
 	}
 	return nil
@@ -377,23 +394,24 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 // Two ways:
 //   - If you created a cluster by other way, you can Export CLUSTER_ID=<cluster id>
 //   - If you are using this CI created the cluster, just need to Export CLUSTER_PROFILE=<profile name>
-func PrepareRHCSClusterByProfileENV() string {
+func PrepareRHCSClusterByProfileENV() (string, error) {
 	// Support the cluster ID to set to ENV in case somebody created cluster by other way
 	// Export CLUSTER_ID=<cluster id>
 	if os.Getenv(CON.ClusterIDEnv) != "" {
-		return os.Getenv(CON.ClusterIDEnv)
+		return os.Getenv(CON.ClusterIDEnv), nil
 	}
 	if os.Getenv(CON.RhcsClusterProfileENV) == "" {
 		Logger.Warnf("Either env variables %s and %s set. Will return an empty string.", CON.ClusterIDEnv, CON.RhcsClusterProfileENV)
-		return ""
+		return "", nil
 	}
 	profile := LoadProfileYamlFileByENV()
 	if profile.ManifestsDIR == "" {
 		profile.ManifestsDIR = CON.ROSAClassic
 	}
 	clusterService, err := EXE.NewClusterService(profile.ManifestsDIR)
-	Expect(err).ToNot(HaveOccurred())
+	if err != nil {
+		return "", err
+	}
 	clusterID, err := clusterService.Output()
-	Expect(err).ToNot(HaveOccurred())
-	return clusterID
+	return clusterID, err
 }

@@ -101,6 +101,6 @@ If you want to locally test the provider binary without building from sources, y
 You can also use specific commit images by substituting `latest` for the desired commit SHA.
 Binary image only runs on AMD64 architectures up to now.
 
-### Contribution
-The RHCS terraform provider welcomes you to contribute to the project.
-For more information please visit our [contribution guide](CONTRIBUTE.md***REMOVED***.
+### Developing the Provider
+Detailed documentation for developing and contributing to RHCS provider can be found in our [contribution guide](CONTRIBUTE.md***REMOVED***.
+ 

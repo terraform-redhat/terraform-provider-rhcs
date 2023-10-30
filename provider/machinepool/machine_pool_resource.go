@@ -440,19 +440,7 @@ func (r *MachinePoolResource) magicImport(ctx context.Context, state *MachinePoo
 		return
 	}
 
-	// the 1AZ-related settings don't apply to the default machine pool
-	if state.MultiAvailabilityZone.IsUnknown() {
-		state.MultiAvailabilityZone = types.BoolNull()
-	}
-	if state.AvailabilityZone.IsUnknown() {
-		state.AvailabilityZone = types.StringNull()
-	}
-	if state.SubnetID.IsUnknown() {
-		state.SubnetID = types.StringNull()
-	}
-
-	// Save the state:
-	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, existingState)...)
 }
 
 func (r *MachinePoolResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {

@@ -28,6 +28,10 @@ variable "github_orgs" {
   # description = "List of GitHub organizations"
   default = ["aaa","ddd"]
 }
+variable "mapping_method" {
+  type    = string
+  default = "claim"
+}
 variable "name" {
     type= string
     default = "Github"

@@ -76,8 +76,8 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 						Username:        userName,
 						Password:        password,
 						ClusterID:       clusterID,
-						AdditioanlFlags: nil,
-						Timeout:         5,
+						AdditioanlFlags: []string{"--insecure-skip-tls-verify"},
+						Timeout:         7,
 			***REMOVED***
 					_, err = openshift.OcLogin(*ocAtter***REMOVED***
 					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
@@ -124,8 +124,8 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 						Username:        userName,
 						Password:        password,
 						ClusterID:       clusterID,
-						AdditioanlFlags: nil,
-						Timeout:         5,
+						AdditioanlFlags: []string{"--insecure-skip-tls-verify"},
+						Timeout:         7,
 			***REMOVED***
 					_, err = openshift.OcLogin(*ocAtter***REMOVED***
 					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***

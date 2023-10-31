@@ -76,8 +76,8 @@ var _ = Describe("TF Test", func() {
 						Username:        userName,
 						Password:        password,
 						ClusterID:       clusterID,
-						AdditioanlFlags: nil,
-						Timeout:         5,
+						AdditioanlFlags: []string{"--insecure-skip-tls-verify"},
+						Timeout:         7,
 					}
 					_, err = openshift.OcLogin(*ocAtter)
 					Expect(err).ToNot(HaveOccurred())
@@ -124,8 +124,8 @@ var _ = Describe("TF Test", func() {
 						Username:        userName,
 						Password:        password,
 						ClusterID:       clusterID,
-						AdditioanlFlags: nil,
-						Timeout:         5,
+						AdditioanlFlags: []string{"--insecure-skip-tls-verify"},
+						Timeout:         7,
 					}
 					_, err = openshift.OcLogin(*ocAtter)
 					Expect(err).ToNot(HaveOccurred())

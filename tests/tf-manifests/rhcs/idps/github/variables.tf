@@ -11,26 +11,26 @@ variable "cluster_id" {
 variable "url" {
   type        = string
   description = "Provide RHCS environment by setting a value to url"
-  default     = "https://api.openshift.com"
+  default     = "https://api.stage.openshift.com"
 }
 
 # IDP Variables
-variable "github_client_id" {
+variable "client_id" {
   type        = string
   description = "GitHub client id"
 }
-variable "github_client_secret" {
+variable "client_secret" {
   type        = string
   description = "GitHub client secret"
-}
-variable "github_orgs" {
-  type        = list
-  # description = "List of GitHub organizations"
-  default = ["aaa","ddd"]
 }
 variable "mapping_method" {
   type    = string
   default = "claim"
+}
+variable "organizations" {
+  type        = list
+  # description = "List of GitHub organizations"
+  default = ["aaa","ddd"]
 }
 variable "name" {
     type= string

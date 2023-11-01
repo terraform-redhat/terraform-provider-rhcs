@@ -144,5 +144,85 @@ var _ = Describe("TF Test", func() {
 					})
 			})
 		})
+		Describe("GitLab IDP test cases", func() {
+
+			var gitlabIDPClientSecret, gitlabIDPClientId string
+
+			BeforeEach(func() {
+				gitlabIDPClientId = h.RandStringWithUpper(20)
+				gitlabIDPClientSecret = h.RandStringWithUpper(30)
+				idpService.gitlab = *exe.NewIDPService(con.GitlabDir) // init new gitlab service
+			})
+
+			AfterEach(func() {
+				err := idpService.gitlab.Destroy()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			Context("Author:smiron-High-OCP-64028 @OCP-64028 @smiron", func() {
+				It("OCP-64028 - Provision GitLab IDP against cluster using TF", ci.Day2, ci.High, ci.FeatureIDP, func() {
+					By("Create GitLab idp for an existing cluster")
+
+					idpParam := &exe.IDPArgs{
+						Token:        token,
+						ClusterID:    clusterID,
+						Name:         "gitlab-idp-test",
+						ClientID:     gitlabIDPClientId,
+						ClientSecret: gitlabIDPClientSecret,
+						URL:          con.GitLabURL,
+					}
+					err := idpService.gitlab.Create(idpParam, "-auto-approve", "-no-color")
+					Expect(err).ToNot(HaveOccurred())
+
+					By("Check gitlab idp created for the cluster")
+					idpID, err := idpService.gitlab.Output()
+					Expect(err).ToNot(HaveOccurred())
+
+					resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(resp.Status()).To(Equal(http.StatusOK))
+				})
+			})
+		})
+		Describe("GitHub IDP test cases", func() {
+
+			var githubIDPClientSecret, githubIDPClientId string
+
+			BeforeEach(func() {
+				githubIDPClientSecret = h.RandStringWithUpper(20)
+				githubIDPClientId = h.RandStringWithUpper(30)
+				idpService.github = *exe.NewIDPService(con.GithubDir) // init new github service
+			})
+
+			AfterEach(func() {
+				err := idpService.github.Destroy()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			Context("Author:smiron-High-OCP-64027 @OCP-64027 @smiron", func() {
+				It("OCP-64027 - Provision GitHub IDP against cluster using TF", ci.Day2, ci.High, ci.FeatureIDP, func() {
+					By("Create GitHub idp for an existing cluster")
+
+					idpParam := &exe.IDPArgs{
+						Token:         token,
+						ClusterID:     clusterID,
+						Name:          "github-idp-test",
+						ClientID:      githubIDPClientId,
+						ClientSecret:  githubIDPClientSecret,
+						Organizations: con.Organizations,
+					}
+					err := idpService.github.Create(idpParam, "-auto-approve", "-no-color")
+					Expect(err).ToNot(HaveOccurred())
+
+					By("Check github idp created for the cluster")
+					idpID, err := idpService.github.Output()
+					Expect(err).ToNot(HaveOccurred())
+
+					resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(resp.Status()).To(Equal(http.StatusOK))
+				})
+			})
+		})
 	})
 })

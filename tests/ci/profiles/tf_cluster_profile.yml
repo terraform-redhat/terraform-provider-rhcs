@@ -1,4 +1,5 @@
 profiles:
+# rosa-sts-pl :: creating a managed oidc config cluster 
 - as: rosa-sts-pl
   cluster:
     multi_az: false
@@ -25,6 +26,7 @@ profiles:
     zones: ""
     imdsv2: "optional"
     oidc_config: "managed"
+# rosa-sts-ad :: creating unmanaged oidc config cluster 
 - as: rosa-sts-ad
   cluster:
     multi_az: true
@@ -51,6 +53,7 @@ profiles:
     zones: ""
     imdsv2: "required"
     oidc_config: "un-managed"
+# rosa-sts-up :: creating a managed cluster for upgrade purpose
 - as: rosa-sts-up
   cluster:
     multi_az: false

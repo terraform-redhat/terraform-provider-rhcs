@@ -2893,6 +2893,106 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			// expect to get an error
 			Expect(terraform.Apply()).ToNot(BeZero())
 		})
+
+		It("Creates cluster with aws additional compute security group ids", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.aws.subnet_ids.[0]`, "id1"),
+					VerifyJQ(`.aws.private_link`, false),
+					VerifyJQ(`.nodes.availability_zones.[0]`, "us-west-1a"),
+					VerifyJQ(`.api.listening`, "internal"),
+					VerifyJQ(`.aws.additional_compute_security_group_ids.[0]`, "id1"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "private_link": false,
+						  "subnet_ids": ["id1", "id2", "id3"],
+						  "additional_compute_security_group_ids": ["id1"],
+						  "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/api",
+					  "value": {
+					  	"listening": "internal"
+					  }
+					},
+					{
+						"op": "add",
+						"path": "/availability_zones",
+						"value": ["us-west-1a"]
+					},
+					{
+					  "op": "replace",
+					  "path": "/nodes",
+					  "value": {
+						"availability_zones": [
+      						"us-west-1a"
+    					],
+						"compute_machine_type": {
+						   "id": "r5.xlarge"
+	    				}
+					  }
+					}
+					]`),
+				),
+			)
+
+			// Run the apply command:
+			terraform.Source(`
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			availability_zones = ["us-west-1a"]
+			aws_private_link = false
+			private = true
+			aws_subnet_ids = [
+				"id1", "id2", "id3"
+			]
+			aws_additional_compute_security_group_ids = [
+				"id1"
+			]
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+				}
+			}
+		  }
+		`)
+			Expect(terraform.Apply()).To(BeZero())
+			// Verify initial cluster version
+			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.aws_additional_compute_security_group_ids.[0]", "id1"))
+		})
 	})
 })
 

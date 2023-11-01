@@ -34,6 +34,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -202,6 +203,14 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 					int64planmodifier.UseStateForUnknown(),
 				},
 			},
+			"aws_additional_security_group_ids": schema.ListAttribute{
+				Description: "AWS additional security group ids.",
+				ElementType: types.StringType,
+				Optional:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplace(),
+				},
+			},
 		},
 	}
 }
@@ -285,7 +294,8 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 		)
 	}
 
-	if err := setSpotInstances(state, builder); err != nil {
+	awsMachinePoolBuilder, err := setSpotInstances(state)
+	if err != nil {
 		resp.Diagnostics.AddError(
 			"Cannot build machine pool",
 			fmt.Sprintf(
@@ -311,6 +321,25 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 	}
 	if !common.IsStringAttributeEmpty(state.SubnetID) {
 		builder.Subnets(state.SubnetID.ValueString())
+	}
+	if common.HasValue(state.AdditionalSecurityGroupIds) {
+		if awsMachinePoolBuilder == nil {
+			awsMachinePoolBuilder = cmv1.NewAWSMachinePool()
+		}
+		additionalSecurityGroupIds, err := common.StringListToArray(ctx, state.AdditionalSecurityGroupIds)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Cannot convert Additional Security Groups to slice",
+				fmt.Sprintf(
+					"Cannot convert Additional Security Groups to slice for cluster '%s: %v'", state.Cluster.ValueString(), err,
+				),
+			)
+			return
+		}
+		awsMachinePoolBuilder.AdditionalSecurityGroupIds(additionalSecurityGroupIds...)
+	}
+	if awsMachinePoolBuilder != nil {
+		builder.AWS(awsMachinePoolBuilder)
 	}
 
 	autoscalingEnabled := false
@@ -397,7 +426,16 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 	object = add.Body()
 
 	// Save the state:
-	r.populateState(object, state)
+	err = r.populateState(object, state)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Can't populate machine pool state",
+			fmt.Sprintf(
+				"Received error %v", err,
+			),
+		)
+		return
+	}
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
@@ -720,25 +758,25 @@ func (r *MachinePoolResource) validateAZConfig(state *MachinePoolState) (bool, e
 	return state.MultiAvailabilityZone.ValueBool(), nil
 }
 
-func setSpotInstances(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilder) error {
+func setSpotInstances(state *MachinePoolState) (*cmv1.AWSMachinePoolBuilder, error) {
 	useSpotInstances := common.HasValue(state.UseSpotInstances) && state.UseSpotInstances.ValueBool()
 	isSpotMaxPriceSet := common.HasValue(state.MaxSpotPrice)
+	var awsMachinePool *cmv1.AWSMachinePoolBuilder
 
 	if isSpotMaxPriceSet && !useSpotInstances {
-		return errors.New("Cannot set max price when not using spot instances (set \"use_spot_instances\" to true)")
+		return awsMachinePool, errors.New("Cannot set max price when not using spot instances (set \"use_spot_instances\" to true)")
 	}
 
 	if useSpotInstances {
-		awsMachinePool := cmv1.NewAWSMachinePool()
+		awsMachinePool = cmv1.NewAWSMachinePool()
 		spotMarketOptions := cmv1.NewAWSSpotMarketOptions()
 		if isSpotMaxPriceSet {
 			spotMarketOptions.MaxPrice(state.MaxSpotPrice.ValueFloat64())
 		}
 		awsMachinePool.SpotMarketOptions(spotMarketOptions)
-		mpBuilder.AWS(awsMachinePool)
 	}
 
-	return nil
+	return awsMachinePool, nil
 }
 
 func getAutoscaling(state *MachinePoolState, mpBuilder *cmv1.MachinePoolBuilder) (
@@ -846,7 +884,7 @@ func (r *MachinePoolResource) ImportState(ctx context.Context, req resource.Impo
 }
 
 // populateState copies the data from the API object to the Terraform state.
-func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *MachinePoolState) {
+func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *MachinePoolState) error {
 	state.ID = types.StringValue(object.ID())
 	state.Name = types.StringValue(object.ID())
 
@@ -856,7 +894,21 @@ func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *Mac
 			if spotMarketOptions.MaxPrice() != 0 {
 				state.MaxSpotPrice = types.Float64Value(spotMarketOptions.MaxPrice())
 			}
+		} else {
+			state.UseSpotInstances = types.BoolNull()
+			state.MaxReplicas = types.Int64Null()
 		}
+		if additionalSecurityGroups, ok := getAWS.GetAdditionalSecurityGroupIds(); ok {
+			additionalSecurityGroupsList, err := common.StringArrayToList(additionalSecurityGroups)
+			if err != nil {
+				return err
+			}
+			state.AdditionalSecurityGroupIds = additionalSecurityGroupsList
+		} else {
+			state.AdditionalSecurityGroupIds = types.ListNull(types.StringType)
+		}
+	} else {
+		state.AdditionalSecurityGroupIds = types.ListNull(types.StringType)
 	}
 
 	autoscaling, ok := object.GetAutoscaling()
@@ -936,6 +988,7 @@ func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *Mac
 			}
 		}
 	}
+	return nil
 }
 
 func shouldPatchTaints(a, b []Taints) bool {

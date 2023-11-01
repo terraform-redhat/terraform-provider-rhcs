@@ -19,9 +19,10 @@ package cluster
 import (
 	"context"
 	"fmt"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 	"net/http"
 	"time"
+
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -140,6 +141,14 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 			},
 			"aws_subnet_ids": schema.ListAttribute{
 				Description: "AWS subnet IDs.",
+				ElementType: types.StringType,
+				Optional:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplace(),
+				},
+			},
+			"aws_additional_compute_security_group_ids": schema.ListAttribute{
+				Description: "AWS additional compute security group ids.",
 				ElementType: types.StringType,
 				Optional:    true,
 				PlanModifiers: []planmodifier.List{
@@ -303,6 +312,14 @@ func createClusterObject(ctx context.Context,
 			return nil, err
 		}
 		aws.SubnetIDs(subnetIds...)
+	}
+
+	if common.HasValue(state.AWSAdditionalComputeSecurityGroupIds) {
+		computeSecurityGroupIds, err := common.StringListToArray(ctx, state.AWSAdditionalComputeSecurityGroupIds)
+		if err != nil {
+			return nil, err
+		}
+		aws.AdditionalComputeSecurityGroupIds(computeSecurityGroupIds...)
 	}
 
 	if !aws.Empty() {
@@ -644,6 +661,15 @@ func populateClusterState(object *cmv1.Cluster, state *ClusterState) error {
 			return err
 		}
 		state.AWSSubnetIDs = awsSubnetIds
+	}
+
+	additionalComputeSecurityGroupIds, ok := object.AWS().GetAdditionalComputeSecurityGroupIds()
+	if ok {
+		awsAdditionalSecurityGroupIds, err := common.StringArrayToList(additionalComputeSecurityGroupIds)
+		if err != nil {
+			return err
+		}
+		state.AWSAdditionalComputeSecurityGroupIds = awsAdditionalSecurityGroupIds
 	}
 
 	proxyObj, ok := object.GetProxy()

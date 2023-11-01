@@ -110,7 +110,7 @@ func (c *Cluster) CreateNodes(autoScalingEnabled bool, replicas *int64, minRepli
 
 func (c *Cluster) CreateAWSBuilder(awsTags map[string]string, ec2MetadataHttpTokens *string, kmsKeyARN *string,
 	isPrivateLink bool, awsAccountID *string, stsBuilder *cmv1.STSBuilder, awsSubnetIDs []string,
-	privateHostedZoneID *string, privateHostedZoneRoleARN *string) error {
+	privateHostedZoneID *string, privateHostedZoneRoleARN *string, additionalComputeSecurityGroupIds []string) error {
 
 	if isPrivateLink && awsSubnetIDs == nil {
 		return errors.New("Clusters with PrivateLink must have a pre-configured VPC. Make sure to specify the subnet ids.")
@@ -141,6 +141,10 @@ func (c *Cluster) CreateAWSBuilder(awsTags map[string]string, ec2MetadataHttpTok
 
 	if awsSubnetIDs != nil {
 		awsBuilder.SubnetIDs(awsSubnetIDs...)
+	}
+
+	if additionalComputeSecurityGroupIds != nil {
+		awsBuilder.AdditionalComputeSecurityGroupIds(additionalComputeSecurityGroupIds...)
 	}
 
 	if stsBuilder != nil {

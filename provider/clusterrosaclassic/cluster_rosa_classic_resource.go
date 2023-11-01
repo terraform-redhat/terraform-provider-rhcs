@@ -269,6 +269,11 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 					listplanmodifier.RequiresReplace(),
 				},
 			},
+			"aws_additional_compute_security_group_ids": schema.ListAttribute{
+				Description: "AWS additional compute security group ids.",
+				ElementType: types.StringType,
+				Optional:    true,
+			},
 			"kms_key_arn": schema.StringAttribute{
 				Description: "The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, " +
 					"fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID" +
@@ -614,6 +619,10 @@ func createClassicClusterObject(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
+	awsAdditionalSecurityGroupIds, err := common.StringListToArray(ctx, state.AWSAdditionalComputeSecurityGroupIds)
+	if err != nil {
+		return nil, err
+	}
 	var stsBuilder *cmv1.STSBuilder
 	if state.Sts != nil {
 		stsBuilder = ocmr.CreateSTS(state.Sts.RoleARN.ValueString(), state.Sts.SupportRoleArn.ValueString(),
@@ -626,7 +635,8 @@ func createClassicClusterObject(ctx context.Context,
 		return nil, err
 	}
 	if err := ocmClusterResource.CreateAWSBuilder(awsTags, ec2MetadataHttpTokens, kmsKeyARN,
-		isPrivateLink, awsAccountID, stsBuilder, awsSubnetIDs, privateHostedZoneID, privateHostedZoneRoleARN); err != nil {
+		isPrivateLink, awsAccountID, stsBuilder, awsSubnetIDs, privateHostedZoneID, privateHostedZoneRoleARN,
+		awsAdditionalSecurityGroupIds); err != nil {
 		return nil, err
 	}
 
@@ -1542,6 +1552,15 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 			return err
 		}
 		state.AWSSubnetIDs = awsSubnetIds
+	}
+
+	additionalComputeSecurityGroupIds, ok := object.AWS().GetAdditionalComputeSecurityGroupIds()
+	if ok {
+		awsAdditionalSecurityGroupIds, err := common.StringArrayToList(additionalComputeSecurityGroupIds)
+		if err != nil {
+			return err
+		}
+		state.AWSAdditionalComputeSecurityGroupIds = awsAdditionalSecurityGroupIds
 	}
 
 	proxyObj, ok := object.GetProxy()

@@ -1,7 +1,9 @@
 package e2e
 
 import (
+	"fmt"
 	"net/http"
+	"path"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -72,12 +74,15 @@ var _ = Describe("TF Test", func() {
 					server := getResp.Body().API().URL()
 
 					ocAtter := &openshift.OcAttributes{
-						Server:          server,
-						Username:        userName,
-						Password:        password,
-						ClusterID:       clusterID,
-						AdditioanlFlags: []string{"--insecure-skip-tls-verify"},
-						Timeout:         7,
+						Server:    server,
+						Username:  userName,
+						Password:  password,
+						ClusterID: clusterID,
+						AdditioanlFlags: []string{
+							"--insecure-skip-tls-verify",
+							fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName))),
+						},
+						Timeout: 7,
 					}
 					_, err = openshift.OcLogin(*ocAtter)
 					Expect(err).ToNot(HaveOccurred())
@@ -120,12 +125,15 @@ var _ = Describe("TF Test", func() {
 					server := getResp.Body().API().URL()
 
 					ocAtter := &openshift.OcAttributes{
-						Server:          server,
-						Username:        userName,
-						Password:        password,
-						ClusterID:       clusterID,
-						AdditioanlFlags: []string{"--insecure-skip-tls-verify"},
-						Timeout:         7,
+						Server:    server,
+						Username:  userName,
+						Password:  password,
+						ClusterID: clusterID,
+						AdditioanlFlags: []string{
+							"--insecure-skip-tls-verify",
+							fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName))),
+						},
+						Timeout: 7,
 					}
 					_, err = openshift.OcLogin(*ocAtter)
 					Expect(err).ToNot(HaveOccurred())

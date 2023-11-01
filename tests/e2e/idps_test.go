@@ -2,6 +2,8 @@
 
 ***REMOVED***
 ***REMOVED***
+***REMOVED***
+***REMOVED***
 
 ***REMOVED***
 ***REMOVED***
@@ -72,12 +74,15 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 					server := getResp.Body(***REMOVED***.API(***REMOVED***.URL(***REMOVED***
 
 					ocAtter := &openshift.OcAttributes{
-						Server:          server,
-						Username:        userName,
-						Password:        password,
-						ClusterID:       clusterID,
-						AdditioanlFlags: []string{"--insecure-skip-tls-verify"},
-						Timeout:         7,
+						Server:    server,
+						Username:  userName,
+						Password:  password,
+						ClusterID: clusterID,
+						AdditioanlFlags: []string{
+							"--insecure-skip-tls-verify",
+							fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName***REMOVED******REMOVED******REMOVED***,
+				***REMOVED***,
+						Timeout: 7,
 			***REMOVED***
 					_, err = openshift.OcLogin(*ocAtter***REMOVED***
 					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
@@ -120,12 +125,15 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 					server := getResp.Body(***REMOVED***.API(***REMOVED***.URL(***REMOVED***
 
 					ocAtter := &openshift.OcAttributes{
-						Server:          server,
-						Username:        userName,
-						Password:        password,
-						ClusterID:       clusterID,
-						AdditioanlFlags: []string{"--insecure-skip-tls-verify"},
-						Timeout:         7,
+						Server:    server,
+						Username:  userName,
+						Password:  password,
+						ClusterID: clusterID,
+						AdditioanlFlags: []string{
+							"--insecure-skip-tls-verify",
+							fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName***REMOVED******REMOVED******REMOVED***,
+				***REMOVED***,
+						Timeout: 7,
 			***REMOVED***
 					_, err = openshift.OcLogin(*ocAtter***REMOVED***
 					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***

@@ -29,6 +29,7 @@ type RHCSconfig struct {
 	RhcsOutputDir     string
 	YAMLProfilesDir   string
 	RootDir           string
+	KubeConfigDir     string
 }
 
 func init(***REMOVED*** {
@@ -46,7 +47,8 @@ func init(***REMOVED*** {
 		RHCS.ClusterProfileDir = os.Getenv("CLUSTER_PROFILE_DIR"***REMOVED***
 	}
 
-	RHCS.RhcsOutputDir = GetRhcsOutputDir(***REMOVED***
+	RHCS.RhcsOutputDir = GetRHCSOutputDir(***REMOVED***
+	RHCS.KubeConfigDir = GetKubeConfigDir(***REMOVED***
 	RHCS.YAMLProfilesDir = path.Join(RHCS.RootDir, "tests", "ci", "profiles"***REMOVED***
 }
 
@@ -95,7 +97,7 @@ func GetEnvWithDefault(key string, defaultValue string***REMOVED*** string {
 	return defaultValue
 }
 
-func GetRhcsOutputDir(***REMOVED*** string {
+func GetRHCSOutputDir(***REMOVED*** string {
 	var rhcsNewOutPath string
 
 	if GetEnvWithDefault("RHCS_OUTPUT", ""***REMOVED*** != "" {
@@ -105,4 +107,13 @@ func GetRhcsOutputDir(***REMOVED*** string {
 	rhcsNewOutPath = path.Join(RHCS.RootDir, "tests", "rhcs_output"***REMOVED***
 	os.MkdirAll(rhcsNewOutPath, 0777***REMOVED***
 	return rhcsNewOutPath
+}
+
+func GetKubeConfigDir(***REMOVED*** string {
+	outputDIR := GetRHCSOutputDir(***REMOVED***
+	configDir := path.Join(outputDIR, "kubeconfig"***REMOVED***
+	if _, err := os.Stat(configDir***REMOVED***; err != nil {
+		os.MkdirAll(configDir, 0777***REMOVED***
+	}
+	return configDir
 }

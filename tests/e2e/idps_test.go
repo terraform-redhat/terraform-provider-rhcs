@@ -144,5 +144,85 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 			***REMOVED******REMOVED***
 	***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
+		Describe("GitLab IDP test cases", func(***REMOVED*** {
+
+***REMOVED***
+
+			BeforeEach(func(***REMOVED*** {
+				gitlabIDPClientId = h.RandStringWithUpper(20***REMOVED***
+				gitlabIDPClientSecret = h.RandStringWithUpper(30***REMOVED***
+				idpService.gitlab = *exe.NewIDPService(con.GitlabDir***REMOVED*** // init new gitlab service
+	***REMOVED******REMOVED***
+
+			AfterEach(func(***REMOVED*** {
+				err := idpService.gitlab.Destroy(***REMOVED***
+				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+	***REMOVED******REMOVED***
+
+			Context("Author:smiron-High-OCP-64028 @OCP-64028 @smiron", func(***REMOVED*** {
+				It("OCP-64028 - Provision GitLab IDP against cluster using TF", ci.Day2, ci.High, ci.FeatureIDP, func(***REMOVED*** {
+					By("Create GitLab idp for an existing cluster"***REMOVED***
+
+***REMOVED***
+***REMOVED***
+***REMOVED***
+						Name:         "gitlab-idp-test",
+***REMOVED***
+***REMOVED***
+***REMOVED***
+			***REMOVED***
+					err := idpService.gitlab.Create(idpParam, "-auto-approve", "-no-color"***REMOVED***
+					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+
+					By("Check gitlab idp created for the cluster"***REMOVED***
+					idpID, err := idpService.gitlab.Output(***REMOVED***
+					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+
+					resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID***REMOVED***
+					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+					Expect(resp.Status(***REMOVED******REMOVED***.To(Equal(http.StatusOK***REMOVED******REMOVED***
+		***REMOVED******REMOVED***
+	***REMOVED******REMOVED***
+***REMOVED******REMOVED***
+		Describe("GitHub IDP test cases", func(***REMOVED*** {
+
+***REMOVED***
+
+			BeforeEach(func(***REMOVED*** {
+				githubIDPClientSecret = h.RandStringWithUpper(20***REMOVED***
+				githubIDPClientId = h.RandStringWithUpper(30***REMOVED***
+				idpService.github = *exe.NewIDPService(con.GithubDir***REMOVED*** // init new github service
+	***REMOVED******REMOVED***
+
+			AfterEach(func(***REMOVED*** {
+				err := idpService.github.Destroy(***REMOVED***
+				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+	***REMOVED******REMOVED***
+
+			Context("Author:smiron-High-OCP-64027 @OCP-64027 @smiron", func(***REMOVED*** {
+				It("OCP-64027 - Provision GitHub IDP against cluster using TF", ci.Day2, ci.High, ci.FeatureIDP, func(***REMOVED*** {
+					By("Create GitHub idp for an existing cluster"***REMOVED***
+
+***REMOVED***
+***REMOVED***
+***REMOVED***
+						Name:          "github-idp-test",
+***REMOVED***
+***REMOVED***
+***REMOVED***
+			***REMOVED***
+					err := idpService.github.Create(idpParam, "-auto-approve", "-no-color"***REMOVED***
+					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+
+					By("Check github idp created for the cluster"***REMOVED***
+					idpID, err := idpService.github.Output(***REMOVED***
+					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+
+					resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID***REMOVED***
+					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+					Expect(resp.Status(***REMOVED******REMOVED***.To(Equal(http.StatusOK***REMOVED******REMOVED***
+		***REMOVED******REMOVED***
+	***REMOVED******REMOVED***
+***REMOVED******REMOVED***
 	}***REMOVED***
 }***REMOVED***

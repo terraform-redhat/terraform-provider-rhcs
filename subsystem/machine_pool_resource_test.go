@@ -2186,6 +2186,66 @@ var _ = Describe("Machine pool w/ 1AZ byo VPC cluster", func() {
 		Expect(resource).To(MatchJQ(".attributes.subnet_id", "id1"))
 	})
 
+	It("Can create pool w/ subnet_id  and additional security group id for byo vpc", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				),
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 4,
+				  "subnets": ["id1"],
+				  "aws": {
+					"kind": "AWSMachinePool",
+					"additional_security_group_ids": [
+						"id1"
+					]
+				  }
+				}`),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 4,
+				  "availability_zones": [
+					"us-east-1a"
+				  ],
+				  "subnets": [
+					"id1"
+				  ],
+				  "aws": {
+						"additional_security_group_ids": [
+							"id1"
+				  		]
+				  }
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 4
+			subnet_id = "id1"
+			aws_additional_security_group_ids = ["id1"]
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		// Check the state:
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool")
+		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+		Expect(resource).To(MatchJQ(".attributes.subnet_id", "id1"))
+		Expect(resource).To(MatchJQ(".attributes.aws_additional_security_group_ids.[0]", "id1"))
+	})
+
 	It("Fails to create pool if subnet_id not in byo vpc subnets", func() {
 		// Run the apply command:
 		terraform.Source(`

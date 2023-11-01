@@ -49,45 +49,47 @@ var _ = Describe("TF Test", func() {
 			})
 
 			Context("Author:smiron-High-OCP-63151 @OCP-63151 @smiron", func() {
-				It("OCP-63151 - Provision HTPASSWD IDP against cluster using TF", ci.Day2, ci.High, ci.FeatureIDP, func() {
-					By("Create htpasswd idp for an existing cluster")
+				It("OCP-63151 - Provision HTPASSWD IDP against cluster using TF", ci.Day2, ci.High, ci.FeatureIDP,
+					ci.Exclude,
+					func() {
+						By("Create htpasswd idp for an existing cluster")
 
-					idpParam := &exe.IDPArgs{
-						Token:         token,
-						ClusterID:     clusterID,
-						Name:          "htpasswd-idp-test",
-						HtpasswdUsers: htpasswdMap,
-					}
-					err := idpService.htpasswd.Create(idpParam, "-auto-approve", "-no-color")
-					Expect(err).ToNot(HaveOccurred())
-					idpID, _ := idpService.htpasswd.Output()
+						idpParam := &exe.IDPArgs{
+							Token:         token,
+							ClusterID:     clusterID,
+							Name:          "htpasswd-idp-test",
+							HtpasswdUsers: htpasswdMap,
+						}
+						err := idpService.htpasswd.Create(idpParam, "-auto-approve", "-no-color")
+						Expect(err).ToNot(HaveOccurred())
+						idpID, _ := idpService.htpasswd.Output()
 
-					By("List existing HtpasswdUsers and compare to the created one")
-					htpasswdUsersList, _ := cms.ListHtpasswdUsers(ci.RHCSConnection, clusterID, idpID.ID)
-					Expect(htpasswdUsersList.Status()).To(Equal(http.StatusOK))
-					respUserName, _ := htpasswdUsersList.Items().Slice()[0].GetUsername()
-					Expect(respUserName).To(Equal(userName))
+						By("List existing HtpasswdUsers and compare to the created one")
+						htpasswdUsersList, _ := cms.ListHtpasswdUsers(ci.RHCSConnection, clusterID, idpID.ID)
+						Expect(htpasswdUsersList.Status()).To(Equal(http.StatusOK))
+						respUserName, _ := htpasswdUsersList.Items().Slice()[0].GetUsername()
+						Expect(respUserName).To(Equal(userName))
 
-					By("Login with created htpasswd idp")
-					getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
-					Expect(err).ToNot(HaveOccurred())
-					server := getResp.Body().API().URL()
+						By("Login with created htpasswd idp")
+						getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+						Expect(err).ToNot(HaveOccurred())
+						server := getResp.Body().API().URL()
 
-					ocAtter := &openshift.OcAttributes{
-						Server:    server,
-						Username:  userName,
-						Password:  password,
-						ClusterID: clusterID,
-						AdditioanlFlags: []string{
-							"--insecure-skip-tls-verify",
-							fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName))),
-						},
-						Timeout: 7,
-					}
-					_, err = openshift.OcLogin(*ocAtter)
-					Expect(err).ToNot(HaveOccurred())
+						ocAtter := &openshift.OcAttributes{
+							Server:    server,
+							Username:  userName,
+							Password:  password,
+							ClusterID: clusterID,
+							AdditioanlFlags: []string{
+								"--insecure-skip-tls-verify",
+								fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName))),
+							},
+							Timeout: 7,
+						}
+						_, err = openshift.OcLogin(*ocAtter)
+						Expect(err).ToNot(HaveOccurred())
 
-				})
+					})
 			})
 		})
 		Describe("LDAP IDP test cases", func() {
@@ -105,39 +107,41 @@ var _ = Describe("TF Test", func() {
 			})
 
 			Context("Author:smiron-High-OCP-63332 @OCP-63332 @smiron", func() {
-				It("OCP-63332 - Provision LDAP IDP against cluster using TF", ci.Day2, ci.High, ci.FeatureIDP, func() {
-					By("Create LDAP idp for an existing cluster")
+				It("OCP-63332 - Provision LDAP IDP against cluster using TF", ci.Day2, ci.High, ci.FeatureIDP,
+					ci.Exclude,
+					func() {
+						By("Create LDAP idp for an existing cluster")
 
-					idpParam := &exe.IDPArgs{
-						Token:     token,
-						ClusterID: clusterID,
-						Name:      "ldap-idp-test",
-						CA:        "",
-						URL:       con.LdapURL,
-						Insecure:  true,
-					}
-					err := idpService.ldap.Create(idpParam, "-auto-approve", "-no-color")
-					Expect(err).ToNot(HaveOccurred())
+						idpParam := &exe.IDPArgs{
+							Token:     token,
+							ClusterID: clusterID,
+							Name:      "ldap-idp-test",
+							CA:        "",
+							URL:       con.LdapURL,
+							Insecure:  true,
+						}
+						err := idpService.ldap.Create(idpParam, "-auto-approve", "-no-color")
+						Expect(err).ToNot(HaveOccurred())
 
-					By("Login with created ldap idp")
-					getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
-					Expect(err).ToNot(HaveOccurred())
-					server := getResp.Body().API().URL()
+						By("Login with created ldap idp")
+						getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+						Expect(err).ToNot(HaveOccurred())
+						server := getResp.Body().API().URL()
 
-					ocAtter := &openshift.OcAttributes{
-						Server:    server,
-						Username:  userName,
-						Password:  password,
-						ClusterID: clusterID,
-						AdditioanlFlags: []string{
-							"--insecure-skip-tls-verify",
-							fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName))),
-						},
-						Timeout: 7,
-					}
-					_, err = openshift.OcLogin(*ocAtter)
-					Expect(err).ToNot(HaveOccurred())
-				})
+						ocAtter := &openshift.OcAttributes{
+							Server:    server,
+							Username:  userName,
+							Password:  password,
+							ClusterID: clusterID,
+							AdditioanlFlags: []string{
+								"--insecure-skip-tls-verify",
+								fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName))),
+							},
+							Timeout: 7,
+						}
+						_, err = openshift.OcLogin(*ocAtter)
+						Expect(err).ToNot(HaveOccurred())
+					})
 			})
 		})
 	})

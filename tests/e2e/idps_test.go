@@ -49,45 +49,47 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 	***REMOVED******REMOVED***
 
 			Context("Author:smiron-High-OCP-63151 @OCP-63151 @smiron", func(***REMOVED*** {
-***REMOVED*** func(***REMOVED*** {
-					By("Create htpasswd idp for an existing cluster"***REMOVED***
+***REMOVED***
+***REMOVED***
+					func(***REMOVED*** {
+						By("Create htpasswd idp for an existing cluster"***REMOVED***
 
 ***REMOVED***
 ***REMOVED***
 ***REMOVED***
-						Name:          "htpasswd-idp-test",
-						HtpasswdUsers: htpasswdMap,
-			***REMOVED***
-					err := idpService.htpasswd.Create(idpParam, "-auto-approve", "-no-color"***REMOVED***
-					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-					idpID, _ := idpService.htpasswd.Output(***REMOVED***
+							Name:          "htpasswd-idp-test",
+***REMOVED***
+				***REMOVED***
+						err := idpService.htpasswd.Create(idpParam, "-auto-approve", "-no-color"***REMOVED***
+						Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+						idpID, _ := idpService.htpasswd.Output(***REMOVED***
 
-					By("List existing HtpasswdUsers and compare to the created one"***REMOVED***
-					htpasswdUsersList, _ := cms.ListHtpasswdUsers(ci.RHCSConnection, clusterID, idpID.ID***REMOVED***
-					Expect(htpasswdUsersList.Status(***REMOVED******REMOVED***.To(Equal(http.StatusOK***REMOVED******REMOVED***
-					respUserName, _ := htpasswdUsersList.Items(***REMOVED***.Slice(***REMOVED***[0].GetUsername(***REMOVED***
-					Expect(respUserName***REMOVED***.To(Equal(userName***REMOVED******REMOVED***
+						By("List existing HtpasswdUsers and compare to the created one"***REMOVED***
+						htpasswdUsersList, _ := cms.ListHtpasswdUsers(ci.RHCSConnection, clusterID, idpID.ID***REMOVED***
+						Expect(htpasswdUsersList.Status(***REMOVED******REMOVED***.To(Equal(http.StatusOK***REMOVED******REMOVED***
+						respUserName, _ := htpasswdUsersList.Items(***REMOVED***.Slice(***REMOVED***[0].GetUsername(***REMOVED***
+						Expect(respUserName***REMOVED***.To(Equal(userName***REMOVED******REMOVED***
 
-					By("Login with created htpasswd idp"***REMOVED***
-					getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID***REMOVED***
-					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-					server := getResp.Body(***REMOVED***.API(***REMOVED***.URL(***REMOVED***
+						By("Login with created htpasswd idp"***REMOVED***
+						getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID***REMOVED***
+						Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+						server := getResp.Body(***REMOVED***.API(***REMOVED***.URL(***REMOVED***
 
-					ocAtter := &openshift.OcAttributes{
-						Server:    server,
-						Username:  userName,
-						Password:  password,
-						ClusterID: clusterID,
-						AdditioanlFlags: []string{
-							"--insecure-skip-tls-verify",
-							fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName***REMOVED******REMOVED******REMOVED***,
-				***REMOVED***,
-						Timeout: 7,
-			***REMOVED***
-					_, err = openshift.OcLogin(*ocAtter***REMOVED***
-					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+								fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName***REMOVED******REMOVED******REMOVED***,
+					***REMOVED***,
+***REMOVED***
+				***REMOVED***
+						_, err = openshift.OcLogin(*ocAtter***REMOVED***
+						Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 
-		***REMOVED******REMOVED***
+			***REMOVED******REMOVED***
 	***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 		Describe("LDAP IDP test cases", func(***REMOVED*** {
@@ -105,39 +107,41 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 	***REMOVED******REMOVED***
 
 			Context("Author:smiron-High-OCP-63332 @OCP-63332 @smiron", func(***REMOVED*** {
-***REMOVED*** func(***REMOVED*** {
-					By("Create LDAP idp for an existing cluster"***REMOVED***
+***REMOVED***
+***REMOVED***
+					func(***REMOVED*** {
+						By("Create LDAP idp for an existing cluster"***REMOVED***
 
 ***REMOVED***
-						Token:     token,
-						ClusterID: clusterID,
-						Name:      "ldap-idp-test",
-						CA:        "",
-						URL:       con.LdapURL,
-						Insecure:  true,
-			***REMOVED***
-					err := idpService.ldap.Create(idpParam, "-auto-approve", "-no-color"***REMOVED***
-					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+***REMOVED***
+***REMOVED***
+							Name:      "ldap-idp-test",
+***REMOVED***
+***REMOVED***
+***REMOVED***
+				***REMOVED***
+						err := idpService.ldap.Create(idpParam, "-auto-approve", "-no-color"***REMOVED***
+						Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 
-					By("Login with created ldap idp"***REMOVED***
-					getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID***REMOVED***
-					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-					server := getResp.Body(***REMOVED***.API(***REMOVED***.URL(***REMOVED***
+						By("Login with created ldap idp"***REMOVED***
+						getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID***REMOVED***
+						Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+						server := getResp.Body(***REMOVED***.API(***REMOVED***.URL(***REMOVED***
 
-					ocAtter := &openshift.OcAttributes{
-						Server:    server,
-						Username:  userName,
-						Password:  password,
-						ClusterID: clusterID,
-						AdditioanlFlags: []string{
-							"--insecure-skip-tls-verify",
-							fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName***REMOVED******REMOVED******REMOVED***,
-				***REMOVED***,
-						Timeout: 7,
-			***REMOVED***
-					_, err = openshift.OcLogin(*ocAtter***REMOVED***
-					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-		***REMOVED******REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+								fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName***REMOVED******REMOVED******REMOVED***,
+					***REMOVED***,
+***REMOVED***
+				***REMOVED***
+						_, err = openshift.OcLogin(*ocAtter***REMOVED***
+						Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+			***REMOVED******REMOVED***
 	***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 	}***REMOVED***

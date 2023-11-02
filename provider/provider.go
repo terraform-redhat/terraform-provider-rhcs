@@ -33,6 +33,7 @@ package provider
 	"github.com/terraform-redhat/terraform-provider-rhcs/logging"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cloudprovider"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cluster"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterautoscaler"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosaclassic"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterwaiter"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/dnsdomain"
@@ -206,7 +207,8 @@ func (p *Provider***REMOVED*** Resources(ctx context.Context***REMOVED*** []func
 		clusterrosaclassic.New,
 		identityprovider.New,
 		cluster.New,
-    }
+		clusterautoscaler.New,
+	}
 }
 
 func (p *Provider***REMOVED*** DataSources(ctx context.Context***REMOVED*** []func(***REMOVED*** datasource.DataSource {

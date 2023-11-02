@@ -115,6 +115,10 @@ var _ = Describe("Cluster Autoscaler", func(***REMOVED*** {
 					`***REMOVED***,
 				***REMOVED***,
 				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"***REMOVED***,
+					RespondWithJSON(http.StatusNotFound, "{}"***REMOVED***,
+				***REMOVED***,
+				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/autoscaler"***REMOVED***,
 					RespondWithJSON(http.StatusInternalServerError, "Internal Server Error"***REMOVED***,
 				***REMOVED***,
@@ -152,6 +156,10 @@ var _ = Describe("Cluster Autoscaler", func(***REMOVED*** {
 							"state": "ready"
 				***REMOVED***
 					`***REMOVED***,
+				***REMOVED***,
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"***REMOVED***,
+					RespondWithJSON(http.StatusNotFound, "{}"***REMOVED***,
 				***REMOVED***,
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/autoscaler"***REMOVED***,
@@ -358,6 +366,10 @@ var _ = Describe("Cluster Autoscaler", func(***REMOVED*** {
 					`***REMOVED***,
 				***REMOVED***,
 				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"***REMOVED***,
+					RespondWithJSON(http.StatusNotFound, "{}"***REMOVED***,
+				***REMOVED***,
+				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/autoscaler"***REMOVED***,
 					VerifyJQ(".balance_similar_node_groups", true***REMOVED***,
 					RespondWithJSON(http.StatusCreated, `
@@ -471,6 +483,10 @@ var _ = Describe("Cluster Autoscaler", func(***REMOVED*** {
 							"state": "ready"
 				***REMOVED***
 					`***REMOVED***,
+				***REMOVED***,
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"***REMOVED***,
+					RespondWithJSON(http.StatusNotFound, "{}"***REMOVED***,
 				***REMOVED***,
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/autoscaler"***REMOVED***,

@@ -106,6 +106,14 @@ func IsStringAttributeEmpty(param types.String***REMOVED*** bool {
 	return param.IsUnknown(***REMOVED*** || param.IsNull(***REMOVED*** || param.ValueString(***REMOVED*** == ""
 }
 
+func EmptiableStringToStringType(s string***REMOVED*** types.String {
+	if s == "" {
+		return types.StringNull(***REMOVED***
+	}
+
+	return types.StringValue(s***REMOVED***
+}
+
 func IsGreaterThanOrEqual(version1, version2 string***REMOVED*** (bool, error***REMOVED*** {
 	v1, err := version.NewVersion(strings.TrimPrefix(version1, versionPrefix***REMOVED******REMOVED***
 	if err != nil {

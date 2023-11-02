@@ -14,19 +14,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package clusterautoscaler
 
 ***REMOVED***
 	"context"
 ***REMOVED***
 ***REMOVED***
-	"strings"
-	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 ***REMOVED***
@@ -38,234 +42,166 @@ type ClusterAutoscalerResource struct {
 	collection *cmv1.ClustersClient
 }
 
-func (t *ClusterAutoscalerResourceType***REMOVED*** GetSchema(ctx context.Context***REMOVED*** (
-	tfsdk.Schema, diag.Diagnostics***REMOVED*** {
+func New(***REMOVED*** resource.Resource {
+	return &ClusterAutoscalerResource{}
+}
 
-	return tfsdk.Schema{
+var _ resource.Resource = &ClusterAutoscalerResource{}
+var _ resource.ResourceWithImportState = &ClusterAutoscalerResource{}
+var _ resource.ResourceWithConfigure = &ClusterAutoscalerResource{}
+
+func (r *ClusterAutoscalerResource***REMOVED*** Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse***REMOVED*** {
+	resp.TypeName = req.ProviderTypeName + "_cluster_autoscaler"
+}
+
+func (r *ClusterAutoscalerResource***REMOVED*** Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse***REMOVED*** {
+	resp.Schema = schema.Schema{
 		Description: "Cluster-wide autoscaling configuration.",
-		Attributes: map[string]tfsdk.Attribute{
-			"cluster": {
+		Attributes: map[string]schema.Attribute{
+			"cluster": schema.StringAttribute{
 				Description: "Identifier of the cluster.",
-				Type:        types.StringType,
 				Required:    true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					ValueCannotBeChangedModifier(***REMOVED***,
+				PlanModifiers: []planmodifier.String{
+					common.Immutable(***REMOVED***,
 		***REMOVED***,
 	***REMOVED***,
-			"balance_similar_node_groups": {
+			"balance_similar_node_groups": schema.BoolAttribute{
 				Description: "Automatically identify node groups with " +
 					"the same instance type and the same set of labels and try " +
 					"to keep the respective sizes of those node groups balanced.",
-				Type:     types.BoolType,
 				Optional: true,
 	***REMOVED***,
-			"skip_nodes_with_local_storage": {
+			"skip_nodes_with_local_storage": schema.BoolAttribute{
 				Description: "If true cluster autoscaler will never delete " +
 					"nodes with pods with local storage, e.g. EmptyDir or HostPath. " +
 					"true by default at autoscaler.",
-				Type:     types.BoolType,
 				Optional: true,
 	***REMOVED***,
-			"log_verbosity": {
+			"log_verbosity": schema.Int64Attribute{
 				Description: "Sets the autoscaler log level. " +
 					"Default value is 1, level 4 is recommended for DEBUGGING and " +
 					"level 6 will enable almost everything.",
-				Type:     types.Int64Type,
 				Optional: true,
 	***REMOVED***,
-			"max_pod_grace_period": {
+			"max_pod_grace_period": schema.Int64Attribute{
 				Description: "Gives pods graceful termination time before scaling down.",
-				Type:        types.Int64Type,
 				Optional:    true,
 	***REMOVED***,
-			"pod_priority_threshold": {
+			"pod_priority_threshold": schema.Int64Attribute{
 				Description: "To allow users to schedule 'best-effort' pods, which shouldn't trigger " +
 					"Cluster Autoscaler actions, but only run when there are spare resources available.",
-				Type:     types.Int64Type,
 				Optional: true,
 	***REMOVED***,
-			"ignore_daemonsets_utilization": {
+			"ignore_daemonsets_utilization": schema.BoolAttribute{
 				Description: "Should cluster-autoscaler ignore DaemonSet pods when calculating resource utilization " +
 					"for scaling down. false by default",
-				Type:     types.BoolType,
 				Optional: true,
 	***REMOVED***,
-			"max_node_provision_time": {
+			"max_node_provision_time": schema.StringAttribute{
 				Description: "Maximum time cluster-autoscaler waits for node to be provisioned.",
-				Type:        types.StringType,
 				Optional:    true,
-				Validators:  DurationStringValidators("max node provision time validation"***REMOVED***,
+				Validators:  []validator.String{durationStringValidator("max node provision time validation"***REMOVED***},
 	***REMOVED***,
-			"balancing_ignored_labels": {
+			"balancing_ignored_labels": schema.ListAttribute{
 				Description: "This option specifies labels that cluster autoscaler should ignore when " +
 					"considering node group similarity. For example, if you have nodes with " +
 					"'topology.ebs.csi.aws.com/zone' label, you can add name of this label here " +
 					"to prevent cluster autoscaler from splitting nodes into different node groups " +
 					"based on its value.",
-				Type:     types.ListType{ElemType: types.StringType},
-				Optional: true,
+				ElementType: types.StringType,
+				Optional:    true,
 	***REMOVED***,
-			"resource_limits": {
+			"resource_limits": schema.SingleNestedAttribute{
 				Description: "Constraints of autoscaling resources.",
 				Optional:    true,
-				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-					"max_nodes_total": {
+				Attributes: map[string]schema.Attribute{
+					"max_nodes_total": schema.Int64Attribute{
 						Description: "Maximum number of nodes in all node groups. Cluster autoscaler will " +
 							"not grow the cluster beyond this number.",
-						Type:     types.Int64Type,
 						Optional: true,
 			***REMOVED***,
-					"cores": {
-						Description: "Minimum and maximum number of cores in cluster, in the format <min>:<max>. " +
-							"Cluster autoscaler will not scale the cluster beyond these numbers.",
-						Optional: true,
-						Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-							"min": {
-								Type:     types.Int64Type,
-								Required: true,
-					***REMOVED***,
-							"max": {
-								Type:     types.Int64Type,
-								Required: true,
-					***REMOVED***,
-				***REMOVED******REMOVED***,
-						Validators: RangeValidators(***REMOVED***,
-			***REMOVED***,
-					"memory": {
-						Description: "Minimum and maximum number of gigabytes of memory in cluster, in " +
-							"the format <min>:<max>. Cluster autoscaler will not scale the cluster beyond " +
-							"these numbers.",
-						Optional: true,
-						Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-							"min": {
-								Type:     types.Int64Type,
-								Required: true,
-					***REMOVED***,
-							"max": {
-								Type:     types.Int64Type,
-								Required: true,
-					***REMOVED***,
-				***REMOVED******REMOVED***,
-						Validators: RangeValidators(***REMOVED***,
-			***REMOVED***,
-					"gpus": {
+					"cores": rangeAttribute("Minimum and maximum number of cores in cluster, in the format <min>:<max>. "+
+						"Cluster autoscaler will not scale the cluster beyond these numbers.", false, true***REMOVED***,
+					"memory": rangeAttribute("Minimum and maximum number of gigabytes of memory in cluster, in "+
+						"the format <min>:<max>. Cluster autoscaler will not scale the cluster beyond "+
+						"these numbers.", false, true***REMOVED***,
+					"gpus": schema.ListNestedAttribute{
 						Description: "Minimum and maximum number of different GPUs in cluster, in the format " +
 							"<gpu_type>:<min>:<max>. Cluster autoscaler will not scale the cluster beyond " +
 							"these numbers. Can be passed multiple times.",
 						Optional: true,
-						Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
-							"type": {
-								Type:     types.StringType,
-								Required: true,
+						NestedObject: schema.NestedAttributeObject{
+							Attributes: map[string]schema.Attribute{
+								"type": schema.StringAttribute{
+									Required: true,
+						***REMOVED***,
+								"range": rangeAttribute("limit number of GPU type", true, false***REMOVED***,
 					***REMOVED***,
-							"range": {
-								Required: true,
-								Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-									"min": {
-										Type:     types.Int64Type,
-										Required: true,
-							***REMOVED***,
-									"max": {
-										Type:     types.Int64Type,
-										Required: true,
-							***REMOVED***,
-						***REMOVED******REMOVED***,
-								Validators: RangeValidators(***REMOVED***,
-					***REMOVED***,
-				***REMOVED***, tfsdk.ListNestedAttributesOptions{
-							MinItems: 1,
-				***REMOVED******REMOVED***,
+				***REMOVED***,
+						Validators: []validator.List{
+							listvalidator.SizeAtLeast(1***REMOVED***,
+				***REMOVED***,
 			***REMOVED***,
-		***REMOVED******REMOVED***,
+		***REMOVED***,
 	***REMOVED***,
-			"scale_down": {
+			"scale_down": schema.SingleNestedAttribute{
 				Description: "Configuration of scale down operation.",
 				Optional:    true,
-				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-					"enabled": {
+				Attributes: map[string]schema.Attribute{
+					"enabled": schema.BoolAttribute{
 						Description: "Should cluster-autoscaler scale down the cluster.",
-						Type:        types.BoolType,
 						Optional:    true,
 			***REMOVED***,
-					"unneeded_time": {
+					"unneeded_time": schema.StringAttribute{
 						Description: "How long a node should be unneeded before it is eligible for scale down.",
-						Type:        types.StringType,
 						Optional:    true,
 			***REMOVED***,
-					"utilization_threshold": {
+					"utilization_threshold": schema.StringAttribute{
 						Description: "Node utilization level, defined as sum of requested resources divided " +
 							"by capacity, below which a node can be considered for scale down.",
-						Type:       types.StringType,
-						Optional:   true,
-						Validators: FloatRangeValidators("utilization threshold validation", 0.0, 1.0***REMOVED***,
+						Optional: true,
+						Validators: []validator.String{
+							stringFloatRangeValidator("utilization threshold validation", 0.0, 1.0***REMOVED***,
+				***REMOVED***,
 			***REMOVED***,
-					"delay_after_add": {
+					"delay_after_add": schema.StringAttribute{
 						Description: "How long after scale up that scale down evaluation resumes.",
-						Type:        types.StringType,
 						Optional:    true,
-						Validators:  DurationStringValidators("delay after add validation"***REMOVED***,
+						Validators:  []validator.String{durationStringValidator("delay after add validation"***REMOVED***},
 			***REMOVED***,
-					"delay_after_delete": {
+					"delay_after_delete": schema.StringAttribute{
 						Description: "How long after node deletion that scale down evaluation resumes.",
-						Type:        types.StringType,
 						Optional:    true,
-						Validators:  DurationStringValidators("delay after delete validation"***REMOVED***,
+						Validators:  []validator.String{durationStringValidator("delay after delete validation"***REMOVED***},
 			***REMOVED***,
-					"delay_after_failure": {
+					"delay_after_failure": schema.StringAttribute{
 						Description: "How long after scale down failure that scale down evaluation resumes.",
-						Type:        types.StringType,
 						Optional:    true,
-						Validators:  DurationStringValidators("delay after failure validation"***REMOVED***,
+						Validators:  []validator.String{durationStringValidator("delay after failure validation"***REMOVED***},
 			***REMOVED***,
-		***REMOVED******REMOVED***,
-	***REMOVED***,
-***REMOVED***,
-	}, nil
-}
-
-func RangeValidators(***REMOVED*** []tfsdk.AttributeValidator {
-	return []tfsdk.AttributeValidator{
-		&common.AttributeValidator{
-			Desc: "max must be greater or equal to min",
-			Validator: func(ctx context.Context, req tfsdk.ValidateAttributeRequest, resp *tfsdk.ValidateAttributeResponse***REMOVED*** {
-				resourceRange := &AutoscalerResourceRange{}
-				diag := req.Config.GetAttribute(ctx, req.AttributePath, resourceRange***REMOVED***
-				if diag.HasError(***REMOVED*** {
-					// No attribute to validate
-					return
-		***REMOVED***
-
-				steps := []string{}
-				for _, step := range req.AttributePath.Steps(***REMOVED*** {
-					steps = append(steps, fmt.Sprintf("%s", step***REMOVED******REMOVED***
-		***REMOVED***
-				if resourceRange.Min.Value > resourceRange.Max.Value {
-					resp.Diagnostics.AddAttributeError(
-						req.AttributePath,
-						"Invalid resource range",
-						fmt.Sprintf("In '%s' attribute, max value must be greater or equal to min value", strings.Join(steps, "."***REMOVED******REMOVED***,
-					***REMOVED***
-		***REMOVED***
+		***REMOVED***,
 	***REMOVED***,
 ***REMOVED***,
 	}
+	return
+}
+func (r *ClusterAutoscalerResource***REMOVED*** Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse***REMOVED*** {
+	if req.ProviderData == nil {
+		return
+	}
+
+	collection, ok := req.ProviderData.(*sdk.Connection***REMOVED***
+	if !ok {
+		resp.Diagnostics.AddError("Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *sdk.Connaction, got: %T. Please report this issue to the provider developers.", req.ProviderData***REMOVED***,
+		***REMOVED***
+		return
+	}
+
+	r.collection = collection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Clusters(***REMOVED***
 }
 
-func (t *ClusterAutoscalerResourceType***REMOVED*** NewResource(ctx context.Context,
-	p tfsdk.Provider***REMOVED*** (tfsdk.Resource, diag.Diagnostics***REMOVED*** {
-	// Cast the provider interface to the specific implementation:
-	// use it directly when needed.
-	parent := p.(*Provider***REMOVED***
-
-	// Get the collection of clusters:
-	collection := parent.connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Clusters(***REMOVED***
-
-	// Create the resource:
-	return &ClusterAutoscalerResource{collection: collection}, nil
-}
-
-func (r *ClusterAutoscalerResource***REMOVED*** Create(ctx context.Context,
-	request tfsdk.CreateResourceRequest, response *tfsdk.CreateResourceResponse***REMOVED*** {
+func (r *ClusterAutoscalerResource***REMOVED*** Create(ctx context.Context, request resource.CreateRequest, response *resource.CreateResponse***REMOVED*** {
 	plan := &ClusterAutoscalerState{}
 	diags := request.Plan.Get(ctx, plan***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
@@ -273,28 +209,27 @@ func (r *ClusterAutoscalerResource***REMOVED*** Create(ctx context.Context,
 		return
 	}
 
-	resource := r.collection.Cluster(plan.Cluster.Value***REMOVED***
-	// We expect the cluster to exist. Return an error if it's not the case
-	if resp, err := resource.Get(***REMOVED***.SendContext(ctx***REMOVED***; err != nil && resp.Status(***REMOVED*** == http.StatusNotFound {
-		message := fmt.Sprintf("Cluster %s not found, error: %v", plan.Cluster.Value, err***REMOVED***
-		tflog.Error(ctx, message***REMOVED***
+	// Wait till the cluster is ready:
+	err := common.WaitTillClusterReady(ctx, r.collection, plan.Cluster.ValueString(***REMOVED******REMOVED***
+	if err != nil {
 		response.Diagnostics.AddError(
 			"Cannot poll cluster state",
-			message,
-		***REMOVED***
-		return
-	}
-
-	if err := r.waitForClusterToGetReady(ctx, plan.Cluster.Value***REMOVED***; err != nil {
-		response.Diagnostics.AddError(
-			"Failed waiting for cluster to get ready",
 			fmt.Sprintf(
 				"Cannot poll state of cluster with identifier '%s': %v",
-				plan.Cluster.Value, err,
+				plan.Cluster.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
 	}
+
+	autoscaler, err := r.collection.Cluster(plan.Cluster.ValueString(***REMOVED******REMOVED***.Autoscaler(***REMOVED***.Get(***REMOVED***.Send(***REMOVED***
+	if err != nil && autoscaler.Status(***REMOVED*** != http.StatusNotFound {
+		response.Diagnostics.AddError("Can't create autoscaler", fmt.Sprintf("Autoscaler for cluster '%s' might already exists. Error: %s",
+			plan.Cluster.ValueString(***REMOVED***, err.Error(***REMOVED******REMOVED******REMOVED***
+		return
+	}
+
+	resource := r.collection.Cluster(plan.Cluster.ValueString(***REMOVED******REMOVED***
 
 	object, err := clusterAutoscalerStateToObject(plan***REMOVED***
 	if err != nil {
@@ -302,7 +237,7 @@ func (r *ClusterAutoscalerResource***REMOVED*** Create(ctx context.Context,
 			"Failed building cluster autoscaler",
 			fmt.Sprintf(
 				"Failed building autoscaler for cluster '%s': %v",
-				plan.Cluster.Value, err,
+				plan.Cluster.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -314,7 +249,7 @@ func (r *ClusterAutoscalerResource***REMOVED*** Create(ctx context.Context,
 			"Failed creating cluster autoscaler",
 			fmt.Sprintf(
 				"Failed creating autoscaler for cluster '%s': %v",
-				plan.Cluster.Value, err,
+				plan.Cluster.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -324,8 +259,7 @@ func (r *ClusterAutoscalerResource***REMOVED*** Create(ctx context.Context,
 	response.Diagnostics.Append(diags...***REMOVED***
 }
 
-func (r *ClusterAutoscalerResource***REMOVED*** Read(ctx context.Context, request tfsdk.ReadResourceRequest,
-	response *tfsdk.ReadResourceResponse***REMOVED*** {
+func (r *ClusterAutoscalerResource***REMOVED*** Read(ctx context.Context, request resource.ReadRequest, response *resource.ReadResponse***REMOVED*** {
 	state := &ClusterAutoscalerState{}
 	diags := request.State.Get(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
@@ -333,10 +267,10 @@ func (r *ClusterAutoscalerResource***REMOVED*** Read(ctx context.Context, reques
 		return
 	}
 
-	getResponse, err := r.collection.Cluster(state.Cluster.Value***REMOVED***.Autoscaler(***REMOVED***.Get(***REMOVED***.SendContext(ctx***REMOVED***
+	getResponse, err := r.collection.Cluster(state.Cluster.ValueString(***REMOVED******REMOVED***.Autoscaler(***REMOVED***.Get(***REMOVED***.SendContext(ctx***REMOVED***
 	if err != nil && getResponse.Status(***REMOVED*** == http.StatusNotFound {
 		tflog.Warn(ctx, fmt.Sprintf("autoscaler for cluster (%s***REMOVED*** not found, removing from state",
-			state.Cluster.Value,
+			state.Cluster.ValueString(***REMOVED***,
 		***REMOVED******REMOVED***
 		response.State.RemoveResource(ctx***REMOVED***
 		return
@@ -346,7 +280,7 @@ func (r *ClusterAutoscalerResource***REMOVED*** Read(ctx context.Context, reques
 			"Failed getting cluster autoscaler",
 			fmt.Sprintf(
 				"Failed getting autoscaler for cluster '%s': %v",
-				state.Cluster.Value, err,
+				state.Cluster.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -357,13 +291,13 @@ func (r *ClusterAutoscalerResource***REMOVED*** Read(ctx context.Context, reques
 		return
 	}
 
-	populateAutoscalerState(getResponse.Body(***REMOVED***, state.Cluster.Value, state***REMOVED***
+	populateAutoscalerState(getResponse.Body(***REMOVED***, state.Cluster.ValueString(***REMOVED***, state***REMOVED***
 	diags = response.State.Set(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
 }
 
-func (r *ClusterAutoscalerResource***REMOVED*** Update(ctx context.Context, request tfsdk.UpdateResourceRequest,
-	response *tfsdk.UpdateResourceResponse***REMOVED*** {
+func (r *ClusterAutoscalerResource***REMOVED*** Update(ctx context.Context, request resource.UpdateRequest,
+	response *resource.UpdateResponse***REMOVED*** {
 	var diags diag.Diagnostics
 
 	// Get the plan:
@@ -374,14 +308,14 @@ func (r *ClusterAutoscalerResource***REMOVED*** Update(ctx context.Context, requ
 		return
 	}
 
-	_, err := r.collection.Cluster(plan.Cluster.Value***REMOVED***.Autoscaler(***REMOVED***.Get(***REMOVED***.SendContext(ctx***REMOVED***
+	_, err := r.collection.Cluster(plan.Cluster.ValueString(***REMOVED******REMOVED***.Autoscaler(***REMOVED***.Get(***REMOVED***.SendContext(ctx***REMOVED***
 
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Failed getting cluster autoscaler",
 			fmt.Sprintf(
 				"Failed getting autoscaler for cluster '%s': %v",
-				plan.Cluster.Value, err,
+				plan.Cluster.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -393,20 +327,20 @@ func (r *ClusterAutoscalerResource***REMOVED*** Update(ctx context.Context, requ
 			"Failed updating cluster autoscaler",
 			fmt.Sprintf(
 				"Failed updating autoscaler for cluster '%s: %v ",
-				plan.Cluster.Value, err,
+				plan.Cluster.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
 	}
 
-	update, err := r.collection.Cluster(plan.Cluster.Value***REMOVED***.
+	update, err := r.collection.Cluster(plan.Cluster.ValueString(***REMOVED******REMOVED***.
 		Autoscaler(***REMOVED***.Update(***REMOVED***.Body(autoscaler***REMOVED***.SendContext(ctx***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Failed updating cluster autoscaler",
 			fmt.Sprintf(
 				"Failed updating autoscaler for cluster '%s': %v",
-				plan.Cluster.Value, err,
+				plan.Cluster.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -414,7 +348,7 @@ func (r *ClusterAutoscalerResource***REMOVED*** Update(ctx context.Context, requ
 
 	object := update.Body(***REMOVED***
 	state := &ClusterAutoscalerState{}
-	populateAutoscalerState(object, plan.Cluster.Value, state***REMOVED***
+	populateAutoscalerState(object, plan.Cluster.ValueString(***REMOVED***, state***REMOVED***
 
 	diags = response.State.Set(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
@@ -423,8 +357,8 @@ func (r *ClusterAutoscalerResource***REMOVED*** Update(ctx context.Context, requ
 	}
 }
 
-func (r *ClusterAutoscalerResource***REMOVED*** Delete(ctx context.Context, request tfsdk.DeleteResourceRequest,
-	response *tfsdk.DeleteResourceResponse***REMOVED*** {
+func (r *ClusterAutoscalerResource***REMOVED*** Delete(ctx context.Context, request resource.DeleteRequest,
+	response *resource.DeleteResponse***REMOVED*** {
 	state := &ClusterAutoscalerState{}
 	diags := request.State.Get(ctx, state***REMOVED***
 	response.Diagnostics.Append(diags...***REMOVED***
@@ -432,14 +366,14 @@ func (r *ClusterAutoscalerResource***REMOVED*** Delete(ctx context.Context, requ
 		return
 	}
 
-	resource := r.collection.Cluster(state.Cluster.Value***REMOVED***.Autoscaler(***REMOVED***
+	resource := r.collection.Cluster(state.Cluster.ValueString(***REMOVED******REMOVED***.Autoscaler(***REMOVED***
 	_, err := resource.Delete(***REMOVED***.SendContext(ctx***REMOVED***
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Failed deleting cluster autoscaler",
 			fmt.Sprintf(
 				"Failed deleting autoscaler for cluster '%s': %v",
-				state.Cluster.Value, err,
+				state.Cluster.ValueString(***REMOVED***, err,
 			***REMOVED***,
 		***REMOVED***
 		return
@@ -448,113 +382,87 @@ func (r *ClusterAutoscalerResource***REMOVED*** Delete(ctx context.Context, requ
 	response.State.RemoveResource(ctx***REMOVED***
 }
 
-func (r *ClusterAutoscalerResource***REMOVED*** ImportState(ctx context.Context, request tfsdk.ImportResourceStateRequest,
-	response *tfsdk.ImportResourceStateResponse***REMOVED*** {
-	clusterId := request.ID
+func (r *ClusterAutoscalerResource***REMOVED*** ImportState(ctx context.Context, request resource.ImportStateRequest,
+	response *resource.ImportStateResponse***REMOVED*** {
+	tflog.Debug(ctx, "begin importstate(***REMOVED***"***REMOVED***
 
-	getResponse, err := r.collection.Cluster(clusterId***REMOVED***.Autoscaler(***REMOVED***.Get(***REMOVED***.SendContext(ctx***REMOVED***
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Failed importing cluster autoscaler",
-			err.Error(***REMOVED***,
-		***REMOVED***
-		return
-	}
-
-	state := &ClusterAutoscalerState{}
-	populateAutoscalerState(getResponse.Body(***REMOVED***, clusterId, state***REMOVED***
-	diags := response.State.Set(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
-}
-
-func (r *ClusterAutoscalerResource***REMOVED*** waitForClusterToGetReady(ctx context.Context, clusterId string***REMOVED*** error {
-	resource := r.collection.Cluster(clusterId***REMOVED***
-
-	pollCtx, cancel := context.WithTimeout(ctx, 1*time.Hour***REMOVED***
-	defer cancel(***REMOVED***
-
-	_, err := resource.Poll(***REMOVED***.
-		Interval(30 * time.Second***REMOVED***.
-		Predicate(func(get *cmv1.ClusterGetResponse***REMOVED*** bool {
-			return get.Body(***REMOVED***.State(***REMOVED*** == cmv1.ClusterStateReady
-***REMOVED******REMOVED***.
-		StartContext(pollCtx***REMOVED***
-
-	return err
+	resource.ImportStatePassthroughID(ctx, path.Root("cluster"***REMOVED***, request, response***REMOVED***
 }
 
 // populateAutoscalerState copies the data from the API object to the Terraform state.
-func populateAutoscalerState(object *cmv1.ClusterAutoscaler, clusterId string, state *ClusterAutoscalerState***REMOVED*** {
-	state.Cluster = types.String{
-		Value: clusterId,
-	}
+func populateAutoscalerState(object *cmv1.ClusterAutoscaler, clusterId string, state *ClusterAutoscalerState***REMOVED*** error {
+	state.Cluster = types.StringValue(clusterId***REMOVED***
 
 	if value, exists := object.GetBalanceSimilarNodeGroups(***REMOVED***; exists {
-		state.BalanceSimilarNodeGroups = types.Bool{Value: value}
+		state.BalanceSimilarNodeGroups = types.BoolValue(value***REMOVED***
 	} else {
-		state.BalanceSimilarNodeGroups = types.Bool{Null: true}
+		state.BalanceSimilarNodeGroups = types.BoolNull(***REMOVED***
 	}
 
 	if value, exists := object.GetSkipNodesWithLocalStorage(***REMOVED***; exists {
-		state.SkipNodesWithLocalStorage = types.Bool{Value: value}
+		state.SkipNodesWithLocalStorage = types.BoolValue(value***REMOVED***
 	} else {
-		state.SkipNodesWithLocalStorage = types.Bool{Null: true}
+		state.SkipNodesWithLocalStorage = types.BoolNull(***REMOVED***
 	}
 
 	if value, exists := object.GetLogVerbosity(***REMOVED***; exists {
-		state.LogVerbosity = types.Int64{Value: int64(value***REMOVED***}
+		state.LogVerbosity = types.Int64Value(int64(value***REMOVED******REMOVED***
 	} else {
-		state.LogVerbosity = types.Int64{Null: true}
+		state.LogVerbosity = types.Int64Null(***REMOVED***
 	}
 
 	if value, exists := object.GetMaxPodGracePeriod(***REMOVED***; exists {
-		state.MaxPodGracePeriod = types.Int64{Value: int64(value***REMOVED***}
+		state.MaxPodGracePeriod = types.Int64Value(int64(value***REMOVED******REMOVED***
 	} else {
-		state.MaxPodGracePeriod = types.Int64{Null: true}
+		state.MaxPodGracePeriod = types.Int64Null(***REMOVED***
 	}
 
 	if value, exists := object.GetPodPriorityThreshold(***REMOVED***; exists {
-		state.PodPriorityThreshold = types.Int64{Value: int64(value***REMOVED***}
+		state.PodPriorityThreshold = types.Int64Value(int64(value***REMOVED******REMOVED***
 	} else {
-		state.PodPriorityThreshold = types.Int64{Null: true}
+		state.PodPriorityThreshold = types.Int64Null(***REMOVED***
 	}
 
 	if value, exists := object.GetIgnoreDaemonsetsUtilization(***REMOVED***; exists {
-		state.IgnoreDaemonsetsUtilization = types.Bool{Value: value}
+		state.IgnoreDaemonsetsUtilization = types.BoolValue(value***REMOVED***
 	} else {
-		state.IgnoreDaemonsetsUtilization = types.Bool{Null: true}
+		state.IgnoreDaemonsetsUtilization = types.BoolNull(***REMOVED***
 	}
 
 	state.MaxNodeProvisionTime = common.EmptiableStringToStringType(object.MaxNodeProvisionTime(***REMOVED******REMOVED***
 
 	if value, exists := object.GetBalancingIgnoredLabels(***REMOVED***; exists {
-		state.BalancingIgnoredLabels = common.StringArrayToList(value***REMOVED***
+		list, err := common.StringArrayToList(value***REMOVED***
+		if err != nil {
+			return err
+***REMOVED***
+		state.BalancingIgnoredLabels = list
 	} else {
-		state.BalancingIgnoredLabels = types.List{Null: true}
+		state.BalancingIgnoredLabels = types.ListNull(types.StringType***REMOVED***
 	}
 
 	if object.ResourceLimits(***REMOVED*** != nil {
 		state.ResourceLimits = &AutoscalerResourceLimits{}
 
 		if value, exists := object.ResourceLimits(***REMOVED***.GetMaxNodesTotal(***REMOVED***; exists {
-			state.ResourceLimits.MaxNodesTotal = types.Int64{Value: int64(value***REMOVED***}
+			state.ResourceLimits.MaxNodesTotal = types.Int64Value(int64(value***REMOVED******REMOVED***
 ***REMOVED*** else {
-			state.ResourceLimits.MaxNodesTotal = types.Int64{Null: true}
+			state.ResourceLimits.MaxNodesTotal = types.Int64Null(***REMOVED***
 ***REMOVED***
 
 		cores := object.ResourceLimits(***REMOVED***.Cores(***REMOVED***
 		if cores != nil {
 			state.ResourceLimits.Cores = &AutoscalerResourceRange{
-				Min: types.Int64{Value: int64(cores.Min(***REMOVED******REMOVED***},
-				Max: types.Int64{Value: int64(cores.Max(***REMOVED******REMOVED***},
+				Min: types.Int64Value(int64(cores.Min(***REMOVED******REMOVED******REMOVED***,
+				Max: types.Int64Value(int64(cores.Max(***REMOVED******REMOVED******REMOVED***,
 	***REMOVED***
 ***REMOVED***
 
 		memory := object.ResourceLimits(***REMOVED***.Memory(***REMOVED***
 		if memory != nil {
 			state.ResourceLimits.Memory = &AutoscalerResourceRange{
-				Min: types.Int64{Value: int64(memory.Min(***REMOVED******REMOVED***},
-				Max: types.Int64{Value: int64(memory.Max(***REMOVED******REMOVED***},
+				Min: types.Int64Value(int64(memory.Min(***REMOVED******REMOVED******REMOVED***,
+				Max: types.Int64Value(int64(memory.Max(***REMOVED******REMOVED******REMOVED***,
 	***REMOVED***
 ***REMOVED***
 
@@ -566,10 +474,10 @@ func populateAutoscalerState(object *cmv1.ClusterAutoscaler, clusterId string, s
 				state.ResourceLimits.GPUS = append(
 					state.ResourceLimits.GPUS,
 					AutoscalerGPULimit{
-						Type: types.String{Value: gpu.Type(***REMOVED***},
+						Type: types.StringValue(gpu.Type(***REMOVED******REMOVED***,
 						Range: AutoscalerResourceRange{
-							Min: types.Int64{Value: int64(gpu.Range(***REMOVED***.Min(***REMOVED******REMOVED***},
-							Max: types.Int64{Value: int64(gpu.Range(***REMOVED***.Max(***REMOVED******REMOVED***},
+							Min: types.Int64Value(int64(gpu.Range(***REMOVED***.Min(***REMOVED******REMOVED******REMOVED***,
+							Max: types.Int64Value(int64(gpu.Range(***REMOVED***.Max(***REMOVED******REMOVED******REMOVED***,
 				***REMOVED***,
 			***REMOVED***,
 				***REMOVED***
@@ -581,9 +489,9 @@ func populateAutoscalerState(object *cmv1.ClusterAutoscaler, clusterId string, s
 		state.ScaleDown = &AutoscalerScaleDownConfig{}
 
 		if value, exists := object.ScaleDown(***REMOVED***.GetEnabled(***REMOVED***; exists {
-			state.ScaleDown.Enabled = types.Bool{Value: value}
+			state.ScaleDown.Enabled = types.BoolValue(value***REMOVED***
 ***REMOVED*** else {
-			state.ScaleDown.Enabled = types.Bool{Null: true}
+			state.ScaleDown.Enabled = types.BoolNull(***REMOVED***
 ***REMOVED***
 
 		state.ScaleDown.UnneededTime = common.EmptiableStringToStringType(object.ScaleDown(***REMOVED***.UnneededTime(***REMOVED******REMOVED***
@@ -592,64 +500,65 @@ func populateAutoscalerState(object *cmv1.ClusterAutoscaler, clusterId string, s
 		state.ScaleDown.DelayAfterDelete = common.EmptiableStringToStringType(object.ScaleDown(***REMOVED***.DelayAfterDelete(***REMOVED******REMOVED***
 		state.ScaleDown.DelayAfterFailure = common.EmptiableStringToStringType(object.ScaleDown(***REMOVED***.DelayAfterFailure(***REMOVED******REMOVED***
 	}
+	return nil
 }
 
 // clusterAutoscalerStateToObject builds a cluster-autoscaler API object from a given Terraform state.
 func clusterAutoscalerStateToObject(state *ClusterAutoscalerState***REMOVED*** (*cmv1.ClusterAutoscaler, error***REMOVED*** {
 	builder := cmv1.NewClusterAutoscaler(***REMOVED***
 
-	if !state.BalanceSimilarNodeGroups.Null {
-		builder.BalanceSimilarNodeGroups(state.BalanceSimilarNodeGroups.Value***REMOVED***
+	if !state.BalanceSimilarNodeGroups.IsNull(***REMOVED*** {
+		builder.BalanceSimilarNodeGroups(state.BalanceSimilarNodeGroups.ValueBool(***REMOVED******REMOVED***
 	}
 
-	if !state.SkipNodesWithLocalStorage.Null {
-		builder.SkipNodesWithLocalStorage(state.SkipNodesWithLocalStorage.Value***REMOVED***
+	if !state.SkipNodesWithLocalStorage.IsNull(***REMOVED*** {
+		builder.SkipNodesWithLocalStorage(state.SkipNodesWithLocalStorage.ValueBool(***REMOVED******REMOVED***
 	}
 
-	if !state.LogVerbosity.Null {
-		builder.LogVerbosity(int(state.LogVerbosity.Value***REMOVED******REMOVED***
+	if !state.LogVerbosity.IsNull(***REMOVED*** {
+		builder.LogVerbosity(int(state.LogVerbosity.ValueInt64(***REMOVED******REMOVED******REMOVED***
 	}
 
-	if !state.MaxPodGracePeriod.Null {
-		builder.MaxPodGracePeriod(int(state.MaxPodGracePeriod.Value***REMOVED******REMOVED***
+	if !state.MaxPodGracePeriod.IsNull(***REMOVED*** {
+		builder.MaxPodGracePeriod(int(state.MaxPodGracePeriod.ValueInt64(***REMOVED******REMOVED******REMOVED***
 	}
 
-	if !state.PodPriorityThreshold.Null {
-		builder.PodPriorityThreshold(int(state.PodPriorityThreshold.Value***REMOVED******REMOVED***
+	if !state.PodPriorityThreshold.IsNull(***REMOVED*** {
+		builder.PodPriorityThreshold(int(state.PodPriorityThreshold.ValueInt64(***REMOVED******REMOVED******REMOVED***
 	}
 
-	if !state.IgnoreDaemonsetsUtilization.Null {
-		builder.IgnoreDaemonsetsUtilization(state.IgnoreDaemonsetsUtilization.Value***REMOVED***
+	if !state.IgnoreDaemonsetsUtilization.IsNull(***REMOVED*** {
+		builder.IgnoreDaemonsetsUtilization(state.IgnoreDaemonsetsUtilization.ValueBool(***REMOVED******REMOVED***
 	}
 
-	if !state.MaxNodeProvisionTime.Null {
-		builder.MaxNodeProvisionTime(state.MaxNodeProvisionTime.Value***REMOVED***
+	if !state.MaxNodeProvisionTime.IsNull(***REMOVED*** {
+		builder.MaxNodeProvisionTime(state.MaxNodeProvisionTime.ValueString(***REMOVED******REMOVED***
 	}
 
-	if !state.BalancingIgnoredLabels.Null {
+	if !state.BalancingIgnoredLabels.IsNull(***REMOVED*** {
 		builder.BalancingIgnoredLabels(common.OptionalList(state.BalancingIgnoredLabels***REMOVED***...***REMOVED***
 	}
 
 	if state.ResourceLimits != nil {
 		resourceLimitsBuilder := cmv1.NewAutoscalerResourceLimits(***REMOVED***
 
-		if !state.ResourceLimits.MaxNodesTotal.Null {
-			resourceLimitsBuilder.MaxNodesTotal(int(state.ResourceLimits.MaxNodesTotal.Value***REMOVED******REMOVED***
+		if !state.ResourceLimits.MaxNodesTotal.IsNull(***REMOVED*** {
+			resourceLimitsBuilder.MaxNodesTotal(int(state.ResourceLimits.MaxNodesTotal.ValueInt64(***REMOVED******REMOVED******REMOVED***
 ***REMOVED***
 
 		if state.ResourceLimits.Cores != nil {
 			resourceLimitsBuilder.Cores(
 				cmv1.NewResourceRange(***REMOVED***.
-					Min(int(state.ResourceLimits.Cores.Min.Value***REMOVED******REMOVED***.
-					Max(int(state.ResourceLimits.Cores.Max.Value***REMOVED******REMOVED***,
+					Min(int(state.ResourceLimits.Cores.Min.ValueInt64(***REMOVED******REMOVED******REMOVED***.
+					Max(int(state.ResourceLimits.Cores.Max.ValueInt64(***REMOVED******REMOVED******REMOVED***,
 			***REMOVED***
 ***REMOVED***
 
 		if state.ResourceLimits.Memory != nil {
 			resourceLimitsBuilder.Memory(
 				cmv1.NewResourceRange(***REMOVED***.
-					Min(int(state.ResourceLimits.Memory.Min.Value***REMOVED******REMOVED***.
-					Max(int(state.ResourceLimits.Memory.Max.Value***REMOVED******REMOVED***,
+					Min(int(state.ResourceLimits.Memory.Min.ValueInt64(***REMOVED******REMOVED******REMOVED***.
+					Max(int(state.ResourceLimits.Memory.Max.ValueInt64(***REMOVED******REMOVED******REMOVED***,
 			***REMOVED***
 ***REMOVED***
 
@@ -658,10 +567,10 @@ func clusterAutoscalerStateToObject(state *ClusterAutoscalerState***REMOVED*** (
 			gpus = append(
 				gpus,
 				cmv1.NewAutoscalerResourceLimitsGPULimit(***REMOVED***.
-					Type(gpu.Type.Value***REMOVED***.
+					Type(gpu.Type.ValueString(***REMOVED******REMOVED***.
 					Range(cmv1.NewResourceRange(***REMOVED***.
-						Min(int(gpu.Range.Min.Value***REMOVED******REMOVED***.
-						Max(int(gpu.Range.Max.Value***REMOVED******REMOVED******REMOVED***,
+						Min(int(gpu.Range.Min.ValueInt64(***REMOVED******REMOVED******REMOVED***.
+						Max(int(gpu.Range.Max.ValueInt64(***REMOVED******REMOVED******REMOVED******REMOVED***,
 			***REMOVED***
 ***REMOVED***
 		resourceLimitsBuilder.GPUS(gpus...***REMOVED***
@@ -672,28 +581,28 @@ func clusterAutoscalerStateToObject(state *ClusterAutoscalerState***REMOVED*** (
 	if state.ScaleDown != nil {
 		scaleDownBuilder := cmv1.NewAutoscalerScaleDownConfig(***REMOVED***
 
-		if !state.ScaleDown.Enabled.Null {
-			scaleDownBuilder.Enabled(state.ScaleDown.Enabled.Value***REMOVED***
+		if !state.ScaleDown.Enabled.IsNull(***REMOVED*** {
+			scaleDownBuilder.Enabled(state.ScaleDown.Enabled.ValueBool(***REMOVED******REMOVED***
 ***REMOVED***
 
-		if !state.ScaleDown.UnneededTime.Null {
-			scaleDownBuilder.UnneededTime(state.ScaleDown.UnneededTime.Value***REMOVED***
+		if !state.ScaleDown.UnneededTime.IsNull(***REMOVED*** {
+			scaleDownBuilder.UnneededTime(state.ScaleDown.UnneededTime.ValueString(***REMOVED******REMOVED***
 ***REMOVED***
 
-		if !state.ScaleDown.UtilizationThreshold.Null {
-			scaleDownBuilder.UtilizationThreshold(state.ScaleDown.UtilizationThreshold.Value***REMOVED***
+		if !state.ScaleDown.UtilizationThreshold.IsNull(***REMOVED*** {
+			scaleDownBuilder.UtilizationThreshold(state.ScaleDown.UtilizationThreshold.ValueString(***REMOVED******REMOVED***
 ***REMOVED***
 
-		if !state.ScaleDown.DelayAfterAdd.Null {
-			scaleDownBuilder.DelayAfterAdd(state.ScaleDown.DelayAfterAdd.Value***REMOVED***
+		if !state.ScaleDown.DelayAfterAdd.IsNull(***REMOVED*** {
+			scaleDownBuilder.DelayAfterAdd(state.ScaleDown.DelayAfterAdd.ValueString(***REMOVED******REMOVED***
 ***REMOVED***
 
-		if !state.ScaleDown.DelayAfterDelete.Null {
-			scaleDownBuilder.DelayAfterDelete(state.ScaleDown.DelayAfterDelete.Value***REMOVED***
+		if !state.ScaleDown.DelayAfterDelete.IsNull(***REMOVED*** {
+			scaleDownBuilder.DelayAfterDelete(state.ScaleDown.DelayAfterDelete.ValueString(***REMOVED******REMOVED***
 ***REMOVED***
 
-		if !state.ScaleDown.DelayAfterFailure.Null {
-			scaleDownBuilder.DelayAfterFailure(state.ScaleDown.DelayAfterFailure.Value***REMOVED***
+		if !state.ScaleDown.DelayAfterFailure.IsNull(***REMOVED*** {
+			scaleDownBuilder.DelayAfterFailure(state.ScaleDown.DelayAfterFailure.ValueString(***REMOVED******REMOVED***
 ***REMOVED***
 
 		builder.ScaleDown(scaleDownBuilder***REMOVED***

@@ -353,6 +353,78 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 
 	***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
+		Context("Author:amalykhi-High-OCP-65063 @OCP-65063 @amalykhi", func(***REMOVED*** {
+			It("Author:amalykhi-High-OCP-65063 Create single-az machinepool for multi-az cluster", ci.Day2, ci.High, ci.FeatureMachinepool, func(***REMOVED*** {
+				if !profile.MultiAZ {
+					Skip("The test is configured for MultiAZ cluster only"***REMOVED***
+		***REMOVED***
+				getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID***REMOVED***
+				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+				azs := getResp.Body(***REMOVED***.Nodes(***REMOVED***.AvailabilityZones(***REMOVED***
+				By("Create additional machinepool with availability zone specified"***REMOVED***
+				replicas := 1
+				machineType := "r5.xlarge"
+				name := "ocp-65063"
+				MachinePoolArgs := &exe.MachinePoolArgs{
+					Token:            token,
+					Cluster:          clusterID,
+					Replicas:         replicas,
+					MachineType:      machineType,
+					Name:             name,
+					AvailabilityZone: azs[0],
+		***REMOVED***
+
+				err = mpService.Create(MachinePoolArgs***REMOVED***
+				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+
+				By("Verify the parameters of the created machinepool"***REMOVED***
+				mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name***REMOVED***
+				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+				Expect(mpResponseBody.AvailabilityZones(***REMOVED***[0]***REMOVED***.To(Equal(azs[0]***REMOVED******REMOVED***
+
+				err = mpService.Destroy(***REMOVED***
+				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+
+				By("Create additional machinepool with availability zone specified"***REMOVED***
+				awsSubnetIds := getResp.Body(***REMOVED***.AWS(***REMOVED***.SubnetIDs(***REMOVED***
+				MachinePoolArgs = &exe.MachinePoolArgs{
+					Token:       token,
+					Cluster:     clusterID,
+					Replicas:    replicas,
+					MachineType: machineType,
+					Name:        name,
+					SubnetID:    awsSubnetIds[0],
+		***REMOVED***
+
+				err = mpService.Create(MachinePoolArgs***REMOVED***
+				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+
+				By("Verify the parameters of the created machinepool"***REMOVED***
+				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name***REMOVED***
+				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+				Expect(mpResponseBody.Subnets(***REMOVED***[0]***REMOVED***.To(Equal(awsSubnetIds[0]***REMOVED******REMOVED***
+
+				err = mpService.Destroy(***REMOVED***
+				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+
+				By("Create additional machinepool with multi_availability_zone=false specified"***REMOVED***
+				MachinePoolArgs = &exe.MachinePoolArgs{
+					Token:       token,
+					Cluster:     clusterID,
+					Replicas:    replicas,
+					MachineType: machineType,
+					Name:        name,
+					MultiAZ:     false,
+		***REMOVED***
+
+				err = mpService.Create(MachinePoolArgs***REMOVED***
+				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+				By("Verify the parameters of the created machinepool"***REMOVED***
+				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name***REMOVED***
+				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+				Expect(len(mpResponseBody.AvailabilityZones(***REMOVED******REMOVED******REMOVED***.To(Equal(1***REMOVED******REMOVED***
+	***REMOVED******REMOVED***
+***REMOVED******REMOVED***
 
 	}***REMOVED***
 }***REMOVED***

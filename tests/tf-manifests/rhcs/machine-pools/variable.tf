@@ -53,3 +53,15 @@ variable "url" {
   default = "https://api.stage.openshift.com"
 }
 
+variable "availability_zone" {
+  type    = string
+  default = null
+}
+variable "subnet_id" {
+  type    = string
+  default = null
+}
+variable "multi_availability_zone" {
+  type    = bool
+  default = null
+}

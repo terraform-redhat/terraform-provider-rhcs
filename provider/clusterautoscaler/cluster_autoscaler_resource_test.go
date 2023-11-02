@@ -14,20 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package clusterautoscaler
 
 import (
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	. "github.com/onsi/ginkgo/v2" // nolint
 	. "github.com/onsi/gomega"    // nolint
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 
 var _ = Describe("Cluster Autoscaler", func() {
 	Context("conversion to terraform state", func() {
 		It("successfully populates all fields", func() {
 			clusterId := "123"
+			balIgnLables, _ := types.ListValue(types.StringType, []attr.Value{
+				types.StringValue("l1"),
+				types.StringValue("l2"),
+			})
 			autoscaler, err := cmv1.NewClusterAutoscaler().
 				BalanceSimilarNodeGroups(true).
 				SkipNodesWithLocalStorage(true).
@@ -71,49 +75,49 @@ var _ = Describe("Cluster Autoscaler", func() {
 			populateAutoscalerState(autoscaler, clusterId, &state)
 
 			Expect(state).To(Equal(ClusterAutoscalerState{
-				Cluster:                     types.String{Value: clusterId},
-				BalanceSimilarNodeGroups:    types.Bool{Value: true},
-				SkipNodesWithLocalStorage:   types.Bool{Value: true},
-				LogVerbosity:                types.Int64{Value: 1},
-				MaxPodGracePeriod:           types.Int64{Value: 10},
-				PodPriorityThreshold:        types.Int64{Value: -10},
-				IgnoreDaemonsetsUtilization: types.Bool{Value: true},
-				MaxNodeProvisionTime:        types.String{Value: "1h"},
-				BalancingIgnoredLabels:      common.StringArrayToList([]string{"l1", "l2"}),
+				Cluster:                     types.StringValue(clusterId),
+				BalanceSimilarNodeGroups:    types.BoolValue(true),
+				SkipNodesWithLocalStorage:   types.BoolValue(true),
+				LogVerbosity:                types.Int64Value(1),
+				MaxPodGracePeriod:           types.Int64Value(10),
+				PodPriorityThreshold:        types.Int64Value(-10),
+				IgnoreDaemonsetsUtilization: types.BoolValue(true),
+				MaxNodeProvisionTime:        types.StringValue("1h"),
+				BalancingIgnoredLabels:      balIgnLables,
 				ResourceLimits: &AutoscalerResourceLimits{
-					MaxNodesTotal: types.Int64{Value: 10},
+					MaxNodesTotal: types.Int64Value(10),
 					Cores: &AutoscalerResourceRange{
-						Min: types.Int64{Value: 0},
-						Max: types.Int64{Value: 1},
+						Min: types.Int64Value(0),
+						Max: types.Int64Value(1),
 					},
 					Memory: &AutoscalerResourceRange{
-						Min: types.Int64{Value: 2},
-						Max: types.Int64{Value: 3},
+						Min: types.Int64Value(2),
+						Max: types.Int64Value(3),
 					},
 					GPUS: []AutoscalerGPULimit{
 						{
-							Type: types.String{Value: "nvidia"},
+							Type: types.StringValue("nvidia"),
 							Range: AutoscalerResourceRange{
-								Min: types.Int64{Value: 0},
-								Max: types.Int64{Value: 1},
+								Min: types.Int64Value(0),
+								Max: types.Int64Value(1),
 							},
 						},
 						{
-							Type: types.String{Value: "intel"},
+							Type: types.StringValue("intel"),
 							Range: AutoscalerResourceRange{
-								Min: types.Int64{Value: 2},
-								Max: types.Int64{Value: 3},
+								Min: types.Int64Value(2),
+								Max: types.Int64Value(3),
 							},
 						},
 					},
 				},
 				ScaleDown: &AutoscalerScaleDownConfig{
-					Enabled:              types.Bool{Value: true},
-					UnneededTime:         types.String{Value: "2h"},
-					UtilizationThreshold: types.String{Value: "0.5"},
-					DelayAfterAdd:        types.String{Value: "3h"},
-					DelayAfterDelete:     types.String{Value: "4h"},
-					DelayAfterFailure:    types.String{Value: "5h"},
+					Enabled:              types.BoolValue(true),
+					UnneededTime:         types.StringValue("2h"),
+					UtilizationThreshold: types.StringValue("0.5"),
+					DelayAfterAdd:        types.StringValue("3h"),
+					DelayAfterDelete:     types.StringValue("4h"),
+					DelayAfterFailure:    types.StringValue("5h"),
 				},
 			}))
 		})
@@ -127,15 +131,15 @@ var _ = Describe("Cluster Autoscaler", func() {
 			populateAutoscalerState(autoscaler, clusterId, &state)
 
 			Expect(state).To(Equal(ClusterAutoscalerState{
-				Cluster:                     types.String{Value: clusterId},
-				BalanceSimilarNodeGroups:    types.Bool{Null: true},
-				SkipNodesWithLocalStorage:   types.Bool{Null: true},
-				LogVerbosity:                types.Int64{Null: true},
-				MaxPodGracePeriod:           types.Int64{Null: true},
-				PodPriorityThreshold:        types.Int64{Null: true},
-				IgnoreDaemonsetsUtilization: types.Bool{Null: true},
-				MaxNodeProvisionTime:        types.String{Null: true},
-				BalancingIgnoredLabels:      types.List{Null: true},
+				Cluster:                     types.StringValue(clusterId),
+				BalanceSimilarNodeGroups:    types.BoolNull(),
+				SkipNodesWithLocalStorage:   types.BoolNull(),
+				LogVerbosity:                types.Int64Null(),
+				MaxPodGracePeriod:           types.Int64Null(),
+				PodPriorityThreshold:        types.Int64Null(),
+				IgnoreDaemonsetsUtilization: types.BoolNull(),
+				MaxNodeProvisionTime:        types.StringNull(),
+				BalancingIgnoredLabels:      types.ListNull(types.StringType),
 				ResourceLimits:              nil,
 				ScaleDown:                   nil,
 			}))
@@ -145,50 +149,54 @@ var _ = Describe("Cluster Autoscaler", func() {
 	Context("conversion to an OCM API object", func() {
 		It("successfully converts all fields from a terraform state", func() {
 			clusterId := "123"
+			balIgnLables, _ := types.ListValue(types.StringType, []attr.Value{
+				types.StringValue("l1"),
+				types.StringValue("l2"),
+			})
 			state := ClusterAutoscalerState{
-				Cluster:                     types.String{Value: clusterId},
-				BalanceSimilarNodeGroups:    types.Bool{Value: true},
-				SkipNodesWithLocalStorage:   types.Bool{Value: true},
-				LogVerbosity:                types.Int64{Value: 1},
-				MaxPodGracePeriod:           types.Int64{Value: 10},
-				PodPriorityThreshold:        types.Int64{Value: -10},
-				IgnoreDaemonsetsUtilization: types.Bool{Value: true},
-				MaxNodeProvisionTime:        types.String{Value: "1h"},
-				BalancingIgnoredLabels:      common.StringArrayToList([]string{"l1", "l2"}),
+				Cluster:                     types.StringValue(clusterId),
+				BalanceSimilarNodeGroups:    types.BoolValue(true),
+				SkipNodesWithLocalStorage:   types.BoolValue(true),
+				LogVerbosity:                types.Int64Value(1),
+				MaxPodGracePeriod:           types.Int64Value(10),
+				PodPriorityThreshold:        types.Int64Value(-10),
+				IgnoreDaemonsetsUtilization: types.BoolValue(true),
+				MaxNodeProvisionTime:        types.StringValue("1h"),
+				BalancingIgnoredLabels:      balIgnLables,
 				ResourceLimits: &AutoscalerResourceLimits{
-					MaxNodesTotal: types.Int64{Value: 10},
+					MaxNodesTotal: types.Int64Value(10),
 					Cores: &AutoscalerResourceRange{
-						Min: types.Int64{Value: 0},
-						Max: types.Int64{Value: 1},
+						Min: types.Int64Value(0),
+						Max: types.Int64Value(1),
 					},
 					Memory: &AutoscalerResourceRange{
-						Min: types.Int64{Value: 2},
-						Max: types.Int64{Value: 3},
+						Min: types.Int64Value(2),
+						Max: types.Int64Value(3),
 					},
 					GPUS: []AutoscalerGPULimit{
 						{
-							Type: types.String{Value: "nvidia"},
+							Type: types.StringValue("nvidia"),
 							Range: AutoscalerResourceRange{
-								Min: types.Int64{Value: 0},
-								Max: types.Int64{Value: 1},
+								Min: types.Int64Value(0),
+								Max: types.Int64Value(1),
 							},
 						},
 						{
-							Type: types.String{Value: "intel"},
+							Type: types.StringValue("intel"),
 							Range: AutoscalerResourceRange{
-								Min: types.Int64{Value: 2},
-								Max: types.Int64{Value: 3},
+								Min: types.Int64Value(2),
+								Max: types.Int64Value(3),
 							},
 						},
 					},
 				},
 				ScaleDown: &AutoscalerScaleDownConfig{
-					Enabled:              types.Bool{Value: true},
-					UnneededTime:         types.String{Value: "2h"},
-					UtilizationThreshold: types.String{Value: "0.5"},
-					DelayAfterAdd:        types.String{Value: "3h"},
-					DelayAfterDelete:     types.String{Value: "4h"},
-					DelayAfterFailure:    types.String{Value: "5h"},
+					Enabled:              types.BoolValue(true),
+					UnneededTime:         types.StringValue("2h"),
+					UtilizationThreshold: types.StringValue("0.5"),
+					DelayAfterAdd:        types.StringValue("3h"),
+					DelayAfterDelete:     types.StringValue("4h"),
+					DelayAfterFailure:    types.StringValue("5h"),
 				},
 			}
 
@@ -240,15 +248,15 @@ var _ = Describe("Cluster Autoscaler", func() {
 		It("successfully converts when all state fields are null", func() {
 			clusterId := "123"
 			state := ClusterAutoscalerState{
-				Cluster:                     types.String{Value: clusterId},
-				BalanceSimilarNodeGroups:    types.Bool{Null: true},
-				SkipNodesWithLocalStorage:   types.Bool{Null: true},
-				LogVerbosity:                types.Int64{Null: true},
-				MaxPodGracePeriod:           types.Int64{Null: true},
-				PodPriorityThreshold:        types.Int64{Null: true},
-				IgnoreDaemonsetsUtilization: types.Bool{Null: true},
-				MaxNodeProvisionTime:        types.String{Null: true},
-				BalancingIgnoredLabels:      types.List{Null: true},
+				Cluster:                     types.StringValue(clusterId),
+				BalanceSimilarNodeGroups:    types.BoolNull(),
+				SkipNodesWithLocalStorage:   types.BoolNull(),
+				LogVerbosity:                types.Int64Null(),
+				MaxPodGracePeriod:           types.Int64Null(),
+				PodPriorityThreshold:        types.Int64Null(),
+				IgnoreDaemonsetsUtilization: types.BoolNull(),
+				MaxNodeProvisionTime:        types.StringNull(),
+				BalancingIgnoredLabels:      types.ListNull(types.StringType),
 				ResourceLimits:              nil,
 				ScaleDown:                   nil,
 			}

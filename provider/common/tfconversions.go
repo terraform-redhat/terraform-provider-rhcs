@@ -41,6 +41,17 @@ func OptionalMap(ctx context.Context, tfVal types.Map) (map[string]string, error
 	return result, nil
 }
 
+func OptionalList(tfVal types.List) []string {
+	if tfVal.IsUnknown() || tfVal.IsNull() {
+		return nil
+	}
+	result := make([]string, 0)
+	for _, e := range tfVal.Elements() {
+		result = append(result, e.(types.String).ValueString())
+	}
+	return result
+}
+
 func StringListToArray(ctx context.Context, tfVal types.List) ([]string, error) {
 	if !HasValue(tfVal) {
 		return nil, nil

@@ -106,6 +106,14 @@ func IsStringAttributeEmpty(param types.String) bool {
 	return param.IsUnknown() || param.IsNull() || param.ValueString() == ""
 }
 
+func EmptiableStringToStringType(s string) types.String {
+	if s == "" {
+		return types.StringNull()
+	}
+
+	return types.StringValue(s)
+}
+
 func IsGreaterThanOrEqual(version1, version2 string) (bool, error) {
 	v1, err := version.NewVersion(strings.TrimPrefix(version1, versionPrefix))
 	if err != nil {

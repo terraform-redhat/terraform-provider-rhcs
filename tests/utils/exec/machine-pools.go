@@ -24,6 +24,9 @@ type MachinePoolArgs struct {
 	Labels             map[string]string   `json:"labels,omitempty"`
 	Taints             []map[string]string `json:"taints,omitempty"`
 	ID                 string              `json:"id,omitempty"`
+	AvailabilityZone   string              `json:"availability_zone,omitempty"`
+	SubnetID           string              `json:"subnet_id,omitempty"`
+	MultiAZ            bool                `json:"multi_availability_zone,omitempty"`
 }
 type MachinePoolService struct {
 	CreationArgs *MachinePoolArgs

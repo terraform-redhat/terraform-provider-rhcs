@@ -353,6 +353,78 @@ var _ = Describe("TF Test", func() {
 
 			})
 		})
+		Context("Author:amalykhi-High-OCP-65063 @OCP-65063 @amalykhi", func() {
+			It("Author:amalykhi-High-OCP-65063 Create single-az machinepool for multi-az cluster", ci.Day2, ci.High, ci.FeatureMachinepool, func() {
+				if !profile.MultiAZ {
+					Skip("The test is configured for MultiAZ cluster only")
+				}
+				getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+				Expect(err).ToNot(HaveOccurred())
+				azs := getResp.Body().Nodes().AvailabilityZones()
+				By("Create additional machinepool with availability zone specified")
+				replicas := 1
+				machineType := "r5.xlarge"
+				name := "ocp-65063"
+				MachinePoolArgs := &exe.MachinePoolArgs{
+					Token:            token,
+					Cluster:          clusterID,
+					Replicas:         replicas,
+					MachineType:      machineType,
+					Name:             name,
+					AvailabilityZone: azs[0],
+				}
+
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
+
+				By("Verify the parameters of the created machinepool")
+				mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(mpResponseBody.AvailabilityZones()[0]).To(Equal(azs[0]))
+
+				err = mpService.Destroy()
+				Expect(err).ToNot(HaveOccurred())
+
+				By("Create additional machinepool with availability zone specified")
+				awsSubnetIds := getResp.Body().AWS().SubnetIDs()
+				MachinePoolArgs = &exe.MachinePoolArgs{
+					Token:       token,
+					Cluster:     clusterID,
+					Replicas:    replicas,
+					MachineType: machineType,
+					Name:        name,
+					SubnetID:    awsSubnetIds[0],
+				}
+
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
+
+				By("Verify the parameters of the created machinepool")
+				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(mpResponseBody.Subnets()[0]).To(Equal(awsSubnetIds[0]))
+
+				err = mpService.Destroy()
+				Expect(err).ToNot(HaveOccurred())
+
+				By("Create additional machinepool with multi_availability_zone=false specified")
+				MachinePoolArgs = &exe.MachinePoolArgs{
+					Token:       token,
+					Cluster:     clusterID,
+					Replicas:    replicas,
+					MachineType: machineType,
+					Name:        name,
+					MultiAZ:     false,
+				}
+
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
+				By("Verify the parameters of the created machinepool")
+				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(mpResponseBody.AvailabilityZones())).To(Equal(1))
+			})
+		})
 
 	})
 })

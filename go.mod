@@ -14,7 +14,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.11.0
 	github.com/onsi/gomega v1.27.10
 	github.com/openshift-online/ocm-common v0.0.0-20231026143539-5ff0909b6fae
-	github.com/openshift-online/ocm-sdk-go v0.1.378
+	github.com/openshift-online/ocm-sdk-go v0.1.380
 	github.com/openshift/rosa v1.2.21
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.4

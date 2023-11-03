@@ -34,7 +34,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -208,7 +207,7 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				ElementType: types.StringType,
 				Optional:    true,
 				PlanModifiers: []planmodifier.List{
-					listplanmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 			},
 		},
@@ -531,7 +530,16 @@ func (r *MachinePoolResource) readState(ctx context.Context, state *MachinePoolS
 	}
 
 	object := get.Body()
-	r.populateState(object, state)
+	err = r.populateState(object, state)
+	if err != nil {
+		diags.AddError(
+			"Can't populate machine pool state",
+			fmt.Sprintf(
+				"Received error %v", err,
+			),
+		)
+		return
+	}
 	return
 }
 
@@ -679,7 +687,16 @@ func (r *MachinePoolResource) doUpdate(ctx context.Context, state *MachinePoolSt
 	state.Replicas = plan.Replicas
 
 	// Save the state:
-	r.populateState(object, state)
+	err = r.populateState(object, state)
+	if err != nil {
+		diags.AddError(
+			"Can't populate machine pool state",
+			fmt.Sprintf(
+				"Received error %v", err,
+			),
+		)
+		return diags
+	}
 	return diags
 }
 

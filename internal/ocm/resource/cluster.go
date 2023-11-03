@@ -6,8 +6,8 @@ import (
 	"regexp"
 
 	"github.com/openshift-online/ocm-common/pkg/cluster/validations"
+	kmsArnRegexpValidator "github.com/openshift-online/ocm-common/pkg/resource/validations"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	kmsArnRegexpValidator "github.com/openshift-online/ocm-common/pkg/resource/validations" 
 )
 
 var privateHostedZoneRoleArnRE = regexp.MustCompile(
@@ -110,7 +110,10 @@ func (c *Cluster) CreateNodes(autoScalingEnabled bool, replicas *int64, minRepli
 
 func (c *Cluster) CreateAWSBuilder(awsTags map[string]string, ec2MetadataHttpTokens *string, kmsKeyARN *string,
 	isPrivateLink bool, awsAccountID *string, stsBuilder *cmv1.STSBuilder, awsSubnetIDs []string,
-	privateHostedZoneID *string, privateHostedZoneRoleARN *string, additionalComputeSecurityGroupIds []string) error {
+	privateHostedZoneID *string, privateHostedZoneRoleARN *string,
+	additionalComputeSecurityGroupIds []string,
+	additionalInfraSecurityGroupIds []string,
+	additionalControlPlaneSecurityGroupIds []string) error {
 
 	if isPrivateLink && awsSubnetIDs == nil {
 		return errors.New("Clusters with PrivateLink must have a pre-configured VPC. Make sure to specify the subnet ids.")
@@ -145,6 +148,14 @@ func (c *Cluster) CreateAWSBuilder(awsTags map[string]string, ec2MetadataHttpTok
 
 	if additionalComputeSecurityGroupIds != nil {
 		awsBuilder.AdditionalComputeSecurityGroupIds(additionalComputeSecurityGroupIds...)
+	}
+
+	if additionalInfraSecurityGroupIds != nil {
+		awsBuilder.AdditionalInfraSecurityGroupIds(additionalInfraSecurityGroupIds...)
+	}
+
+	if additionalControlPlaneSecurityGroupIds != nil {
+		awsBuilder.AdditionalControlPlaneSecurityGroupIds(additionalControlPlaneSecurityGroupIds...)
 	}
 
 	if stsBuilder != nil {

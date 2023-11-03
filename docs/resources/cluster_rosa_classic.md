@@ -57,6 +57,8 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
 - `autoscaling_enabled` (Boolean) Enables autoscaling.
 - `availability_zones` (List of String) Availability zones.
 - `aws_additional_compute_security_group_ids` (List of String) Additional Security Group IDs to be provided to the default worker machine pool.
+- `aws_additional_infra_security_group_ids` (List of String) Additional Infra Group IDs to be provided to the default infra machine pool.
+- `aws_additional_control_plane_security_group_ids` (List of String) Additional Control Plane Group IDs to be provided to the default control plane machine pool.
 - `aws_private_link` (Boolean) Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet.
 - `aws_subnet_ids` (List of String) AWS subnet IDs.
 - `base_dns_domain` (String) Base DNS domain name previously reserved and matching the hosted zone name of the private Route 53 hosted zone associated with intended shared VPC, e.g., '1vo8.p1.openshiftapps.com'.

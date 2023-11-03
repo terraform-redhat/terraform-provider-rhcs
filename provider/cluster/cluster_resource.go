@@ -151,8 +151,21 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 				Description: "AWS additional compute security group ids.",
 				ElementType: types.StringType,
 				Optional:    true,
+			},
+			"aws_additional_infra_security_group_ids": schema.ListAttribute{
+				Description: "AWS additional infra security group ids.",
+				ElementType: types.StringType,
+				Optional:    true,
 				PlanModifiers: []planmodifier.List{
-					listplanmodifier.RequiresReplace(),
+					common.Immutable(),
+				},
+			},
+			"aws_additional_control_plane_security_group_ids": schema.ListAttribute{
+				Description: "AWS additional control plane security group ids.",
+				ElementType: types.StringType,
+				Optional:    true,
+				PlanModifiers: []planmodifier.List{
+					common.Immutable(),
 				},
 			},
 			"aws_private_link": schema.BoolAttribute{
@@ -320,6 +333,22 @@ func createClusterObject(ctx context.Context,
 			return nil, err
 		}
 		aws.AdditionalComputeSecurityGroupIds(computeSecurityGroupIds...)
+	}
+
+	if common.HasValue(state.AWSAdditionalInfraSecurityGroupIds) {
+		infraSecurityGroupIds, err := common.StringListToArray(ctx, state.AWSAdditionalInfraSecurityGroupIds)
+		if err != nil {
+			return nil, err
+		}
+		aws.AdditionalInfraSecurityGroupIds(infraSecurityGroupIds...)
+	}
+
+	if common.HasValue(state.AWSAdditionalControlPlaneSecurityGroupIds) {
+		controlSecurityGroupIds, err := common.StringListToArray(ctx, state.AWSAdditionalControlPlaneSecurityGroupIds)
+		if err != nil {
+			return nil, err
+		}
+		aws.AdditionalControlPlaneSecurityGroupIds(controlSecurityGroupIds...)
 	}
 
 	if !aws.Empty() {
@@ -670,6 +699,24 @@ func populateClusterState(object *cmv1.Cluster, state *ClusterState) error {
 			return err
 		}
 		state.AWSAdditionalComputeSecurityGroupIds = awsAdditionalSecurityGroupIds
+	}
+
+	additionalInfraSecurityGroupIds, ok := object.AWS().GetAdditionalInfraSecurityGroupIds()
+	if ok {
+		awsAdditionalSecurityGroupIds, err := common.StringArrayToList(additionalInfraSecurityGroupIds)
+		if err != nil {
+			return err
+		}
+		state.AWSAdditionalInfraSecurityGroupIds = awsAdditionalSecurityGroupIds
+	}
+
+	additionalControlPlaneSecurityGroupIds, ok := object.AWS().GetAdditionalControlPlaneSecurityGroupIds()
+	if ok {
+		awsAdditionalSecurityGroupIds, err := common.StringArrayToList(additionalControlPlaneSecurityGroupIds)
+		if err != nil {
+			return err
+		}
+		state.AWSAdditionalControlPlaneSecurityGroupIds = awsAdditionalSecurityGroupIds
 	}
 
 	proxyObj, ok := object.GetProxy()

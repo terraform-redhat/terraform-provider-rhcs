@@ -274,6 +274,22 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				ElementType: types.StringType,
 				Optional:    true,
 			},
+			"aws_additional_infra_security_group_ids": schema.ListAttribute{
+				Description: "AWS additional infra security group ids.",
+				ElementType: types.StringType,
+				Optional:    true,
+				PlanModifiers: []planmodifier.List{
+					common.Immutable(),
+				},
+			},
+			"aws_additional_control_plane_security_group_ids": schema.ListAttribute{
+				Description: "AWS additional control plane security group ids.",
+				ElementType: types.StringType,
+				Optional:    true,
+				PlanModifiers: []planmodifier.List{
+					common.Immutable(),
+				},
+			},
 			"kms_key_arn": schema.StringAttribute{
 				Description: "The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, " +
 					"fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID" +
@@ -619,7 +635,15 @@ func createClassicClusterObject(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
-	awsAdditionalSecurityGroupIds, err := common.StringListToArray(ctx, state.AWSAdditionalComputeSecurityGroupIds)
+	awsAdditionalComputeSecurityGroupIds, err := common.StringListToArray(ctx, state.AWSAdditionalComputeSecurityGroupIds)
+	if err != nil {
+		return nil, err
+	}
+	awsAdditionalInfraSecurityGroupIds, err := common.StringListToArray(ctx, state.AWSAdditionalInfraSecurityGroupIds)
+	if err != nil {
+		return nil, err
+	}
+	awsAdditionalControlPlaneSecurityGroupIds, err := common.StringListToArray(ctx, state.AWSAdditionalControlPlaneSecurityGroupIds)
 	if err != nil {
 		return nil, err
 	}
@@ -636,7 +660,8 @@ func createClassicClusterObject(ctx context.Context,
 	}
 	if err := ocmClusterResource.CreateAWSBuilder(awsTags, ec2MetadataHttpTokens, kmsKeyARN,
 		isPrivateLink, awsAccountID, stsBuilder, awsSubnetIDs, privateHostedZoneID, privateHostedZoneRoleARN,
-		awsAdditionalSecurityGroupIds); err != nil {
+		awsAdditionalComputeSecurityGroupIds, awsAdditionalInfraSecurityGroupIds,
+		awsAdditionalControlPlaneSecurityGroupIds); err != nil {
 		return nil, err
 	}
 
@@ -1561,6 +1586,24 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 			return err
 		}
 		state.AWSAdditionalComputeSecurityGroupIds = awsAdditionalSecurityGroupIds
+	}
+
+	additionalInfraSecurityGroupIds, ok := object.AWS().GetAdditionalInfraSecurityGroupIds()
+	if ok {
+		awsAdditionalSecurityGroupIds, err := common.StringArrayToList(additionalInfraSecurityGroupIds)
+		if err != nil {
+			return err
+		}
+		state.AWSAdditionalInfraSecurityGroupIds = awsAdditionalSecurityGroupIds
+	}
+
+	additionalControlPlaneSecurityGroupIds, ok := object.AWS().GetAdditionalControlPlaneSecurityGroupIds()
+	if ok {
+		awsAdditionalSecurityGroupIds, err := common.StringArrayToList(additionalControlPlaneSecurityGroupIds)
+		if err != nil {
+			return err
+		}
+		state.AWSAdditionalControlPlaneSecurityGroupIds = awsAdditionalSecurityGroupIds
 	}
 
 	proxyObj, ok := object.GetProxy()

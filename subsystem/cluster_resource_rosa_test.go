@@ -2912,6 +2912,8 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					VerifyJQ(`.nodes.availability_zones.[0]`, "us-west-1a"),
 					VerifyJQ(`.api.listening`, "internal"),
 					VerifyJQ(`.aws.additional_compute_security_group_ids.[0]`, "id1"),
+					VerifyJQ(`.aws.additional_infra_security_group_ids.[0]`, "id2"),
+					VerifyJQ(`.aws.additional_control_plane_security_group_ids.[0]`, "id3"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -2920,6 +2922,8 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						  "private_link": false,
 						  "subnet_ids": ["id1", "id2", "id3"],
 						  "additional_compute_security_group_ids": ["id1"],
+						  "additional_infra_security_group_ids": ["id2"],
+						  "additional_control_plane_security_group_ids": ["id3"],
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.2",
@@ -2977,6 +2981,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			aws_additional_compute_security_group_ids = [
 				"id1"
 			]
+			aws_additional_infra_security_group_ids = [
+				"id2"
+			]
+			aws_additional_control_plane_security_group_ids = [
+				"id3"
+			]
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -2992,6 +3002,8 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			// Verify initial cluster version
 			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(resource).To(MatchJQ(".attributes.aws_additional_compute_security_group_ids.[0]", "id1"))
+			Expect(resource).To(MatchJQ(".attributes.aws_additional_infra_security_group_ids.[0]", "id2"))
+			Expect(resource).To(MatchJQ(".attributes.aws_additional_control_plane_security_group_ids.[0]", "id3"))
 		})
 	})
 })

@@ -83,6 +83,7 @@ type Sts struct {
 	SupportRoleArn     types.String    `tfsdk:"support_role_arn"`
 	InstanceIAMRoles   InstanceIAMRole `tfsdk:"instance_iam_roles"`
 	OperatorRolePrefix types.String    `tfsdk:"operator_role_prefix"`
+	OperatorRoleARNs   types.List      `tfsdk:"operator_iam_role_arns"`
 }
 
 type InstanceIAMRole struct {

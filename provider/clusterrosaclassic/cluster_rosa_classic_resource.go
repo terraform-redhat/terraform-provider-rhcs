@@ -1431,9 +1431,7 @@ func (r *ClusterRosaClassicResource) ImportState(ctx context.Context, request re
 
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), request, response)
 }
-
-// populateRosaClassicClusterState copies the data from the API object to the Terraform state.
-func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, state *ClusterRosaClassicState, httpClient common.HttpClient) error {
+func populateNonOptionalAttrs(ctx context.Context, object *cmv1.Cluster, state *ClusterRosaClassicState, httpClient common.HttpClient) error {
 	state.ID = types.StringValue(object.ID())
 	state.ExternalID = types.StringValue(object.ExternalID())
 	object.API()
@@ -1478,16 +1476,6 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		state.FIPS = types.BoolValue(true)
 	}
 
-	if azs, ok := object.Nodes().GetAvailabilityZones(); ok {
-		listValue, err := common.StringArrayToList(azs)
-		if err != nil {
-			return err
-		}
-		state.AvailabilityZones = listValue
-	} else {
-		state.AvailabilityZones = types.ListNull(types.StringType)
-	}
-
 	state.CCSEnabled = types.BoolValue(object.CCS().Enabled())
 
 	disableSCPChecks, ok := object.CCS().GetDisableSCPChecks()
@@ -1496,46 +1484,9 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	}
 
 	state.EtcdEncryption = types.BoolValue(object.EtcdEncryption())
-
-	// Note: The API does not currently return account id, but we try to get it
-	// anyway. Failing that, we fetch the creator ARN from the properties like
-	// rosa cli does.
-	awsAccountID, ok := object.AWS().GetAccountID()
-	if ok {
-		state.AWSAccountID = types.StringValue(awsAccountID)
-	} else {
-		// rosa cli gets it from the properties, so we do the same
-		if creatorARN, ok := object.Properties()[properties.CreatorARN]; ok {
-			if arn, err := arn.Parse(creatorARN); err == nil {
-				state.AWSAccountID = types.StringValue(arn.AccountID)
-			}
-		}
-
-	}
-
-	awsPrivateLink, ok := object.AWS().GetPrivateLink()
-	if ok {
-		state.AWSPrivateLink = types.BoolValue(awsPrivateLink)
-	} else {
-		state.AWSPrivateLink = types.BoolValue(true)
-	}
-	listeningMethod, ok := object.API().GetListening()
-	if ok {
-		state.Private = types.BoolValue(listeningMethod == cmv1.ListeningMethodInternal)
-	} else {
-		state.Private = types.BoolValue(true)
-	}
 	kmsKeyArn, ok := object.AWS().GetKMSKeyArn()
 	if ok {
 		state.KMSKeyArn = types.StringValue(kmsKeyArn)
-	}
-
-	httpTokensState, ok := object.AWS().GetEc2MetadataHttpTokens()
-	if ok && httpTokensState != "" {
-		state.Ec2MetadataHttpTokens = types.StringValue(string(httpTokensState))
-	} else {
-		// Need to add default as future ocm versions will have this flag as default and not empty string
-		state.Ec2MetadataHttpTokens = types.StringValue(ec2.HttpTokensStateOptional)
 	}
 
 	sts, ok := object.AWS().GetSTS()
@@ -1571,6 +1522,15 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		if ok && oidcConfig != nil {
 			state.Sts.OIDCConfigID = types.StringValue(oidcConfig.ID())
 		}
+
+		operatorIamRolARNs := []string{}
+		for _, operatorIAMRole := range sts.OperatorIAMRoles() {
+			operatorIamRolARNs = append(operatorIamRolARNs, operatorIAMRole.RoleARN())
+		}
+		state.Sts.OperatorRoleARNs, err = common.StringArrayToList(operatorIamRolARNs)
+		if err != nil {
+			return nil
+		}
 	}
 
 	subnetIds, ok := object.AWS().GetSubnetIDs()
@@ -1580,6 +1540,94 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 			return err
 		}
 		state.AWSSubnetIDs = awsSubnetIds
+	}
+
+	if awsObj, ok := object.GetAWS(); ok {
+		id := awsObj.PrivateHostedZoneID()
+		arn := awsObj.PrivateHostedZoneRoleARN()
+
+		if len(id) > 0 && len(arn) > 0 {
+			state.PrivateHostedZone = &PrivateHostedZone{
+				RoleARN: types.StringValue(arn),
+				ID:      types.StringValue(id),
+			}
+		}
+	}
+
+	// Note: The API does not currently return account id, but we try to get it
+	// anyway. Failing that, we fetch the creator ARN from the properties like
+	// rosa cli does.
+	awsAccountID, ok := object.AWS().GetAccountID()
+	if ok {
+		state.AWSAccountID = types.StringValue(awsAccountID)
+	} else {
+		// rosa cli gets it from the properties, so we do the same
+		if creatorARN, ok := object.Properties()[properties.CreatorARN]; ok {
+			if arn, err := arn.Parse(creatorARN); err == nil {
+				state.AWSAccountID = types.StringValue(arn.AccountID)
+			}
+		}
+
+	}
+
+	state.State = types.StringValue(string(object.State()))
+	state.Name = types.StringValue(object.Name())
+	state.CloudRegion = types.StringValue(object.Region().ID())
+
+	return nil
+}
+
+// populateRosaClassicClusterState copies the data from the API object to the Terraform state.
+func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, state *ClusterRosaClassicState, httpClient common.HttpClient) error {
+	if err := populateNonOptionalAttrs(ctx, object, state, httpClient); err != nil {
+		return err
+	}
+
+	if azs, ok := object.Nodes().GetAvailabilityZones(); ok {
+		listValue, err := common.StringArrayToList(azs)
+		if err != nil {
+			return err
+		}
+		state.AvailabilityZones = listValue
+	} else {
+		state.AvailabilityZones = types.ListNull(types.StringType)
+	}
+
+	// Note: The API does not currently return account id, but we try to get it
+	// anyway. Failing that, we fetch the creator ARN from the properties like
+	// rosa cli does.
+	awsAccountID, ok := object.AWS().GetAccountID()
+	if ok {
+		state.AWSAccountID = types.StringValue(awsAccountID)
+	} else {
+		// rosa cli gets it from the properties, so we do the same
+		if creatorARN, ok := object.Properties()[properties.CreatorARN]; ok {
+			if arn, err := arn.Parse(creatorARN); err == nil {
+				state.AWSAccountID = types.StringValue(arn.AccountID)
+			}
+		}
+
+	}
+
+	awsPrivateLink, ok := object.AWS().GetPrivateLink()
+	if ok {
+		state.AWSPrivateLink = types.BoolValue(awsPrivateLink)
+	} else {
+		state.AWSPrivateLink = types.BoolValue(true)
+	}
+	listeningMethod, ok := object.API().GetListening()
+	if ok {
+		state.Private = types.BoolValue(listeningMethod == cmv1.ListeningMethodInternal)
+	} else {
+		state.Private = types.BoolValue(true)
+	}
+
+	httpTokensState, ok := object.AWS().GetEc2MetadataHttpTokens()
+	if ok && httpTokensState != "" {
+		state.Ec2MetadataHttpTokens = types.StringValue(string(httpTokensState))
+	} else {
+		// Need to add default as future ocm versions will have this flag as default and not empty string
+		state.Ec2MetadataHttpTokens = types.StringValue(ec2.HttpTokensStateOptional)
 	}
 
 	additionalComputeSecurityGroupIds, ok := object.AWS().GetAdditionalComputeSecurityGroupIds()
@@ -1687,18 +1735,6 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		state.ChannelGroup = types.StringValue(channel_group)
 	}
 
-	if awsObj, ok := object.GetAWS(); ok {
-		id := awsObj.PrivateHostedZoneID()
-		arn := awsObj.PrivateHostedZoneRoleARN()
-
-		if len(id) > 0 && len(arn) > 0 {
-			state.PrivateHostedZone = &PrivateHostedZone{
-				RoleARN: types.StringValue(arn),
-				ID:      types.StringValue(id),
-			}
-		}
-	}
-
 	version, ok := object.Version().GetID()
 	// If we're using a non-default channel group, it will have been appended to
 	// the version ID. Remove it before saving state.
@@ -1712,9 +1748,6 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		state.CurrentVersion = types.StringNull()
 
 	}
-	state.State = types.StringValue(string(object.State()))
-	state.Name = types.StringValue(object.Name())
-	state.CloudRegion = types.StringValue(object.Region().ID())
 
 	return nil
 }

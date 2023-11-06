@@ -5,7 +5,6 @@ import (
 	r "crypto/rand"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"math/rand"
 	"os"
 	"os/exec"

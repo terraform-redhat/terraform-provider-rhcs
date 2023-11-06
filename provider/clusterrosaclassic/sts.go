@@ -1,14 +1,15 @@
 package clusterrosaclassic
 
 import (
-	tfrschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-func stsResource() map[string]tfrschema.Attribute {
-	return map[string]tfrschema.Attribute{
-		"oidc_endpoint_url": tfrschema.StringAttribute{
+func stsResource() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"oidc_endpoint_url": schema.StringAttribute{
 			Description: "OIDC Endpoint URL",
 			Optional:    true,
 			Computed:    true,
@@ -20,11 +21,11 @@ func stsResource() map[string]tfrschema.Attribute {
 				stringplanmodifier.UseStateForUnknown(),
 			},
 		},
-		"oidc_config_id": tfrschema.StringAttribute{
+		"oidc_config_id": schema.StringAttribute{
 			Description: "OIDC Configuration ID",
 			Optional:    true,
 		},
-		"thumbprint": tfrschema.StringAttribute{
+		"thumbprint": schema.StringAttribute{
 			Description: "SHA1-hash value of the root CA of the issuer URL",
 			Computed:    true,
 			PlanModifiers: []planmodifier.String{
@@ -35,31 +36,36 @@ func stsResource() map[string]tfrschema.Attribute {
 				stringplanmodifier.UseStateForUnknown(),
 			},
 		},
-		"role_arn": tfrschema.StringAttribute{
+		"role_arn": schema.StringAttribute{
 			Description: "Installer Role",
 			Required:    true,
 		},
-		"support_role_arn": tfrschema.StringAttribute{
+		"support_role_arn": schema.StringAttribute{
 			Description: "Support Role",
 			Required:    true,
 		},
-		"instance_iam_roles": tfrschema.SingleNestedAttribute{
+		"instance_iam_roles": schema.SingleNestedAttribute{
 			Description: "Instance IAM Roles",
-			Attributes: map[string]tfrschema.Attribute{
-				"master_role_arn": tfrschema.StringAttribute{
+			Attributes: map[string]schema.Attribute{
+				"master_role_arn": schema.StringAttribute{
 					Description: "Master/Control Plane Node Role ARN",
 					Required:    true,
 				},
-				"worker_role_arn": tfrschema.StringAttribute{
+				"worker_role_arn": schema.StringAttribute{
 					Description: "Worker/Compute Node Role ARN",
 					Required:    true,
 				},
 			},
 			Required: true,
 		},
-		"operator_role_prefix": tfrschema.StringAttribute{
+		"operator_role_prefix": schema.StringAttribute{
 			Description: "Operator IAM Role prefix",
 			Required:    true,
+		},
+		"operator_iam_role_arns": schema.ListAttribute{
+			Description: "Operator IAM Role ARNs",
+			ElementType: types.StringType,
+			Computed:    true,
 		},
 	}
 }

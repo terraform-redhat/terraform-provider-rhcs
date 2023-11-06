@@ -595,6 +595,8 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  }
 					}]`),
 				),
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, template),
 			)
 
 			// Run the apply command:
@@ -612,6 +614,10 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					worker_role_arn = "",
 				}
 			}
+		  }
+
+		  data "rhcs_cluster_rosa_classic" ds_cluster{
+  		  	id = rhcs_cluster_rosa_classic.my_cluster.id
 		  }
 		`)
 			Expect(terraform.Apply()).To(BeZero())

@@ -57,10 +57,10 @@ var _ = Describe("TF Test", func() {
 						idpParam := &exe.IDPArgs{
 							Token:         token,
 							ClusterID:     clusterID,
-							Name:          "htpasswd-idp-test",
+							Name:          "OCP-63151-htpasswd-idp-test",
 							HtpasswdUsers: htpasswdMap,
 						}
-						err := idpService.htpasswd.Create(idpParam, "-auto-approve", "-no-color")
+						err := idpService.htpasswd.Create(idpParam)
 						Expect(err).ToNot(HaveOccurred())
 						idpID, _ := idpService.htpasswd.Output()
 
@@ -115,12 +115,12 @@ var _ = Describe("TF Test", func() {
 						idpParam := &exe.IDPArgs{
 							Token:     token,
 							ClusterID: clusterID,
-							Name:      "ldap-idp-test",
+							Name:      "OCP-63332-ldap-idp-test",
 							CA:        "",
 							URL:       con.LdapURL,
 							Insecure:  true,
 						}
-						err := idpService.ldap.Create(idpParam, "-auto-approve", "-no-color")
+						err := idpService.ldap.Create(idpParam)
 						Expect(err).ToNot(HaveOccurred())
 
 						By("Login with created ldap idp")
@@ -166,12 +166,12 @@ var _ = Describe("TF Test", func() {
 					idpParam := &exe.IDPArgs{
 						Token:        token,
 						ClusterID:    clusterID,
-						Name:         "gitlab-idp-test",
+						Name:         "OCP-64028-gitlab-idp-test",
 						ClientID:     gitlabIDPClientId,
 						ClientSecret: gitlabIDPClientSecret,
 						URL:          con.GitLabURL,
 					}
-					err := idpService.gitlab.Create(idpParam, "-auto-approve", "-no-color")
+					err := idpService.gitlab.Create(idpParam)
 					Expect(err).ToNot(HaveOccurred())
 
 					By("Check gitlab idp created for the cluster")
@@ -206,16 +206,56 @@ var _ = Describe("TF Test", func() {
 					idpParam := &exe.IDPArgs{
 						Token:         token,
 						ClusterID:     clusterID,
-						Name:          "github-idp-test",
+						Name:          "OCP-64027-github-idp-test",
 						ClientID:      githubIDPClientId,
 						ClientSecret:  githubIDPClientSecret,
 						Organizations: con.Organizations,
 					}
-					err := idpService.github.Create(idpParam, "-auto-approve", "-no-color")
+					err := idpService.github.Create(idpParam)
 					Expect(err).ToNot(HaveOccurred())
 
 					By("Check github idp created for the cluster")
 					idpID, err := idpService.github.Output()
+					Expect(err).ToNot(HaveOccurred())
+
+					resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(resp.Status()).To(Equal(http.StatusOK))
+				})
+			})
+		})
+		Describe("Google IDP test cases", func() {
+
+			var googleIDPClientSecret, googleIDPClientId string
+
+			BeforeEach(func() {
+				googleIDPClientSecret = h.RandStringWithUpper(20)
+				googleIDPClientId = h.RandStringWithUpper(30)
+				idpService.google = *exe.NewIDPService(con.GoogleDir) // init new google service
+			})
+
+			AfterEach(func() {
+				err := idpService.google.Destroy()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			Context("Author:smiron-High-OCP-64029 @OCP-64029 @smiron", func() {
+				It("OCP-64029 - Provision Google IDP against cluster using TF", ci.Day2, ci.High, ci.FeatureIDP, func() {
+					By("Create Google idp for an existing cluster")
+
+					idpParam := &exe.IDPArgs{
+						Token:        token,
+						ClusterID:    clusterID,
+						Name:         "OCP-64029-google-idp-test",
+						ClientID:     googleIDPClientId,
+						ClientSecret: googleIDPClientSecret,
+						HostedDomain: con.HostedDomain,
+					}
+					err := idpService.google.Create(idpParam)
+					Expect(err).ToNot(HaveOccurred())
+
+					By("Check google idp created for the cluster")
+					idpID, err := idpService.google.Output()
 					Expect(err).ToNot(HaveOccurred())
 
 					resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID)

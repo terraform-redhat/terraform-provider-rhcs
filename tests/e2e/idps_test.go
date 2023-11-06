@@ -57,10 +57,10 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 ***REMOVED***
 ***REMOVED***
 ***REMOVED***
-							Name:          "htpasswd-idp-test",
+***REMOVED***
 ***REMOVED***
 				***REMOVED***
-						err := idpService.htpasswd.Create(idpParam, "-auto-approve", "-no-color"***REMOVED***
+						err := idpService.htpasswd.Create(idpParam***REMOVED***
 						Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 						idpID, _ := idpService.htpasswd.Output(***REMOVED***
 
@@ -115,12 +115,12 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 ***REMOVED***
 ***REMOVED***
 ***REMOVED***
-							Name:      "ldap-idp-test",
+***REMOVED***
 ***REMOVED***
 ***REMOVED***
 ***REMOVED***
 				***REMOVED***
-						err := idpService.ldap.Create(idpParam, "-auto-approve", "-no-color"***REMOVED***
+						err := idpService.ldap.Create(idpParam***REMOVED***
 						Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 
 						By("Login with created ldap idp"***REMOVED***
@@ -166,12 +166,12 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 ***REMOVED***
 ***REMOVED***
 ***REMOVED***
-						Name:         "gitlab-idp-test",
+***REMOVED***
 ***REMOVED***
 ***REMOVED***
 ***REMOVED***
 			***REMOVED***
-					err := idpService.gitlab.Create(idpParam, "-auto-approve", "-no-color"***REMOVED***
+					err := idpService.gitlab.Create(idpParam***REMOVED***
 					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 
 					By("Check gitlab idp created for the cluster"***REMOVED***
@@ -206,16 +206,56 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 ***REMOVED***
 ***REMOVED***
 ***REMOVED***
-						Name:          "github-idp-test",
+***REMOVED***
 ***REMOVED***
 ***REMOVED***
 ***REMOVED***
 			***REMOVED***
-					err := idpService.github.Create(idpParam, "-auto-approve", "-no-color"***REMOVED***
+					err := idpService.github.Create(idpParam***REMOVED***
 					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 
 					By("Check github idp created for the cluster"***REMOVED***
 					idpID, err := idpService.github.Output(***REMOVED***
+					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+
+					resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID***REMOVED***
+					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+					Expect(resp.Status(***REMOVED******REMOVED***.To(Equal(http.StatusOK***REMOVED******REMOVED***
+		***REMOVED******REMOVED***
+	***REMOVED******REMOVED***
+***REMOVED******REMOVED***
+		Describe("Google IDP test cases", func(***REMOVED*** {
+
+***REMOVED***
+
+			BeforeEach(func(***REMOVED*** {
+				googleIDPClientSecret = h.RandStringWithUpper(20***REMOVED***
+				googleIDPClientId = h.RandStringWithUpper(30***REMOVED***
+				idpService.google = *exe.NewIDPService(con.GoogleDir***REMOVED*** // init new google service
+	***REMOVED******REMOVED***
+
+			AfterEach(func(***REMOVED*** {
+				err := idpService.google.Destroy(***REMOVED***
+				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+	***REMOVED******REMOVED***
+
+			Context("Author:smiron-High-OCP-64029 @OCP-64029 @smiron", func(***REMOVED*** {
+				It("OCP-64029 - Provision Google IDP against cluster using TF", ci.Day2, ci.High, ci.FeatureIDP, func(***REMOVED*** {
+					By("Create Google idp for an existing cluster"***REMOVED***
+
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+***REMOVED***
+			***REMOVED***
+					err := idpService.google.Create(idpParam***REMOVED***
+					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+
+					By("Check google idp created for the cluster"***REMOVED***
+					idpID, err := idpService.google.Output(***REMOVED***
 					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
 
 					resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID***REMOVED***

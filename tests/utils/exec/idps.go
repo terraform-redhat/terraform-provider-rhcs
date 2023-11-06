@@ -19,6 +19,7 @@ type IDPArgs struct {
 	ClientID      string        `json:"client_id,omitempty"`
 	ClientSecret  string        `json:"client_secret,omitempty"`
 	Organizations []string      `json:"organizations,omitempty"`
+	HostedDomain  string        `json:"hosted_domain,omitempty"`
 	Insecure      bool          `json:"insecure,omitempty"`
 	MappingMethod string        `json:"mapping_method,omitempty"`
 	HtpasswdUsers []interface{} `json:"htpasswd_users,omitempty"`

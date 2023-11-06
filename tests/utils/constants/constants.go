@@ -36,6 +36,7 @@ var (
 	LdapURL             = "ldap://ldap.forumsys.com/dc=example,dc=com?uid"
 	GitLabURL           = "https://gitlab.cee.redhat.com"
 	Organizations       = []string{"openshift"}
+	HostedDomain        = "redhat.com"
 	DefaultMPLabels     = map[string]string{
 		"test1": "testdata1",
 	}

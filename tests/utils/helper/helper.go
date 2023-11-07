@@ -19,6 +19,20 @@ import (
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
+type m = map[string]string
+
+// combine two strings maps to one,
+// if key already exists - do nothing
+func MergeMaps(map1, map2 m) m {
+	for k, v := range map2 {
+		_, ok := map1[k]
+		if !ok {
+			map1[k] = v
+		}
+	}
+	return map1
+}
+
 // Parse parses the given JSON data and returns a map of strings containing the result.
 func Parse(data []byte) map[string]interface{} {
 	var object map[string]interface{}

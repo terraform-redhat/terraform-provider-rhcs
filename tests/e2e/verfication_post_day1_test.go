@@ -3,6 +3,7 @@ package e2e
 import (
 	// nolint
 
+	"net/http"
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -27,6 +28,22 @@ var _ = Describe("TF Test", func() {
 		AfterEach(func() {
 		})
 
+		Context("Author:smiron-High-OCP-63134 @OCP-63134 @smiron", func() {
+			It("Verify cluster install was successful post cluster deployment", CI.Day1Post, CI.High, func() {
+				getResp, err := CMS.RetrieveClusterStatus(CI.RHCSConnection, clusterID)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(string(getResp.Body().State())).To(Equal("ready"))
+				Expect(getResp.Status()).To(Equal(http.StatusOK))
+
+				dnsReady, hasValue := getResp.Body().GetDNSReady()
+				Expect(dnsReady).To(Equal(true))
+				Expect(hasValue).To(Equal(true))
+
+				oidcReady, hasValue := getResp.Body().GetOIDCReady()
+				Expect(oidcReady).To(Equal(true))
+				Expect(hasValue).To(Equal(true))
+			})
+		})
 		Context("Author:smiron-High-OCP-63140 @OCP-63140 @smiron", func() {
 			It("Verify fips is enabled/disabled post cluster creation", CI.Day1Post, CI.High, func() {
 				getResp, err := CMS.RetrieveClusterDetail(CI.RHCSConnection, clusterID)
@@ -78,10 +95,35 @@ var _ = Describe("TF Test", func() {
 			It("Verify compute_labels are set post cluster creation", CI.Day1Post, CI.High, func() {
 				getResp, err := CMS.RetrieveClusterDetail(CI.RHCSConnection, clusterID)
 				Expect(err).ToNot(HaveOccurred())
+
 				if profile.Labeling {
 					Expect(getResp.Body().Nodes().ComputeLabels()).To(Equal(CON.DefaultMPLabels))
 				} else {
 					Expect(getResp.Body().Nodes().ComputeLabels()).To(Equal(CON.NilMap))
+				}
+			})
+		})
+		Context("Author:smiron-High-OCP-63777 @OCP-63777 @smiron", func() {
+			It("Verify AWS tags are set post cluster deployment", CI.Day1Post, CI.High, func() {
+
+				buildInTags := map[string]string{
+					"red-hat-clustertype": "rosa",
+					"red-hat-managed":     "true",
+				}
+
+				getResp, err := CMS.RetrieveClusterDetail(CI.RHCSConnection, clusterID)
+				Expect(err).ToNot(HaveOccurred())
+
+				if profile.Tagging {
+					allClusterTags := H.MergeMaps(buildInTags, CON.Tags)
+					Expect(len(getResp.Body().AWS().Tags())).To(Equal(len(allClusterTags)))
+
+					// compare cluster tags to the expected tags to appear
+					for k, v := range getResp.Body().AWS().Tags() {
+						Expect(v).To(Equal(allClusterTags[k]))
+					}
+				} else {
+					Expect(len(getResp.Body().AWS().Tags())).To(Equal(len(buildInTags)))
 				}
 			})
 		})

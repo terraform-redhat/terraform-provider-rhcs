@@ -48,7 +48,7 @@ type Profile struct {
 	OIDCConfig            string `ini:"oidc_config,omitempty" json:"oidc_config,omitempty"`
 	ProvisionShard        string `ini:"provisionShard,omitempty" json:"provisionShard,omitempty"`
 	Ec2MetadataHttpTokens string `ini:"imdsv2,omitempty" json:"imdsv2,omitempty"`
-	ComputeMachineType    string `ini:"compute_tachine_type,omitempty" json:"compute_tachine_type,omitempty"`
+	ComputeMachineType    string `ini:"compute_machine_type,omitempty" json:"compute_machine_type,omitempty"`
 	AuditLogForward       bool   `ini:"auditlog_forward,omitempty" json:"auditlog_forward,omitempty"`
 	AdminEnabled          bool   `ini:"admin_enabled,omitempty" json:"admin_enabled,omitempty"`
 	ManagedPolicies       bool   `ini:"managed_policies,omitempty" json:"managed_policies,omitempty"`
@@ -218,7 +218,7 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 	}
 
 	if profile.Tagging {
-		// ToDo
+		clusterArgs.Tagging = CON.Tags
 	}
 
 	if profile.AdminEnabled {

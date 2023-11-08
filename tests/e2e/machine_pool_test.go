@@ -409,12 +409,13 @@ var _ = Describe("TF Test", func() {
 
 				By("Create additional machinepool with multi_availability_zone=false specified")
 				MachinePoolArgs = &exe.MachinePoolArgs{
-					Token:       token,
-					Cluster:     clusterID,
-					Replicas:    replicas,
-					MachineType: machineType,
-					Name:        name,
-					MultiAZ:     false,
+					Token:            token,
+					Cluster:          clusterID,
+					Replicas:         replicas,
+					MachineType:      machineType,
+					Name:             name,
+					MultiAZ:          false,
+					AvailabilityZone: azs[1],
 				}
 
 				err = mpService.Create(MachinePoolArgs)

@@ -1,9 +1,46 @@
+## 1.4.0 (Oct 19, 2023)
+FEATURES:
+* Add wait attribute in `cluster_rosa_classic` resource for waiting cluster readiness in the creation flow
+* Added new `rhcs_info` data source for OCM account details.
+
+ENHANCEMENTS:
+* Docs - adjust descriptions
+* Upgrade framework version - update `terraform-plugin-framework` to `v1.3.5` (and not `v1.4.0` due to issues with Terraform CLI version `1.6.0`)
+* Provider Attributes changes
+  * Remove unused attributes
+  * Remove all attributes but Token from the docs - internal attributes
+  * Add option for environment variables for all string attributes
+  * Add "Authentication and configuration" section in the main index and remove attributes section
+* Bug fixes:
+  * Add verification that cluster exists for machine pool resource
+  * Add validation for IDP htpassward with duplicate username
+  * missing availability zones in region validation
+  * Allow specifying pool subnet even for 1AZ clusters in machine pool resource
+
+## 1.3.0 (Sep 27, 2023)
+FEATURES:
+* Private cluster - add new variable "private" indicates if the cluster has private connection
+* Add support for creating cluster with pre-defined shared VPC
+* Added new "rhcs_dns_domain" resource to allow reserving base domain before cluster creation.
+* Support resources reconciliation - if a resource was removed without the use of the Terraform provider, executing "terraform apply" should prompt its recreation.
+* Htpasswd identity provider - allow creating with multiple users
+* Support MachinePool import into the terraform state
+
+ENHANCEMENTS:
+* Bug fixes
+  * Adding http tokens default to terraform state in case its not returned
+  * Terraform run or import failing after configuring 'additional-trust-bundle-file'
+  * Provider produced inconsistent result after apply - additional_trust_bundle
+  * Day one MachinePool - fix auto scaling/replicas validations
+* Docs:
+  * Add s3 missing permission for OIDC provider
+
 ## 1.2.4 (Sep 4, 2023)
--ENHANCEMENTS:
+ENHANCEMENTS:
 * Fix for "Provider produced inconsistent result after apply" error when setting proxy.additional_trust_bundle
 
 ## 1.2.3 (Aug 24, 2023)
--ENHANCEMENTS:
+ENHANCEMENTS:
 * Fixed a bug in cluster_rosa_resource -Terraform provider panic after adding additional CA bundle to ROSA cluster
 
 ## 1.2.2 (Aug 3, 2023)

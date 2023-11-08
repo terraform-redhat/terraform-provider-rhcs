@@ -3,7 +3,6 @@ package identityprovider
 import (
 	"context"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -14,6 +13,7 @@ import (
 )
 
 var LDAPAttrDefaultID []string = []string{"dn"}
+var LDAPAttrDefaultEmail []string = []string{"mail"}
 var LDAPAttrDefaultName []string = []string{"cn"}
 var LDAPAttrDefaultPrefferedUsername []string = []string{"uid"}
 
@@ -74,11 +74,7 @@ var ldapAttrSchema = map[string]schema.Attribute{
 		Description: "The list of attributes whose values should be used as the email address.",
 		ElementType: types.StringType,
 		Optional:    true,
-		Validators: []validator.List{
-			listvalidator.ValueStringsAre(
-				stringvalidator.RegexMatches(common.EmailRegexp, "Invalid email"),
-			),
-		},
+		Computed:    true,
 	},
 	"id": schema.ListAttribute{
 		Description: "The list of attributes whose values should be used as the user ID. (default ['dn'])",
@@ -136,13 +132,20 @@ func CreateLDAPIDPBuilder(ctx context.Context, state *LDAPIdentityProvider) (*cm
 	}
 	attributesBuilder.ID(ids...)
 
+	var emails []string
 	if !state.Attributes.EMail.IsUnknown() && !state.Attributes.EMail.IsNull() {
-		emails, err := common.StringListToArray(ctx, state.Attributes.EMail)
+		emails, err = common.StringListToArray(ctx, state.Attributes.EMail)
 		if err != nil {
 			return nil, err
 		}
-		attributesBuilder.Email(emails...)
+	} else {
+		emails = LDAPAttrDefaultEmail
+		state.Attributes.EMail, err = common.StringArrayToList(emails)
+		if err != nil {
+			return nil, err
+		}
 	}
+	attributesBuilder.Email(emails...)
 
 	var names []string
 	if !state.Attributes.Name.IsUnknown() && !state.Attributes.Name.IsNull() {

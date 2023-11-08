@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"os"
 	"os/exec"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -14,6 +16,7 @@ import (
 	"github.com/onsi/gomega"
 	. "github.com/onsi/gomega"
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
 // Parse parses the given JSON data and returns a map of strings containing the result.
@@ -22,6 +25,13 @@ func Parse(data []byte) map[string]interface{} {
 	err := json.Unmarshal(data, &object)
 	Expect(err).ToNot(HaveOccurred())
 	return object
+}
+
+func GetJsonFromPath(filePath string, filename string) map[string]interface{} {
+	combinedFilePath := path.Join(filePath, filename)
+	file, err := os.ReadFile(combinedFilePath)
+	Expect(err).ToNot(HaveOccurred())
+	return Parse(file)
 }
 
 // If there is no attribute with the given path then the return value will be an empty string.
@@ -131,15 +141,23 @@ func Dig(object interface{}, keys []interface{}) interface{} {
 }
 
 func RunCMD(cmd string) (stdout string, stderr string, err error) {
-	fmt.Println("[>>] Running CMD: ", cmd)
+	Logger.Infof("[>>] Running CMD: %s", cmd)
 	var stdoutput bytes.Buffer
 	var stderroutput bytes.Buffer
 	CMD := exec.Command("bash", "-c", cmd)
 	CMD.Stderr = &stderroutput
 	CMD.Stdout = &stdoutput
 	err = CMD.Run()
+	if err != nil {
+		Logger.Errorf("Got error status: %v", err)
+	}
+
 	stdout = strings.Trim(stdoutput.String(), "\n")
 	stderr = strings.Trim(stderroutput.String(), "\n")
+	Logger.Infof("Got output %s", stdout)
+	if stderr != "" {
+		Logger.Errorf("Got error output %s", stderr)
+	}
 	return
 }
 
@@ -159,6 +177,22 @@ func MapStructure(m map[string]interface{}, i interface{}) error {
 // Join will link the strings with "."
 func Join(s ...string) string {
 	return strings.Join(s, ".")
+}
+
+func JoinStringWithArray(s string, strArray []string) []string {
+
+	// create tmp map for joining strings
+	var tmpMap = make(map[int]string)
+	for i, str := range strArray {
+		tmpMap[i] = s + str
+	}
+
+	// create array from map
+	var newArray = make([]string, len(tmpMap))
+	for i, value := range tmpMap {
+		newArray[i] = value
+	}
+	return newArray
 }
 
 // IsSorted will return whether the array is sorted by mode
@@ -313,7 +347,7 @@ func NeedFiltered(filterList []string, key string) bool {
 		pattern := regexp.MustCompile(regex)
 		if pattern.MatchString(key) {
 			if key == "network.type" {
-				fmt.Printf(">>>> network.type matched regex: %s\n", regex)
+				Logger.Infof(">>>> network.type matched regex: %s\n", regex)
 			}
 			return true
 		}
@@ -324,6 +358,22 @@ func NeedFiltered(filterList []string, key string) bool {
 func BoolPoint(b bool) *bool {
 	boolVar := b
 	return &boolVar
+}
+
+func RandStringWithUpper(n int) string {
+	b := make([]string, n)
+
+	for i := range b {
+
+		// make each even alphabetic char as uppercase letter
+		if i%2 == 0 {
+			b[i] = strings.ToUpper(string(CON.CharsBytes[rand.Intn(len(CON.CharsBytes))]))
+		} else {
+			b[i] = string(CON.CharsBytes[rand.Intn(len(CON.CharsBytes))])
+		}
+	}
+
+	return strings.Join(b, "")
 }
 
 func subfix() string {

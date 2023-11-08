@@ -1,8 +1,8 @@
 profiles:
+# rosa-sts-pl :: creating a managed oidc config cluster 
 - as: rosa-sts-pl
   cluster:
     multi_az: false
-    machine_type: ""
     product_id: "rosa"
     hypershift: false
     cloud_provider: "aws"
@@ -12,12 +12,13 @@ profiles:
     byovpc: false
     private_link: true
     private: true
-    etcd: false
+    etcd_encryption: false
     fips: false
     autoscale: false
     byok: false
     version: "latest"
     major_version: "4.13"
+    compute_machine_type: "m5.xlarge"
     proxy: false
     labeling: false
     tagging: false
@@ -25,10 +26,10 @@ profiles:
     zones: ""
     imdsv2: "optional"
     oidc_config: "managed"
+# rosa-sts-ad :: creating unmanaged oidc config cluster 
 - as: rosa-sts-ad
   cluster:
     multi_az: true
-    machine_type: ""
     product_id: "rosa"
     hypershift: false
     cloud_provider: "aws"
@@ -38,23 +39,24 @@ profiles:
     byovpc: true
     private_link: false
     private: false
-    etcd: true
+    etcd_encryption: true
     fips: true
     autoscale: true
     byok: true
     version: "latest"
     major_version: "4.13"
+    compute_machine_type: "m5.2xlarge"
     proxy: true
     labeling: true
     tagging: true
     channel_group: candidate
-    zones: "a,b,c"
+    zones: ""
     imdsv2: "required"
     oidc_config: "un-managed"
+# rosa-sts-up :: creating a managed cluster for upgrade purpose
 - as: rosa-sts-up
   cluster:
     multi_az: false
-    machine_type: "m5.xlarge"
     product_id: "rosa"
     hypershift: false
     cloud_provider: "aws"
@@ -64,12 +66,13 @@ profiles:
     byovpc: true
     private_link: false
     private: false
-    etcd: true
+    etcd_encryption: true
     fips: false
     autoscale: false
     byok: true
-    version: "z-1&y-1"
+    version: "z-1"
     major_version: "4.13"
+    compute_machine_type: "m5.xlarge"
     proxy: false
     labeling: false
     tagging: false

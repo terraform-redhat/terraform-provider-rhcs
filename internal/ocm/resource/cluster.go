@@ -7,11 +7,9 @@ import (
 
 	"github.com/openshift-online/ocm-common/pkg/cluster/validations"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	kmsArnRegexpValidator "github.com/openshift-online/ocm-common/pkg/resource/validations" 
 )
 
-var kmsArnRE = regexp.MustCompile(
-	`^arn:aws[\w-]*:kms:[\w-]+:\d{12}:key\/mrk-[0-9a-f]{32}$|[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`,
-)
 var privateHostedZoneRoleArnRE = regexp.MustCompile(
 	`^arn:aws:iam::\d{12}:role\/[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+$`,
 )
@@ -36,11 +34,19 @@ func (c *Cluster) Build() (object *cmv1.Cluster, err error) {
 
 func (c *Cluster) CreateNodes(autoScalingEnabled bool, replicas *int64, minReplicas *int64,
 	maxReplicas *int64, computeMachineType *string, labels map[string]string,
-	availabilityZones []string, multiAZ bool) error {
+	availabilityZones []string, multiAZ bool, workerDiskSize *int64) error {
 	nodes := cmv1.NewClusterNodes()
 	if computeMachineType != nil {
 		nodes.ComputeMachineType(
 			cmv1.NewMachineType().ID(*computeMachineType),
+		)
+	}
+
+	if workerDiskSize != nil {
+		nodes.ComputeRootVolume(
+			cmv1.NewRootVolume().AWS(
+				cmv1.NewAWSVolume().Size(int(*workerDiskSize)),
+			),
 		)
 	}
 
@@ -122,11 +128,9 @@ func (c *Cluster) CreateAWSBuilder(awsTags map[string]string, ec2MetadataHttpTok
 	}
 	awsBuilder.Ec2MetadataHttpTokens(ec2MetadataHttpTokensVal)
 
-	if kmsKeyARN != nil {
-		if !kmsArnRE.MatchString(*kmsKeyARN) {
-			return errors.New(fmt.Sprintf("Expected a valid value for kms-key-arn matching %s", kmsArnRE))
-		}
-		awsBuilder.KMSKeyArn(*kmsKeyARN)
+	err := c.ProcessKMSKeyARN(kmsKeyARN, awsBuilder)
+	if err != nil {
+		return err
 	}
 
 	if awsAccountID != nil {
@@ -156,6 +160,15 @@ func (c *Cluster) CreateAWSBuilder(awsTags map[string]string, ec2MetadataHttpTok
 
 	c.clusterBuilder.AWS(awsBuilder)
 
+	return nil
+}
+
+func (c *Cluster) ProcessKMSKeyARN(kmsKeyARN *string, awsBuilder *cmv1.AWSBuilder) error {
+	err := kmsArnRegexpValidator.ValidateKMSKeyARN(kmsKeyARN)
+	if err != nil || kmsKeyARN == nil {
+		return err
+	}
+	awsBuilder.KMSKeyArn(*kmsKeyARN)
 	return nil
 }
 

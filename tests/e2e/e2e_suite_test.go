@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -15,10 +16,14 @@ var token string
 var clusterID string
 
 func TestRHCSProvider(t *testing.T) {
-	token = CI.GetEnvWithDefault(CON.TokenENVName, "")
-	clusterID = CI.GetEnvWithDefault(CON.ClusterIDEnv, "")
-	ctx = context.Background()
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "RHCS Provider Test")
-
+	RunSpecs(t, "e2e tests suite")
 }
+
+var _ = BeforeSuite(func() {
+	token = os.Getenv(CON.TokenENVName)
+	var err error
+	clusterID, err = CI.PrepareRHCSClusterByProfileENV()
+	Expect(err).ToNot(HaveOccurred())
+	ctx = context.Background()
+})

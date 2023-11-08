@@ -27,11 +27,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -41,6 +43,10 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
+
+// This is a magic name to trigger special handling for the cluster's default
+// machine pool
+const defaultMachinePoolName = "worker"
 
 var machinepoolNameRE = regexp.MustCompile(
 	`^[a-z]([-a-z0-9]*[a-z0-9])?$`,
@@ -187,6 +193,15 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"disk_size": schema.Int64Attribute{
+				Description: "Root disk size, in GiB.",
+				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.RequiresReplace(),
+					int64planmodifier.UseStateForUnknown(),
+				},
+			},
 		},
 	}
 }
@@ -250,10 +265,25 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
+	// The default machine pool is created automatically when the cluster is created.
+	// We want to import it instead of creating it.
+	if machinepoolName == defaultMachinePoolName {
+		r.magicImport(ctx, state, resp)
+		return
+	}
+
 	// Create the machine pool:
 	resource := r.collection.Cluster(state.Cluster.ValueString())
 	builder := cmv1.NewMachinePool().ID(state.ID.ValueString()).InstanceType(state.MachineType.ValueString())
 	builder.ID(state.Name.ValueString())
+
+	if workerDiskSize := common.OptionalInt64(state.DiskSize); workerDiskSize != nil {
+		builder.RootVolume(
+			cmv1.NewRootVolume().AWS(
+				cmv1.NewAWSVolume().Size(int(*workerDiskSize)),
+			),
+		)
+	}
 
 	if err := setSpotInstances(state, builder); err != nil {
 		resp.Diagnostics.AddError(
@@ -372,6 +402,47 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 	resp.Diagnostics.Append(diags...)
 }
 
+// This handles the "magic" import of the default machine pool, allowing the
+// user to include it in their config w/o having to specifically `terraform
+// import` it.
+func (r *MachinePoolResource) magicImport(ctx context.Context, state *MachinePoolState, resp *resource.CreateResponse) {
+	machinepoolName := state.Name.ValueString()
+	existingState := &MachinePoolState{
+		ID:      types.StringValue(machinepoolName),
+		Cluster: state.Cluster,
+		Name:    types.StringValue(machinepoolName),
+	}
+	state.ID = types.StringValue(machinepoolName)
+
+	notFound, diags := r.readState(ctx, existingState)
+	if notFound {
+		// We disallow creating a machine pool with the default name. This
+		// case can only happen if the default machine pool was deleted and
+		// the user tries to recreate it.
+		diags.AddError(
+			"Can't create machine pool",
+			fmt.Sprintf(
+				"Can't create machine pool for cluster '%s': "+
+					"the default machine pool '%s' was deleted and a new machine pool with that name may not be created. "+
+					"Please use a different name.",
+				state.Cluster.ValueString(),
+				machinepoolName,
+			),
+		)
+	}
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	diags = r.doUpdate(ctx, existingState, state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, existingState)...)
+}
+
 func (r *MachinePoolResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Get the current state:
 	state := &MachinePoolState{}
@@ -381,19 +452,37 @@ func (r *MachinePoolResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	// Find the machine pool:
-	resource := r.collection.Cluster(state.Cluster.ValueString()).
-		MachinePools().
-		MachinePool(state.ID.ValueString())
-	get, err := resource.Get().SendContext(ctx)
-	if err != nil && get.Status() == http.StatusNotFound {
+	notFound, diags := r.readState(ctx, state)
+	if notFound {
+		// If we can't find the machine pool, it was deleted. Remove if from the
+		// state and don't return an error so the TF apply() will automatically
+		// recreate it.
 		tflog.Warn(ctx, fmt.Sprintf("machine pool (%s) of cluster (%s) not found, removing from state",
 			state.ID.ValueString(), state.Cluster.ValueString(),
 		))
 		resp.State.RemoveResource(ctx)
 		return
+	}
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+}
+
+func (r *MachinePoolResource) readState(ctx context.Context, state *MachinePoolState) (poolNotFound bool, diags diag.Diagnostics) {
+	diags = diag.Diagnostics{}
+
+	resource := r.collection.Cluster(state.Cluster.ValueString()).
+		MachinePools().
+		MachinePool(state.ID.ValueString())
+	get, err := resource.Get().SendContext(ctx)
+	if err != nil && get.Status() == http.StatusNotFound {
+		poolNotFound = true
+		return
 	} else if err != nil {
-		resp.Diagnostics.AddError(
+		diags.AddError(
 			"Failed to fetch machine pool",
 			fmt.Sprintf(
 				"Failed to fetch machine pool with identifier %s for cluster %s. Response code: %v",
@@ -404,11 +493,8 @@ func (r *MachinePoolResource) Read(ctx context.Context, req resource.ReadRequest
 	}
 
 	object := get.Body()
-
-	// Save the state:
 	r.populateState(object, state)
-	diags = resp.State.Set(ctx, state)
-	resp.Diagnostics.Append(diags...)
+	return
 }
 
 func (r *MachinePoolResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -428,13 +514,27 @@ func (r *MachinePoolResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
+	diags = r.doUpdate(ctx, state, plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Save the state:
+	diags = resp.State.Set(ctx, state)
+	resp.Diagnostics.Append(diags...)
+}
+
+func (r *MachinePoolResource) doUpdate(ctx context.Context, state *MachinePoolState, plan *MachinePoolState) diag.Diagnostics {
+	diags := diag.Diagnostics{}
+
 	resource := r.collection.Cluster(state.Cluster.ValueString()).
 		MachinePools().
 		MachinePool(state.ID.ValueString())
 	_, err := resource.Get().SendContext(ctx)
 
 	if err != nil {
-		resp.Diagnostics.AddError(
+		diags.AddError(
 			"Cannot find machine pool",
 			fmt.Sprintf(
 				"Cannot find machine pool with identifier '%s' for "+
@@ -442,21 +542,21 @@ func (r *MachinePoolResource) Update(ctx context.Context, req resource.UpdateReq
 				state.ID.ValueString(), state.Cluster.ValueString(), err,
 			),
 		)
-		return
+		return diags
 	}
 
 	mpBuilder := cmv1.NewMachinePool().ID(state.ID.ValueString())
 
 	_, ok := common.ShouldPatchString(state.MachineType, plan.MachineType)
 	if ok {
-		resp.Diagnostics.AddError(
+		diags.AddError(
 			"Cannot update machine pool",
 			fmt.Sprintf(
 				"Cannot update machine pool for cluster '%s', machine type cannot be updated",
 				state.Cluster.ValueString(),
 			),
 		)
-		return
+		return diags
 	}
 
 	computeNodesEnabled := false
@@ -470,23 +570,23 @@ func (r *MachinePoolResource) Update(ctx context.Context, req resource.UpdateReq
 
 	autoscalingEnabled, errMsg := getAutoscaling(plan, mpBuilder)
 	if errMsg != "" {
-		resp.Diagnostics.AddError(
+		diags.AddError(
 			"Cannot update machine pool",
 			fmt.Sprintf(
 				"Cannot update machine pool for cluster '%s, %s ", state.Cluster.ValueString(), errMsg,
 			),
 		)
-		return
+		return diags
 	}
 
 	if (autoscalingEnabled && computeNodesEnabled) || (!autoscalingEnabled && !computeNodesEnabled) {
-		resp.Diagnostics.AddError(
+		diags.AddError(
 			"Cannot update machine pool",
 			fmt.Sprintf(
 				"Cannot update machine pool for cluster '%s: either autoscaling or compute nodes should be enabled", state.Cluster.ValueString(),
 			),
 		)
-		return
+		return diags
 	}
 
 	patchLabels, shouldPatchLabels := common.ShouldPatchMap(state.Labels, plan.Labels)
@@ -511,34 +611,38 @@ func (r *MachinePoolResource) Update(ctx context.Context, req resource.UpdateReq
 
 	machinePool, err := mpBuilder.Build()
 	if err != nil {
-		resp.Diagnostics.AddError(
+		diags.AddError(
 			"Cannot update machine pool",
 			fmt.Sprintf(
 				"Cannot update machine pool for cluster '%s: %v ", state.Cluster.ValueString(), err,
 			),
 		)
-		return
+		return diags
 	}
 	update, err := r.collection.Cluster(state.Cluster.ValueString()).
 		MachinePools().
 		MachinePool(state.ID.ValueString()).Update().Body(machinePool).SendContext(ctx)
 	if err != nil {
-		resp.Diagnostics.AddError(
+		diags.AddError(
 			"Failed to update machine pool",
 			fmt.Sprintf(
 				"Failed to update machine pool '%s'  on cluster '%s': %v",
 				state.ID.ValueString(), state.Cluster.ValueString(), err,
 			),
 		)
-		return
+		return diags
 	}
 
 	object := update.Body()
 
+	// update the autoscaling enabled with the plan value (important for nil and false cases)
+	state.AutoScalingEnabled = plan.AutoScalingEnabled
+	// update the Replicas with the plan value (important for nil and zero value cases)
+	state.Replicas = plan.Replicas
+
 	// Save the state:
-	r.populateState(object, plan)
-	diags = resp.State.Set(ctx, plan)
-	resp.Diagnostics.Append(diags...)
+	r.populateState(object, state)
+	return diags
 }
 
 // Validate the machine pool's settings that pertain to availability zones.
@@ -681,19 +785,48 @@ func (r *MachinePoolResource) Delete(ctx context.Context, req resource.DeleteReq
 		MachinePool(state.ID.ValueString())
 	_, err := resource.Delete().SendContext(ctx)
 	if err != nil {
-		resp.Diagnostics.AddError(
-			"Cannot delete machine pool",
-			fmt.Sprintf(
-				"Cannot delete machine pool with identifier '%s' for "+
-					"cluster '%s': %v",
-				state.ID.ValueString(), state.Cluster.ValueString(), err,
-			),
-		)
-		return
+		// We can't delete the pool, see if it's the last one:
+		numPools, err2 := r.countPools(ctx, state.Cluster.ValueString())
+		if numPools == 1 && err2 == nil {
+			// It's the last one, issue warning instead of error
+			resp.Diagnostics.AddWarning(
+				"Cannot delete machine pool",
+				fmt.Sprintf(
+					"Cannot delete the last machine pool for cluster '%s'. "+
+						"ROSA Classic clusters must have at least one machine pool. "+
+						"It is being removed from the Terraform state only. "+
+						"To resume managing this machine pool, import it again. "+
+						"It will be automatically deleted when the cluster is deleted.",
+					state.Cluster.ValueString(),
+				),
+			)
+			// No return, we want to remove the state
+		} else {
+			// Wasn't the last one, return error
+			resp.Diagnostics.AddError(
+				"Cannot delete machine pool",
+				fmt.Sprintf(
+					"Cannot delete machine pool with identifier '%s' for "+
+						"cluster '%s': %v",
+					state.ID.ValueString(), state.Cluster.ValueString(), err,
+				),
+			)
+			return
+		}
 	}
 
 	// Remove the state:
 	resp.State.RemoveResource(ctx)
+}
+
+// countPools returns the number of machine pools in the given cluster
+func (r *MachinePoolResource) countPools(ctx context.Context, clusterID string) (int, error) {
+	resource := r.collection.Cluster(clusterID).MachinePools()
+	resp, err := resource.List().SendContext(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return resp.Size(), nil
 }
 
 func (r *MachinePoolResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
@@ -778,9 +911,11 @@ func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *Mac
 	// if the other (AZ/subnet) value is set. We don't need to set
 	// MultiAvailibilityZone here, because it's set in the validation function
 	// during create.
+	state.MultiAvailabilityZone = types.BoolValue(true)
 	azs := object.AvailabilityZones()
 	if len(azs) == 1 {
 		state.AvailabilityZone = types.StringValue(azs[0])
+		state.MultiAvailabilityZone = types.BoolValue(false)
 	} else {
 		state.AvailabilityZone = types.StringValue("")
 	}
@@ -788,8 +923,18 @@ func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *Mac
 	subnets := object.Subnets()
 	if len(subnets) == 1 {
 		state.SubnetID = types.StringValue(subnets[0])
+		state.MultiAvailabilityZone = types.BoolValue(false)
 	} else {
 		state.SubnetID = types.StringValue("")
+	}
+
+	state.DiskSize = types.Int64Null()
+	if rv, ok := object.GetRootVolume(); ok {
+		if aws, ok := rv.GetAWS(); ok {
+			if workerDiskSize, ok := aws.GetSize(); ok {
+				state.DiskSize = types.Int64Value(int64(workerDiskSize))
+			}
+		}
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	. "github.com/onsi/gomega"
 	client "github.com/openshift-online/ocm-sdk-go"
@@ -13,6 +14,7 @@ import (
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	EXE "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	HELPER "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
 // Profile Provides profile struct for cluster creation be matrix
@@ -29,11 +31,11 @@ type Profile struct {
 	StorageLB             bool   `ini:"storage_lb,omitempty" json:"storage_lb,omitempty"` // the unit is GIB, don't support unit set
 	Tagging               bool   `ini:"tagging,omitempty" json:"tagging,omitempty"`
 	Labeling              bool   `ini:"labeling,omitempty" json:"labeling,omitempty"`
-	Etcd                  bool   `ini:"etcd,omitempty" json:"etcd,omitempty"`
+	Etcd                  bool   `ini:"etcd_encryption,omitempty" json:"etcd_encryption,omitempty"`
 	FIPS                  bool   `ini:"fips,omitempty" json:"fips,omitempty"`
 	CCS                   bool   `ini:"ccs,omitempty" json:"ccs,omitempty"`
 	STS                   bool   `ini:"sts,omitempty" json:"sts,omitempty"`
-	Autoscale             bool   `ini:"autoscale,omitempty" json:"autoscale,omitempty"`
+	Autoscale             bool   `ini:"autoscaling_enabled,omitempty" json:"autoscaling_enabled,omitempty"`
 	MultiAZ               bool   `ini:"multi_az,omitempty" json:"multi_az,omitempty"`
 	BYOVPC                bool   `ini:"byovpc,omitempty" json:"byovpc,omitempty"`
 	PrivateLink           bool   `ini:"private_link,omitempty" json:"private_link,omitempty"`
@@ -46,6 +48,7 @@ type Profile struct {
 	OIDCConfig            string `ini:"oidc_config,omitempty" json:"oidc_config,omitempty"`
 	ProvisionShard        string `ini:"provisionShard,omitempty" json:"provisionShard,omitempty"`
 	Ec2MetadataHttpTokens string `ini:"imdsv2,omitempty" json:"imdsv2,omitempty"`
+	ComputeMachineType    string `ini:"compute_tachine_type,omitempty" json:"compute_tachine_type,omitempty"`
 	AuditLogForward       bool   `ini:"auditlog_forward,omitempty" json:"auditlog_forward,omitempty"`
 	AdminEnabled          bool   `ini:"admin_enabled,omitempty" json:"admin_enabled,omitempty"`
 	ManagedPolicies       bool   `ini:"managed_policies,omitempty" json:"managed_policies,omitempty"`
@@ -79,6 +82,7 @@ func PrepareVPC(region string, privateLink bool, multiZone bool, azIDs []string,
 	err := vpcService.Create(vpcArgs)
 	if err != nil {
 		vpcService.Destroy()
+		return nil, err
 	}
 	output, err := vpcService.Output()
 
@@ -97,11 +101,9 @@ func PrepareAccountRoles(token string, accountRolePrefix string, awsRegion strin
 	}
 	args := &EXE.AccountRolesArgs{
 		AccountRolePrefix: accountRolePrefix,
-		// OCMENV            string `json:"ocm_environment,omitempty"`
-		OpenshiftVersion: openshiftVersion,
-		Token:            token,
-		// URL               string `json:"url,omitempty"`
-		ChannelGroup: channelGroup,
+		OpenshiftVersion:  openshiftVersion,
+		Token:             token,
+		ChannelGroup:      channelGroup,
 	}
 	accRoleOutput, err := accService.Create(args)
 	if err != nil {
@@ -122,7 +124,6 @@ func PrepareOIDCProviderAndOperatorRoles(token string, oidcConfigType string, op
 		Token:              token,
 		OIDCConfig:         oidcConfigType,
 		AWSRegion:          awsRegion,
-		// URL                string `json:"url,omitempty"`
 	}
 	oidcOpOutput, err := oidcOpService.Create(args)
 	if err != nil {
@@ -173,18 +174,72 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 		Token:            token,
 		OpenshiftVersion: profile.Version,
 	}
+
+	// Init cluster's args by profile's attributes
+
+	if profile.FIPS {
+		clusterArgs.Fips = profile.FIPS
+	}
+
+	if profile.Etcd {
+		clusterArgs.Etcd = profile.Etcd
+	}
+
+	if profile.MultiAZ {
+		clusterArgs.MultiAZ = profile.MultiAZ
+	}
+
+	if profile.NetWorkingSet {
+		clusterArgs.MachineCIDR = CON.DefaultVPCCIDR
+	}
+
+	if profile.Autoscale {
+		clusterArgs.Autoscale = profile.Autoscale
+	}
+
+	if profile.ComputeMachineType != "" {
+		clusterArgs.ComputeMachineType = profile.ComputeMachineType
+	}
+
+	if profile.ChannelGroup != "" {
+		clusterArgs.ChannelGroup = profile.ChannelGroup
+	}
+
+	if profile.Region == "" {
+		profile.Region = CON.DefaultAWSRegion
+	}
+
 	if profile.ManifestsDIR == "" {
 		profile.ManifestsDIR = CON.ROSAClassic
 	}
+
+	if profile.Labeling {
+		clusterArgs.DefaultMPLabels = CON.DefaultMPLabels
+	}
+
+	if profile.Tagging {
+		// ToDo
+	}
+
+	if profile.AdminEnabled {
+		// ToDo
+	}
+
+	if profile.AuditLogForward {
+		// ToDo
+	}
+
+	if profile.Proxy {
+		// ToDo
+	}
+
 	if profile.ClusterName != "" {
 		clusterArgs.ClusterName = profile.ClusterName
 	} else {
 		// Generate random chars later cluster name with profile name
 		clusterArgs.ClusterName = HELPER.GenerateClusterName(profile.Name)
 	}
-	if profile.AdminEnabled {
 
-	}
 	if profile.Region != "" {
 		clusterArgs.AWSRegion = profile.Region
 	} else {
@@ -195,64 +250,50 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 		accountRolesOutput, err := PrepareAccountRoles(token, clusterArgs.ClusterName, clusterArgs.AWSRegion, profile.Version, profile.ChannelGroup)
 		Expect(err).ToNot(HaveOccurred())
 		clusterArgs.AccountRolePrefix = accountRolesOutput.AccountRolePrefix
+		Logger.Infof("Created account roles with prefix %s", accountRolesOutput.AccountRolePrefix)
+
+		Logger.Infof("Sleep for 10 sec to let aws account role async creation finished")
+		time.Sleep(10 * time.Second)
 
 		oidcOutput, err := PrepareOIDCProviderAndOperatorRoles(token, profile.OIDCConfig, clusterArgs.ClusterName, accountRolesOutput.AccountRolePrefix, clusterArgs.AWSRegion)
 		Expect(err).ToNot(HaveOccurred())
 		clusterArgs.OIDCConfigID = oidcOutput.OIDCConfigID
 		clusterArgs.OperatorRolePrefix = oidcOutput.OperatorRolePrefix
 	}
-	if profile.Region == "" {
-		profile.Region = CON.DefaultAWSRegion
-	}
-
-	if profile.AuditLogForward {
-
-	}
-	if profile.MultiAZ {
-		clusterArgs.MultiAZ = true
-	}
 
 	if profile.BYOVPC {
 		var zones []string
 		var vpcOutput *EXE.VPCOutput
-		if profile.Zones != "" {
-			zones = strings.Split(profile.Zones, ",")
-		}
 
-		vpcOutput, err = PrepareVPC(profile.Region, profile.PrivateLink, profile.MultiAZ, zones, clusterArgs.ClusterName)
-		if err != nil {
-			return
-		}
-		clusterArgs.AWSAvailabilityZones = vpcOutput.AZs
-		if vpcOutput.ClusterPrivateSubnets == nil {
-			err = fmt.Errorf("error when creating the vpc, check the previous log. The created resources had been destroyed")
-			return
-		}
-		if profile.PrivateLink {
-			clusterArgs.AWSSubnetIDs = vpcOutput.ClusterPrivateSubnets
+		// Supports ENV set passed to make cluster provision more flexy in prow
+		// Export the subnetIDs via env variable if you have existing ones export SubnetIDs=<subnet1>,<subnet2>,<subnet3>
+		// Export the availability zones via env variable export AvailabilitiZones=<az1>,<az2>,<az3>
+		if os.Getenv("SubnetIDs") != "" && os.Getenv("AvailabilitiZones") != "" {
+			subnetIDs := strings.Split(os.Getenv("SubnetIDs"), ",")
+			azs := strings.Split(os.Getenv("AvailabilitiZones"), ",")
+			clusterArgs.AWSAvailabilityZones = azs
+			clusterArgs.AWSSubnetIDs = subnetIDs
 		} else {
-			clusterArgs.AWSSubnetIDs = append(vpcOutput.ClusterPrivateSubnets, vpcOutput.ClusterPublicSubnets...)
+			if profile.Zones != "" {
+				zones = strings.Split(profile.Zones, ",")
+			}
+
+			vpcOutput, err = PrepareVPC(profile.Region, profile.PrivateLink, profile.MultiAZ, zones, clusterArgs.ClusterName)
+			if err != nil {
+				return
+			}
+			clusterArgs.AWSAvailabilityZones = vpcOutput.AZs
+			if vpcOutput.ClusterPrivateSubnets == nil {
+				err = fmt.Errorf("error when creating the vpc, check the previous log. The created resources had been destroyed")
+				return
+			}
+			if profile.PrivateLink {
+				clusterArgs.AWSSubnetIDs = vpcOutput.ClusterPrivateSubnets
+			} else {
+				clusterArgs.AWSSubnetIDs = append(vpcOutput.ClusterPrivateSubnets, vpcOutput.ClusterPublicSubnets...)
+			}
+			clusterArgs.MachineCIDR = vpcOutput.VPCCIDR
 		}
-		clusterArgs.MachineCIDR = vpcOutput.VPCCIDR
-	}
-
-	if profile.ChannelGroup != "" {
-		clusterArgs.ChannelGroup = profile.ChannelGroup
-	}
-
-	if profile.Tagging {
-
-	}
-	if profile.Labeling {
-		clusterArgs.DefaultMPLabels = map[string]string{
-			"test1": "testdata1",
-		}
-	}
-	if profile.NetWorkingSet {
-		clusterArgs.MachineCIDR = CON.DefaultVPCCIDR
-	}
-
-	if profile.Proxy {
 	}
 
 	return clusterArgs, profile.ManifestsDIR, err
@@ -261,7 +302,7 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 func LoadProfileYamlFile(profileName string) *Profile {
 	filename := GetYAMLProfileFile(CON.TFYAMLProfile)
 	p := HELPER.GetProfile(profileName, filename)
-	fmt.Println(p.Cluster)
+	Logger.Infof("Loaded cluster profile configuration from profile %s : %v", profileName, p.Cluster)
 	profile := Profile{
 		Name: profileName,
 	}
@@ -274,18 +315,39 @@ func LoadProfileYamlFile(profileName string) *Profile {
 }
 
 func LoadProfileYamlFileByENV() *Profile {
-	profileEnv := os.Getenv("CLUSTER_PROFILE")
+	profileEnv := os.Getenv(CON.RhcsClusterProfileENV)
 	if profileEnv == "" {
 		panic(fmt.Errorf("ENV Variable CLUSTER_PROFILE is empty, please make sure you set the env value"))
 	}
-	return LoadProfileYamlFile(profileEnv)
+	profile := LoadProfileYamlFile(profileEnv)
+
+	// Supporting global env setting to overrite profile settings
+	if os.Getenv("CHANNEL_GROUP") != "" {
+		Logger.Infof("Got global env settings for CHANNEL_GROUP, overwritten the profile setting with value %s", os.Getenv("CHANNEL_GROUP"))
+		profile.ChannelGroup = os.Getenv("CHANNEL_GROUP")
+	}
+	if os.Getenv("VERSION") != "" {
+		Logger.Infof("Got global env settings for VERSION, overwritten the profile setting with value %s", os.Getenv("VERSION"))
+		profile.Version = os.Getenv("VERSION")
+	}
+	if os.Getenv("REGION") != "" {
+		Logger.Infof("Got global env settings for REGION, overwritten the profile setting with value %s", os.Getenv("REGION"))
+		profile.Region = os.Getenv("REGION")
+	}
+	return profile
 }
 
 func CreateRHCSClusterByProfile(token string, profile *Profile) (string, error) {
-
 	creationArgs, _, err := GenerateClusterCreationArgsByProfile(token, profile)
-
+	if err != nil {
+		defer DestroyRHCSClusterByProfile(token, profile)
+	}
+	Expect(err).ToNot(HaveOccurred())
 	clusterService, err := EXE.NewClusterService(profile.ManifestsDIR)
+	if err != nil {
+		defer DestroyRHCSClusterByProfile(token, profile)
+	}
+	Expect(err).ToNot(HaveOccurred())
 	err = clusterService.Create(creationArgs)
 	if err != nil {
 		clusterService.Destroy(creationArgs)
@@ -307,7 +369,9 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 		OperatorRolePrefix: "",
 	}
 	err = clusterService.Destroy(clusterArgs)
-	Expect(err).ToNot(HaveOccurred())
+	if err != nil {
+		return err
+	}
 
 	// Destroy VPC
 	if profile.BYOVPC {
@@ -316,41 +380,65 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 			AWSRegion: profile.Region,
 		}
 		err := vpcService.Destroy(vpcArgs)
-		Expect(err).ToNot(HaveOccurred())
+		if err != nil {
+			return err
+		}
 	}
 	if profile.STS {
 		// Destroy oidc and operator roles
 		oidcOpService, err := EXE.NewOIDCProviderOperatorRolesService()
-		Expect(err).ToNot(HaveOccurred())
+		if err != nil {
+			return err
+		}
 		args := &EXE.OIDCProviderOperatorRolesArgs{
 			Token:      token,
 			OIDCConfig: profile.OIDCConfig,
 			AWSRegion:  profile.Region,
-			// URL                string `json:"url,omitempty"`
 		}
 		err = oidcOpService.Destroy(args)
-		Expect(err).ToNot(HaveOccurred())
+		if err != nil {
+			return err
+		}
 
 		//  Destroy Account roles
 		accService, err := EXE.NewAccountRoleService()
-		Expect(err).ToNot(HaveOccurred())
+		if err != nil {
+			return err
+		}
 		accargs := &EXE.AccountRolesArgs{
 			Token: token,
 		}
 		err = accService.Destroy(accargs)
-		Expect(err).ToNot(HaveOccurred())
+		if err != nil {
+			return err
+		}
 
 	}
 	return nil
 }
-func PrepareRHCSClusterByProfileENV() string {
+
+// PrepareRHCSClusterByProfileENV will be used for all day2 tests.
+// Do not need to create a cluster, it needs an existing cluster
+// Two ways:
+//   - If you created a cluster by other way, you can Export CLUSTER_ID=<cluster id>
+//   - If you are using this CI created the cluster, just need to Export CLUSTER_PROFILE=<profile name>
+func PrepareRHCSClusterByProfileENV() (string, error) {
+	// Support the cluster ID to set to ENV in case somebody created cluster by other way
+	if os.Getenv(CON.ClusterIDEnv) != "" {
+		return os.Getenv(CON.ClusterIDEnv), nil
+	}
+	if os.Getenv(CON.RhcsClusterProfileENV) == "" {
+		Logger.Warnf("Either env variables %s and %s set. Will return an empty string.", CON.ClusterIDEnv, CON.RhcsClusterProfileENV)
+		return "", nil
+	}
 	profile := LoadProfileYamlFileByENV()
 	if profile.ManifestsDIR == "" {
 		profile.ManifestsDIR = CON.ROSAClassic
 	}
 	clusterService, err := EXE.NewClusterService(profile.ManifestsDIR)
-	Expect(err).ToNot(HaveOccurred())
+	if err != nil {
+		return "", err
+	}
 	clusterID, err := clusterService.Output()
-	Expect(err).ToNot(HaveOccurred())
-	return clusterID
+	return clusterID, err
 }

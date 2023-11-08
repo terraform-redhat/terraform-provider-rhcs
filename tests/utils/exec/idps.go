@@ -15,6 +15,12 @@ type IDPArgs struct {
 	Token         string        `json:"token,omitempty"`
 	OCMENV        string        `json:"ocm_environment,omitempty"`
 	URL           string        `json:"url,omitempty"`
+	CA            string        `json:"ca,omitempty"`
+	ClientID      string        `json:"client_id,omitempty"`
+	ClientSecret  string        `json:"client_secret,omitempty"`
+	Organizations []string      `json:"organizations,omitempty"`
+	HostedDomain  string        `json:"hosted_domain,omitempty"`
+	Insecure      bool          `json:"insecure,omitempty"`
 	MappingMethod string        `json:"mapping_method,omitempty"`
 	HtpasswdUsers []interface{} `json:"htpasswd_users,omitempty"`
 }
@@ -45,6 +51,7 @@ func (idp *IDPService) Init(manifestDirs ...string) error {
 }
 
 func (idp *IDPService) Create(createArgs *IDPArgs, extraArgs ...string) error {
+	createArgs.URL = CON.GateWayURL
 	idp.CreationArgs = createArgs
 	args := combineStructArgs(createArgs, extraArgs...)
 	_, err := runTerraformApplyWithArgs(idp.Context, idp.ManifestDir, args)
@@ -83,6 +90,7 @@ func (idp *IDPService) Destroy(createArgs ...*IDPArgs) error {
 	destroyArgs := idp.CreationArgs
 	if len(createArgs) != 0 {
 		destroyArgs = createArgs[0]
+		destroyArgs.URL = CON.GateWayURL
 	}
 	args := combineStructArgs(destroyArgs)
 	err := runTerraformDestroyWithArgs(idp.Context, idp.ManifestDir, args)

@@ -33,11 +33,10 @@ resource "rhcs_identity_provider" "ldap_idp" {
   name           = var.name
   mapping_method = var.mapping_method
   ldap = {
-    bind_dn       = var.bind_dn
-    bind_password = var.bind_password
     ca            = var.ca
-    insecure      = var.insecure
-    url           = var.url
-    attributes    = var.attributes
+    insecure      = true
+    url           = "ldap://ldap.forumsys.com/dc=example,dc=com?uid"
+    # optional
+    attributes    = {}
   }
 }

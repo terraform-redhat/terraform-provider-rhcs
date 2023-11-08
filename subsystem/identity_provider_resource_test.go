@@ -645,29 +645,8 @@ var _ = Describe("Identity provider creation", func() {
 			})
 		})
 
-		Context("Can create 'LDDAP' Identity provider", func() {
+		Context("Can create 'LDAP' Identity provider", func() {
 			Context("Invalid LDAP config", func() {
-				It("Should fail with invalid email", func() {
-					// Run the apply command:
-					terraform.Source(`
-        		      resource "rhcs_identity_provider" "my_ip" {
-        		        cluster    = "123"
-        		        name       = "my-ip"
-        		        ldap = {
-        		          insecure      = false
-        		          ca            = "my-ca"
-        		          url           = "ldap://my-server.com"
-        		          attributes    = {
-        		            id                 = ["my-id"]
-        		            email              = ["my-email"]
-        		            name               = ["my-name"]
-        		            preferred_username = ["my-preferred-username"]
-        		          }
-        		        }
-        		      }
-        		    `)
-					Expect(terraform.Apply()).ToNot(BeZero())
-				})
 				It("Should fail if not both bind properties are set", func() {
 					// Run the apply command:
 					terraform.Source(`
@@ -680,10 +659,10 @@ var _ = Describe("Identity provider creation", func() {
         		          ca            = "my-ca"
         		          url           = "ldap://my-server.com"
         		          attributes    = {
-        		            id                 = ["my-id"]
-        		            email              = ["my@email.com"]
-        		            name               = ["my-name"]
-        		            preferred_username = ["my-preferred-username"]
+        		            id                 = ["dn"]
+        		            email              = ["mail"]
+        		            name               = ["cn"]
+        		            preferred_username = ["uid"]
         		          }
         		        }
         		      }
@@ -711,6 +690,7 @@ var _ = Describe("Identity provider creation", func() {
 				            "url": "ldap://my-server.com",
 				            "attributes": {
 				              "id": ["dn"],
+				              "email": ["mail"],
 				              "name": ["cn"],
 				              "preferred_username": ["uid"]
 				            }
@@ -726,6 +706,7 @@ var _ = Describe("Identity provider creation", func() {
 				            "url": "ldap://my-server.com",
 				            "attributes": {
 				              "id": ["dn"],
+				              "email": ["mail"],
 				              "name": ["cn"],
 				              "preferred_username": ["uid"]
 				            }
@@ -743,7 +724,7 @@ var _ = Describe("Identity provider creation", func() {
         		      insecure      = false
         		      ca            = "my-ca"
         		      url           = "ldap://my-server.com"
-                      attributes    = {}
+									attributes    = {}
         		    }
         		  }
         		`)
@@ -769,10 +750,10 @@ var _ = Describe("Identity provider creation", func() {
 				            "insecure": false,
 				            "url": "ldap://my-server.com",
 				            "attributes": {
-				              "id": ["my-id"],
-				              "email": ["my@email.com"],
-				              "name": ["my-name"],
-				              "preferred_username": ["my-preferred-username"]
+				              "id": ["dn"],
+				              "email": ["mail"],
+				              "name": ["cn"],
+				              "preferred_username": ["uid"]
 				            }
 				          }
 				        }`),
@@ -787,10 +768,10 @@ var _ = Describe("Identity provider creation", func() {
 				            "insecure": false,
 				            "url": "ldap://my-server.com",
 				            "attributes": {
-				              "id": ["my-id"],
-				              "email": ["my@email.com"],
-				              "name": ["my-name"],
-				              "preferred_username": ["my-preferred-username"]
+				              "id": ["dn"],
+				              "email": ["mail"],
+				              "name": ["cn"],
+				              "preferred_username": ["uid"]
 				            }
 				          }
 				        }`),
@@ -809,10 +790,10 @@ var _ = Describe("Identity provider creation", func() {
         		      ca            = "my-ca"
         		      url           = "ldap://my-server.com"
         		      attributes    = {
-        		        id                 = ["my-id"]
-        		        email              = ["my@email.com"]
-        		        name               = ["my-name"]
-        		        preferred_username = ["my-preferred-username"]
+										id                 = ["dn"]
+										email              = ["mail"]
+										name               = ["cn"]
+										preferred_username = ["uid"]
         		      }
         		    }
         		  }
@@ -838,10 +819,10 @@ var _ = Describe("Identity provider creation", func() {
 				            "insecure": false,
 				            "url": "ldap://my-server.com",
 				            "attributes": {
-				              "id": ["my-id"],
-				              "email": ["my@email.com"],
-				              "name": ["my-name"],
-				              "preferred_username": ["my-preferred-username"]
+				              "id": ["dn"],
+				              "email": ["mail"],
+				              "name": ["cn"],
+				              "preferred_username": ["uid"]
 				            }
 				          }
 				        }`),
@@ -854,10 +835,10 @@ var _ = Describe("Identity provider creation", func() {
 				            "insecure": false,
 				            "url": "ldap://my-server.com",
 				            "attributes": {
-				              "id": ["my-id"],
-				              "email": ["my@email.com"],
-				              "name": ["my-name"],
-				              "preferred_username": ["my-preferred-username"]
+				              "id": ["dn"],
+				              "email": ["mail"],
+				              "name": ["cn"],
+				              "preferred_username": ["uid"]
 				            }
 				          }
 				        }`),
@@ -874,10 +855,10 @@ var _ = Describe("Identity provider creation", func() {
         		      ca            = "my-ca"
         		      url           = "ldap://my-server.com"
         		      attributes    = {
-        		        id                 = ["my-id"]
-        		        email              = ["my@email.com"]
-        		        name               = ["my-name"]
-        		        preferred_username = ["my-preferred-username"]
+										id                 = ["dn"]
+										email              = ["mail"]
+										name               = ["cn"]
+										preferred_username = ["uid"]
         		      }
         		    }
         		  }

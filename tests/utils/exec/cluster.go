@@ -22,6 +22,11 @@ type ClusterCreationArgs struct {
 	AWSHttpTokensState   string            `json:"aws_http_tokens_state,omitempty"`
 	PrivateLink          string            `json:"private_link,omitempty"`
 	Private              string            `json:"private,omitempty"`
+	Fips                 bool              `json:"fips,omitempty"`
+	Tagging              map[string]string `json:"tags,omitempty"`
+	AuditLogForward      bool              `json:"audit_log_forward,omitempty"`
+	Autoscale            bool              `json:"autoscaling_enabled,omitempty"`
+	Etcd                 bool              `json:"etcd_encryption,omitempty"`
 	AWSSubnetIDs         []string          `json:"aws_subnet_ids,omitempty"`
 	ComputeMachineType   string            `json:"compute_machine_type,omitempty"`
 	DefaultMPLabels      map[string]string `json:"default_mp_labels,omitempty"`
@@ -79,6 +84,7 @@ func (creator *ClusterService) Init(manifestDir string) error {
 }
 
 func (creator *ClusterService) Create(createArgs *ClusterCreationArgs, extraArgs ...string) error {
+	createArgs.URL = CON.GateWayURL
 	args := combineStructArgs(createArgs, extraArgs...)
 	_, err := runTerraformApplyWithArgs(creator.Context, creator.ManifestDir, args)
 	if err != nil {
@@ -98,6 +104,7 @@ func (creator *ClusterService) Output() (string, error) {
 }
 
 func (creator *ClusterService) Destroy(createArgs *ClusterCreationArgs, extraArgs ...string) error {
+	createArgs.URL = CON.GateWayURL
 	args := combineStructArgs(createArgs, extraArgs...)
 	err := runTerraformDestroyWithArgs(creator.Context, creator.ManifestDir, args)
 	return err

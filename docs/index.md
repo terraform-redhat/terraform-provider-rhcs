@@ -56,19 +56,14 @@ Terraform creates and manages resources through application programming interfac
 
 For more information, see the [Terraform documentation](https://developer.hashicorp.com/terraform).
 
-## Limitations of the Red Hat Cloud Services Terraform provider
+## Provider releases
 
-The following items are limitations with the current release of the Red Hat Cloud Services Terraform provider:
+This provider is currently under development, and new releases are regularly made available on the Terraform provider registry.
 
-* The latest version is not backward compatible with version 1.0.1.
-* When creating a machine pool, you need to specify your replica count. You must define either the `replicas= "<count>"` variable or provide values for the following variables to build the machine pool:
-   * `min_replicas = "<count>"`
-   * `max_replicas="<count>"`
-   * `autoscaling_enabled=true`
-* The htpasswd identity provider does not support creating the identity provider with multiple users or adding additional users to the existing identity provider.
-* The S3 bucket that is created as part of the OIDC configuration must be created in the same region as your OIDC provider.
-* The Terraform provider does not support auto-generated `operator_role_prefix`. You must provide your `operator_role_prefix` when creating the account roles.
-* Resource created by terraform provider and deleted not by the terraform provider might cause to issue, the terraform provider wouldn't be able to recreate the resource
+There are two distinct types of releases:
+
+* Stable releases: Any release identified by a version number without any preffix, such as 1.2.0. These versions are officially supported by RedHat.
+* Pre-release versions: These are beta versions of the provider, identified by a version number with a suffix introduced by a dash, such as 1.2.0-beta. While users can utilize these pre-release versions, it's important to note that doing so comes with the responsibility of the user, as they may not be as stable or fully supported as official releases.
 
 ## Prerequisites
 
@@ -90,15 +85,11 @@ To use the Red Hat Cloud Services provider inside your Terraform configuration y
 
   You need to have Terraform configured for your local system. The Terraform website contains installation options for MacOS, Windows, and Linux.
 
-* **Optional**: A [configured `*.tfvars` file](docs/terraform-vars.md).
-
-  A `*.tfvars` file is a definition sheet for all of your variables. This method allows you to reference a file that is safely stored due to the sensitive nature of some variable values. You can create multiple `*.tfvars` files with different variable values.
-
 * [ROSA account roles](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/introduction_to_rosa/rosa-sts-about-iam-resources)
 
   You need to have created the AWS account-wide roles. The specific account-wide IAM roles and policies provide the STS permissions required for ROSA support, installation, control plane, and compute functionality. This includes account-wide Operator policies.
 
-  To create the account roles using Terraform, see the [Account Roles Terraform example](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/main/examples/create_account_roles/).
+  To create the account roles using Terraform, see the [Account Roles Terraform example](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.4.0/examples/create_account_roles/).
 
 * AWS Permissions
 
@@ -151,11 +142,11 @@ To use the Red Hat Cloud Services provider inside your Terraform configuration y
                     "iam:ListRoles"
                 ],
             "Resource": [
-                    "arn:aws:secretsmanager:*:<ACCOUNT_ID>:secret:*",
-                    "arn:aws:iam::<ACCOUNT_ID>:instance-profile/*",
-                    "arn:aws:iam::<ACCOUNT_ID>:role/*",
-                    "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/*",
-                    "arn:aws:iam::<ACCOUNT_ID>:policy/*"
+                    "arn:aws:secretsmanager:*:\<ACCOUNT_ID>:secret<a>:*",
+                    "arn:aws:iam::\<ACCOUNT_ID>:instance-profile/*",
+                    "arn:aws:iam::\<ACCOUNT_ID>:role/*",
+                    "arn:aws:iam::\<ACCOUNT_ID>:oidc-provider/*",
+                    "arn:aws:iam::\<ACCOUNT_ID>:policy/*"
                 ]
             },
             {
@@ -214,20 +205,20 @@ provider "rhcs" {}
 The example Terraform files are all considered in development and should not be used for production environments:
 
 ### Before creating a cluster
-* **Required**: [Account Roles Terraform](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/main/examples/create_account_roles/)
+* **Required**: [Account Roles Terraform](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.4.0/examples/create_account_roles/)
 
 ### Creating a ROSA cluster
-* [Create a ROSA cluster that uses STS and has a managed OIDC configuration](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/main/examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/)
-* [Create a ROSA cluster that uses STS and has an unmanaged OIDC configuration](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/main/examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/)
+* [Create a ROSA cluster that uses STS and has a managed OIDC configuration](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.4.0/examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/)
+* [Create a ROSA cluster that uses STS and has an unmanaged OIDC configuration](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.4.0/examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/)
 
 ### After creating a cluster
-* [Machine pools](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/main/examples/create_machine_pool/)
+* [Machine pools](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.4.0/examples/create_machine_pool/)
 * Supported identity providers:
-    * [Github](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/main/examples/create_identity_provider/github/)
-    * [Gitlab](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/main/examples/create_identity_provider/gitlab/)
-    * [Google](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/main/examples/create_identity_provider/google/)
-    * [HTPasswd](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/main/examples/create_identity_provider/google/)
-    * [LDAP](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/main/examples/create_identity_provider/ldap/)
+    * [Github](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.4.0/examples/create_identity_provider/github/)
+    * [Gitlab](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.4.0/examples/create_identity_provider/gitlab/)
+    * [Google](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.4.0/examples/create_identity_provider/google/)
+    * [HTPasswd](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.4.0/examples/create_identity_provider/google/)
+    * [LDAP](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.4.0/examples/create_identity_provider/ldap/)
 * [Upgrading or updating your cluster](upgrading-cluster.md)
 ### Create your Operator IAM roles prefix name
 

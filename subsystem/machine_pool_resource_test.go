@@ -454,6 +454,11 @@ var _ = Describe("Machine pool creation", func() {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "replicas": 12,
 				  "availability_zones": [
 					"us-east-1a",
@@ -507,6 +512,11 @@ var _ = Describe("Machine pool creation", func() {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
 				  },
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "instance_type": "r5.xlarge"
 				}`),
 			),
@@ -522,6 +532,11 @@ var _ = Describe("Machine pool creation", func() {
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
+				  },
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
 				  },
 				  "instance_type": "r5.xlarge"
 				}`),
@@ -545,6 +560,11 @@ var _ = Describe("Machine pool creation", func() {
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
 				  "kind": "MachinePool",
 				  "instance_type": "r5.xlarge",
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "replicas": 12,
 				  "labels": {
 				    "label_key3": "label_value3"
@@ -586,6 +606,11 @@ var _ = Describe("Machine pool creation", func() {
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
                   "replicas": 12,
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
@@ -602,6 +627,11 @@ var _ = Describe("Machine pool creation", func() {
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
                   "replicas": 12,
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "labels": {
 				    "label_key1": "label_value1",
 				    "label_key2": "label_value2"
@@ -626,6 +656,11 @@ var _ = Describe("Machine pool creation", func() {
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
 				  "kind": "MachinePool",
 				  "instance_type": "r5.xlarge",
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "replicas": 12,
                   "labels": {}
 				}`),
@@ -676,6 +711,11 @@ var _ = Describe("Machine pool creation", func() {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "replicas": 12,
 				  "availability_zones": [
 					"us-east-1a",
@@ -730,6 +770,11 @@ var _ = Describe("Machine pool creation", func() {
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
                   "replicas": 12,
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "availability_zones": [
 					"us-east-1a",
 					"us-east-1b",
@@ -754,6 +799,11 @@ var _ = Describe("Machine pool creation", func() {
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
                   "replicas": 12,
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "availability_zones": [
 					"us-east-1a",
 					"us-east-1b",
@@ -797,6 +847,11 @@ var _ = Describe("Machine pool creation", func() {
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
 				  "kind": "MachinePool",
 				  "instance_type": "r5.xlarge",
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "replicas": 12,
 				  "availability_zones": [
 					"us-east-1a",
@@ -880,6 +935,11 @@ var _ = Describe("Machine pool creation", func() {
 					"us-east-1b",
 					"us-east-1c"
 				  ],
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "replicas": 12,
 				  "taints": [
 					  {
@@ -929,6 +989,11 @@ var _ = Describe("Machine pool creation", func() {
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
                   "replicas": 12,
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "availability_zones": [
 					"us-east-1a",
 					"us-east-1b",
@@ -953,6 +1018,11 @@ var _ = Describe("Machine pool creation", func() {
 				  "kind": "MachinePool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
                   "replicas": 12,
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "availability_zones": [
 					"us-east-1a",
 					"us-east-1b",
@@ -984,6 +1054,11 @@ var _ = Describe("Machine pool creation", func() {
 				  "id": "my-pool",
 				  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
 				  "kind": "MachinePool",
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "instance_type": "r5.xlarge",
 				  "replicas": 12,
 				  "availability_zones": [
@@ -1036,6 +1111,11 @@ var _ = Describe("Machine pool creation", func() {
 				RespondWithJSON(http.StatusOK, `{
 				  "id": "my-pool",
 				  "instance_type": "r5.xlarge",
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "availability_zones": [
 					"us-east-1a",
 					"us-east-1b",
@@ -1086,6 +1166,11 @@ var _ = Describe("Machine pool creation", func() {
 				  	"max_replicas": 3,
 				  	"min_replicas": 0
 				  },
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "availability_zones": [
 					"us-east-1a",
 					"us-east-1b",
@@ -1106,6 +1191,11 @@ var _ = Describe("Machine pool creation", func() {
 				  	"kind": "MachinePoolAutoscaling",
 				  	"max_replicas": 3,
 				  	"min_replicas": 0
+				  },
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
 				  },
 				  "availability_zones": [
 					"us-east-1a",
@@ -1132,6 +1222,11 @@ var _ = Describe("Machine pool creation", func() {
 				  "kind": "MachinePool",
 				  "instance_type": "r5.xlarge",
 				  "replicas": 12,
+				  "root_volume": {
+					"aws": {
+					  "size": 200
+					}
+				  },
 				  "availability_zones": [
 					"us-east-1a",
 					"us-east-1b",
@@ -1513,6 +1608,65 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 2))
 		Expect(resource).To(MatchJQ(`.attributes.taints | length`, 1))
 		Expect(resource).To(MatchJQ(".attributes.use_spot_instances", true))
+	})
+
+	It("Can create machine pool with custom disk size", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				),
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "root_volume": {
+					"aws": {
+					  "size": 400
+					}
+				  },
+				  "replicas": 12
+				}`),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 12,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ],
+				  "root_volume": {
+					"aws": {
+					  "size": 400
+					}
+				  }
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 12
+			disk_size    = 400
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		// Check the state:
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool")
+		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+		Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
+		Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
+		Expect(resource).To(MatchJQ(".attributes.machine_type", "r5.xlarge"))
+		Expect(resource).To(MatchJQ(".attributes.replicas", 12.0))
+		Expect(resource).To(MatchJQ(".attributes.disk_size", 400.0))
 	})
 })
 
@@ -2103,6 +2257,411 @@ var _ = Describe("Machine pool creation for non exist cluster", func() {
 		  }
 		`)
 		Expect(terraform.Apply()).NotTo(BeZero())
+	})
+})
 
+var _ = Describe("Day-1 machine pool (worker)", func() {
+	BeforeEach(func() {
+		// The first thing that the provider will do for any operation on machine pools
+		// is check that the cluster is ready, so we always need to prepare the server to
+		// respond to that:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, `{
+					  "id": "123",
+					  "name": "my-cluster",
+					  "multi_az": false,
+					  "nodes": {
+						"availability_zones": [
+						  "us-east-1a"
+						]
+					  },
+					  "state": "ready"
+				}`),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, `{
+					  "id": "123",
+					  "name": "my-cluster",
+					  "multi_az": false,
+					  "nodes": {
+						"availability_zones": [
+						  "us-east-1a"
+						]
+					  },
+					  "state": "ready"
+				}`),
+			),
+		)
+	})
+
+	It("cannot be created", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			// Get is for the Read function
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker"),
+				RespondWithJSON(http.StatusNotFound, `
+					{
+						"kind": "Error",
+						"id": "404",
+						"href": "/api/clusters_mgmt/v1/errors/404",
+						"code": "CLUSTERS-MGMT-404",
+						"reason": "Machine pool with id 'worker' not found.",
+						"operation_id": "df359e0c-b1d3-4feb-9b58-50f7a20d0096"
+					}`),
+			),
+		)
+		terraform.Source(`
+			  resource "rhcs_machine_pool" "worker" {
+				cluster      = "123"
+			    name         = "worker"
+			    machine_type = "r5.xlarge"
+			    replicas     = 2
+			  }
+			`)
+		Expect(terraform.Apply()).NotTo(BeZero())
+	})
+
+	It("is automatically imported and updates applied", func() {
+		// Import automatically "Create()", and update the # of replicas: 2 -> 4
+		// Prepare the server:
+		server.AppendHandlers(
+			// Get is for the Read function
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker"),
+				RespondWithJSON(http.StatusOK, `
+					{
+						"id": "worker",
+						"kind": "MachinePool",
+						"href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker",
+						"replicas": 2,
+						"instance_type": "r5.xlarge"
+					}`),
+			),
+			// Get is for the read during update
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker"),
+				RespondWithJSON(http.StatusOK, `
+					{
+						"id": "worker",
+						"kind": "MachinePool",
+						"href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker",
+						"replicas": 2,
+						"instance_type": "r5.xlarge"
+					}`),
+			),
+			// Patch is for the update
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker"),
+				VerifyJSON(`{
+					  "kind": "MachinePool",
+					  "id": "worker",
+					  "replicas": 4
+					}`),
+				RespondWithJSON(http.StatusOK, `
+					{
+					  "id": "worker",
+					  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker",
+					  "kind": "MachinePool",
+					  "instance_type": "r5.xlarge",
+					  "replicas": 4
+					}`),
+			),
+		)
+		terraform.Source(`
+			resource "rhcs_machine_pool" "worker" {
+			  cluster      = "123"
+			  name         = "worker"
+			  machine_type = "r5.xlarge"
+			  replicas     = 4
+			}
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+		resource := terraform.Resource("rhcs_machine_pool", "worker")
+		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+		Expect(resource).To(MatchJQ(".attributes.name", "worker"))
+		Expect(resource).To(MatchJQ(".attributes.id", "worker"))
+		Expect(resource).To(MatchJQ(".attributes.replicas", 4.0))
+	})
+
+	It("can update labels", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			// Get is for the Read function
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker"),
+				RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"kind": "MachinePool",
+							"href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker",
+							"replicas": 2,
+							"instance_type": "r5.xlarge"
+						}`),
+			),
+			// Get is for the read during update
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker"),
+				RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"kind": "MachinePool",
+							"href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker",
+							"replicas": 2,
+							"instance_type": "r5.xlarge"
+						}`),
+			),
+			// Patch is for the update
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker"),
+				VerifyJSON(`{
+					  "kind": "MachinePool",
+						  "id": "worker",
+						  "labels": {
+						    "label_key1": "label_value1"
+						  },
+						  "replicas": 2
+						}`),
+				RespondWithJSON(http.StatusOK, `
+						{
+						  "id": "worker",
+						  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker",
+						  "kind": "MachinePool",
+						  "instance_type": "r5.xlarge",
+						  "labels": {
+						    "label_key1": "label_value1"
+						  },
+						  "replicas": 2
+						}`),
+			),
+		)
+		terraform.Source(`
+			resource "rhcs_machine_pool" "worker" {
+				cluster      = "123"
+				name         = "worker"
+				machine_type = "r5.xlarge"
+				replicas     = 2
+				labels = {
+					"label_key1" = "label_value1"
+				}
+			}
+			`)
+		Expect(terraform.Apply()).To(BeZero())
+		resource := terraform.Resource("rhcs_machine_pool", "worker")
+		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+		Expect(resource).To(MatchJQ(".attributes.name", "worker"))
+		Expect(resource).To(MatchJQ(".attributes.id", "worker"))
+		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 1))
+	})
+})
+
+var _ = Describe("Machine pool delete", func() {
+	clusterId := "123"
+
+	prepareClusterRead := func(clusterId string) {
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/"+clusterId),
+				RespondWithJSONTemplate(http.StatusOK, `{
+				  "id": "{{.ClusterId}}",
+				  "name": "my-cluster",
+				  "multi_az": true,
+				  "nodes": {
+					"availability_zones": [
+					  "us-east-1a",
+					  "us-east-1b",
+					  "us-east-1c"
+					]
+				  },
+				  "state": "ready"
+				}`,
+					"ClusterId", clusterId),
+			),
+		)
+	}
+
+	preparePoolRead := func(clusterId string, poolId string) {
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/machine_pools/"+poolId),
+				RespondWithJSONTemplate(http.StatusOK, `
+			{
+				"id": "{{.PoolId}}",
+				"kind": "MachinePool",
+				"href": "/api/clusters_mgmt/v1/clusters/{{.ClusterId}}/machine_pools/{{.PoolId}}",
+				"replicas": 3,
+				"instance_type": "r5.xlarge"
+			}`,
+					"PoolId", poolId,
+					"ClusterId", clusterId),
+			),
+		)
+	}
+
+	createPool := func(clusterId string, poolId string) {
+		prepareClusterRead(clusterId)
+		prepareClusterRead(clusterId)
+		prepareClusterRead(clusterId)
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/"+clusterId+"/machine_pools",
+				),
+				RespondWithJSONTemplate(http.StatusOK, `{
+				  "id": "{{.PoolId}}",
+				  "name": "{{.PoolId}}",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 3,
+				  "availability_zones": [
+					"us-east-1a",
+					"us-east-1b",
+					"us-east-1c"
+				  ]
+				}`,
+					"PoolId", poolId),
+			),
+		)
+
+		terraform.Source(EvaluateTemplate(`
+		resource "rhcs_machine_pool" "{{.PoolId}}" {
+		  cluster      = "{{.ClusterId}}"
+		  name         = "{{.PoolId}}"
+		  machine_type = "r5.xlarge"
+		  replicas     = 3
+		}
+	  `,
+			"PoolId", poolId,
+			"ClusterId", clusterId))
+
+		// Run the apply command:
+		Expect(terraform.Apply()).To(BeZero())
+		resource := terraform.Resource("rhcs_machine_pool", poolId)
+		Expect(resource).To(MatchJQ(".attributes.cluster", clusterId))
+		Expect(resource).To(MatchJQ(".attributes.id", poolId))
+		Expect(resource).To(MatchJQ(".attributes.name", poolId))
+	}
+
+	BeforeEach(func() {
+		createPool(clusterId, "pool1")
+	})
+
+	It("can delete a machine pool", func() {
+		// Prepare for refresh (Read) of the pools prior to changes
+		preparePoolRead(clusterId, "pool1")
+		// Prepare for the delete of pool1
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/machine_pools/pool1"),
+				RespondWithJSON(http.StatusOK, `{}`),
+			),
+		)
+
+		// Re-apply w/ empty source so that pool1 is deleted
+		terraform.Source("")
+		Expect(terraform.Apply()).To(BeZero())
+	})
+	It("will return an error if delete fails and not the last pool", func() {
+		// Prepare for refresh (Read) of the pools prior to changes
+		preparePoolRead(clusterId, "pool1")
+		// Prepare for the delete of pool1
+		server.AppendHandlers(
+			CombineHandlers( // Fail the delete
+				VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/machine_pools/pool1"),
+				RespondWithJSON(http.StatusBadRequest, `{}`), // XXX Fix description
+			),
+			CombineHandlers( // List returns more than 1 pool
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/machine_pools"),
+				RespondWithJSONTemplate(http.StatusOK, `{
+					"kind": "MachinePoolList",
+					"href": "/api/clusters_mgmt/v1/clusters/{{.ClusterId}}/machine_pools",
+					"page": 1,
+					"size": 2,
+					"total": 2,
+					"items": [
+					  {
+						"kind": "MachinePool",
+						"href": "/api/clusters_mgmt/v1/clusters/{{.ClusterId}}/machine_pools/worker",
+						"id": "worker",
+						"replicas": 2,
+						"instance_type": "m5.xlarge",
+						"availability_zones": [
+						  "us-east-1a"
+						],
+						"root_volume": {
+						  "aws": {
+							"size": 300
+						  }
+						}
+					  },
+					  {
+						"kind": "MachinePool",
+						"href": "/api/clusters_mgmt/v1/clusters/{{.ClusterId}}/machine_pools/pool1",
+						"id": "pool1",
+						"replicas": 2,
+						"instance_type": "m5.xlarge",
+						"availability_zones": [
+						  "us-east-1a"
+						],
+						"root_volume": {
+						  "aws": {
+							"size": 300
+						  }
+						}
+					  }
+					]
+				  }`),
+			),
+		)
+
+		// Re-apply w/ empty source so that pool1 is (attempted) deleted
+		terraform.Source("")
+		Expect(terraform.Apply()).NotTo(BeZero())
+	})
+	It("will ignore the error if delete fails and is the last pool", func() {
+		// Prepare for refresh (Read) of the pools prior to changes
+		preparePoolRead(clusterId, "pool1")
+		// Prepare for the delete of pool1
+		server.AppendHandlers(
+			CombineHandlers( // Fail the delete
+				VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/machine_pools/pool1"),
+				RespondWithJSON(http.StatusBadRequest, `{}`), // XXX Fix description
+			),
+			CombineHandlers( // List returns only 1 pool
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/machine_pools"),
+				RespondWithJSONTemplate(http.StatusOK, `{
+					"kind": "MachinePoolList",
+					"href": "/api/clusters_mgmt/v1/clusters/{{.ClusterId}}/machine_pools",
+					"page": 1,
+					"size": 1,
+					"total": 1,
+					"items": [
+					  {
+						"kind": "MachinePool",
+						"href": "/api/clusters_mgmt/v1/clusters/{{.ClusterId}}/machine_pools/pool1",
+						"id": "pool1",
+						"replicas": 2,
+						"instance_type": "m5.xlarge",
+						"availability_zones": [
+						  "us-east-1a"
+						],
+						"root_volume": {
+						  "aws": {
+							"size": 300
+						  }
+						}
+					  }
+					]
+				  }`),
+			),
+		)
+
+		// Re-apply w/ empty source so that pool1 is (attempted) deleted
+		terraform.Source("")
+		// Last pool, we ignore the error, so this succeeds
+		Expect(terraform.Apply()).To(BeZero())
 	})
 })

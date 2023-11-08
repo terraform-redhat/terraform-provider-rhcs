@@ -11,14 +11,14 @@ You can update or upgrade your cluster using Terraform.
 
 ## Prerequisites
 
-1. You created your [account roles using Terraform](../examples/create_rosa_cluster/create_rosa_sts_cluster/classic_sts/account_roles/README.md).
-1. You created your cluster using Terraform. This cluster can either have [a managed OIDC configuration](../examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/README.md) or [an unmanaged OIDC configuration](../examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/README.md).
+1. You created your [account roles using Terraform](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.4.0/examples/create_rosa_cluster/create_rosa_sts_cluster/classic_sts/account_roles/README.md).
+1. You created your cluster using Terraform. This cluster can either have [a managed OIDC configuration](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.4.0/examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/README.md) or [an unmanaged OIDC configuration](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.4.0/examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/README.md).
 
 ## Upgrading your cluster
 
 To upgrade your ROSA cluster to another version, upgrade your account roles and policies, export the following variables, and then run `terraform apply`.
 
-1. If you are upgrading to a new y-stream, such as upgrading from version 4.12.19 to 4.13.1, run `terraform apply` in the [`account_roles` module](../../examples/create_account_roles/README.md). You must specify your desired y-stream version by using the following variables: 
+1. If you are upgrading to a new y-stream, such as upgrading from version 4.12.19 to 4.13.1, run `terraform apply` in the [`account_roles` module](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.4.0/examples/create_account_roles/README.md). You must specify your desired y-stream version by using the following variables: 
 
 1. Export the `TF_VAR_openshift_version` with the intended version. Your value must be prepended with `openshift-v`.
         ```

@@ -100,3 +100,7 @@ If you want to locally test the provider binary without building from sources, y
 ```
 You can also use specific commit images by substituting `latest` for the desired commit SHA.
 Binary image only runs on AMD64 architectures up to now.
+
+### Developing the Provider
+Detailed documentation for developing and contributing to RHCS provider can be found in our [contribution guide](CONTRIBUTE.md).
+ 

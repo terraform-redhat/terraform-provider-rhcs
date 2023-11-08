@@ -20,11 +20,11 @@ const (
 var (
 	TokenENVName              = "RHCS_TOKEN"
 	ClusterIDEnv              = "CLUSTER_ID"
-	OCMEnv                    = "OCM_ENV"
+	RHCSENV                   = "RHCS_ENV"
 	RhcsClusterProfileENV     = "CLUSTER_PROFILE"
 	ClusterTypeManifestDirEnv = "CLUSTER_ROSA_TYPE"
 	MajorVersion              = "MAJOR_VERSION_ENV"
-	ManifestsDirENV           = os.Getenv("MANIFESTS_DIR")
+	ManifestsDirENV           = os.Getenv("MANIFESTS_FOLDER")
 )
 
 var (
@@ -33,6 +33,13 @@ var (
 	WorkSpace           = "WORKSPACE"
 	RHCSPrefix          = "rhcs"
 	TFYAMLProfile       = "tf_cluster_profile.yml"
+	LdapURL             = "ldap://ldap.forumsys.com/dc=example,dc=com?uid"
+	GitLabURL           = "https://gitlab.cee.redhat.com"
+	Organizations       = []string{"openshift"}
+	HostedDomain        = "redhat.com"
+	DefaultMPLabels     = map[string]string{
+		"test1": "testdata1",
+	}
 )
 
 const (
@@ -100,3 +107,10 @@ func GrantClusterManifestDir(manifestDir string) string {
 	}
 	return targetDir
 }
+
+// Machine pool taints effect
+const (
+	NoExecute        = "NoExecute"
+	NoSchedule       = "NoSchedule"
+	PreferNoSchedule = "PreferNoSchedule"
+)

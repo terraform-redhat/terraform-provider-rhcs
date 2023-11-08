@@ -4,12 +4,14 @@ This package is the automation package for Function Verification Testing on the 
 ## Structure of tests
 ```sh
 tests
-|____e2e                                          ---- e2e folder contains all of the e2e cases
-|    |____init_test.go
-|    |____machine_pool_test.go
-|    |____...
-|    |____cluster_creation_validation_test.go
-|    |____cluster_creation.go                     ---- cluster_creation.go will handle cluster creation by profile
+|____e2e      
+    |____cluster_creation_test.go                 ---- handles cluster creation by profile
+    |____cluster_destroy_test.go
+    |____e2e_suite_test.go                        ---- test suite for all the e2e tests
+    |____idps_test.go
+    |____...
+    |____machine_pool_test.go
+    |____verfication_post_day1_test.go            ---- post day1 verification tests
 |____utils
 |    |____exec                                    ---- exec will package the tf commands like init state apply destroy
 |    |    |____tf.go
@@ -121,9 +123,34 @@ This allows run by case filter to simulate CI. Anybody can customize the case la
   * Export the token
     * `export RHCS_TOKEN=<rhcs token>` #If it had been run, then you can skip
   * Export the label filter to locate the preparation case
-    * `export LabelFilter="destroy"` #This filter only choose all critical and high priority cases with day1-post and day2
+    * `export LabelFilter="destroy"` #This filter only choose the destroy case for resources destroy
   * Run make command
     * `make e2e_test`
+### Running a local CI simulation
+This feature allows for running tests through a case filter to simulate CI. Anyone can customize the case label filter to select the specific cases that would be run. 
+* Prepare cluster with profile
+  * Check file terraform-provider-rhcs/tests/ci/profiles/tf_cluster_profile.yml to find the supported profiles and detailed configuration
+    * `export CLUSTER_PROFILE=<profile name>`
+  * Export the token
+    * `export RHCS_TOKEN=<rhcs token>`
+  * Run ginkgo run command
+    * `ginkgo run --label-filter day1-prepare tests/e2e`
+* Run day2 day1 post cases with profile
+  * Check file terraform-provider-rhcs/tests/ci/profiles/tf_cluster_profile.yml to find the supported profiles and detailed configuration
+    * `export CLUSTER_PROFILE=<profile name>` #If it had been run, then you can skip
+  * Export the token
+    * `export RHCS_TOKEN=<rhcs token>` #If it had been run, then you can skip
+  * Run ginkgo run command
+    * `ginkgo run --label-filter (Critical,High)&&(day1-post,day2)&&!Exclude tests/e2e`
+   * Run a specified case to debug
+    * `ginkgo -focus <case id> tests/e2e`
+* Run destroy with profile
+  * Check file terraform-provider-rhcs/tests/ci/profiles/tf_cluster_profile.yml to find the supported profiles and detailed configuration
+    * `export CLUSTER_PROFILE=<profile name>` #If it had been run, then you can skip
+  * Export the token
+    * `export RHCS_TOKEN=<rhcs token>` #If it had been run, then you can skip
+  * Run ginkgo run command
+    * `ginkgo run --label-filter destroy tests/e2e`
 
 ### Set log level
 * Log level defined in terraform-provider-rhcs/tests/utils/exec/tf-exec.go

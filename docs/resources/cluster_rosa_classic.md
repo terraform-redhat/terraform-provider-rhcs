@@ -88,6 +88,7 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
 - `upgrade_acknowledgements_for` (String) Indicates acknowledgement of agreements required to upgrade the cluster version between minor versions (e.g. a value of "4.12" indicates acknowledgement of any agreements required to upgrade to OpenShift 4.12.z from 4.11 or before).
 - `version` (String) Desired version of OpenShift for the cluster, for example '4.11.0'. If version is greater than the currently running version, an upgrade will be scheduled.
 - `wait_for_create_complete` (Boolean) Wait until the cluster is either in a ready state or in an error state. The waiter has a timeout of 60 minutes, with the default value set to false
+- `worker_disk_size` (Number) Compute node root disk size, in GiB. (only valid during cluster creation)
 
 ### Read-Only
 

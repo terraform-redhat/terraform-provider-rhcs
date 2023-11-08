@@ -199,18 +199,16 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				},
 			},
 			"autoscaling_enabled": schema.BoolAttribute{
-				Description: "Enables autoscaling.",
+				Description: "Enable autoscaling for the initial worker pool. (only valid during cluster creation)",
 				Optional:    true,
 			},
 			"min_replicas": schema.Int64Attribute{
-				Description: "Minimum replicas of worker nodes in a machine pool.",
+				Description: "Minimum replicas of worker nodes in a machine pool. (only valid during cluster creation)",
 				Optional:    true,
-				Computed:    true,
 			},
 			"max_replicas": schema.Int64Attribute{
-				Description: "Maximum replicas of worker nodes in a machine pool.",
+				Description: "Maximum replicas of worker nodes in a machine pool. (only valid during cluster creation)",
 				Optional:    true,
-				Computed:    true,
 			},
 			"api_url": schema.StringAttribute{
 				Description: "URL of the API server.",
@@ -237,24 +235,22 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 			},
 			"replicas": schema.Int64Attribute{
 				Description: "Number of worker/compute nodes to provision. Single zone clusters need at least 2 nodes, " +
-					"multizone clusters need at least 3 nodes.",
+					"multizone clusters need at least 3 nodes. (only valid during cluster creation)",
 				Optional: true,
-				Computed: true,
 			},
 			"compute_machine_type": schema.StringAttribute{
 				Description: "Identifies the machine type used by the default/initial worker nodes, " +
 					"for example `m5.xlarge`. Use the `rhcs_machine_types` data " +
-					"source to find the possible values.",
+					"source to find the possible values. (only valid during cluster creation)",
 				Optional: true,
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-					stringplanmodifier.RequiresReplace(),
-				},
+			},
+			"worker_disk_size": schema.Int64Attribute{
+				Description: "Compute node root disk size, in GiB. (only valid during cluster creation)",
+				Optional:    true,
 			},
 			"default_mp_labels": schema.MapAttribute{
 				Description: "This value is the default/initial machine pool labels. Format should be a comma-separated list of '{\"key1\"=\"value1\", \"key2\"=\"value2\"}'. " +
-					"This list overwrites any modifications made to node labels on an ongoing basis. ",
+					"(only valid during cluster creation)",
 				ElementType: types.StringType,
 				Optional:    true,
 			},
@@ -275,7 +271,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 			},
 			"kms_key_arn": schema.StringAttribute{
 				Description: "The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, " +
-					"fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID" + 
+					"fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID" +
 					"(optional).",
 				Optional: true,
 				PlanModifiers: []planmodifier.String{
@@ -476,7 +472,6 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 			},
 		},
 	}
-	return
 }
 
 func (r *ClusterRosaClassicResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -586,9 +581,10 @@ func createClassicClusterObject(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
+	workerDiskSize := common.OptionalInt64(state.WorkerDiskSize)
 
 	if err = ocmClusterResource.CreateNodes(autoScalingEnabled, replicas, minReplicas, maxReplicas,
-		computeMachineType, labels, availabilityZones, multiAZ); err != nil {
+		computeMachineType, labels, availabilityZones, multiAZ, workerDiskSize); err != nil {
 		return nil, err
 	}
 
@@ -1065,19 +1061,8 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resourc
 	}
 
 	clusterBuilder := cmv1.NewCluster()
-	clusterBuilder, _, err := updateNodes(ctx, state, plan, clusterBuilder)
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Can't update cluster",
-			fmt.Sprintf(
-				"Can't update cluster nodes for cluster with identifier: `%s`, %v",
-				state.ID.ValueString(), err,
-			),
-		)
-		return
-	}
 
-	clusterBuilder, err = updateProxy(state, plan, clusterBuilder)
+	clusterBuilder, err := updateProxy(state, plan, clusterBuilder)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't update cluster",
@@ -1138,11 +1123,6 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resourc
 		return
 	}
 
-	// update the autoscaling enabled with the plan value (important for nil and false cases)
-	state.AutoScalingEnabled = plan.AutoScalingEnabled
-
-	// update the Replicas with the plan value (important for nil and zero value cases)
-	state.Replicas = plan.Replicas
 	object := update.Body()
 
 	// Update the state:
@@ -1348,52 +1328,6 @@ func updateProxy(state, plan *ClusterRosaClassicState, clusterBuilder *cmv1.Clus
 	return clusterBuilder, nil
 }
 
-func updateNodes(ctx context.Context, state, plan *ClusterRosaClassicState, clusterBuilder *cmv1.ClusterBuilder) (*cmv1.ClusterBuilder, bool, error) {
-	// Send request to update the cluster:
-	shouldUpdateNodes := false
-	clusterNodesBuilder := cmv1.NewClusterNodes()
-	compute, ok := common.ShouldPatchInt(state.Replicas, plan.Replicas)
-	if ok {
-		clusterNodesBuilder = clusterNodesBuilder.Compute(int(compute))
-		shouldUpdateNodes = true
-	}
-	if common.HasValue(plan.AutoScalingEnabled) && plan.AutoScalingEnabled.ValueBool() {
-		// autoscaling enabled
-		autoscaling := cmv1.NewMachinePoolAutoscaling()
-
-		if common.HasValue(plan.MaxReplicas) {
-			autoscaling = autoscaling.MaxReplicas(int(plan.MaxReplicas.ValueInt64()))
-		}
-		if common.HasValue(plan.MinReplicas) {
-			autoscaling = autoscaling.MinReplicas(int(plan.MinReplicas.ValueInt64()))
-		}
-		clusterNodesBuilder = clusterNodesBuilder.AutoscaleCompute(autoscaling)
-		shouldUpdateNodes = true
-	} else {
-		if common.HasValue(plan.MaxReplicas) || common.HasValue(plan.MinReplicas) {
-			return nil, false, fmt.Errorf("Can't update MaxReplica and/or MinReplica of cluster when autoscaling is not enabled")
-		}
-	}
-
-	// MP labels update
-	if common.HasValue(plan.DefaultMPLabels) {
-		if labelsPlan, ok := common.ShouldPatchMap(state.DefaultMPLabels, plan.DefaultMPLabels); ok {
-			labels := map[string]string{}
-			for k, v := range labelsPlan.Elements() {
-				labels[k] = v.(types.String).ValueString()
-			}
-			clusterNodesBuilder.ComputeLabels(labels)
-			shouldUpdateNodes = true
-		}
-	}
-
-	if shouldUpdateNodes {
-		clusterBuilder = clusterBuilder.Nodes(clusterNodesBuilder)
-	}
-
-	return clusterBuilder, shouldUpdateNodes, nil
-}
-
 func (r *ClusterRosaClassicResource) Delete(ctx context.Context, request resource.DeleteRequest,
 	response *resource.DeleteResponse) {
 	tflog.Debug(ctx, "begin delete()")
@@ -1494,18 +1428,7 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	state.APIURL = types.StringValue(object.API().URL())
 	state.ConsoleURL = types.StringValue(object.Console().URL())
 	state.Domain = types.StringValue(fmt.Sprintf("%s.%s", object.Name(), object.DNS().BaseDomain()))
-	state.Replicas = types.Int64Value(int64(object.Nodes().Compute()))
-	state.ComputeMachineType = types.StringValue(object.Nodes().ComputeMachineType().ID())
 	state.BaseDNSDomain = types.StringValue(object.DNS().BaseDomain())
-	labels, ok := object.Nodes().GetComputeLabels()
-	if ok {
-		mapValue, err := common.ConvertStringMapToMapType(labels)
-		if err != nil {
-			return err
-		} else {
-			state.DefaultMPLabels = mapValue
-		}
-	}
 
 	disableUserWorkload, ok := object.GetDisableUserWorkloadMonitoring()
 	if ok && disableUserWorkload {
@@ -1515,25 +1438,6 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	isFips, ok := object.GetFIPS()
 	if ok && isFips {
 		state.FIPS = types.BoolValue(true)
-	}
-	autoScaleCompute, ok := object.Nodes().GetAutoscaleCompute()
-	if ok {
-		var maxReplicas, minReplicas int
-		state.AutoScalingEnabled = types.BoolValue(true)
-
-		maxReplicas, ok = autoScaleCompute.GetMaxReplicas()
-		if ok {
-			state.MaxReplicas = types.Int64Value(int64(maxReplicas))
-		}
-
-		minReplicas, ok = autoScaleCompute.GetMinReplicas()
-		if ok {
-			state.MinReplicas = types.Int64Value(int64(minReplicas))
-		}
-	} else {
-		// autoscaling not enabled - initialize the MaxReplica and MinReplica
-		state.MaxReplicas = types.Int64Null()
-		state.MinReplicas = types.Int64Null()
 	}
 
 	if azs, ok := object.Nodes().GetAvailabilityZones(); ok {

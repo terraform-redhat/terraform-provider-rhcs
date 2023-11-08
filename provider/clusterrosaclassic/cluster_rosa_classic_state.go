@@ -36,6 +36,7 @@ type ClusterRosaClassicState struct {
 	ChannelGroup              types.String       `tfsdk:"channel_group"`
 	CloudRegion               types.String       `tfsdk:"cloud_region"`
 	ComputeMachineType        types.String       `tfsdk:"compute_machine_type"`
+	WorkerDiskSize            types.Int64        `tfsdk:"worker_disk_size"`
 	DefaultMPLabels           types.Map          `tfsdk:"default_mp_labels"`
 	Replicas                  types.Int64        `tfsdk:"replicas"`
 	ConsoleURL                types.String       `tfsdk:"console_url"`

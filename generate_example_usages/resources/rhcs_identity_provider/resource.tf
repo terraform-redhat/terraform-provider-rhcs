@@ -57,3 +57,15 @@ resource "rhcs_identity_provider" "ldap_idp" {
   }
 }
 
+# openid
+resource "rhcs_identity_provider" "openid_idp" {
+  cluster = "<cluster-id>"
+  name = "OpenID"
+  openid = {
+     client_id = "<client_id>"
+     client_secret = "<client_secret>"
+     issuer = "<issuer>"
+     ca = "<openid-ca>"
+     claims = "<claims>"
+  }
+}

@@ -16,3 +16,4 @@ The following identity providers are currently supported:
 * [GitLab](../../examples/create_identity_provider/gitlab/README.md)
 * [Google](../../examples/create_identity_provider/google/README.md)
 * [htpasswd](../../examples/create_identity_provider/htpasswd/README.md)
+* [OpenID](../../examples/create_identity_provider/openid/README.md)

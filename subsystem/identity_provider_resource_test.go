@@ -1030,6 +1030,9 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
     			***REMOVED***,
     					"client_id": "test_client",
     					"client_secret": "test_secret",
+    					"extra_authorize_parameters": {
+    					  "test_key": "test_value"
+    			***REMOVED***,
     					"extra_scopes": [
     					  "email",
     					  "profile"
@@ -1062,6 +1065,9 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
     							]
     				***REMOVED***,
     						"client_id": "test_client",
+    						"extra_authorize_parameters": {
+    							"test_key": "test_value"
+    				***REMOVED***,
     						"extra_scopes": [
     							"email",
     							"profile"
@@ -1078,11 +1084,14 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
     		    cluster    				= "123"
     		    name       				= "my-ip"
     		    openid = {
-    				ca            			= "test_ca"
-    				issuer					= "https://test.okta.com"
-    				client_id 				= "test_client"
-    				client_secret			= "test_secret"
-    				extra_scopes 			= ["email","profile"]
+    				ca            						= "test_ca"
+    				issuer								= "https://test.okta.com"
+    				client_id 							= "test_client"
+    				client_secret						= "test_secret"
+    				extra_scopes 						= ["email","profile"]
+    				extra_authorize_parameters 			= {
+    					test_key              = "test_value"
+    		      	}
     				claims = {
     					email              = ["email"]
     					groups			   = ["admins"]
@@ -1093,6 +1102,8 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
     		  }
     		`***REMOVED***
 			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+			resource := terraform.Resource("rhcs_identity_provider", "my_ip"***REMOVED***
+			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.openid.extra_authorize_parameters.test_key`, "test_value"***REMOVED******REMOVED***
 ***REMOVED******REMOVED***
 
 		It("Should fail with invalid mapping_method", func(***REMOVED*** {

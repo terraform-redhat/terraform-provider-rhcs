@@ -16,6 +16,7 @@ type IDPArgs struct {
 	OCMENV        string        `json:"ocm_environment,omitempty"`
 	URL           string        `json:"url,omitempty"`
 	CA            string        `json:"ca,omitempty"`
+	Attributes    interface{}   `json:"attributes,omitempty"`
 	ClientID      string        `json:"client_id,omitempty"`
 	ClientSecret  string        `json:"client_secret,omitempty"`
 	Organizations []string      `json:"organizations,omitempty"`
@@ -51,7 +52,6 @@ func (idp *IDPService) Init(manifestDirs ...string) error {
 }
 
 func (idp *IDPService) Create(createArgs *IDPArgs, extraArgs ...string) error {
-	createArgs.URL = CON.GateWayURL
 	idp.CreationArgs = createArgs
 	args := combineStructArgs(createArgs, extraArgs...)
 	_, err := runTerraformApplyWithArgs(idp.Context, idp.ManifestDir, args)

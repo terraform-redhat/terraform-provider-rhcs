@@ -34,5 +34,4 @@ variable "organizations" {
 }
 variable "name" {
     type= string
-    default = "Github"
 }

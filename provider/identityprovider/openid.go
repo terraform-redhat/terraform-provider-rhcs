@@ -2,7 +2,6 @@ package identityprovider
 
 import (
 	"context"
-
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -15,7 +14,7 @@ type OpenIDIdentityProvider struct {
 	ClientID                 types.String                  `tfsdk:"client_id"`
 	ClientSecret             types.String                  `tfsdk:"client_secret"`
 	ExtraScopes              types.List                    `tfsdk:"extra_scopes"`
-	ExtraAuthorizeParameters map[string]string             `tfsdk:"extra_authorize_parameters"`
+	ExtraAuthorizeParameters types.Map                     `tfsdk:"extra_authorize_parameters"`
 	Issuer                   types.String                  `tfsdk:"issuer"`
 }
 
@@ -50,7 +49,7 @@ var openidSchema = map[string]schema.Attribute{
 		ElementType: types.StringType,
 		Optional:    true,
 	},
-	"extra_authorize_parameters": schema.ListAttribute{
+	"extra_authorize_parameters": schema.MapAttribute{
 		ElementType: types.StringType,
 		Optional:    true,
 	},
@@ -128,8 +127,13 @@ func CreateOpenIDIDPBuilder(ctx context.Context, state *OpenIDIdentityProvider) 
 	if !state.ClientSecret.IsNull() {
 		builder.ClientSecret(state.ClientSecret.ValueString())
 	}
-	if state.ExtraAuthorizeParameters != nil {
-		builder.ExtraAuthorizeParameters(state.ExtraAuthorizeParameters)
+	if common.HasValue(state.ExtraAuthorizeParameters) {
+		elements, err := common.OptionalMap(ctx, state.ExtraAuthorizeParameters)
+		if err != nil {
+			return nil, err
+		}
+
+		builder.ExtraAuthorizeParameters(elements)
 	}
 	if !state.ExtraScopes.IsUnknown() && !state.ExtraScopes.IsNull() {
 		extraScopes, err := common.StringListToArray(ctx, state.ExtraScopes)

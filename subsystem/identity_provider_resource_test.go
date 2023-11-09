@@ -1049,6 +1049,9 @@ var _ = Describe("Identity provider creation", func() {
     					},
     					"client_id": "test_client",
     					"client_secret": "test_secret",
+    					"extra_authorize_parameters": {
+    					  "test_key": "test_value"
+    					},
     					"extra_scopes": [
     					  "email",
     					  "profile"
@@ -1081,6 +1084,9 @@ var _ = Describe("Identity provider creation", func() {
     							]
     						},
     						"client_id": "test_client",
+    						"extra_authorize_parameters": {
+    							"test_key": "test_value"
+    						},
     						"extra_scopes": [
     							"email",
     							"profile"
@@ -1097,11 +1103,14 @@ var _ = Describe("Identity provider creation", func() {
     		    cluster    				= "123"
     		    name       				= "my-ip"
     		    openid = {
-    				ca            			= "test_ca"
-    				issuer					= "https://test.okta.com"
-    				client_id 				= "test_client"
-    				client_secret			= "test_secret"
-    				extra_scopes 			= ["email","profile"]
+    				ca            						= "test_ca"
+    				issuer								= "https://test.okta.com"
+    				client_id 							= "test_client"
+    				client_secret						= "test_secret"
+    				extra_scopes 						= ["email","profile"]
+    				extra_authorize_parameters 			= {
+    					test_key              = "test_value"
+    		      	}
     				claims = {
     					email              = ["email"]
     					groups			   = ["admins"]
@@ -1112,6 +1121,8 @@ var _ = Describe("Identity provider creation", func() {
     		  }
     		`)
 			Expect(terraform.Apply()).To(BeZero())
+			resource := terraform.Resource("rhcs_identity_provider", "my_ip")
+			Expect(resource).To(MatchJQ(`.attributes.openid.extra_authorize_parameters.test_key`, "test_value"))
 		})
 
 		It("Should fail with invalid mapping_method", func() {

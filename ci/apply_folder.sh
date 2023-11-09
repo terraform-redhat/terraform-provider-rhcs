@@ -4,18 +4,18 @@ set -o nounset
 set -o errexit
 set -o pipefail
 set -x
-trap 'CHILDREN=$(jobs -p***REMOVED***; if test -n "${CHILDREN}"; then kill ${CHILDREN} && wait; fi' TERM
+trap 'CHILDREN=$(jobs -p); if test -n "${CHILDREN}"; then kill ${CHILDREN} && wait; fi' TERM
 
-function error_exit(***REMOVED*** {
+function error_exit() {
     msg=${1}
     >&2 echo "[Error] ${msg}"
     exit 1
 }
 
-function prow_archive_state(***REMOVED*** {
+function prow_archive_state() {
     if [ -n "${OPENSHIFT_CI:-}" ]; then
         echo
-        echo "[INFO] Running in OpenShift CI (Prow***REMOVED***."
+        echo "[INFO] Running in OpenShift CI (Prow)."
         echo "[INFO] Archiving state for PROW."
         echo
         set -o xtrace
@@ -34,8 +34,8 @@ function prow_archive_state(***REMOVED*** {
     fi
 }
 
-THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" ***REMOVED***" >/dev/null 2>&1 && pwd ***REMOVED***"
-BASE_DIR=$(realpath "${THIS_DIR}/.."***REMOVED***
+THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+BASE_DIR=$(realpath "${THIS_DIR}/..")
 
 echo
 echo ">> Running apply_folder script"
@@ -65,18 +65,18 @@ export TF_LOG=${TF_LOG:-info}
 cd "${WORK_DIR}"
 
 
-# Check for provider source and version 'provider_source = "hashicorp/rhcs" (or "terraform.local/local/rhcs"'***REMOVED*** and 'provider_version = ">=1.0.1"'  
-provider=$(cat main.tf | awk '/required_providers/{line=1; next} line && /^\}/{exit} line' | awk '/rhcs(\s+?***REMOVED***=(\s+?***REMOVED***\{/{line=1; next} line && /\}/{exit} line'***REMOVED***
+# Check for provider source and version 'provider_source = "hashicorp/rhcs" (or "terraform.local/local/rhcs"') and 'provider_version = ">=1.0.1"'  
+provider=$(cat main.tf | awk '/required_providers/{line=1; next} line && /^\}/{exit} line' | awk '/rhcs(\s+?)=(\s+?)\{/{line=1; next} line && /\}/{exit} line')
 
-src=$(echo "${TF_VARS}" | grep provider_source | sed -rEz 's/.+?provider_source\s+?=\s+?(\"[^\"]*\"***REMOVED***.*/\1/'***REMOVED*** || true
+src=$(echo "${TF_VARS}" | grep provider_source | sed -rEz 's/.+?provider_source\s+?=\s+?(\"[^\"]*\").*/\1/') || true
 if [[ "$src" != "" ]]; then
-  provider_src=$(echo ${provider} | sed -rEz 's/.+?source\s+?=\s+?(\"[^\"]*\"***REMOVED***.*/\1/'***REMOVED***
+  provider_src=$(echo ${provider} | sed -rEz 's/.+?source\s+?=\s+?(\"[^\"]*\").*/\1/')
   sed -i "s|${provider_src}|${src}|" main.tf
 fi
 
-ver=$(echo "${TF_VARS}" | grep provider_version | sed -rEz 's/.+?provider_version\s+?=\s+?(\"[^\"]*\"***REMOVED***.*/\1/'***REMOVED*** || true
+ver=$(echo "${TF_VARS}" | grep provider_version | sed -rEz 's/.+?provider_version\s+?=\s+?(\"[^\"]*\").*/\1/') || true
 if [[ "$ver" != "" ]]; then
-  provider_ver=$(echo ${provider} | sed -rEz 's/.+?version\s+?=\s+?(\"[^\"]*\"***REMOVED***.*/\1/'***REMOVED***
+  provider_ver=$(echo ${provider} | sed -rEz 's/.+?version\s+?=\s+?(\"[^\"]*\").*/\1/')
   sed -i "s|${provider_ver}|${ver}|" main.tf
 fi
 

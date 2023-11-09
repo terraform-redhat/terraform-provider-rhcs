@@ -1,8 +1,8 @@
 package identityprovider
 
-***REMOVED***
+import (
 	"context"
-***REMOVED***
+	"fmt"
 	"net/url"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -11,7 +11,7 @@ package identityprovider
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
-***REMOVED***
+)
 
 type GitlabIdentityProvider struct {
 	CA           types.String `tfsdk:"ca"`
@@ -34,8 +34,8 @@ var gitlabSchema = map[string]schema.Attribute{
 		Description: "URL of the Gitlab instance.",
 		Required:    true,
 		Validators: []validator.String{
-			gitlabUrlValidator(***REMOVED***,
-***REMOVED***,
+			gitlabUrlValidator(),
+		},
 	},
 	"ca": schema.StringAttribute{
 		Description: "Optional trusted certificate authority bundle.",
@@ -43,29 +43,29 @@ var gitlabSchema = map[string]schema.Attribute{
 	},
 }
 
-func gitlabUrlValidator(***REMOVED*** validator.String {
-	return attrvalidators.NewStringValidator("url validator", func(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse***REMOVED*** {
+func gitlabUrlValidator() validator.String {
+	return attrvalidators.NewStringValidator("url validator", func(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
 		gitlabUrl := req.ConfigValue
 		// Validate hostname
-		if !gitlabUrl.IsUnknown(***REMOVED*** && !gitlabUrl.IsNull(***REMOVED*** && len(gitlabUrl.ValueString(***REMOVED******REMOVED*** > 0 {
-			_, err := url.ParseRequestURI(gitlabUrl.ValueString(***REMOVED******REMOVED***
+		if !gitlabUrl.IsUnknown() && !gitlabUrl.IsNull() && len(gitlabUrl.ValueString()) > 0 {
+			_, err := url.ParseRequestURI(gitlabUrl.ValueString())
 			if err != nil {
 				resp.Diagnostics.AddAttributeError(req.Path, "invalid url",
-					fmt.Sprintf("Expected a valid GitLab url. Got %v", gitlabUrl.ValueString(***REMOVED******REMOVED***,
-				***REMOVED***
-	***REMOVED***
-***REMOVED***
+					fmt.Sprintf("Expected a valid GitLab url. Got %v", gitlabUrl.ValueString()),
+				)
+			}
+		}
 
-	}***REMOVED***
+	})
 }
 
-func CreateGitlabIDPBuilder(ctx context.Context, state *GitlabIdentityProvider***REMOVED*** (*cmv1.GitlabIdentityProviderBuilder, error***REMOVED*** {
-	gitlabBuilder := cmv1.NewGitlabIdentityProvider(***REMOVED***
-	if !state.CA.IsUnknown(***REMOVED*** && !state.CA.IsNull(***REMOVED*** {
-		gitlabBuilder.CA(state.CA.ValueString(***REMOVED******REMOVED***
+func CreateGitlabIDPBuilder(ctx context.Context, state *GitlabIdentityProvider) (*cmv1.GitlabIdentityProviderBuilder, error) {
+	gitlabBuilder := cmv1.NewGitlabIdentityProvider()
+	if !state.CA.IsUnknown() && !state.CA.IsNull() {
+		gitlabBuilder.CA(state.CA.ValueString())
 	}
-	gitlabBuilder.ClientID(state.ClientID.ValueString(***REMOVED******REMOVED***
-	gitlabBuilder.ClientSecret(state.ClientSecret.ValueString(***REMOVED******REMOVED***
-	gitlabBuilder.URL(state.URL.ValueString(***REMOVED******REMOVED***
+	gitlabBuilder.ClientID(state.ClientID.ValueString())
+	gitlabBuilder.ClientSecret(state.ClientSecret.ValueString())
+	gitlabBuilder.URL(state.URL.ValueString())
 	return gitlabBuilder, nil
 }

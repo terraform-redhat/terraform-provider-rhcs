@@ -16,22 +16,22 @@ description: |-
 
 ## Introduction
 
-The Red Hat Cloud Services Terraform provider allows Terraform to manage Red Hat OpenShift Service on AWS (ROSA***REMOVED*** clusters and relevant resources.
+The Red Hat Cloud Services Terraform provider allows Terraform to manage Red Hat OpenShift Service on AWS (ROSA) clusters and relevant resources.
 
-For more information about ROSA, see the Red Hat documentation [here](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/introduction_to_rosa/rosa-understanding***REMOVED***.
+For more information about ROSA, see the Red Hat documentation [here](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/introduction_to_rosa/rosa-understanding).
 
 ## Prerequisites 
-* [GoLang version 1.20 or newer](https://go.dev/doc/install***REMOVED***
-* [Terraform version 1.4.6 or newer](https://developer.hashicorp.com/terraform/downloads***REMOVED***
-* An offline [OCM token](https://console.redhat.com/openshift/token/rosa***REMOVED***
-* [AWS account](https://aws.amazon.com/console/***REMOVED***
-* Completed [the ROSA getting started](https://console.redhat.com/openshift/create/rosa/getstarted***REMOVED*** requirements
-* [ROSA CLI](https://console.redhat.com/openshift/downloads#tool-rosa***REMOVED***
-* **Optional**: A [configured `*.tfvars` file](docs/guides/terraform-vars.md***REMOVED***.
+* [GoLang version 1.20 or newer](https://go.dev/doc/install)
+* [Terraform version 1.4.6 or newer](https://developer.hashicorp.com/terraform/downloads)
+* An offline [OCM token](https://console.redhat.com/openshift/token/rosa)
+* [AWS account](https://aws.amazon.com/console/)
+* Completed [the ROSA getting started](https://console.redhat.com/openshift/create/rosa/getstarted) requirements
+* [ROSA CLI](https://console.redhat.com/openshift/downloads#tool-rosa)
+* **Optional**: A [configured `*.tfvars` file](docs/guides/terraform-vars.md).
 
 ## Provider documentation
 
-See [the Terraform Registry documentation](https://registry.terraform.io/providers/terraform-redhat/rhcs/latest/docs***REMOVED*** for instructions on using this provider.
+See [the Terraform Registry documentation](https://registry.terraform.io/providers/terraform-redhat/rhcs/latest/docs) for instructions on using this provider.
 
 ## Limitations of the OCM Terraform provider
 
@@ -51,20 +51,20 @@ The following items are limitations with the current release of the OCM Terrafor
 
 The example Terraform files are all considered in development:
 ### Prior to creating clusters
-* [Account Roles Terraform](examples/create_account_roles/***REMOVED***
+* [Account Roles Terraform](examples/create_account_roles/)
 ### Cluster creation examples
-* [Create a ROSA cluster that uses STS and has a managed OIDC configuration](examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/***REMOVED***
-* [Create a ROSA cluster that uses STS and has an unmanaged OIDC configuration](examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/***REMOVED***
+* [Create a ROSA cluster that uses STS and has a managed OIDC configuration](examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/)
+* [Create a ROSA cluster that uses STS and has an unmanaged OIDC configuration](examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/)
 
 ### Post cluster installation
 * Modifying default machine pools
-* The following [identity providers](examples/create_identity_provider/***REMOVED*** are supported:
-  * [Github](examples/create_identity_provider/github/***REMOVED***
-  * [Gitlab](examples/create_identity_provider/gitlab/***REMOVED***
-  * [HTPasswd](examples/create_identity_provider/htpasswd/***REMOVED***
-  * [Google](examples/create_identity_provider/google/***REMOVED***
-  * [LDAP](examples/create_identity_provider/ldap/***REMOVED***
-* [Upgrading or updating your cluster](docs/guides/upgrading-cluster.md***REMOVED***
+* The following [identity providers](examples/create_identity_provider/) are supported:
+  * [Github](examples/create_identity_provider/github/)
+  * [Gitlab](examples/create_identity_provider/gitlab/)
+  * [HTPasswd](examples/create_identity_provider/htpasswd/)
+  * [Google](examples/create_identity_provider/google/)
+  * [LDAP](examples/create_identity_provider/ldap/)
+* [Upgrading or updating your cluster](docs/guides/upgrading-cluster.md)
 
 ## Contributing to the Red Hat Cloud Service Terraform provider
 If you want to build a local Red Hat Cloud Services provider to develop improvements for the Red Hat Cloud Services provider, you can run `terraform plan` against your local build with:
@@ -102,5 +102,5 @@ You can also use specific commit images by substituting `latest` for the desired
 Binary image only runs on AMD64 architectures up to now.
 
 ### Developing the Provider
-Detailed documentation for developing and contributing to RHCS provider can be found in our [contribution guide](CONTRIBUTE.md***REMOVED***.
+Detailed documentation for developing and contributing to RHCS provider can be found in our [contribution guide](CONTRIBUTE.md).
  

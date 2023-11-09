@@ -31,7 +31,7 @@ The following example should serve as a basis for your own `*.tfvars` files. You
 
 This example only includes the variables needed for creating your account-wide roles and creating cluster with a managed OIDC configuration. You can also add the needed variables for creating your identity provider and machine pools to this file.
 
-> **NOTE**: The `token` value in this example requires you to generate an offline OpenShift Cluster Manager token. You can do that in the [Red Hat Hybrid Cloud Console](https://console.redhat.com/openshift/token***REMOVED***.
+> **NOTE**: The `token` value in this example requires you to generate an offline OpenShift Cluster Manager token. You can do that in the [Red Hat Hybrid Cloud Console](https://console.redhat.com/openshift/token).
 
 ```
 account_role_prefix = "<user-prefix>"
@@ -45,4 +45,4 @@ url = "<url-of-environment"
 
 ### Additional resources
 
-* See the Terraform documentation for more information on [Terraform variables](https://developer.hashicorp.com/terraform/language/values/variables***REMOVED***.
+* See the Terraform documentation for more information on [Terraform variables](https://developer.hashicorp.com/terraform/language/values/variables).

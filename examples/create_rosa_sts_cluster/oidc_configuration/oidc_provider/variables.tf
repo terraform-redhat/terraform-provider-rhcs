@@ -10,7 +10,7 @@ variable "url" {
 }
 
 variable "managed" {
-  description = "Indicates whether it is a Red Hat managed or unmanaged (Customer hosted***REMOVED*** OIDC Configuration"
+  description = "Indicates whether it is a Red Hat managed or unmanaged (Customer hosted) OIDC Configuration"
   type        = bool
 }
 
@@ -36,12 +36,12 @@ variable "cloud_region" {
 
 variable "tags" {
   description = "List of AWS resource tags to apply."
-  type        = map(string***REMOVED***
+  type        = map(string)
   default     = null
 }
 
 variable "path" {
-  description = "(Optional***REMOVED*** The arn path for the account/operator roles as well as their policies."
+  description = "(Optional) The arn path for the account/operator roles as well as their policies."
   type        = string
   default     = null
 }

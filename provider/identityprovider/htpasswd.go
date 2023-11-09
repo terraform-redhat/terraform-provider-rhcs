@@ -1,8 +1,8 @@
 package identityprovider
 
-***REMOVED***
+import (
 	"context"
-***REMOVED***
+	"fmt"
 	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
@@ -13,30 +13,30 @@ package identityprovider
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-***REMOVED***
+)
 
 const (
 	HTPasswdMinPassLength = 14
-***REMOVED***
+)
 
 var (
-	HTPasswdPassRegexAscii          = regexp.MustCompile(`^[\x20-\x7E]+$`***REMOVED***
-	HTPasswdPassRegexHasUpper       = regexp.MustCompile(`[A-Z]`***REMOVED***
-	HTPasswdPassRegexHasLower       = regexp.MustCompile(`[a-z]`***REMOVED***
-	HTPasswdPassRegexHasNumOrSymbol = regexp.MustCompile(`[^a-zA-Z]`***REMOVED***
+	HTPasswdPassRegexAscii          = regexp.MustCompile(`^[\x20-\x7E]+$`)
+	HTPasswdPassRegexHasUpper       = regexp.MustCompile(`[A-Z]`)
+	HTPasswdPassRegexHasLower       = regexp.MustCompile(`[a-z]`)
+	HTPasswdPassRegexHasNumOrSymbol = regexp.MustCompile(`[^a-zA-Z]`)
 
 	HTPasswdPasswordValidators = []validator.String{
-		stringvalidator.LengthAtLeast(HTPasswdMinPassLength***REMOVED***,
-		stringvalidator.RegexMatches(HTPasswdPassRegexAscii, "password should use ASCII-standard characters only"***REMOVED***,
-		stringvalidator.RegexMatches(HTPasswdPassRegexHasUpper, "password must contain uppercase characters"***REMOVED***,
-		stringvalidator.RegexMatches(HTPasswdPassRegexHasLower, "password must contain lowercase characters"***REMOVED***,
-		stringvalidator.RegexMatches(HTPasswdPassRegexHasNumOrSymbol, "password must contain numbers or symbols"***REMOVED***,
+		stringvalidator.LengthAtLeast(HTPasswdMinPassLength),
+		stringvalidator.RegexMatches(HTPasswdPassRegexAscii, "password should use ASCII-standard characters only"),
+		stringvalidator.RegexMatches(HTPasswdPassRegexHasUpper, "password must contain uppercase characters"),
+		stringvalidator.RegexMatches(HTPasswdPassRegexHasLower, "password must contain lowercase characters"),
+		stringvalidator.RegexMatches(HTPasswdPassRegexHasNumOrSymbol, "password must contain numbers or symbols"),
 	}
 
 	HTPasswdUsernameValidators = []validator.String{
-		stringvalidator.RegexMatches(regexp.MustCompile(`^[^/:%]*$`***REMOVED***, "username may not contain the characters: '/:%'"***REMOVED***,
+		stringvalidator.RegexMatches(regexp.MustCompile(`^[^/:%]*$`), "username may not contain the characters: '/:%'"),
 	}
-***REMOVED***
+)
 
 type HTPasswdUser struct {
 	Username types.String `tfsdk:"username"`
@@ -52,11 +52,11 @@ var htpasswdSchema = map[string]schema.Attribute{
 		Description: "A list of htpasswd user credentials",
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: htpasswdUserList,
-***REMOVED***,
+		},
 		Validators: []validator.List{
-			listvalidator.SizeAtLeast(1***REMOVED***,
-			uniqueUsernameValidator(***REMOVED***,
-***REMOVED***,
+			listvalidator.SizeAtLeast(1),
+			uniqueUsernameValidator(),
+		},
 		Required: true,
 	},
 }
@@ -75,38 +75,38 @@ var htpasswdUserList = map[string]schema.Attribute{
 	},
 }
 
-func CreateHTPasswdIDPBuilder(ctx context.Context, state *HTPasswdIdentityProvider***REMOVED*** *cmv1.HTPasswdIdentityProviderBuilder {
-	builder := cmv1.NewHTPasswdIdentityProvider(***REMOVED***
-	userListBuilder := cmv1.NewHTPasswdUserList(***REMOVED***
+func CreateHTPasswdIDPBuilder(ctx context.Context, state *HTPasswdIdentityProvider) *cmv1.HTPasswdIdentityProviderBuilder {
+	builder := cmv1.NewHTPasswdIdentityProvider()
+	userListBuilder := cmv1.NewHTPasswdUserList()
 	userList := []*cmv1.HTPasswdUserBuilder{}
 	for _, user := range state.Users {
 		userBuilder := &cmv1.HTPasswdUserBuilder{}
-		userBuilder.Username(user.Username.ValueString(***REMOVED******REMOVED***
-		userBuilder.Password(user.Password.ValueString(***REMOVED******REMOVED***
-		userList = append(userList, userBuilder***REMOVED***
+		userBuilder.Username(user.Username.ValueString())
+		userBuilder.Password(user.Password.ValueString())
+		userList = append(userList, userBuilder)
 	}
-	userListBuilder.Items(userList...***REMOVED***
-	builder.Users(userListBuilder***REMOVED***
+	userListBuilder.Items(userList...)
+	builder.Users(userListBuilder)
 	return builder
 }
 
-func uniqueUsernameValidator(***REMOVED*** validator.List {
-	return attrvalidators.NewListValidator("userlist unique username", func(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse***REMOVED*** {
+func uniqueUsernameValidator() validator.List {
+	return attrvalidators.NewListValidator("userlist unique username", func(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
 		usersList := req.ConfigValue
 		htusers := []HTPasswdUser{}
-		err := usersList.ElementsAs(ctx, &htusers, true***REMOVED***
+		err := usersList.ElementsAs(ctx, &htusers, true)
 		if err != nil {
-			resp.Diagnostics.AddAttributeError(req.Path, "Invalid list conversion", "Failed to parse userlist"***REMOVED***
+			resp.Diagnostics.AddAttributeError(req.Path, "Invalid list conversion", "Failed to parse userlist")
 			return
-***REMOVED***
-		usernames := make(map[string]bool***REMOVED***
+		}
+		usernames := make(map[string]bool)
 		for _, user := range htusers {
-			if _, ok := usernames[user.Username.ValueString(***REMOVED***]; ok {
+			if _, ok := usernames[user.Username.ValueString()]; ok {
 				// Username already exists
-				resp.Diagnostics.AddAttributeError(req.Path, fmt.Sprintf("Found duplicate username: '%s'", user.Username.ValueString(***REMOVED******REMOVED***, "Usernames in HTPasswd user list must be unique"***REMOVED***
+				resp.Diagnostics.AddAttributeError(req.Path, fmt.Sprintf("Found duplicate username: '%s'", user.Username.ValueString()), "Usernames in HTPasswd user list must be unique")
 				return
-	***REMOVED***
-			usernames[user.Username.ValueString(***REMOVED***] = true
-***REMOVED***
-	}***REMOVED***
+			}
+			usernames[user.Username.ValueString()] = true
+		}
+	})
 }

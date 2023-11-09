@@ -1,12 +1,12 @@
 package exec
 
-***REMOVED***
+import (
 	"context"
-***REMOVED***
+	"fmt"
 
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-***REMOVED***
-***REMOVED***
+	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+)
 
 type IDPArgs struct {
 	ClusterID     string        `json:"cluster_id,omitempty"`
@@ -36,45 +36,45 @@ type IDPOutput struct {
 	ID string `json:"idp_id,omitempty"`
 }
 
-func (idp *IDPService***REMOVED*** Init(manifestDirs ...string***REMOVED*** error {
+func (idp *IDPService) Init(manifestDirs ...string) error {
 	idp.ManifestDir = CON.IDPsDir
-	if len(manifestDirs***REMOVED*** != 0 {
+	if len(manifestDirs) != 0 {
 		idp.ManifestDir = manifestDirs[0]
 	}
-	ctx := context.TODO(***REMOVED***
+	ctx := context.TODO()
 	idp.Context = ctx
-	err := runTerraformInit(ctx, idp.ManifestDir***REMOVED***
+	err := runTerraformInit(ctx, idp.ManifestDir)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (idp *IDPService***REMOVED*** Create(createArgs *IDPArgs, extraArgs ...string***REMOVED*** error {
+func (idp *IDPService) Create(createArgs *IDPArgs, extraArgs ...string) error {
 	createArgs.URL = CON.GateWayURL
 	idp.CreationArgs = createArgs
-	args := combineStructArgs(createArgs, extraArgs...***REMOVED***
-	_, err := runTerraformApplyWithArgs(idp.Context, idp.ManifestDir, args***REMOVED***
+	args := combineStructArgs(createArgs, extraArgs...)
+	_, err := runTerraformApplyWithArgs(idp.Context, idp.ManifestDir, args)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (idp *IDPService***REMOVED*** Output(***REMOVED*** (IDPOutput, error***REMOVED*** {
+func (idp *IDPService) Output() (IDPOutput, error) {
 	idpDir := CON.IDPsDir
 	if idp.ManifestDir != "" {
 		idpDir = idp.ManifestDir
 	}
 	var output IDPOutput
-	out, err := runTerraformOutput(context.TODO(***REMOVED***, idpDir***REMOVED***
+	out, err := runTerraformOutput(context.TODO(), idpDir)
 	if err != nil {
 		return output, err
 	}
 	if err != nil {
 		return output, err
 	}
-	id := h.DigString(out["idp_id"], "value"***REMOVED***
+	id := h.DigString(out["idp_id"], "value")
 
 	// right now only "holds" id, more vars might be needed in the future
 	output = IDPOutput{
@@ -83,23 +83,23 @@ func (idp *IDPService***REMOVED*** Output(***REMOVED*** (IDPOutput, error***REMO
 	return output, nil
 }
 
-func (idp *IDPService***REMOVED*** Destroy(createArgs ...*IDPArgs***REMOVED*** error {
-	if idp.CreationArgs == nil && len(createArgs***REMOVED*** == 0 {
-		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter"***REMOVED***
+func (idp *IDPService) Destroy(createArgs ...*IDPArgs) error {
+	if idp.CreationArgs == nil && len(createArgs) == 0 {
+		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
 	}
 	destroyArgs := idp.CreationArgs
-	if len(createArgs***REMOVED*** != 0 {
+	if len(createArgs) != 0 {
 		destroyArgs = createArgs[0]
 		destroyArgs.URL = CON.GateWayURL
 	}
-	args := combineStructArgs(destroyArgs***REMOVED***
-	err := runTerraformDestroyWithArgs(idp.Context, idp.ManifestDir, args***REMOVED***
+	args := combineStructArgs(destroyArgs)
+	err := runTerraformDestroyWithArgs(idp.Context, idp.ManifestDir, args)
 
 	return err
 }
 
-func NewIDPService(manifestDir ...string***REMOVED*** *IDPService {
+func NewIDPService(manifestDir ...string) *IDPService {
 	idp := &IDPService{}
-	idp.Init(manifestDir...***REMOVED***
+	idp.Init(manifestDir...)
 	return idp
 }

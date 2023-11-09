@@ -1,7 +1,7 @@
 /*
-Copyright (c***REMOVED*** 2021 Red Hat, Inc.
+Copyright (c) 2021 Red Hat, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -16,16 +16,16 @@ limitations under the License.
 
 package provider
 
-***REMOVED***
-***REMOVED***
+import (
+	"net/http"
 
 	. "github.com/onsi/ginkgo/v2/dsl/core"             // nolint
-***REMOVED***                         // nolint
+	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
-***REMOVED***
+)
 
-var _ = Describe("Cluster creation", func(***REMOVED*** {
+var _ = Describe("Cluster creation", func() {
 	// This is the cluster that will be returned by the server when asked to create or retrieve
 	// a cluster.
 	const template = `{
@@ -70,17 +70,17 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 	  "state": "ready"
 	}`
 
-	It("Creates basic cluster", func(***REMOVED*** {
+	It("Creates basic cluster", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
-				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-				VerifyJQ(`.name`, "my-cluster"***REMOVED***,
-				VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
-				VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
-				RespondWithJSON(http.StatusCreated, template***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+				VerifyJQ(`.name`, "my-cluster"),
+				VerifyJQ(`.cloud_provider.id`, "aws"),
+				VerifyJQ(`.region.id`, "us-west-1"),
+				RespondWithJSON(http.StatusCreated, template),
+			),
+		)
 
 		// Run the apply command:
 		terraform.Source(`
@@ -90,18 +90,18 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		    cloud_provider = "aws"
 		    cloud_region   = "us-west-1"
 		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-	}***REMOVED***
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+	})
 
-	It("Saves API and console URLs to the state", func(***REMOVED*** {
+	It("Saves API and console URLs to the state", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
-				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-				RespondWithJSON(http.StatusCreated, template***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+				RespondWithJSON(http.StatusCreated, template),
+			),
+		)
 
 		// Run the apply command:
 		terraform.Source(`
@@ -111,25 +111,25 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		    cloud_provider = "aws"
 		    cloud_region   = "us-west-1"
 		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_cluster", "my_cluster"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.api_url", "https://my-api.example.com"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.console_url", "https://my-console.example.com"***REMOVED******REMOVED***
-	}***REMOVED***
+		resource := terraform.Resource("rhcs_cluster", "my_cluster")
+		Expect(resource).To(MatchJQ(".attributes.api_url", "https://my-api.example.com"))
+		Expect(resource).To(MatchJQ(".attributes.console_url", "https://my-console.example.com"))
+	})
 
-	It("Sets compute nodes and machine type", func(***REMOVED*** {
+	It("Sets compute nodes and machine type", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
-				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-				VerifyJQ(`.nodes.compute`, 3.0***REMOVED***,
-				VerifyJQ(`.nodes.compute_machine_type.id`, "r5.xlarge"***REMOVED***,
-				RespondWithJSON(http.StatusCreated, template***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+				VerifyJQ(`.nodes.compute`, 3.0),
+				VerifyJQ(`.nodes.compute_machine_type.id`, "r5.xlarge"),
+				RespondWithJSON(http.StatusCreated, template),
+			),
+		)
 
 		// Run the apply command:
 		terraform.Source(`
@@ -141,24 +141,24 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		    compute_nodes        = 3
 		    compute_machine_type = "r5.xlarge"
 		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_cluster", "my_cluster"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.compute_nodes", 3.0***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.compute_machine_type", "r5.xlarge"***REMOVED******REMOVED***
-	}***REMOVED***
+		resource := terraform.Resource("rhcs_cluster", "my_cluster")
+		Expect(resource).To(MatchJQ(".attributes.compute_nodes", 3.0))
+		Expect(resource).To(MatchJQ(".attributes.compute_machine_type", "r5.xlarge"))
+	})
 
-	It("Creates CCS cluster", func(***REMOVED*** {
+	It("Creates CCS cluster", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
-				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-				VerifyJQ(".ccs.enabled", true***REMOVED***,
-				VerifyJQ(".aws.account_id", "123"***REMOVED***,
-				VerifyJQ(".aws.access_key_id", "456"***REMOVED***,
-				VerifyJQ(".aws.secret_access_key", "789"***REMOVED***,
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+				VerifyJQ(".ccs.enabled", true),
+				VerifyJQ(".aws.account_id", "123"),
+				VerifyJQ(".aws.access_key_id", "456"),
+				VerifyJQ(".aws.secret_access_key", "789"),
 				RespondWithPatchedJSON(http.StatusOK, template, `[
 				  {
 				    "op": "replace",
@@ -176,9 +176,9 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 				      "secret_access_key": "789"
 				    }
 				  }
-				]`***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				]`),
+			),
+		)
 
 		// Run the apply command:
 		terraform.Source(`
@@ -192,26 +192,26 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		    aws_access_key_id     = "456"
 		    aws_secret_access_key = "789"
 		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_cluster", "my_cluster"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.ccs_enabled", true***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.aws_account_id", "123"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.aws_access_key_id", "456"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.aws_secret_access_key", "789"***REMOVED******REMOVED***
-	}***REMOVED***
+		resource := terraform.Resource("rhcs_cluster", "my_cluster")
+		Expect(resource).To(MatchJQ(".attributes.ccs_enabled", true))
+		Expect(resource).To(MatchJQ(".attributes.aws_account_id", "123"))
+		Expect(resource).To(MatchJQ(".attributes.aws_access_key_id", "456"))
+		Expect(resource).To(MatchJQ(".attributes.aws_secret_access_key", "789"))
+	})
 
-	It("Sets network configuration", func(***REMOVED*** {
+	It("Sets network configuration", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
-				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-				VerifyJQ(".network.machine_cidr", "10.0.0.0/15"***REMOVED***,
-				VerifyJQ(".network.service_cidr", "172.30.0.0/15"***REMOVED***,
-				VerifyJQ(".network.pod_cidr", "10.128.0.0/13"***REMOVED***,
-				VerifyJQ(".network.host_prefix", 22.0***REMOVED***,
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+				VerifyJQ(".network.machine_cidr", "10.0.0.0/15"),
+				VerifyJQ(".network.service_cidr", "172.30.0.0/15"),
+				VerifyJQ(".network.pod_cidr", "10.128.0.0/13"),
+				VerifyJQ(".network.host_prefix", 22.0),
 				RespondWithPatchedJSON(http.StatusOK, template, `[
 				  {
 				    "op": "replace",
@@ -223,9 +223,9 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 				      "host_prefix": 22
 				    }
 				  }
-				]`***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				]`),
+			),
+		)
 
 		// Run the apply command:
 		terraform.Source(`
@@ -239,23 +239,23 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		    pod_cidr       = "10.128.0.0/13"
 		    host_prefix    = 22
 		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_cluster", "my_cluster"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.machine_cidr", "10.0.0.0/15"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.service_cidr", "172.30.0.0/15"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.pod_cidr", "10.128.0.0/13"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.host_prefix", 22.0***REMOVED******REMOVED***
-	}***REMOVED***
+		resource := terraform.Resource("rhcs_cluster", "my_cluster")
+		Expect(resource).To(MatchJQ(".attributes.machine_cidr", "10.0.0.0/15"))
+		Expect(resource).To(MatchJQ(".attributes.service_cidr", "172.30.0.0/15"))
+		Expect(resource).To(MatchJQ(".attributes.pod_cidr", "10.128.0.0/13"))
+		Expect(resource).To(MatchJQ(".attributes.host_prefix", 22.0))
+	})
 
-	It("Sets version", func(***REMOVED*** {
+	It("Sets version", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
-				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-				VerifyJQ(".version.id", "openshift-v4.8.1"***REMOVED***,
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+				VerifyJQ(".version.id", "openshift-v4.8.1"),
 				RespondWithPatchedJSON(http.StatusOK, template, `[
 				  {
 				    "op": "replace",
@@ -264,9 +264,9 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 				      "id": "openshift-v4.8.1"
 				    }
 				  }
-				]`***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				]`),
+			),
+		)
 
 		// Run the apply command:
 		terraform.Source(`
@@ -277,26 +277,26 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		    cloud_region   = "us-west-1"
 		    version        = "openshift-v4.8.1"
 		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_cluster", "my_cluster"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.version", "openshift-v4.8.1"***REMOVED******REMOVED***
-	}***REMOVED***
+		resource := terraform.Resource("rhcs_cluster", "my_cluster")
+		Expect(resource).To(MatchJQ(".attributes.version", "openshift-v4.8.1"))
+	})
 
-	It("Fails if the cluster already exists", func(***REMOVED*** {
+	It("Fails if the cluster already exists", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
-				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
 				RespondWithJSON(http.StatusBadRequest, `{
 				  "id": "400",
 				  "code": "CLUSTERS-MGMT-400",
 				  "reason": "Cluster 'my-cluster' already exists"
-		***REMOVED***`***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				}`),
+			),
+		)
 
 		// Run the apply command:
 		terraform.Source(`
@@ -306,7 +306,7 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 		    cloud_provider = "aws"
 		    cloud_region   = "us-west-1"
 		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-	}***REMOVED***
-}***REMOVED***
+		`)
+		Expect(terraform.Apply()).ToNot(BeZero())
+	})
+})

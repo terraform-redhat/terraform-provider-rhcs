@@ -1,7 +1,7 @@
 /*
-Copyright (c***REMOVED*** 2021 Red Hat, Inc.
+Copyright (c) 2021 Red Hat, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -16,13 +16,13 @@ limitations under the License.
 
 package clusterrosaclassic
 
-***REMOVED***
+import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
-***REMOVED***
-***REMOVED***
+	"fmt"
+	"net/http"
 	"testing"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
@@ -30,18 +30,18 @@ package clusterrosaclassic
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	. "github.com/onsi/ginkgo/v2/dsl/core" // nolint
-***REMOVED***             // nolint
+	. "github.com/onsi/gomega"             // nolint
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
-***REMOVED***
+)
 
 type MockHttpClient struct {
 	response *http.Response
 }
 
-func (c MockHttpClient***REMOVED*** Get(url string***REMOVED*** (resp *http.Response, err error***REMOVED*** {
+func (c MockHttpClient) Get(url string) (resp *http.Response, err error) {
 	return c.response, nil
 }
 
@@ -65,7 +65,7 @@ const (
 	httpProxy         = "http://proxy.com"
 	httpsProxy        = "https://proxy.com"
 	httpTokens        = "required"
-***REMOVED***
+)
 
 var (
 	mockHttpClient = MockHttpClient{
@@ -73,47 +73,47 @@ var (
 			TLS: &tls.ConnectionState{
 				PeerCertificates: []*x509.Certificate{
 					{
-						Raw: []byte("nonce"***REMOVED***,
-			***REMOVED***,
-		***REMOVED***,
-	***REMOVED***,
-***REMOVED***,
+						Raw: []byte("nonce"),
+					},
+				},
+			},
+		},
 	}
-***REMOVED***
+)
 
-func generateBasicRosaClassicClusterJson(***REMOVED*** map[string]interface{} {
+func generateBasicRosaClassicClusterJson() map[string]interface{} {
 	return map[string]interface{}{
 		"id":   clusterId,
 		"name": clusterName,
 		"region": map[string]interface{}{
 			"id": regionId,
-***REMOVED***,
+		},
 		"multi_az": multiAz,
 		"properties": map[string]interface{}{
 			"rosa_creator_arn": rosaCreatorArn,
 			"rosa_tf_version":  build.Version,
 			"rosa_tf_commit":   build.Commit,
-***REMOVED***,
+		},
 		"api": map[string]interface{}{
 			"url": apiUrl,
-***REMOVED***,
+		},
 		"console": map[string]interface{}{
 			"url": consoleUrl,
-***REMOVED***,
+		},
 		"dns": map[string]interface{}{
 			"base_domain": baseDomain,
-***REMOVED***,
+		},
 		"nodes": map[string]interface{}{
 			"compute_machine_type": map[string]interface{}{
 				"id": machineType,
-	***REMOVED***,
+			},
 			"availability_zones": []interface{}{
 				availabilityZone1,
-	***REMOVED***,
-***REMOVED***,
+			},
+		},
 		"ccs": map[string]interface{}{
 			"enabled": ccsEnabled,
-***REMOVED***,
+		},
 		"aws": map[string]interface{}{
 			"account_id":               awsAccountID,
 			"private_link":             privateLink,
@@ -121,197 +121,197 @@ func generateBasicRosaClassicClusterJson(***REMOVED*** map[string]interface{} {
 			"sts": map[string]interface{}{
 				"oidc_endpoint_url": oidcEndpointUrl,
 				"role_arn":          roleArn,
-	***REMOVED***,
-***REMOVED***,
+			},
+		},
 	}
 }
 
-func generateBasicRosaClassicClusterState(***REMOVED*** *ClusterRosaClassicState {
-	azs, err := common.StringArrayToList([]string{availabilityZone1}***REMOVED***
+func generateBasicRosaClassicClusterState() *ClusterRosaClassicState {
+	azs, err := common.StringArrayToList([]string{availabilityZone1})
 	if err != nil {
 		return nil
 	}
-	properties, err := common.ConvertStringMapToMapType(map[string]string{"rosa_creator_arn": rosaCreatorArn}***REMOVED***
+	properties, err := common.ConvertStringMapToMapType(map[string]string{"rosa_creator_arn": rosaCreatorArn})
 	if err != nil {
 		return nil
 	}
 	return &ClusterRosaClassicState{
-		Name:              types.StringValue(clusterName***REMOVED***,
-		CloudRegion:       types.StringValue(regionId***REMOVED***,
-		AWSAccountID:      types.StringValue(awsAccountID***REMOVED***,
+		Name:              types.StringValue(clusterName),
+		CloudRegion:       types.StringValue(regionId),
+		AWSAccountID:      types.StringValue(awsAccountID),
 		AvailabilityZones: azs,
 		Properties:        properties,
-		ChannelGroup:      types.StringValue("stable"***REMOVED***,
-		Version:           types.StringValue("4.10"***REMOVED***,
+		ChannelGroup:      types.StringValue("stable"),
+		Version:           types.StringValue("4.10"),
 		Proxy: &proxy.Proxy{
-			HttpProxy:  types.StringValue(httpProxy***REMOVED***,
-			HttpsProxy: types.StringValue(httpsProxy***REMOVED***,
-***REMOVED***,
+			HttpProxy:  types.StringValue(httpProxy),
+			HttpsProxy: types.StringValue(httpsProxy),
+		},
 		Sts:         &Sts{},
-		Replicas:    types.Int64Value(2***REMOVED***,
-		MinReplicas: types.Int64Null(***REMOVED***,
-		MaxReplicas: types.Int64Null(***REMOVED***,
-		KMSKeyArn:   types.StringNull(***REMOVED***,
+		Replicas:    types.Int64Value(2),
+		MinReplicas: types.Int64Null(),
+		MaxReplicas: types.Int64Null(),
+		KMSKeyArn:   types.StringNull(),
 	}
 }
 
-func TestResource(t *testing.T***REMOVED*** {
-	RegisterFailHandler(Fail***REMOVED***
-	RunSpecs(t, "Cluster Rosa Resource Suite"***REMOVED***
+func TestResource(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Cluster Rosa Resource Suite")
 }
 
-var _ = Describe("Rosa Classic Sts cluster", func(***REMOVED*** {
-	Context("createClassicClusterObject", func(***REMOVED*** {
-		It("Creates a cluster with correct field values", func(***REMOVED*** {
-			clusterState := generateBasicRosaClassicClusterState(***REMOVED***
-			rosaClusterObject, err := createClassicClusterObject(context.Background(***REMOVED***, clusterState, diag.Diagnostics{}***REMOVED***
-			Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
+var _ = Describe("Rosa Classic Sts cluster", func() {
+	Context("createClassicClusterObject", func() {
+		It("Creates a cluster with correct field values", func() {
+			clusterState := generateBasicRosaClassicClusterState()
+			rosaClusterObject, err := createClassicClusterObject(context.Background(), clusterState, diag.Diagnostics{})
+			Expect(err).To(BeNil())
 
-			Expect(rosaClusterObject.Name(***REMOVED******REMOVED***.To(Equal(clusterName***REMOVED******REMOVED***
+			Expect(rosaClusterObject.Name()).To(Equal(clusterName))
 
-			id, ok := rosaClusterObject.Region(***REMOVED***.GetID(***REMOVED***
-			Expect(ok***REMOVED***.To(BeTrue(***REMOVED******REMOVED***
-			Expect(id***REMOVED***.To(Equal(regionId***REMOVED******REMOVED***
+			id, ok := rosaClusterObject.Region().GetID()
+			Expect(ok).To(BeTrue())
+			Expect(id).To(Equal(regionId))
 
-			Expect(rosaClusterObject.AWS(***REMOVED***.AccountID(***REMOVED******REMOVED***.To(Equal(awsAccountID***REMOVED******REMOVED***
+			Expect(rosaClusterObject.AWS().AccountID()).To(Equal(awsAccountID))
 
-			availabilityZones := rosaClusterObject.Nodes(***REMOVED***.AvailabilityZones(***REMOVED***
-			Expect(availabilityZones***REMOVED***.To(HaveLen(1***REMOVED******REMOVED***
-			Expect(availabilityZones[0]***REMOVED***.To(Equal(availabilityZone1***REMOVED******REMOVED***
+			availabilityZones := rosaClusterObject.Nodes().AvailabilityZones()
+			Expect(availabilityZones).To(HaveLen(1))
+			Expect(availabilityZones[0]).To(Equal(availabilityZone1))
 
-			Expect(rosaClusterObject.Proxy(***REMOVED***.HTTPProxy(***REMOVED******REMOVED***.To(Equal(httpProxy***REMOVED******REMOVED***
-			Expect(rosaClusterObject.Proxy(***REMOVED***.HTTPSProxy(***REMOVED******REMOVED***.To(Equal(httpsProxy***REMOVED******REMOVED***
+			Expect(rosaClusterObject.Proxy().HTTPProxy()).To(Equal(httpProxy))
+			Expect(rosaClusterObject.Proxy().HTTPSProxy()).To(Equal(httpsProxy))
 
-			arn, ok := rosaClusterObject.Properties(***REMOVED***["rosa_creator_arn"]
-			Expect(ok***REMOVED***.To(BeTrue(***REMOVED******REMOVED***
-			Expect(arn***REMOVED***.To(Equal(rosaCreatorArn***REMOVED******REMOVED***
+			arn, ok := rosaClusterObject.Properties()["rosa_creator_arn"]
+			Expect(ok).To(BeTrue())
+			Expect(arn).To(Equal(rosaCreatorArn))
 
-			version, ok := rosaClusterObject.Version(***REMOVED***.GetID(***REMOVED***
-			Expect(ok***REMOVED***.To(BeTrue(***REMOVED******REMOVED***
-			Expect(version***REMOVED***.To(Equal("openshift-v4.10"***REMOVED******REMOVED***
-			channel, ok := rosaClusterObject.Version(***REMOVED***.GetChannelGroup(***REMOVED***
-			Expect(ok***REMOVED***.To(BeTrue(***REMOVED******REMOVED***
-			Expect(channel***REMOVED***.To(Equal("stable"***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-	}***REMOVED***
-	It("Throws an error when version format is invalid", func(***REMOVED*** {
-		clusterState := generateBasicRosaClassicClusterState(***REMOVED***
-		clusterState.Version = types.StringValue("a.4.1"***REMOVED***
-		_, err := createClassicClusterObject(context.Background(***REMOVED***, clusterState, diag.Diagnostics{}***REMOVED***
-		Expect(err***REMOVED***.ToNot(BeNil(***REMOVED******REMOVED***
-	}***REMOVED***
+			version, ok := rosaClusterObject.Version().GetID()
+			Expect(ok).To(BeTrue())
+			Expect(version).To(Equal("openshift-v4.10"))
+			channel, ok := rosaClusterObject.Version().GetChannelGroup()
+			Expect(ok).To(BeTrue())
+			Expect(channel).To(Equal("stable"))
+		})
+	})
+	It("Throws an error when version format is invalid", func() {
+		clusterState := generateBasicRosaClassicClusterState()
+		clusterState.Version = types.StringValue("a.4.1")
+		_, err := createClassicClusterObject(context.Background(), clusterState, diag.Diagnostics{})
+		Expect(err).ToNot(BeNil())
+	})
 
-	It("Throws an error when version is unsupported", func(***REMOVED*** {
-		clusterState := generateBasicRosaClassicClusterState(***REMOVED***
-		clusterState.Version = types.StringValue("4.1.0"***REMOVED***
-		_, err := createClassicClusterObject(context.Background(***REMOVED***, clusterState, diag.Diagnostics{}***REMOVED***
-		Expect(err***REMOVED***.ToNot(BeNil(***REMOVED******REMOVED***
-	}***REMOVED***
+	It("Throws an error when version is unsupported", func() {
+		clusterState := generateBasicRosaClassicClusterState()
+		clusterState.Version = types.StringValue("4.1.0")
+		_, err := createClassicClusterObject(context.Background(), clusterState, diag.Diagnostics{})
+		Expect(err).ToNot(BeNil())
+	})
 
-	It("appends the non-default channel name to the requested version", func(***REMOVED*** {
-		clusterState := generateBasicRosaClassicClusterState(***REMOVED***
-		clusterState.ChannelGroup = types.StringValue("somechannel"***REMOVED***
-		rosaClusterObject, err := createClassicClusterObject(context.Background(***REMOVED***, clusterState, diag.Diagnostics{}***REMOVED***
-		Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
+	It("appends the non-default channel name to the requested version", func() {
+		clusterState := generateBasicRosaClassicClusterState()
+		clusterState.ChannelGroup = types.StringValue("somechannel")
+		rosaClusterObject, err := createClassicClusterObject(context.Background(), clusterState, diag.Diagnostics{})
+		Expect(err).To(BeNil())
 
-		version, ok := rosaClusterObject.Version(***REMOVED***.GetID(***REMOVED***
-		Expect(ok***REMOVED***.To(BeTrue(***REMOVED******REMOVED***
-		Expect(version***REMOVED***.To(Equal("openshift-v4.10-somechannel"***REMOVED******REMOVED***
-		channel, ok := rosaClusterObject.Version(***REMOVED***.GetChannelGroup(***REMOVED***
-		Expect(ok***REMOVED***.To(BeTrue(***REMOVED******REMOVED***
-		Expect(channel***REMOVED***.To(Equal("somechannel"***REMOVED******REMOVED***
-	}***REMOVED***
+		version, ok := rosaClusterObject.Version().GetID()
+		Expect(ok).To(BeTrue())
+		Expect(version).To(Equal("openshift-v4.10-somechannel"))
+		channel, ok := rosaClusterObject.Version().GetChannelGroup()
+		Expect(ok).To(BeTrue())
+		Expect(channel).To(Equal("somechannel"))
+	})
 
-	Context("populateRosaClassicClusterState", func(***REMOVED*** {
-		It("Converts correctly a Cluster object into a ClusterRosaClassicState", func(***REMOVED*** {
+	Context("populateRosaClassicClusterState", func() {
+		It("Converts correctly a Cluster object into a ClusterRosaClassicState", func() {
 			clusterState := &ClusterRosaClassicState{}
-			clusterJson := generateBasicRosaClassicClusterJson(***REMOVED***
-			clusterJsonString, err := json.Marshal(clusterJson***REMOVED***
-			Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
+			clusterJson := generateBasicRosaClassicClusterJson()
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).To(BeNil())
 
-			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString***REMOVED***
-			Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).To(BeNil())
 
-			Expect(populateRosaClassicClusterState(context.Background(***REMOVED***, clusterObject, clusterState, mockHttpClient***REMOVED******REMOVED***.To(Succeed(***REMOVED******REMOVED***
+			Expect(populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)).To(Succeed())
 
-			Expect(clusterState.ID.ValueString(***REMOVED******REMOVED***.To(Equal(clusterId***REMOVED******REMOVED***
-			Expect(clusterState.CloudRegion.ValueString(***REMOVED******REMOVED***.To(Equal(regionId***REMOVED******REMOVED***
-			Expect(clusterState.MultiAZ.ValueBool(***REMOVED******REMOVED***.To(Equal(multiAz***REMOVED******REMOVED***
+			Expect(clusterState.ID.ValueString()).To(Equal(clusterId))
+			Expect(clusterState.CloudRegion.ValueString()).To(Equal(regionId))
+			Expect(clusterState.MultiAZ.ValueBool()).To(Equal(multiAz))
 
-			properties, err := common.OptionalMap(context.Background(***REMOVED***, clusterState.Properties***REMOVED***
-			Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
-			Expect(properties["rosa_creator_arn"]***REMOVED***.To(Equal(rosaCreatorArn***REMOVED******REMOVED***
+			properties, err := common.OptionalMap(context.Background(), clusterState.Properties)
+			Expect(err).To(BeNil())
+			Expect(properties["rosa_creator_arn"]).To(Equal(rosaCreatorArn))
 
-			ocmProperties, err := common.OptionalMap(context.Background(***REMOVED***, clusterState.OCMProperties***REMOVED***
-			Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
-			Expect(ocmProperties["rosa_tf_version"]***REMOVED***.To(Equal(build.Version***REMOVED******REMOVED***
-			Expect(ocmProperties["rosa_tf_commit"]***REMOVED***.To(Equal(build.Commit***REMOVED******REMOVED***
+			ocmProperties, err := common.OptionalMap(context.Background(), clusterState.OCMProperties)
+			Expect(err).To(BeNil())
+			Expect(ocmProperties["rosa_tf_version"]).To(Equal(build.Version))
+			Expect(ocmProperties["rosa_tf_commit"]).To(Equal(build.Commit))
 
-			Expect(clusterState.APIURL.ValueString(***REMOVED******REMOVED***.To(Equal(apiUrl***REMOVED******REMOVED***
-			Expect(clusterState.ConsoleURL.ValueString(***REMOVED******REMOVED***.To(Equal(consoleUrl***REMOVED******REMOVED***
-			Expect(clusterState.Domain.ValueString(***REMOVED******REMOVED***.To(Equal(fmt.Sprintf("%s.%s", clusterName, baseDomain***REMOVED******REMOVED******REMOVED***
+			Expect(clusterState.APIURL.ValueString()).To(Equal(apiUrl))
+			Expect(clusterState.ConsoleURL.ValueString()).To(Equal(consoleUrl))
+			Expect(clusterState.Domain.ValueString()).To(Equal(fmt.Sprintf("%s.%s", clusterName, baseDomain)))
 
-			Expect(clusterState.AvailabilityZones.Elements(***REMOVED******REMOVED***.To(HaveLen(1***REMOVED******REMOVED***
-			azs, err := common.StringListToArray(context.Background(***REMOVED***, clusterState.AvailabilityZones***REMOVED***
-			Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
-			Expect(azs[0]***REMOVED***.To(Equal(availabilityZone1***REMOVED******REMOVED***
+			Expect(clusterState.AvailabilityZones.Elements()).To(HaveLen(1))
+			azs, err := common.StringListToArray(context.Background(), clusterState.AvailabilityZones)
+			Expect(err).To(BeNil())
+			Expect(azs[0]).To(Equal(availabilityZone1))
 
-			Expect(clusterState.CCSEnabled.ValueBool(***REMOVED******REMOVED***.To(Equal(ccsEnabled***REMOVED******REMOVED***
-			Expect(clusterState.AWSAccountID.ValueString(***REMOVED******REMOVED***.To(Equal(awsAccountID***REMOVED******REMOVED***
-			Expect(clusterState.AWSPrivateLink.ValueBool(***REMOVED******REMOVED***.To(Equal(privateLink***REMOVED******REMOVED***
-			Expect(clusterState.Sts.OIDCEndpointURL.ValueString(***REMOVED******REMOVED***.To(Equal(oidcEndpointUrl***REMOVED******REMOVED***
-			Expect(clusterState.Sts.RoleARN.ValueString(***REMOVED******REMOVED***.To(Equal(roleArn***REMOVED******REMOVED***
-			Expect(clusterState.Ec2MetadataHttpTokens.ValueString(***REMOVED******REMOVED***.To(Equal(httpTokens***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+			Expect(clusterState.CCSEnabled.ValueBool()).To(Equal(ccsEnabled))
+			Expect(clusterState.AWSAccountID.ValueString()).To(Equal(awsAccountID))
+			Expect(clusterState.AWSPrivateLink.ValueBool()).To(Equal(privateLink))
+			Expect(clusterState.Sts.OIDCEndpointURL.ValueString()).To(Equal(oidcEndpointUrl))
+			Expect(clusterState.Sts.RoleARN.ValueString()).To(Equal(roleArn))
+			Expect(clusterState.Ec2MetadataHttpTokens.ValueString()).To(Equal(httpTokens))
+		})
 
-		It("Check trimming of oidc url with https perfix", func(***REMOVED*** {
+		It("Check trimming of oidc url with https perfix", func() {
 			clusterState := &ClusterRosaClassicState{}
-			clusterJson := generateBasicRosaClassicClusterJson(***REMOVED***
-			clusterJson["aws"].(map[string]interface{}***REMOVED***["sts"].(map[string]interface{}***REMOVED***["oidc_endpoint_url"] = "https://nonce.com"
-			clusterJson["aws"].(map[string]interface{}***REMOVED***["sts"].(map[string]interface{}***REMOVED***["operator_role_prefix"] = "terraform-operator"
+			clusterJson := generateBasicRosaClassicClusterJson()
+			clusterJson["aws"].(map[string]interface{})["sts"].(map[string]interface{})["oidc_endpoint_url"] = "https://nonce.com"
+			clusterJson["aws"].(map[string]interface{})["sts"].(map[string]interface{})["operator_role_prefix"] = "terraform-operator"
 
-			clusterJsonString, err := json.Marshal(clusterJson***REMOVED***
-			Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
-			print(string(clusterJsonString***REMOVED******REMOVED***
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).To(BeNil())
+			print(string(clusterJsonString))
 
-			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString***REMOVED***
-			Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).To(BeNil())
 
-			err = populateRosaClassicClusterState(context.Background(***REMOVED***, clusterObject, clusterState, mockHttpClient***REMOVED***
-			Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
-			Expect(clusterState.Sts.OIDCEndpointURL.ValueString(***REMOVED******REMOVED***.To(Equal("nonce.com"***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+			err = populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)
+			Expect(err).To(BeNil())
+			Expect(clusterState.Sts.OIDCEndpointURL.ValueString()).To(Equal("nonce.com"))
+		})
 
-		It("Throws an error when oidc_endpoint_url is an invalid url", func(***REMOVED*** {
+		It("Throws an error when oidc_endpoint_url is an invalid url", func() {
 			clusterState := &ClusterRosaClassicState{}
-			clusterJson := generateBasicRosaClassicClusterJson(***REMOVED***
-			clusterJson["aws"].(map[string]interface{}***REMOVED***["sts"].(map[string]interface{}***REMOVED***["oidc_endpoint_url"] = "invalid$url"
-			clusterJsonString, err := json.Marshal(clusterJson***REMOVED***
-			Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
-			print(string(clusterJsonString***REMOVED******REMOVED***
+			clusterJson := generateBasicRosaClassicClusterJson()
+			clusterJson["aws"].(map[string]interface{})["sts"].(map[string]interface{})["oidc_endpoint_url"] = "invalid$url"
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).To(BeNil())
+			print(string(clusterJsonString))
 
-			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString***REMOVED***
-			Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).To(BeNil())
 
-			err = populateRosaClassicClusterState(context.Background(***REMOVED***, clusterObject, clusterState, mockHttpClient***REMOVED***
-			Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
-			Expect(clusterState.Sts.Thumbprint.ValueString(***REMOVED******REMOVED***.To(Equal(""***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-	}***REMOVED***
+			err = populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)
+			Expect(err).To(BeNil())
+			Expect(clusterState.Sts.Thumbprint.ValueString()).To(Equal(""))
+		})
+	})
 
-	Context("http tokens state validation", func(***REMOVED*** {
-		It("Fail validation with lower version than allowed", func(***REMOVED*** {
-			clusterState := generateBasicRosaClassicClusterState(***REMOVED***
-			clusterState.Ec2MetadataHttpTokens = types.StringValue(string(cmv1.Ec2MetadataHttpTokensRequired***REMOVED******REMOVED***
-			err := validateHttpTokensVersion(context.Background(***REMOVED***, clusterState, "openshift-v4.10.0"***REMOVED***
-			Expect(err***REMOVED***.ToNot(BeNil(***REMOVED******REMOVED***
-			Expect(err.Error(***REMOVED******REMOVED***.To(ContainSubstring("is not supported with ec2_metadata_http_tokens"***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-		It("Pass validation with http_tokens_state and supported version", func(***REMOVED*** {
-			clusterState := generateBasicRosaClassicClusterState(***REMOVED***
-			err := validateHttpTokensVersion(context.Background(***REMOVED***, clusterState, "openshift-v4.11.0"***REMOVED***
-			Expect(err***REMOVED***.To(BeNil(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-	}***REMOVED***
+	Context("http tokens state validation", func() {
+		It("Fail validation with lower version than allowed", func() {
+			clusterState := generateBasicRosaClassicClusterState()
+			clusterState.Ec2MetadataHttpTokens = types.StringValue(string(cmv1.Ec2MetadataHttpTokensRequired))
+			err := validateHttpTokensVersion(context.Background(), clusterState, "openshift-v4.10.0")
+			Expect(err).ToNot(BeNil())
+			Expect(err.Error()).To(ContainSubstring("is not supported with ec2_metadata_http_tokens"))
+		})
+		It("Pass validation with http_tokens_state and supported version", func() {
+			clusterState := generateBasicRosaClassicClusterState()
+			err := validateHttpTokensVersion(context.Background(), clusterState, "openshift-v4.11.0")
+			Expect(err).To(BeNil())
+		})
+	})
 
-}***REMOVED***
+})

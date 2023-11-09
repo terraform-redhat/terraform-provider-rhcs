@@ -1,268 +1,268 @@
-***REMOVED***
+package e2e
 
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
+import (
+	"fmt"
+	"net/http"
+	"path"
 
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
+	con "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	exe "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
+	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/openshift"
+)
 
-var _ = Describe("TF Test", func(***REMOVED*** {
-	Describe("Identity Providers test cases", func(***REMOVED*** {
+var _ = Describe("TF Test", func() {
+	Describe("Identity Providers test cases", func() {
 
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
+		// all identity providers - declared for future cases
+		type IDPServices struct {
+			htpasswd,
+			github,
+			gitlab,
+			google,
+			ldap,
+			openid exe.IDPService
+		}
 
-***REMOVED***
-***REMOVED***
+		var idpService IDPServices
+		var userName, password string
 
-		Describe("Htpasswd IDP test cases", func(***REMOVED*** {
-***REMOVED***
-	***REMOVED***
+		Describe("Htpasswd IDP test cases", func() {
+			var htpasswdMap = []interface{}{map[string]string{}}
+			var userName, password string
 
-			BeforeEach(func(***REMOVED*** {
+			BeforeEach(func() {
 
-***REMOVED***
-				password = h.RandStringWithUpper(15***REMOVED***
-***REMOVED***
-				idpService.htpasswd = *exe.NewIDPService(con.HtpasswdDir***REMOVED*** // init new htpasswd service
-	***REMOVED******REMOVED***
+				userName = "jacko"
+				password = h.RandStringWithUpper(15)
+				htpasswdMap = []interface{}{map[string]string{"username": userName, "password": password}}
+				idpService.htpasswd = *exe.NewIDPService(con.HtpasswdDir) // init new htpasswd service
+			})
 
-			AfterEach(func(***REMOVED*** {
-				err := idpService.htpasswd.Destroy(***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
+			AfterEach(func() {
+				err := idpService.htpasswd.Destroy()
+				Expect(err).ToNot(HaveOccurred())
+			})
 
-			Context("Author:smiron-High-OCP-63151 @OCP-63151 @smiron", func(***REMOVED*** {
-***REMOVED***
-***REMOVED***
-					func(***REMOVED*** {
-						By("Create htpasswd idp for an existing cluster"***REMOVED***
+			Context("Author:smiron-High-OCP-63151 @OCP-63151 @smiron", func() {
+				It("OCP-63151 - Provision HTPASSWD IDP against cluster using TF", ci.Day2, ci.High, ci.FeatureIDP,
+					ci.Exclude,
+					func() {
+						By("Create htpasswd idp for an existing cluster")
 
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-				***REMOVED***
-						err := idpService.htpasswd.Create(idpParam***REMOVED***
-						Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-						idpID, _ := idpService.htpasswd.Output(***REMOVED***
+						idpParam := &exe.IDPArgs{
+							Token:         token,
+							ClusterID:     clusterID,
+							Name:          "OCP-63151-htpasswd-idp-test",
+							HtpasswdUsers: htpasswdMap,
+						}
+						err := idpService.htpasswd.Create(idpParam)
+						Expect(err).ToNot(HaveOccurred())
+						idpID, _ := idpService.htpasswd.Output()
 
-						By("List existing HtpasswdUsers and compare to the created one"***REMOVED***
-						htpasswdUsersList, _ := cms.ListHtpasswdUsers(ci.RHCSConnection, clusterID, idpID.ID***REMOVED***
-						Expect(htpasswdUsersList.Status(***REMOVED******REMOVED***.To(Equal(http.StatusOK***REMOVED******REMOVED***
-						respUserName, _ := htpasswdUsersList.Items(***REMOVED***.Slice(***REMOVED***[0].GetUsername(***REMOVED***
-						Expect(respUserName***REMOVED***.To(Equal(userName***REMOVED******REMOVED***
+						By("List existing HtpasswdUsers and compare to the created one")
+						htpasswdUsersList, _ := cms.ListHtpasswdUsers(ci.RHCSConnection, clusterID, idpID.ID)
+						Expect(htpasswdUsersList.Status()).To(Equal(http.StatusOK))
+						respUserName, _ := htpasswdUsersList.Items().Slice()[0].GetUsername()
+						Expect(respUserName).To(Equal(userName))
 
-						By("Login with created htpasswd idp"***REMOVED***
-						getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID***REMOVED***
-						Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-						server := getResp.Body(***REMOVED***.API(***REMOVED***.URL(***REMOVED***
+						By("Login with created htpasswd idp")
+						getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+						Expect(err).ToNot(HaveOccurred())
+						server := getResp.Body().API().URL()
 
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-								fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName***REMOVED******REMOVED******REMOVED***,
-					***REMOVED***,
-***REMOVED***
-				***REMOVED***
-						_, err = openshift.OcLogin(*ocAtter***REMOVED***
-						Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+						ocAtter := &openshift.OcAttributes{
+							Server:    server,
+							Username:  userName,
+							Password:  password,
+							ClusterID: clusterID,
+							AdditioanlFlags: []string{
+								"--insecure-skip-tls-verify",
+								fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName))),
+							},
+							Timeout: 7,
+						}
+						_, err = openshift.OcLogin(*ocAtter)
+						Expect(err).ToNot(HaveOccurred())
 
-			***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-		Describe("LDAP IDP test cases", func(***REMOVED*** {
+					})
+			})
+		})
+		Describe("LDAP IDP test cases", func() {
 
-			BeforeEach(func(***REMOVED*** {
+			BeforeEach(func() {
 
-***REMOVED***
-***REMOVED***
-				idpService.ldap = *exe.NewIDPService(con.LdapDir***REMOVED*** // init new ldap service
-	***REMOVED******REMOVED***
+				userName = "newton"
+				password = "password"
+				idpService.ldap = *exe.NewIDPService(con.LdapDir) // init new ldap service
+			})
 
-			AfterEach(func(***REMOVED*** {
-				err := idpService.ldap.Destroy(***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
+			AfterEach(func() {
+				err := idpService.ldap.Destroy()
+				Expect(err).ToNot(HaveOccurred())
+			})
 
-			Context("Author:smiron-High-OCP-63332 @OCP-63332 @smiron", func(***REMOVED*** {
-***REMOVED***
-***REMOVED***
-					func(***REMOVED*** {
-						By("Create LDAP idp for an existing cluster"***REMOVED***
+			Context("Author:smiron-High-OCP-63332 @OCP-63332 @smiron", func() {
+				It("OCP-63332 - Provision LDAP IDP against cluster using TF", ci.Day2, ci.High, ci.FeatureIDP,
+					ci.Exclude,
+					func() {
+						By("Create LDAP idp for an existing cluster")
 
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-				***REMOVED***
-						err := idpService.ldap.Create(idpParam***REMOVED***
-						Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+						idpParam := &exe.IDPArgs{
+							Token:     token,
+							ClusterID: clusterID,
+							Name:      "OCP-63332-ldap-idp-test",
+							CA:        "",
+							URL:       con.LdapURL,
+							Insecure:  true,
+						}
+						err := idpService.ldap.Create(idpParam)
+						Expect(err).ToNot(HaveOccurred())
 
-						By("Login with created ldap idp"***REMOVED***
-						getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID***REMOVED***
-						Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-						server := getResp.Body(***REMOVED***.API(***REMOVED***.URL(***REMOVED***
+						By("Login with created ldap idp")
+						getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+						Expect(err).ToNot(HaveOccurred())
+						server := getResp.Body().API().URL()
 
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-								fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName***REMOVED******REMOVED******REMOVED***,
-					***REMOVED***,
-***REMOVED***
-				***REMOVED***
-						_, err = openshift.OcLogin(*ocAtter***REMOVED***
-						Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-			***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-		Describe("GitLab IDP test cases", func(***REMOVED*** {
+						ocAtter := &openshift.OcAttributes{
+							Server:    server,
+							Username:  userName,
+							Password:  password,
+							ClusterID: clusterID,
+							AdditioanlFlags: []string{
+								"--insecure-skip-tls-verify",
+								fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName))),
+							},
+							Timeout: 7,
+						}
+						_, err = openshift.OcLogin(*ocAtter)
+						Expect(err).ToNot(HaveOccurred())
+					})
+			})
+		})
+		Describe("GitLab IDP test cases", func() {
 
-***REMOVED***
+			var gitlabIDPClientSecret, gitlabIDPClientId string
 
-			BeforeEach(func(***REMOVED*** {
-				gitlabIDPClientId = h.RandStringWithUpper(20***REMOVED***
-				gitlabIDPClientSecret = h.RandStringWithUpper(30***REMOVED***
-				idpService.gitlab = *exe.NewIDPService(con.GitlabDir***REMOVED*** // init new gitlab service
-	***REMOVED******REMOVED***
+			BeforeEach(func() {
+				gitlabIDPClientId = h.RandStringWithUpper(20)
+				gitlabIDPClientSecret = h.RandStringWithUpper(30)
+				idpService.gitlab = *exe.NewIDPService(con.GitlabDir) // init new gitlab service
+			})
 
-			AfterEach(func(***REMOVED*** {
-				err := idpService.gitlab.Destroy(***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
+			AfterEach(func() {
+				err := idpService.gitlab.Destroy()
+				Expect(err).ToNot(HaveOccurred())
+			})
 
-			Context("Author:smiron-High-OCP-64028 @OCP-64028 @smiron", func(***REMOVED*** {
-				It("OCP-64028 - Provision GitLab IDP against cluster using TF", ci.Day2, ci.High, ci.FeatureIDP, func(***REMOVED*** {
-					By("Create GitLab idp for an existing cluster"***REMOVED***
+			Context("Author:smiron-High-OCP-64028 @OCP-64028 @smiron", func() {
+				It("OCP-64028 - Provision GitLab IDP against cluster using TF", ci.Day2, ci.High, ci.FeatureIDP, func() {
+					By("Create GitLab idp for an existing cluster")
 
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-			***REMOVED***
-					err := idpService.gitlab.Create(idpParam***REMOVED***
-					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+					idpParam := &exe.IDPArgs{
+						Token:        token,
+						ClusterID:    clusterID,
+						Name:         "OCP-64028-gitlab-idp-test",
+						ClientID:     gitlabIDPClientId,
+						ClientSecret: gitlabIDPClientSecret,
+						URL:          con.GitLabURL,
+					}
+					err := idpService.gitlab.Create(idpParam)
+					Expect(err).ToNot(HaveOccurred())
 
-					By("Check gitlab idp created for the cluster"***REMOVED***
-					idpID, err := idpService.gitlab.Output(***REMOVED***
-					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+					By("Check gitlab idp created for the cluster")
+					idpID, err := idpService.gitlab.Output()
+					Expect(err).ToNot(HaveOccurred())
 
-					resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID***REMOVED***
-					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-					Expect(resp.Status(***REMOVED******REMOVED***.To(Equal(http.StatusOK***REMOVED******REMOVED***
-		***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-		Describe("GitHub IDP test cases", func(***REMOVED*** {
+					resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(resp.Status()).To(Equal(http.StatusOK))
+				})
+			})
+		})
+		Describe("GitHub IDP test cases", func() {
 
-***REMOVED***
+			var githubIDPClientSecret, githubIDPClientId string
 
-			BeforeEach(func(***REMOVED*** {
-				githubIDPClientSecret = h.RandStringWithUpper(20***REMOVED***
-				githubIDPClientId = h.RandStringWithUpper(30***REMOVED***
-				idpService.github = *exe.NewIDPService(con.GithubDir***REMOVED*** // init new github service
-	***REMOVED******REMOVED***
+			BeforeEach(func() {
+				githubIDPClientSecret = h.RandStringWithUpper(20)
+				githubIDPClientId = h.RandStringWithUpper(30)
+				idpService.github = *exe.NewIDPService(con.GithubDir) // init new github service
+			})
 
-			AfterEach(func(***REMOVED*** {
-				err := idpService.github.Destroy(***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
+			AfterEach(func() {
+				err := idpService.github.Destroy()
+				Expect(err).ToNot(HaveOccurred())
+			})
 
-			Context("Author:smiron-High-OCP-64027 @OCP-64027 @smiron", func(***REMOVED*** {
-				It("OCP-64027 - Provision GitHub IDP against cluster using TF", ci.Day2, ci.High, ci.FeatureIDP, func(***REMOVED*** {
-					By("Create GitHub idp for an existing cluster"***REMOVED***
+			Context("Author:smiron-High-OCP-64027 @OCP-64027 @smiron", func() {
+				It("OCP-64027 - Provision GitHub IDP against cluster using TF", ci.Day2, ci.High, ci.FeatureIDP, func() {
+					By("Create GitHub idp for an existing cluster")
 
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-			***REMOVED***
-					err := idpService.github.Create(idpParam***REMOVED***
-					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+					idpParam := &exe.IDPArgs{
+						Token:         token,
+						ClusterID:     clusterID,
+						Name:          "OCP-64027-github-idp-test",
+						ClientID:      githubIDPClientId,
+						ClientSecret:  githubIDPClientSecret,
+						Organizations: con.Organizations,
+					}
+					err := idpService.github.Create(idpParam)
+					Expect(err).ToNot(HaveOccurred())
 
-					By("Check github idp created for the cluster"***REMOVED***
-					idpID, err := idpService.github.Output(***REMOVED***
-					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+					By("Check github idp created for the cluster")
+					idpID, err := idpService.github.Output()
+					Expect(err).ToNot(HaveOccurred())
 
-					resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID***REMOVED***
-					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-					Expect(resp.Status(***REMOVED******REMOVED***.To(Equal(http.StatusOK***REMOVED******REMOVED***
-		***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-		Describe("Google IDP test cases", func(***REMOVED*** {
+					resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(resp.Status()).To(Equal(http.StatusOK))
+				})
+			})
+		})
+		Describe("Google IDP test cases", func() {
 
-***REMOVED***
+			var googleIDPClientSecret, googleIDPClientId string
 
-			BeforeEach(func(***REMOVED*** {
-				googleIDPClientSecret = h.RandStringWithUpper(20***REMOVED***
-				googleIDPClientId = h.RandStringWithUpper(30***REMOVED***
-				idpService.google = *exe.NewIDPService(con.GoogleDir***REMOVED*** // init new google service
-	***REMOVED******REMOVED***
+			BeforeEach(func() {
+				googleIDPClientSecret = h.RandStringWithUpper(20)
+				googleIDPClientId = h.RandStringWithUpper(30)
+				idpService.google = *exe.NewIDPService(con.GoogleDir) // init new google service
+			})
 
-			AfterEach(func(***REMOVED*** {
-				err := idpService.google.Destroy(***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
+			AfterEach(func() {
+				err := idpService.google.Destroy()
+				Expect(err).ToNot(HaveOccurred())
+			})
 
-			Context("Author:smiron-High-OCP-64029 @OCP-64029 @smiron", func(***REMOVED*** {
-				It("OCP-64029 - Provision Google IDP against cluster using TF", ci.Day2, ci.High, ci.FeatureIDP, func(***REMOVED*** {
-					By("Create Google idp for an existing cluster"***REMOVED***
+			Context("Author:smiron-High-OCP-64029 @OCP-64029 @smiron", func() {
+				It("OCP-64029 - Provision Google IDP against cluster using TF", ci.Day2, ci.High, ci.FeatureIDP, func() {
+					By("Create Google idp for an existing cluster")
 
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-***REMOVED***
-			***REMOVED***
-					err := idpService.google.Create(idpParam***REMOVED***
-					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+					idpParam := &exe.IDPArgs{
+						Token:        token,
+						ClusterID:    clusterID,
+						Name:         "OCP-64029-google-idp-test",
+						ClientID:     googleIDPClientId,
+						ClientSecret: googleIDPClientSecret,
+						HostedDomain: con.HostedDomain,
+					}
+					err := idpService.google.Create(idpParam)
+					Expect(err).ToNot(HaveOccurred())
 
-					By("Check google idp created for the cluster"***REMOVED***
-					idpID, err := idpService.google.Output(***REMOVED***
-					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+					By("Check google idp created for the cluster")
+					idpID, err := idpService.google.Output()
+					Expect(err).ToNot(HaveOccurred())
 
-					resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID***REMOVED***
-					Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-					Expect(resp.Status(***REMOVED******REMOVED***.To(Equal(http.StatusOK***REMOVED******REMOVED***
-		***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-	}***REMOVED***
-}***REMOVED***
+					resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(resp.Status()).To(Equal(http.StatusOK))
+				})
+			})
+		})
+	})
+})

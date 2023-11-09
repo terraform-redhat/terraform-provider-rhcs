@@ -6,7 +6,7 @@ description: |-
   DNS Domain
 ---
 
-# rhcs_dns_domain (Resource***REMOVED***
+# rhcs_dns_domain (Resource)
 
 DNS Domain
 
@@ -21,4 +21,4 @@ resource "rhcs_dns_domain" "dns_domain" {}
 
 ### Read-Only
 
-- `id` (String***REMOVED*** Unique identifier of the DNS Domain
+- `id` (String) Unique identifier of the DNS Domain

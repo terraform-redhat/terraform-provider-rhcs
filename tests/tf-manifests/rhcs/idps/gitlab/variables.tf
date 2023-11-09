@@ -34,11 +34,11 @@ variable "hostname" {
   default = null
 }
 variable "organizations" {
-  type    = list(string***REMOVED***
+  type    = list(string)
   default = null
 }
 variable "teams" {
-  type    = list(string***REMOVED***
+  type    = list(string)
   default = null
 }
 variable "url" {

@@ -1,7 +1,7 @@
 /*
-Copyright (c***REMOVED*** 2021 Red Hat, Inc.
+Copyright (c) 2021 Red Hat, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -16,9 +16,9 @@ limitations under the License.
 
 package machine_types
 
-***REMOVED***
+import (
 	"context"
-***REMOVED***
+	"fmt"
 	"math"
 	"strings"
 
@@ -26,7 +26,7 @@ package machine_types
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-***REMOVED***
+)
 
 type MachineTypesDataSource struct {
 	collection *cmv1.MachineTypesClient
@@ -35,15 +35,15 @@ type MachineTypesDataSource struct {
 var _ datasource.DataSource = &MachineTypesDataSource{}
 var _ datasource.DataSourceWithConfigure = &MachineTypesDataSource{}
 
-func New(***REMOVED*** datasource.DataSource {
+func New() datasource.DataSource {
 	return &MachineTypesDataSource{}
 }
 
-func (s *MachineTypesDataSource***REMOVED*** Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse***REMOVED*** {
+func (s *MachineTypesDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_machine_types"
 }
 
-func (s *MachineTypesDataSource***REMOVED*** Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse***REMOVED*** {
+func (s *MachineTypesDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "List of machine types",
 		Attributes: map[string]schema.Attribute{
@@ -54,134 +54,134 @@ func (s *MachineTypesDataSource***REMOVED*** Schema(ctx context.Context, req dat
 						"cloud_provider": schema.StringAttribute{
 							Description: "Unique identifier of the cloud provider where the machine type is supported.",
 							Computed:    true,
-				***REMOVED***,
+						},
 						"id": schema.StringAttribute{
 							Description: "Unique identifier of the machine type.",
 							Computed:    true,
-				***REMOVED***,
+						},
 						"name": schema.StringAttribute{
 							Description: "Short name of the machine type.",
 							Computed:    true,
-				***REMOVED***,
+						},
 						"cpu": schema.Int64Attribute{
 							Description: "Number of vCPU cores.",
 							Computed:    true,
-				***REMOVED***,
+						},
 						"ram": schema.Int64Attribute{
 							Description: "Amount of RAM in bytes.",
 							Computed:    true,
-				***REMOVED***,
-			***REMOVED***,
-		***REMOVED***,
+						},
+					},
+				},
 				Computed: true,
-	***REMOVED***,
-***REMOVED***,
+			},
+		},
 	}
 }
 
-func (s *MachineTypesDataSource***REMOVED*** Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse***REMOVED*** {
+func (s *MachineTypesDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured:
 	if req.ProviderData == nil {
 		return
 	}
 
 	// Cast the provider data to the specific implementation:
-	connection := req.ProviderData.(*sdk.Connection***REMOVED***
+	connection := req.ProviderData.(*sdk.Connection)
 
 	// Get the collection of cloud providers:
-	s.collection = connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.MachineTypes(***REMOVED***
+	s.collection = connection.ClustersMgmt().V1().MachineTypes()
 }
 
-func (s *MachineTypesDataSource***REMOVED*** Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse***REMOVED*** {
+func (s *MachineTypesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	// Fetch the complete list of machine types:
 	var listItems []*cmv1.MachineType
 	listSize := 10
 	listPage := 1
-	listRequest := s.collection.List(***REMOVED***.Size(listSize***REMOVED***
+	listRequest := s.collection.List().Size(listSize)
 	for {
-		listResponse, err := listRequest.SendContext(ctx***REMOVED***
+		listResponse, err := listRequest.SendContext(ctx)
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Can't list machine types",
-				err.Error(***REMOVED***,
-			***REMOVED***
+				err.Error(),
+			)
 			return
-***REMOVED***
+		}
 		if listItems == nil {
-			listItems = make([]*cmv1.MachineType, 0, listResponse.Total(***REMOVED******REMOVED***
-***REMOVED***
-		listResponse.Items(***REMOVED***.Each(func(listItem *cmv1.MachineType***REMOVED*** bool {
-			listItems = append(listItems, listItem***REMOVED***
+			listItems = make([]*cmv1.MachineType, 0, listResponse.Total())
+		}
+		listResponse.Items().Each(func(listItem *cmv1.MachineType) bool {
+			listItems = append(listItems, listItem)
 			return true
-***REMOVED******REMOVED***
-		if listResponse.Size(***REMOVED*** < listSize {
+		})
+		if listResponse.Size() < listSize {
 			break
-***REMOVED***
+		}
 		listPage++
-		listRequest.Page(listPage***REMOVED***
+		listRequest.Page(listPage)
 	}
 
 	// Populate the state:
 	state := &MachineTypesState{
-		Items: make([]*MachineTypeState, len(listItems***REMOVED******REMOVED***,
+		Items: make([]*MachineTypeState, len(listItems)),
 	}
 	for i, listItem := range listItems {
-		cpuObject := listItem.CPU(***REMOVED***
-		cpuValue := cpuObject.Value(***REMOVED***
-		cpuUnit := cpuObject.Unit(***REMOVED***
+		cpuObject := listItem.CPU()
+		cpuValue := cpuObject.Value()
+		cpuUnit := cpuObject.Unit()
 		switch cpuUnit {
 		case "vCPU":
 			// Nothing.
 		default:
 			resp.Diagnostics.AddError(
 				"Unknown CPU unit",
-				fmt.Sprintf("Don't know how to convert CPU unit '%s'", cpuUnit***REMOVED***,
-			***REMOVED***
+				fmt.Sprintf("Don't know how to convert CPU unit '%s'", cpuUnit),
+			)
 			return
-***REMOVED***
-		ramObject := listItem.Memory(***REMOVED***
-		ramValue := ramObject.Value(***REMOVED***
-		ramUnit := ramObject.Unit(***REMOVED***
-		switch strings.ToLower(ramUnit***REMOVED*** {
+		}
+		ramObject := listItem.Memory()
+		ramValue := ramObject.Value()
+		ramUnit := ramObject.Unit()
+		switch strings.ToLower(ramUnit) {
 		case "b":
 			// Nothing.
 		case "kb":
-			ramValue *= math.Pow10(3***REMOVED***
+			ramValue *= math.Pow10(3)
 		case "mb":
-			ramValue *= math.Pow10(6***REMOVED***
+			ramValue *= math.Pow10(6)
 		case "gb":
-			ramValue *= math.Pow10(9***REMOVED***
+			ramValue *= math.Pow10(9)
 		case "tb":
-			ramValue *= math.Pow10(12***REMOVED***
+			ramValue *= math.Pow10(12)
 		case "pb":
-			ramValue *= math.Pow10(15***REMOVED***
+			ramValue *= math.Pow10(15)
 		case "kib":
-			ramValue *= math.Pow(2, 10***REMOVED***
+			ramValue *= math.Pow(2, 10)
 		case "mib":
-			ramValue *= math.Pow(2, 20***REMOVED***
+			ramValue *= math.Pow(2, 20)
 		case "gib":
-			ramValue *= math.Pow(2, 30***REMOVED***
+			ramValue *= math.Pow(2, 30)
 		case "tib":
-			ramValue *= math.Pow(2, 40***REMOVED***
+			ramValue *= math.Pow(2, 40)
 		case "pib":
-			ramValue *= math.Pow(2, 50***REMOVED***
+			ramValue *= math.Pow(2, 50)
 		default:
 			resp.Diagnostics.AddError(
 				"Unknown RAM unit",
-				fmt.Sprintf("Don't know how to convert RAM unit '%s'", ramUnit***REMOVED***,
-			***REMOVED***
+				fmt.Sprintf("Don't know how to convert RAM unit '%s'", ramUnit),
+			)
 			return
-***REMOVED***
+		}
 		state.Items[i] = &MachineTypeState{
-			CloudProvider: listItem.CloudProvider(***REMOVED***.ID(***REMOVED***,
-			ID:            listItem.ID(***REMOVED***,
-			Name:          listItem.Name(***REMOVED***,
-			CPU:           int64(cpuValue***REMOVED***,
-			RAM:           int64(ramValue***REMOVED***,
-***REMOVED***
+			CloudProvider: listItem.CloudProvider().ID(),
+			ID:            listItem.ID(),
+			Name:          listItem.Name(),
+			CPU:           int64(cpuValue),
+			RAM:           int64(ramValue),
+		}
 	}
 
 	// Save the state:
-	diags := resp.State.Set(ctx, state***REMOVED***
-	resp.Diagnostics.Append(diags...***REMOVED***
+	diags := resp.State.Set(ctx, state)
+	resp.Diagnostics.Append(diags...)
 }

@@ -36,7 +36,7 @@ data "aws_availability_zones" "available" {
   }
 }
 locals {
-  filterAZs = var.multi_az?slice(data.aws_availability_zones.available.names,0,3***REMOVED***:slice(data.aws_availability_zones.available.names,0,1***REMOVED***
+  filterAZs = var.multi_az?slice(data.aws_availability_zones.available.names,0,3):slice(data.aws_availability_zones.available.names,0,1)
 }
 locals {
 

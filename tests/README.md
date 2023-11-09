@@ -55,13 +55,13 @@ Please read the structure and contribte code to the correct place
 * Create the case in terraform-provider-rhcs/tests/e2e/<feature name>_test.go
 * Label the case with ***CI.Day1Post***
 * Label the case with importance ***CI.Critical***
-* Don't need to run creation step, just in BeforeEach step call function  ***PrepareRHCSClusterByProfileENV(***REMOVED****** it will load the clusterID prepared
+* Don't need to run creation step, just in BeforeEach step call function  ***PrepareRHCSClusterByProfileENV()*** it will load the clusterID prepared
 * Code for checking steps  only in the case
 ### Contribute to day2
 * Create the case in terraform-provider-rhcs/tests/e2e/<feature name>_test.go
 * Label the case with ***CI.Day2***
 * Label the case with importance ***CI.Critical*** or ***CI.High***
-* Don't need to run creation step, just in BeforeEach step call function  ***PrepareRHCSClusterByProfileENV(***REMOVED****** it will load the clusterID prepared
+* Don't need to run creation step, just in BeforeEach step call function  ***PrepareRHCSClusterByProfileENV()*** it will load the clusterID prepared
 * Code for day2 actions and check step
 * Every case need to recover the cluster after the case run finished unless it's un-recoverable
 ### Labels
@@ -71,12 +71,12 @@ Please read the structure and contribte code to the correct place
 * Label your case with ***CI.Exclude*** if it fails CI all  the time and you can't fix it in time
 
 ## Running
-The cluster created by the automation scripts are shared across all of the test cases. [Why we need do this?](./docs/challenge.md***REMOVED***.
+The cluster created by the automation scripts are shared across all of the test cases. [Why we need do this?](./docs/challenge.md).
 
 ### Prerequisite
-Please read repo's [README.md](../README.md***REMOVED***
+Please read repo's [README.md](../README.md)
 #### Users and Tokens
-To execute the test cases, we need to prepare the [offline token](https://console.redhat.com/openshift/token/show***REMOVED***. Get the offline token and export as an ENV variable 
+To execute the test cases, we need to prepare the [offline token](https://console.redhat.com/openshift/token/show). Get the offline token and export as an ENV variable 
 
 **rhcs_TF_TOKEN**.
 * export RHCS_TOKEN=<offline token>
@@ -114,7 +114,7 @@ This allows run by case filter to simulate CI. Anybody can customize the case la
   * Export the token
     * `export RHCS_TOKEN=<rhcs token>` #If it had been run, then you can skip
   * Export the label filter to locate the preparation case
-    * `export LabelFilter="(Critical,High***REMOVED***&&(day1-post,day2***REMOVED***&&!Exclude"` #This filter only choose all critical and high priority cases with day1-post and day2
+    * `export LabelFilter="(Critical,High)&&(day1-post,day2)&&!Exclude"` #This filter only choose all critical and high priority cases with day1-post and day2
   * Run make command
     * `make e2e_test`
 * Run destroy with profile
@@ -141,7 +141,7 @@ This feature allows for running tests through a case filter to simulate CI. Anyo
   * Export the token
     * `export RHCS_TOKEN=<rhcs token>` #If it had been run, then you can skip
   * Run ginkgo run command
-    * `ginkgo run --label-filter (Critical,High***REMOVED***&&(day1-post,day2***REMOVED***&&!Exclude tests/e2e`
+    * `ginkgo run --label-filter (Critical,High)&&(day1-post,day2)&&!Exclude tests/e2e`
    * Run a specified case to debug
     * `ginkgo -focus <case id> tests/e2e`
 * Run destroy with profile
@@ -155,5 +155,5 @@ This feature allows for running tests through a case filter to simulate CI. Anyo
 ### Set log level
 * Log level defined in terraform-provider-rhcs/tests/utils/exec/tf-exec.go
 ```
-logger.SetLevel(logging.InfoLevel***REMOVED***
+logger.SetLevel(logging.InfoLevel)
 ```

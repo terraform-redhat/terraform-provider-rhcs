@@ -1,7 +1,7 @@
 /*
-Copyright (c***REMOVED*** 2021 Red Hat, Inc.
+Copyright (c) 2021 Red Hat, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -16,11 +16,11 @@ limitations under the License.
 
 package common
 
-***REMOVED***
+import (
 	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
-***REMOVED***
+	"fmt"
 	"net/url"
 	"os"
 	"reflect"
@@ -33,23 +33,23 @@ package common
 	ocmerrors "github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/pkg/errors"
 	"github.com/zgalor/weberr"
-***REMOVED***
+)
 
 const versionPrefix = "openshift-v"
 
 // shouldPatchInt changed checks if the change between the given state and plan requires sending a
 // patch request to the server. If it does it returns the value to add to the patch.
-func ShouldPatchInt(state, plan types.Int64***REMOVED*** (value int64, ok bool***REMOVED*** {
-	if plan.IsUnknown(***REMOVED*** || plan.IsNull(***REMOVED*** {
+func ShouldPatchInt(state, plan types.Int64) (value int64, ok bool) {
+	if plan.IsUnknown() || plan.IsNull() {
 		return
 	}
-	if state.IsUnknown(***REMOVED*** || state.IsNull(***REMOVED*** {
-		value = plan.ValueInt64(***REMOVED***
+	if state.IsUnknown() || state.IsNull() {
+		value = plan.ValueInt64()
 		ok = true
 		return
 	}
-	if plan.ValueInt64(***REMOVED*** != state.ValueInt64(***REMOVED*** {
-		value = plan.ValueInt64(***REMOVED***
+	if plan.ValueInt64() != state.ValueInt64() {
+		value = plan.ValueInt64()
 		ok = true
 	}
 	return
@@ -57,17 +57,17 @@ func ShouldPatchInt(state, plan types.Int64***REMOVED*** (value int64, ok bool**
 
 // shouldPatchString changed checks if the change between the given state and plan requires sending
 // a patch request to the server. If it does it returns the value to add to the patch.
-func ShouldPatchString(state, plan types.String***REMOVED*** (value string, ok bool***REMOVED*** {
-	if plan.IsUnknown(***REMOVED*** || plan.IsNull(***REMOVED*** {
+func ShouldPatchString(state, plan types.String) (value string, ok bool) {
+	if plan.IsUnknown() || plan.IsNull() {
 		return
 	}
-	if state.IsUnknown(***REMOVED*** || state.IsNull(***REMOVED*** {
-		value = plan.ValueString(***REMOVED***
+	if state.IsUnknown() || state.IsNull() {
+		value = plan.ValueString()
 		ok = true
 		return
 	}
-	if plan.ValueString(***REMOVED*** != state.ValueString(***REMOVED*** {
-		value = plan.ValueString(***REMOVED***
+	if plan.ValueString() != state.ValueString() {
+		value = plan.ValueString()
 		ok = true
 	}
 	return
@@ -75,17 +75,17 @@ func ShouldPatchString(state, plan types.String***REMOVED*** (value string, ok b
 
 // ShouldPatchBool changed checks if the change between the given state and plan requires sending
 // a patch request to the server. If it does it return the value to add to the patch.
-func ShouldPatchBool(state, plan types.Bool***REMOVED*** (value bool, ok bool***REMOVED*** {
-	if plan.IsUnknown(***REMOVED*** || plan.IsNull(***REMOVED*** {
+func ShouldPatchBool(state, plan types.Bool) (value bool, ok bool) {
+	if plan.IsUnknown() || plan.IsNull() {
 		return
 	}
-	if state.IsUnknown(***REMOVED*** || state.IsNull(***REMOVED*** {
-		value = plan.ValueBool(***REMOVED***
+	if state.IsUnknown() || state.IsNull() {
+		value = plan.ValueBool()
 		ok = true
 		return
 	}
-	if plan.ValueBool(***REMOVED*** != state.ValueBool(***REMOVED*** {
-		value = plan.ValueBool(***REMOVED***
+	if plan.ValueBool() != state.ValueBool() {
+		value = plan.ValueBool()
 		ok = true
 	}
 	return
@@ -93,63 +93,63 @@ func ShouldPatchBool(state, plan types.Bool***REMOVED*** (value bool, ok bool***
 
 // ShouldPatchMap changed checks if the change between the given state and plan requires sending
 // a patch request to the server. If it does it return the value to add to the patch.
-func ShouldPatchMap(state, plan types.Map***REMOVED*** (types.Map, bool***REMOVED*** {
-	return plan, !reflect.DeepEqual(state.Elements(***REMOVED***, plan.Elements(***REMOVED******REMOVED***
+func ShouldPatchMap(state, plan types.Map) (types.Map, bool) {
+	return plan, !reflect.DeepEqual(state.Elements(), plan.Elements())
 }
 
-func IsValidDomain(candidate string***REMOVED*** bool {
-	var domainRegexp = regexp.MustCompile(`^(?i***REMOVED***[a-z0-9-]+(\.[a-z0-9-]+***REMOVED***+\.?$`***REMOVED***
-	return domainRegexp.MatchString(candidate***REMOVED***
+func IsValidDomain(candidate string) bool {
+	var domainRegexp = regexp.MustCompile(`^(?i)[a-z0-9-]+(\.[a-z0-9-]+)+\.?$`)
+	return domainRegexp.MatchString(candidate)
 }
 
-func IsStringAttributeEmpty(param types.String***REMOVED*** bool {
-	return param.IsUnknown(***REMOVED*** || param.IsNull(***REMOVED*** || param.ValueString(***REMOVED*** == ""
+func IsStringAttributeEmpty(param types.String) bool {
+	return param.IsUnknown() || param.IsNull() || param.ValueString() == ""
 }
 
-func EmptiableStringToStringType(s string***REMOVED*** types.String {
+func EmptiableStringToStringType(s string) types.String {
 	if s == "" {
-		return types.StringNull(***REMOVED***
+		return types.StringNull()
 	}
 
-	return types.StringValue(s***REMOVED***
+	return types.StringValue(s)
 }
 
-func IsGreaterThanOrEqual(version1, version2 string***REMOVED*** (bool, error***REMOVED*** {
-	v1, err := version.NewVersion(strings.TrimPrefix(version1, versionPrefix***REMOVED******REMOVED***
+func IsGreaterThanOrEqual(version1, version2 string) (bool, error) {
+	v1, err := version.NewVersion(strings.TrimPrefix(version1, versionPrefix))
 	if err != nil {
 		return false, err
 	}
-	v2, err := version.NewVersion(strings.TrimPrefix(version2, versionPrefix***REMOVED******REMOVED***
+	v2, err := version.NewVersion(strings.TrimPrefix(version2, versionPrefix))
 	if err != nil {
 		return false, err
 	}
-	return v1.GreaterThanOrEqual(v2***REMOVED***, nil
+	return v1.GreaterThanOrEqual(v2), nil
 }
 
-func HandleErr(res *ocmerrors.Error, err error***REMOVED*** error {
-	msg := res.Reason(***REMOVED***
+func HandleErr(res *ocmerrors.Error, err error) error {
+	msg := res.Reason()
 	if msg == "" {
-		msg = err.Error(***REMOVED***
+		msg = err.Error()
 	}
-	errType := weberr.ErrorType(res.Status(***REMOVED******REMOVED***
-	return errType.Set(errors.Errorf("%s", msg***REMOVED******REMOVED***
+	errType := weberr.ErrorType(res.Status())
+	return errType.Set(errors.Errorf("%s", msg))
 }
 
-func GetThumbprint(oidcEndpointURL string, httpClient HttpClient***REMOVED*** (thumbprint string, err error***REMOVED*** {
-	defer func(***REMOVED*** {
-		if panicErr := recover(***REMOVED***; panicErr != nil {
-			fmt.Fprintf(os.Stderr, "recovering from: %q\n", panicErr***REMOVED***
+func GetThumbprint(oidcEndpointURL string, httpClient HttpClient) (thumbprint string, err error) {
+	defer func() {
+		if panicErr := recover(); panicErr != nil {
+			fmt.Fprintf(os.Stderr, "recovering from: %q\n", panicErr)
 			thumbprint = ""
-			err = fmt.Errorf("recovering from: %q", panicErr***REMOVED***
-***REMOVED***
-	}(***REMOVED***
+			err = fmt.Errorf("recovering from: %q", panicErr)
+		}
+	}()
 
-	connect, err := url.ParseRequestURI(oidcEndpointURL***REMOVED***
+	connect, err := url.ParseRequestURI(oidcEndpointURL)
 	if err != nil {
 		return "", err
 	}
 
-	response, err := httpClient.Get(fmt.Sprintf("https://%s:443", connect.Host***REMOVED******REMOVED***
+	response, err := httpClient.Get(fmt.Sprintf("https://%s:443", connect.Host))
 	if err != nil {
 		return "", err
 	}
@@ -159,34 +159,34 @@ func GetThumbprint(oidcEndpointURL string, httpClient HttpClient***REMOVED*** (t
 	// Grab the CA in the chain
 	for _, cert := range certChain {
 		if cert.IsCA {
-			if bytes.Equal(cert.RawIssuer, cert.RawSubject***REMOVED*** {
-				hash, err := Sha1Hash(cert.Raw***REMOVED***
+			if bytes.Equal(cert.RawIssuer, cert.RawSubject) {
+				hash, err := Sha1Hash(cert.Raw)
 				if err != nil {
 					return "", err
-		***REMOVED***
+				}
 				return hash, nil
-	***REMOVED***
-***REMOVED***
+			}
+		}
 	}
 
 	// Fall back to using the last certficiate in the chain
-	cert := certChain[len(certChain***REMOVED***-1]
-	return Sha1Hash(cert.Raw***REMOVED***
+	cert := certChain[len(certChain)-1]
+	return Sha1Hash(cert.Raw)
 }
 
 // sha1Hash computes the SHA1 of the byte array and returns the hex encoding as a string.
-func Sha1Hash(data []byte***REMOVED*** (string, error***REMOVED*** {
+func Sha1Hash(data []byte) (string, error) {
 	// nolint:gosec
-	hasher := sha1.New(***REMOVED***
-	_, err := hasher.Write(data***REMOVED***
+	hasher := sha1.New()
+	_, err := hasher.Write(data)
 	if err != nil {
-		return "", fmt.Errorf("Couldn't calculate hash:\n %v", err***REMOVED***
+		return "", fmt.Errorf("Couldn't calculate hash:\n %v", err)
 	}
-	hashed := hasher.Sum(nil***REMOVED***
-	return hex.EncodeToString(hashed***REMOVED***, nil
+	hashed := hasher.Sum(nil)
+	return hex.EncodeToString(hashed), nil
 }
 
 // HasValue checks if the given terraform value is set.
-func HasValue(val attr.Value***REMOVED*** bool {
-	return !val.IsUnknown(***REMOVED*** && !val.IsNull(***REMOVED***
+func HasValue(val attr.Value) bool {
+	return !val.IsUnknown() && !val.IsNull()
 }

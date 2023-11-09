@@ -26,6 +26,6 @@ variable "gitlab_client_secret" {
 }
 variable "gitlab_url" {
   type        = string
-  description = "Optional. The host URL of a GitLab provider. (default 'https://gitlab.com'***REMOVED***"
+  description = "Optional. The host URL of a GitLab provider. (default 'https://gitlab.com')"
   default     = "https://gitlab.com"
 }

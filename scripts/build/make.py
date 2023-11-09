@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 #
-# Copyright (c***REMOVED*** 2019 Red Hat, Inc.
+# Copyright (c) 2019 Red Hat, Inc.
 #
-# Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+# Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
@@ -28,39 +28,39 @@ class Make:
     Simplifies the execution of the `make` command.
     """
 
-    def __init__(self, log, env=None, cwd=None, common_variables={}***REMOVED***:
+    def __init__(self, log, env=None, cwd=None, common_variables={}):
         """
         Creates a new object that simplifies running the `make` command.
         """
-        self._command = Command(log=log, command=["make"], env=env, cwd=cwd***REMOVED***
+        self._command = Command(log=log, command=["make"], env=env, cwd=cwd)
         self._common_variables = common_variables
 
-    def _args(self, targets, variables***REMOVED***:
+    def _args(self, targets, variables):
         """
         Calculates the command line arguments.
         """
         result = []
-        merged_variables = self._common_variables.copy(***REMOVED***
+        merged_variables = self._common_variables.copy()
         if variables is not None:
-            merged_variables.update(variables***REMOVED***
+            merged_variables.update(variables)
         if merged_variables is not None:
-            result.extend([f"{k}={v}" for k, v in merged_variables.items(***REMOVED***]***REMOVED***
+            result.extend([f"{k}={v}" for k, v in merged_variables.items()])
         if targets is not None:
-            result.extend(targets***REMOVED***
+            result.extend(targets)
         return result
 
-    def run(self, targets=None, variables=None***REMOVED***:
+    def run(self, targets=None, variables=None):
         """
         Executes the `make` command with the given targets and variables and
         with the environment and working directory given in the constructor and
         returns its exit code.
         """
-        return self._command.run(self._args(targets, variables***REMOVED******REMOVED***
+        return self._command.run(self._args(targets, variables))
 
-    def check(self, targets=None, variables=None***REMOVED***:
+    def check(self, targets=None, variables=None):
         """
         Executes the `make` command with the given targets and variables and
         with the environment and working directory given in the constructor and
         returns its exit code.
         """
-        self._command.check(self._args(targets, variables***REMOVED******REMOVED***
+        self._command.check(self._args(targets, variables))

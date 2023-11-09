@@ -1,7 +1,7 @@
 /*
-Copyright (c***REMOVED*** 2021 Red Hat, Inc.
+Copyright (c) 2021 Red Hat, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -16,21 +16,21 @@ limitations under the License.
 
 package provider
 
-***REMOVED***
-***REMOVED***
+import (
+	"net/http"
 
 	. "github.com/onsi/ginkgo/v2/dsl/core"             // nolint
-***REMOVED***                         // nolint
+	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
-***REMOVED***
+)
 
-var _ = Describe("Cloud providers data source", func(***REMOVED*** {
-	It("Can list cloud providers", func(***REMOVED*** {
+var _ = Describe("Cloud providers data source", func() {
+	It("Can list cloud providers", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/cloud_providers"***REMOVED***,
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/cloud_providers"),
 				RespondWithJSON(http.StatusOK, `{
 				  "page": 1,
 				  "size": 2,
@@ -47,35 +47,35 @@ var _ = Describe("Cloud providers data source", func(***REMOVED*** {
 				      "display_name": "GCP"
 				    }
 				  ]
-		***REMOVED***`***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				}`),
+			),
+		)
 
 		// Run the apply command:
 		terraform.Source(`
 		  data "rhcs_cloud_providers" "all" {
 		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_cloud_providers", "all"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items | length`, 2***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].id`, "aws"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].name`, "aws"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].display_name`, "AWS"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].id`, "gcp"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].name`, "gcp"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].display_name`, "GCP"***REMOVED******REMOVED***
-	}***REMOVED***
+		resource := terraform.Resource("rhcs_cloud_providers", "all")
+		Expect(resource).To(MatchJQ(`.attributes.items | length`, 2))
+		Expect(resource).To(MatchJQ(`.attributes.items[0].id`, "aws"))
+		Expect(resource).To(MatchJQ(`.attributes.items[0].name`, "aws"))
+		Expect(resource).To(MatchJQ(`.attributes.items[0].display_name`, "AWS"))
+		Expect(resource).To(MatchJQ(`.attributes.items[1].id`, "gcp"))
+		Expect(resource).To(MatchJQ(`.attributes.items[1].name`, "gcp"))
+		Expect(resource).To(MatchJQ(`.attributes.items[1].display_name`, "GCP"))
+	})
 
-	It("Can search cloud providers", func(***REMOVED*** {
+	It("Can search cloud providers", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/cloud_providers"***REMOVED***,
-				VerifyFormKV("search", "display_name like 'A%'"***REMOVED***,
-				VerifyFormKV("order", "display_name asc"***REMOVED***,
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/cloud_providers"),
+				VerifyFormKV("search", "display_name like 'A%'"),
+				VerifyFormKV("order", "display_name asc"),
 				RespondWithJSON(http.StatusOK, `{
 				  "page": 1,
 				  "size": 2,
@@ -92,9 +92,9 @@ var _ = Describe("Cloud providers data source", func(***REMOVED*** {
 				      "display_name": "Azure"
 				    }
 				  ]
-		***REMOVED***`***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				}`),
+			),
+		)
 
 		// Run the apply command:
 		terraform.Source(`
@@ -102,27 +102,27 @@ var _ = Describe("Cloud providers data source", func(***REMOVED*** {
 		    search = "display_name like 'A%'"
 		    order  = "display_name asc"
 		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_cloud_providers", "a"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.search`, "display_name like 'A%'"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.order`, "display_name asc"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items | length`, 2***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].id`, "aws"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].name`, "aws"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].display_name`, "AWS"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].id`, "azure"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].name`, "azure"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].display_name`, "Azure"***REMOVED******REMOVED***
-	}***REMOVED***
+		resource := terraform.Resource("rhcs_cloud_providers", "a")
+		Expect(resource).To(MatchJQ(`.attributes.search`, "display_name like 'A%'"))
+		Expect(resource).To(MatchJQ(`.attributes.order`, "display_name asc"))
+		Expect(resource).To(MatchJQ(`.attributes.items | length`, 2))
+		Expect(resource).To(MatchJQ(`.attributes.items[0].id`, "aws"))
+		Expect(resource).To(MatchJQ(`.attributes.items[0].name`, "aws"))
+		Expect(resource).To(MatchJQ(`.attributes.items[0].display_name`, "AWS"))
+		Expect(resource).To(MatchJQ(`.attributes.items[1].id`, "azure"))
+		Expect(resource).To(MatchJQ(`.attributes.items[1].name`, "azure"))
+		Expect(resource).To(MatchJQ(`.attributes.items[1].display_name`, "Azure"))
+	})
 
-	It("Populates `item` if there is exactly one result", func(***REMOVED*** {
+	It("Populates `item` if there is exactly one result", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/cloud_providers"***REMOVED***,
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/cloud_providers"),
 				RespondWithJSON(http.StatusOK, `{
 				  "page": 1,
 				  "size": 1,
@@ -134,55 +134,55 @@ var _ = Describe("Cloud providers data source", func(***REMOVED*** {
 				      "display_name": "AWS"
 				    }
 				  ]
-		***REMOVED***`***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				}`),
+			),
+		)
 
 		// Run the apply command:
 		terraform.Source(`
 		  data "rhcs_cloud_providers" "a" {
 		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_cloud_providers", "a"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item.id`, "aws"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item.name`, "aws"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item.display_name`, "AWS"***REMOVED******REMOVED***
-	}***REMOVED***
+		resource := terraform.Resource("rhcs_cloud_providers", "a")
+		Expect(resource).To(MatchJQ(`.attributes.item.id`, "aws"))
+		Expect(resource).To(MatchJQ(`.attributes.item.name`, "aws"))
+		Expect(resource).To(MatchJQ(`.attributes.item.display_name`, "AWS"))
+	})
 
-	It("Doesn't populate `item` if there are zero results", func(***REMOVED*** {
+	It("Doesn't populate `item` if there are zero results", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/cloud_providers"***REMOVED***,
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/cloud_providers"),
 				RespondWithJSON(http.StatusOK, `{
 				  "page": 1,
 				  "size": 0,
 				  "total": 0,
 				  "items": []
-		***REMOVED***`***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				}`),
+			),
+		)
 
 		// Run the apply command:
 		terraform.Source(`
 		  data "rhcs_cloud_providers" "all" {
 		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_cloud_providers", "all"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item`, nil***REMOVED******REMOVED***
-	}***REMOVED***
+		resource := terraform.Resource("rhcs_cloud_providers", "all")
+		Expect(resource).To(MatchJQ(`.attributes.item`, nil))
+	})
 
-	It("Doesn't populate `item` if there are multiple results", func(***REMOVED*** {
+	It("Doesn't populate `item` if there are multiple results", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/cloud_providers"***REMOVED***,
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/cloud_providers"),
 				RespondWithJSON(http.StatusOK, `{
 				  "page": 1,
 				  "size": 2,
@@ -199,19 +199,19 @@ var _ = Describe("Cloud providers data source", func(***REMOVED*** {
 				      "display_name": "GCP"
 				    }
 				  ]
-		***REMOVED***`***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				}`),
+			),
+		)
 
 		// Run the apply command:
 		terraform.Source(`
 		  data "rhcs_cloud_providers" "all" {
 		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_cloud_providers", "all"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item`, nil***REMOVED******REMOVED***
-	}***REMOVED***
-}***REMOVED***
+		resource := terraform.Resource("rhcs_cloud_providers", "all")
+		Expect(resource).To(MatchJQ(`.attributes.item`, nil))
+	})
+})

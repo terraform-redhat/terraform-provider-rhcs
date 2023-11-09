@@ -1,13 +1,13 @@
 package common
 
-***REMOVED***
+import (
 	"testing"
 
-***REMOVED***
-***REMOVED***
-***REMOVED***
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+)
 
-func TestProvider(t *testing.T***REMOVED*** {
-	RegisterFailHandler(Fail***REMOVED***
-	RunSpecs(t, "Common Suite"***REMOVED***
+func TestProvider(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Common Suite")
 }

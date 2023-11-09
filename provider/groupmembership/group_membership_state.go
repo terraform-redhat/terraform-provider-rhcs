@@ -1,7 +1,7 @@
 /*
-Copyright (c***REMOVED*** 2021 Red Hat, Inc.
+Copyright (c) 2021 Red Hat, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -16,9 +16,9 @@ limitations under the License.
 
 package groupmembership
 
-***REMOVED***
+import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
-***REMOVED***
+)
 
 type GroupMembershipState struct {
 	Cluster types.String `tfsdk:"cluster"`

@@ -19,19 +19,19 @@ variable "mapping_method" {
 }
 variable "claims" {
   type = object({
-    email              = optional(list(string***REMOVED******REMOVED***
-    groups             = optional(list(string***REMOVED******REMOVED***
-    name               = optional(list(string***REMOVED******REMOVED***
-    preferred_username = optional(list(string***REMOVED******REMOVED***
-  }***REMOVED***
+    email              = optional(list(string))
+    groups             = optional(list(string))
+    name               = optional(list(string))
+    preferred_username = optional(list(string))
+  })
   default = null
 }
 variable "extra_scopes" {
-  type    = list(string***REMOVED***
+  type    = list(string)
   default = null
 }
 variable "extra_authorize_parameters" {
-  type    = list(string***REMOVED***
+  type    = list(string)
   default = null
 }
 variable "issuer" {

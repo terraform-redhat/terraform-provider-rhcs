@@ -1,7 +1,7 @@
 #
-# Copyright (c***REMOVED*** 2023 Red Hat, Inc.
+# Copyright (c) 2023 Red Hat, Inc.
 #
-# Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+# Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
@@ -50,7 +50,7 @@ module "oidc_config" {
 }
 
 locals {
-  path = coalesce(var.path, "/"***REMOVED***
+  path = coalesce(var.path, "/")
   sts_roles = {
     role_arn         = local.installer_role_arn,
     support_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${var.account_role_prefix}-Support-Role",

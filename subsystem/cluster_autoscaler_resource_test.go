@@ -1,7 +1,7 @@
 /*
-Copyright (c***REMOVED*** 2023 Red Hat, Inc.
+Copyright (c) 2023 Red Hat, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -16,30 +16,30 @@ limitations under the License.
 
 package provider
 
-***REMOVED***
-***REMOVED***
+import (
+	"net/http"
 
-***REMOVED***                      // nolint
-***REMOVED***                         // nolint
+	. "github.com/onsi/ginkgo/v2"                      // nolint
+	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
-***REMOVED***
+)
 
-var _ = Describe("Cluster Autoscaler", func(***REMOVED*** {
-	Context("creation", func(***REMOVED*** {
-		It("fails if given an out-of-range utilization threshold", func(***REMOVED*** {
+var _ = Describe("Cluster Autoscaler", func() {
+	Context("creation", func() {
+		It("fails if given an out-of-range utilization threshold", func() {
 			terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
 					scale_down = {
 						utilization_threshold = "1.1"
-			***REMOVED***
-		***REMOVED***
-			`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+					}
+				}
+			`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
 
-		It("fails if given an invalid range", func(***REMOVED*** {
+		It("fails if given an invalid range", func() {
 			terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
@@ -47,27 +47,27 @@ var _ = Describe("Cluster Autoscaler", func(***REMOVED*** {
 						cores = {
 							min = 1
 							max = 0
-				***REMOVED***
-			***REMOVED***
-		***REMOVED***
-			`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+						}
+					}
+				}
+			`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
 
-		It("fails if given an invalid duration string", func(***REMOVED*** {
+		It("fails if given an invalid duration string", func() {
 			terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
 					max_node_provision_time = "1"
-		***REMOVED***
-			`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+				}
+			`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
 
-		It("fails to find a matching cluster object", func(***REMOVED*** {
+		It("fails to find a matching cluster object", func() {
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusNotFound, `
 						{
 							"kind": "Error",
@@ -76,34 +76,34 @@ var _ = Describe("Cluster Autoscaler", func(***REMOVED*** {
 							"code": "CLUSTERS-MGMT-404",
 							"reason": "Cluster '123' not found",
 							"operation_id": "96ae3bc2-dd56-4640-8092-4703c81ad2c1"
-				***REMOVED***
-					`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+						}
+					`),
+				),
+			)
 
 			terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
-		***REMOVED***
-			`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+				}
+			`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
 
-		It("fails if OCM backend fails to create the object", func(***REMOVED*** {
+		It("fails if OCM backend fails to create the object", func() {
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"kind": "Cluster",
 							"id": "123",
 							"href": "/api/clusters_mgmt/v1/clusters/123",
 							"name": "cluster",
-				***REMOVED***
-					`***REMOVED***,
-				***REMOVED***,
+						}
+					`),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"kind": "Cluster",
@@ -111,42 +111,42 @@ var _ = Describe("Cluster Autoscaler", func(***REMOVED*** {
 							"href": "/api/clusters_mgmt/v1/clusters/123",
 							"name": "cluster",
 							"state": "ready"
-				***REMOVED***
-					`***REMOVED***,
-				***REMOVED***,
+						}
+					`),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"***REMOVED***,
-					RespondWithJSON(http.StatusNotFound, "{}"***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
+					RespondWithJSON(http.StatusNotFound, "{}"),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/autoscaler"***REMOVED***,
-					RespondWithJSON(http.StatusInternalServerError, "Internal Server Error"***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
+					RespondWithJSON(http.StatusInternalServerError, "Internal Server Error"),
+				),
+			)
 
 			terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
-		***REMOVED***
-	    	`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+				}
+	    	`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
 
-		It("successfully creates a cluster-autoscaler object", func(***REMOVED*** {
+		It("successfully creates a cluster-autoscaler object", func() {
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"kind": "Cluster",
 							"id": "123",
 							"href": "/api/clusters_mgmt/v1/clusters/123",
 							"name": "cluster",
-				***REMOVED***
-					`***REMOVED***,
-				***REMOVED***,
+						}
+					`),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"kind": "Cluster",
@@ -154,49 +154,49 @@ var _ = Describe("Cluster Autoscaler", func(***REMOVED*** {
 							"href": "/api/clusters_mgmt/v1/clusters/123",
 							"name": "cluster",
 							"state": "ready"
-				***REMOVED***
-					`***REMOVED***,
-				***REMOVED***,
+						}
+					`),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"***REMOVED***,
-					RespondWithJSON(http.StatusNotFound, "{}"***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
+					RespondWithJSON(http.StatusNotFound, "{}"),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/autoscaler"***REMOVED***,
-					VerifyJQ(".balance_similar_node_groups", true***REMOVED***,
-					VerifyJQ(".skip_nodes_with_local_storage", true***REMOVED***,
-					VerifyJQ(".log_verbosity", float64(3***REMOVED******REMOVED***,
-					VerifyJQ(".max_pod_grace_period", float64(1***REMOVED******REMOVED***,
-					VerifyJQ(".pod_priority_threshold", float64(-10***REMOVED******REMOVED***,
-					VerifyJQ(".ignore_daemonsets_utilization", false***REMOVED***,
-					VerifyJQ(".max_node_provision_time", "1h"***REMOVED***,
-					VerifyJQ(".balancing_ignored_labels", []interface{}{"l1", "l2"}***REMOVED***,
-					VerifyJQ(".resource_limits.max_nodes_total", float64(20***REMOVED******REMOVED***,
-					VerifyJQ(".resource_limits.cores.min", float64(0***REMOVED******REMOVED***,
-					VerifyJQ(".resource_limits.cores.max", float64(1***REMOVED******REMOVED***,
-					VerifyJQ(".resource_limits.memory.min", float64(2***REMOVED******REMOVED***,
-					VerifyJQ(".resource_limits.memory.max", float64(3***REMOVED******REMOVED***,
-					VerifyJQ(".resource_limits.gpus[0].type", "nvidia"***REMOVED***,
-					VerifyJQ(".resource_limits.gpus[0].range.min", float64(0***REMOVED******REMOVED***,
-					VerifyJQ(".resource_limits.gpus[0].range.max", float64(1***REMOVED******REMOVED***,
-					VerifyJQ(".resource_limits.gpus[1].type", "intel"***REMOVED***,
-					VerifyJQ(".resource_limits.gpus[1].range.min", float64(2***REMOVED******REMOVED***,
-					VerifyJQ(".resource_limits.gpus[1].range.max", float64(3***REMOVED******REMOVED***,
-					VerifyJQ(".scale_down.enabled", true***REMOVED***,
-					VerifyJQ(".scale_down.utilization_threshold", "0.4"***REMOVED***,
-					VerifyJQ(".scale_down.unneeded_time", "3h"***REMOVED***,
-					VerifyJQ(".scale_down.delay_after_add", "4h"***REMOVED***,
-					VerifyJQ(".scale_down.delay_after_delete", "5h"***REMOVED***,
-					VerifyJQ(".scale_down.delay_after_failure", "6h"***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
+					VerifyJQ(".balance_similar_node_groups", true),
+					VerifyJQ(".skip_nodes_with_local_storage", true),
+					VerifyJQ(".log_verbosity", float64(3)),
+					VerifyJQ(".max_pod_grace_period", float64(1)),
+					VerifyJQ(".pod_priority_threshold", float64(-10)),
+					VerifyJQ(".ignore_daemonsets_utilization", false),
+					VerifyJQ(".max_node_provision_time", "1h"),
+					VerifyJQ(".balancing_ignored_labels", []interface{}{"l1", "l2"}),
+					VerifyJQ(".resource_limits.max_nodes_total", float64(20)),
+					VerifyJQ(".resource_limits.cores.min", float64(0)),
+					VerifyJQ(".resource_limits.cores.max", float64(1)),
+					VerifyJQ(".resource_limits.memory.min", float64(2)),
+					VerifyJQ(".resource_limits.memory.max", float64(3)),
+					VerifyJQ(".resource_limits.gpus[0].type", "nvidia"),
+					VerifyJQ(".resource_limits.gpus[0].range.min", float64(0)),
+					VerifyJQ(".resource_limits.gpus[0].range.max", float64(1)),
+					VerifyJQ(".resource_limits.gpus[1].type", "intel"),
+					VerifyJQ(".resource_limits.gpus[1].range.min", float64(2)),
+					VerifyJQ(".resource_limits.gpus[1].range.max", float64(3)),
+					VerifyJQ(".scale_down.enabled", true),
+					VerifyJQ(".scale_down.utilization_threshold", "0.4"),
+					VerifyJQ(".scale_down.unneeded_time", "3h"),
+					VerifyJQ(".scale_down.delay_after_add", "4h"),
+					VerifyJQ(".scale_down.delay_after_delete", "5h"),
+					VerifyJQ(".scale_down.delay_after_failure", "6h"),
 					RespondWithJSON(http.StatusCreated, `
 						{
 							"kind": "ClusterAutoscaler",
 							"id": "123",
 							"href": "/api/clusters_mgmt/v1/clusters/123"
-				***REMOVED***
-					`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+						}
+					`),
+				),
+			)
 
 			terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
@@ -214,28 +214,28 @@ var _ = Describe("Cluster Autoscaler", func(***REMOVED*** {
 						cores = {
 							min = 0
 							max = 1
-				***REMOVED***
+						}
 						memory = {
 							min = 2
 							max = 3
-				***REMOVED***
+						}
 						gpus = [
 							{
 								type = "nvidia"
 								range = {
 									min = 0
 									max = 1
-						***REMOVED***
-					***REMOVED***,
+								}
+							},
 							{
 								type = "intel"
 								range = {
 									min = 2
 									max = 3
-						***REMOVED***
-					***REMOVED***
+								}
+							}
 						]
-			***REMOVED***
+					}
 					scale_down = {
 						enabled = true
 						utilization_threshold = "0.4"
@@ -243,18 +243,18 @@ var _ = Describe("Cluster Autoscaler", func(***REMOVED*** {
 						delay_after_add = "4h"
 						delay_after_delete = "5h"
 						delay_after_failure = "6h"
-			***REMOVED***
-		***REMOVED***
-	    	`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-	}***REMOVED***
+					}
+				}
+	    	`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
+	})
 
-	Context("importing", func(***REMOVED*** {
-		It("fails if resource does not exist in OCM", func(***REMOVED*** {
+	Context("importing", func() {
+		It("fails if resource does not exist in OCM", func() {
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
 					RespondWithJSON(http.StatusNotFound, `
 						{
 							"kind": "Error",
@@ -263,58 +263,58 @@ var _ = Describe("Cluster Autoscaler", func(***REMOVED*** {
 							"code": "CLUSTERS-MGMT-404",
 							"reason": "Autoscaler for cluster ID '123' is not found",
 							"operation_id": "96ae3bc2-dd56-4640-8092-4703c81ad2c1"
-				***REMOVED***
-					`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+						}
+					`),
+				),
+			)
 
 			terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
-		***REMOVED***
-	    	`***REMOVED***
-			Expect(terraform.Import("rhcs_cluster_autoscaler.cluster_autoscaler", "123"***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+				}
+	    	`)
+			Expect(terraform.Import("rhcs_cluster_autoscaler.cluster_autoscaler", "123")).ToNot(BeZero())
+		})
 
-		It("succeeds if resource exists in OCM", func(***REMOVED*** {
+		It("succeeds if resource exists in OCM", func() {
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"kind": "ClusterAutoscaler",
 							"href": "/api/clusters_mgmt/v1/clusters/123/autoscaler",
 							"scale_down": {
 								"delay_after_add": "2h"
-					***REMOVED***
-				***REMOVED***
-					`***REMOVED***,
-				***REMOVED***,
+							}
+						}
+					`),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"kind": "ClusterAutoscaler",
 							"href": "/api/clusters_mgmt/v1/clusters/123/autoscaler",
 							"scale_down": {
 								"delay_after_add": "2h"
-					***REMOVED***
-				***REMOVED***
-					`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+							}
+						}
+					`),
+				),
+			)
 
 			terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
-		***REMOVED***
-	    	`***REMOVED***
-			Expect(terraform.Import("rhcs_cluster_autoscaler.cluster_autoscaler", "123"***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+				}
+	    	`)
+			Expect(terraform.Import("rhcs_cluster_autoscaler.cluster_autoscaler", "123")).To(BeZero())
 
-			actualResource, ok := terraform.Resource("rhcs_cluster_autoscaler", "cluster_autoscaler"***REMOVED***.(map[string]interface{}***REMOVED***
-			Expect(ok***REMOVED***.To(BeTrue(***REMOVED***, "Type conversion failed for the received resource state"***REMOVED***
+			actualResource, ok := terraform.Resource("rhcs_cluster_autoscaler", "cluster_autoscaler").(map[string]interface{})
+			Expect(ok).To(BeTrue(), "Type conversion failed for the received resource state")
 
-			Expect(actualResource["attributes"]***REMOVED***.To(Equal(
+			Expect(actualResource["attributes"]).To(Equal(
 				map[string]interface{}{
 					"cluster":                       "123",
 					"balance_similar_node_groups":   nil,
@@ -333,28 +333,28 @@ var _ = Describe("Cluster Autoscaler", func(***REMOVED*** {
 						"delay_after_add":       "2h",
 						"delay_after_delete":    nil,
 						"delay_after_failure":   nil,
-			***REMOVED***,
-		***REMOVED***,
-			***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-	}***REMOVED***
+					},
+				},
+			))
+		})
+	})
 
-	Context("updating", func(***REMOVED*** {
-		BeforeEach(func(***REMOVED*** {
+	Context("updating", func() {
+		BeforeEach(func() {
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"kind": "Cluster",
 							"id": "123",
 							"href": "/api/clusters_mgmt/v1/clusters/123",
 							"name": "cluster",
-				***REMOVED***
-					`***REMOVED***,
-				***REMOVED***,
+						}
+					`),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"kind": "Cluster",
@@ -362,85 +362,85 @@ var _ = Describe("Cluster Autoscaler", func(***REMOVED*** {
 							"href": "/api/clusters_mgmt/v1/clusters/123",
 							"name": "cluster",
 							"state": "ready"
-				***REMOVED***
-					`***REMOVED***,
-				***REMOVED***,
+						}
+					`),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"***REMOVED***,
-					RespondWithJSON(http.StatusNotFound, "{}"***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
+					RespondWithJSON(http.StatusNotFound, "{}"),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/autoscaler"***REMOVED***,
-					VerifyJQ(".balance_similar_node_groups", true***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
+					VerifyJQ(".balance_similar_node_groups", true),
 					RespondWithJSON(http.StatusCreated, `
 						{
 							"kind": "ClusterAutoscaler",
 							"id": "123",
 							"href": "/api/clusters_mgmt/v1/clusters/123/autoscaler"
-				***REMOVED***
-					`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+						}
+					`),
+				),
+			)
 
 			terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
 					balance_similar_node_groups = true
-		***REMOVED***
-	    	`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+				}
+	    	`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
 
-		It("successfully applies the changes in OCM", func(***REMOVED*** {
+		It("successfully applies the changes in OCM", func() {
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"kind": "ClusterAutoscaler",
 							"href": "/api/clusters_mgmt/v1/clusters/123/autoscaler",
 							"balance_similar_node_groups": true
-				***REMOVED***
-					`***REMOVED***,
-				***REMOVED***,
+						}
+					`),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"kind": "ClusterAutoscaler",
 							"href": "/api/clusters_mgmt/v1/clusters/123/autoscaler",
 							"balance_similar_node_groups": true
-				***REMOVED***
-					`***REMOVED***,
-				***REMOVED***,
+						}
+					`),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/autoscaler"***REMOVED***,
-					VerifyJQ(".balance_similar_node_groups", true***REMOVED***,
-					VerifyJQ(".skip_nodes_with_local_storage", true***REMOVED***,
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
+					VerifyJQ(".balance_similar_node_groups", true),
+					VerifyJQ(".skip_nodes_with_local_storage", true),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"kind": "ClusterAutoscaler",
 							"href": "/api/clusters_mgmt/v1/clusters/123/autoscaler",
 							"balance_similar_node_groups": true,
 							"skip_nodes_with_local_storage": true
-				***REMOVED***
-					`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+						}
+					`),
+				),
+			)
 
 			terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
 					balance_similar_node_groups = true
 					skip_nodes_with_local_storage = true
-		***REMOVED***
-	    	`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+				}
+	    	`)
+			Expect(terraform.Apply()).To(BeZero())
 
-			actualResource, ok := terraform.Resource("rhcs_cluster_autoscaler", "cluster_autoscaler"***REMOVED***.(map[string]interface{}***REMOVED***
-			Expect(ok***REMOVED***.To(BeTrue(***REMOVED***, "Type conversion failed for the received resource state"***REMOVED***
+			actualResource, ok := terraform.Resource("rhcs_cluster_autoscaler", "cluster_autoscaler").(map[string]interface{})
+			Expect(ok).To(BeTrue(), "Type conversion failed for the received resource state")
 
-			Expect(actualResource["attributes"]***REMOVED***.To(Equal(
+			Expect(actualResource["attributes"]).To(Equal(
 				map[string]interface{}{
 					"cluster":                       "123",
 					"balance_similar_node_groups":   true,
@@ -453,27 +453,27 @@ var _ = Describe("Cluster Autoscaler", func(***REMOVED*** {
 					"balancing_ignored_labels":      nil,
 					"resource_limits":               nil,
 					"scale_down":                    nil,
-		***REMOVED***,
-			***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-	}***REMOVED***
+				},
+			))
+		})
+	})
 
-	Context("deletion", func(***REMOVED*** {
-		BeforeEach(func(***REMOVED*** {
+	Context("deletion", func() {
+		BeforeEach(func() {
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"kind": "Cluster",
 							"id": "123",
 							"href": "/api/clusters_mgmt/v1/clusters/123",
 							"name": "cluster",
-				***REMOVED***
-					`***REMOVED***,
-				***REMOVED***,
+						}
+					`),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"kind": "Cluster",
@@ -481,39 +481,39 @@ var _ = Describe("Cluster Autoscaler", func(***REMOVED*** {
 							"href": "/api/clusters_mgmt/v1/clusters/123",
 							"name": "cluster",
 							"state": "ready"
-				***REMOVED***
-					`***REMOVED***,
-				***REMOVED***,
+						}
+					`),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"***REMOVED***,
-					RespondWithJSON(http.StatusNotFound, "{}"***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
+					RespondWithJSON(http.StatusNotFound, "{}"),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/autoscaler"***REMOVED***,
-					VerifyJQ(".balance_similar_node_groups", true***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
+					VerifyJQ(".balance_similar_node_groups", true),
 					RespondWithJSON(http.StatusCreated, `
 						{
 							"kind": "ClusterAutoscaler",
 							"id": "123",
 							"href": "/api/clusters_mgmt/v1/clusters/123/autoscaler"
-				***REMOVED***
-					`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+						}
+					`),
+				),
+			)
 
 			terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
 					balance_similar_node_groups = true
-		***REMOVED***
-	    	`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+				}
+	    	`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
 
-		It("trivially succeeds if the autoscaler object does not exist in OCM", func(***REMOVED*** {
+		It("trivially succeeds if the autoscaler object does not exist in OCM", func() {
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
 					RespondWithJSON(http.StatusNotFound, `
 						{
 							"kind": "Error",
@@ -522,33 +522,33 @@ var _ = Describe("Cluster Autoscaler", func(***REMOVED*** {
 							"code": "CLUSTERS-MGMT-404",
 							"reason": "Autoscaler for cluster ID '123' is not found",
 							"operation_id": "96ae3bc2-dd56-4640-8092-4703c81ad2c1"
-				***REMOVED***
-					`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+						}
+					`),
+				),
+			)
 
-			Expect(terraform.Destroy(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+			Expect(terraform.Destroy()).To(BeZero())
+		})
 
-		It("successfully applies the deletion in OCM", func(***REMOVED*** {
+		It("successfully applies the deletion in OCM", func() {
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"kind": "ClusterAutoscaler",
 							"href": "/api/clusters_mgmt/v1/clusters/123/autoscaler",
 							"balance_similar_node_groups": true
-				***REMOVED***
-					`***REMOVED***,
-				***REMOVED***,
+						}
+					`),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/123/autoscaler"***REMOVED***,
-					RespondWithJSON(http.StatusNoContent, "{}"***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
+					RespondWithJSON(http.StatusNoContent, "{}"),
+				),
+			)
 
-			Expect(terraform.Destroy(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-	}***REMOVED***
-}***REMOVED***
+			Expect(terraform.Destroy()).To(BeZero())
+		})
+	})
+})

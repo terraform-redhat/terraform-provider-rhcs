@@ -6,7 +6,7 @@ description: |-
   List of machine types
 ---
 
-# rhcs_machine_types (Data Source***REMOVED***
+# rhcs_machine_types (Data Source)
 
 List of machine types
 
@@ -17,15 +17,15 @@ List of machine types
 
 ### Read-Only
 
-- `items` (Attributes List***REMOVED*** Items of the list. (see [below for nested schema](#nestedatt--items***REMOVED******REMOVED***
+- `items` (Attributes List) Items of the list. (see [below for nested schema](#nestedatt--items))
 
 <a id="nestedatt--items"></a>
 ### Nested Schema for `items`
 
 Read-Only:
 
-- `cloud_provider` (String***REMOVED*** Unique identifier of the cloud provider where the machine type is supported.
-- `cpu` (Number***REMOVED*** Number of vCPU cores.
-- `id` (String***REMOVED*** Unique identifier of the machine type.
-- `name` (String***REMOVED*** Short name of the machine type.
-- `ram` (Number***REMOVED*** Amount of RAM in bytes.
+- `cloud_provider` (String) Unique identifier of the cloud provider where the machine type is supported.
+- `cpu` (Number) Number of vCPU cores.
+- `id` (String) Unique identifier of the machine type.
+- `name` (String) Short name of the machine type.
+- `ram` (Number) Amount of RAM in bytes.

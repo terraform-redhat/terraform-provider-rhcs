@@ -34,11 +34,11 @@ variable "insecure" {
 
 variable "attributes" {
   type = object({
-    email              = optional(list(string***REMOVED******REMOVED***
-    id                 = optional(list(string***REMOVED******REMOVED***
-    name               = optional(list(string***REMOVED******REMOVED***
-    preferred_username = optional(list(string***REMOVED******REMOVED***
-  }***REMOVED***
+    email              = optional(list(string))
+    id                 = optional(list(string))
+    name               = optional(list(string))
+    preferred_username = optional(list(string))
+  })
   default = null
 }
 

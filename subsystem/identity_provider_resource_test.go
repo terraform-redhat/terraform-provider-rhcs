@@ -1,7 +1,7 @@
 /*
-Copyright (c***REMOVED*** 2021 Red Hat, Inc.
+Copyright (c) 2021 Red Hat, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -16,33 +16,33 @@ limitations under the License.
 
 package provider
 
-***REMOVED***
-***REMOVED***
+import (
+	"net/http"
 
 	. "github.com/onsi/ginkgo/v2/dsl/core"             // nolint
-***REMOVED***                         // nolint
+	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
-***REMOVED***
+)
 
 const htpasswdValidPass = "123PasS8901234"
 const htpasswdInValidPass = "my-pass"
 
-var _ = Describe("Identity provider creation", func(***REMOVED*** {
+var _ = Describe("Identity provider creation", func() {
 
-	Context("Idebtity Provider Failure", func(***REMOVED*** {
-		It("cluster_id not found", func(***REMOVED*** {
+	Context("Idebtity Provider Failure", func() {
+		It("cluster_id not found", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusNotFound, `{
 			    	  "id": "123",
 			    	  "name": "my-cluster",
 			    	  "state": "ready"
-			    	}`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+			    	}`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -56,35 +56,35 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
                   }]
 	    	    }
 	    	  }
-	    	`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-		Context("Cluster exists, but invalid config", func(***REMOVED*** {
-			BeforeEach(func(***REMOVED*** {
+	    	`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
+		Context("Cluster exists, but invalid config", func() {
+			BeforeEach(func() {
 				// The first thing that the provider will do for any operation on identity providers
 				// is check that the cluster is ready, so we always need to prepare the server to
 				// respond to that:
 				server.AppendHandlers(
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 						RespondWithJSON(http.StatusOK, `{
 			        	  "id": "123",
 			        	  "name": "my-cluster",
 			        	  "state": "ready"
-			        	}`***REMOVED***,
-					***REMOVED***,
+			        	}`),
+					),
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 						RespondWithJSON(http.StatusOK, `{
 			        	  "id": "123",
 			        	  "name": "my-cluster",
 			        	  "state": "ready"
-			        	}`***REMOVED***,
-					***REMOVED***,
-				***REMOVED***
-	***REMOVED******REMOVED***
+			        	}`),
+					),
+				)
+			})
 
-			It("Can't create a 'htpasswd' identity provider. No users provided", func(***REMOVED*** {
+			It("Can't create a 'htpasswd' identity provider. No users provided", func() {
 				// Run the apply command:
 				terraform.Source(`
 	    	      resource "rhcs_identity_provider" "my_ip" {
@@ -94,10 +94,10 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
                       users = []
 	    	        }
 	    	      }
-	    	    `***REMOVED***
-				Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-			It("Can't create a 'htpasswd' identity provider. duplication of username", func(***REMOVED*** {
+	    	    `)
+				Expect(terraform.Apply()).ToNot(BeZero())
+			})
+			It("Can't create a 'htpasswd' identity provider. duplication of username", func() {
 				// Run the apply command:
 				terraform.Source(`
 	    	      resource "rhcs_identity_provider" "my_ip" {
@@ -116,10 +116,10 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
                       ]
 	    	        }
 	    	      }
-	    	    `***REMOVED***
-				Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-			It("Can't create a 'htpasswd' identity provider. invalid username", func(***REMOVED*** {
+	    	    `)
+				Expect(terraform.Apply()).ToNot(BeZero())
+			})
+			It("Can't create a 'htpasswd' identity provider. invalid username", func() {
 				// Run the apply command:
 				terraform.Source(`
 	    	      resource "rhcs_identity_provider" "my_ip" {
@@ -132,10 +132,10 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
                       }]
 	    	        }
 	    	      }
-	    	    `***REMOVED***
-				Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-			It("Can't create a 'htpasswd' identity provider. invalid password", func(***REMOVED*** {
+	    	    `)
+				Expect(terraform.Apply()).ToNot(BeZero())
+			})
+			It("Can't create a 'htpasswd' identity provider. invalid password", func() {
 				// Run the apply command:
 				terraform.Source(`
 	    	      resource "rhcs_identity_provider" "my_ip" {
@@ -148,45 +148,45 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
                       }]
 	    	        }
 	    	      }
-	    	    `***REMOVED***
-				Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-	}***REMOVED***
+	    	    `)
+				Expect(terraform.Apply()).ToNot(BeZero())
+			})
+		})
+	})
 
-	Context("Identity Provider Success", func(***REMOVED*** {
-		BeforeEach(func(***REMOVED*** {
+	Context("Identity Provider Success", func() {
+		BeforeEach(func() {
 			// The first thing that the provider will do for any operation on identity providers
 			// is check that the cluster is ready, so we always need to prepare the server to
 			// respond to that:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `{
 			    	  "id": "123",
 			    	  "name": "my-cluster",
 			    	  "state": "ready"
-			    	}`***REMOVED***,
-				***REMOVED***,
+			    	}`),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `{
 			    	  "id": "123",
 			    	  "name": "my-cluster",
 			    	  "state": "ready"
-			    	}`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
-***REMOVED******REMOVED***
+			    	}`),
+				),
+			)
+		})
 
-		It("Can create a 'htpasswd' identity provider", func(***REMOVED*** {
+		It("Can create a 'htpasswd' identity provider", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
 						"/api/clusters_mgmt/v1/clusters/123/identity_providers",
-					***REMOVED***,
+					),
 					VerifyJSON(`{
 			    	  "kind": "IdentityProvider",
 			    	  "type": "HTPasswdIdentityProvider",
@@ -195,7 +195,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 			    	  "htpasswd": {
                         "users": {"items":[{"username": "my-user", "password": "`+htpasswdValidPass+`"}]}
 			    	  }
-			    	}`***REMOVED***,
+			    	}`),
 					RespondWithJSON(http.StatusOK, `{
 			    	  "id": "456",
 			    	  "name": "my-ip",
@@ -203,9 +203,9 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 			    	  "htpasswd": {
                         "users": {"items":[{"username": "my-user", "password": "`+htpasswdValidPass+`"}]}
 			    	  }
-			    	}`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+			    	}`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -219,18 +219,18 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
                   }]
 	    	    }
 	    	  }
-	    	`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+	    	`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
 
-		It("Can't update an identity provider", func(***REMOVED*** {
+		It("Can't update an identity provider", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
 						"/api/clusters_mgmt/v1/clusters/123/identity_providers",
-					***REMOVED***,
+					),
 					VerifyJSON(`{
 			    	  "kind": "IdentityProvider",
 			    	  "type": "HTPasswdIdentityProvider",
@@ -239,7 +239,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 			    	  "htpasswd": {
                         "users": {"items":[{"username": "my-user", "password": "`+htpasswdValidPass+`"}]}
 			    	  }
-			    	}`***REMOVED***,
+			    	}`),
 					RespondWithJSON(http.StatusOK, `{
 			    	  "id": "456",
 			    	  "name": "my-ip",
@@ -247,9 +247,9 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 			    	  "htpasswd": {
                         "users": {"items":[{"username": "my-user", "password": "`+htpasswdValidPass+`"}]}
 			    	  }
-			    	}`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+			    	}`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -263,8 +263,8 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
                   }]
 	    	    }
 	    	  }
-	    	`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+	    	`)
+			Expect(terraform.Apply()).To(BeZero())
 
 			// update
 
@@ -274,7 +274,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 					VerifyRequest(
 						http.MethodGet,
 						"/api/clusters_mgmt/v1/clusters/123/identity_providers/456",
-					***REMOVED***,
+					),
 					RespondWithJSON(http.StatusOK, `{
 			    	  "id": "456",
 			    	  "name": "my-ip",
@@ -282,9 +282,9 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 			    	  "htpasswd": {
                         "users": {"items":[{"username": "my-user", "password": "`+htpasswdValidPass+`"}]}
 			    	  }
-			    	}`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+			    	}`),
+				),
+			)
 			// Run the apply command for update:
 			terraform.Source(`
 	    	  resource "rhcs_identity_provider" "my_ip" {
@@ -297,17 +297,17 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
                   }]
 	    	    }
 	    	  }
-	    	`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-		It("Reconcile an 'htpasswd' identity provider, when state exists but 404 from server", func(***REMOVED*** {
+	    	`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
+		It("Reconcile an 'htpasswd' identity provider, when state exists but 404 from server", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
 						"/api/clusters_mgmt/v1/clusters/123/identity_providers",
-					***REMOVED***,
+					),
 					VerifyJSON(`{
 			    	  "kind": "IdentityProvider",
 			    	  "type": "HTPasswdIdentityProvider",
@@ -316,7 +316,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 			    	  "htpasswd": {
                         "users": {"items":[{"username": "my-user", "password": "`+htpasswdValidPass+`"}]}
 			    	  }
-			    	}`***REMOVED***,
+			    	}`),
 					RespondWithJSON(http.StatusOK, `{
 			    	  "id": "456",
 			    	  "name": "my-ip",
@@ -324,9 +324,9 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 			    	  "htpasswd": {
                         "users": {"items":[{"username": "my-user", "password": "`+htpasswdValidPass+`"}]}
 			    	  }
-			    	}`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+			    	}`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -340,40 +340,40 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
                   }]
 	    	    }
 	    	  }
-	    	`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+	    	`)
+			Expect(terraform.Apply()).To(BeZero())
 
 			// Prepare the server for upgrade
 			server.AppendHandlers(
-				// read from server (404***REMOVED***
+				// read from server (404)
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodGet,
 						"/api/clusters_mgmt/v1/clusters/123/identity_providers/456",
-					***REMOVED***,
-					RespondWithJSON(http.StatusNotFound, "{}"***REMOVED***,
-				***REMOVED***,
+					),
+					RespondWithJSON(http.StatusNotFound, "{}"),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `{
 			    	  "id": "123",
 			    	  "name": "my-cluster",
 			    	  "state": "ready"
-			    	}`***REMOVED***,
-				***REMOVED***,
+			    	}`),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `{
 			    	  "id": "123",
 			    	  "name": "my-cluster",
 			    	  "state": "ready"
-			    	}`***REMOVED***,
-				***REMOVED***,
+			    	}`),
+				),
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
 						"/api/clusters_mgmt/v1/clusters/123/identity_providers",
-					***REMOVED***,
+					),
 					VerifyJSON(`{
 			    	  "kind": "IdentityProvider",
 			    	  "type": "HTPasswdIdentityProvider",
@@ -382,7 +382,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 			    	  "htpasswd": {
                         "users": {"items":[{"username": "my-user", "password": "`+htpasswdValidPass+`"}]}
 			    	  }
-			    	}`***REMOVED***,
+			    	}`),
 					RespondWithJSON(http.StatusOK, `{
 			    	  "id": "457",
 			    	  "name": "my-ip",
@@ -390,9 +390,9 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 			    	  "htpasswd": {
                         "users": {"items":[{"username": "my-user", "password": "`+htpasswdValidPass+`"}]}
 			    	  }
-			    	}`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+			    	}`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -406,20 +406,20 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
                   }]
 	    	    }
 	    	  }
-	    	`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-			resource := terraform.Resource("rhcs_identity_provider", "my_ip"***REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "457"***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+	    	`)
+			Expect(terraform.Apply()).To(BeZero())
+			resource := terraform.Resource("rhcs_identity_provider", "my_ip")
+			Expect(resource).To(MatchJQ(".attributes.id", "457"))
+		})
 
-		It("Can create a 'gitlab' identity provider", func(***REMOVED*** {
+		It("Can create a 'gitlab' identity provider", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
 						"/api/clusters_mgmt/v1/clusters/123/identity_providers",
-					***REMOVED***,
+					),
 					VerifyJSON(`{
 	    			  "kind": "IdentityProvider",
 	    			  "type": "GitlabIdentityProvider",
@@ -431,7 +431,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 	    			    "client_id": "test-client",
 	    			    "client_secret": "test-secret"
 	    			  }
-	    	***REMOVED***`***REMOVED***,
+	    			}`),
 					RespondWithJSON(http.StatusOK, `{
 	    			  "id": "456",
 	    			  "name": "my-ip",
@@ -442,9 +442,9 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 	    			    "client_id": "test-client",
 	    			    "client_secret": "test-secret"
 	    			  }
-	    	***REMOVED***`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+	    			}`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -458,13 +458,13 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 	    		  client_secret = "test-secret"
 	    	    }
 	    	  }
-	    	`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+	    	`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
 
-		Context("Can create a 'github' identity provider", func(***REMOVED*** {
-			Context("Invalid 'github' identity provider config", func(***REMOVED*** {
-				It("Should fail with both 'teams' and 'organizations'", func(***REMOVED*** {
+		Context("Can create a 'github' identity provider", func() {
+			Context("Invalid 'github' identity provider config", func() {
+				It("Should fail with both 'teams' and 'organizations'", func() {
 					terraform.Source(`
 	    	          resource "rhcs_identity_provider" "my_ip" {
 	    	            cluster = "123"
@@ -477,11 +477,11 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
                           teams = ["valid/team"]
 	    	            }
 	    	          }
-	    	        `***REMOVED***
-					Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-		***REMOVED******REMOVED***
+	    	        `)
+					Expect(terraform.Apply()).ToNot(BeZero())
+				})
 
-				It("Should fail without 'teams' or 'organizations'", func(***REMOVED*** {
+				It("Should fail without 'teams' or 'organizations'", func() {
 					terraform.Source(`
 	    	          resource "rhcs_identity_provider" "my_ip" {
 	    	            cluster = "123"
@@ -492,11 +492,11 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 	    	        	  client_secret = "test-secret"
 	    	            }
 	    	          }
-	    	        `***REMOVED***
-					Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-		***REMOVED******REMOVED***
+	    	        `)
+					Expect(terraform.Apply()).ToNot(BeZero())
+				})
 
-				It("Should fail if teams contain an invalid format", func(***REMOVED*** {
+				It("Should fail if teams contain an invalid format", func() {
 					terraform.Source(`
 	    	          resource "rhcs_identity_provider" "my_ip" {
 	    	            cluster = "123"
@@ -508,8 +508,8 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
                           teams = ["invalidteam"]
 	    	            }
 	    	          }
-	    	        `***REMOVED***
-					Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
+	    	        `)
+					Expect(terraform.Apply()).ToNot(BeZero())
 					terraform.Source(`
 	    	          resource "rhcs_identity_provider" "my_ip" {
 	    	            cluster = "123"
@@ -521,11 +521,11 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
                           teams = ["valid/team", "invalidteam"]
 	    	            }
 	    	          }
-	    	        `***REMOVED***
-					Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-		***REMOVED******REMOVED***
+	    	        `)
+					Expect(terraform.Apply()).ToNot(BeZero())
+				})
 
-				It("Should fail with an invalid hostname", func(***REMOVED*** {
+				It("Should fail with an invalid hostname", func() {
 					terraform.Source(`
 	    	          resource "rhcs_identity_provider" "my_ip" {
 	    	            cluster = "123"
@@ -538,18 +538,18 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
                           hostname = "invalidhostname"
 	    	            }
 	    	          }
-	    	        `***REMOVED***
-					Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-		***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-			It("Happy flow with org restriction", func(***REMOVED*** {
+	    	        `)
+					Expect(terraform.Apply()).ToNot(BeZero())
+				})
+			})
+			It("Happy flow with org restriction", func() {
 				// Prepare the server:
 				server.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(
 							http.MethodPost,
 							"/api/clusters_mgmt/v1/clusters/123/identity_providers",
-						***REMOVED***,
+						),
 						VerifyJSON(`{
     				      "kind": "IdentityProvider",
     				      "type": "GithubIdentityProvider",
@@ -561,7 +561,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
     				        "client_secret": "test-secret",
                             "organizations": ["my-org"]
     				      }
-    				    }`***REMOVED***,
+    				    }`),
 						RespondWithJSON(http.StatusOK, `{
     				      "id": "456",
     				      "name": "my-ip",
@@ -573,9 +573,9 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
     				        "client_secret": "test-secret",
                             "organizations": ["my-org"]
     				      }
-    				    }`***REMOVED***,
-					***REMOVED***,
-				***REMOVED***
+    				    }`),
+					),
+				)
 
 				// Run the apply command:
 				terraform.Source(`
@@ -589,18 +589,18 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
                       organizations = ["my-org"]
     		        }
     		      }
-    		    `***REMOVED***
-				Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
+    		    `)
+				Expect(terraform.Apply()).To(BeZero())
+			})
 
-			It("Happy flow with team restriction", func(***REMOVED*** {
+			It("Happy flow with team restriction", func() {
 				// Prepare the server:
 				server.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(
 							http.MethodPost,
 							"/api/clusters_mgmt/v1/clusters/123/identity_providers",
-						***REMOVED***,
+						),
 						VerifyJSON(`{
     				      "kind": "IdentityProvider",
     				      "type": "GithubIdentityProvider",
@@ -612,7 +612,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
     				        "client_secret": "test-secret",
                             "teams": ["valid/team"]
     				      }
-    				    }`***REMOVED***,
+    				    }`),
 						RespondWithJSON(http.StatusOK, `{
     				      "id": "456",
     				      "name": "my-ip",
@@ -624,9 +624,9 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
     				        "client_secret": "test-secret",
                             "teams": ["valid/team"]
     				      }
-    				    }`***REMOVED***,
-					***REMOVED***,
-				***REMOVED***
+    				    }`),
+					),
+				)
 
 				// Run the apply command:
 				terraform.Source(`
@@ -640,14 +640,14 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
                       teams = ["valid/team"]
 		            }
 		          }
-		        `***REMOVED***
-				Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+		        `)
+				Expect(terraform.Apply()).To(BeZero())
+			})
+		})
 
-		Context("Can create 'LDAP' Identity provider", func(***REMOVED*** {
-			Context("Invalid LDAP config", func(***REMOVED*** {
-				It("Should fail if not both bind properties are set", func(***REMOVED*** {
+		Context("Can create 'LDAP' Identity provider", func() {
+			Context("Invalid LDAP config", func() {
+				It("Should fail if not both bind properties are set", func() {
 					// Run the apply command:
 					terraform.Source(`
         		      resource "rhcs_identity_provider" "my_ip" {
@@ -666,19 +666,19 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
         		          }
         		        }
         		      }
-        		    `***REMOVED***
-					Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-		***REMOVED******REMOVED***
+        		    `)
+					Expect(terraform.Apply()).ToNot(BeZero())
+				})
 
-	***REMOVED******REMOVED***
-			It("Happy flow with default attributes", func(***REMOVED*** {
+			})
+			It("Happy flow with default attributes", func() {
 				// Prepare the server:
 				server.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(
 							http.MethodPost,
 							"/api/clusters_mgmt/v1/clusters/123/identity_providers",
-						***REMOVED***,
+						),
 						VerifyJSON(`{
 				          "kind": "IdentityProvider",
 				          "type": "LDAPIdentityProvider",
@@ -695,7 +695,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 				              "preferred_username": ["uid"]
 				            }
 				          }
-				        }`***REMOVED***,
+				        }`),
 						RespondWithJSON(http.StatusOK, `{
 				          "id": "456",
 				          "name": "my-ip",
@@ -711,9 +711,9 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 				              "preferred_username": ["uid"]
 				            }
 				          }
-				        }`***REMOVED***,
-					***REMOVED***,
-				***REMOVED***
+				        }`),
+					),
+				)
 
 				// Run the apply command:
 				terraform.Source(`
@@ -727,17 +727,17 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 									attributes    = {}
         		    }
         		  }
-        		`***REMOVED***
-				Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-			It("Happy flow with bind values", func(***REMOVED*** {
+        		`)
+				Expect(terraform.Apply()).To(BeZero())
+			})
+			It("Happy flow with bind values", func() {
 				// Prepare the server:
 				server.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(
 							http.MethodPost,
 							"/api/clusters_mgmt/v1/clusters/123/identity_providers",
-						***REMOVED***,
+						),
 						VerifyJSON(`{
 				          "kind": "IdentityProvider",
 				          "type": "LDAPIdentityProvider",
@@ -756,7 +756,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 				              "preferred_username": ["uid"]
 				            }
 				          }
-				        }`***REMOVED***,
+				        }`),
 						RespondWithJSON(http.StatusOK, `{
 				          "id": "456",
 				          "name": "my-ip",
@@ -774,9 +774,9 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 				              "preferred_username": ["uid"]
 				            }
 				          }
-				        }`***REMOVED***,
-					***REMOVED***,
-				***REMOVED***
+				        }`),
+					),
+				)
 
 				// Run the apply command:
 				terraform.Source(`
@@ -797,18 +797,18 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
         		      }
         		    }
         		  }
-        		`***REMOVED***
-				Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
+        		`)
+				Expect(terraform.Apply()).To(BeZero())
+			})
 
-			It("Happy flow without bind values", func(***REMOVED*** {
+			It("Happy flow without bind values", func() {
 				// Prepare the server:
 				server.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(
 							http.MethodPost,
 							"/api/clusters_mgmt/v1/clusters/123/identity_providers",
-						***REMOVED***,
+						),
 						VerifyJSON(`{
 				          "kind": "IdentityProvider",
 				          "type": "LDAPIdentityProvider",
@@ -825,7 +825,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 				              "preferred_username": ["uid"]
 				            }
 				          }
-				        }`***REMOVED***,
+				        }`),
 						RespondWithJSON(http.StatusOK, `{
 				          "id": "456",
 				          "name": "my-ip",
@@ -841,9 +841,9 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
 				              "preferred_username": ["uid"]
 				            }
 				          }
-				        }`***REMOVED***,
-					***REMOVED***,
-				***REMOVED***
+				        }`),
+					),
+				)
 
 				// Run the apply command:
 				terraform.Source(`
@@ -862,14 +862,14 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
         		      }
         		    }
         		  }
-        		`***REMOVED***
-				Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+        		`)
+				Expect(terraform.Apply()).To(BeZero())
+			})
+		})
 
-		Context("Google identity provider", func(***REMOVED*** {
-			Context("Invalid google config", func(***REMOVED*** {
-				It("Should fail with invalid hosted_domain", func(***REMOVED*** {
+		Context("Google identity provider", func() {
+			Context("Invalid google config", func() {
+				It("Should fail with invalid hosted_domain", func() {
 					// Run the apply command:
 					terraform.Source(`
     		          resource "rhcs_identity_provider" "my_ip" {
@@ -881,11 +881,11 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
                           hosted_domain = "examplecom"
     		            }
     		          }
-    		        `***REMOVED***
-					Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-		***REMOVED******REMOVED***
+    		        `)
+					Expect(terraform.Apply()).ToNot(BeZero())
+				})
 
-				It("Should fail when mapping_method is not lookup and no hosted_domain", func(***REMOVED*** {
+				It("Should fail when mapping_method is not lookup and no hosted_domain", func() {
 					// Run the apply command:
 					terraform.Source(`
     		          resource "rhcs_identity_provider" "my_ip" {
@@ -896,21 +896,21 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
     		        	  client_secret = "test-secret"
     		            }
     		          }
-    		        `***REMOVED***
-					Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-		***REMOVED******REMOVED***
+    		        `)
+					Expect(terraform.Apply()).ToNot(BeZero())
+				})
 
-	***REMOVED******REMOVED***
+			})
 
-			Context("Happy flow", func(***REMOVED*** {
-				It("Should create provider", func(***REMOVED*** {
+			Context("Happy flow", func() {
+				It("Should create provider", func() {
 					// Prepare the server:
 					server.AppendHandlers(
 						CombineHandlers(
 							VerifyRequest(
 								http.MethodPost,
 								"/api/clusters_mgmt/v1/clusters/123/identity_providers",
-							***REMOVED***,
+							),
 							VerifyJSON(`{
     			    	      "kind": "IdentityProvider",
     			    	      "type": "GoogleIdentityProvider",
@@ -921,7 +921,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
     			    	        "client_secret": "test-secret",
                                 "hosted_domain": "example.com"
     			    	      }
-    			    	    }`***REMOVED***,
+    			    	    }`),
 							RespondWithJSON(http.StatusOK, `{
     			    	      "id": "456",
     			    	      "name": "my-ip",
@@ -931,9 +931,9 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
     			    	        "client_secret": "test-secret",
                                 "hosted_domain": "example.com"
     			    	      }
-    			    	    }`***REMOVED***,
-						***REMOVED***,
-					***REMOVED***
+    			    	    }`),
+						),
+					)
 
 					// Run the apply command:
 					terraform.Source(`
@@ -946,18 +946,18 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
                           hosted_domain = "example.com"
     		            }
     		          }
-    		        `***REMOVED***
-					Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-		***REMOVED******REMOVED***
+    		        `)
+					Expect(terraform.Apply()).To(BeZero())
+				})
 
-				It("Should create provider without hosted_domain when mapping_method is set to 'lookup'", func(***REMOVED*** {
+				It("Should create provider without hosted_domain when mapping_method is set to 'lookup'", func() {
 					// Prepare the server:
 					server.AppendHandlers(
 						CombineHandlers(
 							VerifyRequest(
 								http.MethodPost,
 								"/api/clusters_mgmt/v1/clusters/123/identity_providers",
-							***REMOVED***,
+							),
 							VerifyJSON(`{
     			    	      "kind": "IdentityProvider",
     			    	      "type": "GoogleIdentityProvider",
@@ -967,7 +967,7 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
     			    	        "client_id": "test-client",
     			    	        "client_secret": "test-secret"
     			    	      }
-    			    	    }`***REMOVED***,
+    			    	    }`),
 							RespondWithJSON(http.StatusOK, `{
     			    	      "id": "456",
     			    	      "name": "my-ip",
@@ -976,9 +976,9 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
     			    	        "client_id": "test-client",
     			    	        "client_secret": "test-secret"
     			    	      }
-    			    	    }`***REMOVED***,
-						***REMOVED***,
-					***REMOVED***
+    			    	    }`),
+						),
+					)
 
 					// Run the apply command:
 					terraform.Source(`
@@ -991,20 +991,20 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
     		        	  client_secret = "test-secret"
     		            }
     		          }
-    		        `***REMOVED***
-					Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-		***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+    		        `)
+					Expect(terraform.Apply()).To(BeZero())
+				})
+			})
+		})
 
-		It("Can create an OpenID identity provider", func(***REMOVED*** {
+		It("Can create an OpenID identity provider", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
 						"/api/clusters_mgmt/v1/clusters/123/identity_providers",
-					***REMOVED***,
+					),
 					VerifyJSON(`{
     				  "kind": "IdentityProvider",
     				  "type": "OpenIDIdentityProvider",
@@ -1027,19 +1027,19 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
     							"preferred_username",
     							"email"
     						]
-    			***REMOVED***,
+    					},
     					"client_id": "test_client",
     					"client_secret": "test_secret",
     					"extra_authorize_parameters": {
     					  "test_key": "test_value"
-    			***REMOVED***,
+    					},
     					"extra_scopes": [
     					  "email",
     					  "profile"
     					],
     					"issuer": "https://test.okta.com"
-    			***REMOVED***
-    		***REMOVED***`***REMOVED***,
+    					}
+    				}`),
 					RespondWithJSON(http.StatusOK, `{
     					"kind": "IdentityProvider",
     					"type": "OpenIDIdentityProvider",
@@ -1063,20 +1063,20 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
     								"preferred_username",
     								"email"
     							]
-    				***REMOVED***,
+    						},
     						"client_id": "test_client",
     						"extra_authorize_parameters": {
     							"test_key": "test_value"
-    				***REMOVED***,
+    						},
     						"extra_scopes": [
     							"email",
     							"profile"
     						],
     						"issuer": "https://test.okta.com"
-    			***REMOVED***
-    		***REMOVED***`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+    					}
+    				}`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -1100,13 +1100,13 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
     		      	}
     		    }
     		  }
-    		`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-			resource := terraform.Resource("rhcs_identity_provider", "my_ip"***REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.openid.extra_authorize_parameters.test_key`, "test_value"***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+    		`)
+			Expect(terraform.Apply()).To(BeZero())
+			resource := terraform.Resource("rhcs_identity_provider", "my_ip")
+			Expect(resource).To(MatchJQ(`.attributes.openid.extra_authorize_parameters.test_key`, "test_value"))
+		})
 
-		It("Should fail with invalid mapping_method", func(***REMOVED*** {
+		It("Should fail with invalid mapping_method", func() {
 			// Run the apply command:
 			terraform.Source(`
     		  resource "rhcs_identity_provider" "my_ip" {
@@ -1120,10 +1120,10 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
                   }]
     		    }
     		  }
-    		`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-		It("Should fail with invalid htpasswd password", func(***REMOVED*** {
+    		`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
+		It("Should fail with invalid htpasswd password", func() {
 			// Run the apply command:
 			terraform.Source(`
     		  resource "rhcs_identity_provider" "my_ip" {
@@ -1137,14 +1137,14 @@ var _ = Describe("Identity provider creation", func(***REMOVED*** {
                   }]
     		    }
     		  }
-    		`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-	}***REMOVED***
-}***REMOVED***
+    		`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
+	})
+})
 
-var _ = Describe("Identity provider import", func(***REMOVED*** {
-	It("Can import an identity provider", func(***REMOVED*** {
+var _ = Describe("Identity provider import", func() {
+	It("Can import an identity provider", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			// List IDPs to map name to ID:
@@ -1152,7 +1152,7 @@ var _ = Describe("Identity provider import", func(***REMOVED*** {
 				VerifyRequest(
 					http.MethodGet,
 					"/api/clusters_mgmt/v1/clusters/123/identity_providers",
-				***REMOVED***,
+				),
 				RespondWithJSON(http.StatusOK, `{
 					"kind": "IdentityProviderList",
 					"href": "/api/clusters_mgmt/v1/clusters/24vg6o424djht8h6lpoli2urg69t7vnt/identity_providers",
@@ -1172,17 +1172,17 @@ var _ = Describe("Identity provider import", func(***REMOVED*** {
 							"organizations": [
 								"myorg"
 							]
-				***REMOVED***
-				***REMOVED***
+						}
+						}
 					]
-		***REMOVED***`***REMOVED***,
-			***REMOVED***,
+				}`),
+			),
 			// Read the IDP to load the current state:
 			CombineHandlers(
 				VerifyRequest(
 					http.MethodGet,
 					"/api/clusters_mgmt/v1/clusters/123/identity_providers/24vgs9hgnl5bukujvkcmgkvfgc01ss0r",
-				***REMOVED***,
+				),
 				RespondWithJSON(http.StatusOK, `{
 					"kind": "IdentityProvider",
 					"type": "GithubIdentityProvider",
@@ -1195,24 +1195,24 @@ var _ = Describe("Identity provider import", func(***REMOVED*** {
 						"organizations": [
 							"myorg"
 						]
-			***REMOVED***
-		***REMOVED***`***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+					}
+				}`),
+			),
+		)
 
 		terraform.Source(`
 			resource "rhcs_identity_provider" "my-ip" {
-				# (resource arguments***REMOVED***
-	***REMOVED***
-		`***REMOVED***
+				# (resource arguments)
+			}
+		`)
 
-		Expect(terraform.Import("rhcs_identity_provider.my-ip", "123,my-ip"***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-		resource := terraform.Resource("rhcs_identity_provider", "my-ip"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.name", "my-ip"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.github.client_id", "99999"***REMOVED******REMOVED***
-	}***REMOVED***
+		Expect(terraform.Import("rhcs_identity_provider.my-ip", "123,my-ip")).To(BeZero())
+		resource := terraform.Resource("rhcs_identity_provider", "my-ip")
+		Expect(resource).To(MatchJQ(".attributes.name", "my-ip"))
+		Expect(resource).To(MatchJQ(".attributes.github.client_id", "99999"))
+	})
 
-	It("Is an error if the identity provider isn't found", func(***REMOVED*** {
+	It("Is an error if the identity provider isn't found", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			// List IDPs to map name to ID:
@@ -1220,7 +1220,7 @@ var _ = Describe("Identity provider import", func(***REMOVED*** {
 				VerifyRequest(
 					http.MethodGet,
 					"/api/clusters_mgmt/v1/clusters/123/identity_providers",
-				***REMOVED***,
+				),
 				RespondWithJSON(http.StatusOK, `{
 					"kind": "IdentityProviderList",
 					"href": "/api/clusters_mgmt/v1/clusters/24vg6o424djht8h6lpoli2urg69t7vnt/identity_providers",
@@ -1240,19 +1240,19 @@ var _ = Describe("Identity provider import", func(***REMOVED*** {
 							"organizations": [
 								"myorg"
 							]
-				***REMOVED***
-				***REMOVED***
+						}
+						}
 					]
-		***REMOVED***`***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				}`),
+			),
+		)
 
 		terraform.Source(`
 			resource "rhcs_identity_provider" "my-ip" {
-				# (resource arguments***REMOVED***
-	***REMOVED***
-		`***REMOVED***
+				# (resource arguments)
+			}
+		`)
 
-		Expect(terraform.Import("rhcs_identity_provider.my-ip", "123,notfound"***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
-	}***REMOVED***
-}***REMOVED***
+		Expect(terraform.Import("rhcs_identity_provider.my-ip", "123,notfound")).NotTo(BeZero())
+	})
+})

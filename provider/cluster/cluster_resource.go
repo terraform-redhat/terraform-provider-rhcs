@@ -1,7 +1,7 @@
 /*
-Copyright (c***REMOVED*** 2021 Red Hat, Inc.
+Copyright (c) 2021 Red Hat, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -16,11 +16,11 @@ limitations under the License.
 
 package cluster
 
-***REMOVED***
+import (
 	"context"
-***REMOVED***
+	"fmt"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
-***REMOVED***
+	"net/http"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -38,7 +38,7 @@ package cluster
 	"github.com/openshift-online/ocm-sdk-go/errors"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
-***REMOVED***
+)
 
 type ClusterResource struct {
 	collection *cmv1.ClustersClient
@@ -47,68 +47,68 @@ type ClusterResource struct {
 var _ resource.ResourceWithConfigure = &ClusterResource{}
 var _ resource.ResourceWithImportState = &ClusterResource{}
 
-func New(***REMOVED*** resource.Resource {
+func New() resource.Resource {
 	return &ClusterResource{}
 }
 
-func (r *ClusterResource***REMOVED*** Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse***REMOVED*** {
+func (r *ClusterResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_cluster"
 }
 
-func (r *ClusterResource***REMOVED*** Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse***REMOVED*** {
+func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "OpenShift managed cluster.",
 		DeprecationMessage: fmt.Sprintf(
-			"using cluster as a resource is deprecated; consider using the cluster_rosa_classic resource instead"***REMOVED***,
+			"using cluster as a resource is deprecated; consider using the cluster_rosa_classic resource instead"),
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "Unique identifier of the cluster.",
 				Computed:    true,
-	***REMOVED***,
+			},
 			"product": schema.StringAttribute{
 				Description: "Product ID OSD or Rosa",
 				Required:    true,
-	***REMOVED***,
+			},
 			"name": schema.StringAttribute{
 				Description: "Name of the cluster.",
 				Required:    true,
-	***REMOVED***,
+			},
 			"cloud_provider": schema.StringAttribute{
 				Description: "Cloud provider identifier, for example 'aws'.",
 				Required:    true,
-	***REMOVED***,
+			},
 			"cloud_region": schema.StringAttribute{
 				Description: "Cloud region identifier, for example 'us-east-1'.",
 				Required:    true,
-	***REMOVED***,
+			},
 			"multi_az": schema.BoolAttribute{
 				Description: "Indicates if the cluster should be deployed to " +
 					"multiple availability zones. Default value is 'false'.",
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.RequiresReplace(***REMOVED***,
-		***REMOVED***,
-	***REMOVED***,
+					boolplanmodifier.RequiresReplace(),
+				},
+			},
 			"properties": schema.MapAttribute{
 				Description: "User defined properties.",
 				ElementType: types.StringType,
 				Optional:    true,
 				Computed:    true,
-	***REMOVED***,
+			},
 			"api_url": schema.StringAttribute{
 				Description: "URL of the API server.",
 				Computed:    true,
-	***REMOVED***,
+			},
 			"console_url": schema.StringAttribute{
 				Description: "URL of the console.",
 				Computed:    true,
-	***REMOVED***,
+			},
 			"compute_nodes": schema.Int64Attribute{
 				Description: "Number of compute nodes of the cluster.",
 				Optional:    true,
 				Computed:    true,
-	***REMOVED***,
+			},
 			"compute_machine_type": schema.StringAttribute{
 				Description: "Identifier of the machine type used by the compute nodes, " +
 					"for example `r5.xlarge`. Use the `ocm_machine_types` data " +
@@ -116,573 +116,573 @@ func (r *ClusterResource***REMOVED*** Schema(ctx context.Context, req resource.S
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(***REMOVED***,
-		***REMOVED***,
-	***REMOVED***,
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
 			"ccs_enabled": schema.BoolAttribute{
 				Description: "Enables customer cloud subscription.",
 				Optional:    true,
 				Computed:    true,
-	***REMOVED***,
+			},
 			"aws_account_id": schema.StringAttribute{
 				Description: "Identifier of the AWS account.",
 				Optional:    true,
-	***REMOVED***,
+			},
 			"aws_access_key_id": schema.StringAttribute{
 				Description: "Identifier of the AWS access key.",
 				Optional:    true,
 				Sensitive:   true,
-	***REMOVED***,
+			},
 			"aws_secret_access_key": schema.StringAttribute{
 				Description: "AWS access key.",
 				Optional:    true,
 				Sensitive:   true,
-	***REMOVED***,
+			},
 			"aws_subnet_ids": schema.ListAttribute{
 				Description: "AWS subnet IDs.",
 				ElementType: types.StringType,
 				Optional:    true,
 				PlanModifiers: []planmodifier.List{
-					listplanmodifier.RequiresReplace(***REMOVED***,
-		***REMOVED***,
-	***REMOVED***,
+					listplanmodifier.RequiresReplace(),
+				},
+			},
 			"aws_private_link": schema.BoolAttribute{
 				Description: "Provides private connectivity between VPCs, AWS services, and your on-premises networks, without exposing your traffic to the public internet.",
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.UseStateForUnknown(***REMOVED***,
-					boolplanmodifier.RequiresReplace(***REMOVED***,
-		***REMOVED***,
-	***REMOVED***,
+					boolplanmodifier.UseStateForUnknown(),
+					boolplanmodifier.RequiresReplace(),
+				},
+			},
 			"availability_zones": schema.ListAttribute{
 				Description: "Availability zones.",
 				ElementType: types.StringType,
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.List{
-					listplanmodifier.UseStateForUnknown(***REMOVED***,
-					listplanmodifier.RequiresReplace(***REMOVED***,
-		***REMOVED***,
-	***REMOVED***,
+					listplanmodifier.UseStateForUnknown(),
+					listplanmodifier.RequiresReplace(),
+				},
+			},
 			"machine_cidr": schema.StringAttribute{
 				Description: "Block of IP addresses for nodes.",
 				Optional:    true,
 				Computed:    true,
-	***REMOVED***,
+			},
 			"proxy": schema.SingleNestedAttribute{
 				Description: "proxy",
-				Attributes:  proxy.ProxyResource(***REMOVED***,
+				Attributes:  proxy.ProxyResource(),
 				Optional:    true,
-				Validators:  []validator.Object{proxy.ProxyValidator(***REMOVED***},
-	***REMOVED***,
+				Validators:  []validator.Object{proxy.ProxyValidator()},
+			},
 			"service_cidr": schema.StringAttribute{
 				Description: "Block of IP addresses for services.",
 				Optional:    true,
 				Computed:    true,
-	***REMOVED***,
+			},
 			"pod_cidr": schema.StringAttribute{
 				Description: "Block of IP addresses for pods.",
 				Optional:    true,
 				Computed:    true,
-	***REMOVED***,
+			},
 			"host_prefix": schema.Int64Attribute{
 				Description: "Length of the prefix of the subnet assigned to each node.",
 				Optional:    true,
 				Computed:    true,
-	***REMOVED***,
+			},
 			"version": schema.StringAttribute{
 				Description: "Identifier of the version of OpenShift, for example 'openshift-v4.1.0'.",
 				Optional:    true,
 				Computed:    true,
-	***REMOVED***,
+			},
 			"state": schema.StringAttribute{
 				Description: "State of the cluster.",
 				Computed:    true,
-	***REMOVED***,
+			},
 			"wait": schema.BoolAttribute{
 				Description: "Wait till the cluster is ready.",
 				Optional:    true,
-	***REMOVED***,
-***REMOVED***,
+			},
+		},
 	}
 	return
 }
 
-func (r *ClusterResource***REMOVED*** Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse***REMOVED*** {
+func (r *ClusterResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
 	}
 
-	connection, ok := req.ProviderData.(*sdk.Connection***REMOVED***
+	connection, ok := req.ProviderData.(*sdk.Connection)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *sdk.Connaction, got: %T. Please report this issue to the provider developers.", req.ProviderData***REMOVED***,
-		***REMOVED***
+			fmt.Sprintf("Expected *sdk.Connaction, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
 		return
 	}
 
-	r.collection = connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Clusters(***REMOVED***
+	r.collection = connection.ClustersMgmt().V1().Clusters()
 	return
 }
 
 func createClusterObject(ctx context.Context,
-	state *ClusterState, diags diag.Diagnostics***REMOVED*** (*cmv1.Cluster, error***REMOVED*** {
+	state *ClusterState, diags diag.Diagnostics) (*cmv1.Cluster, error) {
 	// Create the cluster:
-	builder := cmv1.NewCluster(***REMOVED***
-	builder.Name(state.Name.ValueString(***REMOVED******REMOVED***
-	builder.CloudProvider(cmv1.NewCloudProvider(***REMOVED***.ID(state.CloudProvider.ValueString(***REMOVED******REMOVED******REMOVED***
-	builder.Product(cmv1.NewProduct(***REMOVED***.ID(state.Product.ValueString(***REMOVED******REMOVED******REMOVED***
-	builder.Region(cmv1.NewCloudRegion(***REMOVED***.ID(state.CloudRegion.ValueString(***REMOVED******REMOVED******REMOVED***
-	if common.HasValue(state.MultiAZ***REMOVED*** {
-		builder.MultiAZ(state.MultiAZ.ValueBool(***REMOVED******REMOVED***
+	builder := cmv1.NewCluster()
+	builder.Name(state.Name.ValueString())
+	builder.CloudProvider(cmv1.NewCloudProvider().ID(state.CloudProvider.ValueString()))
+	builder.Product(cmv1.NewProduct().ID(state.Product.ValueString()))
+	builder.Region(cmv1.NewCloudRegion().ID(state.CloudRegion.ValueString()))
+	if common.HasValue(state.MultiAZ) {
+		builder.MultiAZ(state.MultiAZ.ValueBool())
 	}
-	if common.HasValue(state.Properties***REMOVED*** {
+	if common.HasValue(state.Properties) {
 		properties := map[string]string{}
-		propertiesElements, err := common.OptionalMap(ctx, state.Properties***REMOVED***
+		propertiesElements, err := common.OptionalMap(ctx, state.Properties)
 		if err != nil {
 			return nil, err
-***REMOVED***
+		}
 		for k, v := range propertiesElements {
 			properties[k] = v
-***REMOVED***
-		builder.Properties(properties***REMOVED***
+		}
+		builder.Properties(properties)
 	}
-	nodes := cmv1.NewClusterNodes(***REMOVED***
-	if common.HasValue(state.ComputeNodes***REMOVED*** {
-		nodes.Compute(int(state.ComputeNodes.ValueInt64(***REMOVED******REMOVED******REMOVED***
+	nodes := cmv1.NewClusterNodes()
+	if common.HasValue(state.ComputeNodes) {
+		nodes.Compute(int(state.ComputeNodes.ValueInt64()))
 	}
-	if common.HasValue(state.ComputeMachineType***REMOVED*** {
+	if common.HasValue(state.ComputeMachineType) {
 		nodes.ComputeMachineType(
-			cmv1.NewMachineType(***REMOVED***.ID(state.ComputeMachineType.ValueString(***REMOVED******REMOVED***,
-		***REMOVED***
+			cmv1.NewMachineType().ID(state.ComputeMachineType.ValueString()),
+		)
 	}
 
-	if common.HasValue(state.AvailabilityZones***REMOVED*** {
-		availabilityZones, err := common.StringListToArray(ctx, state.AvailabilityZones***REMOVED***
+	if common.HasValue(state.AvailabilityZones) {
+		availabilityZones, err := common.StringListToArray(ctx, state.AvailabilityZones)
 		if err != nil {
 			return nil, err
-***REMOVED***
-		nodes.AvailabilityZones(availabilityZones...***REMOVED***
+		}
+		nodes.AvailabilityZones(availabilityZones...)
 	}
 
-	if !nodes.Empty(***REMOVED*** {
-		builder.Nodes(nodes***REMOVED***
+	if !nodes.Empty() {
+		builder.Nodes(nodes)
 	}
-	ccs := cmv1.NewCCS(***REMOVED***
-	if common.HasValue(state.CCSEnabled***REMOVED*** {
-		ccs.Enabled(state.CCSEnabled.ValueBool(***REMOVED******REMOVED***
+	ccs := cmv1.NewCCS()
+	if common.HasValue(state.CCSEnabled) {
+		ccs.Enabled(state.CCSEnabled.ValueBool())
 	}
-	if !ccs.Empty(***REMOVED*** {
-		builder.CCS(ccs***REMOVED***
+	if !ccs.Empty() {
+		builder.CCS(ccs)
 	}
-	aws := cmv1.NewAWS(***REMOVED***
-	if common.HasValue(state.AWSAccountID***REMOVED*** {
-		aws.AccountID(state.AWSAccountID.ValueString(***REMOVED******REMOVED***
+	aws := cmv1.NewAWS()
+	if common.HasValue(state.AWSAccountID) {
+		aws.AccountID(state.AWSAccountID.ValueString())
 	}
-	if common.HasValue(state.AWSAccessKeyID***REMOVED*** {
-		aws.AccessKeyID(state.AWSAccessKeyID.ValueString(***REMOVED******REMOVED***
+	if common.HasValue(state.AWSAccessKeyID) {
+		aws.AccessKeyID(state.AWSAccessKeyID.ValueString())
 	}
-	if common.HasValue(state.AWSSecretAccessKey***REMOVED*** {
-		aws.SecretAccessKey(state.AWSSecretAccessKey.ValueString(***REMOVED******REMOVED***
+	if common.HasValue(state.AWSSecretAccessKey) {
+		aws.SecretAccessKey(state.AWSSecretAccessKey.ValueString())
 	}
-	if common.HasValue(state.AWSPrivateLink***REMOVED*** {
-		aws.PrivateLink(state.AWSPrivateLink.ValueBool(***REMOVED******REMOVED***
-		api := cmv1.NewClusterAPI(***REMOVED***
-		if state.AWSPrivateLink.ValueBool(***REMOVED*** {
-			api.Listening(cmv1.ListeningMethodInternal***REMOVED***
-***REMOVED***
-		builder.API(api***REMOVED***
+	if common.HasValue(state.AWSPrivateLink) {
+		aws.PrivateLink(state.AWSPrivateLink.ValueBool())
+		api := cmv1.NewClusterAPI()
+		if state.AWSPrivateLink.ValueBool() {
+			api.Listening(cmv1.ListeningMethodInternal)
+		}
+		builder.API(api)
 	}
 
-	if common.HasValue(state.AWSSubnetIDs***REMOVED*** {
-		subnetIds, err := common.StringListToArray(ctx, state.AWSSubnetIDs***REMOVED***
+	if common.HasValue(state.AWSSubnetIDs) {
+		subnetIds, err := common.StringListToArray(ctx, state.AWSSubnetIDs)
 		if err != nil {
 			return nil, err
-***REMOVED***
-		aws.SubnetIDs(subnetIds...***REMOVED***
+		}
+		aws.SubnetIDs(subnetIds...)
 	}
 
-	if !aws.Empty(***REMOVED*** {
-		builder.AWS(aws***REMOVED***
+	if !aws.Empty() {
+		builder.AWS(aws)
 	}
-	network := cmv1.NewNetwork(***REMOVED***
-	if common.HasValue(state.MachineCIDR***REMOVED*** {
-		network.MachineCIDR(state.MachineCIDR.ValueString(***REMOVED******REMOVED***
+	network := cmv1.NewNetwork()
+	if common.HasValue(state.MachineCIDR) {
+		network.MachineCIDR(state.MachineCIDR.ValueString())
 	}
-	if common.HasValue(state.ServiceCIDR***REMOVED*** {
-		network.ServiceCIDR(state.ServiceCIDR.ValueString(***REMOVED******REMOVED***
+	if common.HasValue(state.ServiceCIDR) {
+		network.ServiceCIDR(state.ServiceCIDR.ValueString())
 	}
-	if common.HasValue(state.PodCIDR***REMOVED*** {
-		network.PodCIDR(state.PodCIDR.ValueString(***REMOVED******REMOVED***
+	if common.HasValue(state.PodCIDR) {
+		network.PodCIDR(state.PodCIDR.ValueString())
 	}
-	if common.HasValue(state.HostPrefix***REMOVED*** {
-		network.HostPrefix(int(state.HostPrefix.ValueInt64(***REMOVED******REMOVED******REMOVED***
+	if common.HasValue(state.HostPrefix) {
+		network.HostPrefix(int(state.HostPrefix.ValueInt64()))
 	}
-	if !network.Empty(***REMOVED*** {
-		builder.Network(network***REMOVED***
+	if !network.Empty() {
+		builder.Network(network)
 	}
-	if common.HasValue(state.Version***REMOVED*** {
-		builder.Version(cmv1.NewVersion(***REMOVED***.ID(state.Version.ValueString(***REMOVED******REMOVED******REMOVED***
+	if common.HasValue(state.Version) {
+		builder.Version(cmv1.NewVersion().ID(state.Version.ValueString()))
 	}
 
-	proxyObj := cmv1.NewProxy(***REMOVED***
+	proxyObj := cmv1.NewProxy()
 	if state.Proxy != nil {
-		proxyObj.HTTPProxy(state.Proxy.HttpProxy.ValueString(***REMOVED******REMOVED***
-		proxyObj.HTTPSProxy(state.Proxy.HttpsProxy.ValueString(***REMOVED******REMOVED***
-		builder.Proxy(proxyObj***REMOVED***
+		proxyObj.HTTPProxy(state.Proxy.HttpProxy.ValueString())
+		proxyObj.HTTPSProxy(state.Proxy.HttpsProxy.ValueString())
+		builder.Proxy(proxyObj)
 	}
 
-	object, err := builder.Build(***REMOVED***
+	object, err := builder.Build()
 
 	return object, err
 }
 
-func (r *ClusterResource***REMOVED*** Create(ctx context.Context, request resource.CreateRequest,
-	response *resource.CreateResponse***REMOVED*** {
+func (r *ClusterResource) Create(ctx context.Context, request resource.CreateRequest,
+	response *resource.CreateResponse) {
 	// Get the plan:
 	state := &ClusterState{}
-	diags := request.Plan.Get(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
-	if response.Diagnostics.HasError(***REMOVED*** {
+	diags := request.Plan.Get(ctx, state)
+	response.Diagnostics.Append(diags...)
+	if response.Diagnostics.HasError() {
 		return
 	}
 
-	object, err := createClusterObject(ctx, state, diags***REMOVED***
+	object, err := createClusterObject(ctx, state, diags)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't build cluster",
 			fmt.Sprintf(
 				"Can't build cluster with name '%s': %v",
-				state.Name.ValueString(***REMOVED***, err,
-			***REMOVED***,
-		***REMOVED***
+				state.Name.ValueString(), err,
+			),
+		)
 		return
 	}
 
-	add, err := r.collection.Add(***REMOVED***.Body(object***REMOVED***.SendContext(ctx***REMOVED***
+	add, err := r.collection.Add().Body(object).SendContext(ctx)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't create cluster",
 			fmt.Sprintf(
 				"Can't create cluster with name '%s': %v",
-				state.Name.ValueString(***REMOVED***, err,
-			***REMOVED***,
-		***REMOVED***
+				state.Name.ValueString(), err,
+			),
+		)
 		return
 	}
-	object = add.Body(***REMOVED***
+	object = add.Body()
 
 	// Wait till the cluster is ready unless explicitly disabled:
-	wait := state.Wait.IsUnknown(***REMOVED*** || state.Wait.IsNull(***REMOVED*** || state.Wait.ValueBool(***REMOVED***
-	ready := object.State(***REMOVED*** == cmv1.ClusterStateReady
+	wait := state.Wait.IsUnknown() || state.Wait.IsNull() || state.Wait.ValueBool()
+	ready := object.State() == cmv1.ClusterStateReady
 	if wait && !ready {
-		pollCtx, cancel := context.WithTimeout(ctx, 1*time.Hour***REMOVED***
-		defer cancel(***REMOVED***
-		_, err := r.collection.Cluster(object.ID(***REMOVED******REMOVED***.Poll(***REMOVED***.
-			Interval(30 * time.Second***REMOVED***.
-			Predicate(func(get *cmv1.ClusterGetResponse***REMOVED*** bool {
-				object = get.Body(***REMOVED***
-				return object.State(***REMOVED*** == cmv1.ClusterStateReady
-	***REMOVED******REMOVED***.
-			StartContext(pollCtx***REMOVED***
+		pollCtx, cancel := context.WithTimeout(ctx, 1*time.Hour)
+		defer cancel()
+		_, err := r.collection.Cluster(object.ID()).Poll().
+			Interval(30 * time.Second).
+			Predicate(func(get *cmv1.ClusterGetResponse) bool {
+				object = get.Body()
+				return object.State() == cmv1.ClusterStateReady
+			}).
+			StartContext(pollCtx)
 		if err != nil {
 			response.Diagnostics.AddError(
 				"Can't poll cluster state",
 				fmt.Sprintf(
 					"Can't poll state of cluster with identifier '%s': %v",
-					object.ID(***REMOVED***, err,
-				***REMOVED***,
-			***REMOVED***
+					object.ID(), err,
+				),
+			)
 			return
-***REMOVED***
+		}
 	}
 
 	// Save the state:
-	err = populateClusterState(object, state***REMOVED***
+	err = populateClusterState(object, state)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
 			fmt.Sprintf(
 				"Received error %v", err,
-			***REMOVED***,
-		***REMOVED***
+			),
+		)
 		return
 	}
-	diags = response.State.Set(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
+	diags = response.State.Set(ctx, state)
+	response.Diagnostics.Append(diags...)
 }
 
-func (r *ClusterResource***REMOVED*** Read(ctx context.Context, request resource.ReadRequest,
-	response *resource.ReadResponse***REMOVED*** {
+func (r *ClusterResource) Read(ctx context.Context, request resource.ReadRequest,
+	response *resource.ReadResponse) {
 	// Get the current state:
 	state := &ClusterState{}
-	diags := request.State.Get(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
-	if response.Diagnostics.HasError(***REMOVED*** {
+	diags := request.State.Get(ctx, state)
+	response.Diagnostics.Append(diags...)
+	if response.Diagnostics.HasError() {
 		return
 	}
 
 	// Find the cluster:
-	get, err := r.collection.Cluster(state.ID.ValueString(***REMOVED******REMOVED***.Get(***REMOVED***.SendContext(ctx***REMOVED***
+	get, err := r.collection.Cluster(state.ID.ValueString()).Get().SendContext(ctx)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't find cluster",
 			fmt.Sprintf(
 				"Can't find cluster with identifier '%s': %v",
-				state.ID.ValueString(***REMOVED***, err,
-			***REMOVED***,
-		***REMOVED***
+				state.ID.ValueString(), err,
+			),
+		)
 		return
 	}
-	object := get.Body(***REMOVED***
+	object := get.Body()
 
 	// Save the state:
-	err = populateClusterState(object, state***REMOVED***
+	err = populateClusterState(object, state)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
 			fmt.Sprintf(
 				"Received error %v", err,
-			***REMOVED***,
-		***REMOVED***
+			),
+		)
 		return
 	}
-	diags = response.State.Set(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
+	diags = response.State.Set(ctx, state)
+	response.Diagnostics.Append(diags...)
 }
 
-func (r *ClusterResource***REMOVED*** Update(ctx context.Context, request resource.UpdateRequest,
-	response *resource.UpdateResponse***REMOVED*** {
+func (r *ClusterResource) Update(ctx context.Context, request resource.UpdateRequest,
+	response *resource.UpdateResponse) {
 	var diags diag.Diagnostics
 
 	// Get the state:
 	state := &ClusterState{}
-	diags = request.State.Get(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
-	if response.Diagnostics.HasError(***REMOVED*** {
+	diags = request.State.Get(ctx, state)
+	response.Diagnostics.Append(diags...)
+	if response.Diagnostics.HasError() {
 		return
 	}
 
 	// Get the plan:
 	plan := &ClusterState{}
-	diags = request.Plan.Get(ctx, plan***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
-	if response.Diagnostics.HasError(***REMOVED*** {
+	diags = request.Plan.Get(ctx, plan)
+	response.Diagnostics.Append(diags...)
+	if response.Diagnostics.HasError() {
 		return
 	}
 
 	// Send request to update the cluster:
-	builder := cmv1.NewCluster(***REMOVED***
+	builder := cmv1.NewCluster()
 	var nodes *cmv1.ClusterNodesBuilder
-	compute, ok := common.ShouldPatchInt(state.ComputeNodes, plan.ComputeNodes***REMOVED***
+	compute, ok := common.ShouldPatchInt(state.ComputeNodes, plan.ComputeNodes)
 	if ok {
-		nodes.Compute(int(compute***REMOVED******REMOVED***
+		nodes.Compute(int(compute))
 	}
-	if !nodes.Empty(***REMOVED*** {
-		builder.Nodes(nodes***REMOVED***
+	if !nodes.Empty() {
+		builder.Nodes(nodes)
 	}
-	patch, err := builder.Build(***REMOVED***
+	patch, err := builder.Build()
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't build cluster patch",
 			fmt.Sprintf(
 				"Can't build patch for cluster with identifier '%s': %v",
-				state.ID.ValueString(***REMOVED***, err,
-			***REMOVED***,
-		***REMOVED***
+				state.ID.ValueString(), err,
+			),
+		)
 		return
 	}
-	update, err := r.collection.Cluster(state.ID.ValueString(***REMOVED******REMOVED***.Update(***REMOVED***.
-		Body(patch***REMOVED***.
-		SendContext(ctx***REMOVED***
+	update, err := r.collection.Cluster(state.ID.ValueString()).Update().
+		Body(patch).
+		SendContext(ctx)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't update cluster",
 			fmt.Sprintf(
 				"Can't update cluster with identifier '%s': %v",
-				state.ID.ValueString(***REMOVED***, err,
-			***REMOVED***,
-		***REMOVED***
+				state.ID.ValueString(), err,
+			),
+		)
 		return
 	}
-	object := update.Body(***REMOVED***
+	object := update.Body()
 
 	// Update the state:
-	err = populateClusterState(object, state***REMOVED***
+	err = populateClusterState(object, state)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
 			fmt.Sprintf(
 				"Received error %v", err,
-			***REMOVED***,
-		***REMOVED***
+			),
+		)
 		return
 	}
-	diags = response.State.Set(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
+	diags = response.State.Set(ctx, state)
+	response.Diagnostics.Append(diags...)
 }
 
-func (r *ClusterResource***REMOVED*** Delete(ctx context.Context, request resource.DeleteRequest,
-	response *resource.DeleteResponse***REMOVED*** {
+func (r *ClusterResource) Delete(ctx context.Context, request resource.DeleteRequest,
+	response *resource.DeleteResponse) {
 	// Get the state:
 	state := &ClusterState{}
-	diags := request.State.Get(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
-	if response.Diagnostics.HasError(***REMOVED*** {
+	diags := request.State.Get(ctx, state)
+	response.Diagnostics.Append(diags...)
+	if response.Diagnostics.HasError() {
 		return
 	}
 
 	// Send the request to delete the cluster:
-	resource := r.collection.Cluster(state.ID.ValueString(***REMOVED******REMOVED***
-	_, err := resource.Delete(***REMOVED***.SendContext(ctx***REMOVED***
+	resource := r.collection.Cluster(state.ID.ValueString())
+	_, err := resource.Delete().SendContext(ctx)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't delete cluster",
 			fmt.Sprintf(
 				"Can't delete cluster with identifier '%s': %v",
-				state.ID.ValueString(***REMOVED***, err,
-			***REMOVED***,
-		***REMOVED***
+				state.ID.ValueString(), err,
+			),
+		)
 		return
 	}
 
 	// Wait till the cluster has been effectively deleted:
-	if state.Wait.IsUnknown(***REMOVED*** || state.Wait.IsNull(***REMOVED*** || state.Wait.ValueBool(***REMOVED*** {
-		pollCtx, cancel := context.WithTimeout(ctx, 10*time.Minute***REMOVED***
-		defer cancel(***REMOVED***
-		_, err := resource.Poll(***REMOVED***.
-			Interval(30 * time.Second***REMOVED***.
-			Status(http.StatusNotFound***REMOVED***.
-			StartContext(pollCtx***REMOVED***
-		sdkErr, ok := err.(*errors.Error***REMOVED***
-		if ok && sdkErr.Status(***REMOVED*** == http.StatusNotFound {
+	if state.Wait.IsUnknown() || state.Wait.IsNull() || state.Wait.ValueBool() {
+		pollCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+		defer cancel()
+		_, err := resource.Poll().
+			Interval(30 * time.Second).
+			Status(http.StatusNotFound).
+			StartContext(pollCtx)
+		sdkErr, ok := err.(*errors.Error)
+		if ok && sdkErr.Status() == http.StatusNotFound {
 			err = nil
-***REMOVED***
+		}
 		if err != nil {
 			response.Diagnostics.AddError(
 				"Can't poll cluster deletion",
 				fmt.Sprintf(
 					"Can't poll deletion of cluster with identifier '%s': %v",
-					state.ID.ValueString(***REMOVED***, err,
-				***REMOVED***,
-			***REMOVED***
+					state.ID.ValueString(), err,
+				),
+			)
 			return
-***REMOVED***
+		}
 	}
 
 	// Remove the state:
-	response.State.RemoveResource(ctx***REMOVED***
+	response.State.RemoveResource(ctx)
 }
 
-func (r *ClusterResource***REMOVED*** ImportState(ctx context.Context, request resource.ImportStateRequest,
-	response *resource.ImportStateResponse***REMOVED*** {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"***REMOVED***, request, response***REMOVED***
+func (r *ClusterResource) ImportState(ctx context.Context, request resource.ImportStateRequest,
+	response *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), request, response)
 }
 
 // populateClusterState copies the data from the API object to the Terraform state.
-func populateClusterState(object *cmv1.Cluster, state *ClusterState***REMOVED*** error {
-	state.ID = types.StringValue(object.ID(***REMOVED******REMOVED***
+func populateClusterState(object *cmv1.Cluster, state *ClusterState) error {
+	state.ID = types.StringValue(object.ID())
 
-	object.API(***REMOVED***
-	state.Product = types.StringValue(object.Product(***REMOVED***.ID(***REMOVED******REMOVED***
-	state.Name = types.StringValue(object.Name(***REMOVED******REMOVED***
-	state.CloudProvider = types.StringValue(object.CloudProvider(***REMOVED***.ID(***REMOVED******REMOVED***
-	state.CloudRegion = types.StringValue(object.Region(***REMOVED***.ID(***REMOVED******REMOVED***
-	state.MultiAZ = types.BoolValue(object.MultiAZ(***REMOVED******REMOVED***
+	object.API()
+	state.Product = types.StringValue(object.Product().ID())
+	state.Name = types.StringValue(object.Name())
+	state.CloudProvider = types.StringValue(object.CloudProvider().ID())
+	state.CloudRegion = types.StringValue(object.Region().ID())
+	state.MultiAZ = types.BoolValue(object.MultiAZ())
 
-	mapValue, err := common.ConvertStringMapToMapType(object.Properties(***REMOVED******REMOVED***
+	mapValue, err := common.ConvertStringMapToMapType(object.Properties())
 	if err != nil {
 		return err
 	} else {
 		state.Properties = mapValue
 	}
 
-	state.APIURL = types.StringValue(object.API(***REMOVED***.URL(***REMOVED******REMOVED***
-	state.ConsoleURL = types.StringValue(object.Console(***REMOVED***.URL(***REMOVED******REMOVED***
-	state.ComputeNodes = types.Int64Value(int64(object.Nodes(***REMOVED***.Compute(***REMOVED******REMOVED******REMOVED***
-	state.ComputeMachineType = types.StringValue(object.Nodes(***REMOVED***.ComputeMachineType(***REMOVED***.ID(***REMOVED******REMOVED***
+	state.APIURL = types.StringValue(object.API().URL())
+	state.ConsoleURL = types.StringValue(object.Console().URL())
+	state.ComputeNodes = types.Int64Value(int64(object.Nodes().Compute()))
+	state.ComputeMachineType = types.StringValue(object.Nodes().ComputeMachineType().ID())
 
-	azs, ok := object.Nodes(***REMOVED***.GetAvailabilityZones(***REMOVED***
+	azs, ok := object.Nodes().GetAvailabilityZones()
 	if ok {
-		listValue, err := common.StringArrayToList(azs***REMOVED***
+		listValue, err := common.StringArrayToList(azs)
 		if err != nil {
 			return err
-***REMOVED*** else {
+		} else {
 			state.AvailabilityZones = listValue
-***REMOVED***
+		}
 	}
 
-	state.CCSEnabled = types.BoolValue(object.CCS(***REMOVED***.Enabled(***REMOVED******REMOVED***
+	state.CCSEnabled = types.BoolValue(object.CCS().Enabled())
 	//The API does not return account id
-	awsAccountID, ok := object.AWS(***REMOVED***.GetAccountID(***REMOVED***
+	awsAccountID, ok := object.AWS().GetAccountID()
 	if ok {
-		state.AWSAccountID = types.StringValue(awsAccountID***REMOVED***
+		state.AWSAccountID = types.StringValue(awsAccountID)
 	}
-	awsAccessKeyID, ok := object.AWS(***REMOVED***.GetAccessKeyID(***REMOVED***
+	awsAccessKeyID, ok := object.AWS().GetAccessKeyID()
 	if ok {
-		state.AWSAccessKeyID = types.StringValue(awsAccessKeyID***REMOVED***
+		state.AWSAccessKeyID = types.StringValue(awsAccessKeyID)
 	}
 
-	awsSecretAccessKey, ok := object.AWS(***REMOVED***.GetSecretAccessKey(***REMOVED***
+	awsSecretAccessKey, ok := object.AWS().GetSecretAccessKey()
 	if ok {
-		state.AWSSecretAccessKey = types.StringValue(awsSecretAccessKey***REMOVED***
+		state.AWSSecretAccessKey = types.StringValue(awsSecretAccessKey)
 	}
-	awsPrivateLink, ok := object.AWS(***REMOVED***.GetPrivateLink(***REMOVED***
+	awsPrivateLink, ok := object.AWS().GetPrivateLink()
 	if ok {
-		state.AWSPrivateLink = types.BoolValue(awsPrivateLink***REMOVED***
+		state.AWSPrivateLink = types.BoolValue(awsPrivateLink)
 	} else {
-		state.AWSPrivateLink = types.BoolValue(true***REMOVED***
+		state.AWSPrivateLink = types.BoolValue(true)
 	}
 
-	subnetIds, ok := object.AWS(***REMOVED***.GetSubnetIDs(***REMOVED***
+	subnetIds, ok := object.AWS().GetSubnetIDs()
 	if ok {
-		awsSubnetIds, err := common.StringArrayToList(subnetIds***REMOVED***
+		awsSubnetIds, err := common.StringArrayToList(subnetIds)
 		if err != nil {
 			return err
-***REMOVED***
+		}
 		state.AWSSubnetIDs = awsSubnetIds
 	}
 
-	proxyObj, ok := object.GetProxy(***REMOVED***
+	proxyObj, ok := object.GetProxy()
 	if ok {
-		state.Proxy.HttpProxy = types.StringValue(proxyObj.HTTPProxy(***REMOVED******REMOVED***
-		state.Proxy.HttpsProxy = types.StringValue(proxyObj.HTTPSProxy(***REMOVED******REMOVED***
+		state.Proxy.HttpProxy = types.StringValue(proxyObj.HTTPProxy())
+		state.Proxy.HttpsProxy = types.StringValue(proxyObj.HTTPSProxy())
 	}
 
-	machineCIDR, ok := object.Network(***REMOVED***.GetMachineCIDR(***REMOVED***
+	machineCIDR, ok := object.Network().GetMachineCIDR()
 	if ok {
-		state.MachineCIDR = types.StringValue(machineCIDR***REMOVED***
+		state.MachineCIDR = types.StringValue(machineCIDR)
 	} else {
-		state.MachineCIDR = types.StringNull(***REMOVED***
+		state.MachineCIDR = types.StringNull()
 	}
-	serviceCIDR, ok := object.Network(***REMOVED***.GetServiceCIDR(***REMOVED***
+	serviceCIDR, ok := object.Network().GetServiceCIDR()
 	if ok {
-		state.ServiceCIDR = types.StringValue(serviceCIDR***REMOVED***
+		state.ServiceCIDR = types.StringValue(serviceCIDR)
 	} else {
-		state.ServiceCIDR = types.StringNull(***REMOVED***
+		state.ServiceCIDR = types.StringNull()
 	}
-	podCIDR, ok := object.Network(***REMOVED***.GetPodCIDR(***REMOVED***
+	podCIDR, ok := object.Network().GetPodCIDR()
 	if ok {
-		state.PodCIDR = types.StringValue(podCIDR***REMOVED***
+		state.PodCIDR = types.StringValue(podCIDR)
 	} else {
-		state.PodCIDR = types.StringNull(***REMOVED***
+		state.PodCIDR = types.StringNull()
 	}
-	hostPrefix, ok := object.Network(***REMOVED***.GetHostPrefix(***REMOVED***
+	hostPrefix, ok := object.Network().GetHostPrefix()
 	if ok {
-		state.HostPrefix = types.Int64Value(int64(hostPrefix***REMOVED******REMOVED***
+		state.HostPrefix = types.Int64Value(int64(hostPrefix))
 	} else {
-		state.HostPrefix = types.Int64Null(***REMOVED***
+		state.HostPrefix = types.Int64Null()
 	}
-	version, ok := object.Version(***REMOVED***.GetID(***REMOVED***
+	version, ok := object.Version().GetID()
 	if ok {
-		state.Version = types.StringValue(version***REMOVED***
+		state.Version = types.StringValue(version)
 	} else {
-		state.Version = types.StringNull(***REMOVED***
+		state.Version = types.StringNull()
 	}
-	state.State = types.StringValue(string(object.State(***REMOVED******REMOVED******REMOVED***
+	state.State = types.StringValue(string(object.State()))
 
 	return nil
 }

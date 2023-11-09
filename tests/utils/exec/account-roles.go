@@ -1,12 +1,12 @@
 package exec
 
-***REMOVED***
+import (
 	"context"
-***REMOVED***
+	"fmt"
 
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-***REMOVED***
-***REMOVED***
+	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+)
 
 type AccountRolesArgs struct {
 	AccountRolePrefix string `json:"account_role_prefix,omitempty"`
@@ -31,14 +31,14 @@ type AccountRoleService struct {
 	Context      context.Context
 }
 
-func (acc *AccountRoleService***REMOVED*** Init(manifestDirs ...string***REMOVED*** error {
+func (acc *AccountRoleService) Init(manifestDirs ...string) error {
 	acc.ManifestDir = CON.AccountRolesDir
-	if len(manifestDirs***REMOVED*** != 0 {
+	if len(manifestDirs) != 0 {
 		acc.ManifestDir = manifestDirs[0]
 	}
-	ctx := context.TODO(***REMOVED***
+	ctx := context.TODO()
 	acc.Context = ctx
-	err := runTerraformInit(ctx, acc.ManifestDir***REMOVED***
+	err := runTerraformInit(ctx, acc.ManifestDir)
 	if err != nil {
 		return err
 	}
@@ -46,51 +46,51 @@ func (acc *AccountRoleService***REMOVED*** Init(manifestDirs ...string***REMOVED
 
 }
 
-func (acc *AccountRoleService***REMOVED*** Create(createArgs *AccountRolesArgs, extraArgs ...string***REMOVED*** (*AccountRolesOutput, error***REMOVED*** {
+func (acc *AccountRoleService) Create(createArgs *AccountRolesArgs, extraArgs ...string) (*AccountRolesOutput, error) {
 	createArgs.URL = CON.GateWayURL
 	createArgs.OCMENV = CON.OCMENV
 	acc.CreationArgs = createArgs
-	args := combineStructArgs(createArgs, extraArgs...***REMOVED***
-	_, err := runTerraformApplyWithArgs(acc.Context, acc.ManifestDir, args***REMOVED***
+	args := combineStructArgs(createArgs, extraArgs...)
+	_, err := runTerraformApplyWithArgs(acc.Context, acc.ManifestDir, args)
 	if err != nil {
 		return nil, err
 	}
-	output, err := acc.Output(***REMOVED***
+	output, err := acc.Output()
 	return output, err
 }
 
-func (acc *AccountRoleService***REMOVED*** Output(***REMOVED*** (*AccountRolesOutput, error***REMOVED*** {
-	out, err := runTerraformOutput(acc.Context, acc.ManifestDir***REMOVED***
+func (acc *AccountRoleService) Output() (*AccountRolesOutput, error) {
+	out, err := runTerraformOutput(acc.Context, acc.ManifestDir)
 	if err != nil {
 		return nil, err
 	}
 	var accOutput = &AccountRolesOutput{
-		AccountRolePrefix: h.DigString(out["account_roles_prefix"], "value"***REMOVED***,
-		MajorVersion:      h.DigString(out["major_version"], "value"***REMOVED***,
-		ChannelGroup:      h.DigString(out["channel_group"], "value"***REMOVED***,
-		RHCSGatewayUrl:    h.DigString(out["rhcs_gateway_url"], "value"***REMOVED***,
-		RHCSVersions:      h.DigArray(out["rhcs_versions"], "value"***REMOVED***,
+		AccountRolePrefix: h.DigString(out["account_roles_prefix"], "value"),
+		MajorVersion:      h.DigString(out["major_version"], "value"),
+		ChannelGroup:      h.DigString(out["channel_group"], "value"),
+		RHCSGatewayUrl:    h.DigString(out["rhcs_gateway_url"], "value"),
+		RHCSVersions:      h.DigArray(out["rhcs_versions"], "value"),
 	}
 	return accOutput, nil
 }
 
-func (acc *AccountRoleService***REMOVED*** Destroy(createArgs ...*AccountRolesArgs***REMOVED*** error {
-	if acc.CreationArgs == nil && len(createArgs***REMOVED*** == 0 {
-		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter"***REMOVED***
+func (acc *AccountRoleService) Destroy(createArgs ...*AccountRolesArgs) error {
+	if acc.CreationArgs == nil && len(createArgs) == 0 {
+		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
 	}
 	destroyArgs := acc.CreationArgs
-	if len(createArgs***REMOVED*** != 0 {
+	if len(createArgs) != 0 {
 		destroyArgs = createArgs[0]
 	}
 	destroyArgs.URL = CON.GateWayURL
 	destroyArgs.OCMENV = CON.OCMENV
-	args := combineStructArgs(destroyArgs***REMOVED***
-	err := runTerraformDestroyWithArgs(acc.Context, acc.ManifestDir, args***REMOVED***
+	args := combineStructArgs(destroyArgs)
+	err := runTerraformDestroyWithArgs(acc.Context, acc.ManifestDir, args)
 	return err
 }
 
-func NewAccountRoleService(manifestDir ...string***REMOVED*** (*AccountRoleService, error***REMOVED*** {
+func NewAccountRoleService(manifestDir ...string) (*AccountRoleService, error) {
 	acc := &AccountRoleService{}
-	err := acc.Init(manifestDir...***REMOVED***
+	err := acc.Init(manifestDir...)
 	return acc, err
 }

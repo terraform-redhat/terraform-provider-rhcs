@@ -1,85 +1,85 @@
 package helper
 
-***REMOVED***
+import (
 	"bytes"
 	"encoding/json"
-***REMOVED***
+	"fmt"
 	"math/rand"
 	"os"
 	"os/exec"
-***REMOVED***
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/onsi/gomega"
-***REMOVED***
+	. "github.com/onsi/gomega"
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
-***REMOVED***
+)
 
 // Parse parses the given JSON data and returns a map of strings containing the result.
-func Parse(data []byte***REMOVED*** map[string]interface{} {
+func Parse(data []byte) map[string]interface{} {
 	var object map[string]interface{}
-	err := json.Unmarshal(data, &object***REMOVED***
-	Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+	err := json.Unmarshal(data, &object)
+	Expect(err).ToNot(HaveOccurred())
 	return object
 }
 
-func GetJsonFromPath(filePath string, filename string***REMOVED*** map[string]interface{} {
-	combinedFilePath := path.Join(filePath, filename***REMOVED***
-	file, err := os.ReadFile(combinedFilePath***REMOVED***
-	Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-	return Parse(file***REMOVED***
+func GetJsonFromPath(filePath string, filename string) map[string]interface{} {
+	combinedFilePath := path.Join(filePath, filename)
+	file, err := os.ReadFile(combinedFilePath)
+	Expect(err).ToNot(HaveOccurred())
+	return Parse(file)
 }
 
 // If there is no attribute with the given path then the return value will be an empty string.
-func DigString(object interface{}, keys ...interface{}***REMOVED*** string {
-	switch result := Dig(object, keys***REMOVED***.(type***REMOVED*** {
+func DigString(object interface{}, keys ...interface{}) string {
+	switch result := Dig(object, keys).(type) {
 	case nil:
 		return ""
 	case string:
 		return result
 	case fmt.Stringer:
-		return result.String(***REMOVED***
+		return result.String()
 	default:
-		return fmt.Sprintf("%s", result***REMOVED***
+		return fmt.Sprintf("%s", result)
 	}
 }
 
 // NewRand returns a rand with the time seed
-func NewRand(***REMOVED*** *rand.Rand {
-	return rand.New(rand.NewSource(time.Now(***REMOVED***.UnixNano(***REMOVED******REMOVED******REMOVED***
+func NewRand() *rand.Rand {
+	return rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
 // DigStringArray tries to find an array inside the given object with the given path, and returns its
 // value. If there is no attribute with the given path then the test will be aborted with an error.
-func DigStringArray(object interface{}, keys ...interface{}***REMOVED*** []string {
-	value := Dig(object, keys***REMOVED***
-	gomega.ExpectWithOffset(1, value***REMOVED***.ToNot(gomega.BeNil(***REMOVED******REMOVED***
+func DigStringArray(object interface{}, keys ...interface{}) []string {
+	value := Dig(object, keys)
+	gomega.ExpectWithOffset(1, value).ToNot(gomega.BeNil())
 	var result []string
-	gomega.ExpectWithOffset(1, value***REMOVED***.To(gomega.BeAssignableToTypeOf(result***REMOVED******REMOVED***
-	result = value.([]string***REMOVED***
+	gomega.ExpectWithOffset(1, value).To(gomega.BeAssignableToTypeOf(result))
+	result = value.([]string)
 	return result
 }
 
 // DigArray tries to find an array inside the given object with the given path, and returns its
 // value. If there is no attribute with the given path then the test will be aborted with an error.
-func DigArray(object interface{}, keys ...interface{}***REMOVED*** []interface{} {
-	value := Dig(object, keys***REMOVED***
+func DigArray(object interface{}, keys ...interface{}) []interface{} {
+	value := Dig(object, keys)
 	var result []interface{}
-	result = value.([]interface{}***REMOVED***
+	result = value.([]interface{})
 	return result
 }
 
-func DigArrayToString(object interface{}, keys ...interface{}***REMOVED*** []string {
-	value := Dig(object, keys***REMOVED***
+func DigArrayToString(object interface{}, keys ...interface{}) []string {
+	value := Dig(object, keys)
 	var result []interface{}
-	result = value.([]interface{}***REMOVED***
+	result = value.([]interface{})
 	strR := []string{}
 	for _, r := range result {
-		strR = append(strR, r.(string***REMOVED******REMOVED***
+		strR = append(strR, r.(string))
 	}
 	return strR
 }
@@ -87,87 +87,87 @@ func DigArrayToString(object interface{}, keys ...interface{}***REMOVED*** []str
 // DigInt tries to find an attribute inside the given object with the given path, and returns its
 // value, assuming that it is an integer. If there is no attribute with the given path then the test
 // will be aborted with an error.
-func DigInt(object interface{}, keys ...interface{}***REMOVED*** int {
-	value := Dig(object, keys***REMOVED***
-	ExpectWithOffset(1, value***REMOVED***.ToNot(BeNil(***REMOVED******REMOVED***
+func DigInt(object interface{}, keys ...interface{}) int {
+	value := Dig(object, keys)
+	ExpectWithOffset(1, value).ToNot(BeNil())
 	var result float64
-	ExpectWithOffset(1, value***REMOVED***.To(BeAssignableToTypeOf(result***REMOVED******REMOVED***
-	result = value.(float64***REMOVED***
-	return int(result***REMOVED***
+	ExpectWithOffset(1, value).To(BeAssignableToTypeOf(result))
+	result = value.(float64)
+	return int(result)
 }
 
-func DigBool(object interface{}, keys ...interface{}***REMOVED*** bool {
-	switch result := Dig(object, keys***REMOVED***.(type***REMOVED*** {
+func DigBool(object interface{}, keys ...interface{}) bool {
+	switch result := Dig(object, keys).(type) {
 	case nil:
 		return false
 	case bool:
 		return result
 	case string:
-		b, err := strconv.ParseBool(result***REMOVED***
+		b, err := strconv.ParseBool(result)
 		if err != nil {
 			return false
-***REMOVED***
+		}
 		return b
 	default:
 		return false
 	}
 }
 
-func Dig(object interface{}, keys []interface{}***REMOVED*** interface{} {
-	if object == nil || len(keys***REMOVED*** == 0 {
+func Dig(object interface{}, keys []interface{}) interface{} {
+	if object == nil || len(keys) == 0 {
 		return nil
 	}
-	switch key := keys[0].(type***REMOVED*** {
+	switch key := keys[0].(type) {
 	case string:
-		switch data := object.(type***REMOVED*** {
+		switch data := object.(type) {
 		case map[string]interface{}:
 			value := data[key]
-			if len(keys***REMOVED*** == 1 {
+			if len(keys) == 1 {
 				return value
-	***REMOVED***
-			return Dig(value, keys[1:]***REMOVED***
-***REMOVED***
+			}
+			return Dig(value, keys[1:])
+		}
 	case int:
-		switch data := object.(type***REMOVED*** {
+		switch data := object.(type) {
 		case []interface{}:
 			value := data[key]
-			if len(keys***REMOVED*** == 1 {
+			if len(keys) == 1 {
 				return value
-	***REMOVED***
-			return Dig(value, keys[1:]***REMOVED***
-***REMOVED***
+			}
+			return Dig(value, keys[1:])
+		}
 	}
 	return nil
 }
 
-func RunCMD(cmd string***REMOVED*** (stdout string, stderr string, err error***REMOVED*** {
-	Logger.Infof("[>>] Running CMD: %s", cmd***REMOVED***
+func RunCMD(cmd string) (stdout string, stderr string, err error) {
+	Logger.Infof("[>>] Running CMD: %s", cmd)
 	var stdoutput bytes.Buffer
 	var stderroutput bytes.Buffer
-	CMD := exec.Command("bash", "-c", cmd***REMOVED***
+	CMD := exec.Command("bash", "-c", cmd)
 	CMD.Stderr = &stderroutput
 	CMD.Stdout = &stdoutput
-	err = CMD.Run(***REMOVED***
+	err = CMD.Run()
 	if err != nil {
-		Logger.Errorf("Got error status: %v", err***REMOVED***
+		Logger.Errorf("Got error status: %v", err)
 	}
 
-	stdout = strings.Trim(stdoutput.String(***REMOVED***, "\n"***REMOVED***
-	stderr = strings.Trim(stderroutput.String(***REMOVED***, "\n"***REMOVED***
-	Logger.Infof("Got output %s", stdout***REMOVED***
+	stdout = strings.Trim(stdoutput.String(), "\n")
+	stderr = strings.Trim(stderroutput.String(), "\n")
+	Logger.Infof("Got output %s", stdout)
 	if stderr != "" {
-		Logger.Errorf("Got error output %s", stderr***REMOVED***
+		Logger.Errorf("Got error output %s", stderr)
 	}
 	return
 }
 
 // MapStructure will map the map to the address of the structre *i
-func MapStructure(m map[string]interface{}, i interface{}***REMOVED*** error {
-	jsonbody, err := json.Marshal(m***REMOVED***
+func MapStructure(m map[string]interface{}, i interface{}) error {
+	jsonbody, err := json.Marshal(m)
 	if err != nil {
 		return err
 	}
-	err = json.Unmarshal(jsonbody, i***REMOVED***
+	err = json.Unmarshal(jsonbody, i)
 	if err != nil {
 		return err
 	}
@@ -175,20 +175,20 @@ func MapStructure(m map[string]interface{}, i interface{}***REMOVED*** error {
 }
 
 // Join will link the strings with "."
-func Join(s ...string***REMOVED*** string {
-	return strings.Join(s, "."***REMOVED***
+func Join(s ...string) string {
+	return strings.Join(s, ".")
 }
 
-func JoinStringWithArray(s string, strArray []string***REMOVED*** []string {
+func JoinStringWithArray(s string, strArray []string) []string {
 
 	// create tmp map for joining strings
-	var tmpMap = make(map[int]string***REMOVED***
+	var tmpMap = make(map[int]string)
 	for i, str := range strArray {
 		tmpMap[i] = s + str
 	}
 
 	// create array from map
-	var newArray = make([]string, len(tmpMap***REMOVED******REMOVED***
+	var newArray = make([]string, len(tmpMap))
 	for i, value := range tmpMap {
 		newArray[i] = value
 	}
@@ -196,35 +196,35 @@ func JoinStringWithArray(s string, strArray []string***REMOVED*** []string {
 }
 
 // IsSorted will return whether the array is sorted by mode
-func IsSorted(arry []string, mode string***REMOVED*** (flag bool***REMOVED*** {
+func IsSorted(arry []string, mode string) (flag bool) {
 	switch mode {
 	case "desc":
-		for i := 0; i < len(arry***REMOVED***-1; i++ {
+		for i := 0; i < len(arry)-1; i++ {
 			if arry[i] < arry[i+1] {
 				flag = false
-	***REMOVED***
-***REMOVED***
+			}
+		}
 		flag = true
 	case "asc":
-		for i := 0; i < len(arry***REMOVED***-1; i++ {
+		for i := 0; i < len(arry)-1; i++ {
 			if arry[i] > arry[i+1] {
 				flag = false
-	***REMOVED***
-***REMOVED***
+			}
+		}
 		flag = true
 	default:
-		for i := 0; i < len(arry***REMOVED***-1; i++ {
+		for i := 0; i < len(arry)-1; i++ {
 			if arry[i] > arry[i+1] {
 				flag = false
-	***REMOVED***
-***REMOVED***
+			}
+		}
 		flag = true
 	}
 	return
 }
 
 // Min will return the minimize value
-func Min(a int, b int***REMOVED*** int {
+func Min(a int, b int) int {
 	if a >= b {
 		return b
 	}
@@ -232,7 +232,7 @@ func Min(a int, b int***REMOVED*** int {
 }
 
 // Min will return the minimize value
-func Max(a int, b int***REMOVED*** int {
+func Max(a int, b int) int {
 	if a <= b {
 		return b
 	}
@@ -240,66 +240,66 @@ func Max(a int, b int***REMOVED*** int {
 }
 
 // Contains will return bool balue that whether the arry contains string val
-func Contains(arry []string, val string***REMOVED*** (index int, flag bool***REMOVED*** {
+func Contains(arry []string, val string) (index int, flag bool) {
 	var i int
 	flag = false
-	if len(arry***REMOVED*** == 0 {
+	if len(arry) == 0 {
 		return
 	}
-	for i = 0; i < len(arry***REMOVED***; i++ {
+	for i = 0; i < len(arry); i++ {
 		if arry[i] == val {
 			index = i
 			flag = true
 			break
-***REMOVED***
+		}
 	}
 	return
 }
 
 // EndsWith will return the bool value that whether the st is end with substring
-func EndsWith(st string, substring string***REMOVED*** (flag bool***REMOVED*** {
+func EndsWith(st string, substring string) (flag bool) {
 
-	if len(st***REMOVED*** < len(substring***REMOVED*** {
+	if len(st) < len(substring) {
 		return
 	}
-	flag = (st[len(st***REMOVED***-len(substring***REMOVED***:] == substring***REMOVED***
+	flag = (st[len(st)-len(substring):] == substring)
 	return
 }
 
 // Strip will return the value striped with substring
-func Strip(st string, substring string***REMOVED*** string {
-	st = Lstrip(st, substring***REMOVED***
-	st = Rstrip(st, substring***REMOVED***
+func Strip(st string, substring string) string {
+	st = Lstrip(st, substring)
+	st = Rstrip(st, substring)
 	return st
 }
 
 // Lstrip will return the string left striped with substring
-func Lstrip(st string, substring string***REMOVED*** string {
-	if StartsWith(st, substring***REMOVED*** {
-		st = st[len(substring***REMOVED***:]
+func Lstrip(st string, substring string) string {
+	if StartsWith(st, substring) {
+		st = st[len(substring):]
 	}
 	return st
 }
 
 // Rstrip will return the string right striped with substring
-func Rstrip(st string, substring string***REMOVED*** string {
-	if EndsWith(st, substring***REMOVED*** {
-		st = st[:len(st***REMOVED***-len(substring***REMOVED***]
+func Rstrip(st string, substring string) string {
+	if EndsWith(st, substring) {
+		st = st[:len(st)-len(substring)]
 	}
 	return st
 }
 
 // StartsWith return bool whether st start with substring
-func StartsWith(st string, substring string***REMOVED*** (flag bool***REMOVED*** {
-	if len(st***REMOVED*** < len(substring***REMOVED*** {
+func StartsWith(st string, substring string) (flag bool) {
+	if len(st) < len(substring) {
 		return
 	}
-	flag = (st[:len(substring***REMOVED***] == substring***REMOVED***
+	flag = (st[:len(substring)] == substring)
 	return
 }
 
 // NegateBoolToString reverts the boolean to its oppositely value as a string.
-func NegateBoolToString(value bool***REMOVED*** string {
+func NegateBoolToString(value bool) string {
 	boolString := "true"
 	if value {
 		boolString = "false"
@@ -308,86 +308,86 @@ func NegateBoolToString(value bool***REMOVED*** string {
 }
 
 // ConvertMapToJSONString converts the map to a json string.
-func ConvertMapToJSONString(inputMap map[string]interface{}***REMOVED*** string {
-	jsonBytes, _ := json.Marshal(inputMap***REMOVED***
-	return string(jsonBytes***REMOVED***
+func ConvertMapToJSONString(inputMap map[string]interface{}) string {
+	jsonBytes, _ := json.Marshal(inputMap)
+	return string(jsonBytes)
 }
 
-func ConvertStringToInt(mystring string***REMOVED*** int {
-	myint, _ := strconv.Atoi(mystring***REMOVED***
+func ConvertStringToInt(mystring string) int {
+	myint, _ := strconv.Atoi(mystring)
 	return myint
 }
 
-func ConvertStructToMap(s interface{}***REMOVED*** map[string]interface{} {
-	structMap := make(map[string]interface{}***REMOVED***
+func ConvertStructToMap(s interface{}) map[string]interface{} {
+	structMap := make(map[string]interface{})
 
-	j, _ := json.Marshal(s***REMOVED***
-	err := json.Unmarshal(j, &structMap***REMOVED***
+	j, _ := json.Marshal(s)
+	err := json.Unmarshal(j, &structMap)
 	if err != nil {
-		panic(err***REMOVED***
+		panic(err)
 	}
 
 	return structMap
 }
 
-func ConvertStructToString(s interface{}***REMOVED*** string {
-	structMap := ConvertStructToMap(s***REMOVED***
-	return ConvertMapToJSONString(structMap***REMOVED***
+func ConvertStructToString(s interface{}) string {
+	structMap := ConvertStructToMap(s)
+	return ConvertMapToJSONString(structMap)
 }
 
-func IsInMap(inputMap map[string]interface{}, key string***REMOVED*** bool {
+func IsInMap(inputMap map[string]interface{}, key string) bool {
 	_, contain := inputMap[key]
 	return contain
 }
 
 // NeedFiltered will return the attribute that should be filtered
 // filterList should be array with regex like ["excluded\..+","excluded_[\s\S]+"]
-func NeedFiltered(filterList []string, key string***REMOVED*** bool {
+func NeedFiltered(filterList []string, key string) bool {
 	for _, regex := range filterList {
-		pattern := regexp.MustCompile(regex***REMOVED***
-		if pattern.MatchString(key***REMOVED*** {
+		pattern := regexp.MustCompile(regex)
+		if pattern.MatchString(key) {
 			if key == "network.type" {
-				Logger.Infof(">>>> network.type matched regex: %s\n", regex***REMOVED***
-	***REMOVED***
+				Logger.Infof(">>>> network.type matched regex: %s\n", regex)
+			}
 			return true
-***REMOVED***
+		}
 	}
 	return false
 }
 
-func BoolPoint(b bool***REMOVED*** *bool {
+func BoolPoint(b bool) *bool {
 	boolVar := b
 	return &boolVar
 }
 
-func RandStringWithUpper(n int***REMOVED*** string {
-	b := make([]string, n***REMOVED***
+func RandStringWithUpper(n int) string {
+	b := make([]string, n)
 
 	for i := range b {
 
 		// make each even alphabetic char as uppercase letter
 		if i%2 == 0 {
-			b[i] = strings.ToUpper(string(CON.CharsBytes[rand.Intn(len(CON.CharsBytes***REMOVED******REMOVED***]***REMOVED******REMOVED***
-***REMOVED*** else {
-			b[i] = string(CON.CharsBytes[rand.Intn(len(CON.CharsBytes***REMOVED******REMOVED***]***REMOVED***
-***REMOVED***
+			b[i] = strings.ToUpper(string(CON.CharsBytes[rand.Intn(len(CON.CharsBytes))]))
+		} else {
+			b[i] = string(CON.CharsBytes[rand.Intn(len(CON.CharsBytes))])
+		}
 	}
 
-	return strings.Join(b, ""***REMOVED***
+	return strings.Join(b, "")
 }
 
-func subfix(***REMOVED*** string {
-	subfix := make([]byte, 3***REMOVED***
-	r := rand.New(rand.NewSource(time.Now(***REMOVED***.UnixNano(***REMOVED******REMOVED******REMOVED***
+func subfix() string {
+	subfix := make([]byte, 3)
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := range subfix {
-		subfix[i] = CON.CharsBytes[r.Intn(len(CON.CharsBytes***REMOVED******REMOVED***]
+		subfix[i] = CON.CharsBytes[r.Intn(len(CON.CharsBytes))]
 	}
 
-	return string(subfix***REMOVED***
+	return string(subfix)
 }
 
-func GenerateClusterName(profileName string***REMOVED*** string {
+func GenerateClusterName(profileName string) string {
 
 	clusterPrefix := CON.RHCSPrefix + CON.HyphenConnector + profileName[5:]
-	return clusterPrefix + CON.HyphenConnector + subfix(***REMOVED***
+	return clusterPrefix + CON.HyphenConnector + subfix()
 }

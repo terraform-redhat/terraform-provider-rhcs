@@ -21,6 +21,6 @@ variable "htpasswd_users" {
   type = list(object({
     username = string
     password = string
-  }***REMOVED******REMOVED***
+  }))
   description = "htpasswd user list"
 }

@@ -24,13 +24,13 @@ variable "url" {
 }
 
 variable "path" {
-  description = "(Optional***REMOVED*** The arn path for the account/operator roles as well as their policies."
+  description = "(Optional) The arn path for the account/operator roles as well as their policies."
   type        = string
   default     = null
 }
 
 variable "tags" {
   description = "List of AWS resource tags to apply."
-  type        = map(string***REMOVED***
+  type        = map(string)
   default     = null
 }

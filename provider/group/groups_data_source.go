@@ -1,7 +1,7 @@
 /*
-Copyright (c***REMOVED*** 2021 Red Hat, Inc.
+Copyright (c) 2021 Red Hat, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -16,7 +16,7 @@ limitations under the License.
 
 package group
 
-***REMOVED***
+import (
 	"context"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -24,7 +24,7 @@ package group
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-***REMOVED***
+)
 
 type GroupsDataSource struct {
 	collection *cmv1.ClustersClient
@@ -33,35 +33,35 @@ type GroupsDataSource struct {
 var _ datasource.DataSource = &GroupsDataSource{}
 var _ datasource.DataSourceWithConfigure = &GroupsDataSource{}
 
-func New(***REMOVED*** datasource.DataSource {
+func New() datasource.DataSource {
 	return &GroupsDataSource{}
 }
 
-func (g *GroupsDataSource***REMOVED*** Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse***REMOVED*** {
+func (g *GroupsDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_groups"
 }
 
-func (g *GroupsDataSource***REMOVED*** Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse***REMOVED*** {
+func (g *GroupsDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "List of groups.",
 		Attributes: map[string]schema.Attribute{
 			"cluster": schema.StringAttribute{
 				Description: "Identifier of the cluster.",
 				Required:    true,
-	***REMOVED***,
+			},
 			"items": schema.ListNestedAttribute{
 				Description: "Content of the list.",
 				NestedObject: schema.NestedAttributeObject{
-					Attributes: g.itemAttributes(***REMOVED***,
-		***REMOVED***,
+					Attributes: g.itemAttributes(),
+				},
 				Computed: true,
-	***REMOVED***,
-***REMOVED***,
+			},
+		},
 	}
 	return
 }
 
-func (g *GroupsDataSource***REMOVED*** itemAttributes(***REMOVED*** map[string]schema.Attribute {
+func (g *GroupsDataSource) itemAttributes() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"id": schema.StringAttribute{
 			Description: "Unique identifier of the group. This is what " +
@@ -69,35 +69,35 @@ func (g *GroupsDataSource***REMOVED*** itemAttributes(***REMOVED*** map[string]s
 				"places, for example in the 'group' attribute of the " +
 				"user resource.",
 			Computed: true,
-***REMOVED***,
+		},
 		"name": schema.StringAttribute{
 			Description: "Short name of the group for example " +
 				"'dedicated-admins'.",
 			Computed: true,
-***REMOVED***,
+		},
 	}
 }
 
-func (g *GroupsDataSource***REMOVED*** Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse***REMOVED*** {
+func (g *GroupsDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured:
 	if req.ProviderData == nil {
 		return
 	}
 
 	// Cast the provider data to the specific implementation:
-	connection := req.ProviderData.(*sdk.Connection***REMOVED***
+	connection := req.ProviderData.(*sdk.Connection)
 
 	// Get the collection of cloud providers:
-	g.collection = connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Clusters(***REMOVED***
+	g.collection = connection.ClustersMgmt().V1().Clusters()
 }
 
-func (g *GroupsDataSource***REMOVED*** Read(ctx context.Context, request datasource.ReadRequest,
-	response *datasource.ReadResponse***REMOVED*** {
+func (g *GroupsDataSource) Read(ctx context.Context, request datasource.ReadRequest,
+	response *datasource.ReadResponse) {
 	// Get the state:
 	state := &GroupsState{}
-	diags := request.Config.Get(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
-	if response.Diagnostics.HasError(***REMOVED*** {
+	diags := request.Config.Get(ctx, state)
+	response.Diagnostics.Append(diags...)
+	if response.Diagnostics.HasError() {
 		return
 	}
 
@@ -105,40 +105,40 @@ func (g *GroupsDataSource***REMOVED*** Read(ctx context.Context, request datasou
 	var listItems []*cmv1.Group
 	listSize := 10
 	listPage := 1
-	listRequest := g.collection.Cluster(state.Cluster.ValueString(***REMOVED******REMOVED***.Groups(***REMOVED***.List(***REMOVED***
+	listRequest := g.collection.Cluster(state.Cluster.ValueString()).Groups().List()
 	for {
-		listResponse, err := listRequest.SendContext(ctx***REMOVED***
+		listResponse, err := listRequest.SendContext(ctx)
 		if err != nil {
 			response.Diagnostics.AddError(
 				"Can't list groups",
-				err.Error(***REMOVED***,
-			***REMOVED***
+				err.Error(),
+			)
 			return
-***REMOVED***
+		}
 		if listItems == nil {
-			listItems = make([]*cmv1.Group, 0, listResponse.Total(***REMOVED******REMOVED***
-***REMOVED***
-		listResponse.Items(***REMOVED***.Each(func(listItem *cmv1.Group***REMOVED*** bool {
-			listItems = append(listItems, listItem***REMOVED***
+			listItems = make([]*cmv1.Group, 0, listResponse.Total())
+		}
+		listResponse.Items().Each(func(listItem *cmv1.Group) bool {
+			listItems = append(listItems, listItem)
 			return true
-***REMOVED******REMOVED***
-		if listResponse.Size(***REMOVED*** < listSize {
+		})
+		if listResponse.Size() < listSize {
 			break
-***REMOVED***
+		}
 		listPage++
-		listRequest.Page(listPage***REMOVED***
+		listRequest.Page(listPage)
 	}
 
 	// Populate the state:
-	state.Items = make([]*GroupState, len(listItems***REMOVED******REMOVED***
+	state.Items = make([]*GroupState, len(listItems))
 	for i, listItem := range listItems {
 		state.Items[i] = &GroupState{
-			ID:   types.StringValue(listItem.ID(***REMOVED******REMOVED***,
-			Name: types.StringValue(listItem.ID(***REMOVED******REMOVED***,
-***REMOVED***
+			ID:   types.StringValue(listItem.ID()),
+			Name: types.StringValue(listItem.ID()),
+		}
 	}
 
 	// Save the state:
-	diags = response.State.Set(ctx, state***REMOVED***
-	response.Diagnostics.Append(diags...***REMOVED***
+	diags = response.State.Set(ctx, state)
+	response.Diagnostics.Append(diags...)
 }

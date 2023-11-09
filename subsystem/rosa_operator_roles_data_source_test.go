@@ -1,14 +1,14 @@
 package provider
 
-***REMOVED***
-***REMOVED***
-***REMOVED***
+import (
+	"fmt"
+	"net/http"
 
 	. "github.com/onsi/ginkgo/v2/dsl/core"             // nolint
-***REMOVED***                         // nolint
+	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
-***REMOVED***
+)
 
 const (
 	// This is the cluster that will be returned by the server when asked to retrieve a cluster with ID 123
@@ -29,8 +29,8 @@ const (
 				],
 				"min_version": "",
 				"max_version": ""
-	***REMOVED***
-***REMOVED***,
+			}
+		},
 		{
 			"kind": "STSOperator",
 			"name": "cloud_network_config_controller_cloud_credentials",
@@ -42,22 +42,22 @@ const (
 				],
 				"min_version": "4.10",
 				"max_version": ""
-	***REMOVED***
-***REMOVED***
+			}
+		}
 	]
 }`
-***REMOVED***
+)
 
-var _ = Describe("ROSA Operator IAM roles data source", func(***REMOVED*** {
+var _ = Describe("ROSA Operator IAM roles data source", func() {
 
-	It("Can list Operator IAM roles", func(***REMOVED*** {
+	It("Can list Operator IAM roles", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/aws_inquiries/sts_credential_requests"***REMOVED***,
-				RespondWithJSON(http.StatusOK, getStsCredentialRequests***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/aws_inquiries/sts_credential_requests"),
+				RespondWithJSON(http.StatusOK, getStsCredentialRequests),
+			),
+		)
 
 		// Run the apply command:
 		terraform.Source(`
@@ -65,23 +65,23 @@ var _ = Describe("ROSA Operator IAM roles data source", func(***REMOVED*** {
 			  operator_role_prefix = "terraform-operator"
 			  account_role_prefix = "TerraformAccountPrefix"
 		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_rosa_operator_roles", "operator_roles"***REMOVED***
-		//Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items | length`, 1***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.operator_role_prefix`, "terraform-operator"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.account_role_prefix`, "TerraformAccountPrefix"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.operator_iam_roles | length`, 2***REMOVED******REMOVED***
+		resource := terraform.Resource("rhcs_rosa_operator_roles", "operator_roles")
+		//Expect(resource).To(MatchJQ(`.attributes.items | length`, 1))
+		Expect(resource).To(MatchJQ(`.attributes.operator_role_prefix`, "terraform-operator"))
+		Expect(resource).To(MatchJQ(`.attributes.account_role_prefix`, "TerraformAccountPrefix"))
+		Expect(resource).To(MatchJQ(`.attributes.operator_iam_roles | length`, 2))
 
 		index := 0
-		firstOperatorName := resource.(map[string]interface{}***REMOVED***["attributes"].(map[string]interface{}***REMOVED***["operator_iam_roles"].([]interface{}***REMOVED***[0].(map[string]interface{}***REMOVED***["operator_name"].(string***REMOVED***
-		testingT.Log("firstOperatorName = ", firstOperatorName***REMOVED***
+		firstOperatorName := resource.(map[string]interface{})["attributes"].(map[string]interface{})["operator_iam_roles"].([]interface{})[0].(map[string]interface{})["operator_name"].(string)
+		testingT.Log("firstOperatorName = ", firstOperatorName)
 		if firstOperatorName != "ebs-cloud-credentials" {
 			index = 1
-***REMOVED***
-		testingT.Log("index = ", index***REMOVED***
+		}
+		testingT.Log("index = ", index)
 
 		compareResultOfRoles(resource, index,
 			"ebs-cloud-credentials",
@@ -92,8 +92,8 @@ var _ = Describe("ROSA Operator IAM roles data source", func(***REMOVED*** {
 			[]string{
 				"system:serviceaccount:openshift-cluster-csi-drivers:aws-ebs-csi-driver-operator",
 				"system:serviceaccount:openshift-cluster-csi-drivers:aws-ebs-csi-driver-controller-sa",
-	***REMOVED***,
-		***REMOVED***
+			},
+		)
 
 		compareResultOfRoles(resource, 1-index,
 			"cloud-credentials",
@@ -102,40 +102,40 @@ var _ = Describe("ROSA Operator IAM roles data source", func(***REMOVED*** {
 			"terraform-operator-openshift-cloud-network-config-controller-clo",
 			1,
 			[]string{"system:serviceaccount:openshift-cloud-network-config-controller:cloud-network-config-controller"},
-		***REMOVED***
-	}***REMOVED***
+		)
+	})
 
-	It("Can list Operator IAM roles without account role prefix", func(***REMOVED*** {
+	It("Can list Operator IAM roles without account role prefix", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/aws_inquiries/sts_credential_requests"***REMOVED***,
-				RespondWithJSON(http.StatusOK, getStsCredentialRequests***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/aws_inquiries/sts_credential_requests"),
+				RespondWithJSON(http.StatusOK, getStsCredentialRequests),
+			),
+		)
 
 		// Run the apply command:
 		terraform.Source(`
 		  data "rhcs_rosa_operator_roles" "operator_roles" {
 			  operator_role_prefix = "terraform-operator"
 		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_rosa_operator_roles", "operator_roles"***REMOVED***
-		//Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items | length`, 1***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.operator_role_prefix`, "terraform-operator"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.operator_iam_roles | length`, 2***REMOVED******REMOVED***
+		resource := terraform.Resource("rhcs_rosa_operator_roles", "operator_roles")
+		//Expect(resource).To(MatchJQ(`.attributes.items | length`, 1))
+		Expect(resource).To(MatchJQ(`.attributes.operator_role_prefix`, "terraform-operator"))
+		Expect(resource).To(MatchJQ(`.attributes.operator_iam_roles | length`, 2))
 
 		index := 0
-		firstOperatorName := resource.(map[string]interface{}***REMOVED***["attributes"].(map[string]interface{}***REMOVED***["operator_iam_roles"].([]interface{}***REMOVED***[0].(map[string]interface{}***REMOVED***["operator_name"].(string***REMOVED***
-		testingT.Log("*firstOperatorName = ", firstOperatorName***REMOVED***
+		firstOperatorName := resource.(map[string]interface{})["attributes"].(map[string]interface{})["operator_iam_roles"].([]interface{})[0].(map[string]interface{})["operator_name"].(string)
+		testingT.Log("*firstOperatorName = ", firstOperatorName)
 		if firstOperatorName != "ebs-cloud-credentials" {
 			index = 1
-***REMOVED***
+		}
 
-		testingT.Log("index = ", index***REMOVED***
+		testingT.Log("index = ", index)
 
 		compareResultOfRoles(resource, index,
 			"ebs-cloud-credentials",
@@ -146,8 +146,8 @@ var _ = Describe("ROSA Operator IAM roles data source", func(***REMOVED*** {
 			[]string{
 				"system:serviceaccount:openshift-cluster-csi-drivers:aws-ebs-csi-driver-operator",
 				"system:serviceaccount:openshift-cluster-csi-drivers:aws-ebs-csi-driver-controller-sa",
-	***REMOVED***,
-		***REMOVED***
+			},
+		)
 
 		compareResultOfRoles(resource, 1-index,
 			"cloud-credentials",
@@ -156,11 +156,11 @@ var _ = Describe("ROSA Operator IAM roles data source", func(***REMOVED*** {
 			"terraform-operator-openshift-cloud-network-config-controller-clo",
 			1,
 			[]string{"system:serviceaccount:openshift-cloud-network-config-controller:cloud-network-config-controller"},
-		***REMOVED***
-	}***REMOVED***
-}***REMOVED***
+		)
+	})
+})
 
-func compareResultOfRoles(resource interface{}, index int, name, namespace, policyName, roleName string, serviceAccountLen int, serviceAccounts []string***REMOVED*** {
+func compareResultOfRoles(resource interface{}, index int, name, namespace, policyName, roleName string, serviceAccountLen int, serviceAccounts []string) {
 	operatorNameFmt := ".attributes.operator_iam_roles[%v].operator_name"
 	operatorNamespaceFmt := ".attributes.operator_iam_roles[%v].operator_namespace"
 	policyNameFmt := ".attributes.operator_iam_roles[%v].policy_name"
@@ -168,12 +168,12 @@ func compareResultOfRoles(resource interface{}, index int, name, namespace, poli
 	serviceAccountLenFmt := ".attributes.operator_iam_roles[%v].service_accounts\t|\tlength "
 	serviceAccountFmt := ".attributes.operator_iam_roles[%v].service_accounts[%v]"
 
-	Expect(resource***REMOVED***.To(MatchJQ(fmt.Sprintf(operatorNameFmt, index***REMOVED***, name***REMOVED******REMOVED***
-	Expect(resource***REMOVED***.To(MatchJQ(fmt.Sprintf(operatorNamespaceFmt, index***REMOVED***, namespace***REMOVED******REMOVED***
-	Expect(resource***REMOVED***.To(MatchJQ(fmt.Sprintf(policyNameFmt, index***REMOVED***, policyName***REMOVED******REMOVED***
-	Expect(resource***REMOVED***.To(MatchJQ(fmt.Sprintf(roleNameFmt, index***REMOVED***, roleName***REMOVED******REMOVED***
-	Expect(resource***REMOVED***.To(MatchJQ(fmt.Sprintf(serviceAccountLenFmt, index***REMOVED***, serviceAccountLen***REMOVED******REMOVED***
+	Expect(resource).To(MatchJQ(fmt.Sprintf(operatorNameFmt, index), name))
+	Expect(resource).To(MatchJQ(fmt.Sprintf(operatorNamespaceFmt, index), namespace))
+	Expect(resource).To(MatchJQ(fmt.Sprintf(policyNameFmt, index), policyName))
+	Expect(resource).To(MatchJQ(fmt.Sprintf(roleNameFmt, index), roleName))
+	Expect(resource).To(MatchJQ(fmt.Sprintf(serviceAccountLenFmt, index), serviceAccountLen))
 	for k, v := range serviceAccounts {
-		Expect(resource***REMOVED***.To(MatchJQ(fmt.Sprintf(serviceAccountFmt, index, k***REMOVED***, v***REMOVED******REMOVED***
+		Expect(resource).To(MatchJQ(fmt.Sprintf(serviceAccountFmt, index, k), v))
 	}
 }

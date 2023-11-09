@@ -8,7 +8,7 @@ To run it:
 
 * Provide OCM Authentication Token 
 
-  OCM authentication token that you can get [here](https://console.redhat.com/openshift/token***REMOVED***.
+  OCM authentication token that you can get [here](https://console.redhat.com/openshift/token).
     ```
     export TF_VAR_token=...
     ```
@@ -28,7 +28,7 @@ To run it:
     export TF_VAR_account_role_prefix=...
     ```
 
-* Provide List of AWS resource tags to apply (optional***REMOVED***:
+* Provide List of AWS resource tags to apply (optional):
     ```
     export TF_VAR_tags=...
     ```

@@ -1,13 +1,13 @@
 # Account-wide IAM roles
 
-Prior to creating a ROSA STS cluster, you must create the required account-wide roles and policies. For more information, see [Account-wide IAM role and policy reference](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/introduction_to_rosa/rosa-sts-about-iam-resources#rosa-sts-account-wide-roles-and-policies_rosa-sts-about-iam-resources***REMOVED*** in the Red Hat Customer Portal.
+Prior to creating a ROSA STS cluster, you must create the required account-wide roles and policies. For more information, see [Account-wide IAM role and policy reference](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/introduction_to_rosa/rosa-sts-about-iam-resources#rosa-sts-account-wide-roles-and-policies_rosa-sts-about-iam-resources) in the Red Hat Customer Portal.
 
 ## Prerequisites
 
 * You have an AWS account.
-* You have installed the latest version of the ROSA command-line interface (CLI***REMOVED*** (`rosa`***REMOVED***.
-* You have an offline OpenShift Cluster Manager token. This token can be generated in the [Red Hat Hybrid Cloud Console](https://console.redhat.com/openshift/token***REMOVED***.
-* You have installed Terraform. See the [Terraform page](https://developer.hashicorp.com/terraform/downloads***REMOVED*** for the latest version.
+* You have installed the latest version of the ROSA command-line interface (CLI) (`rosa`).
+* You have an offline OpenShift Cluster Manager token. This token can be generated in the [Red Hat Hybrid Cloud Console](https://console.redhat.com/openshift/token).
+* You have installed Terraform. See the [Terraform page](https://developer.hashicorp.com/terraform/downloads) for the latest version.
 
 ## Open issue
 
@@ -17,11 +17,11 @@ it also updated in the operator role policies.
 
 ## Account-wide IAM role creation
 
-1. To run `terraform apply` you need to set up some variables. This guide uses environmental variables. For more on Terraform variables, see [Managing Variables](https://developer.hashicorp.com/terraform/enterprise/workspaces/variables/managing-variables***REMOVED*** in the Terraform documentation.
+1. To run `terraform apply` you need to set up some variables. This guide uses environmental variables. For more on Terraform variables, see [Managing Variables](https://developer.hashicorp.com/terraform/enterprise/workspaces/variables/managing-variables) in the Terraform documentation.
 
    Run the following commands to export your variables. Provide your values in lieu of the brackets. Note that any values declared in the `variables.tf` are the default values if you do not export a superseding value.
         
-    1.  This variable should be your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token***REMOVED*** that you generated in the prerequisites.  
+    1.  This variable should be your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token) that you generated in the prerequisites.  
         ```
         export TF_VAR_token=<ocm_offline_token>
         ```
@@ -33,7 +33,7 @@ it also updated in the operator role policies.
         ```
         export TF_VAR_url=https://api.openshift.com
         ```
-    1.  **Optional**: You can set the account-role prefix with this variable. This value cannot end with a hyphen (-***REMOVED***. If the value is empty, the module generates a string that starts with `account-role-` and combines it with a string of four random characters.
+    1.  **Optional**: You can set the account-role prefix with this variable. This value cannot end with a hyphen (-). If the value is empty, the module generates a string that starts with `account-role-` and combines it with a string of four random characters.
          ```    
          export TF_VAR_account_role_prefix=<account_role_prefix>
          ```
@@ -43,7 +43,7 @@ it also updated in the operator role policies.
         ```
     1.  **Optional**: If you want to set any specific AWS tags for your account roles, you can use this variable to declare those tags.   
         ```    
-        export TF_VAR_tags=<aws_resource_tags> (Optional***REMOVED*** 
+        export TF_VAR_tags=<aws_resource_tags> (Optional) 
         ```   
 1. In your local copy of the `account-roles` folder, run the following command:
    ````

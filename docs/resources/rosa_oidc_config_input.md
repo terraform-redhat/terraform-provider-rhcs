@@ -6,7 +6,7 @@ description: |-
   OIDC config input resources' names
 ---
 
-# rhcs_rosa_oidc_config_input (Resource***REMOVED***
+# rhcs_rosa_oidc_config_input (Resource)
 
 OIDC config input resources' names
 
@@ -24,14 +24,14 @@ resource "rhcs_rosa_oidc_config_input" "oidc_input" {
 
 ### Required
 
-- `region` (String***REMOVED*** Unique identifier of the cluster.
+- `region` (String) Unique identifier of the cluster.
 
 ### Read-Only
 
-- `bucket_name` (String***REMOVED*** The S3 bucket name
-- `discovery_doc` (String***REMOVED*** The discovery document string file
-- `issuer_url` (String***REMOVED*** The issuer URL
-- `jwks` (String***REMOVED*** JSON web key set string file
-- `private_key` (String***REMOVED*** RSA private key
-- `private_key_file_name` (String***REMOVED*** The private key file name
-- `private_key_secret_name` (String***REMOVED*** The secret name that stores the private key
+- `bucket_name` (String) The S3 bucket name
+- `discovery_doc` (String) The discovery document string file
+- `issuer_url` (String) The issuer URL
+- `jwks` (String) JSON web key set string file
+- `private_key` (String) RSA private key
+- `private_key_file_name` (String) The private key file name
+- `private_key_secret_name` (String) The secret name that stores the private key

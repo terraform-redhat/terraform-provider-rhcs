@@ -2,22 +2,22 @@
 
 Configuring GitLab authentication allows users to log in to OpenShift Container Platform with their GitLab credentials.
 
-If you use GitLab version 7.7.0 to 11.0, you can connect using the [OAuth integration](http://doc.gitlab.com/ce/integration/oauth_provider.html***REMOVED***. If you use GitLab version 11.1 or later, you can use [OpenID Connect](https://docs.gitlab.com/ce/integration/openid_connect_provider.html***REMOVED*** (OIDC***REMOVED*** to connect instead of OAuth.
+If you use GitLab version 7.7.0 to 11.0, you can connect using the [OAuth integration](http://doc.gitlab.com/ce/integration/oauth_provider.html). If you use GitLab version 11.1 or later, you can use [OpenID Connect](https://docs.gitlab.com/ce/integration/openid_connect_provider.html) (OIDC) to connect instead of OAuth.
 
 ## Prerequisites
 
-1. You created your [account roles using Terraform](../../examples/create_rosa_cluster/create_rosa_sts_cluster/classic_sts/account_roles/README.md***REMOVED***.
-1. You created your cluster using Terraform. This cluster can either have [a managed OIDC configuration](../../examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/README.md***REMOVED*** or [an unmanaged OIDC configuration](../../examples/create_rosa_cluster/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/README.md***REMOVED***.
+1. You created your [account roles using Terraform](../../examples/create_rosa_cluster/create_rosa_sts_cluster/classic_sts/account_roles/README.md).
+1. You created your cluster using Terraform. This cluster can either have [a managed OIDC configuration](../../examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/README.md) or [an unmanaged OIDC configuration](../../examples/create_rosa_cluster/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/README.md).
 1. **Optional**: You have configured your Terraform.tfvars file.
 
 ## Setting up your application in GitLab
 
-You will need a client ID/secret of a [registered GitLab OAuth application](https://docs.gitlab.com/ce/api/oauth2.html***REMOVED***. 
+You will need a client ID/secret of a [registered GitLab OAuth application](https://docs.gitlab.com/ce/api/oauth2.html). 
 The application must be configured with a callback URL of `https://oauth-openshift.apps.<cluster-name>.<cluster-domain>/oauth2callback/<idp-provider-name>`
 For example:
 `https://oauth-openshift.apps.openshift-cluster.example.com/oauth2callback/Gitlab`.
 
-> **Note**: `<idp-provider-name>` is case-sensitive. Name is defined [here](./main.tf#L37***REMOVED***.
+> **Note**: `<idp-provider-name>` is case-sensitive. Name is defined [here](./main.tf#L37).
 
 ## Applying the Terraform plan
 
@@ -34,7 +34,7 @@ For example:
           ```
           export TF_VAR_gitlab_url='["<gitlab_url>"]'
           ```
-      1.  This variable is your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token***REMOVED*** that you generated in the prerequisites.  
+      1.  This variable is your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token) that you generated in the prerequisites.  
           ```
           export TF_VAR_token=<ocm_offline_token> 
           ```
@@ -42,7 +42,7 @@ For example:
           ```
           export TF_VAR_url=<ocm_url>
           ```
-      1.  The ID of the cluster for which you are creating the identity provider. This ID can be found in the `rosa` command-line interface (CLI***REMOVED*** with the command `rosa list cluster`. 
+      1.  The ID of the cluster for which you are creating the identity provider. This ID can be found in the `rosa` command-line interface (CLI) with the command `rosa list cluster`. 
           ```
           export TF_VAR_cluster_id=<cluster_id>
           ```
@@ -78,6 +78,6 @@ After the command is complete, your resources are deleted.
 
 ## Additional resources
 
- - [GitLab Identity Provider](https://docs.openshift.com/container-platform/4.12/authentication/identity_providers/configuring-gitlab-identity-provider.html***REMOVED***
- - [Understanding identity provider configuration](https://docs.openshift.com/container-platform/4.12/authentication/understanding-identity-provider.html***REMOVED***
- - [Mapping Methods](https://docs.openshift.com/container-platform/4.12/authentication/understanding-identity-provider.html#identity-provider-parameters_understanding-identity-provider***REMOVED***
+ - [GitLab Identity Provider](https://docs.openshift.com/container-platform/4.12/authentication/identity_providers/configuring-gitlab-identity-provider.html)
+ - [Understanding identity provider configuration](https://docs.openshift.com/container-platform/4.12/authentication/understanding-identity-provider.html)
+ - [Mapping Methods](https://docs.openshift.com/container-platform/4.12/authentication/understanding-identity-provider.html#identity-provider-parameters_understanding-identity-provider)

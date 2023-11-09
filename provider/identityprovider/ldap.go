@@ -1,6 +1,6 @@
 package identityprovider
 
-***REMOVED***
+import (
 	"context"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -10,7 +10,7 @@ package identityprovider
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
-***REMOVED***
+)
 
 var LDAPAttrDefaultID []string = []string{"dn"}
 var LDAPAttrDefaultEmail []string = []string{"mail"}
@@ -38,16 +38,16 @@ var ldapSchema = map[string]schema.Attribute{
 		Description: "DN to bind with during the search phase.",
 		Optional:    true,
 		Validators: []validator.String{
-			stringvalidator.AlsoRequires(path.MatchRelative(***REMOVED***.AtParent(***REMOVED***.AtName("bind_password"***REMOVED******REMOVED***,
-***REMOVED***,
+			stringvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("bind_password")),
+		},
 	},
 	"bind_password": schema.StringAttribute{
 		Description: "Password to bind with during the search phase.",
 		Optional:    true,
 		Sensitive:   true,
 		Validators: []validator.String{
-			stringvalidator.AlsoRequires(path.MatchRelative(***REMOVED***.AtParent(***REMOVED***.AtName("bind_dn"***REMOVED******REMOVED***,
-***REMOVED***,
+			stringvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("bind_dn")),
+		},
 	},
 	"ca": schema.StringAttribute{
 		Description: "Optional trusted certificate authority bundle.",
@@ -77,106 +77,106 @@ var ldapAttrSchema = map[string]schema.Attribute{
 		Computed:    true,
 	},
 	"id": schema.ListAttribute{
-		Description: "The list of attributes whose values should be used as the user ID. (default ['dn']***REMOVED***",
+		Description: "The list of attributes whose values should be used as the user ID. (default ['dn'])",
 		ElementType: types.StringType,
 		Optional:    true,
 		Computed:    true,
 	},
 	"name": schema.ListAttribute{
-		Description: "The list of attributes whose values should be used as the display name. (default ['cn']***REMOVED***",
+		Description: "The list of attributes whose values should be used as the display name. (default ['cn'])",
 		ElementType: types.StringType,
 		Optional:    true,
 		Computed:    true,
 	},
 	"preferred_username": schema.ListAttribute{
-		Description: "The list of attributes whose values should be used as the preferred username. (default ['uid']***REMOVED***",
+		Description: "The list of attributes whose values should be used as the preferred username. (default ['uid'])",
 		ElementType: types.StringType,
 		Optional:    true,
 		Computed:    true,
 	},
 }
 
-func CreateLDAPIDPBuilder(ctx context.Context, state *LDAPIdentityProvider***REMOVED*** (*cmv1.LDAPIdentityProviderBuilder, error***REMOVED*** {
-	builder := cmv1.NewLDAPIdentityProvider(***REMOVED***
-	if !common.IsStringAttributeEmpty(state.BindDN***REMOVED*** {
-		builder.BindDN(state.BindDN.ValueString(***REMOVED******REMOVED***
+func CreateLDAPIDPBuilder(ctx context.Context, state *LDAPIdentityProvider) (*cmv1.LDAPIdentityProviderBuilder, error) {
+	builder := cmv1.NewLDAPIdentityProvider()
+	if !common.IsStringAttributeEmpty(state.BindDN) {
+		builder.BindDN(state.BindDN.ValueString())
 	}
-	if !common.IsStringAttributeEmpty(state.BindPassword***REMOVED*** {
-		builder.BindPassword(state.BindPassword.ValueString(***REMOVED******REMOVED***
+	if !common.IsStringAttributeEmpty(state.BindPassword) {
+		builder.BindPassword(state.BindPassword.ValueString())
 	}
-	if !common.IsStringAttributeEmpty(state.CA***REMOVED*** {
-		builder.CA(state.CA.ValueString(***REMOVED******REMOVED***
+	if !common.IsStringAttributeEmpty(state.CA) {
+		builder.CA(state.CA.ValueString())
 	}
-	if !state.Insecure.IsNull(***REMOVED*** && !state.Insecure.IsUnknown(***REMOVED*** {
-		builder.Insecure(state.Insecure.ValueBool(***REMOVED******REMOVED***
+	if !state.Insecure.IsNull() && !state.Insecure.IsUnknown() {
+		builder.Insecure(state.Insecure.ValueBool())
 	}
-	if !common.IsStringAttributeEmpty(state.URL***REMOVED*** {
-		builder.URL(state.URL.ValueString(***REMOVED******REMOVED***
+	if !common.IsStringAttributeEmpty(state.URL) {
+		builder.URL(state.URL.ValueString())
 	}
 
-	attributesBuilder := cmv1.NewLDAPAttributes(***REMOVED***
+	attributesBuilder := cmv1.NewLDAPAttributes()
 	var err error
 
 	var ids []string
-	if !state.Attributes.ID.IsUnknown(***REMOVED*** && !state.Attributes.ID.IsNull(***REMOVED*** {
-		ids, err = common.StringListToArray(ctx, state.Attributes.ID***REMOVED***
+	if !state.Attributes.ID.IsUnknown() && !state.Attributes.ID.IsNull() {
+		ids, err = common.StringListToArray(ctx, state.Attributes.ID)
 		if err != nil {
 			return nil, err
-***REMOVED***
+		}
 	} else {
 		ids = LDAPAttrDefaultID
-		state.Attributes.ID, err = common.StringArrayToList(ids***REMOVED***
+		state.Attributes.ID, err = common.StringArrayToList(ids)
 		if err != nil {
 			return nil, err
-***REMOVED***
+		}
 	}
-	attributesBuilder.ID(ids...***REMOVED***
+	attributesBuilder.ID(ids...)
 
 	var emails []string
-	if !state.Attributes.EMail.IsUnknown(***REMOVED*** && !state.Attributes.EMail.IsNull(***REMOVED*** {
-		emails, err = common.StringListToArray(ctx, state.Attributes.EMail***REMOVED***
+	if !state.Attributes.EMail.IsUnknown() && !state.Attributes.EMail.IsNull() {
+		emails, err = common.StringListToArray(ctx, state.Attributes.EMail)
 		if err != nil {
 			return nil, err
-***REMOVED***
+		}
 	} else {
 		emails = LDAPAttrDefaultEmail
-		state.Attributes.EMail, err = common.StringArrayToList(emails***REMOVED***
+		state.Attributes.EMail, err = common.StringArrayToList(emails)
 		if err != nil {
 			return nil, err
-***REMOVED***
+		}
 	}
-	attributesBuilder.Email(emails...***REMOVED***
+	attributesBuilder.Email(emails...)
 
 	var names []string
-	if !state.Attributes.Name.IsUnknown(***REMOVED*** && !state.Attributes.Name.IsNull(***REMOVED*** {
-		names, err = common.StringListToArray(ctx, state.Attributes.Name***REMOVED***
+	if !state.Attributes.Name.IsUnknown() && !state.Attributes.Name.IsNull() {
+		names, err = common.StringListToArray(ctx, state.Attributes.Name)
 		if err != nil {
 			return nil, err
-***REMOVED***
+		}
 	} else {
 		names = LDAPAttrDefaultName
-		state.Attributes.Name, err = common.StringArrayToList(names***REMOVED***
+		state.Attributes.Name, err = common.StringArrayToList(names)
 		if err != nil {
 			return nil, err
-***REMOVED***
+		}
 	}
-	attributesBuilder.Name(names...***REMOVED***
+	attributesBuilder.Name(names...)
 
 	var preferredUsernames []string
-	if !state.Attributes.PreferredUsername.IsUnknown(***REMOVED*** && !state.Attributes.PreferredUsername.IsNull(***REMOVED*** {
-		preferredUsernames, err = common.StringListToArray(ctx, state.Attributes.PreferredUsername***REMOVED***
+	if !state.Attributes.PreferredUsername.IsUnknown() && !state.Attributes.PreferredUsername.IsNull() {
+		preferredUsernames, err = common.StringListToArray(ctx, state.Attributes.PreferredUsername)
 		if err != nil {
 			return nil, err
-***REMOVED***
+		}
 	} else {
 		preferredUsernames = LDAPAttrDefaultPrefferedUsername
-		state.Attributes.PreferredUsername, err = common.StringArrayToList(preferredUsernames***REMOVED***
+		state.Attributes.PreferredUsername, err = common.StringArrayToList(preferredUsernames)
 		if err != nil {
 			return nil, err
-***REMOVED***
+		}
 	}
-	attributesBuilder.PreferredUsername(preferredUsernames...***REMOVED***
+	attributesBuilder.PreferredUsername(preferredUsernames...)
 
-	builder.Attributes(attributesBuilder***REMOVED***
+	builder.Attributes(attributesBuilder)
 	return builder, nil
 }

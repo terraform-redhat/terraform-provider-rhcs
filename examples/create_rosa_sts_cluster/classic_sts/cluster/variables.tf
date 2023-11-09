@@ -28,12 +28,12 @@ variable "cloud_region" {
 }
 
 variable "availability_zones" {
-  type    = list(string***REMOVED***
+  type    = list(string)
   default = ["us-east-2a"]
 }
 
 variable "tags" {
   description = "List of AWS resource tags to apply."
-  type        = map(string***REMOVED***
+  type        = map(string)
   default     = null
 }

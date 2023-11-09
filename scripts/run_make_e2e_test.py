@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 #
-# Copyright (c***REMOVED*** 2021 Red Hat, Inc.
+# Copyright (c) 2021 Red Hat, Inc.
 #
-# Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+# Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
@@ -30,7 +30,7 @@ import build
 FAILURE_FROM = "Jenkins <noreply@sdev.devshift.net>"
 FAILURE_TO = ", ".join([
     "Developers <ocm-devel@redhat.com>",
-]***REMOVED***
+])
 
 # Template used to generate the subject of the build failure message:
 FAILURE_SUBJECT = """
@@ -52,40 +52,40 @@ Jenkins
 """
 
 
-def getenv(name, default=None***REMOVED***:
+def getenv(name, default=None):
     """
     Gets the value of an environment variable, and assigns a default value
     if it isn't defined. If the variable doesn't have a value and no default
     is provided then an exception is raised.
     """
-    value = os.getenv(name***REMOVED***
+    value = os.getenv(name)
     if value is None:
         if default is None:
-            raise Exception(f"Environment variable '{name}' is mandatory"***REMOVED***
+            raise Exception(f"Environment variable '{name}' is mandatory")
         value = default
     return value
 
 
-def main(***REMOVED***:
+def main():
     """
     Main function.
     """
 
     # Create the logger:
-    log = build.Logger(***REMOVED***
+    log = build.Logger()
 
     # Get the location of the API server:
-    test_gateway_url=getenv("TEST_GATEWAY_URL"***REMOVED***
+    test_gateway_url=getenv("TEST_GATEWAY_URL")
 
     # Get the tokens used for the tests:
-    test_token=getenv("TEST_OFFLINE_TOKEN"***REMOVED***
-    test_token_url=getenv("TEST_TOKEN_URL"***REMOVED***
-    openshift_version=getenv("TEST_OPENSHIFT_VERSION"***REMOVED***
+    test_token=getenv("TEST_OFFLINE_TOKEN")
+    test_token_url=getenv("TEST_TOKEN_URL")
+    openshift_version=getenv("TEST_OPENSHIFT_VERSION")
 
     # Run the tests:
-    log.info("Running integration full cycle tests"***REMOVED***
+    log.info("Running integration full cycle tests")
 
-    make = build.Make(log=log***REMOVED***
+    make = build.Make(log=log)
     result = make.run(
         variables={
             "test_gateway_url": test_gateway_url,
@@ -96,16 +96,16 @@ def main(***REMOVED***:
         targets={
             "e2e_test",
         },
-    ***REMOVED***
+    )
     if result != 0:
-        log.info(f"Full cycle tests failed with exit code {result}"***REMOVED***
+        log.info(f"Full cycle tests failed with exit code {result}")
     else:
-        log.info("Full cycle tests succeeded"***REMOVED***
+        log.info("Full cycle tests succeeded")
 
 
     # Return the result of the tests:
-    sys.exit(result***REMOVED***
+    sys.exit(result)
 
 
 if __name__ == "__main__":
-    main(***REMOVED***
+    main()

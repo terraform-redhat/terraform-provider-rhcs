@@ -14,7 +14,7 @@ variable "autoscaling_enabled" {
 }
 variable "labels" {
   default = null
-  type    = map(string***REMOVED***
+  type    = map(string)
 }
 variable "max_replicas" {
   type    = number
@@ -38,7 +38,7 @@ variable "taints" {
     key           = string
     value         = string
     schedule_type = string
-  }***REMOVED******REMOVED***
+  }))
 }
 variable "use_spot_instances" {
   type    = bool

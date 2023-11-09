@@ -49,6 +49,6 @@ variable "max_replicas" {
 
 variable "labels" {
   description = "Labels for the machine pool. Format should be a comma-separated list of 'key = value'. This list will overwrite any modifications made to node labels on an ongoing basis."
-  type        = map(string***REMOVED***
+  type        = map(string)
   default     = null    
 }

@@ -1,24 +1,24 @@
 # Creating a ROSA STS cluster with a managed OIDC configuration ID
 
-This Terraform example creates a ROSA STS cluster that uses a managed OIDC configuration. For more information on OIDC configurations, see the [OpenID Connect Overview](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/introduction_to_rosa/rosa-oidc-overview***REMOVED*** in the Red Hat Customer Portal.
+This Terraform example creates a ROSA STS cluster that uses a managed OIDC configuration. For more information on OIDC configurations, see the [OpenID Connect Overview](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/introduction_to_rosa/rosa-oidc-overview) in the Red Hat Customer Portal.
 
 ## Prerequisites
 
 * You have an AWS account. Your locally configured AWS credentials are used to access to AWS API for validation purposes.
-* You have installed the latest version of the ROSA CLI (`rosa`***REMOVED***.
-* You have an offline OpenShift Cluster Manager token. This token can be generated in the [Red Hat Hybrid Cloud Console](https://console.redhat.com/openshift/token***REMOVED***.
-* You have installed Terraform. See the [Terraform page](https://developer.hashicorp.com/terraform/downloads***REMOVED*** for the latest version.
-* You have created your [account-wide IAM Roles](../../../../examples/create_account_roles/README.md***REMOVED***. For more information, see [Account-wide IAM role and policy reference](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/introduction_to_rosa/rosa-sts-about-iam-resources#rosa-sts-account-wide-roles-and-policies_rosa-sts-about-iam-resources***REMOVED*** in the Red Hat Customer Portal.
+* You have installed the latest version of the ROSA CLI (`rosa`).
+* You have an offline OpenShift Cluster Manager token. This token can be generated in the [Red Hat Hybrid Cloud Console](https://console.redhat.com/openshift/token).
+* You have installed Terraform. See the [Terraform page](https://developer.hashicorp.com/terraform/downloads) for the latest version.
+* You have created your [account-wide IAM Roles](../../../../examples/create_account_roles/README.md). For more information, see [Account-wide IAM role and policy reference](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/introduction_to_rosa/rosa-sts-about-iam-resources#rosa-sts-account-wide-roles-and-policies_rosa-sts-about-iam-resources) in the Red Hat Customer Portal.
 
 ## ROSA cluster creation
 
-1. To run the `terraform apply` you need to set up some variables. This guide uses environmental variables. For more on Terraform variables, see [Managing Variables](https://developer.hashicorp.com/terraform/enterprise/workspaces/variables/managing-variables***REMOVED*** in the Terraform documentation.
+1. To run the `terraform apply` you need to set up some variables. This guide uses environmental variables. For more on Terraform variables, see [Managing Variables](https://developer.hashicorp.com/terraform/enterprise/workspaces/variables/managing-variables) in the Terraform documentation.
 
    > **NOTE**: If you exported these variables in your current command-line session when running the account-roles Terraform example, you do not need to export them again.
 
    Run the following commands to export your variables. Provide your values in lieu of the brackets. Note that any values declared in the `variables.tf` are the default values if you do not export a superseding value.
         
-    1. Your account role prefix prepends to all of your created roles. This value should match the value you set when creating your account roles. This value cannot end with a hyphen (-***REMOVED***.
+    1. Your account role prefix prepends to all of your created roles. This value should match the value you set when creating your account roles. This value cannot end with a hyphen (-).
         ```
         export TF_VAR_account_role_prefix=<account_role_prefix>
         ```
@@ -38,7 +38,7 @@ This Terraform example creates a ROSA STS cluster that uses a managed OIDC confi
         ```
         export TF_VAR_operator_role_prefix=<operator_role_prefix>
         ```
-    1.  This variable should be your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token***REMOVED*** that you generated in the prerequisites.  
+    1.  This variable should be your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token) that you generated in the prerequisites.  
         ```
         export TF_VAR_token=<ocm_offline_token>
         ```
@@ -77,14 +77,14 @@ This Terraform example creates a ROSA STS cluster that uses a managed OIDC confi
 
 ## Verification
 
-1. In the `rosa` command-line interface (CLI***REMOVED***, run the following command to verify that the cluster was created:
+1. In the `rosa` command-line interface (CLI), run the following command to verify that the cluster was created:
     ````
     rosa list cluster
     ````
 1. You see your roles when the command finishes. 
     ````
     ID                                NAME            STATE  TOPOLOGY
-    24cg9rtij6pshqaqrgephn2rrfte1pd6  user-rosa-tf-2  ready  Classic (STS***REMOVED***
+    24cg9rtij6pshqaqrgephn2rrfte1pd6  user-rosa-tf-2  ready  Classic (STS)
 ## Resource clean up
 
 After you are done with the resources you created, you should not delete them manually, but instead, use the `destroy` command. Run the following to delete all of your created resources:

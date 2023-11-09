@@ -1,11 +1,11 @@
 #!/bin/bash
 set -x
 
-# This file should be sourced in a wrapper script (i.e apply/destroy_folder.sh***REMOVED***
+# This file should be sourced in a wrapper script (i.e apply/destroy_folder.sh)
 
-CI_TIMESTAMP=$(date +%s***REMOVED***
+CI_TIMESTAMP=$(date +%s)
 echo
-echo "[INFO] Running in OpenShift CI (Prow***REMOVED***."
+echo "[INFO] Running in OpenShift CI (Prow)."
 echo "[INFO] Setting up for PROW. timestamp ${CI_TIMESTAMP}"
 echo
 
@@ -25,22 +25,22 @@ echo "[INFO] OCM gateway url: ${GATEWAY_URL}"
 
 CLUSTER_NAME_FILE="${SHARED_DIR}/cluster-name"
 if [[ ! -f "${CLUSTER_NAME_FILE}" ]]; then
-    echo "rhcsci-$(mktemp -u XXXXX | tr '[:upper:]' '[:lower:]'***REMOVED***" > "${CLUSTER_NAME_FILE}"
+    echo "rhcsci-$(mktemp -u XXXXX | tr '[:upper:]' '[:lower:]')" > "${CLUSTER_NAME_FILE}"
 fi
-CLUSTER_NAME=$(cat "${CLUSTER_NAME_FILE}"***REMOVED***
+CLUSTER_NAME=$(cat "${CLUSTER_NAME_FILE}")
 
 set +x
 
-OCM_TOKEN=$(cat "${CLUSTER_PROFILE_DIR}/ocm-token"***REMOVED***
+OCM_TOKEN=$(cat "${CLUSTER_PROFILE_DIR}/ocm-token")
 if [ -z "${OCM_TOKEN:-}" ]; then
     error_exit "missing mandatory variable \$OCM_TOKEN"
 fi
 export TF_VAR_token=${OCM_TOKEN}
 
 #Expose aws credentials as explicit TF_VAR format, and do not use .awscred file
-TF_VAR_aws_access_key=$(cat ${CLUSTER_PROFILE_DIR}/.awscred | awk '/\[default\]/{line=1; next} line && /^\[/{exit} line' | grep aws_access_key_id     | awk -F '=' '{print $2}'| sed 's/ //g'***REMOVED***
+TF_VAR_aws_access_key=$(cat ${CLUSTER_PROFILE_DIR}/.awscred | awk '/\[default\]/{line=1; next} line && /^\[/{exit} line' | grep aws_access_key_id     | awk -F '=' '{print $2}'| sed 's/ //g')
 export TF_VAR_aws_access_key
-TF_VAR_aws_secret_key=$(cat ${CLUSTER_PROFILE_DIR}/.awscred | awk '/\[default\]/{line=1; next} line && /^\[/{exit} line' | grep aws_secret_access_key | awk -F '=' '{print $2}'| sed 's/ //g'***REMOVED***
+TF_VAR_aws_secret_key=$(cat ${CLUSTER_PROFILE_DIR}/.awscred | awk '/\[default\]/{line=1; next} line && /^\[/{exit} line' | grep aws_secret_access_key | awk -F '=' '{print $2}'| sed 's/ //g')
 export TF_VAR_aws_secret_key
 
 set -x

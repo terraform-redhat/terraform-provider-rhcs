@@ -6,7 +6,7 @@ description: |-
   List of ROSA operator role for a specific cluster.
 ---
 
-# rhcs_rosa_operator_roles (Data Source***REMOVED***
+# rhcs_rosa_operator_roles (Data Source)
 
 List of ROSA operator role for a specific cluster.
 
@@ -24,23 +24,23 @@ data "rhcs_rosa_operator_roles" "operator_roles" {
 
 ### Required
 
-- `operator_role_prefix` (String***REMOVED*** Operator role prefix.
+- `operator_role_prefix` (String) Operator role prefix.
 
 ### Optional
 
-- `account_role_prefix` (String***REMOVED*** Account role prefix.
+- `account_role_prefix` (String) Account role prefix.
 
 ### Read-Only
 
-- `operator_iam_roles` (Attributes List***REMOVED*** Operator IAM Roles. (see [below for nested schema](#nestedatt--operator_iam_roles***REMOVED******REMOVED***
+- `operator_iam_roles` (Attributes List) Operator IAM Roles. (see [below for nested schema](#nestedatt--operator_iam_roles))
 
 <a id="nestedatt--operator_iam_roles"></a>
 ### Nested Schema for `operator_iam_roles`
 
 Read-Only:
 
-- `operator_name` (String***REMOVED*** Operator Name
-- `operator_namespace` (String***REMOVED*** Kubernetes Namespace
-- `policy_name` (String***REMOVED*** policy name
-- `role_name` (String***REMOVED*** policy name
-- `service_accounts` (List of String***REMOVED*** service accounts
+- `operator_name` (String) Operator Name
+- `operator_namespace` (String) Kubernetes Namespace
+- `policy_name` (String) policy name
+- `role_name` (String) policy name
+- `service_accounts` (List of String) service accounts

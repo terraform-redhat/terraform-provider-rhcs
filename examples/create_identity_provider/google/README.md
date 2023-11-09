@@ -5,18 +5,18 @@ You can limit authentication to members of a specific hosted domain with the `ho
 
 ## Prerequisites
 
-1. You created your [account roles using Terraform](../../examples/create_rosa_cluster/create_rosa_sts_cluster/classic_sts/account_roles/README.md***REMOVED***.
-1. You created your cluster using Terraform. This cluster can either have [a managed OIDC configuration](../../examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/README.md***REMOVED*** or [an unmanaged OIDC configuration](../../examples/create_rosa_cluster/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/README.md***REMOVED***.
+1. You created your [account roles using Terraform](../../examples/create_rosa_cluster/create_rosa_sts_cluster/classic_sts/account_roles/README.md).
+1. You created your cluster using Terraform. This cluster can either have [a managed OIDC configuration](../../examples/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/README.md) or [an unmanaged OIDC configuration](../../examples/create_rosa_cluster/create_rosa_cluster/create_rosa_sts_cluster/oidc_configuration/cluster_with_unmanaged_oidc_config/README.md).
 1. **Optional**: You have configured your Terraform.tfvars file.
 
 ## Setting up your application in Google
 
-You will need a client ID/secret of a [registered Google project](https://console.developers.google.com/***REMOVED***.
+You will need a client ID/secret of a [registered Google project](https://console.developers.google.com/).
 The project must be configured with a redirect URI of `https://oauth-openshift.apps.<cluster-name>.<cluster-domain>/oauth2callback/<idp-provider-name>`.
 For example:
 `https://oauth-openshift.apps.openshift-cluster.example.com/oauth2callback/Google`.
 
-> **Note**: `<idp-provider-name>` is case-sensitive. Name is defined [here](./main.tf#L37***REMOVED***.
+> **Note**: `<idp-provider-name>` is case-sensitive. Name is defined [here](./main.tf#L37).
 
 ## Applying the Terraform plan
 
@@ -33,7 +33,7 @@ For example:
           ```
           export TF_VAR_google_hosted_domain='["<google_hosted_domain>"]'
           ```
-      1.  This variable is your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token***REMOVED*** that you generated in the prerequisites.  
+      1.  This variable is your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token) that you generated in the prerequisites.  
           ```
           export TF_VAR_token=<ocm_offline_token> 
           ```
@@ -41,7 +41,7 @@ For example:
           ```
           export TF_VAR_url=<ocm_url>
           ```
-      1.  The ID of the cluster for which you are creating the identity provider. This ID can be found in the `rosa` command-line interface (CLI***REMOVED*** with the command `rosa list cluster`. 
+      1.  The ID of the cluster for which you are creating the identity provider. This ID can be found in the `rosa` command-line interface (CLI) with the command `rosa list cluster`. 
           ```
           export TF_VAR_cluster_id=<cluster_id>
           ```
@@ -77,6 +77,6 @@ After the command is complete, your resources are deleted.
 
 ## Additional resources
 
- - [Google Identity Provider](https://docs.openshift.com/container-platform/4.12/authentication/identity_providers/configuring-google-identity-provider.html***REMOVED***
- - [Understanding identity provider configuration](https://docs.openshift.com/container-platform/4.12/authentication/understanding-identity-provider.html***REMOVED***
- - [Mapping Methods](https://docs.openshift.com/container-platform/4.12/authentication/understanding-identity-provider.html#identity-provider-parameters_understanding-identity-provider***REMOVED***
+ - [Google Identity Provider](https://docs.openshift.com/container-platform/4.12/authentication/identity_providers/configuring-google-identity-provider.html)
+ - [Understanding identity provider configuration](https://docs.openshift.com/container-platform/4.12/authentication/understanding-identity-provider.html)
+ - [Mapping Methods](https://docs.openshift.com/container-platform/4.12/authentication/understanding-identity-provider.html#identity-provider-parameters_understanding-identity-provider)

@@ -1,7 +1,7 @@
 /*
-Copyright (c***REMOVED*** 2021 Red Hat, Inc.
+Copyright (c) 2021 Red Hat, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -16,13 +16,13 @@ limitations under the License.
 
 package provider
 
-***REMOVED***
+import (
 	. "github.com/onsi/ginkgo/v2/dsl/core" // nolint
-***REMOVED***             // nolint
-***REMOVED***
+	. "github.com/onsi/gomega"             // nolint
+)
 
-var _ = Describe("Init", func(***REMOVED*** {
-	It("Downloads and installs the provider", func(***REMOVED*** {
-		Expect(terraform.Validate(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-	}***REMOVED***
-}***REMOVED***
+var _ = Describe("Init", func() {
+	It("Downloads and installs the provider", func() {
+		Expect(terraform.Validate()).To(BeZero())
+	})
+})

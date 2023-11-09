@@ -1,7 +1,7 @@
 /*
-Copyright (c***REMOVED*** 2023 Red Hat, Inc.
+Copyright (c) 2023 Red Hat, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -15,10 +15,10 @@ limitations under the License.
 */
 package upgrade
 
-***REMOVED***
+import (
 	"context"
 	"encoding/json"
-***REMOVED***
+	"fmt"
 	"time"
 
 	semver "github.com/hashicorp/go-version"
@@ -27,7 +27,7 @@ package upgrade
 	"github.com/openshift/rosa/pkg/ocm"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"github.com/zgalor/weberr"
-***REMOVED***
+)
 
 // ClusterUpgrade bundles the description of the upgrade with its current state
 type ClusterUpgrade struct {
@@ -35,96 +35,96 @@ type ClusterUpgrade struct {
 	policyState *cmv1.UpgradePolicyState
 }
 
-func (cu *ClusterUpgrade***REMOVED*** State(***REMOVED*** cmv1.UpgradePolicyStateValue {
-	return cu.policyState.Value(***REMOVED***
+func (cu *ClusterUpgrade) State() cmv1.UpgradePolicyStateValue {
+	return cu.policyState.Value()
 }
 
-func (cu *ClusterUpgrade***REMOVED*** Version(***REMOVED*** string {
-	return cu.policy.Version(***REMOVED***
+func (cu *ClusterUpgrade) Version() string {
+	return cu.policy.Version()
 }
 
-func (cu *ClusterUpgrade***REMOVED*** NextRun(***REMOVED*** time.Time {
-	return cu.policy.NextRun(***REMOVED***
+func (cu *ClusterUpgrade) NextRun() time.Time {
+	return cu.policy.NextRun()
 }
 
-func (cu *ClusterUpgrade***REMOVED*** Delete(ctx context.Context, client *cmv1.ClustersClient***REMOVED*** error {
-	_, err := client.Cluster(cu.policy.ClusterID(***REMOVED******REMOVED***.UpgradePolicies(***REMOVED***.UpgradePolicy(cu.policy.ID(***REMOVED******REMOVED***.Delete(***REMOVED***.SendContext(ctx***REMOVED***
+func (cu *ClusterUpgrade) Delete(ctx context.Context, client *cmv1.ClustersClient) error {
+	_, err := client.Cluster(cu.policy.ClusterID()).UpgradePolicies().UpgradePolicy(cu.policy.ID()).Delete().SendContext(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to delete upgrade policy: %v", err***REMOVED***
+		return fmt.Errorf("failed to delete upgrade policy: %v", err)
 	}
 	return nil
 }
 
 // Get the available upgrade versions that are reachable from a given starting
 // version
-func GetAvailableUpgradeVersions(ctx context.Context, client *cmv1.VersionsClient, fromVersionId string***REMOVED*** ([]*cmv1.Version, error***REMOVED*** {
+func GetAvailableUpgradeVersions(ctx context.Context, client *cmv1.VersionsClient, fromVersionId string) ([]*cmv1.Version, error) {
 	// Retrieve info about the current version
-	resp, err := client.Version(fromVersionId***REMOVED***.Get(***REMOVED***.SendContext(ctx***REMOVED***
+	resp, err := client.Version(fromVersionId).Get().SendContext(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get version information: %v", err***REMOVED***
+		return nil, fmt.Errorf("failed to get version information: %v", err)
 	}
-	version := resp.Body(***REMOVED***
+	version := resp.Body()
 
 	// Cycle through the available upgrades and find the ones that are ROSA enabled
 	availableUpgradeVersions := []*cmv1.Version{}
-	for _, v := range version.AvailableUpgrades(***REMOVED*** {
-		id := ocm.CreateVersionID(v, version.ChannelGroup(***REMOVED******REMOVED***
-		resp, err := client.Version(id***REMOVED***.
-			Get(***REMOVED***.
-			Send(***REMOVED***
+	for _, v := range version.AvailableUpgrades() {
+		id := ocm.CreateVersionID(v, version.ChannelGroup())
+		resp, err := client.Version(id).
+			Get().
+			Send()
 		if err != nil {
-			return nil, fmt.Errorf("failed to get version information: %v", err***REMOVED***
-***REMOVED***
-		availableVersion := resp.Body(***REMOVED***
-		if availableVersion.ROSAEnabled(***REMOVED*** {
-			availableUpgradeVersions = append(availableUpgradeVersions, availableVersion***REMOVED***
-***REMOVED***
+			return nil, fmt.Errorf("failed to get version information: %v", err)
+		}
+		availableVersion := resp.Body()
+		if availableVersion.ROSAEnabled() {
+			availableUpgradeVersions = append(availableUpgradeVersions, availableVersion)
+		}
 	}
 
 	return availableUpgradeVersions, nil
 }
 
 // Get the list of upgrade policies associated with a cluster
-func GetScheduledUpgrades(ctx context.Context, client *cmv1.ClustersClient, clusterId string***REMOVED*** ([]ClusterUpgrade, error***REMOVED*** {
+func GetScheduledUpgrades(ctx context.Context, client *cmv1.ClustersClient, clusterId string) ([]ClusterUpgrade, error) {
 	upgrades := []ClusterUpgrade{}
 
 	// Get the upgrade policies for the cluster
 	upgradePolicies := []*cmv1.UpgradePolicy{}
-	upgradeClient := client.Cluster(clusterId***REMOVED***.UpgradePolicies(***REMOVED***
+	upgradeClient := client.Cluster(clusterId).UpgradePolicies()
 	page := 1
 	size := 100
 	for {
-		resp, err := upgradeClient.List(***REMOVED***.
-			Page(page***REMOVED***.
-			Size(size***REMOVED***.
-			SendContext(ctx***REMOVED***
+		resp, err := upgradeClient.List().
+			Page(page).
+			Size(size).
+			SendContext(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("failed to list upgrade policies: %v", err***REMOVED***
-***REMOVED***
-		upgradePolicies = append(upgradePolicies, resp.Items(***REMOVED***.Slice(***REMOVED***...***REMOVED***
-		if resp.Size(***REMOVED*** < size {
+			return nil, fmt.Errorf("failed to list upgrade policies: %v", err)
+		}
+		upgradePolicies = append(upgradePolicies, resp.Items().Slice()...)
+		if resp.Size() < size {
 			break
-***REMOVED***
+		}
 		page++
 	}
 
 	// For each upgrade policy, get its state
 	for _, policy := range upgradePolicies {
-		// We only care about OSD upgrades (i.e., not CVE upgrades***REMOVED***
-		if policy.UpgradeType(***REMOVED*** != "OSD" {
+		// We only care about OSD upgrades (i.e., not CVE upgrades)
+		if policy.UpgradeType() != "OSD" {
 			continue
-***REMOVED***
-		resp, err := upgradeClient.UpgradePolicy(policy.ID(***REMOVED******REMOVED***.
-			State(***REMOVED***.
-			Get(***REMOVED***.
-			SendContext(ctx***REMOVED***
+		}
+		resp, err := upgradeClient.UpgradePolicy(policy.ID()).
+			State().
+			Get().
+			SendContext(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get upgrade policy state: %v", err***REMOVED***
-***REMOVED***
+			return nil, fmt.Errorf("failed to get upgrade policy state: %v", err)
+		}
 		upgrades = append(upgrades, ClusterUpgrade{
 			policy:      policy,
-			policyState: resp.Body(***REMOVED***,
-***REMOVED******REMOVED***
+			policyState: resp.Body(),
+		})
 	}
 
 	return upgrades, nil
@@ -133,49 +133,49 @@ func GetScheduledUpgrades(ctx context.Context, client *cmv1.ClustersClient, clus
 // Check the provided list of upgrades, canceling pending upgrades that are not
 // for the correct version, and returning an error if there is already an
 // upgrade in progress that is not for the desired version
-func CheckAndCancelUpgrades(ctx context.Context, client *cmv1.ClustersClient, upgrades []ClusterUpgrade, desiredVersion *semver.Version***REMOVED*** (bool, error***REMOVED*** {
+func CheckAndCancelUpgrades(ctx context.Context, client *cmv1.ClustersClient, upgrades []ClusterUpgrade, desiredVersion *semver.Version) (bool, error) {
 	correctUpgradePending := false
-	tenMinFromNow := time.Now(***REMOVED***.UTC(***REMOVED***.Add(10 * time.Minute***REMOVED***
+	tenMinFromNow := time.Now().UTC().Add(10 * time.Minute)
 
 	for _, upgrade := range upgrades {
-		tflog.Debug(ctx, fmt.Sprintf("Found existing upgrade policy to %s in state %s", upgrade.Version(***REMOVED***, upgrade.State(***REMOVED******REMOVED******REMOVED***
-		toVersion, err := semver.NewVersion(upgrade.Version(***REMOVED******REMOVED***
+		tflog.Debug(ctx, fmt.Sprintf("Found existing upgrade policy to %s in state %s", upgrade.Version(), upgrade.State()))
+		toVersion, err := semver.NewVersion(upgrade.Version())
 		if err != nil {
-			return false, fmt.Errorf("failed to parse upgrade version: %v", err***REMOVED***
-***REMOVED***
-		switch upgrade.State(***REMOVED*** {
+			return false, fmt.Errorf("failed to parse upgrade version: %v", err)
+		}
+		switch upgrade.State() {
 		case cmv1.UpgradePolicyStateValueDelayed, cmv1.UpgradePolicyStateValueStarted:
-			if desiredVersion.Equal(toVersion***REMOVED*** {
+			if desiredVersion.Equal(toVersion) {
 				correctUpgradePending = true
-	***REMOVED*** else {
-				return false, fmt.Errorf("a cluster upgrade is already in progress"***REMOVED***
-	***REMOVED***
+			} else {
+				return false, fmt.Errorf("a cluster upgrade is already in progress")
+			}
 		case cmv1.UpgradePolicyStateValuePending, cmv1.UpgradePolicyStateValueScheduled:
-			if desiredVersion.Equal(toVersion***REMOVED*** && upgrade.NextRun(***REMOVED***.Before(tenMinFromNow***REMOVED*** {
+			if desiredVersion.Equal(toVersion) && upgrade.NextRun().Before(tenMinFromNow) {
 				correctUpgradePending = true
-	***REMOVED*** else {
+			} else {
 				// The upgrade is not one we want, so cancel it
-				if err := upgrade.Delete(ctx, client***REMOVED***; err != nil {
-					return false, fmt.Errorf("failed to delete upgrade policy: %v", err***REMOVED***
-		***REMOVED***
-	***REMOVED***
-***REMOVED***
+				if err := upgrade.Delete(ctx, client); err != nil {
+					return false, fmt.Errorf("failed to delete upgrade policy: %v", err)
+				}
+			}
+		}
 	}
 	return correctUpgradePending, nil
 }
 
 func AckVersionGate(
 	gateAgreementsClient *cmv1.VersionGateAgreementsClient,
-	gateID string***REMOVED*** error {
-	agreement, err := cmv1.NewVersionGateAgreement(***REMOVED***.
-		VersionGate(cmv1.NewVersionGate(***REMOVED***.ID(gateID***REMOVED******REMOVED***.
-		Build(***REMOVED***
+	gateID string) error {
+	agreement, err := cmv1.NewVersionGateAgreement().
+		VersionGate(cmv1.NewVersionGate().ID(gateID)).
+		Build()
 	if err != nil {
 		return err
 	}
-	response, err := gateAgreementsClient.Add(***REMOVED***.Body(agreement***REMOVED***.Send(***REMOVED***
+	response, err := gateAgreementsClient.Add().Body(agreement).Send()
 	if err != nil {
-		return common.HandleErr(response.Error(***REMOVED***, err***REMOVED***
+		return common.HandleErr(response.Error(), err)
 	}
 	return nil
 }
@@ -183,66 +183,66 @@ func AckVersionGate(
 // Construct a list of missing gate agreements for upgrade to a given cluster version
 // Returns: a list of all un-acked gate agreements, a string describing the ones that need user ack, and an error
 func CheckMissingAgreements(version string,
-	clusterKey string, upgradePoliciesClient *cmv1.UpgradePoliciesClient***REMOVED*** ([]*cmv1.VersionGate, string, error***REMOVED*** {
-	upgradePolicyBuilder := cmv1.NewUpgradePolicy(***REMOVED***.
-		ScheduleType("manual"***REMOVED***.
-		Version(version***REMOVED***
-	upgradePolicy, err := upgradePolicyBuilder.Build(***REMOVED***
+	clusterKey string, upgradePoliciesClient *cmv1.UpgradePoliciesClient) ([]*cmv1.VersionGate, string, error) {
+	upgradePolicyBuilder := cmv1.NewUpgradePolicy().
+		ScheduleType("manual").
+		Version(version)
+	upgradePolicy, err := upgradePolicyBuilder.Build()
 	if err != nil {
-		return []*cmv1.VersionGate{}, "", fmt.Errorf("failed to build upgrade policy: %v", err***REMOVED***
+		return []*cmv1.VersionGate{}, "", fmt.Errorf("failed to build upgrade policy: %v", err)
 	}
 
 	// check if the cluster upgrade requires gate agreements
-	gates, err := getMissingGateAgreements(upgradePolicy, upgradePoliciesClient***REMOVED***
+	gates, err := getMissingGateAgreements(upgradePolicy, upgradePoliciesClient)
 	if err != nil {
 		return []*cmv1.VersionGate{}, "", fmt.Errorf("failed to check for missing gate agreements upgrade for "+
-			"cluster '%s': %v", clusterKey, err***REMOVED***
+			"cluster '%s': %v", clusterKey, err)
 	}
 	str := "\nMissing required acknowledgements to schedule upgrade." +
 		"\nRead the below description and acknowledge to proceed with upgrade." +
 		"\nDescription:"
 	counter := 1
 	for _, gate := range gates {
-		if !gate.STSOnly(***REMOVED*** { // STS-only gates don't require user acknowledgement
-			str = fmt.Sprintf("%s\n%d***REMOVED*** %s\n", str, counter, gate.Description(***REMOVED******REMOVED***
+		if !gate.STSOnly() { // STS-only gates don't require user acknowledgement
+			str = fmt.Sprintf("%s\n%d) %s\n", str, counter, gate.Description())
 
-			if gate.WarningMessage(***REMOVED*** != "" {
-				str = fmt.Sprintf("%s   Warning:     %s\n", str, gate.WarningMessage(***REMOVED******REMOVED***
-	***REMOVED***
-			str = fmt.Sprintf("%s   URL:         %s\n", str, gate.DocumentationURL(***REMOVED******REMOVED***
+			if gate.WarningMessage() != "" {
+				str = fmt.Sprintf("%s   Warning:     %s\n", str, gate.WarningMessage())
+			}
+			str = fmt.Sprintf("%s   URL:         %s\n", str, gate.DocumentationURL())
 			counter++
-***REMOVED***
+		}
 	}
 	return gates, str, nil
 }
 
 func getMissingGateAgreements(
 	upgradePolicy *cmv1.UpgradePolicy,
-	upgradePoliciesClient *cmv1.UpgradePoliciesClient***REMOVED*** ([]*cmv1.VersionGate, error***REMOVED*** {
-	response, err := upgradePoliciesClient.Add(***REMOVED***.Parameter("dryRun", true***REMOVED***.Body(upgradePolicy***REMOVED***.Send(***REMOVED***
+	upgradePoliciesClient *cmv1.UpgradePoliciesClient) ([]*cmv1.VersionGate, error) {
+	response, err := upgradePoliciesClient.Add().Parameter("dryRun", true).Body(upgradePolicy).Send()
 
 	if err != nil {
-		if response.Error(***REMOVED*** != nil {
+		if response.Error() != nil {
 			// parse gates list
-			errorDetails, ok := response.Error(***REMOVED***.GetDetails(***REMOVED***
+			errorDetails, ok := response.Error().GetDetails()
 			if !ok {
-				return []*cmv1.VersionGate{}, common.HandleErr(response.Error(***REMOVED***, err***REMOVED***
-	***REMOVED***
-			data, err := json.Marshal(errorDetails***REMOVED***
+				return []*cmv1.VersionGate{}, common.HandleErr(response.Error(), err)
+			}
+			data, err := json.Marshal(errorDetails)
 			if err != nil {
-				return []*cmv1.VersionGate{}, common.HandleErr(response.Error(***REMOVED***, err***REMOVED***
-	***REMOVED***
-			gates, err := cmv1.UnmarshalVersionGateList(data***REMOVED***
+				return []*cmv1.VersionGate{}, common.HandleErr(response.Error(), err)
+			}
+			gates, err := cmv1.UnmarshalVersionGateList(data)
 			if err != nil {
-				return []*cmv1.VersionGate{}, common.HandleErr(response.Error(***REMOVED***, err***REMOVED***
-	***REMOVED***
+				return []*cmv1.VersionGate{}, common.HandleErr(response.Error(), err)
+			}
 			// return original error if invaild version gate detected
-			if len(gates***REMOVED*** > 0 && gates[0].ID(***REMOVED*** == "" {
-				errType := weberr.ErrorType(response.Error(***REMOVED***.Status(***REMOVED******REMOVED***
-				return []*cmv1.VersionGate{}, errType.Set(weberr.Errorf(response.Error(***REMOVED***.Reason(***REMOVED******REMOVED******REMOVED***
-	***REMOVED***
+			if len(gates) > 0 && gates[0].ID() == "" {
+				errType := weberr.ErrorType(response.Error().Status())
+				return []*cmv1.VersionGate{}, errType.Set(weberr.Errorf(response.Error().Reason()))
+			}
 			return gates, nil
-***REMOVED***
+		}
 	}
 	return []*cmv1.VersionGate{}, nil
 }

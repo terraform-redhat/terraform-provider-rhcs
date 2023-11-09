@@ -1,7 +1,7 @@
 /*
-Copyright (c***REMOVED*** 2021 Red Hat, Inc.
+Copyright (c) 2021 Red Hat, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -16,21 +16,21 @@ limitations under the License.
 
 package provider
 
-***REMOVED***
-***REMOVED***
+import (
+	"net/http"
 
 	. "github.com/onsi/ginkgo/v2/dsl/core"             // nolint
-***REMOVED***                         // nolint
+	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
-***REMOVED***
+)
 
-var _ = Describe("Groups data source", func(***REMOVED*** {
-	It("Can list groups", func(***REMOVED*** {
+var _ = Describe("Groups data source", func() {
+	It("Can list groups", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/groups"***REMOVED***,
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/groups"),
 				RespondWithJSON(http.StatusOK, `{
 				  "page": 1,
 				  "size": 1,
@@ -43,24 +43,24 @@ var _ = Describe("Groups data source", func(***REMOVED*** {
 				      "id": "dedicated-admins2"
 				    }
 				  ]
-		***REMOVED***`***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				}`),
+			),
+		)
 
 		// Run the apply command:
 		terraform.Source(`
 		  data "rhcs_groups" "my_groups" {
 		    cluster = "123"
 		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_groups", "my_groups"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items |length`, 2***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].id`, "dedicated-admins"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].name`, "dedicated-admins"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].id`, "dedicated-admins2"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].name`, "dedicated-admins2"***REMOVED******REMOVED***
-	}***REMOVED***
-}***REMOVED***
+		resource := terraform.Resource("rhcs_groups", "my_groups")
+		Expect(resource).To(MatchJQ(`.attributes.items |length`, 2))
+		Expect(resource).To(MatchJQ(`.attributes.items[0].id`, "dedicated-admins"))
+		Expect(resource).To(MatchJQ(`.attributes.items[0].name`, "dedicated-admins"))
+		Expect(resource).To(MatchJQ(`.attributes.items[1].id`, "dedicated-admins2"))
+		Expect(resource).To(MatchJQ(`.attributes.items[1].name`, "dedicated-admins2"))
+	})
+})

@@ -1,12 +1,12 @@
 package exec
 
-***REMOVED***
+import (
 	"context"
-***REMOVED***
+	"fmt"
 
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-***REMOVED***
-***REMOVED***
+	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+)
 
 type OIDCProviderOperatorRolesArgs struct {
 	AccountRolePrefix  string `json:"account_role_prefix,omitempty"`
@@ -30,14 +30,14 @@ type OIDCProviderOperatorRolesService struct {
 	Context      context.Context
 }
 
-func (oidcOP *OIDCProviderOperatorRolesService***REMOVED*** Init(manifestDirs ...string***REMOVED*** error {
+func (oidcOP *OIDCProviderOperatorRolesService) Init(manifestDirs ...string) error {
 	oidcOP.ManifestDir = CON.OIDCProviderOperatorRolesManifestDir
-	if len(manifestDirs***REMOVED*** != 0 {
+	if len(manifestDirs) != 0 {
 		oidcOP.ManifestDir = manifestDirs[0]
 	}
-	ctx := context.TODO(***REMOVED***
+	ctx := context.TODO()
 	oidcOP.Context = ctx
-	err := runTerraformInit(ctx, oidcOP.ManifestDir***REMOVED***
+	err := runTerraformInit(ctx, oidcOP.ManifestDir)
 	if err != nil {
 		return err
 	}
@@ -45,53 +45,53 @@ func (oidcOP *OIDCProviderOperatorRolesService***REMOVED*** Init(manifestDirs ..
 
 }
 
-func (oidcOP *OIDCProviderOperatorRolesService***REMOVED*** Create(createArgs *OIDCProviderOperatorRolesArgs, extraArgs ...string***REMOVED*** (
-	*OIDCProviderOperatorRolesOutput, error***REMOVED*** {
+func (oidcOP *OIDCProviderOperatorRolesService) Create(createArgs *OIDCProviderOperatorRolesArgs, extraArgs ...string) (
+	*OIDCProviderOperatorRolesOutput, error) {
 	createArgs.URL = CON.GateWayURL
 	createArgs.OCMENV = CON.OCMENV
 	oidcOP.CreationArgs = createArgs
-	args := combineStructArgs(createArgs, extraArgs...***REMOVED***
-	_, err := runTerraformApplyWithArgs(oidcOP.Context, oidcOP.ManifestDir, args***REMOVED***
+	args := combineStructArgs(createArgs, extraArgs...)
+	_, err := runTerraformApplyWithArgs(oidcOP.Context, oidcOP.ManifestDir, args)
 	if err != nil {
 		return nil, err
 	}
-	output, err := oidcOP.Output(***REMOVED***
+	output, err := oidcOP.Output()
 	if err != nil {
 		return nil, err
 	}
 	return output, nil
 }
 
-func (oidcOP *OIDCProviderOperatorRolesService***REMOVED*** Output(***REMOVED*** (*OIDCProviderOperatorRolesOutput, error***REMOVED*** {
-	out, err := runTerraformOutput(oidcOP.Context, oidcOP.ManifestDir***REMOVED***
+func (oidcOP *OIDCProviderOperatorRolesService) Output() (*OIDCProviderOperatorRolesOutput, error) {
+	out, err := runTerraformOutput(oidcOP.Context, oidcOP.ManifestDir)
 	if err != nil {
 		return nil, err
 	}
 	var oidcOPOutput = &OIDCProviderOperatorRolesOutput{
-		AccountRolePrefix:  h.DigString(out["account_roles_prefix"], "value"***REMOVED***,
-		OIDCConfigID:       h.DigString(out["oidc_config_id"], "value"***REMOVED***,
-		OperatorRolePrefix: h.DigString(out["operator_role_prefix"], "value"***REMOVED***,
+		AccountRolePrefix:  h.DigString(out["account_roles_prefix"], "value"),
+		OIDCConfigID:       h.DigString(out["oidc_config_id"], "value"),
+		OperatorRolePrefix: h.DigString(out["operator_role_prefix"], "value"),
 	}
 	return oidcOPOutput, nil
 }
 
-func (oidcOP *OIDCProviderOperatorRolesService***REMOVED*** Destroy(createArgs ...*OIDCProviderOperatorRolesArgs***REMOVED*** error {
-	if oidcOP.CreationArgs == nil && len(createArgs***REMOVED*** == 0 {
-		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter"***REMOVED***
+func (oidcOP *OIDCProviderOperatorRolesService) Destroy(createArgs ...*OIDCProviderOperatorRolesArgs) error {
+	if oidcOP.CreationArgs == nil && len(createArgs) == 0 {
+		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
 	}
 	destroyArgs := oidcOP.CreationArgs
-	if len(createArgs***REMOVED*** != 0 {
+	if len(createArgs) != 0 {
 		destroyArgs = createArgs[0]
 	}
 	destroyArgs.URL = CON.GateWayURL
 	destroyArgs.OCMENV = CON.OCMENV
-	args := combineStructArgs(destroyArgs***REMOVED***
-	err := runTerraformDestroyWithArgs(oidcOP.Context, oidcOP.ManifestDir, args***REMOVED***
+	args := combineStructArgs(destroyArgs)
+	err := runTerraformDestroyWithArgs(oidcOP.Context, oidcOP.ManifestDir, args)
 	return err
 }
 
-func NewOIDCProviderOperatorRolesService(manifestDir ...string***REMOVED*** (*OIDCProviderOperatorRolesService, error***REMOVED*** {
+func NewOIDCProviderOperatorRolesService(manifestDir ...string) (*OIDCProviderOperatorRolesService, error) {
 	oidcOP := &OIDCProviderOperatorRolesService{}
-	err := oidcOP.Init(manifestDir...***REMOVED***
+	err := oidcOP.Init(manifestDir...)
 	return oidcOP, err
 }

@@ -1,7 +1,7 @@
 /*
-Copyright (c***REMOVED*** 2021 Red Hat, Inc.
+Copyright (c) 2021 Red Hat, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -16,14 +16,14 @@ limitations under the License.
 
 package cloudprovider
 
-***REMOVED***
+import (
 	"context"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-***REMOVED***
+)
 
 type CloudProvidersDataSource struct {
 	collection *cmv1.CloudProvidersClient
@@ -32,43 +32,43 @@ type CloudProvidersDataSource struct {
 var _ datasource.DataSource = &CloudProvidersDataSource{}
 var _ datasource.DataSourceWithConfigure = &CloudProvidersDataSource{}
 
-func New(***REMOVED*** datasource.DataSource {
+func New() datasource.DataSource {
 	return &CloudProvidersDataSource{}
 }
 
-func (s *CloudProvidersDataSource***REMOVED*** Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse***REMOVED*** {
+func (s *CloudProvidersDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_cloud_providers"
 }
 
-func (s *CloudProvidersDataSource***REMOVED*** Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse***REMOVED*** {
+func (s *CloudProvidersDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "List of cloud providers.",
 		Attributes: map[string]schema.Attribute{
 			"search": schema.StringAttribute{
 				Description: "Search criteria.",
 				Optional:    true,
-	***REMOVED***,
+			},
 			"order": schema.StringAttribute{
 				Description: "Order criteria.",
 				Optional:    true,
-	***REMOVED***,
+			},
 			"item": schema.SingleNestedAttribute{
 				Description: "Content of the list when there is exactly one item.",
-				Attributes:  s.itemAttributes(***REMOVED***,
+				Attributes:  s.itemAttributes(),
 				Computed:    true,
-	***REMOVED***,
+			},
 			"items": schema.ListNestedAttribute{
 				Description: "Content of the list.",
 				NestedObject: schema.NestedAttributeObject{
-					Attributes: s.itemAttributes(***REMOVED***,
-		***REMOVED***,
+					Attributes: s.itemAttributes(),
+				},
 				Computed: true,
-	***REMOVED***,
-***REMOVED***,
+			},
+		},
 	}
 }
 
-func (s *CloudProvidersDataSource***REMOVED*** itemAttributes(***REMOVED*** map[string]schema.Attribute {
+func (s *CloudProvidersDataSource) itemAttributes() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"id": schema.StringAttribute{
 			Description: "Unique identifier of the cloud provider. This is what " +
@@ -76,39 +76,39 @@ func (s *CloudProvidersDataSource***REMOVED*** itemAttributes(***REMOVED*** map[
 				"places, for example in the 'cloud_provider' attribute " +
 				"of the cluster resource.",
 			Computed: true,
-***REMOVED***,
+		},
 		"name": schema.StringAttribute{
 			Description: "Short name of the cloud provider, for example 'aws' " +
 				"or 'gcp'.",
 			Computed: true,
-***REMOVED***,
+		},
 		"display_name": schema.StringAttribute{
 			Description: "Human friendly name of the cloud provider, for example " +
 				"'AWS' or 'GCP'",
 			Computed: true,
-***REMOVED***,
+		},
 	}
 }
 
-func (s *CloudProvidersDataSource***REMOVED*** Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse***REMOVED*** {
+func (s *CloudProvidersDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured:
 	if req.ProviderData == nil {
 		return
 	}
 
 	// Cast the provider data to the specific implementation:
-	connection := req.ProviderData.(*sdk.Connection***REMOVED***
+	connection := req.ProviderData.(*sdk.Connection)
 
 	// Get the collection of cloud providers:
-	s.collection = connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.CloudProviders(***REMOVED***
+	s.collection = connection.ClustersMgmt().V1().CloudProviders()
 }
 
-func (s *CloudProvidersDataSource***REMOVED*** Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse***REMOVED*** {
+func (s *CloudProvidersDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	// Get the state:
 	state := &CloudProvidersState{}
-	diags := req.Config.Get(ctx, state***REMOVED***
-	resp.Diagnostics.Append(diags...***REMOVED***
-	if resp.Diagnostics.HasError(***REMOVED*** {
+	diags := req.Config.Get(ctx, state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
@@ -116,52 +116,52 @@ func (s *CloudProvidersDataSource***REMOVED*** Read(ctx context.Context, req dat
 	var listItems []*cmv1.CloudProvider
 	listSize := 100
 	listPage := 1
-	listRequest := s.collection.List(***REMOVED***.Size(listSize***REMOVED***
-	if !state.Search.IsUnknown(***REMOVED*** && !state.Search.IsNull(***REMOVED*** {
-		listRequest.Search(state.Search.ValueString(***REMOVED******REMOVED***
+	listRequest := s.collection.List().Size(listSize)
+	if !state.Search.IsUnknown() && !state.Search.IsNull() {
+		listRequest.Search(state.Search.ValueString())
 	}
-	if !state.Order.IsUnknown(***REMOVED*** && !state.Order.IsNull(***REMOVED*** {
-		listRequest.Order(state.Order.ValueString(***REMOVED******REMOVED***
+	if !state.Order.IsUnknown() && !state.Order.IsNull() {
+		listRequest.Order(state.Order.ValueString())
 	}
 	for {
-		listResponse, err := listRequest.SendContext(ctx***REMOVED***
+		listResponse, err := listRequest.SendContext(ctx)
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Can't list cloud providers",
-				err.Error(***REMOVED***,
-			***REMOVED***
+				err.Error(),
+			)
 			return
-***REMOVED***
+		}
 		if listItems == nil {
-			listItems = make([]*cmv1.CloudProvider, 0, listResponse.Total(***REMOVED******REMOVED***
-***REMOVED***
-		listResponse.Items(***REMOVED***.Each(func(listItem *cmv1.CloudProvider***REMOVED*** bool {
-			listItems = append(listItems, listItem***REMOVED***
+			listItems = make([]*cmv1.CloudProvider, 0, listResponse.Total())
+		}
+		listResponse.Items().Each(func(listItem *cmv1.CloudProvider) bool {
+			listItems = append(listItems, listItem)
 			return true
-***REMOVED******REMOVED***
-		if listResponse.Size(***REMOVED*** < listSize {
+		})
+		if listResponse.Size() < listSize {
 			break
-***REMOVED***
+		}
 		listPage++
-		listRequest.Page(listPage***REMOVED***
+		listRequest.Page(listPage)
 	}
 
 	// Populate the state:
-	state.Items = make([]*CloudProviderState, len(listItems***REMOVED******REMOVED***
+	state.Items = make([]*CloudProviderState, len(listItems))
 	for i, listItem := range listItems {
 		state.Items[i] = &CloudProviderState{
-			ID:          listItem.ID(***REMOVED***,
-			Name:        listItem.Name(***REMOVED***,
-			DisplayName: listItem.DisplayName(***REMOVED***,
-***REMOVED***
+			ID:          listItem.ID(),
+			Name:        listItem.Name(),
+			DisplayName: listItem.DisplayName(),
+		}
 	}
-	if len(state.Items***REMOVED*** == 1 {
+	if len(state.Items) == 1 {
 		state.Item = state.Items[0]
 	} else {
 		state.Item = nil
 	}
 
 	// Save the state:
-	diags = resp.State.Set(ctx, state***REMOVED***
-	resp.Diagnostics.Append(diags...***REMOVED***
+	diags = resp.State.Set(ctx, state)
+	resp.Diagnostics.Append(diags...)
 }

@@ -1,89 +1,89 @@
 package common
 
-***REMOVED***
+import (
 	"context"
-***REMOVED***
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-***REMOVED***
+)
 
-func BoolWithFalseDefault(tfVal types.Bool***REMOVED*** bool {
-	if HasValue(tfVal***REMOVED*** {
-		return tfVal.ValueBool(***REMOVED***
+func BoolWithFalseDefault(tfVal types.Bool) bool {
+	if HasValue(tfVal) {
+		return tfVal.ValueBool()
 	}
 	return false
 }
 
-func OptionalInt64(tfVal types.Int64***REMOVED*** *int64 {
-	if HasValue(tfVal***REMOVED*** {
-		return tfVal.ValueInt64Pointer(***REMOVED***
+func OptionalInt64(tfVal types.Int64) *int64 {
+	if HasValue(tfVal) {
+		return tfVal.ValueInt64Pointer()
 	}
 	return nil
 }
 
-func OptionalString(tfVal types.String***REMOVED*** *string {
-	if HasValue(tfVal***REMOVED*** {
-		return tfVal.ValueStringPointer(***REMOVED***
+func OptionalString(tfVal types.String) *string {
+	if HasValue(tfVal) {
+		return tfVal.ValueStringPointer()
 	}
 	return nil
 }
-func OptionalMap(ctx context.Context, tfVal types.Map***REMOVED*** (map[string]string, error***REMOVED*** {
-	if !HasValue(tfVal***REMOVED*** {
+func OptionalMap(ctx context.Context, tfVal types.Map) (map[string]string, error) {
+	if !HasValue(tfVal) {
 		return nil, nil
 	}
-	result := make(map[string]string, len(tfVal.Elements(***REMOVED******REMOVED******REMOVED***
-	d := tfVal.ElementsAs(ctx, &result, false***REMOVED***
-	if d.HasError(***REMOVED*** {
-		return nil, fmt.Errorf("error converting to map object %v", d.Errors(***REMOVED***[0].Detail(***REMOVED******REMOVED***
+	result := make(map[string]string, len(tfVal.Elements()))
+	d := tfVal.ElementsAs(ctx, &result, false)
+	if d.HasError() {
+		return nil, fmt.Errorf("error converting to map object %v", d.Errors()[0].Detail())
 	}
 
 	return result, nil
 }
 
-func OptionalList(tfVal types.List***REMOVED*** []string {
-	if tfVal.IsUnknown(***REMOVED*** || tfVal.IsNull(***REMOVED*** {
+func OptionalList(tfVal types.List) []string {
+	if tfVal.IsUnknown() || tfVal.IsNull() {
 		return nil
 	}
-	result := make([]string, 0***REMOVED***
-	for _, e := range tfVal.Elements(***REMOVED*** {
-		result = append(result, e.(types.String***REMOVED***.ValueString(***REMOVED******REMOVED***
+	result := make([]string, 0)
+	for _, e := range tfVal.Elements() {
+		result = append(result, e.(types.String).ValueString())
 	}
 	return result
 }
 
-func StringListToArray(ctx context.Context, tfVal types.List***REMOVED*** ([]string, error***REMOVED*** {
-	if !HasValue(tfVal***REMOVED*** {
+func StringListToArray(ctx context.Context, tfVal types.List) ([]string, error) {
+	if !HasValue(tfVal) {
 		return nil, nil
 	}
-	result := make([]string, len(tfVal.Elements(***REMOVED******REMOVED******REMOVED***
-	d := tfVal.ElementsAs(ctx, &result, false***REMOVED***
-	if d.HasError(***REMOVED*** {
-		return nil, fmt.Errorf("error converting to map object %v", d.Errors(***REMOVED***[0].Detail(***REMOVED******REMOVED***
+	result := make([]string, len(tfVal.Elements()))
+	d := tfVal.ElementsAs(ctx, &result, false)
+	if d.HasError() {
+		return nil, fmt.Errorf("error converting to map object %v", d.Errors()[0].Detail())
 	}
 	return result, nil
 }
 
-func ConvertStringMapToMapType(stringMap map[string]string***REMOVED*** (types.Map, error***REMOVED*** {
+func ConvertStringMapToMapType(stringMap map[string]string) (types.Map, error) {
 	elements := map[string]attr.Value{}
 	for k, v := range stringMap {
-		elements[k] = types.StringValue(v***REMOVED***
+		elements[k] = types.StringValue(v)
 	}
-	mapValue, diags := types.MapValue(types.StringType, elements***REMOVED***
-	if diags != nil && diags.HasError(***REMOVED*** {
-		return mapValue, fmt.Errorf("failed to convert to MapType %v", diags.Errors(***REMOVED***[0].Detail(***REMOVED******REMOVED***
+	mapValue, diags := types.MapValue(types.StringType, elements)
+	if diags != nil && diags.HasError() {
+		return mapValue, fmt.Errorf("failed to convert to MapType %v", diags.Errors()[0].Detail())
 	}
 	return mapValue, nil
 }
 
-func StringArrayToList(stringList []string***REMOVED*** (types.List, error***REMOVED*** {
+func StringArrayToList(stringList []string) (types.List, error) {
 	elements := []attr.Value{}
 	for _, e := range stringList {
-		elements = append(elements, types.StringValue(e***REMOVED******REMOVED***
+		elements = append(elements, types.StringValue(e))
 	}
-	listValue, diags := types.ListValue(types.StringType, elements***REMOVED***
-	if diags != nil && diags.HasError(***REMOVED*** {
-		return listValue, fmt.Errorf("failed to convert to List type %v", diags.Errors(***REMOVED***[0].Detail(***REMOVED******REMOVED***
+	listValue, diags := types.ListValue(types.StringType, elements)
+	if diags != nil && diags.HasError() {
+		return listValue, fmt.Errorf("failed to convert to List type %v", diags.Errors()[0].Detail())
 	}
 	return listValue, nil
 }

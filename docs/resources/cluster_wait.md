@@ -6,7 +6,7 @@ description: |-
   Wait Cluster Resource To be Ready
 ---
 
-# rhcs_cluster_wait (Resource***REMOVED***
+# rhcs_cluster_wait (Resource)
 
 Wait Cluster Resource To be Ready
 
@@ -25,12 +25,12 @@ resource "rhcs_cluster_wait" "waiter" {
 
 ### Required
 
-- `cluster` (String***REMOVED*** Identifier of the cluster.
+- `cluster` (String) Identifier of the cluster.
 
 ### Optional
 
-- `timeout` (Number***REMOVED*** An optional timeout until the cluster is ready. The timeout value is set in minutes. The default value is 60 minutes.
+- `timeout` (Number) An optional timeout until the cluster is ready. The timeout value is set in minutes. The default value is 60 minutes.
 
 ### Read-Only
 
-- `ready` (Boolean***REMOVED*** Whether the cluster is ready.Note: this does not account for cluster operators still progressing to completion.
+- `ready` (Boolean) Whether the cluster is ready.Note: this does not account for cluster operators still progressing to completion.

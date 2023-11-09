@@ -22,7 +22,7 @@ variable aws_region {
 }
 
 variable aws_availability_zones {
-    type      = list(string***REMOVED***
+    type      = list(string)
     default = ["us-east-1a"]
 }
 

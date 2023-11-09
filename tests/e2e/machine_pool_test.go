@@ -1,28 +1,28 @@
-***REMOVED***
+package e2e
 
-***REMOVED***
+import (
 
 	// nolint
-***REMOVED***
-***REMOVED***
-***REMOVED***
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	cms "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
-***REMOVED***
-***REMOVED***
-***REMOVED***
+	con "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	exe "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
+)
 
-var _ = Describe("TF Test", func(***REMOVED*** {
-	Describe("Create MachinePool test cases", func(***REMOVED*** {
+var _ = Describe("TF Test", func() {
+	Describe("Create MachinePool test cases", func() {
 		var mpService *exe.MachinePoolService
-		profile := ci.LoadProfileYamlFileByENV(***REMOVED***
-		BeforeEach(func(***REMOVED*** {
-			mpService = exe.NewMachinePoolService(con.MachinePoolDir***REMOVED***
-***REMOVED******REMOVED***
-		AfterEach(func(***REMOVED*** {
-			err := mpService.Destroy(***REMOVED***
-			Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-		It("MachinePoolExampleNegative", func(***REMOVED*** {
+		profile := ci.LoadProfileYamlFileByENV()
+		BeforeEach(func() {
+			mpService = exe.NewMachinePoolService(con.MachinePoolDir)
+		})
+		AfterEach(func() {
+			err := mpService.Destroy()
+			Expect(err).ToNot(HaveOccurred())
+		})
+		It("MachinePoolExampleNegative", func() {
 
 			MachinePoolArgs := &exe.MachinePoolArgs{
 				Token:       token,
@@ -30,15 +30,15 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 				Replicas:    3,
 				MachineType: "invalid",
 				Name:        "testmp",
-	***REMOVED***
+			}
 
-			err := mpService.Create(MachinePoolArgs***REMOVED***
-			Expect(err***REMOVED***.To(HaveOccurred(***REMOVED******REMOVED***
-			Expect(err.Error(***REMOVED******REMOVED***.Should(ContainSubstring("is not supported for cloud provider 'aws'"***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-		Context("Author:amalykhi-High-OCP-64757 @OCP-64757 @amalykhi", func(***REMOVED*** {
-			It("Author:amalykhi-High-OCP-64757 Create a second machine pool", ci.Day2, ci.High, ci.FeatureMachinepool, func(***REMOVED*** {
-				By("Create a second machine pool"***REMOVED***
+			err := mpService.Create(MachinePoolArgs)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).Should(ContainSubstring("is not supported for cloud provider 'aws'"))
+		})
+		Context("Author:amalykhi-High-OCP-64757 @OCP-64757 @amalykhi", func() {
+			It("Author:amalykhi-High-OCP-64757 Create a second machine pool", ci.Day2, ci.High, ci.FeatureMachinepool, func() {
+				By("Create a second machine pool")
 				replicas := 3
 				machineType := "r5.xlarge"
 				name := "ocp-64757"
@@ -48,26 +48,26 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 					Replicas:    replicas,
 					MachineType: machineType,
 					Name:        name,
-		***REMOVED***
+				}
 
-				err := mpService.Create(MachinePoolArgs***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-				_, err = mpService.Output(***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+				err := mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
+				_, err = mpService.Output()
+				Expect(err).ToNot(HaveOccurred())
 
-				By("Verify the parameters of the created machinepool"***REMOVED***
-				mpOut, err := mpService.Output(***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-				mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-				Expect(mpResponseBody.Replicas(***REMOVED******REMOVED***.To(Equal(mpOut.Replicas***REMOVED******REMOVED***
-				Expect(mpResponseBody.InstanceType(***REMOVED******REMOVED***.To(Equal(mpOut.MachineType***REMOVED******REMOVED***
-				Expect(mpResponseBody.ID(***REMOVED******REMOVED***.To(Equal(mpOut.Name***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-		Context("Author:amalykhi-High-OCP-64905 @OCP-64905 @amalykhi", func(***REMOVED*** {
-			It("Author:amalykhi-High-OCP-64905 Edit/delete second machinepool labels", ci.Day2, ci.High, ci.FeatureMachinepool, func(***REMOVED*** {
-				By("Create additional machinepool with labels"***REMOVED***
+				By("Verify the parameters of the created machinepool")
+				mpOut, err := mpService.Output()
+				Expect(err).ToNot(HaveOccurred())
+				mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(mpResponseBody.Replicas()).To(Equal(mpOut.Replicas))
+				Expect(mpResponseBody.InstanceType()).To(Equal(mpOut.MachineType))
+				Expect(mpResponseBody.ID()).To(Equal(mpOut.Name))
+			})
+		})
+		Context("Author:amalykhi-High-OCP-64905 @OCP-64905 @amalykhi", func() {
+			It("Author:amalykhi-High-OCP-64905 Edit/delete second machinepool labels", ci.Day2, ci.High, ci.FeatureMachinepool, func() {
+				By("Create additional machinepool with labels")
 				replicas := 3
 				machineType := "r5.xlarge"
 				name := "ocp-64905"
@@ -81,39 +81,39 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 					MachineType: machineType,
 					Name:        name,
 					Labels:      creationLabels,
-		***REMOVED***
+				}
 
-				err := mpService.Create(MachinePoolArgs***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+				err := mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
 
-				By("Verify the parameters of the created machinepool"***REMOVED***
-				mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-				Expect(mpResponseBody.Labels(***REMOVED******REMOVED***.To(Equal(creationLabels***REMOVED******REMOVED***
+				By("Verify the parameters of the created machinepool")
+				mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(mpResponseBody.Labels()).To(Equal(creationLabels))
 
-				By("Edit the labels of the machinepool"***REMOVED***
+				By("Edit the labels of the machinepool")
 				MachinePoolArgs.Labels = updatingLabels
-				err = mpService.Create(MachinePoolArgs***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-				Expect(mpResponseBody.Labels(***REMOVED******REMOVED***.To(Equal(updatingLabels***REMOVED******REMOVED***
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
+				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(mpResponseBody.Labels()).To(Equal(updatingLabels))
 
-				By("Delete the labels of the machinepool"***REMOVED***
+				By("Delete the labels of the machinepool")
 				MachinePoolArgs.Labels = emptyLabels
-				err = mpService.Create(MachinePoolArgs***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
 
-				By("Verify the parameters of the updated machinepool"***REMOVED***
-				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-				Expect(mpResponseBody.Labels(***REMOVED******REMOVED***.To(BeNil(***REMOVED******REMOVED***
+				By("Verify the parameters of the updated machinepool")
+				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(mpResponseBody.Labels()).To(BeNil())
 
-	***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-		Context("Author:amalykhi-Critical-OCP-68296 @OCP-68296 @amalykhi", func(***REMOVED*** {
-			It("Author:amalykhi-Critical-OCP-68296 Enable/disable/update autoscaling for additional machinepool", ci.Day2, ci.Critical, ci.FeatureMachinepool, func(***REMOVED*** {
-				By("Create additional machinepool with autoscaling"***REMOVED***
+			})
+		})
+		Context("Author:amalykhi-Critical-OCP-68296 @OCP-68296 @amalykhi", func() {
+			It("Author:amalykhi-Critical-OCP-68296 Enable/disable/update autoscaling for additional machinepool", ci.Day2, ci.Critical, ci.FeatureMachinepool, func() {
+				By("Create additional machinepool with autoscaling")
 				replicas := 9
 				minReplicas := 3
 				maxReplicas := 6
@@ -127,51 +127,51 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 					MachineType:        machineType,
 					Name:               name,
 					AutoscalingEnabled: true,
-		***REMOVED***
+				}
 
-				err := mpService.Create(MachinePoolArgs***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+				err := mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
 
-				By("Verify the parameters of the created machinepool"***REMOVED***
-				mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-				Expect(mpResponseBody.Autoscaling(***REMOVED***.MinReplicas(***REMOVED******REMOVED***.To(Equal(minReplicas***REMOVED******REMOVED***
-				Expect(mpResponseBody.Autoscaling(***REMOVED***.MaxReplicas(***REMOVED******REMOVED***.To(Equal(maxReplicas***REMOVED******REMOVED***
+				By("Verify the parameters of the created machinepool")
+				mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(mpResponseBody.Autoscaling().MinReplicas()).To(Equal(minReplicas))
+				Expect(mpResponseBody.Autoscaling().MaxReplicas()).To(Equal(maxReplicas))
 
-				By("Change the number of replicas of the machinepool"***REMOVED***
+				By("Change the number of replicas of the machinepool")
 				MachinePoolArgs.MinReplicas = minReplicas * 2
 				MachinePoolArgs.MaxReplicas = maxReplicas * 2
-				err = mpService.Create(MachinePoolArgs***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
 
-				By("Verify the parameters of the updated machinepool"***REMOVED***
-				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-				Expect(mpResponseBody.Autoscaling(***REMOVED***.MinReplicas(***REMOVED******REMOVED***.To(Equal(minReplicas * 2***REMOVED******REMOVED***
-				Expect(mpResponseBody.Autoscaling(***REMOVED***.MaxReplicas(***REMOVED******REMOVED***.To(Equal(maxReplicas * 2***REMOVED******REMOVED***
+				By("Verify the parameters of the updated machinepool")
+				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(mpResponseBody.Autoscaling().MinReplicas()).To(Equal(minReplicas * 2))
+				Expect(mpResponseBody.Autoscaling().MaxReplicas()).To(Equal(maxReplicas * 2))
 
-				By("Disable autoscaling of the machinepool"***REMOVED***
+				By("Disable autoscaling of the machinepool")
 				MachinePoolArgs = &exe.MachinePoolArgs{
 					Token:       token,
 					Cluster:     clusterID,
 					Replicas:    replicas,
 					MachineType: machineType,
 					Name:        name,
-		***REMOVED***
+				}
 
-				err = mpService.Create(MachinePoolArgs***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
 
-				By("Verify the parameters of the updated machinepool"***REMOVED***
-				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-				Expect(mpResponseBody.Autoscaling(***REMOVED******REMOVED***.To(BeNil(***REMOVED******REMOVED***
+				By("Verify the parameters of the updated machinepool")
+				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(mpResponseBody.Autoscaling()).To(BeNil())
 
-	***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-		Context("Author:amalykhi-High-OCP-64904 @ocp-64904 @amalykhi", func(***REMOVED*** {
-			It("Author:amalykhi-High-OCP-64905 Edit second machinepool taints", ci.Day2, ci.High, ci.FeatureMachinepool, func(***REMOVED*** {
-				By("Create additional machinepool with labels"***REMOVED***
+			})
+		})
+		Context("Author:amalykhi-High-OCP-64904 @ocp-64904 @amalykhi", func() {
+			It("Author:amalykhi-High-OCP-64905 Edit second machinepool taints", ci.Day2, ci.High, ci.FeatureMachinepool, func() {
+				By("Create additional machinepool with labels")
 				replicas := 3
 				machineType := "r5.xlarge"
 				name := "ocp-64904"
@@ -187,99 +187,99 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 					MachineType: machineType,
 					Name:        name,
 					Taints:      taints,
-		***REMOVED***
+				}
 
-				err := mpService.Create(MachinePoolArgs***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+				err := mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
 
-				By("Verify the parameters of the created machinepool"***REMOVED***
-				mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-				respTaints := mpResponseBody.Taints(***REMOVED***
+				By("Verify the parameters of the created machinepool")
+				mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				respTaints := mpResponseBody.Taints()
 				for index, taint := range respTaints {
-					Expect(taint.Effect(***REMOVED******REMOVED***.To(Equal(taints[index]["schedule_type"]***REMOVED******REMOVED***
-					Expect(taint.Key(***REMOVED******REMOVED***.To(Equal(taints[index]["key"]***REMOVED******REMOVED***
-					Expect(taint.Value(***REMOVED******REMOVED***.To(Equal(taints[index]["value"]***REMOVED******REMOVED***
-		***REMOVED***
-				By("Edit the existing taint of the machinepool"***REMOVED***
+					Expect(taint.Effect()).To(Equal(taints[index]["schedule_type"]))
+					Expect(taint.Key()).To(Equal(taints[index]["key"]))
+					Expect(taint.Value()).To(Equal(taints[index]["value"]))
+				}
+				By("Edit the existing taint of the machinepool")
 				taint1["key"] = "k2updated"
 				taint1["value"] = "val2updated"
 
-				By("Append new one to the machinepool"***REMOVED***
-				taints = append(taints, taint2***REMOVED***
+				By("Append new one to the machinepool")
+				taints = append(taints, taint2)
 
-				By("Apply the changes to the machinepool"***REMOVED***
-				err = mpService.Create(MachinePoolArgs***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+				By("Apply the changes to the machinepool")
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
 
-				By("Verify the parameters of the updated machinepool"***REMOVED***
-				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-				respTaints = mpResponseBody.Taints(***REMOVED***
+				By("Verify the parameters of the updated machinepool")
+				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				respTaints = mpResponseBody.Taints()
 				for index, taint := range respTaints {
-					Expect(taint.Effect(***REMOVED******REMOVED***.To(Equal(taints[index]["schedule_type"]***REMOVED******REMOVED***
-					Expect(taint.Key(***REMOVED******REMOVED***.To(Equal(taints[index]["key"]***REMOVED******REMOVED***
-					Expect(taint.Value(***REMOVED******REMOVED***.To(Equal(taints[index]["value"]***REMOVED******REMOVED***
-		***REMOVED***
+					Expect(taint.Effect()).To(Equal(taints[index]["schedule_type"]))
+					Expect(taint.Key()).To(Equal(taints[index]["key"]))
+					Expect(taint.Value()).To(Equal(taints[index]["value"]))
+				}
 
-				By("Delete the taints of the machinepool"***REMOVED***
+				By("Delete the taints of the machinepool")
 				MachinePoolArgs.Taints = emptyTaints
-				err = mpService.Create(MachinePoolArgs***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
 
-				By("Verify the parameters of the updated machinepool"***REMOVED***
-				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-				Expect(mpResponseBody.Taints(***REMOVED******REMOVED***.To(BeNil(***REMOVED******REMOVED***
+				By("Verify the parameters of the updated machinepool")
+				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(mpResponseBody.Taints()).To(BeNil())
 
-	***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-		Context("Author:amalykhi-High-OCP-68283 @OCP-68283 @amalykhi", func(***REMOVED*** {
-			It("Author:amalykhi-High-OCP-68283 Check the validations for the machinepool creation rosa clusters", ci.Day2, ci.High, ci.FeatureMachinepool, func(***REMOVED*** {
-				By("Check the validations for the machinepool creation rosa cluster"***REMOVED***
+			})
+		})
+		Context("Author:amalykhi-High-OCP-68283 @OCP-68283 @amalykhi", func() {
+			It("Author:amalykhi-High-OCP-68283 Check the validations for the machinepool creation rosa clusters", ci.Day2, ci.High, ci.FeatureMachinepool, func() {
+				By("Check the validations for the machinepool creation rosa cluster")
 				var (
 					machinepoolName                                                                                                           = "ocp-68283"
 					invalidMachinepoolName                                                                                                    = "%^#@"
 					machineType, InvalidInstanceType                                                                                          = "r5.xlarge", "custom-4-16384"
 					mpReplicas, minReplicas, maxReplicas, invalidMpReplicas, invalidMinReplicas4Mutilcluster, invalidMaxReplicas4Mutilcluster = 3, 3, 6, -3, 4, 7
-				***REMOVED***
-				By("Create machinepool with invalid name"***REMOVED***
+				)
+				By("Create machinepool with invalid name")
 				MachinePoolArgs := &exe.MachinePoolArgs{
 					Token:       token,
 					Cluster:     clusterID,
 					Replicas:    invalidMpReplicas,
 					Name:        invalidMachinepoolName,
 					MachineType: machineType,
-		***REMOVED***
-				err := mpService.Create(MachinePoolArgs***REMOVED***
-				Expect(err***REMOVED***.To(HaveOccurred(***REMOVED******REMOVED***
-				Expect(err.Error(***REMOVED******REMOVED***.Should(ContainSubstring("Expected a valid value for 'name'"***REMOVED******REMOVED***
+				}
+				err := mpService.Create(MachinePoolArgs)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).Should(ContainSubstring("Expected a valid value for 'name'"))
 
-				By("Create machinepool with invalid replica value"***REMOVED***
+				By("Create machinepool with invalid replica value")
 				MachinePoolArgs = &exe.MachinePoolArgs{
 					Token:       token,
 					Cluster:     clusterID,
 					Replicas:    invalidMpReplicas,
 					Name:        machinepoolName,
 					MachineType: machineType,
-		***REMOVED***
-				err = mpService.Create(MachinePoolArgs***REMOVED***
-				Expect(err***REMOVED***.To(HaveOccurred(***REMOVED******REMOVED***
-				Expect(err.Error(***REMOVED******REMOVED***.Should(ContainSubstring("Attribute 'replicas'\nmust be a non-negative integer"***REMOVED******REMOVED***
+				}
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).Should(ContainSubstring("Attribute 'replicas'\nmust be a non-negative integer"))
 
-				By("Create machinepool with invalid instance type"***REMOVED***
+				By("Create machinepool with invalid instance type")
 				MachinePoolArgs = &exe.MachinePoolArgs{
 					Token:       token,
 					Cluster:     clusterID,
 					Replicas:    mpReplicas,
 					Name:        machinepoolName,
 					MachineType: InvalidInstanceType,
-		***REMOVED***
-				err = mpService.Create(MachinePoolArgs***REMOVED***
-				Expect(err***REMOVED***.To(HaveOccurred(***REMOVED******REMOVED***
-				Expect(err.Error(***REMOVED******REMOVED***.Should(ContainSubstring("Machine type\n'%s' is not supported for cloud provider", InvalidInstanceType***REMOVED******REMOVED***
+				}
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).Should(ContainSubstring("Machine type\n'%s' is not supported for cloud provider", InvalidInstanceType))
 
-				By("Create machinepool with setting replicas and enable-autoscaling at the same time"***REMOVED***
+				By("Create machinepool with setting replicas and enable-autoscaling at the same time")
 				MachinePoolArgs = &exe.MachinePoolArgs{
 					Token:              token,
 					Cluster:            clusterID,
@@ -287,12 +287,12 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 					Name:               machinepoolName,
 					AutoscalingEnabled: true,
 					MachineType:        machineType,
-		***REMOVED***
-				err = mpService.Create(MachinePoolArgs***REMOVED***
-				Expect(err***REMOVED***.To(HaveOccurred(***REMOVED******REMOVED***
-				Expect(err.Error(***REMOVED******REMOVED***.Should(ContainSubstring("when\nenabling autoscaling, should set value for maxReplicas"***REMOVED******REMOVED***
+				}
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).Should(ContainSubstring("when\nenabling autoscaling, should set value for maxReplicas"))
 
-				By("Create machinepool with setting min-replicas large than max-replicas"***REMOVED***
+				By("Create machinepool with setting min-replicas large than max-replicas")
 				MachinePoolArgs = &exe.MachinePoolArgs{
 					Token:              token,
 					Cluster:            clusterID,
@@ -301,12 +301,12 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 					Name:               machinepoolName,
 					AutoscalingEnabled: true,
 					MachineType:        machineType,
-		***REMOVED***
-				err = mpService.Create(MachinePoolArgs***REMOVED***
-				Expect(err***REMOVED***.To(HaveOccurred(***REMOVED******REMOVED***
-				Expect(err.Error(***REMOVED******REMOVED***.Should(ContainSubstring("'min_replicas' must be less than or equal to 'max_replicas'"***REMOVED******REMOVED***
+				}
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).Should(ContainSubstring("'min_replicas' must be less than or equal to 'max_replicas'"))
 
-				By("Create machinepool with setting min-replicas and max-replicas but without setting --enable-autoscaling"***REMOVED***
+				By("Create machinepool with setting min-replicas and max-replicas but without setting --enable-autoscaling")
 				MachinePoolArgs = &exe.MachinePoolArgs{
 					Token:       token,
 					Cluster:     clusterID,
@@ -314,15 +314,15 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 					MaxReplicas: maxReplicas,
 					Name:        machinepoolName,
 					MachineType: machineType,
-		***REMOVED***
-				err = mpService.Create(MachinePoolArgs***REMOVED***
-				Expect(err***REMOVED***.To(HaveOccurred(***REMOVED******REMOVED***
-				Expect(err.Error(***REMOVED******REMOVED***.Should(ContainSubstring("when\ndisabling autoscaling, cannot set min_replicas and/or max_replicas"***REMOVED******REMOVED***
+				}
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).Should(ContainSubstring("when\ndisabling autoscaling, cannot set min_replicas and/or max_replicas"))
 
-				By("Create machinepool with setting min-replicas large than max-replicas"***REMOVED***
+				By("Create machinepool with setting min-replicas large than max-replicas")
 
 				if profile.MultiAZ {
-					By("Create machinepool with setting min-replicas and max-replicas not multiple 3 for multi-az"***REMOVED***
+					By("Create machinepool with setting min-replicas and max-replicas not multiple 3 for multi-az")
 					MachinePoolArgs = &exe.MachinePoolArgs{
 						Token:              token,
 						Cluster:            clusterID,
@@ -331,10 +331,10 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 						Name:               machinepoolName,
 						MachineType:        machineType,
 						AutoscalingEnabled: true,
-			***REMOVED***
-					err = mpService.Create(MachinePoolArgs***REMOVED***
-					Expect(err***REMOVED***.To(HaveOccurred(***REMOVED******REMOVED***
-					Expect(err.Error(***REMOVED******REMOVED***.Should(ContainSubstring("Multi AZ clusters require that the number of replicas be a\nmultiple of 3"***REMOVED******REMOVED***
+					}
+					err = mpService.Create(MachinePoolArgs)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).Should(ContainSubstring("Multi AZ clusters require that the number of replicas be a\nmultiple of 3"))
 
 					MachinePoolArgs = &exe.MachinePoolArgs{
 						Token:              token,
@@ -344,24 +344,24 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 						Name:               machinepoolName,
 						MachineType:        machineType,
 						AutoscalingEnabled: true,
-			***REMOVED***
-					err = mpService.Create(MachinePoolArgs***REMOVED***
-					Expect(err***REMOVED***.To(HaveOccurred(***REMOVED******REMOVED***
-					Expect(err.Error(***REMOVED******REMOVED***.Should(ContainSubstring("Multi AZ clusters require that the number of replicas be a\nmultiple of 3"***REMOVED******REMOVED***
+					}
+					err = mpService.Create(MachinePoolArgs)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).Should(ContainSubstring("Multi AZ clusters require that the number of replicas be a\nmultiple of 3"))
 
-		***REMOVED***
+				}
 
-	***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-		Context("Author:amalykhi-High-OCP-65063 @OCP-65063 @amalykhi", func(***REMOVED*** {
-			It("Author:amalykhi-High-OCP-65063 Create single-az machinepool for multi-az cluster", ci.Day2, ci.High, ci.FeatureMachinepool, func(***REMOVED*** {
+			})
+		})
+		Context("Author:amalykhi-High-OCP-65063 @OCP-65063 @amalykhi", func() {
+			It("Author:amalykhi-High-OCP-65063 Create single-az machinepool for multi-az cluster", ci.Day2, ci.High, ci.FeatureMachinepool, func() {
 				if !profile.MultiAZ {
-					Skip("The test is configured for MultiAZ cluster only"***REMOVED***
-		***REMOVED***
-				getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-				azs := getResp.Body(***REMOVED***.Nodes(***REMOVED***.AvailabilityZones(***REMOVED***
-				By("Create additional machinepool with availability zone specified"***REMOVED***
+					Skip("The test is configured for MultiAZ cluster only")
+				}
+				getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+				Expect(err).ToNot(HaveOccurred())
+				azs := getResp.Body().Nodes().AvailabilityZones()
+				By("Create additional machinepool with availability zone specified")
 				replicas := 1
 				machineType := "r5.xlarge"
 				name := "ocp-65063"
@@ -372,21 +372,21 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 					MachineType:      machineType,
 					Name:             name,
 					AvailabilityZone: azs[0],
-		***REMOVED***
+				}
 
-				err = mpService.Create(MachinePoolArgs***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
 
-				By("Verify the parameters of the created machinepool"***REMOVED***
-				mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-				Expect(mpResponseBody.AvailabilityZones(***REMOVED***[0]***REMOVED***.To(Equal(azs[0]***REMOVED******REMOVED***
+				By("Verify the parameters of the created machinepool")
+				mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(mpResponseBody.AvailabilityZones()[0]).To(Equal(azs[0]))
 
-				err = mpService.Destroy(***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+				err = mpService.Destroy()
+				Expect(err).ToNot(HaveOccurred())
 
-				By("Create additional machinepool with availability zone specified"***REMOVED***
-				awsSubnetIds := getResp.Body(***REMOVED***.AWS(***REMOVED***.SubnetIDs(***REMOVED***
+				By("Create additional machinepool with subnet id specified")
+				awsSubnetIds := getResp.Body().AWS().SubnetIDs()
 				MachinePoolArgs = &exe.MachinePoolArgs{
 					Token:       token,
 					Cluster:     clusterID,
@@ -394,20 +394,20 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 					MachineType: machineType,
 					Name:        name,
 					SubnetID:    awsSubnetIds[0],
-		***REMOVED***
+				}
 
-				err = mpService.Create(MachinePoolArgs***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
 
-				By("Verify the parameters of the created machinepool"***REMOVED***
-				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-				Expect(mpResponseBody.Subnets(***REMOVED***[0]***REMOVED***.To(Equal(awsSubnetIds[0]***REMOVED******REMOVED***
+				By("Verify the parameters of the created machinepool")
+				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(mpResponseBody.Subnets()[0]).To(Equal(awsSubnetIds[0]))
 
-				err = mpService.Destroy(***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+				err = mpService.Destroy()
+				Expect(err).ToNot(HaveOccurred())
 
-				By("Create additional machinepool with multi_availability_zone=false specified"***REMOVED***
+				By("Create additional machinepool with multi_availability_zone=false specified")
 				MachinePoolArgs = &exe.MachinePoolArgs{
 					Token:            token,
 					Cluster:          clusterID,
@@ -416,16 +416,15 @@ var _ = Describe("TF Test", func(***REMOVED*** {
 					Name:             name,
 					MultiAZ:          false,
 					AvailabilityZone: azs[1],
-		***REMOVED***
+				}
 
-				err = mpService.Create(MachinePoolArgs***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-				By("Verify the parameters of the created machinepool"***REMOVED***
-				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-				Expect(len(mpResponseBody.AvailabilityZones(***REMOVED******REMOVED******REMOVED***.To(Equal(1***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-
-	}***REMOVED***
-}***REMOVED***
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
+				By("Verify the parameters of the created machinepool")
+				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(mpResponseBody.AvailabilityZones())).To(Equal(1))
+			})
+		})
+	})
+})

@@ -1,7 +1,7 @@
 #
-# Copyright (c***REMOVED*** 2023 Red Hat, Inc.
+# Copyright (c) 2023 Red Hat, Inc.
 #
-# Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+# Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
@@ -51,18 +51,18 @@ module "oidc_config_input_resources" {
 
   create_oidc_config_resources = true
 
-  bucket_name             = one(rhcs_rosa_oidc_config_input.oidc_input[*].bucket_name***REMOVED***
-  discovery_doc           = one(rhcs_rosa_oidc_config_input.oidc_input[*].discovery_doc***REMOVED***
-  jwks                    = one(rhcs_rosa_oidc_config_input.oidc_input[*].jwks***REMOVED***
-  private_key             = one(rhcs_rosa_oidc_config_input.oidc_input[*].private_key***REMOVED***
-  private_key_file_name   = one(rhcs_rosa_oidc_config_input.oidc_input[*].private_key_file_name***REMOVED***
-  private_key_secret_name = one(rhcs_rosa_oidc_config_input.oidc_input[*].private_key_secret_name***REMOVED***
+  bucket_name             = one(rhcs_rosa_oidc_config_input.oidc_input[*].bucket_name)
+  discovery_doc           = one(rhcs_rosa_oidc_config_input.oidc_input[*].discovery_doc)
+  jwks                    = one(rhcs_rosa_oidc_config_input.oidc_input[*].jwks)
+  private_key             = one(rhcs_rosa_oidc_config_input.oidc_input[*].private_key)
+  private_key_file_name   = one(rhcs_rosa_oidc_config_input.oidc_input[*].private_key_file_name)
+  private_key_secret_name = one(rhcs_rosa_oidc_config_input.oidc_input[*].private_key_secret_name)
 }
 
 resource "rhcs_rosa_oidc_config" "oidc_config" {
   managed            = var.managed
-  secret_arn         = one(module.oidc_config_input_resources[*].secret_arn***REMOVED***
-  issuer_url         = one(rhcs_rosa_oidc_config_input.oidc_input[*].issuer_url***REMOVED***
+  secret_arn         = one(module.oidc_config_input_resources[*].secret_arn)
+  issuer_url         = one(rhcs_rosa_oidc_config_input.oidc_input[*].issuer_url)
   installer_role_arn = var.installer_role_arn
 }
 

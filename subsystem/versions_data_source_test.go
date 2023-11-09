@@ -1,7 +1,7 @@
 /*
-Copyright (c***REMOVED*** 2021 Red Hat, Inc.
+Copyright (c) 2021 Red Hat, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -16,22 +16,22 @@ limitations under the License.
 
 package provider
 
-***REMOVED***
-***REMOVED***
+import (
+	"net/http"
 
 	. "github.com/onsi/ginkgo/v2/dsl/core"             // nolint
-***REMOVED***                         // nolint
+	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
-***REMOVED***
+)
 
-var _ = Describe("Versions data source", func(***REMOVED*** {
-	It("Can list versions", func(***REMOVED*** {
+var _ = Describe("Versions data source", func() {
+	It("Can list versions", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-				VerifyFormKV("search", "enabled = 't'"***REMOVED***,
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+				VerifyFormKV("search", "enabled = 't'"),
 				RespondWithJSON(http.StatusOK, `{
 				  "page": 1,
 				  "size": 2,
@@ -46,33 +46,33 @@ var _ = Describe("Versions data source", func(***REMOVED*** {
 				      "raw_id": "4.8.2"
 				    }
 				  ]
-		***REMOVED***`***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				}`),
+			),
+		)
 
 		// Run the apply command:
 		terraform.Source(`
 		  data "rhcs_versions" "my_versions" {
 		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_versions", "my_versions"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items | length`, 2***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].id`, "openshift-v4.8.1"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].name`, "4.8.1"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].id`, "openshift-v4.8.2"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].name`, "4.8.2"***REMOVED******REMOVED***
-	}***REMOVED***
+		resource := terraform.Resource("rhcs_versions", "my_versions")
+		Expect(resource).To(MatchJQ(`.attributes.items | length`, 2))
+		Expect(resource).To(MatchJQ(`.attributes.items[0].id`, "openshift-v4.8.1"))
+		Expect(resource).To(MatchJQ(`.attributes.items[0].name`, "4.8.1"))
+		Expect(resource).To(MatchJQ(`.attributes.items[1].id`, "openshift-v4.8.2"))
+		Expect(resource).To(MatchJQ(`.attributes.items[1].name`, "4.8.2"))
+	})
 
-	It("Can search versions", func(***REMOVED*** {
+	It("Can search versions", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-				VerifyFormKV("search", "enabled = 't' and channel_group = 'fast'"***REMOVED***,
-				VerifyFormKV("order", "raw_id desc"***REMOVED***,
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+				VerifyFormKV("search", "enabled = 't' and channel_group = 'fast'"),
+				VerifyFormKV("order", "raw_id desc"),
 				RespondWithJSON(http.StatusOK, `{
 				  "page": 1,
 				  "size": 2,
@@ -87,9 +87,9 @@ var _ = Describe("Versions data source", func(***REMOVED*** {
 				      "raw_id": "4.8.2"
 				    }
 				  ]
-		***REMOVED***`***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				}`),
+			),
+		)
 
 		// Run the apply command:
 		terraform.Source(`
@@ -97,23 +97,23 @@ var _ = Describe("Versions data source", func(***REMOVED*** {
 		    search = "enabled = 't' and channel_group = 'fast'"
 		    order  = "raw_id desc"
 		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_versions", "my_versions"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items | length`, 2***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].id`, "openshift-v4.8.1-fast"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[0].name`, "4.8.1"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].id`, "openshift-v4.8.2-fast"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.items[1].name`, "4.8.2"***REMOVED******REMOVED***
-	}***REMOVED***
+		resource := terraform.Resource("rhcs_versions", "my_versions")
+		Expect(resource).To(MatchJQ(`.attributes.items | length`, 2))
+		Expect(resource).To(MatchJQ(`.attributes.items[0].id`, "openshift-v4.8.1-fast"))
+		Expect(resource).To(MatchJQ(`.attributes.items[0].name`, "4.8.1"))
+		Expect(resource).To(MatchJQ(`.attributes.items[1].id`, "openshift-v4.8.2-fast"))
+		Expect(resource).To(MatchJQ(`.attributes.items[1].name`, "4.8.2"))
+	})
 
-	It("Populates `item` if there is exactly one result", func(***REMOVED*** {
+	It("Populates `item` if there is exactly one result", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 				RespondWithJSON(http.StatusOK, `{
 				  "page": 1,
 				  "size": 1,
@@ -124,54 +124,54 @@ var _ = Describe("Versions data source", func(***REMOVED*** {
 				      "raw_id": "4.8.1"
 				    }
 				  ]
-		***REMOVED***`***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				}`),
+			),
+		)
 
 		// Run the apply command:
 		terraform.Source(`
 		  data "rhcs_versions" "my_versions" {
 		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_versions", "my_versions"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item.id`, "openshift-v4.8.1"***REMOVED******REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item.name`, "4.8.1"***REMOVED******REMOVED***
-	}***REMOVED***
+		resource := terraform.Resource("rhcs_versions", "my_versions")
+		Expect(resource).To(MatchJQ(`.attributes.item.id`, "openshift-v4.8.1"))
+		Expect(resource).To(MatchJQ(`.attributes.item.name`, "4.8.1"))
+	})
 
-	It("Doesn't populate `item` if there are zero results", func(***REMOVED*** {
+	It("Doesn't populate `item` if there are zero results", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 				RespondWithJSON(http.StatusOK, `{
 				  "page": 1,
 				  "size": 0,
 				  "total": 0,
 				  "items": []
-		***REMOVED***`***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				}`),
+			),
+		)
 
 		// Run the apply command:
 		terraform.Source(`
 		  data "rhcs_versions" "my_versions" {
 		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_versions", "my_versions"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item`, nil***REMOVED******REMOVED***
-	}***REMOVED***
+		resource := terraform.Resource("rhcs_versions", "my_versions")
+		Expect(resource).To(MatchJQ(`.attributes.item`, nil))
+	})
 
-	It("Doesn't populate `item` if there are multiple results", func(***REMOVED*** {
+	It("Doesn't populate `item` if there are multiple results", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 				RespondWithJSON(http.StatusOK, `{
 				  "page": 1,
 				  "size": 2,
@@ -186,19 +186,19 @@ var _ = Describe("Versions data source", func(***REMOVED*** {
 				      "raw_id": "4.8.2"
 				    }
 				  ]
-		***REMOVED***`***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				}`),
+			),
+		)
 
 		// Run the apply command:
 		terraform.Source(`
 		  data "rhcs_versions" "my_versions" {
 		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_versions", "my_versions"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.item`, nil***REMOVED******REMOVED***
-	}***REMOVED***
-}***REMOVED***
+		resource := terraform.Resource("rhcs_versions", "my_versions")
+		Expect(resource).To(MatchJQ(`.attributes.item`, nil))
+	})
+})

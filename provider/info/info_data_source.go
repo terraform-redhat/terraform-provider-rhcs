@@ -1,7 +1,7 @@
 /*
-Copyright (c***REMOVED*** 2021 Red Hat, Inc.
+Copyright (c) 2021 Red Hat, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -15,9 +15,9 @@ limitations under the License.
 */
 package info
 
-***REMOVED***
+import (
 	"context"
-***REMOVED***
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -25,7 +25,7 @@ package info
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
-***REMOVED***
+)
 
 type OCMInfoDataSource struct {
 	collection      *cmv1.CurrentAccountClient
@@ -36,114 +36,114 @@ type OCMInfoDataSource struct {
 var _ datasource.DataSource = &OCMInfoDataSource{}
 var _ datasource.DataSourceWithConfigure = &OCMInfoDataSource{}
 
-func New(***REMOVED*** datasource.DataSource {
+func New() datasource.DataSource {
 	return &OCMInfoDataSource{}
 }
 
-func (d *OCMInfoDataSource***REMOVED*** Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse***REMOVED*** {
+func (d *OCMInfoDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_info"
 }
 
-func (d *OCMInfoDataSource***REMOVED*** Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse***REMOVED*** {
+func (d *OCMInfoDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "",
 		Attributes: map[string]schema.Attribute{
 			"account_id": schema.StringAttribute{
 				Description: "OCM user account ID",
 				Computed:    true,
-	***REMOVED***,
+			},
 			"account_name": schema.StringAttribute{
 				Description: "OCM account User full name",
 				Computed:    true,
-	***REMOVED***,
+			},
 			"account_username": schema.StringAttribute{
 				Description: "OCM account username",
 				Computed:    true,
-	***REMOVED***,
+			},
 			"account_email": schema.StringAttribute{
 				Description: "OCM account email",
 				Computed:    true,
-	***REMOVED***,
+			},
 			"organization_id": schema.StringAttribute{
 				Description: "OCM account organization id",
 				Computed:    true,
-	***REMOVED***,
+			},
 			"organization_external_id": schema.StringAttribute{
 				Description: "OCM account organization external id",
 				Computed:    true,
-	***REMOVED***,
+			},
 			"organization_name": schema.StringAttribute{
 				Description: "OCM account organization name",
 				Computed:    true,
-	***REMOVED***,
+			},
 			"ocm_api": schema.StringAttribute{
 				Description: "OCM API url",
 				Computed:    true,
-	***REMOVED***,
+			},
 			"ocm_aws_account_id": schema.StringAttribute{
 				Description: "OCM AWS account ID",
 				Computed:    true,
-	***REMOVED***,
-***REMOVED***,
+			},
+		},
 	}
 }
 
-func (d *OCMInfoDataSource***REMOVED*** Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse***REMOVED*** {
+func (d *OCMInfoDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured:
 	if req.ProviderData == nil {
 		return
 	}
 
 	// Cast the provider data to the specific implementation:
-	connection := req.ProviderData.(*sdk.Connection***REMOVED***
+	connection := req.ProviderData.(*sdk.Connection)
 
 	// Get the collection of cloud providers:
-	d.collection = connection.AccountsMgmt(***REMOVED***.V1(***REMOVED***.CurrentAccount(***REMOVED***
-	d.ocmAPI = connection.URL(***REMOVED***
+	d.collection = connection.AccountsMgmt().V1().CurrentAccount()
+	d.ocmAPI = connection.URL()
 
 }
 
-func (d *OCMInfoDataSource***REMOVED*** Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse***REMOVED*** {
+func (d *OCMInfoDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	// Get the state:
 	state := &OCMInfoState{}
-	diags := req.Config.Get(ctx, state***REMOVED***
-	resp.Diagnostics.Append(diags...***REMOVED***
-	if resp.Diagnostics.HasError(***REMOVED*** {
+	diags := req.Config.Get(ctx, state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 	// Get account information
-	accountResp, err := d.collection.Get(***REMOVED***.Send(***REMOVED***
+	accountResp, err := d.collection.Get().Send()
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to connect to OCM", "Please verify your OCM offline token"***REMOVED***
+		resp.Diagnostics.AddError("Failed to connect to OCM", "Please verify your OCM offline token")
 		return
 	}
-	obj, ok := accountResp.GetBody(***REMOVED***
+	obj, ok := accountResp.GetBody()
 	if !ok {
-		resp.Diagnostics.AddError("Parsing Error", "Failed to parse OCM response"***REMOVED***
+		resp.Diagnostics.AddError("Parsing Error", "Failed to parse OCM response")
 		return
 	}
 
-	state.AccountID = types.StringValue(obj.ID(***REMOVED******REMOVED***
-	state.AccountName = types.StringValue(fmt.Sprintf("%s %s", obj.FirstName(***REMOVED***, obj.LastName(***REMOVED******REMOVED******REMOVED***
-	state.AccountUsername = types.StringValue(obj.Username(***REMOVED******REMOVED***
-	state.AccountEmail = types.StringValue(obj.Email(***REMOVED******REMOVED***
-	state.OrganizationID = types.StringValue(obj.Organization(***REMOVED***.ID(***REMOVED******REMOVED***
-	state.OrganizationExternalID = types.StringValue(obj.Organization(***REMOVED***.ExternalID(***REMOVED******REMOVED***
-	state.OrganizationName = types.StringValue(obj.Organization(***REMOVED***.Name(***REMOVED******REMOVED***
+	state.AccountID = types.StringValue(obj.ID())
+	state.AccountName = types.StringValue(fmt.Sprintf("%s %s", obj.FirstName(), obj.LastName()))
+	state.AccountUsername = types.StringValue(obj.Username())
+	state.AccountEmail = types.StringValue(obj.Email())
+	state.OrganizationID = types.StringValue(obj.Organization().ID())
+	state.OrganizationExternalID = types.StringValue(obj.Organization().ExternalID())
+	state.OrganizationName = types.StringValue(obj.Organization().Name())
 
-	state.OCMAPI = types.StringValue(d.ocmAPI***REMOVED***
-	state.OCMAWSAccountID = types.StringValue(extractOCMAWSAccount(d.ocmAPI***REMOVED******REMOVED***
+	state.OCMAPI = types.StringValue(d.ocmAPI)
+	state.OCMAWSAccountID = types.StringValue(extractOCMAWSAccount(d.ocmAPI))
 
 	// Save the state:
-	diags = resp.State.Set(ctx, state***REMOVED***
-	resp.Diagnostics.Append(diags...***REMOVED***
+	diags = resp.State.Set(ctx, state)
+	resp.Diagnostics.Append(diags...)
 }
 
-func extractOCMAWSAccount(url string***REMOVED*** string {
+func extractOCMAWSAccount(url string) string {
 	env := ocmEnvProd
-	if strings.Contains(url, "stage"***REMOVED*** {
+	if strings.Contains(url, "stage") {
 		env = ocmEnvStage
-	} else if strings.Contains(url, "integration"***REMOVED*** {
+	} else if strings.Contains(url, "integration") {
 		env = ocmEnvInt
 	}
 

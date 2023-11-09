@@ -6,7 +6,7 @@ description: |-
   List of cloud providers.
 ---
 
-# rhcs_cloud_providers (Data Source***REMOVED***
+# rhcs_cloud_providers (Data Source)
 
 List of cloud providers.
 
@@ -17,22 +17,22 @@ List of cloud providers.
 
 ### Optional
 
-- `order` (String***REMOVED*** Order criteria.
-- `search` (String***REMOVED*** Search criteria.
+- `order` (String) Order criteria.
+- `search` (String) Search criteria.
 
 ### Read-Only
 
-- `item` (Attributes***REMOVED*** Content of the list when there is exactly one item. (see [below for nested schema](#nestedatt--item***REMOVED******REMOVED***
-- `items` (Attributes List***REMOVED*** Content of the list. (see [below for nested schema](#nestedatt--items***REMOVED******REMOVED***
+- `item` (Attributes) Content of the list when there is exactly one item. (see [below for nested schema](#nestedatt--item))
+- `items` (Attributes List) Content of the list. (see [below for nested schema](#nestedatt--items))
 
 <a id="nestedatt--item"></a>
 ### Nested Schema for `item`
 
 Read-Only:
 
-- `display_name` (String***REMOVED*** Human friendly name of the cloud provider, for example 'AWS' or 'GCP'
-- `id` (String***REMOVED*** Unique identifier of the cloud provider. This is what should be used when referencing the cloud provider from other places, for example in the 'cloud_provider' attribute of the cluster resource.
-- `name` (String***REMOVED*** Short name of the cloud provider, for example 'aws' or 'gcp'.
+- `display_name` (String) Human friendly name of the cloud provider, for example 'AWS' or 'GCP'
+- `id` (String) Unique identifier of the cloud provider. This is what should be used when referencing the cloud provider from other places, for example in the 'cloud_provider' attribute of the cluster resource.
+- `name` (String) Short name of the cloud provider, for example 'aws' or 'gcp'.
 
 
 <a id="nestedatt--items"></a>
@@ -40,6 +40,6 @@ Read-Only:
 
 Read-Only:
 
-- `display_name` (String***REMOVED*** Human friendly name of the cloud provider, for example 'AWS' or 'GCP'
-- `id` (String***REMOVED*** Unique identifier of the cloud provider. This is what should be used when referencing the cloud provider from other places, for example in the 'cloud_provider' attribute of the cluster resource.
-- `name` (String***REMOVED*** Short name of the cloud provider, for example 'aws' or 'gcp'.
+- `display_name` (String) Human friendly name of the cloud provider, for example 'AWS' or 'GCP'
+- `id` (String) Unique identifier of the cloud provider. This is what should be used when referencing the cloud provider from other places, for example in the 'cloud_provider' attribute of the cluster resource.
+- `name` (String) Short name of the cloud provider, for example 'aws' or 'gcp'.

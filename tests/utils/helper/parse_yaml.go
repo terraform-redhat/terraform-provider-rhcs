@@ -1,11 +1,11 @@
 package helper
 
-***REMOVED***
+import (
 	"io/ioutil"
 	"log"
 
 	"gopkg.in/yaml.v3"
-***REMOVED***
+)
 
 type profiles struct {
 	Profiles []*profile `yaml:"profiles,omitempty"`
@@ -15,19 +15,19 @@ type profile struct {
 	Cluster map[string]interface{} `yaml:"cluster,omitempty"`
 }
 
-func ParseProfiles(fileName string***REMOVED*** map[string]*profile {
-	yfile, err := ioutil.ReadFile(fileName***REMOVED***
+func ParseProfiles(fileName string) map[string]*profile {
+	yfile, err := ioutil.ReadFile(fileName)
 	if err != nil {
-		log.Fatal(err***REMOVED***
+		log.Fatal(err)
 	}
 
-	p := new(profiles***REMOVED***
-	err = yaml.Unmarshal(yfile, &p***REMOVED***
+	p := new(profiles)
+	err = yaml.Unmarshal(yfile, &p)
 	if err != nil {
-		log.Fatal(err***REMOVED***
+		log.Fatal(err)
 	}
 
-	profileMap := make(map[string]*profile***REMOVED***
+	profileMap := make(map[string]*profile)
 	for _, theProfile := range p.Profiles {
 		profileMap[theProfile.Name] = theProfile
 	}
@@ -35,10 +35,10 @@ func ParseProfiles(fileName string***REMOVED*** map[string]*profile {
 	return profileMap
 }
 
-func GetProfile(profileName string, fileName string***REMOVED*** *profile {
-	profileMap := ParseProfiles(fileName***REMOVED***
+func GetProfile(profileName string, fileName string) *profile {
+	profileMap := ParseProfiles(fileName)
 	if _, exist := profileMap[profileName]; !exist {
-		log.Fatalf("Can not find the profile %s in %s\n", profileName, fileName***REMOVED***
+		log.Fatalf("Can not find the profile %s in %s\n", profileName, fileName)
 	}
 
 	return profileMap[profileName]

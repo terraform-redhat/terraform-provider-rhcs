@@ -36,7 +36,7 @@ module "create_account_roles" {
 
   account_role_prefix    = var.account_role_prefix
   ocm_environment        = var.ocm_environment
-  rosa_openshift_version = "${split(".", var.openshift_version***REMOVED***[0]}.${split(".", var.openshift_version***REMOVED***[1]}"
+  rosa_openshift_version = "${split(".", var.openshift_version)[0]}.${split(".", var.openshift_version)[1]}"
   account_role_policies  = data.rhcs_policies.all_policies.account_role_policies
   operator_role_policies = data.rhcs_policies.all_policies.operator_role_policies
   all_versions           = data.rhcs_versions.all

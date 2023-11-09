@@ -2,7 +2,7 @@ variable vpc_cidr{
     type=string
     default = "10.0.0.0/16"
     validation {
-      condition     = contains(["10.0.0.0/16", "11.0.0.0/16", "12.0.0.0/16"], var.vpc_cidr***REMOVED***
+      condition     = contains(["10.0.0.0/16", "11.0.0.0/16", "12.0.0.0/16"], var.vpc_cidr)
       error_message = "VPC CIDR limited to: 10.0.0.0/16 11.0.0.0/16 12.0.0.0/16"
     }
     
@@ -17,17 +17,17 @@ variable "aws_region" {
 }
 
 variable "az_ids" {
-  type = list(string***REMOVED***
+  type = list(string)
   default = null
 }
 
 # variable "az_ids" {
 #   type        = object({
-#     eu-west-1 = list(string***REMOVED***
-#     us-east-1 = list(string***REMOVED***
-#     us-east-2 = list(string***REMOVED***
-#     us-west-2 = list(string***REMOVED***
-#   }***REMOVED***
+#     eu-west-1 = list(string)
+#     us-east-1 = list(string)
+#     us-east-2 = list(string)
+#     us-west-2 = list(string)
+#   })
 #   description = "A list of region-mapped AZ IDs that a subnet should get deployed into"
 #   default     = {
 #     eu-central-1 = ["eu-central-1a", "eu-central-1b","eu-central-1c"]

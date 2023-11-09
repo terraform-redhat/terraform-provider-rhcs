@@ -1,12 +1,12 @@
 package exec
 
-***REMOVED***
+import (
 	"context"
-***REMOVED***
+	"fmt"
 
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-***REMOVED***
-***REMOVED***
+	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+)
 
 type MachinePoolArgs struct {
 	Cluster            string              `json:"cluster,omitempty"`
@@ -44,14 +44,14 @@ type MachinePoolOutput struct {
 	Labels             map[string]string `json:"labels,omitempty"`
 }
 
-func (mp *MachinePoolService***REMOVED*** Init(manifestDirs ...string***REMOVED*** error {
+func (mp *MachinePoolService) Init(manifestDirs ...string) error {
 	mp.ManifestDir = CON.AWSVPCDir
-	if len(manifestDirs***REMOVED*** != 0 {
+	if len(manifestDirs) != 0 {
 		mp.ManifestDir = manifestDirs[0]
 	}
-	ctx := context.TODO(***REMOVED***
+	ctx := context.TODO()
 	mp.Context = ctx
-	err := runTerraformInit(ctx, mp.ManifestDir***REMOVED***
+	err := runTerraformInit(ctx, mp.ManifestDir)
 	if err != nil {
 		return err
 	}
@@ -59,34 +59,34 @@ func (mp *MachinePoolService***REMOVED*** Init(manifestDirs ...string***REMOVED*
 
 }
 
-func (mp *MachinePoolService***REMOVED*** Create(createArgs *MachinePoolArgs, extraArgs ...string***REMOVED*** error {
+func (mp *MachinePoolService) Create(createArgs *MachinePoolArgs, extraArgs ...string) error {
 	createArgs.URL = CON.GateWayURL
 	mp.CreationArgs = createArgs
-	args := combineStructArgs(createArgs, extraArgs...***REMOVED***
-	_, err := runTerraformApplyWithArgs(mp.Context, mp.ManifestDir, args***REMOVED***
+	args := combineStructArgs(createArgs, extraArgs...)
+	_, err := runTerraformApplyWithArgs(mp.Context, mp.ManifestDir, args)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (mp *MachinePoolService***REMOVED*** Output(***REMOVED*** (MachinePoolOutput, error***REMOVED*** {
+func (mp *MachinePoolService) Output() (MachinePoolOutput, error) {
 	mpDir := CON.MachinePoolDir
 	if mp.ManifestDir != "" {
 		mpDir = mp.ManifestDir
 	}
 	var output MachinePoolOutput
-	out, err := runTerraformOutput(context.TODO(***REMOVED***, mpDir***REMOVED***
+	out, err := runTerraformOutput(context.TODO(), mpDir)
 	if err != nil {
 		return output, err
 	}
 	if err != nil {
 		return output, err
 	}
-	replicas := h.DigInt(out["replicas"], "value"***REMOVED***
-	machine_type := h.DigString(out["machine_type"], "value"***REMOVED***
-	name := h.DigString(out["name"], "value"***REMOVED***
-	autoscaling_enabled := h.DigBool(out["autoscaling_enabled"]***REMOVED***
+	replicas := h.DigInt(out["replicas"], "value")
+	machine_type := h.DigString(out["machine_type"], "value")
+	name := h.DigString(out["name"], "value")
+	autoscaling_enabled := h.DigBool(out["autoscaling_enabled"])
 	output = MachinePoolOutput{
 		Replicas:           replicas,
 		MachineType:        machine_type,
@@ -96,23 +96,23 @@ func (mp *MachinePoolService***REMOVED*** Output(***REMOVED*** (MachinePoolOutpu
 	return output, nil
 }
 
-func (mp *MachinePoolService***REMOVED*** Destroy(createArgs ...*MachinePoolArgs***REMOVED*** error {
-	if mp.CreationArgs == nil && len(createArgs***REMOVED*** == 0 {
-		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter"***REMOVED***
+func (mp *MachinePoolService) Destroy(createArgs ...*MachinePoolArgs) error {
+	if mp.CreationArgs == nil && len(createArgs) == 0 {
+		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
 	}
 	destroyArgs := mp.CreationArgs
-	if len(createArgs***REMOVED*** != 0 {
+	if len(createArgs) != 0 {
 		destroyArgs = createArgs[0]
 	}
 	destroyArgs.URL = CON.GateWayURL
-	args := combineStructArgs(destroyArgs***REMOVED***
-	err := runTerraformDestroyWithArgs(mp.Context, mp.ManifestDir, args***REMOVED***
+	args := combineStructArgs(destroyArgs)
+	err := runTerraformDestroyWithArgs(mp.Context, mp.ManifestDir, args)
 
 	return err
 }
 
-func NewMachinePoolService(manifestDir ...string***REMOVED*** *MachinePoolService {
+func NewMachinePoolService(manifestDir ...string) *MachinePoolService {
 	mp := &MachinePoolService{}
-	mp.Init(manifestDir...***REMOVED***
+	mp.Init(manifestDir...)
 	return mp
 }

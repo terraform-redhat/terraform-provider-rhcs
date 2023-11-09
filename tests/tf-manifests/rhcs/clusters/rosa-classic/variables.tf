@@ -29,7 +29,7 @@ variable "hosted_cp" {
 }
 
 variable "aws_availability_zones" {
-  type    = list(string***REMOVED***
+  type    = list(string)
   default = null
 }
 
@@ -61,9 +61,9 @@ variable "product" {
 variable "autoscaling" {
   type = object({
     autoscaling_enabled = bool
-    min_replicas        = optional(number***REMOVED***
-    max_replicas        = optional(number***REMOVED***
-  }***REMOVED***
+    min_replicas        = optional(number)
+    max_replicas        = optional(number)
+  })
   default = {
     autoscaling_enabled = false
   }
@@ -86,7 +86,7 @@ variable "private" {
 
 
 variable "aws_subnet_ids" {
-  type    = list(string***REMOVED***
+  type    = list(string)
   default = null
 }
 
@@ -96,7 +96,7 @@ variable "compute_machine_type" {
 }
 
 variable "default_mp_labels" {
-  type    = map(string***REMOVED***
+  type    = map(string)
   default = null
 }
 
@@ -145,7 +145,7 @@ variable "pod_cidr" {
 }
 
 variable "properties" {
-  type    = map(string***REMOVED***
+  type    = map(string)
   default = null
 }
 
@@ -153,14 +153,14 @@ variable "proxy" {
   type = object({
     http_proxy              = string
     https_proxy             = string
-    additional_trust_bundle = optional(string***REMOVED***
-    no_proxy                = optional(string***REMOVED***
-  }***REMOVED***
+    additional_trust_bundle = optional(string)
+    no_proxy                = optional(string)
+  })
   default = null
 }
 
 variable "tags" {
-  type    = map(string***REMOVED***
+  type    = map(string)
   default = null
 }
 

@@ -1,7 +1,7 @@
 /*
-Copyright (c***REMOVED*** 2021 Red Hat, Inc.
+Copyright (c) 2021 Red Hat, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -16,16 +16,16 @@ limitations under the License.
 
 package provider
 
-***REMOVED***
+import (
 	"encoding/json"
-***REMOVED***
+	"net/http"
 
 	. "github.com/onsi/ginkgo/v2/dsl/core"             // nolint
-***REMOVED***                         // nolint
+	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
-***REMOVED***
+)
 
 const versionListPage1 = `{
 	"kind": "VersionList",
@@ -37,17 +37,17 @@ const versionListPage1 = `{
 			"id": "openshift-v4.10.1",
 			"href": "/api/clusters_mgmt/v1/versions/openshift-v4.10.1",
 			"raw_id": "4.10.1"
-***REMOVED***,
+		},
 		{
 			"kind": "Version",
 			"id": "openshift-v4.10.1",
 			"href": "/api/clusters_mgmt/v1/versions/openshift-v4.11.1",
 			"raw_id": "4.11.1"
-***REMOVED***
+		}
 	]
 }`
 
-var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
+var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 	// This is the cluster that will be returned by the server when asked to create or retrieve
 	// a cluster.
 	template := `{
@@ -128,8 +128,8 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
       }
 	}`
 
-	Context("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
-		It("invalid az for region", func(***REMOVED*** {
+	Context("rhcs_cluster_rosa_classic - create", func() {
+		It("invalid az for region", func() {
 			terraform.Source(`
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			  name           = "my-cluster"
@@ -145,12 +145,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				  }
 			  }
 			  version = "openshift-v4.11.1"
-	***REMOVED***
-		  `***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+			}
+		  `)
+			Expect(terraform.Apply()).NotTo(BeZero())
+		})
 
-		It("version with unsupported prefix error", func(***REMOVED*** {
+		It("version with unsupported prefix error", func() {
 			terraform.Source(`
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			  name           = "my-cluster"
@@ -167,21 +167,21 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				  }
 			  }
 			  version = "4.11.1"
-	***REMOVED***
-		  `***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+			}
+		  `)
+			Expect(terraform.Apply()).NotTo(BeZero())
+		})
 
-		Context("Test channel groups", func(***REMOVED*** {
-			It("doesn't append the channel group when on the default channel", func(***REMOVED*** {
+		Context("Test channel groups", func() {
+			It("doesn't append the channel group when on the default channel", func() {
 				server.AppendHandlers(
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-						RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-					***REMOVED***,
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage1),
+					),
 					CombineHandlers(
-						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-						VerifyJQ(`.version.id`, "openshift-v4.11.1"***REMOVED***,
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						VerifyJQ(`.version.id`, "openshift-v4.11.1"),
 						RespondWithPatchedJSON(http.StatusCreated, template, `[
 						{
 						  "op": "add",
@@ -200,16 +200,16 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 								  "operator_role_prefix" : "test"
 							  }
 						  }
-				***REMOVED***,
+						},
 						 
 						{
 							"op": "replace",
-						***REMOVED***: "/version/id",
+							"path": "/version/id",
 							"value": "openshift-v4.11.1"
-				***REMOVED***
-						]`***REMOVED***,
-					***REMOVED***,
-				***REMOVED***
+						}
+						]`),
+					),
+				)
 				terraform.Source(`
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			  name           = "my-cluster"
@@ -225,32 +225,32 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				  }
 			  }
 			  version = "4.11.1"
-	***REMOVED***
-		  `***REMOVED***
-				Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-			It("appends the channel group when on a non-default channel", func(***REMOVED*** {
+			}
+		  `)
+				Expect(terraform.Apply()).To(BeZero())
+			})
+			It("appends the channel group when on a non-default channel", func() {
 				server.AppendHandlers(
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 						RespondWithPatchedJSON(http.StatusOK, versionListPage1, `[
 						{
 							"op": "add",
-						***REMOVED***: "/items/-",
+							"path": "/items/-",
 							"value": {
 								"kind": "Version",
 								"id": "openshift-v4.50.0-fast",
 								"href": "/api/clusters_mgmt/v1/versions/openshift-v4.50.0-fast",
 								"raw_id": "4.50.0",
 								"channel_group": "fast"
-					***REMOVED***
-				***REMOVED***
-					]`***REMOVED***,
-					***REMOVED***,
+							}
+						}
+					]`),
+					),
 					CombineHandlers(
-						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-						VerifyJQ(`.version.id`, "openshift-v4.50.0-fast"***REMOVED***,
-						VerifyJQ(`.version.channel_group`, "fast"***REMOVED***,
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						VerifyJQ(`.version.id`, "openshift-v4.50.0-fast"),
+						VerifyJQ(`.version.channel_group`, "fast"),
 						RespondWithPatchedJSON(http.StatusCreated, template, `[
 						{
 						  "op": "add",
@@ -269,21 +269,21 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 								  "operator_role_prefix" : "test"
 							  }
 						  }
-				***REMOVED***,
+						},
 						 
 						{
 							"op": "replace",
-						***REMOVED***: "/version/id",
+							"path": "/version/id",
 							"value": "openshift-v4.50.0-fast"
-				***REMOVED***,
+						},
 						{
 							"op": "add",
-						***REMOVED***: "/version/channel_group",
+							"path": "/version/channel_group",
 							"value": "fast"
-				***REMOVED***
-						]`***REMOVED***,
-					***REMOVED***,
-				***REMOVED***
+						}
+						]`),
+					),
+				)
 				terraform.Source(`
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			  name           = "my-cluster"
@@ -300,29 +300,29 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 			  }
 			  channel_group = "fast"
 			  version = "4.50.0"
-	***REMOVED***
-		  `***REMOVED***
-				Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-			It("returns an error when the version is not found in the channel group", func(***REMOVED*** {
+			}
+		  `)
+				Expect(terraform.Apply()).To(BeZero())
+			})
+			It("returns an error when the version is not found in the channel group", func() {
 				server.AppendHandlers(
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 						RespondWithPatchedJSON(http.StatusOK, versionListPage1, `[
 						{
 							"op": "add",
-						***REMOVED***: "/items/-",
+							"path": "/items/-",
 							"value": {
 								"kind": "Version",
 								"id": "openshift-v4.50.0-fast",
 								"href": "/api/clusters_mgmt/v1/versions/openshift-v4.50.0-fast",
 								"raw_id": "4.50.0",
 								"channel_group": "fast"
-					***REMOVED***
-				***REMOVED***
-					]`***REMOVED***,
-					***REMOVED***,
-				***REMOVED***
+							}
+						}
+					]`),
+					),
+				)
 				terraform.Source(`
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			  name           = "my-cluster"
@@ -339,22 +339,22 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 			  }
 			  channel_group = "fast"
 			  version = "4.99.99"
-	***REMOVED***
-		  `***REMOVED***
-				Expect(terraform.Apply(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+			}
+		  `)
+				Expect(terraform.Apply()).NotTo(BeZero())
+			})
+		})
 
-		Context("Test wait attribute", func(***REMOVED*** {
-			It("Create cluster and wait till it will be in error state", func(***REMOVED*** {
+		Context("Test wait attribute", func() {
+			It("Create cluster and wait till it will be in error state", func() {
 				// Prepare the server:
 				server.AppendHandlers(
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-						RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-					***REMOVED***,
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage1),
+					),
 					CombineHandlers(
-						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
 						RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
@@ -373,10 +373,10 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***]`***REMOVED***,
-					***REMOVED***,
+					}]`),
+					),
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 						RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -395,14 +395,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***,
+					},
 					{
                       "op": "add",
                       "path": "/state",
 					  "value": "error"
-			***REMOVED***]`***REMOVED***,
-					***REMOVED***,
-				***REMOVED***
+					}]`),
+					),
+				)
 
 				// Run the apply command:
 				terraform.Source(`
@@ -417,25 +417,25 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 			wait_for_create_complete = true
 		  }
-		`***REMOVED***
-				Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-				resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
-				Expect(resource***REMOVED***.To(MatchJQ(".attributes.state", "error"***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
+		`)
+				Expect(terraform.Apply()).ToNot(BeZero())
+				resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.state", "error"))
+			})
 
-			It("Create cluster and wait till it will be in ready state", func(***REMOVED*** {
+			It("Create cluster and wait till it will be in ready state", func() {
 				// Prepare the server:
 				server.AppendHandlers(
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-						RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-					***REMOVED***,
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage1),
+					),
 					CombineHandlers(
-						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
 						RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
@@ -454,10 +454,10 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***]`***REMOVED***,
-					***REMOVED***,
+					}]`),
+					),
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 						RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -476,14 +476,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***,
+					},
 					{
                       "op": "add",
                       "path": "/state",
 					  "value": "ready"
-			***REMOVED***]`***REMOVED***,
-					***REMOVED***,
-				***REMOVED***
+					}]`),
+					),
+				)
 
 				// Run the apply command:
 				terraform.Source(`
@@ -498,31 +498,31 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 			wait_for_create_complete = true
 		  }
-		`***REMOVED***
-				Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-				resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
-				Expect(resource***REMOVED***.To(MatchJQ(".attributes.state", "ready"***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-		It("Creates basic cluster", func(***REMOVED*** {
+		`)
+				Expect(terraform.Apply()).To(BeZero())
+				resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.state", "ready"))
+			})
+		})
+		It("Creates basic cluster", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
-					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
-					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
-					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
-					VerifyJQ(`.properties.rosa_tf_version`, build.Version***REMOVED***,
-					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.properties.rosa_tf_version`, build.Version),
+					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit),
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
@@ -541,9 +541,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					}]`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -558,30 +558,30 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 		  }
-		`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(".attributes.current_version", "openshift-4.8.0"***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+		`)
+			Expect(terraform.Apply()).To(BeZero())
+			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
+		})
 
-		It("Creates basic cluster returned empty az list", func(***REMOVED*** {
+		It("Creates basic cluster returned empty az list", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
-					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
-					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
-					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
-					VerifyJQ(`.properties.rosa_tf_version`, build.Version***REMOVED***,
-					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.properties.rosa_tf_version`, build.Version),
+					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit),
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
@@ -600,7 +600,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***,
+					},
 					{
 					  "op": "replace",
 					  "path": "/nodes",
@@ -610,10 +610,10 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 	              "id": "r5.xlarge"
 	            }
 					  }
-			***REMOVED***
-					]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					}
+					]`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -628,32 +628,32 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 		  }
-		`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(".attributes.current_version", "openshift-4.8.0"***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+		`)
+			Expect(terraform.Apply()).To(BeZero())
+			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
+		})
 
-		It("Creates basic cluster with admin user", func(***REMOVED*** {
+		It("Creates basic cluster with admin user", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
-					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
-					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
-					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
-					VerifyJQ(`.htpasswd.users.items[0].username`, "cluster_admin"***REMOVED***,
-					VerifyJQ(`.htpasswd.users.items[0].password`, "1234AbB2341234"***REMOVED***,
-					VerifyJQ(`.properties.rosa_tf_version`, build.Version***REMOVED***,
-					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.htpasswd.users.items[0].username`, "cluster_admin"),
+					VerifyJQ(`.htpasswd.users.items[0].password`, "1234AbB2341234"),
+					VerifyJQ(`.properties.rosa_tf_version`, build.Version),
+					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit),
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
@@ -672,9 +672,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					}]`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -693,30 +693,30 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 		  }
-		`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(".attributes.current_version", "openshift-4.8.0"***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+		`)
+			Expect(terraform.Apply()).To(BeZero())
+			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
+		})
 
-		It("Creates basic cluster - and reconcile on a 404", func(***REMOVED*** {
+		It("Creates basic cluster - and reconcile on a 404", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
-					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
-					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
-					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
-					VerifyJQ(`.properties.rosa_tf_version`, build.Version***REMOVED***,
-					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.properties.rosa_tf_version`, build.Version),
+					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit),
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
@@ -735,9 +735,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					}]`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -752,33 +752,33 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 		  }
-		`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(".attributes.current_version", "openshift-4.8.0"***REMOVED******REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "123"***REMOVED******REMOVED*** // cluster has id 123
+		`)
+			Expect(terraform.Apply()).To(BeZero())
+			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
+			Expect(resource).To(MatchJQ(".attributes.id", "123")) // cluster has id 123
 
 			// Prepare the server for reconcile
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-					RespondWithJSON(http.StatusNotFound, "{}"***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusNotFound, "{}"),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
-					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
-					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
-					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
-					VerifyJQ(`.properties.rosa_tf_version`, build.Version***REMOVED***,
-					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.properties.rosa_tf_version`, build.Version),
+					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit),
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
                     {
                       "op": "replace",
@@ -802,9 +802,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					}]`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -819,32 +819,32 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 		  }
-		`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-			resource = terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(".attributes.current_version", "openshift-4.8.0"***REMOVED******REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(".attributes.id", "1234"***REMOVED******REMOVED*** // reconciled cluster has id of 1234
-***REMOVED******REMOVED***
+		`)
+			Expect(terraform.Apply()).To(BeZero())
+			resource = terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
+			Expect(resource).To(MatchJQ(".attributes.id", "1234")) // reconciled cluster has id of 1234
+		})
 
-		It("Creates basic cluster with custom worker disk size", func(***REMOVED*** {
+		It("Creates basic cluster with custom worker disk size", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
-					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
-					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
-					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
-					VerifyJQ(`.properties.rosa_tf_version`, build.Version***REMOVED***,
-					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit***REMOVED***,
-					VerifyJQ(`.nodes.compute_root_volume.aws.size`, 400.0***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.properties.rosa_tf_version`, build.Version),
+					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit),
+					VerifyJQ(`.nodes.compute_root_volume.aws.size`, 400.0),
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
 						{
 						  "op": "add",
@@ -863,7 +863,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 								  "operator_role_prefix" : "test"
 							  }
 						  }
-				***REMOVED***,
+						},
 						{
 						  "op": "add",
 						  "path": "/nodes",
@@ -872,16 +872,16 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							"availability_zones": ["az"],
 							"compute_machine_type": {
 								"id": "r5.xlarge"
-					***REMOVED***,
+							},
 							"compute_root_volume": {
 								"aws": {
 									"size": 400
-						***REMOVED***
-					***REMOVED***
+								}
+							}
 						  }
-				***REMOVED***]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+						}]`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -896,35 +896,35 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					instance_iam_roles = {
 						master_role_arn = "",
 						worker_role_arn = "",
-			***REMOVED***
-		***REMOVED***
+					}
+				}
 				worker_disk_size = 400
 			  }
-			`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(".attributes.current_version", "openshift-4.8.0"***REMOVED******REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(".attributes.worker_disk_size", 400.0***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+			`)
+			Expect(terraform.Apply()).To(BeZero())
+			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
+			Expect(resource).To(MatchJQ(".attributes.worker_disk_size", 400.0))
+		})
 
-		It("Creates basic cluster with properties", func(***REMOVED*** {
+		It("Creates basic cluster with properties", func() {
 			prop_key := "my_prop_key"
 			prop_val := "my_prop_val"
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
-					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
-					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
-					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
-					VerifyJQ(`.properties.rosa_tf_version`, build.Version***REMOVED***,
-					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit***REMOVED***,
-					VerifyJQ(`.properties.`+prop_key, prop_val***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.properties.rosa_tf_version`, build.Version),
+					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit),
+					VerifyJQ(`.properties.`+prop_key, prop_val),
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
@@ -943,16 +943,16 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***,
+					},
                     {
                       "op": "add",
                       "path": "/properties",
                       "value": {
                         "`+prop_key+`": "`+prop_val+`"
                       }
-                    }]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+                    }]`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -970,31 +970,31 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 		  }
-		`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+		`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
 
-		It("Creates basic cluster with properties and update them", func(***REMOVED*** {
+		It("Creates basic cluster with properties and update them", func() {
 			prop_key := "my_prop_key"
 			prop_val := "my_prop_val"
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
-					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
-					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
-					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
-					VerifyJQ(`.properties.rosa_tf_version`, build.Version***REMOVED***,
-					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit***REMOVED***,
-					VerifyJQ(`.properties.`+prop_key, prop_val***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.properties.rosa_tf_version`, build.Version),
+					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit),
+					VerifyJQ(`.properties.`+prop_key, prop_val),
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
@@ -1013,7 +1013,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***,
+					},
                     {
                       "op": "add",
                       "path": "/properties",
@@ -1022,9 +1022,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
                         "rosa_tf_version":"`+build.Version+`",
                         "`+prop_key+`": "`+prop_val+`"
                       }
-                    }]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+                    }]`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -1042,21 +1042,21 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 		  }
-		`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties.rosa_tf_commit`, build.Commit***REMOVED******REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties.rosa_tf_version`, build.Version***REMOVED******REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties.`+prop_key, prop_val***REMOVED******REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.properties.`+prop_key, prop_val***REMOVED******REMOVED***
+		`)
+			Expect(terraform.Apply()).To(BeZero())
+			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_commit`, build.Commit))
+			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_version`, build.Version))
+			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.`+prop_key, prop_val))
+			Expect(resource).To(MatchJQ(`.attributes.properties.`+prop_key, prop_val))
 
 			// Prepare server for update
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -1075,7 +1075,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***,
+					},
 					 
                     {
                       "op": "add",
@@ -1085,13 +1085,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
                         "rosa_tf_version":"`+build.Version+`",
                         "`+prop_key+`": "`+prop_val+`"
                       }
-                    }]`***REMOVED***,
-				***REMOVED***,
+                    }]`),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-					VerifyJQ(`.properties.rosa_tf_version`, build.Version***REMOVED***,
-					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit***REMOVED***,
-					VerifyJQ(`.properties.`+prop_key, prop_val+"_1"***REMOVED***,
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+					VerifyJQ(`.properties.rosa_tf_version`, build.Version),
+					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit),
+					VerifyJQ(`.properties.`+prop_key, prop_val+"_1"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -1110,7 +1110,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***,
+					},
                     {
                       "op": "add",
                       "path": "/properties",
@@ -1119,9 +1119,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
                         "rosa_tf_version":"`+build.Version+`",
                         "`+prop_key+`": "`+prop_val+`_1"
                       }
-                    }]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+                    }]`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -1139,36 +1139,36 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 		  }
-		`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-			resource = terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties.rosa_tf_commit`, build.Commit***REMOVED******REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties.rosa_tf_version`, build.Version***REMOVED******REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties.`+prop_key, prop_val+"_1"***REMOVED******REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.properties.`+prop_key, prop_val+"_1"***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+		`)
+			Expect(terraform.Apply()).To(BeZero())
+			resource = terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_commit`, build.Commit))
+			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_version`, build.Version))
+			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.`+prop_key, prop_val+"_1"))
+			Expect(resource).To(MatchJQ(`.attributes.properties.`+prop_key, prop_val+"_1"))
+		})
 
-		It("Creates basic cluster with properties and delete them", func(***REMOVED*** {
+		It("Creates basic cluster with properties and delete them", func() {
 			prop_key := "my_prop_key"
 			prop_val := "my_prop_val"
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
-					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
-					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
-					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
-					VerifyJQ(`.properties.rosa_tf_version`, build.Version***REMOVED***,
-					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit***REMOVED***,
-					VerifyJQ(`.properties.`+prop_key, prop_val***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.properties.rosa_tf_version`, build.Version),
+					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit),
+					VerifyJQ(`.properties.`+prop_key, prop_val),
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
@@ -1187,7 +1187,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***,
+					},
                     {
                       "op": "add",
                       "path": "/properties",
@@ -1196,9 +1196,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
                         "rosa_tf_version":"`+build.Version+`",
                         "`+prop_key+`": "`+prop_val+`"
                       }
-                    }]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+                    }]`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -1216,23 +1216,23 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 		  }
-		`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties.rosa_tf_commit`, build.Commit***REMOVED******REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties.rosa_tf_version`, build.Version***REMOVED******REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties.`+prop_key, prop_val***REMOVED******REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.properties.`+prop_key, prop_val***REMOVED******REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.properties| keys | length`, 1***REMOVED******REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties| keys | length`, 3***REMOVED******REMOVED***
+		`)
+			Expect(terraform.Apply()).To(BeZero())
+			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_commit`, build.Commit))
+			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_version`, build.Version))
+			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.`+prop_key, prop_val))
+			Expect(resource).To(MatchJQ(`.attributes.properties.`+prop_key, prop_val))
+			Expect(resource).To(MatchJQ(`.attributes.properties| keys | length`, 1))
+			Expect(resource).To(MatchJQ(`.attributes.ocm_properties| keys | length`, 3))
 
 			// Prepare server for update
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -1251,7 +1251,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***,
+					},
                     {
                       "op": "add",
                       "path": "/properties",
@@ -1260,13 +1260,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
                         "rosa_tf_version":"`+build.Version+`",
                         "`+prop_key+`": "`+prop_val+`"
                       }
-                    }]`***REMOVED***,
-				***REMOVED***,
+                    }]`),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-					VerifyJQ(`.properties.rosa_tf_version`, build.Version***REMOVED***,
-					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit***REMOVED***,
-					VerifyJQ(`.properties.`+prop_key, nil***REMOVED***,
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+					VerifyJQ(`.properties.rosa_tf_version`, build.Version),
+					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit),
+					VerifyJQ(`.properties.`+prop_key, nil),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -1285,7 +1285,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***,
+					},
                     {
                       "op": "add",
                       "path": "/properties",
@@ -1293,9 +1293,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
                         "rosa_tf_commit":"`+build.Commit+`",
                         "rosa_tf_version":"`+build.Version+`"
                       }
-                    }]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+                    }]`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -1311,33 +1311,33 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 		  }
-		`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-			resource = terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties.rosa_tf_commit`, build.Commit***REMOVED******REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties.rosa_tf_version`, build.Version***REMOVED******REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.properties | keys | length`, 0***REMOVED******REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ocm_properties | keys | length`, 2***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+		`)
+			Expect(terraform.Apply()).To(BeZero())
+			resource = terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_commit`, build.Commit))
+			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_version`, build.Version))
+			Expect(resource).To(MatchJQ(`.attributes.properties | keys | length`, 0))
+			Expect(resource).To(MatchJQ(`.attributes.ocm_properties | keys | length`, 2))
+		})
 
-		It("Should fail cluster creation when trying to override reserved properties", func(***REMOVED*** {
+		It("Should fail cluster creation when trying to override reserved properties", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
-					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
-					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
-					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
-					VerifyJQ(`.properties.rosa_tf_version`, build.Version***REMOVED***,
-					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.properties.rosa_tf_version`, build.Version),
+					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit),
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
@@ -1356,9 +1356,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					}]`),
+				),
+			)
 			// Run the apply command:
 			terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
@@ -1367,7 +1367,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 			aws_account_id = "123"
 			properties = {
    				rosa_tf_version = "bob"
-	***REMOVED***
+			}
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -1375,14 +1375,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 		  }
-		`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+		`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
 
-		It("Should fail cluster creation when cluster name length is more than 15", func(***REMOVED*** {
+		It("Should fail cluster creation when cluster name length is more than 15", func() {
 			// Run the apply command:
 			terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
@@ -1391,7 +1391,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 			aws_account_id = "123"
 			properties = {
    				cluster_name = "too_long"
-	***REMOVED***
+			}
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -1399,33 +1399,33 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 		  }
-		`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
+		`)
+			Expect(terraform.Apply()).ToNot(BeZero())
 
-***REMOVED******REMOVED***
+		})
 
-		Context("Test destroy cluster", func(***REMOVED*** {
-			BeforeEach(func(***REMOVED*** {
+		Context("Test destroy cluster", func() {
+			BeforeEach(func() {
 				server.AppendHandlers(
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-						RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-					***REMOVED***,
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage1),
+					),
 					CombineHandlers(
-						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-						VerifyJQ(`.name`, "my-cluster"***REMOVED***,
-						VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
-						VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
-						VerifyJQ(`.product.id`, "rosa"***REMOVED***,
-						VerifyJQ(`.aws.sts.instance_iam_roles.master_role_arn`, ""***REMOVED***,
-						VerifyJQ(`.aws.sts.instance_iam_roles.worker_role_arn`, ""***REMOVED***,
-						VerifyJQ(`.aws.sts.operator_role_prefix`, "test"***REMOVED***,
-						VerifyJQ(`.aws.sts.role_arn`, ""***REMOVED***,
-						VerifyJQ(`.aws.sts.support_role_arn`, ""***REMOVED***,
-						VerifyJQ(`.aws.account_id`, "123"***REMOVED***,
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						VerifyJQ(`.name`, "my-cluster"),
+						VerifyJQ(`.cloud_provider.id`, "aws"),
+						VerifyJQ(`.region.id`, "us-west-1"),
+						VerifyJQ(`.product.id`, "rosa"),
+						VerifyJQ(`.aws.sts.instance_iam_roles.master_role_arn`, ""),
+						VerifyJQ(`.aws.sts.instance_iam_roles.worker_role_arn`, ""),
+						VerifyJQ(`.aws.sts.operator_role_prefix`, "test"),
+						VerifyJQ(`.aws.sts.role_arn`, ""),
+						VerifyJQ(`.aws.sts.support_role_arn`, ""),
+						VerifyJQ(`.aws.account_id`, "123"),
 						RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
@@ -1444,20 +1444,20 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***]`***REMOVED***,
-					***REMOVED***,
+					}]`),
+					),
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-						RespondWithJSON(http.StatusOK, templateReadyState***REMOVED***,
-					***REMOVED***,
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+						RespondWithJSON(http.StatusOK, templateReadyState),
+					),
 					CombineHandlers(
-						VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-						RespondWithJSON(http.StatusOK, templateReadyState***REMOVED***,
-					***REMOVED***,
-				***REMOVED***
-	***REMOVED******REMOVED***
+						VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/123"),
+						RespondWithJSON(http.StatusOK, templateReadyState),
+					),
+				)
+			})
 
-			It("Disable waiting in destroy resource", func(***REMOVED*** {
+			It("Disable waiting in destroy resource", func() {
 				terraform.Source(`
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
@@ -1471,24 +1471,24 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 						instance_iam_roles = {
 							master_role_arn = "",
 							worker_role_arn = "",
-				***REMOVED***
-			***REMOVED***
+						}
+					}
 				  }
-			`***REMOVED***
+			`)
 
 				// it should return a warning so exit code will be "0":
-				Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-				Expect(terraform.Destroy(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+				Expect(terraform.Apply()).To(BeZero())
+				Expect(terraform.Destroy()).To(BeZero())
 
-	***REMOVED******REMOVED***
+			})
 
-			It("Wait in destroy resource but use the default timeout", func(***REMOVED*** {
+			It("Wait in destroy resource but use the default timeout", func() {
 				server.AppendHandlers(
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-						RespondWithJSON(http.StatusNotFound, template***REMOVED***,
-					***REMOVED***,
-				***REMOVED***
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+						RespondWithJSON(http.StatusNotFound, template),
+					),
+				)
 				terraform.Source(`
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
@@ -1501,23 +1501,23 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 						instance_iam_roles = {
 							master_role_arn = "",
 							worker_role_arn = "",
-				***REMOVED***
-			***REMOVED***
+						}
+					}
 				  }
-			`***REMOVED***
+			`)
 
 				// it should return a warning so exit code will be "0":
-				Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-				Expect(terraform.Destroy(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
+				Expect(terraform.Apply()).To(BeZero())
+				Expect(terraform.Destroy()).To(BeZero())
+			})
 
-			It("Wait in destroy resource and set timeout to a negative value", func(***REMOVED*** {
+			It("Wait in destroy resource and set timeout to a negative value", func() {
 				server.AppendHandlers(
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-						RespondWithJSON(http.StatusNotFound, template***REMOVED***,
-					***REMOVED***,
-				***REMOVED***
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+						RespondWithJSON(http.StatusNotFound, template),
+					),
+				)
 				terraform.Source(`
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
@@ -1531,23 +1531,23 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 						instance_iam_roles = {
 							master_role_arn = "",
 							worker_role_arn = "",
-				***REMOVED***
-			***REMOVED***
+						}
+					}
 				  }
-			`***REMOVED***
+			`)
 
 				// it should return a warning so exit code will be "0":
-				Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-				Expect(terraform.Destroy(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
+				Expect(terraform.Apply()).To(BeZero())
+				Expect(terraform.Destroy()).To(BeZero())
+			})
 
-			It("Wait in destroy resource and set timeout to a positive value", func(***REMOVED*** {
+			It("Wait in destroy resource and set timeout to a positive value", func() {
 				server.AppendHandlers(
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-						RespondWithJSON(http.StatusNotFound, template***REMOVED***,
-					***REMOVED***,
-				***REMOVED***
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+						RespondWithJSON(http.StatusNotFound, template),
+					),
+				)
 				terraform.Source(`
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
@@ -1561,31 +1561,31 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 						instance_iam_roles = {
 							master_role_arn = "",
 							worker_role_arn = "",
-				***REMOVED***
-			***REMOVED***
+						}
+					}
 				  }
-			`***REMOVED***
+			`)
 
 				// it should return a warning so exit code will be "0":
-				Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-				Expect(terraform.Destroy(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+				Expect(terraform.Apply()).To(BeZero())
+				Expect(terraform.Destroy()).To(BeZero())
+			})
+		})
 
-		It("Disable workload monitor and update it", func(***REMOVED*** {
+		It("Disable workload monitor and update it", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
-					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
-					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
-					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
-					VerifyJQ(`.disable_user_workload_monitoring`, true***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.disable_user_workload_monitoring`, true),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -1604,16 +1604,16 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***,
+					},
 					{
 					  "op": "add",
 					  "path": "/",
 					  "value": {
 						  "disable_user_workload_monitoring" : true
 					  }
-			***REMOVED***]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					}]`),
+				),
+			)
 			terraform.Source(`
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
@@ -1627,19 +1627,19 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 						instance_iam_roles = {
 							master_role_arn = "",
 							worker_role_arn = "",
-				***REMOVED***
-			***REMOVED***
+						}
+					}
 				  }
-			`***REMOVED***
+			`)
 
 			// it should return a warning so exit code will be "0":
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+			Expect(terraform.Apply()).To(BeZero())
 
 			// apply for update the workload monitor to be enabled
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -1658,14 +1658,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***,
+					},
 					{
 					  "op": "add",
 					  "path": "/",
 					  "value": {
 						  "disable_user_workload_monitoring" : "true"
 					  }
-			***REMOVED***,
+					},
 					{
 					  "op": "add",
 					  "path": "/nodes",
@@ -1674,12 +1674,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
                         "availability_zones": ["us-west-1a"],
 						"compute_machine_type": {
 							"id": "r5.xlarge"
-				***REMOVED***
+						}
 					  }
-			***REMOVED***]`***REMOVED***,
-				***REMOVED***,
+					}]`),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -1698,16 +1698,16 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***,
+					},
 					{
 					  "op": "add",
 					  "path": "/",
 					  "value": {
 						  "disable_user_workload_monitoring" : "false"
 					  }
-			***REMOVED***]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					}]`),
+				),
+			)
 
 			terraform.Source(`
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
@@ -1722,34 +1722,34 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 						instance_iam_roles = {
 							master_role_arn = "",
 							worker_role_arn = "",
-				***REMOVED***
-			***REMOVED***
+						}
+					}
 				  }
-			`***REMOVED***
+			`)
 
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.disable_workload_monitoring`, false***REMOVED******REMOVED***
+			Expect(terraform.Apply()).To(BeZero())
+			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.disable_workload_monitoring`, false))
 
-***REMOVED******REMOVED***
+		})
 
-		Context("Test Proxy", func(***REMOVED*** {
-			It("Creates cluster with http proxy and update it", func(***REMOVED*** {
+		Context("Test Proxy", func() {
+			It("Creates cluster with http proxy and update it", func() {
 				// Prepare the server:
 				server.AppendHandlers(
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-						RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-					***REMOVED***,
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage1),
+					),
 					CombineHandlers(
-						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-						VerifyJQ(`.name`, "my-cluster"***REMOVED***,
-						VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
-						VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
-						VerifyJQ(`.product.id`, "rosa"***REMOVED***,
-						VerifyJQ(`.proxy.http_proxy`, "http://proxy.com"***REMOVED***,
-						VerifyJQ(`.proxy.https_proxy`, "https://proxy.com"***REMOVED***,
-						VerifyJQ(`.additional_trust_bundle`, "123"***REMOVED***,
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						VerifyJQ(`.name`, "my-cluster"),
+						VerifyJQ(`.cloud_provider.id`, "aws"),
+						VerifyJQ(`.region.id`, "us-west-1"),
+						VerifyJQ(`.product.id`, "rosa"),
+						VerifyJQ(`.proxy.http_proxy`, "http://proxy.com"),
+						VerifyJQ(`.proxy.https_proxy`, "https://proxy.com"),
+						VerifyJQ(`.additional_trust_bundle`, "123"),
 						RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -1768,7 +1768,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***,
+					},
 					{
 					  "op": "add",
 					  "path": "/proxy",
@@ -1776,16 +1776,16 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 						  "http_proxy" : "http://proxy.com",
 						  "https_proxy" : "https://proxy.com"
 					  }
-			***REMOVED***,
+					},
 					{
 					  "op": "add",
 					  "path": "/",
 					  "value": {
 						  "additional_trust_bundle" : "123"
 					  }
-			***REMOVED***]`***REMOVED***,
-					***REMOVED***,
-				***REMOVED***
+					}]`),
+					),
+				)
 
 				// Run the apply command:
 				terraform.Source(`
@@ -1797,7 +1797,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				http_proxy = "http://proxy.com",
 				https_proxy = "https://proxy.com",
 				additional_trust_bundle = "123",
-	***REMOVED***
+			}
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -1805,18 +1805,18 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 		  }
-		`***REMOVED***
+		`)
 
-				Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+				Expect(terraform.Apply()).To(BeZero())
 
 				// apply for update the proxy's attributes
 				// Prepare the server:
 				server.AppendHandlers(
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 						RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -1835,7 +1835,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***,
+					},
 					{
 					  "op": "add",
 					  "path": "/proxy",
@@ -1843,20 +1843,20 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 						  "http_proxy" : "http://proxy.com",
 						  "https_proxy" : "https://proxy.com"
 					  }
-			***REMOVED***,
+					},
 					{
 					  "op": "add",
 					  "path": "/",
 					  "value": {
 						  "additional_trust_bundle" : "REDUCTED"
 					  }
-			***REMOVED***]`***REMOVED***,
-					***REMOVED***,
+					}]`),
+					),
 					CombineHandlers(
-						VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-						VerifyJQ(`.proxy.https_proxy`, "https://proxy2.com"***REMOVED***,
-						VerifyJQ(`.proxy.no_proxy`, "test"***REMOVED***,
-						VerifyJQ(`.additional_trust_bundle`, "123"***REMOVED***,
+						VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+						VerifyJQ(`.proxy.https_proxy`, "https://proxy2.com"),
+						VerifyJQ(`.proxy.no_proxy`, "test"),
+						VerifyJQ(`.additional_trust_bundle`, "123"),
 						RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -1875,7 +1875,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***,
+					},
 					{
 					  "op": "add",
 					  "path": "/proxy",
@@ -1883,16 +1883,16 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 						  "https_proxy" : "https://proxy2.com",
 						  "no_proxy" : "test"
 					  }
-			***REMOVED***,
+					},
 					{
 					  "op": "add",
 					  "path": "/",
 					  "value": {
 						  "additional_trust_bundle" : "REDUCTED"
 					  }
-			***REMOVED***]`***REMOVED***,
-					***REMOVED***,
-				***REMOVED***
+					}]`),
+					),
+				)
 
 				// update the attribute "proxy"
 				terraform.Source(`
@@ -1904,7 +1904,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				https_proxy = "https://proxy2.com",
 				no_proxy = "test"
 				additional_trust_bundle = "123",
-	***REMOVED***
+			}
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -1912,29 +1912,29 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 		  }
-		`***REMOVED***
-				Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-				resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
-				Expect(resource***REMOVED***.To(MatchJQ(`.attributes.proxy.https_proxy`, "https://proxy2.com"***REMOVED******REMOVED***
-				Expect(resource***REMOVED***.To(MatchJQ(`.attributes.proxy.no_proxy`, "test"***REMOVED******REMOVED***
-				Expect(resource***REMOVED***.To(MatchJQ(`.attributes.proxy.additional_trust_bundle`, "123"***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-			It("Creates cluster without http proxy and update trust bundle - should fail", func(***REMOVED*** {
+		`)
+				Expect(terraform.Apply()).To(BeZero())
+				resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+				Expect(resource).To(MatchJQ(`.attributes.proxy.https_proxy`, "https://proxy2.com"))
+				Expect(resource).To(MatchJQ(`.attributes.proxy.no_proxy`, "test"))
+				Expect(resource).To(MatchJQ(`.attributes.proxy.additional_trust_bundle`, "123"))
+			})
+			It("Creates cluster without http proxy and update trust bundle - should fail", func() {
 				// Prepare the server:
 				server.AppendHandlers(
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-						RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-					***REMOVED***,
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage1),
+					),
 					CombineHandlers(
-						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-						VerifyJQ(`.name`, "my-cluster"***REMOVED***,
-						VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
-						VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
-						VerifyJQ(`.product.id`, "rosa"***REMOVED***,
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						VerifyJQ(`.name`, "my-cluster"),
+						VerifyJQ(`.cloud_provider.id`, "aws"),
+						VerifyJQ(`.region.id`, "us-west-1"),
+						VerifyJQ(`.product.id`, "rosa"),
 						RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -1953,9 +1953,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***]`***REMOVED***,
-					***REMOVED***,
-				***REMOVED***
+					}]`),
+					),
+				)
 
 				// Run the apply command:
 				terraform.Source(`
@@ -1970,18 +1970,18 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 		  }
-		`***REMOVED***
+		`)
 
-				Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+				Expect(terraform.Apply()).To(BeZero())
 
 				// apply for update the proxy's attributes
 				// Prepare the server:
 				server.AppendHandlers(
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 						RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -2000,11 +2000,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***]`***REMOVED***,
-					***REMOVED***,
+					}]`),
+					),
 					CombineHandlers(
-						VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-						VerifyJQ(`.additional_trust_bundle`, "123"***REMOVED***,
+						VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+						VerifyJQ(`.additional_trust_bundle`, "123"),
 						RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
@@ -2023,16 +2023,16 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***,
+					},
 					{
 					  "op": "add",
 					  "path": "/",
 					  "value": {
 						  "additional_trust_bundle" : "123"
 					  }
-			***REMOVED***]`***REMOVED***,
-					***REMOVED***,
-				***REMOVED***
+					}]`),
+					),
+				)
 				// update the attribute "proxy"
 				terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
@@ -2041,7 +2041,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 			aws_account_id = "123"
 			proxy = {
 				additional_trust_bundle = "123",
-	***REMOVED***
+			}
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -2049,27 +2049,27 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 		  }
-		`***REMOVED***
-				Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-		It("Creates cluster with default_mp_labels", func(***REMOVED*** {
+		`)
+				Expect(terraform.Apply()).ToNot(BeZero())
+			})
+		})
+		It("Creates cluster with default_mp_labels", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
-					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
-					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
-					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
-					VerifyJQ(`.nodes.compute_labels.label_key1`, "label_value1"***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.nodes.compute_labels.label_key1`, "label_value1"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -2088,7 +2088,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***,
+					},
 					{
 					  "op": "replace",
 					  "path": "/nodes",
@@ -2101,11 +2101,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
     					],
 						"compute_machine_type": {
 						   "id": "r5.xlarge"
-	    		***REMOVED***
+	    				}
 					  }
-			***REMOVED***]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					}]`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -2123,18 +2123,18 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 		  }
-		`***REMOVED***
+		`)
 
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+			Expect(terraform.Apply()).To(BeZero())
 
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.default_mp_labels.label_key1`, "label_value1"***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.default_mp_labels.label_key1`, "label_value1"))
+		})
 
-		It("Except to fail on proxy validators", func(***REMOVED*** {
+		It("Except to fail on proxy validators", func() {
 			// Expected at least one of the following: http-proxy, https-proxy
 			terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
@@ -2144,7 +2144,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 			proxy = {
 				no_proxy = "test1, test2"
 				additional_trust_bundle = "123",
-	***REMOVED***
+			}
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -2152,11 +2152,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 		  }
-		`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
+		`)
+			Expect(terraform.Apply()).NotTo(BeZero())
 
 			// Expected at least one of the following: http-proxy, https-proxy, additional-trust-bundle
 			terraform.Source(`
@@ -2165,7 +2165,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 			   cloud_region   = "us-west-1"
 				aws_account_id = "123"
 				proxy = {
-		***REMOVED***
+				}
 				sts = {
 					operator_role_prefix = "test"
 					role_arn = "",
@@ -2173,29 +2173,29 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 					instance_iam_roles = {
 						master_role_arn = "",
 						worker_role_arn = "",
-			***REMOVED***
-		***REMOVED***
+					}
+				}
 			 }
-			`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-		It("Creates private cluster with aws subnet ids without private link", func(***REMOVED*** {
+			`)
+			Expect(terraform.Apply()).NotTo(BeZero())
+		})
+		It("Creates private cluster with aws subnet ids without private link", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
-					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
-					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
-					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
-					VerifyJQ(`.aws.subnet_ids.[0]`, "id1"***REMOVED***,
-					VerifyJQ(`.aws.private_link`, false***REMOVED***,
-					VerifyJQ(`.nodes.availability_zones.[0]`, "us-west-1a"***REMOVED***,
-					VerifyJQ(`.api.listening`, "internal"***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.aws.subnet_ids.[0]`, "id1"),
+					VerifyJQ(`.aws.private_link`, false),
+					VerifyJQ(`.nodes.availability_zones.[0]`, "us-west-1a"),
+					VerifyJQ(`.api.listening`, "internal"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -2216,19 +2216,19 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***,
+					},
 					{
 					  "op": "add",
 					  "path": "/api",
 					  "value": {
 					  	"listening": "internal"
 					  }
-			***REMOVED***,
+					},
 					{
 						"op": "add",
-					***REMOVED***: "/availability_zones",
+						"path": "/availability_zones",
 						"value": ["us-west-1a"]
-			***REMOVED***,
+					},
 					{
 					  "op": "replace",
 					  "path": "/nodes",
@@ -2238,12 +2238,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
     					],
 						"compute_machine_type": {
 						   "id": "r5.xlarge"
-	    		***REMOVED***
+	    				}
 					  }
-			***REMOVED***
-					]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					}
+					]`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -2264,29 +2264,29 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 		  }
-		`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-		It("Creates private cluster with aws subnet ids & private link", func(***REMOVED*** {
+		`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
+		It("Creates private cluster with aws subnet ids & private link", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
-					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
-					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
-					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
-					VerifyJQ(`.aws.subnet_ids.[0]`, "id1"***REMOVED***,
-					VerifyJQ(`.aws.private_link`, true***REMOVED***,
-					VerifyJQ(`.nodes.availability_zones.[0]`, "us-west-1a"***REMOVED***,
-					VerifyJQ(`.api.listening`, "internal"***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.aws.subnet_ids.[0]`, "id1"),
+					VerifyJQ(`.aws.private_link`, true),
+					VerifyJQ(`.nodes.availability_zones.[0]`, "us-west-1a"),
+					VerifyJQ(`.api.listening`, "internal"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -2307,14 +2307,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***,
+					},
 					{
 					  "op": "add",
 					  "path": "/api",
 					  "value": {
 					  	"listening": "internal"
 					  }
-			***REMOVED***,
+					},
 					{
 					  "op": "replace",
 					  "path": "/nodes",
@@ -2324,12 +2324,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
     					],
 						"compute_machine_type": {
 						   "id": "r5.xlarge"
-	    		***REMOVED***
+	    				}
 					  }
-			***REMOVED***
-					]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					}
+					]`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -2350,28 +2350,28 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 		  }
-		`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+		`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
 
-		It("Creates cluster when private link is false", func(***REMOVED*** {
+		It("Creates cluster when private link is false", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
-					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
-					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
-					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
-					VerifyJQ(`.aws.private_link`, false***REMOVED***,
-					VerifyJQ(`.api.listening`, "external"***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.aws.private_link`, false),
+					VerifyJQ(`.api.listening`, "external"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -2391,9 +2391,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					}]`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -2409,31 +2409,31 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 		  }
-		`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+		`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
 
-		It("Creates cluster with shared VPC", func(***REMOVED*** {
+		It("Creates cluster with shared VPC", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
-					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
-					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
-					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
-					VerifyJQ(`.dns.base_domain`, "mydomain.openshift.dev"***REMOVED***,
-					VerifyJQ(`.aws.subnet_ids.[0]`, "id1"***REMOVED***,
-					VerifyJQ(`.aws.private_hosted_zone_id`, "1234"***REMOVED***,
-					VerifyJQ(`.aws.private_hosted_zone_role_arn`, "arn:aws:iam::111111111111:role/test-shared-vpc"***REMOVED***,
-					VerifyJQ(`.nodes.availability_zones.[0]`, "us-west-1a"***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.dns.base_domain`, "mydomain.openshift.dev"),
+					VerifyJQ(`.aws.subnet_ids.[0]`, "id1"),
+					VerifyJQ(`.aws.private_hosted_zone_id`, "1234"),
+					VerifyJQ(`.aws.private_hosted_zone_role_arn`, "arn:aws:iam::111111111111:role/test-shared-vpc"),
+					VerifyJQ(`.nodes.availability_zones.[0]`, "us-west-1a"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -2455,17 +2455,17 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***,
+					},
 					{
 						"op": "add",
-					***REMOVED***: "/dns",
+						"path": "/dns",
                         "value": {"base_domain": "mydomain.openshift.dev"}
-			***REMOVED***,
+					},
 					{
 						"op": "add",
-					***REMOVED***: "/availability_zones",
+						"path": "/availability_zones",
 						"value": ["us-west-1a"]
-			***REMOVED***,
+					},
 					{
 					  "op": "add",
 					  "path": "/nodes",
@@ -2474,11 +2474,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
             "availability_zones": ["us-west-1a"],
 						"compute_machine_type": {
 							"id": "r5.xlarge"
-				***REMOVED***
+						}
 					  }
-			***REMOVED***]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					}]`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -2497,41 +2497,41 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
             private_hosted_zone = {
                 id = "1234"
                 role_arn = "arn:aws:iam::111111111111:role/test-shared-vpc"
             }
             base_dns_domain = "mydomain.openshift.dev"
 		  }
-		`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+		`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
 
-		It("Creates rosa sts cluster with autoscaling", func(***REMOVED*** {
+		It("Creates rosa sts cluster with autoscaling", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
-					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
-					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
-					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
-					VerifyJQ(`.aws.sts.role_arn`, ""***REMOVED***,
-					VerifyJQ(`.aws.sts.support_role_arn`, ""***REMOVED***,
-					VerifyJQ(`.aws.sts.instance_iam_roles.master_role_arn`, ""***REMOVED***,
-					VerifyJQ(`.aws.sts.instance_iam_roles.worker_role_arn`, ""***REMOVED***,
-					VerifyJQ(`.aws.sts.operator_role_prefix`, "terraform-operator"***REMOVED***,
-					VerifyJQ(`.nodes.autoscale_compute.kind`, "MachinePoolAutoscaling"***REMOVED***,
-					VerifyJQ(`.nodes.autoscale_compute.max_replicas`, float64(4***REMOVED******REMOVED***,
-					VerifyJQ(`.nodes.autoscale_compute.min_replicas`, float64(2***REMOVED******REMOVED***,
-					VerifyJQ(`.nodes.compute_labels.label_key1`, "label_value1"***REMOVED***,
-					VerifyJQ(`.nodes.compute_labels.label_key2`, "label_value2"***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.aws.sts.role_arn`, ""),
+					VerifyJQ(`.aws.sts.support_role_arn`, ""),
+					VerifyJQ(`.aws.sts.instance_iam_roles.master_role_arn`, ""),
+					VerifyJQ(`.aws.sts.instance_iam_roles.worker_role_arn`, ""),
+					VerifyJQ(`.aws.sts.operator_role_prefix`, "terraform-operator"),
+					VerifyJQ(`.nodes.autoscale_compute.kind`, "MachinePoolAutoscaling"),
+					VerifyJQ(`.nodes.autoscale_compute.max_replicas`, float64(4)),
+					VerifyJQ(`.nodes.autoscale_compute.min_replicas`, float64(2)),
+					VerifyJQ(`.nodes.compute_labels.label_key1`, "label_value1"),
+					VerifyJQ(`.nodes.compute_labels.label_key2`, "label_value2"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -2550,7 +2550,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "terraform-operator"
 						  }
 					  }
-			***REMOVED***,
+					},
 					{
 					  "op": "add",
 					  "path": "/nodes",
@@ -2558,22 +2558,22 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 						"autoscale_compute": {
 							"min_replicas": 2,
 							"max_replicas": 4
-				***REMOVED***,
+						},
 						"compute_machine_type": {
 							"id": "r5.xlarge"
-				***REMOVED***,
+						},
 						"compute_labels": {
 							"label_key1": "label_value1",
 				    		"label_key2": "label_value2"
-				***REMOVED***,
+						},
 						"availability_zones": [
 							"az"
 						]
 					  }
-			***REMOVED***
-				  ]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					}
+				  ]`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -2587,44 +2587,44 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 			default_mp_labels = {
 				"label_key1" = "label_value1",
 				"label_key2" = "label_value2"
-	***REMOVED***
+			}
 			sts = {
 				role_arn = "",
 				support_role_arn = "",
 				instance_iam_roles = {
 				  master_role_arn = "",
 				  worker_role_arn = ""
-		***REMOVED***,
+				},
 				"operator_role_prefix" : "terraform-operator"
-	***REMOVED***
+			}
 		  }
-		`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.autoscaling_enabled`, true***REMOVED******REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.min_replicas`, 2.0***REMOVED******REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(`.attributes.max_replicas`, 4.0***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+		`)
+			Expect(terraform.Apply()).To(BeZero())
+			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.autoscaling_enabled`, true))
+			Expect(resource).To(MatchJQ(`.attributes.min_replicas`, 2.0))
+			Expect(resource).To(MatchJQ(`.attributes.max_replicas`, 4.0))
+		})
 
-		It("Creates rosa sts cluster with OIDC Configuration ID", func(***REMOVED*** {
+		It("Creates rosa sts cluster with OIDC Configuration ID", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
-					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
-					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
-					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
-					VerifyJQ(`.aws.sts.role_arn`, ""***REMOVED***,
-					VerifyJQ(`.aws.sts.support_role_arn`, ""***REMOVED***,
-					VerifyJQ(`.aws.sts.instance_iam_roles.master_role_arn`, ""***REMOVED***,
-					VerifyJQ(`.aws.sts.instance_iam_roles.worker_role_arn`, ""***REMOVED***,
-					VerifyJQ(`.aws.sts.operator_role_prefix`, "terraform-operator"***REMOVED***,
-					VerifyJQ(`.aws.sts.oidc_config.id`, "aaa"***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.aws.sts.role_arn`, ""),
+					VerifyJQ(`.aws.sts.support_role_arn`, ""),
+					VerifyJQ(`.aws.sts.instance_iam_roles.master_role_arn`, ""),
+					VerifyJQ(`.aws.sts.instance_iam_roles.worker_role_arn`, ""),
+					VerifyJQ(`.aws.sts.operator_role_prefix`, "terraform-operator"),
+					VerifyJQ(`.aws.sts.oidc_config.id`, "aaa"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
 					  "op": "add",
@@ -2650,9 +2650,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "terraform-operator"
 						  }
 					  }
-			***REMOVED***]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					}]`),
+				),
+			)
 			// Run the apply command:
 			terraform.Source(`
 		resource "rhcs_cluster_rosa_classic" "my_cluster" {
@@ -2665,28 +2665,28 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 				  master_role_arn = "",
 				  worker_role_arn = ""
-		***REMOVED***,
+				},
 				"operator_role_prefix" : "terraform-operator",
 				"oidc_config_id" = "aaa"
-	***REMOVED***
+			}
 		  }
-		`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+		`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
 
-		It("Fails to create cluster with incompatible account role's version and fail", func(***REMOVED*** {
+		It("Fails to create cluster with incompatible account role's version and fail", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-					VerifyJQ(`.name`, "my-cluster"***REMOVED***,
-					VerifyJQ(`.cloud_provider.id`, "aws"***REMOVED***,
-					VerifyJQ(`.region.id`, "us-west-1"***REMOVED***,
-					VerifyJQ(`.product.id`, "rosa"***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
@@ -2705,9 +2705,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					}]`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -2723,24 +2723,24 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 		  }
-		`***REMOVED***
+		`)
 			// expect to get an error
-			Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
 
-		It("Create cluster with http token", func(***REMOVED*** {
+		It("Create cluster with http token", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-					VerifyJQ(`.aws.ec2_metadata_http_tokens`, "required"***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.aws.ec2_metadata_http_tokens`, "required"),
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
@@ -2759,9 +2759,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					}]`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -2777,23 +2777,23 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 		  }
-		`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+		`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
 
-		It("Fails to create cluster with http tokens and not supported version", func(***REMOVED*** {
+		It("Fails to create cluster with http tokens and not supported version", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-					VerifyJQ(`.aws.ec2_metadata_http_tokens`, "required"***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.aws.ec2_metadata_http_tokens`, "required"),
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
@@ -2812,9 +2812,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					}]`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -2831,24 +2831,24 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 		  }
-		`***REMOVED***
+		`)
 			// expect to get an error
-			Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
 
-		It("Fails to create cluster with http tokens with not supported value", func(***REMOVED*** {
+		It("Fails to create cluster with http tokens with not supported value", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-					RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
-					VerifyJQ(`.aws.http_tokens_state`, "bad_string"***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.aws.http_tokens_state`, "bad_string"),
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
@@ -2867,9 +2867,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 							  "operator_role_prefix" : "test"
 						  }
 					  }
-			***REMOVED***]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					}]`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
@@ -2886,24 +2886,24 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 		  }
-		`***REMOVED***
+		`)
 			// expect to get an error
-			Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-	}***REMOVED***
-}***REMOVED***
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
+	})
+})
 
-var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
+var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 	const template = `{
 		"id": "123",
 		"name": "my-cluster",
 		"state": "ready",
 		"region": {
 		  "id": "us-west-1"
-***REMOVED***,
+		},
 		"aws": {
 			"ec2_metadata_http_tokens": "optional",
 			"sts": {
@@ -2914,33 +2914,33 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 				"instance_iam_roles" : {
 					"master_role_arn" : "",
 					"worker_role_arn" : ""
-		***REMOVED***,
+				},
 				"operator_role_prefix" : "test"
-	***REMOVED***
-***REMOVED***,
+			}
+		},
 		"multi_az": true,
 		"api": {
 		  "url": "https://my-api.example.com"
-***REMOVED***,
+		},
 		"console": {
 		  "url": "https://my-console.example.com"
-***REMOVED***,
+		},
 		"network": {
 		  "machine_cidr": "10.0.0.0/16",
 		  "service_cidr": "172.30.0.0/16",
 		  "pod_cidr": "10.128.0.0/14",
 		  "host_prefix": 23
-***REMOVED***,
+		},
 		"nodes": {
 			"compute": 3,
 	        "availability_zones": ["az"],
 			"compute_machine_type": {
 				"id": "r5.xlarge"
-	***REMOVED***
-***REMOVED***,
+			}
+		},
 		"version": {
 			"id": "4.10.0"
-***REMOVED***
+		}
 	}`
 	const versionList = `{
 		"kind": "VersionList",
@@ -2952,19 +2952,19 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 				"id": "openshift-v4.10.0",
 				"href": "/api/clusters_mgmt/v1/versions/openshift-v4.10.0",
 				"raw_id": "4.10.0"
-	***REMOVED***,
+			},
 			{
 				"kind": "Version",
 				"id": "openshift-v4.10.1",
 				"href": "/api/clusters_mgmt/v1/versions/openshift-v4.10.1",
 				"raw_id": "4.10.1"
-	***REMOVED***,
+			},
 			{
 				"kind": "Version",
 				"id": "openshift-v4.10.1",
 				"href": "/api/clusters_mgmt/v1/versions/openshift-v4.11.1",
 				"raw_id": "4.11.1"
-	***REMOVED***
+			}
 		]
 	}`
 	const v4_10_0Info = `{
@@ -2996,18 +2996,18 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 		"total": 0,
 		"items": []
 	}`
-	BeforeEach(func(***REMOVED*** {
-		Expect(json.Valid([]byte(template***REMOVED******REMOVED******REMOVED***.To(BeTrue(***REMOVED******REMOVED***
-		Expect(json.Valid([]byte(v4_10_0Info***REMOVED******REMOVED******REMOVED***.To(BeTrue(***REMOVED******REMOVED***
+	BeforeEach(func() {
+		Expect(json.Valid([]byte(template))).To(BeTrue())
+		Expect(json.Valid([]byte(v4_10_0Info))).To(BeTrue())
 
 		// Create a cluster for us to upgrade:
 		server.AppendHandlers(
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-				RespondWithJSON(http.StatusOK, versionList***REMOVED***,
-			***REMOVED***,
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+				RespondWithJSON(http.StatusOK, versionList),
+			),
 			CombineHandlers(
-				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"***REMOVED***,
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
 				RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
@@ -3016,10 +3016,10 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 						"rosa_tf_commit": "123",
 						"rosa_tf_version": "123"
 					  }
-			***REMOVED***
-				]`***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+					}
+				]`),
+			),
+		)
 		terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
@@ -3032,7 +3032,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***,
+				},
 				"operator_iam_roles": [
 					{
 					  "id": "",
@@ -3040,79 +3040,79 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 					  "namespace": "openshift-cluster-csi-drivers",
 					  "role_arn": "",
 					  "service_account": ""
-			***REMOVED***,
+					},
 					{
 					  "id": "",
 					  "name": "cloud-credentials",
 					  "namespace": "openshift-cloud-network-config-controller",
 					  "role_arn": "",
 					  "service_account": ""
-			***REMOVED***,
+					},
 					{
 					  "id": "",
 					  "name": "aws-cloud-credentials",
 					  "namespace": "openshift-machine-api",
 					  "role_arn": "",
 					  "service_account": ""
-			***REMOVED***,
+					},
 					{
 					  "id": "",
 					  "name": "cloud-credential-operator-iam-ro-creds",
 					  "namespace": "openshift-cloud-credential-operator",
 					  "role_arn": "",
 					  "service_account": ""
-			***REMOVED***,
+					},
 					{
 					  "id": "",
 					  "name": "installer-cloud-credentials",
 					  "namespace": "openshift-image-registry",
 					  "role_arn": "",
 					  "service_account": ""
-			***REMOVED***,
+					},
 					{
 					  "id": "",
 					  "name": "cloud-credentials",
 					  "namespace": "openshift-ingress-operator",
 					  "role_arn": "",
 					  "service_account": ""
-			***REMOVED***
+					}
 				]
-	***REMOVED***
+			}
 			version = "4.10.0"
-***REMOVED***
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		}
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Verify initial cluster version
-		resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(".attributes.current_version", "4.10.0"***REMOVED******REMOVED***
-	}***REMOVED***
-	Context("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
-		It("Upgrades cluster", func(***REMOVED*** {
+		resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+		Expect(resource).To(MatchJQ(".attributes.current_version", "4.10.0"))
+	})
+	Context("rhcs_cluster_rosa_classic - create", func() {
+		It("Upgrades cluster", func() {
 			server.AppendHandlers(
 				// Refresh cluster state
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-					RespondWithJSON(http.StatusOK, template***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, template),
+				),
 				// Validate upgrade versions
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.0"***REMOVED***,
-					RespondWithJSON(http.StatusOK, v4_10_0Info***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.0"),
+					RespondWithJSON(http.StatusOK, v4_10_0Info),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"***REMOVED***,
-					RespondWithJSON(http.StatusOK, v4_10_1Info***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
+					RespondWithJSON(http.StatusOK, v4_10_1Info),
+				),
 				// Look for existing upgrade policies
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"***REMOVED***,
-					RespondWithJSON(http.StatusOK, upgradePoliciesEmpty***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
+					RespondWithJSON(http.StatusOK, upgradePoliciesEmpty),
+				),
 				// Look for gate agreements by posting an upgrade policy w/ dryRun
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies", "dryRun=true"***REMOVED***,
-					VerifyJQ(".version", "4.10.1"***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies", "dryRun=true"),
+					VerifyJQ(".version", "4.10.1"),
 					RespondWithJSON(http.StatusBadRequest, `{
 					"kind": "Error",
 					"id": "400",
@@ -3135,12 +3135,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 					  }
 					],
 					"operation_id": "8f2d2946-c4ef-4c2f-877b-c19eb17dc918"
-				  }`***REMOVED***,
-				***REMOVED***,
+				  }`),
+				),
 				// Send acks for all gate agreements
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/gate_agreements"***REMOVED***,
-					VerifyJQ(".version_gate.id", "999"***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/gate_agreements"),
+					VerifyJQ(".version_gate.id", "999"),
 					RespondWithJSON(http.StatusCreated, `{
 					"kind": "VersionGateAgreement",
 					"id": "888",
@@ -3157,14 +3157,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 					  "documentation_url": "https://access.redhat.com/solutions/0000000",
 					  "sts_only": true,
 					  "creation_timestamp": "2023-04-03T06:39:57.057613Z"
-			***REMOVED***,
+					},
 					"creation_timestamp": "2023-06-21T13:02:06.291443Z"
-				  }`***REMOVED***,
-				***REMOVED***,
+				  }`),
+				),
 				// Create an upgrade policy
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"***REMOVED***,
-					VerifyJQ(".version", "4.10.1"***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
+					VerifyJQ(".version", "4.10.1"),
 					RespondWithJSON(http.StatusCreated, `
 				{
 					"kind": "UpgradePolicy",
@@ -3176,11 +3176,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 					"next_run": "2023-06-09T20:59:00Z",
 					"cluster_id": "123",
 					"enable_minor_version_upgrades": true
-		***REMOVED***`***REMOVED***,
-				***REMOVED***,
-				// Patch the cluster (w/ no changes***REMOVED***
+				}`),
+				),
+				// Patch the cluster (w/ no changes)
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
 						{
 						  "op": "add",
@@ -3189,10 +3189,10 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 							"rosa_tf_commit": "123",
 							"rosa_tf_version": "123"
 						  }
-				***REMOVED***
+						}
 					]`,
-					***REMOVED******REMOVED***,
-			***REMOVED***
+					)),
+			)
 			// Perform upgrade w/ auto-ack of sts-only gate agreements
 			terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
@@ -3206,38 +3206,38 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = ""
 					worker_role_arn = ""
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 			version = "4.10.1"
-***REMOVED***`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+		}`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
 
-		It("Upgrades cluster support old version format", func(***REMOVED*** {
+		It("Upgrades cluster support old version format", func() {
 			server.AppendHandlers(
 				// Refresh cluster state
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-					RespondWithJSON(http.StatusOK, template***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, template),
+				),
 				// Validate upgrade versions
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.0"***REMOVED***,
-					RespondWithJSON(http.StatusOK, v4_10_0Info***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.0"),
+					RespondWithJSON(http.StatusOK, v4_10_0Info),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"***REMOVED***,
-					RespondWithJSON(http.StatusOK, v4_10_1Info***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
+					RespondWithJSON(http.StatusOK, v4_10_1Info),
+				),
 				// Look for existing upgrade policies
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"***REMOVED***,
-					RespondWithJSON(http.StatusOK, upgradePoliciesEmpty***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
+					RespondWithJSON(http.StatusOK, upgradePoliciesEmpty),
+				),
 				// Look for gate agreements by posting an upgrade policy w/ dryRun
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies", "dryRun=true"***REMOVED***,
-					VerifyJQ(".version", "4.10.1"***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies", "dryRun=true"),
+					VerifyJQ(".version", "4.10.1"),
 					RespondWithJSON(http.StatusBadRequest, `{
 					"kind": "Error",
 					"id": "400",
@@ -3260,12 +3260,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 					  }
 					],
 					"operation_id": "8f2d2946-c4ef-4c2f-877b-c19eb17dc918"
-				  }`***REMOVED***,
-				***REMOVED***,
+				  }`),
+				),
 				// Send acks for all gate agreements
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/gate_agreements"***REMOVED***,
-					VerifyJQ(".version_gate.id", "999"***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/gate_agreements"),
+					VerifyJQ(".version_gate.id", "999"),
 					RespondWithJSON(http.StatusCreated, `{
 					"kind": "VersionGateAgreement",
 					"id": "888",
@@ -3282,14 +3282,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 					  "documentation_url": "https://access.redhat.com/solutions/0000000",
 					  "sts_only": true,
 					  "creation_timestamp": "2023-04-03T06:39:57.057613Z"
-			***REMOVED***,
+					},
 					"creation_timestamp": "2023-06-21T13:02:06.291443Z"
-				  }`***REMOVED***,
-				***REMOVED***,
+				  }`),
+				),
 				// Create an upgrade policy
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"***REMOVED***,
-					VerifyJQ(".version", "4.10.1"***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
+					VerifyJQ(".version", "4.10.1"),
 					RespondWithJSON(http.StatusCreated, `
 				{
 					"kind": "UpgradePolicy",
@@ -3301,11 +3301,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 					"next_run": "2023-06-09T20:59:00Z",
 					"cluster_id": "123",
 					"enable_minor_version_upgrades": true
-		***REMOVED***`***REMOVED***,
-				***REMOVED***,
-				// Patch the cluster (w/ no changes***REMOVED***
+				}`),
+				),
+				// Patch the cluster (w/ no changes)
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
@@ -3314,9 +3314,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 						"rosa_tf_commit": "123",
 						"rosa_tf_version": "123"
 					  }
-			***REMOVED***
-				]`***REMOVED***,
-				***REMOVED******REMOVED***
+					}
+				]`),
+				))
 			// Perform upgrade w/ auto-ack of sts-only gate agreements
 			terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
@@ -3330,32 +3330,32 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 			version = "openshift-v4.10.1"
-***REMOVED***`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+		}`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
 
-		It("Does nothing if upgrade is in progress", func(***REMOVED*** {
+		It("Does nothing if upgrade is in progress", func() {
 			server.AppendHandlers(
 				// Refresh cluster state
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-					RespondWithJSON(http.StatusOK, template***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, template),
+				),
 				// Validate upgrade versions
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.0"***REMOVED***,
-					RespondWithJSON(http.StatusOK, v4_10_0Info***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.0"),
+					RespondWithJSON(http.StatusOK, v4_10_0Info),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"***REMOVED***,
-					RespondWithJSON(http.StatusOK, v4_10_1Info***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
+					RespondWithJSON(http.StatusOK, v4_10_1Info),
+				),
 				// Look for existing upgrade policies
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
 					RespondWithJSON(http.StatusOK, `{
 					"kind": "UpgradePolicyState",
 					"page": 1,
@@ -3372,22 +3372,22 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 							"next_run": "2023-06-09T20:59:00Z",
 							"cluster_id": "123",
 							"enable_minor_version_upgrades": true
-				***REMOVED***
+						}
 					]
-		***REMOVED***`***REMOVED***,
-				***REMOVED***,
+				}`),
+				),
 				// Check it's state
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456/state"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456/state"),
 					RespondWithJSON(http.StatusOK, `{
 					"kind": "UpgradePolicyState",
 					"id": "456",
 					"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456/state",
 					"description": "Upgrade in progress",
 					"value": "started"
-		***REMOVED***`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+				}`),
+				),
+			)
 			// Perform try the upgrade
 			terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
@@ -3401,33 +3401,33 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 			version = "4.10.1"
-***REMOVED***`***REMOVED***
+		}`)
 			// Will fail due to upgrade in progress
-			Expect(terraform.Apply(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+			Expect(terraform.Apply()).NotTo(BeZero())
+		})
 
-		It("Cancels and upgrade for the wrong version & schedules new", func(***REMOVED*** {
+		It("Cancels and upgrade for the wrong version & schedules new", func() {
 			server.AppendHandlers(
 				// Refresh cluster state
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-					RespondWithJSON(http.StatusOK, template***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, template),
+				),
 				// Validate upgrade versions
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.0"***REMOVED***,
-					RespondWithJSON(http.StatusOK, v4_10_0Info***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.0"),
+					RespondWithJSON(http.StatusOK, v4_10_0Info),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"***REMOVED***,
-					RespondWithJSON(http.StatusOK, v4_10_1Info***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
+					RespondWithJSON(http.StatusOK, v4_10_1Info),
+				),
 				// Look for existing upgrade policies
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
 					RespondWithJSON(http.StatusOK, `{
 					"kind": "UpgradePolicyState",
 					"page": 1,
@@ -3444,36 +3444,36 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 							"next_run": "2023-06-09T20:59:00Z",
 							"cluster_id": "123",
 							"enable_minor_version_upgrades": true
-				***REMOVED***
+						}
 					]
-		***REMOVED***`***REMOVED***,
-				***REMOVED***,
+				}`),
+				),
 				// Check it's state
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456/state"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456/state"),
 					RespondWithJSON(http.StatusOK, `{
 					"kind": "UpgradePolicyState",
 					"id": "456",
 					"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456/state",
 					"description": "",
 					"value": "scheduled"
-		***REMOVED***`***REMOVED***,
-				***REMOVED***,
+				}`),
+				),
 				// Delete existing upgrade policy
 				CombineHandlers(
-					VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456"***REMOVED***,
-					RespondWithJSON(http.StatusOK, "{}"***REMOVED***,
-				***REMOVED***,
-				// Look for gate agreements by posting an upgrade policy w/ dryRun (no gates necessary***REMOVED***
+					VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456"),
+					RespondWithJSON(http.StatusOK, "{}"),
+				),
+				// Look for gate agreements by posting an upgrade policy w/ dryRun (no gates necessary)
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies", "dryRun=true"***REMOVED***,
-					VerifyJQ(".version", "4.10.1"***REMOVED***,
-					RespondWithJSON(http.StatusNoContent, ""***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies", "dryRun=true"),
+					VerifyJQ(".version", "4.10.1"),
+					RespondWithJSON(http.StatusNoContent, ""),
+				),
 				// Create an upgrade policy
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"***REMOVED***,
-					VerifyJQ(".version", "4.10.1"***REMOVED***,
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
+					VerifyJQ(".version", "4.10.1"),
 					RespondWithJSON(http.StatusCreated, `
 				{
 					"kind": "UpgradePolicy",
@@ -3485,11 +3485,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 					"next_run": "2023-06-09T20:59:00Z",
 					"cluster_id": "123",
 					"enable_minor_version_upgrades": true
-		***REMOVED***`***REMOVED***,
-				***REMOVED***,
-				// Patch the cluster (w/ no changes***REMOVED***
+				}`),
+				),
+				// Patch the cluster (w/ no changes)
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
@@ -3498,10 +3498,10 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 						"rosa_tf_commit": "123",
 						"rosa_tf_version": "123"
 					  }
-			***REMOVED***
-				]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					}
+				]`),
+				),
+			)
 			// Perform try the upgrade
 			terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
@@ -3515,22 +3515,22 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 			version = "4.10.1"
-***REMOVED***`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+		}`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
 
-		It("Cancels upgrade if version=current_version", func(***REMOVED*** {
+		It("Cancels upgrade if version=current_version", func() {
 			server.AppendHandlers(
 				// Refresh cluster state
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-					RespondWithJSON(http.StatusOK, template***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, template),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
 					RespondWithJSON(http.StatusOK, `{
 					"kind": "UpgradePolicyState",
 					"page": 1,
@@ -3547,32 +3547,32 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 							"next_run": "2023-06-09T20:59:00Z",
 							"cluster_id": "123",
 							"enable_minor_version_upgrades": true
-				***REMOVED***
+						}
 					]
-		***REMOVED***`***REMOVED***,
-				***REMOVED***,
+				}`),
+				),
 				// Check it's state
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456/state"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456/state"),
 					RespondWithJSON(http.StatusOK, `{
 					"kind": "UpgradePolicyState",
 					"id": "456",
 					"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456/state",
 					"description": "",
 					"value": "scheduled"
-		***REMOVED***`***REMOVED***,
-				***REMOVED***,
+				}`),
+				),
 				// Delete existing upgrade policy
 				CombineHandlers(
-					VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456"***REMOVED***,
-					RespondWithJSON(http.StatusOK, "{}"***REMOVED***,
-				***REMOVED***,
-				// Patch the cluster (w/ no changes***REMOVED***
+					VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456"),
+					RespondWithJSON(http.StatusOK, "{}"),
+				),
+				// Patch the cluster (w/ no changes)
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-					RespondWithJSON(http.StatusOK, template***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, template),
+				),
+			)
 			// Set version to match current cluster version
 			terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
@@ -3586,27 +3586,27 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 			version = "4.10.0"
-***REMOVED***`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+		}`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
 
-		It("is an error to request a version older than current", func(***REMOVED*** {
+		It("is an error to request a version older than current", func() {
 			server.AppendHandlers(
 				// Refresh cluster state
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusOK, template,
 						`[
 					{
 						"op": "replace",
-					***REMOVED***: "/version/id",
+						"path": "/version/id",
 						"value": "openshift-v4.11.0"
-			***REMOVED***]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					}]`),
+				),
+			)
 			// Set version to before current cluster version, but after version from create
 			terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
@@ -3620,34 +3620,34 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 			version = "4.10.1"
-***REMOVED***`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+		}`)
+			Expect(terraform.Apply()).NotTo(BeZero())
+		})
 
-		It("older than current is allowed as long as not changed", func(***REMOVED*** {
+		It("older than current is allowed as long as not changed", func() {
 			server.AppendHandlers(
 				// Refresh cluster state
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusOK, template,
 						`[
 						{
 							"op": "replace",
-						***REMOVED***: "/version/id",
+							"path": "/version/id",
 							"value": "openshift-v4.11.0"
-				***REMOVED***]`***REMOVED***,
-				***REMOVED***,
-				// Patch the cluster (w/ no changes***REMOVED***
+						}]`),
+				),
+				// Patch the cluster (w/ no changes)
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-					RespondWithJSON(http.StatusOK, template***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, template),
+				),
+			)
 			// Set version to before current cluster version, but matching what was
-			// used during creation (i.e. in state file***REMOVED***
+			// used during creation (i.e. in state file)
 			terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
@@ -3660,39 +3660,39 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 				instance_iam_roles = {
 					master_role_arn = "",
 					worker_role_arn = "",
-		***REMOVED***
-	***REMOVED***
+				}
+			}
 			version = "4.10.0"
-***REMOVED***`***REMOVED***
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+		}`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
 
-		Context("Un-acked gates", func(***REMOVED*** {
-			BeforeEach(func(***REMOVED*** {
+		Context("Un-acked gates", func() {
+			BeforeEach(func() {
 				server.AppendHandlers(
 					// Refresh cluster state
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-						RespondWithJSON(http.StatusOK, template***REMOVED***,
-					***REMOVED***,
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+						RespondWithJSON(http.StatusOK, template),
+					),
 					// Validate upgrade versions
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.0"***REMOVED***,
-						RespondWithJSON(http.StatusOK, v4_10_0Info***REMOVED***,
-					***REMOVED***,
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.0"),
+						RespondWithJSON(http.StatusOK, v4_10_0Info),
+					),
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"***REMOVED***,
-						RespondWithJSON(http.StatusOK, v4_10_1Info***REMOVED***,
-					***REMOVED***,
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
+						RespondWithJSON(http.StatusOK, v4_10_1Info),
+					),
 					// Look for existing upgrade policies
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"***REMOVED***,
-						RespondWithJSON(http.StatusOK, upgradePoliciesEmpty***REMOVED***,
-					***REMOVED***,
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
+						RespondWithJSON(http.StatusOK, upgradePoliciesEmpty),
+					),
 					// Look for gate agreements by posting an upgrade policy w/ dryRun
 					CombineHandlers(
-						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies", "dryRun=true"***REMOVED***,
-						VerifyJQ(".version", "4.10.1"***REMOVED***,
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies", "dryRun=true"),
+						VerifyJQ(".version", "4.10.1"),
 						RespondWithJSON(http.StatusBadRequest, `{
 						"kind": "Error",
 						"id": "400",
@@ -3712,14 +3712,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 							"documentation_url": "https://access.redhat.com/solutions/0000000",
 							"sts_only": false,
 							"creation_timestamp": "2023-04-03T06:39:57.057613Z"
-				***REMOVED***
+						}
 						],
 						"operation_id": "8f2d2946-c4ef-4c2f-877b-c19eb17dc918"
-			***REMOVED***`***REMOVED***,
-					***REMOVED***,
-				***REMOVED***
-	***REMOVED******REMOVED***
-			It("Fails upgrade for un-acked gates", func(***REMOVED*** {
+					}`),
+					),
+				)
+			})
+			It("Fails upgrade for un-acked gates", func() {
 				terraform.Source(`
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 				name           = "my-cluster"
@@ -3732,13 +3732,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 					instance_iam_roles = {
 						master_role_arn = "",
 						worker_role_arn = "",
-			***REMOVED***
-		***REMOVED***
+					}
+				}
 				version = "openshift-v4.10.1"
-	***REMOVED***`***REMOVED***
-				Expect(terraform.Apply(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-			It("Fails upgrade if wrong version is acked", func(***REMOVED*** {
+			}`)
+				Expect(terraform.Apply()).NotTo(BeZero())
+			})
+			It("Fails upgrade if wrong version is acked", func() {
 				terraform.Source(`
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 				name           = "my-cluster"
@@ -3751,19 +3751,19 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 					instance_iam_roles = {
 						master_role_arn = "",
 						worker_role_arn = "",
-			***REMOVED***
-		***REMOVED***
+					}
+				}
 				version = "openshift-v4.10.1"
 				upgrade_acknowledgements_for = "1.1"
-	***REMOVED***`***REMOVED***
-				Expect(terraform.Apply(***REMOVED******REMOVED***.NotTo(BeZero(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-			It("It acks gates if correct ack is provided", func(***REMOVED*** {
+			}`)
+				Expect(terraform.Apply()).NotTo(BeZero())
+			})
+			It("It acks gates if correct ack is provided", func() {
 				server.AppendHandlers(
 					// Send acks for all gate agreements
 					CombineHandlers(
-						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/gate_agreements"***REMOVED***,
-						VerifyJQ(".version_gate.id", "999"***REMOVED***,
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/gate_agreements"),
+						VerifyJQ(".version_gate.id", "999"),
 						RespondWithJSON(http.StatusCreated, `{
 					"kind": "VersionGateAgreement",
 					"id": "888",
@@ -3780,14 +3780,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 					  "documentation_url": "https://access.redhat.com/solutions/0000000",
 					  "sts_only": false,
 					  "creation_timestamp": "2023-04-03T06:39:57.057613Z"
-			***REMOVED***,
+					},
 					"creation_timestamp": "2023-06-21T13:02:06.291443Z"
-				  }`***REMOVED***,
-					***REMOVED***,
+				  }`),
+					),
 					// Create an upgrade policy
 					CombineHandlers(
-						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"***REMOVED***,
-						VerifyJQ(".version", "4.10.1"***REMOVED***,
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
+						VerifyJQ(".version", "4.10.1"),
 						RespondWithJSON(http.StatusCreated, `
 				{
 					"kind": "UpgradePolicy",
@@ -3799,11 +3799,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 					"next_run": "2023-06-09T20:59:00Z",
 					"cluster_id": "123",
 					"enable_minor_version_upgrades": true
-		***REMOVED***`***REMOVED***,
-					***REMOVED***,
-					// Patch the cluster (w/ no changes***REMOVED***
+				}`),
+					),
+					// Patch the cluster (w/ no changes)
 					CombineHandlers(
-						VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+						VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
 						RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
@@ -3812,10 +3812,10 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 						"rosa_tf_commit": "123",
 						"rosa_tf_version": "123"
 					  }
-			***REMOVED***
-				]`***REMOVED***,
-					***REMOVED***,
-				***REMOVED***
+					}
+				]`),
+					),
+				)
 				terraform.Source(`
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 				name           = "my-cluster"
@@ -3828,24 +3828,24 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func(***REMOVED*** {
 					instance_iam_roles = {
 						master_role_arn = "",
 						worker_role_arn = "",
-			***REMOVED***
-		***REMOVED***
+					}
+				}
 				version = "4.10.1"
 				upgrade_acknowledgements_for = "4.10"
-	***REMOVED***`***REMOVED***
-				Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-	}***REMOVED***
-}***REMOVED***
+			}`)
+				Expect(terraform.Apply()).To(BeZero())
+			})
+		})
+	})
+})
 
-var _ = Describe("rhcs_cluster_rosa_classic - import", func(***REMOVED*** {
+var _ = Describe("rhcs_cluster_rosa_classic - import", func() {
 	const template = `{
 		"id": "123",
 		"name": "my-cluster",
 		"region": {
 		  "id": "us-west-1"
-***REMOVED***,
+		},
 		"aws": {
 			"sts": {
 				"oidc_endpoint_url": "https://127.0.0.2",
@@ -3855,23 +3855,23 @@ var _ = Describe("rhcs_cluster_rosa_classic - import", func(***REMOVED*** {
 				"instance_iam_roles" : {
 					"master_role_arn" : "",
 					"worker_role_arn" : ""
-		***REMOVED***,
+				},
 				"operator_role_prefix" : "test"
-	***REMOVED***
-***REMOVED***,
+			}
+		},
 		"multi_az": true,
 		"api": {
 		  "url": "https://my-api.example.com"
-***REMOVED***,
+		},
 		"console": {
 		  "url": "https://my-console.example.com"
-***REMOVED***,
+		},
 		"network": {
 		  "machine_cidr": "10.0.0.0/16",
 		  "service_cidr": "172.30.0.0/16",
 		  "pod_cidr": "10.128.0.0/14",
 		  "host_prefix": 23
-***REMOVED***,
+		},
 		"nodes": {
 			"availability_zones": [
 				"us-west-1a",
@@ -3881,22 +3881,22 @@ var _ = Describe("rhcs_cluster_rosa_classic - import", func(***REMOVED*** {
 			"compute": 3,
 			"compute_machine_type": {
 				"id": "r5.xlarge"
-	***REMOVED***
-***REMOVED***,
+			}
+		},
 		"version": {
 			"id": "4.10.0"
-***REMOVED***
+		}
 	}`
-	Context("rhcs_cluster_rosa_classic - create", func(***REMOVED*** {
-		It("can import a cluster", func(***REMOVED*** {
+	Context("rhcs_cluster_rosa_classic - create", func() {
+		It("can import a cluster", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				// CombineHandlers(
-				// 	VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"***REMOVED***,
-				// 	RespondWithJSON(http.StatusOK, versionListPage1***REMOVED***,
-				// ***REMOVED***,
+				// 	VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+				// 	RespondWithJSON(http.StatusOK, versionListPage1),
+				// ),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
 						{
 						  "op": "add",
@@ -3914,7 +3914,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - import", func(***REMOVED*** {
 								  "operator_role_prefix" : "test"
 							  }
 						  }
-				***REMOVED***,
+						},
 						{
 						  "op": "add",
 						  "path": "/nodes",
@@ -3927,20 +3927,20 @@ var _ = Describe("rhcs_cluster_rosa_classic - import", func(***REMOVED*** {
 							"compute": 3,
 							"compute_machine_type": {
 								"id": "r5.xlarge"
-					***REMOVED***
+							}
 						  }
-				***REMOVED***]`***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+						}]`),
+				),
+			)
 
 			// Run the apply command:
 			terraform.Source(`
 			  resource "rhcs_cluster_rosa_classic" "my_cluster" { }
-			`***REMOVED***
-			Expect(terraform.Import("rhcs_cluster_rosa_classic.my_cluster", "123"***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster"***REMOVED***
-			Expect(resource***REMOVED***.To(MatchJQ(".attributes.current_version", "4.10.0"***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+			`)
+			Expect(terraform.Import("rhcs_cluster_rosa_classic.my_cluster", "123")).To(BeZero())
+			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.current_version", "4.10.0"))
+		})
 
-	}***REMOVED***
-}***REMOVED***
+	})
+})

@@ -1,13 +1,13 @@
 package resource
 
-***REMOVED***
+import (
 	"testing"
 
-***REMOVED***
-***REMOVED***
-***REMOVED***
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+)
 
-func TestResource(t *testing.T***REMOVED*** {
-	RegisterFailHandler(Fail***REMOVED***
-	RunSpecs(t, "OCM Resource Suite"***REMOVED***
+func TestResource(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "OCM Resource Suite")
 }

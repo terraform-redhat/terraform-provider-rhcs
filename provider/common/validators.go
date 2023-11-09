@@ -1,34 +1,34 @@
 package common
 
-***REMOVED***
-***REMOVED***
+import (
+	"fmt"
 	"regexp"
 	"strings"
-***REMOVED***
+)
 
-func ValidateHTPasswdUsername(username string***REMOVED*** error {
-	if strings.ContainsAny(username, "/:%"***REMOVED*** {
+func ValidateHTPasswdUsername(username string) error {
+	if strings.ContainsAny(username, "/:%") {
 		return fmt.Errorf("invalid username '%s': "+
-			"username must not contain /, :, or %%", username***REMOVED***
+			"username must not contain /, :, or %%", username)
 	}
 	return nil
 }
 
-func ValidateHTPasswdPassword(password string***REMOVED*** error {
-	notAsciiOnly, _ := regexp.MatchString(`[^\x20-\x7E]`, password***REMOVED***
-	containsSpace := strings.Contains(password, " "***REMOVED***
-	tooShort := len(password***REMOVED*** < 14
+func ValidateHTPasswdPassword(password string) error {
+	notAsciiOnly, _ := regexp.MatchString(`[^\x20-\x7E]`, password)
+	containsSpace := strings.Contains(password, " ")
+	tooShort := len(password) < 14
 	if notAsciiOnly || containsSpace || tooShort {
 		return fmt.Errorf(
-			"password must be at least 14 characters (ASCII-standard***REMOVED*** without whitespaces"***REMOVED***
+			"password must be at least 14 characters (ASCII-standard) without whitespaces")
 	}
-	hasUppercase, _ := regexp.MatchString(`[A-Z]`, password***REMOVED***
-	hasLowercase, _ := regexp.MatchString(`[a-z]`, password***REMOVED***
-	hasNumberOrSymbol, _ := regexp.MatchString(`[^a-zA-Z]`, password***REMOVED***
+	hasUppercase, _ := regexp.MatchString(`[A-Z]`, password)
+	hasLowercase, _ := regexp.MatchString(`[a-z]`, password)
+	hasNumberOrSymbol, _ := regexp.MatchString(`[^a-zA-Z]`, password)
 	if !hasUppercase || !hasLowercase || !hasNumberOrSymbol {
 		return fmt.Errorf(
 			"password must include uppercase letters, lowercase letters, and numbers " +
-				"or symbols (ASCII-standard characters only***REMOVED***"***REMOVED***
+				"or symbols (ASCII-standard characters only)")
 	}
 	return nil
 }

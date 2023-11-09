@@ -4,18 +4,18 @@ set -o nounset
 set -o errexit
 set -o pipefail
 set -x
-trap 'CHILDREN=$(jobs -p***REMOVED***; if test -n "${CHILDREN}"; then kill ${CHILDREN} && wait; fi' TERM
+trap 'CHILDREN=$(jobs -p); if test -n "${CHILDREN}"; then kill ${CHILDREN} && wait; fi' TERM
 
-function error_exit(***REMOVED*** {
+function error_exit() {
     msg=${1}
     >&2 echo "[Error] ${msg}"
     exit 1
 }
 
-function prow_archive_state(***REMOVED*** {
+function prow_archive_state() {
     if [ -n "${OPENSHIFT_CI:-}" ]; then
         echo
-        echo "[INFO] Running in OpenShift CI (Prow***REMOVED***."
+        echo "[INFO] Running in OpenShift CI (Prow)."
         echo "[INFO] Archiving state for PROW."
         echo
         set -o xtrace
@@ -34,8 +34,8 @@ function prow_archive_state(***REMOVED*** {
     fi
 }
 
-THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" ***REMOVED***" >/dev/null 2>&1 && pwd ***REMOVED***"
-BASE_DIR=$(realpath "${THIS_DIR}/.."***REMOVED***
+THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+BASE_DIR=$(realpath "${THIS_DIR}/..")
 
 echo
 echo ">> Running destroy_folder script"

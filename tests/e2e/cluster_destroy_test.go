@@ -1,28 +1,28 @@
-***REMOVED***
+package e2e
 
-***REMOVED***
+import (
 	"os"
 
-***REMOVED***
-***REMOVED***
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	CI "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-***REMOVED***
+)
 
-var _ = Describe("TF Test", func(***REMOVED*** {
-	Describe("Create cluster test", func(***REMOVED*** {
+var _ = Describe("TF Test", func() {
+	Describe("Create cluster test", func() {
 		It("DestroyClusterByProfile", CI.Destroy,
-			func(***REMOVED*** {
+			func() {
 				// Destroy kubeconfig folder
-				if _, err := os.Stat(CON.RHCS.KubeConfigDir***REMOVED***; err == nil {
-					os.RemoveAll(CON.RHCS.KubeConfigDir***REMOVED***
-		***REMOVED***
+				if _, err := os.Stat(CON.RHCS.KubeConfigDir); err == nil {
+					os.RemoveAll(CON.RHCS.KubeConfigDir)
+				}
 
 				// Generate/build cluster by profile selected
-				profile := CI.LoadProfileYamlFileByENV(***REMOVED***
-				err := CI.DestroyRHCSClusterByProfile(token, profile***REMOVED***
+				profile := CI.LoadProfileYamlFileByENV()
+				err := CI.DestroyRHCSClusterByProfile(token, profile)
 
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-	}***REMOVED***
-}***REMOVED***
+				Expect(err).ToNot(HaveOccurred())
+			})
+	})
+})

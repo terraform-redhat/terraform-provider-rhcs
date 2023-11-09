@@ -1,7 +1,7 @@
 /*
-Copyright (c***REMOVED*** 2021 Red Hat, Inc.
+Copyright (c) 2021 Red Hat, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -16,21 +16,21 @@ limitations under the License.
 
 package provider
 
-***REMOVED***
-***REMOVED***
+import (
+	"net/http"
 
 	. "github.com/onsi/ginkgo/v2/dsl/core"             // nolint
-***REMOVED***                         // nolint
+	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
-***REMOVED***
+)
 
-var _ = Describe("Machine types data source", func(***REMOVED*** {
-	It("Can list machine types", func(***REMOVED*** {
+var _ = Describe("Machine types data source", func() {
+	It("Can list machine types", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/machine_types"***REMOVED***,
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/machine_types"),
 				RespondWithJSON(http.StatusOK, `{
 				  "page": 1,
 				  "size": 1,
@@ -75,40 +75,40 @@ var _ = Describe("Machine types data source", func(***REMOVED*** {
 				      "generic_name": "highcpu-48"
 				    }
 				  ]
-		***REMOVED***`***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				}`),
+			),
+		)
 
 		// Run the apply command:
 		terraform.Source(`
 		  data "rhcs_machine_types" "my_machines" {
 		  }
-		`***REMOVED***
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
+		`)
+		Expect(terraform.Apply()).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_machine_types", "my_machines"***REMOVED***
+		resource := terraform.Resource("rhcs_machine_types", "my_machines")
 
 		// Check the GCP machine type:
-		gcpTypes, err := JQ(`.attributes.items[] | select(.cloud_provider == "gcp"***REMOVED***`, resource***REMOVED***
-		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-		Expect(gcpTypes***REMOVED***.To(HaveLen(1***REMOVED******REMOVED***
+		gcpTypes, err := JQ(`.attributes.items[] | select(.cloud_provider == "gcp")`, resource)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(gcpTypes).To(HaveLen(1))
 		gcpType := gcpTypes[0]
-		Expect(gcpType***REMOVED***.To(MatchJQ(".cloud_provider", "gcp"***REMOVED******REMOVED***
-		Expect(gcpType***REMOVED***.To(MatchJQ(".id", "custom-16-131072-ext"***REMOVED******REMOVED***
-		Expect(gcpType***REMOVED***.To(MatchJQ(".name", "custom-16-131072-ext - Memory Optimized"***REMOVED******REMOVED***
-		Expect(gcpType***REMOVED***.To(MatchJQ(".cpu", 16.0***REMOVED******REMOVED***
-		Expect(gcpType***REMOVED***.To(MatchJQ(".ram", 137438953472.0***REMOVED******REMOVED***
+		Expect(gcpType).To(MatchJQ(".cloud_provider", "gcp"))
+		Expect(gcpType).To(MatchJQ(".id", "custom-16-131072-ext"))
+		Expect(gcpType).To(MatchJQ(".name", "custom-16-131072-ext - Memory Optimized"))
+		Expect(gcpType).To(MatchJQ(".cpu", 16.0))
+		Expect(gcpType).To(MatchJQ(".ram", 137438953472.0))
 
 		// Check the AWS machine type:
-		awsTypes, err := JQ(`.attributes.items[] | select(.cloud_provider == "aws"***REMOVED***`, resource***REMOVED***
-		Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-		Expect(awsTypes***REMOVED***.To(HaveLen(1***REMOVED******REMOVED***
+		awsTypes, err := JQ(`.attributes.items[] | select(.cloud_provider == "aws")`, resource)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(awsTypes).To(HaveLen(1))
 		awsType := awsTypes[0]
-		Expect(awsType***REMOVED***.To(MatchJQ(".cloud_provider", "aws"***REMOVED******REMOVED***
-		Expect(awsType***REMOVED***.To(MatchJQ(".id", "c5.12xlarge"***REMOVED******REMOVED***
-		Expect(awsType***REMOVED***.To(MatchJQ(".name", "c5.12xlarge - Compute optimized"***REMOVED******REMOVED***
-		Expect(awsType***REMOVED***.To(MatchJQ(".cpu", 48.0***REMOVED******REMOVED***
-		Expect(awsType***REMOVED***.To(MatchJQ(".ram", 103079215104.0***REMOVED******REMOVED***
-	}***REMOVED***
-}***REMOVED***
+		Expect(awsType).To(MatchJQ(".cloud_provider", "aws"))
+		Expect(awsType).To(MatchJQ(".id", "c5.12xlarge"))
+		Expect(awsType).To(MatchJQ(".name", "c5.12xlarge - Compute optimized"))
+		Expect(awsType).To(MatchJQ(".cpu", 48.0))
+		Expect(awsType).To(MatchJQ(".ram", 103079215104.0))
+	})
+})

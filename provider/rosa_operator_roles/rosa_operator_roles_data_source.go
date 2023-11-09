@@ -1,7 +1,7 @@
 /*
-Copyright (c***REMOVED*** 2021 Red Hat, Inc.
+Copyright (c) 2021 Red Hat, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -16,9 +16,9 @@ limitations under the License.
 
 package rosa_operator_roles
 
-***REMOVED***
+import (
 	"context"
-***REMOVED***
+	"fmt"
 	"sort"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -29,7 +29,7 @@ package rosa_operator_roles
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-***REMOVED***
+)
 
 type RosaOperatorRolesDataSource struct {
 	awsInquiries *cmv1.AWSInquiriesClient
@@ -41,28 +41,28 @@ var _ datasource.DataSourceWithConfigure = &RosaOperatorRolesDataSource{}
 const (
 	DefaultAccountRolePrefix = "ManagedOpenShift"
 	serviceAccountFmt        = "system:serviceaccount:%s:%s"
-***REMOVED***
+)
 
-func New(***REMOVED*** datasource.DataSource {
+func New() datasource.DataSource {
 	return &RosaOperatorRolesDataSource{}
 }
 
-func (s *RosaOperatorRolesDataSource***REMOVED*** Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse***REMOVED*** {
+func (s *RosaOperatorRolesDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_rosa_operator_roles"
 }
 
-func (s *RosaOperatorRolesDataSource***REMOVED*** Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse***REMOVED*** {
+func (s *RosaOperatorRolesDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "List of ROSA operator role for a specific cluster.",
 		Attributes: map[string]schema.Attribute{
 			"operator_role_prefix": schema.StringAttribute{
 				Description: "Operator role prefix.",
 				Required:    true,
-	***REMOVED***,
+			},
 			"account_role_prefix": schema.StringAttribute{
 				Description: "Account role prefix.",
 				Optional:    true,
-	***REMOVED***,
+			},
 			"operator_iam_roles": schema.ListNestedAttribute{
 				Description: "Operator IAM Roles.",
 				NestedObject: schema.NestedAttributeObject{
@@ -70,132 +70,132 @@ func (s *RosaOperatorRolesDataSource***REMOVED*** Schema(ctx context.Context, re
 						"operator_name": schema.StringAttribute{
 							Description: "Operator Name",
 							Computed:    true,
-				***REMOVED***,
+						},
 						"operator_namespace": schema.StringAttribute{
 							Description: "Kubernetes Namespace",
 							Computed:    true,
-				***REMOVED***,
+						},
 						"role_name": schema.StringAttribute{
 							Description: "policy name",
 							Computed:    true,
-				***REMOVED***,
+						},
 						"policy_name": schema.StringAttribute{
 							Description: "policy name",
 							Computed:    true,
-				***REMOVED***,
+						},
 						"service_accounts": schema.ListAttribute{
 							Description: "service accounts",
 							ElementType: types.StringType,
 							Computed:    true,
-				***REMOVED***,
-			***REMOVED***,
-		***REMOVED***,
+						},
+					},
+				},
 				Computed: true,
-	***REMOVED***,
-***REMOVED***,
+			},
+		},
 	}
 	return
 }
 
-func (s *RosaOperatorRolesDataSource***REMOVED*** Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse***REMOVED*** {
+func (s *RosaOperatorRolesDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured:
 	if req.ProviderData == nil {
 		return
 	}
 
 	// Cast the provider data to the specific implementation:
-	connection := req.ProviderData.(*sdk.Connection***REMOVED***
+	connection := req.ProviderData.(*sdk.Connection)
 
 	// Get the collection of cloud providers:
-	s.awsInquiries = connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.AWSInquiries(***REMOVED***
+	s.awsInquiries = connection.ClustersMgmt().V1().AWSInquiries()
 }
 
-func (s *RosaOperatorRolesDataSource***REMOVED*** Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse***REMOVED*** {
+func (s *RosaOperatorRolesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	// Get the state:
 	state := &RosaOperatorRolesState{}
-	diags := req.Config.Get(ctx, state***REMOVED***
-	resp.Diagnostics.Append(diags...***REMOVED***
-	if resp.Diagnostics.HasError(***REMOVED*** {
+	diags := req.Config.Get(ctx, state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	stsOperatorRolesList, err := s.awsInquiries.STSCredentialRequests(***REMOVED***.List(***REMOVED***.Send(***REMOVED***
+	stsOperatorRolesList, err := s.awsInquiries.STSCredentialRequests().List().Send()
 	if err != nil {
-		description := fmt.Sprintf("Failed to get STS Operator Roles list with error: %v", err***REMOVED***
-		tflog.Error(ctx, description***REMOVED***
+		description := fmt.Sprintf("Failed to get STS Operator Roles list with error: %v", err)
+		tflog.Error(ctx, description)
 		resp.Diagnostics.AddError(
 			description,
-			"hint: validate the credetials (token***REMOVED*** used to run this provider",
-		***REMOVED***
+			"hint: validate the credetials (token) used to run this provider",
+		)
 		return
 	}
 
-	stsOperatorMap := make(map[string]*cmv1.STSOperator***REMOVED***
-	roleNameSpaces := make([]string, 0***REMOVED***
-	stsOperatorRolesList.Items(***REMOVED***.Each(func(stsCredentialRequest *cmv1.STSCredentialRequest***REMOVED*** bool {
+	stsOperatorMap := make(map[string]*cmv1.STSOperator)
+	roleNameSpaces := make([]string, 0)
+	stsOperatorRolesList.Items().Each(func(stsCredentialRequest *cmv1.STSCredentialRequest) bool {
 		// TODO: check the MinVersion of the operator role
 		tflog.Debug(ctx, fmt.Sprintf("Operator name: %s, namespace %s, service account %s",
-			stsCredentialRequest.Operator(***REMOVED***.Name(***REMOVED***,
-			stsCredentialRequest.Operator(***REMOVED***.Namespace(***REMOVED***,
-			stsCredentialRequest.Operator(***REMOVED***.ServiceAccounts(***REMOVED***,
-		***REMOVED******REMOVED***
-		// The key can't be stsCredentialRequest.Operator(***REMOVED***.Name(***REMOVED*** because of constants between
+			stsCredentialRequest.Operator().Name(),
+			stsCredentialRequest.Operator().Namespace(),
+			stsCredentialRequest.Operator().ServiceAccounts(),
+		))
+		// The key can't be stsCredentialRequest.Operator().Name() because of constants between
 		// the name of `ingress_operator_cloud_credentials` and `cloud_network_config_controller_cloud_credentials`
 		// both of them includes the same Name `cloud-credentials` and it cannot be fixed
-		roleNameSpaces = append(roleNameSpaces, stsCredentialRequest.Operator(***REMOVED***.Namespace(***REMOVED******REMOVED***
-		stsOperatorMap[stsCredentialRequest.Operator(***REMOVED***.Namespace(***REMOVED***] = stsCredentialRequest.Operator(***REMOVED***
+		roleNameSpaces = append(roleNameSpaces, stsCredentialRequest.Operator().Namespace())
+		stsOperatorMap[stsCredentialRequest.Operator().Namespace()] = stsCredentialRequest.Operator()
 		return true
-	}***REMOVED***
+	})
 
 	accountRolePrefix := DefaultAccountRolePrefix
-	if !common.IsStringAttributeEmpty(state.AccountRolePrefix***REMOVED*** {
-		accountRolePrefix = state.AccountRolePrefix.ValueString(***REMOVED***
+	if !common.IsStringAttributeEmpty(state.AccountRolePrefix) {
+		accountRolePrefix = state.AccountRolePrefix.ValueString()
 	}
 
-	// TODO: use the sts.OperatorRolePrefix(***REMOVED*** if not empty
-	// There is a bug in the return value of sts.OperatorRolePrefix(***REMOVED*** - it's always empty string
-	sort.Strings(roleNameSpaces***REMOVED***
+	// TODO: use the sts.OperatorRolePrefix() if not empty
+	// There is a bug in the return value of sts.OperatorRolePrefix() - it's always empty string
+	sort.Strings(roleNameSpaces)
 	for _, key := range roleNameSpaces {
 		v := stsOperatorMap[key]
 		r := OperatorIAMRole{
-			Name:            types.StringValue(v.Name(***REMOVED******REMOVED***,
-			Namespace:       types.StringValue(v.Namespace(***REMOVED******REMOVED***,
-			RoleName:        types.StringValue(getRoleName(state.OperatorRolePrefix.ValueString(***REMOVED***, v***REMOVED******REMOVED***,
-			PolicyName:      types.StringValue(getPolicyName(accountRolePrefix, v.Namespace(***REMOVED***, v.Name(***REMOVED******REMOVED******REMOVED***,
-			ServiceAccounts: buildServiceAccountsArray(stsOperatorMap[v.Namespace(***REMOVED***].ServiceAccounts(***REMOVED***, v.Namespace(***REMOVED******REMOVED***,
-***REMOVED***
-		state.OperatorIAMRoles = append(state.OperatorIAMRoles, &r***REMOVED***
+			Name:            types.StringValue(v.Name()),
+			Namespace:       types.StringValue(v.Namespace()),
+			RoleName:        types.StringValue(getRoleName(state.OperatorRolePrefix.ValueString(), v)),
+			PolicyName:      types.StringValue(getPolicyName(accountRolePrefix, v.Namespace(), v.Name())),
+			ServiceAccounts: buildServiceAccountsArray(stsOperatorMap[v.Namespace()].ServiceAccounts(), v.Namespace()),
+		}
+		state.OperatorIAMRoles = append(state.OperatorIAMRoles, &r)
 	}
 
 	// Save the state:
-	diags = resp.State.Set(ctx, state***REMOVED***
-	resp.Diagnostics.Append(diags...***REMOVED***
+	diags = resp.State.Set(ctx, state)
+	resp.Diagnostics.Append(diags...)
 }
 
 // TODO: should be in a separate repo
-func getRoleName(rolePrefix string, operatorRole *cmv1.STSOperator***REMOVED*** string {
-	role := fmt.Sprintf("%s-%s-%s", rolePrefix, operatorRole.Namespace(***REMOVED***, operatorRole.Name(***REMOVED******REMOVED***
-	if len(role***REMOVED*** > 64 {
+func getRoleName(rolePrefix string, operatorRole *cmv1.STSOperator) string {
+	role := fmt.Sprintf("%s-%s-%s", rolePrefix, operatorRole.Namespace(), operatorRole.Name())
+	if len(role) > 64 {
 		role = role[0:64]
 	}
 	return role
 }
 
 // TODO: should be in a separate repo
-func getPolicyName(prefix string, namespace string, name string***REMOVED*** string {
-	policy := fmt.Sprintf("%s-%s-%s", prefix, namespace, name***REMOVED***
-	if len(policy***REMOVED*** > 64 {
+func getPolicyName(prefix string, namespace string, name string) string {
+	policy := fmt.Sprintf("%s-%s-%s", prefix, namespace, name)
+	if len(policy) > 64 {
 		policy = policy[0:64]
 	}
 	return policy
 }
 
-func buildServiceAccountsArray(serviceAccountArr []string, operatorNamespace string***REMOVED*** types.List {
+func buildServiceAccountsArray(serviceAccountArr []string, operatorNamespace string) types.List {
 	svcAcctList := []string{}
 	for _, v := range serviceAccountArr {
-		svcAcctList = append(svcAcctList, fmt.Sprintf(serviceAccountFmt, operatorNamespace, v***REMOVED******REMOVED***
+		svcAcctList = append(svcAcctList, fmt.Sprintf(serviceAccountFmt, operatorNamespace, v))
 	}
 
-	serviceAccounts, _ := types.ListValueFrom(context.TODO(***REMOVED***, types.StringType, svcAcctList***REMOVED***
+	serviceAccounts, _ := types.ListValueFrom(context.TODO(), types.StringType, svcAcctList)
 	return serviceAccounts
 }

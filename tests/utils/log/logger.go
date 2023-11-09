@@ -1,15 +1,15 @@
 package log
 
-***REMOVED***
+import (
 	logging "github.com/sirupsen/logrus"
-***REMOVED***
+)
 
-func GetLogger(***REMOVED*** *logging.Logger {
+func GetLogger() *logging.Logger {
 	// Create the logger
-	logger := logging.New(***REMOVED***
+	logger := logging.New()
 	// Set logger level for your debug command
-	logger.SetLevel(logging.InfoLevel***REMOVED***
+	logger.SetLevel(logging.InfoLevel)
 	return logger
 }
 
-var Logger *logging.Logger = GetLogger(***REMOVED***
+var Logger *logging.Logger = GetLogger()

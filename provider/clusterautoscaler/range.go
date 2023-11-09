@@ -1,7 +1,7 @@
 /*
-Copyright (c***REMOVED*** 2023 Red Hat, Inc.
+Copyright (c) 2023 Red Hat, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -16,12 +16,12 @@ limitations under the License.
 
 package clusterautoscaler
 
-***REMOVED***
+import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
-***REMOVED***
+)
 
-func rangeAttribute(description string, required bool, optional bool***REMOVED*** schema.SingleNestedAttribute {
+func rangeAttribute(description string, required bool, optional bool) schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Description: description,
 		Required:    required,
@@ -29,13 +29,13 @@ func rangeAttribute(description string, required bool, optional bool***REMOVED**
 		Attributes: map[string]schema.Attribute{
 			"min": schema.Int64Attribute{
 				Required: true,
-	***REMOVED***,
+			},
 			"max": schema.Int64Attribute{
 				Required: true,
-	***REMOVED***,
-***REMOVED***,
+			},
+		},
 		Validators: []validator.Object{
-			rangeValidator(description***REMOVED***,
-***REMOVED***,
+			rangeValidator(description),
+		},
 	}
 }

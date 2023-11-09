@@ -1,7 +1,7 @@
 /*
-Copyright (c***REMOVED*** 2023 Red Hat, Inc.
+Copyright (c) 2023 Red Hat, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -16,257 +16,257 @@ limitations under the License.
 
 package clusterautoscaler
 
-***REMOVED***
+import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-***REMOVED*** // nolint
-***REMOVED***    // nolint
+	. "github.com/onsi/ginkgo/v2" // nolint
+	. "github.com/onsi/gomega"    // nolint
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-***REMOVED***
+)
 
-var _ = Describe("Cluster Autoscaler", func(***REMOVED*** {
-	Context("conversion to terraform state", func(***REMOVED*** {
-		It("successfully populates all fields", func(***REMOVED*** {
+var _ = Describe("Cluster Autoscaler", func() {
+	Context("conversion to terraform state", func() {
+		It("successfully populates all fields", func() {
 			clusterId := "123"
 			balIgnLables, _ := types.ListValue(types.StringType, []attr.Value{
-				types.StringValue("l1"***REMOVED***,
-				types.StringValue("l2"***REMOVED***,
-	***REMOVED******REMOVED***
-			autoscaler, err := cmv1.NewClusterAutoscaler(***REMOVED***.
-				BalanceSimilarNodeGroups(true***REMOVED***.
-				SkipNodesWithLocalStorage(true***REMOVED***.
-				LogVerbosity(1***REMOVED***.
-				MaxPodGracePeriod(10***REMOVED***.
-				PodPriorityThreshold(-10***REMOVED***.
-				IgnoreDaemonsetsUtilization(true***REMOVED***.
-				MaxNodeProvisionTime("1h"***REMOVED***.
-				BalancingIgnoredLabels("l1", "l2"***REMOVED***.
-				ResourceLimits(cmv1.NewAutoscalerResourceLimits(***REMOVED***.
-					MaxNodesTotal(10***REMOVED***.
-					Cores(cmv1.NewResourceRange(***REMOVED***.
-						Min(0***REMOVED***.
-						Max(1***REMOVED******REMOVED***.
-					Memory(cmv1.NewResourceRange(***REMOVED***.
-						Min(2***REMOVED***.
-						Max(3***REMOVED******REMOVED***.
+				types.StringValue("l1"),
+				types.StringValue("l2"),
+			})
+			autoscaler, err := cmv1.NewClusterAutoscaler().
+				BalanceSimilarNodeGroups(true).
+				SkipNodesWithLocalStorage(true).
+				LogVerbosity(1).
+				MaxPodGracePeriod(10).
+				PodPriorityThreshold(-10).
+				IgnoreDaemonsetsUtilization(true).
+				MaxNodeProvisionTime("1h").
+				BalancingIgnoredLabels("l1", "l2").
+				ResourceLimits(cmv1.NewAutoscalerResourceLimits().
+					MaxNodesTotal(10).
+					Cores(cmv1.NewResourceRange().
+						Min(0).
+						Max(1)).
+					Memory(cmv1.NewResourceRange().
+						Min(2).
+						Max(3)).
 					GPUS(
-						cmv1.NewAutoscalerResourceLimitsGPULimit(***REMOVED***.
-							Type("nvidia"***REMOVED***.
-							Range(cmv1.NewResourceRange(***REMOVED***.
-								Min(0***REMOVED***.
-								Max(1***REMOVED******REMOVED***,
-						cmv1.NewAutoscalerResourceLimitsGPULimit(***REMOVED***.
-							Type("intel"***REMOVED***.
-							Range(cmv1.NewResourceRange(***REMOVED***.
-								Min(2***REMOVED***.
-								Max(3***REMOVED******REMOVED***,
-					***REMOVED******REMOVED***.
-				ScaleDown(cmv1.NewAutoscalerScaleDownConfig(***REMOVED***.
-					Enabled(true***REMOVED***.
-					UnneededTime("2h"***REMOVED***.
-					UtilizationThreshold("0.5"***REMOVED***.
-					DelayAfterAdd("3h"***REMOVED***.
-					DelayAfterDelete("4h"***REMOVED***.
-					DelayAfterFailure("5h"***REMOVED******REMOVED***.Build(***REMOVED***
+						cmv1.NewAutoscalerResourceLimitsGPULimit().
+							Type("nvidia").
+							Range(cmv1.NewResourceRange().
+								Min(0).
+								Max(1)),
+						cmv1.NewAutoscalerResourceLimitsGPULimit().
+							Type("intel").
+							Range(cmv1.NewResourceRange().
+								Min(2).
+								Max(3)),
+					)).
+				ScaleDown(cmv1.NewAutoscalerScaleDownConfig().
+					Enabled(true).
+					UnneededTime("2h").
+					UtilizationThreshold("0.5").
+					DelayAfterAdd("3h").
+					DelayAfterDelete("4h").
+					DelayAfterFailure("5h")).Build()
 
-			Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+			Expect(err).ToNot(HaveOccurred())
 
 			var state ClusterAutoscalerState
-			populateAutoscalerState(autoscaler, clusterId, &state***REMOVED***
+			populateAutoscalerState(autoscaler, clusterId, &state)
 
-			Expect(state***REMOVED***.To(Equal(ClusterAutoscalerState{
-				Cluster:                     types.StringValue(clusterId***REMOVED***,
-				BalanceSimilarNodeGroups:    types.BoolValue(true***REMOVED***,
-				SkipNodesWithLocalStorage:   types.BoolValue(true***REMOVED***,
-				LogVerbosity:                types.Int64Value(1***REMOVED***,
-				MaxPodGracePeriod:           types.Int64Value(10***REMOVED***,
-				PodPriorityThreshold:        types.Int64Value(-10***REMOVED***,
-				IgnoreDaemonsetsUtilization: types.BoolValue(true***REMOVED***,
-				MaxNodeProvisionTime:        types.StringValue("1h"***REMOVED***,
+			Expect(state).To(Equal(ClusterAutoscalerState{
+				Cluster:                     types.StringValue(clusterId),
+				BalanceSimilarNodeGroups:    types.BoolValue(true),
+				SkipNodesWithLocalStorage:   types.BoolValue(true),
+				LogVerbosity:                types.Int64Value(1),
+				MaxPodGracePeriod:           types.Int64Value(10),
+				PodPriorityThreshold:        types.Int64Value(-10),
+				IgnoreDaemonsetsUtilization: types.BoolValue(true),
+				MaxNodeProvisionTime:        types.StringValue("1h"),
 				BalancingIgnoredLabels:      balIgnLables,
 				ResourceLimits: &AutoscalerResourceLimits{
-					MaxNodesTotal: types.Int64Value(10***REMOVED***,
+					MaxNodesTotal: types.Int64Value(10),
 					Cores: &AutoscalerResourceRange{
-						Min: types.Int64Value(0***REMOVED***,
-						Max: types.Int64Value(1***REMOVED***,
-			***REMOVED***,
+						Min: types.Int64Value(0),
+						Max: types.Int64Value(1),
+					},
 					Memory: &AutoscalerResourceRange{
-						Min: types.Int64Value(2***REMOVED***,
-						Max: types.Int64Value(3***REMOVED***,
-			***REMOVED***,
+						Min: types.Int64Value(2),
+						Max: types.Int64Value(3),
+					},
 					GPUS: []AutoscalerGPULimit{
 						{
-							Type: types.StringValue("nvidia"***REMOVED***,
+							Type: types.StringValue("nvidia"),
 							Range: AutoscalerResourceRange{
-								Min: types.Int64Value(0***REMOVED***,
-								Max: types.Int64Value(1***REMOVED***,
-					***REMOVED***,
-				***REMOVED***,
+								Min: types.Int64Value(0),
+								Max: types.Int64Value(1),
+							},
+						},
 						{
-							Type: types.StringValue("intel"***REMOVED***,
+							Type: types.StringValue("intel"),
 							Range: AutoscalerResourceRange{
-								Min: types.Int64Value(2***REMOVED***,
-								Max: types.Int64Value(3***REMOVED***,
-					***REMOVED***,
-				***REMOVED***,
-			***REMOVED***,
-		***REMOVED***,
+								Min: types.Int64Value(2),
+								Max: types.Int64Value(3),
+							},
+						},
+					},
+				},
 				ScaleDown: &AutoscalerScaleDownConfig{
-					Enabled:              types.BoolValue(true***REMOVED***,
-					UnneededTime:         types.StringValue("2h"***REMOVED***,
-					UtilizationThreshold: types.StringValue("0.5"***REMOVED***,
-					DelayAfterAdd:        types.StringValue("3h"***REMOVED***,
-					DelayAfterDelete:     types.StringValue("4h"***REMOVED***,
-					DelayAfterFailure:    types.StringValue("5h"***REMOVED***,
-		***REMOVED***,
-	***REMOVED******REMOVED******REMOVED***
-***REMOVED******REMOVED***
+					Enabled:              types.BoolValue(true),
+					UnneededTime:         types.StringValue("2h"),
+					UtilizationThreshold: types.StringValue("0.5"),
+					DelayAfterAdd:        types.StringValue("3h"),
+					DelayAfterDelete:     types.StringValue("4h"),
+					DelayAfterFailure:    types.StringValue("5h"),
+				},
+			}))
+		})
 
-		It("successfully populates empty fields", func(***REMOVED*** {
+		It("successfully populates empty fields", func() {
 			clusterId := "123"
-			autoscaler, err := cmv1.NewClusterAutoscaler(***REMOVED***.Build(***REMOVED***
-			Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+			autoscaler, err := cmv1.NewClusterAutoscaler().Build()
+			Expect(err).ToNot(HaveOccurred())
 
 			var state ClusterAutoscalerState
-			populateAutoscalerState(autoscaler, clusterId, &state***REMOVED***
+			populateAutoscalerState(autoscaler, clusterId, &state)
 
-			Expect(state***REMOVED***.To(Equal(ClusterAutoscalerState{
-				Cluster:                     types.StringValue(clusterId***REMOVED***,
-				BalanceSimilarNodeGroups:    types.BoolNull(***REMOVED***,
-				SkipNodesWithLocalStorage:   types.BoolNull(***REMOVED***,
-				LogVerbosity:                types.Int64Null(***REMOVED***,
-				MaxPodGracePeriod:           types.Int64Null(***REMOVED***,
-				PodPriorityThreshold:        types.Int64Null(***REMOVED***,
-				IgnoreDaemonsetsUtilization: types.BoolNull(***REMOVED***,
-				MaxNodeProvisionTime:        types.StringNull(***REMOVED***,
-				BalancingIgnoredLabels:      types.ListNull(types.StringType***REMOVED***,
+			Expect(state).To(Equal(ClusterAutoscalerState{
+				Cluster:                     types.StringValue(clusterId),
+				BalanceSimilarNodeGroups:    types.BoolNull(),
+				SkipNodesWithLocalStorage:   types.BoolNull(),
+				LogVerbosity:                types.Int64Null(),
+				MaxPodGracePeriod:           types.Int64Null(),
+				PodPriorityThreshold:        types.Int64Null(),
+				IgnoreDaemonsetsUtilization: types.BoolNull(),
+				MaxNodeProvisionTime:        types.StringNull(),
+				BalancingIgnoredLabels:      types.ListNull(types.StringType),
 				ResourceLimits:              nil,
 				ScaleDown:                   nil,
-	***REMOVED******REMOVED******REMOVED***
-***REMOVED******REMOVED***
-	}***REMOVED***
+			}))
+		})
+	})
 
-	Context("conversion to an OCM API object", func(***REMOVED*** {
-		It("successfully converts all fields from a terraform state", func(***REMOVED*** {
+	Context("conversion to an OCM API object", func() {
+		It("successfully converts all fields from a terraform state", func() {
 			clusterId := "123"
 			balIgnLables, _ := types.ListValue(types.StringType, []attr.Value{
-				types.StringValue("l1"***REMOVED***,
-				types.StringValue("l2"***REMOVED***,
-	***REMOVED******REMOVED***
+				types.StringValue("l1"),
+				types.StringValue("l2"),
+			})
 			state := ClusterAutoscalerState{
-				Cluster:                     types.StringValue(clusterId***REMOVED***,
-				BalanceSimilarNodeGroups:    types.BoolValue(true***REMOVED***,
-				SkipNodesWithLocalStorage:   types.BoolValue(true***REMOVED***,
-				LogVerbosity:                types.Int64Value(1***REMOVED***,
-				MaxPodGracePeriod:           types.Int64Value(10***REMOVED***,
-				PodPriorityThreshold:        types.Int64Value(-10***REMOVED***,
-				IgnoreDaemonsetsUtilization: types.BoolValue(true***REMOVED***,
-				MaxNodeProvisionTime:        types.StringValue("1h"***REMOVED***,
+				Cluster:                     types.StringValue(clusterId),
+				BalanceSimilarNodeGroups:    types.BoolValue(true),
+				SkipNodesWithLocalStorage:   types.BoolValue(true),
+				LogVerbosity:                types.Int64Value(1),
+				MaxPodGracePeriod:           types.Int64Value(10),
+				PodPriorityThreshold:        types.Int64Value(-10),
+				IgnoreDaemonsetsUtilization: types.BoolValue(true),
+				MaxNodeProvisionTime:        types.StringValue("1h"),
 				BalancingIgnoredLabels:      balIgnLables,
 				ResourceLimits: &AutoscalerResourceLimits{
-					MaxNodesTotal: types.Int64Value(10***REMOVED***,
+					MaxNodesTotal: types.Int64Value(10),
 					Cores: &AutoscalerResourceRange{
-						Min: types.Int64Value(0***REMOVED***,
-						Max: types.Int64Value(1***REMOVED***,
-			***REMOVED***,
+						Min: types.Int64Value(0),
+						Max: types.Int64Value(1),
+					},
 					Memory: &AutoscalerResourceRange{
-						Min: types.Int64Value(2***REMOVED***,
-						Max: types.Int64Value(3***REMOVED***,
-			***REMOVED***,
+						Min: types.Int64Value(2),
+						Max: types.Int64Value(3),
+					},
 					GPUS: []AutoscalerGPULimit{
 						{
-							Type: types.StringValue("nvidia"***REMOVED***,
+							Type: types.StringValue("nvidia"),
 							Range: AutoscalerResourceRange{
-								Min: types.Int64Value(0***REMOVED***,
-								Max: types.Int64Value(1***REMOVED***,
-					***REMOVED***,
-				***REMOVED***,
+								Min: types.Int64Value(0),
+								Max: types.Int64Value(1),
+							},
+						},
 						{
-							Type: types.StringValue("intel"***REMOVED***,
+							Type: types.StringValue("intel"),
 							Range: AutoscalerResourceRange{
-								Min: types.Int64Value(2***REMOVED***,
-								Max: types.Int64Value(3***REMOVED***,
-					***REMOVED***,
-				***REMOVED***,
-			***REMOVED***,
-		***REMOVED***,
+								Min: types.Int64Value(2),
+								Max: types.Int64Value(3),
+							},
+						},
+					},
+				},
 				ScaleDown: &AutoscalerScaleDownConfig{
-					Enabled:              types.BoolValue(true***REMOVED***,
-					UnneededTime:         types.StringValue("2h"***REMOVED***,
-					UtilizationThreshold: types.StringValue("0.5"***REMOVED***,
-					DelayAfterAdd:        types.StringValue("3h"***REMOVED***,
-					DelayAfterDelete:     types.StringValue("4h"***REMOVED***,
-					DelayAfterFailure:    types.StringValue("5h"***REMOVED***,
-		***REMOVED***,
-	***REMOVED***
+					Enabled:              types.BoolValue(true),
+					UnneededTime:         types.StringValue("2h"),
+					UtilizationThreshold: types.StringValue("0.5"),
+					DelayAfterAdd:        types.StringValue("3h"),
+					DelayAfterDelete:     types.StringValue("4h"),
+					DelayAfterFailure:    types.StringValue("5h"),
+				},
+			}
 
-			autoscaler, err := clusterAutoscalerStateToObject(&state***REMOVED***
-			Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+			autoscaler, err := clusterAutoscalerStateToObject(&state)
+			Expect(err).ToNot(HaveOccurred())
 
-			expectedAutoscaler, err := cmv1.NewClusterAutoscaler(***REMOVED***.
-				BalanceSimilarNodeGroups(true***REMOVED***.
-				SkipNodesWithLocalStorage(true***REMOVED***.
-				LogVerbosity(1***REMOVED***.
-				MaxPodGracePeriod(10***REMOVED***.
-				PodPriorityThreshold(-10***REMOVED***.
-				IgnoreDaemonsetsUtilization(true***REMOVED***.
-				MaxNodeProvisionTime("1h"***REMOVED***.
-				BalancingIgnoredLabels("l1", "l2"***REMOVED***.
-				ResourceLimits(cmv1.NewAutoscalerResourceLimits(***REMOVED***.
-					MaxNodesTotal(10***REMOVED***.
-					Cores(cmv1.NewResourceRange(***REMOVED***.
-						Min(0***REMOVED***.
-						Max(1***REMOVED******REMOVED***.
-					Memory(cmv1.NewResourceRange(***REMOVED***.
-						Min(2***REMOVED***.
-						Max(3***REMOVED******REMOVED***.
+			expectedAutoscaler, err := cmv1.NewClusterAutoscaler().
+				BalanceSimilarNodeGroups(true).
+				SkipNodesWithLocalStorage(true).
+				LogVerbosity(1).
+				MaxPodGracePeriod(10).
+				PodPriorityThreshold(-10).
+				IgnoreDaemonsetsUtilization(true).
+				MaxNodeProvisionTime("1h").
+				BalancingIgnoredLabels("l1", "l2").
+				ResourceLimits(cmv1.NewAutoscalerResourceLimits().
+					MaxNodesTotal(10).
+					Cores(cmv1.NewResourceRange().
+						Min(0).
+						Max(1)).
+					Memory(cmv1.NewResourceRange().
+						Min(2).
+						Max(3)).
 					GPUS(
-						cmv1.NewAutoscalerResourceLimitsGPULimit(***REMOVED***.
-							Type("nvidia"***REMOVED***.
-							Range(cmv1.NewResourceRange(***REMOVED***.
-								Min(0***REMOVED***.
-								Max(1***REMOVED******REMOVED***,
-						cmv1.NewAutoscalerResourceLimitsGPULimit(***REMOVED***.
-							Type("intel"***REMOVED***.
-							Range(cmv1.NewResourceRange(***REMOVED***.
-								Min(2***REMOVED***.
-								Max(3***REMOVED******REMOVED***,
-					***REMOVED******REMOVED***.
-				ScaleDown(cmv1.NewAutoscalerScaleDownConfig(***REMOVED***.
-					Enabled(true***REMOVED***.
-					UnneededTime("2h"***REMOVED***.
-					UtilizationThreshold("0.5"***REMOVED***.
-					DelayAfterAdd("3h"***REMOVED***.
-					DelayAfterDelete("4h"***REMOVED***.
-					DelayAfterFailure("5h"***REMOVED******REMOVED***.Build(***REMOVED***
+						cmv1.NewAutoscalerResourceLimitsGPULimit().
+							Type("nvidia").
+							Range(cmv1.NewResourceRange().
+								Min(0).
+								Max(1)),
+						cmv1.NewAutoscalerResourceLimitsGPULimit().
+							Type("intel").
+							Range(cmv1.NewResourceRange().
+								Min(2).
+								Max(3)),
+					)).
+				ScaleDown(cmv1.NewAutoscalerScaleDownConfig().
+					Enabled(true).
+					UnneededTime("2h").
+					UtilizationThreshold("0.5").
+					DelayAfterAdd("3h").
+					DelayAfterDelete("4h").
+					DelayAfterFailure("5h")).Build()
 
-			Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+			Expect(err).ToNot(HaveOccurred())
 
-			Expect(autoscaler***REMOVED***.To(Equal(expectedAutoscaler***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+			Expect(autoscaler).To(Equal(expectedAutoscaler))
+		})
 
-		It("successfully converts when all state fields are null", func(***REMOVED*** {
+		It("successfully converts when all state fields are null", func() {
 			clusterId := "123"
 			state := ClusterAutoscalerState{
-				Cluster:                     types.StringValue(clusterId***REMOVED***,
-				BalanceSimilarNodeGroups:    types.BoolNull(***REMOVED***,
-				SkipNodesWithLocalStorage:   types.BoolNull(***REMOVED***,
-				LogVerbosity:                types.Int64Null(***REMOVED***,
-				MaxPodGracePeriod:           types.Int64Null(***REMOVED***,
-				PodPriorityThreshold:        types.Int64Null(***REMOVED***,
-				IgnoreDaemonsetsUtilization: types.BoolNull(***REMOVED***,
-				MaxNodeProvisionTime:        types.StringNull(***REMOVED***,
-				BalancingIgnoredLabels:      types.ListNull(types.StringType***REMOVED***,
+				Cluster:                     types.StringValue(clusterId),
+				BalanceSimilarNodeGroups:    types.BoolNull(),
+				SkipNodesWithLocalStorage:   types.BoolNull(),
+				LogVerbosity:                types.Int64Null(),
+				MaxPodGracePeriod:           types.Int64Null(),
+				PodPriorityThreshold:        types.Int64Null(),
+				IgnoreDaemonsetsUtilization: types.BoolNull(),
+				MaxNodeProvisionTime:        types.StringNull(),
+				BalancingIgnoredLabels:      types.ListNull(types.StringType),
 				ResourceLimits:              nil,
 				ScaleDown:                   nil,
-	***REMOVED***
+			}
 
-			autoscaler, err := clusterAutoscalerStateToObject(&state***REMOVED***
-			Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
+			autoscaler, err := clusterAutoscalerStateToObject(&state)
+			Expect(err).ToNot(HaveOccurred())
 
-			expectedAutoscaler, err := cmv1.NewClusterAutoscaler(***REMOVED***.Build(***REMOVED***
-			Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-			Expect(autoscaler***REMOVED***.To(Equal(expectedAutoscaler***REMOVED******REMOVED***
-***REMOVED******REMOVED***
-	}***REMOVED***
-}***REMOVED***
+			expectedAutoscaler, err := cmv1.NewClusterAutoscaler().Build()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(autoscaler).To(Equal(expectedAutoscaler))
+		})
+	})
+})

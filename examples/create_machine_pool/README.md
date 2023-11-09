@@ -5,13 +5,13 @@ This Terraform example creates a **machine pool** for an existing ROSA cluster. 
 ## Prerequisites
 
 * You have an AWS account.
-* You have installed the latest version of the ROSA command-line interface (CLI***REMOVED*** (`rosa`***REMOVED***.
-* You have an offline OpenShift Cluster Manager token. This token can be generated in the [Red Hat Hybrid Cloud Console](https://console.redhat.com/openshift/token***REMOVED***.
-* You have installed Terraform. See the [Terraform page](https://developer.hashicorp.com/terraform/downloads***REMOVED*** for the latest version.
+* You have installed the latest version of the ROSA command-line interface (CLI) (`rosa`).
+* You have an offline OpenShift Cluster Manager token. This token can be generated in the [Red Hat Hybrid Cloud Console](https://console.redhat.com/openshift/token).
+* You have installed Terraform. See the [Terraform page](https://developer.hashicorp.com/terraform/downloads) for the latest version.
 * You have already created an OpenShift Cluster Manager cluster.
 ## Creating machine pools
 
-1. To run the `terraform apply` you need to set up some variables. This guide uses environmental variables. For more on Terraform variables, see [Managing Variables](https://developer.hashicorp.com/terraform/enterprise/workspaces/variables/managing-variables***REMOVED*** in the Terraform documentation.
+1. To run the `terraform apply` you need to set up some variables. This guide uses environmental variables. For more on Terraform variables, see [Managing Variables](https://developer.hashicorp.com/terraform/enterprise/workspaces/variables/managing-variables) in the Terraform documentation.
 
    > **NOTE**: If you exported these variables in your current command-line session when running the account-roles Terraform example, you do not need to export them again.
 
@@ -19,7 +19,7 @@ This Terraform example creates a **machine pool** for an existing ROSA cluster. 
 
     *  OpenShift Cluster Manager offline token:
 
-         This variable should be your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token***REMOVED*** that you generated in the prerequisites.  
+         This variable should be your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token) that you generated in the prerequisites.  
         ```
         export TF_VAR_token=<ocm_offline_token> 
         ```

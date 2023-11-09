@@ -6,7 +6,7 @@ description: |-
   Manages OIDC config
 ---
 
-# rhcs_rosa_oidc_config (Resource***REMOVED***
+# rhcs_rosa_oidc_config (Resource)
 
 Manages OIDC config
 
@@ -32,16 +32,16 @@ resource "rhcs_rosa_oidc_config" "oidc_config" {
 
 ### Required
 
-- `managed` (Boolean***REMOVED*** Indicates whether it is a Red Hat managed or unmanaged (Customer hosted***REMOVED*** OIDC configuration, for the cluster's OIDC provider.
+- `managed` (Boolean) Indicates whether it is a Red Hat managed or unmanaged (Customer hosted) OIDC configuration, for the cluster's OIDC provider.
 
 ### Optional
 
-- `installer_role_arn` (String***REMOVED*** AWS STS Role ARN for cluster install (with get-secrets permission in the attached policy***REMOVED***
-- `issuer_url` (String***REMOVED*** The bucket/issuer URL
-- `secret_arn` (String***REMOVED*** Indicates for unmanaged OIDC config, the secret ARN
+- `installer_role_arn` (String) AWS STS Role ARN for cluster install (with get-secrets permission in the attached policy)
+- `issuer_url` (String) The bucket/issuer URL
+- `secret_arn` (String) Indicates for unmanaged OIDC config, the secret ARN
 
 ### Read-Only
 
-- `id` (String***REMOVED*** The OIDC config ID
-- `oidc_endpoint_url` (String***REMOVED*** OIDC Endpoint URL
-- `thumbprint` (String***REMOVED*** SHA1-hash value of the root CA of the issuer URL
+- `id` (String) The OIDC config ID
+- `oidc_endpoint_url` (String) OIDC Endpoint URL
+- `thumbprint` (String) SHA1-hash value of the root CA of the issuer URL

@@ -1,206 +1,206 @@
 package resource
 
-***REMOVED***
+import (
 	"errors"
-***REMOVED***
+	"fmt"
 	"regexp"
 
 	"github.com/openshift-online/ocm-common/pkg/cluster/validations"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	kmsArnRegexpValidator "github.com/openshift-online/ocm-common/pkg/resource/validations" 
-***REMOVED***
+)
 
 var privateHostedZoneRoleArnRE = regexp.MustCompile(
-	`^arn:aws:iam::\d{12}:role\/[A-Za-z0-9]+(?:-[A-Za-z0-9]+***REMOVED***+$`,
-***REMOVED***
+	`^arn:aws:iam::\d{12}:role\/[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+$`,
+)
 
 type Cluster struct {
 	clusterBuilder *cmv1.ClusterBuilder
 }
 
-func NewCluster(***REMOVED*** *Cluster {
+func NewCluster() *Cluster {
 	return &Cluster{
-		clusterBuilder: cmv1.NewCluster(***REMOVED***,
+		clusterBuilder: cmv1.NewCluster(),
 	}
 }
 
-func (c *Cluster***REMOVED*** GetClusterBuilder(***REMOVED*** *cmv1.ClusterBuilder {
+func (c *Cluster) GetClusterBuilder() *cmv1.ClusterBuilder {
 	return c.clusterBuilder
 }
 
-func (c *Cluster***REMOVED*** Build(***REMOVED*** (object *cmv1.Cluster, err error***REMOVED*** {
-	return c.clusterBuilder.Build(***REMOVED***
+func (c *Cluster) Build() (object *cmv1.Cluster, err error) {
+	return c.clusterBuilder.Build()
 }
 
-func (c *Cluster***REMOVED*** CreateNodes(autoScalingEnabled bool, replicas *int64, minReplicas *int64,
+func (c *Cluster) CreateNodes(autoScalingEnabled bool, replicas *int64, minReplicas *int64,
 	maxReplicas *int64, computeMachineType *string, labels map[string]string,
-	availabilityZones []string, multiAZ bool, workerDiskSize *int64***REMOVED*** error {
-	nodes := cmv1.NewClusterNodes(***REMOVED***
+	availabilityZones []string, multiAZ bool, workerDiskSize *int64) error {
+	nodes := cmv1.NewClusterNodes()
 	if computeMachineType != nil {
 		nodes.ComputeMachineType(
-			cmv1.NewMachineType(***REMOVED***.ID(*computeMachineType***REMOVED***,
-		***REMOVED***
+			cmv1.NewMachineType().ID(*computeMachineType),
+		)
 	}
 
 	if workerDiskSize != nil {
 		nodes.ComputeRootVolume(
-			cmv1.NewRootVolume(***REMOVED***.AWS(
-				cmv1.NewAWSVolume(***REMOVED***.Size(int(*workerDiskSize***REMOVED******REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+			cmv1.NewRootVolume().AWS(
+				cmv1.NewAWSVolume().Size(int(*workerDiskSize)),
+			),
+		)
 	}
 
 	if labels != nil {
-		nodes.ComputeLabels(labels***REMOVED***
+		nodes.ComputeLabels(labels)
 	}
 
 	if availabilityZones != nil {
-		if err := validations.ValidateAvailabilityZonesCount(multiAZ, len(availabilityZones***REMOVED******REMOVED***; err != nil {
+		if err := validations.ValidateAvailabilityZonesCount(multiAZ, len(availabilityZones)); err != nil {
 			return err
-***REMOVED***
-		nodes.AvailabilityZones(availabilityZones...***REMOVED***
+		}
+		nodes.AvailabilityZones(availabilityZones...)
 	}
 
 	if autoScalingEnabled {
 		if replicas != nil {
-			return errors.New("When autoscaling is enabled, replicas should not be configured"***REMOVED***
-***REMOVED***
+			return errors.New("When autoscaling is enabled, replicas should not be configured")
+		}
 
-		autoscaling := cmv1.NewMachinePoolAutoscaling(***REMOVED***
+		autoscaling := cmv1.NewMachinePoolAutoscaling()
 		minReplicasVal := 2
 		if minReplicas != nil {
-			minReplicasVal = int(*minReplicas***REMOVED***
-***REMOVED***
-		if err := validations.MinReplicasValidator(minReplicasVal, multiAZ, false, 0***REMOVED***; err != nil {
+			minReplicasVal = int(*minReplicas)
+		}
+		if err := validations.MinReplicasValidator(minReplicasVal, multiAZ, false, 0); err != nil {
 			return err
-***REMOVED***
-		autoscaling.MinReplicas(minReplicasVal***REMOVED***
+		}
+		autoscaling.MinReplicas(minReplicasVal)
 		maxReplicasVal := 2
 		if maxReplicas != nil {
-			maxReplicasVal = int(*maxReplicas***REMOVED***
-***REMOVED***
-		if err := validations.MaxReplicasValidator(minReplicasVal, maxReplicasVal, multiAZ, false, 0***REMOVED***; err != nil {
+			maxReplicasVal = int(*maxReplicas)
+		}
+		if err := validations.MaxReplicasValidator(minReplicasVal, maxReplicasVal, multiAZ, false, 0); err != nil {
 			return err
-***REMOVED***
-		autoscaling.MaxReplicas(maxReplicasVal***REMOVED***
-		if !autoscaling.Empty(***REMOVED*** {
-			nodes.AutoscaleCompute(autoscaling***REMOVED***
-***REMOVED***
+		}
+		autoscaling.MaxReplicas(maxReplicasVal)
+		if !autoscaling.Empty() {
+			nodes.AutoscaleCompute(autoscaling)
+		}
 	} else {
 		if minReplicas != nil || maxReplicas != nil {
-			return errors.New("Autoscaling must be enabled in order to set min and max replicas"***REMOVED***
-***REMOVED***
+			return errors.New("Autoscaling must be enabled in order to set min and max replicas")
+		}
 
 		replicasVal := 2
 		if replicas != nil {
-			replicasVal = int(*replicas***REMOVED***
-***REMOVED***
-		if err := validations.MinReplicasValidator(replicasVal, multiAZ, false, 0***REMOVED***; err != nil {
+			replicasVal = int(*replicas)
+		}
+		if err := validations.MinReplicasValidator(replicasVal, multiAZ, false, 0); err != nil {
 			return err
-***REMOVED***
-		nodes.Compute(replicasVal***REMOVED***
+		}
+		nodes.Compute(replicasVal)
 	}
 
-	if !nodes.Empty(***REMOVED*** {
-		c.clusterBuilder.Nodes(nodes***REMOVED***
+	if !nodes.Empty() {
+		c.clusterBuilder.Nodes(nodes)
 	}
 
 	return nil
 }
 
-func (c *Cluster***REMOVED*** CreateAWSBuilder(awsTags map[string]string, ec2MetadataHttpTokens *string, kmsKeyARN *string,
+func (c *Cluster) CreateAWSBuilder(awsTags map[string]string, ec2MetadataHttpTokens *string, kmsKeyARN *string,
 	isPrivateLink bool, awsAccountID *string, stsBuilder *cmv1.STSBuilder, awsSubnetIDs []string,
-	privateHostedZoneID *string, privateHostedZoneRoleARN *string***REMOVED*** error {
+	privateHostedZoneID *string, privateHostedZoneRoleARN *string) error {
 
 	if isPrivateLink && awsSubnetIDs == nil {
-		return errors.New("Clusters with PrivateLink must have a pre-configured VPC. Make sure to specify the subnet ids."***REMOVED***
+		return errors.New("Clusters with PrivateLink must have a pre-configured VPC. Make sure to specify the subnet ids.")
 	}
 
-	awsBuilder := cmv1.NewAWS(***REMOVED***
+	awsBuilder := cmv1.NewAWS()
 
 	if awsTags != nil {
-		awsBuilder.Tags(awsTags***REMOVED***
+		awsBuilder.Tags(awsTags)
 	}
 
 	ec2MetadataHttpTokensVal := cmv1.Ec2MetadataHttpTokensOptional
 	if ec2MetadataHttpTokens != nil {
-		ec2MetadataHttpTokensVal = cmv1.Ec2MetadataHttpTokens(*ec2MetadataHttpTokens***REMOVED***
+		ec2MetadataHttpTokensVal = cmv1.Ec2MetadataHttpTokens(*ec2MetadataHttpTokens)
 	}
-	awsBuilder.Ec2MetadataHttpTokens(ec2MetadataHttpTokensVal***REMOVED***
+	awsBuilder.Ec2MetadataHttpTokens(ec2MetadataHttpTokensVal)
 
-	err := c.ProcessKMSKeyARN(kmsKeyARN, awsBuilder***REMOVED***
+	err := c.ProcessKMSKeyARN(kmsKeyARN, awsBuilder)
 	if err != nil {
 		return err
 	}
 
 	if awsAccountID != nil {
-		awsBuilder.AccountID(*awsAccountID***REMOVED***
+		awsBuilder.AccountID(*awsAccountID)
 	}
 
-	awsBuilder.PrivateLink(isPrivateLink***REMOVED***
+	awsBuilder.PrivateLink(isPrivateLink)
 
 	if awsSubnetIDs != nil {
-		awsBuilder.SubnetIDs(awsSubnetIDs...***REMOVED***
+		awsBuilder.SubnetIDs(awsSubnetIDs...)
 	}
 
 	if stsBuilder != nil {
-		awsBuilder.STS(stsBuilder***REMOVED***
+		awsBuilder.STS(stsBuilder)
 	}
 
 	if privateHostedZoneID != nil && privateHostedZoneRoleARN != nil {
-		if !privateHostedZoneRoleArnRE.MatchString(*privateHostedZoneRoleARN***REMOVED*** {
-			return errors.New(fmt.Sprintf("Expected a valid value for PrivateHostedZoneRoleARN matching %s. Got %s", privateHostedZoneRoleArnRE, *privateHostedZoneRoleARN***REMOVED******REMOVED***
-***REMOVED***
+		if !privateHostedZoneRoleArnRE.MatchString(*privateHostedZoneRoleARN) {
+			return errors.New(fmt.Sprintf("Expected a valid value for PrivateHostedZoneRoleARN matching %s. Got %s", privateHostedZoneRoleArnRE, *privateHostedZoneRoleARN))
+		}
 		if awsSubnetIDs == nil || stsBuilder == nil {
-			return errors.New("PrivateHostedZone parameters require STS and SubnetIDs configurations."***REMOVED***
-***REMOVED***
-		awsBuilder.PrivateHostedZoneID(*privateHostedZoneID***REMOVED***
-		awsBuilder.PrivateHostedZoneRoleARN(*privateHostedZoneRoleARN***REMOVED***
+			return errors.New("PrivateHostedZone parameters require STS and SubnetIDs configurations.")
+		}
+		awsBuilder.PrivateHostedZoneID(*privateHostedZoneID)
+		awsBuilder.PrivateHostedZoneRoleARN(*privateHostedZoneRoleARN)
 	}
 
-	c.clusterBuilder.AWS(awsBuilder***REMOVED***
+	c.clusterBuilder.AWS(awsBuilder)
 
 	return nil
 }
 
-func (c *Cluster***REMOVED*** ProcessKMSKeyARN(kmsKeyARN *string, awsBuilder *cmv1.AWSBuilder***REMOVED*** error {
-	err := kmsArnRegexpValidator.ValidateKMSKeyARN(kmsKeyARN***REMOVED***
+func (c *Cluster) ProcessKMSKeyARN(kmsKeyARN *string, awsBuilder *cmv1.AWSBuilder) error {
+	err := kmsArnRegexpValidator.ValidateKMSKeyARN(kmsKeyARN)
 	if err != nil || kmsKeyARN == nil {
 		return err
 	}
-	awsBuilder.KMSKeyArn(*kmsKeyARN***REMOVED***
+	awsBuilder.KMSKeyArn(*kmsKeyARN)
 	return nil
 }
 
-func (c *Cluster***REMOVED*** SetAPIPrivacy(isPrivate bool, isPrivateLink bool, isSTS bool***REMOVED*** error {
+func (c *Cluster) SetAPIPrivacy(isPrivate bool, isPrivateLink bool, isSTS bool) error {
 	if isSTS && !isPrivate && isPrivateLink {
-		return errors.New("PrivateLink is only supported on private clusters"***REMOVED***
+		return errors.New("PrivateLink is only supported on private clusters")
 	}
-	api := cmv1.NewClusterAPI(***REMOVED***
+	api := cmv1.NewClusterAPI()
 	if isPrivate {
-		api.Listening(cmv1.ListeningMethodInternal***REMOVED***
+		api.Listening(cmv1.ListeningMethodInternal)
 	} else {
-		api.Listening(cmv1.ListeningMethodExternal***REMOVED***
+		api.Listening(cmv1.ListeningMethodExternal)
 	}
-	c.clusterBuilder.API(api***REMOVED***
+	c.clusterBuilder.API(api)
 	return nil
 }
 
 func CreateSTS(installerRoleARN, supportRoleARN, masterRoleARN, workerRoleARN,
-	operatorRolePrefix string, oidcConfigID *string***REMOVED*** *cmv1.STSBuilder {
-	sts := cmv1.NewSTS(***REMOVED***
-	sts.RoleARN(installerRoleARN***REMOVED***
-	sts.SupportRoleARN(supportRoleARN***REMOVED***
-	instanceIamRoles := cmv1.NewInstanceIAMRoles(***REMOVED***
-	instanceIamRoles.MasterRoleARN(masterRoleARN***REMOVED***
-	instanceIamRoles.WorkerRoleARN(workerRoleARN***REMOVED***
-	sts.InstanceIAMRoles(instanceIamRoles***REMOVED***
+	operatorRolePrefix string, oidcConfigID *string) *cmv1.STSBuilder {
+	sts := cmv1.NewSTS()
+	sts.RoleARN(installerRoleARN)
+	sts.SupportRoleARN(supportRoleARN)
+	instanceIamRoles := cmv1.NewInstanceIAMRoles()
+	instanceIamRoles.MasterRoleARN(masterRoleARN)
+	instanceIamRoles.WorkerRoleARN(workerRoleARN)
+	sts.InstanceIAMRoles(instanceIamRoles)
 
 	// set OIDC config ID
 	if oidcConfigID != nil {
-		sts.OidcConfig(cmv1.NewOidcConfig(***REMOVED***.ID(*oidcConfigID***REMOVED******REMOVED***
+		sts.OidcConfig(cmv1.NewOidcConfig().ID(*oidcConfigID))
 	}
 
-	sts.OperatorRolePrefix(operatorRolePrefix***REMOVED***
+	sts.OperatorRolePrefix(operatorRolePrefix)
 	return sts
 }

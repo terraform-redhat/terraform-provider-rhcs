@@ -1,7 +1,7 @@
 /*
-Copyright (c***REMOVED*** 2021 Red Hat, Inc.
+Copyright (c) 2021 Red Hat, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -16,16 +16,16 @@ limitations under the License.
 
 package provider
 
-***REMOVED***
-***REMOVED***
+import (
+	"net/http"
 
 	. "github.com/onsi/ginkgo/v2/dsl/core"             // nolint
-***REMOVED***                         // nolint
+	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
-***REMOVED***
+)
 
-var _ = Describe("Cluster creation", func(***REMOVED*** {
+var _ = Describe("Cluster creation", func() {
 	// This is the cluster that will be returned by the server when asked to create or retrieve
 	// a cluster.
 
@@ -104,100 +104,100 @@ var _ = Describe("Cluster creation", func(***REMOVED*** {
 	  }
 	}`
 
-	Context("Create cluster waiter resource", func(***REMOVED*** {
-		It("Create cluster waiter without a timeout", func(***REMOVED*** {
+	Context("Create cluster waiter resource", func() {
+		It("Create cluster waiter without a timeout", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-					RespondWithJSON(http.StatusOK, templateReadyState***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, templateReadyState),
+				),
+			)
 			terraform.Source(`
 				resource "rhcs_cluster_wait" "rosa_cluster" {
 				  cluster = "123"
-		***REMOVED***
-			`***REMOVED***
+				}
+			`)
 
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+			Expect(terraform.Apply()).To(BeZero())
+		})
 
-		It("Create cluster with a negative timeout", func(***REMOVED*** {
+		It("Create cluster with a negative timeout", func() {
 			terraform.Source(`
 				resource "rhcs_cluster_wait" "rosa_cluster" {
 				  cluster = "123"
 				  timeout = -1
-		***REMOVED***
-			`***REMOVED***
+				}
+			`)
 
 			// it should throw an error so exit code will not be "0":
-			Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
 
-		It("Create cluster with a positive timeout", func(***REMOVED*** {
+		It("Create cluster with a positive timeout", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-					RespondWithJSON(http.StatusOK, templateReadyState***REMOVED***,
-				***REMOVED***,
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, templateReadyState),
+				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-					RespondWithJSON(http.StatusOK, templateReadyState***REMOVED***,
-				***REMOVED***,
-			***REMOVED***
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, templateReadyState),
+				),
+			)
 			terraform.Source(`
 				resource "rhcs_cluster_wait" "rosa_cluster" {
 				  cluster = "123"
 				  timeout = 1
-		***REMOVED***
-			`***REMOVED***
+				}
+			`)
 
-			Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-			Expect(terraform.Destroy(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-***REMOVED******REMOVED***
+			Expect(terraform.Apply()).To(BeZero())
+			Expect(terraform.Destroy()).To(BeZero())
+		})
 
-	}***REMOVED***
+	})
 
-	It("Create cluster with a positive timeout but get cluster not ready", func(***REMOVED*** {
+	It("Create cluster with a positive timeout but get cluster not ready", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-				RespondWithJSON(http.StatusOK, templateWaitingState***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, templateWaitingState),
+			),
+		)
 
 		terraform.Source(`
 				resource "rhcs_cluster_wait" "rosa_cluster" {
 				  cluster = "123"
 				  timeout = 1
-		***REMOVED***
-			`***REMOVED***
+				}
+			`)
 
-		Expect(terraform.Apply(***REMOVED******REMOVED***.To(BeZero(***REMOVED******REMOVED***
-		resource := terraform.Resource("rhcs_cluster_wait", "rosa_cluster"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ready`, false***REMOVED******REMOVED***
-	}***REMOVED***
+		Expect(terraform.Apply()).To(BeZero())
+		resource := terraform.Resource("rhcs_cluster_wait", "rosa_cluster")
+		Expect(resource).To(MatchJQ(`.attributes.ready`, false))
+	})
 
-	It("Create cluster with a positive timeout and failed cause cluster in error state", func(***REMOVED*** {
+	It("Create cluster with a positive timeout and failed cause cluster in error state", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"***REMOVED***,
-				RespondWithJSON(http.StatusOK, templateErrorState***REMOVED***,
-			***REMOVED***,
-		***REMOVED***
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, templateErrorState),
+			),
+		)
 
 		terraform.Source(`
 				resource "rhcs_cluster_wait" "rosa_cluster" {
 				  cluster = "123"
 				  timeout = 1
-		***REMOVED***
-			`***REMOVED***
+				}
+			`)
 
-		Expect(terraform.Apply(***REMOVED******REMOVED***.ToNot(BeZero(***REMOVED******REMOVED***
-		resource := terraform.Resource("rhcs_cluster_wait", "rosa_cluster"***REMOVED***
-		Expect(resource***REMOVED***.To(MatchJQ(`.attributes.ready`, false***REMOVED******REMOVED***
-	}***REMOVED***
-}***REMOVED***
+		Expect(terraform.Apply()).ToNot(BeZero())
+		resource := terraform.Resource("rhcs_cluster_wait", "rosa_cluster")
+		Expect(resource).To(MatchJQ(`.attributes.ready`, false))
+	})
+})

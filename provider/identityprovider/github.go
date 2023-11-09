@@ -1,8 +1,8 @@
 package identityprovider
 
-***REMOVED***
+import (
 	"context"
-***REMOVED***
+	"fmt"
 	"net/url"
 	"strings"
 
@@ -15,7 +15,7 @@ package identityprovider
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
-***REMOVED***
+)
 
 type GithubIdentityProvider struct {
 	CA            types.String `tfsdk:"ca"`
@@ -44,84 +44,84 @@ var githubSchema = map[string]schema.Attribute{
 		Description: "Optional domain to use with a hosted instance of GitHub Enterprise.",
 		Optional:    true,
 		Validators: []validator.String{
-			githubHostnameValidator(***REMOVED***,
-***REMOVED***,
+			githubHostnameValidator(),
+		},
 	},
 	"organizations": schema.ListAttribute{
 		Description: "Only users that are members of at least one of the listed organizations will be allowed to log in.",
 		ElementType: types.StringType,
 		Optional:    true,
 		Validators: []validator.List{
-			listvalidator.ConflictsWith(path.MatchRelative(***REMOVED***.AtParent(***REMOVED***.AtName("teams"***REMOVED******REMOVED***,
-			listvalidator.ExactlyOneOf(path.MatchRelative(***REMOVED***.AtParent(***REMOVED***.AtName("teams"***REMOVED***, path.MatchRelative(***REMOVED***.AtParent(***REMOVED***.AtName("organizations"***REMOVED******REMOVED***,
-***REMOVED***,
+			listvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("teams")),
+			listvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("teams"), path.MatchRelative().AtParent().AtName("organizations")),
+		},
 	},
 	"teams": schema.ListAttribute{
 		Description: "Only users that are members of at least one of the listed teams will be allowed to log in. The format is `<org>`/`<team>`.",
 		ElementType: types.StringType,
 		Optional:    true,
 		Validators: []validator.List{
-			listvalidator.ConflictsWith(path.MatchRelative(***REMOVED***.AtParent(***REMOVED***.AtName("organizations"***REMOVED******REMOVED***,
-			listvalidator.ExactlyOneOf(path.MatchRelative(***REMOVED***.AtParent(***REMOVED***.AtName("teams"***REMOVED***, path.MatchRelative(***REMOVED***.AtParent(***REMOVED***.AtName("organizations"***REMOVED******REMOVED***,
+			listvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("organizations")),
+			listvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("teams"), path.MatchRelative().AtParent().AtName("organizations")),
 			listvalidator.ValueStringsAre(
-				githubTeamsFormatValidator(***REMOVED***,
-			***REMOVED***,
-***REMOVED***,
+				githubTeamsFormatValidator(),
+			),
+		},
 	},
 }
 
-func githubTeamsFormatValidator(***REMOVED*** validator.String {
-	return attrvalidators.NewStringValidator("validate teams format", func(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse***REMOVED*** {
+func githubTeamsFormatValidator() validator.String {
+	return attrvalidators.NewStringValidator("validate teams format", func(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
 		team := req.ConfigValue
-		parts := strings.Split(team.ValueString(***REMOVED***, "/"***REMOVED***
-		if len(parts***REMOVED*** != 2 {
+		parts := strings.Split(team.ValueString(), "/")
+		if len(parts) != 2 {
 			resp.Diagnostics.AddAttributeError(req.Path, "invalid team format",
-				fmt.Sprintf("Expected a GitHub team to follow the form '<org>/<team>', Got %s", team.ValueString(***REMOVED******REMOVED***,
-			***REMOVED***
+				fmt.Sprintf("Expected a GitHub team to follow the form '<org>/<team>', Got %s", team.ValueString()),
+			)
 			return
-***REMOVED***
-	}***REMOVED***
+		}
+	})
 }
 
-func githubHostnameValidator(***REMOVED*** validator.String {
-	return attrvalidators.NewStringValidator("hostname validator", func(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse***REMOVED*** {
+func githubHostnameValidator() validator.String {
+	return attrvalidators.NewStringValidator("hostname validator", func(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
 		hostname := req.ConfigValue
 		// Validate hostname
-		if !hostname.IsUnknown(***REMOVED*** && !hostname.IsNull(***REMOVED*** && len(hostname.ValueString(***REMOVED******REMOVED*** > 0 {
-			_, err := url.ParseRequestURI(hostname.ValueString(***REMOVED******REMOVED***
+		if !hostname.IsUnknown() && !hostname.IsNull() && len(hostname.ValueString()) > 0 {
+			_, err := url.ParseRequestURI(hostname.ValueString())
 			if err != nil {
 				resp.Diagnostics.AddAttributeError(req.Path, "invalid hostname",
-					fmt.Sprintf("Expected a valid GitHub hostname. Got %v", hostname.ValueString(***REMOVED******REMOVED***,
-				***REMOVED***
-	***REMOVED***
-***REMOVED***
+					fmt.Sprintf("Expected a valid GitHub hostname. Got %v", hostname.ValueString()),
+				)
+			}
+		}
 
-	}***REMOVED***
+	})
 }
 
-func CreateGithubIDPBuilder(ctx context.Context, state *GithubIdentityProvider***REMOVED*** (*cmv1.GithubIdentityProviderBuilder, error***REMOVED*** {
-	githubBuilder := cmv1.NewGithubIdentityProvider(***REMOVED***
-	githubBuilder.ClientID(state.ClientID.ValueString(***REMOVED******REMOVED***
-	githubBuilder.ClientSecret(state.ClientSecret.ValueString(***REMOVED******REMOVED***
-	if !state.CA.IsUnknown(***REMOVED*** && !state.CA.IsNull(***REMOVED*** {
-		githubBuilder.CA(state.CA.ValueString(***REMOVED******REMOVED***
+func CreateGithubIDPBuilder(ctx context.Context, state *GithubIdentityProvider) (*cmv1.GithubIdentityProviderBuilder, error) {
+	githubBuilder := cmv1.NewGithubIdentityProvider()
+	githubBuilder.ClientID(state.ClientID.ValueString())
+	githubBuilder.ClientSecret(state.ClientSecret.ValueString())
+	if !state.CA.IsUnknown() && !state.CA.IsNull() {
+		githubBuilder.CA(state.CA.ValueString())
 	}
-	if !state.Hostname.IsUnknown(***REMOVED*** && !state.Hostname.IsNull(***REMOVED*** && len(state.Hostname.ValueString(***REMOVED******REMOVED*** > 0 {
-		githubBuilder.Hostname(state.Hostname.ValueString(***REMOVED******REMOVED***
+	if !state.Hostname.IsUnknown() && !state.Hostname.IsNull() && len(state.Hostname.ValueString()) > 0 {
+		githubBuilder.Hostname(state.Hostname.ValueString())
 	}
-	if !state.Teams.IsUnknown(***REMOVED*** && !state.Teams.IsNull(***REMOVED*** {
-		teams, err := common.StringListToArray(ctx, state.Teams***REMOVED***
+	if !state.Teams.IsUnknown() && !state.Teams.IsNull() {
+		teams, err := common.StringListToArray(ctx, state.Teams)
 		if err != nil {
 			return nil, err
-***REMOVED***
-		githubBuilder.Teams(teams...***REMOVED***
+		}
+		githubBuilder.Teams(teams...)
 	}
-	if !state.Organizations.IsUnknown(***REMOVED*** && !state.Organizations.IsNull(***REMOVED*** {
-		orgs, err := common.StringListToArray(ctx, state.Organizations***REMOVED***
+	if !state.Organizations.IsUnknown() && !state.Organizations.IsNull() {
+		orgs, err := common.StringListToArray(ctx, state.Organizations)
 		if err != nil {
 			return nil, err
-***REMOVED***
-		githubBuilder.Organizations(orgs...***REMOVED***
+		}
+		githubBuilder.Organizations(orgs...)
 	}
 	return githubBuilder, nil
 }

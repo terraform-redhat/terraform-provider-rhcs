@@ -6,7 +6,7 @@ description: |-
   List of ROSA operator role policies and account role policies.
 ---
 
-# rhcs_policies (Data Source***REMOVED***
+# rhcs_policies (Data Source)
 
 List of ROSA operator role policies and account role policies.
 
@@ -21,18 +21,18 @@ data "rhcs_policies" "all_policies" {}
 
 ### Read-Only
 
-- `account_role_policies` (Attributes***REMOVED*** Account role policies. (see [below for nested schema](#nestedatt--account_role_policies***REMOVED******REMOVED***
-- `operator_role_policies` (Attributes***REMOVED*** Operator role policies. (see [below for nested schema](#nestedatt--operator_role_policies***REMOVED******REMOVED***
+- `account_role_policies` (Attributes) Account role policies. (see [below for nested schema](#nestedatt--account_role_policies))
+- `operator_role_policies` (Attributes) Operator role policies. (see [below for nested schema](#nestedatt--operator_role_policies))
 
 <a id="nestedatt--account_role_policies"></a>
 ### Nested Schema for `account_role_policies`
 
 Read-Only:
 
-- `sts_installer_permission_policy` (String***REMOVED***
-- `sts_instance_controlplane_permission_policy` (String***REMOVED***
-- `sts_instance_worker_permission_policy` (String***REMOVED***
-- `sts_support_permission_policy` (String***REMOVED***
+- `sts_installer_permission_policy` (String)
+- `sts_instance_controlplane_permission_policy` (String)
+- `sts_instance_worker_permission_policy` (String)
+- `sts_support_permission_policy` (String)
 
 
 <a id="nestedatt--operator_role_policies"></a>
@@ -40,10 +40,10 @@ Read-Only:
 
 Read-Only:
 
-- `openshift_cloud_credential_operator_cloud_credential_operator_iam_ro_creds_policy` (String***REMOVED***
-- `openshift_cloud_network_config_controller_cloud_credentials_policy` (String***REMOVED***
-- `openshift_cluster_csi_drivers_ebs_cloud_credentials_policy` (String***REMOVED***
-- `openshift_image_registry_installer_cloud_credentials_policy` (String***REMOVED***
-- `openshift_ingress_operator_cloud_credentials_policy` (String***REMOVED***
-- `openshift_machine_api_aws_cloud_credentials_policy` (String***REMOVED***
-- `shared_vpc_openshift_ingress_operator_cloud_credentials_policy` (String***REMOVED***
+- `openshift_cloud_credential_operator_cloud_credential_operator_iam_ro_creds_policy` (String)
+- `openshift_cloud_network_config_controller_cloud_credentials_policy` (String)
+- `openshift_cluster_csi_drivers_ebs_cloud_credentials_policy` (String)
+- `openshift_image_registry_installer_cloud_credentials_policy` (String)
+- `openshift_ingress_operator_cloud_credentials_policy` (String)
+- `openshift_machine_api_aws_cloud_credentials_policy` (String)
+- `shared_vpc_openshift_ingress_operator_cloud_credentials_policy` (String)

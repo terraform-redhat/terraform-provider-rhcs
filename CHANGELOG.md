@@ -1,11 +1,11 @@
-## 1.4.0 (Oct 19, 2023***REMOVED***
+## 1.4.0 (Oct 19, 2023)
 FEATURES:
 * Add wait attribute in `cluster_rosa_classic` resource for waiting cluster readiness in the creation flow
 * Added new `rhcs_info` data source for OCM account details.
 
 ENHANCEMENTS:
 * Docs - adjust descriptions
-* Upgrade framework version - update `terraform-plugin-framework` to `v1.3.5` (and not `v1.4.0` due to issues with Terraform CLI version `1.6.0`***REMOVED***
+* Upgrade framework version - update `terraform-plugin-framework` to `v1.3.5` (and not `v1.4.0` due to issues with Terraform CLI version `1.6.0`)
 * Provider Attributes changes
   * Remove unused attributes
   * Remove all attributes but Token from the docs - internal attributes
@@ -17,7 +17,7 @@ ENHANCEMENTS:
   * missing availability zones in region validation
   * Allow specifying pool subnet even for 1AZ clusters in machine pool resource
 
-## 1.3.0 (Sep 27, 2023***REMOVED***
+## 1.3.0 (Sep 27, 2023)
 FEATURES:
 * Private cluster - add new variable "private" indicates if the cluster has private connection
 * Add support for creating cluster with pre-defined shared VPC
@@ -35,24 +35,24 @@ ENHANCEMENTS:
 * Docs:
   * Add s3 missing permission for OIDC provider
 
-## 1.2.4 (Sep 4, 2023***REMOVED***
+## 1.2.4 (Sep 4, 2023)
 ENHANCEMENTS:
 * Fix for "Provider produced inconsistent result after apply" error when setting proxy.additional_trust_bundle
 
-## 1.2.3 (Aug 24, 2023***REMOVED***
+## 1.2.3 (Aug 24, 2023)
 ENHANCEMENTS:
 * Fixed a bug in cluster_rosa_resource -Terraform provider panic after adding additional CA bundle to ROSA cluster
 
-## 1.2.2 (Aug 3, 2023***REMOVED***
+## 1.2.2 (Aug 3, 2023)
 ENHANCEMENTS:
 * Update the documentation files to point the correct links.
 
-## 1.2.1 (Aug 3, 2023***REMOVED***
+## 1.2.1 (Aug 3, 2023)
 ENHANCEMENTS:
 * Update the documentation files to point the correct links.
 * Fix the default value of openshift_version in the examples
 
-## 1.2.0 (Aug 1, 2023***REMOVED***
+## 1.2.0 (Aug 1, 2023)
 FEATURES:
 * Enable creating cluster admin in cluster create
 * Add support for cluster properties update and delete
@@ -73,13 +73,13 @@ ENHANCEMENTS:
   * Validate OCP version in create_account_roles module
   * Support in generated account_role_prefix by terraform provider
 
-## 1.1.0 (Jul 5, 2023***REMOVED***
+## 1.1.0 (Jul 5, 2023)
 ENHANCEMENTS:
 * Update the documentation files
 * Openshift Cluster upgrade improvements
 * Add support for cluster properties update and delete
 
-## 1.0.5 (Jun 29, 2023***REMOVED***
+## 1.0.5 (Jun 29, 2023)
 FEATURES:
 * Add an options to set version in oidc clusters
 * Add update/remove taints from machine pool
@@ -88,7 +88,7 @@ FEATURES:
 * Support upgrade cluster 
 
 ENHANCEMENTS:
-* Rename all resources prefix to start with `rhcs` (instead of `ocm`***REMOVED***
+* Rename all resources prefix to start with `rhcs` (instead of `ocm`)
 * Rename "terraform-provider-ocm" to "terraform-provider-rhcs"
 * Improve examples
 * Remove mandatory openshift-v prefix from create cluster version attribute
@@ -97,7 +97,7 @@ ENHANCEMENTS:
 * Fix path also to be used for the operator roles creation
 * Fix use_spot_instances attribute usage in machinepool resource
 
-## 1.0.2 (Jun 21, 2023***REMOVED***
+## 1.0.2 (Jun 21, 2023)
 FEATURES:
 * Added GitHub IDP provider support
 * Added Google IDP provider support
@@ -111,11 +111,11 @@ ENHANCEMENTS:
 * Adjust rosa_cluster_resource to support OIDC config ID as an input attribute
 * Improve the provider logger
 
-## 1.0.0 (April 4, 2023***REMOVED***
+## 1.0.0 (April 4, 2023)
 ENHANCEMENTS:
 * Bug fixes - Validate that the cluster version is compatible to the selected account roles' version in `cluster_rosa_classic` resource 
 
-## 0.0.3 (Mar 28, 2023***REMOVED***
+## 0.0.3 (Mar 28, 2023)
 FEATURES:
 * Add `ocm_policies` data source for getting the account role policies and operator role policies from OCM API.
 
@@ -127,7 +127,7 @@ ENHANCEMENTS:
 * Add end-to-end test
 
 
-## 0.0.2 (Feb 21, 2023***REMOVED***
+## 0.0.2 (Feb 21, 2023)
 FEATURES:
 * Add `cluster_waiter` resource for addressing the cluster state in cluster creation scenario
 
@@ -137,7 +137,7 @@ ENHANCEMENTS:
 * Add gitlab `identity_provider` resource
 
 
-## 0.0.1 (Feb 12, 2023***REMOVED***
+## 0.0.1 (Feb 12, 2023)
 RESOURCES:
 * ocm_cluster
 * ocm_cluster_rosa_classic

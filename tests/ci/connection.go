@@ -1,9 +1,9 @@
 package ci
 
 /*
-Copyright (c***REMOVED*** 2018 Red Hat, Inc.
+Copyright (c) 2018 Red Hat, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -16,52 +16,52 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-***REMOVED***
-***REMOVED***
+import (
+	"fmt"
 	"os"
 
-***REMOVED***
+	. "github.com/onsi/ginkgo/v2"
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 
 	client "github.com/openshift-online/ocm-sdk-go"
-***REMOVED***
+)
 
 var (
-	RHCSOCMToken = os.Getenv(CON.TokenENVName***REMOVED***
-***REMOVED***
+	RHCSOCMToken = os.Getenv(CON.TokenENVName)
+)
 
 // Regular users in the organization 'Red Hat-Service Delivery-tester'
 var (
-	RHCSConnection = createConnectionWithToken(RHCSOCMToken***REMOVED***
-***REMOVED***
+	RHCSConnection = createConnectionWithToken(RHCSOCMToken)
+)
 
 var (
 	// Create a logger:
-	logger = createLogger(***REMOVED***
-***REMOVED***
+	logger = createLogger()
+)
 
-func createConnectionWithToken(token string***REMOVED*** *client.Connection {
+func createConnectionWithToken(token string) *client.Connection {
 
 	// Create the connection:
-	connection, err := client.NewConnectionBuilder(***REMOVED***.
-		Logger(logger***REMOVED***.
-		Insecure(true***REMOVED***.
-		TokenURL(CON.TokenURL***REMOVED***.
-		URL(CON.GateWayURL***REMOVED***.
-		Client(CON.ClientID, CON.ClientSecret***REMOVED***.
-		Tokens(token***REMOVED***.
-		Build(***REMOVED***
+	connection, err := client.NewConnectionBuilder().
+		Logger(logger).
+		Insecure(true).
+		TokenURL(CON.TokenURL).
+		URL(CON.GateWayURL).
+		Client(CON.ClientID, CON.ClientSecret).
+		Tokens(token).
+		Build()
 	if err != nil {
-		fmt.Printf("ERROR occurred when create connection with token: %s!! %s\n", token, err***REMOVED***
+		fmt.Printf("ERROR occurred when create connection with token: %s!! %s\n", token, err)
 	}
 	return connection
 
 }
 
-func createLogger(***REMOVED*** client.Logger {
-	logger, _ := client.NewStdLoggerBuilder(***REMOVED***.
-		Streams(GinkgoWriter, GinkgoWriter***REMOVED***.
-		Build(***REMOVED***
+func createLogger() client.Logger {
+	logger, _ := client.NewStdLoggerBuilder().
+		Streams(GinkgoWriter, GinkgoWriter).
+		Build()
 
 	return logger
 }
@@ -71,13 +71,13 @@ type Response struct {
 	Body       []byte
 }
 
-func (r *Response***REMOVED*** Status(***REMOVED*** int {
+func (r *Response) Status() int {
 	return r.StatusCode
 }
-func (r *Response***REMOVED*** Bytes(***REMOVED*** []byte {
+func (r *Response) Bytes() []byte {
 	return r.Body
 }
 
-func (r *Response***REMOVED*** String(***REMOVED*** string {
-	return string(r.Bytes(***REMOVED******REMOVED***
+func (r *Response) String() string {
+	return string(r.Bytes())
 }

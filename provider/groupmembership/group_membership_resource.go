@@ -1,7 +1,7 @@
 /*
-Copyright (c***REMOVED*** 2021 Red Hat, Inc.
+Copyright (c) 2021 Red Hat, Inc.
 
-Licensed under the Apache License, Version 2.0 (the "License"***REMOVED***;
+Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -16,9 +16,9 @@ limitations under the License.
 
 package groupmembership
 
-***REMOVED***
+import (
 	"context"
-***REMOVED***
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -28,7 +28,7 @@ package groupmembership
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
-***REMOVED***
+)
 
 type GroupMembershipResource struct {
 	collection *cmv1.ClustersClient
@@ -37,192 +37,192 @@ type GroupMembershipResource struct {
 var _ resource.ResourceWithConfigure = &GroupMembershipResource{}
 var _ resource.ResourceWithImportState = &GroupMembershipResource{}
 
-func New(***REMOVED*** resource.Resource {
+func New() resource.Resource {
 	return &GroupMembershipResource{}
 }
 
-func (g *GroupMembershipResource***REMOVED*** Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse***REMOVED*** {
+func (g *GroupMembershipResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_group_membership"
 }
 
-func (g *GroupMembershipResource***REMOVED*** Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse***REMOVED*** {
+func (g *GroupMembershipResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "Manages user group membership.",
 		DeprecationMessage: fmt.Sprintf(
-			"using group membership as a resource is deprecated"***REMOVED***,
+			"using group membership as a resource is deprecated"),
 		Attributes: map[string]schema.Attribute{
 			"cluster": schema.StringAttribute{
 				Description: "Identifier of the cluster.",
 				Required:    true,
-	***REMOVED***,
+			},
 			"group": schema.StringAttribute{
 				Description: "Identifier of the group.",
 				Required:    true,
-	***REMOVED***,
+			},
 			"id": schema.StringAttribute{
 				Description: "Identifier of the membership.",
 				Computed:    true,
-	***REMOVED***,
+			},
 			"user": schema.StringAttribute{
 				Description: "user name.",
 				Required:    true,
-	***REMOVED***,
-***REMOVED***,
+			},
+		},
 	}
 	return
 }
 
-func (g *GroupMembershipResource***REMOVED*** Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse***REMOVED*** {
+func (g *GroupMembershipResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
 	}
 
-	connection, ok := req.ProviderData.(*sdk.Connection***REMOVED***
+	connection, ok := req.ProviderData.(*sdk.Connection)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *sdk.Connaction, got: %T. Please report this issue to the provider developers.", req.ProviderData***REMOVED***,
-		***REMOVED***
+			fmt.Sprintf("Expected *sdk.Connaction, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
 		return
 	}
 
-	g.collection = connection.ClustersMgmt(***REMOVED***.V1(***REMOVED***.Clusters(***REMOVED***
+	g.collection = connection.ClustersMgmt().V1().Clusters()
 }
 
-func (g *GroupMembershipResource***REMOVED*** Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse***REMOVED*** {
+func (g *GroupMembershipResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Get the plan:
 	state := &GroupMembershipState{}
-	diags := req.Plan.Get(ctx, state***REMOVED***
-	resp.Diagnostics.Append(diags...***REMOVED***
-	if resp.Diagnostics.HasError(***REMOVED*** {
+	diags := req.Plan.Get(ctx, state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Wait till the cluster is ready:
-	err := common.WaitTillClusterReady(ctx, g.collection, state.Cluster.ValueString(***REMOVED******REMOVED***
+	err := common.WaitTillClusterReady(ctx, g.collection, state.Cluster.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Can't poll cluster state",
 			fmt.Sprintf(
 				"Can't poll state of cluster with identifier '%s': %v",
-				state.Cluster.ValueString(***REMOVED***, err,
-			***REMOVED***,
-		***REMOVED***
+				state.Cluster.ValueString(), err,
+			),
+		)
 		return
 	}
 
 	// Create the membership:
-	builder := cmv1.NewUser(***REMOVED***
-	builder.ID(state.User.ValueString(***REMOVED******REMOVED***
-	object, err := builder.Build(***REMOVED***
+	builder := cmv1.NewUser()
+	builder.ID(state.User.ValueString())
+	object, err := builder.Build()
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Can't build group membership",
 			fmt.Sprintf(
 				"Can't build group membership for cluster '%s' and group '%s': %v",
-				state.Cluster.ValueString(***REMOVED***, state.Group.ValueString(***REMOVED***, err,
-			***REMOVED***,
-		***REMOVED***
+				state.Cluster.ValueString(), state.Group.ValueString(), err,
+			),
+		)
 		return
 	}
-	collection := g.collection.Cluster(state.Cluster.ValueString(***REMOVED******REMOVED***.Groups(***REMOVED***.Group(state.Group.ValueString(***REMOVED******REMOVED***.Users(***REMOVED***
-	add, err := collection.Add(***REMOVED***.Body(object***REMOVED***.SendContext(ctx***REMOVED***
+	collection := g.collection.Cluster(state.Cluster.ValueString()).Groups().Group(state.Group.ValueString()).Users()
+	add, err := collection.Add().Body(object).SendContext(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Can't create group membership",
 			fmt.Sprintf(
 				"Can't create group membership for cluster '%s' and group '%s': %v",
-				state.Cluster.ValueString(***REMOVED***, state.Group.ValueString(***REMOVED***, err,
-			***REMOVED***,
-		***REMOVED***
+				state.Cluster.ValueString(), state.Group.ValueString(), err,
+			),
+		)
 		return
 	}
-	object = add.Body(***REMOVED***
+	object = add.Body()
 
 	// Save the state:
-	g.populateState(object, state***REMOVED***
-	diags = resp.State.Set(ctx, state***REMOVED***
-	resp.Diagnostics.Append(diags...***REMOVED***
+	g.populateState(object, state)
+	diags = resp.State.Set(ctx, state)
+	resp.Diagnostics.Append(diags...)
 }
 
-func (g *GroupMembershipResource***REMOVED*** Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse***REMOVED*** {
+func (g *GroupMembershipResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Get the current state:
 	state := &GroupMembershipState{}
-	diags := req.State.Get(ctx, state***REMOVED***
-	resp.Diagnostics.Append(diags...***REMOVED***
-	if resp.Diagnostics.HasError(***REMOVED*** {
+	diags := req.State.Get(ctx, state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Find the group membership:
-	obj := g.collection.Cluster(state.Cluster.ValueString(***REMOVED******REMOVED***.Groups(***REMOVED***.Group(state.Group.ValueString(***REMOVED******REMOVED***.
-		Users(***REMOVED***.
-		User(state.ID.ValueString(***REMOVED******REMOVED***
-	get, err := obj.Get(***REMOVED***.SendContext(ctx***REMOVED***
+	obj := g.collection.Cluster(state.Cluster.ValueString()).Groups().Group(state.Group.ValueString()).
+		Users().
+		User(state.ID.ValueString())
+	get, err := obj.Get().SendContext(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Can't find group membership",
 			fmt.Sprintf(
 				"Can't find user group membership identifier '%s' for "+
 					"cluster '%s' and group '%s': %v",
-				state.ID.ValueString(***REMOVED***, state.Cluster.ValueString(***REMOVED***, state.Group.ValueString(***REMOVED***, err,
-			***REMOVED***,
-		***REMOVED***
+				state.ID.ValueString(), state.Cluster.ValueString(), state.Group.ValueString(), err,
+			),
+		)
 		return
 	}
-	object := get.Body(***REMOVED***
+	object := get.Body()
 
 	// Save the state:
-	g.populateState(object, state***REMOVED***
+	g.populateState(object, state)
 
-	diags = resp.State.Set(ctx, state***REMOVED***
-	resp.Diagnostics.Append(diags...***REMOVED***
+	diags = resp.State.Set(ctx, state)
+	resp.Diagnostics.Append(diags...)
 }
 
-func (g *GroupMembershipResource***REMOVED*** Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse***REMOVED*** {
+func (g *GroupMembershipResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Until we support. return an informative error
-	resp.Diagnostics.AddError("Can't update group membership", "Update is currently not supported."***REMOVED***
+	resp.Diagnostics.AddError("Can't update group membership", "Update is currently not supported.")
 }
 
-func (g *GroupMembershipResource***REMOVED*** Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse***REMOVED*** {
+func (g *GroupMembershipResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	// Get the state:
 	state := &GroupMembershipState{}
-	diags := req.State.Get(ctx, state***REMOVED***
-	resp.Diagnostics.Append(diags...***REMOVED***
-	if resp.Diagnostics.HasError(***REMOVED*** {
+	diags := req.State.Get(ctx, state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Send the request to delete group membership:
-	obj := g.collection.Cluster(state.Cluster.ValueString(***REMOVED******REMOVED***.Groups(***REMOVED***.Group(state.Group.ValueString(***REMOVED******REMOVED***.
-		Users(***REMOVED***.
-		User(state.ID.ValueString(***REMOVED******REMOVED***
-	_, err := obj.Delete(***REMOVED***.SendContext(ctx***REMOVED***
+	obj := g.collection.Cluster(state.Cluster.ValueString()).Groups().Group(state.Group.ValueString()).
+		Users().
+		User(state.ID.ValueString())
+	_, err := obj.Delete().SendContext(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Can't delete group membership",
 			fmt.Sprintf(
 				"Can't delete group membership with identifier '%s' for "+
 					"cluster '%s' and group '%s': %v",
-				state.ID.ValueString(***REMOVED***, state.Cluster.ValueString(***REMOVED***, state.Group.ValueString(***REMOVED***, err,
-			***REMOVED***,
-		***REMOVED***
+				state.ID.ValueString(), state.Cluster.ValueString(), state.Group.ValueString(), err,
+			),
+		)
 		return
 	}
 
 	// Remove the state:
-	resp.State.RemoveResource(ctx***REMOVED***
+	resp.State.RemoveResource(ctx)
 }
 
-func (g *GroupMembershipResource***REMOVED*** ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse***REMOVED*** {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"***REMOVED***, req, resp***REMOVED***
+func (g *GroupMembershipResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
 // populateState copies the data from the API object to the Terraform state.
-func (g *GroupMembershipResource***REMOVED*** populateState(object *cmv1.User, state *GroupMembershipState***REMOVED*** {
-	if id, ok := object.GetID(***REMOVED***; ok {
-		state.ID = types.StringValue(id***REMOVED***
-		state.User = types.StringValue(id***REMOVED***
+func (g *GroupMembershipResource) populateState(object *cmv1.User, state *GroupMembershipState) {
+	if id, ok := object.GetID(); ok {
+		state.ID = types.StringValue(id)
+		state.User = types.StringValue(id)
 	}
 }

@@ -1,27 +1,27 @@
 package ci
 
-***REMOVED***
-***REMOVED***
-***REMOVED***
+import (
+	. "github.com/onsi/ginkgo/v2"
+)
 
 // Features
-var FeatureMachinepool = Label("feature-machinepool"***REMOVED***
-var FeatureIDP = Label("feature-idp"***REMOVED***
+var FeatureMachinepool = Label("feature-machinepool")
+var FeatureIDP = Label("feature-idp")
 
 // day1/day1-post and day2
-var Day1 = Label("day1"***REMOVED***
-var Day1Prepare = Label("day1-prepare"***REMOVED***
-var Day1Post = Label("day1-post"***REMOVED***
-var Day2 = Label("day2"***REMOVED***
+var Day1 = Label("day1")
+var Day1Prepare = Label("day1-prepare")
+var Day1Post = Label("day1-post")
+var Day2 = Label("day2")
 
 // destroy
-var Destroy = Label("destroy"***REMOVED***
+var Destroy = Label("destroy")
 
 // importance
-var Critical = Label("Critical"***REMOVED***
-var High = Label("High"***REMOVED***
-var Medium = Label("Medium"***REMOVED***
-var Low = Label("Low"***REMOVED***
+var Critical = Label("Critical")
+var High = Label("High")
+var Medium = Label("Medium")
+var Low = Label("Low")
 
 // exclude
-var Exclude = Label("Exclude"***REMOVED***
+var Exclude = Label("Exclude")

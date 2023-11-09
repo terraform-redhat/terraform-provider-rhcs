@@ -1,11 +1,11 @@
 package exec
 
-***REMOVED***
+import (
 	"context"
 
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-***REMOVED***
-***REMOVED***
+	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+)
 
 type ClusterCreationArgs struct {
 	AccountRolePrefix    string            `json:"account_role_prefix,omitempty"`
@@ -20,8 +20,8 @@ type ClusterCreationArgs struct {
 	Replicas             int               `json:"replicas,omitempty"`
 	ChannelGroup         string            `json:"channel_group,omitempty"`
 	AWSHttpTokensState   string            `json:"aws_http_tokens_state,omitempty"`
-	PrivateLink          string            `json:"private_link,omitempty"`
-	Private              string            `json:"private,omitempty"`
+	PrivateLink          bool              `json:"private_link,omitempty"`
+	Private              bool              `json:"private,omitempty"`
 	Fips                 bool              `json:"fips,omitempty"`
 	Tagging              map[string]string `json:"tags,omitempty"`
 	AuditLogForward      bool              `json:"audit_log_forward,omitempty"`
@@ -55,7 +55,7 @@ const (
 	MaxNameLength = 15
 
 	MaxIngressNumber = 2
-***REMOVED***
+)
 
 // version channel_groups
 const (
@@ -63,7 +63,7 @@ const (
 	StableChannel    = "stable"
 	NightlyChannel   = "nightly"
 	CandidateChannel = "candidate"
-***REMOVED***
+)
 
 type ClusterService struct {
 	CreationArgs *ClusterCreationArgs
@@ -71,11 +71,11 @@ type ClusterService struct {
 	Context      context.Context
 }
 
-func (creator *ClusterService***REMOVED*** Init(manifestDir string***REMOVED*** error {
-	creator.ManifestDir = CON.GrantClusterManifestDir(manifestDir***REMOVED***
-	ctx := context.TODO(***REMOVED***
+func (creator *ClusterService) Init(manifestDir string) error {
+	creator.ManifestDir = CON.GrantClusterManifestDir(manifestDir)
+	ctx := context.TODO()
 	creator.Context = ctx
-	err := runTerraformInit(ctx, creator.ManifestDir***REMOVED***
+	err := runTerraformInit(ctx, creator.ManifestDir)
 	if err != nil {
 		return err
 	}
@@ -83,35 +83,35 @@ func (creator *ClusterService***REMOVED*** Init(manifestDir string***REMOVED*** 
 
 }
 
-func (creator *ClusterService***REMOVED*** Create(createArgs *ClusterCreationArgs, extraArgs ...string***REMOVED*** error {
+func (creator *ClusterService) Create(createArgs *ClusterCreationArgs, extraArgs ...string) error {
 	createArgs.URL = CON.GateWayURL
-	args := combineStructArgs(createArgs, extraArgs...***REMOVED***
-	_, err := runTerraformApplyWithArgs(creator.Context, creator.ManifestDir, args***REMOVED***
+	args := combineStructArgs(createArgs, extraArgs...)
+	_, err := runTerraformApplyWithArgs(creator.Context, creator.ManifestDir, args)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (creator *ClusterService***REMOVED*** Output(***REMOVED*** (string, error***REMOVED*** {
-	out, err := runTerraformOutput(creator.Context, creator.ManifestDir***REMOVED***
+func (creator *ClusterService) Output() (string, error) {
+	out, err := runTerraformOutput(creator.Context, creator.ManifestDir)
 	if err != nil {
 		return "", err
 	}
 	clusterObj := out["cluster_id"]
-	clusterID := h.DigString(clusterObj, "value"***REMOVED***
+	clusterID := h.DigString(clusterObj, "value")
 	return clusterID, nil
 }
 
-func (creator *ClusterService***REMOVED*** Destroy(createArgs *ClusterCreationArgs, extraArgs ...string***REMOVED*** error {
+func (creator *ClusterService) Destroy(createArgs *ClusterCreationArgs, extraArgs ...string) error {
 	createArgs.URL = CON.GateWayURL
-	args := combineStructArgs(createArgs, extraArgs...***REMOVED***
-	err := runTerraformDestroyWithArgs(creator.Context, creator.ManifestDir, args***REMOVED***
+	args := combineStructArgs(createArgs, extraArgs...)
+	err := runTerraformDestroyWithArgs(creator.Context, creator.ManifestDir, args)
 	return err
 }
 
-func NewClusterService(manifestDir string***REMOVED*** (*ClusterService, error***REMOVED*** {
+func NewClusterService(manifestDir string) (*ClusterService, error) {
 	sc := &ClusterService{}
-	err := sc.Init(manifestDir***REMOVED***
+	err := sc.Init(manifestDir)
 	return sc, err
 }

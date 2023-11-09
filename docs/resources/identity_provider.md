@@ -6,7 +6,7 @@ description: |-
   Identity provider.
 ---
 
-# rhcs_identity_provider (Resource***REMOVED***
+# rhcs_identity_provider (Resource)
 
 Identity provider.
 
@@ -78,37 +78,37 @@ resource "rhcs_identity_provider" "ldap_idp" {
 
 ### Required
 
-- `cluster` (String***REMOVED*** Identifier of the cluster.
-- `name` (String***REMOVED*** Name of the identity provider.
+- `cluster` (String) Identifier of the cluster.
+- `name` (String) Name of the identity provider.
 
 ### Optional
 
-- `github` (Attributes***REMOVED*** Details of the Github identity provider. (see [below for nested schema](#nestedatt--github***REMOVED******REMOVED***
-- `gitlab` (Attributes***REMOVED*** Details of the Gitlab identity provider. (see [below for nested schema](#nestedatt--gitlab***REMOVED******REMOVED***
-- `google` (Attributes***REMOVED*** Details of the Google identity provider. (see [below for nested schema](#nestedatt--google***REMOVED******REMOVED***
-- `htpasswd` (Attributes***REMOVED*** Details of the 'htpasswd' identity provider. (see [below for nested schema](#nestedatt--htpasswd***REMOVED******REMOVED***
-- `ldap` (Attributes***REMOVED*** Details of the LDAP identity provider. (see [below for nested schema](#nestedatt--ldap***REMOVED******REMOVED***
-- `mapping_method` (String***REMOVED*** Specifies how new identities are mapped to users when they log in. Options are `add`, `claim`, `generate` and `lookup`. (default is `claim`***REMOVED***
-- `openid` (Attributes***REMOVED*** Details of the OpenID identity provider. (see [below for nested schema](#nestedatt--openid***REMOVED******REMOVED***
+- `github` (Attributes) Details of the Github identity provider. (see [below for nested schema](#nestedatt--github))
+- `gitlab` (Attributes) Details of the Gitlab identity provider. (see [below for nested schema](#nestedatt--gitlab))
+- `google` (Attributes) Details of the Google identity provider. (see [below for nested schema](#nestedatt--google))
+- `htpasswd` (Attributes) Details of the 'htpasswd' identity provider. (see [below for nested schema](#nestedatt--htpasswd))
+- `ldap` (Attributes) Details of the LDAP identity provider. (see [below for nested schema](#nestedatt--ldap))
+- `mapping_method` (String) Specifies how new identities are mapped to users when they log in. Options are `add`, `claim`, `generate` and `lookup`. (default is `claim`)
+- `openid` (Attributes) Details of the OpenID identity provider. (see [below for nested schema](#nestedatt--openid))
 
 ### Read-Only
 
-- `id` (String***REMOVED*** Unique identifier of the identity provider.
+- `id` (String) Unique identifier of the identity provider.
 
 <a id="nestedatt--github"></a>
 ### Nested Schema for `github`
 
 Required:
 
-- `client_id` (String***REMOVED*** Client identifier of a registered Github OAuth application.
-- `client_secret` (String, Sensitive***REMOVED*** Client secret issued by Github.
+- `client_id` (String) Client identifier of a registered Github OAuth application.
+- `client_secret` (String, Sensitive) Client secret issued by Github.
 
 Optional:
 
-- `ca` (String***REMOVED*** Path to PEM-encoded certificate file to use when making requests to the server.
-- `hostname` (String***REMOVED*** Optional domain to use with a hosted instance of GitHub Enterprise.
-- `organizations` (List of String***REMOVED*** Only users that are members of at least one of the listed organizations will be allowed to log in.
-- `teams` (List of String***REMOVED*** Only users that are members of at least one of the listed teams will be allowed to log in. The format is `<org>`/`<team>`.
+- `ca` (String) Path to PEM-encoded certificate file to use when making requests to the server.
+- `hostname` (String) Optional domain to use with a hosted instance of GitHub Enterprise.
+- `organizations` (List of String) Only users that are members of at least one of the listed organizations will be allowed to log in.
+- `teams` (List of String) Only users that are members of at least one of the listed teams will be allowed to log in. The format is `<org>`/`<team>`.
 
 
 <a id="nestedatt--gitlab"></a>
@@ -116,13 +116,13 @@ Optional:
 
 Required:
 
-- `client_id` (String***REMOVED*** Client identifier of a registered Gitlab OAuth application.
-- `client_secret` (String, Sensitive***REMOVED*** Client secret issued by Gitlab.
-- `url` (String***REMOVED*** URL of the Gitlab instance.
+- `client_id` (String) Client identifier of a registered Gitlab OAuth application.
+- `client_secret` (String, Sensitive) Client secret issued by Gitlab.
+- `url` (String) URL of the Gitlab instance.
 
 Optional:
 
-- `ca` (String***REMOVED*** Optional trusted certificate authority bundle.
+- `ca` (String) Optional trusted certificate authority bundle.
 
 
 <a id="nestedatt--google"></a>
@@ -130,12 +130,12 @@ Optional:
 
 Required:
 
-- `client_id` (String***REMOVED*** Client identifier of a registered Google OAuth application.
-- `client_secret` (String, Sensitive***REMOVED*** Client secret issued by Google.
+- `client_id` (String) Client identifier of a registered Google OAuth application.
+- `client_secret` (String, Sensitive) Client secret issued by Google.
 
 Optional:
 
-- `hosted_domain` (String***REMOVED*** Restrict users to a Google Apps domain.
+- `hosted_domain` (String) Restrict users to a Google Apps domain.
 
 
 <a id="nestedatt--htpasswd"></a>
@@ -143,15 +143,15 @@ Optional:
 
 Required:
 
-- `users` (Attributes List***REMOVED*** A list of htpasswd user credentials (see [below for nested schema](#nestedatt--htpasswd--users***REMOVED******REMOVED***
+- `users` (Attributes List) A list of htpasswd user credentials (see [below for nested schema](#nestedatt--htpasswd--users))
 
 <a id="nestedatt--htpasswd--users"></a>
 ### Nested Schema for `htpasswd.users`
 
 Required:
 
-- `password` (String, Sensitive***REMOVED*** User password.
-- `username` (String***REMOVED*** User username.
+- `password` (String, Sensitive) User password.
+- `username` (String) User username.
 
 
 
@@ -160,25 +160,25 @@ Required:
 
 Required:
 
-- `attributes` (Attributes***REMOVED*** (see [below for nested schema](#nestedatt--ldap--attributes***REMOVED******REMOVED***
-- `url` (String***REMOVED*** An RFC 2255 URL which specifies the LDAP search parameters to use.
+- `attributes` (Attributes) (see [below for nested schema](#nestedatt--ldap--attributes))
+- `url` (String) An RFC 2255 URL which specifies the LDAP search parameters to use.
 
 Optional:
 
-- `bind_dn` (String***REMOVED*** DN to bind with during the search phase.
-- `bind_password` (String, Sensitive***REMOVED*** Password to bind with during the search phase.
-- `ca` (String***REMOVED*** Optional trusted certificate authority bundle.
-- `insecure` (Boolean***REMOVED*** Do not make TLS connections to the server.
+- `bind_dn` (String) DN to bind with during the search phase.
+- `bind_password` (String, Sensitive) Password to bind with during the search phase.
+- `ca` (String) Optional trusted certificate authority bundle.
+- `insecure` (Boolean) Do not make TLS connections to the server.
 
 <a id="nestedatt--ldap--attributes"></a>
 ### Nested Schema for `ldap.attributes`
 
 Optional:
 
-- `email` (List of String***REMOVED*** The list of attributes whose values should be used as the email address.
-- `id` (List of String***REMOVED*** The list of attributes whose values should be used as the user ID. (default ['dn']***REMOVED***
-- `name` (List of String***REMOVED*** The list of attributes whose values should be used as the display name. (default ['cn']***REMOVED***
-- `preferred_username` (List of String***REMOVED*** The list of attributes whose values should be used as the preferred username. (default ['uid']***REMOVED***
+- `email` (List of String) The list of attributes whose values should be used as the email address.
+- `id` (List of String) The list of attributes whose values should be used as the user ID. (default ['dn'])
+- `name` (List of String) The list of attributes whose values should be used as the display name. (default ['cn'])
+- `preferred_username` (List of String) The list of attributes whose values should be used as the preferred username. (default ['uid'])
 
 
 
@@ -187,23 +187,23 @@ Optional:
 
 Required:
 
-- `claims` (Attributes***REMOVED*** OpenID Claims config. (see [below for nested schema](#nestedatt--openid--claims***REMOVED******REMOVED***
-- `client_id` (String***REMOVED*** Client ID from the registered application.
-- `client_secret` (String, Sensitive***REMOVED*** Client Secret from the registered application.
-- `issuer` (String***REMOVED*** The URL that the OpenID Provider asserts as the Issuer Identifier. It must use the https scheme with no URL query parameters or fragment.
+- `claims` (Attributes) OpenID Claims config. (see [below for nested schema](#nestedatt--openid--claims))
+- `client_id` (String) Client ID from the registered application.
+- `client_secret` (String, Sensitive) Client Secret from the registered application.
+- `issuer` (String) The URL that the OpenID Provider asserts as the Issuer Identifier. It must use the https scheme with no URL query parameters or fragment.
 
 Optional:
 
-- `ca` (String***REMOVED*** Optional trusted certificate authority bundle.
-- `extra_authorize_parameters` (List of String***REMOVED***
-- `extra_scopes` (List of String***REMOVED*** List of scopes to request, in addition to the 'openid' scope, during the authorization token request.
+- `ca` (String) Optional trusted certificate authority bundle.
+- `extra_authorize_parameters` (List of String)
+- `extra_scopes` (List of String) List of scopes to request, in addition to the 'openid' scope, during the authorization token request.
 
 <a id="nestedatt--openid--claims"></a>
 ### Nested Schema for `openid.claims`
 
 Optional:
 
-- `email` (List of String***REMOVED*** List of claims to use as the email address.
-- `groups` (List of String***REMOVED*** List of claims to use as the groups names.
-- `name` (List of String***REMOVED*** List of claims to use as the display name.
-- `preferred_username` (List of String***REMOVED*** List of claims to use as the preferred username when provisioning a user.
+- `email` (List of String) List of claims to use as the email address.
+- `groups` (List of String) List of claims to use as the groups names.
+- `name` (List of String) List of claims to use as the display name.
+- `preferred_username` (List of String) List of claims to use as the preferred username when provisioning a user.

@@ -1,8 +1,8 @@
 package clusterwaiter
 
-***REMOVED***
+import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
-***REMOVED***
+)
 
 type ClusterWaiterState struct {
 	Cluster types.String `tfsdk:"cluster"`

@@ -17,7 +17,7 @@ provider "rhcs" {
 }
 
 locals {
-  major_version = "${split(".", var.openshift_version***REMOVED***[0]}.${split(".", var.openshift_version***REMOVED***[1]}"
+  major_version = "${split(".", var.openshift_version)[0]}.${split(".", var.openshift_version)[1]}"
   versionfilter = var.openshift_version == null ? "" : " and raw_id like '%${local.major_version}%'"
 }
 

@@ -1,21 +1,21 @@
-***REMOVED***
+package e2e
 
-***REMOVED***
-***REMOVED***
-***REMOVED***
+import (
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	CI "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
-***REMOVED***
+)
 
-var _ = Describe("RHCS Provider Test", func(***REMOVED*** {
-	Describe("Create cluster test", func(***REMOVED*** {
+var _ = Describe("RHCS Provider Test", func() {
+	Describe("Create cluster test", func() {
 		It("CreateClusterByProfile", CI.Day1Prepare,
-			func(***REMOVED*** {
+			func() {
 
 				// Generate/build cluster by profile selected
-				profile := CI.LoadProfileYamlFileByENV(***REMOVED***
-				clusterID, err := CI.CreateRHCSClusterByProfile(token, profile***REMOVED***
-				Expect(err***REMOVED***.ToNot(HaveOccurred(***REMOVED******REMOVED***
-				Expect(clusterID***REMOVED***.ToNot(BeEmpty(***REMOVED******REMOVED***
-	***REMOVED******REMOVED***
-	}***REMOVED***
-}***REMOVED***
+				profile := CI.LoadProfileYamlFileByENV()
+				clusterID, err := CI.CreateRHCSClusterByProfile(token, profile)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(clusterID).ToNot(BeEmpty())
+			})
+	})
+})

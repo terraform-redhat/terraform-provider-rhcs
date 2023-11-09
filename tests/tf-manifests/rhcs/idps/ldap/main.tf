@@ -35,8 +35,9 @@ resource "rhcs_identity_provider" "ldap_idp" {
   ldap = {
     ca            = var.ca
     insecure      = true
-    url           = "ldap://ldap.forumsys.com/dc=example,dc=com?uid"
+    url           = var.url
+    
     # optional
-    attributes    = {}
+    attributes    = var.attributes
   }
 }

@@ -29,7 +29,7 @@ provider "rhcs" {
 resource "rhcs_identity_provider" "github_idp" {
   cluster        = var.cluster_id
   mapping_method = var.mapping_method
-  name           = "GitHub"
+  name           = var.name
   github = {
     client_id     = var.client_id
     client_secret = var.client_secret

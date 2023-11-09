@@ -40,6 +40,7 @@ variable "attributes" {
     preferred_username = optional(list(string))
   })
   default = null
+  description = "attributes optional fields list"
 }
 
 variable "ca" {

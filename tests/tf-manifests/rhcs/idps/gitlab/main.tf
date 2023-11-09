@@ -32,7 +32,7 @@ locals {
 resource "rhcs_identity_provider" "gitlab_idp" {
   cluster        = var.cluster_id
   mapping_method = var.mapping_method
-  name           = "Gitlab"
+  name           = var.name
   gitlab = {
     client_id     = var.client_id
     client_secret = var.client_secret

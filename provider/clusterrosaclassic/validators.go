@@ -45,7 +45,7 @@ var privateHZValidator = attrvalidators.NewObjectValidator("proxy map should not
 
 		// validate ID and ARN are not empty
 		if common.IsStringAttributeEmpty(privateHZ.ID***REMOVED*** || common.IsStringAttributeEmpty(privateHZ.RoleARN***REMOVED*** {
-			resp.Diagnostics.AddError(errSum, "Invalid configuration. 'private_hosted_zone.id' and 'private_hosted_zone.arn' are required"***REMOVED***
+			resp.Diagnostics.AddError(errSum, "Invalid configuration. 'private_hosted_zone.id' and 'private_hosted_zone.role_arn' are required"***REMOVED***
 			return
 ***REMOVED***
 

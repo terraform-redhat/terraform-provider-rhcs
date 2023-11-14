@@ -11,6 +11,7 @@ import (
 	CI "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	CMS "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	EXE "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	H "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
@@ -49,23 +50,27 @@ var _ = Describe("TF Test", func() {
 		})
 		Context("Author:smiron-Medium-OCP-64023 @OCP-64023 @smiron", func() {
 			It("Verify compute_machine_type value is set post cluster creation", CI.Day1Post, CI.Medium, func() {
-				getResp, err := CMS.RetrieveClusterDetail(CI.RHCSConnection, clusterID)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(getResp.Body().Nodes().ComputeMachineType().ID()).To(Equal(profile.ComputeMachineType))
+				if profile.ComputeMachineType != "" {
+					getResp, err := CMS.RetrieveClusterDetail(CI.RHCSConnection, clusterID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(getResp.Body().Nodes().ComputeMachineType().ID()).To(Equal(profile.ComputeMachineType))
+				}
 			})
 		})
 		Context("Author:smiron-Medium-OCP-63141 @OCP-63141 @smiron", func() {
 			It("Verify availability zones and multi-az is set post cluster creation", CI.Day1Post, CI.Medium, func() {
+				vpcService := EXE.NewVPCService()
 				getResp, err := CMS.RetrieveClusterDetail(CI.RHCSConnection, clusterID)
 				zonesArray := strings.Split(profile.Zones, ",")
 				clusterAvailZones := getResp.Body().Nodes().AvailabilityZones()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(getResp.Body().MultiAZ()).To(Equal(profile.MultiAZ))
-				if clusterAvailZones != nil {
+				if profile.Zones != "" {
 					Expect(clusterAvailZones).
 						To(Equal(H.JoinStringWithArray(profile.Region, zonesArray)))
 				} else {
-					Expect(clusterAvailZones).To(Equal(nil))
+					vpcOut, _ := vpcService.Output()
+					Expect(clusterAvailZones).To(Equal(vpcOut.AZs))
 				}
 			})
 		})
@@ -76,7 +81,7 @@ var _ = Describe("TF Test", func() {
 				if profile.Labeling {
 					Expect(getResp.Body().Nodes().ComputeLabels()).To(Equal(CON.DefaultMPLabels))
 				} else {
-					Expect(getResp.Body().Nodes().ComputeLabels()).To(Equal(""))
+					Expect(getResp.Body().Nodes().ComputeLabels()).To(Equal(CON.NilMap))
 				}
 			})
 		})

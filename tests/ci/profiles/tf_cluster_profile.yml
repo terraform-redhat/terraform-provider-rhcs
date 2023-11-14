@@ -9,7 +9,7 @@ profiles:
     region: "us-east-1"
     ccs: true
     sts: true
-    byovpc: false
+    byovpc: true
     private_link: true
     private: true
     etcd_encryption: false
@@ -63,7 +63,7 @@ profiles:
     region: "ap-northeast-1"
     ccs: true
     sts: true
-    byovpc: true
+    byovpc: false
     private_link: false
     private: false
     etcd_encryption: true

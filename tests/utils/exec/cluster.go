@@ -20,8 +20,8 @@ type ClusterCreationArgs struct {
 	Replicas             int               `json:"replicas,omitempty"`
 	ChannelGroup         string            `json:"channel_group,omitempty"`
 	AWSHttpTokensState   string            `json:"aws_http_tokens_state,omitempty"`
-	PrivateLink          string            `json:"private_link,omitempty"`
-	Private              string            `json:"private,omitempty"`
+	PrivateLink          bool              `json:"private_link,omitempty"`
+	Private              bool              `json:"private,omitempty"`
 	Fips                 bool              `json:"fips,omitempty"`
 	Tagging              map[string]string `json:"tags,omitempty"`
 	AuditLogForward      bool              `json:"audit_log_forward,omitempty"`

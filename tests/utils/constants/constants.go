@@ -37,6 +37,7 @@ var (
 	GitLabURL           = "https://gitlab.cee.redhat.com"
 	Organizations       = []string{"openshift"}
 	HostedDomain        = "redhat.com"
+	NilMap              map[string]string
 	DefaultMPLabels     = map[string]string{
 		"test1": "testdata1",
 	}

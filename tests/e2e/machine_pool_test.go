@@ -385,7 +385,7 @@ var _ = Describe("TF Test", func() {
 				err = mpService.Destroy()
 				Expect(err).ToNot(HaveOccurred())
 
-				By("Create additional machinepool with availability zone specified")
+				By("Create additional machinepool with subnet id specified")
 				awsSubnetIds := getResp.Body().AWS().SubnetIDs()
 				MachinePoolArgs = &exe.MachinePoolArgs{
 					Token:       token,
@@ -426,6 +426,5 @@ var _ = Describe("TF Test", func() {
 				Expect(len(mpResponseBody.AvailabilityZones())).To(Equal(1))
 			})
 		})
-
 	})
 })

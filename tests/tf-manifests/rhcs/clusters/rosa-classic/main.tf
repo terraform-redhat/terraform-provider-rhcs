@@ -69,6 +69,7 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   max_replicas                = var.autoscaling.max_replicas
   ec2_metadata_http_tokens    = var.aws_http_tokens_state
   aws_private_link            = var.private_link
+  private                     = var.private
   aws_subnet_ids              = local.aws_subnet_ids
   compute_machine_type        = var.compute_machine_type
   default_mp_labels           = var.default_mp_labels

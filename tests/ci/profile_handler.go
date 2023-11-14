@@ -287,8 +287,12 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 				err = fmt.Errorf("error when creating the vpc, check the previous log. The created resources had been destroyed")
 				return
 			}
-			if profile.PrivateLink {
-				clusterArgs.AWSSubnetIDs = vpcOutput.ClusterPrivateSubnets
+			if profile.Private {
+				clusterArgs.Private = profile.Private
+				if profile.PrivateLink {
+					clusterArgs.PrivateLink = profile.PrivateLink
+					clusterArgs.AWSSubnetIDs = vpcOutput.ClusterPrivateSubnets
+				}
 			} else {
 				clusterArgs.AWSSubnetIDs = append(vpcOutput.ClusterPrivateSubnets, vpcOutput.ClusterPublicSubnets...)
 			}

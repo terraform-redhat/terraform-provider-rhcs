@@ -62,35 +62,16 @@ This provider is currently under development, and new releases are regularly mad
 
 There are two distinct types of releases:
 
-* Stable releases: Any release identified by a version number without any preffix, such as 1.2.0. These versions are officially supported by RedHat.
+* Stable releases: Any release identified by a version number without any prefix, such as 1.2.0. These versions are officially supported by RedHat.
 * Pre-release versions: These are beta versions of the provider, identified by a version number with a suffix introduced by a dash, such as 1.2.0-beta. While users can utilize these pre-release versions, it's important to note that doing so comes with the responsibility of the user, as they may not be as stable or fully supported as official releases.
 
 ## Prerequisites
 
 To use the Red Hat Cloud Services provider inside your Terraform configuration you must meet the following:
 
-* Completed [the ROSA getting started](https://console.redhat.com/openshift/create/rosa/getstarted) requirements
-
-  You must complete some AWS account and local configurations to create and managed ROSA clusters.
-
-* An offline [OCM token](https://console.redhat.com/openshift/token/rosa)
-
-  This token is generated through the Red Hat Hybrid Cloud Console. The purpose of this token is to verify that you have access and permission to create and upgrade clusters. This token is unique to your account and should not be shared.
-
-* [GoLang version 1.20 or newer](https://go.dev/doc/install)
-
-  To build components with Terraform, you must have the latest version of Go installed and usable on your system.
-
-* [Terraform version 1.4.6 or newer](https://developer.hashicorp.com/terraform/downloads)
-
-  You need to have Terraform configured for your local system. The Terraform website contains installation options for MacOS, Windows, and Linux.
-
-* [ROSA account roles](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/introduction_to_rosa/rosa-sts-about-iam-resources)
-
-  You need to have created the AWS account-wide roles. The specific account-wide IAM roles and policies provide the STS permissions required for ROSA support, installation, control plane, and compute functionality. This includes account-wide Operator policies.
-
-  To create the account roles using Terraform, see the [Account Roles Terraform example](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.4.0/examples/create_account_roles/).
-
+* You completed [the ROSA getting started](https://console.redhat.com/openshift/create/rosa/getstarted) requirements.
+* You generated an offline [OCM token](https://console.redhat.com/openshift/token/rosa). This token is generated through the Red Hat Hybrid Cloud Console. Do not share this token.
+* You have [Terraform version 1.4.6 or newer](https://developer.hashicorp.com/terraform/downloads) installed.
 * AWS Permissions
 
   The following excerpt lists the minimum AWS permissions required to run Terraform.

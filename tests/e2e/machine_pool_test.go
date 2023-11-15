@@ -467,7 +467,6 @@ var _ = Describe("TF Test", func() {
 
 				err = mpService.Destroy()
 				Expect(err).ToNot(HaveOccurred())
-
 			})
 		})
 	})

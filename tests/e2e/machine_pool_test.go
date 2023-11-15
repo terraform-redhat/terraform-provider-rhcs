@@ -460,7 +460,7 @@ var _ = Describe("TF Test", func() {
 				err = mpService.Create(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
 
-				By("Verify the parameters of the created machinepool")
+				By("Verify the parameters of the updated machinepool")
 				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(mpResponseBody.Replicas()).To(Equal(4))

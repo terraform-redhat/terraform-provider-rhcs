@@ -74,6 +74,7 @@ var (
 	AccountRolesDir                      = path.Join(configrationDir, AWSProviderDIR, "account-roles")
 	OIDCProviderOperatorRolesManifestDir = path.Join(configrationDir, AWSProviderDIR, "oidc-provider-operator-roles")
 	AWSVPCDir                            = path.Join(configrationDir, AWSProviderDIR, "vpc")
+	AWSVPCTagDir                         = path.Join(configrationDir, AWSProviderDIR, "vpc-tags")
 )
 
 // Dirs of rhcs provider

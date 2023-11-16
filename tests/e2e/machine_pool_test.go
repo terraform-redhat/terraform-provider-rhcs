@@ -3,6 +3,8 @@ package e2e
 import (
 
 	// nolint
+	"fmt"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
@@ -424,6 +426,59 @@ var _ = Describe("TF Test", func() {
 				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(mpResponseBody.AvailabilityZones())).To(Equal(1))
+			})
+		})
+		Context("Author:amalykhi-High-OCP-65071 @OCP-65071 @amalykhi", func() {
+			It("Author:amalykhi-High-OCP-65071 subnet_id option is available for machinepool for BYO VPC single-az cluster", ci.Day2, ci.High, ci.FeatureMachinepool, func() {
+				if profile.MultiAZ || !profile.BYOVPC {
+					Skip("The test is configured for SingleAZ BYO VPC cluster only")
+				}
+				getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+				var zones []string
+				vpcOutput, err := ci.PrepareVPC(profile.Region, false, true, zones, getResp.Body().Name())
+
+				By("Tag new subnet to be able to apply it to the machinepool")
+				VpcTagService := exe.NewVPCTagService()
+				tagKey := fmt.Sprintf("kubernetes.io/cluster/%s", getResp.Body().InfraID())
+				tagValue := "shared"
+				VPCTagArgs := &exe.VPCTagArgs{
+					AWSRegion: getResp.Body().Region().DisplayName(),
+					IDs:       vpcOutput.ClusterPrivateSubnets,
+					TagKey:    tagKey,
+					TagValue:  tagValue,
+				}
+				err = VpcTagService.Create(VPCTagArgs)
+				Expect(err).ToNot(HaveOccurred())
+				By("Create additional machinepool with subnet id specified")
+				replicas := 1
+				machineType := "r5.xlarge"
+				name := "ocp-65071"
+				newZonePrivateSubnet := vpcOutput.ClusterPrivateSubnets[2]
+				MachinePoolArgs := &exe.MachinePoolArgs{
+					Token:       token,
+					Cluster:     clusterID,
+					Replicas:    replicas,
+					MachineType: machineType,
+					Name:        name,
+					SubnetID:    newZonePrivateSubnet,
+				}
+
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
+
+				By("Verify the parameters of the created machinepool")
+				mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(mpResponseBody.Subnets()[0]).To(Equal(newZonePrivateSubnet))
+
+				MachinePoolArgs.Replicas = 4
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
+
+				By("Verify the parameters of the updated machinepool")
+				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(mpResponseBody.Replicas()).To(Equal(4))
 			})
 		})
 	})

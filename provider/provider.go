@@ -33,7 +33,6 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/logging"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cloudprovider"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cluster"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterautoscaler"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosaclassic"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterwaiter"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/dnsdomain"
@@ -207,8 +206,7 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 		clusterrosaclassic.New,
 		identityprovider.New,
 		cluster.New,
-		clusterautoscaler.New,
-	}
+    }
 }
 
 func (p *Provider) DataSources(ctx context.Context) []func() datasource.DataSource {

@@ -115,10 +115,6 @@ var _ = Describe("Cluster Autoscaler", func() {
 					`),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
-					RespondWithJSON(http.StatusNotFound, "{}"),
-				),
-				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
 					RespondWithJSON(http.StatusInternalServerError, "Internal Server Error"),
 				),
@@ -156,10 +152,6 @@ var _ = Describe("Cluster Autoscaler", func() {
 							"state": "ready"
 						}
 					`),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
-					RespondWithJSON(http.StatusNotFound, "{}"),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
@@ -366,10 +358,6 @@ var _ = Describe("Cluster Autoscaler", func() {
 					`),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
-					RespondWithJSON(http.StatusNotFound, "{}"),
-				),
-				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
 					VerifyJQ(".balance_similar_node_groups", true),
 					RespondWithJSON(http.StatusCreated, `
@@ -483,10 +471,6 @@ var _ = Describe("Cluster Autoscaler", func() {
 							"state": "ready"
 						}
 					`),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
-					RespondWithJSON(http.StatusNotFound, "{}"),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),

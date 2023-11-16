@@ -22,6 +22,7 @@ type Profile struct {
 	Name                  string `ini:"name,omitempty" json:"name,omitempty"`
 	ClusterName           string `ini:"cluster_name,omitempty" json:"cluster_name,omitempty"`
 	ProductID             string `ini:"product_id,omitempty" json:"product_id,omitempty"`
+	MajorVersion          string `ini:"major_version,omitempty" json:"major_version,omitempty"`
 	Version               string `ini:"version,omitempty" json:"version,omitempty"` //Version supports indicated version started with openshift-v or minor-1
 	ChannelGroup          string `ini:"channel_group,omitempty" json:"channel_group,omitempty"`
 	CloudProvider         string `ini:"cloud_provider,omitempty" json:"cloud_provider,omitempty"`
@@ -138,7 +139,7 @@ func PrepareOIDCProviderAndOperatorRoles(token string, oidcConfigType string, op
 // version with latest
 // verion with x-1, it means the version will choose one with x-1 version which can be used for x stream upgrade
 // version with y-1, it means the version will choose one with y-1 version which can be used for y stream upgrade
-func PrepareVersion(connection *client.Connection, versionTag string, channelGroup string) string {
+func PrepareVersion(connection *client.Connection, versionTag string, channelGroup string, profile *Profile) string {
 	versionRegex := regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+\-*[\s\S]*$`)
 	// Check that the version is matching openshift version regexp
 	if versionRegex.MatchString(versionTag) {
@@ -147,9 +148,10 @@ func PrepareVersion(connection *client.Connection, versionTag string, channelGro
 	var vResult string
 	switch versionTag {
 	case "", "latest":
-		versions := cms.EnabledVersions(connection, channelGroup, "", true)
+		versions := cms.EnabledVersions(connection, channelGroup, profile.MajorVersion, true)
 		versions = cms.SortVersions(versions)
 		vResult = versions[len(versions)-1].RawID
+		Logger.Infof("Cluster OCP latest version is set to %s", vResult)
 	case "y-1":
 		versions, _ := cms.GetVersionsWithUpgrades(connection, channelGroup, CON.Y, true, false, 1)
 		vResult = versions[len(versions)-1].RawID
@@ -168,7 +170,7 @@ func PrepareKMSKey() {}
 func PrepareRoute53() {}
 
 func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clusterArgs *EXE.ClusterCreationArgs, manifestsDir string, err error) {
-	profile.Version = PrepareVersion(RHCSConnection, profile.Version, profile.ChannelGroup)
+	profile.Version = PrepareVersion(RHCSConnection, profile.Version, profile.ChannelGroup, profile)
 
 	clusterArgs = &EXE.ClusterCreationArgs{
 		Token:            token,
@@ -247,7 +249,7 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 	}
 
 	if profile.STS {
-		accountRolesOutput, err := PrepareAccountRoles(token, clusterArgs.ClusterName, clusterArgs.AWSRegion, profile.Version, profile.ChannelGroup)
+		accountRolesOutput, err := PrepareAccountRoles(token, clusterArgs.ClusterName, clusterArgs.AWSRegion, profile.MajorVersion, profile.ChannelGroup)
 		Expect(err).ToNot(HaveOccurred())
 		clusterArgs.AccountRolePrefix = accountRolesOutput.AccountRolePrefix
 		Logger.Infof("Created account roles with prefix %s", accountRolesOutput.AccountRolePrefix)

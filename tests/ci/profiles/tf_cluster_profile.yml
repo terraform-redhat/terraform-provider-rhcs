@@ -17,7 +17,7 @@ profiles:
     autoscale: false
     byok: false
     version: "latest"
-    major_version: "4.13"
+    major_version: "4.14"
     compute_machine_type: "m5.xlarge"
     proxy: false
     labeling: false
@@ -33,7 +33,7 @@ profiles:
     product_id: "rosa"
     hypershift: false
     cloud_provider: "aws"
-    region: "us-east-2"
+    region: "ap-northeast-1"
     ccs: true
     sts: true
     byovpc: true
@@ -44,7 +44,7 @@ profiles:
     autoscale: true
     byok: true
     version: "latest"
-    major_version: "4.13"
+    major_version: "4.14"
     compute_machine_type: "m5.2xlarge"
     proxy: true
     labeling: true
@@ -71,7 +71,7 @@ profiles:
     autoscale: false
     byok: true
     version: "z-1"
-    major_version: "4.13"
+    major_version: "4.14"
     compute_machine_type: "m5.xlarge"
     proxy: false
     labeling: false

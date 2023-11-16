@@ -426,5 +426,48 @@ var _ = Describe("TF Test", func() {
 				Expect(len(mpResponseBody.AvailabilityZones())).To(Equal(1))
 			})
 		})
+		Context("Author:amalykhi-High-OCP-65071 @OCP-65071 @amalykhi", func() {
+			It("Author:amalykhi-High-OCP-65071 subnet_id option is available for machinepool for BYO VPC single-az cluster", ci.Day2, ci.High, ci.FeatureMachinepool, func() {
+				if profile.MultiAZ || !profile.BYOVPC {
+					Skip("The test is configured for SingleAZ BYO VPC cluster only")
+				}
+				getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+				Expect(err).ToNot(HaveOccurred())
+				awsSubnetIds := getResp.Body().AWS().SubnetIDs()
+				By("Create additional machinepool with subnet id specified")
+				replicas := 1
+				machineType := "r5.xlarge"
+				name := "ocp-65071"
+
+				MachinePoolArgs := &exe.MachinePoolArgs{
+					Token:       token,
+					Cluster:     clusterID,
+					Replicas:    replicas,
+					MachineType: machineType,
+					Name:        name,
+					SubnetID:    awsSubnetIds[0],
+				}
+
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
+
+				By("Verify the parameters of the created machinepool")
+				mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(mpResponseBody.Subnets()[0]).To(Equal(awsSubnetIds[0]))
+
+				MachinePoolArgs.Replicas = 4
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
+
+				By("Verify the parameters of the updated machinepool")
+				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(mpResponseBody.Replicas()).To(Equal(4))
+
+				err = mpService.Destroy()
+				Expect(err).ToNot(HaveOccurred())
+			})
+		})
 	})
 })

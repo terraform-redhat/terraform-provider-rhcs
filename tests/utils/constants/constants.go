@@ -41,6 +41,7 @@ var (
 	DefaultMPLabels     = map[string]string{
 		"test1": "testdata1",
 	}
+	Tags = map[string]string{"tag1": "test_tag1", "tag2": "test_tag2"}
 )
 
 const (

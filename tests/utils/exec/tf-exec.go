@@ -35,7 +35,7 @@ func runTerraformInit(ctx context.Context, dir string) error {
 
 func runTerraformApplyWithArgs(ctx context.Context, dir string, terraformArgs []string) (output string, err error) {
 	applyArgs := append([]string{"apply", "-auto-approve", "-no-color"}, terraformArgs...)
-	Logger.Infof("Running terraform apply against the dir: %s ", dir)
+	Logger.Infof("Running terraform apply against the dir: %s", dir)
 	Logger.Debugf("Running terraform apply against the dir: %s with args %v", dir, terraformArgs)
 	terraformApply := exec.Command("terraform", applyArgs...)
 	terraformApply.Dir = dir

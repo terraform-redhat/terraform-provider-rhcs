@@ -7,11 +7,13 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	CI "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	con "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	exe "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	l "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/openshift"
 )
 
@@ -28,6 +30,8 @@ var _ = Describe("TF Test", func() {
 			openid exe.IDPService
 		}
 
+		var profile *CI.Profile
+		profile = CI.LoadProfileYamlFileByENV()
 		var idpService IDPServices
 		var userName, password string
 
@@ -71,24 +75,31 @@ var _ = Describe("TF Test", func() {
 						Expect(respUserName).To(Equal(userName))
 
 						By("Login with created htpasswd idp")
-						getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
-						Expect(err).ToNot(HaveOccurred())
-						server := getResp.Body().API().URL()
 
-						ocAtter := &openshift.OcAttributes{
-							Server:    server,
-							Username:  userName,
-							Password:  password,
-							ClusterID: clusterID,
-							AdditioanlFlags: []string{
-								"--insecure-skip-tls-verify",
-								fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName))),
-							},
-							Timeout: 7,
+						// this condition is for cases where the cluster profile
+						// has private_link enabled, then regular login won't work
+						if !profile.PrivateLink {
+
+							getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+							Expect(err).ToNot(HaveOccurred())
+							server := getResp.Body().API().URL()
+
+							ocAtter := &openshift.OcAttributes{
+								Server:    server,
+								Username:  userName,
+								Password:  password,
+								ClusterID: clusterID,
+								AdditioanlFlags: []string{
+									"--insecure-skip-tls-verify",
+									fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName))),
+								},
+								Timeout: 7,
+							}
+							_, err = openshift.OcLogin(*ocAtter)
+							Expect(err).ToNot(HaveOccurred())
+						} else {
+							l.Logger.Infof("private_link is enabled, skipping login command check.")
 						}
-						_, err = openshift.OcLogin(*ocAtter)
-						Expect(err).ToNot(HaveOccurred())
-
 					})
 			})
 		})
@@ -124,23 +135,30 @@ var _ = Describe("TF Test", func() {
 						Expect(err).ToNot(HaveOccurred())
 
 						By("Login with created ldap idp")
-						getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
-						Expect(err).ToNot(HaveOccurred())
-						server := getResp.Body().API().URL()
 
-						ocAtter := &openshift.OcAttributes{
-							Server:    server,
-							Username:  userName,
-							Password:  password,
-							ClusterID: clusterID,
-							AdditioanlFlags: []string{
-								"--insecure-skip-tls-verify",
-								fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName))),
-							},
-							Timeout: 7,
+						// this condition is for cases where the cluster profile
+						// has private_link enabled, then regular login won't work
+						if !profile.PrivateLink {
+							getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+							Expect(err).ToNot(HaveOccurred())
+							server := getResp.Body().API().URL()
+
+							ocAtter := &openshift.OcAttributes{
+								Server:    server,
+								Username:  userName,
+								Password:  password,
+								ClusterID: clusterID,
+								AdditioanlFlags: []string{
+									"--insecure-skip-tls-verify",
+									fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName))),
+								},
+								Timeout: 7,
+							}
+							_, err = openshift.OcLogin(*ocAtter)
+							Expect(err).ToNot(HaveOccurred())
+						} else {
+							l.Logger.Infof("private_link is enabled, skipping login command check.")
 						}
-						_, err = openshift.OcLogin(*ocAtter)
-						Expect(err).ToNot(HaveOccurred())
 					})
 			})
 		})

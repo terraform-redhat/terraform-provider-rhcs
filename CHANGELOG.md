@@ -1,3 +1,8 @@
+## 1.4.1 (Nov 20, 2023)
+ENHANCEMENTS:
+* Fix the error message of `private_hosted_zone` validator in `cluster_rosa_classic` resource  
+* Fix a bug in `identity_provider` resource from type openid - `cannot reflect tftypes.List[tftypes.String] into a map, must be a map` 
+
 ## 1.4.0 (Oct 19, 2023)
 FEATURES:
 * Add wait attribute in `cluster_rosa_classic` resource for waiting cluster readiness in the creation flow

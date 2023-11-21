@@ -710,7 +710,6 @@ func (r *MachinePoolResource) validateAZConfig(state *MachinePoolState) (bool, e
 	cluster := resp.Body()
 	isMultiAZCluster := cluster.MultiAZ()
 	clusterAZs := cluster.Nodes().AvailabilityZones()
-	clusterSubnets := cluster.AWS().SubnetIDs()
 
 	if isMultiAZCluster {
 		// Can't set both availability_zone and subnet_id
@@ -737,22 +736,6 @@ func (r *MachinePoolResource) validateAZConfig(state *MachinePoolState) (bool, e
 		state.MultiAvailabilityZone = types.BoolValue(false)
 	}
 
-	// Ensure that the machine pool's AZ and subnet are valid for the cluster
-	// If subnet is set, we make sure it's valid for the cluster, but we don't default it if not set
-	if !common.IsStringAttributeEmpty(state.SubnetID) {
-		inClusterSubnet := false
-		for _, subnet := range clusterSubnets {
-			if subnet == state.SubnetID.ValueString() {
-				inClusterSubnet = true
-				break
-			}
-		}
-		if !inClusterSubnet {
-			return false, fmt.Errorf("subnet_id %s is not valid for cluster %s", state.SubnetID.ValueString(), state.Cluster.ValueString())
-		}
-	} else {
-		state.SubnetID = types.StringNull()
-	}
 	// If AZ is set, we make sure it's valid for the cluster. If not set and neither is subnet, we default it to the 1st AZ in the cluster
 	if !common.IsStringAttributeEmpty(state.AvailabilityZone) {
 		inClusterAZ := false

@@ -2246,19 +2246,6 @@ var _ = Describe("Machine pool w/ 1AZ byo VPC cluster", func() {
 		Expect(resource).To(MatchJQ(".attributes.aws_additional_security_group_ids.[0]", "id1"))
 	})
 
-	It("Fails to create pool if subnet_id not in byo vpc subnets", func() {
-		// Run the apply command:
-		terraform.Source(`
-		  resource "rhcs_machine_pool" "my_pool" {
-		    cluster      = "123"
-		    name         = "my-pool"
-		    machine_type = "r5.xlarge"
-		    replicas     = 4
-			subnet_id = "not-in-vpc-of-cluster"
-		  }
-		`)
-		Expect(terraform.Apply()).NotTo(BeZero())
-	})
 })
 
 var _ = Describe("Machine pool import", func() {

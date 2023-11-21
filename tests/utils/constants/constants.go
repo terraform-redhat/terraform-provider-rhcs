@@ -79,9 +79,10 @@ var (
 
 // Dirs of rhcs provider
 var (
-	ClusterDir     = path.Join(configrationDir, RHCSProviderDIR, "clusters")
-	IDPsDir        = path.Join(configrationDir, RHCSProviderDIR, "idps")
-	MachinePoolDir = path.Join(configrationDir, RHCSProviderDIR, "machine-pools")
+	ClusterDir        = path.Join(configrationDir, RHCSProviderDIR, "clusters")
+	IDPsDir           = path.Join(configrationDir, RHCSProviderDIR, "idps")
+	ImportResourceDir = path.Join(configrationDir, RHCSProviderDIR, "resource-import")
+	MachinePoolDir    = path.Join(configrationDir, RHCSProviderDIR, "machine-pools")
 )
 
 // Dirs of different types of clusters

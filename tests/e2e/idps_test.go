@@ -32,6 +32,7 @@ var _ = Describe("TF Test", func() {
 		var profile *ci.Profile
 		profile = ci.LoadProfileYamlFileByENV()
 		var idpService IDPServices
+		var importService exe.ImportService
 		var htpasswdMap = []interface{}{map[string]string{}}
 
 		var userName, password,
@@ -527,6 +528,60 @@ var _ = Describe("TF Test", func() {
 				})
 			})
 
+		})
+
+		Describe("Validate terraform Import operations", func() {
+			var (
+				googleIdpName         = "google-idp"
+				googleIDPClientSecret string
+				googleIDPClientId     string
+			)
+
+			BeforeEach(func() {
+				idpService.google = *exe.NewIDPService(con.GoogleDir)        // init new google service
+				importService = *exe.NewImportService(con.ImportResourceDir) // init new import service
+			})
+
+			AfterEach(func() {
+				err := idpService.google.Destroy()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			Context("Author:smiron-High-OCP-65981 @OCP-65981 @smiron", func() {
+				It("OCP-65981 - rhcs_identity_provider resource can be imported by the terraform import command",
+					ci.Day2, ci.Medium, ci.FeatureIDP, ci.FeatureImport, func() {
+						By("Create sample idp to test the import functionality")
+						googleIDPClientSecret = h.RandStringWithUpper(20)
+						googleIDPClientId = h.RandStringWithUpper(30)
+
+						idpParam := &exe.IDPArgs{
+							Token:        token,
+							ClusterID:    clusterID,
+							Name:         googleIdpName,
+							ClientID:     googleIDPClientId,
+							ClientSecret: googleIDPClientSecret,
+							HostedDomain: con.HostedDomain,
+						}
+
+						Expect(idpService.google.Create(idpParam)).To(Succeed())
+
+						By("Run the command to import the idp")
+						importParam := &exe.ImportArgs{
+							Token:        token,
+							ClusterID:    clusterID,
+							ResourceKind: "rhcs_identity_provider",
+							ResourceName: "idp_import",
+							ObjectName:   googleIdpName,
+						}
+						Expect(importService.Import(importParam)).To(Succeed())
+
+						By("Check resource state - import command succeeded")
+						output, err := importService.ShowState(importParam)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(output).To(ContainSubstring(googleIDPClientId))
+						Expect(output).To(ContainSubstring(con.HostedDomain))
+					})
+			})
 		})
 	})
 })

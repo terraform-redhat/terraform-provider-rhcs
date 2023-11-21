@@ -7,6 +7,7 @@ import (
 // Features
 var FeatureMachinepool = Label("feature-machinepool")
 var FeatureIDP = Label("feature-idp")
+var FeatureImport = Label("feature-import")
 
 // day1/day1-post and day2
 var Day1 = Label("day1")

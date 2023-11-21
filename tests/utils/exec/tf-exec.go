@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -71,6 +72,7 @@ func runTerraformDestroyWithArgs(ctx context.Context, dir string, terraformArgs 
 	Logger.Debugf(output)
 	return err
 }
+
 func runTerraformOutput(ctx context.Context, dir string) (map[string]interface{}, error) {
 	outputArgs := []string{"output", "-json"}
 	Logger.Infof("Running terraform output against the dir: %s", dir)
@@ -88,6 +90,58 @@ func runTerraformOutput(ctx context.Context, dir string) (map[string]interface{}
 	}
 	Logger.Debugf(string(output))
 	return parsedResult, err
+}
+
+func runTerraformState(dir, subcommand, terraformArgs string) (string, error) {
+	stateArgs := []string{"state", subcommand, terraformArgs}
+	Logger.Infof("Running terraform state %s against the dir: %s", subcommand, dir)
+
+	terraformState := exec.Command("terraform", stateArgs...)
+	terraformState.Dir = dir
+
+	var stdOutput bytes.Buffer
+	terraformState.Stdout = &stdOutput
+	terraformState.Stderr = &stdOutput
+
+	if err := terraformState.Run(); err != nil {
+		errMsg := fmt.Sprintf("%s: %s", err, stdOutput.String())
+		Logger.Errorf(errMsg)
+		return "", fmt.Errorf("terraform state %s failed: %w", subcommand, errors.New(errMsg))
+	}
+
+	output := h.Strip(stdOutput.String(), "\n")
+	Logger.Debugf(output)
+
+	return output, nil
+}
+
+func runTerraformImportWithArgs(ctx context.Context, dir string, terraformArgs []string) (output string, err error) {
+	Logger.Infof("Running terraform import against the dir: %s", dir)
+	Logger.Debugf("Running terraform import against the dir: %s with args %v", dir, terraformArgs)
+
+	terraformImport := exec.CommandContext(ctx, "terraform", append([]string{"import"}, terraformArgs...)...)
+	terraformImport.Dir = dir
+
+	var stdOutput bytes.Buffer
+	terraformImport.Stdout = &stdOutput
+	terraformImport.Stderr = &stdOutput
+
+	if err := terraformImport.Run(); err != nil {
+		errMsg := fmt.Sprintf("%s: %s", err.Error(), stdOutput.String())
+		Logger.Errorf(errMsg)
+		return "", errors.New(errMsg)
+	}
+
+	output = h.Strip(stdOutput.String(), "\n")
+	Logger.Debugf(output)
+
+	return output, nil
+}
+
+func (importService *ImportService) ShowState(importArgs *ImportArgs) (string, error) {
+	args := fmt.Sprintf("%s.%s", importArgs.ResourceKind, importArgs.ResourceName)
+	output, err := runTerraformState(importService.ManifestDir, "show", args)
+	return output, err
 }
 
 func combineArgs(varAgrs map[string]interface{}, abArgs ...string) []string {

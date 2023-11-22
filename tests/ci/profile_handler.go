@@ -3,6 +3,7 @@ package ci
 import (
 	"fmt"
 	"os"
+	"path"
 	"regexp"
 	"strings"
 	"time"
@@ -224,7 +225,17 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 	}
 
 	if profile.AdminEnabled {
-		// ToDo
+		userName := CON.ClusterAdminUser
+		password := HELPER.GenerateRandomStringWithSymbols(14)
+		adminPasswdMap := map[string]string{"username": userName, "password": password}
+		clusterArgs.AdminCredentials = adminPasswdMap
+		pass := []byte(password)
+		err = os.WriteFile(path.Join(CON.GetRHCSOutputDir(), CON.ClusterAdminUser), pass, 0644)
+		if err != nil {
+			return
+		}
+		Logger.Infof("Admin password is written to the output directory")
+
 	}
 
 	if profile.AuditLogForward {

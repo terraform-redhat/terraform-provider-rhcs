@@ -10,10 +10,13 @@ import (
 	. "github.com/onsi/gomega"
 
 	CI "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
+	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	CMS "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	EXE "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	H "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/openshift"
 )
 
 var _ = Describe("TF Test", func() {
@@ -125,6 +128,32 @@ var _ = Describe("TF Test", func() {
 				} else {
 					Expect(len(getResp.Body().AWS().Tags())).To(Equal(len(buildInTags)))
 				}
+			})
+		})
+		Context("Author:amalykhi-High-OCP-65928 @OCP-65928 @amalykhi", func() {
+			It("Cluster admin during deployment - confirm user created ONLY during cluster creation operation", CI.Day1Post, CI.High, func() {
+				if !profile.AdminEnabled {
+					Skip("The test configured only for cluster admin profile")
+				}
+				By("Login with created cluster admin password")
+				getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+				Expect(err).ToNot(HaveOccurred())
+				server := getResp.Body().API().URL()
+
+				username := CON.ClusterAdminUser
+				password := H.GetClusterAdminPassword()
+				Expect(password).ToNot(BeEmpty())
+
+				ocAtter := &openshift.OcAttributes{
+					Server:    server,
+					Username:  username,
+					Password:  password,
+					ClusterID: clusterID,
+					Timeout:   5,
+				}
+				_, err = openshift.OcLogin(*ocAtter)
+				Expect(err).ToNot(HaveOccurred())
+
 			})
 		})
 	})

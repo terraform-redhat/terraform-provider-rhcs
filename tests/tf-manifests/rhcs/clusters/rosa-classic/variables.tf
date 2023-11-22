@@ -176,5 +176,10 @@ variable "aws_region" {
 variable "oidc_config_id" {
   type        = string
   default     = null
+}
 
+variable "admin_credentials" {
+  description = "Admin user and password"
+  type        = map(string)
+  default     = null
 }

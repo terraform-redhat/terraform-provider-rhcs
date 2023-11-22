@@ -83,6 +83,7 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   service_cidr                = var.service_cidr
   pod_cidr                    = var.pod_cidr
   tags                        = var.tags
+  admin_credentials           = var.admin_credentials
   destroy_timeout             = 120
   lifecycle {
     ignore_changes = [availability_zones]

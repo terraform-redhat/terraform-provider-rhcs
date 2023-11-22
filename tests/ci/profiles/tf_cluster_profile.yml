@@ -26,6 +26,7 @@ profiles:
     zones: ""
     imdsv2: "optional"
     oidc_config: "managed"
+    admin_enabled: false
 # rosa-sts-ad :: creating unmanaged oidc config cluster 
 - as: rosa-sts-ad
   cluster:
@@ -53,6 +54,7 @@ profiles:
     zones: ""
     imdsv2: "required"
     oidc_config: "un-managed"
+    admin_enabled: true
 # rosa-sts-up :: creating a managed cluster for upgrade purpose
 - as: rosa-sts-up
   cluster:
@@ -80,3 +82,4 @@ profiles:
     zones: ""
     imdsv2: ""
     oidc_config: "managed"
+    admin_enabled: true

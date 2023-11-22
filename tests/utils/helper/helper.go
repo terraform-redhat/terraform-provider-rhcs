@@ -2,6 +2,8 @@ package helper
 
 import (
 	"bytes"
+	r "crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -390,6 +392,15 @@ func RandStringWithUpper(n int) string {
 	return strings.Join(b, "")
 }
 
+func GenerateRandomStringWithSymbols(length int) string {
+	b := make([]byte, length)
+	_, err := r.Read(b)
+	if err != nil {
+		panic(err)
+	}
+	return base64.StdEncoding.EncodeToString(b)
+}
+
 func subfix() string {
 	subfix := make([]byte, 3)
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -404,4 +415,13 @@ func GenerateClusterName(profileName string) string {
 
 	clusterPrefix := CON.RHCSPrefix + CON.HyphenConnector + profileName[5:]
 	return clusterPrefix + CON.HyphenConnector + subfix()
+}
+
+func GetClusterAdminPassword() string {
+	path := fmt.Sprintf(path.Join(CON.GetRHCSOutputDir(), CON.ClusterAdminUser))
+	b, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Print(err)
+	}
+	return string(b)
 }

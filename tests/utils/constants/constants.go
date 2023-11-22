@@ -28,7 +28,7 @@ var (
 )
 
 var (
-	DefaultMajorVersion = "4.13"
+	DefaultMajorVersion = "4.14"
 	CharsBytes          = "abcdefghijklmnopqrstuvwxyz123456789"
 	WorkSpace           = "WORKSPACE"
 	RHCSPrefix          = "rhcs"
@@ -38,10 +38,11 @@ var (
 	Organizations       = []string{"openshift"}
 	HostedDomain        = "redhat.com"
 	NilMap              map[string]string
+	Tags                = map[string]string{"tag1": "test_tag1", "tag2": "test_tag2"}
+	ClusterAdminUser    = "cluster_admin_name"
 	DefaultMPLabels     = map[string]string{
 		"test1": "testdata1",
 	}
-	Tags = map[string]string{"tag1": "test_tag1", "tag2": "test_tag2"}
 )
 
 const (

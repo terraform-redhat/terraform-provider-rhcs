@@ -34,6 +34,7 @@ type ClusterCreationArgs struct {
 	MultiAZ              bool              `json:"multi_az,omitempty"`
 	MachineCIDR          string            `json:"machine_cidr,omitempty"`
 	OIDCConfigID         string            `json:"oidc_config_id,omitempty"`
+	AdminCredentials     map[string]string `json:"admin_credentials,omitempty"`
 }
 
 // Just a placeholder, not research what to output yet.

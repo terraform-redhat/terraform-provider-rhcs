@@ -376,22 +376,6 @@ func BoolPoint(b bool) *bool {
 	return &boolVar
 }
 
-func RandStringWithUpper(n int) string {
-	b := make([]string, n)
-
-	for i := range b {
-
-		// make each even alphabetic char as uppercase letter
-		if i%2 == 0 {
-			b[i] = strings.ToUpper(string(CON.CharsBytes[rand.Intn(len(CON.CharsBytes))]))
-		} else {
-			b[i] = string(CON.CharsBytes[rand.Intn(len(CON.CharsBytes))])
-		}
-	}
-
-	return strings.Join(b, "")
-}
-
 func GenerateRandomStringWithSymbols(length int) string {
 	b := make([]byte, length)
 	_, err := r.Read(b)
@@ -401,8 +385,8 @@ func GenerateRandomStringWithSymbols(length int) string {
 	return base64.StdEncoding.EncodeToString(b)
 }
 
-func subfix() string {
-	subfix := make([]byte, 3)
+func Subfix(length int) string {
+	subfix := make([]byte, length)
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := range subfix {
 		subfix[i] = CON.CharsBytes[r.Intn(len(CON.CharsBytes))]
@@ -414,7 +398,7 @@ func subfix() string {
 func GenerateClusterName(profileName string) string {
 
 	clusterPrefix := CON.RHCSPrefix + CON.HyphenConnector + profileName[5:]
-	return clusterPrefix + CON.HyphenConnector + subfix()
+	return clusterPrefix + CON.HyphenConnector + Subfix(3)
 }
 
 func GetClusterAdminPassword() string {

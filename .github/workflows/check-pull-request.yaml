@@ -22,6 +22,16 @@ on:
     - main
 
 jobs:
+  check-gen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+      - name: Check that 'make generate' has being call
+        run: make check-gen
 
   test:
     name: Test

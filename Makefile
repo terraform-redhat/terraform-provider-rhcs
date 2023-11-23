@@ -36,6 +36,7 @@ import_path:=github.com/terraform-redhat/terraform-provider-rhcs
 # Version of the project:
 version=$(shell git describe --abbrev=0 | sed 's/^v//' | sed 's/-prerelease\.[0-9]*//')
 commit:=$(shell git rev-parse --short HEAD)
+git_status:=$(shell git status --porcelain)
 
 # Set the linker flags so that the version will be included in the binaries:
 ldflags:=\
@@ -135,3 +136,7 @@ e2e_test: tools install
         -r \
         --focus-file tests/e2e/.* \
 		$(NULL)
+
+.PHONY: check-gen
+check-gen: generate
+	scripts/assert_no_diff.sh "generate"

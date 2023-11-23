@@ -45,7 +45,7 @@ var _ = Describe("TF Test", func() {
 
 				BeforeEach(func() {
 					userName = "jacko"
-					password = h.RandStringWithUpper(15)
+					password = h.GenerateRandomStringWithSymbols(15)
 					htpasswdMap = []interface{}{map[string]string{"username": userName, "password": password}}
 					idpService.htpasswd = *exe.NewIDPService(con.HtpasswdDir) // init new htpasswd service
 				})
@@ -165,8 +165,8 @@ var _ = Describe("TF Test", func() {
 			})
 			Context("GitLab IDP test cases", func() {
 				BeforeEach(func() {
-					gitlabIDPClientId = h.RandStringWithUpper(20)
-					gitlabIDPClientSecret = h.RandStringWithUpper(30)
+					gitlabIDPClientId = h.GenerateRandomStringWithSymbols(20)
+					gitlabIDPClientSecret = h.GenerateRandomStringWithSymbols(30)
 					idpService.gitlab = *exe.NewIDPService(con.GitlabDir) // init new gitlab service
 				})
 
@@ -203,8 +203,8 @@ var _ = Describe("TF Test", func() {
 			Context("GitHub IDP test cases", func() {
 				BeforeEach(func() {
 
-					githubIDPClientSecret = h.RandStringWithUpper(20)
-					githubIDPClientId = h.RandStringWithUpper(30)
+					githubIDPClientSecret = h.GenerateRandomStringWithSymbols(20)
+					githubIDPClientId = h.GenerateRandomStringWithSymbols(30)
 					idpService.github = *exe.NewIDPService(con.GithubDir) // init new github service
 				})
 
@@ -241,8 +241,8 @@ var _ = Describe("TF Test", func() {
 			Context("Google IDP test cases", func() {
 				BeforeEach(func() {
 
-					googleIDPClientSecret = h.RandStringWithUpper(20)
-					googleIDPClientId = h.RandStringWithUpper(30)
+					googleIDPClientSecret = h.GenerateRandomStringWithSymbols(20)
+					googleIDPClientId = h.GenerateRandomStringWithSymbols(30)
 					idpService.google = *exe.NewIDPService(con.GoogleDir) // init new google service
 				})
 
@@ -282,13 +282,13 @@ var _ = Describe("TF Test", func() {
 			BeforeEach(func() {
 
 				userName = "jacko"
-				password = h.RandStringWithUpper(15)
-				gitlabIDPClientId = h.RandStringWithUpper(20)
-				gitlabIDPClientSecret = h.RandStringWithUpper(30)
-				githubIDPClientSecret = h.RandStringWithUpper(20)
-				githubIDPClientId = h.RandStringWithUpper(30)
-				googleIDPClientSecret = h.RandStringWithUpper(20)
-				googleIDPClientId = h.RandStringWithUpper(30)
+				password = h.GenerateRandomStringWithSymbols(15)
+				gitlabIDPClientId = h.GenerateRandomStringWithSymbols(20)
+				gitlabIDPClientSecret = h.GenerateRandomStringWithSymbols(30)
+				githubIDPClientSecret = h.GenerateRandomStringWithSymbols(20)
+				githubIDPClientId = h.GenerateRandomStringWithSymbols(30)
+				googleIDPClientSecret = h.GenerateRandomStringWithSymbols(20)
+				googleIDPClientId = h.GenerateRandomStringWithSymbols(30)
 
 				idpService.htpasswd = *exe.NewIDPService(con.HtpasswdDir) // init new htpasswd service
 				idpService.ldap = *exe.NewIDPService(con.LdapDir)         // init new ldap service
@@ -297,7 +297,7 @@ var _ = Describe("TF Test", func() {
 				idpService.google = *exe.NewIDPService(con.GoogleDir)     // init new google service
 			})
 
-			Context("Author:smiron-High-OCP-68939 @OCP-68939 @smiron", func() {
+			Context("Author:smiron-Medium-OCP-68939 @OCP-68939 @smiron", func() {
 				It("OCP-68939 - Validate that the mandatory idp's attributes must be set", ci.Day2, ci.Medium, ci.FeatureIDP, func() {
 
 					By("Create htpasswd idp without/empty name field")
@@ -527,7 +527,91 @@ var _ = Describe("TF Test", func() {
 
 				})
 			})
+			Context("Author:smiron-Medium-OCP-66409 @OCP-66409 @smiron", func() {
+				It("OCP-66409 - htpasswd multiple users: empty user-password list", ci.Day2, ci.Medium, ci.FeatureIDP, func() {
+					By("Validate idp can't be created with empty htpasswdMap")
+					htpasswdMap = []interface{}{map[string]string{}}
 
+					idpParam := &exe.IDPArgs{
+						Token:         token,
+						ClusterID:     clusterID,
+						Name:          "OCP-66409-htpasswd-idp-test",
+						HtpasswdUsers: htpasswdMap,
+					}
+					err := idpService.htpasswd.Create(idpParam)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).Should(
+						ContainSubstring(
+							"attributes \"password\" and \"username\" are required"))
+				})
+			})
+			Context("Author:smiron-Medium-OCP-66410 @OCP-66410 @smiron", func() {
+				It("OCP-66410 - htpasswd multiple users - password policy violation", ci.Day2, ci.Medium, ci.FeatureIDP, func() {
+
+					var usernameInvalid = "userWithInvalidPassword"
+					var passwordInvalid string
+
+					By("Validate idp can't be created with password less than 14")
+
+					passwordInvalid = h.GenerateRandomStringWithSymbols(3)
+					htpasswdMap = []interface{}{map[string]string{
+						"username": userName, "password": password},
+						map[string]string{"username": usernameInvalid,
+							"password": passwordInvalid}}
+
+					idpParam := &exe.IDPArgs{
+						Token:         token,
+						ClusterID:     clusterID,
+						Name:          "OCP-66410-htpasswd-idp-test",
+						HtpasswdUsers: htpasswdMap,
+					}
+					err := idpService.htpasswd.Create(idpParam)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).Should(
+						ContainSubstring(
+							"password string length must be at least 14"))
+
+					By("Validate idp can't be created without upercase letter in password")
+
+					passwordInvalid = h.Subfix(3)
+					fmt.Println("blaaa::", passwordInvalid)
+					htpasswdMap = []interface{}{map[string]string{
+						"username": userName, "password": password},
+						map[string]string{"username": usernameInvalid,
+							"password": passwordInvalid}}
+					idpParam = &exe.IDPArgs{
+						Token:         token,
+						ClusterID:     clusterID,
+						Name:          "OCP-66410-htpasswd-idp-test",
+						HtpasswdUsers: htpasswdMap,
+					}
+					err = idpService.htpasswd.Create(idpParam)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).Should(
+						ContainSubstring(
+							"password must contain uppercase"))
+				})
+			})
+			Context("Author:smiron-Medium-OCP-66411 @OCP-66411 @smiron", func() {
+				It("OCP-66411 - htpasswd multiple users: duplicate user names", ci.Day2, ci.Medium, ci.FeatureIDP, func() {
+					By("Create 2 htpasswd idps with the same username")
+					htpasswdMap = []interface{}{map[string]string{
+						"username": userName, "password": password},
+						map[string]string{"username": userName, "password": password}}
+
+					idpParam := &exe.IDPArgs{
+						Token:         token,
+						ClusterID:     clusterID,
+						Name:          "OCP-66411-htpasswd-idp-test",
+						HtpasswdUsers: htpasswdMap,
+					}
+					err := idpService.htpasswd.Create(idpParam)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).Should(
+						ContainSubstring(
+							"Usernames in HTPasswd user list must be unique"))
+				})
+			})
 		})
 
 		Describe("Validate terraform Import operations", func() {

@@ -40,6 +40,7 @@ type ClusterRosaClassicState struct {
 	Replicas                  types.Int64        `tfsdk:"replicas"`
 	ConsoleURL                types.String       `tfsdk:"console_url"`
 	Domain                    types.String       `tfsdk:"domain"`
+	InfraID                   types.String       `tfsdk:"infra_id"`
 	HostPrefix                types.Int64        `tfsdk:"host_prefix"`
 	ID                        types.String       `tfsdk:"id"`
 	FIPS                      types.Bool         `tfsdk:"fips"`

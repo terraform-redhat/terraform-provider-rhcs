@@ -52,6 +52,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 	// a cluster.
 	template := `{
 	  "id": "123",
+	  "infra_id": "my-cluster-123",
 	  "name": "my-cluster",
 	  "state": "ready",
 	  "region": {
@@ -565,6 +566,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			Expect(terraform.Apply()).To(BeZero())
 			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
+			Expect(resource).To(MatchJQ(".attributes.infra_id", "my-cluster-123"))
 		})
 
 		It("Creates basic cluster returned empty az list", func() {

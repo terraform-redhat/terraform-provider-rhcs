@@ -54,17 +54,17 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
 ### Optional
 
 - `admin_credentials` (Attributes) Admin user credentials (see [below for nested schema](#nestedatt--admin_credentials))
-- `autoscaling_enabled` (Boolean) Enables autoscaling.
+- `autoscaling_enabled` (Boolean) Enable autoscaling for the initial worker pool. (only valid during cluster creation)
 - `availability_zones` (List of String) Availability zones.
-- `aws_additional_compute_security_group_ids` (List of String) Additional Security Group IDs to be provided to the default worker machine pool.
-- `aws_additional_infra_security_group_ids` (List of String) Additional Infra Group IDs to be provided to the default infra machine pool.
-- `aws_additional_control_plane_security_group_ids` (List of String) Additional Control Plane Group IDs to be provided to the default control plane machine pool.
+- `aws_additional_compute_security_group_ids` (List of String) AWS additional compute security group ids.
+- `aws_additional_control_plane_security_group_ids` (List of String) AWS additional control plane security group ids.
+- `aws_additional_infra_security_group_ids` (List of String) AWS additional infra security group ids.
 - `aws_private_link` (Boolean) Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet.
 - `aws_subnet_ids` (List of String) AWS subnet IDs.
 - `base_dns_domain` (String) Base DNS domain name previously reserved and matching the hosted zone name of the private Route 53 hosted zone associated with intended shared VPC, e.g., '1vo8.p1.openshiftapps.com'.
 - `channel_group` (String) Name of the channel group where you select the OpenShift cluster version, for example 'stable'. For ROSA, only 'stable' is supported.
-- `compute_machine_type` (String) Identifies the machine type used by the default/initial worker nodes, for example `m5.xlarge`. Use the `rhcs_machine_types` data source to find the possible values.
-- `default_mp_labels` (Map of String) This value is the default/initial machine pool labels. Format should be a comma-separated list of '{"key1"="value1", "key2"="value2"}'. This list overwrites any modifications made to node labels on an ongoing basis.
+- `compute_machine_type` (String) Identifies the machine type used by the default/initial worker nodes, for example `m5.xlarge`. Use the `rhcs_machine_types` data source to find the possible values. (only valid during cluster creation)
+- `default_mp_labels` (Map of String) This value is the default/initial machine pool labels. Format should be a comma-separated list of '{"key1"="value1", "key2"="value2"}'. (only valid during cluster creation)
 - `destroy_timeout` (Number) This value sets the maximum duration in minutes to allow for destroying resources. Default value is 60 minutes.
 - `disable_scp_checks` (Boolean) Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE) platform metrics.
 - `disable_waiting_in_destroy` (Boolean) Disable addressing cluster state in the destroy resource. Default value is false, and so a `destroy` will wait for the cluster to be deleted.
@@ -76,15 +76,15 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
 - `host_prefix` (Number) Length of the prefix of the subnet assigned to each node.
 - `kms_key_arn` (String) The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID(optional).
 - `machine_cidr` (String) Block of IP addresses for nodes.
-- `max_replicas` (Number) Maximum replicas of worker nodes in a machine pool.
-- `min_replicas` (Number) Minimum replicas of worker nodes in a machine pool.
+- `max_replicas` (Number) Maximum replicas of worker nodes in a machine pool. (only valid during cluster creation)
+- `min_replicas` (Number) Minimum replicas of worker nodes in a machine pool. (only valid during cluster creation)
 - `multi_az` (Boolean) Indicates if the cluster should be deployed to multiple availability zones. Default value is 'false'.
 - `pod_cidr` (String) Block of IP addresses for pods.
 - `private` (Boolean) Restrict cluster API endpoint and application routes to, private connectivity. This requires that PrivateLink be enabled and by extension, your own VPC.
 - `private_hosted_zone` (Attributes) Used in a shared VPC topology. HostedZone attributes (see [below for nested schema](#nestedatt--private_hosted_zone))
 - `properties` (Map of String) User defined properties.
 - `proxy` (Attributes) proxy (see [below for nested schema](#nestedatt--proxy))
-- `replicas` (Number) Number of worker/compute nodes to provision. Single zone clusters need at least 2 nodes, multizone clusters need at least 3 nodes.
+- `replicas` (Number) Number of worker/compute nodes to provision. Single zone clusters need at least 2 nodes, multizone clusters need at least 3 nodes. (only valid during cluster creation)
 - `service_cidr` (String) Block of IP addresses for the cluster service network.
 - `sts` (Attributes) STS configuration. (see [below for nested schema](#nestedatt--sts))
 - `tags` (Map of String) Apply user defined tags to all cluster resources created in AWS.
@@ -101,6 +101,7 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
 - `current_version` (String) The currently running version of OpenShift on the cluster, for example '4.11.0'.
 - `domain` (String) DNS domain of cluster.
 - `id` (String) Unique identifier of the cluster.
+- `infra_id` (String) The ROSA cluster infrastructure ID.
 - `ocm_properties` (Map of String) Merged properties defined by OCM and the user defined 'properties'.
 - `state` (String) State of the cluster.
 

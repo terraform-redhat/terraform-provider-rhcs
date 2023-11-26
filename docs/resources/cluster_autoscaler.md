@@ -90,5 +90,3 @@ Optional:
 - `enabled` (Boolean) Should cluster-autoscaler scale down the cluster.
 - `unneeded_time` (String) How long a node should be unneeded before it is eligible for scale down.
 - `utilization_threshold` (String) Node utilization level, defined as sum of requested resources divided by capacity, below which a node can be considered for scale down.
-
-

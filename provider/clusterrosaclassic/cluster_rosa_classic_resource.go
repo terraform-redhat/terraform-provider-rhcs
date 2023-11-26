@@ -224,6 +224,10 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Description: "DNS domain of cluster.",
 				Computed:    true,
 			},
+			"infra_id": schema.StringAttribute{
+				Description: "The ROSA cluster infrastructure ID.",
+				Computed:    true,
+			},
 			"base_dns_domain": schema.StringAttribute{
 				Description: "Base DNS domain name previously reserved and matching the hosted " +
 					"zone name of the private Route 53 hosted zone associated with intended shared " +
@@ -275,7 +279,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 			},
 			"kms_key_arn": schema.StringAttribute{
 				Description: "The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, " +
-					"fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID" + 
+					"fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID" +
 					"(optional).",
 				Optional: true,
 				PlanModifiers: []planmodifier.String{
@@ -1497,6 +1501,8 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	state.Replicas = types.Int64Value(int64(object.Nodes().Compute()))
 	state.ComputeMachineType = types.StringValue(object.Nodes().ComputeMachineType().ID())
 	state.BaseDNSDomain = types.StringValue(object.DNS().BaseDomain())
+	state.InfraID = types.StringValue(object.InfraID())
+
 	labels, ok := object.Nodes().GetComputeLabels()
 	if ok {
 		mapValue, err := common.ConvertStringMapToMapType(labels)

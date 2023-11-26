@@ -64,3 +64,9 @@ func (importService *ImportService) Import(importArgs *ImportArgs, extraArgs ...
 	}
 	return nil
 }
+
+func (importService *ImportService) ShowState(importArgs *ImportArgs) (string, error) {
+	args := fmt.Sprintf("%s.%s", importArgs.ResourceKind, importArgs.ResourceName)
+	output, err := runTerraformState(importService.ManifestDir, "show", args)
+	return output, err
+}

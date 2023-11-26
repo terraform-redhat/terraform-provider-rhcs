@@ -1,9 +1,11 @@
 package cms
 
 import (
+	"errors"
 	"fmt"
 
 	client "github.com/openshift-online/ocm-sdk-go"
+	v1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
@@ -244,5 +246,14 @@ func ListUpgradePolicies(connection *client.Connection, clusterID string, params
 
 func RetrieveUpgradePolicies(connection *client.Connection, clusterID string, upgradepolicyID string) (*cmv1.UpgradePolicyGetResponse, error) {
 	resp, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).UpgradePolicies().UpgradePolicy(upgradepolicyID).Get().Send()
+	return resp, err
+}
+
+// RetrieveCurrentAccount return the response of retrieve current account
+func RetrieveCurrentAccount(connection *client.Connection, params ...map[string]interface{}) (resp *v1.CurrentAccountGetResponse, err error) {
+	if len(params) > 1 {
+		return nil, errors.New("only one parameter map is allowed")
+	}
+	resp, err = connection.AccountsMgmt().V1().CurrentAccount().Get().Send()
 	return resp, err
 }

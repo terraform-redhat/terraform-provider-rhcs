@@ -160,12 +160,6 @@ func runTerraformImportWithArgs(ctx context.Context, dir string, terraformArgs [
 	return output, nil
 }
 
-func (importService *ImportService) ShowState(importArgs *ImportArgs) (string, error) {
-	args := fmt.Sprintf("%s.%s", importArgs.ResourceKind, importArgs.ResourceName)
-	output, err := runTerraformState(importService.ManifestDir, "show", args)
-	return output, err
-}
-
 func combineArgs(varAgrs map[string]interface{}, abArgs ...string) []string {
 
 	args := []string{}

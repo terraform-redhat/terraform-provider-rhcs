@@ -43,11 +43,23 @@ func Parse(data []byte) map[string]interface{} {
 	return object
 }
 
-func GetJsonFromPath(filePath string, filename string) map[string]interface{} {
-	combinedFilePath := path.Join(filePath, filename)
-	file, err := os.ReadFile(combinedFilePath)
-	Expect(err).ToNot(HaveOccurred())
-	return Parse(file)
+func ParseStringToMap(input string) (map[string]string, error) {
+	dataMap := make(map[string]string)
+
+	// Define regex patterns for key-value pairs
+	pattern := regexp.MustCompile(`(\w+)\s*=\s*"([^"]+)"`)
+
+	// Find all matches in the input string
+	matches := pattern.FindAllStringSubmatch(input, -1)
+
+	// Populate the map with key-value pairs
+	for _, match := range matches {
+		key := match[1]
+		value := match[2]
+		dataMap[key] = value
+	}
+
+	return dataMap, nil
 }
 
 // If there is no attribute with the given path then the return value will be an empty string.

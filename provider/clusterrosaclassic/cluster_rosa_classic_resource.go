@@ -222,6 +222,10 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Description: "DNS domain of cluster.",
 				Computed:    true,
 			},
+			"infra_id": schema.StringAttribute{
+				Description: "The ROSA cluster infrastructure ID.",
+				Computed:    true,
+			},
 			"base_dns_domain": schema.StringAttribute{
 				Description: "Base DNS domain name previously reserved and matching the hosted " +
 					"zone name of the private Route 53 hosted zone associated with intended shared " +
@@ -1464,6 +1468,7 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	state.ConsoleURL = types.StringValue(object.Console().URL())
 	state.Domain = types.StringValue(fmt.Sprintf("%s.%s", object.Name(), object.DNS().BaseDomain()))
 	state.BaseDNSDomain = types.StringValue(object.DNS().BaseDomain())
+	state.InfraID = types.StringValue(object.InfraID())
 
 	disableUserWorkload, ok := object.GetDisableUserWorkloadMonitoring()
 	if ok && disableUserWorkload {

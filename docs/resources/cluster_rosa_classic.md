@@ -101,6 +101,7 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
 - `current_version` (String) The currently running version of OpenShift on the cluster, for example '4.11.0'.
 - `domain` (String) DNS domain of cluster.
 - `id` (String) Unique identifier of the cluster.
+- `infra_id` (String) The ROSA cluster infrastructure ID.
 - `ocm_properties` (Map of String) Merged properties defined by OCM and the user defined 'properties'.
 - `state` (String) State of the cluster.
 

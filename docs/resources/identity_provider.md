@@ -195,7 +195,7 @@ Required:
 Optional:
 
 - `ca` (String) Optional trusted certificate authority bundle.
-- `extra_authorize_parameters` (List of String)
+- `extra_authorize_parameters` (Map of String)
 - `extra_scopes` (List of String) List of scopes to request, in addition to the 'openid' scope, during the authorization token request.
 
 <a id="nestedatt--openid--claims"></a>

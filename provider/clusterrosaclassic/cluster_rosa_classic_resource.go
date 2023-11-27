@@ -158,9 +158,8 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Optional: true,
 			},
 			"disable_scp_checks": schema.BoolAttribute{
-				Description: "Enables you to monitor your own projects in isolation from Red Hat " +
-					"Site Reliability Engineer (SRE) platform metrics.",
-				Optional: true,
+				Description: "Indicates if cloud permission checks are disabled when attempting installation of the cluster.",
+				Optional:    true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.RequiresReplace(),
 				},

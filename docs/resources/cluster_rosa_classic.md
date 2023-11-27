@@ -63,7 +63,7 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
 - `compute_machine_type` (String) Identifies the machine type used by the default/initial worker nodes, for example `m5.xlarge`. Use the `rhcs_machine_types` data source to find the possible values.
 - `default_mp_labels` (Map of String) This value is the default/initial machine pool labels. Format should be a comma-separated list of '{"key1"="value1", "key2"="value2"}'. This list overwrites any modifications made to node labels on an ongoing basis.
 - `destroy_timeout` (Number) This value sets the maximum duration in minutes to allow for destroying resources. Default value is 60 minutes.
-- `disable_scp_checks` (Boolean) Indicates if cloud permission checks are disabled when attempting installation of the cluster.
+- `disable_scp_checks` (Boolean) Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE) platform metrics.
 - `disable_waiting_in_destroy` (Boolean) Disable addressing cluster state in the destroy resource. Default value is false, and so a `destroy` will wait for the cluster to be deleted.
 - `disable_workload_monitoring` (Boolean) Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE) platform metrics.
 - `ec2_metadata_http_tokens` (String) This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the cluster.This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). This feature is available from OpenShift version 4.11.0 and newer.

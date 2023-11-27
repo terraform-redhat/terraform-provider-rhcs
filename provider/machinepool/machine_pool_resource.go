@@ -32,7 +32,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -76,7 +75,7 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				Description: "Identifier of the cluster.",
 				Required:    true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					requiresReplaceMachinepool(),
 				},
 			},
 			"id": schema.StringAttribute{
@@ -90,7 +89,7 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				Description: "Name of the machine pool. Must consist of lower-case alphanumeric characters or '-', start and end with an alphanumeric character.",
 				Required:    true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					requiresReplaceMachinepool(),
 				},
 			},
 			"machine_type": schema.StringAttribute{
@@ -99,7 +98,7 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 					"source to find the possible values.",
 				Required: true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					requiresReplaceMachinepool(),
 				},
 			},
 			"replicas": schema.Int64Attribute{
@@ -110,14 +109,14 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				Description: "Use Amazon EC2 Spot Instances.",
 				Optional:    true,
 				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.RequiresReplace(),
+					requiresReplaceMachinepool(),
 				},
 			},
 			"max_spot_price": schema.Float64Attribute{
 				Description: "Max Spot price.",
 				Optional:    true,
 				PlanModifiers: []planmodifier.Float64{
-					float64planmodifier.RequiresReplace(),
+					requiresReplaceMachinepool(),
 				},
 				Validators: []validator.Float64{
 					float64validator.AtLeast(1e-6), // Greater than zero
@@ -171,8 +170,8 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.RequiresReplace(),
 					boolplanmodifier.UseStateForUnknown(),
+					requiresReplaceMachinepool(),
 				},
 			},
 			"availability_zone": schema.StringAttribute{
@@ -180,8 +179,8 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
+					requiresReplaceMachinepool(),
 				},
 			},
 			"subnet_id": schema.StringAttribute{
@@ -189,8 +188,8 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
+					requiresReplaceMachinepool(),
 				},
 			},
 			"disk_size": schema.Int64Attribute{
@@ -198,8 +197,8 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.RequiresReplace(),
 					int64planmodifier.UseStateForUnknown(),
+					requiresReplaceMachinepool(),
 				},
 			},
 			"aws_additional_security_group_ids": schema.ListAttribute{

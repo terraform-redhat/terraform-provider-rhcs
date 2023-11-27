@@ -2516,6 +2516,90 @@ var _ = Describe("Day-1 machine pool (worker)", func() {
 		Expect(resource).To(MatchJQ(".attributes.id", "worker"))
 		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 1))
 	})
+
+	It("prevents modification of requires-replace fields", func() {
+		// Import automatically in "Create()"
+		// Prepare the server:
+		server.AppendHandlers(
+			// Get is for the Read function
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker"),
+				RespondWithJSON(http.StatusOK, `
+					{
+						"id": "worker",
+						"kind": "MachinePool",
+						"href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker",
+						"replicas": 2,
+						"instance_type": "r5.xlarge"
+					}`),
+			),
+			// Get is for the read during update
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker"),
+				RespondWithJSON(http.StatusOK, `
+					{
+						"id": "worker",
+						"kind": "MachinePool",
+						"href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker",
+						"replicas": 2,
+						"instance_type": "r5.xlarge"
+					}`),
+			),
+			// Patch is for the update
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker"),
+				VerifyJSON(`{
+					  "kind": "MachinePool",
+					  "id": "worker",
+					  "replicas": 2
+					}`),
+				RespondWithJSON(http.StatusOK, `
+					{
+					  "id": "worker",
+					  "href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker",
+					  "kind": "MachinePool",
+					  "instance_type": "r5.xlarge",
+					  "replicas": 2
+					}`),
+			),
+		)
+		terraform.Source(`
+			resource "rhcs_machine_pool" "worker" {
+				cluster      = "123"
+				name         = "worker"
+				machine_type = "r5.xlarge"
+				replicas     = 2
+			}
+		`)
+		Expect(terraform.Apply()).To(BeZero()) // Auto-import of worker pool
+
+		server.AppendHandlers(
+			// Get is for the Read function
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker"),
+				RespondWithJSON(http.StatusOK, `
+					{
+						"id": "worker",
+						"kind": "MachinePool",
+						"href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker",
+						"replicas": 2,
+						"instance_type": "r5.xlarge"
+					}`),
+			),
+		)
+		// Do something that will "requires-replace" of the worker pool:
+		terraform.Source(`
+			resource "rhcs_machine_pool" "worker" {
+				cluster      = "123"
+				name         = "worker"
+				machine_type = "r5.x2large"  # <-- changed
+				replicas     = 2
+			}
+		`)
+		Expect(terraform.Validate()).To(BeZero()) // config is still valid
+		// plan should fail by catching the change in the validators
+		Expect(terraform.Plan()).NotTo(BeZero())
+	})
 })
 
 var _ = Describe("Machine pool delete", func() {

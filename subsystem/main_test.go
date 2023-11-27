@@ -247,6 +247,11 @@ func (r *TerraformRunner) Import(args ...string) int {
 	return r.Run(append([]string{"import"}, args...)...)
 }
 
+// Plan runs the `plan` command.
+func (r *TerraformRunner) Plan() int {
+	return r.Run("plan")
+}
+
 // State returns the reads the Terraform state and returns the result of parsing
 // it as a JSON document.
 func (r *TerraformRunner) State() interface{} {

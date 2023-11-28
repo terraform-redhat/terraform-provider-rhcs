@@ -98,19 +98,19 @@ var ldapAttrSchema = map[string]schema.Attribute{
 
 func CreateLDAPIDPBuilder(ctx context.Context, state *LDAPIdentityProvider) (*cmv1.LDAPIdentityProviderBuilder, error) {
 	builder := cmv1.NewLDAPIdentityProvider()
-	if !common.IsStringAttributeEmpty(state.BindDN) {
+	if !common.IsStringAttributeUnknownOrEmpty(state.BindDN) {
 		builder.BindDN(state.BindDN.ValueString())
 	}
-	if !common.IsStringAttributeEmpty(state.BindPassword) {
+	if !common.IsStringAttributeUnknownOrEmpty(state.BindPassword) {
 		builder.BindPassword(state.BindPassword.ValueString())
 	}
-	if !common.IsStringAttributeEmpty(state.CA) {
+	if !common.IsStringAttributeUnknownOrEmpty(state.CA) {
 		builder.CA(state.CA.ValueString())
 	}
 	if !state.Insecure.IsNull() && !state.Insecure.IsUnknown() {
 		builder.Insecure(state.Insecure.ValueBool())
 	}
-	if !common.IsStringAttributeEmpty(state.URL) {
+	if !common.IsStringAttributeUnknownOrEmpty(state.URL) {
 		builder.URL(state.URL.ValueString())
 	}
 

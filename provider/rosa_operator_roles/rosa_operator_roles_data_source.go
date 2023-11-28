@@ -148,7 +148,7 @@ func (s *RosaOperatorRolesDataSource) Read(ctx context.Context, req datasource.R
 	})
 
 	accountRolePrefix := DefaultAccountRolePrefix
-	if !common.IsStringAttributeEmpty(state.AccountRolePrefix) {
+	if !common.IsStringAttributeUnknownOrEmpty(state.AccountRolePrefix) {
 		accountRolePrefix = state.AccountRolePrefix.ValueString()
 	}
 

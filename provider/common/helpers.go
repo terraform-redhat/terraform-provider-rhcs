@@ -102,16 +102,20 @@ func IsValidDomain(candidate string) bool {
 	return domainRegexp.MatchString(candidate)
 }
 
-func IsStringAttributeEmpty(param types.String) bool {
-	return param.IsUnknown() || param.IsNull() || param.ValueString() == ""
-}
-
 func EmptiableStringToStringType(s string) types.String {
 	if s == "" {
 		return types.StringNull()
 	}
 
 	return types.StringValue(s)
+}
+
+func IsStringAttributeUnknownOrEmpty(param types.String) bool {
+	return param.IsUnknown() || param.IsNull() || param.ValueString() == ""
+}
+
+func IsStringAttributeKnownAndEmpty(param types.String) bool {
+	return !param.IsUnknown() && (param.IsNull() || param.ValueString() == "")
 }
 
 func IsGreaterThanOrEqual(version1, version2 string) (bool, error) {

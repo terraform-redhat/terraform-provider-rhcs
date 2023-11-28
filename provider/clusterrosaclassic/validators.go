@@ -44,7 +44,7 @@ var privateHZValidator = attrvalidators.NewObjectValidator("proxy map should not
 		errSum := "Invalid private_hosted_zone attribute assignment"
 
 		// validate ID and ARN are not empty
-		if common.IsStringAttributeEmpty(privateHZ.ID) || common.IsStringAttributeEmpty(privateHZ.RoleARN) {
+		if common.IsStringAttributeKnownAndEmpty(privateHZ.ID) || common.IsStringAttributeKnownAndEmpty(privateHZ.RoleARN) {
 			resp.Diagnostics.AddError(errSum, "Invalid configuration. 'private_hosted_zone.id' and 'private_hosted_zone.role_arn' are required")
 			return
 		}

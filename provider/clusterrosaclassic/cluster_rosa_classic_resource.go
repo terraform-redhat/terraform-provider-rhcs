@@ -570,7 +570,7 @@ func createClassicClusterObject(ctx context.Context,
 		builder.DisableUserWorkloadMonitoring(state.DisableWorkloadMonitoring.ValueBool())
 	}
 
-	if !common.IsStringAttributeEmpty(state.BaseDNSDomain) {
+	if !common.IsStringAttributeUnknownOrEmpty(state.BaseDNSDomain) {
 		dnsBuilder := cmv1.NewDNS()
 		dnsBuilder.BaseDomain(state.BaseDNSDomain.ValueString())
 		builder.DNS(dnsBuilder)
@@ -611,8 +611,8 @@ func createClassicClusterObject(ctx context.Context,
 
 	var privateHostedZoneID, privateHostedZoneRoleARN *string = nil, nil
 	if state.PrivateHostedZone != nil &&
-		!common.IsStringAttributeEmpty(state.PrivateHostedZone.ID) &&
-		!common.IsStringAttributeEmpty(state.PrivateHostedZone.RoleARN) {
+		!common.IsStringAttributeUnknownOrEmpty(state.PrivateHostedZone.ID) &&
+		!common.IsStringAttributeUnknownOrEmpty(state.PrivateHostedZone.RoleARN) {
 		privateHostedZoneRoleARN = state.PrivateHostedZone.RoleARN.ValueStringPointer()
 		privateHostedZoneID = state.PrivateHostedZone.ID.ValueStringPointer()
 	}
@@ -732,20 +732,20 @@ func buildProxy(state *ClusterRosaClassicState, builder *cmv1.ClusterBuilder) (*
 		httpNoProxy := ""
 		additionalTrustBundle := ""
 
-		if !common.IsStringAttributeEmpty(state.Proxy.HttpProxy) {
+		if !common.IsStringAttributeUnknownOrEmpty(state.Proxy.HttpProxy) {
 			httpProxy = state.Proxy.HttpProxy.ValueString()
 		}
 		proxy.HTTPProxy(httpProxy)
-		if !common.IsStringAttributeEmpty(state.Proxy.HttpsProxy) {
+		if !common.IsStringAttributeUnknownOrEmpty(state.Proxy.HttpsProxy) {
 			httpsProxy = state.Proxy.HttpsProxy.ValueString()
 		}
 		proxy.HTTPSProxy(httpsProxy)
-		if !common.IsStringAttributeEmpty(state.Proxy.NoProxy) {
+		if !common.IsStringAttributeUnknownOrEmpty(state.Proxy.NoProxy) {
 			httpNoProxy = state.Proxy.NoProxy.ValueString()
 		}
 		proxy.NoProxy(httpNoProxy)
 
-		if !common.IsStringAttributeEmpty(state.Proxy.AdditionalTrustBundle) {
+		if !common.IsStringAttributeUnknownOrEmpty(state.Proxy.AdditionalTrustBundle) {
 			additionalTrustBundle = state.Proxy.AdditionalTrustBundle.ValueString()
 		}
 		builder.AdditionalTrustBundle(additionalTrustBundle)
@@ -785,7 +785,7 @@ func (r *ClusterRosaClassicResource) getAndValidateVersionInChannelGroup(ctx con
 }
 
 func validateHttpTokensVersion(ctx context.Context, state *ClusterRosaClassicState, version string) error {
-	if common.IsStringAttributeEmpty(state.Ec2MetadataHttpTokens) ||
+	if common.IsStringAttributeUnknownOrEmpty(state.Ec2MetadataHttpTokens) ||
 		cmv1.Ec2MetadataHttpTokens(state.Ec2MetadataHttpTokens.ValueString()) == cmv1.Ec2MetadataHttpTokensOptional {
 		return nil
 	}
@@ -1168,7 +1168,7 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resourc
 // Upgrades the cluster if the desired (plan) version is greater than the
 // current version
 func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context, state, plan *ClusterRosaClassicState) error {
-	if common.IsStringAttributeEmpty(plan.Version) || common.IsStringAttributeEmpty(state.CurrentVersion) {
+	if common.IsStringAttributeUnknownOrEmpty(plan.Version) || common.IsStringAttributeUnknownOrEmpty(state.CurrentVersion) {
 		// No version information, nothing to do
 		tflog.Debug(ctx, "Insufficient cluster version information to determine if upgrade should be performed.")
 		return nil
@@ -1183,7 +1183,7 @@ func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context,
 
 	// See if the user has changed the requested version for this run
 	requestedVersionChanged := true
-	if !common.IsStringAttributeEmpty(plan.Version) && !common.IsStringAttributeEmpty(state.Version) {
+	if !common.IsStringAttributeUnknownOrEmpty(plan.Version) && !common.IsStringAttributeUnknownOrEmpty(state.Version) {
 		if plan.Version.ValueString() == state.Version.ValueString() {
 			requestedVersionChanged = false
 		}
@@ -1618,7 +1618,7 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 			state.Sts.InstanceIAMRoles.WorkerRoleARN = types.StringValue(instanceIAMRoles.WorkerRoleARN())
 		}
 		// TODO: fix a bug in uhc-cluster-services
-		if common.IsStringAttributeEmpty(state.Sts.OperatorRolePrefix) {
+		if common.IsStringAttributeUnknownOrEmpty(state.Sts.OperatorRolePrefix) {
 			operatorRolePrefix, ok := sts.GetOperatorRolePrefix()
 			if ok {
 				state.Sts.OperatorRolePrefix = types.StringValue(operatorRolePrefix)
@@ -1670,7 +1670,7 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	}
 
 	trustBundle, ok := object.GetAdditionalTrustBundle()
-	if ok && common.IsStringAttributeEmpty(state.Proxy.AdditionalTrustBundle) {
+	if ok && common.IsStringAttributeUnknownOrEmpty(state.Proxy.AdditionalTrustBundle) {
 		if state.Proxy == nil {
 			state.Proxy = &proxy.Proxy{}
 		}

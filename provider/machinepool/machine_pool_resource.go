@@ -276,10 +276,10 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 		)
 		return
 	}
-	if !common.IsStringAttributeEmpty(state.AvailabilityZone) {
+	if !common.IsStringAttributeUnknownOrEmpty(state.AvailabilityZone) {
 		builder.AvailabilityZones(state.AvailabilityZone.ValueString())
 	}
-	if !common.IsStringAttributeEmpty(state.SubnetID) {
+	if !common.IsStringAttributeUnknownOrEmpty(state.SubnetID) {
 		builder.Subnets(state.SubnetID.ValueString())
 	}
 
@@ -555,12 +555,12 @@ func (r *MachinePoolResource) validateAZConfig(state *MachinePoolState) (bool, e
 
 	if isMultiAZCluster {
 		// Can't set both availability_zone and subnet_id
-		if !common.IsStringAttributeEmpty(state.AvailabilityZone) && !common.IsStringAttributeEmpty(state.SubnetID) {
+		if !common.IsStringAttributeUnknownOrEmpty(state.AvailabilityZone) && !common.IsStringAttributeUnknownOrEmpty(state.SubnetID) {
 			return false, fmt.Errorf("availability_zone and subnet_id are mutually exclusive")
 		}
 
 		// multi_availability_zone setting must be consistent with availability_zone and subnet_id
-		azOrSubnet := !common.IsStringAttributeEmpty(state.AvailabilityZone) || !common.IsStringAttributeEmpty(state.SubnetID)
+		azOrSubnet := !common.IsStringAttributeUnknownOrEmpty(state.AvailabilityZone) || !common.IsStringAttributeUnknownOrEmpty(state.SubnetID)
 		if common.HasValue(state.MultiAvailabilityZone) {
 			if azOrSubnet && state.MultiAvailabilityZone.ValueBool() {
 				return false, fmt.Errorf("multi_availability_zone must be False when availability_zone or subnet_id is set")
@@ -569,7 +569,7 @@ func (r *MachinePoolResource) validateAZConfig(state *MachinePoolState) (bool, e
 			state.MultiAvailabilityZone = types.BoolValue(!azOrSubnet)
 		}
 	} else { // not a multi-AZ cluster
-		if !common.IsStringAttributeEmpty(state.AvailabilityZone) {
+		if !common.IsStringAttributeUnknownOrEmpty(state.AvailabilityZone) {
 			return false, fmt.Errorf("availability_zone can only be set for multi-AZ clusters")
 		}
 		if common.HasValue(state.MultiAvailabilityZone) && state.MultiAvailabilityZone.ValueBool() {
@@ -580,7 +580,7 @@ func (r *MachinePoolResource) validateAZConfig(state *MachinePoolState) (bool, e
 
 	// Ensure that the machine pool's AZ and subnet are valid for the cluster
 	// If subnet is set, we make sure it's valid for the cluster, but we don't default it if not set
-	if !common.IsStringAttributeEmpty(state.SubnetID) {
+	if !common.IsStringAttributeUnknownOrEmpty(state.SubnetID) {
 		inClusterSubnet := false
 		for _, subnet := range clusterSubnets {
 			if subnet == state.SubnetID.ValueString() {
@@ -595,7 +595,7 @@ func (r *MachinePoolResource) validateAZConfig(state *MachinePoolState) (bool, e
 		state.SubnetID = types.StringNull()
 	}
 	// If AZ is set, we make sure it's valid for the cluster. If not set and neither is subnet, we default it to the 1st AZ in the cluster
-	if !common.IsStringAttributeEmpty(state.AvailabilityZone) {
+	if !common.IsStringAttributeUnknownOrEmpty(state.AvailabilityZone) {
 		inClusterAZ := false
 		for _, az := range clusterAZs {
 			if az == state.AvailabilityZone.ValueString() {
@@ -607,7 +607,7 @@ func (r *MachinePoolResource) validateAZConfig(state *MachinePoolState) (bool, e
 			return false, fmt.Errorf("availability_zone %s is not valid for cluster %s", state.AvailabilityZone.ValueString(), state.Cluster.ValueString())
 		}
 	} else {
-		if len(clusterAZs) > 0 && !state.MultiAvailabilityZone.ValueBool() && isMultiAZCluster && common.IsStringAttributeEmpty(state.SubnetID) {
+		if len(clusterAZs) > 0 && !state.MultiAvailabilityZone.ValueBool() && isMultiAZCluster && common.IsStringAttributeUnknownOrEmpty(state.SubnetID) {
 			state.AvailabilityZone = types.StringValue(clusterAZs[0])
 		} else {
 			state.AvailabilityZone = types.StringNull()

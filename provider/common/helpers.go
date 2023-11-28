@@ -108,8 +108,12 @@ func IsValidEmail(candidate string) bool {
 	return EmailRegexp.MatchString(candidate)
 }
 
-func IsStringAttributeEmpty(param types.String) bool {
+func IsStringAttributeUnknownOrEmpty(param types.String) bool {
 	return param.IsUnknown() || param.IsNull() || param.ValueString() == ""
+}
+
+func IsStringAttributeKnownAndEmpty(param types.String) bool {
+	return !param.IsUnknown() && (param.IsNull() || param.ValueString() == "")
 }
 
 func IsGreaterThanOrEqual(version1, version2 string) (bool, error) {

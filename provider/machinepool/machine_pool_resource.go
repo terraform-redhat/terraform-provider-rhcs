@@ -629,7 +629,7 @@ func (r *MachinePoolResource) doUpdate(ctx context.Context, state *MachinePoolSt
 		diags.AddError(
 			"Cannot update machine pool",
 			fmt.Sprintf(
-				"Cannot update machine pool for cluster '%s: either autoscaling or compute nodes should be enabled", state.Cluster.ValueString(),
+				"Cannot update machine pool for cluster '%s: either replicas should be set or autoscaling enabled", state.Cluster.ValueString(),
 			),
 		)
 		return diags

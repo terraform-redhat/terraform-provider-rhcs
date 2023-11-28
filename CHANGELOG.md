@@ -1,3 +1,11 @@
+## 1.4.2 (Nov 28, 2023)
+FEATURES:
+* Add `infra_id` attribute to `cluster_rosa_classic` resource
+
+ENHANCEMENTS:
+* Update the documentation files
+* Fix the validators to support unknown values for proxy and private_hosted_zone. For more details please read the [issue-363](https://github.com/terraform-redhat/terraform-provider-rhcs/issues/363)
+
 ## 1.4.1 (Nov 20, 2023)
 ENHANCEMENTS:
 * Fix the error message of `private_hosted_zone` validator in `cluster_rosa_classic` resource  

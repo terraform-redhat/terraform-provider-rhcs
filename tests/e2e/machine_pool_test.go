@@ -107,5 +107,47 @@ var _ = Describe("TF Test", func() {
 
 			})
 		})
+		Context("Author:amalykhi-High-OCP-64901 @OCP-64901 @amalykhi", func() {
+			It("Author:amalykhi-High-OCP-64901 Edit/delete second machinepool labels", ci.Day2, ci.High, ci.FeatureMachinepool, func() {
+				By("Create additional machinepool with labels")
+				replicas := 3
+				machineType := "r5.xlarge"
+				name := "ocp-64905"
+				creationLabels := map[string]string{"fo1": "bar1", "fo2": "baz2"}
+				updatingLabels := map[string]string{"fo1": "bar3", "fo3": "baz3"}
+				emptyLabels := map[string]string{}
+				MachinePoolArgs := &exe.MachinePoolArgs{
+					Token:       token,
+					Cluster:     clusterID,
+					Replicas:    replicas,
+					MachineType: machineType,
+					Name:        name,
+					Labels:      creationLabels,
+				}
+
+				err := mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
+				By("Verify the parameters of the created machinepool")
+				mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(mpResponseBody.Labels()).To(Equal(creationLabels))
+				By("Edit the labels of the machinepool")
+				MachinePoolArgs.Labels = updatingLabels
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
+				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(mpResponseBody.Labels()).To(Equal(updatingLabels))
+
+				By("Delete the labels of the machinepool")
+				MachinePoolArgs.Labels = emptyLabels
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
+				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(mpResponseBody.Labels()).To(BeNil())
+
+			})
+		})
 	})
 })

@@ -41,6 +41,10 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 
+const (
+	cantUpdateClusterMessage = "Can't update cluster"
+)
+
 type ClusterResource struct {
 	collection *cmv1.ClustersClient
 }
@@ -530,6 +534,34 @@ func (r *ClusterResource) Update(ctx context.Context, request resource.UpdateReq
 	if !nodes.Empty() {
 		builder.Nodes(nodes)
 	}
+
+	_, shouldPatchAdditionalComputeSecurityGroupIds := common.ShouldPatchList(
+		state.AWSAdditionalComputeSecurityGroupIds, plan.AWSAdditionalComputeSecurityGroupIds)
+	if shouldPatchAdditionalComputeSecurityGroupIds {
+		response.Diagnostics.AddError(
+			cantUpdateClusterMessage,
+			"Cannot update cluster '%s', 'AWS Additional Security Group IDs' cannot be updated")
+		return
+	}
+
+	_, shouldPatchAdditionalControlPlaneSecurityGroupIds := common.ShouldPatchList(
+		state.AWSAdditionalControlPlaneSecurityGroupIds, plan.AWSAdditionalControlPlaneSecurityGroupIds)
+	if shouldPatchAdditionalControlPlaneSecurityGroupIds {
+		response.Diagnostics.AddError(
+			cantUpdateClusterMessage,
+			"Cannot update cluster '%s', 'AWS Additional Control Plane Security Group IDs' cannot be updated")
+		return
+	}
+
+	_, shouldPatchAdditionalInfraSecurityGroupIds := common.ShouldPatchList(
+		state.AWSAdditionalInfraSecurityGroupIds, plan.AWSAdditionalInfraSecurityGroupIds)
+	if shouldPatchAdditionalInfraSecurityGroupIds {
+		response.Diagnostics.AddError(
+			cantUpdateClusterMessage,
+			"Cannot update cluster '%s', 'AWS Additional Infra Security Group IDs' cannot be updated")
+		return
+	}
+
 	patch, err := builder.Build()
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -546,7 +578,7 @@ func (r *ClusterResource) Update(ctx context.Context, request resource.UpdateReq
 		SendContext(ctx)
 	if err != nil {
 		response.Diagnostics.AddError(
-			"Can't update cluster",
+			cantUpdateClusterMessage,
 			fmt.Sprintf(
 				"Can't update cluster with identifier '%s': %v",
 				state.ID.ValueString(), err,
@@ -699,6 +731,8 @@ func populateClusterState(object *cmv1.Cluster, state *ClusterState) error {
 			return err
 		}
 		state.AWSAdditionalComputeSecurityGroupIds = awsAdditionalSecurityGroupIds
+	} else {
+		state.AWSAdditionalComputeSecurityGroupIds = types.ListNull(types.StringType)
 	}
 
 	additionalInfraSecurityGroupIds, ok := object.AWS().GetAdditionalInfraSecurityGroupIds()

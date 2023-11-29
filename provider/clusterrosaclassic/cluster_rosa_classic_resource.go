@@ -78,6 +78,8 @@ const (
 	propertyRosaTfVersion = tagsPrefix + "tf_version"
 	propertyRosaTfCommit  = tagsPrefix + "tf_commit"
 	waitTimeoutInMinutes  = 60
+
+	cantUpdateClusterMessage = "Can't update cluster"
 )
 
 var OCMProperties = map[string]string{
@@ -277,6 +279,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Description: "AWS additional compute security group ids.",
 				ElementType: types.StringType,
 				Optional:    true,
+				Computed:    true,
 			},
 			"aws_additional_infra_security_group_ids": schema.ListAttribute{
 				Description: "AWS additional infra security group ids.",
@@ -1104,12 +1107,39 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resourc
 	clusterBuilder, err := updateProxy(state, plan, clusterBuilder)
 	if err != nil {
 		response.Diagnostics.AddError(
-			"Can't update cluster",
+			cantUpdateClusterMessage,
 			fmt.Sprintf(
 				"Can't update proxy's configuration for cluster with identifier: `%s`, %v",
 				state.ID.ValueString(), err,
 			),
 		)
+		return
+	}
+
+	_, shouldPatchAdditionalComputeSecurityGroupIds := common.ShouldPatchList(
+		state.AWSAdditionalComputeSecurityGroupIds, plan.AWSAdditionalComputeSecurityGroupIds)
+	if shouldPatchAdditionalComputeSecurityGroupIds {
+		response.Diagnostics.AddError(
+			cantUpdateClusterMessage,
+			"Cannot update cluster '%s', 'AWS Additional Compute Security Group IDs' cannot be updated")
+		return
+	}
+
+	_, shouldPatchAdditionalControlPlaneSecurityGroupIds := common.ShouldPatchList(
+		state.AWSAdditionalControlPlaneSecurityGroupIds, plan.AWSAdditionalControlPlaneSecurityGroupIds)
+	if shouldPatchAdditionalControlPlaneSecurityGroupIds {
+		response.Diagnostics.AddError(
+			cantUpdateClusterMessage,
+			"Cannot update cluster '%s', 'AWS Additional Control Plane Security Group IDs' cannot be updated")
+		return
+	}
+
+	_, shouldPatchAdditionalInfraSecurityGroupIds := common.ShouldPatchList(
+		state.AWSAdditionalInfraSecurityGroupIds, plan.AWSAdditionalInfraSecurityGroupIds)
+	if shouldPatchAdditionalInfraSecurityGroupIds {
+		response.Diagnostics.AddError(
+			cantUpdateClusterMessage,
+			"Cannot update cluster '%s', 'AWS Additional Infra Security Group IDs' cannot be updated")
 		return
 	}
 
@@ -1153,7 +1183,7 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resourc
 		SendContext(ctx)
 	if err != nil {
 		response.Diagnostics.AddError(
-			"Can't update cluster",
+			cantUpdateClusterMessage,
 			fmt.Sprintf(
 				"Can't update cluster with identifier '%s': %v",
 				state.ID.ValueString(), err,
@@ -1591,6 +1621,8 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 			return err
 		}
 		state.AWSAdditionalComputeSecurityGroupIds = awsAdditionalSecurityGroupIds
+	} else {
+		state.AWSAdditionalComputeSecurityGroupIds = types.ListNull(types.StringType)
 	}
 
 	additionalInfraSecurityGroupIds, ok := object.AWS().GetAdditionalInfraSecurityGroupIds()

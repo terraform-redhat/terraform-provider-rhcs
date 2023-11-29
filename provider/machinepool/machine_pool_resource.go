@@ -44,9 +44,13 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 
-// This is a magic name to trigger special handling for the cluster's default
-// machine pool
-const defaultMachinePoolName = "worker"
+const (
+	// This is a magic name to trigger special handling for the cluster's default
+	// machine pool
+	defaultMachinePoolName = "worker"
+
+	cannotUpdateMachinePoolMessage = "Cannot update machine pool"
+)
 
 var machinepoolNameRE = regexp.MustCompile(
 	`^[a-z]([-a-z0-9]*[a-z0-9])?$`,
@@ -592,6 +596,17 @@ func (r *MachinePoolResource) doUpdate(ctx context.Context, state *MachinePoolSt
 	}
 
 	mpBuilder := cmv1.NewMachinePool().ID(state.ID.ValueString())
+
+	_, shouldPatchAdditionalComputeSecurityGroupIds := common.ShouldPatchList(
+		state.AdditionalSecurityGroupIds, plan.AdditionalSecurityGroupIds)
+	if shouldPatchAdditionalComputeSecurityGroupIds {
+		diags.AddError(
+			cannotUpdateMachinePoolMessage,
+			fmt.Sprintf("Cannot update machine pool for cluster '%s', 'Additional Security Group IDs' cannot be updated",
+				state.Cluster.ValueString()),
+		)
+		return diags
+	}
 
 	_, ok := common.ShouldPatchString(state.MachineType, plan.MachineType)
 	if ok {

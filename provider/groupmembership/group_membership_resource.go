@@ -31,7 +31,8 @@ import (
 )
 
 type GroupMembershipResource struct {
-	collection *cmv1.ClustersClient
+	collection  *cmv1.ClustersClient
+	clusterWait common.ClusterWait
 }
 
 var _ resource.ResourceWithConfigure = &GroupMembershipResource{}
@@ -88,6 +89,7 @@ func (g *GroupMembershipResource) Configure(ctx context.Context, req resource.Co
 	}
 
 	g.collection = connection.ClustersMgmt().V1().Clusters()
+	g.clusterWait = common.NewClusterWait(g.collection)
 }
 
 func (g *GroupMembershipResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -100,7 +102,7 @@ func (g *GroupMembershipResource) Create(ctx context.Context, req resource.Creat
 	}
 
 	// Wait till the cluster is ready:
-	err := common.WaitTillClusterReady(ctx, g.collection, state.Cluster.ValueString())
+	err := g.clusterWait.WaitForClusterToBeReady(ctx, state.Cluster.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Can't poll cluster state",

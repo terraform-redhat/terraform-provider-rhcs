@@ -16,7 +16,8 @@ import (
 )
 
 type ClusterWaiterResource struct {
-	collection *cmv1.ClustersClient
+	collection  *cmv1.ClustersClient
+	clusterWait common.ClusterWait
 }
 
 var _ resource.ResourceWithConfigure = &ClusterWaiterResource{}
@@ -74,6 +75,7 @@ func (r *ClusterWaiterResource) Configure(ctx context.Context, req resource.Conf
 	}
 
 	r.collection = connection.ClustersMgmt().V1().Clusters()
+	r.clusterWait = common.NewClusterWait(r.collection)
 }
 
 func (r *ClusterWaiterResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -139,7 +141,7 @@ func (r *ClusterWaiterResource) startPolling(ctx context.Context, state *Cluster
 	}
 
 	// Wait till the cluster is ready:
-	object, err := common.RetryClusterReadiness(3, 30*time.Second, state.Cluster.ValueString(), ctx, timeout, r.collection)
+	object, err := r.clusterWait.RetryClusterReadiness(ctx, state.Cluster.ValueString(), 3, 30*time.Second, timeout)
 	if err != nil {
 		return state, fmt.Errorf(
 			"Can't poll state of cluster with identifier '%s': %v",

@@ -3,7 +3,9 @@ package e2e
 import (
 	// nolint
 
+	"fmt"
 	"net/http"
+	"path"
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -14,6 +16,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	CMS "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	con "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	EXE "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	H "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/openshift"
@@ -149,7 +152,11 @@ var _ = Describe("TF Test", func() {
 					Username:  username,
 					Password:  password,
 					ClusterID: clusterID,
-					Timeout:   5,
+					AdditioanlFlags: []string{
+						"--insecure-skip-tls-verify",
+						fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, username))),
+					},
+					Timeout: 5,
 				}
 				_, err = openshift.OcLogin(*ocAtter)
 				Expect(err).ToNot(HaveOccurred())

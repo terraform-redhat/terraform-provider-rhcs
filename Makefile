@@ -95,13 +95,13 @@ fmt: fmt_go fmt_tf
 clean:
 	rm -rf "$(RHCS_LOCAL_DIR)"
 
-generate:
+generate: tools
 	go generate ./...
 
 .PHONY: tools
 tools:
-	go install github.com/onsi/ginkgo/v2/ginkgo@v2.1.1
-	go install github.com/golang/mock/mockgen@v1.6.0
+	go install github.com/onsi/ginkgo/v2/ginkgo@v2.11.0
+	go install go.uber.org/mock/mockgen@v0.3.0
 
 .PHONY: e2e_sanity_test
 e2e_sanity_test: tools install

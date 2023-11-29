@@ -39,7 +39,8 @@ type ClusterAutoscalerResourceType struct {
 }
 
 type ClusterAutoscalerResource struct {
-	collection *cmv1.ClustersClient
+	collection  *cmv1.ClustersClient
+	clusterWait common.ClusterWait
 }
 
 func New() resource.Resource {
@@ -199,6 +200,7 @@ func (r *ClusterAutoscalerResource) Configure(ctx context.Context, req resource.
 	}
 
 	r.collection = collection.ClustersMgmt().V1().Clusters()
+	r.clusterWait = common.NewClusterWait(r.collection)
 }
 
 func (r *ClusterAutoscalerResource) Create(ctx context.Context, request resource.CreateRequest, response *resource.CreateResponse) {
@@ -210,7 +212,7 @@ func (r *ClusterAutoscalerResource) Create(ctx context.Context, request resource
 	}
 
 	// Wait till the cluster is ready:
-	err := common.WaitTillClusterReady(ctx, r.collection, plan.Cluster.ValueString())
+	err := r.clusterWait.WaitForClusterToBeReady(ctx, plan.Cluster.ValueString())
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Cannot poll cluster state",

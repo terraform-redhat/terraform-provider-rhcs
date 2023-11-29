@@ -12,9 +12,40 @@ import (
 
 const pollingIntervalInMinutes = 2
 
-func WaitTillClusterReady(ctx context.Context, collection *cmv1.ClustersClient, clusterId string) error {
-	resource := collection.Cluster(clusterId)
-	// We expect the cluster to be already exist
+//go:generate mockgen -source=cluster_waiter.go -package=common -destination=mock_clusterwait.go
+type ClusterWait interface {
+	WaitForClusterToBeReady(ctx context.Context, clusterId string) error
+	RetryClusterReadiness(ctx context.Context,clusterId string, attempts int, sleep time.Duration, timeout int64) (*cmv1.Cluster, error)
+}
+
+type DefaultClusterWait struct {
+	collection *cmv1.ClustersClient
+}
+
+func NewClusterWait(collection *cmv1.ClustersClient) ClusterWait {
+	return &DefaultClusterWait{collection: collection}
+}
+
+func (dw *DefaultClusterWait) RetryClusterReadiness(ctx context.Context, clusterId string, attempts int, sleep time.Duration, timeout int64) (*cmv1.Cluster, error) {
+	object, err := pollClusterState(clusterId, ctx, timeout, dw.collection)
+	if err != nil {
+		if attempts--; attempts > 0 {
+			time.Sleep(sleep)
+			return dw.RetryClusterReadiness(ctx, clusterId, attempts, 2*sleep, timeout)
+		}
+		return nil, fmt.Errorf("polling cluster state failed with error %v", err)
+	}
+
+	if object.State() == cmv1.ClusterStateError {
+		return object, fmt.Errorf("cluster creation failed")
+	}
+
+	return object, nil
+}
+
+func (dw *DefaultClusterWait) WaitForClusterToBeReady(ctx context.Context, clusterId string) error {
+	resource := dw.collection.Cluster(clusterId)
+	// We expect the cluster to already exist
 	// Try to get it and if result with NotFound error, return error to user
 	if resp, err := resource.Get().SendContext(ctx); err != nil && resp.Status() == http.StatusNotFound {
 		message := fmt.Sprintf("Cluster %s not found, error: %v", clusterId, err)
@@ -59,23 +90,6 @@ func pollClusterState(clusterId string, ctx context.Context, timeout int64, clus
 	if err != nil {
 		tflog.Error(ctx, "Failed polling cluster state")
 		return nil, err
-	}
-
-	return object, nil
-}
-
-func RetryClusterReadiness(attempts int, sleep time.Duration, clusterId string, ctx context.Context, timeout int64, clusterCollection *cmv1.ClustersClient) (*cmv1.Cluster, error) {
-	object, err := pollClusterState(clusterId, ctx, timeout, clusterCollection)
-	if err != nil {
-		if attempts--; attempts > 0 {
-			time.Sleep(sleep)
-			return RetryClusterReadiness(attempts, 2*sleep, clusterId, ctx, timeout, clusterCollection)
-		}
-		return nil, fmt.Errorf("polling cluster state failed with error %v", err)
-	}
-
-	if object.State() == cmv1.ClusterStateError {
-		return object, fmt.Errorf("cluster creation failed")
 	}
 
 	return object, nil

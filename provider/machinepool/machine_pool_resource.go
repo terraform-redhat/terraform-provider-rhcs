@@ -53,7 +53,8 @@ var machinepoolNameRE = regexp.MustCompile(
 )
 
 type MachinePoolResource struct {
-	collection *cmv1.ClustersClient
+	collection  *cmv1.ClustersClient
+	clusterWait common.ClusterWait
 }
 
 var _ resource.ResourceWithConfigure = &MachinePoolResource{}
@@ -238,6 +239,7 @@ func (r *MachinePoolResource) Configure(ctx context.Context, req resource.Config
 	}
 
 	r.collection = connection.ClustersMgmt().V1().Clusters()
+	r.clusterWait = common.NewClusterWait(r.collection)
 }
 
 func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -261,7 +263,7 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 	}
 
 	// Wait till the cluster is ready:
-	err := common.WaitTillClusterReady(ctx, r.collection, state.Cluster.ValueString())
+	err := r.clusterWait.WaitForClusterToBeReady(ctx, state.Cluster.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Cannot poll cluster state",

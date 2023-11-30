@@ -94,6 +94,51 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
       }
 	}`
 
+	templateWithTrustBundle := `{
+	  "id": "123",
+	  "infra_id": "my-cluster-123",
+	  "name": "my-cluster",
+	  "additional_trust_bundle" : "REDUCTED",
+	  "state": "ready",
+	  "region": {
+	    "id": "us-west-1"
+	  },
+	  "aws": {
+	    "ec2_metadata_http_tokens": "optional"
+	  },
+	  "multi_az": true,
+	  "api": {
+	    "url": "https://my-api.example.com"
+	  },
+	  "console": {
+	    "url": "https://my-console.example.com"
+	  },
+      "properties": {
+         "rosa_tf_version": "` + build.Version + `",
+         "rosa_tf_commit": "` + build.Commit + `"
+      },
+	  "nodes": {
+	    "compute": 3,
+        "availability_zones": ["us-west-1a"],
+	    "compute_machine_type": {
+	      "id": "r5.xlarge"
+	    }
+	  },
+	  "network": {
+	    "machine_cidr": "10.0.0.0/16",
+	    "service_cidr": "172.30.0.0/16",
+	    "pod_cidr": "10.128.0.0/14",
+	    "host_prefix": 23
+	  },
+	  
+	  "version": {
+		  "id": "openshift-4.8.0"
+	  },
+      "dns" : {
+          "base_domain": "mycluster-api.example.com"
+      }
+	}`
+
 	const templateReadyState = `{
 	  "id": "123",
 	  "name": "my-cluster",
@@ -1674,7 +1719,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						VerifyJQ(`.proxy.http_proxy`, "http://proxy.com"),
 						VerifyJQ(`.proxy.https_proxy`, "https://proxy.com"),
 						VerifyJQ(`.additional_trust_bundle`, "123"),
-						RespondWithPatchedJSON(http.StatusOK, template, `[
+						RespondWithPatchedJSON(http.StatusOK, templateWithTrustBundle, `[
 					{
 					  "op": "add",
 					  "path": "/aws",
@@ -1699,13 +1744,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "http_proxy" : "http://proxy.com",
 						  "https_proxy" : "https://proxy.com"
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/",
-					  "value": {
-						  "additional_trust_bundle" : "123"
 					  }
 					}]`),
 					),
@@ -1846,7 +1884,8 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				Expect(resource).To(MatchJQ(`.attributes.proxy.no_proxy`, "test"))
 				Expect(resource).To(MatchJQ(`.attributes.proxy.additional_trust_bundle`, "123"))
 			})
-			It("Creates cluster without http proxy and update trust bundle - should fail", func() {
+
+			It("Creates cluster without http proxy and update trust bundle - should successes", func() {
 				// Prepare the server:
 				server.AppendHandlers(
 					CombineHandlers(
@@ -1929,7 +1968,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					CombineHandlers(
 						VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
 						VerifyJQ(`.additional_trust_bundle`, "123"),
-						RespondWithPatchedJSON(http.StatusCreated, template, `[
+						RespondWithPatchedJSON(http.StatusCreated, templateWithTrustBundle, `[
 					{
 					  "op": "add",
 					  "path": "/aws",
@@ -1946,13 +1985,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							  },
 							  "operator_role_prefix" : "test"
 						  }
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/",
-					  "value": {
-						  "additional_trust_bundle" : "123"
 					  }
 					}]`),
 					),
@@ -1977,7 +2009,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`)
-				Expect(terraform.Apply()).ToNot(BeZero())
+				Expect(terraform.Apply()).To(BeZero())
 			})
 		})
 		It("Creates cluster with default_mp_labels and update them", func() {
@@ -2147,29 +2179,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		})
 
 		It("Except to fail on proxy validators", func() {
-			// Expected at least one of the following: http-proxy, https-proxy
-			terraform.Source(`
-		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			proxy = {
-				no_proxy = "test1, test2"
-				additional_trust_bundle = "123",
-			}
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					master_role_arn = "",
-					worker_role_arn = "",
-				}
-			}
-		  }
-		`)
-			Expect(terraform.Apply()).NotTo(BeZero())
-
 			// Expected at least one of the following: http-proxy, https-proxy, additional-trust-bundle
 			terraform.Source(`
 			 resource "rhcs_cluster_rosa_classic" "my_cluster" {
@@ -2190,6 +2199,61 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			 }
 			`)
 			Expect(terraform.Apply()).NotTo(BeZero())
+
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.additional_trust_bundle`, "123"),
+					RespondWithPatchedJSON(http.StatusOK, templateWithTrustBundle, `[
+					{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"ec2_metadata_http_tokens": "optional",
+							"sts": {
+								"oidc_endpoint_url": "https://127.0.0.2",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles": {
+									"master_role_arn": "",
+									"worker_role_arn": ""
+								},
+								"operator_role_prefix": "test"
+							}
+						}
+					}
+				]`),
+				),
+			)
+
+			terraform.Source(`
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			proxy = {
+				additional_trust_bundle = "123",
+			}
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+				}
+			}
+		  }
+		`)
+			Expect(terraform.Apply()).To(BeZero())
+
 		})
 		It("Creates private cluster with aws subnet ids without private link", func() {
 			// Prepare the server:

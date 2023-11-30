@@ -36,8 +36,9 @@ func (v proxyValidator) ValidateObject(ctx context.Context, request validator.Ob
 	}
 	errSum := "Invalid proxy's attribute assignment"
 
-	if common.IsStringAttributeKnownAndEmpty(proxy.HttpProxy) && common.IsStringAttributeKnownAndEmpty(proxy.HttpsProxy) {
-		response.Diagnostics.AddError(errSum, "Expected at least one of the following: http-proxy, https-proxy")
+	if common.IsStringAttributeKnownAndEmpty(proxy.HttpProxy) && common.IsStringAttributeKnownAndEmpty(proxy.HttpsProxy) &&
+		common.IsStringAttributeKnownAndEmpty(proxy.NoProxy) && common.IsStringAttributeKnownAndEmpty(proxy.AdditionalTrustBundle) {
+		response.Diagnostics.AddError(errSum, "Expected at least one of the following: http_proxy, https_proxy, no_proxy, additional_trust_bundle")
 		return
 	}
 }

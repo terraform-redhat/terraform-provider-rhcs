@@ -1611,6 +1611,9 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		state.AWSAdditionalControlPlaneSecurityGroupIds = awsAdditionalSecurityGroupIds
 	}
 
+	hasProxy := true
+	hasAdditionalTrustBundle := true
+
 	proxyObj, ok := object.GetProxy()
 	if ok {
 		if state.Proxy == nil {
@@ -1631,15 +1634,30 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 			state.Proxy.NoProxy = types.StringValue(noProxy)
 		}
 	} else {
-		state.Proxy = nil
+		// We cannot set the proxy to nil because the attribute state.Proxy.AdditionalTrustBundle might contain a value.
+		// Due to the sensitivity of this attribute, the backend returns the value `REDUCTED` for a non-empty AdditionalTrustBundle
+		// and if state.Proxy is null it will override the actual value.
+		hasProxy = false
 	}
 
 	trustBundle, ok := object.GetAdditionalTrustBundle()
-	if ok && common.IsStringAttributeUnknownOrEmpty(state.Proxy.AdditionalTrustBundle) {
-		if state.Proxy == nil {
-			state.Proxy = &proxy.Proxy{}
+	if ok {
+		// If AdditionalTrustBundle is not empty, the ocm-backend always "REDUCTED" (sensitive value)
+		// Therefore, we would like to update the state only if the current state is Null or Empty
+		// it can happen after `import` command or when it was updated from a different cli tool
+		if state.Proxy == nil || common.IsStringAttributeKnownAndEmpty(state.Proxy.AdditionalTrustBundle) {
+			if state.Proxy == nil {
+				state.Proxy = &proxy.Proxy{}
+			}
+			state.Proxy.AdditionalTrustBundle = types.StringValue(trustBundle)
 		}
-		state.Proxy.AdditionalTrustBundle = types.StringValue(trustBundle)
+	} else {
+		hasAdditionalTrustBundle = false
+	}
+
+	// Set state.Proxy to be null only if `object.Proxy()` and `object.AdditionalTrustBundle()` are empty
+	if !hasProxy && !hasAdditionalTrustBundle {
+		state.Proxy = nil
 	}
 
 	machineCIDR, ok := object.Network().GetMachineCIDR()

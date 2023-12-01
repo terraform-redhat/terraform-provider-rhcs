@@ -65,3 +65,11 @@ variable "multi_availability_zone" {
   type    = bool
   default = null
 }
+variable "disk_size" {
+  type    = number
+  default = null
+}
+variable "additional_security_groups" {
+  type    = list(string)
+  default = null
+}

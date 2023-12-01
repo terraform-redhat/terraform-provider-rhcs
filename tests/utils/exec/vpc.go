@@ -23,6 +23,7 @@ type VPCOutput struct {
 	ClusterPrivateSubnets []string `json:"cluster-private-subnet,omitempty"`
 	AZs                   []string `json:"azs,omitempty"`
 	NodePrivateSubnets    []string `json:"node-private-subnet,omitempty"`
+	VPCID                 string   `json:"vpc_id,omitempty"`
 }
 
 type VPCService struct {
@@ -68,6 +69,7 @@ func (vpc *VPCService) Output() (*VPCOutput, error) {
 		ClusterPublicSubnets:  h.DigArrayToString(out["cluster-public-subnet"], "value"),
 		NodePrivateSubnets:    h.DigArrayToString(out["node-private-subnet"], "value"),
 		AZs:                   h.DigArrayToString(out["azs"], "value"),
+		VPCID:                 h.DigString(out["vpc-id"], "value"),
 	}
 
 	return vpcOutput, err

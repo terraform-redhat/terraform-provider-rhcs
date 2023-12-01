@@ -9,25 +9,28 @@ import (
 )
 
 type MachinePoolArgs struct {
-	Cluster            string              `json:"cluster,omitempty"`
-	OCMENV             string              `json:"ocm_environment,omitempty"`
-	Name               string              `json:"name,omitempty"`
-	Token              string              `json:"token,omitempty"`
-	URL                string              `json:"url,omitempty"`
-	MachineType        string              `json:"machine_type,omitempty"`
-	Replicas           int                 `json:"replicas,omitempty"`
-	AutoscalingEnabled bool                `json:"autoscaling_enabled,omitempty"`
-	UseSpotInstances   bool                `json:"use_spot_instances,omitempty"`
-	MaxReplicas        int                 `json:"max_replicas,omitempty"`
-	MinReplicas        int                 `json:"min_replicas,omitempty"`
-	MaxSpotPrice       float64             `json:"max_spot_price,omitempty"`
-	Labels             map[string]string   `json:"labels,omitempty"`
-	Taints             []map[string]string `json:"taints,omitempty"`
-	ID                 string              `json:"id,omitempty"`
-	AvailabilityZone   string              `json:"availability_zone,omitempty"`
-	SubnetID           string              `json:"subnet_id,omitempty"`
-	MultiAZ            bool                `json:"multi_availability_zone,omitempty"`
+	Cluster                  string              `json:"cluster,omitempty"`
+	OCMENV                   string              `json:"ocm_environment,omitempty"`
+	Name                     string              `json:"name,omitempty"`
+	Token                    string              `json:"token,omitempty"`
+	URL                      string              `json:"url,omitempty"`
+	MachineType              string              `json:"machine_type,omitempty"`
+	Replicas                 int                 `json:"replicas,omitempty"`
+	AutoscalingEnabled       bool                `json:"autoscaling_enabled,omitempty"`
+	UseSpotInstances         bool                `json:"use_spot_instances,omitempty"`
+	MaxReplicas              int                 `json:"max_replicas,omitempty"`
+	MinReplicas              int                 `json:"min_replicas,omitempty"`
+	MaxSpotPrice             float64             `json:"max_spot_price,omitempty"`
+	Labels                   map[string]string   `json:"labels,omitempty"`
+	Taints                   []map[string]string `json:"taints,omitempty"`
+	ID                       string              `json:"id,omitempty"`
+	AvailabilityZone         string              `json:"availability_zone,omitempty"`
+	SubnetID                 string              `json:"subnet_id,omitempty"`
+	MultiAZ                  bool                `json:"multi_availability_zone,omitempty"`
+	DiskSize                 int                 `json:"disk_size,omitempty"`
+	AdditionalSecurityGroups []string            `json:"additional_security_groups,omitempty"`
 }
+
 type MachinePoolService struct {
 	CreationArgs *MachinePoolArgs
 	ManifestDir  string
@@ -68,6 +71,14 @@ func (mp *MachinePoolService) Create(createArgs *MachinePoolArgs, extraArgs ...s
 		return err
 	}
 	return nil
+}
+
+func (mp *MachinePoolService) Plan(createArgs *MachinePoolArgs, extraArgs ...string) (string, error) {
+	createArgs.URL = CON.GateWayURL
+	mp.CreationArgs = createArgs
+	args := combineStructArgs(createArgs, extraArgs...)
+	output, err := runTerraformPlanWithArgs(mp.Context, mp.ManifestDir, args)
+	return output, err
 }
 
 func (mp *MachinePoolService) Output() (MachinePoolOutput, error) {

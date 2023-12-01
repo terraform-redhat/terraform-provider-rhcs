@@ -55,6 +55,8 @@ profiles:
     imdsv2: "required"
     oidc_config: "un-managed"
     admin_enabled: true
+    additional_sg_number: 4
+    worker_disk_size: 200
 # rosa-sts-up :: creating a managed cluster for upgrade purpose
 - as: rosa-sts-up
   cluster:

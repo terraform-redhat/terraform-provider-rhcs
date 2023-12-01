@@ -54,7 +54,8 @@ type Profile struct {
 	AuditLogForward       bool   `ini:"auditlog_forward,omitempty" json:"auditlog_forward,omitempty"`
 	AdminEnabled          bool   `ini:"admin_enabled,omitempty" json:"admin_enabled,omitempty"`
 	ManagedPolicies       bool   `ini:"managed_policies,omitempty" json:"managed_policies,omitempty"`
-	VolumeSize            int    `ini:"volume_size,omitempty" json:"volume_size,omitempty"`
+	WorkerDiskSize        int    `ini:"worker_disk_size,omitempty" json:"worker_disk_size,omitempty"`
+	AdditionalSGNumber    int    `ini:"additional_sg_number,omitempty" json:"additional_sg_number,omitempty"`
 	ManifestsDIR          string `ini:"manifests_dir,omitempty" json:"manifests_dir,omitempty"`
 }
 
@@ -93,6 +94,28 @@ func PrepareVPC(region string, privateLink bool, multiZone bool, azIDs []string,
 		return nil, err
 	}
 	return output, err
+}
+
+func PrepareAdditionalSecurityGroups(region string, vpcID string, sgNumbers int) ([]string, error) {
+	sgService := EXE.NewSecurityGroupService()
+	sgArgs := &EXE.SecurityGroupArgs{
+		AWSRegion:  region,
+		VPCID:      vpcID,
+		SGNumber:   sgNumbers,
+		NamePrefix: "rhcs-ci",
+	}
+	err := sgService.Apply(sgArgs)
+	if err != nil {
+		sgService.Destroy()
+		return nil, err
+	}
+	output, err := sgService.Output()
+
+	if err != nil {
+		sgService.Destroy()
+		return nil, err
+	}
+	return output.SGIDs, err
 }
 
 func PrepareAccountRoles(token string, accountRolePrefix string, awsRegion string, openshiftVersion string, channelGroup string) (
@@ -310,7 +333,22 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 				clusterArgs.AWSSubnetIDs = append(vpcOutput.ClusterPrivateSubnets, vpcOutput.ClusterPublicSubnets...)
 			}
 			clusterArgs.MachineCIDR = vpcOutput.VPCCIDR
+			if profile.AdditionalSGNumber != 0 {
+				var sgIDs []string
+				// Prepare profile.AdditionalSGNumber+5 security groups for negative testing
+				sgIDs, err = PrepareAdditionalSecurityGroups(profile.Region, vpcOutput.VPCID, profile.AdditionalSGNumber+5)
+				if err != nil {
+					return
+				}
+				clusterArgs.AdditionalComputeSecurityGroups = sgIDs[0:profile.AdditionalSGNumber]
+				clusterArgs.AdditionalInfraSecurityGroups = sgIDs[0:profile.AdditionalSGNumber]
+				clusterArgs.AdditionalControlPlaneSecurityGroups = sgIDs[0:profile.AdditionalSGNumber]
+			}
 		}
+	}
+
+	if profile.WorkerDiskSize != 0 {
+		clusterArgs.WorkerDiskSize = profile.WorkerDiskSize
 	}
 
 	return clusterArgs, profile.ManifestsDIR, err
@@ -370,7 +408,8 @@ func CreateRHCSClusterByProfile(token string, profile *Profile) (string, error) 
 		clusterService.Destroy(creationArgs)
 		return "", err
 	}
-	clusterID, err := clusterService.Output()
+	clusterOutput, err := clusterService.Output()
+	clusterID := clusterOutput.ClusterID
 	return clusterID, err
 }
 
@@ -385,6 +424,13 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 		AccountRolePrefix:  "",
 		OperatorRolePrefix: "",
 	}
+	if profile.AdditionalSGNumber != 0 {
+		output, err := clusterService.Output()
+		Expect(err).ToNot(HaveOccurred())
+		clusterArgs.AdditionalComputeSecurityGroups = output.AdditionalComputeSecurityGroups
+		clusterArgs.AdditionalInfraSecurityGroups = output.AdditionalInfraSecurityGroups
+		clusterArgs.AdditionalControlPlaneSecurityGroups = output.AdditionalControlPlaneSecurityGroups
+	}
 	err = clusterService.Destroy(clusterArgs)
 	if err != nil {
 		return err
@@ -392,6 +438,17 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 
 	// Destroy VPC
 	if profile.BYOVPC {
+		if profile.AdditionalSGNumber != 0 {
+			sgService := EXE.NewSecurityGroupService()
+			sgArgs := &EXE.SecurityGroupArgs{
+				AWSRegion: profile.Region,
+				SGNumber:  profile.AdditionalSGNumber,
+			}
+			err := sgService.Destroy(sgArgs)
+			if err != nil {
+				return err
+			}
+		}
 		vpcService := EXE.NewVPCService()
 		vpcArgs := &EXE.VPCArgs{
 			AWSRegion: profile.Region,
@@ -456,6 +513,7 @@ func PrepareRHCSClusterByProfileENV() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	clusterID, err := clusterService.Output()
+	clusterOutput, err := clusterService.Output()
+	clusterID := clusterOutput.ClusterID
 	return clusterID, err
 }

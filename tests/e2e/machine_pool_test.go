@@ -463,10 +463,6 @@ var _ = Describe("TF Test", func() {
 					SubnetID:    newZonePrivateSubnet,
 				}
 
-				err = mpService.Create(MachinePoolArgs)
-				Expect(err).ToNot(HaveOccurred())
-
-				By("Verify the parameters of the created machinepool")
 				mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(mpResponseBody.Subnets()[0]).To(Equal(newZonePrivateSubnet))
@@ -479,6 +475,167 @@ var _ = Describe("TF Test", func() {
 				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(mpResponseBody.Replicas()).To(Equal(4))
+			})
+		})
+		Context("Author:xueli-High-OCP-69144 @OCP-69144 @xueli", func() {
+			It("Author:xueli-High-OCP-69144 Create machinepool with disk size will work via terraform provider", ci.Day2, ci.High, ci.FeatureMachinepool, func() {
+				By("Create additional machinepool with disk size specified")
+				replicas := 3
+				machineType := "r5.xlarge"
+				name := "ocp-69144"
+				diskSize := 249
+				MachinePoolArgs := &exe.MachinePoolArgs{
+					Token:       token,
+					Cluster:     clusterID,
+					Replicas:    replicas,
+					MachineType: machineType,
+					Name:        name,
+					DiskSize:    diskSize,
+				}
+
+				err := mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
+				defer func() {
+					err = mpService.Destroy()
+					Expect(err).ToNot(HaveOccurred())
+				}()
+
+				By("Verify the parameters of the created machinepool")
+				mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(mpResponseBody.RootVolume().AWS().Size()).To(Equal(diskSize))
+				Expect(mpResponseBody.InstanceType()).To(Equal(machineType))
+
+				By("Update disksize will create another machinepool")
+				MachinePoolArgs = &exe.MachinePoolArgs{
+					Token:       token,
+					Cluster:     clusterID,
+					Replicas:    replicas,
+					MachineType: machineType,
+					Name:        name,
+					DiskSize:    320,
+				}
+
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
+
+				By("Verify the parameters of the created machinepool")
+				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(mpResponseBody.RootVolume().AWS().Size()).To(Equal(320))
+				Expect(mpResponseBody.InstanceType()).To(Equal(machineType))
+
+				By("Create another machinepool without disksize will create another machinepool with default value")
+				MachinePoolArgs = &exe.MachinePoolArgs{
+					Token:       token,
+					Cluster:     clusterID,
+					Replicas:    replicas,
+					MachineType: "m5.2xlarge",
+					Name:        name,
+				}
+
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
+
+				By("Verify the parameters of the created machinepool")
+				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(mpResponseBody.RootVolume().AWS().Size()).To(Equal(300))
+				Expect(mpResponseBody.InstanceType()).To(Equal("m5.2xlarge"))
+
+			})
+		})
+		Context("Author:xueli-High-OCP-69146 @OCP-69146 @xueli", func() {
+			It("Author:xueli-High-OCP-69146 Create machinepool with additional security group set will work via terraform provider", ci.Day2, ci.High, ci.FeatureMachinepool, func() {
+				By("")
+				if !profile.BYOVPC {
+					Skip("This case only works for BYOVPC cluster profile")
+				}
+				By("Prepare additional security groups")
+				sgService := exe.NewSecurityGroupService()
+				output, err := sgService.Output()
+				Expect(err).ToNot(HaveOccurred())
+				if output.SGIDs == nil {
+					vpcService := exe.NewVPCService()
+					vpcOutput, err := vpcService.Output()
+					Expect(err).ToNot(HaveOccurred())
+					sgArgs := &exe.SecurityGroupArgs{
+						AWSRegion: profile.Region,
+						VPCID:     vpcOutput.VPCID,
+						SGNumber:  4,
+					}
+					err = sgService.Apply(sgArgs)
+					Expect(err).ToNot(HaveOccurred())
+				}
+
+				output, err = sgService.Output()
+				Expect(err).ToNot(HaveOccurred())
+
+				By("Create additional machinepool with disk size specified")
+				replicas := 3
+				machineType := "r5.xlarge"
+				name := "ocp-69146"
+
+				MachinePoolArgs := &exe.MachinePoolArgs{
+					Token:                    token,
+					Cluster:                  clusterID,
+					Replicas:                 replicas,
+					MachineType:              machineType,
+					Name:                     name,
+					AdditionalSecurityGroups: output.SGIDs,
+				}
+
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
+				defer func() {
+					err = mpService.Destroy()
+					Expect(err).ToNot(HaveOccurred())
+				}()
+
+				By("Verify the parameters of the created machinepool")
+				mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(mpResponseBody.AWS().AdditionalSecurityGroupIds())).To(Equal(len(output.SGIDs)))
+				for _, sg := range mpResponseBody.AWS().AdditionalSecurityGroupIds() {
+					Expect(sg).To(BeElementOf(output.SGIDs))
+				}
+
+				By("Update security groups will create another machinepool")
+				MachinePoolArgs = &exe.MachinePoolArgs{
+					Token:                    token,
+					Cluster:                  clusterID,
+					Replicas:                 replicas,
+					MachineType:              machineType,
+					Name:                     name,
+					AdditionalSecurityGroups: output.SGIDs[0:1],
+				}
+
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
+
+				By("Verify the parameters of the created machinepool")
+				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(mpResponseBody.AWS().AdditionalSecurityGroupIds())).To(Equal(1))
+
+				By("Create another machinepool without additional sg ")
+				MachinePoolArgs = &exe.MachinePoolArgs{
+					Token:       token,
+					Cluster:     clusterID,
+					Replicas:    replicas,
+					MachineType: "m5.2xlarge",
+					Name:        name,
+				}
+
+				err = mpService.Create(MachinePoolArgs)
+				Expect(err).ToNot(HaveOccurred())
+
+				By("Verify the parameters of the created machinepool")
+				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(mpResponseBody.AWS().AdditionalSecurityGroupIds()).To(BeNil())
+				Expect(mpResponseBody.InstanceType()).To(Equal("m5.2xlarge"))
+
 			})
 		})
 	})

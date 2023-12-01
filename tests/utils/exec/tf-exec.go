@@ -54,6 +54,28 @@ func runTerraformApplyWithArgs(ctx context.Context, dir string, terraformArgs []
 	Logger.Debugf(output)
 	return
 }
+
+func runTerraformPlanWithArgs(ctx context.Context, dir string, terraformArgs []string) (output string, err error) {
+	planArgs := append([]string{"plan", "-no-color"}, terraformArgs...)
+	Logger.Infof("Running terraform plan against the dir: %s ", dir)
+	Logger.Debugf("Running terraform plan against the dir: %s with args %v", dir, terraformArgs)
+	terraformPlan := exec.Command("terraform", planArgs...)
+	terraformPlan.Dir = dir
+	var stdoutput bytes.Buffer
+
+	terraformPlan.Stdout = &stdoutput
+	terraformPlan.Stderr = &stdoutput
+	err = terraformPlan.Run()
+	output = h.Strip(stdoutput.String(), "\n")
+	if err != nil {
+		Logger.Errorf(output)
+		err = fmt.Errorf("%s: %s", err.Error(), output)
+		return
+	}
+	Logger.Debugf(output)
+	return
+}
+
 func runTerraformDestroyWithArgs(ctx context.Context, dir string, terraformArgs []string) (err error) {
 	destroyArgs := append([]string{"destroy", "-auto-approve", "-no-color"}, terraformArgs...)
 	Logger.Infof("Running terraform destroy against the dir: %s", dir)
@@ -165,6 +187,7 @@ func combineArgs(varAgrs map[string]interface{}, abArgs ...string) []string {
 		args = append(args, "-var")
 		args = append(args, arg)
 	}
+
 	args = append(args, abArgs...)
 	return args
 }

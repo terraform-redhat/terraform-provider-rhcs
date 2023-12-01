@@ -10,10 +10,14 @@ output "node-private-subnet" {
   value = module.vpc.private_subnets
 }
 
-output "azs"{
+output "azs" {
   value = module.vpc.azs
 }
 
-output "vpc-cidr"{
+output "vpc-id" {
+  value = module.vpc.vpc_id
+}
+
+output "vpc-cidr" {
   value = var.vpc_cidr
 }

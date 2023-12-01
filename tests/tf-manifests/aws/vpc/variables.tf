@@ -1,15 +1,15 @@
-variable vpc_cidr{
-    type=string
-    default = "10.0.0.0/16"
-    validation {
-      condition     = contains(["10.0.0.0/16", "11.0.0.0/16", "12.0.0.0/16"], var.vpc_cidr)
-      error_message = "VPC CIDR limited to: 10.0.0.0/16 11.0.0.0/16 12.0.0.0/16"
-    }
-    
+variable "vpc_cidr" {
+  type    = string
+  default = "10.0.0.0/16"
+  validation {
+    condition     = contains(["10.0.0.0/16", "11.0.0.0/16", "12.0.0.0/16"], var.vpc_cidr)
+    error_message = "VPC CIDR limited to: 10.0.0.0/16 11.0.0.0/16 12.0.0.0/16"
+  }
+
 }
-variable multi_az{
-    type = bool
-    default = false
+variable "multi_az" {
+  type    = bool
+  default = false
 }
 variable "aws_region" {
   type        = string
@@ -17,7 +17,7 @@ variable "aws_region" {
 }
 
 variable "az_ids" {
-  type = list(string)
+  type    = list(string)
   default = null
 }
 
@@ -39,8 +39,8 @@ variable "az_ids" {
 # }
 
 variable "name" {
-    type        = string
-    description = "The name of the vpc to create"
-    default     = "tf-ocm"
-  
+  type        = string
+  description = "The name of the vpc to create"
+  default     = "tf-ocm"
+
 }

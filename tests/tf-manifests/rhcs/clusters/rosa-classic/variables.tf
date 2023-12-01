@@ -182,4 +182,28 @@ variable "admin_credentials" {
   description = "Admin user and password"
   type        = map(string)
   default     = null
+
+}
+
+variable "worker_disk_size" {
+  type    = number
+  default = null
+
+}
+
+variable "additional_compute_security_groups" {
+  type    = list(string)
+  default = null
+
+}
+
+variable "additional_infra_security_groups" {
+  type    = list(string)
+  default = null
+
+}
+
+variable "additional_control_plane_security_groups" {
+  type    = list(string)
+  default = null
 }

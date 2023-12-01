@@ -24,7 +24,7 @@ locals {
 
 data "rhcs_versions" "version" {
   search = "enabled='t' and rosa_enabled='t' and channel_group='${var.channel_group}'${local.versionfilter}"
-  order = "id"
+  order  = "id"
 }
 locals {
   version = data.rhcs_versions.version.items[0].name
@@ -43,7 +43,7 @@ locals {
       worker_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.account_role_prefix}-Worker-Role"
     },
     operator_role_prefix = var.operator_role_prefix
-    oidc_config_id       = var.oidc_config_id 
+    oidc_config_id       = var.oidc_config_id
   }
 }
 
@@ -61,30 +61,34 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   properties = {
     rosa_creator_arn = data.aws_caller_identity.current.arn
   }
-  sts                         = local.sts_roles
-  replicas                    = var.replicas
-  proxy                       = var.proxy
-  autoscaling_enabled         = var.autoscaling.autoscaling_enabled
-  min_replicas                = var.autoscaling.min_replicas
-  max_replicas                = var.autoscaling.max_replicas
-  ec2_metadata_http_tokens    = var.aws_http_tokens_state
-  aws_private_link            = var.private_link
-  private                     = var.private
-  aws_subnet_ids              = local.aws_subnet_ids
-  compute_machine_type        = var.compute_machine_type
-  default_mp_labels           = var.default_mp_labels
-  disable_scp_checks          = var.disable_scp_checks
-  disable_workload_monitoring = var.disable_workload_monitoring
-  etcd_encryption             = var.etcd_encryption
-  fips                        = var.fips
-  host_prefix                 = var.host_prefix
-  kms_key_arn                 = var.kms_key_arn
-  machine_cidr                = var.machine_cidr
-  service_cidr                = var.service_cidr
-  pod_cidr                    = var.pod_cidr
-  tags                        = var.tags
-  admin_credentials           = var.admin_credentials
-  destroy_timeout             = 120
+  sts                                             = local.sts_roles
+  replicas                                        = var.replicas
+  proxy                                           = var.proxy
+  autoscaling_enabled                             = var.autoscaling.autoscaling_enabled
+  min_replicas                                    = var.autoscaling.min_replicas
+  max_replicas                                    = var.autoscaling.max_replicas
+  ec2_metadata_http_tokens                        = var.aws_http_tokens_state
+  aws_private_link                                = var.private_link
+  private                                         = var.private
+  aws_subnet_ids                                  = local.aws_subnet_ids
+  compute_machine_type                            = var.compute_machine_type
+  default_mp_labels                               = var.default_mp_labels
+  disable_scp_checks                              = var.disable_scp_checks
+  disable_workload_monitoring                     = var.disable_workload_monitoring
+  etcd_encryption                                 = var.etcd_encryption
+  fips                                            = var.fips
+  host_prefix                                     = var.host_prefix
+  kms_key_arn                                     = var.kms_key_arn
+  machine_cidr                                    = var.machine_cidr
+  service_cidr                                    = var.service_cidr
+  pod_cidr                                        = var.pod_cidr
+  tags                                            = var.tags
+  admin_credentials                               = var.admin_credentials
+  worker_disk_size                                = var.worker_disk_size
+  aws_additional_compute_security_group_ids       = var.additional_compute_security_groups
+  aws_additional_infra_security_group_ids         = var.additional_infra_security_groups
+  aws_additional_control_plane_security_group_ids = var.additional_control_plane_security_groups
+  destroy_timeout                                 = 120
   lifecycle {
     ignore_changes = [availability_zones]
   }

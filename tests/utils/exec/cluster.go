@@ -8,38 +8,53 @@ import (
 )
 
 type ClusterCreationArgs struct {
-	AccountRolePrefix    string            `json:"account_role_prefix,omitempty"`
-	OCMENV               string            `json:"rhcs_environment,omitempty"`
-	ClusterName          string            `json:"cluster_name,omitempty"`
-	OperatorRolePrefix   string            `json:"operator_role_prefix,omitempty"`
-	OpenshiftVersion     string            `json:"openshift_version,omitempty"`
-	Token                string            `json:"token,omitempty"`
-	URL                  string            `json:"url,omitempty"`
-	AWSRegion            string            `json:"aws_region,omitempty"`
-	AWSAvailabilityZones []string          `json:"aws_availability_zones,omitempty"`
-	Replicas             int               `json:"replicas,omitempty"`
-	ChannelGroup         string            `json:"channel_group,omitempty"`
-	AWSHttpTokensState   string            `json:"aws_http_tokens_state,omitempty"`
-	PrivateLink          bool              `json:"private_link,omitempty"`
-	Private              bool              `json:"private,omitempty"`
-	Fips                 bool              `json:"fips,omitempty"`
-	Tagging              map[string]string `json:"tags,omitempty"`
-	AuditLogForward      bool              `json:"audit_log_forward,omitempty"`
-	Autoscale            bool              `json:"autoscaling_enabled,omitempty"`
-	Etcd                 bool              `json:"etcd_encryption,omitempty"`
-	AWSSubnetIDs         []string          `json:"aws_subnet_ids,omitempty"`
-	ComputeMachineType   string            `json:"compute_machine_type,omitempty"`
-	DefaultMPLabels      map[string]string `json:"default_mp_labels,omitempty"`
-	DisableSCPChecks     bool              `json:"disable_scp_checks,omitempty"`
-	MultiAZ              bool              `json:"multi_az,omitempty"`
-	MachineCIDR          string            `json:"machine_cidr,omitempty"`
-	OIDCConfigID         string            `json:"oidc_config_id,omitempty"`
-	AdminCredentials     map[string]string `json:"admin_credentials,omitempty"`
+	AccountRolePrefix                    string            `json:"account_role_prefix,omitempty"`
+	OCMENV                               string            `json:"rhcs_environment,omitempty"`
+	ClusterName                          string            `json:"cluster_name,omitempty"`
+	OperatorRolePrefix                   string            `json:"operator_role_prefix,omitempty"`
+	OpenshiftVersion                     string            `json:"openshift_version,omitempty"`
+	Token                                string            `json:"token,omitempty"`
+	URL                                  string            `json:"url,omitempty"`
+	AWSRegion                            string            `json:"aws_region,omitempty"`
+	AWSAvailabilityZones                 []string          `json:"aws_availability_zones,omitempty"`
+	Replicas                             int               `json:"replicas,omitempty"`
+	ChannelGroup                         string            `json:"channel_group,omitempty"`
+	AWSHttpTokensState                   string            `json:"aws_http_tokens_state,omitempty"`
+	PrivateLink                          bool              `json:"private_link,omitempty"`
+	Private                              bool              `json:"private,omitempty"`
+	Fips                                 bool              `json:"fips,omitempty"`
+	Tagging                              map[string]string `json:"tags,omitempty"`
+	AuditLogForward                      bool              `json:"audit_log_forward,omitempty"`
+	Autoscale                            bool              `json:"autoscaling_enabled,omitempty"`
+	Etcd                                 bool              `json:"etcd_encryption,omitempty"`
+	AWSSubnetIDs                         []string          `json:"aws_subnet_ids,omitempty"`
+	ComputeMachineType                   string            `json:"compute_machine_type,omitempty"`
+	DefaultMPLabels                      map[string]string `json:"default_mp_labels,omitempty"`
+	DisableSCPChecks                     bool              `json:"disable_scp_checks,omitempty"`
+	MultiAZ                              bool              `json:"multi_az,omitempty"`
+	WorkerDiskSize                       int               `json:"worker_disk_size,omitempty"`
+	AdditionalComputeSecurityGroups      []string          `json:"additional_compute_security_groups,omitempty"`
+	AdditionalInfraSecurityGroups        []string          `json:"additional_infra_security_groups,omitempty"`
+	AdditionalControlPlaneSecurityGroups []string          `json:"additional_control_plane_security_groups,omitempty"`
+	MachineCIDR                          string            `json:"machine_cidr,omitempty"`
+	OIDCConfigID                         string            `json:"oidc_config_id,omitempty"`
+	AdminCredentials                     map[string]string `json:"admin_credentials,omitempty"`
+	DisableUWM                           bool              `json:"disable_workload_monitoring,omitempty"`
+	Proxy                                *Proxy            `json:"proxy,omitempty"`
+}
+type Proxy struct {
+	HTTPProxy             string `json:"http_proxy,omitempty"`
+	HTTPSProxy            string `json:"https_proxy,omitempty"`
+	AdditionalTrustBundle string `json:"additional_trust_bundle,omitempty"`
+	NoProxy               string `json:"no_proxy,omitempty"`
 }
 
 // Just a placeholder, not research what to output yet.
-type ClusterOutout struct {
-	ClusterID string `json:"cluster_id,omitempty"`
+type ClusterOutput struct {
+	ClusterID                            string   `json:"cluster_id,omitempty"`
+	AdditionalComputeSecurityGroups      []string `json:"additional_compute_security_groups,omitempty"`
+	AdditionalInfraSecurityGroups        []string `json:"additional_infra_security_groups,omitempty"`
+	AdditionalControlPlaneSecurityGroups []string `json:"additional_control_plane_security_groups,omitempty"`
 }
 
 // ******************************************************
@@ -94,14 +109,19 @@ func (creator *ClusterService) Create(createArgs *ClusterCreationArgs, extraArgs
 	return nil
 }
 
-func (creator *ClusterService) Output() (string, error) {
+func (creator *ClusterService) Output() (*ClusterOutput, error) {
 	out, err := runTerraformOutput(creator.Context, creator.ManifestDir)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	clusterObj := out["cluster_id"]
-	clusterID := h.DigString(clusterObj, "value")
-	return clusterID, nil
+	clusterOutput := &ClusterOutput{
+		ClusterID:                            h.DigString(out["cluster_id"], "value"),
+		AdditionalComputeSecurityGroups:      h.DigArrayToString(out["additional_compute_security_groups"], "value"),
+		AdditionalInfraSecurityGroups:        h.DigArrayToString(out["additional_infra_security_groups"], "value"),
+		AdditionalControlPlaneSecurityGroups: h.DigArrayToString(out["additional_control_plane_security_groups"], "value"),
+	}
+
+	return clusterOutput, nil
 }
 
 func (creator *ClusterService) Destroy(createArgs *ClusterCreationArgs, extraArgs ...string) error {
@@ -109,6 +129,13 @@ func (creator *ClusterService) Destroy(createArgs *ClusterCreationArgs, extraArg
 	args := combineStructArgs(createArgs, extraArgs...)
 	err := runTerraformDestroyWithArgs(creator.Context, creator.ManifestDir, args)
 	return err
+}
+
+func (creator *ClusterService) Plan(planargs *ClusterCreationArgs, extraArgs ...string) (string, error) {
+	planargs.URL = CON.GateWayURL
+	args := combineStructArgs(planargs, extraArgs...)
+	output, err := runTerraformPlanWithArgs(creator.Context, creator.ManifestDir, args)
+	return output, err
 }
 
 func NewClusterService(manifestDir string) (*ClusterService, error) {

@@ -337,4 +337,87 @@ var _ = Describe("default ingress", func() {
 		}`)
 		Expect(terraform.Apply()).To(BeZero())
 	})
+
+	It("Create default ingress and delete it", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, clusterReady),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, clusterReady),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/ingresses"),
+				RespondWithJSON(http.StatusOK, defaultDay1Template),
+			),
+
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
+				VerifyJQ(`.route_selectors`, map[string]interface{}{}),
+				VerifyJQ(`.excluded_namespaces`, []interface{}{"stage", "int", "aaa"}),
+				VerifyJQ(`.load_balancer_type`, "nlb"),
+				RespondWithJSON(http.StatusOK, `
+						 {
+							 "kind": "Ingress",
+							 "href": "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2",
+							 "id": "d6z2",
+							 "listening": "external",
+							 "default": true,
+							 "dns_name": "redhat.com",
+							 "load_balancer_type": "nlb",
+							 "excluded_namespaces": [
+								"stage",
+								"int",
+								"aaa"
+							 ],
+							 "route_wildcard_policy": "WildcardsDisallowed",
+							 "route_namespace_ownership_policy": "Strict"
+						}
+						`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_default_ingress" "default_ingress" {
+			cluster = "123"
+		    excluded_namespaces = ["stage", "int", "aaa"]
+			load_balancer_type = "nlb"
+		}`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
+				RespondWithJSON(http.StatusOK, `
+						 {
+							 "kind": "Ingress",
+							 "href": "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2",
+							 "id": "d6z2",
+							 "listening": "external",
+							 "default": true,
+							 "dns_name": "redhat.com",
+							 "load_balancer_type": "nlb",
+							 "excluded_namespaces": [
+								"stage",
+								"int",
+								"aaa"
+							 ],
+							 "route_wildcard_policy": "WildcardsDisallowed",
+							 "route_namespace_ownership_policy": "Strict"
+						}
+						`),
+			),
+		)
+
+		// remove ingress
+		terraform.Source("")
+		// Last pool, we ignore the error, so this succeeds
+		Expect(terraform.Apply()).To(BeZero())
+
+	})
+
 })

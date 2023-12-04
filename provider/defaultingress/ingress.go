@@ -99,7 +99,7 @@ func (r *DefaultIngressResource) Create(ctx context.Context, req resource.Create
 		resp.Diagnostics.AddError(
 			"Failed building cluster default ingress",
 			fmt.Sprintf(
-				"Failed building autoscaler for cluster '%s': %v",
+				"Failed building default ingress for cluster '%s': %v",
 				plan.Cluster.ValueString(), err,
 			),
 		)
@@ -123,7 +123,7 @@ func (r *DefaultIngressResource) Read(ctx context.Context, req resource.ReadRequ
 		resp.Diagnostics.AddError(
 			"Failed getting cluster default ingress",
 			fmt.Sprintf(
-				"Failed getting autoscaler for cluster '%s': %v",
+				"Failed getting default ingress for cluster '%s': %v",
 				state.Cluster.ValueString(), err,
 			),
 		)
@@ -179,7 +179,26 @@ func (r *DefaultIngressResource) Update(ctx context.Context, req resource.Update
 func (r *DefaultIngressResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	resp *resource.DeleteResponse) {
 	// Until we support. return an informative error
-	resp.Diagnostics.AddError("Can't delete default ingress", "Delete is currently not supported.")
+	state := &DefaultIngress{}
+	diags := req.State.Get(ctx, state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	resp.Diagnostics.AddWarning(
+		"Cannot delete default ingress",
+		fmt.Sprintf(
+			"Cannot delete default ingress for cluster '%s'. "+
+				"ROSA Classic clusters must have default ingress. "+
+				"It is being removed from the Terraform state only. "+
+				"To resume managing default ingress, import it again. "+
+				"It will be automatically deleted when the cluster is deleted.",
+			state.Cluster.ValueString(),
+		),
+	)
+	// Remove the state:
+	resp.State.RemoveResource(ctx)
+
 }
 
 func (r *DefaultIngressResource) ImportState(ctx context.Context, request resource.ImportStateRequest,

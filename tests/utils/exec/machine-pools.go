@@ -73,6 +73,14 @@ func (mp *MachinePoolService) Create(createArgs *MachinePoolArgs, extraArgs ...s
 	return nil
 }
 
+func (mp *MachinePoolService) Apply(createArgs *MachinePoolArgs, extraArgs ...string) (string, error) {
+	createArgs.URL = CON.GateWayURL
+	mp.CreationArgs = createArgs
+	args := combineStructArgs(createArgs, extraArgs...)
+	output, err := runTerraformApplyWithArgs(mp.Context, mp.ManifestDir, args)
+	return output, err
+}
+
 func (mp *MachinePoolService) Plan(createArgs *MachinePoolArgs, extraArgs ...string) (string, error) {
 	createArgs.URL = CON.GateWayURL
 	mp.CreationArgs = createArgs

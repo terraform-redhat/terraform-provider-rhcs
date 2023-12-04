@@ -51,7 +51,71 @@ func (r *DefaultIngressResource) Metadata(ctx context.Context, req resource.Meta
 func (r *DefaultIngressResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "Edit a cluster ingress (load balancer)",
-		Attributes:  ingressResource(),
+		Attributes: map[string]schema.Attribute{
+			"cluster": schema.StringAttribute{
+				Description: "Identifier of the cluster.",
+				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					common.Immutable(),
+				},
+			},
+			"id": schema.StringAttribute{
+				Description: "Unique identifier of the ingress.",
+				Computed:    true,
+				Optional:    true,
+				PlanModifiers: []planmodifier.String{
+					// This passes the state through to the plan, preventing
+					// "known after apply" since we know it won't change.
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"route_selectors": schema.MapAttribute{
+				Description: "Route Selectors for ingress. Format should be a comma-separated list of 'key=value'. " +
+					"If no label is specified, all routes will be exposed on both routers." +
+					"For legacy ingress support these are inclusion labels, otherwise they are treated as exclusion label.",
+
+				ElementType: types.StringType,
+				Optional:    true,
+				Validators:  []validator.Map{attrvalidators.NotEmptyMapValidator()},
+			},
+			"excluded_namespaces": schema.ListAttribute{
+				Description: "Excluded namespaces for ingress. Format should be a comma-separated list 'value1, value2...'. " +
+					"If no values are specified, all namespaces will be exposed.",
+				ElementType: types.StringType,
+				Optional:    true,
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+				},
+			},
+			"route_wildcard_policy": schema.StringAttribute{
+				Description: fmt.Sprintf("Wildcard Policy for ingress. Options are %s. Default is '%s'.",
+					strings.Join(validWildcardPolicies, ","), defaultWildcardPolicy),
+				Optional:   true,
+				Computed:   true,
+				Validators: []validator.String{attrvalidators.EnumValueValidator(validWildcardPolicies)},
+			},
+			"route_namespace_ownership_policy": schema.StringAttribute{
+				Description: fmt.Sprintf("Namespace Ownership Policy for ingress. Options are %s. Default is '%s'.",
+					strings.Join(validNamespaceOwnershipPolicies, ","), defaultNamespaceOwnershipPolicy),
+				Optional:   true,
+				Computed:   true,
+				Validators: []validator.String{attrvalidators.EnumValueValidator(validNamespaceOwnershipPolicies)},
+			},
+			"cluster_routes_hostname": schema.StringAttribute{
+				Description: "Components route hostname for oauth, console, download.",
+				Optional:    true,
+			},
+			"load_balancer_type": schema.StringAttribute{
+				Description: fmt.Sprintf("Type of Load Balancer. Options are %s.", strings.Join(validLbTypes, ",")),
+				Optional:    true,
+				Computed:    true,
+				Validators:  []validator.String{attrvalidators.EnumValueValidator(validLbTypes)},
+			},
+			"cluster_routes_tls_secret_ref": schema.StringAttribute{
+				Description: "Components route TLS secret reference for oauth, console, download.",
+				Optional:    true,
+			},
+		},
 	}
 	return
 }
@@ -372,74 +436,6 @@ func getDefaultIngressBuilder(ctx context.Context, state *DefaultIngress) *cmv1.
 		ingressBuilder.LoadBalancerType(cmv1.LoadBalancerFlavor(state.LoadBalancerType.ValueString()))
 	}
 	return ingressBuilder
-}
-
-func ingressResource() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
-		"cluster": schema.StringAttribute{
-			Description: "Identifier of the cluster.",
-			Required:    true,
-			PlanModifiers: []planmodifier.String{
-				common.Immutable(),
-			},
-		},
-		"id": schema.StringAttribute{
-			Description: "Unique identifier of the ingress.",
-			Computed:    true,
-			Optional:    true,
-			PlanModifiers: []planmodifier.String{
-				// This passes the state through to the plan, preventing
-				// "known after apply" since we know it won't change.
-				stringplanmodifier.UseStateForUnknown(),
-			},
-		},
-		"route_selectors": schema.MapAttribute{
-			Description: "Route Selectors for ingress. Format should be a comma-separated list of 'key=value'. " +
-				"If no label is specified, all routes will be exposed on both routers." +
-				"For legacy ingress support these are inclusion labels, otherwise they are treated as exclusion label.",
-
-			ElementType: types.StringType,
-			Optional:    true,
-			Validators:  []validator.Map{NotEmptyMapValidator()},
-		},
-		"excluded_namespaces": schema.ListAttribute{
-			Description: "Excluded namespaces for ingress. Format should be a comma-separated list 'value1, value2...'. " +
-				"If no values are specified, all namespaces will be exposed.",
-			ElementType: types.StringType,
-			Optional:    true,
-			Validators: []validator.List{
-				listvalidator.SizeAtLeast(1),
-			},
-		},
-		"route_wildcard_policy": schema.StringAttribute{
-			Description: fmt.Sprintf("Wildcard Policy for ingress. Options are %s. Default is '%s'.",
-				strings.Join(validWildcardPolicies, ","), defaultWildcardPolicy),
-			Optional:   true,
-			Computed:   true,
-			Validators: []validator.String{attrvalidators.EnumValueValidator(validWildcardPolicies)},
-		},
-		"route_namespace_ownership_policy": schema.StringAttribute{
-			Description: fmt.Sprintf("Namespace Ownership Policy for ingress. Options are %s. Default is '%s'.",
-				strings.Join(validNamespaceOwnershipPolicies, ","), defaultNamespaceOwnershipPolicy),
-			Optional:   true,
-			Computed:   true,
-			Validators: []validator.String{attrvalidators.EnumValueValidator(validNamespaceOwnershipPolicies)},
-		},
-		"cluster_routes_hostname": schema.StringAttribute{
-			Description: "Components route hostname for oauth, console, download.",
-			Optional:    true,
-		},
-		"load_balancer_type": schema.StringAttribute{
-			Description: fmt.Sprintf("Type of Load Balancer. Options are %s.", strings.Join(validLbTypes, ",")),
-			Optional:    true,
-			Computed:    true,
-			Validators:  []validator.String{attrvalidators.EnumValueValidator(validLbTypes)},
-		},
-		"cluster_routes_tls_secret_ref": schema.StringAttribute{
-			Description: "Components route TLS secret reference for oauth, console, download.",
-			Optional:    true,
-		},
-	}
 }
 
 func validateDefaultIngress(ctx context.Context, state *DefaultIngress) error {

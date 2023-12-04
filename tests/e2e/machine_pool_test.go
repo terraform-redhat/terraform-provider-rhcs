@@ -571,7 +571,7 @@ var _ = Describe("TF Test", func() {
 				output, err = sgService.Output()
 				Expect(err).ToNot(HaveOccurred())
 
-				By("Create additional machinepool with disk size specified")
+				By("Create additional machinepool with security groups specified")
 				replicas := 3
 				machineType := "r5.xlarge"
 				name := "ocp-69146"
@@ -600,7 +600,7 @@ var _ = Describe("TF Test", func() {
 					Expect(sg).To(BeElementOf(output.SGIDs))
 				}
 
-				By("Update security groups will create another machinepool")
+				By("Update security groups is not allowed to a machinepool")
 				MachinePoolArgs = &exe.MachinePoolArgs{
 					Token:                    token,
 					Cluster:                  clusterID,
@@ -610,15 +610,17 @@ var _ = Describe("TF Test", func() {
 					AdditionalSecurityGroups: output.SGIDs[0:1],
 				}
 
-				err = mpService.Create(MachinePoolArgs)
-				Expect(err).ToNot(HaveOccurred())
+				applyOutput, err := mpService.Apply(MachinePoolArgs)
+				Expect(err).To(HaveOccurred())
+				Expect(applyOutput).Should(ContainSubstring("attribute \"aws_additional_security_group_ids\" must have a known value and may not be changed."))
 
-				By("Verify the parameters of the created machinepool")
-				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				By("Destroy the machinepool")
+				mpService.CreationArgs.AdditionalSecurityGroups = output.SGIDs
+				err = mpService.Destroy()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(mpResponseBody.AWS().AdditionalSecurityGroupIds())).To(Equal(1))
 
 				By("Create another machinepool without additional sg ")
+				name = "add-69146"
 				MachinePoolArgs = &exe.MachinePoolArgs{
 					Token:       token,
 					Cluster:     clusterID,

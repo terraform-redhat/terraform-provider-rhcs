@@ -153,10 +153,9 @@ var _ = Describe("TF Test", func() {
 					Password:  password,
 					ClusterID: clusterID,
 					AdditioanlFlags: []string{
-						"--insecure-skip-tls-verify",
 						fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, username))),
 					},
-					Timeout: 5,
+					Timeout: 10,
 				}
 				_, err = openshift.OcLogin(*ocAtter)
 				Expect(err).ToNot(HaveOccurred())

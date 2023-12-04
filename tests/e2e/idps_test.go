@@ -635,8 +635,8 @@ var _ = Describe("TF Test", func() {
 				It("OCP-65981 - rhcs_identity_provider resource can be imported by the terraform import command",
 					ci.Day2, ci.Medium, ci.FeatureIDP, ci.FeatureImport, func() {
 						By("Create sample idp to test the import functionality")
-						googleIDPClientSecret = h.RandStringWithUpper(20)
-						googleIDPClientId = h.RandStringWithUpper(30)
+						googleIDPClientSecret = h.GenerateRandomStringWithSymbols(20)
+						googleIDPClientId = h.GenerateRandomStringWithSymbols(30)
 
 						idpParam := &exe.IDPArgs{
 							Token:        token,

@@ -12,13 +12,10 @@ import (
 	. "github.com/onsi/gomega"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	CI "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
-	CMS "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	cms "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	con "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	EXE "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
+	exe "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	H "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/openshift"
 )
@@ -26,13 +23,14 @@ import (
 var _ = Describe("TF Test", func() {
 	Describe("Verfication/Post day 1 tests", func() {
 		var err error
-		var profile *CI.Profile
+		var profile *ci.Profile
 		var cluster *cmv1.Cluster
+		var importService = *exe.NewImportService(con.ImportResourceDir) // init new import service
 
 		BeforeEach(func() {
-			profile = CI.LoadProfileYamlFileByENV()
+			profile = ci.LoadProfileYamlFileByENV()
 			Expect(err).ToNot(HaveOccurred())
-			getResp, err := CMS.RetrieveClusterDetail(CI.RHCSConnection, clusterID)
+			getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			cluster = getResp.Body()
 
@@ -41,8 +39,8 @@ var _ = Describe("TF Test", func() {
 		})
 
 		Context("Author:smiron-High-OCP-63134 @OCP-63134 @smiron", func() {
-			It("Verify cluster install was successful post cluster deployment", CI.Day1Post, CI.High, func() {
-				getResp, err := CMS.RetrieveClusterStatus(CI.RHCSConnection, clusterID)
+			It("Verify cluster install was successful post cluster deployment", ci.Day1Post, ci.High, func() {
+				getResp, err := cms.RetrieveClusterStatus(ci.RHCSConnection, clusterID)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(string(getResp.Body().State())).To(Equal("ready"))
 				Expect(getResp.Status()).To(Equal(http.StatusOK))
@@ -57,9 +55,9 @@ var _ = Describe("TF Test", func() {
 			})
 		})
 		Context("Author:smiron-Medium-OCP-64906 @OCP-64906 @smiron", func() {
-			It("Verify custom properties is set post cluster creation", CI.Day1Post, CI.Medium, func() {
+			It("Verify custom properties is set post cluster creation", ci.Day1Post, ci.Medium, func() {
 				By("Check custom_property field is present under cluster's properties")
-				getResp, err := CMS.RetrieveClusterDetail(CI.RHCSConnection, clusterID)
+				getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(getResp.Body().Properties()["custom_property"]).To(Equal("test"))
 
@@ -72,30 +70,30 @@ var _ = Describe("TF Test", func() {
 		})
 
 		Context("Author:smiron-High-OCP-63140 @OCP-63140 @smiron", func() {
-			It("Verify fips is enabled/disabled post cluster creation", CI.Day1Post, CI.High, func() {
+			It("Verify fips is enabled/disabled post cluster creation", ci.Day1Post, ci.High, func() {
 				Expect(cluster.FIPS()).To(Equal(profile.FIPS))
 			})
 		})
 		Context("Author:smiron-High-OCP-63133 @OCP-63133 @smiron", func() {
-			It("Verify private_link is enabled/disabled post cluster creation", CI.Day1Post, CI.High, func() {
+			It("Verify private_link is enabled/disabled post cluster creation", ci.Day1Post, ci.High, func() {
 				Expect(cluster.AWS().PrivateLink()).To(Equal(profile.PrivateLink))
 			})
 		})
 		Context("Author:smiron-High-OCP-63143 @OCP-63143 @smiron", func() {
-			It("Verify etcd-encryption is enabled/disabled post cluster creation", CI.Day1Post, CI.High, func() {
+			It("Verify etcd-encryption is enabled/disabled post cluster creation", ci.Day1Post, ci.High, func() {
 				Expect(cluster.EtcdEncryption()).To(Equal(profile.Etcd))
 			})
 		})
 		Context("Author:smiron-Medium-OCP-64023 @OCP-64023 @smiron", func() {
-			It("Verify compute_machine_type value is set post cluster creation", CI.Day1Post, CI.Medium, func() {
+			It("Verify compute_machine_type value is set post cluster creation", ci.Day1Post, ci.Medium, func() {
 				if profile.ComputeMachineType != "" {
 					Expect(cluster.Nodes().ComputeMachineType().ID()).To(Equal(profile.ComputeMachineType))
 				}
 			})
 		})
 		Context("Author:smiron-Medium-OCP-63141 @OCP-63141 @smiron", func() {
-			It("Verify availability zones and multi-az is set post cluster creation", CI.Day1Post, CI.Medium, func() {
-				vpcService := EXE.NewVPCService()
+			It("Verify availability zones and multi-az is set post cluster creation", ci.Day1Post, ci.Medium, func() {
+				vpcService := exe.NewVPCService()
 				zonesArray := strings.Split(profile.Zones, ",")
 				clusterAvailZones := cluster.Nodes().AvailabilityZones()
 				Expect(err).ToNot(HaveOccurred())
@@ -110,27 +108,27 @@ var _ = Describe("TF Test", func() {
 			})
 		})
 		Context("Author:smiron-High-OCP-68423 @OCP-68423 @smiron", func() {
-			It("Verify compute_labels are set post cluster creation", CI.Day1Post, CI.High, func() {
+			It("Verify compute_labels are set post cluster creation", ci.Day1Post, ci.High, func() {
 				if profile.Labeling {
-					Expect(cluster.Nodes().ComputeLabels()).To(Equal(CON.DefaultMPLabels))
+					Expect(cluster.Nodes().ComputeLabels()).To(Equal(con.DefaultMPLabels))
 				} else {
-					Expect(cluster.Nodes().ComputeLabels()).To(Equal(CON.NilMap))
+					Expect(cluster.Nodes().ComputeLabels()).To(Equal(con.NilMap))
 				}
 			})
 		})
 		Context("Author:smiron-High-OCP-63777 @OCP-63777 @smiron", func() {
-			It("Verify AWS tags are set post cluster deployment", CI.Day1Post, CI.High, func() {
+			It("Verify AWS tags are set post cluster deployment", ci.Day1Post, ci.High, func() {
 
 				buildInTags := map[string]string{
 					"red-hat-clustertype": "rosa",
 					"red-hat-managed":     "true",
 				}
 
-				getResp, err := CMS.RetrieveClusterDetail(CI.RHCSConnection, clusterID)
+				getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
 				Expect(err).ToNot(HaveOccurred())
 
 				if profile.Tagging {
-					allClusterTags := H.MergeMaps(buildInTags, CON.Tags)
+					allClusterTags := H.MergeMaps(buildInTags, con.Tags)
 					Expect(len(getResp.Body().AWS().Tags())).To(Equal(len(allClusterTags)))
 
 					// compare cluster tags to the expected tags to appear
@@ -142,10 +140,39 @@ var _ = Describe("TF Test", func() {
 				}
 			})
 		})
+
+		Context("Author:smiron-Medium-OCP-65684 @OCP-65684 @smiron", func() {
+			It("OCP-65684 - cluster_rosa_classic resource can be import by the terraform import command",
+				ci.Day2, ci.Medium, ci.FeatureImport, func() {
+
+					By("Run the command to import rosa_classic resource")
+					importParam := &exe.ImportArgs{
+						Token:        token,
+						ClusterID:    clusterID,
+						ResourceKind: "rhcs_cluster_rosa_classic",
+						ResourceName: "rosa_sts_cluster_import",
+					}
+					Expect(importService.Import(importParam)).To(Succeed())
+
+					By("Check resource state - import command succeeded")
+					output, err := importService.ShowState(importParam)
+					Expect(err).ToNot(HaveOccurred())
+
+					// validate import was successful by checking samples fields
+					Expect(output).To(ContainSubstring(profile.ClusterName))
+					Expect(output).To(ContainSubstring(profile.Region))
+					Expect(output).To(ContainSubstring(profile.Version))
+					Expect(output).To(ContainSubstring(profile.ChannelGroup))
+
+					// skip due to bug :: OCM-5246
+					// Expect(output).To(ContainSubstring(profile.ComputeMachineType))
+				})
+		})
+
 		Context("Author:amalykhi-High-OCP-65928 @OCP-65928 @amalykhi", func() {
 			It("Cluster admin during deployment - confirm user created ONLY during cluster creation operation",
-				CI.Day1Post, CI.High,
-				CI.Exclude,
+				ci.Day1Post, ci.High,
+				ci.Exclude,
 				func() {
 					if !profile.AdminEnabled {
 						Skip("The test configured only for cluster admin profile")
@@ -155,7 +182,7 @@ var _ = Describe("TF Test", func() {
 					Expect(err).ToNot(HaveOccurred())
 					server := getResp.Body().API().URL()
 
-					username := CON.ClusterAdminUser
+					username := con.ClusterAdminUser
 					password := H.GetClusterAdminPassword()
 					Expect(password).ToNot(BeEmpty())
 
@@ -177,7 +204,7 @@ var _ = Describe("TF Test", func() {
 		})
 		Context("Author:xueli-Critical-OCP-69145 @OCP-69145 @xueli", func() {
 			It("Create sts cluster with additional security group set will work via terraform provider",
-				CI.Day1Post, CI.Critical,
+				ci.Day1Post, ci.Critical,
 				func() {
 					By("Check the profile settings")
 					if profile.AdditionalSGNumber == 0 {
@@ -186,7 +213,7 @@ var _ = Describe("TF Test", func() {
 						Expect(cluster.AWS().AdditionalInfraSecurityGroupIds()).To(BeEmpty())
 					} else {
 						By("Verify CMS are using the correct configuration")
-						clusterService, err := EXE.NewClusterService(CON.ROSAClassic)
+						clusterService, err := exe.NewClusterService(con.ROSAClassic)
 						Expect(err).ToNot(HaveOccurred())
 						output, err := clusterService.Output()
 						Expect(err).ToNot(HaveOccurred())
@@ -203,11 +230,11 @@ var _ = Describe("TF Test", func() {
 
 			// Skip this tests until OCM-5079 fixed
 			XIt("Apply to change security group will be forbidden", func() {
-				clusterService, err := EXE.NewClusterService(CON.ROSAClassic)
+				clusterService, err := exe.NewClusterService(con.ROSAClassic)
 				Expect(err).ToNot(HaveOccurred())
 				outPut, err := clusterService.Output()
 				Expect(err).ToNot(HaveOccurred())
-				args := map[string]*EXE.ClusterCreationArgs{
+				args := map[string]*exe.ClusterCreationArgs{
 					"aws_additional_compute_security_group_ids": {
 						Token:                                token,
 						AdditionalComputeSecurityGroups:      outPut.AdditionalComputeSecurityGroups[0:1],
@@ -241,7 +268,7 @@ var _ = Describe("TF Test", func() {
 		})
 		Context("Author:xueli-Critical-OCP-69143 @OCP-69143 @xueli", func() {
 			It("Create cluster with worker disk size will work via terraform provider",
-				CI.Day1Post, CI.Critical,
+				ci.Day1Post, ci.Critical,
 				func() {
 					switch profile.WorkerDiskSize {
 					case 0:

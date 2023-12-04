@@ -631,7 +631,7 @@ var _ = Describe("TF Test", func() {
 				Expect(err).ToNot(HaveOccurred())
 			})
 
-			Context("Author:smiron-High-OCP-65981 @OCP-65981 @smiron", func() {
+			Context("Author:smiron-Medium-OCP-65981 @OCP-65981 @smiron", func() {
 				It("OCP-65981 - rhcs_identity_provider resource can be imported by the terraform import command",
 					ci.Day2, ci.Medium, ci.FeatureIDP, ci.FeatureImport, func() {
 						By("Create sample idp to test the import functionality")

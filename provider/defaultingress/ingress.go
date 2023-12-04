@@ -22,8 +22,6 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
 )
 
-const lowestDefaultIngressVer = "4.14.0-0"
-
 var validWildcardPolicies = []string{string(cmv1.WildcardPolicyWildcardsDisallowed),
 	string(cmv1.WildcardPolicyWildcardsAllowed)}
 var defaultWildcardPolicy = cmv1.WildcardPolicyWildcardsDisallowed

@@ -566,6 +566,7 @@ var _ = Describe("TF Test", func() {
 					}
 					err = sgService.Apply(sgArgs)
 					Expect(err).ToNot(HaveOccurred())
+					defer sgService.Destroy()
 				}
 
 				output, err = sgService.Output()

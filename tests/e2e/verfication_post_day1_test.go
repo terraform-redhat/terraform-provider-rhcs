@@ -134,33 +134,37 @@ var _ = Describe("TF Test", func() {
 			})
 		})
 		Context("Author:amalykhi-High-OCP-65928 @OCP-65928 @amalykhi", func() {
-			It("Cluster admin during deployment - confirm user created ONLY during cluster creation operation", CI.Day1Post, CI.High, func() {
-				if !profile.AdminEnabled {
-					Skip("The test configured only for cluster admin profile")
-				}
-				By("Login with created cluster admin password")
-				getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
-				Expect(err).ToNot(HaveOccurred())
-				server := getResp.Body().API().URL()
+			It("Cluster admin during deployment - confirm user created ONLY during cluster creation operation",
+				CI.Day1Post, CI.High,
+				CI.Exclude,
+				func() {
+					if !profile.AdminEnabled {
+						Skip("The test configured only for cluster admin profile")
+					}
+					By("Login with created cluster admin password")
+					getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+					Expect(err).ToNot(HaveOccurred())
+					server := getResp.Body().API().URL()
 
-				username := CON.ClusterAdminUser
-				password := H.GetClusterAdminPassword()
-				Expect(password).ToNot(BeEmpty())
+					username := CON.ClusterAdminUser
+					password := H.GetClusterAdminPassword()
+					Expect(password).ToNot(BeEmpty())
 
-				ocAtter := &openshift.OcAttributes{
-					Server:    server,
-					Username:  username,
-					Password:  password,
-					ClusterID: clusterID,
-					AdditioanlFlags: []string{
-						fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, username))),
-					},
-					Timeout: 10,
-				}
-				_, err = openshift.OcLogin(*ocAtter)
-				Expect(err).ToNot(HaveOccurred())
+					ocAtter := &openshift.OcAttributes{
+						Server:    server,
+						Username:  username,
+						Password:  password,
+						ClusterID: clusterID,
+						AdditioanlFlags: []string{
+							"--insecure-skip-tls-verify",
+							fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, username))),
+						},
+						Timeout: 10,
+					}
+					_, err = openshift.OcLogin(*ocAtter)
+					Expect(err).ToNot(HaveOccurred())
 
-			})
+				})
 		})
 	})
 })

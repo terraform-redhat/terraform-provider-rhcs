@@ -86,7 +86,7 @@ func (oidcOP *OIDCProviderOperatorRolesService) Destroy(createArgs ...*OIDCProvi
 	destroyArgs.URL = CON.GateWayURL
 	destroyArgs.OCMENV = CON.OCMENV
 	args := combineStructArgs(destroyArgs)
-	err := runTerraformDestroyWithArgs(oidcOP.Context, oidcOP.ManifestDir, args)
+	_, err := runTerraformDestroyWithArgs(oidcOP.Context, oidcOP.ManifestDir, args)
 	return err
 }
 

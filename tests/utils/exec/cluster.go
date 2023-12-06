@@ -124,11 +124,11 @@ func (creator *ClusterService) Output() (*ClusterOutput, error) {
 	return clusterOutput, nil
 }
 
-func (creator *ClusterService) Destroy(createArgs *ClusterCreationArgs, extraArgs ...string) error {
+func (creator *ClusterService) Destroy(createArgs *ClusterCreationArgs, extraArgs ...string) (string, error) {
 	createArgs.URL = CON.GateWayURL
 	args := combineStructArgs(createArgs, extraArgs...)
-	err := runTerraformDestroyWithArgs(creator.Context, creator.ManifestDir, args)
-	return err
+	output, err := runTerraformDestroyWithArgs(creator.Context, creator.ManifestDir, args)
+	return output, err
 }
 
 func (creator *ClusterService) Plan(planargs *ClusterCreationArgs, extraArgs ...string) (string, error) {

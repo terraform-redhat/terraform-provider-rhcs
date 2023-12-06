@@ -15,6 +15,9 @@ var Day1Prepare = Label("day1-prepare")
 var Day1Post = Label("day1-post")
 var Day2 = Label("day2")
 
+// day3 : the test cases will destroy default resource
+var Day3 = Label("day3")
+
 // destroy
 var Destroy = Label("destroy")
 

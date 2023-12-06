@@ -76,23 +76,23 @@ func runTerraformPlanWithArgs(ctx context.Context, dir string, terraformArgs []s
 	return
 }
 
-func runTerraformDestroyWithArgs(ctx context.Context, dir string, terraformArgs []string) (err error) {
+func runTerraformDestroyWithArgs(ctx context.Context, dir string, terraformArgs []string) (output string, err error) {
 	destroyArgs := append([]string{"destroy", "-auto-approve", "-no-color"}, terraformArgs...)
 	Logger.Infof("Running terraform destroy against the dir: %s", dir)
 	terraformDestroy := exec.Command("terraform", destroyArgs...)
 	terraformDestroy.Dir = dir
 	var stdoutput bytes.Buffer
-	terraformDestroy.Stdout = os.Stdout
+	terraformDestroy.Stdout = &stdoutput
 	terraformDestroy.Stderr = os.Stderr
 	err = terraformDestroy.Run()
-	var output string = h.Strip(stdoutput.String(), "\n")
+	output = h.Strip(stdoutput.String(), "\n")
 	if err != nil {
 		Logger.Errorf(output)
 		err = fmt.Errorf("%s: %s", err.Error(), output)
 		return
 	}
 	Logger.Debugf(output)
-	return err
+	return
 }
 
 func runTerraformOutput(ctx context.Context, dir string) (map[string]interface{}, error) {

@@ -431,7 +431,7 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 		clusterArgs.AdditionalInfraSecurityGroups = output.AdditionalInfraSecurityGroups
 		clusterArgs.AdditionalControlPlaneSecurityGroups = output.AdditionalControlPlaneSecurityGroups
 	}
-	err = clusterService.Destroy(clusterArgs)
+	_, err = clusterService.Destroy(clusterArgs)
 	if err != nil {
 		return err
 	}

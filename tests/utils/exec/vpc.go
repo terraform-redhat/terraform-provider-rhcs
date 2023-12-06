@@ -84,7 +84,7 @@ func (vpc *VPCService) Destroy(createArgs ...*VPCArgs) error {
 		destroyArgs = createArgs[0]
 	}
 	args := combineStructArgs(destroyArgs)
-	err := runTerraformDestroyWithArgs(vpc.Context, vpc.ManifestDir, args)
+	_, err := runTerraformDestroyWithArgs(vpc.Context, vpc.ManifestDir, args)
 
 	return err
 }
@@ -134,6 +134,6 @@ func DestroyAWSVPC(vpcArgs *VPCArgs, arg ...string) error {
 	args := map[string]interface{}{}
 	json.Unmarshal(parambytes, &args)
 	combinedArgs := combineArgs(args, arg...)
-	err := runTerraformDestroyWithArgs(context.TODO(), CON.AWSVPCDir, combinedArgs)
+	_, err := runTerraformDestroyWithArgs(context.TODO(), CON.AWSVPCDir, combinedArgs)
 	return err
 }

@@ -143,6 +143,11 @@ func DigBool(object interface{}, keys ...interface{}) bool {
 	}
 }
 
+func DigObject(object interface{}, keys ...interface{}) interface{} {
+	value := Dig(object, keys)
+	return value
+}
+
 func Dig(object interface{}, keys []interface{}) interface{} {
 	if object == nil || len(keys) == 0 {
 		return nil

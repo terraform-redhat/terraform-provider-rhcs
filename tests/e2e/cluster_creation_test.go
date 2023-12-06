@@ -1,10 +1,8 @@
 package e2e
 
-import (
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-	CI "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
-)
+// . "github.com/onsi/ginkgo/v2"
+// . "github.com/onsi/gomega"
+// CI "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 
 var _ = Describe("RHCS Provider Test", func() {
 	Describe("Create cluster test", func() {

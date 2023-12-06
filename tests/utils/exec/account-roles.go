@@ -85,7 +85,7 @@ func (acc *AccountRoleService) Destroy(createArgs ...*AccountRolesArgs) error {
 	destroyArgs.URL = CON.GateWayURL
 	destroyArgs.OCMENV = CON.OCMENV
 	args := combineStructArgs(destroyArgs)
-	err := runTerraformDestroyWithArgs(acc.Context, acc.ManifestDir, args)
+	_, err := runTerraformDestroyWithArgs(acc.Context, acc.ManifestDir, args)
 	return err
 }
 

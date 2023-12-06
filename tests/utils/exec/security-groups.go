@@ -73,7 +73,7 @@ func (sgs *SecurityGroupService) Destroy(createArgs ...*SecurityGroupArgs) error
 		destroyArgs = createArgs[0]
 	}
 	args := combineStructArgs(destroyArgs)
-	err := runTerraformDestroyWithArgs(sgs.Context, sgs.ManifestDir, args)
+	_, err := runTerraformDestroyWithArgs(sgs.Context, sgs.ManifestDir, args)
 
 	return err
 }

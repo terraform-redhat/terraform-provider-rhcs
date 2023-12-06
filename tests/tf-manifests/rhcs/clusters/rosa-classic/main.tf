@@ -98,3 +98,14 @@ resource "rhcs_cluster_wait" "rosa_cluster" {
   cluster = rhcs_cluster_rosa_classic.rosa_sts_cluster.id
   timeout = 120
 }
+
+resource "rhcs_machine_pool" "dmp" {
+  cluster                 = rhcs_cluster_rosa_classic.rosa_sts_cluster.id
+  machine_type            = var.compute_machine_type
+  name                    = "worker"
+  replicas                = var.replicas
+  min_replicas                = var.autoscaling.min_replicas
+  max_replicas                = var.autoscaling.max_replicas
+  labels                  = var.default_mp_labels
+  autoscaling_enabled     = var.autoscaling.autoscaling_enabled
+}

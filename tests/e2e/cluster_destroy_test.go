@@ -10,7 +10,7 @@ import (
 )
 
 var _ = Describe("TF Test", func() {
-	Describe("Create cluster test", func() {
+	Describe("Delete cluster test", func() {
 		It("DestroyClusterByProfile", CI.Destroy,
 			func() {
 				// Destroy kubeconfig folder

@@ -93,7 +93,7 @@ func (idp *IDPService) Destroy(createArgs ...*IDPArgs) error {
 		destroyArgs.URL = CON.GateWayURL
 	}
 	args := combineStructArgs(destroyArgs)
-	err := runTerraformDestroyWithArgs(idp.Context, idp.ManifestDir, args)
+	_, err := runTerraformDestroyWithArgs(idp.Context, idp.ManifestDir, args)
 
 	return err
 }

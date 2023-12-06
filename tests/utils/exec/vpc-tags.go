@@ -54,7 +54,7 @@ func (vpctag *VPCTagService) Destroy(createArgs ...*VPCTagArgs) error {
 		destroyArgs = createArgs[0]
 	}
 	args := combineStructArgs(destroyArgs)
-	err := runTerraformDestroyWithArgs(vpctag.Context, vpctag.ManifestDir, args)
+	_, err := runTerraformDestroyWithArgs(vpctag.Context, vpctag.ManifestDir, args)
 
 	return err
 }

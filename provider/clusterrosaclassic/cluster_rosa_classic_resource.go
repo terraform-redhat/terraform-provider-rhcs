@@ -725,32 +725,30 @@ func createClassicClusterObject(ctx context.Context,
 }
 
 func buildProxy(state *ClusterRosaClassicState, builder *cmv1.ClusterBuilder) (*cmv1.ClusterBuilder, error) {
-	proxy := cmv1.NewProxy()
 	if state.Proxy != nil {
-		httpsProxy := ""
-		httpProxy := ""
-		httpNoProxy := ""
-		additionalTrustBundle := ""
+		proxy := cmv1.NewProxy()
+		proxyIsEmpty := true
 
 		if !common.IsStringAttributeUnknownOrEmpty(state.Proxy.HttpProxy) {
-			httpProxy = state.Proxy.HttpProxy.ValueString()
+			proxy.HTTPProxy(state.Proxy.HttpProxy.ValueString())
+			proxyIsEmpty = false
 		}
-		proxy.HTTPProxy(httpProxy)
 		if !common.IsStringAttributeUnknownOrEmpty(state.Proxy.HttpsProxy) {
-			httpsProxy = state.Proxy.HttpsProxy.ValueString()
+			proxy.HTTPSProxy(state.Proxy.HttpsProxy.ValueString())
+			proxyIsEmpty = false
 		}
-		proxy.HTTPSProxy(httpsProxy)
 		if !common.IsStringAttributeUnknownOrEmpty(state.Proxy.NoProxy) {
-			httpNoProxy = state.Proxy.NoProxy.ValueString()
+			proxy.NoProxy(state.Proxy.NoProxy.ValueString())
+			proxyIsEmpty = false
 		}
-		proxy.NoProxy(httpNoProxy)
+		if !proxyIsEmpty {
+			builder.Proxy(proxy)
+		}
 
 		if !common.IsStringAttributeUnknownOrEmpty(state.Proxy.AdditionalTrustBundle) {
-			additionalTrustBundle = state.Proxy.AdditionalTrustBundle.ValueString()
+			builder.AdditionalTrustBundle(state.Proxy.AdditionalTrustBundle.ValueString())
 		}
-		builder.AdditionalTrustBundle(additionalTrustBundle)
 
-		builder.Proxy(proxy)
 	}
 
 	return builder, nil

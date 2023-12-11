@@ -45,12 +45,12 @@ func (oidcOP *OIDCProviderOperatorRolesService) Init(manifestDirs ...string) err
 
 }
 
-func (oidcOP *OIDCProviderOperatorRolesService) Create(createArgs *OIDCProviderOperatorRolesArgs, extraArgs ...string) (
+func (oidcOP *OIDCProviderOperatorRolesService) Apply(createArgs *OIDCProviderOperatorRolesArgs, recordtfvars bool, extraArgs ...string) (
 	*OIDCProviderOperatorRolesOutput, error) {
 	createArgs.URL = CON.GateWayURL
 	createArgs.OCMENV = CON.OCMENV
 	oidcOP.CreationArgs = createArgs
-	args := combineStructArgs(createArgs, extraArgs...)
+	args, tfvars := combineStructArgs(createArgs, extraArgs...)
 	_, err := runTerraformApplyWithArgs(oidcOP.Context, oidcOP.ManifestDir, args)
 	if err != nil {
 		return nil, err
@@ -59,6 +59,10 @@ func (oidcOP *OIDCProviderOperatorRolesService) Create(createArgs *OIDCProviderO
 	if err != nil {
 		return nil, err
 	}
+	if recordtfvars {
+		recordTFvarsFile(oidcOP.ManifestDir, tfvars)
+	}
+
 	return output, nil
 }
 
@@ -85,7 +89,7 @@ func (oidcOP *OIDCProviderOperatorRolesService) Destroy(createArgs ...*OIDCProvi
 	}
 	destroyArgs.URL = CON.GateWayURL
 	destroyArgs.OCMENV = CON.OCMENV
-	args := combineStructArgs(destroyArgs)
+	args, _ := combineStructArgs(destroyArgs)
 	_, err := runTerraformDestroyWithArgs(oidcOP.Context, oidcOP.ManifestDir, args)
 	return err
 }

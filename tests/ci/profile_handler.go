@@ -82,7 +82,7 @@ func PrepareVPC(region string, privateLink bool, multiZone bool, azIDs []string,
 	if len(name) == 1 {
 		vpcArgs.Name = name[0]
 	}
-	err := vpcService.Create(vpcArgs)
+	err := vpcService.Apply(vpcArgs, true)
 	if err != nil {
 		vpcService.Destroy()
 		return nil, err
@@ -104,7 +104,7 @@ func PrepareAdditionalSecurityGroups(region string, vpcID string, sgNumbers int)
 		SGNumber:   sgNumbers,
 		NamePrefix: "rhcs-ci",
 	}
-	err := sgService.Apply(sgArgs)
+	err := sgService.Apply(sgArgs, true)
 	if err != nil {
 		sgService.Destroy()
 		return nil, err
@@ -130,7 +130,7 @@ func PrepareAccountRoles(token string, accountRolePrefix string, awsRegion strin
 		Token:             token,
 		ChannelGroup:      channelGroup,
 	}
-	accRoleOutput, err := accService.Create(args)
+	accRoleOutput, err := accService.Apply(args, true)
 	if err != nil {
 		accService.Destroy()
 	}
@@ -150,7 +150,7 @@ func PrepareOIDCProviderAndOperatorRoles(token string, oidcConfigType string, op
 		OIDCConfig:         oidcConfigType,
 		AWSRegion:          awsRegion,
 	}
-	oidcOpOutput, err := oidcOpService.Create(args)
+	oidcOpOutput, err := oidcOpService.Apply(args, true)
 	if err != nil {
 		oidcOpService.Destroy()
 	}
@@ -403,7 +403,7 @@ func CreateRHCSClusterByProfile(token string, profile *Profile) (string, error) 
 		defer DestroyRHCSClusterByProfile(token, profile)
 	}
 	Expect(err).ToNot(HaveOccurred())
-	err = clusterService.Create(creationArgs)
+	err = clusterService.Apply(creationArgs, true)
 	if err != nil {
 		clusterService.Destroy(creationArgs)
 		return "", err

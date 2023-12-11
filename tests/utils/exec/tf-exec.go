@@ -9,7 +9,9 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strconv"
 
+	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
@@ -91,6 +93,7 @@ func runTerraformDestroyWithArgs(ctx context.Context, dir string, terraformArgs 
 		err = fmt.Errorf("%s: %s", err.Error(), output)
 		return
 	}
+	deleteTFvarsFile(dir)
 	Logger.Debugf(output)
 	return
 }
@@ -160,33 +163,65 @@ func runTerraformImportWithArgs(ctx context.Context, dir string, terraformArgs [
 	return output, nil
 }
 
-func combineArgs(varAgrs map[string]interface{}, abArgs ...string) []string {
-
+func combineArgs(varAgrs map[string]interface{}, abArgs ...string) ([]string, map[string]string) {
 	args := []string{}
+	tfArgs := map[string]string{}
 	for k, v := range varAgrs {
-		var argV interface{}
-		switch v.(type) {
+		var argV string
+		var tfvarV string
+		switch v := v.(type) {
 		case string:
+			tfvarV = fmt.Sprintf(`"%s"`, v)
 			argV = v
 		case int:
-			argV = v
+			argV = strconv.Itoa(v)
+			tfvarV = argV
 		case float64:
-			argV = v
+			argV = fmt.Sprintf("%v", v)
+			tfvarV = argV
 		default:
 			mv, _ := json.Marshal(v)
 			argV = string(mv)
-
+			tfvarV = argV
 		}
 		arg := fmt.Sprintf("%s=%v", k, argV)
 		args = append(args, "-var")
 		args = append(args, arg)
+		tfArgs[k] = tfvarV
 	}
 
 	args = append(args, abArgs...)
-	return args
+	return args, tfArgs
+}
+func recordTFvarsFile(fileDir string, tfvars map[string]string) error {
+	tfvarsFile := CON.GrantTFvarsFile(fileDir)
+	iniConn, err := h.IniConnection(tfvarsFile)
+
+	if err != nil {
+		return err
+	}
+	defer iniConn.SaveTo(tfvarsFile)
+	section, err := iniConn.GetSection("")
+	if err != nil {
+		return err
+	}
+	for k, v := range tfvars {
+		section.Key(k).SetValue(v)
+
+	}
+	return iniConn.SaveTo(tfvarsFile)
 }
 
-func combineStructArgs(argObj interface{}, abArgs ...string) []string {
+// delete the recorded TFvarsFile named terraform.tfvars
+func deleteTFvarsFile(fileDir string) error {
+	tfVarsFile := CON.GrantTFvarsFile(fileDir)
+	if _, err := os.Stat(tfVarsFile); err != nil {
+		return nil
+	}
+	return h.DeleteFile(CON.GrantTFvarsFile(fileDir))
+}
+
+func combineStructArgs(argObj interface{}, abArgs ...string) ([]string, map[string]string) {
 	parambytes, _ := json.Marshal(argObj)
 	args := map[string]interface{}{}
 	json.Unmarshal(parambytes, &args)

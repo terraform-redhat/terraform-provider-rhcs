@@ -37,7 +37,7 @@ func (rhcsInfo *RhcsInfoService) Init(manifestDirs ...string) error {
 
 func (rhcsInfo *RhcsInfoService) Create(createArgs *RhcsInfoArgs, extraArgs ...string) error {
 	rhcsInfo.CreationArgs = createArgs
-	args := combineStructArgs(createArgs, extraArgs...)
+	args, _ := combineStructArgs(createArgs, extraArgs...)
 	_, err := runTerraformApplyWithArgs(rhcsInfo.Context, rhcsInfo.ManifestDir, args)
 	if err != nil {
 		return err
@@ -53,7 +53,7 @@ func (rhcsInfo *RhcsInfoService) Destroy(createArgs ...*RhcsInfoArgs) error {
 	if len(createArgs) != 0 {
 		destroyArgs = createArgs[0]
 	}
-	args := combineStructArgs(destroyArgs)
+	args, _ := combineStructArgs(destroyArgs)
 	_, err := runTerraformDestroyWithArgs(rhcsInfo.Context, rhcsInfo.ManifestDir, args)
 
 	return err

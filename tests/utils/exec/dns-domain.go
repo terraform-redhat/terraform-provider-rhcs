@@ -35,7 +35,7 @@ func (dns *DnsService) Init(manifestDirs ...string) error {
 
 func (dns *DnsService) Create(createArgs *DnsDomainArgs, extraArgs ...string) error {
 	dns.CreationArgs = createArgs
-	args := combineStructArgs(createArgs, extraArgs...)
+	args, _ := combineStructArgs(createArgs, extraArgs...)
 	_, err := runTerraformApplyWithArgs(dns.Context, dns.ManifestDir, args)
 	if err != nil {
 		return err
@@ -51,7 +51,7 @@ func (dns *DnsService) Destroy(createArgs ...*DnsDomainArgs) error {
 	if len(createArgs) != 0 {
 		destroyArgs = createArgs[0]
 	}
-	args := combineStructArgs(destroyArgs)
+	args, _ := combineStructArgs(destroyArgs)
 	_, err := runTerraformDestroyWithArgs(dns.Context, dns.ManifestDir, args)
 
 	return err

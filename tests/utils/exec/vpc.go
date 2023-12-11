@@ -2,7 +2,6 @@ package exec
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
@@ -47,13 +46,17 @@ func (vpc *VPCService) Init(manifestDirs ...string) error {
 
 }
 
-func (vpc *VPCService) Create(createArgs *VPCArgs, extraArgs ...string) error {
+func (vpc *VPCService) Apply(createArgs *VPCArgs, recordtfvars bool, extraArgs ...string) error {
 	vpc.CreationArgs = createArgs
-	args := combineStructArgs(createArgs, extraArgs...)
+	args, tfvars := combineStructArgs(createArgs, extraArgs...)
 	_, err := runTerraformApplyWithArgs(vpc.Context, vpc.ManifestDir, args)
 	if err != nil {
 		return err
 	}
+	if recordtfvars {
+		recordTFvarsFile(vpc.ManifestDir, tfvars)
+	}
+
 	return nil
 }
 
@@ -83,7 +86,7 @@ func (vpc *VPCService) Destroy(createArgs ...*VPCArgs) error {
 	if len(createArgs) != 0 {
 		destroyArgs = createArgs[0]
 	}
-	args := combineStructArgs(destroyArgs)
+	args, _ := combineStructArgs(destroyArgs)
 	_, err := runTerraformDestroyWithArgs(vpc.Context, vpc.ManifestDir, args)
 
 	return err
@@ -93,47 +96,4 @@ func NewVPCService(manifestDir ...string) *VPCService {
 	vpc := &VPCService{}
 	vpc.Init(manifestDir...)
 	return vpc
-}
-
-func CreateAWSVPC(vpcArgs *VPCArgs, arg ...string) (
-	privateSubnets []string,
-	publicSubnets []string,
-	zones []string,
-	err error) {
-	parambytes, _ := json.Marshal(vpcArgs)
-	args := map[string]interface{}{}
-	json.Unmarshal(parambytes, &args)
-	err = runTerraformInit(context.TODO(), CON.AWSVPCDir)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	combinedArgs := combineArgs(args, arg...)
-	_, err = runTerraformApplyWithArgs(context.TODO(), CON.AWSVPCDir, combinedArgs)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	return GetVPCOutputs()
-}
-func GetVPCOutputs() (privateSubnets []string, publicSubnets []string, zones []string, err error) {
-	out, err := runTerraformOutput(context.TODO(), CON.AWSVPCDir)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	privateObj := out["cluster-private-subnet"]
-	publicObj := out["cluster-public-subnet"]
-	zonesObj := out["azs"]
-	privateSubnets = h.DigStringArray(privateObj, "value")
-	publicSubnets = h.DigStringArray(publicObj, "value")
-	zones = h.DigStringArray(zonesObj, "value")
-	return
-}
-
-func DestroyAWSVPC(vpcArgs *VPCArgs, arg ...string) error {
-	parambytes, _ := json.Marshal(vpcArgs)
-	args := map[string]interface{}{}
-	json.Unmarshal(parambytes, &args)
-	combinedArgs := combineArgs(args, arg...)
-	_, err := runTerraformDestroyWithArgs(context.TODO(), CON.AWSVPCDir, combinedArgs)
-	return err
 }

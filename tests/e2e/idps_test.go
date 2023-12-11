@@ -67,7 +67,7 @@ var _ = Describe("TF Test", func() {
 								Name:          "OCP-63151-htpasswd-idp-test",
 								HtpasswdUsers: htpasswdMap,
 							}
-							err := idpService.htpasswd.Create(idpParam)
+							err := idpService.htpasswd.Apply(idpParam, false)
 							Expect(err).ToNot(HaveOccurred())
 							idpID, _ := idpService.htpasswd.Output()
 
@@ -133,7 +133,7 @@ var _ = Describe("TF Test", func() {
 								Attributes: make(map[string]interface{}),
 								Insecure:   true,
 							}
-							err := idpService.ldap.Create(idpParam)
+							err := idpService.ldap.Apply(idpParam, false)
 							Expect(err).ToNot(HaveOccurred())
 
 							By("Login with created ldap idp")
@@ -187,7 +187,7 @@ var _ = Describe("TF Test", func() {
 							ClientSecret: gitlabIDPClientSecret,
 							URL:          con.GitLabURL,
 						}
-						err := idpService.gitlab.Create(idpParam)
+						err := idpService.gitlab.Apply(idpParam, false)
 						Expect(err).ToNot(HaveOccurred())
 
 						By("Check gitlab idp created for the cluster")
@@ -225,7 +225,7 @@ var _ = Describe("TF Test", func() {
 							ClientSecret:  githubIDPClientSecret,
 							Organizations: con.Organizations,
 						}
-						err := idpService.github.Create(idpParam)
+						err := idpService.github.Apply(idpParam, false)
 						Expect(err).ToNot(HaveOccurred())
 
 						By("Check github idp created for the cluster")
@@ -263,7 +263,7 @@ var _ = Describe("TF Test", func() {
 							ClientSecret: googleIDPClientSecret,
 							HostedDomain: con.HostedDomain,
 						}
-						err := idpService.google.Create(idpParam)
+						err := idpService.google.Apply(idpParam, false)
 						Expect(err).ToNot(HaveOccurred())
 
 						By("Check google idp created for the cluster")
@@ -307,7 +307,7 @@ var _ = Describe("TF Test", func() {
 						Name:          "",
 						HtpasswdUsers: htpasswdMap,
 					}
-					err := idpService.htpasswd.Create(idpParam)
+					err := idpService.htpasswd.Apply(idpParam, false)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring(
@@ -322,7 +322,7 @@ var _ = Describe("TF Test", func() {
 						HtpasswdUsers: htpasswdMap,
 					}
 
-					err = idpService.htpasswd.Create(idpParam)
+					err = idpService.htpasswd.Apply(idpParam, false)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(ContainSubstring("attributes \"password\" and \"username\" are required"))
 
@@ -335,7 +335,7 @@ var _ = Describe("TF Test", func() {
 						Name:          "htpasswd-idp-test",
 						HtpasswdUsers: htpasswdMap,
 					}
-					err = idpService.htpasswd.Create(idpParam)
+					err = idpService.htpasswd.Apply(idpParam, false)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(ContainSubstring("attributes \"password\" and \"username\" are required"))
 
@@ -349,7 +349,7 @@ var _ = Describe("TF Test", func() {
 						Attributes: make(map[string]interface{}),
 						Insecure:   true,
 					}
-					err = idpService.ldap.Create(idpParam)
+					err = idpService.ldap.Apply(idpParam, false)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring(
@@ -366,7 +366,7 @@ var _ = Describe("TF Test", func() {
 						Attributes: make(map[string]interface{}),
 						Insecure:   true,
 					}
-					err = idpService.ldap.Create(idpParam)
+					err = idpService.ldap.Apply(idpParam, false)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(ContainSubstring(
 						"Must set a configuration value for the ldap.url attribute"))
@@ -380,7 +380,7 @@ var _ = Describe("TF Test", func() {
 						Insecure:  true,
 					}
 
-					err = idpService.ldap.Create(idpParam)
+					err = idpService.ldap.Apply(idpParam, false)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring("provider has marked it as required"))
@@ -394,7 +394,7 @@ var _ = Describe("TF Test", func() {
 						ClientSecret:  githubIDPClientSecret,
 						Organizations: con.Organizations,
 					}
-					err = idpService.github.Create(idpParam)
+					err = idpService.github.Apply(idpParam, false)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring(
@@ -409,7 +409,7 @@ var _ = Describe("TF Test", func() {
 						ClientSecret:  githubIDPClientSecret,
 						Organizations: con.Organizations,
 					}
-					err = idpService.github.Create(idpParam)
+					err = idpService.github.Apply(idpParam, false)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring("No value for required variable"))
@@ -423,7 +423,7 @@ var _ = Describe("TF Test", func() {
 						ClientSecret:  "",
 						Organizations: con.Organizations,
 					}
-					err = idpService.github.Create(idpParam)
+					err = idpService.github.Apply(idpParam, false)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring("No value for required variable"))
@@ -437,7 +437,7 @@ var _ = Describe("TF Test", func() {
 						ClientSecret: gitlabIDPClientSecret,
 						URL:          con.GitLabURL,
 					}
-					err = idpService.gitlab.Create(idpParam)
+					err = idpService.gitlab.Apply(idpParam, false)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring(
@@ -452,7 +452,7 @@ var _ = Describe("TF Test", func() {
 						ClientSecret: gitlabIDPClientSecret,
 						URL:          con.GitLabURL,
 					}
-					err = idpService.gitlab.Create(idpParam)
+					err = idpService.gitlab.Apply(idpParam, false)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring("provider has marked it as required"))
@@ -466,7 +466,7 @@ var _ = Describe("TF Test", func() {
 						ClientSecret: "",
 						URL:          con.GitLabURL,
 					}
-					err = idpService.gitlab.Create(idpParam)
+					err = idpService.gitlab.Apply(idpParam, false)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring("provider has marked it as required"))
@@ -480,7 +480,7 @@ var _ = Describe("TF Test", func() {
 						ClientID:     gitlabIDPClientId,
 						ClientSecret: gitlabIDPClientSecret,
 					}
-					err = idpService.gitlab.Create(idpParam)
+					err = idpService.gitlab.Apply(idpParam, false)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring("Must set a configuration value for the gitlab.url"))
@@ -494,7 +494,7 @@ var _ = Describe("TF Test", func() {
 						ClientSecret: googleIDPClientSecret,
 						HostedDomain: con.HostedDomain,
 					}
-					err = idpService.google.Create(idpParam)
+					err = idpService.google.Apply(idpParam, false)
 					Expect(err.Error()).Should(
 						ContainSubstring(
 							"The root module input variable \"name\" is not set, and has no default value"))
@@ -508,7 +508,7 @@ var _ = Describe("TF Test", func() {
 						ClientSecret: googleIDPClientSecret,
 						HostedDomain: con.HostedDomain,
 					}
-					err = idpService.google.Create(idpParam)
+					err = idpService.google.Apply(idpParam, false)
 					Expect(err.Error()).Should(
 						ContainSubstring("provider has marked it as required"))
 
@@ -521,7 +521,7 @@ var _ = Describe("TF Test", func() {
 						ClientSecret: "",
 						HostedDomain: con.HostedDomain,
 					}
-					err = idpService.google.Create(idpParam)
+					err = idpService.google.Apply(idpParam, false)
 					Expect(err.Error()).Should(
 						ContainSubstring("provider has marked it as required"))
 
@@ -538,7 +538,7 @@ var _ = Describe("TF Test", func() {
 						Name:          "OCP-66409-htpasswd-idp-test",
 						HtpasswdUsers: htpasswdMap,
 					}
-					err := idpService.htpasswd.Create(idpParam)
+					err := idpService.htpasswd.Apply(idpParam, false)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring(
@@ -565,7 +565,7 @@ var _ = Describe("TF Test", func() {
 						Name:          "OCP-66410-htpasswd-idp-test",
 						HtpasswdUsers: htpasswdMap,
 					}
-					err := idpService.htpasswd.Create(idpParam)
+					err := idpService.htpasswd.Apply(idpParam, false)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring(
@@ -585,7 +585,7 @@ var _ = Describe("TF Test", func() {
 						Name:          "OCP-66410-htpasswd-idp-test",
 						HtpasswdUsers: htpasswdMap,
 					}
-					err = idpService.htpasswd.Create(idpParam)
+					err = idpService.htpasswd.Apply(idpParam, false)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring(
@@ -605,7 +605,7 @@ var _ = Describe("TF Test", func() {
 						Name:          "OCP-66411-htpasswd-idp-test",
 						HtpasswdUsers: htpasswdMap,
 					}
-					err := idpService.htpasswd.Create(idpParam)
+					err := idpService.htpasswd.Apply(idpParam, false)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring(
@@ -647,7 +647,7 @@ var _ = Describe("TF Test", func() {
 							HostedDomain: con.HostedDomain,
 						}
 
-						Expect(idpService.google.Create(idpParam)).To(Succeed())
+						Expect(idpService.google.Apply(idpParam, false)).To(Succeed())
 
 						By("Run the command to import the idp")
 						importParam := &exe.ImportArgs{

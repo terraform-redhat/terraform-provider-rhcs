@@ -46,14 +46,17 @@ func (acc *AccountRoleService) Init(manifestDirs ...string) error {
 
 }
 
-func (acc *AccountRoleService) Create(createArgs *AccountRolesArgs, extraArgs ...string) (*AccountRolesOutput, error) {
+func (acc *AccountRoleService) Apply(createArgs *AccountRolesArgs, recordtfvars bool, extraArgs ...string) (*AccountRolesOutput, error) {
 	createArgs.URL = CON.GateWayURL
 	createArgs.OCMENV = CON.OCMENV
 	acc.CreationArgs = createArgs
-	args := combineStructArgs(createArgs, extraArgs...)
+	args, tfvars := combineStructArgs(createArgs, extraArgs...)
 	_, err := runTerraformApplyWithArgs(acc.Context, acc.ManifestDir, args)
 	if err != nil {
 		return nil, err
+	}
+	if recordtfvars {
+		recordTFvarsFile(acc.ManifestDir, tfvars)
 	}
 	output, err := acc.Output()
 	return output, err
@@ -84,7 +87,7 @@ func (acc *AccountRoleService) Destroy(createArgs ...*AccountRolesArgs) error {
 	}
 	destroyArgs.URL = CON.GateWayURL
 	destroyArgs.OCMENV = CON.OCMENV
-	args := combineStructArgs(destroyArgs)
+	args, _ := combineStructArgs(destroyArgs)
 	_, err := runTerraformDestroyWithArgs(acc.Context, acc.ManifestDir, args)
 	return err
 }

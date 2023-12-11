@@ -21,6 +21,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/thoas/go-funk v0.9.3
 	github.com/zgalor/weberr v0.6.0
+	gopkg.in/ini.v1 v1.67.0
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/apimachinery v0.26.2
 )

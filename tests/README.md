@@ -64,10 +64,18 @@ Please read the structure and contribte code to the correct place
 * Don't need to run creation step, just in BeforeEach step call function  ***PrepareRHCSClusterByProfileENV()*** it will load the clusterID prepared
 * Code for day2 actions and check step
 * Every case need to recover the cluster after the case run finished unless it's un-recoverable
+### Contribute to day3
+* day3 cases means the cases is destructive and cannot recover anymore. The actions will affect other cases like default worker pool deletion, it will affect a lot of day1 post verification
+* Create the case in terraform-provider-rhcs/tests/e2e/<feature name>_test.go
+* Label the case with ***CI.Day3***
+* Label the case with importance ***CI.Critical*** or ***CI.High***
+* Don't need to run creation step, just in BeforeEach step call function  ***PrepareRHCSClusterByProfileENV()*** it will load the clusterID prepared
+* Code for day3 actions and check step
+* Every case need to recover the cluster after the case run finished unless it's un-recoverable
 ### Labels
 * Label your case with the ***CI.Feature<feature name>*** defined in terraform-provider-rhcs/tests/ci/labels.go
 * Label your case with importance defined in terraform-provider-rhcs/tests/ci/labels.go
-* Label your case with ***CI.Day1/CI.Day2*** according to the case runtime
+* Label your case with ***CI.Day1Post/CI.Day2/CI.Day3*** according to the case runtime
 * Label your case with ***CI.Exclude*** if it fails CI all  the time and you can't fix it in time
 
 ## Running
@@ -75,6 +83,7 @@ The cluster created by the automation scripts are shared across all of the test 
 
 ### Prerequisite
 Please read repo's [README.md](../README.md)
+For the test cases, we need `make install` to make the terraform provider installed to local
 #### Users and Tokens
 To execute the test cases, we need to prepare the [offline token](https://console.redhat.com/openshift/token/show). Get the offline token and export as an ENV variable 
 
@@ -88,44 +97,6 @@ The default rhcs enviroment is `production`. To specify running on staging or lo
 To declare the profile cluster type to be run, use the below variable::
 * export CLUSTER_PROFILE = <rosa-tf-profile>
 
-### To run with ginkgo directly
-This only allow running the test cases one by one. option.
-* Running all the CMS test cases
-  * `ginkgo -v ./tests/e2e`
-* Running a single test case with scenario
-  * `ginkgo -v -focus <case title> ./tests/e2e`
-* Running a set of test case with label filter
-  * `ginkgo run --label-filter <filter> ./tests/e2e`
-
-### To run on local simulate CI
-This allows run by case filter to simulate CI. Anybody can customize the case label filter to filter out the cases want to run
-* Prepare cluster with profile
-  * Check file terraform-provider-rhcs/tests/ci/profiles/tf_cluster_profile.yml to find the supported profiles and detailed configuration
-    * `export CLUSTER_PROFILE=<profile name>` 
-  * Export the token
-    * `export RHCS_TOKEN=<rhcs token>`
-  * Export the label filter to locate the preparation case
-    * `export LabelFilter="day1-prepare"`
-  * Run make command
-    * `make e2e_test`
-* Run day2 day1 post cases with profile
-  * Check file terraform-provider-rhcs/tests/ci/profiles/tf_cluster_profile.yml to find the supported profiles and detailed configuration
-    * `export CLUSTER_PROFILE=<profile name>` #If it had been run, then you can skip
-  * Export the token
-    * `export RHCS_TOKEN=<rhcs token>` #If it had been run, then you can skip
-  * Export the label filter to locate the preparation case
-    * `export LabelFilter="(Critical,High)&&(day1-post,day2)&&!Exclude"` #This filter only choose all critical and high priority cases with day1-post and day2
-  * Run make command
-    * `make e2e_test`
-* Run destroy with profile
-  * Check file terraform-provider-rhcs/tests/ci/profiles/tf_cluster_profile.yml to find the supported profiles and detailed configuration
-    * `export CLUSTER_PROFILE=<profile name>` #If it had been run, then you can skip
-  * Export the token
-    * `export RHCS_TOKEN=<rhcs token>` #If it had been run, then you can skip
-  * Export the label filter to locate the preparation case
-    * `export LabelFilter="destroy"` #This filter only choose the destroy case for resources destroy
-  * Run make command
-    * `make e2e_test`
 ### Running a local CI simulation
 This feature allows for running tests through a case filter to simulate CI. Anyone can customize the case label filter to select the specific cases that would be run. 
 * Prepare cluster with profile
@@ -141,9 +112,9 @@ This feature allows for running tests through a case filter to simulate CI. Anyo
   * Export the token
     * `export RHCS_TOKEN=<rhcs token>` #If it had been run, then you can skip
   * Run ginkgo run command
-    * `ginkgo run --label-filter (Critical,High)&&(day1-post,day2)&&!Exclude tests/e2e`
-   * Run a specified case to debug
-    * `ginkgo -focus <case id> tests/e2e`
+    * `ginkgo run --label-filter '(Critical,High)&&(day1-post,day2)&&!Exclude' tests/e2e`
+* Run a specified case to debug
+  * `ginkgo -focus <case id> tests/e2e`
 * Run destroy with profile
   * Check file terraform-provider-rhcs/tests/ci/profiles/tf_cluster_profile.yml to find the supported profiles and detailed configuration
     * `export CLUSTER_PROFILE=<profile name>` #If it had been run, then you can skip
@@ -153,7 +124,7 @@ This feature allows for running tests through a case filter to simulate CI. Anyo
     * `ginkgo run --label-filter destroy tests/e2e`
 
 ### Set log level
-* Log level defined in terraform-provider-rhcs/tests/utils/exec/tf-exec.go
+* Log level defined in terraform-provider-rhcs/tests/utils/utils/log/logger.go
 ```
 logger.SetLevel(logging.InfoLevel)
 ```

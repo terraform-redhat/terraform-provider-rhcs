@@ -35,13 +35,17 @@ func (vpctag *VPCTagService) Init(manifestDirs ...string) error {
 
 }
 
-func (vpctag *VPCTagService) Create(createArgs *VPCTagArgs, extraArgs ...string) error {
+func (vpctag *VPCTagService) Apply(createArgs *VPCTagArgs, recordtfvars bool, extraArgs ...string) error {
 	vpctag.CreationArgs = createArgs
-	args := combineStructArgs(createArgs, extraArgs...)
+	args, tfvars := combineStructArgs(createArgs, extraArgs...)
 	_, err := runTerraformApplyWithArgs(vpctag.Context, vpctag.ManifestDir, args)
 	if err != nil {
 		return err
 	}
+	if recordtfvars {
+		recordTFvarsFile(vpctag.ManifestDir, tfvars)
+	}
+
 	return nil
 }
 
@@ -53,7 +57,7 @@ func (vpctag *VPCTagService) Destroy(createArgs ...*VPCTagArgs) error {
 	if len(createArgs) != 0 {
 		destroyArgs = createArgs[0]
 	}
-	args := combineStructArgs(destroyArgs)
+	args, _ := combineStructArgs(destroyArgs)
 	_, err := runTerraformDestroyWithArgs(vpctag.Context, vpctag.ManifestDir, args)
 
 	return err

@@ -2,6 +2,7 @@
 .terraform*
 /dist/
 terraform.tfstate*
+/tests/**/terraform.tfvars
 /playground/*
 /vendor
 /tests/rhcs_output

@@ -21,7 +21,7 @@ type MachinePoolArgs struct {
 	MaxReplicas              *int                `json:"max_replicas,omitempty"`
 	MinReplicas              *int                `json:"min_replicas,omitempty"`
 	MaxSpotPrice             float64             `json:"max_spot_price,omitempty"`
-	Labels                   map[string]string   `json:"labels,omitempty"`
+	Labels                   *map[string]string  `json:"labels,omitempty"`
 	Taints                   []map[string]string `json:"taints,omitempty"`
 	ID                       string              `json:"id,omitempty"`
 	AvailabilityZone         string              `json:"availability_zone,omitempty"`
@@ -62,21 +62,10 @@ func (mp *MachinePoolService) Init(manifestDirs ...string) error {
 
 }
 
-func (mp *MachinePoolService) Create(createArgs *MachinePoolArgs, extraArgs ...string) (string, error) {
-	createArgs.URL = CON.GateWayURL
-	mp.CreationArgs = createArgs
-	args := combineStructArgs(createArgs, extraArgs...)
-	output, err := runTerraformApplyWithArgs(mp.Context, mp.ManifestDir, args)
-	if err != nil {
-		return "", err
-	}
-	return output, nil
-}
-
 func (mp *MachinePoolService) MagicImport(createArgs *MachinePoolArgs, extraArgs ...string) error {
 	createArgs.URL = CON.GateWayURL
 	mp.CreationArgs = createArgs
-	args := combineStructArgs(createArgs, extraArgs...)
+	args, _ := combineStructArgs(createArgs, extraArgs...)
 	_, err := runTerraformApplyWithArgs(mp.Context, mp.ManifestDir, args)
 	if err != nil {
 		return err
@@ -84,18 +73,21 @@ func (mp *MachinePoolService) MagicImport(createArgs *MachinePoolArgs, extraArgs
 	return nil
 }
 
-func (mp *MachinePoolService) Apply(createArgs *MachinePoolArgs, extraArgs ...string) (string, error) {
+func (mp *MachinePoolService) Apply(createArgs *MachinePoolArgs, recordtfargs bool, extraArgs ...string) (string, error) {
 	createArgs.URL = CON.GateWayURL
 	mp.CreationArgs = createArgs
-	args := combineStructArgs(createArgs, extraArgs...)
+	args, tfvars := combineStructArgs(createArgs, extraArgs...)
 	output, err := runTerraformApplyWithArgs(mp.Context, mp.ManifestDir, args)
+	if err == nil && recordtfargs {
+		recordTFvarsFile(mp.ManifestDir, tfvars)
+	}
 	return output, err
 }
 
 func (mp *MachinePoolService) Plan(createArgs *MachinePoolArgs, extraArgs ...string) (string, error) {
 	createArgs.URL = CON.GateWayURL
 	mp.CreationArgs = createArgs
-	args := combineStructArgs(createArgs, extraArgs...)
+	args, _ := combineStructArgs(createArgs, extraArgs...)
 	output, err := runTerraformPlanWithArgs(mp.Context, mp.ManifestDir, args)
 	return output, err
 }
@@ -135,10 +127,9 @@ func (mp *MachinePoolService) Destroy(createArgs ...*MachinePoolArgs) (output st
 		destroyArgs = createArgs[0]
 	}
 	destroyArgs.URL = CON.GateWayURL
-	args := combineStructArgs(destroyArgs)
-	output, err = runTerraformDestroyWithArgs(mp.Context, mp.ManifestDir, args)
+	args, _ := combineStructArgs(destroyArgs)
 
-	return
+	return runTerraformDestroyWithArgs(mp.Context, mp.ManifestDir, args)
 }
 
 func NewMachinePoolService(manifestDir ...string) *MachinePoolService {
@@ -169,7 +160,7 @@ func BuildDefaultMachinePoolArgsFromClusterState(clusterResource interface{}) (M
 	for key, value := range labelsInterface.(map[string]interface{}) {
 		labels[key] = fmt.Sprint(value)
 	}
-	machinePoolArgs.Labels = labels
+	machinePoolArgs.Labels = &labels
 	return machinePoolArgs, nil
 }
 
@@ -195,7 +186,7 @@ func BuildDefaultMachinePoolArgsFromDefaultMachinePoolState(defaultMachinePoolRe
 	for key, value := range labelsInterface.(map[string]interface{}) {
 		labels[key] = fmt.Sprint(value)
 	}
-	machinePoolArgs.Labels = labels
+	machinePoolArgs.Labels = &labels
 	if h.DigObject(h.DigArray(defaultMachinePoolResource, "instances")[0], "attributes", "taints") != nil {
 		taintsInterface := h.DigArray(h.DigArray(defaultMachinePoolResource, "instances")[0], "attributes", "taints")
 		taints := make([]map[string]string, len(taintsInterface))

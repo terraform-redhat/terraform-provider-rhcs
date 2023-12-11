@@ -33,16 +33,6 @@ var (
 	WorkSpace           = "WORKSPACE"
 	RHCSPrefix          = "rhcs"
 	TFYAMLProfile       = "tf_cluster_profile.yml"
-	LdapURL             = "ldap://ldap.forumsys.com/dc=example,dc=com?uid"
-	GitLabURL           = "https://gitlab.cee.redhat.com"
-	Organizations       = []string{"openshift"}
-	HostedDomain        = "redhat.com"
-	NilMap              map[string]string
-	Tags                = map[string]string{"tag1": "test_tag1", "tag2": "test_tag2"}
-	ClusterAdminUser    = "cluster_admin_name"
-	DefaultMPLabels     = map[string]string{
-		"test1": "testdata1",
-	}
 )
 
 const (
@@ -115,6 +105,10 @@ func GrantClusterManifestDir(manifestDir string) string {
 		targetDir = path.Join(ClusterDir, manifestDir)
 	}
 	return targetDir
+}
+
+func GrantTFvarsFile(manifestDir string) string {
+	return path.Join(manifestDir, "terraform.tfvars")
 }
 
 // Machine pool taints effect

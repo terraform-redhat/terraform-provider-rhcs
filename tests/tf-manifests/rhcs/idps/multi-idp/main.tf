@@ -24,11 +24,12 @@ terraform {
 
 provider "rhcs" {
   token = var.token
-  url   = var.url
+  url   = var.gateway
 }
+
 resource "rhcs_identity_provider" "google_idp" {
   cluster        = var.cluster_id
-  name           = var.name
+  name           = "multi-google-idp"
   mapping_method = var.mapping_method
   google = {
     client_id     = var.client_id
@@ -37,3 +38,16 @@ resource "rhcs_identity_provider" "google_idp" {
   }
 }
 
+resource "rhcs_identity_provider" "ldap_idp" {
+  cluster        = var.cluster_id
+  name           = "multi-ldap-idp"
+  mapping_method = var.mapping_method
+  ldap = {
+    ca            = var.ca
+    insecure      = true
+    url           = var.url
+    
+    # optional
+    attributes    = var.attributes
+  }
+}

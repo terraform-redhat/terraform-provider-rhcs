@@ -95,6 +95,7 @@ var (
 	LdapDir     = path.Join(IDPsDir, "ldap")
 	OpenidDir   = path.Join(IDPsDir, "openid")
 	GoogleDir   = path.Join(IDPsDir, "google")
+	MultiIDPDir = path.Join(IDPsDir, "multi-idp")
 )
 
 // Supports abs and relatives

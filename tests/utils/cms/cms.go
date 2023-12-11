@@ -180,6 +180,10 @@ func ListIDPs(connection *client.Connection, clusterID string) (*cmv1.IdentityPr
 	return connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).IdentityProviders().List().Send()
 }
 
+func DeleteIDP(connection *client.Connection, clusterID string, idpID string) (*cmv1.IdentityProviderDeleteResponse, error) {
+	return connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).IdentityProviders().IdentityProvider(idpID).Delete().Send()
+}
+
 // RetrieveClusterCPUTotalByNodeRolesOS will return the physical cpu_total of the compute nodes of the cluster
 func RetrieveClusterCPUTotalByNodeRolesOS(connection *client.Connection, clusterID string) (*cmv1.CPUTotalByNodeRolesOSMetricQueryGetResponse, error) {
 	return connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).MetricQueries().CPUTotalByNodeRolesOS().Get().Send()

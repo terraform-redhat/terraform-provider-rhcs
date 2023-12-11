@@ -54,7 +54,7 @@ func (rhcsInfo *RhcsInfoService) Destroy(createArgs ...*RhcsInfoArgs) error {
 		destroyArgs = createArgs[0]
 	}
 	args := combineStructArgs(destroyArgs)
-	err := runTerraformDestroyWithArgs(rhcsInfo.Context, rhcsInfo.ManifestDir, args)
+	_, err := runTerraformDestroyWithArgs(rhcsInfo.Context, rhcsInfo.ManifestDir, args)
 
 	return err
 }

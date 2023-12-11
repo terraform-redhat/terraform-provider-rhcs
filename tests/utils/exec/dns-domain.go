@@ -52,7 +52,7 @@ func (dns *DnsService) Destroy(createArgs ...*DnsDomainArgs) error {
 		destroyArgs = createArgs[0]
 	}
 	args := combineStructArgs(destroyArgs)
-	err := runTerraformDestroyWithArgs(dns.Context, dns.ManifestDir, args)
+	_, err := runTerraformDestroyWithArgs(dns.Context, dns.ManifestDir, args)
 
 	return err
 }

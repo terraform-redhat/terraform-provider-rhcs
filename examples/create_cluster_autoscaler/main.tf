@@ -36,7 +36,7 @@ resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
   max_pod_grace_period          = 10
   pod_priority_threshold        = -10
   ignore_daemonsets_utilization = true
-  max_nodes_provision_time      = "1h"
+  max_node_provision_time       = "1h"
   balancing_ignored_labels      = ["l1", "l2"]
 
   resource_limits = {

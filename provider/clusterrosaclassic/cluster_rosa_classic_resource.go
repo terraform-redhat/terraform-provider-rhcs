@@ -277,6 +277,9 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Description: "AWS additional compute security group ids.",
 				ElementType: types.StringType,
 				Optional:    true,
+				PlanModifiers: []planmodifier.List{
+					common.Immutable(),
+				},
 			},
 			"aws_additional_infra_security_group_ids": schema.ListAttribute{
 				Description: "AWS additional infra security group ids.",
@@ -1580,15 +1583,6 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 			return err
 		}
 		state.AWSSubnetIDs = awsSubnetIds
-	}
-
-	additionalComputeSecurityGroupIds, ok := object.AWS().GetAdditionalComputeSecurityGroupIds()
-	if ok {
-		awsAdditionalSecurityGroupIds, err := common.StringArrayToList(additionalComputeSecurityGroupIds)
-		if err != nil {
-			return err
-		}
-		state.AWSAdditionalComputeSecurityGroupIds = awsAdditionalSecurityGroupIds
 	}
 
 	additionalInfraSecurityGroupIds, ok := object.AWS().GetAdditionalInfraSecurityGroupIds()

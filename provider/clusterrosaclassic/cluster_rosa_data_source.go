@@ -410,6 +410,36 @@ func populateClusterRosaDataSourceState(ctx context.Context, object *cmv1.Cluste
 		state.Ec2MetadataHttpTokens = types.StringValue(string(httpTokensState))
 	}
 
+	additionalComputeSecurityGroupIds, ok := object.AWS().GetAdditionalComputeSecurityGroupIds()
+	if ok {
+		awsAdditionalSecurityGroupIds, err := common.StringArrayToList(additionalComputeSecurityGroupIds)
+		if err != nil {
+			return err
+		}
+		state.AWSAdditionalComputeSecurityGroupIds = awsAdditionalSecurityGroupIds
+	}
+
+	additionalInfraSecurityGroupIds, ok := object.AWS().GetAdditionalInfraSecurityGroupIds()
+	if ok {
+		awsAdditionalSecurityGroupIds, err := common.StringArrayToList(additionalInfraSecurityGroupIds)
+		if err != nil {
+			return err
+		}
+		state.AWSAdditionalInfraSecurityGroupIds = awsAdditionalSecurityGroupIds
+	}
+
+	additionalControlPlaneSecurityGroupIds, ok := object.AWS().GetAdditionalControlPlaneSecurityGroupIds()
+	if ok {
+		awsAdditionalSecurityGroupIds, err := common.StringArrayToList(additionalControlPlaneSecurityGroupIds)
+		if err != nil {
+			return err
+		}
+		state.AWSAdditionalControlPlaneSecurityGroupIds = awsAdditionalSecurityGroupIds
+	}
+
+	hasProxy := true
+	hasAdditionalTrustBundle := true
+
 	proxyObj, ok := object.GetProxy()
 	if ok {
 		if state.Proxy == nil {
@@ -424,14 +454,31 @@ func populateClusterRosaDataSourceState(ctx context.Context, object *cmv1.Cluste
 		if noProxy, ok := proxyObj.GetNoProxy(); ok {
 			state.Proxy.NoProxy = types.StringValue(noProxy)
 		}
+	} else {
+		// We cannot set the proxy to nil because the attribute state.Proxy.AdditionalTrustBundle might contain a value.
+		// Due to the sensitivity of this attribute, the backend returns the value `REDUCTED` for a non-empty AdditionalTrustBundle
+		// and if state.Proxy is null it will override the actual value.
+		hasProxy = false
 	}
 
 	trustBundle, ok := object.GetAdditionalTrustBundle()
-	if ok && common.IsStringAttributeEmpty(state.Proxy.AdditionalTrustBundle) {
-		if state.Proxy == nil {
-			state.Proxy = &proxy.Proxy{}
+	if ok {
+		// If AdditionalTrustBundle is not empty, the ocm-backend always "REDUCTED" (sensitive value)
+		// Therefore, we would like to update the state only if the current state is Null or Empty
+		// it can happen after `import` command or when it was updated from a different cli tool
+		if state.Proxy == nil || common.IsStringAttributeKnownAndEmpty(state.Proxy.AdditionalTrustBundle) {
+			if state.Proxy == nil {
+				state.Proxy = &proxy.Proxy{}
+			}
+			state.Proxy.AdditionalTrustBundle = types.StringValue(trustBundle)
 		}
-		state.Proxy.AdditionalTrustBundle = types.StringValue(trustBundle)
+	} else {
+		hasAdditionalTrustBundle = false
+	}
+
+	// Set state.Proxy to be null only if `object.Proxy()` and `object.AdditionalTrustBundle()` are empty
+	if !hasProxy && !hasAdditionalTrustBundle {
+		state.Proxy = nil
 	}
 
 	if machineCIDR, ok := object.Network().GetMachineCIDR(); ok {
@@ -458,22 +505,6 @@ func populateClusterRosaDataSourceState(ctx context.Context, object *cmv1.Cluste
 		version = strings.TrimPrefix(version, "openshift-v")
 		tflog.Debug(ctx, fmt.Sprintf("actual cluster version: %v", version))
 		state.CurrentVersion = types.StringValue(version)
-	}
-
-	if autoScale, ok := object.Nodes().GetAutoscaleCompute(); ok {
-		state.AutoScalingEnabled = types.BoolValue(true)
-		if minReplicas, ok := autoScale.GetMinReplicas(); ok {
-			state.MinReplicas = types.Int64Value(int64(minReplicas))
-		}
-		if maxReplicas, ok := autoScale.GetMaxReplicas(); ok {
-			state.MaxReplicas = types.Int64Value(int64(maxReplicas))
-		}
-	} else {
-		state.AutoScalingEnabled = types.BoolValue(false)
-	}
-
-	if compute, ok := object.Nodes().GetCompute(); ok {
-		state.Replicas = types.Int64Value(int64(compute))
 	}
 
 	return nil

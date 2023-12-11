@@ -1593,22 +1593,6 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		state.AvailabilityZones = types.ListNull(types.StringType)
 	}
 
-	// Note: The API does not currently return account id, but we try to get it
-	// anyway. Failing that, we fetch the creator ARN from the properties like
-	// rosa cli does.
-	awsAccountID, ok := object.AWS().GetAccountID()
-	if ok {
-		state.AWSAccountID = types.StringValue(awsAccountID)
-	} else {
-		// rosa cli gets it from the properties, so we do the same
-		if creatorARN, ok := object.Properties()[properties.CreatorARN]; ok {
-			if arn, err := arn.Parse(creatorARN); err == nil {
-				state.AWSAccountID = types.StringValue(arn.AccountID)
-			}
-		}
-
-	}
-
 	awsPrivateLink, ok := object.AWS().GetPrivateLink()
 	if ok {
 		state.AWSPrivateLink = types.BoolValue(awsPrivateLink)

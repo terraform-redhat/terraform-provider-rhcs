@@ -33,15 +33,8 @@ type ClusterRosaClassicState struct {
 	Sts                                       *Sts               `tfsdk:"sts"`
 	CCSEnabled                                types.Bool         `tfsdk:"ccs_enabled"`
 	EtcdEncryption                            types.Bool         `tfsdk:"etcd_encryption"`
-	AutoScalingEnabled                        types.Bool         `tfsdk:"autoscaling_enabled"`
-	MinReplicas                               types.Int64        `tfsdk:"min_replicas"`
-	MaxReplicas                               types.Int64        `tfsdk:"max_replicas"`
 	ChannelGroup                              types.String       `tfsdk:"channel_group"`
 	CloudRegion                               types.String       `tfsdk:"cloud_region"`
-	ComputeMachineType                        types.String       `tfsdk:"compute_machine_type"`
-	WorkerDiskSize                            types.Int64        `tfsdk:"worker_disk_size"`
-	DefaultMPLabels                           types.Map          `tfsdk:"default_mp_labels"`
-	Replicas                                  types.Int64        `tfsdk:"replicas"`
 	ConsoleURL                                types.String       `tfsdk:"console_url"`
 	Domain                                    types.String       `tfsdk:"domain"`
 	InfraID                                   types.String       `tfsdk:"infra_id"`
@@ -73,6 +66,17 @@ type ClusterRosaClassicState struct {
 	PrivateHostedZone                         *PrivateHostedZone `tfsdk:"private_hosted_zone"`
 	BaseDNSDomain                             types.String       `tfsdk:"base_dns_domain"`
 	WaitForCreateComplete                     types.Bool         `tfsdk:"wait_for_create_complete"`
+	DefaultMachinePool
+}
+
+type DefaultMachinePool struct {
+	AutoScalingEnabled types.Bool   `tfsdk:"autoscaling_enabled"`
+	MinReplicas        types.Int64  `tfsdk:"min_replicas"`
+	MaxReplicas        types.Int64  `tfsdk:"max_replicas"`
+	ComputeMachineType types.String `tfsdk:"compute_machine_type"`
+	WorkerDiskSize     types.Int64  `tfsdk:"worker_disk_size"`
+	DefaultMPLabels    types.Map    `tfsdk:"default_mp_labels"`
+	Replicas           types.Int64  `tfsdk:"replicas"`
 }
 
 type Sts struct {

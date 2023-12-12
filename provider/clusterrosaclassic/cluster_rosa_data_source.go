@@ -322,39 +322,39 @@ func (c *ClusterDataSource) Schema(ctx context.Context, req datasource.SchemaReq
 				Description: "The ROSA cluster infrastructure ID.",
 				Computed:    true,
 			},
-			"autoscaling_enabled": schema.BoolAttribute{
-				Description: "Enable autoscaling for the initial worker pool. (only valid during cluster creation)",
-				Optional:    true,
-			},
-			"min_replicas": schema.Int64Attribute{
-				Description: "Minimum replicas of worker nodes in a machine pool. (only valid during cluster creation)",
-				Optional:    true,
-			},
-			"max_replicas": schema.Int64Attribute{
-				Description: "Maximum replicas of worker nodes in a machine pool. (only valid during cluster creation)",
-				Optional:    true,
-			},
-			"replicas": schema.Int64Attribute{
-				Description: "Number of worker/compute nodes to provision. Single zone clusters need at least 2 nodes, " +
-					"multizone clusters need at least 3 nodes. (only valid during cluster creation)",
-				Optional: true,
-			},
-			"compute_machine_type": schema.StringAttribute{
-				Description: "Identifies the machine type used by the default/initial worker nodes, " +
-					"for example `m5.xlarge`. Use the `rhcs_machine_types` data " +
-					"source to find the possible values. (only valid during cluster creation)",
-				Optional: true,
-			},
-			"worker_disk_size": schema.Int64Attribute{
-				Description: "Compute node root disk size, in GiB. (only valid during cluster creation)",
-				Optional:    true,
-			},
-			"default_mp_labels": schema.MapAttribute{
-				Description: "This value is the default/initial machine pool labels. Format should be a comma-separated list of '{\"key1\"=\"value1\", \"key2\"=\"value2\"}'. " +
-					"(only valid during cluster creation)",
-				ElementType: types.StringType,
-				Optional:    true,
-			},
+			//"autoscaling_enabled": schema.BoolAttribute{
+			//	Description: "Enable autoscaling for the initial worker pool. (only valid during cluster creation)",
+			//	Optional:    true,
+			//},
+			//"min_replicas": schema.Int64Attribute{
+			//	Description: "Minimum replicas of worker nodes in a machine pool. (only valid during cluster creation)",
+			//	Optional:    true,
+			//},
+			//"max_replicas": schema.Int64Attribute{
+			//	Description: "Maximum replicas of worker nodes in a machine pool. (only valid during cluster creation)",
+			//	Optional:    true,
+			//},
+			//"replicas": schema.Int64Attribute{
+			//	Description: "Number of worker/compute nodes to provision. Single zone clusters need at least 2 nodes, " +
+			//		"multizone clusters need at least 3 nodes. (only valid during cluster creation)",
+			//	Optional: true,
+			//},
+			//"compute_machine_type": schema.StringAttribute{
+			//	Description: "Identifies the machine type used by the default/initial worker nodes, " +
+			//		"for example `m5.xlarge`. Use the `rhcs_machine_types` data " +
+			//		"source to find the possible values. (only valid during cluster creation)",
+			//	Optional: true,
+			//},
+			//"worker_disk_size": schema.Int64Attribute{
+			//	Description: "Compute node root disk size, in GiB. (only valid during cluster creation)",
+			//	Optional:    true,
+			//},
+			//"default_mp_labels": schema.MapAttribute{
+			//	Description: "This value is the default/initial machine pool labels. Format should be a comma-separated list of '{\"key1\"=\"value1\", \"key2\"=\"value2\"}'. " +
+			//		"(only valid during cluster creation)",
+			//	ElementType: types.StringType,
+			//	Optional:    true,
+			//},
 			"disable_waiting_in_destroy": schema.BoolAttribute{
 				Description: "Disable addressing cluster state in the destroy resource. Default value is false, and so a `destroy` will wait for the cluster to be deleted.",
 				Optional:    true,

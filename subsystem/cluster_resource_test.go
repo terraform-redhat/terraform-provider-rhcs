@@ -70,7 +70,7 @@ var _ = Describe("Cluster creation", func() {
 	  "state": "ready"
 	}`
 
-	FIt("Creates basic cluster", func() {
+	It("Creates basic cluster", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(

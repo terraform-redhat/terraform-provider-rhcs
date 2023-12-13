@@ -60,6 +60,7 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   multi_az           = var.multi_az
   properties = {
     rosa_creator_arn = data.aws_caller_identity.current.arn
+    custom_property = "test"
   }
   sts                                             = local.sts_roles
   replicas                                        = var.replicas

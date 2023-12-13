@@ -56,6 +56,21 @@ var _ = Describe("TF Test", func() {
 				Expect(hasValue).To(Equal(true))
 			})
 		})
+		Context("Author:smiron-Medium-OCP-64906 @OCP-64906 @smiron", func() {
+			It("Verify custom properties is set post cluster creation", CI.Day1Post, CI.Medium, func() {
+				By("Check custom_property field is present under cluster's properties")
+				getResp, err := CMS.RetrieveClusterDetail(CI.RHCSConnection, clusterID)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(getResp.Body().Properties()["custom_property"]).To(Equal("test"))
+
+				By("Check rosa_tf_commit is present under cluster's properties")
+				Expect(getResp.Body().Properties()["rosa_tf_commit"]).ShouldNot(BeEmpty())
+
+				By("Check rosa_tf_version is present under cluster's properties")
+				Expect(getResp.Body().Properties()["rosa_tf_version"]).ShouldNot(BeEmpty())
+			})
+		})
+
 		Context("Author:smiron-High-OCP-63140 @OCP-63140 @smiron", func() {
 			It("Verify fips is enabled/disabled post cluster creation", CI.Day1Post, CI.High, func() {
 				Expect(cluster.FIPS()).To(Equal(profile.FIPS))

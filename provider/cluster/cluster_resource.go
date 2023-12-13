@@ -31,7 +31,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	sdk "github.com/openshift-online/ocm-sdk-go"
@@ -88,7 +87,7 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 			},
 			"properties": schema.MapAttribute{
@@ -117,7 +116,7 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 			},
 			"ccs_enabled": schema.BoolAttribute{
@@ -144,7 +143,7 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 				ElementType: types.StringType,
 				Optional:    true,
 				PlanModifiers: []planmodifier.List{
-					listplanmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 			},
 			"aws_additional_compute_security_group_ids": schema.ListAttribute{
@@ -177,7 +176,7 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 				Computed:    true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
-					boolplanmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 			},
 			"availability_zones": schema.ListAttribute{
@@ -187,7 +186,7 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 				Computed:    true,
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.UseStateForUnknown(),
-					listplanmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 			},
 			"machine_cidr": schema.StringAttribute{

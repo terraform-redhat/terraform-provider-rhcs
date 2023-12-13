@@ -39,8 +39,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -120,7 +118,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
-					stringplanmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 			},
 			"name": schema.StringAttribute{
@@ -130,7 +128,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 					stringvalidator.LengthAtMost(15),
 				},
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 			},
 			"cloud_region": schema.StringAttribute{
@@ -149,7 +147,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Computed: true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
-					boolplanmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 			},
 			"disable_workload_monitoring": schema.BoolAttribute{
@@ -162,7 +160,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 					"Site Reliability Engineer (SRE) platform metrics.",
 				Optional: true,
 				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 			},
 			"properties": schema.MapAttribute{
@@ -182,7 +180,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				ElementType: types.StringType,
 				Optional:    true,
 				PlanModifiers: []planmodifier.Map{
-					mapplanmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 			},
 			"ccs_enabled": schema.BoolAttribute{
@@ -195,7 +193,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Computed:    true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
-					boolplanmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 			},
 			"autoscaling_enabled": schema.BoolAttribute{
@@ -233,7 +231,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					common.Immutable(),
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
@@ -262,7 +260,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Description: "Identifier of the AWS account.",
 				Required:    true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 			},
 			"aws_subnet_ids": schema.ListAttribute{
@@ -270,7 +268,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				ElementType: types.StringType,
 				Optional:    true,
 				PlanModifiers: []planmodifier.List{
-					listplanmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 			},
 			"aws_additional_compute_security_group_ids": schema.ListAttribute{
@@ -303,14 +301,14 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 					"(optional).",
 				Optional: true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 			},
 			"fips": schema.BoolAttribute{
 				Description: "Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries.",
 				Optional:    true,
 				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 			},
 			"aws_private_link": schema.BoolAttribute{
@@ -319,7 +317,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Computed:    true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
-					boolplanmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 			},
 			"private": schema.BoolAttribute{
@@ -328,7 +326,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Computed:    true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
-					boolplanmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 			},
 			"availability_zones": schema.ListAttribute{
@@ -341,7 +339,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				},
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.UseStateForUnknown(),
-					listplanmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 			},
 			"machine_cidr": schema.StringAttribute{
@@ -350,7 +348,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
-					stringplanmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 			},
 			"proxy": schema.SingleNestedAttribute{
@@ -365,7 +363,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
-					stringplanmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 			},
 			"pod_cidr": schema.StringAttribute{
@@ -374,7 +372,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
-					stringplanmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 			},
 			"host_prefix": schema.Int64Attribute{
@@ -383,7 +381,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Computed:    true,
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.UseStateForUnknown(),
-					int64planmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 			},
 			"channel_group": schema.StringAttribute{
@@ -393,7 +391,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Default:     stringdefault.StaticString(ocm.DefaultChannelGroup),
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
-					stringplanmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 			},
 			"version": schema.StringAttribute{
@@ -425,7 +423,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Validators: []validator.String{attrvalidators.EnumValueValidator([]string{string(cmv1.Ec2MetadataHttpTokensOptional),
 					string(cmv1.Ec2MetadataHttpTokensRequired)})},
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					common.Immutable(),
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
@@ -442,7 +440,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 						Description: "Admin username that will be created with the cluster.",
 						Required:    true,
 						PlanModifiers: []planmodifier.String{
-							stringplanmodifier.RequiresReplace(),
+							common.Immutable(),
 						},
 						Validators: identityprovider.HTPasswdUsernameValidators,
 					},
@@ -451,14 +449,14 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 						Required:    true,
 						Sensitive:   true,
 						PlanModifiers: []planmodifier.String{
-							stringplanmodifier.RequiresReplace(),
+							common.Immutable(),
 						},
 						Validators: identityprovider.HTPasswdPasswordValidators,
 					},
 				},
 				Optional: true,
 				PlanModifiers: []planmodifier.Object{
-					objectplanmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 			},
 			"private_hosted_zone": schema.SingleNestedAttribute{
@@ -469,7 +467,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 							"e.g. 'Z05646003S02O1ENCDCSN'.",
 						Required: true,
 						PlanModifiers: []planmodifier.String{
-							stringplanmodifier.RequiresReplace(),
+							common.Immutable(),
 						},
 					},
 					"role_arn": schema.StringAttribute{
@@ -478,13 +476,13 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 							"intended shared VPC.",
 						Required: true,
 						PlanModifiers: []planmodifier.String{
-							stringplanmodifier.RequiresReplace(),
+							common.Immutable(),
 						},
 					},
 				},
 				Optional: true,
 				PlanModifiers: []planmodifier.Object{
-					objectplanmodifier.RequiresReplace(),
+					common.Immutable(),
 				},
 				Validators: []validator.Object{
 					objectvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("sts")),

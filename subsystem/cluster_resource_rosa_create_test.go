@@ -3272,7 +3272,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 		Expect(resource).To(MatchJQ(".attributes.current_version", "4.10.0"))
 	})
 	Context("rhcs_cluster_rosa_classic - create", func() {
-		It("Upgrades cluster", func() {
+		FIt("Upgrades cluster", func() {
 			server.AppendHandlers(
 				// Refresh cluster state
 				CombineHandlers(

@@ -18,7 +18,6 @@ package common
 
 import (
 	"context"
-
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -27,7 +26,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-// The Immutable plan modifier supports the following attribute types:
+// ImmutableModifier is the Immutable plan modifier supports the following attribute types:
 type ImmutableModifier interface {
 	planmodifier.Bool
 	planmodifier.Float64
@@ -37,6 +36,7 @@ type ImmutableModifier interface {
 	planmodifier.Number
 	planmodifier.Set
 	planmodifier.String
+	planmodifier.Object
 }
 
 type immutable struct{}
@@ -44,11 +44,8 @@ type immutable struct{}
 // Immutable returns a plan modifier that prevents an existing configuration
 // value from being changed.
 //
-// - Immutable cannot be applied to any attribute that is computed because a
-// computed attribute's value may change based on the state of the resource.
-//
-// - Immutable attributes cannot be "unknown" at plan time because we need to be
-// able to check whether they match the state.
+//   - In case of computed attribute, if user doesn't set a value, the plan would be set to `unknown` and
+//     this modifier is skipped
 func Immutable() ImmutableModifier {
 	return immutable{}
 }
@@ -77,50 +74,28 @@ func (v immutable) validateUnchanged(ctx context.Context, attrPath path.Path,
 		"StateIsNull": state.Raw.IsNull(),
 	})
 
-	// Immutable should not be applied to computed attributes because the value
-	// of a computed attribute may change based on the state of the resource,
-	// and that would cause a discrepancy between the configuration and the
-	// state.
-	//
-	// Users will never see this error because it will trip unconditionally the
-	// first time the code is run.
-	attrSchema, diags := config.Schema.AttributeAtPath(ctx, attrPath)
-	if attrSchema.IsComputed() {
-		diags.AddAttributeError(attrPath,
-			"The Immutable PlanModifier cannot be applied to computed attributes",
-			"Immutable cannot be applied to \""+attrPath.String()+"\", which is a computed attribute.",
-		)
+	// In case of computed attribute the
+	// Do not replace on resource creation.
+	if state.Raw.IsNull() {
+		return nil
 	}
+
+	// Do not replace on resource destroy.
+	if plan.Raw.IsNull() {
+		return nil
+	}
+
+	// Do not replace if the plan and state values are equal.
+	if planValue.Equal(stateValue) {
+		return nil
+	}
+
+	attrSchema, diags := config.Schema.AttributeAtPath(ctx, attrPath)
 	if diags.HasError() {
 		return diags
 	}
 
-	// The resource is being created, so we allow it.
-	if state.Raw.IsNull() {
-		tflog.Debug(ctx, "Immutable modifier", map[string]interface{}{
-			"Attribute": attrPath.String(),
-			"Operation": "ResourceCreate",
-			"Value":     configValue.String(),
-		})
-		return nil
-	}
-
-	// The resource is being destroyed, so we allow it.
-	if plan.Raw.IsNull() {
-		tflog.Debug(ctx, "Immutable modifier", map[string]interface{}{
-			"Attribute": attrPath.String(),
-			"Operation": "ResourceDestroy",
-		})
-		return nil
-	}
-
-	// Configuration should have a known value and match the state
-	if !configValue.IsUnknown() && configValue.Equal(stateValue) {
-		tflog.Debug(ctx, "Immutable modifier", map[string]interface{}{
-			"Attribute": attrPath.String(),
-			"Operation": "ConfigMatchesState",
-			"Value":     configValue.String(),
-		})
+	if attrSchema.IsComputed() && planValue.IsUnknown() {
 		return nil
 	}
 
@@ -195,6 +170,14 @@ func (v immutable) PlanModifySet(ctx context.Context, req planmodifier.SetReques
 }
 
 func (v immutable) PlanModifyString(ctx context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	diags := v.validateUnchanged(ctx, req.Path,
+		req.Config, req.ConfigValue,
+		req.Plan, req.PlanValue,
+		req.State, req.StateValue)
+	resp.Diagnostics.Append(diags...)
+}
+
+func (v immutable) PlanModifyObject(ctx context.Context, req planmodifier.ObjectRequest, resp *planmodifier.ObjectResponse) {
 	diags := v.validateUnchanged(ctx, req.Path,
 		req.Config, req.ConfigValue,
 		req.Plan, req.PlanValue,

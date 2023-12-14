@@ -745,13 +745,12 @@ var _ = Describe("TF Test, default machinepool day-2 testing", func() {
 				By("Delete dmp without additional mp exists")
 				resp, err := cms.ListMachinePool(ci.RHCSConnection, clusterID)
 				Expect(err).ToNot(HaveOccurred())
+				Expect(resp.Total()).To(Equal(1), "multiple machinepools found")
 
 				// Only check this when confirm no other machinepool existing
-				if resp.Total() == 1 {
-					output, err = dmpService.Destroy()
-					Expect(err).ToNot(HaveOccurred())
-					Expect(output).To(ContainSubstring("Warning: Cannot delete machine pool"))
-				}
+				output, err = dmpService.Destroy()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(output).To(ContainSubstring("Warning: Cannot delete machine pool"))
 
 			})
 		})

@@ -196,6 +196,7 @@ func combineArgs(varAgrs map[string]interface{}, abArgs ...string) ([]string, ma
 func recordTFvarsFile(fileDir string, tfvars map[string]string) error {
 	tfvarsFile := CON.GrantTFvarsFile(fileDir)
 	iniConn, err := h.IniConnection(tfvarsFile)
+	Logger.Infof("Recording tfvars file %s", tfvarsFile)
 
 	if err != nil {
 		return err
@@ -214,10 +215,12 @@ func recordTFvarsFile(fileDir string, tfvars map[string]string) error {
 
 // delete the recorded TFvarsFile named terraform.tfvars
 func deleteTFvarsFile(fileDir string) error {
+
 	tfVarsFile := CON.GrantTFvarsFile(fileDir)
 	if _, err := os.Stat(tfVarsFile); err != nil {
 		return nil
 	}
+	Logger.Infof("Deleting tfvars file %s", tfVarsFile)
 	return h.DeleteFile(CON.GrantTFvarsFile(fileDir))
 }
 

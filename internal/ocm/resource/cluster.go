@@ -108,6 +108,42 @@ func (c *Cluster) CreateNodes(autoScalingEnabled bool, replicas *int64, minRepli
 	return nil
 }
 
+func (c *Cluster) CreateHcpNodes(replicas *int64, computeMachineType *string,
+	labels map[string]string, availabilityZones []string, multiAZ bool, workerDiskSize *int64) error {
+	nodes := cmv1.NewClusterNodes()
+	nodes.Compute(int(*replicas))
+	if computeMachineType != nil {
+		nodes.ComputeMachineType(
+			cmv1.NewMachineType().ID(*computeMachineType),
+		)
+	}
+
+	if workerDiskSize != nil {
+		nodes.ComputeRootVolume(
+			cmv1.NewRootVolume().AWS(
+				cmv1.NewAWSVolume().Size(int(*workerDiskSize)),
+			),
+		)
+	}
+
+	if labels != nil {
+		nodes.ComputeLabels(labels)
+	}
+
+	if availabilityZones != nil {
+		if err := validations.ValidateAvailabilityZonesCount(multiAZ, len(availabilityZones)); err != nil {
+			return err
+		}
+		nodes.AvailabilityZones(availabilityZones...)
+	}
+
+	if !nodes.Empty() {
+		c.clusterBuilder.Nodes(nodes)
+	}
+
+	return nil
+}
+
 func (c *Cluster) CreateAWSBuilder(awsTags map[string]string, ec2MetadataHttpTokens *string, kmsKeyARN *string,
 	isPrivateLink bool, awsAccountID *string, stsBuilder *cmv1.STSBuilder, awsSubnetIDs []string,
 	privateHostedZoneID *string, privateHostedZoneRoleARN *string,
@@ -156,6 +192,63 @@ func (c *Cluster) CreateAWSBuilder(awsTags map[string]string, ec2MetadataHttpTok
 
 	if additionalControlPlaneSecurityGroupIds != nil {
 		awsBuilder.AdditionalControlPlaneSecurityGroupIds(additionalControlPlaneSecurityGroupIds...)
+	}
+
+	if stsBuilder != nil {
+		awsBuilder.STS(stsBuilder)
+	}
+
+	if privateHostedZoneID != nil && privateHostedZoneRoleARN != nil {
+		if !privateHostedZoneRoleArnRE.MatchString(*privateHostedZoneRoleARN) {
+			return errors.New(fmt.Sprintf("Expected a valid value for PrivateHostedZoneRoleARN matching %s. Got %s", privateHostedZoneRoleArnRE, *privateHostedZoneRoleARN))
+		}
+		if awsSubnetIDs == nil || stsBuilder == nil {
+			return errors.New("PrivateHostedZone parameters require STS and SubnetIDs configurations.")
+		}
+		awsBuilder.PrivateHostedZoneID(*privateHostedZoneID)
+		awsBuilder.PrivateHostedZoneRoleARN(*privateHostedZoneRoleARN)
+	}
+
+	c.clusterBuilder.AWS(awsBuilder)
+
+	return nil
+}
+
+func (c *Cluster) CreateHcpAWSBuilder(awsTags map[string]string, kmsKeyARN *string,
+	isPrivateLink bool, awsAccountID *string, billingAccountID *string, stsBuilder *cmv1.STSBuilder, awsSubnetIDs []string,
+	privateHostedZoneID *string, privateHostedZoneRoleARN *string,
+	additionalComputeSecurityGroupIds []string) error {
+
+	if isPrivateLink && awsSubnetIDs == nil {
+		return errors.New("Clusters with PrivateLink must have a pre-configured VPC. Make sure to specify the subnet ids.")
+	}
+
+	awsBuilder := cmv1.NewAWS()
+
+	if awsTags != nil {
+		awsBuilder.Tags(awsTags)
+	}
+
+	err := c.ProcessKMSKeyARN(kmsKeyARN, awsBuilder)
+	if err != nil {
+		return err
+	}
+
+	if awsAccountID != nil {
+		awsBuilder.AccountID(*awsAccountID)
+	}
+
+	if billingAccountID != nil {
+		awsBuilder.BillingAccountID(*billingAccountID)
+	}
+	awsBuilder.PrivateLink(isPrivateLink)
+
+	if awsSubnetIDs != nil {
+		awsBuilder.SubnetIDs(awsSubnetIDs...)
+	}
+
+	if additionalComputeSecurityGroupIds != nil {
+		awsBuilder.AdditionalComputeSecurityGroupIds(additionalComputeSecurityGroupIds...)
 	}
 
 	if stsBuilder != nil {

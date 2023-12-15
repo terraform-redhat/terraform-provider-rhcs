@@ -37,6 +37,10 @@ const (
 	IngressOperator          = "openshift_ingress_operator_cloud_credentials_policy"
 	SharedVpcIngressOperator = "shared_vpc_openshift_ingress_operator_cloud_credentials_policy"
 	MachineAPI               = "openshift_machine_api_aws_cloud_credentials_policy"
+	CapaController           = "openshift_capa_controller_manager_credentials_policy"
+	ControlPlane             = "openshift_control_plane_operator_credentials_policy"
+	KmsProvider              = "openshift_kms_provider_credentials_policy"
+	KubeController           = "openshift_kube_controller_manager_credentials_policy"
 
 	// Policy IDs from type account roles
 	Installer            = "sts_installer_permission_policy"
@@ -86,6 +90,18 @@ func (s *OcmPoliciesDataSource) Schema(ctx context.Context, req datasource.Schem
 						Computed: true,
 					},
 					MachineAPI: schema.StringAttribute{
+						Computed: true,
+					},
+					CapaController: schema.StringAttribute{
+						Computed: true,
+					},
+					ControlPlane: schema.StringAttribute{
+						Computed: true,
+					},
+					KmsProvider: schema.StringAttribute{
+						Computed: true,
+					},
+					KubeController: schema.StringAttribute{
 						Computed: true,
 					},
 				},
@@ -161,6 +177,14 @@ func (s *OcmPoliciesDataSource) Read(ctx context.Context, req datasource.ReadReq
 			operatorRolePolicies.SharedVpcIngressOperator = types.StringValue(awsPolicy.Details())
 		case MachineAPI:
 			operatorRolePolicies.MachineAPI = types.StringValue(awsPolicy.Details())
+		case CapaController:
+			operatorRolePolicies.CapaController = types.StringValue(awsPolicy.Details())
+		case ControlPlane:
+			operatorRolePolicies.ControlPlane = types.StringValue(awsPolicy.Details())
+		case KmsProvider:
+			operatorRolePolicies.KmsProvider = types.StringValue(awsPolicy.Details())
+		case KubeController:
+			operatorRolePolicies.KubeController = types.StringValue(awsPolicy.Details())
 		// account roles
 		case Installer:
 			accountRolePolicies.Installer = types.StringValue(awsPolicy.Details())

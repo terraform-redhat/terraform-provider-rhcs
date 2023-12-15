@@ -22,6 +22,7 @@ type RosaOperatorRolesState struct {
 	OperatorRolePrefix types.String       `tfsdk:"operator_role_prefix"`
 	AccountRolePrefix  types.String       `tfsdk:"account_role_prefix"`
 	OperatorIAMRoles   []*OperatorIAMRole `tfsdk:"operator_iam_roles"`
+	HypershiftEnabled  types.Bool         `tfsdk:"hypershift_enabled"`
 }
 
 type OperatorIAMRole struct {

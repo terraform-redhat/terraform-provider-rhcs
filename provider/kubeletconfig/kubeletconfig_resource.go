@@ -19,6 +19,7 @@ package kubeletconfig
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -154,12 +155,12 @@ func (k *KubeletConfigResource) getKubeletConfigStateFromPlan(
 }
 
 func (k *KubeletConfigResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	plan := k.getKubeletConfigStateFromState(ctx, req.State, &resp.Diagnostics)
+	state := k.getKubeletConfigStateFromState(ctx, req.State, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	clusterId := plan.Cluster.ValueString()
+	clusterId := state.Cluster.ValueString()
 	exists, kubeletConfig, err := k.configClient.Exists(ctx, clusterId)
 	if err != nil {
 		resp.Diagnostics.AddError("Cannot read KubeletConfig",
@@ -169,14 +170,14 @@ func (k *KubeletConfigResource) Read(ctx context.Context, req resource.ReadReque
 
 	if !exists {
 		tflog.Warn(ctx, fmt.Sprintf("kubeletconfig for cluster (%s) not found, removing from plan",
-			plan.Cluster.ValueString(),
+			state.Cluster.ValueString(),
 		))
 		resp.State.RemoveResource(ctx)
 		return
 	}
 
-	k.convertApiResourceToState(kubeletConfig, plan)
-	k.writeStateToResponse(ctx, plan, &resp.State, &resp.Diagnostics)
+	k.convertApiResourceToState(kubeletConfig, state)
+	k.writeStateToResponse(ctx, state, &resp.State, &resp.Diagnostics)
 }
 
 func (k *KubeletConfigResource) writeStateToResponse(
@@ -220,12 +221,12 @@ func (k *KubeletConfigResource) Update(ctx context.Context, req resource.UpdateR
 }
 
 func (k *KubeletConfigResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	plan := k.getKubeletConfigStateFromState(ctx, req.State, &resp.Diagnostics)
+	state := k.getKubeletConfigStateFromState(ctx, req.State, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	clusterId := plan.Cluster.ValueString()
+	clusterId := state.Cluster.ValueString()
 	err := k.configClient.Delete(ctx, clusterId)
 	if err != nil {
 		resp.Diagnostics.AddError(failedToDeleteSummary,

@@ -86,6 +86,7 @@ var OCMProperties = map[string]string{
 type ClusterRosaHcpResource struct {
 	clusterCollection *cmv1.ClustersClient
 	versionCollection *cmv1.VersionsClient
+	clusterWait       common.ClusterWait
 }
 
 var _ resource.ResourceWithConfigure = &ClusterRosaHcpResource{}
@@ -484,6 +485,7 @@ func (r *ClusterRosaHcpResource) Configure(ctx context.Context, req resource.Con
 
 	r.clusterCollection = connection.ClustersMgmt().V1().Clusters()
 	r.versionCollection = connection.ClustersMgmt().V1().Versions()
+	r.clusterWait = common.NewClusterWait(r.clusterCollection)
 }
 
 const (
@@ -848,7 +850,7 @@ func (r *ClusterRosaHcpResource) createAdminCredentials(ctx context.Context, res
 	state *ClusterRosaHcpState, resource *cmv1.ClusterClient) {
 
 	// Wait till the cluster is ready:
-	err := common.WaitTillClusterReady(ctx, r.clusterCollection, state.ID.ValueString())
+	err := r.clusterWait.WaitForClusterToBeReady(ctx, state.ID.ValueString())
 	if err != nil {
 		response.Diagnostics.AddWarning(
 			"Can't poll cluster state",
@@ -983,8 +985,7 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 	}
 
 	if common.HasValue(state.WaitForCreateComplete) && state.WaitForCreateComplete.ValueBool() {
-		object, err = common.RetryClusterComputeReadiness(3, 30*time.Second, object.ID(),
-			ctx, waitTimeoutInMinutes, r.clusterCollection)
+		object, err = r.clusterWait.RetryClusterComputeReadiness(ctx, object.ID(), 3, 30*time.Second, waitTimeoutInMinutes)
 		if err != nil {
 			response.Diagnostics.AddError(
 				"Waiting for cluster creation finished with error",

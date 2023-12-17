@@ -33,7 +33,8 @@ var defaultNamespaceOwnershipPolicy = cmv1.NamespaceOwnershipPolicyStrict
 var validLbTypes = []string{string(cmv1.LoadBalancerFlavorClassic), string(cmv1.LoadBalancerFlavorNlb)}
 
 type DefaultIngressResource struct {
-	collection *cmv1.ClustersClient
+	collection  *cmv1.ClustersClient
+	clusterWait common.ClusterWait
 }
 
 func New() resource.Resource {
@@ -134,6 +135,7 @@ func (r *DefaultIngressResource) Configure(ctx context.Context, req resource.Con
 	}
 
 	r.collection = collection.ClustersMgmt().V1().Clusters()
+	r.clusterWait = common.NewClusterWait(r.collection)
 }
 
 func (r *DefaultIngressResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -145,7 +147,7 @@ func (r *DefaultIngressResource) Create(ctx context.Context, req resource.Create
 	}
 
 	// Wait till the cluster is ready:
-	err := common.WaitTillClusterReady(ctx, r.collection, plan.Cluster.ValueString())
+	err := r.clusterWait.WaitForClusterToBeReady(ctx, plan.Cluster.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Cannot poll cluster state",

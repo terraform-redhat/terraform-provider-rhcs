@@ -88,6 +88,7 @@ var OCMProperties = map[string]string{
 type ClusterRosaClassicResource struct {
 	clusterCollection *cmv1.ClustersClient
 	versionCollection *cmv1.VersionsClient
+	clusterWait       common.ClusterWait
 }
 
 var _ resource.ResourceWithConfigure = &ClusterRosaClassicResource{}
@@ -519,6 +520,7 @@ func (r *ClusterRosaClassicResource) Configure(ctx context.Context, req resource
 
 	r.clusterCollection = connection.ClustersMgmt().V1().Clusters()
 	r.versionCollection = connection.ClustersMgmt().V1().Versions()
+	r.clusterWait = common.NewClusterWait(r.clusterCollection)
 }
 
 const (
@@ -978,8 +980,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 	object = add.Body()
 
 	if common.HasValue(state.WaitForCreateComplete) && state.WaitForCreateComplete.ValueBool() {
-		object, err = common.RetryClusterReadiness(3, 30*time.Second, object.ID(),
-			ctx, waitTimeoutInMinutes, r.clusterCollection)
+		object, err = r.clusterWait.RetryClusterReadiness(ctx, object.ID(), 3, 30*time.Second, waitTimeoutInMinutes)
 		if err != nil {
 			response.Diagnostics.AddError(
 				"Waiting for cluster creation finished with error",

@@ -439,19 +439,13 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 					"username": schema.StringAttribute{
 						Description: "Admin username that will be created with the cluster.",
 						Required:    true,
-						PlanModifiers: []planmodifier.String{
-							common.Immutable(),
-						},
-						Validators: identityprovider.HTPasswdUsernameValidators,
+						Validators:  identityprovider.HTPasswdUsernameValidators,
 					},
 					"password": schema.StringAttribute{
 						Description: "Admin password that will be created with the cluster.",
 						Required:    true,
 						Sensitive:   true,
-						PlanModifiers: []planmodifier.String{
-							common.Immutable(),
-						},
-						Validators: identityprovider.HTPasswdPasswordValidators,
+						Validators:  identityprovider.HTPasswdPasswordValidators,
 					},
 				},
 				Optional: true,
@@ -466,18 +460,12 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 						Description: "ID assigned by AWS to private Route 53 hosted zone associated with intended shared VPC, " +
 							"e.g. 'Z05646003S02O1ENCDCSN'.",
 						Required: true,
-						PlanModifiers: []planmodifier.String{
-							common.Immutable(),
-						},
 					},
 					"role_arn": schema.StringAttribute{
 						Description: "AWS IAM role ARN with a policy attached, granting permissions necessary to " +
 							"create and manage Route 53 DNS records in private Route 53 hosted zone associated with " +
 							"intended shared VPC.",
 						Required: true,
-						PlanModifiers: []planmodifier.String{
-							common.Immutable(),
-						},
 					},
 				},
 				Optional: true,

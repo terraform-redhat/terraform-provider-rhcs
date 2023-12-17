@@ -18,6 +18,7 @@ package common
 
 import (
 	"context"
+	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -39,6 +40,16 @@ type ImmutableModifier interface {
 	planmodifier.Object
 }
 
+type AttributeConfig struct {
+	attributeName     string
+	stateRawIsNull    bool
+	planRawIsNull     bool
+	stateValue        attr.Value
+	planValue         attr.Value
+	isAttrComputed    bool
+	configValueString string
+}
+
 type immutable struct{}
 
 // Immutable returns a plan modifier that prevents an existing configuration
@@ -46,6 +57,8 @@ type immutable struct{}
 //
 //   - In case of computed attribute, if user doesn't set a value, the plan would be set to `unknown` and
 //     this modifier is skipped
+//   - In case of singleNestedAttribute do not set the internal attribute's plan modifier as immutable
+//     since, when removing the entire object it will set state.Raw.IsNull to `true`
 func Immutable() ImmutableModifier {
 	return immutable{}
 }
@@ -61,56 +74,79 @@ func (v immutable) MarkdownDescription(ctx context.Context) string {
 // validateUnchanged checks to see if the value has been changed. The value is checked in a
 // generic way so that we can use the same implementation regardless of the
 // underlying attribute type.
+func attributeChanged(ctx context.Context, attributeConfig AttributeConfig) bool {
+	tflog.Debug(ctx, "Immutable modifier", map[string]interface{}{
+		"Attribute":   attributeConfig.attributeName,
+		"Config":      attributeConfig.configValueString,
+		"Plan":        attributeConfig.planValue.String(),
+		"PlanIsNull":  attributeConfig.planRawIsNull,
+		"State":       attributeConfig.stateValue.String(),
+		"StateIsNull": attributeConfig.stateRawIsNull,
+	})
+
+	// resource creation.
+	if attributeConfig.stateRawIsNull {
+		tflog.Debug(ctx, fmt.Sprintf("attribute %s state row is Null", attributeConfig.attributeName))
+		return false
+	}
+
+	// resource destroy.
+	if attributeConfig.planRawIsNull {
+		tflog.Debug(ctx, fmt.Sprintf("attribute %s plan row is Null", attributeConfig.attributeName))
+		return false
+	}
+
+	// Do the plan and state values are equal.
+	if attributeConfig.planValue.Equal(attributeConfig.stateValue) {
+		tflog.Debug(ctx, fmt.Sprintf("attribute %s plan and state value are equal", attributeConfig.attributeName))
+		return false
+	}
+
+	//the attribute is computed and the value is unknown
+	if attributeConfig.isAttrComputed && attributeConfig.planValue.IsUnknown() {
+		tflog.Debug(ctx, fmt.Sprintf("attribute %s is computed and plan value is UnKnown", attributeConfig.attributeName))
+		return false
+	}
+
+	return true
+}
+
 func (v immutable) validateUnchanged(ctx context.Context, attrPath path.Path,
 	config tfsdk.Config, configValue attr.Value,
 	plan tfsdk.Plan, planValue attr.Value,
 	state tfsdk.State, stateValue attr.Value) diag.Diagnostics {
-	tflog.Debug(ctx, "Immutable modifier", map[string]interface{}{
-		"Attribute":   attrPath.String(),
-		"Config":      configValue.String(),
-		"Plan":        planValue.String(),
-		"PlanIsNull":  plan.Raw.IsNull(),
-		"State":       stateValue.String(),
-		"StateIsNull": state.Raw.IsNull(),
-	})
-
-	// In case of computed attribute the
-	// Do not replace on resource creation.
-	if state.Raw.IsNull() {
-		return nil
-	}
-
-	// Do not replace on resource destroy.
-	if plan.Raw.IsNull() {
-		return nil
-	}
-
-	// Do not replace if the plan and state values are equal.
-	if planValue.Equal(stateValue) {
-		return nil
-	}
 
 	attrSchema, diags := config.Schema.AttributeAtPath(ctx, attrPath)
 	if diags.HasError() {
 		return diags
 	}
-
-	if attrSchema.IsComputed() && planValue.IsUnknown() {
-		return nil
+	attributeConfig := AttributeConfig{
+		attributeName:     attrPath.String(),
+		stateRawIsNull:    state.Raw.IsNull(),
+		planRawIsNull:     plan.Raw.IsNull(),
+		stateValue:        stateValue,
+		planValue:         planValue,
+		isAttrComputed:    attrSchema.IsComputed(),
+		configValueString: configValue.String(),
 	}
 
-	tflog.Debug(ctx, "Immutable modifier", map[string]interface{}{
-		"Attribute": attrPath.String(),
-		"Operation": "ConfigChanged",
-		"From":      stateValue.String(),
-		"To":        configValue.String(),
-	})
-	return diag.Diagnostics{
-		diag.NewAttributeErrorDiagnostic(attrPath,
-			"attribute \""+attrPath.String()+"\" must have a known value and may not be changed.",
-			"Attempted to change attribute \""+attrPath.String()+"\" from "+stateValue.String()+" to "+configValue.String()+".",
-		),
+	if attributeChanged(ctx, attributeConfig) {
+		tflog.Debug(ctx, "Immutable modifier", map[string]interface{}{
+			"Attribute": attributeConfig.attributeName,
+			"Operation": "ConfigChanged",
+			"From":      attributeConfig.stateValue.String(),
+			"To":        attributeConfig.configValueString,
+		})
+
+		return diag.Diagnostics{
+			diag.NewAttributeErrorDiagnostic(attrPath,
+				"attribute \""+attrPath.String()+"\" must have a known value and may not be changed.",
+				"Attempted to change attribute \""+attrPath.String()+"\" from "+stateValue.String()+" to "+configValue.String()+".",
+			),
+		}
 	}
+
+	return nil
 }
 
 func (v immutable) PlanModifyBool(ctx context.Context, req planmodifier.BoolRequest, resp *planmodifier.BoolResponse) {

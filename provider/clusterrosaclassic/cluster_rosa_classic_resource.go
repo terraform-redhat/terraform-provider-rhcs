@@ -278,9 +278,6 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Description: "AWS additional compute security group ids.",
 				ElementType: types.StringType,
 				Optional:    true,
-				PlanModifiers: []planmodifier.List{
-					common.Immutable(),
-				},
 			},
 			"aws_additional_infra_security_group_ids": schema.ListAttribute{
 				Description: "AWS additional infra security group ids.",

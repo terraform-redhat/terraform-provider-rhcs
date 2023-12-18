@@ -898,7 +898,6 @@ func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *Mac
 			}
 		} else {
 			state.UseSpotInstances = types.BoolNull()
-			state.MaxReplicas = types.Int64Null()
 		}
 		if additionalSecurityGroups, ok := getAWS.GetAdditionalSecurityGroupIds(); ok {
 			additionalSecurityGroupsList, err := common.StringArrayToList(additionalSecurityGroups)

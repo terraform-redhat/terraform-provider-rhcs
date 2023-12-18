@@ -118,9 +118,9 @@ func PrepareAdditionalSecurityGroups(region string, vpcID string, sgNumbers int)
 	return output.SGIDs, err
 }
 
-func PrepareAccountRoles(token string, accountRolePrefix string, awsRegion string, openshiftVersion string, channelGroup string) (
+func PrepareAccountRoles(token string, accountRolePrefix string, awsRegion string, openshiftVersion string, channelGroup string, manifestDir string) (
 	*EXE.AccountRolesOutput, error) {
-	accService, err := EXE.NewAccountRoleService()
+	accService, err := EXE.NewAccountRoleService(manifestDir)
 	if err != nil {
 		return nil, err
 	}
@@ -283,7 +283,7 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 	}
 
 	if profile.STS {
-		accountRolesOutput, err := PrepareAccountRoles(token, clusterArgs.ClusterName, clusterArgs.AWSRegion, profile.MajorVersion, profile.ChannelGroup)
+		accountRolesOutput, err := PrepareAccountRoles(token, clusterArgs.ClusterName, clusterArgs.AWSRegion, profile.MajorVersion, profile.ChannelGroup, CON.AccountRolesDir)
 		Expect(err).ToNot(HaveOccurred())
 		clusterArgs.AccountRolePrefix = accountRolesOutput.AccountRolePrefix
 		Logger.Infof("Created account roles with prefix %s", accountRolesOutput.AccountRolePrefix)

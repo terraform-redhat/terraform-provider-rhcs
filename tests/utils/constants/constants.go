@@ -28,12 +28,13 @@ var (
 )
 
 var (
-	DefaultMajorVersion = "4.14"
-	CharsBytes          = "abcdefghijklmnopqrstuvwxyz123456789"
-	WorkSpace           = "WORKSPACE"
-	RHCSPrefix          = "rhcs"
-	TFYAMLProfile       = "tf_cluster_profile.yml"
-	ConfigSuffix        = "kubeconfig"
+	DefaultMajorVersion       = "4.14"
+	CharsBytes                = "abcdefghijklmnopqrstuvwxyz123456789"
+	WorkSpace                 = "WORKSPACE"
+	RHCSPrefix                = "rhcs"
+	TFYAMLProfile             = "tf_cluster_profile.yml"
+	ConfigSuffix              = "kubeconfig"
+	DefaultAccountRolesPrefix = "account-role-"
 )
 
 const (
@@ -64,6 +65,7 @@ const (
 // Dirs of aws provider
 var (
 	AccountRolesDir                      = path.Join(configrationDir, AWSProviderDIR, "account-roles")
+	AddAccountRolesDir                   = path.Join(configrationDir, AWSProviderDIR, "add-account-roles")
 	OIDCProviderOperatorRolesManifestDir = path.Join(configrationDir, AWSProviderDIR, "oidc-provider-operator-roles")
 	AWSVPCDir                            = path.Join(configrationDir, AWSProviderDIR, "vpc")
 	AWSVPCTagDir                         = path.Join(configrationDir, AWSProviderDIR, "vpc-tags")

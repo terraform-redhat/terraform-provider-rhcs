@@ -465,6 +465,8 @@ var _ = Describe("TF Test", func() {
 					Name:        name,
 					SubnetID:    newZonePrivateSubnet,
 				}
+				_, err = mpService.Apply(MachinePoolArgs, false)
+				Expect(err).ToNot(HaveOccurred())
 
 				mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
 				Expect(err).ToNot(HaveOccurred())

@@ -261,3 +261,9 @@ func RetrieveCurrentAccount(connection *client.Connection, params ...map[string]
 	resp, err = connection.AccountsMgmt().V1().CurrentAccount().Get().Send()
 	return resp, err
 }
+
+// RetrieveKubeletConfig returns the kubeletconfig
+func RetrieveKubeletConfig(connection *client.Connection, clusterID string) (*cmv1.KubeletConfig, error) {
+	resp, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).KubeletConfig().Get().Send()
+	return resp.Body(), err
+}

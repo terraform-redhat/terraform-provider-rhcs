@@ -9,7 +9,6 @@ import (
 
 type ImportArgs struct {
 	URL          string `json:"url,omitempty"`
-	Token        string `json:"token,omitempty"`
 	ResourceKind string `json:"resource_kind,omitempty"`
 	ResourceName string `json:"resource_name,omitempty"`
 	ClusterID    string `json:"cluster_id,omitempty"`

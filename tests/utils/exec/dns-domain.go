@@ -8,8 +8,7 @@ import (
 )
 
 type DnsDomainArgs struct {
-	ID    string `json:"id,omitempty"`
-	Token string `json:"token,omitempty"`
+	ID string `json:"id,omitempty"`
 }
 
 type DnsService struct {

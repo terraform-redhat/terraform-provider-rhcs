@@ -149,7 +149,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Run the command to import rosa_classic resource")
 					importParam := &exe.ImportArgs{
-						Token:        token,
 						ClusterID:    clusterID,
 						ResourceKind: "rhcs_cluster_rosa_classic",
 						ResourceName: "rosa_sts_cluster_import",
@@ -168,7 +167,6 @@ var _ = Describe("TF Test", func() {
 					By("Validate terraform import with no clusterID returns error")
 					var unknownClusterID = h.GenerateRandomStringWithSymbols(20)
 					importParam = &exe.ImportArgs{
-						Token:        token,
 						ClusterID:    unknownClusterID,
 						ResourceKind: "rhcs_cluster_rosa_classic",
 						ResourceName: "rosa_import_no_cluster_id",
@@ -249,25 +247,22 @@ var _ = Describe("TF Test", func() {
 				Expect(err).ToNot(HaveOccurred())
 				args := map[string]*exe.ClusterCreationArgs{
 					"aws_additional_compute_security_group_ids": {
-						Token:                                token,
-						AdditionalComputeSecurityGroups:      outPut.AdditionalComputeSecurityGroups[0:1],
+						// 						AdditionalComputeSecurityGroups:      outPut.AdditionalComputeSecurityGroups[0:1],
 						AdditionalInfraSecurityGroups:        outPut.AdditionalInfraSecurityGroups,
 						AdditionalControlPlaneSecurityGroups: outPut.AdditionalControlPlaneSecurityGroups,
 						AWSRegion:                            profile.Region,
 					},
 					"aws_additional_infra_security_group_ids": {
-						Token:                                token,
-						AdditionalInfraSecurityGroups:        outPut.AdditionalInfraSecurityGroups[0:1],
+						// 						AdditionalInfraSecurityGroups:        outPut.AdditionalInfraSecurityGroups[0:1],
 						AdditionalComputeSecurityGroups:      outPut.AdditionalComputeSecurityGroups,
 						AdditionalControlPlaneSecurityGroups: outPut.AdditionalControlPlaneSecurityGroups,
 						AWSRegion:                            profile.Region,
 					},
 					"aws_additional_control_plane_security_group_ids": {
-						Token:                                token,
-						AdditionalControlPlaneSecurityGroups: outPut.AdditionalControlPlaneSecurityGroups[0:1],
-						AdditionalComputeSecurityGroups:      outPut.AdditionalComputeSecurityGroups,
-						AdditionalInfraSecurityGroups:        outPut.AdditionalInfraSecurityGroups,
-						AWSRegion:                            profile.Region,
+						// 						AdditionalControlPlaneSecurityGroups: outPut.AdditionalControlPlaneSecurityGroups[0:1],
+						AdditionalComputeSecurityGroups: outPut.AdditionalComputeSecurityGroups,
+						AdditionalInfraSecurityGroups:   outPut.AdditionalInfraSecurityGroups,
+						AWSRegion:                       profile.Region,
 					},
 				}
 				for keyword, updatingArgs := range args {

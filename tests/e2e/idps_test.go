@@ -66,7 +66,6 @@ var _ = Describe("TF Test", func() {
 							By("Create htpasswd idp for an existing cluster")
 
 							idpParam := &exe.IDPArgs{
-								Token:         token,
 								ClusterID:     clusterID,
 								Name:          "OCP-63151-htpasswd-idp-test",
 								HtpasswdUsers: htpasswdMap,
@@ -129,7 +128,6 @@ var _ = Describe("TF Test", func() {
 							By("Create LDAP idp for an existing cluster")
 
 							idpParam := &exe.IDPArgs{
-								Token:      token,
 								ClusterID:  clusterID,
 								Name:       "OCP-63332-ldap-idp-test",
 								CA:         "",
@@ -184,7 +182,6 @@ var _ = Describe("TF Test", func() {
 						By("Create GitLab idp for an existing cluster")
 
 						idpParam := &exe.IDPArgs{
-							Token:        token,
 							ClusterID:    clusterID,
 							Name:         "OCP-64028-gitlab-idp-test",
 							ClientID:     gitlabIDPClientId,
@@ -222,7 +219,6 @@ var _ = Describe("TF Test", func() {
 						By("Create GitHub idp for an existing cluster")
 
 						idpParam := &exe.IDPArgs{
-							Token:         token,
 							ClusterID:     clusterID,
 							Name:          "OCP-64027-github-idp-test",
 							ClientID:      githubIDPClientId,
@@ -260,7 +256,6 @@ var _ = Describe("TF Test", func() {
 						By("Create Google idp for an existing cluster")
 
 						idpParam := &exe.IDPArgs{
-							Token:        token,
 							ClusterID:    clusterID,
 							Name:         "OCP-64029-google-idp-test",
 							ClientID:     googleIDPClientId,
@@ -301,7 +296,6 @@ var _ = Describe("TF Test", func() {
 						By("Applying google & ldap idps users using terraform")
 
 						idpParam := &exe.IDPArgs{
-							Token:        token,
 							ClusterID:    clusterID,
 							Name:         "OCP-64030",
 							ClientID:     googleIDPClientId,
@@ -381,7 +375,6 @@ var _ = Describe("TF Test", func() {
 								"password": h.GenerateRandomStringWithSymbols(15)}}
 
 						idpParam := &exe.IDPArgs{
-							Token:         token,
 							ClusterID:     clusterID,
 							Name:          "OCP-66408-htpasswd-multi-test",
 							HtpasswdUsers: htpasswdMap,
@@ -472,7 +465,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create htpasswd idp without/empty name field")
 					idpParam := &exe.IDPArgs{
-						Token:         token,
 						ClusterID:     clusterID,
 						Name:          "",
 						HtpasswdUsers: htpasswdMap,
@@ -488,7 +480,6 @@ var _ = Describe("TF Test", func() {
 					htpasswdMap = []interface{}{map[string]string{
 						"username": userName, "password": password}}
 					idpParam = &exe.IDPArgs{
-						Token:         token,
 						ClusterID:     clusterID,
 						Name:          "htpasswd-idp-test",
 						HtpasswdUsers: htpasswdMap,
@@ -503,7 +494,6 @@ var _ = Describe("TF Test", func() {
 					htpasswdMap = []interface{}{map[string]string{
 						"username": userName}}
 					idpParam = &exe.IDPArgs{
-						Token:         token,
 						ClusterID:     clusterID,
 						Name:          "htpasswd-idp-test",
 						HtpasswdUsers: htpasswdMap,
@@ -514,7 +504,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create ldap idp without/empty name field")
 					idpParam = &exe.IDPArgs{
-						Token:      token,
 						ClusterID:  clusterID,
 						Name:       "",
 						CA:         "",
@@ -531,7 +520,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create ldap idp without url field")
 					idpParam = &exe.IDPArgs{
-						Token:      token,
 						ClusterID:  clusterID,
 						Name:       "ldap-idp-test",
 						CA:         "",
@@ -546,7 +534,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create ldap idp without attributes field")
 					idpParam = &exe.IDPArgs{
-						Token:     token,
 						ClusterID: clusterID,
 						Name:      "ldap-idp-test",
 						CA:        "",
@@ -560,7 +547,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create github idp without/empty name field")
 					idpParam = &exe.IDPArgs{
-						Token:         token,
 						ClusterID:     clusterID,
 						Name:          "",
 						ClientID:      githubIDPClientId,
@@ -575,7 +561,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create github idp without/empty client_id field")
 					idpParam = &exe.IDPArgs{
-						Token:         token,
 						ClusterID:     clusterID,
 						Name:          "github-idp-test",
 						ClientID:      "",
@@ -589,7 +574,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create github idp without/empty client_secret field")
 					idpParam = &exe.IDPArgs{
-						Token:         token,
 						ClusterID:     clusterID,
 						Name:          "github-idp-test",
 						ClientID:      githubIDPClientId,
@@ -603,7 +587,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create gitlab idp without/empty name field")
 					idpParam = &exe.IDPArgs{
-						Token:        token,
 						ClusterID:    clusterID,
 						Name:         "",
 						ClientID:     gitlabIDPClientId,
@@ -618,7 +601,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create gitlab idp without/empty client_id field")
 					idpParam = &exe.IDPArgs{
-						Token:        token,
 						ClusterID:    clusterID,
 						Name:         "gitlab-idp-test",
 						ClientID:     "",
@@ -632,7 +614,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create gitlab idp without/empty client_secret field")
 					idpParam = &exe.IDPArgs{
-						Token:        token,
 						ClusterID:    clusterID,
 						Name:         "gitlab-idp-test",
 						ClientID:     gitlabIDPClientId,
@@ -646,7 +627,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create gitlab idp without url field")
 					idpParam = &exe.IDPArgs{
-						Token:        token,
 						ClusterID:    clusterID,
 						Name:         "gitlab-idp-test",
 						URL:          "",
@@ -660,7 +640,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create google idp without/empty name field")
 					idpParam = &exe.IDPArgs{
-						Token:        token,
 						ClusterID:    clusterID,
 						Name:         "",
 						ClientID:     googleIDPClientId,
@@ -674,7 +653,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create google idp without/empty client_id field")
 					idpParam = &exe.IDPArgs{
-						Token:        token,
 						ClusterID:    clusterID,
 						Name:         "google-idp-test",
 						ClientID:     "",
@@ -687,7 +665,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create google idp without/empty client_secret field")
 					idpParam = &exe.IDPArgs{
-						Token:        token,
 						ClusterID:    clusterID,
 						Name:         "google-idp-test",
 						ClientID:     googleIDPClientId,
@@ -706,7 +683,6 @@ var _ = Describe("TF Test", func() {
 					htpasswdMap = []interface{}{map[string]string{}}
 
 					idpParam := &exe.IDPArgs{
-						Token:         token,
 						ClusterID:     clusterID,
 						Name:          "OCP-66409-htpasswd-idp-test",
 						HtpasswdUsers: htpasswdMap,
@@ -733,7 +709,6 @@ var _ = Describe("TF Test", func() {
 							"password": passwordInvalid}}
 
 					idpParam := &exe.IDPArgs{
-						Token:         token,
 						ClusterID:     clusterID,
 						Name:          "OCP-66410-htpasswd-idp-test",
 						HtpasswdUsers: htpasswdMap,
@@ -753,7 +728,6 @@ var _ = Describe("TF Test", func() {
 						map[string]string{"username": usernameInvalid,
 							"password": passwordInvalid}}
 					idpParam = &exe.IDPArgs{
-						Token:         token,
 						ClusterID:     clusterID,
 						Name:          "OCP-66410-htpasswd-idp-test",
 						HtpasswdUsers: htpasswdMap,
@@ -773,7 +747,6 @@ var _ = Describe("TF Test", func() {
 						map[string]string{"username": userName, "password": password}}
 
 					idpParam := &exe.IDPArgs{
-						Token:         token,
 						ClusterID:     clusterID,
 						Name:          "OCP-66411-htpasswd-idp-test",
 						HtpasswdUsers: htpasswdMap,
@@ -822,7 +795,6 @@ var _ = Describe("TF Test", func() {
 						gitlabIDPClientSecret = h.GenerateRandomStringWithSymbols(30)
 
 						idpParam := &exe.IDPArgs{
-							Token:        token,
 							ClusterID:    clusterID,
 							Name:         googleIdpName,
 							ClientID:     googleIDPClientId,
@@ -832,7 +804,6 @@ var _ = Describe("TF Test", func() {
 						Expect(idpService.google.Apply(idpParam, false)).To(Succeed())
 
 						idpParam = &exe.IDPArgs{
-							Token:        token,
 							ClusterID:    clusterID,
 							Name:         gitLabIdpName,
 							ClientID:     gitlabIDPClientId,
@@ -843,7 +814,6 @@ var _ = Describe("TF Test", func() {
 
 						By("Run the command to import the idp")
 						importParam := &exe.ImportArgs{
-							Token:        token,
 							ClusterID:    clusterID,
 							ResourceKind: "rhcs_identity_provider",
 							ResourceName: "idp_google_import",
@@ -860,7 +830,6 @@ var _ = Describe("TF Test", func() {
 						By("Validate terraform import with no idp object name returns error")
 						var unknownIdpName = "unknown_idp_name"
 						importParam = &exe.ImportArgs{
-							Token:        token,
 							ClusterID:    clusterID,
 							ResourceKind: "rhcs_identity_provider",
 							ResourceName: "idp_google_import",
@@ -874,7 +843,6 @@ var _ = Describe("TF Test", func() {
 
 						var unknownClusterID = h.GenerateRandomStringWithSymbols(20)
 						importParam = &exe.ImportArgs{
-							Token:        token,
 							ClusterID:    unknownClusterID,
 							ResourceKind: "rhcs_identity_provider",
 							ResourceName: "idp_gitlab_import",

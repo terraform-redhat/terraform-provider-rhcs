@@ -12,7 +12,6 @@ type AccountRolesArgs struct {
 	AccountRolePrefix   string `json:"account_role_prefix,omitempty"`
 	OCMENV              string `json:"rhcs_environment,omitempty"`
 	OpenshiftVersion    string `json:"openshift_version,omitempty"`
-	Token               string `json:"token,omitempty"`
 	URL                 string `json:"url,omitempty"`
 	ChannelGroup        string `json:"channel_group,omitempty"`
 	UnifiedAccRolesPath string `json:"path,omitempty"`

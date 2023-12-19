@@ -1,7 +1,3 @@
-variable "token" {
-  type      = string
-  sensitive = true
-}
 
 variable "url" {
   type    = string

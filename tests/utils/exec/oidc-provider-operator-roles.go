@@ -11,7 +11,6 @@ import (
 type OIDCProviderOperatorRolesArgs struct {
 	AccountRolePrefix   string `json:"account_role_prefix,omitempty"`
 	OperatorRolePrefix  string `json:"operator_role_prefix,omitempty"`
-	Token               string `json:"token,omitempty"`
 	URL                 string `json:"url,omitempty"`
 	OIDCConfig          string `json:"oidc_config,omitempty"`
 	AWSRegion           string `json:"aws_region,omitempty"`

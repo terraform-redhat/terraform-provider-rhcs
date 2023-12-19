@@ -6,7 +6,12 @@ terraform {
     }
   }
 }
+
 provider "rhcs" {
-  url   = var.url
+  url = var.url
 }
-data "rhcs_info" "info" {}
+
+resource "rhcs_kubeletconfig" "kubeletconfig" {
+  cluster = var.cluster
+  pod_pids_limit = var.pod_pids_limit
+}

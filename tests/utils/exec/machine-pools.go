@@ -12,7 +12,6 @@ type MachinePoolArgs struct {
 	Cluster                  string              `json:"cluster,omitempty"`
 	OCMENV                   string              `json:"ocm_environment,omitempty"`
 	Name                     string              `json:"name,omitempty"`
-	Token                    string              `json:"token,omitempty"`
 	URL                      string              `json:"url,omitempty"`
 	MachineType              string              `json:"machine_type,omitempty"`
 	Replicas                 *int                `json:"replicas,omitempty"`

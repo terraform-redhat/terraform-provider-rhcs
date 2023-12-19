@@ -1,8 +1,3 @@
-variable "token" {
-  type      = string
-  sensitive = true
-}
-
 variable "gateway" {
   type    = string
   default = "https://api.stage.openshift.com"

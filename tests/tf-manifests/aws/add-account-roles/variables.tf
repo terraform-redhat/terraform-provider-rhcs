@@ -13,9 +13,6 @@ variable "account_role_prefix" {
   default = ""
 }
 
-variable "token" {
-  type = string
-}
 
 variable "url" {
   type    = string

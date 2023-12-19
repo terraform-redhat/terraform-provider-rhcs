@@ -81,6 +81,7 @@ var (
 	DNSDir                = path.Join(configrationDir, RHCSProviderDIR, "dns")
 	RhcsInfoDir           = path.Join(configrationDir, RHCSProviderDIR, "rhcs-info")
 	DefaultMachinePoolDir = path.Join(configrationDir, RHCSProviderDIR, "default-machine-pool")
+	KubeletConfigDir      = path.Join(configrationDir, RHCSProviderDIR, "kubelet-config")
 )
 
 // Dirs of different types of clusters

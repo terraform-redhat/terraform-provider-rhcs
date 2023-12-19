@@ -12,7 +12,6 @@ type IDPArgs struct {
 	ClusterID     string        `json:"cluster_id,omitempty"`
 	Name          string        `json:"name,omitempty"`
 	ID            string        `json:"id,omitempty"`
-	Token         string        `json:"token,omitempty"`
 	OCMENV        string        `json:"ocm_environment,omitempty"`
 	URL           string        `json:"url,omitempty"`
 	CA            string        `json:"ca,omitempty"`

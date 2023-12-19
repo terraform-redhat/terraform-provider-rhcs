@@ -128,7 +128,6 @@ func PrepareAccountRoles(token string, accountRolePrefix string, accountRolesPat
 	args := &EXE.AccountRolesArgs{
 		AccountRolePrefix:   accountRolePrefix,
 		OpenshiftVersion:    openshiftVersion,
-		Token:               token,
 		ChannelGroup:        channelGroup,
 		UnifiedAccRolesPath: accountRolesPath,
 	}
@@ -148,7 +147,6 @@ func PrepareOIDCProviderAndOperatorRoles(token string, oidcConfigType string, op
 	args := &EXE.OIDCProviderOperatorRolesArgs{
 		AccountRolePrefix:   accountRolePrefix,
 		OperatorRolePrefix:  operatorRolePrefix,
-		Token:               token,
 		OIDCConfig:          oidcConfigType,
 		AWSRegion:           awsRegion,
 		UnifiedAccRolesPath: accountRolesPath,
@@ -200,7 +198,7 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 	profile.Version = PrepareVersion(RHCSConnection, profile.Version, profile.ChannelGroup, profile)
 
 	clusterArgs = &EXE.ClusterCreationArgs{
-		Token:            token,
+		// Token:            token,
 		OpenshiftVersion: profile.Version,
 	}
 
@@ -424,7 +422,7 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 	clusterService, err := EXE.NewClusterService(profile.ManifestsDIR)
 	Expect(err).ToNot(HaveOccurred())
 	clusterArgs := &EXE.ClusterCreationArgs{
-		Token:              token,
+		// Token:              token,
 		AWSRegion:          profile.Region,
 		AccountRolePrefix:  "",
 		OperatorRolePrefix: "",
@@ -470,7 +468,6 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 			return err
 		}
 		args := &EXE.OIDCProviderOperatorRolesArgs{
-			Token:      token,
 			OIDCConfig: profile.OIDCConfig,
 			AWSRegion:  profile.Region,
 		}
@@ -484,9 +481,7 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 		if err != nil {
 			return err
 		}
-		accargs := &EXE.AccountRolesArgs{
-			Token: token,
-		}
+		accargs := &EXE.AccountRolesArgs{}
 		err = accService.Destroy(accargs)
 		if err != nil {
 			return err

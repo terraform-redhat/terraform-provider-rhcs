@@ -23,7 +23,6 @@ terraform {
 }
 
 provider "rhcs" {
-  token = var.token
   url   = var.url
 }
 resource "rhcs_identity_provider" "github_idp" {

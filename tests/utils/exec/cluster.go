@@ -13,7 +13,6 @@ type ClusterCreationArgs struct {
 	ClusterName                          string            `json:"cluster_name,omitempty"`
 	OperatorRolePrefix                   string            `json:"operator_role_prefix,omitempty"`
 	OpenshiftVersion                     string            `json:"openshift_version,omitempty"`
-	Token                                string            `json:"token,omitempty"`
 	URL                                  string            `json:"url,omitempty"`
 	AWSRegion                            string            `json:"aws_region,omitempty"`
 	AWSAvailabilityZones                 []string          `json:"aws_availability_zones,omitempty"`

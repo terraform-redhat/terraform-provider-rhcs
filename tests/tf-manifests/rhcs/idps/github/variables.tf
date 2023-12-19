@@ -1,8 +1,3 @@
-variable "token" {
-  type        = string
-  description = "RHCS token - You can get it here: https://console.redhat.com/openshift/token"
-}
-
 variable "cluster_id" {
   type        = string
   description = "The OCP cluster ID"

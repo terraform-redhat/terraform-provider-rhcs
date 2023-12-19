@@ -38,8 +38,7 @@ func runTerraformInit(ctx context.Context, dir string) error {
 
 func runTerraformApplyWithArgs(ctx context.Context, dir string, terraformArgs []string) (output string, err error) {
 	applyArgs := append([]string{"apply", "-auto-approve", "-no-color"}, terraformArgs...)
-	Logger.Infof("Running terraform apply against the dir: %s", dir)
-	Logger.Debugf("Running terraform apply against the dir: %s with args %v", dir, terraformArgs)
+	Logger.Infof("Running terraform apply against the dir: %s with args %v", dir, terraformArgs)
 	terraformApply := exec.Command("terraform", applyArgs...)
 	terraformApply.Dir = dir
 	var stdoutput bytes.Buffer
@@ -59,8 +58,7 @@ func runTerraformApplyWithArgs(ctx context.Context, dir string, terraformArgs []
 
 func runTerraformPlanWithArgs(ctx context.Context, dir string, terraformArgs []string) (output string, err error) {
 	planArgs := append([]string{"plan", "-no-color"}, terraformArgs...)
-	Logger.Infof("Running terraform plan against the dir: %s ", dir)
-	Logger.Debugf("Running terraform plan against the dir: %s with args %v", dir, terraformArgs)
+	Logger.Infof("Running terraform plan against the dir: %s with args %v", dir, terraformArgs)
 	terraformPlan := exec.Command("terraform", planArgs...)
 	terraformPlan.Dir = dir
 	var stdoutput bytes.Buffer
@@ -141,8 +139,7 @@ func runTerraformState(dir, subcommand, terraformArgs string) (string, error) {
 }
 
 func runTerraformImportWithArgs(ctx context.Context, dir string, terraformArgs []string) (output string, err error) {
-	Logger.Infof("Running terraform import against the dir: %s", dir)
-	Logger.Debugf("Running terraform import against the dir: %s with args %v", dir, terraformArgs)
+	Logger.Infof("Running terraform import against the dir: %s with args %v", dir, terraformArgs)
 
 	terraformImport := exec.CommandContext(ctx, "terraform", append([]string{"import"}, terraformArgs...)...)
 	terraformImport.Dir = dir

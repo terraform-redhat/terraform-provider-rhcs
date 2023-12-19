@@ -34,7 +34,6 @@ var _ = Describe("RHCS account roles Test", func() {
 				args := &EXE.AccountRolesArgs{
 					AccountRolePrefix: "",
 					OpenshiftVersion:  profile.MajorVersion,
-					Token:             token,
 					ChannelGroup:      profile.ChannelGroup,
 				}
 				accRoleOutput, err := accService.Apply(args, true)
@@ -48,7 +47,6 @@ var _ = Describe("RHCS account roles Test", func() {
 				args := &EXE.AccountRolesArgs{
 					AccountRolePrefix: "OCP-63316",
 					OpenshiftVersion:  profile.MajorVersion,
-					Token:             token,
 					ChannelGroup:      profile.ChannelGroup,
 				}
 				_, err := accService.Apply(args, true)

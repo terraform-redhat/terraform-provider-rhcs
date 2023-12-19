@@ -9,7 +9,6 @@ import (
 
 type RhcsInfoArgs struct {
 	ID           string `json:"id,omitempty"`
-	Token        string `json:"token,omitempty"`
 	ResourceName string `json:"resource_name,omitempty"`
 	ResourceKind string `json:"resource_kind,omitempty"`
 }

@@ -17,6 +17,7 @@ import (
 	con "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	exe "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	H "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/openshift"
 )
 
@@ -162,6 +163,18 @@ var _ = Describe("TF Test", func() {
 					Expect(output).To(ContainSubstring(profile.ClusterName))
 					Expect(output).To(ContainSubstring(profile.Region))
 					Expect(output).To(ContainSubstring(profile.ChannelGroup))
+
+					By("Validate terraform import with no clusterID returns error")
+					var unknownClusterID = h.GenerateRandomStringWithSymbols(20)
+					importParam = &exe.ImportArgs{
+						Token:        token,
+						ClusterID:    unknownClusterID,
+						ResourceKind: "rhcs_cluster_rosa_classic",
+						ResourceName: "rosa_import_no_cluster_id",
+					}
+
+					err = importService.Import(importParam)
+					Expect(err.Error()).To(ContainSubstring("Cannot import non-existent remote object"))
 
 					// skip due to bug :: OCM-5246
 					// Expect(output).To(ContainSubstring(profile.ComputeMachineType))

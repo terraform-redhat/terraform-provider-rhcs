@@ -47,47 +47,47 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
 
 ### Required
 
-- `aws_account_id` (String) Identifier of the AWS account.
+- `aws_account_id` (String) Identifier of the AWS account.Once the resource was created, the attribute cannot be changed.
 - `cloud_region` (String) Cloud region identifier, for example 'us-east-1'.
-- `name` (String) Name of the cluster. Cannot exceed 15 characters in length.
+- `name` (String) Name of the cluster. Cannot exceed 15 characters in length. Once the resource was created, the attribute cannot be changed.
 
 ### Optional
 
-- `admin_credentials` (Attributes) Admin user credentials (see [below for nested schema](#nestedatt--admin_credentials))
+- `admin_credentials` (Attributes) Admin user credentials.Once the resource was created, the attribute cannot be changed. (see [below for nested schema](#nestedatt--admin_credentials))
 - `autoscaling_enabled` (Boolean) Enable autoscaling for the initial worker pool. (only valid during cluster creation)
-- `availability_zones` (List of String) Availability zones.
+- `availability_zones` (List of String) Availability zones.Once the resource was created, the attribute cannot be changed.
 - `aws_additional_compute_security_group_ids` (List of String) AWS additional compute security group ids.
-- `aws_additional_control_plane_security_group_ids` (List of String) AWS additional control plane security group ids.
-- `aws_additional_infra_security_group_ids` (List of String) AWS additional infra security group ids.
-- `aws_private_link` (Boolean) Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet.
-- `aws_subnet_ids` (List of String) AWS subnet IDs.
-- `base_dns_domain` (String) Base DNS domain name previously reserved and matching the hosted zone name of the private Route 53 hosted zone associated with intended shared VPC, e.g., '1vo8.p1.openshiftapps.com'.
-- `channel_group` (String) Name of the channel group where you select the OpenShift cluster version, for example 'stable'. For ROSA, only 'stable' is supported.
+- `aws_additional_control_plane_security_group_ids` (List of String) AWS additional control plane security group ids.Once the resource was created, the attribute cannot be changed.
+- `aws_additional_infra_security_group_ids` (List of String) AWS additional infra security group ids.Once the resource was created, the attribute cannot be changed.
+- `aws_private_link` (Boolean) Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet.Once the resource was created, the attribute cannot be changed.
+- `aws_subnet_ids` (List of String) AWS subnet IDs.Once the resource was created, the attribute cannot be changed.
+- `base_dns_domain` (String) Base DNS domain name previously reserved and matching the hosted zone name of the private Route 53 hosted zone associated with intended shared VPC, e.g., '1vo8.p1.openshiftapps.com'.Once the resource was created, the attribute cannot be changed.
+- `channel_group` (String) Name of the channel group where you select the OpenShift cluster version, for example 'stable'. For ROSA, only 'stable' is supported.Once the resource was created, the attribute cannot be changed.
 - `compute_machine_type` (String) Identifies the machine type used by the default/initial worker nodes, for example `m5.xlarge`. Use the `rhcs_machine_types` data source to find the possible values. (only valid during cluster creation)
 - `default_mp_labels` (Map of String) This value is the default/initial machine pool labels. Format should be a comma-separated list of '{"key1"="value1", "key2"="value2"}'. (only valid during cluster creation)
 - `destroy_timeout` (Number) This value sets the maximum duration in minutes to allow for destroying resources. Default value is 60 minutes.
-- `disable_scp_checks` (Boolean) Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE) platform metrics.
+- `disable_scp_checks` (Boolean) Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE) platform metrics.Once the resource was created, the attribute cannot be changed.
 - `disable_waiting_in_destroy` (Boolean) Disable addressing cluster state in the destroy resource. Default value is false, and so a `destroy` will wait for the cluster to be deleted.
 - `disable_workload_monitoring` (Boolean) Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE) platform metrics.
-- `ec2_metadata_http_tokens` (String) This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the cluster.This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). This feature is available from OpenShift version 4.11.0 and newer.
-- `etcd_encryption` (Boolean) Encrypt etcd data. Note that all AWS storage is already encrypted.
-- `external_id` (String) Unique external identifier of the cluster.
-- `fips` (Boolean) Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries.
-- `host_prefix` (Number) Length of the prefix of the subnet assigned to each node.
-- `kms_key_arn` (String) The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID(optional).
-- `machine_cidr` (String) Block of IP addresses for nodes.
+- `ec2_metadata_http_tokens` (String) This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the cluster.This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). This feature is available from OpenShift version 4.11.0 and newer.Once the resource was created, the attribute cannot be changed.
+- `etcd_encryption` (Boolean) Encrypt etcd data. Note that all AWS storage is already encrypted.Once the resource was created, the attribute cannot be changed.
+- `external_id` (String) Unique external identifier of the cluster.Once the resource was created, the attribute cannot be changed.
+- `fips` (Boolean) Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries.Once the resource was created, the attribute cannot be changed.
+- `host_prefix` (Number) Length of the prefix of the subnet assigned to each node.Once the resource was created, the attribute cannot be changed.
+- `kms_key_arn` (String) The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID(optional).Once the resource was created, the attribute cannot be changed.
+- `machine_cidr` (String) Block of IP addresses for nodes.Once the resource was created, the attribute cannot be changed.
 - `max_replicas` (Number) Maximum replicas of worker nodes in a machine pool. (only valid during cluster creation)
 - `min_replicas` (Number) Minimum replicas of worker nodes in a machine pool. (only valid during cluster creation)
-- `multi_az` (Boolean) Indicates if the cluster should be deployed to multiple availability zones. Default value is 'false'.
-- `pod_cidr` (String) Block of IP addresses for pods.
-- `private` (Boolean) Restrict cluster API endpoint and application routes to, private connectivity. This requires that PrivateLink be enabled and by extension, your own VPC.
-- `private_hosted_zone` (Attributes) Used in a shared VPC topology. HostedZone attributes (see [below for nested schema](#nestedatt--private_hosted_zone))
+- `multi_az` (Boolean) Indicates if the cluster should be deployed to multiple availability zones. Default value is 'false'.Once the resource was created, the attribute cannot be changed.
+- `pod_cidr` (String) Block of IP addresses for pods.Once the resource was created, the attribute cannot be changed.
+- `private` (Boolean) Restrict cluster API endpoint and application routes to, private connectivity. This requires that PrivateLink be enabled and by extension, your own VPC.Once the resource was created, the attribute cannot be changed.
+- `private_hosted_zone` (Attributes) Used in a shared VPC topology. HostedZone attributes.Once the resource was created, the attribute cannot be changed. (see [below for nested schema](#nestedatt--private_hosted_zone))
 - `properties` (Map of String) User defined properties.
 - `proxy` (Attributes) proxy (see [below for nested schema](#nestedatt--proxy))
 - `replicas` (Number) Number of worker/compute nodes to provision. Single zone clusters need at least 2 nodes, multizone clusters need at least 3 nodes. (only valid during cluster creation)
-- `service_cidr` (String) Block of IP addresses for the cluster service network.
+- `service_cidr` (String) Block of IP addresses for the cluster service network.Once the resource was created, the attribute cannot be changed.
 - `sts` (Attributes) STS configuration. (see [below for nested schema](#nestedatt--sts))
-- `tags` (Map of String) Apply user defined tags to all cluster resources created in AWS.
+- `tags` (Map of String) Apply user defined tags to all cluster resources created in AWS.Once the resource was created, the attribute cannot be changed.
 - `upgrade_acknowledgements_for` (String) Indicates acknowledgement of agreements required to upgrade the cluster version between minor versions (e.g. a value of "4.12" indicates acknowledgement of any agreements required to upgrade to OpenShift 4.12.z from 4.11 or before).
 - `version` (String) Desired version of OpenShift for the cluster, for example '4.11.0'. If version is greater than the currently running version, an upgrade will be scheduled.
 - `wait_for_create_complete` (Boolean) Wait until the cluster is either in a ready state or in an error state. The waiter has a timeout of 60 minutes, with the default value set to false

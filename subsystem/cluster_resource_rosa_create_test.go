@@ -57,6 +57,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 	// a cluster.
 	template := `{
 	  "id": "123",
+	  "external_id": "123",
 	  "infra_id": "my-cluster-123",
 	  "name": "my-cluster",
 	  "state": "ready",
@@ -101,6 +102,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 
 	templateWithTrustBundle := `{
 	  "id": "123",
+	  "external_id": "123",
 	  "infra_id": "my-cluster-123",
 	  "name": "my-cluster",
 	  "additional_trust_bundle" : "REDUCTED",
@@ -3075,6 +3077,168 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			Expect(resource).To(MatchJQ(".attributes.aws_additional_compute_security_group_ids.[0]", "id1"))
 			Expect(resource).To(MatchJQ(".attributes.aws_additional_infra_security_group_ids.[0]", "id2"))
 			Expect(resource).To(MatchJQ(".attributes.aws_additional_control_plane_security_group_ids.[0]", "id3"))
+		})
+	})
+	Context("rhcs_cluster_rosa_classic - update attributes", func() {
+		BeforeEach(func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.disable_user_workload_monitoring`, true),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+					      "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/",
+					  "value": {
+						  "external_id" : "123"
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/",
+					  "value": {
+						  "disable_user_workload_monitoring" : true
+					  }
+					}]`),
+				),
+			)
+			terraform.Source(`
+				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123"
+					disable_workload_monitoring = true
+					admin_credentials = {
+						username = "cluster_admin"
+						password = "1234AbB2341234"
+					}
+					tags = {
+						"k1" = "v1"
+					}
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							master_role_arn = "",
+							worker_role_arn = "",
+						}
+					}
+				  }
+			`)
+
+			// it should return a warning so exit code will be "0":
+			Expect(terraform.Apply()).To(BeZero())
+		})
+		It("update admin_credentials, tags, availability_zones and name, and fail", func() {
+			// apply for update the workload monitor to be enabled
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/",
+					  "value": {
+						  "disable_user_workload_monitoring" : "true"
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/",
+					  "value": {
+						  "external_id" : "123"
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+                        "availability_zones": ["us-west-1a"],
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+						}
+					  }
+					}]`),
+				),
+			)
+
+			terraform.Source(`
+				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+					name           = "my-luster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123"
+					disable_workload_monitoring = false
+					admin_credentials = {
+						username = "cluter_admin"
+						password = "1234AbB2341234"
+					}
+					#external_id           = ""
+					availability_zones = ["us-west-1b"]
+					#tags = {
+					#	"k1" = "v1"
+					#}
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							master_role_arn = "",
+							worker_role_arn = "",
+						}
+					}
+				  }
+			`)
+
+			Expect(terraform.Apply()).ToNot(BeZero())
+
 		})
 	})
 })

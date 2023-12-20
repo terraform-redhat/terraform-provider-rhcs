@@ -21,6 +21,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"net/url"
 	"os"
 	"reflect"
@@ -35,7 +36,11 @@ import (
 	"github.com/zgalor/weberr"
 )
 
-const versionPrefix = "openshift-v"
+const (
+	versionPrefix                = "openshift-v"
+	AssertionErrorSummaryMessage = "Attribute value cannot be changed"
+	AssertionErrorDetailsMessage = "Attribute %s, cannot be changed from %v to %v"
+)
 
 // shouldPatchInt changed checks if the change between the given state and plan requires sending a
 // patch request to the server. If it does it returns the value to add to the patch.
@@ -193,4 +198,10 @@ func Sha1Hash(data []byte) (string, error) {
 // HasValue checks if the given terraform value is set.
 func HasValue(val attr.Value) bool {
 	return !val.IsUnknown() && !val.IsNull()
+}
+
+func AssertStateAndPlanValue(stateAttr attr.Value, planAttr attr.Value, attrName string, diags *diag.Diagnostics) {
+	if !stateAttr.Equal(planAttr) {
+		diags.AddError(AssertionErrorSummaryMessage, fmt.Sprintf(AssertionErrorDetailsMessage, attrName, stateAttr, planAttr))
+	}
 }

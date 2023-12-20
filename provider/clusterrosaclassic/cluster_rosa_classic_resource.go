@@ -114,18 +114,16 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				},
 			},
 			"external_id": schema.StringAttribute{
-				Description: "Unique external identifier of the cluster." +
-					"Once the resource was created, the attribute cannot be changed.",
-				Optional: true,
-				Computed: true,
+				Description: "Unique external identifier of the cluster." + common.ValueCannotBeChangedStringDescription,
+				Optional:    true,
+				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the cluster. Cannot exceed 15 characters in length. " +
-					"Once the resource was created, the attribute cannot be changed.",
-				Required: true,
+				Description: "Name of the cluster. Cannot exceed 15 characters in length. " + common.ValueCannotBeChangedStringDescription,
+				Required:    true,
 				Validators: []validator.String{
 					stringvalidator.LengthAtMost(15),
 				},
@@ -141,8 +139,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 			},
 			"multi_az": schema.BoolAttribute{
 				Description: "Indicates if the cluster should be deployed to " +
-					"multiple availability zones. Default value is 'false'." +
-					"Once the resource was created, the attribute cannot be changed.",
+					"multiple availability zones. Default value is 'false'." + common.ValueCannotBeChangedStringDescription,
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.Bool{
@@ -156,8 +153,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 			},
 			"disable_scp_checks": schema.BoolAttribute{
 				Description: "Enables you to monitor your own projects in isolation from Red Hat " +
-					"Site Reliability Engineer (SRE) platform metrics." +
-					"Once the resource was created, the attribute cannot be changed.",
+					"Site Reliability Engineer (SRE) platform metrics." + common.ValueCannotBeChangedStringDescription,
 				Optional: true,
 			},
 			"properties": schema.MapAttribute{
@@ -173,8 +169,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Computed:    true,
 			},
 			"tags": schema.MapAttribute{
-				Description: "Apply user defined tags to all cluster resources created in AWS." +
-					"Once the resource was created, the attribute cannot be changed.",
+				Description: "Apply user defined tags to all cluster resources created in AWS." + common.ValueCannotBeChangedStringDescription,
 				ElementType: types.StringType,
 				Optional:    true,
 			},
@@ -183,10 +178,9 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Computed:    true,
 			},
 			"etcd_encryption": schema.BoolAttribute{
-				Description: "Encrypt etcd data. Note that all AWS storage is already encrypted." +
-					"Once the resource was created, the attribute cannot be changed.",
-				Optional: true,
-				Computed: true,
+				Description: "Encrypt etcd data. Note that all AWS storage is already encrypted." + common.ValueCannotBeChangedStringDescription,
+				Optional:    true,
+				Computed:    true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
 				},
@@ -222,8 +216,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 			"base_dns_domain": schema.StringAttribute{
 				Description: "Base DNS domain name previously reserved and matching the hosted " +
 					"zone name of the private Route 53 hosted zone associated with intended shared " +
-					"VPC, e.g., '1vo8.p1.openshiftapps.com'." +
-					"Once the resource was created, the attribute cannot be changed.",
+					"VPC, e.g., '1vo8.p1.openshiftapps.com'." + common.ValueCannotBeChangedStringDescription,
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
@@ -252,66 +245,57 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Optional:    true,
 			},
 			"aws_account_id": schema.StringAttribute{
-				Description: "Identifier of the AWS account." +
-					"Once the resource was created, the attribute cannot be changed.",
-				Required: true,
+				Description: "Identifier of the AWS account." + common.ValueCannotBeChangedStringDescription,
+				Required:    true,
 			},
 			"aws_subnet_ids": schema.ListAttribute{
-				Description: "AWS subnet IDs." +
-					"Once the resource was created, the attribute cannot be changed.",
+				Description: "AWS subnet IDs." + common.ValueCannotBeChangedStringDescription,
 				ElementType: types.StringType,
 				Optional:    true,
 			},
 			"aws_additional_compute_security_group_ids": schema.ListAttribute{
-				Description: "AWS additional compute security group ids.",
+				Description: "AWS additional compute security group ids." + common.ValueCannotBeChangedStringDescription,
 				ElementType: types.StringType,
 				Optional:    true,
 			},
 			"aws_additional_infra_security_group_ids": schema.ListAttribute{
-				Description: "AWS additional infra security group ids." +
-					"Once the resource was created, the attribute cannot be changed.",
+				Description: "AWS additional infra security group ids." + common.ValueCannotBeChangedStringDescription,
 				ElementType: types.StringType,
 				Optional:    true,
 			},
 			"aws_additional_control_plane_security_group_ids": schema.ListAttribute{
-				Description: "AWS additional control plane security group ids." +
-					"Once the resource was created, the attribute cannot be changed.",
+				Description: "AWS additional control plane security group ids." + common.ValueCannotBeChangedStringDescription,
 				ElementType: types.StringType,
 				Optional:    true,
 			},
 			"kms_key_arn": schema.StringAttribute{
 				Description: "The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, " +
 					"fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID" +
-					"(optional)." +
-					"Once the resource was created, the attribute cannot be changed.",
+					"(optional)." + common.ValueCannotBeChangedStringDescription,
 				Optional: true,
 			},
 			"fips": schema.BoolAttribute{
-				Description: "Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries." +
-					"Once the resource was created, the attribute cannot be changed.",
-				Optional: true,
+				Description: "Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries." + common.ValueCannotBeChangedStringDescription,
+				Optional:    true,
 			},
 			"aws_private_link": schema.BoolAttribute{
-				Description: "Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet." +
-					"Once the resource was created, the attribute cannot be changed.",
-				Optional: true,
-				Computed: true,
+				Description: "Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet." + common.ValueCannotBeChangedStringDescription,
+				Optional:    true,
+				Computed:    true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"private": schema.BoolAttribute{
-				Description: "Restrict cluster API endpoint and application routes to, private connectivity. This requires that PrivateLink be enabled and by extension, your own VPC." +
-					"Once the resource was created, the attribute cannot be changed.",
-				Optional: true,
-				Computed: true,
+				Description: "Restrict cluster API endpoint and application routes to, private connectivity. This requires that PrivateLink be enabled and by extension, your own VPC." + common.ValueCannotBeChangedStringDescription,
+				Optional:    true,
+				Computed:    true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"availability_zones": schema.ListAttribute{
-				Description: "Availability zones." +
-					"Once the resource was created, the attribute cannot be changed.",
+				Description: "Availability zones." + common.ValueCannotBeChangedStringDescription,
 				ElementType: types.StringType,
 				Optional:    true,
 				Computed:    true,
@@ -323,10 +307,9 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				},
 			},
 			"machine_cidr": schema.StringAttribute{
-				Description: "Block of IP addresses for nodes." +
-					"Once the resource was created, the attribute cannot be changed.",
-				Optional: true,
-				Computed: true,
+				Description: "Block of IP addresses for nodes." + common.ValueCannotBeChangedStringDescription,
+				Optional:    true,
+				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -338,36 +321,32 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Validators:  []validator.Object{proxy.ProxyValidator()},
 			},
 			"service_cidr": schema.StringAttribute{
-				Description: "Block of IP addresses for the cluster service network." +
-					"Once the resource was created, the attribute cannot be changed.",
-				Optional: true,
-				Computed: true,
+				Description: "Block of IP addresses for the cluster service network." + common.ValueCannotBeChangedStringDescription,
+				Optional:    true,
+				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"pod_cidr": schema.StringAttribute{
-				Description: "Block of IP addresses for pods." +
-					"Once the resource was created, the attribute cannot be changed.",
-				Optional: true,
-				Computed: true,
+				Description: "Block of IP addresses for pods." + common.ValueCannotBeChangedStringDescription,
+				Optional:    true,
+				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"host_prefix": schema.Int64Attribute{
-				Description: "Length of the prefix of the subnet assigned to each node." +
-					"Once the resource was created, the attribute cannot be changed.",
-				Optional: true,
-				Computed: true,
+				Description: "Length of the prefix of the subnet assigned to each node." + common.ValueCannotBeChangedStringDescription,
+				Optional:    true,
+				Computed:    true,
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.UseStateForUnknown(),
 				},
 			},
 			"channel_group": schema.StringAttribute{
 				Description: "Name of the channel group where you select the OpenShift cluster version, for example 'stable'. " +
-					"For ROSA, only 'stable' is supported." +
-					"Once the resource was created, the attribute cannot be changed.",
+					"For ROSA, only 'stable' is supported." + common.ValueCannotBeChangedStringDescription,
 				Optional: true,
 				Computed: true,
 				Default:  stringdefault.StaticString(ocm.DefaultChannelGroup),
@@ -398,8 +377,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 			"ec2_metadata_http_tokens": schema.StringAttribute{
 				Description: "This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the cluster." +
 					"This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). This feature is available from " +
-					"OpenShift version 4.11.0 and newer." +
-					"Once the resource was created, the attribute cannot be changed.",
+					"OpenShift version 4.11.0 and newer." + common.ValueCannotBeChangedStringDescription,
 				Optional: true,
 				Computed: true,
 				Validators: []validator.String{attrvalidators.EnumValueValidator([]string{string(cmv1.Ec2MetadataHttpTokensOptional),
@@ -415,8 +393,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Optional: true,
 			},
 			"admin_credentials": schema.SingleNestedAttribute{
-				Description: "Admin user credentials." +
-					"Once the resource was created, the attribute cannot be changed.",
+				Description: "Admin user credentials." + common.ValueCannotBeChangedStringDescription,
 				Attributes: map[string]schema.Attribute{
 					"username": schema.StringAttribute{
 						Description: "Admin username that will be created with the cluster.",
@@ -433,8 +410,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Optional: true,
 			},
 			"private_hosted_zone": schema.SingleNestedAttribute{
-				Description: "Used in a shared VPC topology. HostedZone attributes." +
-					"Once the resource was created, the attribute cannot be changed.",
+				Description: "Used in a shared VPC topology. HostedZone attributes." + common.ValueCannotBeChangedStringDescription,
 				Attributes: map[string]schema.Attribute{
 					"id": schema.StringAttribute{
 						Description: "ID assigned by AWS to private Route 53 hosted zone associated with intended shared VPC, " +
@@ -1020,28 +996,29 @@ func (r *ClusterRosaClassicResource) Read(ctx context.Context, request resource.
 
 func assertNoChanges(state, plan *ClusterRosaClassicState) diag.Diagnostics {
 	diags := diag.Diagnostics{}
-	common.AssertStateAndPlanValue(state.Name, plan.Name, "name", &diags)
-	common.AssertStateAndPlanValue(state.ExternalID, plan.ExternalID, "external_id", &diags)
-	common.AssertStateAndPlanValue(state.MultiAZ, plan.MultiAZ, "multi_az", &diags)
-	common.AssertStateAndPlanValue(state.DisableSCPChecks, plan.DisableSCPChecks, "disable_scp_checks", &diags)
-	common.AssertStateAndPlanValue(state.Tags, plan.Tags, "tags", &diags)
-	common.AssertStateAndPlanValue(state.EtcdEncryption, plan.EtcdEncryption, "etcd_encryption", &diags)
-	common.AssertStateAndPlanValue(state.BaseDNSDomain, plan.BaseDNSDomain, "base_dns_domain", &diags)
-	common.AssertStateAndPlanValue(state.AWSAccountID, plan.AWSAccountID, "aws_account_id", &diags)
-	common.AssertStateAndPlanValue(state.AWSSubnetIDs, plan.AWSSubnetIDs, "aws_subnet_ids", &diags)
-	common.AssertStateAndPlanValue(state.KMSKeyArn, plan.KMSKeyArn, "kms_key_arn", &diags)
-	common.AssertStateAndPlanValue(state.FIPS, plan.FIPS, "fips", &diags)
-	common.AssertStateAndPlanValue(state.AWSPrivateLink, plan.AWSPrivateLink, "aws_private_link", &diags)
-	common.AssertStateAndPlanValue(state.Private, plan.Private, "private", &diags)
-	common.AssertStateAndPlanValue(state.AvailabilityZones, plan.AvailabilityZones, "availability_zones", &diags)
-	common.AssertStateAndPlanValue(state.MachineCIDR, plan.MachineCIDR, "machine_cidr", &diags)
-	common.AssertStateAndPlanValue(state.ServiceCIDR, plan.ServiceCIDR, "service_cidr", &diags)
-	common.AssertStateAndPlanValue(state.PodCIDR, plan.PodCIDR, "pod_cidr", &diags)
-	common.AssertStateAndPlanValue(state.HostPrefix, plan.HostPrefix, "host_prefix", &diags)
-	common.AssertStateAndPlanValue(state.ChannelGroup, plan.ChannelGroup, "channel_group", &diags)
-	common.AssertStateAndPlanValue(state.Ec2MetadataHttpTokens, plan.Ec2MetadataHttpTokens, "ec2_metadata_http_tokens", &diags)
-	common.AssertStateAndPlanValue(state.AWSAdditionalControlPlaneSecurityGroupIds, plan.AWSAdditionalControlPlaneSecurityGroupIds, "aws_additional_control_plane_security_group_ids", &diags)
-	common.AssertStateAndPlanValue(state.AWSAdditionalInfraSecurityGroupIds, plan.AWSAdditionalInfraSecurityGroupIds, "aws_additional_infra_security_group_ids", &diags)
+	common.ValidateStateAndPlanEquals(state.Name, plan.Name, "name", &diags)
+	common.ValidateStateAndPlanEquals(state.ExternalID, plan.ExternalID, "external_id", &diags)
+	common.ValidateStateAndPlanEquals(state.MultiAZ, plan.MultiAZ, "multi_az", &diags)
+	common.ValidateStateAndPlanEquals(state.DisableSCPChecks, plan.DisableSCPChecks, "disable_scp_checks", &diags)
+	common.ValidateStateAndPlanEquals(state.Tags, plan.Tags, "tags", &diags)
+	common.ValidateStateAndPlanEquals(state.EtcdEncryption, plan.EtcdEncryption, "etcd_encryption", &diags)
+	common.ValidateStateAndPlanEquals(state.BaseDNSDomain, plan.BaseDNSDomain, "base_dns_domain", &diags)
+	common.ValidateStateAndPlanEquals(state.AWSAccountID, plan.AWSAccountID, "aws_account_id", &diags)
+	common.ValidateStateAndPlanEquals(state.AWSSubnetIDs, plan.AWSSubnetIDs, "aws_subnet_ids", &diags)
+	common.ValidateStateAndPlanEquals(state.KMSKeyArn, plan.KMSKeyArn, "kms_key_arn", &diags)
+	common.ValidateStateAndPlanEquals(state.FIPS, plan.FIPS, "fips", &diags)
+	common.ValidateStateAndPlanEquals(state.AWSPrivateLink, plan.AWSPrivateLink, "aws_private_link", &diags)
+	common.ValidateStateAndPlanEquals(state.Private, plan.Private, "private", &diags)
+	common.ValidateStateAndPlanEquals(state.AvailabilityZones, plan.AvailabilityZones, "availability_zones", &diags)
+	common.ValidateStateAndPlanEquals(state.MachineCIDR, plan.MachineCIDR, "machine_cidr", &diags)
+	common.ValidateStateAndPlanEquals(state.ServiceCIDR, plan.ServiceCIDR, "service_cidr", &diags)
+	common.ValidateStateAndPlanEquals(state.PodCIDR, plan.PodCIDR, "pod_cidr", &diags)
+	common.ValidateStateAndPlanEquals(state.HostPrefix, plan.HostPrefix, "host_prefix", &diags)
+	common.ValidateStateAndPlanEquals(state.ChannelGroup, plan.ChannelGroup, "channel_group", &diags)
+	common.ValidateStateAndPlanEquals(state.Ec2MetadataHttpTokens, plan.Ec2MetadataHttpTokens, "ec2_metadata_http_tokens", &diags)
+	common.ValidateStateAndPlanEquals(state.AWSAdditionalControlPlaneSecurityGroupIds, plan.AWSAdditionalControlPlaneSecurityGroupIds, "aws_additional_control_plane_security_group_ids", &diags)
+	common.ValidateStateAndPlanEquals(state.AWSAdditionalInfraSecurityGroupIds, plan.AWSAdditionalInfraSecurityGroupIds, "aws_additional_infra_security_group_ids", &diags)
+	common.ValidateStateAndPlanEquals(state.AWSAdditionalComputeSecurityGroupIds, plan.AWSAdditionalComputeSecurityGroupIds, "aws_additional_compute_security_group_ids", &diags)
 
 	if !reflect.DeepEqual(state.AdminCredentials, plan.AdminCredentials) {
 		diags.AddError(common.AssertionErrorSummaryMessage, fmt.Sprintf(common.AssertionErrorDetailsMessage, "admin_credentials", *state.AdminCredentials, *plan.AdminCredentials))

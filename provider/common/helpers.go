@@ -37,9 +37,10 @@ import (
 )
 
 const (
-	versionPrefix                = "openshift-v"
-	AssertionErrorSummaryMessage = "Attribute value cannot be changed"
-	AssertionErrorDetailsMessage = "Attribute %s, cannot be changed from %v to %v"
+	versionPrefix                         = "openshift-v"
+	AssertionErrorSummaryMessage          = "Attribute value cannot be changed"
+	AssertionErrorDetailsMessage          = "Attribute %s, cannot be changed from %v to %v"
+	ValueCannotBeChangedStringDescription = "After the creation of the resource, it is not possible to update the attribute value."
 )
 
 // shouldPatchInt changed checks if the change between the given state and plan requires sending a
@@ -200,7 +201,8 @@ func HasValue(val attr.Value) bool {
 	return !val.IsUnknown() && !val.IsNull()
 }
 
-func AssertStateAndPlanValue(stateAttr attr.Value, planAttr attr.Value, attrName string, diags *diag.Diagnostics) {
+// ValidateStateAndPlanEquals checks if given two attributes are equal, if not add error to diagnostic
+func ValidateStateAndPlanEquals(stateAttr attr.Value, planAttr attr.Value, attrName string, diags *diag.Diagnostics) {
 	if !stateAttr.Equal(planAttr) {
 		diags.AddError(AssertionErrorSummaryMessage, fmt.Sprintf(AssertionErrorDetailsMessage, attrName, stateAttr, planAttr))
 	}

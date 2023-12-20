@@ -25,5 +25,5 @@ resource rhcs_kubeletconfig "example_kubeletconfig" {
 
 ### Required
 
-- `cluster` (String) Identifier of the cluster.
+- `cluster` (String) Identifier of the cluster.After the creation of the resource, it is not possible to update the attribute value.
 - `pod_pids_limit` (Number) Sets the requested podPidsLimit to be applied as part of the custom KubeletConfig.

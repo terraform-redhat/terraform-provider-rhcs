@@ -41,6 +41,7 @@ type ClusterCreationArgs struct {
 	AdminCredentials                     map[string]string `json:"admin_credentials,omitempty"`
 	DisableUWM                           bool              `json:"disable_workload_monitoring,omitempty"`
 	Proxy                                *Proxy            `json:"proxy,omitempty"`
+	UnifiedAccRolesPath                  string            `json:"path,omitempty"`
 }
 type Proxy struct {
 	HTTPProxy             string `json:"http_proxy,omitempty"`

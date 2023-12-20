@@ -27,6 +27,7 @@ profiles:
     imdsv2: "optional"
     oidc_config: "managed"
     admin_enabled: false
+    unified_acc_role_path: ""
 # rosa-sts-ad :: creating unmanaged oidc config cluster 
 - as: rosa-sts-ad
   cluster:
@@ -57,6 +58,7 @@ profiles:
     admin_enabled: true
     additional_sg_number: 4
     worker_disk_size: 200
+    unified_acc_role_path: "/unified/"
 # rosa-sts-up :: creating a managed cluster for upgrade purpose
 - as: rosa-sts-up
   cluster:

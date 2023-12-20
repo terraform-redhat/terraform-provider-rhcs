@@ -41,4 +41,5 @@ module "create_account_roles" {
   rosa_openshift_version = local.major_version
   account_role_policies  = data.rhcs_policies.all_policies.account_role_policies
   operator_role_policies = data.rhcs_policies.all_policies.operator_role_policies
+  path                   = var.path
 }

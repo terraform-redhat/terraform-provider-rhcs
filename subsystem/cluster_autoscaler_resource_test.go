@@ -386,6 +386,53 @@ var _ = Describe("Cluster Autoscaler", func() {
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
 					balance_similar_node_groups = true
+					skip_nodes_with_local_storage = false
+
+				}
+	    	`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
+		It("Test setting `skip_nodes_with_local_storage` to null ", func() {
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"kind": "ClusterAutoscaler",
+							"href": "/api/clusters_mgmt/v1/clusters/123/autoscaler",
+							"balance_similar_node_groups": true,
+							"skip_nodes_with_local_storage": false
+						}
+					`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"kind": "ClusterAutoscaler",
+							"href": "/api/clusters_mgmt/v1/clusters/123/autoscaler",
+							"balance_similar_node_groups": true,
+							"skip_nodes_with_local_storage": false
+						}
+					`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
+					VerifyJQ(".balance_similar_node_groups", true),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"kind": "ClusterAutoscaler",
+							"href": "/api/clusters_mgmt/v1/clusters/123/autoscaler",
+							"balance_similar_node_groups": true
+						}
+					`),
+				),
+			)
+
+			terraform.Source(`
+				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
+					cluster = "123"
+					balance_similar_node_groups = true
 				}
 	    	`)
 			Expect(terraform.Apply()).To(BeZero())

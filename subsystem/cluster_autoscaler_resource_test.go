@@ -248,6 +248,100 @@ var _ = Describe("Cluster Autoscaler", func() {
 	    	`)
 			Expect(terraform.Apply()).To(BeZero())
 		})
+
+		It("validation failure - negative log_verbosity", func() {
+			terraform.Source(`
+				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
+					cluster = "123"
+					log_verbosity = -3
+				}
+	    	`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
+		It("validation failure - negative core.min", func() {
+			terraform.Source(`
+				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
+					cluster = "123"
+					resource_limits = {
+						max_nodes_total = 20
+						cores = {
+							min = -2
+							max = 1
+						}
+						memory = {
+							min = 2
+							max = 3
+						}
+						gpus = [
+							{
+								type = "nvidia"
+								range = {
+									min = 0
+									max = 1
+								}
+							},
+						]
+					}
+				}
+	    	`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
+		It("validation failure - negative memory.min", func() {
+			terraform.Source(`
+				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
+					cluster = "123"
+					resource_limits = {
+						max_nodes_total = 20
+						cores = {
+							min = 0
+							max = 1
+						}
+						memory = {
+							min = -3
+							max = 3
+						}
+						gpus = [
+							{
+								type = "nvidia"
+								range = {
+									min = 0
+									max = 1
+								}
+							},
+						]
+					}
+				}
+	    	`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
+		It("validation failure - negative gpu.min", func() {
+			terraform.Source(`
+				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
+					cluster = "123"
+					resource_limits = {
+						max_nodes_total = 20
+						cores = {
+							min = 0
+							max = 1
+						}
+						memory = {
+							min = 2
+							max = 3
+						}
+						gpus = [
+							{
+								type = "nvidia"
+								range = {
+									min = -1
+									max = 1
+								}
+							},
+						]
+					}
+				}
+	    	`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
 	})
 
 	Context("importing", func() {
@@ -597,5 +691,6 @@ var _ = Describe("Cluster Autoscaler", func() {
 
 			Expect(terraform.Destroy()).To(BeZero())
 		})
+
 	})
 })

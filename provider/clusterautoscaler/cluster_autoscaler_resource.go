@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -83,6 +84,9 @@ func (r *ClusterAutoscalerResource) Schema(ctx context.Context, req resource.Sch
 					"Default value is 1, level 4 is recommended for DEBUGGING and " +
 					"level 6 will enable almost everything.",
 				Optional: true,
+				Validators: []validator.Int64{
+					int64validator.AtLeast(0),
+				},
 			},
 			"max_pod_grace_period": schema.Int64Attribute{
 				Description: "Gives pods graceful termination time before scaling down.",

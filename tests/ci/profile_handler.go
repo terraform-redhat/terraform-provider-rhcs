@@ -57,6 +57,7 @@ type Profile struct {
 	WorkerDiskSize        int    `ini:"worker_disk_size,omitempty" json:"worker_disk_size,omitempty"`
 	AdditionalSGNumber    int    `ini:"additional_sg_number,omitempty" json:"additional_sg_number,omitempty"`
 	ManifestsDIR          string `ini:"manifests_dir,omitempty" json:"manifests_dir,omitempty"`
+	UnifiedAccRolesPath   string `ini:"unified_acc_role_path,omitempty" json:"unified_acc_role_path,omitempty"`
 }
 
 func PrepareVPC(region string, privateLink bool, multiZone bool, azIDs []string, name ...string) (*EXE.VPCOutput, error) {
@@ -118,17 +119,18 @@ func PrepareAdditionalSecurityGroups(region string, vpcID string, sgNumbers int)
 	return output.SGIDs, err
 }
 
-func PrepareAccountRoles(token string, accountRolePrefix string, awsRegion string, openshiftVersion string, channelGroup string, manifestDir string) (
+func PrepareAccountRoles(token string, accountRolePrefix string, accountRolesPath string, awsRegion string, openshiftVersion string, channelGroup string, manifestDir string) (
 	*EXE.AccountRolesOutput, error) {
 	accService, err := EXE.NewAccountRoleService(manifestDir)
 	if err != nil {
 		return nil, err
 	}
 	args := &EXE.AccountRolesArgs{
-		AccountRolePrefix: accountRolePrefix,
-		OpenshiftVersion:  openshiftVersion,
-		Token:             token,
-		ChannelGroup:      channelGroup,
+		AccountRolePrefix:   accountRolePrefix,
+		OpenshiftVersion:    openshiftVersion,
+		Token:               token,
+		ChannelGroup:        channelGroup,
+		UnifiedAccRolesPath: accountRolesPath,
 	}
 	accRoleOutput, err := accService.Apply(args, true)
 	if err != nil {
@@ -137,18 +139,19 @@ func PrepareAccountRoles(token string, accountRolePrefix string, awsRegion strin
 	return accRoleOutput, err
 }
 
-func PrepareOIDCProviderAndOperatorRoles(token string, oidcConfigType string, operatorRolePrefix string, accountRolePrefix string, awsRegion string) (
+func PrepareOIDCProviderAndOperatorRoles(token string, oidcConfigType string, operatorRolePrefix string, accountRolePrefix string, accountRolesPath string, awsRegion string) (
 	*EXE.OIDCProviderOperatorRolesOutput, error) {
 	oidcOpService, err := EXE.NewOIDCProviderOperatorRolesService()
 	if err != nil {
 		return nil, err
 	}
 	args := &EXE.OIDCProviderOperatorRolesArgs{
-		AccountRolePrefix:  accountRolePrefix,
-		OperatorRolePrefix: operatorRolePrefix,
-		Token:              token,
-		OIDCConfig:         oidcConfigType,
-		AWSRegion:          awsRegion,
+		AccountRolePrefix:   accountRolePrefix,
+		OperatorRolePrefix:  operatorRolePrefix,
+		Token:               token,
+		OIDCConfig:          oidcConfigType,
+		AWSRegion:           awsRegion,
+		UnifiedAccRolesPath: accountRolesPath,
 	}
 	oidcOpOutput, err := oidcOpService.Apply(args, true)
 	if err != nil {
@@ -283,15 +286,16 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 	}
 
 	if profile.STS {
-		accountRolesOutput, err := PrepareAccountRoles(token, clusterArgs.ClusterName, clusterArgs.AWSRegion, profile.MajorVersion, profile.ChannelGroup, CON.AccountRolesDir)
+		accountRolesOutput, err := PrepareAccountRoles(token, clusterArgs.ClusterName, profile.UnifiedAccRolesPath, clusterArgs.AWSRegion, profile.MajorVersion, profile.ChannelGroup, CON.AccountRolesDir)
 		Expect(err).ToNot(HaveOccurred())
 		clusterArgs.AccountRolePrefix = accountRolesOutput.AccountRolePrefix
+		clusterArgs.UnifiedAccRolesPath = profile.UnifiedAccRolesPath
 		Logger.Infof("Created account roles with prefix %s", accountRolesOutput.AccountRolePrefix)
 
 		Logger.Infof("Sleep for 10 sec to let aws account role async creation finished")
 		time.Sleep(10 * time.Second)
 
-		oidcOutput, err := PrepareOIDCProviderAndOperatorRoles(token, profile.OIDCConfig, clusterArgs.ClusterName, accountRolesOutput.AccountRolePrefix, clusterArgs.AWSRegion)
+		oidcOutput, err := PrepareOIDCProviderAndOperatorRoles(token, profile.OIDCConfig, clusterArgs.ClusterName, accountRolesOutput.AccountRolePrefix, profile.UnifiedAccRolesPath, clusterArgs.AWSRegion)
 		Expect(err).ToNot(HaveOccurred())
 		clusterArgs.OIDCConfigID = oidcOutput.OIDCConfigID
 		clusterArgs.OperatorRolePrefix = oidcOutput.OperatorRolePrefix
@@ -350,6 +354,7 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 	if profile.WorkerDiskSize != 0 {
 		clusterArgs.WorkerDiskSize = profile.WorkerDiskSize
 	}
+	clusterArgs.UnifiedAccRolesPath = profile.UnifiedAccRolesPath
 
 	return clusterArgs, profile.ManifestsDIR, err
 }

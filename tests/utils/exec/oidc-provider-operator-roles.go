@@ -9,13 +9,14 @@ import (
 )
 
 type OIDCProviderOperatorRolesArgs struct {
-	AccountRolePrefix  string `json:"account_role_prefix,omitempty"`
-	OperatorRolePrefix string `json:"operator_role_prefix,omitempty"`
-	Token              string `json:"token,omitempty"`
-	URL                string `json:"url,omitempty"`
-	OIDCConfig         string `json:"oidc_config,omitempty"`
-	AWSRegion          string `json:"aws_region,omitempty"`
-	OCMENV             string `json:"rhcs_environment,omitempty"`
+	AccountRolePrefix   string `json:"account_role_prefix,omitempty"`
+	OperatorRolePrefix  string `json:"operator_role_prefix,omitempty"`
+	Token               string `json:"token,omitempty"`
+	URL                 string `json:"url,omitempty"`
+	OIDCConfig          string `json:"oidc_config,omitempty"`
+	AWSRegion           string `json:"aws_region,omitempty"`
+	OCMENV              string `json:"rhcs_environment,omitempty"`
+	UnifiedAccRolesPath string `json:"path,omitempty"`
 }
 
 type OIDCProviderOperatorRolesOutput struct {

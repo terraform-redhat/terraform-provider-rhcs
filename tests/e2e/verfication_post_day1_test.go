@@ -10,6 +10,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/rosa/pkg/aws"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
@@ -276,6 +277,13 @@ var _ = Describe("TF Test", func() {
 						Expect(cluster.Nodes().ComputeRootVolume().AWS().Size()).To(Equal(profile.WorkerDiskSize))
 					}
 				})
+		})
+		Context("Author:amalykhi-Medium-OCP-63138 @OCP-63138 @amalykhi", func() {
+			It("Create sts cluster with account roles/policies unified path", ci.Day1Post, ci.Medium, func() {
+				unifiedPath, err := aws.GetPathFromAccountRole(cluster, aws.AccountRoles[aws.InstallerAccountRole].Name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(profile.UnifiedAccRolesPath).Should(ContainSubstring(unifiedPath))
+			})
 		})
 	})
 })

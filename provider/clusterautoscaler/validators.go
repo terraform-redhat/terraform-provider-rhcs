@@ -64,7 +64,7 @@ func stringFloatRangeValidator(desc string, min float64, max float64) validator.
 }
 
 func rangeValidator(desc string) validator.Object {
-	return attrvalidators.NewObjectValidator("max must be greater or equal to min",
+	return attrvalidators.NewObjectValidator("min and max must be not negative values and max must be greater or equal to min",
 		func(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
 			resourceRange := &AutoscalerResourceRange{}
 			diag := req.Config.GetAttribute(ctx, req.Path, resourceRange)
@@ -76,6 +76,14 @@ func rangeValidator(desc string) validator.Object {
 			steps := []string{}
 			for _, step := range req.Path.Steps() {
 				steps = append(steps, fmt.Sprintf("%s", step))
+			}
+			if resourceRange.Min.ValueInt64() < 0 {
+				resp.Diagnostics.AddAttributeError(
+					req.Path,
+					"Invalid resource range",
+					fmt.Sprintf("Attribute '%s.min' value must be at least 0, got: %d",
+						strings.Join(steps, "."), resourceRange.Min.ValueInt64()),
+				)
 			}
 			if resourceRange.Min.ValueInt64() > resourceRange.Max.ValueInt64() {
 				resp.Diagnostics.AddAttributeError(

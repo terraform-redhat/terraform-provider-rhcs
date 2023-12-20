@@ -17,7 +17,7 @@ Edit a cluster ingress (load balancer)
 
 ### Required
 
-- `cluster` (String) Identifier of the cluster.
+- `cluster` (String) Identifier of the cluster. After the creation of the resource, it is not possible to update the attribute value.
 
 ### Optional
 

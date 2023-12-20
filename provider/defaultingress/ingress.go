@@ -54,11 +54,8 @@ func (r *DefaultIngressResource) Schema(ctx context.Context, req resource.Schema
 		Description: "Edit a cluster ingress (load balancer)",
 		Attributes: map[string]schema.Attribute{
 			"cluster": schema.StringAttribute{
-				Description: "Identifier of the cluster.",
+				Description: "Identifier of the cluster. " + common.ValueCannotBeChangedStringDescription,
 				Required:    true,
-				PlanModifiers: []planmodifier.String{
-					common.Immutable(),
-				},
 			},
 			"id": schema.StringAttribute{
 				Description: "Unique identifier of the ingress.",
@@ -215,6 +212,12 @@ func (r *DefaultIngressResource) Update(ctx context.Context, req resource.Update
 	plan := &DefaultIngress{}
 	diags = req.Plan.Get(ctx, plan)
 	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// assert cluster attribute wasn't changed:
+	common.ValidateStateAndPlanEquals(state.Cluster, plan.Cluster, "cluster", &diags)
 	if resp.Diagnostics.HasError() {
 		return
 	}

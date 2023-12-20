@@ -32,7 +32,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -74,11 +73,8 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 		Description: "Machine pool.",
 		Attributes: map[string]schema.Attribute{
 			"cluster": schema.StringAttribute{
-				Description: "Identifier of the cluster.",
+				Description: "Identifier of the cluster. " + common.ValueCannotBeChangedStringDescription,
 				Required:    true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 			"id": schema.StringAttribute{
 				Description: "Unique identifier of the machine pool.",
@@ -88,38 +84,26 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				},
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the machine pool. Must consist of lower-case alphanumeric characters or '-', start and end with an alphanumeric character.",
+				Description: "Name of the machine pool. Must consist of lower-case alphanumeric characters or '-', start and end with an alphanumeric character." + common.ValueCannotBeChangedStringDescription,
 				Required:    true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 			"machine_type": schema.StringAttribute{
 				Description: "Identifier of the machine type used by the nodes, " +
 					"for example `m5.xlarge`. Use the `rhcs_machine_types` data " +
-					"source to find the possible values.",
+					"source to find the possible values." + common.ValueCannotBeChangedStringDescription,
 				Required: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 			"replicas": schema.Int64Attribute{
 				Description: "The number of machines of the pool",
 				Optional:    true,
 			},
 			"use_spot_instances": schema.BoolAttribute{
-				Description: "Use Amazon EC2 Spot Instances.",
+				Description: "Use Amazon EC2 Spot Instances." + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.RequiresReplace(),
-				},
 			},
 			"max_spot_price": schema.Float64Attribute{
-				Description: "Max Spot price.",
+				Description: "Max Spot price." + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
-				PlanModifiers: []planmodifier.Float64{
-					float64planmodifier.RequiresReplace(),
-				},
 				Validators: []validator.Float64{
 					float64validator.AtLeast(1e-6), // Greater than zero
 				},
@@ -168,48 +152,41 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				Optional:    true,
 			},
 			"multi_availability_zone": schema.BoolAttribute{
-				Description: "Create a multi-AZ machine pool for a multi-AZ cluster (default is `true`)",
+				Description: "Create a multi-AZ machine pool for a multi-AZ cluster (default is `true`)." + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.RequiresReplace(),
 					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"availability_zone": schema.StringAttribute{
-				Description: "Select the availability zone in which to create a single AZ machine pool for a multi-AZ cluster",
+				Description: "Select the availability zone in which to create a single AZ machine pool for a multi-AZ cluster." + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"subnet_id": schema.StringAttribute{
-				Description: "Select the subnet in which to create a single AZ machine pool for BYO-VPC cluster",
+				Description: "Select the subnet in which to create a single AZ machine pool for BYO-VPC cluster." + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"disk_size": schema.Int64Attribute{
-				Description: "Root disk size, in GiB.",
+				Description: "Root disk size, in GiB." + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.RequiresReplace(),
 					int64planmodifier.UseStateForUnknown(),
 				},
 			},
 			"aws_additional_security_group_ids": schema.ListAttribute{
-				Description: "AWS additional security group ids.",
+				Description: "AWS additional security group ids." + common.ValueCannotBeChangedStringDescription,
 				ElementType: types.StringType,
 				Optional:    true,
-				PlanModifiers: []planmodifier.List{
-					common.Immutable(),
-				},
 			},
 		},
 	}
@@ -545,6 +522,22 @@ func (r *MachinePoolResource) readState(ctx context.Context, state *MachinePoolS
 	return
 }
 
+func assertNoChanges(state, plan *MachinePoolState) diag.Diagnostics {
+	diags := diag.Diagnostics{}
+	common.ValidateStateAndPlanEquals(state.Cluster, plan.Cluster, "cluster", &diags)
+	common.ValidateStateAndPlanEquals(state.Name, plan.Name, "name", &diags)
+	common.ValidateStateAndPlanEquals(state.MachineType, plan.MachineType, "machine_type", &diags)
+	common.ValidateStateAndPlanEquals(state.UseSpotInstances, plan.UseSpotInstances, "use_spot_instances", &diags)
+	common.ValidateStateAndPlanEquals(state.MaxSpotPrice, plan.MaxSpotPrice, "max_spot_price", &diags)
+	common.ValidateStateAndPlanEquals(state.MultiAvailabilityZone, plan.MultiAvailabilityZone, "multi_availability_zone", &diags)
+	common.ValidateStateAndPlanEquals(state.AvailabilityZone, plan.AvailabilityZone, "availability_zone", &diags)
+	common.ValidateStateAndPlanEquals(state.SubnetID, plan.SubnetID, "subnet_id", &diags)
+	common.ValidateStateAndPlanEquals(state.DiskSize, plan.DiskSize, "disk_size", &diags)
+	common.ValidateStateAndPlanEquals(state.AdditionalSecurityGroupIds, plan.AdditionalSecurityGroupIds, "aws_additional_security_group_ids", &diags)
+
+	return diags
+
+}
 func (r *MachinePoolResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Get the state:
 	state := &MachinePoolState{}
@@ -559,6 +552,13 @@ func (r *MachinePoolResource) Update(ctx context.Context, req resource.UpdateReq
 	diags = req.Plan.Get(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	//assert no changes on specific attributes
+	diags = assertNoChanges(state, plan)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
 		return
 	}
 

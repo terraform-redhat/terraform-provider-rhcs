@@ -790,26 +790,36 @@ var _ = Describe("TF Test", func() {
 		Describe("Validate terraform Import operations", func() {
 			var (
 				googleIdpName         = "google-idp"
+				gitLabIdpName         = "gitlab-idp"
 				googleIDPClientSecret string
 				googleIDPClientId     string
+				gitlabIDPClientId     string
+				gitlabIDPClientSecret string
 			)
 
 			BeforeEach(func() {
 				idpService.google = *exe.NewIDPService(con.GoogleDir)        // init new google service
+				idpService.gitlab = *exe.NewIDPService(con.GitlabDir)        // init new gitlab service
 				importService = *exe.NewImportService(con.ImportResourceDir) // init new import service
 			})
 
 			AfterEach(func() {
 				err := idpService.google.Destroy()
 				Expect(err).ToNot(HaveOccurred())
+
+				err = idpService.gitlab.Destroy()
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			Context("Author:smiron-Medium-OCP-65981 @OCP-65981 @smiron", func() {
 				It("OCP-65981 - rhcs_identity_provider resource can be imported by the terraform import command",
 					ci.Day2, ci.Medium, ci.FeatureIDP, ci.FeatureImport, func() {
-						By("Create sample idp to test the import functionality")
+
+						By("Create sample idps to test the import functionality")
 						googleIDPClientSecret = h.GenerateRandomStringWithSymbols(20)
 						googleIDPClientId = h.GenerateRandomStringWithSymbols(30)
+						gitlabIDPClientId = h.GenerateRandomStringWithSymbols(20)
+						gitlabIDPClientSecret = h.GenerateRandomStringWithSymbols(30)
 
 						idpParam := &exe.IDPArgs{
 							Token:        token,
@@ -819,15 +829,24 @@ var _ = Describe("TF Test", func() {
 							ClientSecret: googleIDPClientSecret,
 							HostedDomain: con.HostedDomain,
 						}
-
 						Expect(idpService.google.Apply(idpParam, false)).To(Succeed())
+
+						idpParam = &exe.IDPArgs{
+							Token:        token,
+							ClusterID:    clusterID,
+							Name:         gitLabIdpName,
+							ClientID:     gitlabIDPClientId,
+							ClientSecret: gitlabIDPClientSecret,
+							URL:          con.GitLabURL,
+						}
+						Expect(idpService.gitlab.Apply(idpParam, false)).To(Succeed())
 
 						By("Run the command to import the idp")
 						importParam := &exe.ImportArgs{
 							Token:        token,
 							ClusterID:    clusterID,
 							ResourceKind: "rhcs_identity_provider",
-							ResourceName: "idp_import",
+							ResourceName: "idp_google_import",
 							ObjectName:   googleIdpName,
 						}
 						Expect(importService.Import(importParam)).To(Succeed())
@@ -837,6 +856,34 @@ var _ = Describe("TF Test", func() {
 						Expect(err).ToNot(HaveOccurred())
 						Expect(output).To(ContainSubstring(googleIDPClientId))
 						Expect(output).To(ContainSubstring(con.HostedDomain))
+
+						By("Validate terraform import with no idp object name returns error")
+						var unknownIdpName = "unknown_idp_name"
+						importParam = &exe.ImportArgs{
+							Token:        token,
+							ClusterID:    clusterID,
+							ResourceKind: "rhcs_identity_provider",
+							ResourceName: "idp_google_import",
+							ObjectName:   unknownIdpName,
+						}
+
+						err = importService.Import(importParam)
+						Expect(err.Error()).To(ContainSubstring("identity provider '%s' not found", unknownIdpName))
+
+						By("Validate terraform import with no clusterID returns error")
+
+						var unknownClusterID = h.GenerateRandomStringWithSymbols(20)
+						importParam = &exe.ImportArgs{
+							Token:        token,
+							ClusterID:    unknownClusterID,
+							ResourceKind: "rhcs_identity_provider",
+							ResourceName: "idp_gitlab_import",
+							ObjectName:   gitLabIdpName,
+						}
+
+						err = importService.Import(importParam)
+						Expect(err.Error()).To(ContainSubstring("'%s' not found", unknownClusterID))
+
 					})
 			})
 		})

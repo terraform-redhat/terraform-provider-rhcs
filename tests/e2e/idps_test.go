@@ -485,6 +485,8 @@ var _ = Describe("TF Test", func() {
 
 					By("Create htpasswd idp without/empty username field")
 					userName = ""
+					htpasswdMap = []interface{}{map[string]string{
+						"username": userName, "password": password}}
 					idpParam = &exe.IDPArgs{
 						Token:         token,
 						ClusterID:     clusterID,
@@ -499,6 +501,8 @@ var _ = Describe("TF Test", func() {
 					By("Create htpasswd idp without/empty password field")
 					password = ""
 					userName = "jacko"
+					htpasswdMap = []interface{}{map[string]string{
+						"username": userName, "password": password}}
 					idpParam = &exe.IDPArgs{
 						Token:         token,
 						ClusterID:     clusterID,

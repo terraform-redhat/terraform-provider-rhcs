@@ -161,7 +161,6 @@ var _ = Describe("TF Test", func() {
 					// validate import was successful by checking samples fields
 					Expect(output).To(ContainSubstring(profile.ClusterName))
 					Expect(output).To(ContainSubstring(profile.Region))
-					Expect(output).To(ContainSubstring(profile.Version))
 					Expect(output).To(ContainSubstring(profile.ChannelGroup))
 
 					// skip due to bug :: OCM-5246

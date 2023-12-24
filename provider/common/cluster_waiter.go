@@ -15,7 +15,7 @@ const pollingIntervalInMinutes = 2
 //go:generate mockgen -source=cluster_waiter.go -package=common -destination=mock_clusterwait.go
 type ClusterWait interface {
 	WaitForClusterToBeReady(ctx context.Context, clusterId string) error
-	RetryClusterReadiness(ctx context.Context,clusterId string, attempts int, sleep time.Duration, timeout int64) (*cmv1.Cluster, error)
+	RetryClusterReadiness(ctx context.Context, clusterId string, attempts int, sleep time.Duration, timeout int64) (*cmv1.Cluster, error)
 }
 
 type DefaultClusterWait struct {

@@ -3,8 +3,13 @@ WORKDIR /root
 
 # Update the base image and install necessary packages
 RUN microdnf update -y && \
-    microdnf install -y git make go-toolset && \
+    microdnf install -y git make go-toolset tar && \
     microdnf clean all
+
+RUN curl -Ls https://go.dev/dl/go1.21.5.linux-amd64.tar.gz |tar -C /usr/local -xzf -
+ENV PATH="/usr/local/go/bin:${PATH}"
+ENV GOPATH=/usr/local/go
+ENV TEST_OFFLINE_TOKEN=""
 
 # terraform-provider-rhcs repo
 COPY . ./terraform-provider-rhcs

@@ -496,13 +496,12 @@ var _ = Describe("TF Test", func() {
 
 					err = idpService.htpasswd.Apply(idpParam, false)
 					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).Should(ContainSubstring("attributes \"password\" and \"username\" are required"))
+					Expect(err.Error()).Should(ContainSubstring("Attribute 'username' is mandatory"))
 
 					By("Create htpasswd idp without/empty password field")
-					password = ""
 					userName = "jacko"
 					htpasswdMap = []interface{}{map[string]string{
-						"username": userName, "password": password}}
+						"username": userName}}
 					idpParam = &exe.IDPArgs{
 						Token:         token,
 						ClusterID:     clusterID,
@@ -511,7 +510,7 @@ var _ = Describe("TF Test", func() {
 					}
 					err = idpService.htpasswd.Apply(idpParam, false)
 					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).Should(ContainSubstring("attributes \"password\" and \"username\" are required"))
+					Expect(err.Error()).Should(ContainSubstring("attribute \"password\" is required"))
 
 					By("Create ldap idp without/empty name field")
 					idpParam = &exe.IDPArgs{

@@ -186,15 +186,15 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				},
 			},
 			"autoscaling_enabled": schema.BoolAttribute{
-				Description: "Enable autoscaling for the initial worker pool. (only valid during cluster creation)",
+				Description: "Enable autoscaling for the initial worker pool. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 			},
 			"min_replicas": schema.Int64Attribute{
-				Description: "Minimum replicas of worker nodes in a machine pool. (only valid during cluster creation)",
+				Description: "Minimum replicas of worker nodes in a machine pool. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 			},
 			"max_replicas": schema.Int64Attribute{
-				Description: "Maximum replicas of worker nodes in a machine pool. (only valid during cluster creation)",
+				Description: "Maximum replicas of worker nodes in a machine pool. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 			},
 			"api_url": schema.StringAttribute{
@@ -225,22 +225,22 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 			},
 			"replicas": schema.Int64Attribute{
 				Description: "Number of worker/compute nodes to provision. Single zone clusters need at least 2 nodes, " +
-					"multizone clusters need at least 3 nodes. (only valid during cluster creation)",
+					"multizone clusters need at least 3 nodes. " + common.ValueCannotBeChangedStringDescription,
 				Optional: true,
 			},
 			"compute_machine_type": schema.StringAttribute{
 				Description: "Identifies the machine type used by the default/initial worker nodes, " +
 					"for example `m5.xlarge`. Use the `rhcs_machine_types` data " +
-					"source to find the possible values. (only valid during cluster creation)",
+					"source to find the possible values." + common.ValueCannotBeChangedStringDescription,
 				Optional: true,
 			},
 			"worker_disk_size": schema.Int64Attribute{
-				Description: "Compute node root disk size, in GiB. (only valid during cluster creation)",
+				Description: "Compute node root disk size, in GiB. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 			},
 			"default_mp_labels": schema.MapAttribute{
 				Description: "This value is the default/initial machine pool labels. Format should be a comma-separated list of '{\"key1\"=\"value1\", \"key2\"=\"value2\"}'. " +
-					"(only valid during cluster creation)",
+					common.ValueCannotBeChangedStringDescription,
 				ElementType: types.StringType,
 				Optional:    true,
 			},
@@ -998,7 +998,6 @@ func assertNoChanges(state, plan *ClusterRosaClassicState) diag.Diagnostics {
 	diags := diag.Diagnostics{}
 	common.ValidateStateAndPlanEquals(state.Name, plan.Name, "name", &diags)
 	common.ValidateStateAndPlanEquals(state.ExternalID, plan.ExternalID, "external_id", &diags)
-	common.ValidateStateAndPlanEquals(state.MultiAZ, plan.MultiAZ, "multi_az", &diags)
 	common.ValidateStateAndPlanEquals(state.DisableSCPChecks, plan.DisableSCPChecks, "disable_scp_checks", &diags)
 	common.ValidateStateAndPlanEquals(state.Tags, plan.Tags, "tags", &diags)
 	common.ValidateStateAndPlanEquals(state.EtcdEncryption, plan.EtcdEncryption, "etcd_encryption", &diags)
@@ -1009,13 +1008,14 @@ func assertNoChanges(state, plan *ClusterRosaClassicState) diag.Diagnostics {
 	common.ValidateStateAndPlanEquals(state.FIPS, plan.FIPS, "fips", &diags)
 	common.ValidateStateAndPlanEquals(state.AWSPrivateLink, plan.AWSPrivateLink, "aws_private_link", &diags)
 	common.ValidateStateAndPlanEquals(state.Private, plan.Private, "private", &diags)
-	common.ValidateStateAndPlanEquals(state.AvailabilityZones, plan.AvailabilityZones, "availability_zones", &diags)
 	common.ValidateStateAndPlanEquals(state.MachineCIDR, plan.MachineCIDR, "machine_cidr", &diags)
 	common.ValidateStateAndPlanEquals(state.ServiceCIDR, plan.ServiceCIDR, "service_cidr", &diags)
 	common.ValidateStateAndPlanEquals(state.PodCIDR, plan.PodCIDR, "pod_cidr", &diags)
 	common.ValidateStateAndPlanEquals(state.HostPrefix, plan.HostPrefix, "host_prefix", &diags)
 	common.ValidateStateAndPlanEquals(state.ChannelGroup, plan.ChannelGroup, "channel_group", &diags)
 	common.ValidateStateAndPlanEquals(state.Ec2MetadataHttpTokens, plan.Ec2MetadataHttpTokens, "ec2_metadata_http_tokens", &diags)
+
+	// security group's attributes
 	common.ValidateStateAndPlanEquals(state.AWSAdditionalControlPlaneSecurityGroupIds, plan.AWSAdditionalControlPlaneSecurityGroupIds, "aws_additional_control_plane_security_group_ids", &diags)
 	common.ValidateStateAndPlanEquals(state.AWSAdditionalInfraSecurityGroupIds, plan.AWSAdditionalInfraSecurityGroupIds, "aws_additional_infra_security_group_ids", &diags)
 	common.ValidateStateAndPlanEquals(state.AWSAdditionalComputeSecurityGroupIds, plan.AWSAdditionalComputeSecurityGroupIds, "aws_additional_compute_security_group_ids", &diags)
@@ -1026,6 +1026,17 @@ func assertNoChanges(state, plan *ClusterRosaClassicState) diag.Diagnostics {
 	if !reflect.DeepEqual(state.PrivateHostedZone, plan.PrivateHostedZone) {
 		diags.AddError(common.AssertionErrorSummaryMessage, fmt.Sprintf(common.AssertionErrorDetailsMessage, "private_hosted_zone", *state.PrivateHostedZone, *plan.PrivateHostedZone))
 	}
+
+	// default machine pool's attributes
+	common.ValidateStateAndPlanEquals(state.AutoScalingEnabled, plan.AutoScalingEnabled, "autoscaling_enabled", &diags)
+	common.ValidateStateAndPlanEquals(state.Replicas, plan.Replicas, "replicas", &diags)
+	common.ValidateStateAndPlanEquals(state.MinReplicas, plan.MinReplicas, "min_replicas", &diags)
+	common.ValidateStateAndPlanEquals(state.MaxReplicas, plan.MaxReplicas, "max_replicas", &diags)
+	common.ValidateStateAndPlanEquals(state.ComputeMachineType, plan.ComputeMachineType, "compute_machine_type", &diags)
+	common.ValidateStateAndPlanEquals(state.DefaultMPLabels, plan.DefaultMPLabels, "default_mp_labels", &diags)
+	common.ValidateStateAndPlanEquals(state.AvailabilityZones, plan.AvailabilityZones, "availability_zones", &diags)
+	common.ValidateStateAndPlanEquals(state.MultiAZ, plan.MultiAZ, "multi_az", &diags)
+	common.ValidateStateAndPlanEquals(state.WorkerDiskSize, plan.WorkerDiskSize, "worker_disk_size", &diags)
 
 	return diags
 

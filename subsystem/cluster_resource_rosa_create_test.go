@@ -3126,6 +3126,17 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "disable_user_workload_monitoring" : true
 					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/nodes",
+					  "value": {
+						"compute": 3,
+                        "availability_zones": ["us-west-1a"],
+						"compute_machine_type": {
+							"id": "r5.xlarge"
+						}
+					  }
 					}]`),
 				),
 			)
@@ -3139,6 +3150,8 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						username = "cluster_admin"
 						password = "1234AbB2341234"
 					}
+					replicas = "3"
+					compute_machine_type = "r5.xlarge"
 					tags = {
 						"k1" = "v1"
 					}
@@ -3156,10 +3169,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 
 			// it should return a warning so exit code will be "0":
 			Expect(terraform.Apply()).To(BeZero())
-		})
-		It("update admin_credentials, tags, availability_zones and name, and fail", func() {
-			// apply for update the workload monitor to be enabled
-			// Prepare the server:
+
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
@@ -3209,22 +3219,173 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					}]`),
 				),
 			)
-
+		})
+		It("update admin_credentials, tags, availability_zones and name, and fail", func() {
 			terraform.Source(`
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+					# >>>> update cluster name from "my-cluster" to "my-luster"
 					name           = "my-luster"
+
+					replicas = "3"
+					compute_machine_type = "r5.xlarge"
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
 					disable_workload_monitoring = false
+
+					# >>>> update username 
 					admin_credentials = {
 						username = "cluter_admin"
 						password = "1234AbB2341234"
 					}
 					#external_id           = ""
+
+					# >>>> change the availability zone from "us-west-1a" to "us-west-1b" :
 					availability_zones = ["us-west-1b"]
+
+					# >>>> remove tags:
 					#tags = {
 					#	"k1" = "v1"
 					#}
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							master_role_arn = "",
+							worker_role_arn = "",
+						}
+					}
+				  }
+			`)
+
+			Expect(terraform.Apply()).ToNot(BeZero())
+
+		})
+		It("update default machine-pool's attributes: autoscaling_enabled", func() {
+			terraform.Source(`
+				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					replicas = "3"
+					compute_machine_type = "r5.xlarge"
+
+					# >>>> change autoscaling_enabled from null to true
+					autoscaling_enabled = true
+					aws_account_id = "123"
+					disable_workload_monitoring = true
+					admin_credentials = {
+						username = "cluster_admin"
+						password = "1234AbB2341234"
+					}
+					tags = {
+						"k1" = "v1"
+					}
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							master_role_arn = "",
+							worker_role_arn = "",
+						}
+					}
+				  }
+			`)
+
+			Expect(terraform.Apply()).ToNot(BeZero())
+
+		})
+		It("update default machine-pool's attributes: replicas", func() {
+			terraform.Source(`
+				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+
+					# >>>> change replicas from 3 to 4
+					replicas = "4"
+
+					compute_machine_type = "r5.xlarge"
+					aws_account_id = "123"
+					disable_workload_monitoring = true
+					admin_credentials = {
+						username = "cluster_admin"
+						password = "1234AbB2341234"
+					}
+					tags = {
+						"k1" = "v1"
+					}
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							master_role_arn = "",
+							worker_role_arn = "",
+						}
+					}
+				  }
+			`)
+
+			Expect(terraform.Apply()).ToNot(BeZero())
+
+		})
+		It("update default machine-pool's attributes: default_mp_labels", func() {
+			terraform.Source(`
+				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+
+					# >>>> change default machine pool labels 
+					default_mp_labels = {
+						"label_key1" = "label_value1",
+						"label_key2" = "label_value2"
+					}
+
+					replicas = "3"
+					compute_machine_type = "r5.xlarge"
+					aws_account_id = "123"
+					disable_workload_monitoring = true
+					admin_credentials = {
+						username = "cluster_admin"
+						password = "1234AbB2341234"
+					}
+					tags = {
+						"k1" = "v1"
+					}
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							master_role_arn = "",
+							worker_role_arn = "",
+						}
+					}
+				  }
+			`)
+
+			Expect(terraform.Apply()).ToNot(BeZero())
+
+		})
+		It("update default machine-pool's attributes: worker_disk_size", func() {
+			terraform.Source(`
+				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+
+					# >>>> change worker_disk_size
+					worker_disk_size = "2"
+					replicas = "3"
+					compute_machine_type = "r5.xlarge"
+					aws_account_id = "123"
+					disable_workload_monitoring = true
+					admin_credentials = {
+						username = "cluster_admin"
+						password = "1234AbB2341234"
+					}
+					tags = {
+						"k1" = "v1"
+					}
 					sts = {
 						operator_role_prefix = "test"
 						role_arn = "",

@@ -12,6 +12,7 @@ var FeatureImport = Label("feature-import")
 // day1/day1-post and day2
 var Day1 = Label("day1")
 var Day1Prepare = Label("day1-prepare")
+var Day1Negative = Label("day1-negative")
 var Day1Post = Label("day1-post")
 var Day2 = Label("day2")
 

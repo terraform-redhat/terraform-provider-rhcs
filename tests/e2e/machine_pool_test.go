@@ -615,6 +615,63 @@ var _ = Describe("TF Test", func() {
 			})
 		})
 	})
+
+	Describe("Validate terraform Import operations", func() {
+		var mpService *exe.MachinePoolService
+		var importService exe.ImportService
+
+		BeforeEach(func() {
+			mpService = exe.NewMachinePoolService(con.MachinePoolDir)
+			importService = *exe.NewImportService(con.ImportResourceDir) // init new import service
+		})
+		AfterEach(func() {
+			By("Destroy import service")
+			_, importErr := importService.Destroy()
+			Expect(importErr).ToNot(HaveOccurred())
+		})
+
+		Context("Author:prabinov-Medium-OCP-66403 @OCP-66403 @prabinov", func() {
+			It("OCP-66403 - rhcs_machinepool resource can be imported by the terraform import command",
+				ci.Day2, ci.Medium, ci.FeatureMachinepool, ci.FeatureImport, func() {
+					By("Create additional machinepool for import")
+					minReplicas := 3
+					maxReplicas := 6
+					creationLabels := map[string]string{"foo1": "bar1"}
+					machineType := "r5.xlarge"
+					name := "ocp-66403"
+					MachinePoolArgs := &exe.MachinePoolArgs{
+						Cluster:            clusterID,
+						MinReplicas:        &minReplicas,
+						MaxReplicas:        &maxReplicas,
+						MachineType:        machineType,
+						Name:               name,
+						Labels:             &creationLabels,
+						AutoscalingEnabled: true,
+					}
+
+					_, err := mpService.Apply(MachinePoolArgs, false)
+					Expect(err).ToNot(HaveOccurred())
+
+					By("Run the command to import the machinepool")
+					importParam := &exe.ImportArgs{
+						ClusterID:    clusterID,
+						ResourceKind: "rhcs_machine_pool",
+						ResourceName: "mp_import",
+						ObjectName:   name,
+					}
+					Expect(importService.Import(importParam)).To(Succeed())
+
+					By("Check resource state - import command succeeded")
+
+					output, err := importService.ShowState(importParam)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(output).To(ContainSubstring(machineType))
+					Expect(output).To(ContainSubstring(name))
+					Expect(output).To(MatchRegexp("foo1"))
+					Expect(output).To(MatchRegexp("bar1"))
+				})
+		})
+	})
 })
 
 var _ = Describe("TF Test, default machinepool day-2 testing", func() {

@@ -58,10 +58,12 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   aws_account_id     = data.aws_caller_identity.current.account_id
   availability_zones = var.aws_availability_zones
   multi_az           = var.multi_az
-  properties = {
-    rosa_creator_arn = data.aws_caller_identity.current.arn
-    custom_property = "test"
-  }
+  properties = merge(
+        {
+            rosa_creator_arn = data.aws_caller_identity.current.arn
+        },
+        var.custom_properties
+  )
   sts                                             = local.sts_roles
   replicas                                        = var.replicas
   proxy                                           = var.proxy

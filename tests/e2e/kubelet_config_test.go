@@ -14,7 +14,7 @@ import (
 
 var _ = Describe("TF Test", func() {
 
-	Describe("Pod pids limite test", func() {
+	Describe("Pod pids limit test", func() {
 		var kcService *exe.KubeletConfigService
 		BeforeEach(func() {
 			var err error

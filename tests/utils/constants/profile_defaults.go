@@ -11,7 +11,7 @@ var (
 	DefaultMPLabels  = map[string]string{
 		"test1": "testdata1",
 	}
-	CustomProperties = map[string]string{"custom_property": "test"}
+	CustomProperties = map[string]string{"custom_property": "test", "qe_usage": RHCS.QEUsage}
 	LdapURL          = "ldap://ldap.forumsys.com/dc=example,dc=com?uid"
 	GitLabURL        = "https://gitlab.cee.redhat.com"
 	Organizations    = []string{"openshift"}

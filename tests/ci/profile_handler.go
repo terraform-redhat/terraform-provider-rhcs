@@ -422,7 +422,6 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 	clusterService, err := EXE.NewClusterService(profile.ManifestsDIR)
 	Expect(err).ToNot(HaveOccurred())
 	clusterArgs := &EXE.ClusterCreationArgs{
-		// Token:              token,
 		AWSRegion:          profile.Region,
 		AccountRolePrefix:  "",
 		OperatorRolePrefix: "",

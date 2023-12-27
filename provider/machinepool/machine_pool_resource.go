@@ -85,13 +85,13 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				},
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the machine pool. Must consist of lower-case alphanumeric characters or '-', start and end with an alphanumeric character." + common.ValueCannotBeChangedStringDescription,
+				Description: "Name of the machine pool. Must consist of lower-case alphanumeric characters or '-', start and end with an alphanumeric character. " + common.ValueCannotBeChangedStringDescription,
 				Required:    true,
 			},
 			"machine_type": schema.StringAttribute{
 				Description: "Identifier of the machine type used by the nodes, " +
 					"for example `m5.xlarge`. Use the `rhcs_machine_types` data " +
-					"source to find the possible values." + common.ValueCannotBeChangedStringDescription,
+					"source to find the possible values. " + common.ValueCannotBeChangedStringDescription,
 				Required: true,
 			},
 			"replicas": schema.Int64Attribute{
@@ -99,11 +99,11 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				Optional:    true,
 			},
 			"use_spot_instances": schema.BoolAttribute{
-				Description: "Use Amazon EC2 Spot Instances." + common.ValueCannotBeChangedStringDescription,
+				Description: "Use Amazon EC2 Spot Instances. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 			},
 			"max_spot_price": schema.Float64Attribute{
-				Description: "Max Spot price." + common.ValueCannotBeChangedStringDescription,
+				Description: "Max Spot price. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 				Validators: []validator.Float64{
 					float64validator.AtLeast(1e-6), // Greater than zero
@@ -153,7 +153,7 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				Optional:    true,
 			},
 			"multi_availability_zone": schema.BoolAttribute{
-				Description: "Create a multi-AZ machine pool for a multi-AZ cluster (default is `true`)." + common.ValueCannotBeChangedStringDescription,
+				Description: "Create a multi-AZ machine pool for a multi-AZ cluster (default is `true`). " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.Bool{
@@ -161,7 +161,7 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				},
 			},
 			"availability_zone": schema.StringAttribute{
-				Description: "Select the availability zone in which to create a single AZ machine pool for a multi-AZ cluster." + common.ValueCannotBeChangedStringDescription,
+				Description: "Select the availability zone in which to create a single AZ machine pool for a multi-AZ cluster. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
@@ -169,7 +169,7 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				},
 			},
 			"subnet_id": schema.StringAttribute{
-				Description: "Select the subnet in which to create a single AZ machine pool for BYO-VPC cluster." + common.ValueCannotBeChangedStringDescription,
+				Description: "Select the subnet in which to create a single AZ machine pool for BYO-VPC cluster. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
@@ -177,7 +177,7 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				},
 			},
 			"disk_size": schema.Int64Attribute{
-				Description: "Root disk size, in GiB." + common.ValueCannotBeChangedStringDescription,
+				Description: "Root disk size, in GiB. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.Int64{
@@ -185,7 +185,7 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				},
 			},
 			"aws_additional_security_group_ids": schema.ListAttribute{
-				Description: "AWS additional security group ids." + common.ValueCannotBeChangedStringDescription,
+				Description: "AWS additional security group ids. " + common.ValueCannotBeChangedStringDescription,
 				ElementType: types.StringType,
 				Optional:    true,
 			},

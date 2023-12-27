@@ -994,7 +994,7 @@ func (r *ClusterRosaClassicResource) Read(ctx context.Context, request resource.
 	response.Diagnostics.Append(diags...)
 }
 
-func assertNoChanges(state, plan *ClusterRosaClassicState) diag.Diagnostics {
+func validateNoImmutableAttChange(state, plan *ClusterRosaClassicState) diag.Diagnostics {
 	diags := diag.Diagnostics{}
 	common.ValidateStateAndPlanEquals(state.Name, plan.Name, "name", &diags)
 	common.ValidateStateAndPlanEquals(state.ExternalID, plan.ExternalID, "external_id", &diags)
@@ -1065,7 +1065,7 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resourc
 	}
 
 	//assert no changes on specific attributes
-	diags = assertNoChanges(state, plan)
+	diags = validateNoImmutableAttChange(state, plan)
 	if diags.HasError() {
 		response.Diagnostics.Append(diags...)
 		return

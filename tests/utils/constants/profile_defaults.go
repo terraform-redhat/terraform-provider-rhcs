@@ -7,7 +7,7 @@ const (
 var (
 	NilMap           map[string]string
 	Tags             = map[string]string{"tag1": "test_tag1", "tag2": "test_tag2"}
-	ClusterAdminUser = "rhcs-cluster admin"
+	ClusterAdminUser = "rhcs-clusteradmin"
 	DefaultMPLabels  = map[string]string{
 		"test1": "testdata1",
 	}

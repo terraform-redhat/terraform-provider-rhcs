@@ -31,6 +31,7 @@ type ClusterCreationArgs struct {
 	DefaultMPLabels                      map[string]string `json:"default_mp_labels,omitempty"`
 	DisableSCPChecks                     bool              `json:"disable_scp_checks,omitempty"`
 	MultiAZ                              bool              `json:"multi_az,omitempty"`
+	CustomProperties                     map[string]string `json:"custom_properties,omitempty"`
 	WorkerDiskSize                       int               `json:"worker_disk_size,omitempty"`
 	AdditionalComputeSecurityGroups      []string          `json:"additional_compute_security_groups,omitempty"`
 	AdditionalInfraSecurityGroups        []string          `json:"additional_infra_security_groups,omitempty"`

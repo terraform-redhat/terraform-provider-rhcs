@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path"
 	"strconv"
+	"strings"
 
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
@@ -208,6 +209,34 @@ func recordTFvarsFile(fileDir string, tfvars map[string]string) error {
 
 	}
 	return iniConn.SaveTo(tfvarsFile)
+}
+
+// Function to read terraform.tfvars file and return its content as a map
+func ReadTerraformTFVars(filePath string) map[string]string {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		Logger.Errorf("Can't read file %s - not found or could not be fetched", filePath)
+		return nil
+	}
+
+	lines := strings.Split(string(content), "\n")
+	properties := make(map[string]string)
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.Contains(line, "=") {
+			parts := strings.SplitN(line, "=", 2)
+			if len(parts) == 2 {
+				key := strings.TrimSpace(parts[0])
+				value := strings.TrimSpace(parts[1])
+				// Remove quotes if present
+				value = strings.Trim(value, `"`)
+				properties[key] = value
+			}
+		}
+	}
+
+	return properties
 }
 
 // delete the recorded TFvarsFile named terraform.tfvars

@@ -198,7 +198,6 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 	profile.Version = PrepareVersion(RHCSConnection, profile.Version, profile.ChannelGroup, profile)
 
 	clusterArgs = &EXE.ClusterCreationArgs{
-		// Token:            token,
 		OpenshiftVersion: profile.Version,
 	}
 

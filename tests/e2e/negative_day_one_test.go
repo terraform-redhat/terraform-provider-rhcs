@@ -55,6 +55,7 @@ var _ = Describe("RHCS Provider Negative Test", func() {
 					err = clusterService.Apply(creationArgs, true)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("Attribute admin_credentials.username username may not contain the characters:\n'/:%'"))
+
 					By("Edit cluster admin user name to empty")
 					creationArgs.AdminCredentials["username"] = ""
 					err = clusterService.Apply(creationArgs, true)
@@ -68,22 +69,26 @@ var _ = Describe("RHCS Provider Negative Test", func() {
 				creationArgs.AdminCredentials["password"] = helper.GenerateRandomStringWithSymbols(13)
 				err = clusterService.Apply(creationArgs, true)
 				Expect(err).To(HaveOccurred())
+
 				Expect(err.Error()).To(ContainSubstring("Attribute admin_credentials.password string length must be at least 14"))
 				By("Edit cluster admin password to empty")
 				creationArgs.AdminCredentials["password"] = ""
 				err = clusterService.Apply(creationArgs, true)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("Attribute admin_credentials.password password should use ASCII-standard"))
+
 				By("Edit cluster admin password that lacks a capital letter")
 				creationArgs.AdminCredentials["password"] = strings.ToLower(helper.GenerateRandomStringWithSymbols(14))
 				err = clusterService.Apply(creationArgs, true)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("Attribute admin_credentials.password password must contain uppercase\ncharacters"))
+
 				By("Edit cluster admin password that lacks symbol but has digits")
 				creationArgs.AdminCredentials["password"] = "QwertyPasswordNoDigitsSymbols"
 				err = clusterService.Apply(creationArgs, true)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("Attribute admin_credentials.password password must contain numbers or\nsymbols"))
+
 				By("Edit cluster admin password that includes Non English chars")
 				creationArgs.AdminCredentials["password"] = "Qwert12345345@ש"
 				err = clusterService.Apply(creationArgs, true)

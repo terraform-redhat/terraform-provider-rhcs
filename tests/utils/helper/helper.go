@@ -401,7 +401,7 @@ func GenerateRandomStringWithSymbols(length int) string {
 	if err != nil {
 		panic(err)
 	}
-	return base64.StdEncoding.EncodeToString(b)
+	return base64.StdEncoding.EncodeToString(b)[:length]
 }
 
 func Subfix(length int) string {

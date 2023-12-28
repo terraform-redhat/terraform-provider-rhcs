@@ -76,7 +76,7 @@ const (
 	propertyRosaTfVersion     = tagsPrefix + "tf_version"
 	propertyRosaTfCommit      = tagsPrefix + "tf_commit"
 	waitTimeoutInMinutes      = 60
-	DefaultMachinePoolMessage = "This attribute is specifically applies for the default Machine Pool and becomes irrelevant once the resource is created. Any modifications to the default Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Default Machine Pool in Rosa Cluster](../guides/worker-machine-pool.md)"
+	DefaultMachinePoolMessage = "This attribute is specifically applies for the default Machine Pool and becomes irrelevant once the resource is created. Any modifications to the default Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Default Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)"
 )
 
 var OCMProperties = map[string]string{

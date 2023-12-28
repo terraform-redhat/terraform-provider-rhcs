@@ -289,7 +289,7 @@ var _ = Describe("default ingress", func() {
 		Expect(terraform.Apply()).To(BeZero())
 	})
 
-	It("Create cluster with default ingress - cluster_routes_hostname and cluster_routes_tls_secret_ref set", func() {
+	It("Create cluster with default ingress - cluster_routes_hostname and cluster_routes_tls_secret_ref set to actual value", func() {
 		// Prepare the server:
 		server.AppendHandlers(
 			CombineHandlers(
@@ -336,6 +336,24 @@ var _ = Describe("default ingress", func() {
 			
 		}`)
 		Expect(terraform.Apply()).To(BeZero())
+	})
+
+	It("Create cluster with default ingress - cluster_routes_hostname set to empty value", func() {
+		// Run the apply command:
+		terraform.Source(`resource "rhcs_default_ingress" "default_ingress" {
+				cluster = "123"
+				cluster_routes_hostname =  ""
+			}`)
+		Expect(terraform.Apply()).To(Equal(1))
+	})
+
+	It("Create cluster with default ingress - cluster_routes_tls_secret_ref set to empty value", func() {
+		// Run the apply command:
+		terraform.Source(`resource "rhcs_default_ingress" "default_ingress" {
+				cluster = "123"
+				cluster_routes_tls_secret_ref = ""
+			}`)
+		Expect(terraform.Apply()).To(Equal(1))
 	})
 
 	It("Create default ingress and delete it", func() {

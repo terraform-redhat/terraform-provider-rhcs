@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -102,6 +103,7 @@ func (r *DefaultIngressResource) Schema(ctx context.Context, req resource.Schema
 			"cluster_routes_hostname": schema.StringAttribute{
 				Description: "Components route hostname for oauth, console, download.",
 				Optional:    true,
+				Validators:  []validator.String{stringvalidator.LengthAtLeast(1)},
 			},
 			"load_balancer_type": schema.StringAttribute{
 				Description: fmt.Sprintf("Type of Load Balancer. Options are %s.", strings.Join(validLbTypes, ",")),
@@ -112,6 +114,7 @@ func (r *DefaultIngressResource) Schema(ctx context.Context, req resource.Schema
 			"cluster_routes_tls_secret_ref": schema.StringAttribute{
 				Description: "Components route TLS secret reference for oauth, console, download.",
 				Optional:    true,
+				Validators:  []validator.String{stringvalidator.LengthAtLeast(1)},
 			},
 		},
 	}
@@ -389,10 +392,18 @@ func (r *DefaultIngressResource) updateIngress(ctx context.Context, state, plan 
 		ingressBuilder := getDefaultIngressBuilder(ctx, plan)
 
 		if !reflect.DeepEqual(state.ClusterRoutesHostname, plan.ClusterRoutesHostname) {
-			ingressBuilder.ClusterRoutesHostname(plan.ClusterRoutesHostname.ValueString())
+			value := ""
+			if !plan.ClusterRoutesHostname.IsNull() {
+				value = plan.ClusterRoutesHostname.ValueString()
+			}
+			ingressBuilder.ClusterRoutesHostname(value)
 		}
 		if !reflect.DeepEqual(state.ClusterRoutesTlsSecretRef, plan.ClusterRoutesTlsSecretRef) {
-			ingressBuilder.ClusterRoutesTlsSecretRef(plan.ClusterRoutesTlsSecretRef.ValueString())
+			value := ""
+			if !plan.ClusterRoutesTlsSecretRef.IsNull() {
+				value = plan.ClusterRoutesTlsSecretRef.ValueString()
+			}
+			ingressBuilder.ClusterRoutesTlsSecretRef(value)
 		}
 
 		ingress, err := ingressBuilder.Build()

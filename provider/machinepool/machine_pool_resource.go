@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -151,6 +152,9 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 					" This list will overwrite any modifications made to node labels on an ongoing basis.",
 				ElementType: types.StringType,
 				Optional:    true,
+				Validators: []validator.Map{
+					mapvalidator.SizeAtLeast(1),
+				},
 			},
 			"multi_availability_zone": schema.BoolAttribute{
 				Description: "Create a multi-AZ machine pool for a multi-AZ cluster (default is `true`)." + common.ValueCannotBeChangedStringDescription,

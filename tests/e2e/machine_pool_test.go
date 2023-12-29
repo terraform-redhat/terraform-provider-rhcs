@@ -18,8 +18,10 @@ import (
 var _ = Describe("TF Test", func() {
 	Describe("Create MachinePool test cases", func() {
 		var mpService *exe.MachinePoolService
-		profile := ci.LoadProfileYamlFileByENV()
+		var profile *ci.Profile
+
 		BeforeEach(func() {
+			profile = ci.LoadProfileYamlFileByENV()
 			mpService = exe.NewMachinePoolService(con.MachinePoolDir)
 		})
 		AfterEach(func() {
@@ -479,7 +481,7 @@ var _ = Describe("TF Test", func() {
 				Expect(mpResponseBody.RootVolume().AWS().Size()).To(Equal(diskSize))
 				Expect(mpResponseBody.InstanceType()).To(Equal(machineType))
 
-				By("Update disksize will create another machinepool")
+				By("Update disksize is not allowed ")
 				MachinePoolArgs = &exe.MachinePoolArgs{
 					Cluster:     clusterID,
 					Replicas:    &replicas,
@@ -488,14 +490,13 @@ var _ = Describe("TF Test", func() {
 					DiskSize:    320,
 				}
 
-				_, err = mpService.Apply(MachinePoolArgs, false)
-				Expect(err).ToNot(HaveOccurred())
+				output, err := mpService.Apply(MachinePoolArgs, false)
+				Expect(err).To(HaveOccurred())
+				Expect(output).Should(ContainSubstring("Attribute disk_size, cannot be changed from 249 to 320"))
 
-				By("Verify the parameters of the created machinepool")
-				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				MachinePoolArgs.DiskSize = diskSize
+				_, err = mpService.Destroy(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(mpResponseBody.RootVolume().AWS().Size()).To(Equal(320))
-				Expect(mpResponseBody.InstanceType()).To(Equal(machineType))
 
 				By("Create another machinepool without disksize will create another machinepool with default value")
 				MachinePoolArgs = &exe.MachinePoolArgs{
@@ -586,7 +587,7 @@ var _ = Describe("TF Test", func() {
 
 				applyOutput, err := mpService.Apply(MachinePoolArgs, false)
 				Expect(err).To(HaveOccurred())
-				Expect(applyOutput).Should(ContainSubstring("attribute \"aws_additional_security_group_ids\" must have a known value and may not be changed."))
+				Expect(applyOutput).Should(ContainSubstring("Attribute aws_additional_security_group_ids, cannot be changed"))
 
 				By("Destroy the machinepool")
 				mpService.CreationArgs.AdditionalSecurityGroups = sgIDs

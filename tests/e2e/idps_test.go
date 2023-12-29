@@ -34,7 +34,7 @@ var _ = Describe("TF Test", func() {
 		}
 
 		var profile *ci.Profile
-		profile = ci.LoadProfileYamlFileByENV()
+
 		var idpService IDPServices
 		var importService exe.ImportService
 		var htpasswdMap = []interface{}{map[string]string{}}
@@ -43,6 +43,9 @@ var _ = Describe("TF Test", func() {
 			googleIDPClientSecret, googleIDPClientId,
 			gitlabIDPClientSecret, gitlabIDPClientId,
 			githubIDPClientSecret, githubIDPClientId string
+		BeforeEach(func() {
+			profile = ci.LoadProfileYamlFileByENV()
+		})
 
 		Describe("IDP Positive scenario test cases", func() {
 			Context("Htpasswd IDP test cases", func() {

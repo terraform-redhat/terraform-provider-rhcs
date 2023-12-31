@@ -406,7 +406,7 @@ func CreateRHCSClusterByProfile(token string, profile *Profile) (string, error) 
 		defer DestroyRHCSClusterByProfile(token, profile)
 	}
 	Expect(err).ToNot(HaveOccurred())
-	err = clusterService.Apply(creationArgs, true)
+	err = clusterService.Apply(creationArgs, true, true)
 	if err != nil {
 		clusterService.Destroy(creationArgs)
 		return "", err

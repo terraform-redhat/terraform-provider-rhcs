@@ -623,8 +623,21 @@ func (r *IdentityProviderResource) ImportState(ctx context.Context, request reso
 	}
 	clusterID := fields[0]
 	providerName := fields[1]
-	client := r.collection.Cluster(clusterID)
-	providerID, err := getIDPIDFromName(ctx, client, providerName)
+
+	resource := r.collection.Cluster(clusterID)
+	// We expect the cluster to be already exist
+	// Try to get it and if result with NotFound error, return error to user
+	if resp, err := resource.Get().SendContext(ctx); err != nil && resp.Status() == http.StatusNotFound {
+		message := fmt.Sprintf("Cluster %s not found, error: %v", clusterID, err)
+		tflog.Error(ctx, message)
+		response.Diagnostics.AddError(
+			"Can't poll cluster state",
+			message,
+		)
+		return
+	}
+
+	providerID, err := getIDPIDFromName(ctx, resource, providerName)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't import identity provider",

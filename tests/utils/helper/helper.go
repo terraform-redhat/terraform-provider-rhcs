@@ -401,7 +401,15 @@ func GenerateRandomStringWithSymbols(length int) string {
 	if err != nil {
 		panic(err)
 	}
-	return base64.StdEncoding.EncodeToString(b)[:length]
+	randomString := base64.StdEncoding.EncodeToString(b)[:length]
+	f := func(r rune) bool {
+		return r < 'A' || r > 'z'
+	}
+	// Verify that the string contains special character or number
+	if strings.IndexFunc(randomString, f) == -1 {
+		randomString = randomString[:len(randomString)-1] + "!"
+	}
+	return randomString
 }
 
 func Subfix(length int) string {

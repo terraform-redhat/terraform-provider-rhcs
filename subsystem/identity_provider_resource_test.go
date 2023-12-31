@@ -17,6 +17,7 @@ limitations under the License.
 package provider
 
 import (
+	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 	"net/http"
 
 	. "github.com/onsi/ginkgo/v2/dsl/core"             // nolint
@@ -1144,9 +1145,58 @@ var _ = Describe("Identity provider creation", func() {
 })
 
 var _ = Describe("Identity provider import", func() {
+	template := `{
+	  "id": "123",
+	  "external_id": "123",
+	  "infra_id": "my-cluster-123",
+	  "name": "my-cluster",
+	  "state": "ready",
+	  "region": {
+	    "id": "us-west-1"
+	  },
+	  "aws": {
+	    "ec2_metadata_http_tokens": "optional"
+	  },
+	  "multi_az": true,
+	  "api": {
+	    "url": "https://my-api.example.com"
+	  },
+	  "console": {
+	    "url": "https://my-console.example.com"
+	  },
+      "properties": {
+         "rosa_tf_version": "` + build.Version + `",
+         "rosa_tf_commit": "` + build.Commit + `"
+      },
+	  "nodes": {
+	    "compute": 3,
+        "availability_zones": ["us-west-1a"],
+	    "compute_machine_type": {
+	      "id": "r5.xlarge"
+	    }
+	  },
+	  "network": {
+	    "machine_cidr": "10.0.0.0/16",
+	    "service_cidr": "172.30.0.0/16",
+	    "pod_cidr": "10.128.0.0/14",
+	    "host_prefix": 23
+	  },
+	  
+	  "version": {
+		  "id": "openshift-4.8.0"
+	  },
+      "dns" : {
+          "base_domain": "mycluster-api.example.com"
+      }
+	}`
+
 	It("Can import an identity provider", func() {
 		// Prepare the server:
 		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, template),
+			),
 			// List IDPs to map name to ID:
 			CombineHandlers(
 				VerifyRequest(
@@ -1215,6 +1265,10 @@ var _ = Describe("Identity provider import", func() {
 	It("Is an error if the identity provider isn't found", func() {
 		// Prepare the server:
 		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, template),
+			),
 			// List IDPs to map name to ID:
 			CombineHandlers(
 				VerifyRequest(
@@ -1244,6 +1298,24 @@ var _ = Describe("Identity provider import", func() {
 						}
 					]
 				}`),
+			),
+		)
+
+		terraform.Source(`
+			resource "rhcs_identity_provider" "my-ip" {
+				# (resource arguments)
+			}
+		`)
+
+		Expect(terraform.Import("rhcs_identity_provider.my-ip", "123,notfound")).NotTo(BeZero())
+	})
+
+	It("import for non exist cluster - should fail", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusNotFound, template),
 			),
 		)
 

@@ -15,10 +15,13 @@ In order to make any change in the default Machine Pool or to delete it, user mu
 
 ## Import the default Machine Pool resource
 
-
 Users can choose from two methods to import the default Machine Pool:
-* After creating the cluster, users can incorporate the relevant resource by utilizing the terraform import command.
-* The resource can be included in the manifest at any stage (including the same manifest where the ROSA cluster is declared, before applying). Subsequently, executing terraform apply will trigger a unique behavior specifically designed for importing the Default Machine Pool, with a focus on the resource named "worker."
+### Option 1: terraform import command
+After creating the cluster, users can incorporate the relevant resource by utilizing the terraform import command.
+
+### Option 2: "Magic import"
+The resource can be included in the manifest at any stage (including the same manifest where the ROSA cluster is declared, before applying). Subsequently, executing terraform apply will trigger a unique behavior specifically designed for importing the Default Machine Pool, with a focus on the resource named "worker."
+> Note: Using the magic import could result in optional attributes being overwritten (i.e. labels, taints, replicas, max_replicas, min_replicas... etc)
 
 ## Limitations
 

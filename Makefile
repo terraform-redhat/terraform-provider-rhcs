@@ -140,3 +140,7 @@ e2e_test: tools install
 .PHONY: check-gen
 check-gen: generate
 	scripts/assert_no_diff.sh "generate"
+
+.PHONY: check-commits
+check-commits:
+	scripts/check-commits.sh

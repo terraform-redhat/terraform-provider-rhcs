@@ -76,7 +76,7 @@ const (
 	propertyRosaTfVersion     = tagsPrefix + "tf_version"
 	propertyRosaTfCommit      = tagsPrefix + "tf_commit"
 	waitTimeoutInMinutes      = 60
-	DefaultMachinePoolMessage = "This attribute is specifically applies for the default Machine Pool and becomes irrelevant once the resource is created. Any modifications to the default Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Default Machine Pool in Rosa Cluster](../guides/worker-machine-pool.md)"
+	DefaultMachinePoolMessage = "This attribute is specifically applies for the default Machine Pool and becomes irrelevant once the resource is created. Any modifications to the default Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Default Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)"
 )
 
 var OCMProperties = map[string]string{
@@ -153,8 +153,8 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Optional: true,
 			},
 			"disable_scp_checks": schema.BoolAttribute{
-				Description: "Enables you to monitor your own projects in isolation from Red Hat " +
-					"Site Reliability Engineer (SRE) platform metrics. " + common.ValueCannotBeChangedStringDescription,
+				Description: "Indicates if cloud permission checks are disabled when attempting installation of the cluster. " +
+					common.ValueCannotBeChangedStringDescription,
 				Optional: true,
 			},
 			"properties": schema.MapAttribute{

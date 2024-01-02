@@ -27,9 +27,10 @@ var _ = Describe("TF Test", func() {
 		var err error
 		var profile *ci.Profile
 		var cluster *cmv1.Cluster
-		var importService = *exe.NewImportService(con.ImportResourceDir) // init new import service
+		var importService *exe.ImportService
 
 		BeforeEach(func() {
+			importService = exe.NewImportService(con.ImportResourceDir) // init new import service
 			profile = ci.LoadProfileYamlFileByENV()
 			Expect(err).ToNot(HaveOccurred())
 			getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)

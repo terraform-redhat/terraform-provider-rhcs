@@ -99,7 +99,7 @@ func (creator *ClusterService) Init(manifestDir string) error {
 
 }
 
-func (creator *ClusterService) Apply(createArgs *ClusterCreationArgs, recordtfvars bool, extraArgs ...string) error {
+func (creator *ClusterService) Apply(createArgs *ClusterCreationArgs, recordtfvars bool, tfvarsDeletion bool, extraArgs ...string) error {
 	createArgs.URL = CON.GateWayURL
 	args, tfvars := combineStructArgs(createArgs, extraArgs...)
 	if recordtfvars {
@@ -108,7 +108,9 @@ func (creator *ClusterService) Apply(createArgs *ClusterCreationArgs, recordtfva
 
 	_, err := runTerraformApplyWithArgs(creator.Context, creator.ManifestDir, args)
 	if err != nil {
-		deleteTFvarsFile(creator.ManifestDir)
+		if tfvarsDeletion {
+			deleteTFvarsFile(creator.ManifestDir)
+		}
 		return err
 	}
 	return nil

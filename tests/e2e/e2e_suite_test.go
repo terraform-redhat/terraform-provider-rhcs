@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 	CI "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	H "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
 var ctx context.Context
@@ -23,6 +24,10 @@ func TestRHCSProvider(t *testing.T) {
 var _ = BeforeSuite(func() {
 	token = os.Getenv(CON.TokenENVName)
 	var err error
+
+	err = H.AlignRHCSSourceVersion(CON.ConfigrationDir)
+	Expect(err).ToNot(HaveOccurred())
+
 	clusterID, err = CI.PrepareRHCSClusterByProfileENV()
 	Expect(err).ToNot(HaveOccurred())
 	ctx = context.Background()

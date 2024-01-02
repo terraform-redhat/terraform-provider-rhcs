@@ -30,6 +30,8 @@ type RHCSconfig struct {
 	YAMLProfilesDir   string
 	RootDir           string
 	KubeConfigDir     string
+	RHCSSource        string `env:"RHCS_SOURCE" default:"staging" yaml:"env"`
+	RHCSVersion       string `env:"RHCS_VERSION" default:"staging" yaml:"env"`
 }
 
 func init() {

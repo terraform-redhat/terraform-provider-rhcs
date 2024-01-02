@@ -662,11 +662,23 @@ var _ = Describe("Machine pool creation", func() {
 					}
 				  },
 				  "replicas": 12,
-                  "labels": {}
+                  "labels": null
 				}`),
 			),
 		)
 
+		// Invalid deletion - labels map can't be empty
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 12
+            labels       = {}
+		  }
+		`)
+		Expect(terraform.Apply()).ToNot(BeZero())
+		// Valid deletion
 		terraform.Source(`
 		  resource "rhcs_machine_pool" "my_pool" {
 		    cluster      = "123"
@@ -1070,6 +1082,20 @@ var _ = Describe("Machine pool creation", func() {
 			),
 		)
 
+		// invalid removal of taints
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 12
+            taints       = []
+		  }
+		`)
+
+		Expect(terraform.Apply()).ToNot(BeZero())
+
+		// valid removal of taints
 		terraform.Source(`
 		  resource "rhcs_machine_pool" "my_pool" {
 		    cluster      = "123"

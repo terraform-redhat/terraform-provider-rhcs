@@ -42,7 +42,7 @@ func OptionalMap(ctx context.Context, tfVal types.Map) (map[string]string, error
 }
 
 func OptionalList(tfVal types.List) []string {
-	if tfVal.IsUnknown() || tfVal.IsNull() {
+	if !HasValue(tfVal) {
 		return nil
 	}
 	result := make([]string, 0)

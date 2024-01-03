@@ -1,3 +1,31 @@
+## 1.5.0 (Jan 3, 2024)
+FEATURES:
+* Allow additional security group day1 and day2 (OCM-4716, OCM-4717, OCM-4718)
+* Add support for Cluster Autoscaler configuration update (OCM-214)
+* Add Root Volume size configuration fro default and none default MachinePool (OCM-171)
+* Add Kubelet Config Resource to allow Pids Limit configuration in ROSA Cluster (OCM-4766)
+* Allow Ingress day2 configuration in ROSA Cluster (OCM-2643)
+* Default MachinePool manipulation after cluster creation can be done only from MachinePool resource (OCM-2648)
+
+ENHANCEMENTS:
+* Bug fixes
+  * Updating email key validation in ldap IDP (OCM-4473)
+  * Fix behavior when user try to import IDP of none existing cluster (OCM-5420)
+  * Prevent users from adding empty list to MachinePool Labels (OCM-5416, OCM-5285)
+  * Remove any RequiresReplace plan modifier and validate value not changed during update instead (OCM-4928)
+* Docs:
+  * Add note for default MachinePool in cluster rosa classic - irrelevant after create (OCM-5418)
+  * Add Onboarding page for new contributers (OCM-4473)
+
+
+## 1.4.2 (Nov 28, 2023)
+FEATURES:
+* Add `infra_id` attribute to `cluster_rosa_classic` resource
+
+ENHANCEMENTS:
+* Update the documentation files
+* Fix the validators to support unknown values for proxy and private_hosted_zone. For more details please read the [issue-363](https://github.com/terraform-redhat/terraform-provider-rhcs/issues/363)
+
 ## 1.4.1 (Nov 20, 2023)
 ENHANCEMENTS:
 * Fix the error message of `private_hosted_zone` validator in `cluster_rosa_classic` resource  

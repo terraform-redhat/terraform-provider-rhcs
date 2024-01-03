@@ -9,7 +9,6 @@ import (
 
 type ImportArgs struct {
 	URL          string `json:"url,omitempty"`
-	Token        string `json:"token,omitempty"`
 	ResourceKind string `json:"resource_kind,omitempty"`
 	ResourceName string `json:"resource_name,omitempty"`
 	ClusterID    string `json:"cluster_id,omitempty"`
@@ -69,4 +68,11 @@ func (importService *ImportService) ShowState(importArgs *ImportArgs) (string, e
 	args := fmt.Sprintf("%s.%s", importArgs.ResourceKind, importArgs.ResourceName)
 	output, err := runTerraformState(importService.ManifestDir, "show", args)
 	return output, err
+}
+
+func (importService *ImportService) Destroy(createArgs ...*ImportArgs) (output string, err error) {
+	if importService.CreationArgs == nil && len(createArgs) == 0 {
+		return "", fmt.Errorf("unset destroy args, set them in the object or pass as parameters")
+	}
+	return runTerraformDestroyWithoutArgs(importService.Context, importService.ManifestDir)
 }

@@ -662,11 +662,23 @@ var _ = Describe("Machine pool creation", func() {
 					}
 				  },
 				  "replicas": 12,
-                  "labels": {}
+                  "labels": null
 				}`),
 			),
 		)
 
+		// Invalid deletion - labels map can't be empty
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 12
+            labels       = {}
+		  }
+		`)
+		Expect(terraform.Apply()).ToNot(BeZero())
+		// Valid deletion
 		terraform.Source(`
 		  resource "rhcs_machine_pool" "my_pool" {
 		    cluster      = "123"
@@ -1070,6 +1082,20 @@ var _ = Describe("Machine pool creation", func() {
 			),
 		)
 
+		// invalid removal of taints
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 12
+            taints       = []
+		  }
+		`)
+
+		Expect(terraform.Apply()).ToNot(BeZero())
+
+		// valid removal of taints
 		terraform.Source(`
 		  resource "rhcs_machine_pool" "my_pool" {
 		    cluster      = "123"
@@ -2502,6 +2528,36 @@ var _ = Describe("Day-1 machine pool (worker)", func() {
 		Expect(resource).To(MatchJQ(".attributes.name", "worker"))
 		Expect(resource).To(MatchJQ(".attributes.id", "worker"))
 		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 1))
+	})
+
+	It("can't update availability_zone", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			// Get is for the Read function
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker"),
+				RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"kind": "MachinePool",
+							"href": "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker",
+							"replicas": 2,
+							"instance_type": "r5.xlarge",
+					    "availability_zones": [
+                "us-east-2b"
+              ]
+						}`),
+			),
+		)
+		terraform.Source(`
+			resource "rhcs_machine_pool" "worker" {
+				cluster           = "123"
+				name              = "worker"
+				machine_type      = "r5.xlarge"
+			  availability_zone = "us-east-2a"
+			}
+			`)
+		Expect(terraform.Apply()).NotTo(BeZero())
 	})
 })
 

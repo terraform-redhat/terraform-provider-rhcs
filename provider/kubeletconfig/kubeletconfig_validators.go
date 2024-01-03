@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 
 const (
@@ -49,6 +50,10 @@ func (p PidsLimitValidator) MarkdownDescription(_ context.Context) string {
 }
 
 func (p PidsLimitValidator) ValidateInt64(_ context.Context, req validator.Int64Request, resp *validator.Int64Response) {
+
+	if !common.HasValue(req.ConfigValue) {
+		return
+	}
 
 	requestedPidsLimit := req.ConfigValue.ValueInt64()
 	if requestedPidsLimit < MinPodPidsLimit {

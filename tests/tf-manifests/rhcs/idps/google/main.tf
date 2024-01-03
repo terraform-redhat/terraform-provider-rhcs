@@ -23,7 +23,6 @@ terraform {
 }
 
 provider "rhcs" {
-  token = var.token
   url   = var.url
 }
 resource "rhcs_identity_provider" "google_idp" {
@@ -36,3 +35,4 @@ resource "rhcs_identity_provider" "google_idp" {
     hosted_domain = var.hosted_domain
   }
 }
+

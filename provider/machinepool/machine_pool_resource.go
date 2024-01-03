@@ -25,14 +25,16 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -74,11 +76,8 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 		Description: "Machine pool.",
 		Attributes: map[string]schema.Attribute{
 			"cluster": schema.StringAttribute{
-				Description: "Identifier of the cluster.",
+				Description: "Identifier of the cluster. " + common.ValueCannotBeChangedStringDescription,
 				Required:    true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 			"id": schema.StringAttribute{
 				Description: "Unique identifier of the machine pool.",
@@ -88,38 +87,26 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				},
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the machine pool. Must consist of lower-case alphanumeric characters or '-', start and end with an alphanumeric character.",
+				Description: "Name of the machine pool. Must consist of lower-case alphanumeric characters or '-', start and end with an alphanumeric character. " + common.ValueCannotBeChangedStringDescription,
 				Required:    true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 			"machine_type": schema.StringAttribute{
 				Description: "Identifier of the machine type used by the nodes, " +
 					"for example `m5.xlarge`. Use the `rhcs_machine_types` data " +
-					"source to find the possible values.",
+					"source to find the possible values. " + common.ValueCannotBeChangedStringDescription,
 				Required: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 			"replicas": schema.Int64Attribute{
 				Description: "The number of machines of the pool",
 				Optional:    true,
 			},
 			"use_spot_instances": schema.BoolAttribute{
-				Description: "Use Amazon EC2 Spot Instances.",
+				Description: "Use Amazon EC2 Spot Instances. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.RequiresReplace(),
-				},
 			},
 			"max_spot_price": schema.Float64Attribute{
-				Description: "Max Spot price.",
+				Description: "Max Spot price. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
-				PlanModifiers: []planmodifier.Float64{
-					float64planmodifier.RequiresReplace(),
-				},
 				Validators: []validator.Float64{
 					float64validator.AtLeast(1e-6), // Greater than zero
 				},
@@ -159,6 +146,9 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 						},
 					},
 				},
+				Validators: []validator.List{
+					listvalidator.SizeAtLeast(1),
+				},
 				Optional: true,
 			},
 			"labels": schema.MapAttribute{
@@ -166,50 +156,46 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 					" This list will overwrite any modifications made to node labels on an ongoing basis.",
 				ElementType: types.StringType,
 				Optional:    true,
+				Validators: []validator.Map{
+					mapvalidator.SizeAtLeast(1),
+				},
 			},
 			"multi_availability_zone": schema.BoolAttribute{
-				Description: "Create a multi-AZ machine pool for a multi-AZ cluster (default is `true`)",
+				Description: "Create a multi-AZ machine pool for a multi-AZ cluster (default is `true`). " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.RequiresReplace(),
 					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"availability_zone": schema.StringAttribute{
-				Description: "Select the availability zone in which to create a single AZ machine pool for a multi-AZ cluster",
+				Description: "Select the availability zone in which to create a single AZ machine pool for a multi-AZ cluster. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"subnet_id": schema.StringAttribute{
-				Description: "Select the subnet in which to create a single AZ machine pool for BYO-VPC cluster",
+				Description: "Select the subnet in which to create a single AZ machine pool for BYO-VPC cluster. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"disk_size": schema.Int64Attribute{
-				Description: "Root disk size, in GiB.",
+				Description: "Root disk size, in GiB. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.RequiresReplace(),
 					int64planmodifier.UseStateForUnknown(),
 				},
 			},
 			"aws_additional_security_group_ids": schema.ListAttribute{
-				Description: "AWS additional security group ids.",
+				Description: "AWS additional security group ids. " + common.ValueCannotBeChangedStringDescription,
 				ElementType: types.StringType,
 				Optional:    true,
-				PlanModifiers: []planmodifier.List{
-					common.Immutable(),
-				},
 			},
 		},
 	}
@@ -244,32 +230,32 @@ func (r *MachinePoolResource) Configure(ctx context.Context, req resource.Config
 
 func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Get the plan:
-	state := &MachinePoolState{}
-	diags := req.Plan.Get(ctx, state)
+	plan := &MachinePoolState{}
+	diags := req.Plan.Get(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	machinepoolName := state.Name.ValueString()
+	machinepoolName := plan.Name.ValueString()
 	if !machinepoolNameRE.MatchString(machinepoolName) {
 		resp.Diagnostics.AddError(
 			"Cannot create machine pool: ",
 			fmt.Sprintf("Cannot create machine pool for cluster '%s' with name '%s'. Expected a valid value for 'name' matching %s",
-				state.Cluster.ValueString(), state.Name.ValueString(), machinepoolNameRE,
+				plan.Cluster.ValueString(), plan.Name.ValueString(), machinepoolNameRE,
 			),
 		)
 		return
 	}
 
 	// Wait till the cluster is ready:
-	err := r.clusterWait.WaitForClusterToBeReady(ctx, state.Cluster.ValueString())
+	err := r.clusterWait.WaitForClusterToBeReady(ctx, plan.Cluster.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Cannot poll cluster state",
 			fmt.Sprintf(
 				"Cannot poll state of cluster with identifier '%s': %v",
-				state.Cluster.ValueString(), err,
+				plan.Cluster.ValueString(), err,
 			),
 		)
 		return
@@ -278,16 +264,16 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 	// The default machine pool is created automatically when the cluster is created.
 	// We want to import it instead of creating it.
 	if machinepoolName == defaultMachinePoolName {
-		r.magicImport(ctx, state, resp)
+		r.magicImport(ctx, plan, resp)
 		return
 	}
 
 	// Create the machine pool:
-	resource := r.collection.Cluster(state.Cluster.ValueString())
-	builder := cmv1.NewMachinePool().ID(state.ID.ValueString()).InstanceType(state.MachineType.ValueString())
-	builder.ID(state.Name.ValueString())
+	resource := r.collection.Cluster(plan.Cluster.ValueString())
+	builder := cmv1.NewMachinePool().ID(plan.ID.ValueString()).InstanceType(plan.MachineType.ValueString())
+	builder.ID(plan.Name.ValueString())
 
-	if workerDiskSize := common.OptionalInt64(state.DiskSize); workerDiskSize != nil {
+	if workerDiskSize := common.OptionalInt64(plan.DiskSize); workerDiskSize != nil {
 		builder.RootVolume(
 			cmv1.NewRootVolume().AWS(
 				cmv1.NewAWSVolume().Size(int(*workerDiskSize)),
@@ -295,44 +281,44 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 		)
 	}
 
-	awsMachinePoolBuilder, err := setSpotInstances(state)
+	awsMachinePoolBuilder, err := setSpotInstances(plan)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Cannot build machine pool",
 			fmt.Sprintf(
-				"Cannot build machine pool for cluster '%s: %v'", state.Cluster.ValueString(), err,
+				"Cannot build machine pool for cluster '%s: %v'", plan.Cluster.ValueString(), err,
 			),
 		)
 		return
 	}
 
-	isMultiAZPool, err := r.validateAZConfig(state)
+	isMultiAZPool, err := r.validateAZConfig(plan)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Cannot build machine pool",
 			fmt.Sprintf(
 				"Cannot build machine pool for cluster '%s': %v",
-				state.Cluster.ValueString(), err,
+				plan.Cluster.ValueString(), err,
 			),
 		)
 		return
 	}
-	if !common.IsStringAttributeUnknownOrEmpty(state.AvailabilityZone) {
-		builder.AvailabilityZones(state.AvailabilityZone.ValueString())
+	if !common.IsStringAttributeUnknownOrEmpty(plan.AvailabilityZone) {
+		builder.AvailabilityZones(plan.AvailabilityZone.ValueString())
 	}
-	if !common.IsStringAttributeUnknownOrEmpty(state.SubnetID) {
-		builder.Subnets(state.SubnetID.ValueString())
+	if !common.IsStringAttributeUnknownOrEmpty(plan.SubnetID) {
+		builder.Subnets(plan.SubnetID.ValueString())
 	}
-	if common.HasValue(state.AdditionalSecurityGroupIds) {
+	if common.HasValue(plan.AdditionalSecurityGroupIds) {
 		if awsMachinePoolBuilder == nil {
 			awsMachinePoolBuilder = cmv1.NewAWSMachinePool()
 		}
-		additionalSecurityGroupIds, err := common.StringListToArray(ctx, state.AdditionalSecurityGroupIds)
+		additionalSecurityGroupIds, err := common.StringListToArray(ctx, plan.AdditionalSecurityGroupIds)
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Cannot convert Additional Security Groups to slice",
 				fmt.Sprintf(
-					"Cannot convert Additional Security Groups to slice for cluster '%s: %v'", state.Cluster.ValueString(), err,
+					"Cannot convert Additional Security Groups to slice for cluster '%s: %v'", plan.Cluster.ValueString(), err,
 				),
 			)
 			return
@@ -345,45 +331,45 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 
 	autoscalingEnabled := false
 	computeNodeEnabled := false
-	autoscalingEnabled, errMsg := getAutoscaling(state, builder)
+	autoscalingEnabled, errMsg := getAutoscaling(plan, builder)
 	if errMsg != "" {
 		resp.Diagnostics.AddError(
 			"Cannot build machine pool",
 			fmt.Sprintf(
-				"Cannot build machine pool for cluster '%s, %s'", state.Cluster.ValueString(), errMsg,
+				"Cannot build machine pool for cluster '%s, %s'", plan.Cluster.ValueString(), errMsg,
 			),
 		)
 		return
 	}
 
-	if common.HasValue(state.Replicas) {
+	if common.HasValue(plan.Replicas) {
 		computeNodeEnabled = true
-		if isMultiAZPool && state.Replicas.ValueInt64()%3 != 0 {
+		if isMultiAZPool && plan.Replicas.ValueInt64()%3 != 0 {
 			resp.Diagnostics.AddError(
 				"Cannot build machine pool",
 				fmt.Sprintf(
 					"Cannot build machine pool for cluster '%s', replicas must be a multiple of 3",
-					state.Cluster.ValueString(),
+					plan.Cluster.ValueString(),
 				),
 			)
 			return
 		}
-		builder.Replicas(int(state.Replicas.ValueInt64()))
+		builder.Replicas(int(plan.Replicas.ValueInt64()))
 	}
 	if (!autoscalingEnabled && !computeNodeEnabled) || (autoscalingEnabled && computeNodeEnabled) {
 		resp.Diagnostics.AddError(
 			"Cannot build machine pool",
 			fmt.Sprintf(
 				"Cannot build machine pool for cluster '%s', please provide a value for either the 'replicas' or 'autoscaling_enabled' parameter. It is mandatory to include at least one of these parameters in the resource plan.",
-				state.Cluster.ValueString(),
+				plan.Cluster.ValueString(),
 			),
 		)
 		return
 	}
 
-	if state.Taints != nil && len(state.Taints) > 0 {
+	if plan.Taints != nil && len(plan.Taints) > 0 {
 		var taintBuilders []*cmv1.TaintBuilder
-		for _, taint := range state.Taints {
+		for _, taint := range plan.Taints {
 			taintBuilders = append(taintBuilders, cmv1.NewTaint().
 				Key(taint.Key.ValueString()).
 				Value(taint.Value.ValueString()).
@@ -392,9 +378,9 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 		builder.Taints(taintBuilders...)
 	}
 
-	if common.HasValue(state.Labels) {
+	if common.HasValue(plan.Labels) {
 		labels := map[string]string{}
-		for k, v := range state.Labels.Elements() {
+		for k, v := range plan.Labels.Elements() {
 			labels[k] = v.(types.String).ValueString()
 		}
 		builder.Labels(labels)
@@ -406,7 +392,7 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 			"Cannot build machine pool",
 			fmt.Sprintf(
 				"Cannot build machine pool for cluster '%s': %v",
-				state.Cluster.ValueString(), err,
+				plan.Cluster.ValueString(), err,
 			),
 		)
 		return
@@ -419,7 +405,7 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 			"Cannot create machine pool",
 			fmt.Sprintf(
 				"Cannot create machine pool for cluster '%s': %v",
-				state.Cluster.ValueString(), err,
+				plan.Cluster.ValueString(), err,
 			),
 		)
 		return
@@ -427,7 +413,7 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 	object = add.Body()
 
 	// Save the state:
-	err = r.populateState(object, state)
+	err = r.populateState(object, plan)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Can't populate machine pool state",
@@ -437,23 +423,23 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 		)
 		return
 	}
-	diags = resp.State.Set(ctx, state)
+	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }
 
 // This handles the "magic" import of the default machine pool, allowing the
 // user to include it in their config w/o having to specifically `terraform
 // import` it.
-func (r *MachinePoolResource) magicImport(ctx context.Context, state *MachinePoolState, resp *resource.CreateResponse) {
-	machinepoolName := state.Name.ValueString()
-	existingState := &MachinePoolState{
+func (r *MachinePoolResource) magicImport(ctx context.Context, plan *MachinePoolState, resp *resource.CreateResponse) {
+	machinepoolName := plan.Name.ValueString()
+	state := &MachinePoolState{
 		ID:      types.StringValue(machinepoolName),
-		Cluster: state.Cluster,
+		Cluster: plan.Cluster,
 		Name:    types.StringValue(machinepoolName),
 	}
-	state.ID = types.StringValue(machinepoolName)
+	plan.ID = types.StringValue(machinepoolName)
 
-	notFound, diags := r.readState(ctx, existingState)
+	notFound, diags := r.readState(ctx, state)
 	if notFound {
 		// We disallow creating a machine pool with the default name. This
 		// case can only happen if the default machine pool was deleted and
@@ -464,7 +450,7 @@ func (r *MachinePoolResource) magicImport(ctx context.Context, state *MachinePoo
 				"Can't create machine pool for cluster '%s': "+
 					"the default machine pool '%s' was deleted and a new machine pool with that name may not be created. "+
 					"Please use a different name.",
-				state.Cluster.ValueString(),
+				plan.Cluster.ValueString(),
 				machinepoolName,
 			),
 		)
@@ -473,13 +459,13 @@ func (r *MachinePoolResource) magicImport(ctx context.Context, state *MachinePoo
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	diags = r.doUpdate(ctx, existingState, state)
+	diags = r.doUpdate(ctx, state, plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, existingState)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 func (r *MachinePoolResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -545,6 +531,33 @@ func (r *MachinePoolResource) readState(ctx context.Context, state *MachinePoolS
 	return
 }
 
+func validateNoImmutableAttChange(state, plan *MachinePoolState) diag.Diagnostics {
+	diags := diag.Diagnostics{}
+	validateStateAndPlanEquals(state.Cluster, plan.Cluster, "cluster", &diags)
+	validateStateAndPlanEquals(state.Name, plan.Name, "name", &diags)
+	validateStateAndPlanEquals(state.MachineType, plan.MachineType, "machine_type", &diags)
+	validateStateAndPlanEquals(state.UseSpotInstances, plan.UseSpotInstances, "use_spot_instances", &diags)
+	validateStateAndPlanEquals(state.MaxSpotPrice, plan.MaxSpotPrice, "max_spot_price", &diags)
+	validateStateAndPlanEquals(state.MultiAvailabilityZone, plan.MultiAvailabilityZone, "multi_availability_zone", &diags)
+	validateStateAndPlanEquals(state.AvailabilityZone, plan.AvailabilityZone, "availability_zone", &diags)
+	validateStateAndPlanEquals(state.SubnetID, plan.SubnetID, "subnet_id", &diags)
+	validateStateAndPlanEquals(state.DiskSize, plan.DiskSize, "disk_size", &diags)
+	validateStateAndPlanEquals(state.AdditionalSecurityGroupIds, plan.AdditionalSecurityGroupIds, "aws_additional_security_group_ids", &diags)
+
+	return diags
+
+}
+
+func validateStateAndPlanEquals(stateAttr attr.Value, planAttr attr.Value, attrName string, diags *diag.Diagnostics) {
+	// Its possible to have here unknown attributes
+	// Relevant only for optional computed attributes in resource create
+	// Check this because this function also used in "magicImport" function
+	if planAttr.IsUnknown() {
+		return
+	}
+	common.ValidateStateAndPlanEquals(stateAttr, planAttr, attrName, diags)
+}
+
 func (r *MachinePoolResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Get the state:
 	state := &MachinePoolState{}
@@ -574,7 +587,11 @@ func (r *MachinePoolResource) Update(ctx context.Context, req resource.UpdateReq
 }
 
 func (r *MachinePoolResource) doUpdate(ctx context.Context, state *MachinePoolState, plan *MachinePoolState) diag.Diagnostics {
-	diags := diag.Diagnostics{}
+	//assert no changes on specific attributes
+	diags := validateNoImmutableAttChange(state, plan)
+	if diags.HasError() {
+		return diags
+	}
 
 	resource := r.collection.Cluster(state.Cluster.ValueString()).
 		MachinePools().
@@ -898,7 +915,6 @@ func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *Mac
 			}
 		} else {
 			state.UseSpotInstances = types.BoolNull()
-			state.MaxReplicas = types.Int64Null()
 		}
 		if additionalSecurityGroups, ok := getAWS.GetAdditionalSecurityGroupIds(); ok {
 			additionalSecurityGroupsList, err := common.StringArrayToList(additionalSecurityGroups)

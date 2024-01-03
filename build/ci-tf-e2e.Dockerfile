@@ -10,7 +10,7 @@ RUN yum install -y wget &&\
     chmod +x /usr/local/bin/ocm
 
 # go
-RUN curl -Ls https://go.dev/dl/go1.18.linux-amd64.tar.gz |tar -C /usr/local -xzf -
+RUN curl -Ls https://go.dev/dl/go1.21.5.linux-amd64.tar.gz |tar -C /usr/local -xzf -
 ENV PATH="/usr/local/go/bin:${PATH}"
 ENV GOPATH=/usr/local/go
 ENV TEST_OFFLINE_TOKEN=""
@@ -20,10 +20,10 @@ COPY . ./terraform-provider-rhcs
 
 RUN yum install -y yum-utils && \
     yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo &&\
-    yum -y install terraform python3 make jq httpd-tools git &&\
+    yum -y install terraform python3 python3-pip make jq httpd-tools git &&\
     pip3 install PyYAML jinja2 &&\
     go env -w GO111MODULE=on &&\
-    go install github.com/onsi/ginkgo/v2/ginkgo@v2.11.0 &&\
+    go install github.com/onsi/ginkgo/v2/ginkgo@v2.13.2 &&\
     go install go.uber.org/mock/mockgen@v0.3.0 &&\
     cd terraform-provider-rhcs && go mod tidy && go mod vendor && make install &&\
     chmod -R 777 $GOPATH &&\

@@ -4,13 +4,16 @@ import (
 	"fmt"
 	"net/http"
 	"path"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
+	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	con "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	exe "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
+	H "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	l "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/openshift"
@@ -26,11 +29,12 @@ var _ = Describe("TF Test", func() {
 			gitlab,
 			google,
 			ldap,
+			multi_idp,
 			openid exe.IDPService
 		}
 
 		var profile *ci.Profile
-		profile = ci.LoadProfileYamlFileByENV()
+
 		var idpService IDPServices
 		var importService exe.ImportService
 		var htpasswdMap = []interface{}{map[string]string{}}
@@ -39,6 +43,9 @@ var _ = Describe("TF Test", func() {
 			googleIDPClientSecret, googleIDPClientId,
 			gitlabIDPClientSecret, gitlabIDPClientId,
 			githubIDPClientSecret, githubIDPClientId string
+		BeforeEach(func() {
+			profile = ci.LoadProfileYamlFileByENV()
+		})
 
 		Describe("IDP Positive scenario test cases", func() {
 			Context("Htpasswd IDP test cases", func() {
@@ -62,7 +69,6 @@ var _ = Describe("TF Test", func() {
 							By("Create htpasswd idp for an existing cluster")
 
 							idpParam := &exe.IDPArgs{
-								Token:         token,
 								ClusterID:     clusterID,
 								Name:          "OCP-63151-htpasswd-idp-test",
 								HtpasswdUsers: htpasswdMap,
@@ -125,7 +131,6 @@ var _ = Describe("TF Test", func() {
 							By("Create LDAP idp for an existing cluster")
 
 							idpParam := &exe.IDPArgs{
-								Token:      token,
 								ClusterID:  clusterID,
 								Name:       "OCP-63332-ldap-idp-test",
 								CA:         "",
@@ -180,7 +185,6 @@ var _ = Describe("TF Test", func() {
 						By("Create GitLab idp for an existing cluster")
 
 						idpParam := &exe.IDPArgs{
-							Token:        token,
 							ClusterID:    clusterID,
 							Name:         "OCP-64028-gitlab-idp-test",
 							ClientID:     gitlabIDPClientId,
@@ -218,7 +222,6 @@ var _ = Describe("TF Test", func() {
 						By("Create GitHub idp for an existing cluster")
 
 						idpParam := &exe.IDPArgs{
-							Token:         token,
 							ClusterID:     clusterID,
 							Name:          "OCP-64027-github-idp-test",
 							ClientID:      githubIDPClientId,
@@ -256,7 +259,6 @@ var _ = Describe("TF Test", func() {
 						By("Create Google idp for an existing cluster")
 
 						idpParam := &exe.IDPArgs{
-							Token:        token,
 							ClusterID:    clusterID,
 							Name:         "OCP-64029-google-idp-test",
 							ClientID:     googleIDPClientId,
@@ -273,6 +275,170 @@ var _ = Describe("TF Test", func() {
 						resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(resp.Status()).To(Equal(http.StatusOK))
+					})
+				})
+			})
+			Context("Multi IDPs applying scenrios", func() {
+				BeforeEach(func() {
+
+					if profile.PrivateLink {
+						Skip("private_link is enabled, skipping test.")
+					}
+
+					userName = "newton"
+					password = "password"
+					googleIDPClientSecret = h.GenerateRandomStringWithSymbols(20)
+					googleIDPClientId = h.GenerateRandomStringWithSymbols(30)
+					idpService.htpasswd = *exe.NewIDPService(con.HtpasswdDir)  // init new htpasswd service
+					idpService.multi_idp = *exe.NewIDPService(con.MultiIDPDir) // init multi-idp service
+				})
+
+				Context("Author:smiron-Medium-OCP-64030 @OCP-64030 @smiron", func() {
+					It("OCP-64030 - Provision multiple IDPs against cluster using TF", ci.Day2, ci.Medium, ci.FeatureIDP, ci.Exclude, func() {
+
+						By("Applying google & ldap idps users using terraform")
+
+						idpParam := &exe.IDPArgs{
+							ClusterID:    clusterID,
+							Name:         "OCP-64030",
+							ClientID:     googleIDPClientId,
+							ClientSecret: googleIDPClientSecret,
+							HostedDomain: con.HostedDomain,
+							CA:           "",
+							URL:          con.LdapURL,
+							Attributes:   make(map[string]interface{}),
+							Insecure:     true,
+						}
+
+						err := idpService.multi_idp.Apply(idpParam, false)
+						Expect(err).ToNot(HaveOccurred())
+
+						By("Login to the ldap user created with terraform")
+						By("& cluster-admin user created on cluster deployment")
+
+						resp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+						Expect(err).ToNot(HaveOccurred())
+						server := resp.Body().API().URL()
+
+						ocAtter := &openshift.OcAttributes{
+							Server:    server,
+							Username:  userName,
+							Password:  password,
+							ClusterID: clusterID,
+							AdditioanlFlags: []string{
+								"--insecure-skip-tls-verify",
+								fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName))),
+							},
+							Timeout: 7,
+						}
+						_, err = openshift.OcLogin(*ocAtter)
+						Expect(err).ToNot(HaveOccurred())
+
+						if !profile.AdminEnabled {
+							Skip("The test configured only for cluster admin profile")
+						}
+
+						// login to the cluster using cluster-admin creds
+						username := CON.ClusterAdminUser
+						password := H.GetClusterAdminPassword()
+						Expect(password).ToNot(BeEmpty())
+
+						ocAtter = &openshift.OcAttributes{
+							Server:    server,
+							Username:  username,
+							Password:  password,
+							ClusterID: clusterID,
+							AdditioanlFlags: []string{
+								"--insecure-skip-tls-verify",
+								fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, username))),
+							},
+							Timeout: 10,
+						}
+						_, err = openshift.OcLogin(*ocAtter)
+						Expect(err).ToNot(HaveOccurred())
+
+						defer func() {
+							err := idpService.multi_idp.Destroy()
+							Expect(err).ToNot(HaveOccurred())
+						}()
+					})
+				})
+				Context("Author:smiron-Medium-OCP-66408 @OCP-66408 @smiron", func() {
+					It("OCP-66408 - htpasswd multiple users - reconcile a multiuser config", ci.Day2, ci.Medium, ci.FeatureIDP, ci.Exclude, func() {
+
+						userName = "first_user"
+						password = h.GenerateRandomStringWithSymbols(15)
+						By("Create 3 htpasswd users for existing cluster")
+						htpasswdMap = []interface{}{
+							map[string]string{"username": userName,
+								"password": password},
+							map[string]string{"username": "second_user",
+								"password": h.GenerateRandomStringWithSymbols(15)},
+							map[string]string{"username": "third_user",
+								"password": h.GenerateRandomStringWithSymbols(15)}}
+
+						idpParam := &exe.IDPArgs{
+							ClusterID:     clusterID,
+							Name:          "OCP-66408-htpasswd-multi-test",
+							HtpasswdUsers: htpasswdMap,
+						}
+						err := idpService.htpasswd.Apply(idpParam, false)
+						Expect(err).ToNot(HaveOccurred())
+
+						By("Login to the cluster with one of the users created")
+						resp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+						Expect(err).ToNot(HaveOccurred())
+						server := resp.Body().API().URL()
+
+						ocAtter := &openshift.OcAttributes{
+							Server:    server,
+							Username:  userName,
+							Password:  password,
+							ClusterID: clusterID,
+							AdditioanlFlags: []string{
+								"--insecure-skip-tls-verify",
+								fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName))),
+							},
+							Timeout: 10,
+						}
+						_, err = openshift.OcLogin(*ocAtter)
+						Expect(err).ToNot(HaveOccurred())
+						idpID, _ := idpService.htpasswd.Output()
+
+						By("Delete one of the users using backend api")
+						fmt.Println("blaaa:: ", idpID.ID)
+						_, err = cms.DeleteIDP(ci.RHCSConnection, clusterID, idpID.ID)
+						Expect(err).ToNot(HaveOccurred())
+
+						// wait few minutes before trying to create the resource again
+						time.Sleep(time.Minute * 5)
+
+						By("Re-run terraform apply on the same resources")
+						err = idpService.htpasswd.Apply(idpParam, false)
+						Expect(err).ToNot(HaveOccurred())
+
+						By("Re-login terraform apply on the same resources")
+
+						// note - this step failes randmonly.
+						// hence, the test is currently skipped for ci
+						ocAtter = &openshift.OcAttributes{
+							Server:    server,
+							Username:  userName,
+							Password:  password,
+							ClusterID: clusterID,
+							AdditioanlFlags: []string{
+								"--insecure-skip-tls-verify",
+								fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName))),
+							},
+							Timeout: 10,
+						}
+						_, err = openshift.OcLogin(*ocAtter)
+						Expect(err).ToNot(HaveOccurred())
+
+						defer func() {
+							err = idpService.htpasswd.Destroy()
+							Expect(err).ToNot(HaveOccurred())
+						}()
 					})
 				})
 			})
@@ -302,7 +468,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create htpasswd idp without/empty name field")
 					idpParam := &exe.IDPArgs{
-						Token:         token,
 						ClusterID:     clusterID,
 						Name:          "",
 						HtpasswdUsers: htpasswdMap,
@@ -315,8 +480,9 @@ var _ = Describe("TF Test", func() {
 
 					By("Create htpasswd idp without/empty username field")
 					userName = ""
+					htpasswdMap = []interface{}{map[string]string{
+						"username": userName, "password": password}}
 					idpParam = &exe.IDPArgs{
-						Token:         token,
 						ClusterID:     clusterID,
 						Name:          "htpasswd-idp-test",
 						HtpasswdUsers: htpasswdMap,
@@ -324,24 +490,23 @@ var _ = Describe("TF Test", func() {
 
 					err = idpService.htpasswd.Apply(idpParam, false)
 					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).Should(ContainSubstring("attributes \"password\" and \"username\" are required"))
+					Expect(err.Error()).Should(ContainSubstring("Attribute 'username' is mandatory"))
 
 					By("Create htpasswd idp without/empty password field")
-					password = ""
 					userName = "jacko"
+					htpasswdMap = []interface{}{map[string]string{
+						"username": userName}}
 					idpParam = &exe.IDPArgs{
-						Token:         token,
 						ClusterID:     clusterID,
 						Name:          "htpasswd-idp-test",
 						HtpasswdUsers: htpasswdMap,
 					}
 					err = idpService.htpasswd.Apply(idpParam, false)
 					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).Should(ContainSubstring("attributes \"password\" and \"username\" are required"))
+					Expect(err.Error()).Should(ContainSubstring("attribute \"password\" is required"))
 
 					By("Create ldap idp without/empty name field")
 					idpParam = &exe.IDPArgs{
-						Token:      token,
 						ClusterID:  clusterID,
 						Name:       "",
 						CA:         "",
@@ -358,7 +523,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create ldap idp without url field")
 					idpParam = &exe.IDPArgs{
-						Token:      token,
 						ClusterID:  clusterID,
 						Name:       "ldap-idp-test",
 						CA:         "",
@@ -373,7 +537,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create ldap idp without attributes field")
 					idpParam = &exe.IDPArgs{
-						Token:     token,
 						ClusterID: clusterID,
 						Name:      "ldap-idp-test",
 						CA:        "",
@@ -387,7 +550,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create github idp without/empty name field")
 					idpParam = &exe.IDPArgs{
-						Token:         token,
 						ClusterID:     clusterID,
 						Name:          "",
 						ClientID:      githubIDPClientId,
@@ -402,7 +564,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create github idp without/empty client_id field")
 					idpParam = &exe.IDPArgs{
-						Token:         token,
 						ClusterID:     clusterID,
 						Name:          "github-idp-test",
 						ClientID:      "",
@@ -416,7 +577,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create github idp without/empty client_secret field")
 					idpParam = &exe.IDPArgs{
-						Token:         token,
 						ClusterID:     clusterID,
 						Name:          "github-idp-test",
 						ClientID:      githubIDPClientId,
@@ -430,7 +590,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create gitlab idp without/empty name field")
 					idpParam = &exe.IDPArgs{
-						Token:        token,
 						ClusterID:    clusterID,
 						Name:         "",
 						ClientID:     gitlabIDPClientId,
@@ -445,7 +604,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create gitlab idp without/empty client_id field")
 					idpParam = &exe.IDPArgs{
-						Token:        token,
 						ClusterID:    clusterID,
 						Name:         "gitlab-idp-test",
 						ClientID:     "",
@@ -459,7 +617,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create gitlab idp without/empty client_secret field")
 					idpParam = &exe.IDPArgs{
-						Token:        token,
 						ClusterID:    clusterID,
 						Name:         "gitlab-idp-test",
 						ClientID:     gitlabIDPClientId,
@@ -473,7 +630,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create gitlab idp without url field")
 					idpParam = &exe.IDPArgs{
-						Token:        token,
 						ClusterID:    clusterID,
 						Name:         "gitlab-idp-test",
 						URL:          "",
@@ -487,7 +643,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create google idp without/empty name field")
 					idpParam = &exe.IDPArgs{
-						Token:        token,
 						ClusterID:    clusterID,
 						Name:         "",
 						ClientID:     googleIDPClientId,
@@ -501,7 +656,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create google idp without/empty client_id field")
 					idpParam = &exe.IDPArgs{
-						Token:        token,
 						ClusterID:    clusterID,
 						Name:         "google-idp-test",
 						ClientID:     "",
@@ -514,7 +668,6 @@ var _ = Describe("TF Test", func() {
 
 					By("Create google idp without/empty client_secret field")
 					idpParam = &exe.IDPArgs{
-						Token:        token,
 						ClusterID:    clusterID,
 						Name:         "google-idp-test",
 						ClientID:     googleIDPClientId,
@@ -533,7 +686,6 @@ var _ = Describe("TF Test", func() {
 					htpasswdMap = []interface{}{map[string]string{}}
 
 					idpParam := &exe.IDPArgs{
-						Token:         token,
 						ClusterID:     clusterID,
 						Name:          "OCP-66409-htpasswd-idp-test",
 						HtpasswdUsers: htpasswdMap,
@@ -560,7 +712,6 @@ var _ = Describe("TF Test", func() {
 							"password": passwordInvalid}}
 
 					idpParam := &exe.IDPArgs{
-						Token:         token,
 						ClusterID:     clusterID,
 						Name:          "OCP-66410-htpasswd-idp-test",
 						HtpasswdUsers: htpasswdMap,
@@ -580,7 +731,6 @@ var _ = Describe("TF Test", func() {
 						map[string]string{"username": usernameInvalid,
 							"password": passwordInvalid}}
 					idpParam = &exe.IDPArgs{
-						Token:         token,
 						ClusterID:     clusterID,
 						Name:          "OCP-66410-htpasswd-idp-test",
 						HtpasswdUsers: htpasswdMap,
@@ -600,7 +750,6 @@ var _ = Describe("TF Test", func() {
 						map[string]string{"username": userName, "password": password}}
 
 					idpParam := &exe.IDPArgs{
-						Token:         token,
 						ClusterID:     clusterID,
 						Name:          "OCP-66411-htpasswd-idp-test",
 						HtpasswdUsers: htpasswdMap,
@@ -617,44 +766,60 @@ var _ = Describe("TF Test", func() {
 		Describe("Validate terraform Import operations", func() {
 			var (
 				googleIdpName         = "google-idp"
+				gitLabIdpName         = "gitlab-idp"
 				googleIDPClientSecret string
 				googleIDPClientId     string
+				gitlabIDPClientId     string
+				gitlabIDPClientSecret string
 			)
 
 			BeforeEach(func() {
 				idpService.google = *exe.NewIDPService(con.GoogleDir)        // init new google service
+				idpService.gitlab = *exe.NewIDPService(con.GitlabDir)        // init new gitlab service
 				importService = *exe.NewImportService(con.ImportResourceDir) // init new import service
 			})
 
 			AfterEach(func() {
 				err := idpService.google.Destroy()
 				Expect(err).ToNot(HaveOccurred())
+
+				err = idpService.gitlab.Destroy()
+				Expect(err).ToNot(HaveOccurred())
 			})
 
-			Context("Author:smiron-High-OCP-65981 @OCP-65981 @smiron", func() {
+			Context("Author:smiron-Medium-OCP-65981 @OCP-65981 @smiron", func() {
 				It("OCP-65981 - rhcs_identity_provider resource can be imported by the terraform import command",
 					ci.Day2, ci.Medium, ci.FeatureIDP, ci.FeatureImport, func() {
-						By("Create sample idp to test the import functionality")
+
+						By("Create sample idps to test the import functionality")
 						googleIDPClientSecret = h.GenerateRandomStringWithSymbols(20)
 						googleIDPClientId = h.GenerateRandomStringWithSymbols(30)
+						gitlabIDPClientId = h.GenerateRandomStringWithSymbols(20)
+						gitlabIDPClientSecret = h.GenerateRandomStringWithSymbols(30)
 
 						idpParam := &exe.IDPArgs{
-							Token:        token,
 							ClusterID:    clusterID,
 							Name:         googleIdpName,
 							ClientID:     googleIDPClientId,
 							ClientSecret: googleIDPClientSecret,
 							HostedDomain: con.HostedDomain,
 						}
-
 						Expect(idpService.google.Apply(idpParam, false)).To(Succeed())
+
+						idpParam = &exe.IDPArgs{
+							ClusterID:    clusterID,
+							Name:         gitLabIdpName,
+							ClientID:     gitlabIDPClientId,
+							ClientSecret: gitlabIDPClientSecret,
+							URL:          con.GitLabURL,
+						}
+						Expect(idpService.gitlab.Apply(idpParam, false)).To(Succeed())
 
 						By("Run the command to import the idp")
 						importParam := &exe.ImportArgs{
-							Token:        token,
 							ClusterID:    clusterID,
 							ResourceKind: "rhcs_identity_provider",
-							ResourceName: "idp_import",
+							ResourceName: "idp_google_import",
 							ObjectName:   googleIdpName,
 						}
 						Expect(importService.Import(importParam)).To(Succeed())
@@ -664,6 +829,32 @@ var _ = Describe("TF Test", func() {
 						Expect(err).ToNot(HaveOccurred())
 						Expect(output).To(ContainSubstring(googleIDPClientId))
 						Expect(output).To(ContainSubstring(con.HostedDomain))
+
+						By("Validate terraform import with no idp object name returns error")
+						var unknownIdpName = "unknown_idp_name"
+						importParam = &exe.ImportArgs{
+							ClusterID:    clusterID,
+							ResourceKind: "rhcs_identity_provider",
+							ResourceName: "idp_google_import",
+							ObjectName:   unknownIdpName,
+						}
+
+						err = importService.Import(importParam)
+						Expect(err.Error()).To(ContainSubstring("identity provider '%s' not found", unknownIdpName))
+
+						By("Validate terraform import with no clusterID returns error")
+
+						var unknownClusterID = h.GenerateRandomStringWithSymbols(20)
+						importParam = &exe.ImportArgs{
+							ClusterID:    unknownClusterID,
+							ResourceKind: "rhcs_identity_provider",
+							ResourceName: "idp_gitlab_import",
+							ObjectName:   gitLabIdpName,
+						}
+
+						err = importService.Import(importParam)
+						Expect(err.Error()).To(ContainSubstring("Cluster %s not found", unknownClusterID))
+
 					})
 			})
 		})

@@ -1,7 +1,3 @@
-variable "token" {
-  type      = string
-  sensitive = true
-}
 
 variable "url" {
   type    = string
@@ -206,4 +202,10 @@ variable "additional_infra_security_groups" {
 variable "additional_control_plane_security_groups" {
   type    = list(string)
   default = null
+}
+
+variable "path" {
+  description = "(Optional) The arn path for the account/operator roles as well as their policies."
+  type        = string
+  default     = null
 }

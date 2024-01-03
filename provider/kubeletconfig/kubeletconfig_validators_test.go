@@ -109,5 +109,27 @@ var _ = Describe("KubeletConfig Validators", func() {
 			Expect(resp.Diagnostics.HasError()).To(BeFalse())
 			Expect(resp.Diagnostics.Errors().ErrorsCount()).To(Equal(0))
 		})
+
+		It("Passes validation if podPidsLimit is currently unknown", func() {
+			req := validator.Int64Request{
+				Path:        path.Root("pod_pids_limit"),
+				ConfigValue: types.Int64Unknown(),
+			}
+
+			pidsLimitValidator.ValidateInt64(ctx, req, resp)
+			Expect(resp.Diagnostics.HasError()).To(BeFalse())
+			Expect(resp.Diagnostics.Errors().ErrorsCount()).To(Equal(0))
+		})
+
+		It("Passes validation if podPidsLimit is currently null", func() {
+			req := validator.Int64Request{
+				Path:        path.Root("pod_pids_limit"),
+				ConfigValue: types.Int64Null(),
+			}
+
+			pidsLimitValidator.ValidateInt64(ctx, req, resp)
+			Expect(resp.Diagnostics.HasError()).To(BeFalse())
+			Expect(resp.Diagnostics.Errors().ErrorsCount()).To(Equal(0))
+		})
 	})
 })

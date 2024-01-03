@@ -13,9 +13,6 @@ variable "account_role_prefix" {
   default = ""
 }
 
-variable "token" {
-  type = string
-}
 
 variable "url" {
   type    = string
@@ -25,4 +22,10 @@ variable "url" {
 variable "channel_group" {
   type    = string
   default = "stable"
+}
+
+variable "path" {
+  description = "(Optional) The arn path for the account/operator roles as well as their policies."
+  type        = string
+  default     = null
 }

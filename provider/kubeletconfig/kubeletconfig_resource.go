@@ -24,7 +24,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -71,10 +70,7 @@ func (k *KubeletConfigResource) Schema(_ context.Context, _ resource.SchemaReque
 		Attributes: map[string]schema.Attribute{
 			"cluster": schema.StringAttribute{
 				Required:    true,
-				Description: "Identifier of the cluster.",
-				PlanModifiers: []planmodifier.String{
-					common.Immutable(),
-				},
+				Description: "Identifier of the cluster." + common.ValueCannotBeChangedStringDescription,
 			},
 			"pod_pids_limit": schema.Int64Attribute{
 				Required: true,
@@ -100,7 +96,7 @@ func (k *KubeletConfigResource) Create(ctx context.Context, req resource.CreateR
 	if err := k.clusterWait.WaitForClusterToBeReady(ctx, clusterId); err != nil {
 		resp.Diagnostics.AddError(
 			"Cluster is not ready",
-			fmt.Sprintf("Cluster with id '%s' is not in the ready plan: %v", clusterId, err),
+			fmt.Sprintf("Cluster with id '%s' is not in the ready state: %v", clusterId, err),
 		)
 		return
 	}
@@ -188,8 +184,18 @@ func (k *KubeletConfigResource) writeStateToResponse(
 }
 
 func (k *KubeletConfigResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	state := k.getKubeletConfigStateFromState(ctx, req.State, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	plan := k.getKubeletConfigStateFromPlan(ctx, req.Plan, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// assert cluster attribute wasn't changed:
+	common.ValidateStateAndPlanEquals(state.Cluster, plan.Cluster, "cluster", &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}

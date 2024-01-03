@@ -21,12 +21,12 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -60,11 +60,8 @@ func (r *ClusterAutoscalerResource) Schema(ctx context.Context, req resource.Sch
 		Description: "Cluster-wide autoscaling configuration.",
 		Attributes: map[string]schema.Attribute{
 			"cluster": schema.StringAttribute{
-				Description: "Identifier of the cluster.",
+				Description: "Identifier of the cluster." + common.ValueCannotBeChangedStringDescription,
 				Required:    true,
-				PlanModifiers: []planmodifier.String{
-					common.Immutable(),
-				},
 			},
 			"balance_similar_node_groups": schema.BoolAttribute{
 				Description: "Automatically identify node groups with " +
@@ -83,6 +80,9 @@ func (r *ClusterAutoscalerResource) Schema(ctx context.Context, req resource.Sch
 					"Default value is 1, level 4 is recommended for DEBUGGING and " +
 					"level 6 will enable almost everything.",
 				Optional: true,
+				Validators: []validator.Int64{
+					int64validator.AtLeast(0),
+				},
 			},
 			"max_pod_grace_period": schema.Int64Attribute{
 				Description: "Gives pods graceful termination time before scaling down.",
@@ -302,10 +302,24 @@ func (r *ClusterAutoscalerResource) Update(ctx context.Context, request resource
 	response *resource.UpdateResponse) {
 	var diags diag.Diagnostics
 
+	// Get the state:
+	state := &ClusterAutoscalerState{}
+	diags = request.State.Get(ctx, state)
+	response.Diagnostics.Append(diags...)
+	if response.Diagnostics.HasError() {
+		return
+	}
+
 	// Get the plan:
 	plan := &ClusterAutoscalerState{}
 	diags = request.Plan.Get(ctx, plan)
 	response.Diagnostics.Append(diags...)
+	if response.Diagnostics.HasError() {
+		return
+	}
+
+	// assert cluster attribute wasn't changed:
+	common.ValidateStateAndPlanEquals(state.Cluster, plan.Cluster, "cluster", &diags)
 	if response.Diagnostics.HasError() {
 		return
 	}
@@ -349,7 +363,7 @@ func (r *ClusterAutoscalerResource) Update(ctx context.Context, request resource
 	}
 
 	object := update.Body()
-	state := &ClusterAutoscalerState{}
+	state = &ClusterAutoscalerState{}
 	populateAutoscalerState(object, plan.Cluster.ValueString(), state)
 
 	diags = response.State.Set(ctx, state)

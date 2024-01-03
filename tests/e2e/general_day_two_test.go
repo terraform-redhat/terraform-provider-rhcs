@@ -24,9 +24,7 @@ var _ = Describe("TF day2 scenrios", func() {
 			ci.Day2, ci.Medium, ci.FeatureIDP, func() {
 
 				By("Create/Apply dns-domain resource by terraform")
-				dnsArgs := &exe.DnsDomainArgs{
-					Token: token,
-				}
+				dnsArgs := &exe.DnsDomainArgs{}
 				err := dnsService.Create(dnsArgs)
 				Expect(err).ToNot(HaveOccurred())
 			})
@@ -42,9 +40,7 @@ var _ = Describe("TF day2 scenrios", func() {
 			ci.Day2, ci.Medium, ci.FeatureIDP, func() {
 
 				By("Creating/Applying rhcs-info resource by terraform")
-				rhcsInfoArgs := &exe.RhcsInfoArgs{
-					Token: token,
-				}
+				rhcsInfoArgs := &exe.RhcsInfoArgs{}
 				Expect(rhcsInfoService.Create(rhcsInfoArgs)).ShouldNot(HaveOccurred())
 
 				By("Comparing rhcs-info state output to OCM API output")
@@ -53,7 +49,6 @@ var _ = Describe("TF day2 scenrios", func() {
 
 				// Address the resource's kind and name for the state command
 				rhcsInfoArgs = &exe.RhcsInfoArgs{
-					Token:        token,
 					ResourceKind: "rhcs_info",
 					ResourceName: "info",
 				}

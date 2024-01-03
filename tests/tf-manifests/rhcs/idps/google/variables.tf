@@ -1,7 +1,3 @@
-variable "token" {
-  type      = string
-  sensitive = true
-}
 variable "url" {
   type        = string
   description = "Provide RHCS environment by setting a value to url"

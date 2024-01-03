@@ -18,27 +18,15 @@ import (
 var _ = Describe("TF Test", func() {
 	Describe("Create MachinePool test cases", func() {
 		var mpService *exe.MachinePoolService
-		profile := ci.LoadProfileYamlFileByENV()
+		var profile *ci.Profile
+
 		BeforeEach(func() {
+			profile = ci.LoadProfileYamlFileByENV()
 			mpService = exe.NewMachinePoolService(con.MachinePoolDir)
 		})
 		AfterEach(func() {
 			_, err := mpService.Destroy()
 			Expect(err).ToNot(HaveOccurred())
-		})
-		It("MachinePoolExampleNegative", func() {
-			replicas := 3
-			MachinePoolArgs := &exe.MachinePoolArgs{
-				Token:       token,
-				Cluster:     clusterID,
-				Replicas:    &replicas,
-				MachineType: "invalid",
-				Name:        "testmp",
-			}
-
-			_, err := mpService.Apply(MachinePoolArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(ContainSubstring("is not supported for cloud provider 'aws'"))
 		})
 		Context("Author:amalykhi-High-OCP-64757 @OCP-64757 @amalykhi", func() {
 			It("Author:amalykhi-High-OCP-64757 Create a second machine pool", ci.Day2, ci.High, ci.FeatureMachinepool, func() {
@@ -47,7 +35,6 @@ var _ = Describe("TF Test", func() {
 				machineType := "r5.xlarge"
 				name := "ocp-64757"
 				MachinePoolArgs := &exe.MachinePoolArgs{
-					Token:       token,
 					Cluster:     clusterID,
 					Replicas:    &replicas,
 					MachineType: machineType,
@@ -80,7 +67,6 @@ var _ = Describe("TF Test", func() {
 				updatingLabels := map[string]string{"fo1": "bar3", "fo3": "baz3"}
 				emptyLabels := map[string]string{}
 				MachinePoolArgs := &exe.MachinePoolArgs{
-					Token:       token,
 					Cluster:     clusterID,
 					Replicas:    &replicas,
 					MachineType: machineType,
@@ -125,7 +111,6 @@ var _ = Describe("TF Test", func() {
 				machineType := "r5.xlarge"
 				name := "ocp-68296"
 				MachinePoolArgs := &exe.MachinePoolArgs{
-					Token:              token,
 					Cluster:            clusterID,
 					MinReplicas:        &minReplicas,
 					MaxReplicas:        &maxReplicas,
@@ -157,7 +142,6 @@ var _ = Describe("TF Test", func() {
 
 				By("Disable autoscaling of the machinepool")
 				MachinePoolArgs = &exe.MachinePoolArgs{
-					Token:       token,
 					Cluster:     clusterID,
 					Replicas:    &replicas,
 					MachineType: machineType,
@@ -186,7 +170,6 @@ var _ = Describe("TF Test", func() {
 				taints := []map[string]string{taint0, taint1}
 				emptyTaints := []map[string]string{}
 				MachinePoolArgs := &exe.MachinePoolArgs{
-					Token:       token,
 					Cluster:     clusterID,
 					Replicas:    &replicas,
 					MachineType: machineType,
@@ -250,7 +233,6 @@ var _ = Describe("TF Test", func() {
 				)
 				By("Create machinepool with invalid name")
 				MachinePoolArgs := &exe.MachinePoolArgs{
-					Token:       token,
 					Cluster:     clusterID,
 					Replicas:    &invalidMpReplicas,
 					Name:        invalidMachinepoolName,
@@ -262,7 +244,6 @@ var _ = Describe("TF Test", func() {
 
 				By("Create machinepool with invalid replica value")
 				MachinePoolArgs = &exe.MachinePoolArgs{
-					Token:       token,
 					Cluster:     clusterID,
 					Replicas:    &invalidMpReplicas,
 					Name:        machinepoolName,
@@ -274,7 +255,6 @@ var _ = Describe("TF Test", func() {
 
 				By("Create machinepool with invalid instance type")
 				MachinePoolArgs = &exe.MachinePoolArgs{
-					Token:       token,
 					Cluster:     clusterID,
 					Replicas:    &mpReplicas,
 					Name:        machinepoolName,
@@ -286,7 +266,6 @@ var _ = Describe("TF Test", func() {
 
 				By("Create machinepool with setting replicas and enable-autoscaling at the same time")
 				MachinePoolArgs = &exe.MachinePoolArgs{
-					Token:              token,
 					Cluster:            clusterID,
 					Replicas:           &mpReplicas,
 					Name:               machinepoolName,
@@ -299,7 +278,6 @@ var _ = Describe("TF Test", func() {
 
 				By("Create machinepool with setting min-replicas large than max-replicas")
 				MachinePoolArgs = &exe.MachinePoolArgs{
-					Token:              token,
 					Cluster:            clusterID,
 					MinReplicas:        &maxReplicas,
 					MaxReplicas:        &minReplicas,
@@ -313,7 +291,6 @@ var _ = Describe("TF Test", func() {
 
 				By("Create machinepool with setting min-replicas and max-replicas but without setting --enable-autoscaling")
 				MachinePoolArgs = &exe.MachinePoolArgs{
-					Token:       token,
 					Cluster:     clusterID,
 					MinReplicas: &minReplicas,
 					MaxReplicas: &maxReplicas,
@@ -329,7 +306,6 @@ var _ = Describe("TF Test", func() {
 				if profile.MultiAZ {
 					By("Create machinepool with setting min-replicas and max-replicas not multiple 3 for multi-az")
 					MachinePoolArgs = &exe.MachinePoolArgs{
-						Token:              token,
 						Cluster:            clusterID,
 						MinReplicas:        &minReplicas,
 						MaxReplicas:        &invalidMaxReplicas4Mutilcluster,
@@ -342,7 +318,6 @@ var _ = Describe("TF Test", func() {
 					Expect(err.Error()).Should(ContainSubstring("Multi AZ clusters require that the number of replicas be a\nmultiple of 3"))
 
 					MachinePoolArgs = &exe.MachinePoolArgs{
-						Token:              token,
 						Cluster:            clusterID,
 						MinReplicas:        &invalidMinReplicas4Mutilcluster,
 						MaxReplicas:        &maxReplicas,
@@ -371,7 +346,6 @@ var _ = Describe("TF Test", func() {
 				machineType := "r5.xlarge"
 				name := "ocp-65063"
 				MachinePoolArgs := &exe.MachinePoolArgs{
-					Token:            token,
 					Cluster:          clusterID,
 					Replicas:         &replicas,
 					MachineType:      machineType,
@@ -393,7 +367,6 @@ var _ = Describe("TF Test", func() {
 				By("Create additional machinepool with subnet id specified")
 				awsSubnetIds := getResp.Body().AWS().SubnetIDs()
 				MachinePoolArgs = &exe.MachinePoolArgs{
-					Token:       token,
 					Cluster:     clusterID,
 					Replicas:    &replicas,
 					MachineType: machineType,
@@ -414,7 +387,6 @@ var _ = Describe("TF Test", func() {
 
 				By("Create additional machinepool with multi_availability_zone=false specified")
 				MachinePoolArgs = &exe.MachinePoolArgs{
-					Token:            token,
 					Cluster:          clusterID,
 					Replicas:         &replicas,
 					MachineType:      machineType,
@@ -458,13 +430,14 @@ var _ = Describe("TF Test", func() {
 				name := "ocp-65071"
 				newZonePrivateSubnet := vpcOutput.ClusterPrivateSubnets[2]
 				MachinePoolArgs := &exe.MachinePoolArgs{
-					Token:       token,
 					Cluster:     clusterID,
 					Replicas:    &replicas,
 					MachineType: machineType,
 					Name:        name,
 					SubnetID:    newZonePrivateSubnet,
 				}
+				_, err = mpService.Apply(MachinePoolArgs, false)
+				Expect(err).ToNot(HaveOccurred())
 
 				mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
 				Expect(err).ToNot(HaveOccurred())
@@ -488,7 +461,6 @@ var _ = Describe("TF Test", func() {
 				name := "ocp-69144"
 				diskSize := 249
 				MachinePoolArgs := &exe.MachinePoolArgs{
-					Token:       token,
 					Cluster:     clusterID,
 					Replicas:    &replicas,
 					MachineType: machineType,
@@ -509,9 +481,8 @@ var _ = Describe("TF Test", func() {
 				Expect(mpResponseBody.RootVolume().AWS().Size()).To(Equal(diskSize))
 				Expect(mpResponseBody.InstanceType()).To(Equal(machineType))
 
-				By("Update disksize will create another machinepool")
+				By("Update disksize is not allowed ")
 				MachinePoolArgs = &exe.MachinePoolArgs{
-					Token:       token,
 					Cluster:     clusterID,
 					Replicas:    &replicas,
 					MachineType: machineType,
@@ -519,18 +490,16 @@ var _ = Describe("TF Test", func() {
 					DiskSize:    320,
 				}
 
-				_, err = mpService.Apply(MachinePoolArgs, false)
-				Expect(err).ToNot(HaveOccurred())
+				output, err := mpService.Apply(MachinePoolArgs, false)
+				Expect(err).To(HaveOccurred())
+				Expect(output).Should(ContainSubstring("Attribute disk_size, cannot be changed from 249 to 320"))
 
-				By("Verify the parameters of the created machinepool")
-				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+				MachinePoolArgs.DiskSize = diskSize
+				_, err = mpService.Destroy(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(mpResponseBody.RootVolume().AWS().Size()).To(Equal(320))
-				Expect(mpResponseBody.InstanceType()).To(Equal(machineType))
 
 				By("Create another machinepool without disksize will create another machinepool with default value")
 				MachinePoolArgs = &exe.MachinePoolArgs{
-					Token:       token,
 					Cluster:     clusterID,
 					Replicas:    &replicas,
 					MachineType: "m5.2xlarge",
@@ -585,7 +554,6 @@ var _ = Describe("TF Test", func() {
 					sgIDs = sgIDs[0:4]
 				}
 				MachinePoolArgs := &exe.MachinePoolArgs{
-					Token:                    token,
 					Cluster:                  clusterID,
 					Replicas:                 &replicas,
 					MachineType:              machineType,
@@ -610,7 +578,6 @@ var _ = Describe("TF Test", func() {
 
 				By("Update security groups is not allowed to a machinepool")
 				MachinePoolArgs = &exe.MachinePoolArgs{
-					Token:                    token,
 					Cluster:                  clusterID,
 					Replicas:                 &replicas,
 					MachineType:              machineType,
@@ -620,7 +587,7 @@ var _ = Describe("TF Test", func() {
 
 				applyOutput, err := mpService.Apply(MachinePoolArgs, false)
 				Expect(err).To(HaveOccurred())
-				Expect(applyOutput).Should(ContainSubstring("attribute \"aws_additional_security_group_ids\" must have a known value and may not be changed."))
+				Expect(applyOutput).Should(ContainSubstring("Attribute aws_additional_security_group_ids, cannot be changed"))
 
 				By("Destroy the machinepool")
 				mpService.CreationArgs.AdditionalSecurityGroups = sgIDs
@@ -630,7 +597,6 @@ var _ = Describe("TF Test", func() {
 				By("Create another machinepool without additional sg ")
 				name = "add-69146"
 				MachinePoolArgs = &exe.MachinePoolArgs{
-					Token:       token,
 					Cluster:     clusterID,
 					Replicas:    &replicas,
 					MachineType: "m5.2xlarge",
@@ -647,6 +613,63 @@ var _ = Describe("TF Test", func() {
 				Expect(mpResponseBody.InstanceType()).To(Equal("m5.2xlarge"))
 
 			})
+		})
+	})
+
+	Describe("Validate terraform Import operations", func() {
+		var mpService *exe.MachinePoolService
+		var importService exe.ImportService
+
+		BeforeEach(func() {
+			mpService = exe.NewMachinePoolService(con.MachinePoolDir)
+			importService = *exe.NewImportService(con.ImportResourceDir) // init new import service
+		})
+		AfterEach(func() {
+			By("Destroy import service")
+			_, importErr := importService.Destroy()
+			Expect(importErr).ToNot(HaveOccurred())
+		})
+
+		Context("Author:prabinov-Medium-OCP-66403 @OCP-66403 @prabinov", func() {
+			It("OCP-66403 - rhcs_machinepool resource can be imported by the terraform import command",
+				ci.Day2, ci.Medium, ci.FeatureMachinepool, ci.FeatureImport, func() {
+					By("Create additional machinepool for import")
+					minReplicas := 3
+					maxReplicas := 6
+					creationLabels := map[string]string{"foo1": "bar1"}
+					machineType := "r5.xlarge"
+					name := "ocp-66403"
+					MachinePoolArgs := &exe.MachinePoolArgs{
+						Cluster:            clusterID,
+						MinReplicas:        &minReplicas,
+						MaxReplicas:        &maxReplicas,
+						MachineType:        machineType,
+						Name:               name,
+						Labels:             &creationLabels,
+						AutoscalingEnabled: true,
+					}
+
+					_, err := mpService.Apply(MachinePoolArgs, false)
+					Expect(err).ToNot(HaveOccurred())
+
+					By("Run the command to import the machinepool")
+					importParam := &exe.ImportArgs{
+						ClusterID:    clusterID,
+						ResourceKind: "rhcs_machine_pool",
+						ResourceName: "mp_import",
+						ObjectName:   name,
+					}
+					Expect(importService.Import(importParam)).To(Succeed())
+
+					By("Check resource state - import command succeeded")
+
+					output, err := importService.ShowState(importParam)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(output).To(ContainSubstring(machineType))
+					Expect(output).To(ContainSubstring(name))
+					Expect(output).To(MatchRegexp("foo1"))
+					Expect(output).To(MatchRegexp("bar1"))
+				})
 		})
 	})
 })
@@ -679,7 +702,7 @@ var _ = Describe("TF Test, default machinepool day-2 testing", func() {
 				Expect(resource).NotTo(BeNil())
 				defaultMachinePoolArgs, err = exe.BuildDefaultMachinePoolArgsFromClusterState(resource)
 				defaultMachinePoolArgs.Cluster = clusterID
-				defaultMachinePoolArgs.Token = token
+
 				Expect(err).NotTo(HaveOccurred())
 				_, err = dmpService.Apply(&defaultMachinePoolArgs, false)
 				Expect(err).ToNot(HaveOccurred())
@@ -707,7 +730,7 @@ var _ = Describe("TF Test, default machinepool day-2 testing", func() {
 				defaultMachinepoolArgFromMachinepool, err := exe.BuildDefaultMachinePoolArgsFromDefaultMachinePoolState(defaultMachinePoolResource)
 				Expect(err).NotTo(HaveOccurred())
 				defaultMachinepoolArgFromMachinepool.Cluster = clusterID
-				defaultMachinepoolArgFromMachinepool.Token = token
+
 				dmpArgFromMachinepoolForTesting := defaultMachinepoolArgFromMachinepool
 
 				By("Create machinepool with the default machinepool name 'worker' when it does exist")
@@ -770,7 +793,7 @@ var _ = Describe("TF Test, default machinepool day-2 testing", func() {
 					defaultMachinepoolArgFromMachinepool, err := exe.BuildDefaultMachinePoolArgsFromDefaultMachinePoolState(defaultMachinePoolResource)
 					Expect(err).NotTo(HaveOccurred())
 					defaultMachinepoolArgFromMachinepool.Cluster = clusterID
-					defaultMachinepoolArgFromMachinepool.Token = token
+
 					dmpArgFromMachinepoolForTesting := defaultMachinepoolArgFromMachinepool
 
 					By("Edit the taints without additional machinepool")
@@ -827,7 +850,6 @@ var _ = Describe("TF Test, default machinepool day-2 testing", func() {
 					name := "amp-69009"
 
 					MachinePoolArgs := &exe.MachinePoolArgs{
-						Token:       token,
 						Cluster:     clusterID,
 						Replicas:    &replicas,
 						MachineType: machineType,
@@ -880,7 +902,7 @@ var _ = Describe("TF Test, day-3 default machinepool testing", func() {
 				Expect(resource).NotTo(BeNil())
 				defaultMachinePoolArgs, err = exe.BuildDefaultMachinePoolArgsFromClusterState(resource)
 				defaultMachinePoolArgs.Cluster = clusterID
-				defaultMachinePoolArgs.Token = token
+
 				Expect(err).NotTo(HaveOccurred())
 				_, err = dmpService.Apply(&defaultMachinePoolArgs, false)
 				Expect(err).ToNot(HaveOccurred())
@@ -894,7 +916,6 @@ var _ = Describe("TF Test, day-3 default machinepool testing", func() {
 				defaultMachinepoolArgFromMachinepool, err := exe.BuildDefaultMachinePoolArgsFromDefaultMachinePoolState(defaultMachinePoolResource)
 				Expect(err).NotTo(HaveOccurred())
 				defaultMachinepoolArgFromMachinepool.Cluster = clusterID
-				defaultMachinepoolArgFromMachinepool.Token = token
 
 				By("Destroy default machinepool without additional machinepool existing")
 				resp, err := cms.ListMachinePool(ci.RHCSConnection, clusterID)
@@ -913,7 +934,6 @@ var _ = Describe("TF Test, day-3 default machinepool testing", func() {
 				name := "amp-69727"
 
 				MachinePoolArgs := &exe.MachinePoolArgs{
-					Token:       token,
 					Cluster:     clusterID,
 					Replicas:    &replicas,
 					MachineType: machineType,

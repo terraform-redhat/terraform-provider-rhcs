@@ -24,7 +24,6 @@ terraform {
 
 
 provider "rhcs" {
-  token = var.token
   url   = var.url
 }
 

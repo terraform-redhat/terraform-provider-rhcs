@@ -13,7 +13,6 @@ type ClusterCreationArgs struct {
 	ClusterName                          string            `json:"cluster_name,omitempty"`
 	OperatorRolePrefix                   string            `json:"operator_role_prefix,omitempty"`
 	OpenshiftVersion                     string            `json:"openshift_version,omitempty"`
-	Token                                string            `json:"token,omitempty"`
 	URL                                  string            `json:"url,omitempty"`
 	AWSRegion                            string            `json:"aws_region,omitempty"`
 	AWSAvailabilityZones                 []string          `json:"aws_availability_zones,omitempty"`
@@ -41,6 +40,7 @@ type ClusterCreationArgs struct {
 	AdminCredentials                     map[string]string `json:"admin_credentials,omitempty"`
 	DisableUWM                           bool              `json:"disable_workload_monitoring,omitempty"`
 	Proxy                                *Proxy            `json:"proxy,omitempty"`
+	UnifiedAccRolesPath                  string            `json:"path,omitempty"`
 }
 type Proxy struct {
 	HTTPProxy             string `json:"http_proxy,omitempty"`
@@ -99,7 +99,7 @@ func (creator *ClusterService) Init(manifestDir string) error {
 
 }
 
-func (creator *ClusterService) Apply(createArgs *ClusterCreationArgs, recordtfvars bool, extraArgs ...string) error {
+func (creator *ClusterService) Apply(createArgs *ClusterCreationArgs, recordtfvars bool, tfvarsDeletion bool, extraArgs ...string) error {
 	createArgs.URL = CON.GateWayURL
 	args, tfvars := combineStructArgs(createArgs, extraArgs...)
 	if recordtfvars {
@@ -108,7 +108,9 @@ func (creator *ClusterService) Apply(createArgs *ClusterCreationArgs, recordtfva
 
 	_, err := runTerraformApplyWithArgs(creator.Context, creator.ManifestDir, args)
 	if err != nil {
-		deleteTFvarsFile(creator.ManifestDir)
+		if tfvarsDeletion {
+			deleteTFvarsFile(creator.ManifestDir)
+		}
 		return err
 	}
 	return nil

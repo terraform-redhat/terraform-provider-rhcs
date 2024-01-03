@@ -39,8 +39,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -68,16 +66,17 @@ const (
 	nonPositiveTimeoutFormat  = "Can't poll state of cluster with identifier '%s', the timeout that was set is not a positive number"
 	pollingIntervalInMinutes  = 2
 
-	awsCloudProvider      = "aws"
-	rosaProduct           = "rosa"
-	MinVersion            = "4.10.0"
-	maxClusterNameLength  = 15
-	tagsPrefix            = "rosa_"
-	tagsOpenShiftVersion  = tagsPrefix + "openshift_version"
-	lowestHttpTokensVer   = "4.11.0"
-	propertyRosaTfVersion = tagsPrefix + "tf_version"
-	propertyRosaTfCommit  = tagsPrefix + "tf_commit"
-	waitTimeoutInMinutes  = 60
+	awsCloudProvider          = "aws"
+	rosaProduct               = "rosa"
+	MinVersion                = "4.10.0"
+	maxClusterNameLength      = 15
+	tagsPrefix                = "rosa_"
+	tagsOpenShiftVersion      = tagsPrefix + "openshift_version"
+	lowestHttpTokensVer       = "4.11.0"
+	propertyRosaTfVersion     = tagsPrefix + "tf_version"
+	propertyRosaTfCommit      = tagsPrefix + "tf_commit"
+	waitTimeoutInMinutes      = 60
+	DefaultMachinePoolMessage = "This attribute is specifically applies for the default Machine Pool and becomes irrelevant once the resource is created. Any modifications to the default Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Default Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)"
 )
 
 var OCMProperties = map[string]string{
@@ -116,22 +115,18 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				},
 			},
 			"external_id": schema.StringAttribute{
-				Description: "Unique external identifier of the cluster.",
+				Description: "Unique external identifier of the cluster. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
-					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the cluster. Cannot exceed 15 characters in length.",
+				Description: "Name of the cluster. Cannot exceed 15 characters in length. " + common.ValueCannotBeChangedStringDescription,
 				Required:    true,
 				Validators: []validator.String{
 					stringvalidator.LengthAtMost(15),
-				},
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"cloud_region": schema.StringAttribute{
@@ -145,12 +140,11 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 			},
 			"multi_az": schema.BoolAttribute{
 				Description: "Indicates if the cluster should be deployed to " +
-					"multiple availability zones. Default value is 'false'.",
+					"multiple availability zones. Default value is 'false'. " + DefaultMachinePoolMessage,
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
-					boolplanmodifier.RequiresReplace(),
 				},
 			},
 			"disable_workload_monitoring": schema.BoolAttribute{
@@ -159,12 +153,9 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Optional: true,
 			},
 			"disable_scp_checks": schema.BoolAttribute{
-				Description: "Enables you to monitor your own projects in isolation from Red Hat " +
-					"Site Reliability Engineer (SRE) platform metrics.",
+				Description: "Indicates if cloud permission checks are disabled when attempting installation of the cluster. " +
+					common.ValueCannotBeChangedStringDescription,
 				Optional: true,
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.RequiresReplace(),
-				},
 			},
 			"properties": schema.MapAttribute{
 				Description: "User defined properties.",
@@ -179,36 +170,32 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Computed:    true,
 			},
 			"tags": schema.MapAttribute{
-				Description: "Apply user defined tags to all cluster resources created in AWS.",
+				Description: "Apply user defined tags to all cluster resources created in AWS. " + common.ValueCannotBeChangedStringDescription,
 				ElementType: types.StringType,
 				Optional:    true,
-				PlanModifiers: []planmodifier.Map{
-					mapplanmodifier.RequiresReplace(),
-				},
 			},
 			"ccs_enabled": schema.BoolAttribute{
 				Description: "Enables customer cloud subscription (Immutable with ROSA)",
 				Computed:    true,
 			},
 			"etcd_encryption": schema.BoolAttribute{
-				Description: "Encrypt etcd data. Note that all AWS storage is already encrypted.",
+				Description: "Encrypt etcd data. Note that all AWS storage is already encrypted. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
-					boolplanmodifier.RequiresReplace(),
 				},
 			},
 			"autoscaling_enabled": schema.BoolAttribute{
-				Description: "Enable autoscaling for the initial worker pool. (only valid during cluster creation)",
+				Description: "Enable autoscaling for the initial worker pool. " + DefaultMachinePoolMessage,
 				Optional:    true,
 			},
 			"min_replicas": schema.Int64Attribute{
-				Description: "Minimum replicas of worker nodes in a machine pool. (only valid during cluster creation)",
+				Description: "Minimum replicas of worker nodes in a machine pool. " + DefaultMachinePoolMessage,
 				Optional:    true,
 			},
 			"max_replicas": schema.Int64Attribute{
-				Description: "Maximum replicas of worker nodes in a machine pool. (only valid during cluster creation)",
+				Description: "Maximum replicas of worker nodes in a machine pool. " + DefaultMachinePoolMessage,
 				Optional:    true,
 			},
 			"api_url": schema.StringAttribute{
@@ -230,110 +217,86 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 			"base_dns_domain": schema.StringAttribute{
 				Description: "Base DNS domain name previously reserved and matching the hosted " +
 					"zone name of the private Route 53 hosted zone associated with intended shared " +
-					"VPC, e.g., '1vo8.p1.openshiftapps.com'.",
+					"VPC, e.g., '1vo8.p1.openshiftapps.com'. " + common.ValueCannotBeChangedStringDescription,
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"replicas": schema.Int64Attribute{
 				Description: "Number of worker/compute nodes to provision. Single zone clusters need at least 2 nodes, " +
-					"multizone clusters need at least 3 nodes. (only valid during cluster creation)",
+					"multizone clusters need at least 3 nodes. " + DefaultMachinePoolMessage,
 				Optional: true,
 			},
 			"compute_machine_type": schema.StringAttribute{
 				Description: "Identifies the machine type used by the default/initial worker nodes, " +
 					"for example `m5.xlarge`. Use the `rhcs_machine_types` data " +
-					"source to find the possible values. (only valid during cluster creation)",
+					"source to find the possible values. " + DefaultMachinePoolMessage,
 				Optional: true,
 			},
 			"worker_disk_size": schema.Int64Attribute{
-				Description: "Compute node root disk size, in GiB. (only valid during cluster creation)",
+				Description: "Compute node root disk size, in GiB. " + DefaultMachinePoolMessage,
 				Optional:    true,
 			},
 			"default_mp_labels": schema.MapAttribute{
 				Description: "This value is the default/initial machine pool labels. Format should be a comma-separated list of '{\"key1\"=\"value1\", \"key2\"=\"value2\"}'. " +
-					"(only valid during cluster creation)",
+					DefaultMachinePoolMessage,
 				ElementType: types.StringType,
 				Optional:    true,
 			},
 			"aws_account_id": schema.StringAttribute{
-				Description: "Identifier of the AWS account.",
+				Description: "Identifier of the AWS account. " + common.ValueCannotBeChangedStringDescription,
 				Required:    true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 			"aws_subnet_ids": schema.ListAttribute{
-				Description: "AWS subnet IDs.",
+				Description: "AWS subnet IDs. " + common.ValueCannotBeChangedStringDescription,
 				ElementType: types.StringType,
 				Optional:    true,
-				PlanModifiers: []planmodifier.List{
-					listplanmodifier.RequiresReplace(),
-				},
 			},
 			"aws_additional_compute_security_group_ids": schema.ListAttribute{
-				Description: "AWS additional compute security group ids.",
+				Description: "AWS additional compute security group ids. " + common.ValueCannotBeChangedStringDescription,
 				ElementType: types.StringType,
 				Optional:    true,
-				PlanModifiers: []planmodifier.List{
-					common.Immutable(),
-				},
 			},
 			"aws_additional_infra_security_group_ids": schema.ListAttribute{
-				Description: "AWS additional infra security group ids.",
+				Description: "AWS additional infra security group ids. " + common.ValueCannotBeChangedStringDescription,
 				ElementType: types.StringType,
 				Optional:    true,
-				PlanModifiers: []planmodifier.List{
-					common.Immutable(),
-				},
 			},
 			"aws_additional_control_plane_security_group_ids": schema.ListAttribute{
-				Description: "AWS additional control plane security group ids.",
+				Description: "AWS additional control plane security group ids. " + common.ValueCannotBeChangedStringDescription,
 				ElementType: types.StringType,
 				Optional:    true,
-				PlanModifiers: []planmodifier.List{
-					common.Immutable(),
-				},
 			},
 			"kms_key_arn": schema.StringAttribute{
 				Description: "The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, " +
 					"fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID" +
-					"(optional).",
+					"(optional). " + common.ValueCannotBeChangedStringDescription,
 				Optional: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 			"fips": schema.BoolAttribute{
-				Description: "Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries.",
+				Description: "Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.RequiresReplace(),
-				},
 			},
 			"aws_private_link": schema.BoolAttribute{
-				Description: "Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet.",
+				Description: "Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
-					boolplanmodifier.RequiresReplace(),
 				},
 			},
 			"private": schema.BoolAttribute{
-				Description: "Restrict cluster API endpoint and application routes to, private connectivity. This requires that PrivateLink be enabled and by extension, your own VPC.",
+				Description: "Restrict cluster API endpoint and application routes to, private connectivity. This requires that PrivateLink be enabled and by extension, your own VPC. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
-					boolplanmodifier.RequiresReplace(),
 				},
 			},
 			"availability_zones": schema.ListAttribute{
-				Description: "Availability zones.",
+				Description: "Availability zones. " + DefaultMachinePoolMessage,
 				ElementType: types.StringType,
 				Optional:    true,
 				Computed:    true,
@@ -342,16 +305,14 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				},
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.UseStateForUnknown(),
-					listplanmodifier.RequiresReplace(),
 				},
 			},
 			"machine_cidr": schema.StringAttribute{
-				Description: "Block of IP addresses for nodes.",
+				Description: "Block of IP addresses for nodes. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
-					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"proxy": schema.SingleNestedAttribute{
@@ -361,40 +322,37 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Validators:  []validator.Object{proxy.ProxyValidator()},
 			},
 			"service_cidr": schema.StringAttribute{
-				Description: "Block of IP addresses for the cluster service network.",
+				Description: "Block of IP addresses for the cluster service network. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
-					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"pod_cidr": schema.StringAttribute{
-				Description: "Block of IP addresses for pods.",
+				Description: "Block of IP addresses for pods. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
-					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"host_prefix": schema.Int64Attribute{
-				Description: "Length of the prefix of the subnet assigned to each node.",
+				Description: "Length of the prefix of the subnet assigned to each node. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.UseStateForUnknown(),
-					int64planmodifier.RequiresReplace(),
 				},
 			},
 			"channel_group": schema.StringAttribute{
-				Description: "Name of the channel group where you select the OpenShift cluster version, for example 'stable'. For ROSA, only 'stable' is supported.",
-				Optional:    true,
-				Computed:    true,
-				Default:     stringdefault.StaticString(ocm.DefaultChannelGroup),
+				Description: "Name of the channel group where you select the OpenShift cluster version, for example 'stable'. " +
+					"For ROSA, only 'stable' is supported. " + common.ValueCannotBeChangedStringDescription,
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(ocm.DefaultChannelGroup),
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
-					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"version": schema.StringAttribute{
@@ -420,13 +378,12 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 			"ec2_metadata_http_tokens": schema.StringAttribute{
 				Description: "This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the cluster." +
 					"This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). This feature is available from " +
-					"OpenShift version 4.11.0 and newer.",
+					"OpenShift version 4.11.0 and newer. " + common.ValueCannotBeChangedStringDescription,
 				Optional: true,
 				Computed: true,
 				Validators: []validator.String{attrvalidators.EnumValueValidator([]string{string(cmv1.Ec2MetadataHttpTokensOptional),
 					string(cmv1.Ec2MetadataHttpTokensRequired)})},
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
@@ -437,56 +394,38 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Optional: true,
 			},
 			"admin_credentials": schema.SingleNestedAttribute{
-				Description: "Admin user credentials",
+				Description: "Admin user credentials. " + common.ValueCannotBeChangedStringDescription,
 				Attributes: map[string]schema.Attribute{
 					"username": schema.StringAttribute{
 						Description: "Admin username that will be created with the cluster.",
 						Required:    true,
-						PlanModifiers: []planmodifier.String{
-							stringplanmodifier.RequiresReplace(),
-						},
-						Validators: identityprovider.HTPasswdUsernameValidators,
+						Validators:  identityprovider.HTPasswdUsernameValidators,
 					},
 					"password": schema.StringAttribute{
 						Description: "Admin password that will be created with the cluster.",
 						Required:    true,
 						Sensitive:   true,
-						PlanModifiers: []planmodifier.String{
-							stringplanmodifier.RequiresReplace(),
-						},
-						Validators: identityprovider.HTPasswdPasswordValidators,
+						Validators:  identityprovider.HTPasswdPasswordValidators,
 					},
 				},
 				Optional: true,
-				PlanModifiers: []planmodifier.Object{
-					objectplanmodifier.RequiresReplace(),
-				},
 			},
 			"private_hosted_zone": schema.SingleNestedAttribute{
-				Description: "Used in a shared VPC topology. HostedZone attributes",
+				Description: "Used in a shared VPC topology. HostedZone attributes. " + common.ValueCannotBeChangedStringDescription,
 				Attributes: map[string]schema.Attribute{
 					"id": schema.StringAttribute{
 						Description: "ID assigned by AWS to private Route 53 hosted zone associated with intended shared VPC, " +
 							"e.g. 'Z05646003S02O1ENCDCSN'.",
 						Required: true,
-						PlanModifiers: []planmodifier.String{
-							stringplanmodifier.RequiresReplace(),
-						},
 					},
 					"role_arn": schema.StringAttribute{
 						Description: "AWS IAM role ARN with a policy attached, granting permissions necessary to " +
 							"create and manage Route 53 DNS records in private Route 53 hosted zone associated with " +
 							"intended shared VPC.",
 						Required: true,
-						PlanModifiers: []planmodifier.String{
-							stringplanmodifier.RequiresReplace(),
-						},
 					},
 				},
 				Optional: true,
-				PlanModifiers: []planmodifier.Object{
-					objectplanmodifier.RequiresReplace(),
-				},
 				Validators: []validator.Object{
 					objectvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("sts")),
 					objectvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("base_dns_domain")),
@@ -1056,6 +995,54 @@ func (r *ClusterRosaClassicResource) Read(ctx context.Context, request resource.
 	response.Diagnostics.Append(diags...)
 }
 
+func validateNoImmutableAttChange(state, plan *ClusterRosaClassicState) diag.Diagnostics {
+	diags := diag.Diagnostics{}
+	common.ValidateStateAndPlanEquals(state.Name, plan.Name, "name", &diags)
+	common.ValidateStateAndPlanEquals(state.ExternalID, plan.ExternalID, "external_id", &diags)
+	common.ValidateStateAndPlanEquals(state.DisableSCPChecks, plan.DisableSCPChecks, "disable_scp_checks", &diags)
+	common.ValidateStateAndPlanEquals(state.Tags, plan.Tags, "tags", &diags)
+	common.ValidateStateAndPlanEquals(state.EtcdEncryption, plan.EtcdEncryption, "etcd_encryption", &diags)
+	common.ValidateStateAndPlanEquals(state.BaseDNSDomain, plan.BaseDNSDomain, "base_dns_domain", &diags)
+	common.ValidateStateAndPlanEquals(state.AWSAccountID, plan.AWSAccountID, "aws_account_id", &diags)
+	common.ValidateStateAndPlanEquals(state.AWSSubnetIDs, plan.AWSSubnetIDs, "aws_subnet_ids", &diags)
+	common.ValidateStateAndPlanEquals(state.KMSKeyArn, plan.KMSKeyArn, "kms_key_arn", &diags)
+	common.ValidateStateAndPlanEquals(state.FIPS, plan.FIPS, "fips", &diags)
+	common.ValidateStateAndPlanEquals(state.AWSPrivateLink, plan.AWSPrivateLink, "aws_private_link", &diags)
+	common.ValidateStateAndPlanEquals(state.Private, plan.Private, "private", &diags)
+	common.ValidateStateAndPlanEquals(state.MachineCIDR, plan.MachineCIDR, "machine_cidr", &diags)
+	common.ValidateStateAndPlanEquals(state.ServiceCIDR, plan.ServiceCIDR, "service_cidr", &diags)
+	common.ValidateStateAndPlanEquals(state.PodCIDR, plan.PodCIDR, "pod_cidr", &diags)
+	common.ValidateStateAndPlanEquals(state.HostPrefix, plan.HostPrefix, "host_prefix", &diags)
+	common.ValidateStateAndPlanEquals(state.ChannelGroup, plan.ChannelGroup, "channel_group", &diags)
+	common.ValidateStateAndPlanEquals(state.Ec2MetadataHttpTokens, plan.Ec2MetadataHttpTokens, "ec2_metadata_http_tokens", &diags)
+
+	// security group's attributes
+	common.ValidateStateAndPlanEquals(state.AWSAdditionalControlPlaneSecurityGroupIds, plan.AWSAdditionalControlPlaneSecurityGroupIds, "aws_additional_control_plane_security_group_ids", &diags)
+	common.ValidateStateAndPlanEquals(state.AWSAdditionalInfraSecurityGroupIds, plan.AWSAdditionalInfraSecurityGroupIds, "aws_additional_infra_security_group_ids", &diags)
+	common.ValidateStateAndPlanEquals(state.AWSAdditionalComputeSecurityGroupIds, plan.AWSAdditionalComputeSecurityGroupIds, "aws_additional_compute_security_group_ids", &diags)
+
+	if !reflect.DeepEqual(state.AdminCredentials, plan.AdminCredentials) {
+		diags.AddError(common.AssertionErrorSummaryMessage, fmt.Sprintf(common.AssertionErrorDetailsMessage, "admin_credentials", *state.AdminCredentials, *plan.AdminCredentials))
+	}
+	if !reflect.DeepEqual(state.PrivateHostedZone, plan.PrivateHostedZone) {
+		diags.AddError(common.AssertionErrorSummaryMessage, fmt.Sprintf(common.AssertionErrorDetailsMessage, "private_hosted_zone", *state.PrivateHostedZone, *plan.PrivateHostedZone))
+	}
+
+	// default machine pool's attributes
+	common.ValidateStateAndPlanEquals(state.AutoScalingEnabled, plan.AutoScalingEnabled, "autoscaling_enabled", &diags)
+	common.ValidateStateAndPlanEquals(state.Replicas, plan.Replicas, "replicas", &diags)
+	common.ValidateStateAndPlanEquals(state.MinReplicas, plan.MinReplicas, "min_replicas", &diags)
+	common.ValidateStateAndPlanEquals(state.MaxReplicas, plan.MaxReplicas, "max_replicas", &diags)
+	common.ValidateStateAndPlanEquals(state.ComputeMachineType, plan.ComputeMachineType, "compute_machine_type", &diags)
+	common.ValidateStateAndPlanEquals(state.DefaultMPLabels, plan.DefaultMPLabels, "default_mp_labels", &diags)
+	common.ValidateStateAndPlanEquals(state.AvailabilityZones, plan.AvailabilityZones, "availability_zones", &diags)
+	common.ValidateStateAndPlanEquals(state.MultiAZ, plan.MultiAZ, "multi_az", &diags)
+	common.ValidateStateAndPlanEquals(state.WorkerDiskSize, plan.WorkerDiskSize, "worker_disk_size", &diags)
+
+	return diags
+
+}
+
 func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resource.UpdateRequest,
 	response *resource.UpdateResponse) {
 	var diags diag.Diagnostics
@@ -1075,6 +1062,13 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resourc
 	diags = request.Plan.Get(ctx, plan)
 	response.Diagnostics.Append(diags...)
 	if response.Diagnostics.HasError() {
+		return
+	}
+
+	//assert no changes on specific attributes
+	diags = validateNoImmutableAttChange(state, plan)
+	if diags.HasError() {
+		response.Diagnostics.Append(diags...)
 		return
 	}
 

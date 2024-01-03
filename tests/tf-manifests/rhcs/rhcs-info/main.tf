@@ -7,7 +7,6 @@ terraform {
   }
 }
 provider "rhcs" {
-  token = var.token
   url   = var.url
 }
 data "rhcs_info" "info" {}

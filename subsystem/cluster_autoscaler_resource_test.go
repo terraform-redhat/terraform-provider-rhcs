@@ -248,6 +248,100 @@ var _ = Describe("Cluster Autoscaler", func() {
 	    	`)
 			Expect(terraform.Apply()).To(BeZero())
 		})
+
+		It("validation failure - negative log_verbosity", func() {
+			terraform.Source(`
+				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
+					cluster = "123"
+					log_verbosity = -3
+				}
+	    	`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
+		It("validation failure - negative core.min", func() {
+			terraform.Source(`
+				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
+					cluster = "123"
+					resource_limits = {
+						max_nodes_total = 20
+						cores = {
+							min = -2
+							max = 1
+						}
+						memory = {
+							min = 2
+							max = 3
+						}
+						gpus = [
+							{
+								type = "nvidia"
+								range = {
+									min = 0
+									max = 1
+								}
+							},
+						]
+					}
+				}
+	    	`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
+		It("validation failure - negative memory.min", func() {
+			terraform.Source(`
+				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
+					cluster = "123"
+					resource_limits = {
+						max_nodes_total = 20
+						cores = {
+							min = 0
+							max = 1
+						}
+						memory = {
+							min = -3
+							max = 3
+						}
+						gpus = [
+							{
+								type = "nvidia"
+								range = {
+									min = 0
+									max = 1
+								}
+							},
+						]
+					}
+				}
+	    	`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
+		It("validation failure - negative gpu.min", func() {
+			terraform.Source(`
+				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
+					cluster = "123"
+					resource_limits = {
+						max_nodes_total = 20
+						cores = {
+							min = 0
+							max = 1
+						}
+						memory = {
+							min = 2
+							max = 3
+						}
+						gpus = [
+							{
+								type = "nvidia"
+								range = {
+									min = -1
+									max = 1
+								}
+							},
+						]
+					}
+				}
+	    	`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
 	})
 
 	Context("importing", func() {
@@ -377,6 +471,53 @@ var _ = Describe("Cluster Autoscaler", func() {
 							"kind": "ClusterAutoscaler",
 							"id": "123",
 							"href": "/api/clusters_mgmt/v1/clusters/123/autoscaler"
+						}
+					`),
+				),
+			)
+
+			terraform.Source(`
+				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
+					cluster = "123"
+					balance_similar_node_groups = true
+					skip_nodes_with_local_storage = false
+
+				}
+	    	`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
+		It("Test setting `skip_nodes_with_local_storage` to null ", func() {
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"kind": "ClusterAutoscaler",
+							"href": "/api/clusters_mgmt/v1/clusters/123/autoscaler",
+							"balance_similar_node_groups": true,
+							"skip_nodes_with_local_storage": false
+						}
+					`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"kind": "ClusterAutoscaler",
+							"href": "/api/clusters_mgmt/v1/clusters/123/autoscaler",
+							"balance_similar_node_groups": true,
+							"skip_nodes_with_local_storage": false
+						}
+					`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
+					VerifyJQ(".balance_similar_node_groups", true),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"kind": "ClusterAutoscaler",
+							"href": "/api/clusters_mgmt/v1/clusters/123/autoscaler",
+							"balance_similar_node_groups": true
 						}
 					`),
 				),
@@ -550,5 +691,6 @@ var _ = Describe("Cluster Autoscaler", func() {
 
 			Expect(terraform.Destroy()).To(BeZero())
 		})
+
 	})
 })

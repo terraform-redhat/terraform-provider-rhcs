@@ -151,16 +151,13 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 				Description: "AWS additional compute security group ids.",
 				ElementType: types.StringType,
 				Optional:    true,
-				PlanModifiers: []planmodifier.List{
-					common.Immutable(),
-				},
 			},
 			"aws_additional_infra_security_group_ids": schema.ListAttribute{
 				Description: "AWS additional infra security group ids.",
 				ElementType: types.StringType,
 				Optional:    true,
 				PlanModifiers: []planmodifier.List{
-					common.Immutable(),
+					listplanmodifier.RequiresReplace(),
 				},
 			},
 			"aws_additional_control_plane_security_group_ids": schema.ListAttribute{
@@ -168,7 +165,7 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 				ElementType: types.StringType,
 				Optional:    true,
 				PlanModifiers: []planmodifier.List{
-					common.Immutable(),
+					listplanmodifier.RequiresReplace(),
 				},
 			},
 			"aws_private_link": schema.BoolAttribute{

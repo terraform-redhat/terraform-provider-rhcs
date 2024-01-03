@@ -167,6 +167,10 @@ func ListMachineTypes(connection *client.Connection, params ...map[string]interf
 	return request.Send()
 }
 
+func DeleteMachinePool(connection *client.Connection, clusterID string, mpID string) (*cmv1.MachinePoolDeleteResponse, error) {
+	return connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).MachinePools().MachinePool(mpID).Delete().Send()
+}
+
 // RetrieveMachineTypeDetail will return the retrieve result of machine type detailed information
 func RetrieveMachineTypeDetail(connection *client.Connection, machineTypeID string) (*client.Response, error) {
 	return connection.Get().Path(fmt.Sprintf(machineTypeIDURL, machineTypeID)).Send()

@@ -853,7 +853,7 @@ var _ = Describe("TF Test", func() {
 						}
 
 						err = importService.Import(importParam)
-						Expect(err.Error()).To(ContainSubstring("'%s' not found", unknownClusterID))
+						Expect(err.Error()).To(ContainSubstring("Cluster %s not found", unknownClusterID))
 
 					})
 			})

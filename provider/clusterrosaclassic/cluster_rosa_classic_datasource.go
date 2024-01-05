@@ -33,7 +33,7 @@ import (
 var _ datasource.DataSource = &ClusterRosaClassicDatasource{}
 var _ datasource.DataSourceWithConfigure = &ClusterRosaClassicDatasource{}
 
-const deprecatedMessage = "This attribute not support for cluster data source"
+const deprecatedMessage = "This attribute is not support for cluster data source. Therefore, it will not be displayed as an output of the datasource"
 
 type ClusterRosaClassicDatasource struct {
 	clusterCollection *cmv1.ClustersClient
@@ -55,7 +55,7 @@ func (r *ClusterRosaClassicDatasource) Schema(ctx context.Context, req datasourc
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "Unique identifier of the cluster.",
-				Computed:    true,
+				Required:    true,
 			},
 			"external_id": schema.StringAttribute{
 				Description: "Unique external identifier of the cluster. " + common.ValueCannotBeChangedStringDescription,
@@ -235,31 +235,31 @@ func (r *ClusterRosaClassicDatasource) Schema(ctx context.Context, req datasourc
 			},
 
 			// Deprecated Attributes:
+			// Those attributes were copied from cluster_rosa_clasic resource in order to use the same state struct.
+			// We can't change the rosa_classic struct to include Embedded Structs due to that issue: https://github.com/hashicorp/terraform-plugin-framework/issues/242
+			// If we will remove those attributes from the schema we will get a parsing error in the Read function
 			"disable_waiting_in_destroy": schema.BoolAttribute{
-				Description: "Disable addressing cluster state in the destroy resource. Default value is false, and so a `destroy` will wait for the cluster to be deleted.",
+				Description: deprecatedMessage,
 				Computed:    true,
 			},
 			"channel_group": schema.StringAttribute{
-				Description: "Name of the channel group where you select the OpenShift cluster version, for example 'stable'. " +
-					"For ROSA, only 'stable' is supported. " + common.ValueCannotBeChangedStringDescription,
-				Computed: true,
+				Description: deprecatedMessage,
+				Computed:    true,
 			},
 			"version": schema.StringAttribute{
-				Description: "Desired version of OpenShift for the cluster, for example '4.11.0'. If version is greater than the currently running version, an upgrade will be scheduled.",
+				Description: deprecatedMessage,
 				Computed:    true,
 			},
 			"destroy_timeout": schema.Int64Attribute{
-				Description: "This value sets the maximum duration in minutes to allow for destroying resources. Default value is 60 minutes.",
+				Description: deprecatedMessage,
 				Computed:    true,
 			},
 			"upgrade_acknowledgements_for": schema.StringAttribute{
-				Description: "Indicates acknowledgement of agreements required to upgrade the cluster version between" +
-					" minor versions (e.g. a value of \"4.12\" indicates acknowledgement of any agreements required to " +
-					"upgrade to OpenShift 4.12.z from 4.11 or before).",
-				Computed: true,
+				Description: deprecatedMessage,
+				Computed:    true,
 			},
 			"admin_credentials": schema.SingleNestedAttribute{
-				Description: "Admin user credentials. " + common.ValueCannotBeChangedStringDescription,
+				Description: deprecatedMessage,
 				Attributes: map[string]schema.Attribute{
 					"username": schema.StringAttribute{
 						Description: "Admin username that will be created with the cluster.",
@@ -274,39 +274,35 @@ func (r *ClusterRosaClassicDatasource) Schema(ctx context.Context, req datasourc
 				Computed: true,
 			},
 			"wait_for_create_complete": schema.BoolAttribute{
-				Description: "Wait until the cluster is either in a ready state or in an error state. The waiter has a timeout of 60 minutes, with the default value set to false",
+				Description: deprecatedMessage,
 				Computed:    true,
 			},
 			"autoscaling_enabled": schema.BoolAttribute{
-				Description: "Enable autoscaling for the initial worker pool. " + DefaultMachinePoolMessage,
+				Description: deprecatedMessage,
 				Computed:    true,
 			},
 			"min_replicas": schema.Int64Attribute{
-				Description: "Minimum replicas of worker nodes in a machine pool. " + DefaultMachinePoolMessage,
+				Description: deprecatedMessage,
 				Computed:    true,
 			},
 			"max_replicas": schema.Int64Attribute{
-				Description: "Maximum replicas of worker nodes in a machine pool. " + DefaultMachinePoolMessage,
+				Description: deprecatedMessage,
 				Computed:    true,
 			},
 			"replicas": schema.Int64Attribute{
-				Description: "Number of worker/compute nodes to provision. Single zone clusters need at least 2 nodes, " +
-					"multizone clusters need at least 3 nodes. " + DefaultMachinePoolMessage,
-				Computed: true,
+				Description: deprecatedMessage,
+				Computed:    true,
 			},
 			"compute_machine_type": schema.StringAttribute{
-				Description: "Identifies the machine type used by the default/initial worker nodes, " +
-					"for example `m5.xlarge`. Use the `rhcs_machine_types` data " +
-					"source to find the possible values. " + DefaultMachinePoolMessage,
-				Computed: true,
+				Description: deprecatedMessage,
+				Computed:    true,
 			},
 			"worker_disk_size": schema.Int64Attribute{
-				Description: "Compute node root disk size, in GiB. " + DefaultMachinePoolMessage,
+				Description: deprecatedMessage,
 				Computed:    true,
 			},
 			"default_mp_labels": schema.MapAttribute{
-				Description: "This value is the default/initial machine pool labels. Format should be a comma-separated list of '{\"key1\"=\"value1\", \"key2\"=\"value2\"}'. " +
-					DefaultMachinePoolMessage,
+				Description: deprecatedMessage,
 				ElementType: types.StringType,
 				Computed:    true,
 			},

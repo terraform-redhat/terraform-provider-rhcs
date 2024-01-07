@@ -225,5 +225,6 @@ func (p *Provider) DataSources(ctx context.Context) []func() datasource.DataSour
 		versions.New,
 		info.New,
 		clusterrosaclassic.NewDataSource,
+		machinepool.NewDatasource,
 	}
 }

@@ -353,6 +353,7 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 		clusterArgs.WorkerDiskSize = profile.WorkerDiskSize
 	}
 	clusterArgs.UnifiedAccRolesPath = profile.UnifiedAccRolesPath
+	clusterArgs.CustomProperties = CON.CustomProperties
 
 	return clusterArgs, profile.ManifestsDIR, err
 }

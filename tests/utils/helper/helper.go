@@ -44,6 +44,24 @@ func Parse(data []byte) map[string]interface{} {
 }
 
 func ParseStringToMap(input string) (map[string]string, error) {
+
+	// Attempt to parse input as JSON
+	var jsonData map[string]interface{}
+	if err := json.Unmarshal([]byte(input), &jsonData); err == nil {
+		// If successful, convert the map to map[string]string
+		result := make(map[string]string)
+		for key, value := range jsonData {
+			// Convert each value to string
+			if strValue, ok := value.(string); ok {
+				result[key] = strValue
+			} else {
+				return nil, fmt.Errorf("non-string value found in JSON for key %s", key)
+			}
+		}
+		return result, nil
+	}
+
+	// Fallback to regex-based parsing if JSON parsing fails
 	dataMap := make(map[string]string)
 
 	// Define regex patterns for key-value pairs
@@ -51,6 +69,11 @@ func ParseStringToMap(input string) (map[string]string, error) {
 
 	// Find all matches in the input string
 	matches := pattern.FindAllStringSubmatch(input, -1)
+
+	// Check if there are any matches
+	if len(matches) == 0 {
+		return nil, fmt.Errorf("no key-value pairs found in the input string")
+	}
 
 	// Populate the map with key-value pairs
 	for _, match := range matches {

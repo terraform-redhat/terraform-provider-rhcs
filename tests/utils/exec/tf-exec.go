@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path"
 	"strconv"
+	"strings"
 
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
@@ -84,6 +85,28 @@ func runTerraformDestroyWithArgs(ctx context.Context, dir string, terraformArgs 
 	var stdoutput bytes.Buffer
 	terraformDestroy.Stdout = &stdoutput
 	terraformDestroy.Stderr = os.Stderr
+	fmt.Println("args: ", terraformDestroy)
+	err = terraformDestroy.Run()
+	output = h.Strip(stdoutput.String(), "\n")
+	if err != nil {
+		Logger.Errorf(output)
+		err = fmt.Errorf("%s: %s", err.Error(), output)
+		return
+	}
+	deleteTFvarsFile(dir)
+	Logger.Debugf(output)
+	return
+}
+
+func runTerraformDestroyWithoutArgs(ctx context.Context, dir string) (output string, err error) {
+	destroyArgs := append([]string{"destroy", "-auto-approve", "-no-color"})
+	Logger.Infof("Running terraform destroy against the dir: %s", dir)
+	terraformDestroy := exec.Command("terraform", destroyArgs...)
+	terraformDestroy.Dir = dir
+	var stdoutput bytes.Buffer
+	terraformDestroy.Stdout = &stdoutput
+	terraformDestroy.Stderr = os.Stderr
+	fmt.Println("args: ", terraformDestroy)
 	err = terraformDestroy.Run()
 	output = h.Strip(stdoutput.String(), "\n")
 	if err != nil {
@@ -208,6 +231,34 @@ func recordTFvarsFile(fileDir string, tfvars map[string]string) error {
 
 	}
 	return iniConn.SaveTo(tfvarsFile)
+}
+
+// Function to read terraform.tfvars file and return its content as a map
+func ReadTerraformTFVars(filePath string) map[string]string {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		Logger.Errorf("Can't read file %s - not found or could not be fetched", filePath)
+		return nil
+	}
+
+	lines := strings.Split(string(content), "\n")
+	properties := make(map[string]string)
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.Contains(line, "=") {
+			parts := strings.SplitN(line, "=", 2)
+			if len(parts) == 2 {
+				key := strings.TrimSpace(parts[0])
+				value := strings.TrimSpace(parts[1])
+				// Remove quotes if present
+				value = strings.Trim(value, `"`)
+				properties[key] = value
+			}
+		}
+	}
+
+	return properties
 }
 
 // delete the recorded TFvarsFile named terraform.tfvars

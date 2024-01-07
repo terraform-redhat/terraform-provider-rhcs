@@ -145,6 +145,11 @@ variable "properties" {
   default = null
 }
 
+variable "custom_properties" {
+  type    = map(string)
+  default = null
+}
+
 variable "proxy" {
   type = object({
     http_proxy              = string

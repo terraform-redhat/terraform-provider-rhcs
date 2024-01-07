@@ -159,7 +159,7 @@ var _ = Describe("TF Test", func() {
 			})
 		})
 		Context("Author:amalykhi-High-OCP-64904 @ocp-64904 @amalykhi", func() {
-			It("Author:amalykhi-High-OCP-64905 Edit second machinepool taints", ci.Day2, ci.High, ci.FeatureMachinepool, func() {
+			It("Author:amalykhi-High-OCP-64904 Edit second machinepool taints", ci.Day2, ci.High, ci.FeatureMachinepool, func() {
 				By("Create additional machinepool with labels")
 				replicas := 3
 				machineType := "r5.xlarge"
@@ -613,6 +613,108 @@ var _ = Describe("TF Test", func() {
 				Expect(mpResponseBody.InstanceType()).To(Equal("m5.2xlarge"))
 
 			})
+		})
+		Context("Author:amalykhi-Medium-OCP-65645 @ocp-65645 @amalykhi", func() {
+			It("Author:amalykhi-Medium-OCP-65645 MP reconciliation basic flow", ci.Day2, ci.Medium, ci.FeatureMachinepool, func() {
+				By("Create additional machinepool with taints")
+				replicas := 3
+				machineType := "r5.xlarge"
+				mpName := "ocp-65645"
+				taint0 := map[string]string{"key": "k1", "value": "val", "schedule_type": con.NoExecute}
+				taints := []map[string]string{taint0}
+				MachinePoolArgs := &exe.MachinePoolArgs{
+					Cluster:     clusterID,
+					Replicas:    &replicas,
+					MachineType: machineType,
+					Name:        mpName,
+					Taints:      taints,
+				}
+
+				_, err := mpService.Apply(MachinePoolArgs, false)
+				Expect(err).ToNot(HaveOccurred())
+
+				By("Verify the parameters of the created machinepool")
+				_, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, mpName)
+				Expect(err).ToNot(HaveOccurred())
+
+				By("Delete machinepool by OCM API")
+				cms.DeleteMachinePool(ci.RHCSConnection, clusterID, mpName)
+				_, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, mpName)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).Should(ContainSubstring("Machine pool with id '%s' not found", mpName))
+
+				By("ReApply the machinepool manifest")
+				_, err = mpService.Apply(MachinePoolArgs, false)
+				Expect(err).ToNot(HaveOccurred())
+
+				By("Verify the parameters of the machinepool")
+				mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, mpName)
+				Expect(err).ToNot(HaveOccurred())
+				respTaints := mpResponseBody.Taints()
+				for index, taint := range respTaints {
+					Expect(taint.Effect()).To(Equal(taints[index]["schedule_type"]))
+					Expect(taint.Key()).To(Equal(taints[index]["key"]))
+					Expect(taint.Value()).To(Equal(taints[index]["value"]))
+				}
+
+			})
+		})
+	})
+
+	Describe("Validate terraform Import operations", func() {
+		var mpService *exe.MachinePoolService
+		var importService exe.ImportService
+
+		BeforeEach(func() {
+			mpService = exe.NewMachinePoolService(con.MachinePoolDir)
+			importService = *exe.NewImportService(con.ImportResourceDir) // init new import service
+		})
+		AfterEach(func() {
+			By("Destroy import service")
+			_, importErr := importService.Destroy()
+			Expect(importErr).ToNot(HaveOccurred())
+		})
+
+		Context("Author:prabinov-Medium-OCP-66403 @OCP-66403 @prabinov", func() {
+			It("OCP-66403 - rhcs_machinepool resource can be imported by the terraform import command",
+				ci.Day2, ci.Medium, ci.FeatureMachinepool, ci.FeatureImport, func() {
+					By("Create additional machinepool for import")
+					minReplicas := 3
+					maxReplicas := 6
+					creationLabels := map[string]string{"foo1": "bar1"}
+					machineType := "r5.xlarge"
+					name := "ocp-66403"
+					MachinePoolArgs := &exe.MachinePoolArgs{
+						Cluster:            clusterID,
+						MinReplicas:        &minReplicas,
+						MaxReplicas:        &maxReplicas,
+						MachineType:        machineType,
+						Name:               name,
+						Labels:             &creationLabels,
+						AutoscalingEnabled: true,
+					}
+
+					_, err := mpService.Apply(MachinePoolArgs, false)
+					Expect(err).ToNot(HaveOccurred())
+
+					By("Run the command to import the machinepool")
+					importParam := &exe.ImportArgs{
+						ClusterID:    clusterID,
+						ResourceKind: "rhcs_machine_pool",
+						ResourceName: "mp_import",
+						ObjectName:   name,
+					}
+					Expect(importService.Import(importParam)).To(Succeed())
+
+					By("Check resource state - import command succeeded")
+
+					output, err := importService.ShowState(importParam)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(output).To(ContainSubstring(machineType))
+					Expect(output).To(ContainSubstring(name))
+					Expect(output).To(MatchRegexp("foo1"))
+					Expect(output).To(MatchRegexp("bar1"))
+				})
 		})
 	})
 })

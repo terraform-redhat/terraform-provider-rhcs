@@ -780,11 +780,13 @@ var _ = Describe("TF Test", func() {
 			})
 
 			AfterEach(func() {
-				err := idpService.google.Destroy()
-				Expect(err).ToNot(HaveOccurred())
 
+				By("Clean resources after test")
 				err = idpService.gitlab.Destroy()
 				Expect(err).ToNot(HaveOccurred())
+
+				_, importErr := importService.Destroy()
+				Expect(importErr).ToNot(HaveOccurred())
 			})
 
 			Context("Author:smiron-Medium-OCP-65981 @OCP-65981 @smiron", func() {

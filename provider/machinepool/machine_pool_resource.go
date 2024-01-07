@@ -177,7 +177,7 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				},
 			},
 			"availability_zones": schema.ListAttribute{
-				Description: "Availability zones. ",
+				Description: "A list of Availability Zones. Relevant only for multiple availability zones machine pool. For single availability zone check \"availability_zone\" attribute.",
 				ElementType: types.StringType,
 				Computed:    true,
 			},
@@ -189,8 +189,8 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"aws_subnet_ids": schema.ListAttribute{
-				Description: "AWS subnet IDs. ",
+			"subnet_ids": schema.ListAttribute{
+				Description: "A list of IDs of subnets in which the machines of this machine pool are created. Relevant only for a machine pool with multiple subnets. For machine pool with single subnet check \"subnet_id\" attribute",
 				ElementType: types.StringType,
 				Computed:    true,
 			},
@@ -996,27 +996,29 @@ func populateState(object *cmv1.MachinePool, state *MachinePoolState) error {
 	if len(azs) == 1 {
 		state.AvailabilityZone = types.StringValue(azs[0])
 		state.MultiAvailabilityZone = types.BoolValue(false)
+		state.AvailabilityZones = types.ListNull(types.StringType)
 	} else {
 		state.AvailabilityZone = types.StringValue("")
+		azListValue, err := common.StringArrayToList(azs)
+		if err != nil {
+			return err
+		}
+		state.AvailabilityZones = azListValue
 	}
-	azListValue, err := common.StringArrayToList(azs)
-	if err != nil {
-		return err
-	}
-	state.AvailabilityZones = azListValue
 
 	subnets := object.Subnets()
 	if len(subnets) == 1 {
 		state.SubnetID = types.StringValue(subnets[0])
 		state.MultiAvailabilityZone = types.BoolValue(false)
+		state.SubnetIDs = types.ListNull(types.StringType)
 	} else {
 		state.SubnetID = types.StringValue("")
+		subnetListValue, err := common.StringArrayToList(subnets)
+		if err != nil {
+			return err
+		}
+		state.SubnetIDs = subnetListValue
 	}
-	submetListValue, err := common.StringArrayToList(subnets)
-	if err != nil {
-		return err
-	}
-	state.AvailabilityZones = submetListValue
 
 	state.DiskSize = types.Int64Null()
 	if rv, ok := object.GetRootVolume(); ok {

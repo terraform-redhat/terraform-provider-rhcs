@@ -49,7 +49,9 @@ resource "rhcs_machine_pool" "machine_pool" {
 
 ### Read-Only
 
+- `availability_zones` (List of String) A list of Availability Zones. Relevant only for multiple availability zones machine pool. For single availability zone check "availability_zone" attribute.
 - `id` (String) Unique identifier of the machine pool.
+- `subnet_ids` (List of String) A list of IDs of subnets in which the machines of this machine pool are created. Relevant only for a machine pool with multiple subnets. For machine pool with single subnet check "subnet_id" attribute
 
 <a id="nestedatt--taints"></a>
 ### Nested Schema for `taints`

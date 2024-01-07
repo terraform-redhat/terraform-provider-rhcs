@@ -176,11 +176,6 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"availability_zones": schema.ListAttribute{
-				Description: "Availability zones. ",
-				ElementType: types.StringType,
-				Computed:    true,
-			},
 			"subnet_id": schema.StringAttribute{
 				Description: "Select the subnet in which to create a single AZ machine pool for BYO-VPC cluster. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
@@ -188,11 +183,6 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
-			},
-			"aws_subnet_ids": schema.ListAttribute{
-				Description: "AWS subnet IDs. ",
-				ElementType: types.StringType,
-				Computed:    true,
 			},
 			"disk_size": schema.Int64Attribute{
 				Description: "Root disk size, in GiB. " + common.ValueCannotBeChangedStringDescription,
@@ -999,11 +989,6 @@ func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *Mac
 	} else {
 		state.AvailabilityZone = types.StringValue("")
 	}
-	azListValue, err := common.StringArrayToList(azs)
-	if err != nil {
-		return err
-	}
-	state.AvailabilityZones = azListValue
 
 	subnets := object.Subnets()
 	if len(subnets) == 1 {
@@ -1012,11 +997,6 @@ func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *Mac
 	} else {
 		state.SubnetID = types.StringValue("")
 	}
-	submetListValue, err := common.StringArrayToList(subnets)
-	if err != nil {
-		return err
-	}
-	state.AvailabilityZones = submetListValue
 
 	state.DiskSize = types.Int64Null()
 	if rv, ok := object.GetRootVolume(); ok {

@@ -35,9 +35,7 @@ type MachinePoolState struct {
 	Labels                     types.Map     `tfsdk:"labels"`
 	MultiAvailabilityZone      types.Bool    `tfsdk:"multi_availability_zone"`
 	AvailabilityZone           types.String  `tfsdk:"availability_zone"`
-	AvailabilityZones          types.List    `tfsdk:"availability_zones"`
 	SubnetID                   types.String  `tfsdk:"subnet_id"`
-	AWSSubnetIDs               types.String  `tfsdk:"aws_subnet_ids"`
 	DiskSize                   types.Int64   `tfsdk:"disk_size"`
 	AdditionalSecurityGroupIds types.List    `tfsdk:"aws_additional_security_group_ids"`
 }

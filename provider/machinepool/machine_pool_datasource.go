@@ -22,11 +22,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 
 type MachinePoolDatasource struct {
@@ -66,7 +63,7 @@ func (r *MachinePoolDatasource) Schema(ctx context.Context, req datasource.Schem
 		Description: "Machine pool.",
 		Attributes: map[string]schema.Attribute{
 			"cluster": schema.StringAttribute{
-				Description: "Identifier of the cluster. " + common.ValueCannotBeChangedStringDescription,
+				Description: "Identifier of the cluster of the machine pool. ",
 				Required:    true,
 			},
 			"id": schema.StringAttribute{
@@ -74,43 +71,39 @@ func (r *MachinePoolDatasource) Schema(ctx context.Context, req datasource.Schem
 				Required:    true,
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the machine pool. Must consist of lower-case alphanumeric characters or '-', start and end with an alphanumeric character. " + common.ValueCannotBeChangedStringDescription,
+				Description: "The name of the machine pool",
 				Computed:    true,
 			},
 			"machine_type": schema.StringAttribute{
-				Description: "Identifier of the machine type used by the nodes, " +
-					"for example `m5.xlarge`. Use the `rhcs_machine_types` data " +
-					"source to find the possible values. " + common.ValueCannotBeChangedStringDescription,
-				Computed: true,
+				Description: "Identifier of the machine type used by the nodes, for example `m5.xlarge`. ",
+				Computed:    true,
 			},
 			"replicas": schema.Int64Attribute{
-				Description: "The number of machines of the pool",
+				Description: "The machines number in the machine pool. relevant only in case of 'autoscaling_enabled = false'",
 				Computed:    true,
 			},
 			"use_spot_instances": schema.BoolAttribute{
-				Description: "Use Amazon EC2 Spot Instances. " + common.ValueCannotBeChangedStringDescription,
+				Description: "Indicates if Amazon EC2 Spot Instances used in this machine pool.",
 				Computed:    true,
 			},
 			"max_spot_price": schema.Float64Attribute{
-				Description: "Max Spot price. " + common.ValueCannotBeChangedStringDescription,
+				Description: "Max Spot price.",
 				Computed:    true,
 			},
 			"autoscaling_enabled": schema.BoolAttribute{
-				Description: "Enables autoscaling. If `true`, this variable requires you to set a maximum and minimum replicas range using the `max_replicas` and `min_replicas` variables.",
+				Description: "Specifies whether auto-scaling is activated for this machine pool.",
 				Computed:    true,
 			},
 			"min_replicas": schema.Int64Attribute{
-				Description: "The minimum number of replicas for autoscaling functionality.",
+				Description: "The minimum number of replicas for autos-caling functionality. relevant only in case of 'autoscaling_enabled = true",
 				Computed:    true,
 			},
 			"max_replicas": schema.Int64Attribute{
-				Description: "The maximum number of replicas for autoscaling functionality.",
+				Description: "The maximum number of replicas for auto-scaling functionality. relevant only in case of 'autoscaling_enabled = true'",
 				Computed:    true,
 			},
 			"taints": schema.ListNestedAttribute{
-				Description: "Taints for a machine pool. Format should be a comma-separated " +
-					"list of 'key=value'. This list will overwrite any modifications " +
-					"made to node taints on an ongoing basis.\n",
+				Description: "The list of the Taints of this machine pool.",
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"key": schema.StringAttribute{
@@ -130,39 +123,38 @@ func (r *MachinePoolDatasource) Schema(ctx context.Context, req datasource.Schem
 				Computed: true,
 			},
 			"labels": schema.MapAttribute{
-				Description: "Labels for the machine pool. Format should be a comma-separated list of 'key = value'." +
-					" This list will overwrite any modifications made to node labels on an ongoing basis.",
+				Description: "The list of the Labels of this machine pool.",
 				ElementType: types.StringType,
 				Computed:    true,
 			},
 			"multi_availability_zone": schema.BoolAttribute{
-				Description: "Create a multi-AZ machine pool for a multi-AZ cluster (default is `true`). " + common.ValueCannotBeChangedStringDescription,
+				Description: "Specifies whether this machine pool is a multi-AZ machine pool. Relevant only in case of multi-AZ cluster",
 				Computed:    true,
 			},
 			"availability_zone": schema.StringAttribute{
-				Description: "Select the availability zone in which to create a single AZ machine pool for a multi-AZ cluster. " + common.ValueCannotBeChangedStringDescription,
+				Description: "A single availability zone in which the machines of this machine pool are created. Relevant only for a single availability zone machine pool. For multiple availability zones check \"availability_zones\" attribute",
 				Computed:    true,
 			},
 			"availability_zones": schema.ListAttribute{
-				Description: "Availability zones. ",
+				Description: "A list of Availability Zones. Relevant only for multiple availability zones machine pool. For single availability zone check \"availability_zone\" attribute.",
 				ElementType: types.StringType,
 				Computed:    true,
 			},
 			"subnet_id": schema.StringAttribute{
-				Description: "Select the subnet in which to create a single AZ machine pool for BYO-VPC cluster. " + common.ValueCannotBeChangedStringDescription,
+				Description: "An ID of single subnet in which the machines of this machine pool are created. Relevant only for a machine pool with single subnet. For machine pool with multiple subnets check \"subnet_ids\" attribute",
 				Computed:    true,
 			},
-			"aws_subnet_ids": schema.ListAttribute{
-				Description: "AWS subnet IDs. ",
+			"subnet_ids": schema.ListAttribute{
+				Description: "A list of IDs of subnets in which the machines of this machine pool are created. Relevant only for a machine pool with multiple subnets. For machine pool with single subnet check \"subnet_id\" attribute",
 				ElementType: types.StringType,
 				Computed:    true,
 			},
 			"disk_size": schema.Int64Attribute{
-				Description: "Root disk size, in GiB. " + common.ValueCannotBeChangedStringDescription,
+				Description: "The root disk size, in GiB.",
 				Computed:    true,
 			},
 			"aws_additional_security_group_ids": schema.ListAttribute{
-				Description: "AWS additional security group ids. " + common.ValueCannotBeChangedStringDescription,
+				Description: "AWS additional security group ids.",
 				ElementType: types.StringType,
 				Computed:    true,
 			},
@@ -181,13 +173,13 @@ func (r *MachinePoolDatasource) Read(ctx context.Context, req datasource.ReadReq
 
 	notFound, diags := readState(ctx, state, r.collection)
 	if notFound {
-		// If we can't find the machine pool, it was deleted. Remove if from the
-		// state and don't return an error so the TF apply() will automatically
-		// recreate it.
-		tflog.Warn(ctx, fmt.Sprintf("machine pool (%s) of cluster (%s) not found, removing from state",
-			state.ID.ValueString(), state.Cluster.ValueString(),
-		))
-		resp.State.RemoveResource(ctx)
+		diags.AddError(
+			"Failed to find machine pool",
+			fmt.Sprintf(
+				"Failed to find machine pool with identifier %s for cluster %s.",
+				state.ID.ValueString(), state.Cluster.ValueString(),
+			),
+		)
 		return
 	}
 	resp.Diagnostics.Append(diags...)

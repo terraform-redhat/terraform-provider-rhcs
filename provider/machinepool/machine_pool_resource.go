@@ -423,7 +423,7 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 	object = add.Body()
 
 	// Save the state:
-	err = r.populateState(object, plan)
+	err = populateState(object, plan)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Can't populate machine pool state",
@@ -449,7 +449,7 @@ func (r *MachinePoolResource) magicImport(ctx context.Context, plan *MachinePool
 	}
 	plan.ID = types.StringValue(machinepoolName)
 
-	notFound, diags := r.readState(ctx, state)
+	notFound, diags := readState(ctx, state, r.collection)
 	if notFound {
 		// We disallow creating a machine pool with the default name. This
 		// case can only happen if the default machine pool was deleted and
@@ -487,7 +487,7 @@ func (r *MachinePoolResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	notFound, diags := r.readState(ctx, state)
+	notFound, diags := readState(ctx, state, r.collection)
 	if notFound {
 		// If we can't find the machine pool, it was deleted. Remove if from the
 		// state and don't return an error so the TF apply() will automatically
@@ -506,10 +506,10 @@ func (r *MachinePoolResource) Read(ctx context.Context, req resource.ReadRequest
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
-func (r *MachinePoolResource) readState(ctx context.Context, state *MachinePoolState) (poolNotFound bool, diags diag.Diagnostics) {
+func readState(ctx context.Context, state *MachinePoolState, collection *cmv1.ClustersClient) (poolNotFound bool, diags diag.Diagnostics) {
 	diags = diag.Diagnostics{}
 
-	resource := r.collection.Cluster(state.Cluster.ValueString()).
+	resource := collection.Cluster(state.Cluster.ValueString()).
 		MachinePools().
 		MachinePool(state.ID.ValueString())
 	get, err := resource.Get().SendContext(ctx)
@@ -528,7 +528,7 @@ func (r *MachinePoolResource) readState(ctx context.Context, state *MachinePoolS
 	}
 
 	object := get.Body()
-	err = r.populateState(object, state)
+	err = populateState(object, state)
 	if err != nil {
 		diags.AddError(
 			"Can't populate machine pool state",
@@ -716,7 +716,7 @@ func (r *MachinePoolResource) doUpdate(ctx context.Context, state *MachinePoolSt
 	state.Replicas = plan.Replicas
 
 	// Save the state:
-	err = r.populateState(object, state)
+	err = populateState(object, state)
 	if err != nil {
 		diags.AddError(
 			"Can't populate machine pool state",
@@ -913,7 +913,7 @@ func (r *MachinePoolResource) ImportState(ctx context.Context, req resource.Impo
 }
 
 // populateState copies the data from the API object to the Terraform state.
-func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *MachinePoolState) error {
+func populateState(object *cmv1.MachinePool, state *MachinePoolState) error {
 	state.ID = types.StringValue(object.ID())
 	state.Name = types.StringValue(object.ID())
 

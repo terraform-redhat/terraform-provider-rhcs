@@ -10,7 +10,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/rosa/pkg/aws"
+	rosaAccountRoles "github.com/openshift-online/ocm-common/pkg/rosa/accountroles"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
@@ -290,7 +290,7 @@ var _ = Describe("TF Test", func() {
 		})
 		Context("Author:amalykhi-Medium-OCP-63138 @OCP-63138 @amalykhi", func() {
 			It("Create sts cluster with account roles/policies unified path", ci.Day1Post, ci.Medium, func() {
-				unifiedPath, err := aws.GetPathFromAccountRole(cluster, aws.AccountRoles[aws.InstallerAccountRole].Name)
+				unifiedPath, err := rosaAccountRoles.GetPathFromAccountRole(cluster, rosaAccountRoles.AccountRoles[rosaAccountRoles.InstallerAccountRole].Name)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(profile.UnifiedAccRolesPath).Should(ContainSubstring(unifiedPath))
 			})

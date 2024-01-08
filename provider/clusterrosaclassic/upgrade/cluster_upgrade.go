@@ -23,8 +23,8 @@ import (
 
 	semver "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	ocmUtils "github.com/openshift-online/ocm-common/pkg/ocm/utils"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/openshift/rosa/pkg/ocm"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"github.com/zgalor/weberr"
 )
@@ -68,7 +68,7 @@ func GetAvailableUpgradeVersions(ctx context.Context, client *cmv1.VersionsClien
 	// Cycle through the available upgrades and find the ones that are ROSA enabled
 	availableUpgradeVersions := []*cmv1.Version{}
 	for _, v := range version.AvailableUpgrades() {
-		id := ocm.CreateVersionID(v, version.ChannelGroup())
+		id := ocmUtils.CreateVersionId(v, version.ChannelGroup())
 		resp, err := client.Version(id).
 			Get().
 			Send()

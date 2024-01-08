@@ -45,11 +45,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	ocmConsts "github.com/openshift-online/ocm-common/pkg/ocm/consts"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	ocm_errors "github.com/openshift-online/ocm-sdk-go/errors"
-	"github.com/openshift/rosa/pkg/ocm"
-	"github.com/openshift/rosa/pkg/properties"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 
@@ -350,7 +349,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 					"For ROSA, only 'stable' is supported. " + common.ValueCannotBeChangedStringDescription,
 				Optional: true,
 				Computed: true,
-				Default:  stringdefault.StaticString(ocm.DefaultChannelGroup),
+				Default:  stringdefault.StaticString(ocmConsts.DefaultChannelGroup),
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -638,7 +637,7 @@ func createClassicClusterObject(ctx context.Context,
 		builder.Network(network)
 	}
 
-	channelGroup := ocm.DefaultChannelGroup
+	channelGroup := ocmConsts.DefaultChannelGroup
 	if common.HasValue(state.ChannelGroup) {
 		channelGroup = state.ChannelGroup.ValueString()
 	}
@@ -672,7 +671,7 @@ func createClassicClusterObject(ctx context.Context,
 		// When using a channel group other than the default, the channel name
 		// must be appended to the version ID or the API server will return an
 		// error stating unexpected channel group.
-		if channelGroup != ocm.DefaultChannelGroup {
+		if channelGroup != ocmConsts.DefaultChannelGroup {
 			versionID = versionID + "-" + channelGroup
 		}
 		vBuilder.ID(versionID)
@@ -732,7 +731,7 @@ func buildProxy(state *ClusterRosaClassicState, builder *cmv1.ClusterBuilder) (*
 // getAndValidateVersionInChannelGroup ensures that the cluster version is
 // available in the channel group
 func (r *ClusterRosaClassicResource) getAndValidateVersionInChannelGroup(ctx context.Context, state *ClusterRosaClassicState) (string, error) {
-	channelGroup := ocm.DefaultChannelGroup
+	channelGroup := ocmConsts.DefaultChannelGroup
 	if common.HasValue(state.ChannelGroup) {
 		channelGroup = state.ChannelGroup.ValueString()
 	}
@@ -1258,7 +1257,7 @@ func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context,
 func (r *ClusterRosaClassicResource) validateUpgrade(ctx context.Context, state, plan *ClusterRosaClassicState) error {
 	// Make sure the desired version is available
 	versionId := fmt.Sprintf("openshift-v%s", state.CurrentVersion.ValueString())
-	if common.HasValue(state.ChannelGroup) && state.ChannelGroup.ValueString() != ocm.DefaultChannelGroup {
+	if common.HasValue(state.ChannelGroup) && state.ChannelGroup.ValueString() != ocmConsts.DefaultChannelGroup {
 		versionId += "-" + state.ChannelGroup.ValueString()
 	}
 	availableVersions, err := upgrade.GetAvailableUpgradeVersions(ctx, r.versionCollection, versionId)
@@ -1503,7 +1502,7 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		state.AWSAccountID = types.StringValue(awsAccountID)
 	} else {
 		// rosa cli gets it from the properties, so we do the same
-		if creatorARN, ok := object.Properties()[properties.CreatorARN]; ok {
+		if creatorARN, ok := object.Properties()[ocmConsts.CreatorArn]; ok {
 			if arn, err := arn.Parse(creatorARN); err == nil {
 				state.AWSAccountID = types.StringValue(arn.AccountID)
 			}

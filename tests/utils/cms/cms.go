@@ -27,6 +27,12 @@ func ListClusters(connection *client.Connection, parameters ...map[string]interf
 	return
 }
 
+// ListClusterResources will retrieve cluster detailed information about its resources based on the clusterID
+func ListClusterResources(connection *client.Connection, clusterID string) (*cmv1.ClusterResourcesGetResponse, error) {
+	request := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).Resources().Live().Get()
+	return request.Send()
+}
+
 // RetrieveClusterCredentials will return the response of cluster credentials
 func RetrieveClusterCredentials(connection *client.Connection, clusterID string) (*cmv1.CredentialsGetResponse, error) {
 	return connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).Credentials().Get().Send()

@@ -294,6 +294,19 @@ var _ = Describe("TF Test", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(profile.UnifiedAccRolesPath).Should(ContainSubstring(unifiedPath))
 			})
+			Context("Author:amalykhi-Medium-OCP-63334 @OCP-63334 @amalykhi", func() {
+				It("Build a ROSA cluster with customer-managed KMS key", ci.Day1Post, ci.Medium, func() {
+					By("Check the kmsKeyARN")
+					listRSresp, err := cms.ListClusterResources(ci.RHCSConnection, clusterID)
+					Expect(err).ToNot(HaveOccurred())
+
+					awsAccountClaim := listRSresp.Body().Resources()["aws_account_claim"]
+
+					kmsService, err := exe.NewKMSService()
+					kmsOutput, _ := kmsService.Output()
+					Expect(awsAccountClaim).Should(ContainSubstring(`"kmsKeyId":"` + kmsOutput.KeyARN + `"`))
+				})
+			})
 		})
 	})
 })

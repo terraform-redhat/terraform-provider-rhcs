@@ -75,6 +75,7 @@ var (
 	AWSVPCDir                            = path.Join(ConfigrationDir, AWSProviderDIR, "vpc")
 	AWSVPCTagDir                         = path.Join(ConfigrationDir, AWSProviderDIR, "vpc-tags")
 	AWSSecurityGroupDir                  = path.Join(ConfigrationDir, AWSProviderDIR, "security-groups")
+	KMSDir                               = path.Join(ConfigrationDir, AWSProviderDIR, "kms")
 )
 
 // Dirs of rhcs provider

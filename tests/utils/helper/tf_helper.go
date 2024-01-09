@@ -25,7 +25,7 @@ func GetResource(manifestDir string, resourceType string, resoureName string) (i
 		}
 		//Find resource by resource type and resource name
 		for _, resource := range state["resources"].([]interface{}) {
-			if DigString(resource, "type") == resourceType && DigString(resource, "name") == resoureName {
+			if DigString(resource, "type") == resourceType && DigString(resource, "name") == resoureName && resource != nil {
 				return resource, err
 			}
 		}
@@ -36,9 +36,9 @@ func GetResource(manifestDir string, resourceType string, resoureName string) (i
 	return nil, fmt.Errorf("terraform.tfstate file doesn't exist in %s folder", manifestDir)
 }
 
-// Make sure the default machinepool imported by checking if there is terraform.tfstate in DefaultMachinePoolDir
-func MakeSureDefaultMachinePoolImported() (imported bool, err error) {
-	_, err = GetResource(con.DefaultMachinePoolDir, "rhcs_machine_pool", "dmp")
+// Check if the default machinepool imported by checking if there is terraform.tfstate in DefaultMachinePoolDir
+func CheckDefaultMachinePoolImported() (imported bool, err error) {
+	_, err = GetResource(con.DefaultMachinePoolDir, "rhcs_machine_pool", "mp")
 	if err != nil {
 		return false, err
 	}

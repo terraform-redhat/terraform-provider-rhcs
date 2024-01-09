@@ -4,30 +4,31 @@ import (
 	"context"
 	"fmt"
 
+	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
 type MachinePoolArgs struct {
-	Cluster                  string              `json:"cluster,omitempty"`
-	OCMENV                   string              `json:"ocm_environment,omitempty"`
-	Name                     string              `json:"name,omitempty"`
-	URL                      string              `json:"url,omitempty"`
-	MachineType              string              `json:"machine_type,omitempty"`
-	Replicas                 *int                `json:"replicas,omitempty"`
-	AutoscalingEnabled       bool                `json:"autoscaling_enabled,omitempty"`
-	UseSpotInstances         bool                `json:"use_spot_instances,omitempty"`
-	MaxReplicas              *int                `json:"max_replicas,omitempty"`
-	MinReplicas              *int                `json:"min_replicas,omitempty"`
-	MaxSpotPrice             float64             `json:"max_spot_price,omitempty"`
-	Labels                   *map[string]string  `json:"labels,omitempty"`
-	Taints                   []map[string]string `json:"taints,omitempty"`
-	ID                       string              `json:"id,omitempty"`
-	AvailabilityZone         string              `json:"availability_zone,omitempty"`
-	SubnetID                 string              `json:"subnet_id,omitempty"`
-	MultiAZ                  bool                `json:"multi_availability_zone,omitempty"`
-	DiskSize                 int                 `json:"disk_size,omitempty"`
-	AdditionalSecurityGroups []string            `json:"additional_security_groups,omitempty"`
+	Cluster                  string               `json:"cluster,omitempty"`
+	OCMENV                   string               `json:"ocm_environment,omitempty"`
+	Name                     *string              `json:"name,omitempty"`
+	URL                      string               `json:"url,omitempty"`
+	MachineType              *string              `json:"machine_type,omitempty"`
+	Replicas                 *int                 `json:"replicas,omitempty"`
+	AutoscalingEnabled       *bool                `json:"autoscaling_enabled,omitempty"`
+	UseSpotInstances         *bool                `json:"use_spot_instances,omitempty"`
+	MaxReplicas              *int                 `json:"max_replicas,omitempty"`
+	MinReplicas              *int                 `json:"min_replicas,omitempty"`
+	MaxSpotPrice             *float64             `json:"max_spot_price,omitempty"`
+	Labels                   *map[string]string   `json:"labels,omitempty"`
+	Taints                   *[]map[string]string `json:"taints,omitempty"`
+	ID                       *string              `json:"id,omitempty"`
+	AvailabilityZone         *string              `json:"availability_zone,omitempty"`
+	SubnetID                 *string              `json:"subnet_id,omitempty"`
+	MultiAZ                  *bool                `json:"multi_availability_zone,omitempty"`
+	DiskSize                 *int                 `json:"disk_size,omitempty"`
+	AdditionalSecurityGroups *[]string            `json:"additional_security_groups,omitempty"`
 }
 
 type MachinePoolService struct {
@@ -143,7 +144,7 @@ func BuildDefaultMachinePoolArgsFromClusterState(clusterResource interface{}) (M
 		return machinePoolArgs, fmt.Errorf("expected a cluster resource of type rhcs_cluster_rosa_classic, got %s", h.DigString(clusterResource, "type"))
 	}
 	if h.DigBool(h.DigArray(clusterResource, "instances")[0], "attributes", "autoscaling_enabled") {
-		machinePoolArgs.AutoscalingEnabled = true
+		machinePoolArgs.AutoscalingEnabled = h.BoolPointer(true)
 		maxReplicas := h.DigInt(h.DigArray(clusterResource, "instances")[0], "attributes", "max_replicas")
 		minReplicas := h.DigInt(h.DigArray(clusterResource, "instances")[0], "attributes", "min_replicas")
 		machinePoolArgs.MaxReplicas = &maxReplicas
@@ -152,8 +153,8 @@ func BuildDefaultMachinePoolArgsFromClusterState(clusterResource interface{}) (M
 		replicas := h.DigInt(h.DigArray(clusterResource, "instances")[0], "attributes", "replicas")
 		machinePoolArgs.Replicas = &replicas
 	}
-	machinePoolArgs.Name = "worker"
-	machinePoolArgs.MachineType = h.DigString(h.DigArray(clusterResource, "instances")[0], "attributes", "compute_machine_type")
+	machinePoolArgs.Name = h.StringPointer("worker")
+	machinePoolArgs.MachineType = h.StringPointer(h.DigString(h.DigArray(clusterResource, "instances")[0], "attributes", "compute_machine_type"))
 	labelsInterface := h.DigObject(h.DigArray(clusterResource, "instances")[0], "attributes", "default_mp_labels")
 	labels := make(map[string]string)
 	for key, value := range labelsInterface.(map[string]interface{}) {
@@ -169,7 +170,7 @@ func BuildDefaultMachinePoolArgsFromDefaultMachinePoolState(defaultMachinePoolRe
 		return machinePoolArgs, fmt.Errorf("expected a default machinepool resource of type rhcs_machine_pool and named worker, got %s named %s", h.DigString(defaultMachinePoolResource, "type"), h.DigString(defaultMachinePoolResource, "name"))
 	}
 	if h.DigBool(h.DigArray(defaultMachinePoolResource, "instances")[0], "attributes", "autoscaling_enabled") {
-		machinePoolArgs.AutoscalingEnabled = true
+		machinePoolArgs.AutoscalingEnabled = h.BoolPointer(true)
 		maxReplicas := h.DigInt(h.DigArray(defaultMachinePoolResource, "instances")[0], "attributes", "max_replicas")
 		minReplicas := h.DigInt(h.DigArray(defaultMachinePoolResource, "instances")[0], "attributes", "min_replicas")
 		machinePoolArgs.MaxReplicas = &maxReplicas
@@ -178,8 +179,8 @@ func BuildDefaultMachinePoolArgsFromDefaultMachinePoolState(defaultMachinePoolRe
 		replicas := h.DigInt(h.DigArray(defaultMachinePoolResource, "instances")[0], "attributes", "replicas")
 		machinePoolArgs.Replicas = &replicas
 	}
-	machinePoolArgs.Name = "worker"
-	machinePoolArgs.MachineType = h.DigString(h.DigArray(defaultMachinePoolResource, "instances")[0], "attributes", "machine_type")
+	machinePoolArgs.Name = h.StringPointer("worker")
+	machinePoolArgs.MachineType = h.StringPointer(h.DigString(h.DigArray(defaultMachinePoolResource, "instances")[0], "attributes", "machine_type"))
 	labelsInterface := h.DigObject(h.DigArray(defaultMachinePoolResource, "instances")[0], "attributes", "labels")
 	labels := make(map[string]string)
 	for key, value := range labelsInterface.(map[string]interface{}) {
@@ -197,7 +198,76 @@ func BuildDefaultMachinePoolArgsFromDefaultMachinePoolState(defaultMachinePoolRe
 			}
 			taints[i] = taint
 		}
-		machinePoolArgs.Taints = taints
+		machinePoolArgs.Taints = &taints
 	}
 	return machinePoolArgs, nil
+}
+
+/*
+	    This func will return MachinePoolArgs with mapping the values from the backend
+		    Name    done
+			MachineType      				done
+			Replicas         				done
+			AutoscalingEnabled  			done
+			UseSpotInstances     			done
+			MaxReplicas       				done
+			MinReplicas      				done
+			MaxSpotPrice           			done
+			Labels                			done
+			Taints                			done
+			ID                  		It's same with machinepool name and not required.
+			AvailabilityZone     	    Todo
+			SubnetID                	Todo
+			MultiAZ                     not a part of CMS machinepool endpoint reponse till now
+			DiskSize                 	done
+			AdditionalSecurityGroups *[]string           done
+*/
+func BuildMachinePoolArgsFromCSResponse(machinePool *cmv1.MachinePool) MachinePoolArgs {
+	var machinePoolArgs MachinePoolArgs
+
+	if id, ok := machinePool.GetID(); ok {
+		machinePoolArgs.Name = h.StringPointer(id)
+	}
+	if replicas, ok := machinePool.GetReplicas(); ok {
+		machinePoolArgs.Replicas = h.IntPointer(replicas)
+	}
+	if instanceType, ok := machinePool.GetInstanceType(); ok {
+		machinePoolArgs.MachineType = h.StringPointer(instanceType)
+	}
+	if autoscalingEnabled, ok := machinePool.GetAutoscaling(); ok {
+		machinePoolArgs.MaxReplicas = h.IntPointer(autoscalingEnabled.MaxReplicas())
+		machinePoolArgs.MinReplicas = h.IntPointer(autoscalingEnabled.MinReplicas())
+	}
+
+	if maxSpotPrice, ok := machinePool.AWS().GetSpotMarketOptions(); ok {
+		machinePoolArgs.MaxSpotPrice = h.Float64Pointer(maxSpotPrice.MaxPrice())
+		machinePoolArgs.UseSpotInstances = h.BoolPointer(true)
+	}
+	if labels, ok := machinePool.GetLabels(); ok {
+		machinePoolArgs.Labels = &labels
+	}
+	if taints, ok := machinePool.GetTaints(); ok {
+		taintsMap := make([]map[string]string, len(taints))
+		for i, taint := range taints {
+			taintMap := make(map[string]string)
+			if key, ok := taint.GetKey(); ok {
+				taintMap["key"] = key
+			}
+			if value, ok := taint.GetValue(); ok {
+				taintMap["value"] = value
+			}
+			if effect, ok := taint.GetEffect(); ok {
+				taintMap["effect"] = string(effect)
+			}
+			taintsMap[i] = taintMap
+		}
+		machinePoolArgs.Taints = &taintsMap
+	}
+	if diskSize, ok := machinePool.GetRootVolume(); ok {
+		machinePoolArgs.DiskSize = h.IntPointer(diskSize.AWS().Size())
+	}
+	if additionalSecurityGroups, ok := machinePool.AWS().GetAdditionalSecurityGroupIds(); ok {
+		machinePoolArgs.AdditionalSecurityGroups = &additionalSecurityGroups
+	}
+	return machinePoolArgs
 }

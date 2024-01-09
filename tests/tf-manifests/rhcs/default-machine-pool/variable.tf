@@ -8,10 +8,6 @@ variable "machine_type" {
 variable "name" {
   type = string
 }
-variable "disk_size" {
-  type    = number
-  default = null
-}
 variable "autoscaling_enabled" {
   default = false
   type    = bool
@@ -48,7 +44,6 @@ variable "use_spot_instances" {
   type    = bool
   default = false
 }
-
 variable "url" {
   type    = string
   default = "https://api.stage.openshift.com"
@@ -66,7 +61,10 @@ variable "multi_availability_zone" {
   type    = bool
   default = null
 }
-
+variable "disk_size" {
+  type    = number
+  default = null
+}
 variable "additional_security_groups" {
   type    = list(string)
   default = null

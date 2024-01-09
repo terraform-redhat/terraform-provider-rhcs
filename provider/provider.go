@@ -34,7 +34,6 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cloudprovider"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cluster"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterautoscaler"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterdata"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosaclassic"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosahcp"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterwaiter"
@@ -227,7 +226,7 @@ func (p *Provider) DataSources(ctx context.Context) []func() datasource.DataSour
 		rosa_operator_roles.New,
 		versions.New,
 		info.New,
-		clusterdata.New,
 		clusterrosaclassic.NewDataSource,
+		clusterrosahcp.NewDataSource,
 	}
 }

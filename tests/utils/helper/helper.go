@@ -413,11 +413,6 @@ func NeedFiltered(filterList []string, key string) bool {
 	return false
 }
 
-func BoolPoint(b bool) *bool {
-	boolVar := b
-	return &boolVar
-}
-
 func GenerateRandomStringWithSymbols(length int) string {
 	b := make([]byte, length)
 	_, err := r.Read(b)
@@ -458,4 +453,23 @@ func GetClusterAdminPassword() string {
 		fmt.Print(err)
 	}
 	return string(b)
+}
+
+// Return a bool pointer of the input bool value
+func BoolPointer(b bool) *bool {
+	return &b
+}
+
+// Return a string pointer of the input string value
+func StringPointer(s string) *string {
+	return &s
+}
+
+// Return a pointer of the input int value
+func IntPointer(i int) *int {
+	return &i
+}
+
+func Float64Pointer(f float64) *float64 {
+	return &f
 }

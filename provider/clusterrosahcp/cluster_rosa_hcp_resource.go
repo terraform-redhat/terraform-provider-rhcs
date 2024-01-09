@@ -575,7 +575,7 @@ func createHcpClusterObject(ctx context.Context,
 	workerDiskSize := common.OptionalInt64(state.WorkerDiskSize)
 
 	if err = ocmClusterResource.CreateHcpNodes(replicas, computeMachineType,
-		labels, availabilityZones, multiAZ, workerDiskSize); err != nil {
+		labels, availabilityZones, workerDiskSize); err != nil {
 		return nil, err
 	}
 

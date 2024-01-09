@@ -109,7 +109,7 @@ func (c *Cluster) CreateNodes(autoScalingEnabled bool, replicas *int64, minRepli
 }
 
 func (c *Cluster) CreateHcpNodes(replicas *int64, computeMachineType *string,
-	labels map[string]string, availabilityZones []string, multiAZ bool, workerDiskSize *int64) error {
+	labels map[string]string, availabilityZones []string, workerDiskSize *int64) error {
 	nodes := cmv1.NewClusterNodes()
 	nodes.Compute(int(*replicas))
 	if computeMachineType != nil {
@@ -131,9 +131,6 @@ func (c *Cluster) CreateHcpNodes(replicas *int64, computeMachineType *string,
 	}
 
 	if availabilityZones != nil {
-		if err := validations.ValidateAvailabilityZonesCount(multiAZ, len(availabilityZones)); err != nil {
-			return err
-		}
 		nodes.AvailabilityZones(availabilityZones...)
 	}
 

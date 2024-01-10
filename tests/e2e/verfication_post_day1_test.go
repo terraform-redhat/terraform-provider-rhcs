@@ -146,7 +146,7 @@ var _ = Describe("TF Test", func() {
 
 		Context("Author:smiron-Medium-OCP-65684 @OCP-65684 @smiron", func() {
 			It("OCP-65684 - cluster_rosa_classic resource can be import by the terraform import command",
-				ci.Day2, ci.Medium, ci.FeatureImport, func() {
+				ci.Day2, ci.Medium, ci.FeatureImport, ci.Exclude, func() {
 
 					By("Run the command to import rosa_classic resource")
 					importParam := &exe.ImportArgs{

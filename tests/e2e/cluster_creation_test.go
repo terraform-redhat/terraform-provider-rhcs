@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	CI "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
+	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/openshift"
 )
@@ -22,7 +23,7 @@ var _ = Describe("RHCS Provider Test", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(clusterID).ToNot(BeEmpty())
 				//TODO: implement waiter for  the private cluster once bastion is implemented
-				if !profile.Private {
+				if CON.GetEnvWithDefault(CON.WaitOperators, "false") == "true" {
 					// WaitClusterOperatorsToReadyStatus will wait for cluster operators ready
 					timeout := 60
 					timeoutMin := time.Duration(timeout)

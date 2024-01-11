@@ -90,3 +90,11 @@ func AlignRHCSSourceVersion(dir string) error {
 	}
 	return nil
 }
+
+func CleanManifestsStateFile(dir string) error {
+	err := DeleteFile(CON.GrantTFstateFile(dir))
+	if err != nil {
+		return fmt.Errorf("could not remove state file due to error: %s", err.Error())
+	}
+	return nil
+}

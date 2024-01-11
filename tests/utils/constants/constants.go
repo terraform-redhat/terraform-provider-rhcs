@@ -121,6 +121,10 @@ func GrantTFvarsFile(manifestDir string) string {
 	return path.Join(manifestDir, "terraform.tfvars")
 }
 
+func GrantTFstateFile(manifestDir string) string {
+	return path.Join(manifestDir, "terraform.tfstate")
+}
+
 // Machine pool taints effect
 const (
 	NoExecute        = "NoExecute"

@@ -27,6 +27,7 @@ const (
 	MajorVersion              = "MAJOR_VERSION_ENV"
 	RHCSVersion               = "RHCS_VERSION"
 	RHCSSource                = "RHCS_SOURCE"
+	WaitOperators             = "WAIT_OPERATORS"
 )
 
 var (

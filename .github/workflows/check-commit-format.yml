@@ -1,0 +1,33 @@
+# following the contribution guide this check enforces the commit format
+# [JIRA-TICKET] | [TYPE]: <MESSAGE>
+name: 'Validate Commit Messages'
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  parse-commit-messages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+      - name: Validate Commit Message(s)
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          IFS=$'\n' commit_messages=($(git log --pretty=format:"%s" $BASE_SHA...$HEAD_SHA))          
+          
+          for message in "${commit_messages[@]}"
+          do
+          echo "validating $message"
+          if ! echo "$message" | grep -qE "^[A-Z]+-[0-9]+ \| (feat|fix|docs|style|refactor|test|chore|build|ci|perf): .*$"; then
+            echo "Invalid commit message format. Expected format: JIRA_TICKET | TYPE: MESSAGE"
+            exit 1
+          fi
+          done

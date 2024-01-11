@@ -26,7 +26,6 @@ type RHCSconfig struct {
 	RHCSEnv           string `env:"RHCS_ENV" default:"staging" yaml:"env"`
 	ClusterProfile    string `env:"CLUSTER_PROFILE" yaml:"clusterProfile,omitempty"`
 	ClusterProfileDir string `env:"CLUSTER_PROFILE_DIR" yaml:"clusterProfileDir,omitempty"`
-	QEUsage           string `env:"QE_USAGE" default:"" yaml:"qeUsage,omitempty"`
 	RhcsOutputDir     string
 	YAMLProfilesDir   string
 	RootDir           string
@@ -48,9 +47,6 @@ func init() {
 	}
 	if os.Getenv("CLUSTER_PROFILE_DIR") != "" {
 		RHCS.ClusterProfileDir = os.Getenv("CLUSTER_PROFILE_DIR")
-	}
-	if os.Getenv("QE_USAGE") != "" {
-		RHCS.QEUsage = os.Getenv("QE_USAGE")
 	}
 
 	RHCS.RhcsOutputDir = GetRHCSOutputDir()

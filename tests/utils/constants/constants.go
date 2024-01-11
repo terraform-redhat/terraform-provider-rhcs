@@ -23,6 +23,7 @@ const (
 	ClusterIDEnv              = "CLUSTER_ID"
 	RHCSENV                   = "RHCS_ENV"
 	RhcsClusterProfileENV     = "CLUSTER_PROFILE"
+	QEUsage                   = "QE_USAGE"
 	ClusterTypeManifestDirEnv = "CLUSTER_ROSA_TYPE"
 	MajorVersion              = "MAJOR_VERSION_ENV"
 	RHCSVersion               = "RHCS_VERSION"

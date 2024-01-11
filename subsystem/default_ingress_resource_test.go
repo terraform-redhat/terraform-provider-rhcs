@@ -58,6 +58,170 @@ var _ = Describe("default ingress", func() {
 						}
 					`
 
+	It("Sends updates to attribute individually", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, clusterReady),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, clusterReady),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/ingresses"),
+				RespondWithJSON(http.StatusOK, defaultDay1Template),
+			),
+
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
+				VerifyJQ(`.route_selectors`, map[string]interface{}{}),
+				VerifyJQ(`.excluded_namespaces`, []interface{}{"stage", "int", "aaa"}),
+				VerifyJQ(`.load_balancer_type`, "nlb"),
+				RespondWithJSON(http.StatusOK, `
+				{
+					"kind": "Ingress",
+					"href": "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2",
+					"id": "d6z2",
+					"listening": "external",
+					"default": true,
+					"dns_name": "redhat.com",
+					"load_balancer_type": "nlb",
+					"excluded_namespaces": [
+						"stage",
+						"int",
+						"aaa"
+					],
+					"route_wildcard_policy": "WildcardsDisallowed",
+					"route_namespace_ownership_policy": "Strict"
+				}`),
+			),
+		)
+		// Run the apply command:
+		terraform.Source(`
+			resource "rhcs_default_ingress" "default_ingress" {
+			id = "d6z2"
+			cluster = "123"
+			excluded_namespaces = ["stage", "int", "aaa"]
+			load_balancer_type = "nlb"
+		}`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
+				RespondWithJSON(http.StatusOK, `
+				{
+					"kind": "Ingress",
+					"href": "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2",
+					"id": "d6z2",
+					"listening": "external",
+					"default": true,
+					"dns_name": "redhat.com",
+					"load_balancer_type": "nlb",
+					"excluded_namespaces": [
+						"stage",
+						"int",
+						"aaa"
+					],
+					"route_wildcard_policy": "WildcardsDisallowed",
+					"route_namespace_ownership_policy": "Strict"
+				}`),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
+				VerifyJQ(`.load_balancer_type`, nil),
+				VerifyJQ(`.route_selectors`, nil),
+				VerifyJQ(`.route_wildcard_policy`, nil),
+				VerifyJQ(`.route_namespace_ownership_policy`, nil),
+				VerifyJQ(`.excluded_namespaces`, []interface{}{"int", "aaa"}),
+				RespondWithJSON(http.StatusOK, `
+				{
+					"kind": "Ingress",
+					"href": "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2",
+					"id": "d6z2",
+					"listening": "external",
+					"default": true,
+					"dns_name": "redhat.com",
+					"load_balancer_type": "nlb",
+					"excluded_namespaces": [
+						"int",
+						"aaa"
+					],
+					"route_wildcard_policy": "WildcardsDisallowed",
+					"route_namespace_ownership_policy": "Strict"
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+			resource "rhcs_default_ingress" "default_ingress" {
+			id = "d6z2"
+			cluster = "123"
+			excluded_namespaces = ["int", "aaa"]
+			load_balancer_type = "nlb"
+		}`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
+				RespondWithJSON(http.StatusOK, `
+				{
+					"kind": "Ingress",
+					"href": "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2",
+					"id": "d6z2",
+					"listening": "external",
+					"default": true,
+					"dns_name": "redhat.com",
+					"load_balancer_type": "nlb",
+					"excluded_namespaces": [
+						"int",
+						"aaa"
+					],
+					"route_wildcard_policy": "WildcardsDisallowed",
+					"route_namespace_ownership_policy": "Strict"
+				}`),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
+				VerifyJQ(`.load_balancer_type`, "classic"),
+				VerifyJQ(`.route_selectors`, nil),
+				VerifyJQ(`.route_wildcard_policy`, nil),
+				VerifyJQ(`.route_namespace_ownership_policy`, nil),
+				VerifyJQ(`.excluded_namespaces`, nil),
+				RespondWithJSON(http.StatusOK, `
+				{
+					"kind": "Ingress",
+					"href": "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2",
+					"id": "d6z2",
+					"listening": "external",
+					"default": true,
+					"dns_name": "redhat.com",
+					"load_balancer_type": "classic",
+					"excluded_namespaces": [
+						"int",
+						"aaa"
+					],
+					"route_wildcard_policy": "WildcardsDisallowed",
+					"route_namespace_ownership_policy": "Strict"
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+			resource "rhcs_default_ingress" "default_ingress" {
+			id = "d6z2"
+			cluster = "123"
+			excluded_namespaces = ["int", "aaa"]
+			load_balancer_type = "classic"
+		}`)
+		Expect(terraform.Apply()).To(BeZero())
+	})
+
 	It("Create cluster with default ingress - excluded_namespaces and load balancer type set", func() {
 		// Prepare the server:
 		server.AppendHandlers(
@@ -108,6 +272,7 @@ var _ = Describe("default ingress", func() {
 		}`)
 		Expect(terraform.Apply()).To(BeZero())
 	})
+
 	It("Create cluster with default -  failed if only cluster_routes_tls_secret_ref set", func() {
 		// Prepare the server:
 		server.AppendHandlers(
@@ -175,7 +340,7 @@ var _ = Describe("default ingress", func() {
 		terraform.Source(`
 		  resource "rhcs_default_ingress" "default_ingress" {
 			cluster = "123"
-	       route_wildcard_policy = "WildcardsAllowed"
+	        route_wildcard_policy = "WildcardsAllowed"
 			route_selectors = {
 			   "foo" = "bar",
 			}

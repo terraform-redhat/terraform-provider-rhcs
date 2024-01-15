@@ -230,7 +230,7 @@ func (r *DefaultIngressResource) Update(ctx context.Context, req resource.Update
 		diags.AddError(
 			"Failed to update default ingress",
 			fmt.Sprintf(
-				"Cannont upate default ingress for"+
+				"Cannot update default ingress for "+
 					"cluster '%s': %v", state.Cluster.ValueString(), err,
 			),
 		)

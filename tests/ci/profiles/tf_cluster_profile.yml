@@ -61,8 +61,37 @@ profiles:
     additional_sg_number: 4
     worker_disk_size: 200
     unified_acc_role_path: "/unified/"
-# rosa-sts-up :: creating a managed cluster for upgrade purpose
-- as: rosa-sts-up
+# rosa-sts-up-z :: creating a cluster for z-stream upgrade purpose
+- as: rosa-up-z
+  cluster:
+    multi_az: true
+    product_id: "rosa"
+    hypershift: false
+    cloud_provider: "aws"
+    region: "ap-northeast-1"
+    ccs: true
+    sts: true
+    byovpc: true
+    private_link: true
+    private: true
+    etcd_encryption: true
+    fips: false
+    autoscale: false
+    byok: true
+    version: "z-1"
+    major_version: "4.14"
+    compute_machine_type: "m5.xlarge"
+    proxy: false
+    labeling: false
+    tagging: false
+    channel_group: stable
+    zones: ""
+    imdsv2: ""
+    oidc_config: "managed"
+    admin_enabled: true
+    unified_acc_role_path: ""
+# rosa-sts-up :: creating a cluster for y-stream upgrade purpose
+- as: rosa-up-y
   cluster:
     multi_az: false
     product_id: "rosa"
@@ -79,14 +108,15 @@ profiles:
     fips: false
     autoscale: false
     byok: true
-    version: "z-1"
+    version: "y-1"
     major_version: "4.14"
     compute_machine_type: "m5.xlarge"
     proxy: false
     labeling: false
     tagging: false
-    channel_group: candidate
+    channel_group: stable
     zones: ""
     imdsv2: ""
-    oidc_config: "managed"
+    oidc_config: "un-managed"
     admin_enabled: true
+    unified_acc_role_path: ""

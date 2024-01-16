@@ -38,6 +38,11 @@ func RetrieveClusterCredentials(connection *client.Connection, clusterID string)
 	return connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).Credentials().Get().Send()
 }
 
+func GetUpgradePolicyState(connection *client.Connection, clusterID string, upgradepolicyID string) (*cmv1.UpgradePolicyStateGetResponse, error) {
+	resp, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).UpgradePolicies().UpgradePolicy(upgradepolicyID).State().Get().Send()
+	return resp, err
+}
+
 // ListClusterGroups will return cluster groups
 func ListClusterGroups(connection *client.Connection, clusterID string) (*cmv1.GroupsListResponse, error) {
 	return connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).Groups().List().Send()

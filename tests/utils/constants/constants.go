@@ -5,8 +5,11 @@ import (
 	"os"
 	"path"
 	"strings"
+
+	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
+// OCP version streams
 const (
 	X = "x"
 	Y = "y"
@@ -131,4 +134,21 @@ const (
 	NoExecute        = "NoExecute"
 	NoSchedule       = "NoSchedule"
 	PreferNoSchedule = "PreferNoSchedule"
+)
+
+// Upgrade Policy States
+const (
+	Pending   = "pending"
+	Scheduled = "scheduled"
+	Started   = "started"
+	Completed = "completed"
+	Delayed   = "delayed"
+	Failed    = "failed"
+	Cancelled = "cancelled"
+	Waiting   = "waiting"
+)
+
+var (
+	AutomaticScheduleType cmv1.ScheduleType = "automatic"
+	ManualScheduleType    cmv1.ScheduleType = "manual"
 )

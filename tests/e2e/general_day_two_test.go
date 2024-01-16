@@ -1,8 +1,6 @@
 package e2e
 
 import (
-	"path/filepath"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
@@ -88,8 +86,7 @@ var _ = Describe("TF day2 scenrios", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Read terraform.tfvars file and get its content as a map
-			terraformTFVarsPath := filepath.Join(profile.ManifestsDIR, "terraform.tfvars")
-			terraformTFVarsContent := exe.ReadTerraformTFVars(terraformTFVarsPath)
+			terraformTFVarsContent := exe.ReadTerraformTFVars(profile.ManifestsDIR)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Capture the original custom properties

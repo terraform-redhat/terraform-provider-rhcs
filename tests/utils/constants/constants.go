@@ -5,16 +5,43 @@ import (
 	"os"
 	"path"
 	"strings"
+
+	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
+// OCP version streams
 const (
 	X = "x"
 	Y = "y"
 	Z = "z"
+)
 
+const (
 	UnderscoreConnector string = "_"
 	DotConnector        string = "."
 	HyphenConnector     string = "-"
+)
+
+// Upgrade Policy States
+const (
+	Pending   = "pending"
+	Scheduled = "scheduled"
+	Started   = "started"
+	Completed = "completed"
+	Delayed   = "delayed"
+	Failed    = "failed"
+	Cancelled = "cancelled"
+	Waiting   = "waiting"
+)
+
+// Cluster state
+const (
+	Ready = "ready"
+)
+
+var (
+	AutomaticScheduleType cmv1.ScheduleType = "automatic"
+	ManualScheduleType    cmv1.ScheduleType = "manual"
 )
 
 // Below constants is the env variable name defined to run on different testing requirements

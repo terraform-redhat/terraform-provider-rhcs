@@ -183,10 +183,10 @@ func runTerraformImportWithArgs(ctx context.Context, dir string, terraformArgs [
 	return output, nil
 }
 
-func combineArgs(varAgrs map[string]interface{}, abArgs ...string) ([]string, map[string]string) {
+func combineArgs(varArgs map[string]interface{}, abArgs ...string) ([]string, map[string]string) {
 	args := []string{}
 	tfArgs := map[string]string{}
-	for k, v := range varAgrs {
+	for k, v := range varArgs {
 		var argV string
 		var tfvarV string
 		switch v := v.(type) {
@@ -234,7 +234,8 @@ func recordTFvarsFile(fileDir string, tfvars map[string]string) error {
 }
 
 // Function to read terraform.tfvars file and return its content as a map
-func ReadTerraformTFVars(filePath string) map[string]string {
+func ReadTerraformTFVars(dirPath string) map[string]string {
+	filePath := CON.GrantTFvarsFile(dirPath)
 	content, err := os.ReadFile(filePath)
 	if err != nil {
 		Logger.Errorf("Can't read file %s - not found or could not be fetched", filePath)

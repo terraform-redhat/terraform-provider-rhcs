@@ -15,6 +15,8 @@ var Day1Prepare = Label("day1-prepare")
 var Day1Negative = Label("day1-negative")
 var Day1Post = Label("day1-post")
 var Day2 = Label("day2")
+var Upgrade = Label("upgrade")
+var Update = Label("update")
 
 // day3 : the test cases will destroy default resource
 var Day3 = Label("day3")

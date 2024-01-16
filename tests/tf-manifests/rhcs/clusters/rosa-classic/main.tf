@@ -92,9 +92,11 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   aws_additional_infra_security_group_ids         = var.additional_infra_security_groups
   aws_additional_control_plane_security_group_ids = var.additional_control_plane_security_groups
   destroy_timeout                                 = 120
+  upgrade_acknowledgements_for                    = var.upgrade_acknowledgements_for
   lifecycle {
     ignore_changes = [availability_zones]
   }
+  wait_for_create_complete = true
 }
 
 resource "rhcs_cluster_wait" "rosa_cluster" {

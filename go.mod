@@ -45,6 +45,7 @@ require (
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/go-logr/logr v1.3.0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
+	github.com/goinggo/mapstructure v0.0.0-20140717182941-194205d9b4a9
 	github.com/golang-jwt/jwt/v4 v4.4.1 // indirect
 	github.com/golang/glog v1.1.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect

@@ -23,7 +23,7 @@ var _ = Describe("RHCS Provider Test", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(clusterID).ToNot(BeEmpty())
 				//TODO: implement waiter for  the private cluster once bastion is implemented
-				if CON.GetEnvWithDefault(CON.WaitOperators, "false") == "true" {
+				if CON.GetEnvWithDefault(CON.WaitOperators, "false") == "true" && !profile.Private {
 					// WaitClusterOperatorsToReadyStatus will wait for cluster operators ready
 					timeout := 60
 					timeoutMin := time.Duration(timeout)

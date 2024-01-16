@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"net/http"
 	"os"
 	"os/exec"
 	"path"
@@ -17,6 +18,8 @@ import (
 
 	"github.com/onsi/gomega"
 	. "github.com/onsi/gomega"
+	client "github.com/openshift-online/ocm-sdk-go"
+	CMS "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
@@ -472,4 +475,52 @@ func IntPointer(i int) *int {
 
 func Float64Pointer(f float64) *float64 {
 	return &f
+}
+
+// WaitForUpgradePolicyToState will time out after <timeout> minutes
+// Be careful for state completed. Make sure the automatic policy is in status of other status rather than pending
+func WaitForUpgradePolicyToState(connection *client.Connection, clusterID string, policyID string, state string, timeout int) error {
+	fmt.Println("Going to wait upgrade to status ", state)
+	startTime := time.Now()
+	resp, err := CMS.RetrieveUpgradePolicies(connection, clusterID, policyID)
+	if err != nil {
+		return err
+	}
+	scheduleType := resp.Body().ScheduleType()
+
+	for time.Now().Before(startTime.Add(time.Duration(timeout) * time.Minute)) {
+		stateResp, _ := CMS.GetUpgradePolicyState(connection, clusterID, policyID)
+
+		switch state {
+		case CON.Completed:
+			if scheduleType == CON.ManualScheduleType {
+				if stateResp.Status() == http.StatusNotFound {
+					return nil
+				} else if resp.Status() != http.StatusOK {
+					return fmt.Errorf(">>> Got response %s when retrieve the policy state: %s", resp.Error(), state)
+				}
+			} else {
+				if stateResp.Status() != http.StatusOK {
+					return fmt.Errorf(">>> Got response %s when retrieve the policy state: %s", resp.Error(), state)
+				}
+				if stateResp.Body().Value() == CON.Pending {
+					return nil
+				}
+			}
+
+		default:
+			if resp.Status() != http.StatusOK {
+				return fmt.Errorf(">>> Got response %s when retrieve the policy state: %s", resp.Error(), state)
+			}
+			if string(stateResp.Body().Value()) == state {
+				return nil
+			}
+
+		}
+
+		time.Sleep(1 * time.Minute)
+
+	}
+	return fmt.Errorf("ERROR!Timeout after %d minutes to wait for the policy %s into status %s of cluster %s",
+		timeout, policyID, state, clusterID)
 }

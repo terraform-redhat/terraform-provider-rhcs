@@ -188,6 +188,13 @@ func PrepareVersion(connection *client.Connection, versionTag string, channelGro
 	}
 	return vResult
 }
+
+func GetMajorVersion(rawVersion string) string {
+	versionRegex := regexp.MustCompile(`^[0-9]+\.[0-9]+`)
+	vResult := versionRegex.FindAllStringSubmatch(rawVersion, 1)[0][0]
+	return vResult
+}
+
 func PrepareProxy() {}
 
 func PrepareKMSKey(profile *Profile, kmsName string, accountRolePrefix string, accountRolePath string) (string, error) {
@@ -303,7 +310,8 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 	}
 
 	if profile.STS {
-		accountRolesOutput, err := PrepareAccountRoles(token, clusterArgs.ClusterName, profile.UnifiedAccRolesPath, clusterArgs.AWSRegion, profile.MajorVersion, profile.ChannelGroup, CON.AccountRolesDir)
+		majorVersion := GetMajorVersion(profile.Version)
+		accountRolesOutput, err := PrepareAccountRoles(token, clusterArgs.ClusterName, profile.UnifiedAccRolesPath, clusterArgs.AWSRegion, majorVersion, profile.ChannelGroup, CON.AccountRolesDir)
 		Expect(err).ToNot(HaveOccurred())
 		clusterArgs.AccountRolePrefix = accountRolesOutput.AccountRolePrefix
 		clusterArgs.UnifiedAccRolesPath = profile.UnifiedAccRolesPath

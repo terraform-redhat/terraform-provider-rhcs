@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/goinggo/mapstructure"
+
 	client "github.com/openshift-online/ocm-sdk-go"
 	CMS "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
@@ -69,4 +71,49 @@ func (c *Console) Config(kubeConfig string) (*Console, error) {
 	}
 	c.KubePath = configFile
 	return c, err
+}
+
+// GetClusterVersion will return the Cluster version
+func (c *Console) GetClusterVersion() (version string, err error) {
+	stdout, _, err := h.RunCMD("oc version -o json")
+	fmt.Println(stdout)
+	if err != nil {
+		return
+	}
+	version = h.DigString(h.Parse([]byte(stdout)), "openshiftVersion")
+	return
+
+}
+
+// GetPods function will return list of *Pod with informations
+// If namespace passed as parameter, will return the pod list of the specified namespace
+func (c *Console) GetPods(namespace ...string) ([]*Pod, error) {
+	var pods []*Pod
+	var columns = make(map[string][]interface{})
+	columns["name"] = []interface{}{"metadata", "name"}
+	columns["ip"] = []interface{}{"status", "podIP"}
+	columns["status"] = []interface{}{"status", "phase"}
+	columns["startTime"] = []interface{}{"status", "startTime"}
+	columns["hostIP"] = []interface{}{"status", "hostIP"}
+	CMD := fmt.Sprintf("oc get pod -o json")
+	if len(namespace) == 1 {
+		CMD = fmt.Sprintf("oc get pod -n %s -o json  --kubeconfig %s", namespace[0], c.KubePath)
+	}
+	stdout, _, err := h.RunCMD(CMD)
+	if err != nil {
+		return pods, err
+	}
+	podAttrList, err := FigureStdout(stdout, columns)
+	if err != nil {
+		panic(err)
+	}
+	for _, podAttr := range podAttrList {
+		pod := Pod{}
+		err = mapstructure.Decode(podAttr, &pod)
+		if err != nil {
+			return pods, err
+		}
+		pods = append(pods, &pod)
+	}
+	return pods, err
 }

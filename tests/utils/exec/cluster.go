@@ -43,6 +43,7 @@ type ClusterCreationArgs struct {
 	DisableUWM                           bool              `json:"disable_workload_monitoring,omitempty"`
 	Proxy                                *Proxy            `json:"proxy,omitempty"`
 	UnifiedAccRolesPath                  string            `json:"path,omitempty"`
+	UpgradeAcknowledgementsFor           string            `json:"upgrade_acknowledgements_for,omitempty"`
 }
 type Proxy struct {
 	HTTPProxy             string `json:"http_proxy,omitempty"`

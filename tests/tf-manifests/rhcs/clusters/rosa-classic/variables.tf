@@ -214,3 +214,8 @@ variable "path" {
   type        = string
   default     = null
 }
+
+variable "upgrade_acknowledgements_for" {
+  type        = string
+  default     = null
+}

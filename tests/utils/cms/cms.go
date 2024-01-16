@@ -266,6 +266,11 @@ func ListUpgradePolicies(connection *client.Connection, clusterID string, params
 	return request.Send()
 }
 
+func GetUpgradePolicyState(connection *client.Connection, clusterID string, upgradepolicyID string) (*cmv1.UpgradePolicyStateGetResponse, error) {
+	resp, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).UpgradePolicies().UpgradePolicy(upgradepolicyID).State().Get().Send()
+	return resp, err
+}
+
 func RetrieveUpgradePolicies(connection *client.Connection, clusterID string, upgradepolicyID string) (*cmv1.UpgradePolicyGetResponse, error) {
 	resp, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).UpgradePolicies().UpgradePolicy(upgradepolicyID).Get().Send()
 	return resp, err

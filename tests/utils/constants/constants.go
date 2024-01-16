@@ -23,10 +23,12 @@ const (
 	ClusterIDEnv              = "CLUSTER_ID"
 	RHCSENV                   = "RHCS_ENV"
 	RhcsClusterProfileENV     = "CLUSTER_PROFILE"
+	QEUsage                   = "QE_USAGE"
 	ClusterTypeManifestDirEnv = "CLUSTER_ROSA_TYPE"
 	MajorVersion              = "MAJOR_VERSION_ENV"
 	RHCSVersion               = "RHCS_VERSION"
 	RHCSSource                = "RHCS_SOURCE"
+	WaitOperators             = "WAIT_OPERATORS"
 )
 
 var (
@@ -73,6 +75,7 @@ var (
 	AWSVPCDir                            = path.Join(ConfigrationDir, AWSProviderDIR, "vpc")
 	AWSVPCTagDir                         = path.Join(ConfigrationDir, AWSProviderDIR, "vpc-tags")
 	AWSSecurityGroupDir                  = path.Join(ConfigrationDir, AWSProviderDIR, "security-groups")
+	KMSDir                               = path.Join(ConfigrationDir, AWSProviderDIR, "kms")
 )
 
 // Dirs of rhcs provider
@@ -117,6 +120,10 @@ func GrantClusterManifestDir(manifestDir string) string {
 
 func GrantTFvarsFile(manifestDir string) string {
 	return path.Join(manifestDir, "terraform.tfvars")
+}
+
+func GrantTFstateFile(manifestDir string) string {
+	return path.Join(manifestDir, "terraform.tfstate")
 }
 
 // Machine pool taints effect

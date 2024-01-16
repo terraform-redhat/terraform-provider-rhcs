@@ -176,6 +176,11 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"availability_zones": schema.ListAttribute{
+				Description: "A list of Availability Zones. Relevant only for multiple availability zones machine pool. For single availability zone check \"availability_zone\" attribute.",
+				ElementType: types.StringType,
+				Computed:    true,
+			},
 			"subnet_id": schema.StringAttribute{
 				Description: "Select the subnet in which to create a single AZ machine pool for BYO-VPC cluster. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
@@ -183,6 +188,11 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
+			},
+			"subnet_ids": schema.ListAttribute{
+				Description: "A list of IDs of subnets in which the machines of this machine pool are created. Relevant only for a machine pool with multiple subnets. For machine pool with single subnet check \"subnet_id\" attribute",
+				ElementType: types.StringType,
+				Computed:    true,
 			},
 			"disk_size": schema.Int64Attribute{
 				Description: "Root disk size, in GiB. " + common.ValueCannotBeChangedStringDescription,
@@ -413,7 +423,7 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 	object = add.Body()
 
 	// Save the state:
-	err = r.populateState(object, plan)
+	err = populateState(object, plan)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Can't populate machine pool state",
@@ -439,7 +449,7 @@ func (r *MachinePoolResource) magicImport(ctx context.Context, plan *MachinePool
 	}
 	plan.ID = types.StringValue(machinepoolName)
 
-	notFound, diags := r.readState(ctx, state)
+	notFound, diags := readState(ctx, state, r.collection)
 	if notFound {
 		// We disallow creating a machine pool with the default name. This
 		// case can only happen if the default machine pool was deleted and
@@ -477,7 +487,7 @@ func (r *MachinePoolResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	notFound, diags := r.readState(ctx, state)
+	notFound, diags := readState(ctx, state, r.collection)
 	if notFound {
 		// If we can't find the machine pool, it was deleted. Remove if from the
 		// state and don't return an error so the TF apply() will automatically
@@ -496,10 +506,10 @@ func (r *MachinePoolResource) Read(ctx context.Context, req resource.ReadRequest
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
-func (r *MachinePoolResource) readState(ctx context.Context, state *MachinePoolState) (poolNotFound bool, diags diag.Diagnostics) {
+func readState(ctx context.Context, state *MachinePoolState, collection *cmv1.ClustersClient) (poolNotFound bool, diags diag.Diagnostics) {
 	diags = diag.Diagnostics{}
 
-	resource := r.collection.Cluster(state.Cluster.ValueString()).
+	resource := collection.Cluster(state.Cluster.ValueString()).
 		MachinePools().
 		MachinePool(state.ID.ValueString())
 	get, err := resource.Get().SendContext(ctx)
@@ -518,7 +528,7 @@ func (r *MachinePoolResource) readState(ctx context.Context, state *MachinePoolS
 	}
 
 	object := get.Body()
-	err = r.populateState(object, state)
+	err = populateState(object, state)
 	if err != nil {
 		diags.AddError(
 			"Can't populate machine pool state",
@@ -706,7 +716,7 @@ func (r *MachinePoolResource) doUpdate(ctx context.Context, state *MachinePoolSt
 	state.Replicas = plan.Replicas
 
 	// Save the state:
-	err = r.populateState(object, state)
+	err = populateState(object, state)
 	if err != nil {
 		diags.AddError(
 			"Can't populate machine pool state",
@@ -903,7 +913,7 @@ func (r *MachinePoolResource) ImportState(ctx context.Context, req resource.Impo
 }
 
 // populateState copies the data from the API object to the Terraform state.
-func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *MachinePoolState) error {
+func populateState(object *cmv1.MachinePool, state *MachinePoolState) error {
 	state.ID = types.StringValue(object.ID())
 	state.Name = types.StringValue(object.ID())
 
@@ -986,16 +996,28 @@ func (r *MachinePoolResource) populateState(object *cmv1.MachinePool, state *Mac
 	if len(azs) == 1 {
 		state.AvailabilityZone = types.StringValue(azs[0])
 		state.MultiAvailabilityZone = types.BoolValue(false)
+		state.AvailabilityZones = types.ListNull(types.StringType)
 	} else {
 		state.AvailabilityZone = types.StringValue("")
+		azListValue, err := common.StringArrayToList(azs)
+		if err != nil {
+			return err
+		}
+		state.AvailabilityZones = azListValue
 	}
 
 	subnets := object.Subnets()
 	if len(subnets) == 1 {
 		state.SubnetID = types.StringValue(subnets[0])
 		state.MultiAvailabilityZone = types.BoolValue(false)
+		state.SubnetIDs = types.ListNull(types.StringType)
 	} else {
 		state.SubnetID = types.StringValue("")
+		subnetListValue, err := common.StringArrayToList(subnets)
+		if err != nil {
+			return err
+		}
+		state.SubnetIDs = subnetListValue
 	}
 
 	state.DiskSize = types.Int64Null()

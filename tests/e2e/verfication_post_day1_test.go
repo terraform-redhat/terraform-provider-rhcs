@@ -146,7 +146,7 @@ var _ = Describe("TF Test", func() {
 
 		Context("Author:smiron-Medium-OCP-65684 @OCP-65684 @smiron", func() {
 			It("OCP-65684 - cluster_rosa_classic resource can be import by the terraform import command",
-				ci.Day2, ci.Medium, ci.FeatureImport, ci.Exclude, func() {
+				ci.Day2, ci.Medium, ci.FeatureImport, func() {
 
 					By("Run the command to import rosa_classic resource")
 					importParam := &exe.ImportArgs{
@@ -176,8 +176,9 @@ var _ = Describe("TF Test", func() {
 					err = importService.Import(importParam)
 					Expect(err.Error()).To(ContainSubstring("Cannot import non-existent remote object"))
 
-					// skip due to bug :: OCM-5246
-					// Expect(output).To(ContainSubstring(profile.ComputeMachineType))
+					By("clean .tfstate file to revert test changes")
+					defer h.CleanManifestsStateFile(con.ImportResourceDir)
+
 				})
 		})
 
@@ -292,6 +293,19 @@ var _ = Describe("TF Test", func() {
 				unifiedPath, err := aws.GetPathFromAccountRole(cluster, aws.AccountRoles[aws.InstallerAccountRole].Name)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(profile.UnifiedAccRolesPath).Should(ContainSubstring(unifiedPath))
+			})
+			Context("Author:amalykhi-Medium-OCP-63334 @OCP-63334 @amalykhi", func() {
+				It("Build a ROSA cluster with customer-managed KMS key", ci.Day1Post, ci.Medium, func() {
+					By("Check the kmsKeyARN")
+					listRSresp, err := cms.ListClusterResources(ci.RHCSConnection, clusterID)
+					Expect(err).ToNot(HaveOccurred())
+
+					awsAccountClaim := listRSresp.Body().Resources()["aws_account_claim"]
+
+					kmsService, err := exe.NewKMSService()
+					kmsOutput, _ := kmsService.Output()
+					Expect(awsAccountClaim).Should(ContainSubstring(`"kmsKeyId":"` + kmsOutput.KeyARN + `"`))
+				})
 			})
 		})
 	})

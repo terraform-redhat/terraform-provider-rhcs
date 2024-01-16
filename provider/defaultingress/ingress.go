@@ -230,7 +230,7 @@ func (r *DefaultIngressResource) Update(ctx context.Context, req resource.Update
 		diags.AddError(
 			"Failed to update default ingress",
 			fmt.Sprintf(
-				"Cannont upate default ingress for"+
+				"Cannot update default ingress for "+
 					"cluster '%s': %v", state.Cluster.ValueString(), err,
 			),
 		)
@@ -389,7 +389,7 @@ func (r *DefaultIngressResource) updateIngress(ctx context.Context, state, plan 
 			plan = &DefaultIngress{}
 		}
 
-		ingressBuilder := getDefaultIngressBuilder(ctx, plan)
+		ingressBuilder := getDefaultIngressBuilder(ctx, state, plan)
 
 		if !reflect.DeepEqual(state.ClusterRoutesHostname, plan.ClusterRoutesHostname) {
 			value := ""
@@ -425,31 +425,34 @@ func (r *DefaultIngressResource) updateIngress(ctx context.Context, state, plan 
 	return nil
 }
 
-func getDefaultIngressBuilder(ctx context.Context, state *DefaultIngress) *cmv1.IngressBuilder {
+func getDefaultIngressBuilder(ctx context.Context, state, plan *DefaultIngress) *cmv1.IngressBuilder {
 	ingressBuilder := cmv1.NewIngress()
-	routeSelectors, err := common.OptionalMap(ctx, state.RouteSelectors)
-	if err != nil {
-		return nil
+	if !reflect.DeepEqual(state.RouteSelectors, plan.RouteSelectors) {
+		routeSelectors, err := common.OptionalMap(ctx, plan.RouteSelectors)
+		if err != nil {
+			return nil
+		}
+		if routeSelectors == nil {
+			routeSelectors = map[string]string{}
+		}
+		ingressBuilder.RouteSelectors(routeSelectors)
 	}
-	if routeSelectors == nil {
-		routeSelectors = map[string]string{}
+	if !reflect.DeepEqual(state.ExcludedNamespaces, plan.ExcludedNamespaces) {
+		excludedNamespace := common.OptionalList(plan.ExcludedNamespaces)
+		ingressBuilder.ExcludedNamespaces(excludedNamespace...)
 	}
-	ingressBuilder.RouteSelectors(routeSelectors)
-
-	excludedNamespace := common.OptionalList(state.ExcludedNamespaces)
-	ingressBuilder.ExcludedNamespaces(excludedNamespace...)
 
 	// wildcard policy can't be empty
-	if !common.IsStringAttributeUnknownOrEmpty(state.WildcardPolicy) {
-		ingressBuilder.RouteWildcardPolicy(cmv1.WildcardPolicy(state.WildcardPolicy.ValueString()))
+	if !common.IsStringAttributeUnknownOrEmpty(plan.WildcardPolicy) && state.WildcardPolicy != plan.WildcardPolicy {
+		ingressBuilder.RouteWildcardPolicy(cmv1.WildcardPolicy(plan.WildcardPolicy.ValueString()))
 	}
 	// NamespaceOwnershipPolicy can't be empty
-	if !common.IsStringAttributeUnknownOrEmpty(state.NamespaceOwnershipPolicy) {
-		ingressBuilder.RouteNamespaceOwnershipPolicy(cmv1.NamespaceOwnershipPolicy(state.NamespaceOwnershipPolicy.ValueString()))
+	if !common.IsStringAttributeUnknownOrEmpty(plan.NamespaceOwnershipPolicy) && state.NamespaceOwnershipPolicy != plan.NamespaceOwnershipPolicy {
+		ingressBuilder.RouteNamespaceOwnershipPolicy(cmv1.NamespaceOwnershipPolicy(plan.NamespaceOwnershipPolicy.ValueString()))
 	}
 	// LoadBalancer type can't be empty
-	if !common.IsStringAttributeUnknownOrEmpty(state.LoadBalancerType) {
-		ingressBuilder.LoadBalancerType(cmv1.LoadBalancerFlavor(state.LoadBalancerType.ValueString()))
+	if !common.IsStringAttributeUnknownOrEmpty(plan.LoadBalancerType) && state.LoadBalancerType != plan.LoadBalancerType {
+		ingressBuilder.LoadBalancerType(cmv1.LoadBalancerFlavor(plan.LoadBalancerType.ValueString()))
 	}
 	return ingressBuilder
 }

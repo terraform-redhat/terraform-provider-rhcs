@@ -27,6 +27,12 @@ func ListClusters(connection *client.Connection, parameters ...map[string]interf
 	return
 }
 
+// ListClusterResources will retrieve cluster detailed information about its resources based on the clusterID
+func ListClusterResources(connection *client.Connection, clusterID string) (*cmv1.ClusterResourcesGetResponse, error) {
+	request := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).Resources().Live().Get()
+	return request.Send()
+}
+
 // RetrieveClusterCredentials will return the response of cluster credentials
 func RetrieveClusterCredentials(connection *client.Connection, clusterID string) (*cmv1.CredentialsGetResponse, error) {
 	return connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).Credentials().Get().Send()
@@ -186,6 +192,14 @@ func ListIDPs(connection *client.Connection, clusterID string) (*cmv1.IdentityPr
 
 func DeleteIDP(connection *client.Connection, clusterID string, idpID string) (*cmv1.IdentityProviderDeleteResponse, error) {
 	return connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).IdentityProviders().IdentityProvider(idpID).Delete().Send()
+}
+
+func PatchIDP(connection *client.Connection, clusterID string, idpID string, patchBody *cmv1.IdentityProvider) (*cmv1.IdentityProviderUpdateResponse, error) {
+	return connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).IdentityProviders().IdentityProvider(idpID).Update().Body(patchBody).Send()
+}
+
+func CreateClusterIDP(connection *client.Connection, clusterID string, body *cmv1.IdentityProvider) (*cmv1.IdentityProvidersAddResponse, error) {
+	return connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).IdentityProviders().Add().Body(body).Send()
 }
 
 // RetrieveClusterCPUTotalByNodeRolesOS will return the physical cpu_total of the compute nodes of the cluster

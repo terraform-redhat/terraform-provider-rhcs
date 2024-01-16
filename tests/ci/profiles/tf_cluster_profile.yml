@@ -13,6 +13,7 @@ profiles:
     private_link: true
     private: true
     etcd_encryption: false
+    kms_key_arn: false
     fips: false
     autoscale: false
     byok: false
@@ -42,6 +43,7 @@ profiles:
     private_link: false
     private: false
     etcd_encryption: true
+    kms_key_arn: true
     fips: true
     autoscale: true
     byok: true
@@ -73,6 +75,7 @@ profiles:
     private_link: false
     private: false
     etcd_encryption: true
+    kms_key_arn: false
     fips: false
     autoscale: false
     byok: true

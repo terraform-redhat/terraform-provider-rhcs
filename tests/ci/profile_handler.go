@@ -43,7 +43,7 @@ type Profile struct {
 	PrivateLink           bool   `ini:"private_link,omitempty" json:"private_link,omitempty"`
 	Private               bool   `ini:"private,omitempty" json:"private,omitempty"`
 	BYOK                  bool   `ini:"byok,omitempty" json:"byok,omitempty"`
-	ETCDKMS               bool   `ini:"etcd_kms,omitempty" json:"etcd_kms,omitempty"`
+	KMSKey                bool   `ini:"kms_key_arn,omitempty" json:"kms_key_arn,omitempty"`
 	NetWorkingSet         bool   `ini:"networking_set,omitempty" json:"networking_set,omitempty"`
 	Proxy                 bool   `ini:"proxy,omitempty" json:"proxy,omitempty"`
 	Hypershift            bool   `ini:"hypershift,omitempty" json:"hypershift,omitempty"`
@@ -190,7 +190,27 @@ func PrepareVersion(connection *client.Connection, versionTag string, channelGro
 }
 func PrepareProxy() {}
 
-func PrepareKMSKey() {}
+func PrepareKMSKey(profile *Profile, kmsName string, accountRolePrefix string, accountRolePath string) (string, error) {
+	kmsService, err := EXE.NewKMSService()
+	kmsArgs := &EXE.KMSArgs{
+		KMSName:           kmsName,
+		AWSRegion:         profile.Region,
+		AccountRolePrefix: accountRolePrefix,
+		AccountRolePath:   accountRolePath,
+		TagKey:            "Purpose",
+		TagValue:          "RHCS automation test",
+		TagDescription:    "BYOK Test Key for API automation",
+	}
+
+	err = kmsService.Apply(kmsArgs, true)
+	if err != nil {
+		kmsService.Destroy()
+		return "", err
+	}
+	kmsOutput, err := kmsService.Output()
+
+	return kmsOutput.KeyARN, err
+}
 
 func PrepareRoute53() {}
 
@@ -348,6 +368,16 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 		}
 	}
 
+	if profile.KMSKey {
+		var kmskey string
+		kmskey, err = PrepareKMSKey(profile, clusterArgs.ClusterName, clusterArgs.AccountRolePrefix, profile.UnifiedAccRolesPath)
+		if err != nil {
+			return
+		}
+		clusterArgs.KmsKeyARN = kmskey
+
+	}
+
 	if profile.WorkerDiskSize != 0 {
 		clusterArgs.WorkerDiskSize = profile.WorkerDiskSize
 	}
@@ -486,6 +516,18 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 			return err
 		}
 
+	}
+	if profile.KMSKey {
+		//Destroy KMS Key
+		kmsService, err := EXE.NewKMSService()
+		if err != nil {
+			return err
+		}
+		kmsArgs := &EXE.KMSArgs{}
+		err = kmsService.Destroy(kmsArgs)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

@@ -28,6 +28,10 @@ jobs:
           echo "validating $message"
           if ! echo "$message" | grep -qE "^[A-Z]+-[0-9]+ \| (feat|fix|docs|style|refactor|test|chore|build|ci|perf): .*$"; then
             echo "Invalid commit message format. Expected format: JIRA_TICKET | TYPE: MESSAGE"
+            echo "Where:"
+            echo "   JIRA_TICKET is jira ticket ID (for example OCM-xxx)"
+            echo "   TYPE must be one of the options (case sensitive):"
+            echo "        feat, fix, docs, style, refactor, test, chore, build, ci, perf"
             exit 1
           fi
           done

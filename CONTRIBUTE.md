@@ -67,7 +67,7 @@ to follow [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/#
 
 The commit message should follow this template:
 ```shell
-<type>[JIRA-TICKET] | [TYPE]: <MESSAGE>
+[JIRA-TICKET] | [TYPE]: <MESSAGE>
 
 [optional BODY]
 

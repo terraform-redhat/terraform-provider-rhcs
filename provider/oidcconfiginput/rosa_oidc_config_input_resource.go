@@ -18,10 +18,11 @@ package oidcconfiginput
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	rosaoidcconfig "github.com/openshift/rosa/pkg/helper/oidc_config"
+	rosaOidcConfig "github.com/openshift-online/ocm-common/pkg/rosa/oidcconfigs"
 )
 
 type RosaOidcConfigInputResource struct {
@@ -95,7 +96,7 @@ func (o *RosaOidcConfigInputResource) Create(ctx context.Context, request resour
 	}
 
 	region := state.Region.ValueString()
-	oidcConfigInput, err := rosaoidcconfig.BuildOidcConfigInput("", region)
+	oidcConfigInput, err := rosaOidcConfig.BuildOidcConfigInput("", region)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Cannot generate oidc config input object",

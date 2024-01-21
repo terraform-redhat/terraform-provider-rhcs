@@ -195,7 +195,27 @@ func GetMajorVersion(rawVersion string) string {
 	return vResult
 }
 
-func PrepareProxy() {}
+func PrepareProxy(region string, VPCID string, subnetPublicID string) (*EXE.ProxyOutput, error) {
+	proxyService, err := EXE.NewProxyService()
+	if err != nil {
+		return nil, err
+	}
+	proxyArgs := &EXE.ProxyArgs{
+		Region:              region,
+		VPCID:               VPCID,
+		PublicSubnetID:      subnetPublicID,
+		TrustBundleFilePath: path.Join(cfg.RhcsOutputDir, "ca.cert"),
+	}
+
+	err = proxyService.Apply(proxyArgs, true)
+	if err != nil {
+		// proxyService.Destroy()
+		return nil, err
+	}
+	proxyOutput, err := proxyService.Output()
+
+	return &proxyOutput, err
+}
 
 func PrepareKMSKey(profile *Profile, kmsName string, accountRolePrefix string, accountRolePath string) (string, error) {
 	kmsService, err := EXE.NewKMSService()
@@ -292,10 +312,6 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 		// ToDo
 	}
 
-	if profile.Proxy {
-		// ToDo
-	}
-
 	if profile.ClusterName != "" {
 		clusterArgs.ClusterName = profile.ClusterName
 	} else {
@@ -329,6 +345,7 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 	if profile.BYOVPC {
 		var zones []string
 		var vpcOutput *EXE.VPCOutput
+		var sgIDs []string
 
 		// Supports ENV set passed to make cluster provision more flexy in prow
 		// Export the subnetIDs via env variable if you have existing ones export SubnetIDs=<subnet1>,<subnet2>,<subnet3>
@@ -363,7 +380,6 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 			}
 			clusterArgs.MachineCIDR = vpcOutput.VPCCIDR
 			if profile.AdditionalSGNumber != 0 {
-				var sgIDs []string
 				// Prepare profile.AdditionalSGNumber+5 security groups for negative testing
 				sgIDs, err = PrepareAdditionalSecurityGroups(profile.Region, vpcOutput.VPCID, profile.AdditionalSGNumber+5)
 				if err != nil {
@@ -372,6 +388,22 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 				clusterArgs.AdditionalComputeSecurityGroups = sgIDs[0:profile.AdditionalSGNumber]
 				clusterArgs.AdditionalInfraSecurityGroups = sgIDs[0:profile.AdditionalSGNumber]
 				clusterArgs.AdditionalControlPlaneSecurityGroups = sgIDs[0:profile.AdditionalSGNumber]
+			}
+
+			// in case Proxy is enabled
+			if profile.Proxy {
+				var proxyOutput *EXE.ProxyOutput
+				proxyOutput, err = PrepareProxy(profile.Region, vpcOutput.VPCID, vpcOutput.ClusterPublicSubnets[0])
+				if err != nil {
+					return
+				}
+				proxy := EXE.Proxy{
+					AdditionalTrustBundle: proxyOutput.AdditionalTrustBundle,
+					HTTPSProxy:            proxyOutput.HttpsProxy,
+					HTTPProxy:             proxyOutput.HttpProxy,
+					NoProxy:               proxyOutput.NoProxy,
+				}
+				clusterArgs.Proxy = &proxy
 			}
 		}
 	}
@@ -478,6 +510,15 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 
 	// Destroy VPC
 	if profile.BYOVPC {
+		if profile.Proxy {
+			proxyService, _ := EXE.NewProxyService()
+			err := proxyService.Destroy(&EXE.ProxyArgs{
+				Region: profile.Region,
+			})
+			if err != nil {
+				return err
+			}
+		}
 		if profile.AdditionalSGNumber != 0 {
 			sgService := EXE.NewSecurityGroupService()
 			sgArgs := &EXE.SecurityGroupArgs{
@@ -497,6 +538,7 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 		if err != nil {
 			return err
 		}
+
 	}
 	if profile.STS {
 		// Destroy oidc and operator roles

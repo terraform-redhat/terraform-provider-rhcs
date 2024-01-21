@@ -44,7 +44,7 @@ profiles:
     private: false
     etcd_encryption: true
     kms_key_arn: true
-    fips: true
+    fips: false
     autoscale: true
     byok: true
     version: "latest"

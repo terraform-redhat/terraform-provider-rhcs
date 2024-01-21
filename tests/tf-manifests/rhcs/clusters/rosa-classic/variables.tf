@@ -152,8 +152,8 @@ variable "custom_properties" {
 
 variable "proxy" {
   type = object({
-    http_proxy              = string
-    https_proxy             = string
+    http_proxy              = optional(string)
+    https_proxy             = optional(string)
     additional_trust_bundle = optional(string)
     no_proxy                = optional(string)
   })

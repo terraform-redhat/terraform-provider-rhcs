@@ -102,6 +102,7 @@ var (
 	AWSVPCDir                            = path.Join(ConfigrationDir, AWSProviderDIR, "vpc")
 	AWSVPCTagDir                         = path.Join(ConfigrationDir, AWSProviderDIR, "vpc-tags")
 	AWSSecurityGroupDir                  = path.Join(ConfigrationDir, AWSProviderDIR, "security-groups")
+	ProxyDir                             = path.Join(ConfigrationDir, AWSProviderDIR, "proxy")
 	KMSDir                               = path.Join(ConfigrationDir, AWSProviderDIR, "kms")
 )
 

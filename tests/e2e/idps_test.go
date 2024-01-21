@@ -723,7 +723,6 @@ var _ = Describe("TF Test", func() {
 					By("Validate idp can't be created without upercase letter in password")
 
 					passwordInvalid = h.Subfix(3)
-					fmt.Println("blaaa::", passwordInvalid)
 					htpasswdMap = []interface{}{map[string]string{
 						"username": userName, "password": password},
 						map[string]string{"username": usernameInvalid,

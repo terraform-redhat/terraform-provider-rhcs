@@ -7,11 +7,12 @@ terraform {
   }
 }
 
-
-
 provider "aws" {
   region = var.aws_region
 }
+
+
+
 module "web_server_sg" {
   count  = var.sg_number
   source = "terraform-aws-modules/security-group/aws//modules/http-80"
@@ -20,6 +21,6 @@ module "web_server_sg" {
   description = var.description
   vpc_id      = var.vpc_id
 
-  ingress_cidr_blocks = ["10.10.0.0/16"]
+  ingress_cidr_blocks = ["11.0.0.0/16"]
 }
 

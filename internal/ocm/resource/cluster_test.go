@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 	kmsArnRegexpValidator "github.com/openshift-online/ocm-common/pkg/resource/validations"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/rosa"
 )
 
 var _ = Describe("Cluster", func() {
@@ -194,17 +195,17 @@ var _ = Describe("Cluster", func() {
 	})
 	Context("CreateAWSBuilder validation", func() {
 		It("PrivateLink true subnets IDs empty - failure", func() {
-			err := cluster.CreateAWSBuilder(nil, nil, nil, true, nil, nil, nil, nil, nil, nil, nil, nil)
+			err := cluster.CreateAWSBuilder(rosa.Classic, nil, nil, nil, true, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("Clusters with PrivateLink must have a pre-configured VPC. Make sure to specify the subnet ids."))
 		})
 		It("PrivateLink false invalid kmsKeyARN - failure", func() {
-			err := cluster.CreateAWSBuilder(nil, nil, pointer("test"), false, nil, nil, nil, nil, nil, nil, nil, nil)
+			err := cluster.CreateAWSBuilder(rosa.Classic, nil, nil, pointer("test"), false, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal(fmt.Sprintf("expected the kms-key-arn: %s to match %s", "test", kmsArnRegexpValidator.KmsArnRE)))
 		})
 		It("PrivateLink false empty kmsKeyARN - success", func() {
-			err := cluster.CreateAWSBuilder(nil, nil, nil, false, nil, nil, nil, nil, nil, nil, nil, nil)
+			err := cluster.CreateAWSBuilder(rosa.Classic, nil, nil, nil, false, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -219,7 +220,7 @@ var _ = Describe("Cluster", func() {
 		})
 		It("PrivateLink false invalid Ec2MetadataHttpTokens - success", func() {
 			// TODO Need to add validation for Ec2MetadataHttpTokens
-			err := cluster.CreateAWSBuilder(nil, pointer("test"), nil, false, nil, nil, nil, nil, nil, nil, nil, nil)
+			err := cluster.CreateAWSBuilder(rosa.Classic, nil, pointer("test"), nil, false, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -245,9 +246,9 @@ var _ = Describe("Cluster", func() {
 			oidcConfigID := "1234567dgsdfgh"
 			sts := CreateSTS(installerRole, supportRole, masterRole, workerRole,
 				operatorRolePrefix, pointer(oidcConfigID))
-			err := cluster.CreateAWSBuilder(map[string]string{"key1": "val1"},
+			err := cluster.CreateAWSBuilder(rosa.Classic, map[string]string{"key1": "val1"},
 				pointer(string(cmv1.Ec2MetadataHttpTokensRequired)),
-				pointer(validKmsKey), true, pointer(accountID),
+				pointer(validKmsKey), true, pointer(accountID), nil,
 				sts, subnets, nil, nil, nil, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
@@ -287,9 +288,9 @@ var _ = Describe("Cluster", func() {
 			oidcConfigID := "1234567dgsdfgh"
 			sts := CreateSTS(installerRole, supportRole, masterRole, workerRole,
 				operatorRolePrefix, pointer(oidcConfigID))
-			err := cluster.CreateAWSBuilder(map[string]string{"key1": "val1"},
+			err := cluster.CreateAWSBuilder(rosa.Classic, map[string]string{"key1": "val1"},
 				pointer(string(cmv1.Ec2MetadataHttpTokensRequired)),
-				pointer(validKmsKey), true, pointer(accountID),
+				pointer(validKmsKey), true, pointer(accountID), nil,
 				sts, subnets, &privateHZId, &privateHZRoleArn, nil, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
@@ -312,9 +313,9 @@ var _ = Describe("Cluster", func() {
 			oidcConfigID := "1234567dgsdfgh"
 			sts := CreateSTS(installerRole, supportRole, masterRole, workerRole,
 				operatorRolePrefix, pointer(oidcConfigID))
-			err := cluster.CreateAWSBuilder(map[string]string{"key1": "val1"},
+			err := cluster.CreateAWSBuilder(rosa.Classic, map[string]string{"key1": "val1"},
 				pointer(string(cmv1.Ec2MetadataHttpTokensRequired)),
-				pointer(validKmsKey), true, pointer(accountID),
+				pointer(validKmsKey), true, pointer(accountID), nil,
 				sts, subnets, &privateHZId, &privateHZRoleArn, nil, nil, nil)
 			Expect(err).To(HaveOccurred())
 		})
@@ -324,9 +325,9 @@ var _ = Describe("Cluster", func() {
 			subnets := []string{"subnet-1a1a1a1a1a1a1a1a1", "subnet-2b2b2b2b2b2b2b2b2", "subnet-3c3c3c3c3c3c3c3c3"}
 			privateHZRoleArn := "arn:aws:iam::111111111111:role/aaa-hosted-zone-Role"
 			privateHZId := "123123"
-			err := cluster.CreateAWSBuilder(map[string]string{"key1": "val1"},
+			err := cluster.CreateAWSBuilder(rosa.Classic, map[string]string{"key1": "val1"},
 				pointer(string(cmv1.Ec2MetadataHttpTokensRequired)),
-				pointer(validKmsKey), true, pointer(accountID),
+				pointer(validKmsKey), true, pointer(accountID), nil,
 				nil, subnets, &privateHZId, &privateHZRoleArn, nil, nil, nil)
 			Expect(err).To(HaveOccurred())
 		})
@@ -343,9 +344,9 @@ var _ = Describe("Cluster", func() {
 			oidcConfigID := "1234567dgsdfgh"
 			sts := CreateSTS(installerRole, supportRole, masterRole, workerRole,
 				operatorRolePrefix, pointer(oidcConfigID))
-			err := cluster.CreateAWSBuilder(map[string]string{"key1": "val1"},
+			err := cluster.CreateAWSBuilder(rosa.Classic, map[string]string{"key1": "val1"},
 				pointer(string(cmv1.Ec2MetadataHttpTokensRequired)),
-				pointer(validKmsKey), true, pointer(accountID),
+				pointer(validKmsKey), true, pointer(accountID), nil,
 				sts, nil, &privateHZId, &privateHZRoleArn, nil, nil, nil)
 			Expect(err).To(HaveOccurred())
 		})

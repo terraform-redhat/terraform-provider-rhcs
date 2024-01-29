@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package clusterrosaclassic
+package classic
 
 import (
 	"context"
@@ -26,6 +26,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/rosa"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
@@ -72,12 +74,12 @@ func (r *ClusterRosaClassicDatasource) Schema(ctx context.Context, req datasourc
 			},
 			"sts": schema.SingleNestedAttribute{
 				Description: "STS configuration.",
-				Attributes:  stsDatasource(),
+				Attributes:  sts.ClassicStsDatasource(),
 				Computed:    true,
 			},
 			"multi_az": schema.BoolAttribute{
 				Description: "Indicates if the cluster should be deployed to " +
-					"multiple availability zones. Default value is 'false'. " + DefaultMachinePoolMessage,
+					"multiple availability zones. Default value is 'false'. " + rosa.GeneratePoolMessage(rosa.Classic),
 				Computed: true,
 			},
 			"disable_workload_monitoring": schema.BoolAttribute{
@@ -178,7 +180,7 @@ func (r *ClusterRosaClassicDatasource) Schema(ctx context.Context, req datasourc
 				Computed:    true,
 			},
 			"availability_zones": schema.ListAttribute{
-				Description: "Availability zones. " + DefaultMachinePoolMessage,
+				Description: "Availability zones. " + rosa.GeneratePoolMessage(rosa.Classic),
 				ElementType: types.StringType,
 				Computed:    true,
 			},
@@ -386,7 +388,7 @@ func (r *ClusterRosaClassicDatasource) Read(ctx context.Context, request datasou
 	state.DestroyTimeout = types.Int64Null()
 	state.UpgradeAcksFor = types.StringNull()
 	state.CreateAdminUser = types.BoolNull()
-	state.AdminCredentials = adminCredentialsNull()
+	state.AdminCredentials = rosa.AdminCredentialsNull()
 	state.WaitForCreateComplete = types.BoolNull()
 	state.AutoScalingEnabled = types.BoolNull()
 	state.MinReplicas = types.Int64Null()

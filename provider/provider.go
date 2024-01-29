@@ -34,7 +34,8 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cloudprovider"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cluster"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterautoscaler"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosaclassic"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/classic"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/hcp"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterwaiter"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/defaultingress"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/dnsdomain"
@@ -206,12 +207,13 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 		machinepool.New,
 		oidcconfig.New,
 		oidcconfiginput.New,
-		clusterrosaclassic.New,
+		classic.New,
 		identityprovider.New,
 		cluster.New,
 		clusterautoscaler.New,
 		defaultingress.New,
 		kubeletconfig.New,
+		hcp.New,
 	}
 }
 
@@ -224,7 +226,8 @@ func (p *Provider) DataSources(ctx context.Context) []func() datasource.DataSour
 		rosa_operator_roles.New,
 		versions.New,
 		info.New,
-		clusterrosaclassic.NewDataSource,
+		classic.NewDataSource,
 		machinepool.NewDatasource,
+		hcp.NewDataSource,
 	}
 }

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package clusterrosaclassic
+package classic
 
 import (
 	"context"
@@ -33,6 +33,8 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/rosa"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 )
@@ -147,7 +149,7 @@ func generateBasicRosaClassicClusterState() *ClusterRosaClassicState {
 			HttpProxy:  types.StringValue(httpProxy),
 			HttpsProxy: types.StringValue(httpsProxy),
 		},
-		Sts:         &Sts{},
+		Sts:         &sts.ClassicSts{},
 		Replicas:    types.Int64Value(2),
 		MinReplicas: types.Int64Null(),
 		MaxReplicas: types.Int64Null(),
@@ -337,7 +339,7 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 			username := "test-username"
 			password := "test-password123456789$"
 			clusterState := generateBasicRosaClassicClusterState()
-			clusterState.AdminCredentials = flattenAdminCredentials(username, "")
+			clusterState.AdminCredentials = rosa.FlattenAdminCredentials(username, "")
 			rosaClusterObject, err := createClassicClusterObject(context.Background(), clusterState, diag.Diagnostics{})
 			Expect(err).To(BeNil())
 			idp := rosaClusterObject.Htpasswd()

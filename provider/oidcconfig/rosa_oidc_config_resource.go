@@ -27,10 +27,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/openshift-online/ocm-common/pkg/rosa/oidcconfigs"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 
 type RosaOidcConfigResource struct {
@@ -367,7 +366,7 @@ func (o *RosaOidcConfigResource) populateState(ctx context.Context, object *cmv1
 	}
 	state.OIDCEndpointURL = types.StringValue(oidcEndpointURL)
 
-	thumbprint, err := common.GetThumbprint(issuerUrl, common.DefaultHttpClient{})
+	thumbprint, err := oidcconfigs.FetchThumbprint(issuerUrl)
 	if err != nil {
 		tflog.Error(ctx, fmt.Sprintf("cannot get thumbprint, with error: %v", err))
 		state.Thumbprint = types.StringValue("")

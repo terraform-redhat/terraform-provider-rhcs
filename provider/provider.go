@@ -45,7 +45,8 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/info"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/kubeletconfig"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/machine_types"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool"
+	machinepool "github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool/classic"
+	nodepool "github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool/hcp"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/ocm_policies"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfig"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfiginput"
@@ -214,6 +215,7 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 		defaultingress.New,
 		kubeletconfig.New,
 		hcp.New,
+		nodepool.New,
 	}
 }
 
@@ -229,5 +231,6 @@ func (p *Provider) DataSources(ctx context.Context) []func() datasource.DataSour
 		classic.NewDataSource,
 		machinepool.NewDatasource,
 		hcp.NewDataSource,
+		nodepool.NewDatasource,
 	}
 }

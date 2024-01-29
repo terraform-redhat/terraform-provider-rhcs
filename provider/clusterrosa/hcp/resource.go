@@ -395,7 +395,7 @@ func createHcpClusterObject(ctx context.Context,
 		return nil, err
 	}
 
-	if err := ocmClusterResource.CreateNodes(autoScalingEnabled, replicas, nil, nil,
+	if err := ocmClusterResource.CreateNodes(rosa.Hcp, autoScalingEnabled, replicas, nil, nil,
 		computeMachineType, nil, availabilityZones, true, nil); err != nil {
 		return nil, err
 	}

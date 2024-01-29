@@ -33,7 +33,7 @@ func (c *Cluster) Build() (object *cmv1.Cluster, err error) {
 	return c.clusterBuilder.Build()
 }
 
-func (c *Cluster) CreateNodes(autoScalingEnabled bool, replicas *int64, minReplicas *int64,
+func (c *Cluster) CreateNodes(clusterTopology rosa.ClusterTopology, autoScalingEnabled bool, replicas *int64, minReplicas *int64,
 	maxReplicas *int64, computeMachineType *string, labels map[string]string,
 	availabilityZones []string, multiAZ bool, workerDiskSize *int64) error {
 	nodes := cmv1.NewClusterNodes()
@@ -56,8 +56,11 @@ func (c *Cluster) CreateNodes(autoScalingEnabled bool, replicas *int64, minRepli
 	}
 
 	if availabilityZones != nil {
-		if err := validations.ValidateAvailabilityZonesCount(multiAZ, len(availabilityZones)); err != nil {
-			return err
+		// TODO Add availability zones count validation for HCP
+		if clusterTopology == rosa.Classic {
+			if err := validations.ValidateAvailabilityZonesCount(multiAZ, len(availabilityZones)); err != nil {
+				return err
+			}
 		}
 		nodes.AvailabilityZones(availabilityZones...)
 	}
@@ -72,16 +75,22 @@ func (c *Cluster) CreateNodes(autoScalingEnabled bool, replicas *int64, minRepli
 		if minReplicas != nil {
 			minReplicasVal = int(*minReplicas)
 		}
-		if err := validations.MinReplicasValidator(minReplicasVal, multiAZ, false, 0); err != nil {
-			return err
+		// TODO need to identify the private subnet or remove this validation from TF
+		if clusterTopology == rosa.Classic {
+			if err := validations.MinReplicasValidator(minReplicasVal, multiAZ, clusterTopology == rosa.Hcp, 0); err != nil {
+				return err
+			}
 		}
 		autoscaling.MinReplicas(minReplicasVal)
 		maxReplicasVal := 2
 		if maxReplicas != nil {
 			maxReplicasVal = int(*maxReplicas)
 		}
-		if err := validations.MaxReplicasValidator(minReplicasVal, maxReplicasVal, multiAZ, false, 0); err != nil {
-			return err
+		// TODO need to identify the private subnet or remove this validation from TF
+		if clusterTopology == rosa.Classic {
+			if err := validations.MaxReplicasValidator(minReplicasVal, maxReplicasVal, multiAZ, clusterTopology == rosa.Hcp, 0); err != nil {
+				return err
+			}
 		}
 		autoscaling.MaxReplicas(maxReplicasVal)
 		if !autoscaling.Empty() {
@@ -96,8 +105,11 @@ func (c *Cluster) CreateNodes(autoScalingEnabled bool, replicas *int64, minRepli
 		if replicas != nil {
 			replicasVal = int(*replicas)
 		}
-		if err := validations.MinReplicasValidator(replicasVal, multiAZ, false, 0); err != nil {
-			return err
+		// TODO need to identify the private subnet or remove this validation from TF
+		if clusterTopology == rosa.Classic {
+			if err := validations.MinReplicasValidator(replicasVal, multiAZ, clusterTopology == rosa.Hcp, 1); err != nil {
+				return err
+			}
 		}
 		nodes.Compute(replicasVal)
 	}

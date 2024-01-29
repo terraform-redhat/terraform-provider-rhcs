@@ -8,6 +8,7 @@ import (
 	"github.com/openshift-online/ocm-common/pkg/cluster/validations"
 	kmsArnRegexpValidator "github.com/openshift-online/ocm-common/pkg/resource/validations"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/rosa"
 )
 
 var privateHostedZoneRoleArnRE = regexp.MustCompile(
@@ -108,8 +109,10 @@ func (c *Cluster) CreateNodes(autoScalingEnabled bool, replicas *int64, minRepli
 	return nil
 }
 
-func (c *Cluster) CreateAWSBuilder(awsTags map[string]string, ec2MetadataHttpTokens *string, kmsKeyARN *string,
-	isPrivateLink bool, awsAccountID *string, stsBuilder *cmv1.STSBuilder, awsSubnetIDs []string,
+func (c *Cluster) CreateAWSBuilder(clusterTopology rosa.ClusterTopology,
+	awsTags map[string]string, ec2MetadataHttpTokens *string, kmsKeyARN *string,
+	isPrivateLink bool, awsAccountID *string, awsBillingAccountId *string,
+	stsBuilder *cmv1.STSBuilder, awsSubnetIDs []string,
 	privateHostedZoneID *string, privateHostedZoneRoleARN *string,
 	additionalComputeSecurityGroupIds []string,
 	additionalInfraSecurityGroupIds []string,
@@ -125,11 +128,13 @@ func (c *Cluster) CreateAWSBuilder(awsTags map[string]string, ec2MetadataHttpTok
 		awsBuilder.Tags(awsTags)
 	}
 
-	ec2MetadataHttpTokensVal := cmv1.Ec2MetadataHttpTokensOptional
-	if ec2MetadataHttpTokens != nil {
-		ec2MetadataHttpTokensVal = cmv1.Ec2MetadataHttpTokens(*ec2MetadataHttpTokens)
+	if clusterTopology == rosa.Classic {
+		ec2MetadataHttpTokensVal := cmv1.Ec2MetadataHttpTokensOptional
+		if ec2MetadataHttpTokens != nil {
+			ec2MetadataHttpTokensVal = cmv1.Ec2MetadataHttpTokens(*ec2MetadataHttpTokens)
+		}
+		awsBuilder.Ec2MetadataHttpTokens(ec2MetadataHttpTokensVal)
 	}
-	awsBuilder.Ec2MetadataHttpTokens(ec2MetadataHttpTokensVal)
 
 	err := c.ProcessKMSKeyARN(kmsKeyARN, awsBuilder)
 	if err != nil {
@@ -138,6 +143,10 @@ func (c *Cluster) CreateAWSBuilder(awsTags map[string]string, ec2MetadataHttpTok
 
 	if awsAccountID != nil {
 		awsBuilder.AccountID(*awsAccountID)
+	}
+
+	if clusterTopology == rosa.Hcp {
+		awsBuilder.BillingAccountID(*awsBillingAccountId)
 	}
 
 	awsBuilder.PrivateLink(isPrivateLink)
@@ -207,7 +216,9 @@ func CreateSTS(installerRoleARN, supportRoleARN, masterRoleARN, workerRoleARN,
 	sts.RoleARN(installerRoleARN)
 	sts.SupportRoleARN(supportRoleARN)
 	instanceIamRoles := cmv1.NewInstanceIAMRoles()
-	instanceIamRoles.MasterRoleARN(masterRoleARN)
+	if masterRoleARN != "" {
+		instanceIamRoles.MasterRoleARN(masterRoleARN)
+	}
 	instanceIamRoles.WorkerRoleARN(workerRoleARN)
 	sts.InstanceIAMRoles(instanceIamRoles)
 

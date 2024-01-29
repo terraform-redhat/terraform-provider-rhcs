@@ -13,19 +13,22 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package clusterrosaclassic
+package classic
 
 import (
 	"context"
 	"fmt"
+	"net/http"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/rosa"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
-	"net/http"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
@@ -71,12 +74,12 @@ func (r *ClusterRosaClassicDatasource) Schema(ctx context.Context, req datasourc
 			},
 			"sts": schema.SingleNestedAttribute{
 				Description: "STS configuration.",
-				Attributes:  stsDatasource(),
+				Attributes:  sts.ClassicStsDatasource(),
 				Computed:    true,
 			},
 			"multi_az": schema.BoolAttribute{
 				Description: "Indicates if the cluster should be deployed to " +
-					"multiple availability zones. Default value is 'false'. " + DefaultMachinePoolMessage,
+					"multiple availability zones. Default value is 'false'. " + rosa.GeneratePoolMessage(rosa.Classic),
 				Computed: true,
 			},
 			"disable_workload_monitoring": schema.BoolAttribute{
@@ -177,7 +180,7 @@ func (r *ClusterRosaClassicDatasource) Schema(ctx context.Context, req datasourc
 				Computed:    true,
 			},
 			"availability_zones": schema.ListAttribute{
-				Description: "Availability zones. " + DefaultMachinePoolMessage,
+				Description: "Availability zones. " + rosa.GeneratePoolMessage(rosa.Classic),
 				ElementType: types.StringType,
 				Computed:    true,
 			},

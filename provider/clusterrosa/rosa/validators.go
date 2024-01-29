@@ -1,4 +1,4 @@
-package clusterrosaclassic
+package rosa
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
 )
 
-var availabilityZoneValidator = attrvalidators.NewStringValidator("AZ should be valid for cloud_region", func(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+var AvailabilityZoneValidator = attrvalidators.NewStringValidator("AZ should be valid for cloud_region", func(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
 	az := req.ConfigValue.ValueString()
 	regionAttr := basetypes.StringValue{}
 	err := req.Config.GetAttribute(ctx, path.Root("cloud_region"), &regionAttr)
@@ -29,7 +29,7 @@ var availabilityZoneValidator = attrvalidators.NewStringValidator("AZ should be 
 	}
 })
 
-var privateHZValidator = attrvalidators.NewObjectValidator("proxy map should not include an hard coded OCM proxy",
+var PrivateHZValidator = attrvalidators.NewObjectValidator("proxy map should not include an hard coded OCM proxy",
 	func(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
 		if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
 			return
@@ -51,7 +51,7 @@ var privateHZValidator = attrvalidators.NewObjectValidator("proxy map should not
 
 	})
 
-var propertiesValidator = attrvalidators.NewMapValidator("properties map should not include an hard coded OCM properties",
+var PropertiesValidator = attrvalidators.NewMapValidator("properties map should not include an hard coded OCM properties",
 	func(ctx context.Context, req validator.MapRequest, resp *validator.MapResponse) {
 		if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
 			return

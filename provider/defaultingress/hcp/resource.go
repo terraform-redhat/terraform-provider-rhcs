@@ -1,4 +1,4 @@
-package defaultingress
+package hcp
 
 import (
 	"context"
@@ -6,8 +6,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -23,15 +21,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
 )
 
-var validWildcardPolicies = []string{string(cmv1.WildcardPolicyWildcardsDisallowed),
-	string(cmv1.WildcardPolicyWildcardsAllowed)}
-var defaultWildcardPolicy = cmv1.WildcardPolicyWildcardsDisallowed
-
-var validNamespaceOwnershipPolicies = []string{string(cmv1.NamespaceOwnershipPolicyStrict),
-	string(cmv1.NamespaceOwnershipPolicyInterNamespaceAllowed)}
-var defaultNamespaceOwnershipPolicy = cmv1.NamespaceOwnershipPolicyStrict
-
-var validLbTypes = []string{string(cmv1.LoadBalancerFlavorClassic), string(cmv1.LoadBalancerFlavorNlb)}
+var validListeningMethods = []string{string(cmv1.ListeningMethodExternal), string(cmv1.ListeningMethodInternal)}
 
 type DefaultIngressResource struct {
 	collection  *cmv1.ClustersClient
@@ -47,7 +37,7 @@ var _ resource.ResourceWithImportState = &DefaultIngressResource{}
 var _ resource.ResourceWithConfigure = &DefaultIngressResource{}
 
 func (r *DefaultIngressResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_default_ingress"
+	resp.TypeName = req.ProviderTypeName + "_hcp_default_ingress"
 }
 
 func (r *DefaultIngressResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -68,53 +58,11 @@ func (r *DefaultIngressResource) Schema(ctx context.Context, req resource.Schema
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"route_selectors": schema.MapAttribute{
-				Description: "Route Selectors for ingress. Format should be a comma-separated list of 'key=value'. " +
-					"If no label is specified, all routes will be exposed on both routers." +
-					"For legacy ingress support these are inclusion labels, otherwise they are treated as exclusion label.",
-
-				ElementType: types.StringType,
-				Optional:    true,
-				Validators:  []validator.Map{attrvalidators.NotEmptyMapValidator()},
-			},
-			"excluded_namespaces": schema.ListAttribute{
-				Description: "Excluded namespaces for ingress. Format should be a comma-separated list 'value1, value2...'. " +
-					"If no values are specified, all namespaces will be exposed.",
-				ElementType: types.StringType,
-				Optional:    true,
-				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
-				},
-			},
-			"route_wildcard_policy": schema.StringAttribute{
-				Description: fmt.Sprintf("Wildcard Policy for ingress. Options are %s. Default is '%s'.",
-					strings.Join(validWildcardPolicies, ","), defaultWildcardPolicy),
-				Optional:   true,
-				Computed:   true,
-				Validators: []validator.String{attrvalidators.EnumValueValidator(validWildcardPolicies)},
-			},
-			"route_namespace_ownership_policy": schema.StringAttribute{
-				Description: fmt.Sprintf("Namespace Ownership Policy for ingress. Options are %s. Default is '%s'.",
-					strings.Join(validNamespaceOwnershipPolicies, ","), defaultNamespaceOwnershipPolicy),
-				Optional:   true,
-				Computed:   true,
-				Validators: []validator.String{attrvalidators.EnumValueValidator(validNamespaceOwnershipPolicies)},
-			},
-			"cluster_routes_hostname": schema.StringAttribute{
-				Description: "Components route hostname for oauth, console, download.",
-				Optional:    true,
-				Validators:  []validator.String{stringvalidator.LengthAtLeast(1)},
-			},
-			"load_balancer_type": schema.StringAttribute{
-				Description: fmt.Sprintf("Type of Load Balancer. Options are %s.", strings.Join(validLbTypes, ",")),
-				Optional:    true,
-				Computed:    true,
-				Validators:  []validator.String{attrvalidators.EnumValueValidator(validLbTypes)},
-			},
-			"cluster_routes_tls_secret_ref": schema.StringAttribute{
-				Description: "Components route TLS secret reference for oauth, console, download.",
-				Optional:    true,
-				Validators:  []validator.String{stringvalidator.LengthAtLeast(1)},
+			"listening_method": schema.StringAttribute{
+				Description: fmt.Sprintf("Listening Method for apps ingress. Options are %s.",
+					strings.Join(validListeningMethods, ",")),
+				Required:   true,
+				Validators: []validator.String{attrvalidators.EnumValueValidator(validListeningMethods)},
 			},
 		},
 	}
@@ -319,48 +267,7 @@ func (r *DefaultIngressResource) populateState(ingress *cmv1.Ingress, state *Def
 		state = &DefaultIngress{}
 	}
 	state.Id = types.StringValue(ingress.ID())
-	routeSelectors, ok := ingress.GetRouteSelectors()
-	var err error
-	if ok {
-		state.RouteSelectors, err = common.ConvertStringMapToMapType(routeSelectors)
-		if err != nil {
-			return err
-		}
-	}
-
-	excludedNamespaces, ok := ingress.GetExcludedNamespaces()
-	if ok {
-		state.ExcludedNamespaces, err = common.StringArrayToList(excludedNamespaces)
-		if err != nil {
-			return err
-		}
-	}
-	wp, ok := ingress.GetRouteWildcardPolicy()
-	if ok {
-		state.WildcardPolicy = types.StringValue(string(wp))
-	} else {
-		state.WildcardPolicy = types.StringNull()
-	}
-	rnmop, _ := ingress.GetRouteNamespaceOwnershipPolicy()
-	state.NamespaceOwnershipPolicy = types.StringValue(string(rnmop))
-	if ok {
-		state.NamespaceOwnershipPolicy = types.StringValue(string(rnmop))
-	} else {
-		state.NamespaceOwnershipPolicy = types.StringNull()
-	}
-	hostname, ok := ingress.GetClusterRoutesHostname()
-	if ok {
-		state.ClusterRoutesHostname = types.StringValue(hostname)
-	} else {
-		state.ClusterRoutesHostname = types.StringNull()
-	}
-	tls, ok := ingress.GetClusterRoutesTlsSecretRef()
-	if ok {
-		state.ClusterRoutesTlsSecretRef = types.StringValue(tls)
-	} else {
-		state.ClusterRoutesTlsSecretRef = types.StringNull()
-	}
-	state.LoadBalancerType = types.StringValue(string(ingress.LoadBalancerType()))
+	state.ListeningMethod = types.StringValue(string(ingress.Listening()))
 
 	return nil
 }
@@ -391,21 +298,6 @@ func (r *DefaultIngressResource) updateIngress(ctx context.Context, state, plan 
 
 		ingressBuilder := getDefaultIngressBuilder(ctx, state, plan)
 
-		if !reflect.DeepEqual(state.ClusterRoutesHostname, plan.ClusterRoutesHostname) {
-			value := ""
-			if !plan.ClusterRoutesHostname.IsNull() {
-				value = plan.ClusterRoutesHostname.ValueString()
-			}
-			ingressBuilder.ClusterRoutesHostname(value)
-		}
-		if !reflect.DeepEqual(state.ClusterRoutesTlsSecretRef, plan.ClusterRoutesTlsSecretRef) {
-			value := ""
-			if !plan.ClusterRoutesTlsSecretRef.IsNull() {
-				value = plan.ClusterRoutesTlsSecretRef.ValueString()
-			}
-			ingressBuilder.ClusterRoutesTlsSecretRef(value)
-		}
-
 		ingress, err := ingressBuilder.Build()
 		if err != nil {
 			return err
@@ -427,42 +319,12 @@ func (r *DefaultIngressResource) updateIngress(ctx context.Context, state, plan 
 
 func getDefaultIngressBuilder(ctx context.Context, state, plan *DefaultIngress) *cmv1.IngressBuilder {
 	ingressBuilder := cmv1.NewIngress()
-	if !reflect.DeepEqual(state.RouteSelectors, plan.RouteSelectors) {
-		routeSelectors, err := common.OptionalMap(ctx, plan.RouteSelectors)
-		if err != nil {
-			return nil
-		}
-		if routeSelectors == nil {
-			routeSelectors = map[string]string{}
-		}
-		ingressBuilder.RouteSelectors(routeSelectors)
-	}
-	if !reflect.DeepEqual(state.ExcludedNamespaces, plan.ExcludedNamespaces) {
-		excludedNamespace := common.OptionalList(plan.ExcludedNamespaces)
-		ingressBuilder.ExcludedNamespaces(excludedNamespace...)
-	}
-
-	// wildcard policy can't be empty
-	if !common.IsStringAttributeUnknownOrEmpty(plan.WildcardPolicy) && state.WildcardPolicy != plan.WildcardPolicy {
-		ingressBuilder.RouteWildcardPolicy(cmv1.WildcardPolicy(plan.WildcardPolicy.ValueString()))
-	}
-	// NamespaceOwnershipPolicy can't be empty
-	if !common.IsStringAttributeUnknownOrEmpty(plan.NamespaceOwnershipPolicy) && state.NamespaceOwnershipPolicy != plan.NamespaceOwnershipPolicy {
-		ingressBuilder.RouteNamespaceOwnershipPolicy(cmv1.NamespaceOwnershipPolicy(plan.NamespaceOwnershipPolicy.ValueString()))
-	}
-	// LoadBalancer type can't be empty
-	if !common.IsStringAttributeUnknownOrEmpty(plan.LoadBalancerType) && state.LoadBalancerType != plan.LoadBalancerType {
-		ingressBuilder.LoadBalancerType(cmv1.LoadBalancerFlavor(plan.LoadBalancerType.ValueString()))
+	if !common.IsStringAttributeUnknownOrEmpty(plan.ListeningMethod) && state.ListeningMethod != plan.ListeningMethod {
+		ingressBuilder.Listening(cmv1.ListeningMethod(plan.ListeningMethod.ValueString()))
 	}
 	return ingressBuilder
 }
 
 func validateDefaultIngress(ctx context.Context, state *DefaultIngress) error {
-	if common.IsStringAttributeUnknownOrEmpty(state.ClusterRoutesHostname) != common.IsStringAttributeUnknownOrEmpty(state.ClusterRoutesTlsSecretRef) {
-		msg := fmt.Sprintf("default_ingress params: cluster_routes_hostname and cluster_routes_tls_secret_ref must be set together")
-		tflog.Error(ctx, msg)
-		return fmt.Errorf(msg)
-	}
-
 	return nil
 }

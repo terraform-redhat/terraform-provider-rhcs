@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package clusterautoscaler
+package classic
 
 import (
 	"context"
@@ -32,6 +32,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/autoscaler"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 
@@ -101,7 +102,7 @@ func (r *ClusterAutoscalerResource) Schema(ctx context.Context, req resource.Sch
 			"max_node_provision_time": schema.StringAttribute{
 				Description: "Maximum time cluster-autoscaler waits for node to be provisioned.",
 				Optional:    true,
-				Validators:  []validator.String{durationStringValidator("max node provision time validation")},
+				Validators:  []validator.String{autoscaler.DurationStringValidator("max node provision time validation")},
 			},
 			"balancing_ignored_labels": schema.ListAttribute{
 				Description: "This option specifies labels that cluster autoscaler should ignore when " +
@@ -121,9 +122,9 @@ func (r *ClusterAutoscalerResource) Schema(ctx context.Context, req resource.Sch
 							"not grow the cluster beyond this number.",
 						Optional: true,
 					},
-					"cores": rangeAttribute("Minimum and maximum number of cores in cluster, in the format <min>:<max>. "+
+					"cores": autoscaler.RangeAttribute("Minimum and maximum number of cores in cluster, in the format <min>:<max>. "+
 						"Cluster autoscaler will not scale the cluster beyond these numbers.", false, true),
-					"memory": rangeAttribute("Minimum and maximum number of gigabytes of memory in cluster, in "+
+					"memory": autoscaler.RangeAttribute("Minimum and maximum number of gigabytes of memory in cluster, in "+
 						"the format <min>:<max>. Cluster autoscaler will not scale the cluster beyond "+
 						"these numbers.", false, true),
 					"gpus": schema.ListNestedAttribute{
@@ -136,7 +137,7 @@ func (r *ClusterAutoscalerResource) Schema(ctx context.Context, req resource.Sch
 								"type": schema.StringAttribute{
 									Required: true,
 								},
-								"range": rangeAttribute("limit number of GPU type", true, false),
+								"range": autoscaler.RangeAttribute("limit number of GPU type", true, false),
 							},
 						},
 						Validators: []validator.List{
@@ -162,23 +163,23 @@ func (r *ClusterAutoscalerResource) Schema(ctx context.Context, req resource.Sch
 							"by capacity, below which a node can be considered for scale down.",
 						Optional: true,
 						Validators: []validator.String{
-							stringFloatRangeValidator("utilization threshold validation", 0.0, 1.0),
+							autoscaler.StringFloatRangeValidator("utilization threshold validation", 0.0, 1.0),
 						},
 					},
 					"delay_after_add": schema.StringAttribute{
 						Description: "How long after scale up that scale down evaluation resumes.",
 						Optional:    true,
-						Validators:  []validator.String{durationStringValidator("delay after add validation")},
+						Validators:  []validator.String{autoscaler.DurationStringValidator("delay after add validation")},
 					},
 					"delay_after_delete": schema.StringAttribute{
 						Description: "How long after node deletion that scale down evaluation resumes.",
 						Optional:    true,
-						Validators:  []validator.String{durationStringValidator("delay after delete validation")},
+						Validators:  []validator.String{autoscaler.DurationStringValidator("delay after delete validation")},
 					},
 					"delay_after_failure": schema.StringAttribute{
 						Description: "How long after scale down failure that scale down evaluation resumes.",
 						Optional:    true,
-						Validators:  []validator.String{durationStringValidator("delay after failure validation")},
+						Validators:  []validator.String{autoscaler.DurationStringValidator("delay after failure validation")},
 					},
 				},
 			},
@@ -468,7 +469,7 @@ func populateAutoscalerState(object *cmv1.ClusterAutoscaler, clusterId string, s
 
 		cores := object.ResourceLimits().Cores()
 		if cores != nil {
-			state.ResourceLimits.Cores = &AutoscalerResourceRange{
+			state.ResourceLimits.Cores = &autoscaler.ResourceRange{
 				Min: types.Int64Value(int64(cores.Min())),
 				Max: types.Int64Value(int64(cores.Max())),
 			}
@@ -476,7 +477,7 @@ func populateAutoscalerState(object *cmv1.ClusterAutoscaler, clusterId string, s
 
 		memory := object.ResourceLimits().Memory()
 		if memory != nil {
-			state.ResourceLimits.Memory = &AutoscalerResourceRange{
+			state.ResourceLimits.Memory = &autoscaler.ResourceRange{
 				Min: types.Int64Value(int64(memory.Min())),
 				Max: types.Int64Value(int64(memory.Max())),
 			}
@@ -491,7 +492,7 @@ func populateAutoscalerState(object *cmv1.ClusterAutoscaler, clusterId string, s
 					state.ResourceLimits.GPUS,
 					AutoscalerGPULimit{
 						Type: types.StringValue(gpu.Type()),
-						Range: AutoscalerResourceRange{
+						Range: autoscaler.ResourceRange{
 							Min: types.Int64Value(int64(gpu.Range().Min())),
 							Max: types.Int64Value(int64(gpu.Range().Max())),
 						},

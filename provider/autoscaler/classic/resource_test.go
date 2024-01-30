@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package clusterautoscaler
+package classic
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/ginkgo/v2" // nolint
 	. "github.com/onsi/gomega"    // nolint
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/autoscaler"
 )
 
 var _ = Describe("Cluster Autoscaler", func() {
@@ -32,7 +33,7 @@ var _ = Describe("Cluster Autoscaler", func() {
 				types.StringValue("l1"),
 				types.StringValue("l2"),
 			})
-			autoscaler, err := cmv1.NewClusterAutoscaler().
+			autoscalerSpec, err := cmv1.NewClusterAutoscaler().
 				BalanceSimilarNodeGroups(true).
 				SkipNodesWithLocalStorage(true).
 				LogVerbosity(1).
@@ -72,7 +73,7 @@ var _ = Describe("Cluster Autoscaler", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			var state ClusterAutoscalerState
-			populateAutoscalerState(autoscaler, clusterId, &state)
+			populateAutoscalerState(autoscalerSpec, clusterId, &state)
 
 			Expect(state).To(Equal(ClusterAutoscalerState{
 				Cluster:                     types.StringValue(clusterId),
@@ -86,25 +87,25 @@ var _ = Describe("Cluster Autoscaler", func() {
 				BalancingIgnoredLabels:      balIgnLables,
 				ResourceLimits: &AutoscalerResourceLimits{
 					MaxNodesTotal: types.Int64Value(10),
-					Cores: &AutoscalerResourceRange{
+					Cores: &autoscaler.ResourceRange{
 						Min: types.Int64Value(0),
 						Max: types.Int64Value(1),
 					},
-					Memory: &AutoscalerResourceRange{
+					Memory: &autoscaler.ResourceRange{
 						Min: types.Int64Value(2),
 						Max: types.Int64Value(3),
 					},
 					GPUS: []AutoscalerGPULimit{
 						{
 							Type: types.StringValue("nvidia"),
-							Range: AutoscalerResourceRange{
+							Range: autoscaler.ResourceRange{
 								Min: types.Int64Value(0),
 								Max: types.Int64Value(1),
 							},
 						},
 						{
 							Type: types.StringValue("intel"),
-							Range: AutoscalerResourceRange{
+							Range: autoscaler.ResourceRange{
 								Min: types.Int64Value(2),
 								Max: types.Int64Value(3),
 							},
@@ -165,25 +166,25 @@ var _ = Describe("Cluster Autoscaler", func() {
 				BalancingIgnoredLabels:      balIgnLables,
 				ResourceLimits: &AutoscalerResourceLimits{
 					MaxNodesTotal: types.Int64Value(10),
-					Cores: &AutoscalerResourceRange{
+					Cores: &autoscaler.ResourceRange{
 						Min: types.Int64Value(0),
 						Max: types.Int64Value(1),
 					},
-					Memory: &AutoscalerResourceRange{
+					Memory: &autoscaler.ResourceRange{
 						Min: types.Int64Value(2),
 						Max: types.Int64Value(3),
 					},
 					GPUS: []AutoscalerGPULimit{
 						{
 							Type: types.StringValue("nvidia"),
-							Range: AutoscalerResourceRange{
+							Range: autoscaler.ResourceRange{
 								Min: types.Int64Value(0),
 								Max: types.Int64Value(1),
 							},
 						},
 						{
 							Type: types.StringValue("intel"),
-							Range: AutoscalerResourceRange{
+							Range: autoscaler.ResourceRange{
 								Min: types.Int64Value(2),
 								Max: types.Int64Value(3),
 							},

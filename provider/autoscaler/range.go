@@ -14,14 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package clusterautoscaler
+package autoscaler
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 )
 
-func rangeAttribute(description string, required bool, optional bool) schema.SingleNestedAttribute {
+func RangeAttribute(description string, required bool, optional bool) schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Description: description,
 		Required:    required,
@@ -35,7 +35,7 @@ func rangeAttribute(description string, required bool, optional bool) schema.Sin
 			},
 		},
 		Validators: []validator.Object{
-			rangeValidator(description),
+			RangeValidator(description),
 		},
 	}
 }

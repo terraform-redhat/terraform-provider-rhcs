@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package clusterautoscaler
+package autoscaler
 
 import (
 	"context"
@@ -28,7 +28,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
 )
 
-func stringFloatRangeValidator(desc string, min float64, max float64) validator.String {
+func StringFloatRangeValidator(desc string, min float64, max float64) validator.String {
 	return attrvalidators.NewStringValidator(desc, func(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
 		attribute := &types.String{}
 		diag := req.Config.GetAttribute(ctx, req.Path, attribute)
@@ -63,10 +63,10 @@ func stringFloatRangeValidator(desc string, min float64, max float64) validator.
 	})
 }
 
-func rangeValidator(desc string) validator.Object {
+func RangeValidator(desc string) validator.Object {
 	return attrvalidators.NewObjectValidator("min and max must be not negative values and max must be greater or equal to min",
 		func(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
-			resourceRange := &AutoscalerResourceRange{}
+			resourceRange := &ResourceRange{}
 			diag := req.Config.GetAttribute(ctx, req.Path, resourceRange)
 			if diag.HasError() {
 				// No attribute to validate
@@ -95,7 +95,7 @@ func rangeValidator(desc string) validator.Object {
 		})
 }
 
-func durationStringValidator(desc string) validator.String {
+func DurationStringValidator(desc string) validator.String {
 	return attrvalidators.NewStringValidator(desc, func(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
 		attribute := &types.String{}
 		diag := req.Config.GetAttribute(ctx, req.Path, attribute)

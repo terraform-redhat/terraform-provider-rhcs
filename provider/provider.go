@@ -31,9 +31,10 @@ import (
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 	"github.com/terraform-redhat/terraform-provider-rhcs/logging"
+	classicAutoscaler "github.com/terraform-redhat/terraform-provider-rhcs/provider/autoscaler/classic"
+	hcpAutoscaler "github.com/terraform-redhat/terraform-provider-rhcs/provider/autoscaler/hcp"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cloudprovider"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cluster"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterautoscaler"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/classic"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/hcp"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterwaiter"
@@ -213,13 +214,14 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 		classic.New,
 		identityprovider.New,
 		cluster.New,
-		clusterautoscaler.New,
+		classicAutoscaler.New,
 		defaultingress.New,
 		kubeletconfig.New,
 		hcp.New,
 		nodepool.New,
 		hcpingress.New,
 		tuningconfigs.New,
+		hcpAutoscaler.New,
 	}
 }
 

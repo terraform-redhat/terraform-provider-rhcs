@@ -14,10 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package clusterautoscaler
+package classic
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/autoscaler"
 )
 
 type ClusterAutoscalerState struct {
@@ -34,21 +35,16 @@ type ClusterAutoscalerState struct {
 	ScaleDown                   *AutoscalerScaleDownConfig `tfsdk:"scale_down"`
 }
 
-type AutoscalerResourceRange struct {
-	Min types.Int64 `tfsdk:"min"`
-	Max types.Int64 `tfsdk:"max"`
-}
-
 type AutoscalerResourceLimits struct {
-	MaxNodesTotal types.Int64              `tfsdk:"max_nodes_total"`
-	Cores         *AutoscalerResourceRange `tfsdk:"cores"`
-	Memory        *AutoscalerResourceRange `tfsdk:"memory"`
-	GPUS          []AutoscalerGPULimit     `tfsdk:"gpus"`
+	MaxNodesTotal types.Int64               `tfsdk:"max_nodes_total"`
+	Cores         *autoscaler.ResourceRange `tfsdk:"cores"`
+	Memory        *autoscaler.ResourceRange `tfsdk:"memory"`
+	GPUS          []AutoscalerGPULimit      `tfsdk:"gpus"`
 }
 
 type AutoscalerGPULimit struct {
-	Type  types.String            `tfsdk:"type"`
-	Range AutoscalerResourceRange `tfsdk:"range"`
+	Type  types.String             `tfsdk:"type"`
+	Range autoscaler.ResourceRange `tfsdk:"range"`
 }
 
 type AutoscalerScaleDownConfig struct {

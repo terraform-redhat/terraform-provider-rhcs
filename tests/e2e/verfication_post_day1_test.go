@@ -296,6 +296,9 @@ var _ = Describe("TF Test", func() {
 			})
 			Context("Author:amalykhi-Medium-OCP-63334 @OCP-63334 @amalykhi", func() {
 				It("Build a ROSA cluster with customer-managed KMS key", ci.Day1Post, ci.Medium, func() {
+					if !profile.KMSKey {
+						Skip("The test is configured only for the profile containing the KMS key")
+					}
 					By("Check the kmsKeyARN")
 					listRSresp, err := cms.ListClusterResources(ci.RHCSConnection, clusterID)
 					Expect(err).ToNot(HaveOccurred())

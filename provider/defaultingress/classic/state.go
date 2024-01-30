@@ -1,4 +1,4 @@
-package defaultingress
+package classic
 
 import "github.com/hashicorp/terraform-plugin-framework/types"
 

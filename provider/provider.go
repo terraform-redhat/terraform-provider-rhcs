@@ -37,7 +37,8 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/classic"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/hcp"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterwaiter"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/defaultingress"
+	defaultingress "github.com/terraform-redhat/terraform-provider-rhcs/provider/defaultingress/classic"
+	hcpingress "github.com/terraform-redhat/terraform-provider-rhcs/provider/defaultingress/hcp"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/dnsdomain"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/group"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/groupmembership"
@@ -216,6 +217,7 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 		kubeletconfig.New,
 		hcp.New,
 		nodepool.New,
+		hcpingress.New,
 	}
 }
 

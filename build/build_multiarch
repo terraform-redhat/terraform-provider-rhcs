@@ -25,7 +25,7 @@ do
     cp terraform-registry-manifest.json releases/terraform-provider-rhcs_${REL_VER}_manifest.json
   done
 done
-sha256sum releases/*zip releases/terraform-provider-rhcs_${REL_VER}_manifest.json > releases/terraform-provider-rhcs_${REL_VER}_SHA256SUMS
+cd releases && sha256sum *zip terraform-provider-rhcs_${REL_VER}_manifest.json > terraform-provider-rhcs_${REL_VER}_SHA256SUMS
 }
 
 prepare_release

@@ -52,6 +52,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfig"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfiginput"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/rosa_operator_roles"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/tuningconfigs"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/versions"
 )
 
@@ -218,6 +219,7 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 		hcp.New,
 		nodepool.New,
 		hcpingress.New,
+		tuningconfigs.New,
 	}
 }
 

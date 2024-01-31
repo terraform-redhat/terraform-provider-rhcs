@@ -50,7 +50,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 
 	ocmr "github.com/terraform-redhat/terraform-provider-rhcs/internal/ocm/resource"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/classic/upgrade"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/hcp/upgrade"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/rosa"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
@@ -984,7 +984,8 @@ func (r *ClusterRosaHcpResource) upgradeClusterIfNeeded(ctx context.Context, sta
 	}
 
 	// Stop if an upgrade is already in progress
-	correctUpgradePending, err := upgrade.CheckAndCancelUpgrades(ctx, r.clusterCollection, upgrades, desiredVersion)
+	correctUpgradePending, err := upgrade.CheckAndCancelUpgrades(
+		ctx, r.clusterCollection, upgrades, desiredVersion)
 	if err != nil {
 		return err
 	}
@@ -1003,12 +1004,8 @@ func (r *ClusterRosaHcpResource) upgradeClusterIfNeeded(ctx context.Context, sta
 }
 
 func (r *ClusterRosaHcpResource) validateUpgrade(ctx context.Context, state, plan *ClusterRosaHcpState) error {
-	// Make sure the desired version is available
-	versionId := fmt.Sprintf("openshift-v%s", state.CurrentVersion.ValueString())
-	if common.HasValue(state.ChannelGroup) && state.ChannelGroup.ValueString() != ocmConsts.DefaultChannelGroup {
-		versionId += "-" + state.ChannelGroup.ValueString()
-	}
-	availableVersions, err := upgrade.GetAvailableUpgradeVersions(ctx, r.versionCollection, versionId)
+	availableVersions, err := upgrade.GetAvailableUpgradeVersions(
+		ctx, r.clusterCollection, r.versionCollection, state.ID.ValueString())
 	if err != nil {
 		return fmt.Errorf("failed to get available upgrades: %v", err)
 	}
@@ -1045,7 +1042,7 @@ func scheduleUpgrade(ctx context.Context, client *cmv1.ClustersClient, clusterID
 	// in an error return. ROSA cli does this by scheduling once w/ dryRun
 	// to look for un-acked agreements.
 	clusterClient := client.Cluster(clusterID)
-	upgradePoliciesClient := clusterClient.UpgradePolicies()
+	upgradePoliciesClient := clusterClient.ControlPlane().UpgradePolicies()
 	gates, description, err := upgrade.CheckMissingAgreements(desiredVersion.String(), clusterID, upgradePoliciesClient)
 	if err != nil {
 		return fmt.Errorf("failed to check for missing upgrade agreements: %v", err)
@@ -1077,7 +1074,7 @@ func scheduleUpgrade(ctx context.Context, client *cmv1.ClustersClient, clusterID
 
 	// Schedule an upgrade
 	tenMinFromNow := time.Now().UTC().Add(10 * time.Minute)
-	newPolicy, err := cmv1.NewUpgradePolicy().
+	newPolicy, err := cmv1.NewControlPlaneUpgradePolicy().
 		ScheduleType("manual").
 		Version(desiredVersion.String()).
 		NextRun(tenMinFromNow).
@@ -1085,7 +1082,7 @@ func scheduleUpgrade(ctx context.Context, client *cmv1.ClustersClient, clusterID
 	if err != nil {
 		return fmt.Errorf("failed to create upgrade policy: %v", err)
 	}
-	_, err = clusterClient.UpgradePolicies().
+	_, err = clusterClient.ControlPlane().UpgradePolicies().
 		Add().
 		Body(newPolicy).
 		SendContext(ctx)

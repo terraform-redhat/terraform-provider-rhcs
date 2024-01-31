@@ -22,7 +22,9 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 
+	semver "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -40,6 +42,7 @@ import (
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool/hcp/upgrade"
 )
 
 // This is a magic name to trigger special handling for the cluster's default
@@ -51,8 +54,9 @@ var nodePoolNameRE = regexp.MustCompile(
 )
 
 type HcpMachinePoolResource struct {
-	collection  *cmv1.ClustersClient
-	clusterWait common.ClusterWait
+	clusterCollection *cmv1.ClustersClient
+	versionCollection *cmv1.VersionsClient
+	clusterWait       common.ClusterWait
 }
 
 var _ resource.ResourceWithConfigure = &HcpMachinePoolResource{}
@@ -148,14 +152,14 @@ func (r *HcpMachinePoolResource) Schema(ctx context.Context, req resource.Schema
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"status": schema.SingleNestedAttribute{
-				Description: "HCP replica status",
-				Attributes:  NodePoolStatusResource(),
-				Computed:    true,
-				PlanModifiers: []planmodifier.Object{
-					objectplanmodifier.UseStateForUnknown(),
-				},
-			},
+			// "status": schema.SingleNestedAttribute{
+			// 	Description: "HCP replica status",
+			// 	Attributes:  NodePoolStatusResource(),
+			// 	Computed:    true,
+			// 	PlanModifiers: []planmodifier.Object{
+			// 		objectplanmodifier.UseStateForUnknown(),
+			// 	},
+			// },
 			"aws_node_pool": schema.SingleNestedAttribute{
 				Description: "AWS settings for node pool",
 				Attributes:  AwsNodePoolResource(),
@@ -186,6 +190,12 @@ func (r *HcpMachinePoolResource) Schema(ctx context.Context, req resource.Schema
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"upgrade_acknowledgements_for": schema.StringAttribute{
+				Description: "Indicates acknowledgement of agreements required to upgrade the cluster version between" +
+					" minor versions (e.g. a value of \"4.12\" indicates acknowledgement of any agreements required to " +
+					"upgrade to OpenShift 4.12.z from 4.11 or before).",
+				Optional: true,
+			},
 		},
 	}
 }
@@ -213,8 +223,9 @@ func (r *HcpMachinePoolResource) Configure(ctx context.Context, req resource.Con
 		return
 	}
 
-	r.collection = connection.ClustersMgmt().V1().Clusters()
-	r.clusterWait = common.NewClusterWait(r.collection)
+	r.clusterCollection = connection.ClustersMgmt().V1().Clusters()
+	r.versionCollection = connection.ClustersMgmt().V1().Versions()
+	r.clusterWait = common.NewClusterWait(r.clusterCollection)
 }
 
 func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -258,7 +269,7 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 	}
 
 	// Create the machine pool:
-	resource := r.collection.Cluster(plan.Cluster.ValueString())
+	resource := r.clusterCollection.Cluster(plan.Cluster.ValueString())
 	builder := cmv1.NewNodePool().ID(plan.ID.ValueString())
 	builder.ID(plan.Name.ValueString())
 
@@ -396,7 +407,7 @@ func (r *HcpMachinePoolResource) magicImport(ctx context.Context, plan *HcpMachi
 	}
 	plan.ID = types.StringValue(nodePoolName)
 
-	notFound, diags := readState(ctx, state, r.collection)
+	notFound, diags := readState(ctx, state, r.clusterCollection)
 	if notFound {
 		// We disallow creating a machine pool with the default name. This
 		// case can only happen if the default machine pool was deleted and
@@ -434,7 +445,7 @@ func (r *HcpMachinePoolResource) Read(ctx context.Context, req resource.ReadRequ
 		return
 	}
 
-	notFound, diags := readState(ctx, state, r.collection)
+	notFound, diags := readState(ctx, state, r.clusterCollection)
 	if notFound {
 		// If we can't find the machine pool, it was deleted. Remove if from the
 		// state and don't return an error so the TF apply() will automatically
@@ -547,7 +558,7 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 		return diags
 	}
 
-	resource := r.collection.Cluster(state.Cluster.ValueString()).
+	resource := r.clusterCollection.Cluster(state.Cluster.ValueString()).
 		NodePools().
 		NodePool(state.ID.ValueString())
 	_, err := resource.Get().SendContext(ctx)
@@ -560,6 +571,15 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 					"cluster '%s': %v",
 				state.ID.ValueString(), state.Cluster.ValueString(), err,
 			),
+		)
+		return diags
+	}
+
+	// Schedule a cluster upgrade if a newer version is requested
+	if err := r.upgradeMachinePoolIfNeeded(ctx, state, plan); err != nil {
+		diags.AddError(
+			"Can't upgrade cluster",
+			fmt.Sprintf("Can't upgrade cluster version with identifier: `%s`, %v", state.ID.ValueString(), err),
 		)
 		return diags
 	}
@@ -657,7 +677,7 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 		)
 		return diags
 	}
-	update, err := r.collection.Cluster(state.Cluster.ValueString()).
+	update, err := r.clusterCollection.Cluster(state.Cluster.ValueString()).
 		NodePools().
 		NodePool(state.ID.ValueString()).Update().Body(nodePool).SendContext(ctx)
 	if err != nil {
@@ -690,6 +710,189 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 		return diags
 	}
 	return diags
+}
+
+// Upgrades the cluster if the desired (plan) version is greater than the
+// current version
+func (r *HcpMachinePoolResource) upgradeMachinePoolIfNeeded(ctx context.Context, state, plan *HcpMachinePoolState) error {
+	if common.IsStringAttributeUnknownOrEmpty(plan.Version) || common.IsStringAttributeUnknownOrEmpty(state.CurrentVersion) {
+		// No version information, nothing to do
+		tflog.Debug(ctx, "Insufficient cluster version information to determine if upgrade should be performed.")
+		return nil
+	}
+
+	tflog.Debug(ctx, "HCP Machine Pool versions",
+		map[string]interface{}{
+			"current_version": state.CurrentVersion.ValueString(),
+			"plan-version":    plan.Version.ValueString(),
+			"state-version":   state.Version.ValueString(),
+		})
+
+	// See if the user has changed the requested version for this run
+	requestedVersionChanged := true
+	if !common.IsStringAttributeUnknownOrEmpty(plan.Version) && !common.IsStringAttributeUnknownOrEmpty(state.Version) {
+		if plan.Version.ValueString() == state.Version.ValueString() {
+			requestedVersionChanged = false
+		}
+	}
+
+	// Check the versions to see if we need to upgrade
+	currentVersion, err := semver.NewVersion(state.CurrentVersion.ValueString())
+	if err != nil {
+		return fmt.Errorf("failed to parse current cluster version: %v", err)
+	}
+	// For backward compatibility
+	// In case version format with "openshift-v" was already used
+	// remove the prefix to adapt the right format and avoid failure
+	fixedVersion := strings.TrimPrefix(plan.Version.ValueString(), "openshift-v")
+	desiredVersion, err := semver.NewVersion(fixedVersion)
+	if err != nil {
+		return fmt.Errorf("failed to parse desired cluster version: %v", err)
+	}
+	if currentVersion.GreaterThan(desiredVersion) {
+		tflog.Debug(ctx, "No cluster version upgrade needed.")
+		if requestedVersionChanged {
+			// User changed the version they want, but actual is higher. We
+			// don't support downgrades.
+			return fmt.Errorf("cluster version is already above the requested version")
+		}
+		return nil
+	}
+	cancelingUpgradeOnly := desiredVersion.Equal(currentVersion)
+
+	if !cancelingUpgradeOnly {
+		if err = r.validateUpgrade(ctx, state, plan); err != nil {
+			return err
+		}
+	}
+
+	// Fetch existing upgrade policies
+	upgrades, err := upgrade.GetScheduledUpgrades(ctx, r.clusterCollection,
+		state.Cluster.ValueString(), state.ID.ValueString())
+	if err != nil {
+		return fmt.Errorf("failed to get upgrade policies: %v", err)
+	}
+
+	// Stop if an upgrade is already in progress
+	correctUpgradePending, err := upgrade.CheckAndCancelUpgrades(
+		ctx, r.clusterCollection, upgrades, desiredVersion)
+	if err != nil {
+		return err
+	}
+
+	// Schedule a new upgrade
+	if !correctUpgradePending && !cancelingUpgradeOnly {
+		ackString := plan.UpgradeAcksFor.ValueString()
+		if err = scheduleUpgrade(ctx, r.clusterCollection,
+			state.Cluster.ValueString(), state.ID.ValueString(), desiredVersion, ackString); err != nil {
+			return err
+		}
+	}
+
+	state.Version = plan.Version
+	state.UpgradeAcksFor = plan.UpgradeAcksFor
+	return nil
+}
+
+func (r *HcpMachinePoolResource) validateUpgrade(ctx context.Context, state, plan *HcpMachinePoolState) error {
+	availableVersions, err := upgrade.GetAvailableUpgradeVersions(
+		ctx, r.clusterCollection, r.versionCollection, state.Cluster.ValueString(), state.ID.ValueString())
+	if err != nil {
+		return fmt.Errorf("failed to get available upgrades: %v", err)
+	}
+	trimmedDesiredVersion := strings.TrimPrefix(plan.Version.ValueString(), "openshift-v")
+	desiredVersion, err := semver.NewVersion(trimmedDesiredVersion)
+	if err != nil {
+		return fmt.Errorf("failed to parse desired version: %v", err)
+	}
+	found := false
+	for _, v := range availableVersions {
+		sem, err := semver.NewVersion(v.RawID())
+		if err != nil {
+			return fmt.Errorf("failed to parse available upgrade version: %v", err)
+		}
+		if desiredVersion.Equal(sem) {
+			found = true
+			break
+		}
+	}
+	if !found {
+		avail := []string{}
+		for _, v := range availableVersions {
+			avail = append(avail, v.RawID())
+		}
+		return fmt.Errorf("desired version (%s) is not in the list of available upgrades (%v)", desiredVersion, avail)
+	}
+
+	return nil
+}
+
+// Ensure user has acked upgrade gates and schedule the upgrade
+func scheduleUpgrade(ctx context.Context, client *cmv1.ClustersClient,
+	clusterID string, machinePoolId string, desiredVersion *semver.Version, userAckString string) error {
+	// Gate agreements are checked when the upgrade is scheduled, resulting
+	// in an error return. ROSA cli does this by scheduling once w/ dryRun
+	// to look for un-acked agreements.
+	clusterClient := client.Cluster(clusterID)
+	upgradePoliciesClient := clusterClient.NodePools().NodePool(machinePoolId).UpgradePolicies()
+	gates, description, err := upgrade.CheckMissingAgreements(desiredVersion.String(), clusterID, upgradePoliciesClient)
+	if err != nil {
+		return fmt.Errorf("failed to check for missing upgrade agreements: %v", err)
+	}
+	// User ack is required if we have any non-STS-only gates
+	userAckRequired := false
+	for _, gate := range gates {
+		if !gate.STSOnly() {
+			userAckRequired = true
+		}
+	}
+	targetMinorVersion := getOcmVersionMinor(desiredVersion.String())
+	if userAckRequired && userAckString != targetMinorVersion { // User has not acknowledged mandatory gates, stop here.
+		return fmt.Errorf("%s\nTo acknowledge these items, please add \"upgrade_acknowledgements_for = %s\""+
+			" and re-apply the changes", description, targetMinorVersion)
+	}
+
+	// Ack all gates to OCM
+	for _, gate := range gates {
+		gateID := gate.ID()
+		tflog.Debug(ctx, "Acknowledging version gate", map[string]interface{}{"gateID": gateID})
+		gateAgreementsClient := clusterClient.GateAgreements()
+		err := upgrade.AckVersionGate(gateAgreementsClient, gateID)
+		if err != nil {
+			return fmt.Errorf("failed to acknowledge version gate '%s' for cluster '%s': %v",
+				gateID, clusterID, err)
+		}
+	}
+
+	// Schedule an upgrade
+	tenMinFromNow := time.Now().UTC().Add(10 * time.Minute)
+	newPolicy, err := cmv1.NewNodePoolUpgradePolicy().
+		ScheduleType(cmv1.ScheduleTypeManual).
+		Version(desiredVersion.String()).
+		NextRun(tenMinFromNow).
+		Build()
+	if err != nil {
+		return fmt.Errorf("failed to create upgrade policy: %v", err)
+	}
+	_, err = upgradePoliciesClient.
+		Add().
+		Body(newPolicy).
+		SendContext(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to schedule upgrade: %v", err)
+	}
+	return nil
+}
+
+// TODO: move to ocm commons
+func getOcmVersionMinor(ver string) string {
+	version, err := semver.NewVersion(ver)
+	if err != nil {
+		segments := strings.Split(ver, ".")
+		return fmt.Sprintf("%s.%s", segments[0], segments[1])
+	}
+	segments := version.Segments()
+	return fmt.Sprintf("%d.%d", segments[0], segments[1])
 }
 
 func getAutoscaling(state *HcpMachinePoolState, mpBuilder *cmv1.NodePoolBuilder) (
@@ -733,7 +936,7 @@ func (r *HcpMachinePoolResource) Delete(ctx context.Context, req resource.Delete
 	}
 
 	// Send the request to delete the machine pool:
-	resource := r.collection.Cluster(state.Cluster.ValueString()).
+	resource := r.clusterCollection.Cluster(state.Cluster.ValueString()).
 		NodePools().
 		NodePool(state.ID.ValueString())
 	_, err := resource.Delete().SendContext(ctx)
@@ -774,7 +977,7 @@ func (r *HcpMachinePoolResource) Delete(ctx context.Context, req resource.Delete
 
 // countPools returns the number of machine pools in the given cluster
 func (r *HcpMachinePoolResource) countPools(ctx context.Context, clusterID string) (int, error) {
-	resource := r.collection.Cluster(clusterID).MachinePools()
+	resource := r.clusterCollection.Cluster(clusterID).MachinePools()
 	resp, err := resource.List().SendContext(ctx)
 	if err != nil {
 		return 0, err
@@ -868,12 +1071,13 @@ func populateState(object *cmv1.NodePool, state *HcpMachinePoolState) error {
 	state.SubnetID = types.StringValue(object.Subnet())
 	state.AvailabilityZone = types.StringValue(object.AvailabilityZone())
 
-	if object.Status() != nil {
-		state.NodePoolStatus.CurrentReplicas = types.Int64Value(int64(object.Status().CurrentReplicas()))
-		if object.Status().Message() != "" {
-			state.NodePoolStatus.Message = types.StringValue(object.Status().Message())
-		}
-	}
+	// if object.Status() != nil {
+	// 	state.NodePoolStatus = new(NodePoolStatus)
+	// 	state.NodePoolStatus.CurrentReplicas = types.Int64Value(int64(object.Status().CurrentReplicas()))
+	// 	if object.Status().Message() != "" {
+	// 		state.NodePoolStatus.Message = types.StringValue(object.Status().Message())
+	// 	}
+	// }
 
 	if len(object.TuningConfigs()) > 0 {
 		tuningConfigsList, err := common.StringArrayToList(object.TuningConfigs())
@@ -881,6 +1085,8 @@ func populateState(object *cmv1.NodePool, state *HcpMachinePoolState) error {
 			return err
 		}
 		state.TuningConfigs = tuningConfigsList
+	} else {
+		state.TuningConfigs = types.ListNull(types.StringType)
 	}
 
 	if object.Version() != nil {

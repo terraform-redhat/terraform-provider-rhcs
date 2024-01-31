@@ -146,11 +146,11 @@ func (r *HcpMachinePoolDatasource) Schema(ctx context.Context, req datasource.Sc
 				Attributes:  AwsNodePoolDatasource(),
 				Optional:    true,
 			},
-			// "tuning_configs": schema.ListAttribute{
-			// 	Description: "A list of tuning configs attached to the replica.",
-			// 	ElementType: types.StringType,
-			// 	Optional:    true,
-			// },
+			"tuning_configs": schema.ListAttribute{
+				Description: "A list of tuning configs attached to the replica.",
+				ElementType: types.StringType,
+				Optional:    true,
+			},
 			"auto_repair": schema.BoolAttribute{
 				Description: "Indicates use of autor repair for replica",
 				Optional:    true,
@@ -184,6 +184,8 @@ func (r *HcpMachinePoolDatasource) Read(ctx context.Context, req datasource.Read
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	state.UpgradeAcksFor = types.StringNull()
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }

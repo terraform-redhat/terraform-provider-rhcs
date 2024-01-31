@@ -767,6 +767,7 @@ func validateHttpTokensVersion(ctx context.Context, state *ClusterRosaClassicSta
 	return nil
 }
 
+// TODO: move to ocm commons
 func getOcmVersionMinor(ver string) string {
 	version, err := semver.NewVersion(ver)
 	if err != nil {
@@ -1322,7 +1323,7 @@ func scheduleUpgrade(ctx context.Context, client *cmv1.ClustersClient, clusterID
 	// Schedule an upgrade
 	tenMinFromNow := time.Now().UTC().Add(10 * time.Minute)
 	newPolicy, err := cmv1.NewUpgradePolicy().
-		ScheduleType("manual").
+		ScheduleType(cmv1.ScheduleTypeManual).
 		Version(desiredVersion.String()).
 		NextRun(tenMinFromNow).
 		Build()

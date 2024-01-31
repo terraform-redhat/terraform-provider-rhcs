@@ -562,6 +562,7 @@ func (r *ClusterRosaHcpResource) getAndValidateVersionInChannelGroup(ctx context
 	return "", fmt.Errorf("version %s is not in the list of supported versions: %v", version, versionList)
 }
 
+// TODO: move to ocm commons
 func getOcmVersionMinor(ver string) string {
 	version, err := semver.NewVersion(ver)
 	if err != nil {
@@ -1075,7 +1076,7 @@ func scheduleUpgrade(ctx context.Context, client *cmv1.ClustersClient, clusterID
 	// Schedule an upgrade
 	tenMinFromNow := time.Now().UTC().Add(10 * time.Minute)
 	newPolicy, err := cmv1.NewControlPlaneUpgradePolicy().
-		ScheduleType("manual").
+		ScheduleType(cmv1.ScheduleTypeManual).
 		Version(desiredVersion.String()).
 		NextRun(tenMinFromNow).
 		Build()

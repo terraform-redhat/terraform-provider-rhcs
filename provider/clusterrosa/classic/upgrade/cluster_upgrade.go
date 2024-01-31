@@ -111,7 +111,7 @@ func GetScheduledUpgrades(ctx context.Context, client *cmv1.ClustersClient, clus
 	// For each upgrade policy, get its state
 	for _, policy := range upgradePolicies {
 		// We only care about OSD upgrades (i.e., not CVE upgrades)
-		if policy.UpgradeType() != "OSD" {
+		if policy.UpgradeType() != cmv1.UpgradeTypeOSD {
 			continue
 		}
 		resp, err := upgradeClient.UpgradePolicy(policy.ID()).
@@ -185,7 +185,7 @@ func AckVersionGate(
 func CheckMissingAgreements(version string,
 	clusterKey string, upgradePoliciesClient *cmv1.UpgradePoliciesClient) ([]*cmv1.VersionGate, string, error) {
 	upgradePolicyBuilder := cmv1.NewUpgradePolicy().
-		ScheduleType("manual").
+		ScheduleType(cmv1.ScheduleTypeManual).
 		Version(version)
 	upgradePolicy, err := upgradePolicyBuilder.Build()
 	if err != nil {

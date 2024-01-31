@@ -169,7 +169,6 @@ var _ = Describe("TF Test", func() {
 				taint1 := map[string]string{"key": "k2", "value": "val2", "schedule_type": con.NoSchedule}
 				taint2 := map[string]string{"key": "k3", "value": "val3", "schedule_type": con.PreferNoSchedule}
 				taints := []map[string]string{taint0, taint1}
-				emptyTaints := []map[string]string{}
 				MachinePoolArgs := &exe.MachinePoolArgs{
 					Cluster:     clusterID,
 					Replicas:    &replicas,
@@ -212,7 +211,7 @@ var _ = Describe("TF Test", func() {
 				}
 
 				By("Delete the taints of the machinepool")
-				MachinePoolArgs.Taints = &emptyTaints
+				MachinePoolArgs.Taints = nil
 				_, err = mpService.Apply(MachinePoolArgs, false)
 				Expect(err).ToNot(HaveOccurred())
 

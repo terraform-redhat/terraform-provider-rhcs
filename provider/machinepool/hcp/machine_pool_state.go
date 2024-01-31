@@ -35,10 +35,12 @@ type HcpMachinePoolState struct {
 	Version        types.String `tfsdk:"version"`
 	CurrentVersion types.String `tfsdk:"current_version"`
 
-	NodePoolStatus NodePoolStatus `tfsdk:"status"`
-	AWSNodePool    *AWSNodePool   `tfsdk:"aws_node_pool"`
-	TuningConfigs  types.List     `tfsdk:"tuning_configs"`
-	AutoRepair     types.Bool     `tfsdk:"auto_repair"`
+	UpgradeAcksFor types.String `tfsdk:"upgrade_acknowledgements_for"`
+
+	// NodePoolStatus *NodePoolStatus `tfsdk:"status"`
+	AWSNodePool   *AWSNodePool `tfsdk:"aws_node_pool"`
+	TuningConfigs types.List   `tfsdk:"tuning_configs"`
+	AutoRepair    types.Bool   `tfsdk:"auto_repair"`
 }
 
 type Taints struct {

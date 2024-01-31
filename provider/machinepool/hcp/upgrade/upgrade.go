@@ -29,26 +29,37 @@ import (
 	"github.com/zgalor/weberr"
 )
 
-type ControlPlaneUpgrade struct {
-	Policy      *cmv1.ControlPlaneUpgradePolicy
+type MachinePoolUpgrade struct {
+	Policy      *cmv1.NodePoolUpgradePolicy
 	PolicyState *cmv1.UpgradePolicyState
 }
 
 // Get the available upgrade versions that are reachable from a given starting
 // version
-func GetAvailableUpgradeVersions(ctx context.Context, clustersClient *cmv1.ClustersClient, versionClient *cmv1.VersionsClient, clusterId string) ([]*cmv1.Version, error) {
+func GetAvailableUpgradeVersions(
+	ctx context.Context,
+	clustersClient *cmv1.ClustersClient,
+	versionClient *cmv1.VersionsClient,
+	clusterId string, nodePoolId string) ([]*cmv1.Version, error) {
+	clusterResp, err := clustersClient.Cluster(clusterId).Get().SendContext(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get cluster information: %v", err)
+	}
 	// Retrieve info about the current version
-	resp, err := clustersClient.Cluster(clusterId).Get().SendContext(ctx)
+	resp, err := clustersClient.Cluster(clusterId).
+		NodePools().NodePool(nodePoolId).
+		Get().SendContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get version information: %v", err)
 	}
-	cluster := resp.Body()
-	version := cluster.Version()
+	nodePool := resp.Body()
+	cluster := clusterResp.Body()
+	version := nodePool.Version()
 
 	// Cycle through the available upgrades and find the ones that are HCP enabled
 	availableUpgradeVersions := []*cmv1.Version{}
 	for _, v := range version.AvailableUpgrades() {
-		id := ocmUtils.CreateVersionId(v, version.ChannelGroup())
+		id := ocmUtils.CreateVersionId(v, cluster.Version().ChannelGroup())
 		resp, err := versionClient.Version(id).
 			Get().
 			Send()
@@ -65,12 +76,13 @@ func GetAvailableUpgradeVersions(ctx context.Context, clustersClient *cmv1.Clust
 }
 
 // Get the list of upgrade policies associated with a cluster
-func GetScheduledUpgrades(ctx context.Context, client *cmv1.ClustersClient, clusterId string) ([]ControlPlaneUpgrade, error) {
-	upgrades := []ControlPlaneUpgrade{}
+func GetScheduledUpgrades(ctx context.Context,
+	client *cmv1.ClustersClient, clusterId string, machinePoolId string) ([]MachinePoolUpgrade, error) {
+	upgrades := []MachinePoolUpgrade{}
 
 	// Get the upgrade policies for the cluster
-	upgradePolicies := []*cmv1.ControlPlaneUpgradePolicy{}
-	upgradeClient := client.Cluster(clusterId).ControlPlane().UpgradePolicies()
+	upgradePolicies := []*cmv1.NodePoolUpgradePolicy{}
+	upgradeClient := client.Cluster(clusterId).NodePools().NodePool(machinePoolId).UpgradePolicies()
 	page := 1
 	size := 100
 	for {
@@ -90,17 +102,17 @@ func GetScheduledUpgrades(ctx context.Context, client *cmv1.ClustersClient, clus
 
 	// For each upgrade policy, get its state
 	for _, policy := range upgradePolicies {
-		if policy.UpgradeType() != cmv1.UpgradeTypeControlPlane {
+		if policy.UpgradeType() != cmv1.UpgradeTypeNodePool {
 			continue
 		}
-		resp, err := upgradeClient.ControlPlaneUpgradePolicy(policy.ID()).
+		resp, err := upgradeClient.NodePoolUpgradePolicy(policy.ID()).
 			Get().
 			SendContext(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get upgrade policy state: %v", err)
 		}
 		state := resp.Body().State()
-		upgrades = append(upgrades, ControlPlaneUpgrade{
+		upgrades = append(upgrades, MachinePoolUpgrade{
 			Policy:      policy,
 			PolicyState: state,
 		})
@@ -113,7 +125,9 @@ func GetScheduledUpgrades(ctx context.Context, client *cmv1.ClustersClient, clus
 // for the correct version, and returning an error if there is already an
 // upgrade in progress that is not for the desired version
 func CheckAndCancelUpgrades(
-	ctx context.Context, client *cmv1.ClustersClient, upgrades []ControlPlaneUpgrade, desiredVersion *semver.Version) (bool, error) {
+	ctx context.Context,
+	client *cmv1.ClustersClient,
+	upgrades []MachinePoolUpgrade, desiredVersion *semver.Version) (bool, error) {
 	correctUpgradePending := false
 	tenMinFromNow := time.Now().UTC().Add(10 * time.Minute)
 
@@ -136,8 +150,8 @@ func CheckAndCancelUpgrades(
 			} else {
 				// The upgrade is not one we want, so cancel it
 				_, err := client.Cluster(upgrade.Policy.ClusterID()).
-					ControlPlane().UpgradePolicies().
-					ControlPlaneUpgradePolicy(upgrade.Policy.ID()).
+					NodePools().NodePool(upgrade.Policy.NodePoolID()).UpgradePolicies().
+					NodePoolUpgradePolicy(upgrade.Policy.ID()).
 					Delete().SendContext(ctx)
 				if err != nil {
 					return false, fmt.Errorf("failed to delete upgrade policy: %v", err)
@@ -167,10 +181,10 @@ func AckVersionGate(
 // Construct a list of missing gate agreements for upgrade to a given cluster version
 // Returns: a list of all un-acked gate agreements, a string describing the ones that need user ack, and an error
 func CheckMissingAgreements(version string,
-	clusterKey string, upgradePoliciesClient *cmv1.ControlPlaneUpgradePoliciesClient) ([]*cmv1.VersionGate, string, error) {
+	clusterKey string, upgradePoliciesClient *cmv1.NodePoolUpgradePoliciesClient) ([]*cmv1.VersionGate, string, error) {
 	// Schedule an upgrade
 	tenMinFromNow := time.Now().UTC().Add(10 * time.Minute)
-	upgradePolicyBuilder := cmv1.NewControlPlaneUpgradePolicy().
+	upgradePolicyBuilder := cmv1.NewNodePoolUpgradePolicy().
 		ScheduleType(cmv1.ScheduleTypeManual).
 		Version(version).
 		NextRun(tenMinFromNow)
@@ -204,8 +218,8 @@ func CheckMissingAgreements(version string,
 }
 
 func getMissingGateAgreements(
-	upgradePolicy *cmv1.ControlPlaneUpgradePolicy,
-	upgradePoliciesClient *cmv1.ControlPlaneUpgradePoliciesClient) ([]*cmv1.VersionGate, error) {
+	upgradePolicy *cmv1.NodePoolUpgradePolicy,
+	upgradePoliciesClient *cmv1.NodePoolUpgradePoliciesClient) ([]*cmv1.VersionGate, error) {
 	response, err := upgradePoliciesClient.Add().Parameter("dryRun", true).Body(upgradePolicy).Send()
 
 	if err != nil {

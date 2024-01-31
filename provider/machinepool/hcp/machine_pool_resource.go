@@ -265,6 +265,11 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 	if plan.AWSNodePool != nil {
 		awsNodePoolBuilder := cmv1.NewAWSNodePool()
 		awsNodePoolBuilder.InstanceType(plan.AWSNodePool.InstanceType.ValueString())
+		awsTags, err := common.OptionalMap(ctx, plan.AWSNodePool.Tags)
+		if err != nil {
+			return
+		}
+		awsNodePoolBuilder.Tags(awsTags)
 	}
 
 	if !common.IsStringAttributeUnknownOrEmpty(plan.AvailabilityZone) {
@@ -489,6 +494,8 @@ func validateNoImmutableAttChange(state, plan *HcpMachinePoolState) diag.Diagnos
 	validateStateAndPlanEquals(state.Name, plan.Name, "name", &diags)
 	if state.AWSNodePool != nil && plan.AWSNodePool != nil {
 		validateStateAndPlanEquals(state.AWSNodePool.InstanceType, plan.AWSNodePool.InstanceType, "aws_node_pool.instance_type", &diags)
+		validateStateAndPlanEquals(state.AWSNodePool.InstanceProfile, plan.AWSNodePool.InstanceProfile, "aws_node_pool.instance_profile", &diags)
+		validateStateAndPlanEquals(state.AWSNodePool.Tags, plan.AWSNodePool.Tags, "aws_node_pool.tags", &diags)
 	}
 	validateStateAndPlanEquals(state.AvailabilityZone, plan.AvailabilityZone, "availability_zone", &diags)
 	validateStateAndPlanEquals(state.SubnetID, plan.SubnetID, "subnet_id", &diags)
@@ -805,6 +812,13 @@ func populateState(object *cmv1.NodePool, state *HcpMachinePoolState) error {
 		}
 		if instanceProfile, ok := awsNodePool.GetInstanceProfile(); ok {
 			state.AWSNodePool.InstanceProfile = types.StringValue(instanceProfile)
+		}
+		if awsTags, ok := awsNodePool.GetTags(); ok {
+			mapType, err := common.ConvertStringMapToMapType(awsTags)
+			if err != nil {
+				return err
+			}
+			state.AWSNodePool.Tags = mapType
 		}
 	}
 

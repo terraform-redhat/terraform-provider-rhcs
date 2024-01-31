@@ -32,13 +32,13 @@ type HcpMachinePoolState struct {
 	AvailabilityZone types.String `tfsdk:"availability_zone"`
 	SubnetID         types.String `tfsdk:"subnet_id"`
 
-	//Version        types.String `tfsdk:"version"`
-	//CurrentVersion types.String `tfsdk:"current_version"`
+	Version        types.String `tfsdk:"version"`
+	CurrentVersion types.String `tfsdk:"current_version"`
 
-	//NodePoolStatus *NodePoolStatus `tfsdk:"status"`
-	AWSNodePool *AWSNodePool `tfsdk:"aws_node_pool"`
-	//TuningConfigs *[]types.String `tfsdk:"tuning_configs"`
-	AutoRepair types.Bool `tfsdk:"auto_repair"`
+	NodePoolStatus NodePoolStatus `tfsdk:"status"`
+	AWSNodePool    *AWSNodePool   `tfsdk:"aws_node_pool"`
+	TuningConfigs  types.List     `tfsdk:"tuning_configs"`
+	AutoRepair     types.Bool     `tfsdk:"auto_repair"`
 }
 
 type Taints struct {

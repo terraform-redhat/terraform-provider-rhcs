@@ -3,13 +3,15 @@ package hcp
 import (
 	dsschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 
 type AWSNodePool struct {
-	InstanceType types.String `tfsdk:"instance_type"`
-	//InstanceProfile types.String `tfsdk:"instance_profile"`
+	InstanceType    types.String `tfsdk:"instance_type"`
+	InstanceProfile types.String `tfsdk:"instance_profile"`
 	//Tags            types.Map    `tfsdk:"tags"`
 }
 
@@ -21,10 +23,13 @@ func AwsNodePoolResource() map[string]schema.Attribute {
 				"source to find the possible values. " + common.ValueCannotBeChangedStringDescription,
 			Required: true,
 		},
-		// "instance_profile": schema.StringAttribute{
-		// 	Description: "Instance profile attached to the replica",
-		// 	Computed:    true,
-		// },
+		"instance_profile": schema.StringAttribute{
+			Description: "Instance profile attached to the replica",
+			Computed:    true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
+			},
+		},
 		// "tags": schema.MapAttribute{
 		// 	Description: "Apply user defined tags to all machine pool resources created in AWS. " + common.ValueCannotBeChangedStringDescription,
 		// 	ElementType: types.StringType,
@@ -41,10 +46,10 @@ func AwsNodePoolDatasource() map[string]dsschema.Attribute {
 				"source to find the possible values. " + common.ValueCannotBeChangedStringDescription,
 			Required: true,
 		},
-		// "instance_profile": schema.StringAttribute{
-		// 	Description: "Instance profile attached to the replica",
-		// 	Computed:    true,
-		// },
+		"instance_profile": schema.StringAttribute{
+			Description: "Instance profile attached to the replica",
+			Computed:    true,
+		},
 		// "tags": schema.MapAttribute{
 		// 	Description: "Apply user defined tags to all machine pool resources created in AWS. " + common.ValueCannotBeChangedStringDescription,
 		// 	ElementType: types.StringType,

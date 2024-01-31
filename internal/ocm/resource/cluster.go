@@ -130,6 +130,10 @@ func (c *Cluster) CreateAWSBuilder(clusterTopology rosa.ClusterTopology,
 	additionalInfraSecurityGroupIds []string,
 	additionalControlPlaneSecurityGroupIds []string) error {
 
+	if clusterTopology == rosa.Hcp && awsSubnetIDs == nil {
+		return errors.New("Hosted Control Plane clusters must have a pre-configure VPC. Make sure to specify the subnet ids.")
+	}
+
 	if isPrivateLink && awsSubnetIDs == nil {
 		return errors.New("Clusters with PrivateLink must have a pre-configured VPC. Make sure to specify the subnet ids.")
 	}

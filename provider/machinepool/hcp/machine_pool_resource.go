@@ -31,6 +31,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -147,25 +148,43 @@ func (r *HcpMachinePoolResource) Schema(ctx context.Context, req resource.Schema
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			// "status": schema.SingleNestedAttribute{
-			// 	Description: "HCP replica status",
-			// 	Attributes:  NodePoolStatusResource(),
-			// 	Computed:    true,
-			// },
+			"status": schema.SingleNestedAttribute{
+				Description: "HCP replica status",
+				Attributes:  NodePoolStatusResource(),
+				Computed:    true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"aws_node_pool": schema.SingleNestedAttribute{
 				Description: "AWS settings for node pool",
 				Attributes:  AwsNodePoolResource(),
 				Optional:    true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
 			},
-			// "tuning_configs": schema.ListAttribute{
-			// 	Description: "A list of tuning configs attached to the replica.",
-			// 	ElementType: types.StringType,
-			// 	Optional:    true,
-			// },
+			"tuning_configs": schema.ListAttribute{
+				Description: "A list of tuning configs attached to the pool.",
+				ElementType: types.StringType,
+				Optional:    true,
+			},
 			"auto_repair": schema.BoolAttribute{
-				Description: "Indicates use of autor repair for replica",
+				Description: "Indicates use of autor repair for the pool",
 				Optional:    true,
 				Computed:    true,
+			},
+
+			"version": schema.StringAttribute{
+				Description: "Desired version of OpenShift for the machine pool, for example '4.11.0'. If version is greater than the currently running version, an upgrade will be scheduled.",
+				Optional:    true,
+			},
+			"current_version": schema.StringAttribute{
+				Description: "The currently running version of OpenShift on the machine pool, for example '4.11.0'.",
+				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}
@@ -300,6 +319,23 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 			labels[k] = v.(types.String).ValueString()
 		}
 		builder.Labels(labels)
+	}
+
+	if common.HasValue(plan.TuningConfigs) {
+		tuningConfigs, err := common.StringListToArray(ctx, plan.TuningConfigs)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Cannot build machine pool",
+				fmt.Sprintf(
+					"Cannot build tuning configs for machine pool pool for cluster '%s': %v",
+					plan.Cluster.ValueString(), err,
+				),
+			)
+			return
+		}
+		if tuningConfigs != nil {
+			builder.TuningConfigs(tuningConfigs...)
+		}
 	}
 
 	object, err := builder.Build()
@@ -586,6 +622,24 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 		npBuilder.Taints(taintBuilders...)
 	}
 
+	patchTuningConfigs, shouldPatchTuningConfigs := common.ShouldPatchList(state.TuningConfigs, plan.TuningConfigs)
+	if shouldPatchTuningConfigs {
+		tuningConfigs, err := common.StringListToArray(ctx, patchTuningConfigs)
+		if err != nil {
+			diags.AddError(
+				"Cannot update machine pool",
+				fmt.Sprintf(
+					"Cannot update tuning configs for machine pool pool for cluster '%s': %v",
+					plan.Cluster.ValueString(), err,
+				),
+			)
+			return diags
+		}
+		if tuningConfigs != nil {
+			npBuilder.TuningConfigs(tuningConfigs...)
+		}
+	}
+
 	nodePool, err := npBuilder.Build()
 	if err != nil {
 		diags.AddError(
@@ -749,6 +803,9 @@ func populateState(object *cmv1.NodePool, state *HcpMachinePoolState) error {
 		if instanceType, ok := awsNodePool.GetInstanceType(); ok {
 			state.AWSNodePool.InstanceType = types.StringValue(instanceType)
 		}
+		if instanceProfile, ok := awsNodePool.GetInstanceProfile(); ok {
+			state.AWSNodePool.InstanceProfile = types.StringValue(instanceProfile)
+		}
 	}
 
 	autoscaling, ok := object.GetAutoscaling()
@@ -796,6 +853,33 @@ func populateState(object *cmv1.NodePool, state *HcpMachinePoolState) error {
 
 	state.SubnetID = types.StringValue(object.Subnet())
 	state.AvailabilityZone = types.StringValue(object.AvailabilityZone())
+
+	if object.Status() != nil {
+		state.NodePoolStatus.CurrentReplicas = types.Int64Value(int64(object.Status().CurrentReplicas()))
+		if object.Status().Message() != "" {
+			state.NodePoolStatus.Message = types.StringValue(object.Status().Message())
+		}
+	}
+
+	if len(object.TuningConfigs()) > 0 {
+		tuningConfigsList, err := common.StringArrayToList(object.TuningConfigs())
+		if err != nil {
+			return err
+		}
+		state.TuningConfigs = tuningConfigsList
+	}
+
+	if object.Version() != nil {
+		version, ok := object.Version().GetID()
+		// If we're using a non-default channel group, it will have been appended to
+		// the version ID. Remove it before saving state.
+		version = strings.TrimPrefix(version, "openshift-v")
+		if ok {
+			state.CurrentVersion = types.StringValue(version)
+		} else {
+			state.CurrentVersion = types.StringNull()
+		}
+	}
 	return nil
 }
 

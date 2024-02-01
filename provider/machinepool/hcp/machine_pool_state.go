@@ -37,10 +37,10 @@ type HcpMachinePoolState struct {
 
 	UpgradeAcksFor types.String `tfsdk:"upgrade_acknowledgements_for"`
 
-	// NodePoolStatus *NodePoolStatus `tfsdk:"status"`
-	AWSNodePool   *AWSNodePool `tfsdk:"aws_node_pool"`
-	TuningConfigs types.List   `tfsdk:"tuning_configs"`
-	AutoRepair    types.Bool   `tfsdk:"auto_repair"`
+	NodePoolStatus types.Object `tfsdk:"status"`
+	AWSNodePool    *AWSNodePool `tfsdk:"aws_node_pool"`
+	TuningConfigs  types.List   `tfsdk:"tuning_configs"`
+	AutoRepair     types.Bool   `tfsdk:"auto_repair"`
 }
 
 type Taints struct {

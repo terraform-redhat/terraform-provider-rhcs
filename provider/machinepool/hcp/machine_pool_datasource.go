@@ -136,11 +136,11 @@ func (r *HcpMachinePoolDatasource) Schema(ctx context.Context, req datasource.Sc
 				Optional:    true,
 				Computed:    true,
 			},
-			// "status": schema.SingleNestedAttribute{
-			// 	Description: "HCP replica status",
-			// 	Attributes:  NodePoolStatusDatasource(),
-			// 	Computed:    true,
-			// },
+			"status": schema.SingleNestedAttribute{
+				Description: "HCP replica status",
+				Attributes:  NodePoolStatusDatasource(),
+				Computed:    true,
+			},
 			"aws_node_pool": schema.SingleNestedAttribute{
 				Description: "AWS settings for node pool",
 				Attributes:  AwsNodePoolDatasource(),

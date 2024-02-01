@@ -244,7 +244,7 @@ var _ = Describe("Cluster", func() {
 			workerRole := "arn:aws:iam::111111111111:role/aaa-Worker-Role"
 			operatorRolePrefix := "bbb"
 			oidcConfigID := "1234567dgsdfgh"
-			sts := CreateSTS(installerRole, supportRole, masterRole, workerRole,
+			sts := CreateSTS(installerRole, supportRole, &masterRole, workerRole,
 				operatorRolePrefix, pointer(oidcConfigID))
 			err := cluster.CreateAWSBuilder(rosa.Classic, map[string]string{"key1": "val1"},
 				pointer(string(cmv1.Ec2MetadataHttpTokensRequired)),
@@ -286,7 +286,7 @@ var _ = Describe("Cluster", func() {
 			privateHZId := "123123"
 			operatorRolePrefix := "bbb"
 			oidcConfigID := "1234567dgsdfgh"
-			sts := CreateSTS(installerRole, supportRole, masterRole, workerRole,
+			sts := CreateSTS(installerRole, supportRole, &masterRole, workerRole,
 				operatorRolePrefix, pointer(oidcConfigID))
 			err := cluster.CreateAWSBuilder(rosa.Classic, map[string]string{"key1": "val1"},
 				pointer(string(cmv1.Ec2MetadataHttpTokensRequired)),
@@ -311,7 +311,7 @@ var _ = Describe("Cluster", func() {
 			privateHZId := "123123"
 			operatorRolePrefix := "bbb"
 			oidcConfigID := "1234567dgsdfgh"
-			sts := CreateSTS(installerRole, supportRole, masterRole, workerRole,
+			sts := CreateSTS(installerRole, supportRole, &masterRole, workerRole,
 				operatorRolePrefix, pointer(oidcConfigID))
 			err := cluster.CreateAWSBuilder(rosa.Classic, map[string]string{"key1": "val1"},
 				pointer(string(cmv1.Ec2MetadataHttpTokensRequired)),
@@ -342,7 +342,7 @@ var _ = Describe("Cluster", func() {
 			privateHZId := "123123"
 			operatorRolePrefix := "bbb"
 			oidcConfigID := "1234567dgsdfgh"
-			sts := CreateSTS(installerRole, supportRole, masterRole, workerRole,
+			sts := CreateSTS(installerRole, supportRole, &masterRole, workerRole,
 				operatorRolePrefix, pointer(oidcConfigID))
 			err := cluster.CreateAWSBuilder(rosa.Classic, map[string]string{"key1": "val1"},
 				pointer(string(cmv1.Ec2MetadataHttpTokensRequired)),

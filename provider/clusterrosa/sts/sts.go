@@ -37,10 +37,6 @@ type HcpSts struct {
 	InstanceIAMRoles   hcpInstanceIAMRole `tfsdk:"instance_iam_roles"`
 }
 
-type baseInstanceIAMRole struct {
-	WorkerRoleARN types.String `tfsdk:"worker_role_arn"`
-}
-
 type classicInstanceIAMRole struct {
 	WorkerRoleARN types.String `tfsdk:"worker_role_arn"`
 	MasterRoleARN types.String `tfsdk:"master_role_arn"`

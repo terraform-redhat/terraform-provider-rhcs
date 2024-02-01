@@ -152,14 +152,14 @@ func (r *HcpMachinePoolResource) Schema(ctx context.Context, req resource.Schema
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			// "status": schema.SingleNestedAttribute{
-			// 	Description: "HCP replica status",
-			// 	Attributes:  NodePoolStatusResource(),
-			// 	Computed:    true,
-			// 	PlanModifiers: []planmodifier.Object{
-			// 		objectplanmodifier.UseStateForUnknown(),
-			// 	},
-			// },
+			"status": schema.SingleNestedAttribute{
+				Description: "HCP replica status",
+				Attributes:  NodePoolStatusResource(),
+				Computed:    true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"aws_node_pool": schema.SingleNestedAttribute{
 				Description: "AWS settings for node pool",
 				Attributes:  AwsNodePoolResource(),
@@ -1071,13 +1071,11 @@ func populateState(object *cmv1.NodePool, state *HcpMachinePoolState) error {
 	state.SubnetID = types.StringValue(object.Subnet())
 	state.AvailabilityZone = types.StringValue(object.AvailabilityZone())
 
-	// if object.Status() != nil {
-	// 	state.NodePoolStatus = new(NodePoolStatus)
-	// 	state.NodePoolStatus.CurrentReplicas = types.Int64Value(int64(object.Status().CurrentReplicas()))
-	// 	if object.Status().Message() != "" {
-	// 		state.NodePoolStatus.Message = types.StringValue(object.Status().Message())
-	// 	}
-	// }
+	if object.Status() != nil {
+		state.NodePoolStatus = flattenNodePoolStatus(int64(object.Status().CurrentReplicas()), object.Status().Message())
+	} else if state.NodePoolStatus.IsUnknown() {
+		state.NodePoolStatus = nodePoolStatusNull()
+	}
 
 	if len(object.TuningConfigs()) > 0 {
 		tuningConfigsList, err := common.StringArrayToList(object.TuningConfigs())

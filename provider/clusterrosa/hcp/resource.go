@@ -44,6 +44,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	ocmConsts "github.com/openshift-online/ocm-common/pkg/ocm/consts"
+	"github.com/openshift-online/ocm-common/pkg/rosa/oidcconfigs"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	ocm_errors "github.com/openshift-online/ocm-sdk-go/errors"
@@ -1267,7 +1268,7 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 				state.Sts.OperatorRolePrefix = types.StringValue(operatorRolePrefix)
 			}
 		}
-		thumbprint, err := common.GetThumbprint(stsState.OIDCEndpointURL(), httpClient)
+		thumbprint, err := oidcconfigs.FetchThumbprint(stsState.OIDCEndpointURL())
 		if err != nil {
 			tflog.Error(ctx, fmt.Sprintf("cannot get thumbprint %v", err))
 			state.Sts.Thumbprint = types.StringValue("")

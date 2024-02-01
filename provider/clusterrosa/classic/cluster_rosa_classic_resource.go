@@ -126,7 +126,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 			},
 			"sts": schema.SingleNestedAttribute{
 				Description: "STS configuration.",
-				Attributes:  sts.HcpStsResource(),
+				Attributes:  sts.ClassicStsResource(),
 				Optional:    true,
 			},
 			"multi_az": schema.BoolAttribute{
@@ -589,7 +589,7 @@ func createClassicClusterObject(ctx context.Context,
 	var stsBuilder *cmv1.STSBuilder
 	if state.Sts != nil {
 		stsBuilder = ocmr.CreateSTS(state.Sts.RoleARN.ValueString(), state.Sts.SupportRoleArn.ValueString(),
-			state.Sts.InstanceIAMRoles.MasterRoleARN.ValueString(), state.Sts.InstanceIAMRoles.WorkerRoleARN.ValueString(),
+			state.Sts.InstanceIAMRoles.MasterRoleARN.ValueStringPointer(), state.Sts.InstanceIAMRoles.WorkerRoleARN.ValueString(),
 			state.Sts.OperatorRolePrefix.ValueString(), common.OptionalString(state.Sts.OIDCConfigID))
 	}
 

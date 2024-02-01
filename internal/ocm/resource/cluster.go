@@ -226,14 +226,14 @@ func (c *Cluster) SetAPIPrivacy(isPrivate bool, isPrivateLink bool, isSTS bool) 
 	return nil
 }
 
-func CreateSTS(installerRoleARN, supportRoleARN, masterRoleARN, workerRoleARN,
+func CreateSTS(installerRoleARN, supportRoleARN string, masterRoleARN *string, workerRoleARN,
 	operatorRolePrefix string, oidcConfigID *string) *cmv1.STSBuilder {
 	sts := cmv1.NewSTS()
 	sts.RoleARN(installerRoleARN)
 	sts.SupportRoleARN(supportRoleARN)
 	instanceIamRoles := cmv1.NewInstanceIAMRoles()
-	if masterRoleARN != "" {
-		instanceIamRoles.MasterRoleARN(masterRoleARN)
+	if masterRoleARN != nil {
+		instanceIamRoles.MasterRoleARN(*masterRoleARN)
 	}
 	instanceIamRoles.WorkerRoleARN(workerRoleARN)
 	sts.InstanceIAMRoles(instanceIamRoles)

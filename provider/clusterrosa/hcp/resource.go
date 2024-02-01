@@ -418,7 +418,7 @@ func createHcpClusterObject(ctx context.Context,
 	var stsBuilder *cmv1.STSBuilder
 	if state.Sts != nil {
 		stsBuilder = ocmr.CreateSTS(state.Sts.RoleARN.ValueString(), state.Sts.SupportRoleArn.ValueString(),
-			"", state.Sts.InstanceIAMRoles.WorkerRoleARN.ValueString(),
+			nil, state.Sts.InstanceIAMRoles.WorkerRoleARN.ValueString(),
 			state.Sts.OperatorRolePrefix.ValueString(), common.OptionalString(state.Sts.OIDCConfigID))
 	}
 

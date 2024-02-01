@@ -57,6 +57,10 @@ Required:
 
 - `instance_type` (String) Identifier of the machine type used by the nodes, for example `m5.xlarge`. Use the `rhcs_machine_types` data source to find the possible values. After the creation of the resource, it is not possible to update the attribute value.
 
+Optional:
+
+- `tags` (Map of String) Apply user defined tags to all machine pool resources created in AWS. After the creation of the resource, it is not possible to update the attribute value.
+
 Read-Only:
 
 - `instance_profile` (String) Instance profile attached to the replica

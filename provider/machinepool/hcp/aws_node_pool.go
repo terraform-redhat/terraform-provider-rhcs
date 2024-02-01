@@ -3,7 +3,6 @@ package hcp
 import (
 	dsschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -35,10 +34,6 @@ func AwsNodePoolResource() map[string]schema.Attribute {
 			Description: "Apply user defined tags to all machine pool resources created in AWS. " + common.ValueCannotBeChangedStringDescription,
 			ElementType: types.StringType,
 			Optional:    true,
-			Computed:    true,
-			PlanModifiers: []planmodifier.Map{
-				mapplanmodifier.UseStateForUnknown(),
-			},
 		},
 	}
 }
@@ -55,10 +50,10 @@ func AwsNodePoolDatasource() map[string]dsschema.Attribute {
 			Description: "Instance profile attached to the replica",
 			Computed:    true,
 		},
-		// "tags": schema.MapAttribute{
-		// 	Description: "Apply user defined tags to all machine pool resources created in AWS. " + common.ValueCannotBeChangedStringDescription,
-		// 	ElementType: types.StringType,
-		// 	Optional:    true,
-		// },
+		"tags": schema.MapAttribute{
+			Description: "Apply user defined tags to all machine pool resources created in AWS. " + common.ValueCannotBeChangedStringDescription,
+			ElementType: types.StringType,
+			Optional:    true,
+		},
 	}
 }

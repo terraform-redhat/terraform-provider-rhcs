@@ -1016,13 +1016,6 @@ func populateState(object *cmv1.NodePool, state *HcpMachinePoolState) error {
 		if instanceProfile, ok := awsNodePool.GetInstanceProfile(); ok {
 			state.AWSNodePool.InstanceProfile = types.StringValue(instanceProfile)
 		}
-		if awsTags, ok := awsNodePool.GetTags(); ok {
-			mapType, err := common.ConvertStringMapToMapType(awsTags)
-			if err != nil {
-				return err
-			}
-			state.AWSNodePool.Tags = mapType
-		}
 	}
 
 	autoscaling, ok := object.GetAutoscaling()

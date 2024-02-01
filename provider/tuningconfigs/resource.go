@@ -93,7 +93,7 @@ func (r *TuningConfigResource) Create(ctx context.Context, req resource.CreateRe
 	}
 
 	// Wait till the cluster is ready:
-	err := r.clusterWait.WaitForClusterToBeReady(ctx, plan.Cluster.ValueString())
+	_, err := r.clusterWait.WaitForClusterToBeReady(ctx, plan.Cluster.ValueString(), 60)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Cannot poll cluster state",

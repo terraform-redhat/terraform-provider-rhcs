@@ -26,10 +26,10 @@ jobs:
           IFS=$'\n' commit_messages=($(git log --pretty=format:"%s" $BASE_SHA...$HEAD_SHA))          
           
           # Lists of GitHub users for whom the commit validation should be skipped:
-          # * red-hat-konflux - automatic bot responsible for any change related to
+          # * red-hat-konflux[bot] - automatic bot responsible for any change related to
           #   RHTAP integration (changes in https://github.com/terraform-redhat/terraform-provider-rhcs/blob/main/.tekton/terraform-provider-rhcs-push.yaml)
           declare -a skip_pr_authors=(
-            "red-hat-konflux"
+            "red-hat-konflux[bot]"
           )
           echo "The PR Author is \"${PR_AUTHOR}\""
           for skip_pr_author in "${skip_pr_authors[@]}"

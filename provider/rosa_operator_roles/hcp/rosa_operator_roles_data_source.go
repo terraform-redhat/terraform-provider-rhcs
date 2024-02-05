@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package rosa_operator_roles
+package hcp
 
 import (
 	"context"
@@ -48,7 +48,7 @@ func New() datasource.DataSource {
 }
 
 func (s *RosaOperatorRolesDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_rosa_operator_roles"
+	resp.TypeName = req.ProviderTypeName + "_hcp_rosa_operator_roles"
 }
 
 func (s *RosaOperatorRolesDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
@@ -119,7 +119,8 @@ func (s *RosaOperatorRolesDataSource) Read(ctx context.Context, req datasource.R
 		return
 	}
 
-	stsOperatorRolesList, err := s.awsInquiries.STSCredentialRequests().List().Send()
+	stsOperatorRolesList, err := s.awsInquiries.STSCredentialRequests().
+		List().Parameter("is_hypershift", true).Send()
 	if err != nil {
 		description := fmt.Sprintf("Failed to get STS Operator Roles list with error: %v", err)
 		tflog.Error(ctx, description)

@@ -49,10 +49,12 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/machine_types"
 	machinepool "github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool/classic"
 	nodepool "github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool/hcp"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/ocm_policies"
+	classicStsPolicies "github.com/terraform-redhat/terraform-provider-rhcs/provider/ocm_policies/classic"
+	hcpStsPolicies "github.com/terraform-redhat/terraform-provider-rhcs/provider/ocm_policies/hcp"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfig"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfiginput"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/rosa_operator_roles"
+	classicOperatorRoles "github.com/terraform-redhat/terraform-provider-rhcs/provider/rosa_operator_roles/classic"
+	hcpOperatorRoles "github.com/terraform-redhat/terraform-provider-rhcs/provider/rosa_operator_roles/hcp"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/tuningconfigs"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/versions"
 )
@@ -230,13 +232,15 @@ func (p *Provider) DataSources(ctx context.Context) []func() datasource.DataSour
 		cloudprovider.New,
 		group.New,
 		machine_types.New,
-		ocm_policies.New,
-		rosa_operator_roles.New,
+		classicStsPolicies.New,
+		classicOperatorRoles.New,
 		versions.New,
 		info.New,
 		classic.NewDataSource,
 		machinepool.NewDatasource,
 		hcp.NewDataSource,
 		nodepool.NewDatasource,
+		hcpOperatorRoles.New,
+		hcpStsPolicies.New,
 	}
 }

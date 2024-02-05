@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ocm_policies
+package classic
 
 import "github.com/hashicorp/terraform-plugin-framework/types"
 

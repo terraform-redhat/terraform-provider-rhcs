@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package ocm_policies
+package hcp
 
 import (
 	"context"
@@ -30,19 +30,21 @@ import (
 
 const (
 	// Policy IDs from type operator roles
-	CloudCred                = "openshift_cloud_credential_operator_cloud_credential_operator_iam_ro_creds_policy"
-	CloudNetwork             = "openshift_cloud_network_config_controller_cloud_credentials_policy"
-	ClusterCSI               = "openshift_cluster_csi_drivers_ebs_cloud_credentials_policy"
-	ImageRegistry            = "openshift_image_registry_installer_cloud_credentials_policy"
-	IngressOperator          = "openshift_ingress_operator_cloud_credentials_policy"
+	ImageRegistry                   = "openshift_hcp_image_registry_installer_cloud_credentials_policy"
+	IngressOperator                 = "openshift_hcp_ingress_operator_cloud_credentials_policy"
+	ClusterCSI                      = "openshift_hcp_cluster_csi_drivers_ebs_cloud_credentials_policy"
+	CloudNetwork                    = "openshift_hcp_cloud_network_config_controller_cloud_credentials_policy"
+	KubeControllerManagerKubeSystem = "openshift_hcp_kube_controller_manager_credentials_policy"
+	CapaControllerManagerKubeSystem = "openshift_hcp_capa_controller_manager_credentials_policy"
+	ControlPlaneOperatorKubeSystem  = "openshift_hcp_control_plane_operator_credentials_policy"
+	KmsProviderKubeSystem           = "openshift_hcp_kms_provider_credentials_policy"
+
 	SharedVpcIngressOperator = "shared_vpc_openshift_ingress_operator_cloud_credentials_policy"
-	MachineAPI               = "openshift_machine_api_aws_cloud_credentials_policy"
 
 	// Policy IDs from type account roles
-	Installer            = "sts_installer_permission_policy"
-	Support              = "sts_support_permission_policy"
-	InstanceWorker       = "sts_instance_worker_permission_policy"
-	InstanceControlPlane = "sts_instance_controlplane_permission_policy"
+	Installer      = "sts_hcp_installer_permission_policy"
+	Support        = "sts_hcp_support_permission_policy"
+	InstanceWorker = "sts_hcp_instance_worker_permission_policy"
 )
 
 type OcmPoliciesDataSource struct {
@@ -57,7 +59,7 @@ func New() datasource.DataSource {
 }
 
 func (s *OcmPoliciesDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_policies"
+	resp.TypeName = req.ProviderTypeName + "_hcp_policies"
 }
 
 func (s *OcmPoliciesDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
@@ -67,25 +69,32 @@ func (s *OcmPoliciesDataSource) Schema(ctx context.Context, req datasource.Schem
 			"operator_role_policies": schema.SingleNestedAttribute{
 				Description: "Operator role policies.",
 				Attributes: map[string]schema.Attribute{
-					CloudCred: schema.StringAttribute{
-						Computed: true,
-					},
-					CloudNetwork: schema.StringAttribute{
-						Computed: true,
-					},
-					ClusterCSI: schema.StringAttribute{
-						Computed: true,
-					},
 					ImageRegistry: schema.StringAttribute{
 						Computed: true,
 					},
 					IngressOperator: schema.StringAttribute{
 						Computed: true,
 					},
+					ClusterCSI: schema.StringAttribute{
+						Computed: true,
+					},
+					CloudNetwork: schema.StringAttribute{
+						Computed: true,
+					},
+
 					SharedVpcIngressOperator: schema.StringAttribute{
 						Computed: true,
 					},
-					MachineAPI: schema.StringAttribute{
+					KubeControllerManagerKubeSystem: schema.StringAttribute{
+						Computed: true,
+					},
+					CapaControllerManagerKubeSystem: schema.StringAttribute{
+						Computed: true,
+					},
+					ControlPlaneOperatorKubeSystem: schema.StringAttribute{
+						Computed: true,
+					},
+					KmsProviderKubeSystem: schema.StringAttribute{
 						Computed: true,
 					},
 				},
@@ -101,9 +110,6 @@ func (s *OcmPoliciesDataSource) Schema(ctx context.Context, req datasource.Schem
 						Computed: true,
 					},
 					InstanceWorker: schema.StringAttribute{
-						Computed: true,
-					},
-					InstanceControlPlane: schema.StringAttribute{
 						Computed: true,
 					},
 				},
@@ -147,29 +153,32 @@ func (s *OcmPoliciesDataSource) Read(ctx context.Context, req datasource.ReadReq
 		tflog.Debug(ctx, fmt.Sprintf("policy id: %s ", awsPolicy.ID()))
 		switch awsPolicy.ID() {
 		// operator roles
-		case CloudCred:
-			operatorRolePolicies.CloudCred = types.StringValue(awsPolicy.Details())
-		case CloudNetwork:
-			operatorRolePolicies.CloudNetwork = types.StringValue(awsPolicy.Details())
-		case ClusterCSI:
-			operatorRolePolicies.ClusterCSI = types.StringValue(awsPolicy.Details())
 		case ImageRegistry:
-			operatorRolePolicies.ImageRegistry = types.StringValue(awsPolicy.Details())
+			operatorRolePolicies.ImageRegistry = types.StringValue(awsPolicy.ARN())
 		case IngressOperator:
-			operatorRolePolicies.IngressOperator = types.StringValue(awsPolicy.Details())
+			operatorRolePolicies.IngressOperator = types.StringValue(awsPolicy.ARN())
+		case ClusterCSI:
+			operatorRolePolicies.ClusterCSI = types.StringValue(awsPolicy.ARN())
+		case CloudNetwork:
+			operatorRolePolicies.CloudNetwork = types.StringValue(awsPolicy.ARN())
 		case SharedVpcIngressOperator:
-			operatorRolePolicies.SharedVpcIngressOperator = types.StringValue(awsPolicy.Details())
-		case MachineAPI:
-			operatorRolePolicies.MachineAPI = types.StringValue(awsPolicy.Details())
+			operatorRolePolicies.SharedVpcIngressOperator = types.StringValue(awsPolicy.ARN())
+		case KubeControllerManagerKubeSystem:
+			operatorRolePolicies.KubeControllerManagerKubeSystem = types.StringValue(awsPolicy.ARN())
+		case CapaControllerManagerKubeSystem:
+			operatorRolePolicies.CapaControllerManagerKubeSystem = types.StringValue(awsPolicy.ARN())
+		case ControlPlaneOperatorKubeSystem:
+			operatorRolePolicies.ControlPlaneOperatorKubeSystem = types.StringValue(awsPolicy.ARN())
+		case KmsProviderKubeSystem:
+			operatorRolePolicies.KmsProviderKubeSystem = types.StringValue(awsPolicy.ARN())
+
 		// account roles
 		case Installer:
-			accountRolePolicies.Installer = types.StringValue(awsPolicy.Details())
+			accountRolePolicies.Installer = types.StringValue(awsPolicy.ARN())
 		case Support:
-			accountRolePolicies.Support = types.StringValue(awsPolicy.Details())
+			accountRolePolicies.Support = types.StringValue(awsPolicy.ARN())
 		case InstanceWorker:
-			accountRolePolicies.InstanceWorker = types.StringValue(awsPolicy.Details())
-		case InstanceControlPlane:
-			accountRolePolicies.InstanceControlPlane = types.StringValue(awsPolicy.Details())
+			accountRolePolicies.InstanceWorker = types.StringValue(awsPolicy.ARN())
 		default:
 			tflog.Debug(ctx, "This is neither operator role policy nor account role policy")
 		}

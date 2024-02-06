@@ -164,9 +164,6 @@ func (r *HcpMachinePoolResource) Schema(ctx context.Context, req resource.Schema
 				Description: "AWS settings for node pool",
 				Attributes:  AwsNodePoolResource(),
 				Optional:    true,
-				PlanModifiers: []planmodifier.Object{
-					objectplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"tuning_configs": schema.ListAttribute{
 				Description: "A list of tuning configs attached to the pool.",
@@ -280,7 +277,9 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 		if err != nil {
 			return
 		}
-		awsNodePoolBuilder.Tags(awsTags)
+		if len(awsTags) > 0 {
+			awsNodePoolBuilder.Tags(awsTags)
+		}
 	}
 
 	if !common.IsStringAttributeUnknownOrEmpty(plan.AvailabilityZone) {
@@ -517,7 +516,7 @@ func validateStateAndPlanEquals(stateAttr attr.Value, planAttr attr.Value, attrN
 	// Its possible to have here unknown attributes
 	// Relevant only for optional computed attributes in resource create
 	// Check this because this function also used in "magicImport" function
-	if planAttr.IsUnknown() {
+	if !common.HasValue(planAttr) {
 		return
 	}
 	common.ValidateStateAndPlanEquals(stateAttr, planAttr, attrName, diags)
@@ -1015,6 +1014,9 @@ func populateState(object *cmv1.NodePool, state *HcpMachinePoolState) error {
 		}
 		if instanceProfile, ok := awsNodePool.GetInstanceProfile(); ok {
 			state.AWSNodePool.InstanceProfile = types.StringValue(instanceProfile)
+		}
+		if !common.HasValue(state.AWSNodePool.Tags) {
+			state.AWSNodePool.Tags = types.MapNull(types.StringType)
 		}
 	}
 

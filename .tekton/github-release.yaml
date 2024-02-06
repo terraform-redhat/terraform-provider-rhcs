@@ -1,0 +1,45 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: prepare-release
+spec:
+  workspaces:
+  - name: releases
+    workspace: workspace
+
+  params:
+    - name: version
+      description: Version of the release
+      type: string
+    - name: release-notes
+      description: Release notes for the version
+      type: string
+    - name: branch
+      description: Git branch for the release
+      type: string
+    - name: repo
+      description: Git repository for the release
+      type: string
+    - name: rel_ver
+      description: Custom version of release
+      type: string
+
+  steps:
+    - name: prepare-release
+      image: ubi9/go-toolset:latest
+      script: |
+        git config --global --add safe.directory /workspace/releases
+        make -C /workspace/releases prepare_release version=$REL_VER
+
+      env:
+        - name: VERSION
+          value: $(params.version)
+        - name: RELEASE_NOTES
+          value: $(params.release-notes)
+        - name: BRANCH
+          value: $(params.branch)
+        - name: REPO
+          value: $(params.repo)
+        - name: REL_VER
+          value: $(params.rel_ver)
+

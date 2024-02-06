@@ -1,0 +1,50 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: github-upload-release
+spec:
+  workspaces:
+  - name: gh-upload
+    workspace: workspace
+  params:
+    - name: version
+      type: string
+    - name: release-notes
+      type: string
+    - name: branch
+      type: string
+    - name: repo
+      type: string
+    - name: rel_ver
+      type: string
+  steps:
+    - name: create-release-from-binaries
+      image: ubi9:latest
+      script: |
+        #!/usr/bin/env bash
+        curl -L https://github.com/cli/cli/releases/download/v2.32.1/gh_2.32.1_linux_amd64.tar.gz --output gh_2.32.1_linux_amd64.tar.gz && \
+        tar -zvxf gh_2.32.1_linux_amd64.tar.gz && \
+        mv gh_2.32.1_linux_amd64/bin/gh /bin/gh && \
+        chmod +x /bin/gh && \
+        cd /workspace/gh-upload/releases && \
+        gh release create $REL_VER *.zip *.json *SHA256SUMS --repo $REPO
+        # We will add .sig file when we have the sigining step done
+        #gh release create $REL_VER *.zip *.json *.sig --repo $REPO
+
+      env:
+        - name: GH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: github-token-secret
+              key: token
+        - name: VERSION
+          value: $(params.version)
+        - name: RELEASE_NOTES
+          value: $(params.release-notes)
+        - name: BRANCH
+          value: $(params.branch)
+        - name: REPO
+          value: $(params.repo)
+        - name: REL_VER
+          value: $(params.rel_ver)
+

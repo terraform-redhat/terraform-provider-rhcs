@@ -391,7 +391,7 @@ spec:
           value: task
         resolver: git
       when:
-      - input: $(params.skip-checks)    
+      - input: $(params.skip-checks)
         operator: in
         values:
         - "false"
@@ -424,9 +424,9 @@ spec:
           value: github-upload-release
         - name: kind
           value: task
-        resolver: git 
+        resolver: git
       when:
-      - input: $(params.skip-checks)    
+      - input: $(params.skip-checks)
         operator: in
         values:
         - "false"

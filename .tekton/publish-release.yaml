@@ -35,7 +35,7 @@ spec:
         - name: GH_TOKEN
           valueFrom:
             secretKeyRef:
-              name: github-token-secret
+              name: gh-secret-ebelarte-tf-provider-rhcs
               key: token
         - name: VERSION
           value: $(params.version)

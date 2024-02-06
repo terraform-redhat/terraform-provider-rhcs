@@ -391,7 +391,7 @@ spec:
           value: task
         resolver: git
       when:
-      - input: $(params.skip-checks)    #This references the pipeline parameters
+      - input: $(params.skip-checks)    
         operator: in
         values:
         - "false"
@@ -426,7 +426,7 @@ spec:
           value: task
         resolver: git 
       when:
-      - input: $(params.skip-checks)    #This references the pipeline parameters
+      - input: $(params.skip-checks)    
         operator: in
         values:
         - "false"

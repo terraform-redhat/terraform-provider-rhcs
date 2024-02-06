@@ -2,7 +2,8 @@
 archs=(amd64 arm64)
 oses=(linux darwin windows)
 
-REL_VER=$(git describe --tags --abbrev=0 | sed "s/v//")
+#REL_VER=$(git describe --tags --abbrev=0 | sed "s/v//")
+REL_VER="1.0"
 if [[ -z "$REL_VER" ]]; then
     echo "Must provide version to prepare release" 1>&2
     exit 1

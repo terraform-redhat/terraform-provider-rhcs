@@ -17,7 +17,8 @@ profiles:
     fips: false
     autoscale: false
     byok: false
-    version: "latest"
+    version_pattern: "latest"
+    version: ""
     major_version: "4.14"
     compute_machine_type: "m5.xlarge"
     proxy: false
@@ -47,7 +48,8 @@ profiles:
     fips: false
     autoscale: true
     byok: true
-    version: "latest"
+    version_pattern: "latest"
+    version: ""
     major_version: "4.14"
     compute_machine_type: "m5.2xlarge"
     proxy: true
@@ -79,7 +81,8 @@ profiles:
     fips: false
     autoscale: false
     byok: true
-    version: "y-1"
+    version_pattern: "y-1"
+    version: ""
     major_version: "4.14"
     compute_machine_type: "m5.xlarge"
     proxy: false
@@ -109,7 +112,8 @@ profiles:
     fips: false
     autoscale: false
     byok: true
-    version: "z-1"
+    version_pattern: "z-1"
+    version: ""
     major_version: "4.14"
     compute_machine_type: "m5.xlarge"
     proxy: false

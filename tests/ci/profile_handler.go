@@ -24,7 +24,8 @@ type Profile struct {
 	ClusterName           string `ini:"cluster_name,omitempty" json:"cluster_name,omitempty"`
 	ProductID             string `ini:"product_id,omitempty" json:"product_id,omitempty"`
 	MajorVersion          string `ini:"major_version,omitempty" json:"major_version,omitempty"`
-	Version               string `ini:"version,omitempty" json:"version,omitempty"` //Version supports indicated version started with openshift-v or minor-1
+	Version               string `ini:"version,omitempty" json:"version,omitempty"`                 //Specific OCP version to be specified
+	VersionPattern        string `ini:"version_pattern,omitempty" json:"version_pattern,omitempty"` //Version supports indicated version started with openshift-v or major-1 (y-1) or minor-1 (z-1)
 	ChannelGroup          string `ini:"channel_group,omitempty" json:"channel_group,omitempty"`
 	CloudProvider         string `ini:"cloud_provider,omitempty" json:"cloud_provider,omitempty"`
 	Region                string `ini:"region,omitempty" json:"region,omitempty"`
@@ -176,7 +177,6 @@ func PrepareVersion(connection *client.Connection, versionTag string, channelGro
 		versions := cms.EnabledVersions(connection, channelGroup, profile.MajorVersion, true)
 		versions = cms.SortVersions(versions)
 		vResult = versions[len(versions)-1].RawID
-		Logger.Infof("Cluster OCP latest version is set to %s", vResult)
 	case "y-1":
 		versions, _ := cms.GetVersionsWithUpgrades(connection, channelGroup, CON.Y, true, false, 1)
 		vResult = versions[len(versions)-1].RawID
@@ -186,12 +186,17 @@ func PrepareVersion(connection *client.Connection, versionTag string, channelGro
 	case "eol":
 		vResult = ""
 	}
+	Logger.Infof("Cluster OCP latest version is set to %s", vResult)
 	return vResult
 }
 
 func GetMajorVersion(rawVersion string) string {
 	versionRegex := regexp.MustCompile(`^[0-9]+\.[0-9]+`)
-	vResult := versionRegex.FindAllStringSubmatch(rawVersion, 1)[0][0]
+	vResults := versionRegex.FindAllStringSubmatch(rawVersion, 1)
+	vResult := ""
+	if len(vResults) != 0 {
+		vResult = vResults[0][0]
+	}
 	return vResult
 }
 
@@ -242,7 +247,7 @@ func PrepareKMSKey(profile *Profile, kmsName string, accountRolePrefix string, a
 func PrepareRoute53() {}
 
 func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clusterArgs *EXE.ClusterCreationArgs, manifestsDir string, err error) {
-	profile.Version = PrepareVersion(RHCSConnection, profile.Version, profile.ChannelGroup, profile)
+	profile.Version = PrepareVersion(RHCSConnection, profile.VersionPattern, profile.ChannelGroup, profile)
 
 	clusterArgs = &EXE.ClusterCreationArgs{
 		OpenshiftVersion: profile.Version,

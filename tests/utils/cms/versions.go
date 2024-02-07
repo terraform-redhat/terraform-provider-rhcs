@@ -69,6 +69,14 @@ func EnabledVersions(connection *client.Connection, channel string, throttleVers
 	return imageVersionList
 }
 
+func GetRawVersionList(imageVersions []*ImageVersion) []string {
+	var versionSlice []string
+	for _, version := range imageVersions {
+		versionSlice = append(versionSlice, version.RawID)
+	}
+	return versionSlice
+}
+
 func HCPEnabledVersions(connection *client.Connection, channel string, upgradeAvailable ...bool) []*ImageVersion {
 	search := "enabled = 't' and hosted_control_plane_enabled='t' and rosa_enabled='t'"
 	if channel != "" {

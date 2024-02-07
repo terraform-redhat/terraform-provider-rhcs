@@ -70,7 +70,8 @@ var (
 )
 
 const (
-	DefaultAWSRegion = "us-east-2"
+	DefaultAWSRegion         = "us-east-2"
+	DefaultAWSCredentialUser = "default"
 )
 
 func initDIR() string {

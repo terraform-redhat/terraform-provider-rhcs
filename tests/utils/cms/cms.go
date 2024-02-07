@@ -7,6 +7,9 @@ import (
 	client "github.com/openshift-online/ocm-sdk-go"
 	v1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	vpcClient "github.com/openshift-qe/openshift-rosa-cli/aws/vpc"
+	awsV2 "github.com/openshift-qe/openshift-rosa-cli/pkg/aws_client/aws_v2"
+	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 )
 
 // RetrieveClusterDetail will retrieve cluster detailed information based on the clusterID
@@ -289,4 +292,21 @@ func RetrieveCurrentAccount(connection *client.Connection, params ...map[string]
 func RetrieveKubeletConfig(connection *client.Connection, clusterID string) (*cmv1.KubeletConfig, error) {
 	resp, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).KubeletConfig().Get().Send()
 	return resp.Body(), err
+}
+
+func DeleteVPCBySubnet(subnet string, totalClean bool, regions ...string) error {
+	region := CON.DefaultAWSRegion
+	if len(regions) == 1 {
+		region = regions[0]
+	}
+	v2Client, err := awsV2.CreateAWSV2Client(CON.DefaultAWSCredentialUser, region)
+	if err != nil {
+		return err
+	}
+	vpc, err := vpcClient.GenerateVPCBySubnet(v2Client, subnet)
+	if err != nil {
+		return err
+	}
+	err = vpc.DeleteVPCChain(totalClean)
+	return err
 }

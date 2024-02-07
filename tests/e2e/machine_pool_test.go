@@ -405,12 +405,26 @@ var _ = Describe("TF Test", func() {
 		})
 		Context("Author:amalykhi-High-OCP-65071 @OCP-65071 @amalykhi", func() {
 			It("Author:amalykhi-High-OCP-65071 subnet_id option is available for machinepool for BYO VPC single-az cluster", ci.Day2, ci.High, ci.FeatureMachinepool, func() {
+
+				// var stateFilePathToBeSaved = filepath.Join(con.GetRHCSOutputDir(), "terraform.tfstate")
+				var zones []string
+
+				// save vpc terraform.tfstate file
+				// h.SaveTerraformState(stateFilePathToBeSaved, con.AWSVPCDir)
+
 				if profile.MultiAZ || !profile.BYOVPC {
 					Skip("The test is configured for SingleAZ BYO VPC cluster only")
 				}
+
 				getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
-				var zones []string
+				Expect(err).ToNot(HaveOccurred())
+
 				vpcOutput, err := ci.PrepareVPC(profile.Region, false, true, zones, getResp.Body().Name())
+				Expect(err).ToNot(HaveOccurred())
+
+				defer func() {
+					cms.DeleteVPCBySubnet(vpcOutput.ClusterPublicSubnets[0], true, profile.Region)
+				}()
 
 				By("Tag new subnet to be able to apply it to the machinepool")
 				VpcTagService := exe.NewVPCTagService()
@@ -424,6 +438,8 @@ var _ = Describe("TF Test", func() {
 				}
 				err = VpcTagService.Apply(VPCTagArgs, true)
 				Expect(err).ToNot(HaveOccurred())
+				defer VpcTagService.Destroy()
+
 				By("Create additional machinepool with subnet id specified")
 				replicas := 1
 				machineType := "r5.xlarge"

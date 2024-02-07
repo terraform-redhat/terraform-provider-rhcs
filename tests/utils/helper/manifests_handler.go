@@ -2,7 +2,9 @@ package helper
 
 import (
 	"fmt"
+	"io"
 	"os"
+	"os/exec"
 	"regexp"
 
 	"path/filepath"
@@ -97,4 +99,32 @@ func CleanManifestsStateFile(dir string) error {
 		return fmt.Errorf("could not remove state file due to error: %s", err.Error())
 	}
 	return nil
+}
+
+// SaveTerraformState saves the Terraform state to the specified path
+func SaveTerraformState(terraformStatePath string, workingDir string) error {
+	cmd := exec.Command("terraform", "state", "pull")
+	cmd.Dir = workingDir // Set the working directory
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return err
+	}
+
+	file, err := os.Create(terraformStatePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = io.WriteString(file, string(output))
+	return err
+}
+
+// RestoreTerraformState restores the Terraform state from the specified path
+func RestoreTerraformState(sourcePath string, destinationPath string) error {
+	// Run the "terraform state push" command to restore the Terraform state
+	cmd := exec.Command("terraform", "state", "push", sourcePath)
+	cmd.Dir = destinationPath // Set the destination directory
+	err := cmd.Run()
+	return err
 }

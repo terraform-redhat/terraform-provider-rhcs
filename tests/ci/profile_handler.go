@@ -531,7 +531,10 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 		if err != nil {
 			return err
 		}
-		kmsArgs := &EXE.KMSArgs{}
+		kmsArgs := &EXE.KMSArgs{
+			AWSRegion: profile.Region,
+			KMSName:   clusterArgs.ClusterName,
+		}
 		err = kmsService.Destroy(kmsArgs)
 		if err != nil {
 			return err

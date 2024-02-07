@@ -188,10 +188,10 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				Description: deprecatedMessage,
 				Computed:    true,
 			},
-			"autoscaling_enabled": schema.BoolAttribute{
-				Description: deprecatedMessage,
-				Computed:    true,
-			},
+			// "autoscaling_enabled": schema.BoolAttribute{
+			// 	Description: deprecatedMessage,
+			// 	Computed:    true,
+			// },
 			"replicas": schema.Int64Attribute{
 				Description: deprecatedMessage,
 				Computed:    true,
@@ -275,7 +275,7 @@ func (r *ClusterRosaHcpDatasource) Read(ctx context.Context, request datasource.
 	state.DestroyTimeout = types.Int64Null()
 	state.UpgradeAcksFor = types.StringNull()
 	state.WaitForCreateComplete = types.BoolNull()
-	state.AutoScalingEnabled = types.BoolNull()
+	//state.AutoScalingEnabled = types.BoolNull()
 	state.Replicas = types.Int64Null()
 	state.ComputeMachineType = types.StringNull()
 

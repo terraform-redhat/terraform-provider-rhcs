@@ -154,10 +154,10 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"autoscaling_enabled": schema.BoolAttribute{
-				Description: "Enable autoscaling for the initial worker pool. " + rosa.GeneratePoolMessage(rosa.Classic),
-				Optional:    true,
-			},
+			// "autoscaling_enabled": schema.BoolAttribute{
+			// 	Description: "Enable autoscaling for the initial worker pool. " + rosa.GeneratePoolMessage(rosa.Classic),
+			// 	Optional:    true,
+			// },
 			"api_url": schema.StringAttribute{
 				Description: "URL of the API server.",
 				Computed:    true,
@@ -386,7 +386,7 @@ func createHcpClusterObject(ctx context.Context,
 		builder.ExternalID(state.ExternalID.ValueString())
 	}
 
-	autoScalingEnabled := common.BoolWithFalseDefault(state.AutoScalingEnabled)
+	//autoScalingEnabled := common.BoolWithFalseDefault(state.AutoScalingEnabled)
 
 	replicas := common.OptionalInt64(state.Replicas)
 	computeMachineType := common.OptionalString(state.ComputeMachineType)
@@ -396,7 +396,7 @@ func createHcpClusterObject(ctx context.Context,
 		return nil, err
 	}
 
-	if err := ocmClusterResource.CreateNodes(rosa.Hcp, autoScalingEnabled, replicas, nil, nil,
+	if err := ocmClusterResource.CreateNodes(rosa.Hcp, false, replicas, nil, nil,
 		computeMachineType, nil, availabilityZones, true, nil); err != nil {
 		return nil, err
 	}
@@ -788,7 +788,7 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaHcpState) diag.Diagnos
 	common.ValidateStateAndPlanEquals(state.ChannelGroup, plan.ChannelGroup, "channel_group", &diags)
 
 	// default node pool's attributes
-	common.ValidateStateAndPlanEquals(state.AutoScalingEnabled, plan.AutoScalingEnabled, "autoscaling_enabled", &diags)
+	//common.ValidateStateAndPlanEquals(state.AutoScalingEnabled, plan.AutoScalingEnabled, "autoscaling_enabled", &diags)
 	common.ValidateStateAndPlanEquals(state.Replicas, plan.Replicas, "replicas", &diags)
 	common.ValidateStateAndPlanEquals(state.ComputeMachineType, plan.ComputeMachineType, "compute_machine_type", &diags)
 	common.ValidateStateAndPlanEquals(state.AvailabilityZones, plan.AvailabilityZones, "availability_zones", &diags)

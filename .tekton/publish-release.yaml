@@ -30,7 +30,6 @@ spec:
         gh release create $REL_VER *.zip *.json *SHA256SUMS --repo $REPO
         # We will add .sig file when we have the sigining step done
         #gh release create $REL_VER *.zip *.json *.sig --repo $REPO
-
       env:
         - name: GH_TOKEN
           valueFrom:

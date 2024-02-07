@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -27,7 +28,7 @@ var _ = Describe("RHCS Provider Test", func() {
 		Context("Author:amalykhi-Critical-OCP-63153 @OCP-63153 @amalykhi", func() {
 			It("Z-stream upgrade a ROSA STS cluster with RHCS provider", CI.Upgrade,
 				func() {
-					if profile.Version != "z-1" {
+					if profile.VersionPattern != "z-1" {
 						Skip("The test is configured only for Z-stream upgrade")
 					}
 					clusterResp, err := CMS.RetrieveClusterDetail(CI.RHCSConnection, clusterID)
@@ -46,15 +47,21 @@ var _ = Describe("RHCS Provider Test", func() {
 
 					downgradedVersion := fmt.Sprintf("%s.%s.%s", splittedVersion[0], splittedVersion[1], fmt.Sprint(zStreamV-1))
 
-					clusterArgs := &EXE.ClusterCreationArgs{
-						OpenshiftVersion: downgradedVersion,
+					imageVersionsList := CMS.EnabledVersions(CI.RHCSConnection, profile.ChannelGroup, profile.MajorVersion, true)
+					versionsList := CMS.GetRawVersionList(imageVersionsList)
+					if slices.Contains(versionsList, downgradedVersion) {
+						clusterArgs := &EXE.ClusterCreationArgs{
+							OpenshiftVersion: downgradedVersion,
+						}
+						err = clusterService.Apply(clusterArgs, false, false)
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(ContainSubstring("cluster version is already above the\nrequested version"))
+
 					}
-					err = clusterService.Apply(clusterArgs, false, false)
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("cluster version is already above the\nrequested version"))
 
 					By("Run the cluster update")
-					clusterArgs = &EXE.ClusterCreationArgs{
+					clusterArgs := &EXE.ClusterCreationArgs{
 						OpenshiftVersion: targetV,
 					}
 					err = clusterService.Apply(clusterArgs, false, false)
@@ -81,7 +88,8 @@ var _ = Describe("RHCS Provider Test", func() {
 		Context("Author:amalykhi-Critical-OCP-63152 @OCP-63152 @amalykhi", func() {
 			It("Y-stream Upgrade ROSA STS cluster with RHCS provider", CI.Upgrade,
 				func() {
-					if profile.Version != "y-1" {
+
+					if profile.VersionPattern != "y-1" {
 						Skip("The test is configured only for Y-stream upgrade")
 					}
 
@@ -90,9 +98,11 @@ var _ = Describe("RHCS Provider Test", func() {
 					targetV, err = CMS.GetVersionUpgradeTarget(clusterResp.Body().Version().RawID(),
 						CON.Y, clusterResp.Body().Version().AvailableUpgrades())
 					Expect(err).ToNot(HaveOccurred())
+					Expect(targetV).ToNot(Equal(""))
 
 					By("Upgrade account-roles")
 					majorVersion := CI.GetMajorVersion(targetV)
+					Expect(majorVersion).ToNot(Equal(""))
 					_, err = CI.PrepareAccountRoles(token, clusterResp.Body().Name(), profile.UnifiedAccRolesPath, profile.Region, majorVersion, profile.ChannelGroup, CON.AccountRolesDir)
 					Expect(err).ToNot(HaveOccurred())
 
@@ -106,18 +116,22 @@ var _ = Describe("RHCS Provider Test", func() {
 					Expect(err).ToNot(HaveOccurred())
 
 					downgradedVersion := fmt.Sprintf("%s.%s.%s", splittedVersion[0], fmt.Sprint(yStreamV-1), splittedVersion[2])
+					imageVersionsList := CMS.EnabledVersions(CI.RHCSConnection, profile.ChannelGroup, profile.MajorVersion, true)
+					versionsList := CMS.GetRawVersionList(imageVersionsList)
+					if slices.Contains(versionsList, downgradedVersion) {
+						clusterArgs := &EXE.ClusterCreationArgs{
+							OpenshiftVersion: downgradedVersion,
+						}
+						err = clusterService.Apply(clusterArgs, false, false)
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(ContainSubstring("cluster version is already above the\nrequested version"))
 
-					clusterArgs := &EXE.ClusterCreationArgs{
-						OpenshiftVersion: downgradedVersion,
 					}
-					err = clusterService.Apply(clusterArgs, false, false)
-					Expect(err).To(HaveOccurred())
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("cluster version is already above the\nrequested version"))
 
 					By("Validate  the cluster Upgrade upgrade_acknowledge field")
 
-					clusterArgs = &EXE.ClusterCreationArgs{
+					clusterArgs := &EXE.ClusterCreationArgs{
 						OpenshiftVersion: targetV,
 					}
 

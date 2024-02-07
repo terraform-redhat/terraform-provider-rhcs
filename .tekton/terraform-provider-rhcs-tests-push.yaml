@@ -434,7 +434,6 @@ spec:
       - name: gh-upload
         workspace: workspace
 
-
     workspaces:
     - name: workspace
     - name: git-auth

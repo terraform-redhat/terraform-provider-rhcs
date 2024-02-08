@@ -24,7 +24,6 @@ OpenShift managed cluster using rosa sts.
 
 ### Optional
 
-- `autoscaling_enabled` (Boolean) Enable autoscaling for the initial worker pool. This attribute is specifically applies for the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the default Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)
 - `availability_zones` (List of String) Availability zones. This attribute is specifically applies for the Worker Node Pool and becomes irrelevant once the resource is created. Any modifications to the default Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Node Pool in ROSA Cluster](../guides/worker-machine-pool.md)
 - `aws_private_link` (Boolean) Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet. After the creation of the resource, it is not possible to update the attribute value.
 - `aws_subnet_ids` (List of String) AWS subnet IDs. After the creation of the resource, it is not possible to update the attribute value.

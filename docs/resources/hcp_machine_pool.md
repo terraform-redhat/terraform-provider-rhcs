@@ -20,15 +20,14 @@ Machine pool.
 - `autoscaling` (Attributes) Basic autoscaling options (see [below for nested schema](#nestedatt--autoscaling))
 - `cluster` (String) Identifier of the cluster. After the creation of the resource, it is not possible to update the attribute value.
 - `name` (String) Name of the machine pool. Must consist of lower-case alphanumeric characters or '-', start and end with an alphanumeric character. After the creation of the resource, it is not possible to update the attribute value.
+- `subnet_id` (String) Select the subnet in which to create a single AZ machine pool for BYO-VPC cluster. After the creation of the resource, it is not possible to update the attribute value.
 
 ### Optional
 
 - `auto_repair` (Boolean) Indicates use of autor repair for the pool
-- `availability_zone` (String) Select the availability zone in which to create a single AZ machine pool for a multi-AZ cluster. After the creation of the resource, it is not possible to update the attribute value.
 - `aws_node_pool` (Attributes) AWS settings for node pool (see [below for nested schema](#nestedatt--aws_node_pool))
 - `labels` (Map of String) Labels for the machine pool. Format should be a comma-separated list of 'key = value'. This list will overwrite any modifications made to node labels on an ongoing basis.
 - `replicas` (Number) The number of machines of the pool
-- `subnet_id` (String) Select the subnet in which to create a single AZ machine pool for BYO-VPC cluster. After the creation of the resource, it is not possible to update the attribute value.
 - `taints` (Attributes List) Taints for a machine pool. Format should be a comma-separated list of 'key=value'. This list will overwrite any modifications made to node taints on an ongoing basis. (see [below for nested schema](#nestedatt--taints))
 - `tuning_configs` (List of String) A list of tuning configs attached to the pool.
 - `upgrade_acknowledgements_for` (String) Indicates acknowledgement of agreements required to upgrade the cluster version between minor versions (e.g. a value of "4.12" indicates acknowledgement of any agreements required to upgrade to OpenShift 4.12.z from 4.11 or before).
@@ -36,6 +35,7 @@ Machine pool.
 
 ### Read-Only
 
+- `availability_zone` (String) Select the availability zone in which to create a single AZ machine pool for a multi-AZ cluster. After the creation of the resource, it is not possible to update the attribute value.
 - `current_version` (String) The currently running version of OpenShift on the machine pool, for example '4.11.0'.
 - `id` (String) Unique identifier of the machine pool.
 - `status` (Attributes) HCP replica status (see [below for nested schema](#nestedatt--status))

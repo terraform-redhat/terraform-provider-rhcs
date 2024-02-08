@@ -26,7 +26,6 @@ OpenShift managed cluster using rosa sts.
 ### Read-Only
 
 - `api_url` (String) URL of the API server.
-- `autoscaling_enabled` (Boolean) This attribute is not support for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `aws_account_id` (String) Identifier of the AWS account. After the creation of the resource, it is not possible to update the attribute value.
 - `aws_private_link` (Boolean) Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet. After the creation of the resource, it is not possible to update the attribute value.
 - `aws_subnet_ids` (List of String) AWS subnet IDs. After the creation of the resource, it is not possible to update the attribute value.

@@ -17,6 +17,7 @@ limitations under the License.
 package hcp
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -29,35 +30,38 @@ import (
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
 )
 
-const versionListPage1 = `{
-	"kind": "VersionList",
-	"page": 1,
-	"size": 2,
-	"total": 2,
-	"items": [{
-			"kind": "Version",
-			"id": "openshift-v4.10.1",
-			"href": "/api/clusters_mgmt/v1/versions/openshift-v4.10.1",
-			"raw_id": "4.10.1"
-		},
-		{
-			"kind": "Version",
-			"id": "openshift-4.14.0",
-			"href": "/api/clusters_mgmt/v1/versions/openshift-4.14.0",
-			"raw_id": "4.14.0"
-		},
-		{
-			"kind": "Version",
-			"id": "openshift-v4.10.1",
-			"href": "/api/clusters_mgmt/v1/versions/openshift-v4.11.1",
-			"raw_id": "4.11.1"
-		}
-	]
-}`
+const (
+	propKey   = "prop_key"
+	propValue = "prop_value"
+)
 
-var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
-	// This is the cluster that will be returned by the server when asked to create or retrieve
-	// a cluster.
+var _ = Describe("HCP Cluster", func() {
+	// cmv1 doesn't have a marshaling option for page
+	versionListPage := `{
+		"kind": "VersionList",
+		"page": 1,
+		"size": 2,
+		"total": 2,
+		"items": [{
+				"kind": "Version",
+				"id": "openshift-v4.10.1",
+				"href": "/api/clusters_mgmt/v1/versions/openshift-v4.10.1",
+				"raw_id": "4.10.1"
+			},
+			{
+				"kind": "Version",
+				"id": "openshift-4.14.0",
+				"href": "/api/clusters_mgmt/v1/versions/openshift-4.14.0",
+				"raw_id": "4.14.0"
+			},
+			{
+				"kind": "Version",
+				"id": "openshift-v4.10.1",
+				"href": "/api/clusters_mgmt/v1/versions/openshift-v4.11.1",
+				"raw_id": "4.11.1"
+			}
+		]
+	}`
 	baseSpecBuilder := cmv1.NewCluster().
 		ID("123").
 		ExternalID("123").
@@ -93,7 +97,7 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 	b := new(strings.Builder)
 	err = cmv1.MarshalCluster(spec, b)
 	Expect(err).ToNot(HaveOccurred())
-	template := string(b.String())
+	template := b.String()
 
 	baseSpecBuilder.AdditionalTrustBundle("REDACTED")
 	specWithTrustBundle, err := baseSpecBuilder.Build()
@@ -101,64 +105,64 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 	b = new(strings.Builder)
 	err = cmv1.MarshalCluster(specWithTrustBundle, b)
 	Expect(err).ToNot(HaveOccurred())
-	templateWithTrustBundle := string(b.String())
-
-	Context("rhcs_cluster_rosa_hcp - create", func() {
-		It("invalid az for region", func() {
-			terraform.Source(`
-			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-			  name           = "my-cluster"
-			  cloud_region   = "us-west-1"
-			  aws_account_id = "123"
-			  aws_billing_account_id = "123"
-			  sts = {
-				  operator_role_prefix = "test"
-				  role_arn = "",
-				  support_role_arn = "",
-				  instance_iam_roles = {
-					  worker_role_arn = "",
+	templateWithTrustBundle := b.String()
+	Context("create", func() {
+		Context("Availability zones", func() {
+			It("invalid az for region", func() {
+				terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				  name           = "my-cluster"
+				  cloud_region   = "us-west-1"
+				  availability_zones = ["us-east-1a"]
+				  aws_account_id = "123"
+				  aws_billing_account_id = "123"
+				  sts = {
+					  operator_role_prefix = "test"
+					  role_arn = "",
+					  support_role_arn = "",
+					  instance_iam_roles = {
+						  worker_role_arn = "",
+					  }
 				  }
-			  }
-			  aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-			  version = "openshift-v4.11.1"
-			}
-		  `)
-			Expect(terraform.Apply()).NotTo(BeZero())
+				  aws_subnet_ids = [
+					"id1", "id2", "id3"
+				  ]
+				  version = "4.11.1"
+				}`)
+				Expect(terraform.Apply()).NotTo(BeZero())
+			})
 		})
 
-		It("version with unsupported prefix error", func() {
-			terraform.Source(`
-			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-			  name           = "my-cluster"
-			  cloud_region   = "us-west-1"
-              availability_zones = ["us-east-1a"]
-			  aws_account_id = "123"
-			  aws_billing_account_id = "123"
-			  sts = {
-				  operator_role_prefix = "test"
-				  role_arn = "",
-				  support_role_arn = "",
-				  instance_iam_roles = {
-					  worker_role_arn = "",
+		Context("Version", func() {
+			It("version with unsupported prefix error", func() {
+				terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				  name           = "my-cluster"
+				  cloud_region   = "us-west-1"
+				  aws_account_id = "123"
+				  aws_billing_account_id = "123"
+				  sts = {
+					  operator_role_prefix = "test"
+					  role_arn = "",
+					  support_role_arn = "",
+					  instance_iam_roles = {
+						  worker_role_arn = "",
+					  }
 				  }
-			  }
-			  aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-			  version = "4.11.1"
-			}
-		  `)
-			Expect(terraform.Apply()).NotTo(BeZero())
+				  aws_subnet_ids = [
+					"id1", "id2", "id3"
+				  ]
+				  version = "openshift-v4.11.1"
+				}`)
+				Expect(terraform.Apply()).NotTo(BeZero())
+			})
 		})
-
 		Context("Test channel groups", func() {
 			It("doesn't append the channel group when on the default channel", func() {
 				server.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-						RespondWithJSON(http.StatusOK, versionListPage1),
+						RespondWithJSON(http.StatusOK, versionListPage),
 					),
 					CombineHandlers(
 						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
@@ -180,42 +184,38 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 							  }
 						  }
 						},
-						 
 						{
 							"op": "replace",
 							"path": "/version/id",
 							"value": "openshift-v4.11.1"
-						}
-						]`),
-					),
-				)
+						}]`),
+					))
 				terraform.Source(`
-			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-			  name           = "my-cluster"
-			  cloud_region   = "us-west-1"
-			  aws_account_id = "123"
-			  aws_billing_account_id = "123"
-			  sts = {
-				  operator_role_prefix = "test"
-				  role_arn = "",
-				  support_role_arn = "",
-				  instance_iam_roles = {
-					  worker_role_arn = "",
-				  }
-			  }
-			  aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-			  version = "4.11.1"
-			}
-		  `)
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123"
+					aws_billing_account_id = "123"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					version = "4.11.1"
+				}`)
 				Expect(terraform.Apply()).To(BeZero())
 			})
 			It("appends the channel group when on a non-default channel", func() {
 				server.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-						RespondWithPatchedJSON(http.StatusOK, versionListPage1, `[
+						RespondWithPatchedJSON(http.StatusOK, versionListPage, `[
 						{
 							"op": "add",
 							"path": "/items/-",
@@ -226,8 +226,7 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 								"raw_id": "4.50.0",
 								"channel_group": "fast"
 							}
-						}
-					]`),
+						}]`),
 					),
 					CombineHandlers(
 						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
@@ -250,7 +249,6 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 							  }
 						  }
 						},
-						 
 						{
 							"op": "replace",
 							"path": "/version/id",
@@ -260,38 +258,36 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 							"op": "add",
 							"path": "/version/channel_group",
 							"value": "fast"
-						}
-						]`),
+						}]`),
 					),
 				)
 				terraform.Source(`
-			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-			  name           = "my-cluster"
-			  cloud_region   = "us-west-1"
-			  aws_account_id = "123"
-			  aws_billing_account_id = "123"
-			  sts = {
-				  operator_role_prefix = "test"
-				  role_arn = "",
-				  support_role_arn = "",
-				  instance_iam_roles = {
-					  worker_role_arn = "",
-				  }
-			  }
-			  aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-			  channel_group = "fast"
-			  version = "4.50.0"
-			}
-		  `)
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123"
+					aws_billing_account_id = "123"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					channel_group = "fast"
+					version = "4.50.0"
+				}`)
 				Expect(terraform.Apply()).To(BeZero())
 			})
 			It("returns an error when the version is not found in the channel group", func() {
 				server.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-						RespondWithPatchedJSON(http.StatusOK, versionListPage1, `[
+						RespondWithPatchedJSON(http.StatusOK, versionListPage, `[
 						{
 							"op": "add",
 							"path": "/items/-",
@@ -302,111 +298,107 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 								"raw_id": "4.50.0",
 								"channel_group": "fast"
 							}
-						}
-					]`),
+						}]`),
 					),
 				)
 				terraform.Source(`
-			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-			  name           = "my-cluster"
-			  cloud_region   = "us-west-1"
-			  aws_account_id = "123"
-			  aws_billing_account_id = "123"
-			  sts = {
-				  operator_role_prefix = "test"
-				  role_arn = "",
-				  support_role_arn = "",
-				  instance_iam_roles = {
-					  worker_role_arn = "",
-				  }
-			  }
-			  aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-			  channel_group = "fast"
-			  version = "4.99.99"
-			}
-		  `)
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123"
+					aws_billing_account_id = "123"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					channel_group = "fast"
+					version = "4.99.99"
+				}`)
 				Expect(terraform.Apply()).NotTo(BeZero())
 			})
 		})
-
 		Context("Test wait attribute", func() {
 			It("Create cluster and wait till it will be in error state", func() {
 				// Prepare the server:
 				server.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-						RespondWithJSON(http.StatusOK, versionListPage1),
+						RespondWithJSON(http.StatusOK, versionListPage),
 					),
 					CombineHandlers(
 						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
 						RespondWithPatchedJSON(http.StatusCreated, template, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "",
-							  "support_role_arn": "",
-							  "instance_iam_roles" : {
-								"worker_role_arn" : ""
-							  },
-							  "operator_role_prefix" : "test"
-						  }
-					  }
-					}]`),
+						{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.2",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							}
+						}
+						}]`),
 					),
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 						RespondWithPatchedJSON(http.StatusOK, template, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "",
-							  "support_role_arn": "",
-							  "instance_iam_roles" : {
-								"worker_role_arn" : ""
-							  },
-							  "operator_role_prefix" : "test"
-						  }
-					  }
-					},
-					{
-                      "op": "add",
-                      "path": "/state",
-					  "value": "error"
-					}]`),
+						{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.2",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							}
+						}
+						},
+						{
+						"op": "add",
+						"path": "/state",
+						"value": "error"
+						}]`),
 					),
 				)
 
 				// Run the apply command:
 				terraform.Source(`
-		  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			aws_billing_account_id = "123"
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					worker_role_arn = "",
-				}
-			}
-			aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-			wait_for_create_complete = true
-		  }
-		`)
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123"
+					aws_billing_account_id = "123"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					wait_for_create_complete = true
+				}`)
 				Expect(terraform.Apply()).ToNot(BeZero())
 				resource := terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
 				Expect(resource).To(MatchJQ(".attributes.state", "error"))
@@ -417,76 +409,75 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 				server.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-						RespondWithJSON(http.StatusOK, versionListPage1),
+						RespondWithJSON(http.StatusOK, versionListPage),
 					),
 					CombineHandlers(
 						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
 						RespondWithPatchedJSON(http.StatusCreated, template, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "",
-							  "support_role_arn": "",
-							  "instance_iam_roles" : {
-								"worker_role_arn" : ""
-							  },
-							  "operator_role_prefix" : "test"
-						  }
-					  }
-					}]`),
+						{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.2",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							}
+						}
+						}]`),
 					),
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 						RespondWithPatchedJSON(http.StatusOK, template, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "",
-							  "support_role_arn": "",
-							  "instance_iam_roles" : {
-								"worker_role_arn" : ""
-							  },
-							  "operator_role_prefix" : "test"
-						  }
-					  }
-					},
-					{
-                      "op": "add",
-                      "path": "/state",
-					  "value": "ready"
-					}]`),
+						{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.2",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							}
+						}
+						},
+						{
+						"op": "add",
+						"path": "/state",
+						"value": "ready"
+						}]`),
 					),
 				)
 
 				// Run the apply command:
 				terraform.Source(`
-		  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			aws_billing_account_id = "123"
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					worker_role_arn = "",
-				}
-			}
-			aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-			wait_for_create_complete = true
-		  }
-		`)
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123"
+					aws_billing_account_id = "123"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					wait_for_create_complete = true
+				}`)
 				Expect(terraform.Apply()).To(BeZero())
 				resource := terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
 				Expect(resource).To(MatchJQ(".attributes.state", "ready"))
@@ -497,7 +488,7 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-					RespondWithJSON(http.StatusOK, versionListPage1),
+					RespondWithJSON(http.StatusOK, versionListPage),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
@@ -556,7 +547,7 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-					RespondWithJSON(http.StatusOK, versionListPage1),
+					RespondWithJSON(http.StatusOK, versionListPage),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
@@ -621,71 +612,12 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
 		})
 
-		It("Creates basic cluster with admin user", func() {
-			// Prepare the server:
-			server.AppendHandlers(
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-					RespondWithJSON(http.StatusOK, versionListPage1),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
-					VerifyJQ(`.name`, "my-cluster"),
-					VerifyJQ(`.cloud_provider.id`, "aws"),
-					VerifyJQ(`.region.id`, "us-west-1"),
-					VerifyJQ(`.product.id`, "rosa"),
-
-					RespondWithPatchedJSON(http.StatusCreated, template, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "",
-							  "support_role_arn": "",
-							  "instance_iam_roles" : {
-								"worker_role_arn" : ""
-							  },
-							  "operator_role_prefix" : "test"
-						  }
-					  }
-					}]`),
-				),
-			)
-
-			// Run the apply command:
-			terraform.Source(`
-		  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			aws_billing_account_id = "123"
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					worker_role_arn = "",
-				}
-			}
-			aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-		  }
-		`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
-			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
-		})
-
 		It("Creates basic cluster - and reconcile on a 404", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-					RespondWithJSON(http.StatusOK, versionListPage1),
+					RespondWithJSON(http.StatusOK, versionListPage),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
@@ -716,24 +648,23 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 
 			// Run the apply command:
 			terraform.Source(`
-		  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			aws_billing_account_id = "123"
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					worker_role_arn = "",
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
 				}
-			}
-			aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-		  }
-		`)
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+			}`)
 			Expect(terraform.Apply()).To(BeZero())
 			resource := terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
 			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
@@ -747,7 +678,7 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-					RespondWithJSON(http.StatusOK, versionListPage1),
+					RespondWithJSON(http.StatusOK, versionListPage),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
@@ -783,24 +714,23 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 
 			// Run the apply command:
 			terraform.Source(`
-		  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			aws_billing_account_id = "123"
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					worker_role_arn = "",
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
 				}
-			}
-			aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-		  }
-		`)
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+			}`)
 			Expect(terraform.Apply()).To(BeZero())
 			resource = terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
 			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
@@ -808,13 +738,11 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 		})
 
 		It("Creates basic cluster with properties", func() {
-			prop_key := "my_prop_key"
-			prop_val := "my_prop_val"
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-					RespondWithJSON(http.StatusOK, versionListPage1),
+					RespondWithJSON(http.StatusOK, versionListPage),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
@@ -823,8 +751,8 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 					VerifyJQ(`.region.id`, "us-west-1"),
 					VerifyJQ(`.product.id`, "rosa"),
 
-					VerifyJQ(`.properties.`+prop_key, prop_val),
-					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					VerifyJQ(`.properties.`+propKey, propValue),
+					RespondWithPatchedJSON(http.StatusCreated, template, fmt.Sprintf(`[
 					{
 					  "op": "add",
 					  "path": "/aws",
@@ -845,46 +773,43 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
                       "op": "add",
                       "path": "/properties",
                       "value": {
-                        "`+prop_key+`": "`+prop_val+`"
+                        "%s": "%s"
                       }
-                    }]`),
+                    }]`, propKey, propValue)),
 				),
 			)
 
 			// Run the apply command:
-			terraform.Source(`
-		  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			aws_billing_account_id = "123"
-            properties = { ` +
-				prop_key + ` = "` + prop_val + `"` +
-				`}
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					worker_role_arn = "",
+			terraform.Source(fmt.Sprintf(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				properties = { 
+					%s = "%s"
 				}
-			}
-			aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-		  }
-		`)
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+			}`, propKey, propValue))
 			Expect(terraform.Apply()).To(BeZero())
 		})
 
 		It("Creates basic cluster with properties and update them", func() {
-			prop_key := "my_prop_key"
-			prop_val := "my_prop_val"
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-					RespondWithJSON(http.StatusOK, versionListPage1),
+					RespondWithJSON(http.StatusOK, versionListPage),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
@@ -893,8 +818,8 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 					VerifyJQ(`.region.id`, "us-west-1"),
 					VerifyJQ(`.product.id`, "rosa"),
 
-					VerifyJQ(`.properties.`+prop_key, prop_val),
-					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					VerifyJQ(`.properties.`+propKey, propValue),
+					RespondWithPatchedJSON(http.StatusCreated, template, fmt.Sprintf(`[
 					{
 					  "op": "add",
 					  "path": "/aws",
@@ -915,49 +840,48 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
                       "op": "add",
                       "path": "/properties",
                       "value": {
-                        "rosa_tf_commit":"`+build.Commit+`",
-                        "rosa_tf_version":"`+build.Version+`",
-                        "`+prop_key+`": "`+prop_val+`"
+                        "rosa_tf_commit":"%s",
+                        "rosa_tf_version":"%s",
+                        "%s": "%s"
                       }
-                    }]`),
+                    }]`, build.Commit, build.Version, propKey, propValue)),
 				),
 			)
 
 			// Run the apply command:
-			terraform.Source(`
-		  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			aws_billing_account_id = "123"
-            properties = { ` +
-				prop_key + ` = "` + prop_val + `"` +
-				`}
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					worker_role_arn = "",
+			terraform.Source(fmt.Sprintf(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				properties = { 
+					%s = "%s"
 				}
-			}
-			aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-		  }
-		`)
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+			}`, propKey, propValue))
 			Expect(terraform.Apply()).To(BeZero())
 			resource := terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_commit`, build.Commit))
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_version`, build.Version))
-			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.`+prop_key, prop_val))
-			Expect(resource).To(MatchJQ(`.attributes.properties.`+prop_key, prop_val))
+			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.`+propKey, propValue))
+			Expect(resource).To(MatchJQ(`.attributes.properties.`+propKey, propValue))
 
 			// Prepare server for update
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-					RespondWithPatchedJSON(http.StatusOK, template, `[
+					RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
 					{
 					  "op": "add",
 					  "path": "/aws",
@@ -974,22 +898,20 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 						  }
 					  }
 					},
-					 
-                    {
-                      "op": "add",
-                      "path": "/properties",
-                      "value": {
-                        "rosa_tf_commit":"`+build.Commit+`",
-                        "rosa_tf_version":"`+build.Version+`",
-                        "`+prop_key+`": "`+prop_val+`"
-                      }
-                    }]`),
+					{
+						"op": "add",
+						"path": "/properties",
+						"value": {
+						  "rosa_tf_commit":"%s",
+						  "rosa_tf_version":"%s",
+						  "%s": "%s"
+						}
+					}]`, build.Commit, build.Version, propKey, propValue)),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
-
-					VerifyJQ(`.properties.`+prop_key, prop_val+"_1"),
-					RespondWithPatchedJSON(http.StatusOK, template, `[
+					VerifyJQ(`.properties.`+propKey, propValue+"_1"),
+					RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
 					{
 					  "op": "add",
 					  "path": "/aws",
@@ -1006,57 +928,54 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 						  }
 					  }
 					},
-                    {
-                      "op": "add",
-                      "path": "/properties",
-                      "value": {
-                        "rosa_tf_commit":"`+build.Commit+`",
-                        "rosa_tf_version":"`+build.Version+`",
-                        "`+prop_key+`": "`+prop_val+`_1"
-                      }
-                    }]`),
+					{
+						"op": "add",
+						"path": "/properties",
+						"value": {
+						  "rosa_tf_commit":"%s",
+						  "rosa_tf_version":"%s",
+						  "%s": "%s"
+						}
+					}]`, build.Commit, build.Version, propKey, propValue+"_1")),
 				),
 			)
 
 			// Run the apply command:
-			terraform.Source(`
-		  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			aws_billing_account_id = "123"
-            properties = { ` +
-				prop_key + ` = "` + prop_val + `_1"` +
-				`}
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					worker_role_arn = "",
+			terraform.Source(fmt.Sprintf(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				properties = {
+					%s = "%s"
 				}
-			}
-			aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-		  }
-		`)
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+			}`, propKey, propValue+"_1"))
 			Expect(terraform.Apply()).To(BeZero())
 			resource = terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_commit`, build.Commit))
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_version`, build.Version))
-			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.`+prop_key, prop_val+"_1"))
-			Expect(resource).To(MatchJQ(`.attributes.properties.`+prop_key, prop_val+"_1"))
+			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.`+propKey, propValue+"_1"))
+			Expect(resource).To(MatchJQ(`.attributes.properties.`+propKey, propValue+"_1"))
 		})
 
 		It("Creates basic cluster with properties and delete them", func() {
-			prop_key := "my_prop_key"
-			prop_val := "my_prop_val"
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-					RespondWithJSON(http.StatusOK, versionListPage1),
+					RespondWithJSON(http.StatusOK, versionListPage),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
@@ -1064,9 +983,8 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 					VerifyJQ(`.cloud_provider.id`, "aws"),
 					VerifyJQ(`.region.id`, "us-west-1"),
 					VerifyJQ(`.product.id`, "rosa"),
-
-					VerifyJQ(`.properties.`+prop_key, prop_val),
-					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					VerifyJQ(`.properties.`+propKey, propValue),
+					RespondWithPatchedJSON(http.StatusCreated, template, fmt.Sprintf(`[
 					{
 					  "op": "add",
 					  "path": "/aws",
@@ -1084,46 +1002,45 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 					  }
 					},
                     {
-                      "op": "add",
-                      "path": "/properties",
-                      "value": {
-                        "rosa_tf_commit":"`+build.Commit+`",
-                        "rosa_tf_version":"`+build.Version+`",
-                        "`+prop_key+`": "`+prop_val+`"
-                      }
-                    }]`),
+						"op": "add",
+						"path": "/properties",
+						"value": {
+						  "rosa_tf_commit":"%s",
+						  "rosa_tf_version":"%s",
+						  "%s": "%s"
+						}
+					}]`, build.Commit, build.Version, propKey, propValue)),
 				),
 			)
 
 			// Run the apply command:
-			terraform.Source(`
-		  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			aws_billing_account_id = "123"
-            properties = { ` +
-				prop_key + ` = "` + prop_val + `"` +
-				`}
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					worker_role_arn = "",
+			terraform.Source(fmt.Sprintf(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				properties = { 
+					%s = "%s"
 				}
-			}
-			aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-		  }
-		`)
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+			}`, propKey, propValue))
 			Expect(terraform.Apply()).To(BeZero())
 			resource := terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_commit`, build.Commit))
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_version`, build.Version))
-			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.`+prop_key, prop_val))
-			Expect(resource).To(MatchJQ(`.attributes.properties.`+prop_key, prop_val))
+			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.`+propKey, propValue))
+			Expect(resource).To(MatchJQ(`.attributes.properties.`+propKey, propValue))
 			Expect(resource).To(MatchJQ(`.attributes.properties| keys | length`, 1))
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties| keys | length`, 3))
 
@@ -1131,7 +1048,7 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-					RespondWithPatchedJSON(http.StatusOK, template, `[
+					RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
 					{
 					  "op": "add",
 					  "path": "/aws",
@@ -1148,21 +1065,20 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 						  }
 					  }
 					},
-                    {
-                      "op": "add",
-                      "path": "/properties",
-                      "value": {
-                        "rosa_tf_commit":"`+build.Commit+`",
-                        "rosa_tf_version":"`+build.Version+`",
-                        "`+prop_key+`": "`+prop_val+`"
-                      }
-                    }]`),
+					{
+						"op": "add",
+						"path": "/properties",
+						"value": {
+						  "rosa_tf_commit":"%s",
+						  "rosa_tf_version":"%s",
+						  "%s": "%s"
+						}
+					}]`, build.Commit, build.Version, propKey, propValue)),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
-
-					VerifyJQ(`.properties.`+prop_key, nil),
-					RespondWithPatchedJSON(http.StatusOK, template, `[
+					VerifyJQ(`.properties.`+propKey, nil),
+					RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
 					{
 					  "op": "add",
 					  "path": "/aws",
@@ -1180,37 +1096,38 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 					  }
 					},
                     {
-                      "op": "add",
-                      "path": "/properties",
-                      "value": {
-                        "rosa_tf_commit":"`+build.Commit+`",
-                        "rosa_tf_version":"`+build.Version+`"
-                      }
-                    }]`),
+						"op": "add",
+						"path": "/properties",
+						"value": {
+						  "rosa_tf_commit":"%s",
+						  "rosa_tf_version":"%s"
+						}
+					}]`, build.Commit, build.Version)),
 				),
 			)
 
 			// Run the apply command:
 			terraform.Source(`
-		  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			aws_billing_account_id = "123"
-            properties = {}
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					worker_role_arn = "",
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				properties = {
+
 				}
-			}
-			aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-		  }
-		`)
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+			}`)
 			Expect(terraform.Apply()).To(BeZero())
 			resource = terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_commit`, build.Commit))
@@ -1224,7 +1141,7 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-					RespondWithJSON(http.StatusOK, versionListPage1),
+					RespondWithJSON(http.StatusOK, versionListPage),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
@@ -1254,54 +1171,52 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 			)
 			// Run the apply command:
 			terraform.Source(`
-		  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			aws_billing_account_id = "123"
-			properties = {
-   				rosa_tf_version = "bob"
-			}
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					worker_role_arn = "",
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				properties = {
+					rosa_tf_version = "bob"
 				}
-			}
-			aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-		  }
-		`)
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+			}`)
 			Expect(terraform.Apply()).ToNot(BeZero())
 		})
 
 		It("Should fail cluster creation when cluster name length is more than 15", func() {
 			// Run the apply command:
 			terraform.Source(`
-		  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-		    name           = "my-cluster-234567"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			aws_billing_account_id = "123"
-			properties = {
-   				cluster_name = "too_long"
-			}
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					worker_role_arn = "",
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster-234567"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				properties = {
+					cluster_name = "too_long"
 				}
-			}
-			aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-		  }
-		`)
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+			}`)
 			Expect(terraform.Apply()).ToNot(BeZero())
 
 		})
@@ -1311,7 +1226,7 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 				server.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-						RespondWithJSON(http.StatusOK, versionListPage1),
+						RespondWithJSON(http.StatusOK, versionListPage),
 					),
 					CombineHandlers(
 						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
@@ -1325,22 +1240,22 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 						VerifyJQ(`.aws.sts.support_role_arn`, ""),
 						VerifyJQ(`.aws.account_id`, "123"),
 						RespondWithPatchedJSON(http.StatusCreated, template, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "",
-							  "support_role_arn": "",
-							  "instance_iam_roles" : {
-								"worker_role_arn" : ""
-							  },
-							  "operator_role_prefix" : "test"
-						  }
-					  }
-					}]`),
+						{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.2",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							}
+						}
+						}]`),
 					),
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
@@ -1355,7 +1270,7 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 
 			It("Disable waiting in destroy resource", func() {
 				terraform.Source(`
-				  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
@@ -1370,15 +1285,12 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 						}
 					}
 					aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-				  }
-			`)
-
+						"id1", "id2", "id3"
+			 		]
+				}`)
 				// it should return a warning so exit code will be "0":
 				Expect(terraform.Apply()).To(BeZero())
 				Expect(terraform.Destroy()).To(BeZero())
-
 			})
 
 			It("Wait in destroy resource but use the default timeout", func() {
@@ -1389,7 +1301,7 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 					),
 				)
 				terraform.Source(`
-				  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
@@ -1403,11 +1315,9 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 						}
 					}
 					aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-				  }
-			`)
-
+						"id1", "id2", "id3"
+			  		]
+				}`)
 				// it should return a warning so exit code will be "0":
 				Expect(terraform.Apply()).To(BeZero())
 				Expect(terraform.Destroy()).To(BeZero())
@@ -1421,7 +1331,7 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 					),
 				)
 				terraform.Source(`
-				  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
@@ -1436,11 +1346,9 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 						}
 					}
 					aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-				  }
-			`)
-
+						"id1", "id2", "id3"
+					]
+				}`)
 				// it should return a warning so exit code will be "0":
 				Expect(terraform.Apply()).To(BeZero())
 				Expect(terraform.Destroy()).To(BeZero())
@@ -1454,7 +1362,7 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 					),
 				)
 				terraform.Source(`
-				  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
 					aws_account_id = "123"
@@ -1469,150 +1377,13 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 						}
 					}
 					aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-				  }
-			`)
-
+						"id1", "id2", "id3"
+					]
+				  }`)
 				// it should return a warning so exit code will be "0":
 				Expect(terraform.Apply()).To(BeZero())
 				Expect(terraform.Destroy()).To(BeZero())
 			})
-		})
-
-		It("Disable workload monitor and update it", func() {
-			// Prepare the server:
-			server.AppendHandlers(
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-					RespondWithJSON(http.StatusOK, versionListPage1),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
-					VerifyJQ(`.name`, "my-cluster"),
-					VerifyJQ(`.cloud_provider.id`, "aws"),
-					VerifyJQ(`.region.id`, "us-west-1"),
-					VerifyJQ(`.product.id`, "rosa"),
-					RespondWithPatchedJSON(http.StatusOK, template, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "",
-							  "support_role_arn": "",
-							  "instance_iam_roles" : {
-								"worker_role_arn" : ""
-							  },
-							  "operator_role_prefix" : "test"
-						  }
-					  }
-					}]`),
-				),
-			)
-			terraform.Source(`
-				  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-					name           = "my-cluster"
-					cloud_region   = "us-west-1"
-					aws_account_id = "123"
-					aws_billing_account_id = "123"
-					sts = {
-						operator_role_prefix = "test"
-						role_arn = "",
-						support_role_arn = "",
-						instance_iam_roles = {
-							worker_role_arn = "",
-						}
-					}
-					aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-				  }
-			`)
-
-			// it should return a warning so exit code will be "0":
-			Expect(terraform.Apply()).To(BeZero())
-
-			// apply for update the workload monitor to be enabled
-			// Prepare the server:
-			server.AppendHandlers(
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-					RespondWithPatchedJSON(http.StatusOK, template, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "",
-							  "support_role_arn": "",
-							  "instance_iam_roles" : {
-								"worker_role_arn" : ""
-							  },
-							  "operator_role_prefix" : "test"
-						  }
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-                        "availability_zones": ["us-west-1a"],
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
-					  }
-					}]`),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
-					RespondWithPatchedJSON(http.StatusOK, template, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "",
-							  "support_role_arn": "",
-							  "instance_iam_roles" : {
-								"worker_role_arn" : ""
-							  },
-							  "operator_role_prefix" : "test"
-						  }
-					  }
-					}]`),
-				),
-			)
-
-			terraform.Source(`
-				  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-					name           = "my-cluster"
-					cloud_region   = "us-west-1"
-					aws_account_id = "123"
-					aws_billing_account_id = "123"
-					sts = {
-						operator_role_prefix = "test"
-						role_arn = "",
-						support_role_arn = "",
-						instance_iam_roles = {
-							worker_role_arn = "",
-						}
-					}
-					aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-				  }
-			`)
-
-			Expect(terraform.Apply()).To(BeZero())
-
 		})
 
 		Context("Test Proxy", func() {
@@ -1621,7 +1392,7 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 				server.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-						RespondWithJSON(http.StatusOK, versionListPage1),
+						RespondWithJSON(http.StatusOK, versionListPage),
 					),
 					CombineHandlers(
 						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
@@ -1633,59 +1404,57 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 						VerifyJQ(`.proxy.https_proxy`, "https://proxy.com"),
 						VerifyJQ(`.additional_trust_bundle`, "123"),
 						RespondWithPatchedJSON(http.StatusOK, templateWithTrustBundle, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "",
-							  "support_role_arn": "",
-							  "instance_iam_roles" : {
-								"worker_role_arn" : ""
-							  },
-							  "operator_role_prefix" : "test"
-						  }
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/proxy",
-					  "value": {
-						  "http_proxy" : "http://proxy.com",
-						  "https_proxy" : "https://proxy.com"
-					  }
-					}]`),
+						{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.2",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							}
+						}
+						},
+						{
+						"op": "add",
+						"path": "/proxy",
+						"value": {
+							"http_proxy" : "http://proxy.com",
+							"https_proxy" : "https://proxy.com"
+						}
+						}]`),
 					),
 				)
 
 				// Run the apply command:
 				terraform.Source(`
-		  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			aws_billing_account_id = "123"
-			proxy = {
-				http_proxy = "http://proxy.com",
-				https_proxy = "https://proxy.com",
-				additional_trust_bundle = "123",
-			}
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					worker_role_arn = "",
-				}
-			}
-			aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-		  }
-		`)
-
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123"
+					aws_billing_account_id = "123"
+					proxy = {
+						http_proxy = "http://proxy.com",
+						https_proxy = "https://proxy.com",
+						additional_trust_bundle = "123",
+					}
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+				}`)
 				Expect(terraform.Apply()).To(BeZero())
 
 				// apply for update the proxy's attributes
@@ -1694,37 +1463,37 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 						RespondWithPatchedJSON(http.StatusOK, template, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "",
-							  "support_role_arn": "",
-							  "instance_iam_roles" : {
-								"worker_role_arn" : ""
-							  },
-							  "operator_role_prefix" : "test"
-						  }
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/proxy",
-					  "value": {
-						  "http_proxy" : "http://proxy.com",
-						  "https_proxy" : "https://proxy.com"
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/",
-					  "value": {
-						  "additional_trust_bundle" : "REDUCTED"
-					  }
-					}]`),
+						{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.2",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							}
+						}
+						},
+						{
+						"op": "add",
+						"path": "/proxy",
+						"value": {
+							"http_proxy" : "http://proxy.com",
+							"https_proxy" : "https://proxy.com"
+						}
+						},
+						{
+						"op": "add",
+						"path": "/",
+						"value": {
+							"additional_trust_bundle" : "REDACTED"
+						}
+						}]`),
 					),
 					CombineHandlers(
 						VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
@@ -1732,65 +1501,64 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 						VerifyJQ(`.proxy.no_proxy`, "test"),
 						VerifyJQ(`.additional_trust_bundle`, "123"),
 						RespondWithPatchedJSON(http.StatusOK, template, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "",
-							  "support_role_arn": "",
-							  "instance_iam_roles" : {
-								"worker_role_arn" : ""
-							  },
-							  "operator_role_prefix" : "test"
-						  }
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/proxy",
-					  "value": {
-						  "https_proxy" : "https://proxy2.com",
-						  "no_proxy" : "test"
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/",
-					  "value": {
-						  "additional_trust_bundle" : "REDUCTED"
-					  }
-					}]`),
+						{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.2",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							}
+						}
+						},
+						{
+						"op": "add",
+						"path": "/proxy",
+						"value": {
+							"https_proxy" : "https://proxy2.com",
+							"no_proxy" : "test"
+						}
+						},
+						{
+						"op": "add",
+						"path": "/",
+						"value": {
+							"additional_trust_bundle" : "REDACTED"
+						}
+						}]`),
 					),
 				)
 
 				// update the attribute "proxy"
 				terraform.Source(`
-		  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			aws_billing_account_id = "123"
-			proxy = {
-				https_proxy = "https://proxy2.com",
-				no_proxy = "test"
-				additional_trust_bundle = "123",
-			}
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					worker_role_arn = "",
-				}
-			}
-			aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-		  }
-		`)
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123"
+					aws_billing_account_id = "123"
+					proxy = {
+						https_proxy = "https://proxy2.com",
+						no_proxy = "test"
+						additional_trust_bundle = "123",
+					}
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+				}`)
 				Expect(terraform.Apply()).To(BeZero())
 				resource := terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
 				Expect(resource).To(MatchJQ(`.attributes.proxy.https_proxy`, "https://proxy2.com"))
@@ -1803,7 +1571,7 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 				server.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-						RespondWithJSON(http.StatusOK, versionListPage1),
+						RespondWithJSON(http.StatusOK, versionListPage),
 					),
 					CombineHandlers(
 						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
@@ -1833,25 +1601,23 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 
 				// Run the apply command:
 				terraform.Source(`
-		  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			aws_billing_account_id = "123"
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					worker_role_arn = "",
-				}
-			}
-			aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-		  }
-		`)
-
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123"
+					aws_billing_account_id = "123"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+				}`)
 				Expect(terraform.Apply()).To(BeZero())
 
 				// apply for update the proxy's attributes
@@ -1860,68 +1626,67 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 						RespondWithPatchedJSON(http.StatusOK, template, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "",
-							  "support_role_arn": "",
-							  "instance_iam_roles" : {
-								"worker_role_arn" : ""
-							  },
-							  "operator_role_prefix" : "test"
-						  }
-					  }
-					}]`),
+						{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.2",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							}
+						}
+						}]`),
 					),
 					CombineHandlers(
 						VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
 						VerifyJQ(`.additional_trust_bundle`, "123"),
 						RespondWithPatchedJSON(http.StatusCreated, templateWithTrustBundle, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "",
-							  "support_role_arn": "",
-							  "instance_iam_roles" : {
-								"worker_role_arn" : ""
-							  },
-							  "operator_role_prefix" : "test"
-						  }
-					  }
-					}]`),
+						{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.2",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							}
+						}
+						}]`),
 					),
 				)
 				// update the attribute "proxy"
 				terraform.Source(`
-		  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			aws_billing_account_id = "123"
-			proxy = {
-				additional_trust_bundle = "123",
-			}
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					worker_role_arn = "",
-				}
-			}
-			aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-		  }
-		`)
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123"
+					aws_billing_account_id = "123"
+					proxy = {
+						additional_trust_bundle = "123",
+					}
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+				}`)
 				Expect(terraform.Apply()).To(BeZero())
 			})
 		})
@@ -1930,12 +1695,11 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 			// Expected at least one of the following: http-proxy, https-proxy, additional-trust-bundle
 			terraform.Source(`
 			 resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-			   name           = "my-cluster"
-			   cloud_region   = "us-west-1"
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
 				aws_account_id = "123"
 				aws_billing_account_id = "123"
-				proxy = {
-				}
+				proxy = {}
 				sts = {
 					operator_role_prefix = "test"
 					role_arn = "",
@@ -1945,17 +1709,16 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 					}
 				}
 				aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-			 }
-			`)
+					"id1", "id2", "id3"
+				]
+			 }`)
 			Expect(terraform.Apply()).NotTo(BeZero())
 
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-					RespondWithJSON(http.StatusOK, versionListPage1),
+					RespondWithJSON(http.StatusOK, versionListPage),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
@@ -1977,33 +1740,31 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 								"operator_role_prefix": "test"
 							}
 						}
-					}
-				]`),
+					}]`),
 				),
 			)
 
 			terraform.Source(`
-		  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			aws_billing_account_id = "123"
-			proxy = {
-				additional_trust_bundle = "123",
-			}
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					worker_role_arn = "",
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				proxy = {
+					additional_trust_bundle = "123",
 				}
-			}
-			aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-		  }
-		`)
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+			}`)
 			Expect(terraform.Apply()).To(BeZero())
 
 		})
@@ -2012,7 +1773,7 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-					RespondWithJSON(http.StatusOK, versionListPage1),
+					RespondWithJSON(http.StatusOK, versionListPage),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
@@ -2061,33 +1822,31 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 						   "id": "r5.xlarge"
 	    				}
 					  }
-					}
-					]`),
+					}]`),
 				),
 			)
 
 			// Run the apply command:
 			terraform.Source(`
-		  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			aws_billing_account_id = "123"
-			availability_zones = ["us-west-1a"]
-			aws_private_link = true
-			aws_subnet_ids = [
-				"id1", "id2", "id3"
-			]
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					worker_role_arn = "",
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				availability_zones = ["us-west-1a"]
+				aws_private_link = true
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
 				}
-			}
-		  }
-		`)
+			}`)
 			Expect(terraform.Apply()).To(BeZero())
 		})
 
@@ -2096,7 +1855,7 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-					RespondWithJSON(http.StatusOK, versionListPage1),
+					RespondWithJSON(http.StatusOK, versionListPage),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
@@ -2129,25 +1888,24 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 
 			// Run the apply command:
 			terraform.Source(`
-		  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			aws_billing_account_id = "123"
-			aws_private_link = false
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					worker_role_arn = "",
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				aws_private_link = false
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
 				}
-			}
-			aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-		  }
-		`)
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+			}`)
 			Expect(terraform.Apply()).To(BeZero())
 		})
 
@@ -2156,7 +1914,7 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-					RespondWithJSON(http.StatusOK, versionListPage1),
+					RespondWithJSON(http.StatusOK, versionListPage),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
@@ -2197,25 +1955,24 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 			)
 			// Run the apply command:
 			terraform.Source(`
-		resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-			name           = "my-cluster"
-			cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			aws_billing_account_id = "123"
-			sts = {
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-				  worker_role_arn = ""
-				},
-				"operator_role_prefix" : "terraform-operator",
-				"oidc_config_id" = "aaa"
-			}
-			aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-		  }
-		`)
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				sts = {
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+					worker_role_arn = ""
+					},
+					"operator_role_prefix" : "terraform-operator",
+					"oidc_config_id" = "aaa"
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+		  	}`)
 			Expect(terraform.Apply()).To(BeZero())
 		})
 
@@ -2224,7 +1981,7 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-					RespondWithJSON(http.StatusOK, versionListPage1),
+					RespondWithJSON(http.StatusOK, versionListPage),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
@@ -2254,149 +2011,146 @@ var _ = Describe("rhcs_cluster_rosa_hcp - create", func() {
 
 			// Run the apply command:
 			terraform.Source(`
-		  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			aws_billing_account_id = "123"
-			version = "openshift-v4.12"
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "arn:aws:iam::765374464689:role/terr-account-Installer-Role",
-				support_role_arn = "",
-				instance_iam_roles = {
-					worker_role_arn = "",
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				version = "openshift-v4.12"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "arn:aws:iam::765374464689:role/terr-account-Installer-Role",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
 				}
-			}
-			aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-		  }
-		`)
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+			}`)
 			// expect to get an error
 			Expect(terraform.Apply()).ToNot(BeZero())
 		})
+	})
 
-		Context("rhcs_cluster_rosa_hcp - update attributes", func() {
-			BeforeEach(func() {
-				// Prepare the server:
-				server.AppendHandlers(
-					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-						RespondWithJSON(http.StatusOK, versionListPage1),
-					),
-					CombineHandlers(
-						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
-						VerifyJQ(`.name`, "my-cluster"),
-						VerifyJQ(`.cloud_provider.id`, "aws"),
-						VerifyJQ(`.region.id`, "us-west-1"),
-						VerifyJQ(`.product.id`, "rosa"),
-						RespondWithPatchedJSON(http.StatusOK, template, `[
+	Context("Update", func() {
+		BeforeEach(func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+				{
+					"op": "add",
+					"path": "/aws",
+					"value": {
+						"sts" : {
+							"oidc_endpoint_url": "https://127.0.0.2",
+							"thumbprint": "111111",
+							"role_arn": "",
+							"support_role_arn": "",
+							"instance_iam_roles" : {
+							"worker_role_arn" : ""
+							},
+							"operator_role_prefix" : "test"
+						}
+					}
+				},
+				{
+					"op": "add",
+					"path": "/",
+					"value": {
+						"external_id" : "123"
+					}
+				},
+				{
+					"op": "add",
+					"path": "/nodes",
+					"value": {
+					"compute": 3,
+					"availability_zones": ["us-west-1a"],
+					"compute_machine_type": {
+						"id": "r5.xlarge"
+					}
+					}
+				}]`),
+				),
+			)
+			terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				replicas = "3"
+				compute_machine_type = "r5.xlarge"
+				tags = {
+					"k1" = "v1"
+				}
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+			}`)
+			// it should return a warning so exit code will be "0":
+			Expect(terraform.Apply()).To(BeZero())
+
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
 					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "",
-							  "support_role_arn": "",
-							  "instance_iam_roles" : {
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.2",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
 								"worker_role_arn" : ""
-							  },
-							  "operator_role_prefix" : "test"
-						  }
-					  }
+								},
+								"operator_role_prefix" : "test"
+							}
+						}
 					},
 					{
-					  "op": "add",
-					  "path": "/",
-					  "value": {
-						  "external_id" : "123"
-					  }
+						"op": "add",
+						"path": "/",
+						"value": {
+							"external_id" : "123"
+						}
 					},
 					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
+						"op": "add",
+						"path": "/nodes",
+						"value": {
 						"compute": 3,
-                        "availability_zones": ["us-west-1a"],
+						"availability_zones": ["us-west-1a"],
 						"compute_machine_type": {
 							"id": "r5.xlarge"
 						}
-					  }
-					}]`),
-					),
-				)
-				terraform.Source(`
-				  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-					name           = "my-cluster"
-					cloud_region   = "us-west-1"
-					aws_account_id = "123"
-					aws_billing_account_id = "123"
-					replicas = "3"
-					compute_machine_type = "r5.xlarge"
-					tags = {
-						"k1" = "v1"
-					}
-					sts = {
-						operator_role_prefix = "test"
-						role_arn = "",
-						support_role_arn = "",
-						instance_iam_roles = {
-							worker_role_arn = "",
 						}
-					}
-					aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-				  }
-			`)
-
-				// it should return a warning so exit code will be "0":
-				Expect(terraform.Apply()).To(BeZero())
-
-				server.AppendHandlers(
-					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-						RespondWithPatchedJSON(http.StatusOK, template, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "",
-							  "support_role_arn": "",
-							  "instance_iam_roles" : {
-								"worker_role_arn" : ""
-							  },
-							  "operator_role_prefix" : "test"
-						  }
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/",
-					  "value": {
-						  "external_id" : "123"
-					  }
-					},
-					{
-					  "op": "add",
-					  "path": "/nodes",
-					  "value": {
-						"compute": 3,
-                        "availability_zones": ["us-west-1a"],
-						"compute_machine_type": {
-							"id": "r5.xlarge"
-						}
-					  }
 					}]`),
-					),
-				)
-			})
+				),
+			)
 		})
 	})
 })

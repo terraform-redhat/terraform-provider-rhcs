@@ -25,7 +25,7 @@ type HcpMachinePoolState struct {
 	Name        types.String `tfsdk:"name"`
 	Cluster     types.String `tfsdk:"cluster"`
 	Replicas    types.Int64  `tfsdk:"replicas"`
-	AutoScaling AutoScaling  `tfsdk:"autoscaling"`
+	AutoScaling *AutoScaling `tfsdk:"autoscaling"`
 
 	Taints           []Taints     `tfsdk:"taints"`
 	Labels           types.Map    `tfsdk:"labels"`

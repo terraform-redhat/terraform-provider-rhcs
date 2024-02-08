@@ -68,7 +68,8 @@ func flattenNodePoolStatus(currentReplicas int64, message string) types.Object {
 	return types.ObjectValueMust(attributeTypes, attrs)
 }
 
-func expandNodePoolStatus(ctx context.Context, object types.Object, diags diag.Diagnostics) (currentReplicas int64, message string) {
+func expandNodePoolStatus(ctx context.Context,
+	object types.Object, diags diag.Diagnostics) (currentReplicas int64, message string) {
 	if object.IsNull() {
 		return 0, ""
 	}

@@ -190,27 +190,6 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			  name           = "my-cluster"
 			  cloud_region   = "us-west-1"
-			  aws_account_id = "123"
-			  sts = {
-				  operator_role_prefix = "test"
-				  role_arn = "",
-				  support_role_arn = "",
-				  instance_iam_roles = {
-					  master_role_arn = "",
-					  worker_role_arn = "",
-				  }
-			  }
-			  version = "openshift-v4.11.1"
-			}
-		  `)
-			Expect(terraform.Apply()).NotTo(BeZero())
-		})
-
-		It("version with unsupported prefix error", func() {
-			terraform.Source(`
-			resource "rhcs_cluster_rosa_classic" "my_cluster" {
-			  name           = "my-cluster"
-			  cloud_region   = "us-west-1"
               availability_zones = ["us-east-1a"]
 			  aws_account_id = "123"
 			  sts = {
@@ -223,8 +202,27 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				  }
 			  }
 			  version = "4.11.1"
-			}
-		  `)
+			}`)
+			Expect(terraform.Apply()).NotTo(BeZero())
+		})
+
+		It("version with unsupported prefix error", func() {
+			terraform.Source(`
+			resource "rhcs_cluster_rosa_classic" "my_cluster" {
+			  name           = "my-cluster"
+			  cloud_region   = "us-west-1"
+			  aws_account_id = "123"
+			  sts = {
+				  operator_role_prefix = "test"
+				  role_arn = "",
+				  support_role_arn = "",
+				  instance_iam_roles = {
+					  master_role_arn = "",
+					  worker_role_arn = "",
+				  }
+			  }
+			  version = "openshift-v4.11.1"
+			}`)
 			Expect(terraform.Apply()).NotTo(BeZero())
 		})
 

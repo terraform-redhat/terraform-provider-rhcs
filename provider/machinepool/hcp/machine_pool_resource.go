@@ -27,6 +27,7 @@ import (
 	semver "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -138,7 +139,6 @@ func (r *HcpMachinePoolResource) Schema(ctx context.Context, req resource.Schema
 			},
 			"availability_zone": schema.StringAttribute{
 				Description: "Select the availability zone in which to create a single AZ machine pool for a multi-AZ cluster. " + common.ValueCannotBeChangedStringDescription,
-				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
@@ -146,8 +146,7 @@ func (r *HcpMachinePoolResource) Schema(ctx context.Context, req resource.Schema
 			},
 			"subnet_id": schema.StringAttribute{
 				Description: "Select the subnet in which to create a single AZ machine pool for BYO-VPC cluster. " + common.ValueCannotBeChangedStringDescription,
-				Optional:    true,
-				Computed:    true,
+				Required:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -175,7 +174,6 @@ func (r *HcpMachinePoolResource) Schema(ctx context.Context, req resource.Schema
 				Optional:    true,
 				Computed:    true,
 			},
-
 			"version": schema.StringAttribute{
 				Description: "Desired version of OpenShift for the machine pool, for example '4.11.0'. If version is greater than the currently running version, an upgrade will be scheduled.",
 				Optional:    true,
@@ -199,10 +197,9 @@ func (r *HcpMachinePoolResource) Schema(ctx context.Context, req resource.Schema
 
 func (r *HcpMachinePoolResource) ConfigValidators(context.Context) []resource.ConfigValidator {
 	return []resource.ConfigValidator{
-		//resourcevalidator.Conflicting(path.MatchRoot("availability_zone"), path.MatchRoot("subnet_id")),
-		// resourcevalidator.RequiredTogether(path.MatchRoot("min_replicas"), path.MatchRoot("max_replicas")),
-		// resourcevalidator.Conflicting(path.MatchRoot("replicas"), path.MatchRoot("min_replicas")),
-		// resourcevalidator.Conflicting(path.MatchRoot("replicas"), path.MatchRoot("max_replicas")),
+		resourcevalidator.RequiredTogether(path.MatchRoot("autoscaling").AtName("min_replicas"), path.MatchRoot("autoscaling").AtName("max_replicas")),
+		resourcevalidator.Conflicting(path.MatchRoot("replicas"), path.MatchRoot("autoscaling").AtName("min_replicas")),
+		resourcevalidator.Conflicting(path.MatchRoot("replicas"), path.MatchRoot("autoscaling").AtName("max_replicas")),
 	}
 }
 
@@ -282,9 +279,6 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 		}
 	}
 
-	if !common.IsStringAttributeUnknownOrEmpty(plan.AvailabilityZone) {
-		builder.AvailabilityZone(plan.AvailabilityZone.ValueString())
-	}
 	if !common.IsStringAttributeUnknownOrEmpty(plan.SubnetID) {
 		builder.Subnet(plan.SubnetID.ValueString())
 	}
@@ -692,10 +686,17 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 
 	object := update.Body()
 
-	// update the autoscaling enabled with the plan value (important for nil and false cases)
+	// update the Autoscaling enabled with the plan value (important for nil and false cases)
+	if state.AutoScaling == nil {
+		state.AutoScaling = new(AutoScaling)
+	}
 	state.AutoScaling.Enabled = plan.AutoScaling.Enabled
 	// update the Replicas with the plan value (important for nil and zero value cases)
 	state.Replicas = plan.Replicas
+	// update the NodePoolStatus enabled with the plan value (important for nil and false cases)
+	state.NodePoolStatus = plan.NodePoolStatus
+	// update the NodePoolStatus enabled with the plan value (important for nil and false cases)
+	state.Version = plan.Version
 
 	// Save the state:
 	err = populateState(object, state)
@@ -976,7 +977,7 @@ func (r *HcpMachinePoolResource) Delete(ctx context.Context, req resource.Delete
 
 // countPools returns the number of machine pools in the given cluster
 func (r *HcpMachinePoolResource) countPools(ctx context.Context, clusterID string) (int, error) {
-	resource := r.clusterCollection.Cluster(clusterID).MachinePools()
+	resource := r.clusterCollection.Cluster(clusterID).NodePools()
 	resp, err := resource.List().SendContext(ctx)
 	if err != nil {
 		return 0, err
@@ -1022,6 +1023,9 @@ func populateState(object *cmv1.NodePool, state *HcpMachinePoolState) error {
 
 	autoscaling, ok := object.GetAutoscaling()
 	if ok {
+		if state.AutoScaling == nil {
+			state.AutoScaling = new(AutoScaling)
+		}
 		var minReplicas, maxReplicas int
 		state.AutoScaling.Enabled = types.BoolValue(true)
 		minReplicas, ok = autoscaling.GetMinReplica()
@@ -1033,8 +1037,11 @@ func populateState(object *cmv1.NodePool, state *HcpMachinePoolState) error {
 			state.AutoScaling.MaxReplicas = types.Int64Value(int64(maxReplicas))
 		}
 	} else {
-		state.AutoScaling.MaxReplicas = types.Int64Null()
+		if state.AutoScaling == nil {
+			state.AutoScaling = new(AutoScaling)
+		}
 		state.AutoScaling.MinReplicas = types.Int64Null()
+		state.AutoScaling.MaxReplicas = types.Int64Null()
 	}
 
 	if replicas, ok := object.GetReplicas(); ok {
@@ -1093,6 +1100,8 @@ func populateState(object *cmv1.NodePool, state *HcpMachinePoolState) error {
 			state.CurrentVersion = types.StringNull()
 		}
 	}
+
+	state.AutoRepair = types.BoolValue(object.AutoRepair())
 	return nil
 }
 

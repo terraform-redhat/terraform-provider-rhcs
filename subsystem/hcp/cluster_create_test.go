@@ -38,30 +38,29 @@ const (
 var _ = Describe("HCP Cluster", func() {
 	// cmv1 doesn't have a marshaling option for page
 	versionListPage := `{
-		"kind": "VersionList",
-		"page": 1,
-		"size": 2,
-		"total": 2,
-		"items": [{
-				"kind": "Version",
-				"id": "openshift-v4.10.1",
-				"href": "/api/clusters_mgmt/v1/versions/openshift-v4.10.1",
-				"raw_id": "4.10.1"
-			},
-			{
-				"kind": "Version",
-				"id": "openshift-4.14.0",
-				"href": "/api/clusters_mgmt/v1/versions/openshift-4.14.0",
-				"raw_id": "4.14.0"
-			},
-			{
-				"kind": "Version",
-				"id": "openshift-v4.10.1",
-				"href": "/api/clusters_mgmt/v1/versions/openshift-v4.11.1",
-				"raw_id": "4.11.1"
-			}
-		]
-	}`
+	"kind": "VersionList",
+	"page": 1,
+	"size": 2,
+	"total": 2,
+	"items": [{
+			"kind": "Version",
+			"id": "openshift-v4.10.1",
+			"href": "/api/clusters_mgmt/v1/versions/openshift-v4.10.1",
+			"raw_id": "4.10.1"
+		},
+		{
+			"kind": "Version",
+			"id": "openshift-4.14.0",
+			"href": "/api/clusters_mgmt/v1/versions/openshift-4.14.0",
+			"raw_id": "4.14.0"
+		},
+		{
+			"kind": "Version",
+			"id": "openshift-v4.10.1",
+			"href": "/api/clusters_mgmt/v1/versions/openshift-v4.11.1",
+			"raw_id": "4.11.1"
+		}
+	]}`
 	baseSpecBuilder := cmv1.NewCluster().
 		ID("123").
 		ExternalID("123").
@@ -99,14 +98,14 @@ var _ = Describe("HCP Cluster", func() {
 	Expect(err).ToNot(HaveOccurred())
 	template := b.String()
 
-	baseSpecBuilder.AdditionalTrustBundle("REDACTED")
-	specWithTrustBundle, err := baseSpecBuilder.Build()
-	Expect(err).ToNot(HaveOccurred())
-	b = new(strings.Builder)
-	err = cmv1.MarshalCluster(specWithTrustBundle, b)
-	Expect(err).ToNot(HaveOccurred())
-	templateWithTrustBundle := b.String()
 	Context("create", func() {
+		baseSpecBuilder.AdditionalTrustBundle("REDACTED")
+		specWithTrustBundle, err := baseSpecBuilder.Build()
+		Expect(err).ToNot(HaveOccurred())
+		b = new(strings.Builder)
+		err = cmv1.MarshalCluster(specWithTrustBundle, b)
+		Expect(err).ToNot(HaveOccurred())
+		templateWithTrustBundle := b.String()
 		Context("Availability zones", func() {
 			It("invalid az for region", func() {
 				terraform.Source(`

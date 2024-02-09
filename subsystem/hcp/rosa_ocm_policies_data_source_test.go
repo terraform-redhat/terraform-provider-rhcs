@@ -32,42 +32,42 @@ const (
 				"kind": "STSPolicy",
 				"id": "openshift_cloud_credential_operator_cloud_credential_operator_iam_ro_creds_policy",
 				"details": "{}",
-				"arn": "arn:aws:iam::765374464689:policy/ROSACloudCredentialOperator",
+				"arn": "arn:aws:iam::000000000000:policy/ROSACloudCredentialOperator",
 				"type": "OperatorRole"
 			  },
 			  {
 				"kind": "STSPolicy",
 				"id": "openshift_cloud_network_config_controller_cloud_credentials_policy",
 				"details":  "{}",
-				"arn": "arn:aws:iam::765374464689:policy/ROSACloudNetworkConfigOperator",
+				"arn": "arn:aws:iam::000000000000:policy/ROSACloudNetworkConfigOperator",
 				"type": "OperatorRole"
 			  },
 			  {
 				"kind": "STSPolicy",
 				"id": "openshift_cluster_csi_drivers_ebs_cloud_credentials_policy",
 				"details":  "{}",
-				"arn": "arn:aws:iam::765374464689:policy/ROSAClusterCSIDriversEBSOperator",
+				"arn": "arn:aws:iam::000000000000:policy/ROSAClusterCSIDriversEBSOperator",
 				"type": "OperatorRole"
 			  },
 			  {
 				"kind": "STSPolicy",
 				"id": "openshift_image_registry_installer_cloud_credentials_policy",
 				"details":  "{}",
-				"arn": "arn:aws:iam::765374464689:policy/ROSAImageRegistryOperator",
+				"arn": "arn:aws:iam::000000000000:policy/ROSAImageRegistryOperator",
 				"type": "OperatorRole"
 			  },
 			  {
 				"kind": "STSPolicy",
 				"id": "openshift_ingress_operator_cloud_credentials_policy",
 				"details":  "{}",
-				"arn": "arn:aws:iam::765374464689:policy/ROSACloudIngressOperator",
+				"arn": "arn:aws:iam::000000000000:policy/ROSACloudIngressOperator",
 				"type": "OperatorRole"
 			  },
 			  {
 				"kind": "STSPolicy",
 				"id": "openshift_machine_api_aws_cloud_credentials_policy",
 				"details":  "{}",
-				"arn": "arn:aws:iam::765374464689:policy/ROSAMachineAPIOperator",
+				"arn": "arn:aws:iam::000000000000:policy/ROSAMachineAPIOperator",
 				"type": "OperatorRole"
 			  },
 			  {
@@ -81,28 +81,28 @@ const (
 				"kind": "STSPolicy",
 				"id": "sts_installer_permission_policy",
 				"details":  "{}",
-				"arn": "arn:aws:iam::765374464689:policy/ROSAInstallerPolicy",
+				"arn": "arn:aws:iam::000000000000:policy/ROSAInstallerPolicy",
 				"type": "AccountRole"
 			  },
 			  {
 				"kind": "STSPolicy",
 				"id": "sts_instance_controlplane_permission_policy",
 				"details":  "{}",
-				"arn": "arn:aws:iam::765374464689:policy/ROSAControlPlanePolicy",
+				"arn": "arn:aws:iam::000000000000:policy/ROSAControlPlanePolicy",
 				"type": "AccountRole"
 			  },
 			  {
 				"kind": "STSPolicy",
 				"id": "sts_instance_worker_permission_policy",
 				"details":  "{}",
-				"arn": "arn:aws:iam::765374464689:policy/ROSAWorkerPolicy",
+				"arn": "arn:aws:iam::000000000000:policy/ROSAWorkerPolicy",
 				"type": "AccountRole"
 			  },
 			  {
 				"kind": "STSPolicy",
 				"id": "sts_support_permission_policy",
 				"details":  "{}",
-				"arn": "arn:aws:iam::765374464689:policy/ROSASRESupportPolicy",
+				"arn": "arn:aws:iam::000000000000:policy/ROSASRESupportPolicy",
 				"type": "AccountRole"
 			  },
 			  {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -226,8 +227,18 @@ func (r *TuningConfigResource) Delete(ctx context.Context, req resource.DeleteRe
 func (r *TuningConfigResource) ImportState(ctx context.Context, request resource.ImportStateRequest,
 	response *resource.ImportStateResponse) {
 	tflog.Debug(ctx, "begin importstate()")
-
-	resource.ImportStatePassthroughID(ctx, path.Root("cluster"), request, response)
+	fields := strings.Split(request.ID, ",")
+	if len(fields) != 2 || fields[0] == "" || fields[1] == "" {
+		response.Diagnostics.AddError(
+			"Invalid import identifier",
+			"TuningConfig to import should be specified as <cluster_id>,<tuning_id>",
+		)
+		return
+	}
+	clusterID := fields[0]
+	tuningConfigId := fields[1]
+	response.Diagnostics.Append(response.State.SetAttribute(ctx, path.Root("cluster"), clusterID)...)
+	response.Diagnostics.Append(response.State.SetAttribute(ctx, path.Root("id"), tuningConfigId)...)
 }
 
 func (r *TuningConfigResource) populateTuningConfig(

@@ -41,6 +41,21 @@ var _ = Describe("TF Test", func() {
 		AfterEach(func() {
 		})
 
+		Context("Author:smiron-Medium-OCP-67607 @OCP-67607 @smiron", func() {
+			It("Validate Rosa cluster with proxy will be created successfully via terraform-provider", ci.Day1Post, ci.Medium, func() {
+
+				if !profile.Proxy {
+					Skip("No proxy is configured for the cluster. skipping the test.")
+				}
+				getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(getResp.Body().Proxy().GetHTTPProxy()).To(ContainSubstring("http://"))
+				Expect(getResp.Body().Proxy().GetHTTPSProxy()).To(ContainSubstring("https://"))
+				Expect(getResp.Body().Proxy().GetNoProxy()).To(Equal("quay.io"))
+				Expect(getResp.Body().AdditionalTrustBundle()).To(Equal("REDACTED"))
+			})
+		})
+
 		Context("Author:smiron-High-OCP-63134 @OCP-63134 @smiron", func() {
 			It("Verify cluster install was successful post cluster deployment", ci.Day1Post, ci.High, func() {
 				getResp, err := cms.RetrieveClusterStatus(ci.RHCSConnection, clusterID)

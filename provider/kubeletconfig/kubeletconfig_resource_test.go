@@ -19,6 +19,7 @@ package kubeletconfig
 import (
 	"context"
 	"fmt"
+
 	tfResources "github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -26,6 +27,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openshift-online/ocm-common/pkg/ocm/client/test"
+	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	v1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"go.uber.org/mock/gomock"
@@ -94,6 +96,8 @@ var _ = Describe("KubeletConfig Resource", func() {
 
 	Context("Create", func() {
 
+		waitTimeoutInMinutes := int64(60)
+
 		var plan tfsdk.Plan
 		var state tfsdk.State
 		var kubeletConfig *v1.KubeletConfig
@@ -116,7 +120,7 @@ var _ = Describe("KubeletConfig Resource", func() {
 
 		It("Creates KubeletConfig", func() {
 
-			clusterWait.EXPECT().WaitForClusterToBeReady(gomock.Eq(ctx), gomock.Eq(clusterId)).Return(nil)
+			clusterWait.EXPECT().WaitForClusterToBeReady(gomock.Eq(ctx), gomock.Eq(clusterId), waitTimeoutInMinutes).Return(&cmv1.Cluster{}, nil)
 			kubeletClient.EXPECT().Exists(gomock.Eq(ctx), gomock.Eq(clusterId)).Return(false, nil, nil)
 			kubeletClient.EXPECT().Create(
 				gomock.Eq(ctx), gomock.Eq(clusterId), test.MatchKubeletConfig(kubeletConfig)).Return(kubeletConfig, nil)
@@ -126,15 +130,15 @@ var _ = Describe("KubeletConfig Resource", func() {
 		})
 
 		It("Does not create KubeletConfig if the cluster is not ready", func() {
-			clusterWait.EXPECT().WaitForClusterToBeReady(gomock.Eq(ctx), gomock.Eq(clusterId)).Return(
-				fmt.Errorf("cluster is not ready"))
+			clusterWait.EXPECT().WaitForClusterToBeReady(gomock.Eq(ctx), gomock.Eq(clusterId), waitTimeoutInMinutes).Return(
+				nil, fmt.Errorf("cluster is not ready"))
 
 			resource.Create(ctx, request, response)
 			Expect(response.Diagnostics.ErrorsCount()).To(Equal(1))
 		})
 
 		It("Does not create KubeletConfig if it already exists", func() {
-			clusterWait.EXPECT().WaitForClusterToBeReady(gomock.Eq(ctx), gomock.Eq(clusterId)).Return(nil)
+			clusterWait.EXPECT().WaitForClusterToBeReady(gomock.Eq(ctx), gomock.Eq(clusterId), waitTimeoutInMinutes).Return(&cmv1.Cluster{}, nil)
 			kubeletClient.EXPECT().Exists(gomock.Eq(ctx), gomock.Eq(clusterId)).Return(true, nil, nil)
 
 			resource.Create(ctx, request, response)
@@ -142,7 +146,7 @@ var _ = Describe("KubeletConfig Resource", func() {
 		})
 
 		It("Fails the plan if cannot create KubeletConfig", func() {
-			clusterWait.EXPECT().WaitForClusterToBeReady(gomock.Eq(ctx), gomock.Eq(clusterId)).Return(nil)
+			clusterWait.EXPECT().WaitForClusterToBeReady(gomock.Eq(ctx), gomock.Eq(clusterId), waitTimeoutInMinutes).Return(&cmv1.Cluster{}, nil)
 			kubeletClient.EXPECT().Exists(gomock.Eq(ctx), gomock.Eq(clusterId)).Return(false, nil, nil)
 			kubeletClient.EXPECT().Create(
 				gomock.Eq(ctx), gomock.Eq(clusterId), test.MatchKubeletConfig(kubeletConfig)).Return(

@@ -17,8 +17,9 @@ limitations under the License.
 package provider
 
 import (
-	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 	"net/http"
+
+	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 
 	. "github.com/onsi/ginkgo/v2/dsl/core"             // nolint
 	. "github.com/onsi/gomega"                         // nolint

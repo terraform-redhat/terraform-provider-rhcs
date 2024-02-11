@@ -93,7 +93,8 @@ func (k *KubeletConfigResource) Create(ctx context.Context, req resource.CreateR
 
 	clusterId := plan.Cluster.ValueString()
 
-	if err := k.clusterWait.WaitForClusterToBeReady(ctx, clusterId); err != nil {
+	waitTimeoutInMinutes := int64(60)
+	if _, err := k.clusterWait.WaitForClusterToBeReady(ctx, clusterId, waitTimeoutInMinutes); err != nil {
 		resp.Diagnostics.AddError(
 			"Cluster is not ready",
 			fmt.Sprintf("Cluster with id '%s' is not in the ready state: %v", clusterId, err),

@@ -14,8 +14,7 @@ const pollingIntervalInMinutes = 2
 
 //go:generate mockgen -source=cluster_waiter.go -package=common -destination=mock_clusterwait.go
 type ClusterWait interface {
-	WaitForClusterToBeReady(ctx context.Context, clusterId string) error
-	RetryClusterReadiness(ctx context.Context, clusterId string, attempts int, sleep time.Duration, timeout int64) (*cmv1.Cluster, error)
+	WaitForClusterToBeReady(ctx context.Context, clusterId string, waitTimeoutMin int64) (*cmv1.Cluster, error)
 }
 
 type DefaultClusterWait struct {
@@ -26,53 +25,56 @@ func NewClusterWait(collection *cmv1.ClustersClient) ClusterWait {
 	return &DefaultClusterWait{collection: collection}
 }
 
-func (dw *DefaultClusterWait) RetryClusterReadiness(ctx context.Context, clusterId string, attempts int, sleep time.Duration, timeout int64) (*cmv1.Cluster, error) {
-	object, err := pollClusterState(clusterId, ctx, timeout, dw.collection)
-	if err != nil {
-		if attempts--; attempts > 0 {
-			time.Sleep(sleep)
-			return dw.RetryClusterReadiness(ctx, clusterId, attempts, 2*sleep, timeout)
-		}
-		return nil, fmt.Errorf("polling cluster state failed with error %v", err)
-	}
-
-	if object.State() == cmv1.ClusterStateError || object.State() == cmv1.ClusterStateUninstalling {
-		return object, fmt.Errorf("cluster '%s' is in state '%s'", clusterId, object.State())
-	}
-
-	return object, nil
-}
-
-func (dw *DefaultClusterWait) WaitForClusterToBeReady(ctx context.Context, clusterId string) error {
+func (dw *DefaultClusterWait) WaitForClusterToBeReady(ctx context.Context, clusterId string, waitTimeoutMin int64) (*cmv1.Cluster, error) {
 	resource := dw.collection.Cluster(clusterId)
-	// We expect the cluster to already exist
-	// Try to get it and if result with NotFound error, return error to user
+
+	// First try to get the cluster and check its state
+	// Return an error in case:
+	// * Cluster not found
+	// * Cluster found but its state is "ERROR" or "UNINSTALLING" (will never become to "READY")
+	// In case the state is "READY" return the cluster
 	resp, err := resource.Get().SendContext(ctx)
 	if err != nil && resp.Status() == http.StatusNotFound {
-		message := fmt.Sprintf("Cluster '%s' not found, error: %v", clusterId, err)
+		message := fmt.Sprintf("Failed to get Cluster '%s', with error: %v", clusterId, err)
 		tflog.Error(ctx, message)
-		return fmt.Errorf(message)
+		return nil, fmt.Errorf(message)
+	}
+	currentState := resp.Body().State()
+	if currentState == cmv1.ClusterStateError || currentState == cmv1.ClusterStateUninstalling {
+		message := fmt.Sprintf("Cluster '%s' is in state '%s' and will not become ready", clusterId, currentState)
+		tflog.Error(ctx, message)
+		return resp.Body(), fmt.Errorf(message)
+	}
+	if currentState == cmv1.ClusterStateReady {
+		tflog.Info(ctx, fmt.Sprintf("WaitForClusterToBeReady: Cluster '%s' is with state \"READY\"", clusterId))
+		return resp.Body(), nil
 	}
 
-	// Errored or uninstalling clusters will never become ready
-	if resp.Body().State() == cmv1.ClusterStateError || resp.Body().State() == cmv1.ClusterStateUninstalling {
-		message := fmt.Sprintf("Cluster '%s' is in state '%s' and will not become ready", clusterId, resp.Body().State())
-		tflog.Error(ctx, message)
-		return fmt.Errorf(message)
+	tflog.Info(ctx, fmt.Sprintf("WaitForClusterToBeReady: Cluster '%s' is with state '%s', Wait for the state to become 'READY' with timeout %d minutes",
+		clusterId, currentState, waitTimeoutMin))
+
+	backoffAttempts := 3
+	backoffSleep := 30 * time.Second
+	var cluster *cmv1.Cluster
+	for cluster == nil {
+		cluster, err = pollClusterState(clusterId, ctx, waitTimeoutMin, dw.collection)
+		if err != nil {
+			backoffAttempts--
+			if backoffAttempts == 0 {
+				return nil, fmt.Errorf("polling cluster state failed with error %v", err)
+			}
+			time.Sleep(backoffSleep)
+		}
 	}
 
-	pollCtx, cancel := context.WithTimeout(ctx, 1*time.Hour)
-	defer cancel()
-	_, err = resource.Poll().
-		Interval(30 * time.Second).
-		Predicate(func(get *cmv1.ClusterGetResponse) bool {
-			return get.Body().State() == cmv1.ClusterStateReady
-		}).
-		StartContext(pollCtx)
-	if err != nil {
-		return err
+	tflog.Info(ctx, fmt.Sprintf("WaitForClusterToBeReady: Wait done for cluster '%s' with state '%s'", clusterId, currentState))
+
+	// If Cluster is ready without ERROR
+	// Otherwise return with ERROR
+	if cluster.State() == cmv1.ClusterStateReady {
+		return cluster, nil
 	}
-	return nil
+	return cluster, fmt.Errorf("cluster '%s' is in state '%s'", clusterId, cluster.State())
 }
 
 func pollClusterState(clusterId string, ctx context.Context, timeout int64, clusterCollection *cmv1.ClustersClient) (*cmv1.Cluster, error) {

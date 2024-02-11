@@ -102,7 +102,8 @@ func (g *GroupMembershipResource) Create(ctx context.Context, req resource.Creat
 	}
 
 	// Wait till the cluster is ready:
-	err := g.clusterWait.WaitForClusterToBeReady(ctx, state.Cluster.ValueString())
+	waitTimeoutInMinutes := int64(60)
+	_, err := g.clusterWait.WaitForClusterToBeReady(ctx, state.Cluster.ValueString(), waitTimeoutInMinutes)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Can't poll cluster state",

@@ -919,7 +919,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 	object = add.Body()
 
 	if common.HasValue(state.WaitForCreateComplete) && state.WaitForCreateComplete.ValueBool() {
-		object, err = r.clusterWait.RetryClusterReadiness(ctx, object.ID(), 3, 30*time.Second, waitTimeoutInMinutes)
+		object, err = r.clusterWait.WaitForClusterToBeReady(ctx, object.ID(), waitTimeoutInMinutes)
 		if err != nil {
 			response.Diagnostics.AddError(
 				"Waiting for cluster creation finished with error",

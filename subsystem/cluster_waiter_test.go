@@ -141,10 +141,6 @@ var _ = Describe("Cluster creation", func() {
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, templateReadyState),
 				),
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-					RespondWithJSON(http.StatusOK, templateReadyState),
-				),
 			)
 			terraform.Source(`
 				resource "rhcs_cluster_wait" "rosa_cluster" {
@@ -166,6 +162,10 @@ var _ = Describe("Cluster creation", func() {
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, templateWaitingState),
 			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, templateWaitingState),
+			),
 		)
 
 		terraform.Source(`
@@ -175,7 +175,7 @@ var _ = Describe("Cluster creation", func() {
 				}
 			`)
 
-		Expect(terraform.Apply()).To(BeZero())
+		Expect(terraform.Apply()).NotTo(BeZero())
 		resource := terraform.Resource("rhcs_cluster_wait", "rosa_cluster")
 		Expect(resource).To(MatchJQ(`.attributes.ready`, false))
 	})

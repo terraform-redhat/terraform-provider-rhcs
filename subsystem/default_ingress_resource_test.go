@@ -66,10 +66,6 @@ var _ = Describe("default ingress", func() {
 				RespondWithJSON(http.StatusOK, clusterReady),
 			),
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-				RespondWithJSON(http.StatusOK, clusterReady),
-			),
-			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/ingresses"),
 				RespondWithJSON(http.StatusOK, defaultDay1Template),
 			),
@@ -230,10 +226,6 @@ var _ = Describe("default ingress", func() {
 				RespondWithJSON(http.StatusOK, clusterReady),
 			),
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-				RespondWithJSON(http.StatusOK, clusterReady),
-			),
-			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/ingresses"),
 				RespondWithJSON(http.StatusOK, defaultDay1Template),
 			),
@@ -281,10 +273,6 @@ var _ = Describe("default ingress", func() {
 				RespondWithJSON(http.StatusOK, clusterReady),
 			),
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-				RespondWithJSON(http.StatusOK, clusterReady),
-			),
-			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/ingresses"),
 				RespondWithJSON(http.StatusOK, defaultDay1Template),
 			),
@@ -301,10 +289,6 @@ var _ = Describe("default ingress", func() {
 	It("Create cluster with default ingress - routers_selectors set, route_wildcard_policy and InterNamespaceAllowed changed", func() {
 		// Prepare the server:
 		server.AppendHandlers(
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-				RespondWithJSON(http.StatusOK, clusterReady),
-			),
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, clusterReady),
@@ -352,10 +336,6 @@ var _ = Describe("default ingress", func() {
 	It("routers_selectors and external namespaces cleanup", func() {
 		// Prepare the server:
 		server.AppendHandlers(
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-				RespondWithJSON(http.StatusOK, clusterReady),
-			),
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, clusterReady),
@@ -462,10 +442,6 @@ var _ = Describe("default ingress", func() {
 				RespondWithJSON(http.StatusOK, clusterReady),
 			),
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-				RespondWithJSON(http.StatusOK, clusterReady),
-			),
-			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/ingresses"),
 				RespondWithJSON(http.StatusOK, defaultDay1Template),
 			),
@@ -524,10 +500,6 @@ var _ = Describe("default ingress", func() {
 	It("Create default ingress and delete it", func() {
 		// Prepare the server:
 		server.AppendHandlers(
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-				RespondWithJSON(http.StatusOK, clusterReady),
-			),
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, clusterReady),

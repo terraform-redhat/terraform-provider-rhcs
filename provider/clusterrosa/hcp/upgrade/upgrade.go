@@ -118,13 +118,14 @@ func CheckAndCancelUpgrades(
 	tenMinFromNow := time.Now().UTC().Add(10 * time.Minute)
 
 	for _, upgrade := range upgrades {
-		tflog.Debug(ctx, fmt.Sprintf("Found existing upgrade policy to %s in state %s", upgrade.Policy.Version(), upgrade.PolicyState.Value()))
+		tflog.Debug(ctx, fmt.Sprintf("Found existing upgrade policy to '%s' in state '%s'", upgrade.Policy.Version(), upgrade.PolicyState.Value()))
 		toVersion, err := semver.NewVersion(upgrade.Policy.Version())
 		if err != nil {
 			return false, fmt.Errorf("failed to parse upgrade version: %v", err)
 		}
 		switch upgrade.PolicyState.Value() {
 		case cmv1.UpgradePolicyStateValueDelayed, cmv1.UpgradePolicyStateValueStarted:
+			tflog.Debug(ctx, fmt.Sprintf("---- %v", desiredVersion.Equal(toVersion)))
 			if desiredVersion.Equal(toVersion) {
 				correctUpgradePending = true
 			} else {

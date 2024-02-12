@@ -31,36 +31,59 @@ import (
 )
 
 const (
-	propKey   = "prop_key"
-	propValue = "prop_value"
+	propKey         = "prop_key"
+	propValue       = "prop_value"
+	cluster123Route = "/api/clusters_mgmt/v1/clusters/123"
 )
 
 var _ = Describe("HCP Cluster", func() {
 	// cmv1 doesn't have a marshaling option for page
-	versionListPage := `{
-	"kind": "VersionList",
-	"page": 1,
-	"size": 2,
-	"total": 2,
-	"items": [{
-			"kind": "Version",
-			"id": "openshift-v4.10.1",
-			"href": "/api/clusters_mgmt/v1/versions/openshift-v4.10.1",
-			"raw_id": "4.10.1"
-		},
-		{
-			"kind": "Version",
-			"id": "openshift-4.14.0",
-			"href": "/api/clusters_mgmt/v1/versions/openshift-4.14.0",
-			"raw_id": "4.14.0"
-		},
-		{
-			"kind": "Version",
-			"id": "openshift-v4.10.1",
-			"href": "/api/clusters_mgmt/v1/versions/openshift-v4.11.1",
-			"raw_id": "4.11.1"
-		}
-	]}`
+	versionListPage := `
+	{
+		"kind": "VersionList",
+		"page": 1,
+		"size": 2,
+		"total": 2,
+		"items": [	
+			{
+				"kind": "Version",
+				"id": "openshift-v4.14.0",
+				"href": "/api/clusters_mgmt/v1/versions/openshift-v4.14.0",
+				"raw_id": "4.14.0"
+			},
+			{
+				"kind": "Version",
+				"id": "openshift-v4.14.1",
+				"href": "/api/clusters_mgmt/v1/versions/openshift-v4.14.1",
+				"raw_id": "4.14.1"
+			}
+		]
+	}`
+	v4140Builder := cmv1.NewVersion().ChannelGroup("stable").
+		Enabled(true).
+		ROSAEnabled(true).
+		HostedControlPlaneEnabled(true).
+		ID("openshift-v4.14.0").
+		RawID("v4.14.0").
+		AvailableUpgrades("4.14.1")
+	v4141Spec, err := cmv1.NewVersion().ChannelGroup("stable").
+		Enabled(true).
+		ROSAEnabled(true).
+		HostedControlPlaneEnabled(true).
+		ID("openshift-v4.14.1").
+		RawID("v4.14.1").Build()
+	b := new(strings.Builder)
+	err = cmv1.MarshalVersion(v4141Spec, b)
+	Expect(err).ToNot(HaveOccurred())
+	v4141Info := b.String()
+	const emptyControlPlaneUpgradePolicies = `
+	{
+		"page": 1,
+		"size": 0,
+		"total": 0,
+		"items": []
+	}`
+	Expect(err).NotTo(HaveOccurred())
 	baseSpecBuilder := cmv1.NewCluster().
 		ID("123").
 		ExternalID("123").
@@ -88,12 +111,12 @@ var _ = Describe("HCP Cluster", func() {
 			ServiceCIDR("172.30.0.0/16").
 			PodCIDR("10.128.0.0/14").
 			HostPrefix(23)).
-		Version(cmv1.NewVersion().ID("openshift-4.8.0")).
+		Version(v4140Builder).
 		DNS(cmv1.NewDNS().BaseDomain("mycluster-api.example.com"))
 	spec, err := baseSpecBuilder.Build()
 	Expect(err).ToNot(HaveOccurred())
 
-	b := new(strings.Builder)
+	b = new(strings.Builder)
 	err = cmv1.MarshalCluster(spec, b)
 	Expect(err).ToNot(HaveOccurred())
 	template := b.String()
@@ -126,7 +149,7 @@ var _ = Describe("HCP Cluster", func() {
 				  aws_subnet_ids = [
 					"id1", "id2", "id3"
 				  ]
-				  version = "4.11.1"
+				  version = "4.14.1"
 				}`)
 				Expect(terraform.Apply()).NotTo(BeZero())
 			})
@@ -151,7 +174,7 @@ var _ = Describe("HCP Cluster", func() {
 				  aws_subnet_ids = [
 					"id1", "id2", "id3"
 				  ]
-				  version = "openshift-v4.11.1"
+				  version = "openshift-v4.14.1"
 				}`)
 				Expect(terraform.Apply()).NotTo(BeZero())
 			})
@@ -165,7 +188,7 @@ var _ = Describe("HCP Cluster", func() {
 					),
 					CombineHandlers(
 						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
-						VerifyJQ(`.version.id`, "openshift-v4.11.1"),
+						VerifyJQ(`.version.id`, "openshift-v4.14.1"),
 						RespondWithPatchedJSON(http.StatusCreated, template, `[
 						{
 						  "op": "add",
@@ -186,7 +209,7 @@ var _ = Describe("HCP Cluster", func() {
 						{
 							"op": "replace",
 							"path": "/version/id",
-							"value": "openshift-v4.11.1"
+							"value": "openshift-v4.14.1"
 						}]`),
 					))
 				terraform.Source(`
@@ -206,7 +229,7 @@ var _ = Describe("HCP Cluster", func() {
 					aws_subnet_ids = [
 						"id1", "id2", "id3"
 					]
-					version = "4.11.1"
+					version = "4.14.1"
 				}`)
 				Expect(terraform.Apply()).To(BeZero())
 			})
@@ -352,7 +375,7 @@ var _ = Describe("HCP Cluster", func() {
 						}]`),
 					),
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+						VerifyRequest(http.MethodGet, cluster123Route),
 						RespondWithPatchedJSON(http.StatusOK, template, `[
 						{
 						"op": "add",
@@ -431,7 +454,7 @@ var _ = Describe("HCP Cluster", func() {
 						}]`),
 					),
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+						VerifyRequest(http.MethodGet, cluster123Route),
 						RespondWithPatchedJSON(http.StatusOK, template, `[
 						{
 						"op": "add",
@@ -518,27 +541,26 @@ var _ = Describe("HCP Cluster", func() {
 
 			// Run the apply command:
 			terraform.Source(`
-		  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			aws_billing_account_id = "123"
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					worker_role_arn = "",
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
 				}
-			}
-			aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-		  }
-		`)
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+			}`)
 			Expect(terraform.Apply()).To(BeZero())
 			resource := terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
-			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
+			Expect(resource).To(MatchJQ(".attributes.current_version", "4.14.0"))
 		})
 
 		It("Creates basic cluster returned empty az list", func() {
@@ -555,60 +577,60 @@ var _ = Describe("HCP Cluster", func() {
 					VerifyJQ(`.region.id`, "us-west-1"),
 					VerifyJQ(`.product.id`, "rosa"),
 
-					RespondWithPatchedJSON(http.StatusCreated, template, `[
-					{
-					  "op": "add",
-					  "path": "/aws",
-					  "value": {
-						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
-							  "thumbprint": "111111",
-							  "role_arn": "",
-							  "support_role_arn": "",
-							  "instance_iam_roles" : {
-								"worker_role_arn" : ""
-							  },
-							  "operator_role_prefix" : "test"
-						  }
-					  }
-					},
-					{
-					  "op": "replace",
-					  "path": "/nodes",
-					  "value": {
-						  "compute": 3,
-	            "compute_machine_type": {
-	              "id": "r5.xlarge"
-	            }
-					  }
-					}
+					RespondWithPatchedJSON(http.StatusCreated, template, `
+					[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.2",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						},
+						{
+							"op": "replace",
+							"path": "/nodes",
+							"value": {
+								"compute": 3,
+								"compute_machine_type": {
+								"id": "r5.xlarge"
+								}
+							}
+						}
 					]`),
 				),
 			)
 
 			// Run the apply command:
 			terraform.Source(`
-		  resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-		    name           = "my-cluster"
-		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-			aws_billing_account_id = "123"
-			sts = {
-				operator_role_prefix = "test"
-				role_arn = "",
-				support_role_arn = "",
-				instance_iam_roles = {
-					worker_role_arn = "",
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
 				}
-			}
-			aws_subnet_ids = [
-				"id1", "id2", "id3"
-			  ]
-		  }
-		`)
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+			}`)
 			Expect(terraform.Apply()).To(BeZero())
 			resource := terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
-			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
+			Expect(resource).To(MatchJQ(".attributes.current_version", "4.14.0"))
 		})
 
 		It("Creates basic cluster - and reconcile on a 404", func() {
@@ -666,13 +688,13 @@ var _ = Describe("HCP Cluster", func() {
 			}`)
 			Expect(terraform.Apply()).To(BeZero())
 			resource := terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
-			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
+			Expect(resource).To(MatchJQ(".attributes.current_version", "4.14.0"))
 			Expect(resource).To(MatchJQ(".attributes.id", "123")) // cluster has id 123
 
 			// Prepare the server for reconcile
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					VerifyRequest(http.MethodGet, cluster123Route),
 					RespondWithJSON(http.StatusNotFound, "{}"),
 				),
 				CombineHandlers(
@@ -732,7 +754,7 @@ var _ = Describe("HCP Cluster", func() {
 			}`)
 			Expect(terraform.Apply()).To(BeZero())
 			resource = terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
-			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
+			Expect(resource).To(MatchJQ(".attributes.current_version", "4.14.0"))
 			Expect(resource).To(MatchJQ(".attributes.id", "1234")) // reconciled cluster has id of 1234
 		})
 
@@ -879,7 +901,7 @@ var _ = Describe("HCP Cluster", func() {
 			// Prepare server for update
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					VerifyRequest(http.MethodGet, cluster123Route),
 					RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
 					{
 					  "op": "add",
@@ -908,7 +930,7 @@ var _ = Describe("HCP Cluster", func() {
 					}]`, build.Commit, build.Version, propKey, propValue)),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+					VerifyRequest(http.MethodPatch, cluster123Route),
 					VerifyJQ(`.properties.`+propKey, propValue+"_1"),
 					RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
 					{
@@ -1046,7 +1068,7 @@ var _ = Describe("HCP Cluster", func() {
 			// Prepare server for update
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					VerifyRequest(http.MethodGet, cluster123Route),
 					RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
 					{
 					  "op": "add",
@@ -1075,7 +1097,7 @@ var _ = Describe("HCP Cluster", func() {
 					}]`, build.Commit, build.Version, propKey, propValue)),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+					VerifyRequest(http.MethodPatch, cluster123Route),
 					VerifyJQ(`.properties.`+propKey, nil),
 					RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
 					{
@@ -1257,11 +1279,11 @@ var _ = Describe("HCP Cluster", func() {
 						}]`),
 					),
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+						VerifyRequest(http.MethodGet, cluster123Route),
 						RespondWithJSON(http.StatusOK, template),
 					),
 					CombineHandlers(
-						VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/123"),
+						VerifyRequest(http.MethodDelete, cluster123Route),
 						RespondWithJSON(http.StatusOK, template),
 					),
 				)
@@ -1295,7 +1317,7 @@ var _ = Describe("HCP Cluster", func() {
 			It("Wait in destroy resource but use the default timeout", func() {
 				server.AppendHandlers(
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+						VerifyRequest(http.MethodGet, cluster123Route),
 						RespondWithJSON(http.StatusNotFound, template),
 					),
 				)
@@ -1325,7 +1347,7 @@ var _ = Describe("HCP Cluster", func() {
 			It("Wait in destroy resource and set timeout to a negative value", func() {
 				server.AppendHandlers(
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+						VerifyRequest(http.MethodGet, cluster123Route),
 						RespondWithJSON(http.StatusNotFound, template),
 					),
 				)
@@ -1356,7 +1378,7 @@ var _ = Describe("HCP Cluster", func() {
 			It("Wait in destroy resource and set timeout to a positive value", func() {
 				server.AppendHandlers(
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+						VerifyRequest(http.MethodGet, cluster123Route),
 						RespondWithJSON(http.StatusNotFound, template),
 					),
 				)
@@ -1460,7 +1482,7 @@ var _ = Describe("HCP Cluster", func() {
 				// Prepare the server:
 				server.AppendHandlers(
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+						VerifyRequest(http.MethodGet, cluster123Route),
 						RespondWithPatchedJSON(http.StatusOK, template, `[
 						{
 						"op": "add",
@@ -1495,7 +1517,7 @@ var _ = Describe("HCP Cluster", func() {
 						}]`),
 					),
 					CombineHandlers(
-						VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+						VerifyRequest(http.MethodPatch, cluster123Route),
 						VerifyJQ(`.proxy.https_proxy`, "https://proxy2.com"),
 						VerifyJQ(`.proxy.no_proxy`, "test"),
 						VerifyJQ(`.additional_trust_bundle`, "123"),
@@ -1623,7 +1645,7 @@ var _ = Describe("HCP Cluster", func() {
 				// Prepare the server:
 				server.AppendHandlers(
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+						VerifyRequest(http.MethodGet, cluster123Route),
 						RespondWithPatchedJSON(http.StatusOK, template, `[
 						{
 						"op": "add",
@@ -1643,7 +1665,7 @@ var _ = Describe("HCP Cluster", func() {
 						}]`),
 					),
 					CombineHandlers(
-						VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+						VerifyRequest(http.MethodPatch, cluster123Route),
 						VerifyJQ(`.additional_trust_bundle`, "123"),
 						RespondWithPatchedJSON(http.StatusCreated, templateWithTrustBundle, `[
 						{
@@ -2047,41 +2069,43 @@ var _ = Describe("HCP Cluster", func() {
 					VerifyJQ(`.cloud_provider.id`, "aws"),
 					VerifyJQ(`.region.id`, "us-west-1"),
 					VerifyJQ(`.product.id`, "rosa"),
-					RespondWithPatchedJSON(http.StatusOK, template, `[
-				{
-					"op": "add",
-					"path": "/aws",
-					"value": {
-						"sts" : {
-							"oidc_endpoint_url": "https://127.0.0.2",
-							"thumbprint": "111111",
-							"role_arn": "",
-							"support_role_arn": "",
-							"instance_iam_roles" : {
-							"worker_role_arn" : ""
-							},
-							"operator_role_prefix" : "test"
+					RespondWithPatchedJSON(http.StatusOK, template, `
+					[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.2",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/",
+							"value": {
+								"external_id" : "123"
+							}
+						},
+						{
+							"op": "add",
+							"path": "/nodes",
+							"value": {
+								"compute": 3,
+								"availability_zones": ["us-west-1a"],
+								"compute_machine_type": {
+									"id": "r5.xlarge"
+								}
+							}
 						}
-					}
-				},
-				{
-					"op": "add",
-					"path": "/",
-					"value": {
-						"external_id" : "123"
-					}
-				},
-				{
-					"op": "add",
-					"path": "/nodes",
-					"value": {
-					"compute": 3,
-					"availability_zones": ["us-west-1a"],
-					"compute_machine_type": {
-						"id": "r5.xlarge"
-					}
-					}
-				}]`),
+					]`),
 				),
 			)
 			terraform.Source(`
@@ -2112,44 +2136,933 @@ var _ = Describe("HCP Cluster", func() {
 
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-					RespondWithPatchedJSON(http.StatusOK, template, `[
-					{
-						"op": "add",
-						"path": "/aws",
-						"value": {
-							"sts" : {
-								"oidc_endpoint_url": "https://127.0.0.2",
-								"thumbprint": "111111",
-								"role_arn": "",
-								"support_role_arn": "",
-								"instance_iam_roles" : {
-								"worker_role_arn" : ""
-								},
-								"operator_role_prefix" : "test"
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `
+					[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.2",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/",
+							"value": {
+								"external_id" : "123"
+							}
+						},
+						{
+							"op": "add",
+							"path": "/nodes",
+							"value": {
+							"compute": 3,
+								"availability_zones": ["us-west-1a"],
+								"compute_machine_type": {
+									"id": "r5.xlarge"
+								}
 							}
 						}
+					]`),
+				),
+			)
+		})
+	})
+
+	Context("Upgrade", func() {
+		BeforeEach(func() {
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `
+					[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.2",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/properties",
+							"value": {
+								"rosa_tf_commit": "",
+								"rosa_tf_version": ""
+							}
+						}
+					]`),
+				),
+			)
+			terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
 					},
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				version = "4.14.0"
+			}`)
+			Expect(terraform.Apply()).To(BeZero())
+			// Verify initial cluster version
+			resource := terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.current_version", "4.14.0"))
+		})
+		It("Upgrades Cluster", func() {
+			server.AppendHandlers(
+				// Refresh cluster state
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `
+					[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.2",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/properties",
+							"value": {
+								"rosa_tf_commit": "",
+								"rosa_tf_version": ""
+							}
+						}
+					]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `
+					[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.2",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/properties",
+							"value": {
+								"rosa_tf_commit": "",
+								"rosa_tf_version": ""
+							}
+						}
+					]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.14.1"),
+					RespondWithJSON(http.StatusOK, v4141Info),
+				),
+				// Look for existing upgrade policies
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route+"/control_plane/upgrade_policies"),
+					RespondWithJSON(http.StatusOK, emptyControlPlaneUpgradePolicies),
+				),
+				// Look for gate agreements by posting an upgrade policy w/ dryRun
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, cluster123Route+"/control_plane/upgrade_policies", "dryRun=true"),
+					VerifyJQ(".version", "4.14.1"),
+					RespondWithJSON(http.StatusBadRequest, `{
+						"kind": "Error",
+						"id": "400",
+						"href": "/api/clusters_mgmt/v1/errors/400",
+						"code": "CLUSTERS-MGMT-400",
+						"reason": "There are missing version gate agreements for this cluster. See details.",
+						"details": [
+						{
+							"kind": "VersionGate",
+							"id": "999",
+							"href": "/api/clusters_mgmt/v1/version_gates/596326fb-d1ea-11ed-9f29-0a580a8312f9",
+							"version_raw_id_prefix": "4.14",
+							"label": "api.openshift.com/gate-sts",
+							"value": "4.14",
+							"warning_message": "STS roles must be updated blah blah blah",
+							"description": "OpenShift STS clusters include new required cloud provider permissions in OpenShift 4.YY.",
+							"documentation_url": "https://access.redhat.com/solutions/0000000",
+							"sts_only": true,
+							"creation_timestamp": "2023-04-03T06:39:57.057613Z"
+						}
+						],
+						"operation_id": "8f2d2946-c4ef-4c2f-877b-c19eb17dc918"
+					}`),
+				),
+				// Send acks for all gate agreements
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, cluster123Route+"/gate_agreements"),
+					VerifyJQ(".version_gate.id", "999"),
+					RespondWithJSON(http.StatusCreated, `{
+						"kind": "VersionGateAgreement",
+						"id": "888",
+						"href": "/api/clusters_mgmt/v1/clusters/24g9q8jhdhv66fi41jfiuup5lsvu61fi/gate_agreements/d2e8d371-1033-11ee-9f05-0a580a820bdb",
+						"version_gate": {
+						"kind": "VersionGate",
+						"id": "999",
+						"href": "/api/clusters_mgmt/v1/version_gates/596326fb-d1ea-11ed-9f29-0a580a8312f9",
+						"version_raw_id_prefix": "4.14",
+						"label": "api.openshift.com/gate-sts",
+						"value": "4.14",
+						"warning_message": "STS blah blah blah",
+						"description": "OpenShift STS clusters include new required cloud provider permissions in OpenShift 4.YY.",
+						"documentation_url": "https://access.redhat.com/solutions/0000000",
+						"sts_only": true,
+						"creation_timestamp": "2023-04-03T06:39:57.057613Z"
+						},
+						"creation_timestamp": "2023-06-21T13:02:06.291443Z"
+					}`),
+				),
+				// Create an upgrade policy
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, cluster123Route+"/control_plane/upgrade_policies"),
+					VerifyJQ(".version", "4.14.1"),
+					RespondWithJSON(http.StatusCreated, `
 					{
-						"op": "add",
-						"path": "/",
-						"value": {
-							"external_id" : "123"
+						"id": "123",
+						"schedule_type": "manual",
+						"upgrade_type": "OSD",
+						"version": "4.14.1",
+						"next_run": "2023-06-09T20:59:00Z",
+						"cluster_id": "123",
+						"enable_minor_version_upgrades": true
+					}`),
+				),
+				// Patch the cluster (w/ no changes)
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, cluster123Route),
+					RespondWithPatchedJSON(http.StatusCreated, template, `
+					[
+						{
+						  "op": "add",
+						  "path": "/properties",
+						  "value": {
+							"rosa_tf_commit": "",
+							"rosa_tf_version": ""
+						  }
 						}
-					},
+					]`),
+				),
+			)
+			// Perform upgrade w/ auto-ack of sts-only gate agreements
+			terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = ""
+					support_role_arn = ""
+					instance_iam_roles = {
+						worker_role_arn = ""
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				version = "4.14.1"
+			}`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
+
+		It("Does nothing if upgrade is in progress do a different version than the desired", func() {
+			server.AppendHandlers(
+				// Refresh cluster state
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `
+					[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.2",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/properties",
+							"value": {
+								"rosa_tf_commit": "",
+								"rosa_tf_version": ""
+							}
+						}
+					]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `
+					[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.2",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/properties",
+							"value": {
+								"rosa_tf_commit": "",
+								"rosa_tf_version": ""
+							}
+						}
+					]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.14.1"),
+					RespondWithJSON(http.StatusOK, v4141Info),
+				),
+				// Look for existing upgrade policies
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route+"/control_plane/upgrade_policies"),
+					RespondWithJSON(http.StatusOK, `{
+					"page": 1,
+					"size": 1,
+					"total": 1,
+					"items": [
+						{
+							"id": "456",
+							"schedule_type": "manual",
+							"upgrade_type": "ControlPlane",
+							"version": "4.14.0",
+							"next_run": "2023-06-09T20:59:00Z",
+							"cluster_id": "123",
+							"enable_minor_version_upgrades": true
+						}
+					]
+				}`),
+				),
+				// Check it's state
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route+"/control_plane/upgrade_policies/456"),
+					RespondWithJSON(http.StatusOK, `
 					{
-						"op": "add",
-						"path": "/nodes",
-						"value": {
-						"compute": 3,
-						"availability_zones": ["us-west-1a"],
-						"compute_machine_type": {
-							"id": "r5.xlarge"
+						"id": "456",
+						"state": {
+							"description": "Upgrade in progress",
+							"value": "started"
 						}
+					}`),
+				),
+			)
+			// Perform try the upgrade
+			terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = ""
+					support_role_arn = ""
+					instance_iam_roles = {
+						worker_role_arn = ""
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				version = "4.14.1"
+			}`)
+			// Will fail due to upgrade in progress
+			Expect(terraform.Apply()).NotTo(BeZero())
+		})
+
+		It("Cancels and upgrade for the wrong version & schedules new", func() {
+			server.AppendHandlers(
+				// Refresh cluster state
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `
+					[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.2",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/properties",
+							"value": {
+								"rosa_tf_commit": "",
+								"rosa_tf_version": ""
+							}
 						}
+					]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `
+					[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.2",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/properties",
+							"value": {
+								"rosa_tf_commit": "",
+								"rosa_tf_version": ""
+							}
+						}
+					]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.14.1"),
+					RespondWithJSON(http.StatusOK, v4141Info),
+				),
+				// Look for existing upgrade policies
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route+"/control_plane/upgrade_policies"),
+					RespondWithJSON(http.StatusOK, `{
+						"kind": "UpgradePolicyState",
+						"page": 1,
+						"size": 0,
+						"total": 0,
+						"items": [
+							{
+								"id": "456",
+								"schedule_type": "manual",
+								"upgrade_type": "ControlPlane",
+								"version": "4.14.0",
+								"next_run": "2023-06-09T20:59:00Z",
+								"cluster_id": "123",
+								"enable_minor_version_upgrades": true
+							}
+						]
+					}`),
+				),
+				// Check it's state
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route+"/control_plane/upgrade_policies/456"),
+					RespondWithJSON(http.StatusOK, `{
+						"id": "456",
+						"state": {
+							"description": "",
+							"value": "scheduled"
+						}
+					}`),
+				),
+				// Delete existing upgrade policy
+				CombineHandlers(
+					VerifyRequest(http.MethodDelete, cluster123Route+"/control_plane/upgrade_policies/456"),
+					RespondWithJSON(http.StatusOK, "{}"),
+				),
+				// Look for gate agreements by posting an upgrade policy w/ dryRun (no gates necessary)
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, cluster123Route+"/control_plane/upgrade_policies", "dryRun=true"),
+					VerifyJQ(".version", "4.14.1"),
+					RespondWithJSON(http.StatusNoContent, ""),
+				),
+				// Create an upgrade policy
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, cluster123Route+"/control_plane/upgrade_policies"),
+					VerifyJQ(".version", "4.14.1"),
+					RespondWithJSON(http.StatusCreated, `{
+						"id": "123",
+						"schedule_type": "manual",
+						"upgrade_type": "ControlPlane",
+						"version": "4.14.1",
+						"next_run": "2023-06-09T20:59:00Z",
+						"cluster_id": "123",
+						"enable_minor_version_upgrades": true
+					}`),
+				),
+				// Patch the cluster (w/ no changes)
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, cluster123Route),
+					RespondWithJSON(http.StatusCreated, template),
+				),
+			)
+			// Perform try the upgrade
+			terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = ""
+					support_role_arn = ""
+					instance_iam_roles = {
+						worker_role_arn = ""
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				version = "4.14.1"
+			}`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
+
+		It("Cancels upgrade if version=current_version", func() {
+			server.AppendHandlers(
+				// Refresh cluster state
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithJSON(http.StatusOK, template),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route+"/control_plane/upgrade_policies"),
+					RespondWithJSON(http.StatusOK, `{
+					"kind": "UpgradePolicyState",
+					"page": 1,
+					"size": 0,
+					"total": 0,
+					"items": [
+						{
+							"id": "456",
+							"schedule_type": "manual",
+							"upgrade_type": "ControlPlane",
+							"version": "4.14.1",
+							"next_run": "2023-06-09T20:59:00Z",
+							"cluster_id": "123",
+							"enable_minor_version_upgrades": true
+						}
+					]
+				}`),
+				),
+				// Check it's state
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route+"/control_plane/upgrade_policies/456"),
+					RespondWithJSON(http.StatusOK, `{
+						"id": "456",
+						"state": {
+							"description": "",
+							"value": "scheduled"
+						}
+					}`),
+				),
+				// Delete existing upgrade policy
+				CombineHandlers(
+					VerifyRequest(http.MethodDelete, cluster123Route+"/control_plane/upgrade_policies/456"),
+					RespondWithJSON(http.StatusOK, "{}"),
+				),
+				// Patch the cluster (w/ no changes)
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, cluster123Route),
+					RespondWithJSON(http.StatusOK, template),
+				),
+			)
+			// Set version to match current cluster version
+			terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = ""
+					support_role_arn = ""
+					instance_iam_roles = {
+						worker_role_arn = ""
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				version = "4.14.0"
+			}`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
+
+		It("is an error to request a version older than current", func() {
+			server.AppendHandlers(
+				// Refresh cluster state
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template,
+						`[
+					{
+						"op": "replace",
+						"path": "/version/id",
+						"value": "openshift-v4.14.2"
 					}]`),
 				),
 			)
+			// Set version to before current cluster version, but after version from create
+			terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = ""
+					support_role_arn = ""
+					instance_iam_roles = {
+						worker_role_arn = ""
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				version = "4.14.1"
+			}`)
+			Expect(terraform.Apply()).NotTo(BeZero())
+		})
+
+		It("older than current is allowed as long as not changed", func() {
+			server.AppendHandlers(
+				// Refresh cluster state
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template,
+						`[
+						{
+							"op": "replace",
+							"path": "/version/id",
+							"value": "openshift-v4.14.1"
+						}]`),
+				),
+				// Patch the cluster (w/ no changes)
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, cluster123Route),
+					RespondWithJSON(http.StatusOK, template),
+				),
+			)
+			// Set version to before current cluster version, but matching what was
+			// used during creation (i.e. in state file)
+			terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = ""
+					support_role_arn = ""
+					instance_iam_roles = {
+						worker_role_arn = ""
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				version = "4.14.0"
+			}`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
+
+		Context("Un-acked gates", func() {
+			BeforeEach(func() {
+				server.AppendHandlers(
+					// Refresh cluster state
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route),
+						RespondWithPatchedJSON(http.StatusOK, template, `
+						[
+							{
+								"op": "add",
+								"path": "/aws",
+								"value": {
+									"sts" : {
+										"oidc_endpoint_url": "https://127.0.0.2",
+										"thumbprint": "111111",
+										"role_arn": "",
+										"support_role_arn": "",
+										"instance_iam_roles" : {
+											"worker_role_arn" : ""
+										},
+										"operator_role_prefix" : "test"
+									}
+								}
+							},
+							{
+								"op": "add",
+								"path": "/properties",
+								"value": {
+									"rosa_tf_commit": "",
+									"rosa_tf_version": ""
+								}
+							}
+						]`),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route),
+						RespondWithPatchedJSON(http.StatusOK, template, `
+						[
+							{
+								"op": "add",
+								"path": "/aws",
+								"value": {
+									"sts" : {
+										"oidc_endpoint_url": "https://127.0.0.2",
+										"thumbprint": "111111",
+										"role_arn": "",
+										"support_role_arn": "",
+										"instance_iam_roles" : {
+											"worker_role_arn" : ""
+										},
+										"operator_role_prefix" : "test"
+									}
+								}
+							},
+							{
+								"op": "add",
+								"path": "/properties",
+								"value": {
+									"rosa_tf_commit": "",
+									"rosa_tf_version": ""
+								}
+							}
+						]`),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.14.1"),
+						RespondWithJSON(http.StatusOK, v4141Info),
+					),
+					// Look for existing upgrade policies
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route+"/control_plane/upgrade_policies"),
+						RespondWithJSON(http.StatusOK, emptyControlPlaneUpgradePolicies),
+					),
+					// Look for gate agreements by posting an upgrade policy w/ dryRun
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, cluster123Route+"/control_plane/upgrade_policies", "dryRun=true"),
+						VerifyJQ(".version", "4.14.1"),
+						RespondWithJSON(http.StatusBadRequest, `{
+						"kind": "Error",
+						"id": "400",
+						"href": "/api/clusters_mgmt/v1/errors/400",
+						"code": "CLUSTERS-MGMT-400",
+						"reason": "There are missing version gate agreements for this cluster. See details.",
+						"details": [
+						{
+							"id": "999",
+							"version_raw_id_prefix": "4.14",
+							"label": "api.openshift.com/ackme",
+							"value": "4.14",
+							"warning_message": "user gotta ack",
+							"description": "deprecations... blah blah blah",
+							"documentation_url": "https://access.redhat.com/solutions/0000000",
+							"sts_only": false,
+							"creation_timestamp": "2023-04-03T06:39:57.057613Z"
+						}
+						],
+						"operation_id": "8f2d2946-c4ef-4c2f-877b-c19eb17dc918"
+					}`),
+					),
+				)
+			})
+			It("Fails upgrade for un-acked gates", func() {
+				terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123"
+					aws_billing_account_id = "123"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = ""
+						support_role_arn = ""
+						instance_iam_roles = {
+							worker_role_arn = ""
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					version = "4.14.1"
+				}`)
+				Expect(terraform.Apply()).NotTo(BeZero())
+			})
+			It("Fails upgrade if wrong version is acked", func() {
+				terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123"
+					aws_billing_account_id = "123"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = ""
+						support_role_arn = ""
+						instance_iam_roles = {
+							worker_role_arn = ""
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					version = "4.14.1"
+					upgrade_acknowledgements_for = "1.1"
+				}`)
+				Expect(terraform.Apply()).NotTo(BeZero())
+			})
+			It("It acks gates if correct ack is provided", func() {
+				server.AppendHandlers(
+					// Send acks for all gate agreements
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, cluster123Route+"/gate_agreements"),
+						VerifyJQ(".version_gate.id", "999"),
+						RespondWithJSON(http.StatusCreated, `{
+						"kind": "VersionGateAgreement",
+						"id": "888",
+						"href": "/api/clusters_mgmt/v1/clusters/24g9q8jhdhv66fi41jfiuup5lsvu61fi/gate_agreements/d2e8d371-1033-11ee-9f05-0a580a820bdb",
+						"version_gate": {
+						"id": "999",
+						"version_raw_id_prefix": "4.14",
+						"label": "api.openshift.com/gate-sts",
+						"value": "4.14",
+						"warning_message": "blah blah blah",
+						"description": "whatever",
+						"documentation_url": "https://access.redhat.com/solutions/0000000",
+						"sts_only": false,
+						"creation_timestamp": "2023-04-03T06:39:57.057613Z"
+						},
+						"creation_timestamp": "2023-06-21T13:02:06.291443Z"
+				  	}`),
+					),
+					// Create an upgrade policy
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, cluster123Route+"/control_plane/upgrade_policies"),
+						VerifyJQ(".version", "4.14.1"),
+						RespondWithJSON(http.StatusCreated, `
+						{
+							"kind": "UpgradePolicy",
+							"id": "123",
+							"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/123",
+							"schedule_type": "manual",
+							"upgrade_type": "ControlPlane",
+							"version": "4.14.1",
+							"next_run": "2023-06-09T20:59:00Z",
+							"cluster_id": "123",
+							"enable_minor_version_upgrades": true
+						}`),
+					),
+					// Patch the cluster (w/ no changes)
+					CombineHandlers(
+						VerifyRequest(http.MethodPatch, cluster123Route),
+						RespondWithJSON(http.StatusCreated, template),
+					),
+				)
+				terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123"
+					aws_billing_account_id = "123"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = ""
+						support_role_arn = ""
+						instance_iam_roles = {
+							worker_role_arn = ""
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					version = "4.14.1"
+					upgrade_acknowledgements_for = "4.14"
+				}`)
+				Expect(terraform.Apply()).To(BeZero())
+			})
 		})
 	})
 })

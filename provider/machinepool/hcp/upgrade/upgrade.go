@@ -151,8 +151,7 @@ func CheckAndCancelUpgrades(
 				// The upgrade is not one we want, so cancel it
 				_, err := client.Cluster(upgrade.Policy.ClusterID()).
 					NodePools().NodePool(upgrade.Policy.NodePoolID()).UpgradePolicies().
-					NodePoolUpgradePolicy(upgrade.Policy.ID()).
-					Delete().SendContext(ctx)
+					NodePoolUpgradePolicy(upgrade.Policy.ID()).Delete().SendContext(ctx)
 				if err != nil {
 					return false, fmt.Errorf("failed to delete upgrade policy: %v", err)
 				}

@@ -571,8 +571,8 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 	// Schedule a cluster upgrade if a newer version is requested
 	if err := r.upgradeMachinePoolIfNeeded(ctx, state, plan); err != nil {
 		diags.AddError(
-			"Can't upgrade cluster",
-			fmt.Sprintf("Can't upgrade cluster version with identifier: `%s`, %v", state.ID.ValueString(), err),
+			"Can't upgrade machine pool",
+			fmt.Sprintf("Can't upgrade machine pool version with identifier: `%s`, %v", state.ID.ValueString(), err),
 		)
 		return diags
 	}

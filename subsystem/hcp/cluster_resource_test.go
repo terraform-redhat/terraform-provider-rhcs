@@ -2295,7 +2295,7 @@ var _ = Describe("HCP Cluster", func() {
 			Expect(terraform.Apply()).To(BeZero())
 		})
 
-		It("Does nothing if upgrade is in progress do a different version than the desired", func() {
+		It("Does nothing if upgrade is in progress to a different version than the desired", func() {
 			server.AppendHandlers(
 				// Refresh cluster state
 				CombineHandlers(
@@ -2366,21 +2366,21 @@ var _ = Describe("HCP Cluster", func() {
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, cluster123Route+"/control_plane/upgrade_policies"),
 					RespondWithJSON(http.StatusOK, `{
-					"page": 1,
-					"size": 1,
-					"total": 1,
-					"items": [
-						{
-							"id": "456",
-							"schedule_type": "manual",
-							"upgrade_type": "ControlPlane",
-							"version": "4.14.0",
-							"next_run": "2023-06-09T20:59:00Z",
-							"cluster_id": "123",
-							"enable_minor_version_upgrades": true
-						}
-					]
-				}`),
+						"page": 1,
+						"size": 1,
+						"total": 1,
+						"items": [
+							{
+								"id": "456",
+								"schedule_type": "manual",
+								"upgrade_type": "ControlPlane",
+								"version": "4.14.0",
+								"next_run": "2023-06-09T20:59:00Z",
+								"cluster_id": "123",
+								"enable_minor_version_upgrades": true
+							}
+						]
+					}`),
 				),
 				// Check it's state
 				CombineHandlers(
@@ -2546,7 +2546,7 @@ var _ = Describe("HCP Cluster", func() {
 				// Patch the cluster (w/ no changes)
 				CombineHandlers(
 					VerifyRequest(http.MethodPatch, cluster123Route),
-					RespondWithJSON(http.StatusCreated, template),
+					RespondWithJSON(http.StatusOK, template),
 				),
 			)
 			// Perform try the upgrade
@@ -2802,26 +2802,26 @@ var _ = Describe("HCP Cluster", func() {
 						VerifyRequest(http.MethodPost, cluster123Route+"/control_plane/upgrade_policies", "dryRun=true"),
 						VerifyJQ(".version", "4.14.1"),
 						RespondWithJSON(http.StatusBadRequest, `{
-						"kind": "Error",
-						"id": "400",
-						"href": "/api/clusters_mgmt/v1/errors/400",
-						"code": "CLUSTERS-MGMT-400",
-						"reason": "There are missing version gate agreements for this cluster. See details.",
-						"details": [
-						{
-							"id": "999",
-							"version_raw_id_prefix": "4.14",
-							"label": "api.openshift.com/ackme",
-							"value": "4.14",
-							"warning_message": "user gotta ack",
-							"description": "deprecations... blah blah blah",
-							"documentation_url": "https://access.redhat.com/solutions/0000000",
-							"sts_only": false,
-							"creation_timestamp": "2023-04-03T06:39:57.057613Z"
-						}
-						],
-						"operation_id": "8f2d2946-c4ef-4c2f-877b-c19eb17dc918"
-					}`),
+							"kind": "Error",
+							"id": "400",
+							"href": "/api/clusters_mgmt/v1/errors/400",
+							"code": "CLUSTERS-MGMT-400",
+							"reason": "There are missing version gate agreements for this cluster. See details.",
+							"details": [
+							{
+								"id": "999",
+								"version_raw_id_prefix": "4.14",
+								"label": "api.openshift.com/ackme",
+								"value": "4.14",
+								"warning_message": "user gotta ack",
+								"description": "deprecations... blah blah blah",
+								"documentation_url": "https://access.redhat.com/solutions/0000000",
+								"sts_only": false,
+								"creation_timestamp": "2023-04-03T06:39:57.057613Z"
+							}
+							],
+							"operation_id": "8f2d2946-c4ef-4c2f-877b-c19eb17dc918"
+						}`),
 					),
 				)
 			})

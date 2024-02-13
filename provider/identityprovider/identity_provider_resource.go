@@ -225,7 +225,11 @@ func (r *IdentityProviderResource) Create(ctx context.Context, request resource.
 	switch {
 	case state.HTPasswd != nil:
 		builder.Type(cmv1.IdentityProviderTypeHtpasswd)
-		htpasswdBuilder := CreateHTPasswdIDPBuilder(ctx, state.HTPasswd)
+		htpasswdBuilder, err := CreateHTPasswdIDPBuilder(ctx, state.HTPasswd)
+		if err != nil {
+			response.Diagnostics.AddError(err.Error(), err.Error())
+			return
+		}
 		builder.Htpasswd(htpasswdBuilder)
 	case state.Gitlab != nil:
 		builder.Type(cmv1.IdentityProviderTypeGitlab)

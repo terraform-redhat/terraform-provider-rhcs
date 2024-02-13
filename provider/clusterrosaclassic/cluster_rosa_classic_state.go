@@ -17,7 +17,14 @@ limitations under the License.
 package clusterrosaclassic
 
 import (
+	"context"
+	"reflect"
+
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 )
 
@@ -69,7 +76,8 @@ type ClusterRosaClassicState struct {
 	DestroyTimeout                            types.Int64        `tfsdk:"destroy_timeout"`
 	Ec2MetadataHttpTokens                     types.String       `tfsdk:"ec2_metadata_http_tokens"`
 	UpgradeAcksFor                            types.String       `tfsdk:"upgrade_acknowledgements_for"`
-	AdminCredentials                          *AdminCredentials  `tfsdk:"admin_credentials"`
+	CreateAdminUser                           types.Bool         `tfsdk:"create_admin_user"`
+	AdminCredentials                          types.Object       `tfsdk:"admin_credentials"`
 	PrivateHostedZone                         *PrivateHostedZone `tfsdk:"private_hosted_zone"`
 	BaseDNSDomain                             types.String       `tfsdk:"base_dns_domain"`
 	WaitForCreateComplete                     types.Bool         `tfsdk:"wait_for_create_complete"`
@@ -98,4 +106,49 @@ type AdminCredentials struct {
 type PrivateHostedZone struct {
 	ID      types.String `tfsdk:"id"`
 	RoleARN types.String `tfsdk:"role_arn"`
+}
+
+func flattenAdminCredentials(username string, password string) types.Object {
+	attributeTypes := map[string]attr.Type{
+		"username": types.StringType,
+		"password": types.StringType,
+	}
+	if username == "" && password == "" {
+		return types.ObjectNull(attributeTypes)
+	}
+
+	attrs := map[string]attr.Value{
+		"username": types.StringValue(username),
+		"password": types.StringValue(password),
+	}
+
+	return types.ObjectValueMust(attributeTypes, attrs)
+}
+
+func expandAdminCredentials(ctx context.Context, object types.Object, diags diag.Diagnostics) (username string, password string) {
+	if object.IsNull() {
+		return "", ""
+	}
+
+	var conf AdminCredentials
+	diags.Append(object.As(ctx, &conf, basetypes.ObjectAsOptions{})...)
+	if diags.HasError() {
+		return "", ""
+	}
+
+	return conf.Username.ValueString(), conf.Password.ValueString()
+}
+
+func adminCredentialsNull() types.Object {
+	return flattenAdminCredentials("", "")
+}
+
+func adminCredentialsEqual(state, plan types.Object) bool {
+	if state.IsNull() {
+		if common.HasValue(plan) {
+			return false
+		}
+		return true
+	}
+	return reflect.DeepEqual(state, plan)
 }

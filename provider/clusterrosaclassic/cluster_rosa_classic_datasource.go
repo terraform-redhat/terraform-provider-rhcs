@@ -18,6 +18,8 @@ package clusterrosaclassic
 import (
 	"context"
 	"fmt"
+	"net/http"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -25,7 +27,6 @@ import (
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
-	"net/http"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
@@ -380,7 +381,7 @@ func (r *ClusterRosaClassicDatasource) Read(ctx context.Context, request datasou
 	state.Version = types.StringNull()
 	state.DestroyTimeout = types.Int64Null()
 	state.UpgradeAcksFor = types.StringNull()
-	state.AdminCredentials = nil
+	state.AdminCredentials = adminCredentialsNull()
 	state.WaitForCreateComplete = types.BoolNull()
 	state.AutoScalingEnabled = types.BoolNull()
 	state.MinReplicas = types.Int64Null()

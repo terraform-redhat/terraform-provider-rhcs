@@ -165,6 +165,9 @@ func (b *TerraformRunnerBuilder) Build() *TerraformRunner {
 		envMap[name] = value
 	}
 
+	// Add test flag
+	envMap["IS_TEST"] = "true"
+
 	// Enable verbose debug:
 	envMap["TF_LOG"] = "DEBUG"
 

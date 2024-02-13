@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"reflect"
 	"sort"
 	"strings"
@@ -39,12 +40,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	idputils "github.com/openshift-online/ocm-common/pkg/idp/utils"
 	ocmConsts "github.com/openshift-online/ocm-common/pkg/ocm/consts"
 	"github.com/openshift-online/ocm-common/pkg/rosa/oidcconfigs"
 	sdk "github.com/openshift-online/ocm-sdk-go"
@@ -53,6 +56,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 
+	commonutils "github.com/openshift-online/ocm-common/pkg/utils"
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 	ocmr "github.com/terraform-redhat/terraform-provider-rhcs/internal/ocm/resource"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosaclassic/upgrade"
@@ -393,22 +397,39 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 					"upgrade to OpenShift 4.12.z from 4.11 or before).",
 				Optional: true,
 			},
+			"create_admin_user": schema.BoolAttribute{
+				Description: "Indicates if create cluster admin user. Set it true to create cluster admin user with default username `cluster-admin` " +
+					"and generated password. It will be ignored if `admin_credentials` is set." + common.ValueCannotBeChangedStringDescription,
+				Optional: true,
+			},
 			"admin_credentials": schema.SingleNestedAttribute{
 				Description: "Admin user credentials. " + common.ValueCannotBeChangedStringDescription,
 				Attributes: map[string]schema.Attribute{
 					"username": schema.StringAttribute{
 						Description: "Admin username that will be created with the cluster.",
-						Required:    true,
+						Optional:    true,
+						Computed:    true,
 						Validators:  identityprovider.HTPasswdUsernameValidators,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"password": schema.StringAttribute{
 						Description: "Admin password that will be created with the cluster.",
-						Required:    true,
+						Optional:    true,
+						Computed:    true,
 						Sensitive:   true,
 						Validators:  identityprovider.HTPasswdPasswordValidators,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 				},
 				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"private_hosted_zone": schema.SingleNestedAttribute{
 				Description: "Used in a shared VPC topology. HostedZone attributes. " + common.ValueCannotBeChangedStringDescription,
@@ -680,14 +701,35 @@ func createClassicClusterObject(ctx context.Context,
 		builder.Version(vBuilder)
 	}
 
-	if state.AdminCredentials != nil {
-		htpasswdUsers := []*cmv1.HTPasswdUserBuilder{}
-		htpasswdUsers = append(htpasswdUsers, cmv1.NewHTPasswdUser().
-			Username(state.AdminCredentials.Username.ValueString()).Password(state.AdminCredentials.Password.ValueString()))
+	username, password := expandAdminCredentials(ctx, state.AdminCredentials, diags)
+	if common.BoolWithFalseDefault(state.CreateAdminUser) || common.HasValue(state.AdminCredentials) {
+		if username == "" {
+			username = commonutils.ClusterAdminUsername
+		}
+		if password == "" {
+			password, err = idputils.GenerateRandomPassword()
+			if err != nil {
+				tflog.Error(ctx, "Failed to generate random password")
+				return nil, err
+			}
+		}
+
+		hashedPwd, err := idputils.GenerateHTPasswdCompatibleHash(password)
+		if err != nil {
+			tflog.Error(ctx, "Failed to hash the password")
+			return nil, err
+		}
+		if os.Getenv("IS_TEST") == "true" {
+			hashedPwd = fmt.Sprintf("hash(%s)", password)
+		}
+		htpasswdUsers := []*cmv1.HTPasswdUserBuilder{
+			cmv1.NewHTPasswdUser().Username(username).HashedPassword(hashedPwd),
+		}
 		htpassUserList := cmv1.NewHTPasswdUserList().Items(htpasswdUsers...)
 		htPasswdIDP := cmv1.NewHTPasswdIdentityProvider().Users(htpassUserList)
 		builder.Htpasswd(htPasswdIDP)
 	}
+	state.AdminCredentials = flattenAdminCredentials(username, password)
 
 	builder, err = buildProxy(state, builder)
 	if err != nil {
@@ -1021,9 +1063,6 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaClassicState) diag.Dia
 	common.ValidateStateAndPlanEquals(state.AWSAdditionalInfraSecurityGroupIds, plan.AWSAdditionalInfraSecurityGroupIds, "aws_additional_infra_security_group_ids", &diags)
 	common.ValidateStateAndPlanEquals(state.AWSAdditionalComputeSecurityGroupIds, plan.AWSAdditionalComputeSecurityGroupIds, "aws_additional_compute_security_group_ids", &diags)
 
-	if !reflect.DeepEqual(state.AdminCredentials, plan.AdminCredentials) {
-		diags.AddError(common.AssertionErrorSummaryMessage, fmt.Sprintf(common.AssertionErrorDetailsMessage, "admin_credentials", *state.AdminCredentials, *plan.AdminCredentials))
-	}
 	if !reflect.DeepEqual(state.PrivateHostedZone, plan.PrivateHostedZone) {
 		diags.AddError(common.AssertionErrorSummaryMessage, fmt.Sprintf(common.AssertionErrorDetailsMessage, "private_hosted_zone", *state.PrivateHostedZone, *plan.PrivateHostedZone))
 	}
@@ -1038,6 +1077,12 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaClassicState) diag.Dia
 	common.ValidateStateAndPlanEquals(state.AvailabilityZones, plan.AvailabilityZones, "availability_zones", &diags)
 	common.ValidateStateAndPlanEquals(state.MultiAZ, plan.MultiAZ, "multi_az", &diags)
 	common.ValidateStateAndPlanEquals(state.WorkerDiskSize, plan.WorkerDiskSize, "worker_disk_size", &diags)
+
+	// cluster admin attributes
+	common.ValidateStateAndPlanEquals(state.CreateAdminUser, plan.CreateAdminUser, "create_admin_user", &diags)
+	if !adminCredentialsEqual(state.AdminCredentials, plan.AdminCredentials) {
+		diags.AddError(common.AssertionErrorSummaryMessage, fmt.Sprintf(common.AssertionErrorDetailsMessage, "admin_credentials", state.AdminCredentials, plan.AdminCredentials))
+	}
 
 	return diags
 
@@ -1704,6 +1749,9 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	state.State = types.StringValue(string(object.State()))
 	state.Name = types.StringValue(object.Name())
 	state.CloudRegion = types.StringValue(object.Region().ID())
+	if state.AdminCredentials.IsUnknown() {
+		state.AdminCredentials = adminCredentialsNull()
+	}
 
 	return nil
 }

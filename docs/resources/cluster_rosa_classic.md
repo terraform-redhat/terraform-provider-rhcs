@@ -64,6 +64,7 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
 - `base_dns_domain` (String) Base DNS domain name previously reserved and matching the hosted zone name of the private Route 53 hosted zone associated with intended shared VPC, e.g., '1vo8.p1.openshiftapps.com'. After the creation of the resource, it is not possible to update the attribute value.
 - `channel_group` (String) Name of the channel group where you select the OpenShift cluster version, for example 'stable'. For ROSA, only 'stable' is supported. After the creation of the resource, it is not possible to update the attribute value.
 - `compute_machine_type` (String) Identifies the machine type used by the default/initial worker nodes, for example `m5.xlarge`. Use the `rhcs_machine_types` data source to find the possible values. This attribute is specifically applies for the default Machine Pool and becomes irrelevant once the resource is created. Any modifications to the default Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Default Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)
+- `create_admin_user` (Boolean) Indicates if create cluster admin user. Set it true to create cluster admin user with default username `cluster-admin` and generated password. It will be ignored if `admin_credentials` is set.After the creation of the resource, it is not possible to update the attribute value.
 - `default_mp_labels` (Map of String) This value is the default/initial machine pool labels. Format should be a comma-separated list of '{"key1"="value1", "key2"="value2"}'. This attribute is specifically applies for the default Machine Pool and becomes irrelevant once the resource is created. Any modifications to the default Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Default Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)
 - `destroy_timeout` (Number) This value sets the maximum duration in minutes to allow for destroying resources. Default value is 60 minutes.
 - `disable_scp_checks` (Boolean) Indicates if cloud permission checks are disabled when attempting installation of the cluster. After the creation of the resource, it is not possible to update the attribute value.
@@ -108,7 +109,7 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
 <a id="nestedatt--admin_credentials"></a>
 ### Nested Schema for `admin_credentials`
 
-Required:
+Optional:
 
 - `password` (String, Sensitive) Admin password that will be created with the cluster.
 - `username` (String) Admin username that will be created with the cluster.

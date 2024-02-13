@@ -17,7 +17,9 @@ limitations under the License.
 package provider
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 
@@ -692,7 +694,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
 		})
 
-		It("Creates basic cluster with admin user", func() {
+		It("Creates basic cluster with admin user - default username", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
@@ -705,8 +707,70 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					VerifyJQ(`.cloud_provider.id`, "aws"),
 					VerifyJQ(`.region.id`, "us-west-1"),
 					VerifyJQ(`.product.id`, "rosa"),
-					VerifyJQ(`.htpasswd.users.items[0].username`, "cluster_admin"),
-					VerifyJQ(`.htpasswd.users.items[0].password`, "1234AbB2341234"),
+					VerifyJQ(`.htpasswd.users.items[0].username`, "cluster-admin"),
+					VerifyJQ(`.properties.rosa_tf_version`, build.Version),
+					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					}]`),
+				),
+			)
+
+			// Run the apply command:
+			terraform.Source(`
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+            create_admin_user = true
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+				}
+			}
+		  }
+		`)
+			Expect(terraform.Apply()).To(BeZero())
+			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.admin_credentials.username", "cluster-admin"))
+			Expect(strings.Contains(fmt.Sprintf("%v", resource), "password")).Should(BeTrue())
+		})
+
+		It("Creates basic cluster with admin user - customized username/password", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.htpasswd.users.items[0].username`, "test-admin"),
+					VerifyJQ(`.htpasswd.users.items[0].hashed_password`, "hash(1234AbB2341234)"),
 					VerifyJQ(`.properties.rosa_tf_version`, build.Version),
 					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit),
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
@@ -738,7 +802,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
             admin_credentials = {
-                username = "cluster_admin"
+                username = "test-admin"
                 password = "1234AbB2341234"
             }
 			sts = {
@@ -754,7 +818,305 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		`)
 			Expect(terraform.Apply()).To(BeZero())
 			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
-			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
+			Expect(resource).To(MatchJQ(".attributes.admin_credentials.username", "test-admin"))
+			Expect(resource).To(MatchJQ(".attributes.admin_credentials.password", "1234AbB2341234"))
+		})
+
+		It("Creates basic cluster with empty admincredentials and update the clustrer w/o updates on it", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.htpasswd.users.items[0].username`, "cluster-admin"),
+					VerifyJQ(`.properties.rosa_tf_version`, build.Version),
+					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					}]`),
+				),
+			)
+
+			// Run the apply command:
+			terraform.Source(`
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+            admin_credentials = {}
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+				}
+			}
+		  }
+		`)
+			Expect(terraform.Apply()).To(BeZero())
+			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.admin_credentials.username", "cluster-admin"))
+			Expect(strings.Contains(fmt.Sprintf("%v", resource), "password")).Should(BeTrue())
+
+			// Prepare server for update
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					"op": "add",
+					"path": "/aws",
+					"value": {
+						"ec2_metadata_http_tokens": "optional",
+						"sts" : {
+							"oidc_endpoint_url": "https://127.0.0.2",
+							"thumbprint": "111111",
+							"role_arn": "",
+							"support_role_arn": "",
+							"instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							},
+							"operator_role_prefix" : "test"
+						}
+					}
+					},
+					
+					{
+					"op": "add",
+					"path": "/properties",
+					"value": {
+						"rosa_tf_commit":"`+build.Commit+`",
+						"rosa_tf_version":"`+build.Version+`"
+					}
+					}]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+					VerifyJQ(`.properties.rosa_tf_version`, build.Version),
+					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					"op": "add",
+					"path": "/aws",
+					"value": {
+						"ec2_metadata_http_tokens": "optional",
+						"sts" : {
+							"oidc_endpoint_url": "https://127.0.0.2",
+							"thumbprint": "111111",
+							"role_arn": "",
+							"support_role_arn": "",
+							"instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							},
+							"operator_role_prefix" : "test"
+						}
+					}
+					},
+					{
+					"op": "add",
+					"path": "/properties",
+					"value": {
+						"rosa_tf_commit":"`+build.Commit+`",
+						"rosa_tf_version":"`+build.Version+`"
+					}
+					}]`),
+				),
+			)
+
+			// Run the apply command:
+			terraform.Source(`
+			resource "rhcs_cluster_rosa_classic" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				admin_credentials = {}
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						master_role_arn = "",
+						worker_role_arn = "",
+					}
+				}
+			  }
+		`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
+
+		It("Should fail to update create_admin_user if no admin user created in cluster creation", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.properties.rosa_tf_version`, build.Version),
+					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					}]`),
+				),
+			)
+
+			// Run the apply command:
+			terraform.Source(`
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123"
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+				}
+			}
+		  }
+		`)
+			Expect(terraform.Apply()).To(BeZero())
+			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(strings.Contains(fmt.Sprintf("%v", resource), "username")).Should(BeFalse())
+			Expect(strings.Contains(fmt.Sprintf("%v", resource), "password")).Should(BeFalse())
+
+			// Prepare server for update
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+                          "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					 
+                    {
+                      "op": "add",
+                      "path": "/properties",
+                      "value": {
+                        "rosa_tf_commit":"`+build.Commit+`",
+                        "rosa_tf_version":"`+build.Version+`"
+                      }
+                    }]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+					VerifyJQ(`.properties.rosa_tf_version`, build.Version),
+					VerifyJQ(`.properties.rosa_tf_commit`, build.Commit),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+                    {
+                      "op": "add",
+                      "path": "/properties",
+                      "value": {
+                        "rosa_tf_commit":"`+build.Commit+`",
+                        "rosa_tf_version":"`+build.Version+`"
+                      }
+                    }]`),
+				),
+			)
+
+			// Run the apply command:
+			terraform.Source(`
+			resource "rhcs_cluster_rosa_classic" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						master_role_arn = "",
+						worker_role_arn = "",
+					}
+				}
+				# >>>> inject create_admin_user 
+				create_admin_user = true
+			  }
+		`)
+			Expect(terraform.Apply()).NotTo(BeZero())
 		})
 
 		It("Creates basic cluster - and reconcile on a 404", func() {

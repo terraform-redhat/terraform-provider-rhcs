@@ -3,6 +3,7 @@ package identityprovider
 import (
 	"context"
 	"fmt"
+	"os"
 	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
@@ -10,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	idputils "github.com/openshift-online/ocm-common/pkg/idp/utils"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -75,19 +77,26 @@ var htpasswdUserList = map[string]schema.Attribute{
 	},
 }
 
-func CreateHTPasswdIDPBuilder(ctx context.Context, state *HTPasswdIdentityProvider) *cmv1.HTPasswdIdentityProviderBuilder {
+func CreateHTPasswdIDPBuilder(ctx context.Context, state *HTPasswdIdentityProvider) (*cmv1.HTPasswdIdentityProviderBuilder, error) {
 	builder := cmv1.NewHTPasswdIdentityProvider()
 	userListBuilder := cmv1.NewHTPasswdUserList()
 	userList := []*cmv1.HTPasswdUserBuilder{}
 	for _, user := range state.Users {
+		hashedPwd, err := idputils.GenerateHTPasswdCompatibleHash(user.Password.ValueString())
+		if err != nil {
+			return nil, err
+		}
+		if os.Getenv("IS_TEST") == "true" {
+			hashedPwd = fmt.Sprintf("hash(%s)", user.Password.ValueString())
+		}
 		userBuilder := &cmv1.HTPasswdUserBuilder{}
 		userBuilder.Username(user.Username.ValueString())
-		userBuilder.Password(user.Password.ValueString())
+		userBuilder.HashedPassword(hashedPwd)
 		userList = append(userList, userBuilder)
 	}
 	userListBuilder.Items(userList...)
 	builder.Users(userListBuilder)
-	return builder
+	return builder, nil
 }
 
 func uniqueUsernameValidator() validator.List {

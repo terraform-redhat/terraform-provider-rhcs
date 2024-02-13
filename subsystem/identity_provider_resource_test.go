@@ -17,8 +17,9 @@ limitations under the License.
 package provider
 
 import (
-	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 	"net/http"
+
+	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 
 	. "github.com/onsi/ginkgo/v2/dsl/core"             // nolint
 	. "github.com/onsi/gomega"                         // nolint
@@ -27,6 +28,7 @@ import (
 )
 
 const htpasswdValidPass = "123PasS8901234"
+const hashedPass = "hash(123PasS8901234)"
 const htpasswdInValidPass = "my-pass"
 
 var _ = Describe("Identity provider creation", func() {
@@ -194,7 +196,7 @@ var _ = Describe("Identity provider creation", func() {
                       "mapping_method": "claim",
 			    	  "name": "my-ip",
 			    	  "htpasswd": {
-                        "users": {"items":[{"username": "my-user", "password": "`+htpasswdValidPass+`"}]}
+                        "users": {"items":[{"username": "my-user", "hashed_password": "`+hashedPass+`"}]}
 			    	  }
 			    	}`),
 					RespondWithJSON(http.StatusOK, `{
@@ -238,7 +240,7 @@ var _ = Describe("Identity provider creation", func() {
                       "mapping_method": "claim",
 			    	  "name": "my-ip",
 			    	  "htpasswd": {
-                        "users": {"items":[{"username": "my-user", "password": "`+htpasswdValidPass+`"}]}
+                        "users": {"items":[{"username": "my-user", "hashed_password": "`+hashedPass+`"}]}
 			    	  }
 			    	}`),
 					RespondWithJSON(http.StatusOK, `{
@@ -315,7 +317,7 @@ var _ = Describe("Identity provider creation", func() {
                       "mapping_method": "claim",
 			    	  "name": "my-ip",
 			    	  "htpasswd": {
-                        "users": {"items":[{"username": "my-user", "password": "`+htpasswdValidPass+`"}]}
+                        "users": {"items":[{"username": "my-user", "hashed_password": "`+hashedPass+`"}]}
 			    	  }
 			    	}`),
 					RespondWithJSON(http.StatusOK, `{
@@ -381,7 +383,7 @@ var _ = Describe("Identity provider creation", func() {
                       "mapping_method": "claim",
 			    	  "name": "my-ip",
 			    	  "htpasswd": {
-                        "users": {"items":[{"username": "my-user", "password": "`+htpasswdValidPass+`"}]}
+                        "users": {"items":[{"username": "my-user", "hashed_password": "`+hashedPass+`"}]}
 			    	  }
 			    	}`),
 					RespondWithJSON(http.StatusOK, `{

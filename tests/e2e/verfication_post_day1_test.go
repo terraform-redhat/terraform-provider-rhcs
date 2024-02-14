@@ -110,18 +110,18 @@ var _ = Describe("TF Test", func() {
 			})
 		})
 		Context("Author:smiron-Medium-OCP-63141 @OCP-63141 @smiron", func() {
-			It("Verify availability zones and multi-az is set post cluster creation", ci.Day1Post, ci.Medium, func() {
-				vpcService := exe.NewVPCService()
+			It("Verify availability zones and multi-az are set post cluster creation", ci.Day1Post, ci.Medium, func() {
+				getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
 				zonesArray := strings.Split(profile.Zones, ",")
-				clusterAvailZones := cluster.Nodes().AvailabilityZones()
+				clusterAvailZones := getResp.Body().Nodes().AvailabilityZones()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(cluster.MultiAZ()).To(Equal(profile.MultiAZ))
+				Expect(getResp.Body().MultiAZ()).To(Equal(profile.MultiAZ))
+
 				if profile.Zones != "" {
-					Expect(clusterAvailZones).
-						To(Equal(H.JoinStringWithArray(profile.Region, zonesArray)))
+					Expect(clusterAvailZones).To(Equal(H.JoinStringWithArray(profile.Region, zonesArray)))
 				} else {
-					vpcOut, _ := vpcService.Output()
-					Expect(clusterAvailZones).To(Equal(vpcOut.AZs))
+					// the default zone for each region
+					Expect(clusterAvailZones[0]).To(Equal(fmt.Sprintf("%sa", profile.Region)))
 				}
 			})
 		})

@@ -277,6 +277,7 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 		if len(awsTags) > 0 {
 			awsNodePoolBuilder.Tags(awsTags)
 		}
+		builder.AWSNodePool(awsNodePoolBuilder)
 	}
 
 	if !common.IsStringAttributeUnknownOrEmpty(plan.SubnetID) {

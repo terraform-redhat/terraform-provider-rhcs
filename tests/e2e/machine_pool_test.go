@@ -411,6 +411,7 @@ var _ = Describe("TF Test", func() {
 				getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
 				var zones []string
 				vpcOutput, err := ci.PrepareVPC(profile.Region, false, true, zones, getResp.Body().Name())
+				defer ci.PrepareVPC(profile.Region, false, false, zones, getResp.Body().Name())
 
 				By("Tag new subnet to be able to apply it to the machinepool")
 				VpcTagService := exe.NewVPCTagService()
@@ -423,6 +424,7 @@ var _ = Describe("TF Test", func() {
 					TagValue:  tagValue,
 				}
 				err = VpcTagService.Apply(VPCTagArgs, true)
+				defer VpcTagService.Destroy()
 				Expect(err).ToNot(HaveOccurred())
 				By("Create additional machinepool with subnet id specified")
 				replicas := 1

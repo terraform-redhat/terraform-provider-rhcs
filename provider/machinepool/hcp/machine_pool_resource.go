@@ -34,7 +34,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -155,9 +154,7 @@ func (r *HcpMachinePoolResource) Schema(ctx context.Context, req resource.Schema
 				Description: "HCP replica status",
 				Attributes:  NodePoolStatusResource(),
 				Computed:    true,
-				PlanModifiers: []planmodifier.Object{
-					objectplanmodifier.UseStateForUnknown(),
-				},
+				Default:     nil,
 			},
 			"aws_node_pool": schema.SingleNestedAttribute{
 				Description: "AWS settings for node pool",
@@ -498,9 +495,7 @@ func validateNoImmutableAttChange(state, plan *HcpMachinePoolState) diag.Diagnos
 	validateStateAndPlanEquals(state.Cluster, plan.Cluster, "cluster", &diags)
 	validateStateAndPlanEquals(state.Name, plan.Name, "name", &diags)
 	if state.AWSNodePool != nil && plan.AWSNodePool != nil {
-		validateStateAndPlanEquals(state.AWSNodePool.InstanceType, plan.AWSNodePool.InstanceType, "aws_node_pool.instance_type", &diags)
 		validateStateAndPlanEquals(state.AWSNodePool.InstanceProfile, plan.AWSNodePool.InstanceProfile, "aws_node_pool.instance_profile", &diags)
-		validateStateAndPlanEquals(state.AWSNodePool.Tags, plan.AWSNodePool.Tags, "aws_node_pool.tags", &diags)
 	}
 	validateStateAndPlanEquals(state.AvailabilityZone, plan.AvailabilityZone, "availability_zone", &diags)
 	validateStateAndPlanEquals(state.SubnetID, plan.SubnetID, "subnet_id", &diags)
@@ -581,17 +576,22 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 	npBuilder := cmv1.NewNodePool().ID(state.ID.ValueString())
 
 	if state.AWSNodePool != nil && plan.AWSNodePool != nil {
-		_, ok := common.ShouldPatchString(state.AWSNodePool.InstanceType, plan.AWSNodePool.InstanceType)
-		if ok {
-			diags.AddError(
-				"Cannot update machine pool",
-				fmt.Sprintf(
-					"Cannot update machine pool for cluster '%s', machine type cannot be updated",
-					state.Cluster.ValueString(),
-				),
-			)
-			return diags
+		awsNodePoolBuilder := cmv1.NewAWSNodePool()
+		// FIXME: even though we do not necessarily need to patch OCM CS API enforces this value cannot be empty
+		awsNodePoolBuilder.InstanceType(plan.AWSNodePool.InstanceType.ValueString())
+
+		if _, ok := common.ShouldPatchMap(state.AWSNodePool.Tags, plan.AWSNodePool.Tags); ok {
+			awsTags, err := common.OptionalMap(ctx, plan.AWSNodePool.Tags)
+			if err != nil {
+				diags.AddError(
+					"Cannot update machine pool",
+					fmt.Sprintf("Cannot update machine pool for cluster '%s': %v",
+						state.Cluster.ValueString(), err),
+				)
+			}
+			awsNodePoolBuilder.Tags(awsTags)
 		}
+		npBuilder.AWSNodePool(awsNodePoolBuilder)
 	}
 
 	computeNodesEnabled := false
@@ -687,17 +687,22 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 
 	object := update.Body()
 
-	// update the Autoscaling enabled with the plan value (important for nil and false cases)
+	// update some values the plan value (important for nil and false cases)
 	if state.AutoScaling == nil {
 		state.AutoScaling = new(AutoScaling)
 	}
 	state.AutoScaling.Enabled = plan.AutoScaling.Enabled
-	// update the Replicas with the plan value (important for nil and zero value cases)
+
 	state.Replicas = plan.Replicas
-	// update the NodePoolStatus enabled with the plan value (important for nil and false cases)
 	state.NodePoolStatus = plan.NodePoolStatus
-	// update the NodePoolStatus enabled with the plan value (important for nil and false cases)
 	state.Version = plan.Version
+
+	if state.AWSNodePool == nil {
+		state.AWSNodePool = new(AWSNodePool)
+	}
+	if common.HasValue(plan.AWSNodePool.Tags) {
+		state.AWSNodePool.Tags = plan.AWSNodePool.Tags
+	}
 
 	// Save the state:
 	err = populateState(object, state)

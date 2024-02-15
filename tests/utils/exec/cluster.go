@@ -55,7 +55,7 @@ type Proxy struct {
 // Just a placeholder, not research what to output yet.
 type ClusterOutput struct {
 	ClusterID                            string   `json:"cluster_id,omitempty"`
-	ClusterName                          string   `json:"cluster_name,omitempty"`
+	ClusterName                          string   `json:"name,omitempty"`
 	AdditionalComputeSecurityGroups      []string `json:"additional_compute_security_groups,omitempty"`
 	AdditionalInfraSecurityGroups        []string `json:"additional_infra_security_groups,omitempty"`
 	AdditionalControlPlaneSecurityGroups []string `json:"additional_control_plane_security_groups,omitempty"`
@@ -127,7 +127,7 @@ func (creator *ClusterService) Output() (*ClusterOutput, error) {
 	}
 	clusterOutput := &ClusterOutput{
 		ClusterID:                            h.DigString(out["cluster_id"], "value"),
-		ClusterName:                          h.DigString(out["cluster_name"], "value"),
+		ClusterName:                          h.DigString(out["name"], "value"),
 		AdditionalComputeSecurityGroups:      h.DigArrayToString(out["additional_compute_security_groups"], "value"),
 		AdditionalInfraSecurityGroups:        h.DigArrayToString(out["additional_infra_security_groups"], "value"),
 		AdditionalControlPlaneSecurityGroups: h.DigArrayToString(out["additional_control_plane_security_groups"], "value"),

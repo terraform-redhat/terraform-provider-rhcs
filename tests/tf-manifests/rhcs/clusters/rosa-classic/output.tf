@@ -3,7 +3,7 @@ output "cluster_id" {
 }
 
 output "cluster_name" {
-  value = rhcs_cluster_rosa_classic.rosa_sts_cluster.cluster_name
+  value = rhcs_cluster_rosa_classic.rosa_sts_cluster.name
 }
 
 output "additional_compute_security_groups" {

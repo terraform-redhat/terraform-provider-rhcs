@@ -34,7 +34,7 @@ import (
 var _ datasource.DataSource = &ClusterRosaClassicDatasource{}
 var _ datasource.DataSourceWithConfigure = &ClusterRosaClassicDatasource{}
 
-const deprecatedMessage = "This attribute is not support for cluster data source. Therefore, it will not be displayed as an output of the datasource"
+const deprecatedMessage = "This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource"
 
 type ClusterRosaClassicDatasource struct {
 	clusterCollection *cmv1.ClustersClient
@@ -259,6 +259,10 @@ func (r *ClusterRosaClassicDatasource) Schema(ctx context.Context, req datasourc
 				Description: deprecatedMessage,
 				Computed:    true,
 			},
+			"create_admin_user": schema.BoolAttribute{
+				Description: deprecatedMessage,
+				Computed:    true,
+			},
 			"admin_credentials": schema.SingleNestedAttribute{
 				Description: deprecatedMessage,
 				Attributes: map[string]schema.Attribute{
@@ -381,6 +385,7 @@ func (r *ClusterRosaClassicDatasource) Read(ctx context.Context, request datasou
 	state.Version = types.StringNull()
 	state.DestroyTimeout = types.Int64Null()
 	state.UpgradeAcksFor = types.StringNull()
+	state.CreateAdminUser = types.BoolNull()
 	state.AdminCredentials = adminCredentialsNull()
 	state.WaitForCreateComplete = types.BoolNull()
 	state.AutoScalingEnabled = types.BoolNull()

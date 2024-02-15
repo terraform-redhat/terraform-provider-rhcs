@@ -2,6 +2,10 @@ output "cluster_id" {
   value = rhcs_cluster_rosa_classic.rosa_sts_cluster.id
 }
 
+output "cluster_name" {
+  value = rhcs_cluster_rosa_classic.rosa_sts_cluster.cluster_name
+}
+
 output "additional_compute_security_groups" {
   value = rhcs_cluster_rosa_classic.rosa_sts_cluster.aws_additional_compute_security_group_ids
 }

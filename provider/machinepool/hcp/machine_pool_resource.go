@@ -45,12 +45,15 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool/hcp/upgrade"
 )
 
-// This is a magic name to trigger special handling for the cluster's default
-// machine pool
-const defaultNodePoolName = "worker"
-
 var nodePoolNameRE = regexp.MustCompile(
 	`^[a-z]([-a-z0-9]*[a-z0-9])?$`,
+)
+
+// This is a magic name to trigger special handling for the cluster's default
+// machine pool
+// TODO: this should be in ocm-common repo
+var standardNodePoolRegex = regexp.MustCompile(
+	"^workers?(-[0-9]+)?$",
 )
 
 type HcpMachinePoolResource struct {
@@ -254,7 +257,7 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 
 	// The default machine pool is created automatically when the cluster is created.
 	// We want to import it instead of creating it.
-	if strings.HasPrefix(nodePoolName, defaultNodePoolName) {
+	if standardNodePoolRegex.MatchString(nodePoolName) {
 		r.magicImport(ctx, plan, resp)
 		return
 	}

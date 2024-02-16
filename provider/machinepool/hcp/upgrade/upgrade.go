@@ -140,10 +140,9 @@ func CheckAndCancelUpgrades(
 		switch upgrade.PolicyState.Value() {
 		case cmv1.UpgradePolicyStateValueDelayed, cmv1.UpgradePolicyStateValueStarted:
 			if desiredVersion.Equal(toVersion) {
-				correctUpgradePending = true
-			} else {
 				return false, fmt.Errorf("a cluster upgrade is already in progress")
 			}
+			correctUpgradePending = true
 		case cmv1.UpgradePolicyStateValuePending, cmv1.UpgradePolicyStateValueScheduled:
 			if desiredVersion.Equal(toVersion) && upgrade.Policy.NextRun().Before(tenMinFromNow) {
 				correctUpgradePending = true
@@ -221,28 +220,26 @@ func getMissingGateAgreements(
 	upgradePoliciesClient *cmv1.NodePoolUpgradePoliciesClient) ([]*cmv1.VersionGate, error) {
 	response, err := upgradePoliciesClient.Add().Parameter("dryRun", true).Body(upgradePolicy).Send()
 
-	if err != nil {
-		if response.Error() != nil {
-			// parse gates list
-			errorDetails, ok := response.Error().GetDetails()
-			if !ok {
-				return []*cmv1.VersionGate{}, common.HandleErr(response.Error(), err)
-			}
-			data, err := json.Marshal(errorDetails)
-			if err != nil {
-				return []*cmv1.VersionGate{}, common.HandleErr(response.Error(), err)
-			}
-			gates, err := cmv1.UnmarshalVersionGateList(data)
-			if err != nil {
-				return []*cmv1.VersionGate{}, common.HandleErr(response.Error(), err)
-			}
-			// return original error if invaild version gate detected
-			if len(gates) > 0 && gates[0].ID() == "" {
-				errType := weberr.ErrorType(response.Error().Status())
-				return []*cmv1.VersionGate{}, errType.Set(weberr.Errorf(response.Error().Reason()))
-			}
-			return gates, nil
+	if err != nil && response.Error() != nil {
+		// parse gates list
+		errorDetails, ok := response.Error().GetDetails()
+		if !ok {
+			return []*cmv1.VersionGate{}, common.HandleErr(response.Error(), err)
 		}
+		data, err := json.Marshal(errorDetails)
+		if err != nil {
+			return []*cmv1.VersionGate{}, common.HandleErr(response.Error(), err)
+		}
+		gates, err := cmv1.UnmarshalVersionGateList(data)
+		if err != nil {
+			return []*cmv1.VersionGate{}, common.HandleErr(response.Error(), err)
+		}
+		// return original error if invaild version gate detected
+		if len(gates) > 0 && gates[0].ID() == "" {
+			errType := weberr.ErrorType(response.Error().Status())
+			return []*cmv1.VersionGate{}, errType.Set(weberr.Errorf(response.Error().Reason()))
+		}
+		return gates, nil
 	}
 	return []*cmv1.VersionGate{}, nil
 }

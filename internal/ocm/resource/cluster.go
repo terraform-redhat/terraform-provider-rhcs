@@ -145,11 +145,10 @@ func (c *Cluster) CreateAWSBuilder(clusterTopology rosa.ClusterTopology,
 	}
 
 	if clusterTopology == rosa.Classic {
-		ec2MetadataHttpTokensVal := cmv1.Ec2MetadataHttpTokensOptional
+		awsBuilder.Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokensOptional)
 		if ec2MetadataHttpTokens != nil {
-			ec2MetadataHttpTokensVal = cmv1.Ec2MetadataHttpTokens(*ec2MetadataHttpTokens)
+			awsBuilder.Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokens(*ec2MetadataHttpTokens))
 		}
-		awsBuilder.Ec2MetadataHttpTokens(ec2MetadataHttpTokensVal)
 	}
 
 	err := c.ProcessKMSKeyARN(kmsKeyARN, awsBuilder)

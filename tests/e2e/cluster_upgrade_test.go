@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -70,6 +71,9 @@ var _ = Describe("RHCS Provider Test", func() {
 					By("Wait the upgrade finished")
 					err = openshift.WaitClusterUpgradeFinished(CI.RHCSConnection, clusterID)
 					Expect(err).ToNot(HaveOccurred(), "Cluster upgrade %s failed with the error %v", clusterID, err)
+
+					By("Wait for 10 minutes to be sure the version is synced in clusterdeployment")
+					time.Sleep(10 * time.Minute)
 
 					By("Check the cluster status and OCP version")
 					clusterResp, err = CMS.RetrieveClusterDetail(CI.RHCSConnection, clusterID)
@@ -152,6 +156,9 @@ var _ = Describe("RHCS Provider Test", func() {
 					By("Wait the upgrade finished")
 					err = openshift.WaitClusterUpgradeFinished(CI.RHCSConnection, clusterID)
 					Expect(err).ToNot(HaveOccurred(), "Cluster %s failed with the error %v", clusterID, err)
+
+					By("Wait for 10 minutes to be sure the version is synced in clusterdeployment")
+					time.Sleep(10 * time.Minute)
 
 					By("Check the cluster status and OCP version")
 					clusterResp, err = CMS.RetrieveClusterDetail(CI.RHCSConnection, clusterID)

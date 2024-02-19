@@ -488,6 +488,7 @@ func CreateRHCSClusterByProfile(token string, profile *Profile) (string, error) 
 	}
 	clusterOutput, err := clusterService.Output()
 	clusterID := clusterOutput.ClusterID
+
 	return clusterID, err
 }
 
@@ -496,9 +497,6 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 	// Destroy cluster
 	clusterService, err := EXE.NewClusterService(profile.ManifestsDIR)
 	Expect(err).ToNot(HaveOccurred())
-
-	clusterOutput, err := clusterService.Output()
-	ClusterName := clusterOutput.ClusterName
 
 	clusterArgs := &EXE.ClusterCreationArgs{
 		AWSRegion:          profile.Region,
@@ -584,7 +582,6 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 		}
 		kmsArgs := &EXE.KMSArgs{
 			AWSRegion: profile.Region,
-			KMSName:   ClusterName,
 		}
 		err = kmsService.Destroy(kmsArgs)
 		if err != nil {

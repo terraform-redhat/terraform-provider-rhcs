@@ -4,6 +4,7 @@ variable "aws_region" {
 
 variable "kms_name" {
   type = string
+  default = ""
 }
 
 

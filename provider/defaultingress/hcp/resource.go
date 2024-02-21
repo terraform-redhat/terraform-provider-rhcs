@@ -288,10 +288,6 @@ func (r *DefaultIngressResource) updateIngress(ctx context.Context, state, plan 
 	}
 
 	if !reflect.DeepEqual(state, plan) {
-		err := validateDefaultIngress(ctx, plan)
-		if err != nil {
-			return err
-		}
 		if plan == nil {
 			plan = &DefaultIngress{}
 		}
@@ -323,8 +319,4 @@ func getDefaultIngressBuilder(ctx context.Context, state, plan *DefaultIngress) 
 		ingressBuilder.Listening(cmv1.ListeningMethod(plan.ListeningMethod.ValueString()))
 	}
 	return ingressBuilder
-}
-
-func validateDefaultIngress(ctx context.Context, state *DefaultIngress) error {
-	return nil
 }

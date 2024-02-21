@@ -27,7 +27,6 @@ OpenShift managed cluster using rosa sts.
 
 - `api_url` (String) URL of the API server.
 - `aws_account_id` (String) Identifier of the AWS account. After the creation of the resource, it is not possible to update the attribute value.
-- `aws_private_link` (Boolean) Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet. After the creation of the resource, it is not possible to update the attribute value.
 - `aws_subnet_ids` (List of String) AWS subnet IDs. After the creation of the resource, it is not possible to update the attribute value.
 - `channel_group` (String) This attribute is not support for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `cloud_region` (String) Cloud region identifier, for example 'us-east-1'.
@@ -45,6 +44,7 @@ OpenShift managed cluster using rosa sts.
 - `name` (String) Name of the cluster. Cannot exceed 15 characters in length. After the creation of the resource, it is not possible to update the attribute value.
 - `ocm_properties` (Map of String) Merged properties defined by OCM and the user defined 'properties'.
 - `pod_cidr` (String) Block of IP addresses for pods. After the creation of the resource, it is not possible to update the attribute value.
+- `private` (Boolean) Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet. After the creation of the resource, it is not possible to update the attribute value.
 - `properties` (Map of String) User defined properties.
 - `proxy` (Attributes) proxy (see [below for nested schema](#nestedatt--proxy))
 - `replicas` (Number) This attribute is not support for cluster data source. Therefore, it will not be displayed as an output of the datasource

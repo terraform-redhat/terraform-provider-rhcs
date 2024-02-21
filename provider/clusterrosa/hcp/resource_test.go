@@ -266,7 +266,7 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 
 			//Expect(clusterState.CCSEnabled.ValueBool()).To(Equal(ccsEnabled))
 			Expect(clusterState.AWSAccountID.ValueString()).To(Equal(awsAccountID))
-			Expect(clusterState.AWSPrivateLink.ValueBool()).To(Equal(privateLink))
+			Expect(clusterState.Private.ValueBool()).To(Equal(privateLink))
 			Expect(clusterState.Sts.OIDCEndpointURL.ValueString()).To(Equal(oidcEndpointUrl))
 			Expect(clusterState.Sts.RoleARN.ValueString()).To(Equal(roleArn))
 		})

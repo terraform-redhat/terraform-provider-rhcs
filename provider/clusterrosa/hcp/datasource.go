@@ -126,7 +126,7 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 					"(optional). " + common.ValueCannotBeChangedStringDescription,
 				Optional: true,
 			},
-			"aws_private_link": schema.BoolAttribute{
+			"private": schema.BoolAttribute{
 				Description: "Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet. " + common.ValueCannotBeChangedStringDescription,
 				Computed:    true,
 			},
@@ -237,13 +237,14 @@ func (r *ClusterRosaHcpDatasource) Read(ctx context.Context, request datasource.
 
 	// Find the cluster:
 	get, err := r.clusterCollection.Cluster(state.ID.ValueString()).Get().SendContext(ctx)
-	if err != nil && get.Status() == http.StatusNotFound {
-		tflog.Warn(ctx, fmt.Sprintf("cluster (%s) not found, removing from state",
-			state.ID.ValueString(),
-		))
-		response.State.RemoveResource(ctx)
-		return
-	} else if err != nil {
+	if err != nil {
+		if get.Status() == http.StatusNotFound {
+			tflog.Warn(ctx, fmt.Sprintf("cluster (%s) not found, removing from state",
+				state.ID.ValueString(),
+			))
+			response.State.RemoveResource(ctx)
+			return
+		}
 		response.Diagnostics.AddError(
 			"Can't find cluster",
 			fmt.Sprintf(
@@ -253,7 +254,6 @@ func (r *ClusterRosaHcpDatasource) Read(ctx context.Context, request datasource.
 		)
 		return
 	}
-
 	object := get.Body()
 
 	// Save the state:

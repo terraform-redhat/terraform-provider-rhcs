@@ -1,4 +1,4 @@
-package rosa
+package types
 
 import (
 	"context"
@@ -59,9 +59,4 @@ func AdminCredentialsEqual(state, plan types.Object) bool {
 		return true
 	}
 	return reflect.DeepEqual(state, plan)
-}
-
-type PrivateHostedZone struct {
-	ID      types.String `tfsdk:"id"`
-	RoleARN types.String `tfsdk:"role_arn"`
 }

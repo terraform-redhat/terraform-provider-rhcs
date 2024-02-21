@@ -63,10 +63,6 @@ var _ = Describe("rhcs_cluster_rosa_hcp - default ingress", func() {
 				RespondWithJSON(http.StatusOK, clusterReady),
 			),
 			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-				RespondWithJSON(http.StatusOK, clusterReady),
-			),
-			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/ingresses"),
 				RespondWithJSON(http.StatusOK, defaultDay1Template),
 			),
@@ -98,10 +94,6 @@ var _ = Describe("rhcs_cluster_rosa_hcp - default ingress", func() {
 	It("Update default ingress and delete it", func() {
 		// Prepare the server:
 		server.AppendHandlers(
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-				RespondWithJSON(http.StatusOK, clusterReady),
-			),
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, clusterReady),

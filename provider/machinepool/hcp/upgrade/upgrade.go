@@ -139,7 +139,7 @@ func CheckAndCancelUpgrades(
 		}
 		switch upgrade.PolicyState.Value() {
 		case cmv1.UpgradePolicyStateValueDelayed, cmv1.UpgradePolicyStateValueStarted:
-			if desiredVersion.Equal(toVersion) {
+			if !desiredVersion.Equal(toVersion) {
 				return false, fmt.Errorf("a cluster upgrade is already in progress")
 			}
 			correctUpgradePending = true

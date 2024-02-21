@@ -514,10 +514,11 @@ func readState(ctx context.Context, state *MachinePoolState, collection *cmv1.Cl
 		MachinePools().
 		MachinePool(state.ID.ValueString())
 	get, err := resource.Get().SendContext(ctx)
-	if err != nil && get.Status() == http.StatusNotFound {
-		poolNotFound = true
-		return
-	} else if err != nil {
+	if err != nil {
+		if get.Status() == http.StatusNotFound {
+			poolNotFound = true
+			return
+		}
 		diags.AddError(
 			"Failed to fetch machine pool",
 			fmt.Sprintf(

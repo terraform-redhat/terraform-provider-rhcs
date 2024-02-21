@@ -139,22 +139,6 @@ var _ = Describe("Hcp Machine pool", func() {
 					  "state": "ready"
 					}`),
 				),
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, cluster123Uri),
-					RespondWithJSON(http.StatusOK, `{
-					  "id": "123",
-					  "name": "my-cluster",
-					  "multi_az": true,
-					  "nodes": {
-						"availability_zones": [
-						  "us-east-1a",
-						  "us-east-1b",
-						  "us-east-1c"
-						]
-					  },
-					  "state": "ready"
-					}`),
-				),
 			)
 		})
 
@@ -196,30 +180,30 @@ var _ = Describe("Hcp Machine pool", func() {
 
 			// Run the apply command:
 			terraform.Source(`
-		resource "rhcs_hcp_machine_pool" "my_pool" {
-		    cluster      = "123"
-		    name         = "my-pool"
-			aws_node_pool = {
-				instance_type = "r5.xlarge",
-			}
-			autoscaling = {
-				enabled = false,
-			}
-			subnet_id = "id-1"
-		    replicas     = 12
-			labels = {
-				"label_key1" = "label_value1",
-				"label_key2" = "label_value2"
-			}
-			taints = [
-				{
-					key = "key1",
-					value = "value1",
-					schedule_type = "NoSchedule",
-				},
-		    ]
-			version = "4.14.10"
-		}`)
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge",
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 12
+				labels = {
+					"label_key1" = "label_value1",
+					"label_key2" = "label_value2"
+				}
+				taints = [
+					{
+						key = "key1",
+						value = "value1",
+						schedule_type = "NoSchedule",
+					},
+				]
+				version = "4.14.10"
+			}`)
 			Expect(terraform.Apply()).To(BeZero())
 
 			// Check the state:
@@ -313,23 +297,6 @@ var _ = Describe("Hcp Machine pool", func() {
 						"/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
 					),
 					RespondWithJSON(http.StatusNotFound, "{}"),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, cluster123Uri),
-					RespondWithJSON(http.StatusOK, `
-				{
-				  "id": "123",
-				  "name": "my-cluster",
-				  "multi_az": true,
-				  "nodes": {
-					"availability_zones": [
-					  "us-east-1a",
-					  "us-east-1b",
-					  "us-east-1c"
-					]
-				  },
-				  "state": "ready"
-				}`),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, cluster123Uri),
@@ -1273,21 +1240,6 @@ var _ = Describe("Hcp Machine pool", func() {
 							"state": "ready"
 						}`),
 				),
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, cluster123Uri),
-					RespondWithJSON(http.StatusOK, `
-						{
-							"id": "123",
-							"name": "my-cluster",
-							"multi_az": false,
-							"nodes": {
-								"availability_zones": [
-									"us-east-1a"
-								]
-							},
-							"state": "ready"
-						}`),
-				),
 			)
 		})
 
@@ -1605,7 +1557,6 @@ var _ = Describe("Hcp Machine pool", func() {
 
 		createPool := func(clusterId string, poolId string) {
 			prepareClusterRead(clusterId)
-			prepareClusterRead(clusterId)
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
@@ -1854,7 +1805,6 @@ var _ = Describe("Hcp Machine pool", func() {
 		}
 
 		createPool := func(clusterId string, poolId string) {
-			prepareClusterRead(clusterId)
 			prepareClusterRead(clusterId)
 			server.AppendHandlers(
 				CombineHandlers(

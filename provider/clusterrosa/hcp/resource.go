@@ -21,13 +21,11 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
-	"sort"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
 	semver "github.com/hashicorp/go-version"
-	ver "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -43,6 +41,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/openshift-online/ocm-common/pkg/ocm/consts"
 	ocmConsts "github.com/openshift-online/ocm-common/pkg/ocm/consts"
 	"github.com/openshift-online/ocm-common/pkg/rosa/oidcconfigs"
 	sdk "github.com/openshift-online/ocm-sdk-go"
@@ -51,34 +50,20 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 
 	ocmr "github.com/terraform-redhat/terraform-provider-rhcs/internal/ocm/resource"
+	rosa "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common"
+	rosaTypes "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common/types"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/hcp/upgrade"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/rosa"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 
 const (
-	defaultTimeoutInMinutes   = int64(60)
-	nonPositiveTimeoutSummary = "Can't poll cluster state with a non-positive timeout"
-	nonPositiveTimeoutFormat  = "Can't poll state of cluster with identifier '%s', the timeout that was set is not a positive number"
-	pollingIntervalInMinutes  = 2
-
-	awsCloudProvider      = "aws"
-	rosaProduct           = "rosa"
-	MinVersion            = "4.10.0"
-	maxClusterNameLength  = 15
-	tagsPrefix            = "rosa_"
-	tagsOpenShiftVersion  = tagsPrefix + "openshift_version"
-	lowestHttpTokensVer   = "4.11.0"
-	propertyRosaTfVersion = tagsPrefix + "tf_version"
-	propertyRosaTfCommit  = tagsPrefix + "tf_commit"
-	waitTimeoutInMinutes  = 60
+	// FIXME: This should be coming from the API or only validate at the API level
+	MinVersion = "4.12.0"
 )
 
 type ClusterRosaHcpResource struct {
-	clusterCollection *cmv1.ClustersClient
-	versionCollection *cmv1.VersionsClient
-	clusterWait       common.ClusterWait
+	rosaTypes.BaseCluster
 }
 
 var _ resource.ResourceWithConfigure = &ClusterRosaHcpResource{}
@@ -94,7 +79,7 @@ func (r *ClusterRosaHcpResource) Metadata(ctx context.Context, req resource.Meta
 
 func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "OpenShift managed cluster using rosa sts.",
+		Description: "OpenShift managed cluster using ROSA HCP.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "Unique identifier of the cluster.",
@@ -121,7 +106,7 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				},
 			},
 			"cloud_region": schema.StringAttribute{
-				Description: "Cloud region identifier, for example 'us-east-1'.",
+				Description: "AWS region identifier, for example 'us-east-1'.",
 				Required:    true,
 			},
 			"sts": schema.SingleNestedAttribute{
@@ -154,10 +139,6 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
-			// "autoscaling_enabled": schema.BoolAttribute{
-			// 	Description: "Enable autoscaling for the initial worker pool. " + rosa.GeneratePoolMessage(rosa.Classic),
-			// 	Optional:    true,
-			// },
 			"api_url": schema.StringAttribute{
 				Description: "URL of the API server.",
 				Computed:    true,
@@ -172,13 +153,13 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 			},
 			"replicas": schema.Int64Attribute{
 				Description: "Number of worker/compute nodes to provision. Single zone clusters need at least 2 nodes, " +
-					"multizone clusters need at least 3 nodes. " + rosa.GeneratePoolMessage(rosa.Classic),
+					"multizone clusters need at least 3 nodes. " + rosaTypes.Hcp.GeneratePoolMessage(),
 				Optional: true,
 			},
 			"compute_machine_type": schema.StringAttribute{
 				Description: "Identifies the machine type used by the initial worker nodes, " +
 					"for example `m5.xlarge`. Use the `rhcs_machine_types` data " +
-					"source to find the possible values. " + rosa.GeneratePoolMessage(rosa.Classic),
+					"source to find the possible values. " + rosaTypes.Hcp.GeneratePoolMessage(),
 				Optional: true,
 			},
 			"aws_account_id": schema.StringAttribute{
@@ -200,7 +181,7 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 					"(optional). " + common.ValueCannotBeChangedStringDescription,
 				Optional: true,
 			},
-			"aws_private_link": schema.BoolAttribute{
+			"private": schema.BoolAttribute{
 				Description: "Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 				Computed:    true,
@@ -209,7 +190,7 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				},
 			},
 			"availability_zones": schema.ListAttribute{
-				Description: "Availability zones. " + rosa.GeneratePoolMessage(rosa.Hcp),
+				Description: "Availability zones. " + rosaTypes.Hcp.GeneratePoolMessage(),
 				ElementType: types.StringType,
 				Optional:    true,
 				Computed:    true,
@@ -317,9 +298,9 @@ func (r *ClusterRosaHcpResource) Configure(ctx context.Context, req resource.Con
 		return
 	}
 
-	r.clusterCollection = connection.ClustersMgmt().V1().Clusters()
-	r.versionCollection = connection.ClustersMgmt().V1().Versions()
-	r.clusterWait = common.NewClusterWait(r.clusterCollection)
+	r.ClusterCollection = connection.ClustersMgmt().V1().Clusters()
+	r.VersionCollection = connection.ClustersMgmt().V1().Versions()
+	r.ClusterWait = common.NewClusterWait(r.ClusterCollection)
 }
 
 const (
@@ -334,7 +315,7 @@ func createHcpClusterObject(ctx context.Context,
 	builder.Hypershift(cmv1.NewHypershift().Enabled(true))
 	builder.MultiAZ(true)
 	clusterName := state.Name.ValueString()
-	if len(clusterName) > maxClusterNameLength {
+	if len(clusterName) > rosa.MaxClusterNameLength {
 		errDescription := fmt.Sprintf("Expected a valid value for 'name' maximum of 15 characters in length. Provided Cluster name '%s' is of length '%d'",
 			clusterName, len(clusterName),
 		)
@@ -347,9 +328,9 @@ func createHcpClusterObject(ctx context.Context,
 		return nil, errors.New(errHeadline + "\n" + errDescription)
 	}
 
-	builder.Name(state.Name.ValueString())
-	builder.CloudProvider(cmv1.NewCloudProvider().ID(awsCloudProvider))
-	builder.Product(cmv1.NewProduct().ID(rosaProduct))
+	builder.Name(clusterName)
+	builder.CloudProvider(cmv1.NewCloudProvider().ID(string(rosaTypes.Aws)))
+	builder.Product(cmv1.NewProduct().ID(string(rosaTypes.Rosa)))
 	builder.Region(cmv1.NewCloudRegion().ID(state.CloudRegion.ValueString()))
 
 	// Set default properties
@@ -396,7 +377,7 @@ func createHcpClusterObject(ctx context.Context,
 		return nil, err
 	}
 
-	if err := ocmClusterResource.CreateNodes(rosa.Hcp, false, replicas, nil, nil,
+	if err := ocmClusterResource.CreateNodes(rosaTypes.Hcp, false, replicas, nil, nil,
 		computeMachineType, nil, availabilityZones, true, nil); err != nil {
 		return nil, err
 	}
@@ -410,7 +391,7 @@ func createHcpClusterObject(ctx context.Context,
 	awsAccountID := common.OptionalString(state.AWSAccountID)
 	awsBillingAccountId := common.OptionalString(state.AWSBillingAccountID)
 
-	isPrivateLink := common.BoolWithFalseDefault(state.AWSPrivateLink)
+	isPrivate := common.BoolWithFalseDefault(state.Private)
 	awsSubnetIDs, err := common.StringListToArray(ctx, state.AWSSubnetIDs)
 	if err != nil {
 		return nil, err
@@ -426,13 +407,13 @@ func createHcpClusterObject(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
-	if err := ocmClusterResource.CreateAWSBuilder(rosa.Hcp, awsTags, nil, kmsKeyARN,
-		isPrivateLink, awsAccountID, awsBillingAccountId, stsBuilder, awsSubnetIDs, nil, nil,
+	if err := ocmClusterResource.CreateAWSBuilder(rosaTypes.Hcp, awsTags, nil, kmsKeyARN,
+		isPrivate, awsAccountID, awsBillingAccountId, stsBuilder, awsSubnetIDs, nil, nil,
 		nil, nil, nil); err != nil {
 		return nil, err
 	}
 
-	if err := ocmClusterResource.SetAPIPrivacy(isPrivateLink, isPrivateLink, stsBuilder != nil); err != nil {
+	if err := ocmClusterResource.SetAPIPrivacy(isPrivate, isPrivate, stsBuilder != nil); err != nil {
 		return nil, err
 	}
 
@@ -495,7 +476,7 @@ func createHcpClusterObject(ctx context.Context,
 		builder.Version(vBuilder)
 	}
 
-	builder, err = buildProxy(state, builder)
+	builder, err = proxy.BuildProxy(state.Proxy, builder)
 	if err != nil {
 		tflog.Error(ctx, "Failed to build the Proxy's attributes")
 		return nil, err
@@ -503,64 +484,6 @@ func createHcpClusterObject(ctx context.Context,
 
 	object, err := builder.Build()
 	return object, err
-}
-
-func buildProxy(state *ClusterRosaHcpState, builder *cmv1.ClusterBuilder) (*cmv1.ClusterBuilder, error) {
-	if state.Proxy != nil {
-		proxy := cmv1.NewProxy()
-		proxyIsEmpty := true
-
-		if !common.IsStringAttributeUnknownOrEmpty(state.Proxy.HttpProxy) {
-			proxy.HTTPProxy(state.Proxy.HttpProxy.ValueString())
-			proxyIsEmpty = false
-		}
-		if !common.IsStringAttributeUnknownOrEmpty(state.Proxy.HttpsProxy) {
-			proxy.HTTPSProxy(state.Proxy.HttpsProxy.ValueString())
-			proxyIsEmpty = false
-		}
-		if !common.IsStringAttributeUnknownOrEmpty(state.Proxy.NoProxy) {
-			proxy.NoProxy(state.Proxy.NoProxy.ValueString())
-			proxyIsEmpty = false
-		}
-		if !proxyIsEmpty {
-			builder.Proxy(proxy)
-		}
-
-		if !common.IsStringAttributeUnknownOrEmpty(state.Proxy.AdditionalTrustBundle) {
-			builder.AdditionalTrustBundle(state.Proxy.AdditionalTrustBundle.ValueString())
-		}
-
-	}
-
-	return builder, nil
-}
-
-// getAndValidateVersionInChannelGroup ensures that the cluster version is
-// available in the channel group
-func (r *ClusterRosaHcpResource) getAndValidateVersionInChannelGroup(ctx context.Context, state *ClusterRosaHcpState) (string, error) {
-	channelGroup := ocmConsts.DefaultChannelGroup
-	if common.HasValue(state.ChannelGroup) {
-		channelGroup = state.ChannelGroup.ValueString()
-	}
-
-	versionList, err := r.getVersionList(ctx, channelGroup)
-	if err != nil {
-		return "", err
-	}
-
-	version := versionList[0]
-	if common.HasValue(state.Version) {
-		version = state.Version.ValueString()
-	}
-
-	tflog.Debug(ctx, fmt.Sprintf("Validating if cluster version %s is in the list of supported versions: %v", version, versionList))
-	for _, v := range versionList {
-		if v == version {
-			return version, nil
-		}
-	}
-
-	return "", fmt.Errorf("version %s is not in the list of supported versions: %v", version, versionList)
 }
 
 // TODO: move to ocm commons
@@ -572,66 +495,6 @@ func getOcmVersionMinor(ver string) string {
 	}
 	segments := version.Segments()
 	return fmt.Sprintf("%d.%d", segments[0], segments[1])
-}
-
-// getVersionList returns a list of versions for the given channel group, sorted by
-// descending semver
-func (r *ClusterRosaHcpResource) getVersionList(ctx context.Context, channelGroup string) (versionList []string, err error) {
-	vs, err := r.getVersions(ctx, channelGroup)
-	if err != nil {
-		err = fmt.Errorf("Failed to retrieve versions: %s", err)
-		return
-	}
-
-	for _, v := range vs {
-		versionList = append(versionList, v.RawID())
-	}
-
-	if len(versionList) == 0 {
-		err = fmt.Errorf("Could not find versions")
-		return
-	}
-
-	return
-}
-func (r *ClusterRosaHcpResource) getVersions(ctx context.Context, channelGroup string) (versions []*cmv1.Version, err error) {
-	page := 1
-	size := 100
-	filter := strings.Join([]string{
-		"enabled = 'true'",
-		"rosa_enabled = 'true'",
-		fmt.Sprintf("channel_group = '%s'", channelGroup),
-	}, " AND ")
-	for {
-		var response *cmv1.VersionsListResponse
-		response, err = r.versionCollection.List().
-			Search(filter).
-			Order("default desc, id desc").
-			Page(page).
-			Size(size).
-			Send()
-		if err != nil {
-			tflog.Debug(ctx, err.Error())
-			return nil, err
-		}
-		versions = append(versions, response.Items().Slice()...)
-		if response.Size() < size {
-			break
-		}
-		page++
-	}
-
-	// Sort list in descending order
-	sort.Slice(versions, func(i, j int) bool {
-		a, erra := ver.NewVersion(versions[i].RawID())
-		b, errb := ver.NewVersion(versions[j].RawID())
-		if erra != nil || errb != nil {
-			return false
-		}
-		return a.GreaterThan(b)
-	})
-
-	return
 }
 
 func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.CreateRequest,
@@ -649,7 +512,7 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 
 	// In case version with "openshift-v" prefix was used here,
 	// Give a meaningful message to inform the user that it not supported any more
-	if common.HasValue(state.Version) && strings.HasPrefix(state.Version.ValueString(), "openshift-v") {
+	if common.HasValue(state.Version) && strings.HasPrefix(state.Version.ValueString(), rosa.VersionPrefix) {
 		response.Diagnostics.AddError(
 			summary,
 			"Openshift version must be provided without the \"openshift-v\" prefix",
@@ -657,7 +520,15 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 		return
 	}
 
-	_, err := r.getAndValidateVersionInChannelGroup(ctx, state)
+	channelGroup := consts.DefaultChannelGroup
+	if common.HasValue(state.ChannelGroup) {
+		channelGroup = state.ChannelGroup.ValueString()
+	}
+	desiredVersion := ""
+	if common.HasValue(state.Version) {
+		desiredVersion = state.Version.ValueString()
+	}
+	_, err := r.GetAndValidateVersionInChannelGroup(ctx, rosaTypes.Hcp, channelGroup, desiredVersion)
 	if err != nil {
 		response.Diagnostics.AddError(
 			summary,
@@ -681,7 +552,7 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 		return
 	}
 
-	add, err := r.clusterCollection.Add().Body(object).SendContext(ctx)
+	add, err := r.ClusterCollection.Add().Body(object).SendContext(ctx)
 	if err != nil {
 		response.Diagnostics.AddError(
 			summary,
@@ -695,7 +566,7 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 	object = add.Body()
 
 	if common.HasValue(state.WaitForCreateComplete) && state.WaitForCreateComplete.ValueBool() {
-		object, err = r.clusterWait.WaitForClusterToBeReady(ctx, object.ID(), waitTimeoutInMinutes)
+		object, err = r.ClusterWait.WaitForClusterToBeReady(ctx, object.ID(), rosa.DefaultWaitTimeoutInMinutes)
 		if err != nil {
 			response.Diagnostics.AddError(
 				"Waiting for cluster creation finished with error",
@@ -735,14 +606,15 @@ func (r *ClusterRosaHcpResource) Read(ctx context.Context, request resource.Read
 	}
 
 	// Find the cluster:
-	get, err := r.clusterCollection.Cluster(state.ID.ValueString()).Get().SendContext(ctx)
-	if err != nil && get.Status() == http.StatusNotFound {
-		tflog.Warn(ctx, fmt.Sprintf("cluster (%s) not found, removing from state",
-			state.ID.ValueString(),
-		))
-		response.State.RemoveResource(ctx)
-		return
-	} else if err != nil {
+	get, err := r.ClusterCollection.Cluster(state.ID.ValueString()).Get().SendContext(ctx)
+	if err != nil {
+		if get.Status() == http.StatusNotFound {
+			tflog.Warn(ctx, fmt.Sprintf("cluster (%s) not found, removing from state",
+				state.ID.ValueString(),
+			))
+			response.State.RemoveResource(ctx)
+			return
+		}
 		response.Diagnostics.AddError(
 			"Can't find cluster",
 			fmt.Sprintf(
@@ -780,7 +652,7 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaHcpState) diag.Diagnos
 	common.ValidateStateAndPlanEquals(state.AWSAccountID, plan.AWSAccountID, "aws_account_id", &diags)
 	common.ValidateStateAndPlanEquals(state.AWSSubnetIDs, plan.AWSSubnetIDs, "aws_subnet_ids", &diags)
 	common.ValidateStateAndPlanEquals(state.KMSKeyArn, plan.KMSKeyArn, "kms_key_arn", &diags)
-	common.ValidateStateAndPlanEquals(state.AWSPrivateLink, plan.AWSPrivateLink, "aws_private_link", &diags)
+	common.ValidateStateAndPlanEquals(state.Private, plan.Private, "private", &diags)
 	common.ValidateStateAndPlanEquals(state.MachineCIDR, plan.MachineCIDR, "machine_cidr", &diags)
 	common.ValidateStateAndPlanEquals(state.ServiceCIDR, plan.ServiceCIDR, "service_cidr", &diags)
 	common.ValidateStateAndPlanEquals(state.PodCIDR, plan.PodCIDR, "pod_cidr", &diags)
@@ -893,7 +765,7 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 		return
 	}
 
-	update, err := r.clusterCollection.Cluster(state.ID.ValueString()).Update().
+	update, err := r.ClusterCollection.Cluster(state.ID.ValueString()).Update().
 		Body(clusterSpec).
 		SendContext(ctx)
 	if err != nil {
@@ -954,11 +826,7 @@ func (r *ClusterRosaHcpResource) upgradeClusterIfNeeded(ctx context.Context, sta
 	if err != nil {
 		return fmt.Errorf("failed to parse current cluster version: %v", err)
 	}
-	// For backward compatibility
-	// In case version format with "openshift-v" was already used
-	// remove the prefix to adapt the right format and avoid failure
-	fixedVersion := strings.TrimPrefix(plan.Version.ValueString(), "openshift-v")
-	desiredVersion, err := semver.NewVersion(fixedVersion)
+	desiredVersion, err := semver.NewVersion(plan.Version.ValueString())
 	if err != nil {
 		return fmt.Errorf("failed to parse desired cluster version: %v", err)
 	}
@@ -980,14 +848,14 @@ func (r *ClusterRosaHcpResource) upgradeClusterIfNeeded(ctx context.Context, sta
 	}
 
 	// Fetch existing upgrade policies
-	upgrades, err := upgrade.GetScheduledUpgrades(ctx, r.clusterCollection, state.ID.ValueString())
+	upgrades, err := upgrade.GetScheduledUpgrades(ctx, r.ClusterCollection, state.ID.ValueString())
 	if err != nil {
 		return fmt.Errorf("failed to get upgrade policies: %v", err)
 	}
 
 	// Stop if an upgrade is already in progress
 	correctUpgradePending, err := upgrade.CheckAndCancelUpgrades(
-		ctx, r.clusterCollection, upgrades, desiredVersion)
+		ctx, r.ClusterCollection, upgrades, desiredVersion)
 	if err != nil {
 		return err
 	}
@@ -995,7 +863,7 @@ func (r *ClusterRosaHcpResource) upgradeClusterIfNeeded(ctx context.Context, sta
 	// Schedule a new upgrade
 	if !correctUpgradePending && !cancelingUpgradeOnly {
 		ackString := plan.UpgradeAcksFor.ValueString()
-		if err = scheduleUpgrade(ctx, r.clusterCollection, state.ID.ValueString(), desiredVersion, ackString); err != nil {
+		if err = scheduleUpgrade(ctx, r.ClusterCollection, state.ID.ValueString(), desiredVersion, ackString); err != nil {
 			return err
 		}
 	}
@@ -1007,11 +875,11 @@ func (r *ClusterRosaHcpResource) upgradeClusterIfNeeded(ctx context.Context, sta
 
 func (r *ClusterRosaHcpResource) validateUpgrade(ctx context.Context, state, plan *ClusterRosaHcpState) error {
 	availableVersions, err := upgrade.GetAvailableUpgradeVersions(
-		ctx, r.clusterCollection, r.versionCollection, state.ID.ValueString())
+		ctx, r.ClusterCollection, r.VersionCollection, state.ID.ValueString())
 	if err != nil {
 		return fmt.Errorf("failed to get available upgrades: %v", err)
 	}
-	trimmedDesiredVersion := strings.TrimPrefix(plan.Version.ValueString(), "openshift-v")
+	trimmedDesiredVersion := strings.TrimPrefix(plan.Version.ValueString(), rosa.VersionPrefix)
 	desiredVersion, err := semver.NewVersion(trimmedDesiredVersion)
 	if err != nil {
 		return fmt.Errorf("failed to parse desired version: %v", err)
@@ -1100,7 +968,7 @@ func updateProxy(state, plan *ClusterRosaHcpState, clusterBuilder *cmv1.ClusterB
 		if plan.Proxy == nil {
 			plan.Proxy = &proxy.Proxy{}
 		}
-		clusterBuilder, err = buildProxy(plan, clusterBuilder)
+		clusterBuilder, err = proxy.BuildProxy(plan.Proxy, clusterBuilder)
 		if err != nil {
 			return nil, err
 		}
@@ -1122,7 +990,7 @@ func (r *ClusterRosaHcpResource) Delete(ctx context.Context, request resource.De
 	}
 
 	// Send the request to delete the cluster:
-	resource := r.clusterCollection.Cluster(state.ID.ValueString())
+	resource := r.ClusterCollection.Cluster(state.ID.ValueString())
 	_, err := resource.Delete().SendContext(ctx)
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -1134,13 +1002,14 @@ func (r *ClusterRosaHcpResource) Delete(ctx context.Context, request resource.De
 		)
 		return
 	}
+	// TODO: refactor into function so can be shared for both hcp and classic flows
 	if common.HasValue(state.DisableWaitingInDestroy) && state.DisableWaitingInDestroy.ValueBool() {
 		tflog.Info(ctx, "Waiting for destroy to be completed, is disabled")
 	} else {
-		timeout := defaultTimeoutInMinutes
+		timeout := rosa.DefaultWaitTimeoutInMinutes
 		if common.HasValue(state.DestroyTimeout) {
 			if state.DestroyTimeout.ValueInt64() <= 0 {
-				response.Diagnostics.AddWarning(nonPositiveTimeoutSummary, fmt.Sprintf(nonPositiveTimeoutFormat, state.ID.ValueString()))
+				response.Diagnostics.AddWarning(rosa.NonPositiveTimeoutSummary, fmt.Sprintf(rosa.NonPositiveTimeoutFormat, state.ID.ValueString()))
 			} else {
 				timeout = state.DestroyTimeout.ValueInt64()
 			}
@@ -1239,9 +1108,9 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 
 	awsPrivateLink, ok := object.AWS().GetPrivateLink()
 	if ok {
-		state.AWSPrivateLink = types.BoolValue(awsPrivateLink)
+		state.Private = types.BoolValue(awsPrivateLink)
 	} else {
-		state.AWSPrivateLink = types.BoolValue(true)
+		state.Private = types.BoolValue(true)
 	}
 	kmsKeyArn, ok := object.AWS().GetKMSKeyArn()
 	if ok {
@@ -1372,7 +1241,7 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 	// If we're using a non-default channel group, it will have been appended to
 	// the version ID. Remove it before saving state.
 	version = strings.TrimSuffix(version, fmt.Sprintf("-%s", channel_group))
-	version = strings.TrimPrefix(version, "openshift-v")
+	version = strings.TrimPrefix(version, rosa.VersionPrefix)
 	if ok {
 		tflog.Debug(ctx, fmt.Sprintf("actual cluster version: %v", version))
 		state.CurrentVersion = types.StringValue(version)
@@ -1408,7 +1277,7 @@ func (r *ClusterRosaHcpResource) waitTillClusterIsNotFoundWithTimeout(ctx contex
 	pollCtx, cancel := context.WithTimeout(ctx, timeoutInMinutes)
 	defer cancel()
 	_, err := resource.Poll().
-		Interval(pollingIntervalInMinutes * time.Minute).
+		Interval(rosa.DefaultPollingIntervalInMinutes * time.Minute).
 		Status(http.StatusNotFound).
 		StartContext(pollCtx)
 	sdkErr, ok := err.(*ocm_errors.Error)

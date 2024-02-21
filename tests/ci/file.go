@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	rosa "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common"
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	EXE "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
@@ -94,7 +95,7 @@ func TrimName(name string) string {
 }
 
 func TrimVersion(version string, groupChannel string) string {
-	prefix := "openshift-v"
+	prefix := rosa.VersionPrefix
 	suffix := ""
 	if groupChannel != EXE.StableChannel {
 		suffix = "-" + groupChannel

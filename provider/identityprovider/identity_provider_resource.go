@@ -340,13 +340,14 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request resource.Re
 		IdentityProviders().
 		IdentityProvider(state.ID.ValueString())
 	get, err := resource.Get().SendContext(ctx)
-	if err != nil && get.Status() == http.StatusNotFound {
-		tflog.Warn(ctx, fmt.Sprintf("identity provider (%s) of cluster (%s) not found, removing from state",
-			state.ID.ValueString(), state.Cluster.ValueString(),
-		))
-		response.State.RemoveResource(ctx)
-		return
-	} else if err != nil {
+	if err != nil {
+		if get.Status() == http.StatusNotFound {
+			tflog.Warn(ctx, fmt.Sprintf("identity provider (%s) of cluster (%s) not found, removing from state",
+				state.ID.ValueString(), state.Cluster.ValueString(),
+			))
+			response.State.RemoveResource(ctx)
+			return
+		}
 		response.Diagnostics.AddError(
 			"Can't find identity provider",
 			fmt.Sprintf(

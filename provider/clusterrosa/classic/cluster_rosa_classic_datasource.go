@@ -26,7 +26,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/rosa"
+	rosaTypes "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common/types"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 
@@ -79,7 +79,7 @@ func (r *ClusterRosaClassicDatasource) Schema(ctx context.Context, req datasourc
 			},
 			"multi_az": schema.BoolAttribute{
 				Description: "Indicates if the cluster should be deployed to " +
-					"multiple availability zones. Default value is 'false'. " + rosa.GeneratePoolMessage(rosa.Classic),
+					"multiple availability zones. Default value is 'false'. " + rosaTypes.Classic.GeneratePoolMessage(),
 				Computed: true,
 			},
 			"disable_workload_monitoring": schema.BoolAttribute{
@@ -180,7 +180,7 @@ func (r *ClusterRosaClassicDatasource) Schema(ctx context.Context, req datasourc
 				Computed:    true,
 			},
 			"availability_zones": schema.ListAttribute{
-				Description: "Availability zones. " + rosa.GeneratePoolMessage(rosa.Classic),
+				Description: "Availability zones. " + rosaTypes.Classic.GeneratePoolMessage(),
 				ElementType: types.StringType,
 				Computed:    true,
 			},
@@ -350,13 +350,14 @@ func (r *ClusterRosaClassicDatasource) Read(ctx context.Context, request datasou
 
 	// Find the cluster:
 	get, err := r.clusterCollection.Cluster(state.ID.ValueString()).Get().SendContext(ctx)
-	if err != nil && get.Status() == http.StatusNotFound {
-		tflog.Warn(ctx, fmt.Sprintf("cluster (%s) not found, removing from state",
-			state.ID.ValueString(),
-		))
-		response.State.RemoveResource(ctx)
-		return
-	} else if err != nil {
+	if err != nil {
+		if get.Status() == http.StatusNotFound {
+			tflog.Warn(ctx, fmt.Sprintf("cluster (%s) not found, removing from state",
+				state.ID.ValueString(),
+			))
+			response.State.RemoveResource(ctx)
+			return
+		}
 		response.Diagnostics.AddError(
 			"Can't find cluster",
 			fmt.Sprintf(
@@ -388,7 +389,7 @@ func (r *ClusterRosaClassicDatasource) Read(ctx context.Context, request datasou
 	state.DestroyTimeout = types.Int64Null()
 	state.UpgradeAcksFor = types.StringNull()
 	state.CreateAdminUser = types.BoolNull()
-	state.AdminCredentials = rosa.AdminCredentialsNull()
+	state.AdminCredentials = rosaTypes.AdminCredentialsNull()
 	state.WaitForCreateComplete = types.BoolNull()
 	state.AutoScalingEnabled = types.BoolNull()
 	state.MinReplicas = types.Int64Null()

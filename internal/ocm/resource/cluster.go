@@ -8,7 +8,7 @@ import (
 	"github.com/openshift-online/ocm-common/pkg/cluster/validations"
 	kmsArnRegexpValidator "github.com/openshift-online/ocm-common/pkg/resource/validations"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/rosa"
+	rosaTypes "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common/types"
 )
 
 var privateHostedZoneRoleArnRE = regexp.MustCompile(
@@ -33,7 +33,7 @@ func (c *Cluster) Build() (object *cmv1.Cluster, err error) {
 	return c.clusterBuilder.Build()
 }
 
-func (c *Cluster) CreateNodes(clusterTopology rosa.ClusterTopology, autoScalingEnabled bool, replicas *int64, minReplicas *int64,
+func (c *Cluster) CreateNodes(clusterTopology rosaTypes.ClusterTopology, autoScalingEnabled bool, replicas *int64, minReplicas *int64,
 	maxReplicas *int64, computeMachineType *string, labels map[string]string,
 	availabilityZones []string, multiAZ bool, workerDiskSize *int64) error {
 	nodes := cmv1.NewClusterNodes()
@@ -57,7 +57,7 @@ func (c *Cluster) CreateNodes(clusterTopology rosa.ClusterTopology, autoScalingE
 
 	if availabilityZones != nil {
 		// TODO Add availability zones count validation for HCP
-		if clusterTopology == rosa.Classic {
+		if clusterTopology == rosaTypes.Classic {
 			if err := validations.ValidateAvailabilityZonesCount(multiAZ, len(availabilityZones)); err != nil {
 				return err
 			}
@@ -76,8 +76,8 @@ func (c *Cluster) CreateNodes(clusterTopology rosa.ClusterTopology, autoScalingE
 			minReplicasVal = int(*minReplicas)
 		}
 		// TODO need to identify the private subnet or remove this validation from TF
-		if clusterTopology == rosa.Classic {
-			if err := validations.MinReplicasValidator(minReplicasVal, multiAZ, clusterTopology == rosa.Hcp, 0); err != nil {
+		if clusterTopology == rosaTypes.Classic {
+			if err := validations.MinReplicasValidator(minReplicasVal, multiAZ, clusterTopology == rosaTypes.Hcp, 0); err != nil {
 				return err
 			}
 		}
@@ -87,8 +87,8 @@ func (c *Cluster) CreateNodes(clusterTopology rosa.ClusterTopology, autoScalingE
 			maxReplicasVal = int(*maxReplicas)
 		}
 		// TODO need to identify the private subnet or remove this validation from TF
-		if clusterTopology == rosa.Classic {
-			if err := validations.MaxReplicasValidator(minReplicasVal, maxReplicasVal, multiAZ, clusterTopology == rosa.Hcp, 0); err != nil {
+		if clusterTopology == rosaTypes.Classic {
+			if err := validations.MaxReplicasValidator(minReplicasVal, maxReplicasVal, multiAZ, clusterTopology == rosaTypes.Hcp, 0); err != nil {
 				return err
 			}
 		}
@@ -106,8 +106,8 @@ func (c *Cluster) CreateNodes(clusterTopology rosa.ClusterTopology, autoScalingE
 			replicasVal = int(*replicas)
 		}
 		// TODO need to identify the private subnet or remove this validation from TF
-		if clusterTopology == rosa.Classic {
-			if err := validations.MinReplicasValidator(replicasVal, multiAZ, clusterTopology == rosa.Hcp, 1); err != nil {
+		if clusterTopology == rosaTypes.Classic {
+			if err := validations.MinReplicasValidator(replicasVal, multiAZ, clusterTopology == rosaTypes.Hcp, 1); err != nil {
 				return err
 			}
 		}
@@ -121,7 +121,7 @@ func (c *Cluster) CreateNodes(clusterTopology rosa.ClusterTopology, autoScalingE
 	return nil
 }
 
-func (c *Cluster) CreateAWSBuilder(clusterTopology rosa.ClusterTopology,
+func (c *Cluster) CreateAWSBuilder(clusterTopology rosaTypes.ClusterTopology,
 	awsTags map[string]string, ec2MetadataHttpTokens *string, kmsKeyARN *string,
 	isPrivateLink bool, awsAccountID *string, awsBillingAccountId *string,
 	stsBuilder *cmv1.STSBuilder, awsSubnetIDs []string,
@@ -130,7 +130,7 @@ func (c *Cluster) CreateAWSBuilder(clusterTopology rosa.ClusterTopology,
 	additionalInfraSecurityGroupIds []string,
 	additionalControlPlaneSecurityGroupIds []string) error {
 
-	if clusterTopology == rosa.Hcp && awsSubnetIDs == nil {
+	if clusterTopology == rosaTypes.Hcp && awsSubnetIDs == nil {
 		return errors.New("Hosted Control Plane clusters must have a pre-configure VPC. Make sure to specify the subnet ids.")
 	}
 
@@ -144,7 +144,7 @@ func (c *Cluster) CreateAWSBuilder(clusterTopology rosa.ClusterTopology,
 		awsBuilder.Tags(awsTags)
 	}
 
-	if clusterTopology == rosa.Classic {
+	if clusterTopology == rosaTypes.Classic {
 		awsBuilder.Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokensOptional)
 		if ec2MetadataHttpTokens != nil {
 			awsBuilder.Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokens(*ec2MetadataHttpTokens))
@@ -160,7 +160,7 @@ func (c *Cluster) CreateAWSBuilder(clusterTopology rosa.ClusterTopology,
 		awsBuilder.AccountID(*awsAccountID)
 	}
 
-	if clusterTopology == rosa.Hcp {
+	if clusterTopology == rosaTypes.Hcp {
 		awsBuilder.BillingAccountID(*awsBillingAccountId)
 	}
 

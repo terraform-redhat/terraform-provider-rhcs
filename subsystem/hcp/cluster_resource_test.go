@@ -1855,7 +1855,7 @@ var _ = Describe("HCP Cluster", func() {
 				aws_account_id = "123"
 				aws_billing_account_id = "123"
 				availability_zones = ["us-west-1a"]
-				aws_private_link = true
+				private = true
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
 				]
@@ -1914,7 +1914,7 @@ var _ = Describe("HCP Cluster", func() {
 				cloud_region   = "us-west-1"
 				aws_account_id = "123"
 				aws_billing_account_id = "123"
-				aws_private_link = false
+				private = false
 				sts = {
 					operator_role_prefix = "test"
 					role_arn = "",

@@ -33,7 +33,7 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/rosa"
+	rosaTypes "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common/types"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
@@ -339,7 +339,7 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 			username := "test-username"
 			password := "test-password123456789$"
 			clusterState := generateBasicRosaClassicClusterState()
-			clusterState.AdminCredentials = rosa.FlattenAdminCredentials(username, "")
+			clusterState.AdminCredentials = rosaTypes.FlattenAdminCredentials(username, "")
 			rosaClusterObject, err := createClassicClusterObject(context.Background(), clusterState, diag.Diagnostics{})
 			Expect(err).To(BeNil())
 			idp := rosaClusterObject.Htpasswd()

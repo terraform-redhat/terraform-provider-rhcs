@@ -1,4 +1,4 @@
-package rosa
+package common
 
 import (
 	"context"
@@ -7,8 +7,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	tfTypes "github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common/types"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
 )
@@ -35,7 +36,7 @@ var PrivateHZValidator = attrvalidators.NewObjectValidator("proxy map should not
 			return
 		}
 
-		privateHZ := PrivateHostedZone{}
+		privateHZ := types.PrivateHostedZone{}
 		d := req.ConfigValue.As(ctx, &privateHZ, basetypes.ObjectAsOptions{})
 		if d.HasError() {
 			// No attribute to validate
@@ -56,7 +57,7 @@ var PropertiesValidator = attrvalidators.NewMapValidator("properties map should 
 		if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
 			return
 		}
-		propertiesElements := make(map[string]types.String, len(req.ConfigValue.Elements()))
+		propertiesElements := make(map[string]tfTypes.String, len(req.ConfigValue.Elements()))
 		d := req.ConfigValue.ElementsAs(ctx, &propertiesElements, false)
 		if d.HasError() {
 			// No attribute to validate

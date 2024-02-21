@@ -41,6 +41,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	rosa "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool/hcp/upgrade"
 )
@@ -465,10 +466,11 @@ func readState(ctx context.Context, state *HcpMachinePoolState, collection *cmv1
 		NodePools().
 		NodePool(state.ID.ValueString())
 	get, err := resource.Get().SendContext(ctx)
-	if err != nil && get.Status() == http.StatusNotFound {
-		poolNotFound = true
-		return
-	} else if err != nil {
+	if err != nil {
+		if get.Status() == http.StatusNotFound {
+			poolNotFound = true
+			return
+		}
 		diags.AddError(
 			"Failed to fetch machine pool",
 			fmt.Sprintf(
@@ -750,11 +752,7 @@ func (r *HcpMachinePoolResource) upgradeMachinePoolIfNeeded(ctx context.Context,
 	if err != nil {
 		return fmt.Errorf("failed to parse current cluster version: %v", err)
 	}
-	// For backward compatibility
-	// In case version format with "openshift-v" was already used
-	// remove the prefix to adapt the right format and avoid failure
-	fixedVersion := strings.TrimPrefix(plan.Version.ValueString(), "openshift-v")
-	desiredVersion, err := semver.NewVersion(fixedVersion)
+	desiredVersion, err := semver.NewVersion(plan.Version.ValueString())
 	if err != nil {
 		return fmt.Errorf("failed to parse desired cluster version: %v", err)
 	}
@@ -809,7 +807,7 @@ func (r *HcpMachinePoolResource) validateUpgrade(ctx context.Context, state, pla
 	if err != nil {
 		return fmt.Errorf("failed to get available upgrades: %v", err)
 	}
-	trimmedDesiredVersion := strings.TrimPrefix(plan.Version.ValueString(), "openshift-v")
+	trimmedDesiredVersion := strings.TrimPrefix(plan.Version.ValueString(), rosa.VersionPrefix)
 	desiredVersion, err := semver.NewVersion(trimmedDesiredVersion)
 	if err != nil {
 		return fmt.Errorf("failed to parse desired version: %v", err)
@@ -1102,7 +1100,7 @@ func populateState(object *cmv1.NodePool, state *HcpMachinePoolState) error {
 		version, ok := object.Version().GetID()
 		// If we're using a non-default channel group, it will have been appended to
 		// the version ID. Remove it before saving state.
-		version = strings.TrimPrefix(version, "openshift-v")
+		version = strings.TrimPrefix(version, rosa.VersionPrefix)
 		if ok {
 			state.CurrentVersion = types.StringValue(version)
 		} else {

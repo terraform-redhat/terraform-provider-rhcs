@@ -31,12 +31,15 @@ import (
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 	"github.com/terraform-redhat/terraform-provider-rhcs/logging"
+	classicAutoscaler "github.com/terraform-redhat/terraform-provider-rhcs/provider/autoscaler/classic"
+	hcpAutoscaler "github.com/terraform-redhat/terraform-provider-rhcs/provider/autoscaler/hcp"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cloudprovider"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cluster"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterautoscaler"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosaclassic"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/classic"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/hcp"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterwaiter"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/defaultingress"
+	defaultingress "github.com/terraform-redhat/terraform-provider-rhcs/provider/defaultingress/classic"
+	hcpingress "github.com/terraform-redhat/terraform-provider-rhcs/provider/defaultingress/hcp"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/dnsdomain"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/group"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/groupmembership"
@@ -44,11 +47,15 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/info"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/kubeletconfig"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/machine_types"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/ocm_policies"
+	machinepool "github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool/classic"
+	nodepool "github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool/hcp"
+	classicStsPolicies "github.com/terraform-redhat/terraform-provider-rhcs/provider/ocm_policies/classic"
+	hcpStsPolicies "github.com/terraform-redhat/terraform-provider-rhcs/provider/ocm_policies/hcp"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfig"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfiginput"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/rosa_operator_roles"
+	classicOperatorRoles "github.com/terraform-redhat/terraform-provider-rhcs/provider/rosa_operator_roles/classic"
+	hcpOperatorRoles "github.com/terraform-redhat/terraform-provider-rhcs/provider/rosa_operator_roles/hcp"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/tuningconfigs"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/versions"
 )
 
@@ -206,12 +213,17 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 		machinepool.New,
 		oidcconfig.New,
 		oidcconfiginput.New,
-		clusterrosaclassic.New,
+		classic.New,
 		identityprovider.New,
 		cluster.New,
-		clusterautoscaler.New,
+		classicAutoscaler.New,
 		defaultingress.New,
 		kubeletconfig.New,
+		hcp.New,
+		nodepool.New,
+		hcpingress.New,
+		tuningconfigs.New,
+		hcpAutoscaler.New,
 	}
 }
 
@@ -220,11 +232,15 @@ func (p *Provider) DataSources(ctx context.Context) []func() datasource.DataSour
 		cloudprovider.New,
 		group.New,
 		machine_types.New,
-		ocm_policies.New,
-		rosa_operator_roles.New,
+		classicStsPolicies.New,
+		classicOperatorRoles.New,
 		versions.New,
 		info.New,
-		clusterrosaclassic.NewDataSource,
+		classic.NewDataSource,
 		machinepool.NewDatasource,
+		hcp.NewDataSource,
+		nodepool.NewDatasource,
+		hcpOperatorRoles.New,
+		hcpStsPolicies.New,
 	}
 }

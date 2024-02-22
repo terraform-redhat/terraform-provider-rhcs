@@ -241,7 +241,7 @@ func defineVariablesValues() {
 
 }
 
-var _ = FDescribe("Terraform provider RHCS test", Ordered, func() {
+var _ = Describe("Terraform provider RHCS test", Ordered, func() {
 	var terraformProviderRHCSClusterID string
 
 	BeforeAll(func() {

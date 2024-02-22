@@ -202,13 +202,14 @@ func (o *RosaOidcConfigResource) Read(ctx context.Context, request resource.Read
 
 	// Find the oidc config:
 	get, err := o.oidcConfigClient.OidcConfig(state.ID.ValueString()).Get().SendContext(ctx)
-	if err != nil && get.Status() == http.StatusNotFound {
-		tflog.Warn(ctx, fmt.Sprintf("oidc config (%s) not found, removing from state",
-			state.ID.ValueString(),
-		))
-		response.State.RemoveResource(ctx)
-		return
-	} else if err != nil {
+	if err != nil {
+		if get.Status() == http.StatusNotFound {
+			tflog.Warn(ctx, fmt.Sprintf("oidc config (%s) not found, removing from state",
+				state.ID.ValueString(),
+			))
+			response.State.RemoveResource(ctx)
+			return
+		}
 		response.Diagnostics.AddError(
 			"Cannot find OIDC config",
 			fmt.Sprintf(

@@ -8,6 +8,7 @@ import (
 	"github.com/openshift-online/ocm-common/pkg/cluster/validations"
 	kmsArnRegexpValidator "github.com/openshift-online/ocm-common/pkg/resource/validations"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	rosaTypes "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common/types"
 )
 
 var privateHostedZoneRoleArnRE = regexp.MustCompile(
@@ -32,7 +33,7 @@ func (c *Cluster) Build() (object *cmv1.Cluster, err error) {
 	return c.clusterBuilder.Build()
 }
 
-func (c *Cluster) CreateNodes(autoScalingEnabled bool, replicas *int64, minReplicas *int64,
+func (c *Cluster) CreateNodes(clusterTopology rosaTypes.ClusterTopology, autoScalingEnabled bool, replicas *int64, minReplicas *int64,
 	maxReplicas *int64, computeMachineType *string, labels map[string]string,
 	availabilityZones []string, multiAZ bool, workerDiskSize *int64) error {
 	nodes := cmv1.NewClusterNodes()
@@ -55,8 +56,11 @@ func (c *Cluster) CreateNodes(autoScalingEnabled bool, replicas *int64, minRepli
 	}
 
 	if availabilityZones != nil {
-		if err := validations.ValidateAvailabilityZonesCount(multiAZ, len(availabilityZones)); err != nil {
-			return err
+		// TODO Add availability zones count validation for HCP
+		if clusterTopology == rosaTypes.Classic {
+			if err := validations.ValidateAvailabilityZonesCount(multiAZ, len(availabilityZones)); err != nil {
+				return err
+			}
 		}
 		nodes.AvailabilityZones(availabilityZones...)
 	}
@@ -71,16 +75,22 @@ func (c *Cluster) CreateNodes(autoScalingEnabled bool, replicas *int64, minRepli
 		if minReplicas != nil {
 			minReplicasVal = int(*minReplicas)
 		}
-		if err := validations.MinReplicasValidator(minReplicasVal, multiAZ, false, 0); err != nil {
-			return err
+		// TODO need to identify the private subnet or remove this validation from TF
+		if clusterTopology == rosaTypes.Classic {
+			if err := validations.MinReplicasValidator(minReplicasVal, multiAZ, clusterTopology == rosaTypes.Hcp, 0); err != nil {
+				return err
+			}
 		}
 		autoscaling.MinReplicas(minReplicasVal)
 		maxReplicasVal := 2
 		if maxReplicas != nil {
 			maxReplicasVal = int(*maxReplicas)
 		}
-		if err := validations.MaxReplicasValidator(minReplicasVal, maxReplicasVal, multiAZ, false, 0); err != nil {
-			return err
+		// TODO need to identify the private subnet or remove this validation from TF
+		if clusterTopology == rosaTypes.Classic {
+			if err := validations.MaxReplicasValidator(minReplicasVal, maxReplicasVal, multiAZ, clusterTopology == rosaTypes.Hcp, 0); err != nil {
+				return err
+			}
 		}
 		autoscaling.MaxReplicas(maxReplicasVal)
 		if !autoscaling.Empty() {
@@ -95,8 +105,11 @@ func (c *Cluster) CreateNodes(autoScalingEnabled bool, replicas *int64, minRepli
 		if replicas != nil {
 			replicasVal = int(*replicas)
 		}
-		if err := validations.MinReplicasValidator(replicasVal, multiAZ, false, 0); err != nil {
-			return err
+		// TODO need to identify the private subnet or remove this validation from TF
+		if clusterTopology == rosaTypes.Classic {
+			if err := validations.MinReplicasValidator(replicasVal, multiAZ, clusterTopology == rosaTypes.Hcp, 1); err != nil {
+				return err
+			}
 		}
 		nodes.Compute(replicasVal)
 	}
@@ -108,12 +121,18 @@ func (c *Cluster) CreateNodes(autoScalingEnabled bool, replicas *int64, minRepli
 	return nil
 }
 
-func (c *Cluster) CreateAWSBuilder(awsTags map[string]string, ec2MetadataHttpTokens *string, kmsKeyARN *string,
-	isPrivateLink bool, awsAccountID *string, stsBuilder *cmv1.STSBuilder, awsSubnetIDs []string,
+func (c *Cluster) CreateAWSBuilder(clusterTopology rosaTypes.ClusterTopology,
+	awsTags map[string]string, ec2MetadataHttpTokens *string, kmsKeyARN *string,
+	isPrivateLink bool, awsAccountID *string, awsBillingAccountId *string,
+	stsBuilder *cmv1.STSBuilder, awsSubnetIDs []string,
 	privateHostedZoneID *string, privateHostedZoneRoleARN *string,
 	additionalComputeSecurityGroupIds []string,
 	additionalInfraSecurityGroupIds []string,
 	additionalControlPlaneSecurityGroupIds []string) error {
+
+	if clusterTopology == rosaTypes.Hcp && awsSubnetIDs == nil {
+		return errors.New("Hosted Control Plane clusters must have a pre-configure VPC. Make sure to specify the subnet ids.")
+	}
 
 	if isPrivateLink && awsSubnetIDs == nil {
 		return errors.New("Clusters with PrivateLink must have a pre-configured VPC. Make sure to specify the subnet ids.")
@@ -125,11 +144,12 @@ func (c *Cluster) CreateAWSBuilder(awsTags map[string]string, ec2MetadataHttpTok
 		awsBuilder.Tags(awsTags)
 	}
 
-	ec2MetadataHttpTokensVal := cmv1.Ec2MetadataHttpTokensOptional
-	if ec2MetadataHttpTokens != nil {
-		ec2MetadataHttpTokensVal = cmv1.Ec2MetadataHttpTokens(*ec2MetadataHttpTokens)
+	if clusterTopology == rosaTypes.Classic {
+		awsBuilder.Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokensOptional)
+		if ec2MetadataHttpTokens != nil {
+			awsBuilder.Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokens(*ec2MetadataHttpTokens))
+		}
 	}
-	awsBuilder.Ec2MetadataHttpTokens(ec2MetadataHttpTokensVal)
 
 	err := c.ProcessKMSKeyARN(kmsKeyARN, awsBuilder)
 	if err != nil {
@@ -138,6 +158,10 @@ func (c *Cluster) CreateAWSBuilder(awsTags map[string]string, ec2MetadataHttpTok
 
 	if awsAccountID != nil {
 		awsBuilder.AccountID(*awsAccountID)
+	}
+
+	if clusterTopology == rosaTypes.Hcp {
+		awsBuilder.BillingAccountID(*awsBillingAccountId)
 	}
 
 	awsBuilder.PrivateLink(isPrivateLink)
@@ -201,13 +225,15 @@ func (c *Cluster) SetAPIPrivacy(isPrivate bool, isPrivateLink bool, isSTS bool) 
 	return nil
 }
 
-func CreateSTS(installerRoleARN, supportRoleARN, masterRoleARN, workerRoleARN,
+func CreateSTS(installerRoleARN, supportRoleARN string, masterRoleARN *string, workerRoleARN,
 	operatorRolePrefix string, oidcConfigID *string) *cmv1.STSBuilder {
 	sts := cmv1.NewSTS()
 	sts.RoleARN(installerRoleARN)
 	sts.SupportRoleARN(supportRoleARN)
 	instanceIamRoles := cmv1.NewInstanceIAMRoles()
-	instanceIamRoles.MasterRoleARN(masterRoleARN)
+	if masterRoleARN != nil {
+		instanceIamRoles.MasterRoleARN(*masterRoleARN)
+	}
 	instanceIamRoles.WorkerRoleARN(workerRoleARN)
 	sts.InstanceIAMRoles(instanceIamRoles)
 

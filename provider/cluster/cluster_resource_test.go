@@ -69,9 +69,7 @@ var _ = Describe("Cluster creation", func() {
 			Wait:              types.BoolValue(false),
 		}
 		clusterObject, err := createClusterObject(context.Background(), clusterState, diag.Diagnostics{})
-		Expect(err).To(BeNil())
-
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(clusterObject).ToNot(BeNil())
 
 		Expect(clusterObject.Name()).To(Equal(clusterName))
@@ -137,15 +135,15 @@ var _ = Describe("Cluster creation", func() {
 			},
 		}
 		clusterJsonString, err := json.Marshal(clusterJson)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		//We convert the Cluster object into a ClusterState and check that the conversion is correct
 		clusterState := &ClusterState{}
 		err = populateClusterState(clusterObject, clusterState)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		Expect(clusterState.ID.ValueString()).To(Equal(clusterId))
 		Expect(clusterState.Version.ValueString()).To(Equal(clusterVersion))

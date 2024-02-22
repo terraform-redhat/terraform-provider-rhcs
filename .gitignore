@@ -8,3 +8,4 @@ terraform.tfstate*
 /tests/rhcs_output
 terraform-provider-rhcs
 .vscode/**/*
+**/ginkgo.report

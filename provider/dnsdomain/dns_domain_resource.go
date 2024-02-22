@@ -88,13 +88,14 @@ func (r *DNSDomainResource) Read(ctx context.Context, req resource.ReadRequest, 
 	// Find the DNS domain
 	dnsDomain := ocmr.NewDNSDomain(r.collection)
 	get, err := dnsDomain.Get(state.ID.ValueString())
-	if err != nil && get.Status() == http.StatusNotFound {
-		tflog.Warn(ctx, "DNS domain not found, removing from state", map[string]interface{}{
-			"id": state.ID.ValueString(),
-		})
-		resp.State.RemoveResource(ctx)
-		return
-	} else if err != nil {
+	if err != nil {
+		if get.Status() == http.StatusNotFound {
+			tflog.Warn(ctx, "DNS domain not found, removing from state", map[string]interface{}{
+				"id": state.ID.ValueString(),
+			})
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError(
 			fmt.Sprintf(
 				"Can't find DNS domain with identifier '%s'",

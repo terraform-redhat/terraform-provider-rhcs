@@ -34,7 +34,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - import", func() {
 		},
 		"aws": {
 			"sts": {
-				"oidc_endpoint_url": "https://127.0.0.2",
+				"oidc_endpoint_url": "https://127.0.0.1",
 				"thumbprint": "111111",
 				"role_arn": "",
 				"support_role_arn": "",
@@ -89,7 +89,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - import", func() {
 						  "path": "/aws",
 						  "value": {
 							  "sts" : {
-								  "oidc_endpoint_url": "https://127.0.0.2",
+								  "oidc_endpoint_url": "https://127.0.0.1",
 								  "thumbprint": "111111",
 								  "role_arn": "",
 								  "support_role_arn": "",

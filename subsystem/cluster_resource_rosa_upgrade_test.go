@@ -37,7 +37,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 		"aws": {
 			"ec2_metadata_http_tokens": "optional",
 			"sts": {
-				"oidc_endpoint_url": "https://127.0.0.2",
+				"oidc_endpoint_url": "https://127.0.0.1",
 				"thumbprint": "111111",
 				"role_arn": "",
 				"support_role_arn": "",

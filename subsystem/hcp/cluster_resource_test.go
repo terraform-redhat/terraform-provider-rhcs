@@ -195,7 +195,7 @@ var _ = Describe("HCP Cluster", func() {
 						  "path": "/aws",
 						  "value": {
 							  "sts" : {
-								  "oidc_endpoint_url": "https://127.0.0.2",
+								  "oidc_endpoint_url": "https://127.0.0.1",
 								  "thumbprint": "111111",
 								  "role_arn": "",
 								  "support_role_arn": "",
@@ -260,7 +260,7 @@ var _ = Describe("HCP Cluster", func() {
 						  "path": "/aws",
 						  "value": {
 							  "sts" : {
-								  "oidc_endpoint_url": "https://127.0.0.2",
+								  "oidc_endpoint_url": "https://127.0.0.1",
 								  "thumbprint": "111111",
 								  "role_arn": "",
 								  "support_role_arn": "",
@@ -362,7 +362,7 @@ var _ = Describe("HCP Cluster", func() {
 						"path": "/aws",
 						"value": {
 							"sts" : {
-								"oidc_endpoint_url": "https://127.0.0.2",
+								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
 								"role_arn": "",
 								"support_role_arn": "",
@@ -382,7 +382,7 @@ var _ = Describe("HCP Cluster", func() {
 						"path": "/aws",
 						"value": {
 							"sts" : {
-								"oidc_endpoint_url": "https://127.0.0.2",
+								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
 								"role_arn": "",
 								"support_role_arn": "",
@@ -441,7 +441,7 @@ var _ = Describe("HCP Cluster", func() {
 						"path": "/aws",
 						"value": {
 							"sts" : {
-								"oidc_endpoint_url": "https://127.0.0.2",
+								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
 								"role_arn": "",
 								"support_role_arn": "",
@@ -461,7 +461,7 @@ var _ = Describe("HCP Cluster", func() {
 						"path": "/aws",
 						"value": {
 							"sts" : {
-								"oidc_endpoint_url": "https://127.0.0.2",
+								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
 								"role_arn": "",
 								"support_role_arn": "",
@@ -525,7 +525,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -584,7 +584,7 @@ var _ = Describe("HCP Cluster", func() {
 							"path": "/aws",
 							"value": {
 								"sts" : {
-									"oidc_endpoint_url": "https://127.0.0.2",
+									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
 									"role_arn": "",
 									"support_role_arn": "",
@@ -653,7 +653,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -719,7 +719,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -779,7 +779,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -846,7 +846,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -908,7 +908,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -938,7 +938,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1011,7 +1011,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1075,7 +1075,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1105,7 +1105,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1177,7 +1177,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "path": "/aws",
 					  "value": {						  
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1266,7 +1266,7 @@ var _ = Describe("HCP Cluster", func() {
 						"path": "/aws",
 						"value": {
 							"sts" : {
-								"oidc_endpoint_url": "https://127.0.0.2",
+								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
 								"role_arn": "",
 								"support_role_arn": "",
@@ -1430,7 +1430,7 @@ var _ = Describe("HCP Cluster", func() {
 						"path": "/aws",
 						"value": {
 							"sts" : {
-								"oidc_endpoint_url": "https://127.0.0.2",
+								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
 								"role_arn": "",
 								"support_role_arn": "",
@@ -1489,7 +1489,7 @@ var _ = Describe("HCP Cluster", func() {
 						"path": "/aws",
 						"value": {
 							"sts" : {
-								"oidc_endpoint_url": "https://127.0.0.2",
+								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
 								"role_arn": "",
 								"support_role_arn": "",
@@ -1527,7 +1527,7 @@ var _ = Describe("HCP Cluster", func() {
 						"path": "/aws",
 						"value": {
 							"sts" : {
-								"oidc_endpoint_url": "https://127.0.0.2",
+								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
 								"role_arn": "",
 								"support_role_arn": "",
@@ -1606,7 +1606,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1652,7 +1652,7 @@ var _ = Describe("HCP Cluster", func() {
 						"path": "/aws",
 						"value": {
 							"sts" : {
-								"oidc_endpoint_url": "https://127.0.0.2",
+								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
 								"role_arn": "",
 								"support_role_arn": "",
@@ -1673,7 +1673,7 @@ var _ = Describe("HCP Cluster", func() {
 						"path": "/aws",
 						"value": {
 							"sts" : {
-								"oidc_endpoint_url": "https://127.0.0.2",
+								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
 								"role_arn": "",
 								"support_role_arn": "",
@@ -1751,7 +1751,7 @@ var _ = Describe("HCP Cluster", func() {
 						"path": "/aws",
 						"value": {
 							"sts": {
-								"oidc_endpoint_url": "https://127.0.0.2",
+								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
 								"role_arn": "",
 								"support_role_arn": "",
@@ -1814,7 +1814,7 @@ var _ = Describe("HCP Cluster", func() {
 						  "private_link": true,
 						  "subnet_ids": ["id1", "id2", "id3"],
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1893,7 +1893,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "value": {
 						  "private_link": false,
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1954,11 +1954,11 @@ var _ = Describe("HCP Cluster", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "oidc_config": {
 								"id": "aaa",
 								"secret_arn": "aaa",
-								"issuer_url": "https://127.0.0.2",
+								"issuer_url": "https://127.0.0.1",
 								"reusable": true,
 								"managed": false
 							  },
@@ -2016,7 +2016,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "path": "/aws",
 					  "value": {
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "arn:aws:iam::765374464689:role/terr-account-Installer-Role",
 							  "support_role_arn": "",
@@ -2071,7 +2071,7 @@ var _ = Describe("HCP Cluster", func() {
 							"path": "/aws",
 							"value": {
 								"sts" : {
-									"oidc_endpoint_url": "https://127.0.0.2",
+									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
 									"role_arn": "",
 									"support_role_arn": "",
@@ -2129,7 +2129,7 @@ var _ = Describe("HCP Cluster", func() {
 							"path": "/aws",
 							"value": {
 								"sts" : {
-									"oidc_endpoint_url": "https://127.0.0.2",
+									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
 									"role_arn": "",
 									"support_role_arn": "",
@@ -2159,7 +2159,7 @@ var _ = Describe("HCP Cluster", func() {
 							"path": "/aws",
 							"value": {
 								"sts" : {
-									"oidc_endpoint_url": "https://127.0.0.2",
+									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
 									"role_arn": "",
 									"support_role_arn": "",
@@ -2307,7 +2307,7 @@ var _ = Describe("HCP Cluster", func() {
 							"path": "/aws",
 							"value": {
 								"sts" : {
-									"oidc_endpoint_url": "https://127.0.0.2",
+									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
 									"role_arn": "",
 									"support_role_arn": "",
@@ -2337,7 +2337,7 @@ var _ = Describe("HCP Cluster", func() {
 							"path": "/aws",
 							"value": {
 								"sts" : {
-									"oidc_endpoint_url": "https://127.0.0.2",
+									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
 									"role_arn": "",
 									"support_role_arn": "",
@@ -2431,7 +2431,7 @@ var _ = Describe("HCP Cluster", func() {
 							"path": "/aws",
 							"value": {
 								"sts" : {
-									"oidc_endpoint_url": "https://127.0.0.2",
+									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
 									"role_arn": "",
 									"support_role_arn": "",
@@ -2461,7 +2461,7 @@ var _ = Describe("HCP Cluster", func() {
 							"path": "/aws",
 							"value": {
 								"sts" : {
-									"oidc_endpoint_url": "https://127.0.0.2",
+									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
 									"role_arn": "",
 									"support_role_arn": "",
@@ -2737,7 +2737,7 @@ var _ = Describe("HCP Cluster", func() {
 								"path": "/aws",
 								"value": {
 									"sts" : {
-										"oidc_endpoint_url": "https://127.0.0.2",
+										"oidc_endpoint_url": "https://127.0.0.1",
 										"thumbprint": "111111",
 										"role_arn": "",
 										"support_role_arn": "",
@@ -2767,7 +2767,7 @@ var _ = Describe("HCP Cluster", func() {
 								"path": "/aws",
 								"value": {
 									"sts" : {
-										"oidc_endpoint_url": "https://127.0.0.2",
+										"oidc_endpoint_url": "https://127.0.0.1",
 										"thumbprint": "111111",
 										"role_arn": "",
 										"support_role_arn": "",
@@ -2954,7 +2954,7 @@ var _ = Describe("HCP Cluster", func() {
 						  "path": "/aws",
 						  "value": {
 							  "sts" : {
-								  "oidc_endpoint_url": "https://127.0.0.2",
+								  "oidc_endpoint_url": "https://127.0.0.1",
 								  "thumbprint": "111111",
 								  "role_arn": "",
 								  "support_role_arn": "",

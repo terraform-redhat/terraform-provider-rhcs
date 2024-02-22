@@ -243,7 +243,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						  "value": {
 							  "ec2_metadata_http_tokens": "optional",
 							  "sts" : {
-								  "oidc_endpoint_url": "https://127.0.0.2",
+								  "oidc_endpoint_url": "https://127.0.0.1",
 								  "thumbprint": "111111",
 								  "role_arn": "",
 								  "support_role_arn": "",
@@ -312,7 +312,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						  "value": {
                               "ec2_metadata_http_tokens": "optional",
 							  "sts" : {
-								  "oidc_endpoint_url": "https://127.0.0.2",
+								  "oidc_endpoint_url": "https://127.0.0.1",
 								  "thumbprint": "111111",
 								  "role_arn": "",
 								  "support_role_arn": "",
@@ -416,7 +416,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -438,7 +438,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -497,7 +497,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -519,7 +519,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -584,7 +584,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -644,7 +644,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -715,7 +715,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -778,7 +778,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -843,7 +843,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -892,7 +892,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					"value": {
 						"ec2_metadata_http_tokens": "optional",
 						"sts" : {
-							"oidc_endpoint_url": "https://127.0.0.2",
+							"oidc_endpoint_url": "https://127.0.0.1",
 							"thumbprint": "111111",
 							"role_arn": "",
 							"support_role_arn": "",
@@ -925,7 +925,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					"value": {
 						"ec2_metadata_http_tokens": "optional",
 						"sts" : {
-							"oidc_endpoint_url": "https://127.0.0.2",
+							"oidc_endpoint_url": "https://127.0.0.1",
 							"thumbprint": "111111",
 							"role_arn": "",
 							"support_role_arn": "",
@@ -991,7 +991,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1039,7 +1039,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
                           "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1072,7 +1072,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1139,7 +1139,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
                           "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1206,7 +1206,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
                           "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1267,7 +1267,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						  "value": {
 							  "ec2_metadata_http_tokens": "optional",
 							  "sts" : {
-								  "oidc_endpoint_url": "https://127.0.0.2",
+								  "oidc_endpoint_url": "https://127.0.0.1",
 								  "thumbprint": "111111",
 								  "role_arn": "",
 								  "support_role_arn": "",
@@ -1347,7 +1347,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
                           "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1417,7 +1417,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
                           "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1479,7 +1479,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
                           "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1514,7 +1514,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1591,7 +1591,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1655,7 +1655,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1689,7 +1689,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1760,7 +1760,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -1848,7 +1848,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 					      "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -2008,7 +2008,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 					      "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -2062,7 +2062,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -2102,7 +2102,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -2172,7 +2172,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -2232,7 +2232,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -2272,7 +2272,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
                           "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -2351,7 +2351,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -2398,7 +2398,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -2421,7 +2421,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -2479,7 +2479,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
                           "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -2575,7 +2575,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						"value": {
 							"ec2_metadata_http_tokens": "optional",
 							"sts": {
-								"oidc_endpoint_url": "https://127.0.0.2",
+								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
 								"role_arn": "",
 								"support_role_arn": "",
@@ -2639,7 +2639,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						  "subnet_ids": ["id1", "id2", "id3"],
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -2730,7 +2730,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						  "subnet_ids": ["id1", "id2", "id3"],
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -2814,7 +2814,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						  "private_link": false,
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -2878,7 +2878,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
                           "private_hosted_zone_id": "1234",
                           "private_hosted_zone_role_arn": "arn:aws:iam::111111111111:role/test-shared-vpc",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -2973,7 +2973,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -3066,11 +3066,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "oidc_config": {
 								"id": "aaa",
 								"secret_arn": "aaa",
-								"issuer_url": "https://127.0.0.2",
+								"issuer_url": "https://127.0.0.1",
 								"reusable": true,
 								"managed": false
 							  },
@@ -3128,7 +3128,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "arn:aws:iam::765374464689:role/terr-account-Installer-Role",
 							  "support_role_arn": "",
@@ -3182,7 +3182,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
                           "ec2_metadata_http_tokens" : "required",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -3235,7 +3235,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
                           "ec2_metadata_http_tokens" : "required",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -3290,7 +3290,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
                           "ec2_metadata_http_tokens" : "bad_string",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -3360,7 +3360,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						  "additional_control_plane_security_group_ids": ["id3"],
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -3462,7 +3462,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 					      "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",
@@ -3541,7 +3541,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					  "value": {
 						  "ec2_metadata_http_tokens": "optional",
 						  "sts" : {
-							  "oidc_endpoint_url": "https://127.0.0.2",
+							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
 							  "role_arn": "",
 							  "support_role_arn": "",

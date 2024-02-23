@@ -49,9 +49,9 @@ var _ = Describe("TF Test", func() {
 				}
 				getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(getResp.Body().Proxy().GetHTTPProxy()).To(ContainSubstring("http://"))
-				Expect(getResp.Body().Proxy().GetHTTPSProxy()).To(ContainSubstring("https://"))
-				Expect(getResp.Body().Proxy().GetNoProxy()).To(Equal("quay.io"))
+				Expect(getResp.Body().Proxy().HTTPProxy()).To(ContainSubstring("http://"))
+				Expect(getResp.Body().Proxy().HTTPSProxy()).To(ContainSubstring("https://"))
+				Expect(getResp.Body().Proxy().NoProxy()).To(Equal("quay.io"))
 				Expect(getResp.Body().AdditionalTrustBundle()).To(Equal("REDACTED"))
 			})
 		})

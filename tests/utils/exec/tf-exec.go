@@ -85,12 +85,11 @@ func runTerraformDestroyWithArgs(ctx context.Context, dir string, terraformArgs 
 	var stdoutput bytes.Buffer
 	terraformDestroy.Stdout = &stdoutput
 	terraformDestroy.Stderr = os.Stderr
-	fmt.Println("args: ", terraformDestroy)
 	err = terraformDestroy.Run()
 	output = h.Strip(stdoutput.String(), "\n")
 	if err != nil {
-		Logger.Errorf(output)
 		err = fmt.Errorf("%s: %s", err.Error(), output)
+		Logger.Errorf(err.Error())
 		return
 	}
 	deleteTFvarsFile(dir)

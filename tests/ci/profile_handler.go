@@ -224,6 +224,9 @@ func PrepareProxy(region string, VPCID string, subnetPublicID string) (*EXE.Prox
 
 func PrepareKMSKey(profile *Profile, kmsName string, accountRolePrefix string, accountRolePath string) (string, error) {
 	kmsService, err := EXE.NewKMSService()
+	if err != nil {
+		return "", err
+	}
 	kmsArgs := &EXE.KMSArgs{
 		KMSName:           kmsName,
 		AWSRegion:         profile.Region,

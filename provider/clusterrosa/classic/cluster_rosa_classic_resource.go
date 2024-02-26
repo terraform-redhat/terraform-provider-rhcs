@@ -1333,7 +1333,7 @@ func (r *ClusterRosaClassicResource) Delete(ctx context.Context, request resourc
 		if !isNotFound {
 			response.Diagnostics.AddWarning(
 				"Cluster wasn't deleted yet",
-				fmt.Sprintf("The cluster with identifier '%s' is not deleted yet, but the polling finisehd due to a timeout", state.ID.ValueString()),
+				fmt.Sprintf("The cluster with identifier '%s' is not deleted yet, but the polling finished due to a timeout", state.ID.ValueString()),
 			)
 		}
 

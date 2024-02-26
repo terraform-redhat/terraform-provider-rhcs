@@ -505,6 +505,272 @@ var _ = Describe("HCP Cluster", func() {
 				Expect(resource).To(MatchJQ(".attributes.state", "ready"))
 			})
 		})
+		It("Create cluster and wait til std compute nodes are up", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					"op": "add",
+					"path": "/aws",
+					"value": {
+						"sts" : {
+							"oidc_endpoint_url": "https://127.0.0.1",
+							"thumbprint": "111111",
+							"role_arn": "",
+							"support_role_arn": "",
+							"instance_iam_roles" : {
+								"worker_role_arn" : ""
+							},
+							"operator_role_prefix" : "test"
+						}
+					}
+					}]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					"op": "add",
+					"path": "/aws",
+					"value": {
+						"sts" : {
+							"oidc_endpoint_url": "https://127.0.0.1",
+							"thumbprint": "111111",
+							"role_arn": "",
+							"support_role_arn": "",
+							"instance_iam_roles" : {
+								"worker_role_arn" : ""
+							},
+							"operator_role_prefix" : "test"
+						}
+					}
+					},
+					{
+					"op": "add",
+						"path": "/state",
+						"value": "ready"
+					}]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.1",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							}
+						}
+					},
+					{
+						"op": "add",
+						"path": "/status",
+						"value": {
+							"current_compute": 3
+						}
+					}]`),
+				),
+			)
+
+			// Run the apply command:
+			terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				wait_for_create_complete = true
+				wait_for_std_compute_nodes_complete = true
+			}`)
+			Expect(terraform.Apply()).To(BeZero())
+			resource := terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.state", "ready"))
+		})
+		Context("Create cluster and wait until std compute nodes are up", func() {
+			BeforeEach(func() {
+				// Prepare the server:
+				server.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						RespondWithPatchedJSON(http.StatusCreated, template, `[
+				{
+				"op": "add",
+				"path": "/aws",
+				"value": {
+					"sts" : {
+						"oidc_endpoint_url": "https://127.0.0.1",
+						"thumbprint": "111111",
+						"role_arn": "",
+						"support_role_arn": "",
+						"instance_iam_roles" : {
+							"worker_role_arn" : ""
+						},
+						"operator_role_prefix" : "test"
+					}
+				}
+				}]`),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+				{
+				"op": "add",
+				"path": "/aws",
+				"value": {
+					"sts" : {
+						"oidc_endpoint_url": "https://127.0.0.1",
+						"thumbprint": "111111",
+						"role_arn": "",
+						"support_role_arn": "",
+						"instance_iam_roles" : {
+							"worker_role_arn" : ""
+						},
+						"operator_role_prefix" : "test"
+					}
+				}
+				},
+				{
+				"op": "add",
+					"path": "/state",
+					"value": "ready"
+				}]`),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+				{
+					"op": "add",
+					"path": "/aws",
+					"value": {
+						"sts" : {
+							"oidc_endpoint_url": "https://127.0.0.1",
+							"thumbprint": "111111",
+							"role_arn": "",
+							"support_role_arn": "",
+							"instance_iam_roles" : {
+								"worker_role_arn" : ""
+							},
+							"operator_role_prefix" : "test"
+						}
+					}
+				},
+				{
+					"op": "add",
+					"path": "/status",
+					"value": {
+						"current_compute": 3
+					}
+				}]`),
+					),
+				)
+			})
+			When("not waiting for creating alongside", func() {
+				It("fails - wait_for_create_complete = false", func() {
+					// Run the apply command:
+					terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				wait_for_create_complete = false
+				wait_for_std_compute_nodes_complete = true
+			}`)
+					Expect(terraform.Apply()).ToNot(BeZero())
+				})
+				It("fails - wait_for_create_complete = nil", func() {
+					// Run the apply command:
+					terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				wait_for_std_compute_nodes_complete = true
+			}`)
+					Expect(terraform.Apply()).ToNot(BeZero())
+				})
+			})
+			When("waiting for creating alongside", func() {
+				It("succeeds", func() {
+					// Run the apply command:
+					terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				wait_for_create_complete = true
+				wait_for_std_compute_nodes_complete = true
+			}`)
+					Expect(terraform.Apply()).To(BeZero())
+					resource := terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+					Expect(resource).To(MatchJQ(".attributes.state", "ready"))
+				})
+			})
+		})
 		It("Creates basic cluster", func() {
 			// Prepare the server:
 			server.AppendHandlers(

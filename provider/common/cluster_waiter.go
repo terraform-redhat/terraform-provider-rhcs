@@ -15,6 +15,7 @@ const pollingIntervalInMinutes = 2
 //go:generate mockgen -source=cluster_waiter.go -package=common -destination=mock_clusterwait.go
 type ClusterWait interface {
 	WaitForClusterToBeReady(ctx context.Context, clusterId string, waitTimeoutMin int64) (*cmv1.Cluster, error)
+	WaitForStdComputeNodesToBeReady(ctx context.Context, clusterId string, waitTimeoutMin int64) (*cmv1.Cluster, error)
 }
 
 type DefaultClusterWait struct {
@@ -23,6 +24,46 @@ type DefaultClusterWait struct {
 
 func NewClusterWait(collection *cmv1.ClustersClient) ClusterWait {
 	return &DefaultClusterWait{collection: collection}
+}
+
+func (dw *DefaultClusterWait) WaitForStdComputeNodesToBeReady(ctx context.Context, clusterId string, waitTimeoutMin int64) (*cmv1.Cluster, error) {
+	resource := dw.collection.Cluster(clusterId)
+	resp, err := resource.Get().SendContext(ctx)
+	if err != nil && resp.Status() == http.StatusNotFound {
+		message := fmt.Sprintf("Failed to get Cluster '%s', with error: %v", clusterId, err)
+		tflog.Error(ctx, message)
+		return nil, fmt.Errorf(message)
+	}
+
+	tflog.Info(ctx, fmt.Sprintf("WaitForStdComputeNodesToBeReady: Cluster '%s' is expected to initiate with %d worker replicas."+
+		" Waiting for the current amount of replicas to reach disired value - timeout %d minutes",
+		clusterId, resp.Body().Nodes().Compute(), waitTimeoutMin))
+
+	if resp.Body().Nodes().Compute() == resp.Body().Status().CurrentCompute() {
+		tflog.Info(ctx, fmt.Sprintf("WaitForStdComputeNodesToBeReady: Wait done for cluster '%s' with %d/%d", clusterId,
+			resp.Body().Nodes().Compute(), resp.Body().Status().CurrentCompute()))
+		return resp.Body(), nil
+	}
+
+	backoffAttempts := 3
+	backoffSleep := 30 * time.Second
+	var cluster *cmv1.Cluster
+	for cluster == nil {
+		cluster, err = pollClusterCurrentCompute(clusterId, ctx, waitTimeoutMin, dw.collection)
+		if err != nil {
+			backoffAttempts--
+			if backoffAttempts == 0 {
+				return nil, fmt.Errorf("polling cluster state failed with error %v", err)
+			}
+			time.Sleep(backoffSleep)
+		}
+	}
+	tflog.Info(ctx, fmt.Sprintf("WaitForStdComputeNodesToBeReady: Wait done for cluster '%s' with %d/%d", clusterId,
+		cluster.Nodes().Compute(), cluster.Status().CurrentCompute()))
+	if cluster.Nodes().Compute() != cluster.Status().CurrentCompute() {
+		return cluster, fmt.Errorf("cluster did not reach the desired amount of compute nodes within the timeout")
+	}
+	return cluster, nil
 }
 
 func (dw *DefaultClusterWait) WaitForClusterToBeReady(ctx context.Context, clusterId string, waitTimeoutMin int64) (*cmv1.Cluster, error) {
@@ -75,6 +116,33 @@ func (dw *DefaultClusterWait) WaitForClusterToBeReady(ctx context.Context, clust
 		return cluster, nil
 	}
 	return cluster, fmt.Errorf("cluster '%s' is in state '%s'", clusterId, cluster.State())
+}
+
+func pollClusterCurrentCompute(clusterId string, ctx context.Context, timeout int64, clusterCollection *cmv1.ClustersClient) (*cmv1.Cluster, error) {
+	client := clusterCollection.Cluster(clusterId)
+	var object *cmv1.Cluster
+	pollCtx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Minute)
+	defer cancel()
+	_, err := client.Poll().
+		Interval(pollingIntervalInMinutes * time.Minute).
+		Predicate(func(getClusterResponse *cmv1.ClusterGetResponse) bool {
+			object = getClusterResponse.Body()
+			tflog.Debug(ctx, "polled cluster compute", map[string]interface{}{
+				"currentCompute": object.Status().CurrentCompute(),
+			})
+			switch object.Status().CurrentCompute() {
+			case object.Nodes().Compute():
+				return true
+			}
+			return false
+		}).
+		StartContext(pollCtx)
+	if err != nil {
+		tflog.Error(ctx, "Failed polling cluster compute")
+		return nil, err
+	}
+
+	return object, nil
 }
 
 func pollClusterState(clusterId string, ctx context.Context, timeout int64, clusterCollection *cmv1.ClustersClient) (*cmv1.Cluster, error) {

@@ -279,6 +279,10 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				Description: "Wait until the cluster is either in a ready state or in an error state. The waiter has a timeout of 60 minutes, with the default value set to false",
 				Optional:    true,
 			},
+			"wait_for_std_compute_nodes_complete": schema.BoolAttribute{
+				Description: "Wait until the cluster standard compute pools are created. The waiter has a timeout of 60 minutes, with the default value set to false",
+				Optional:    true,
+			},
 		},
 	}
 }
@@ -510,6 +514,16 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 	}
 	summary := "Can't build cluster"
 
+	shouldWaitCreationComplete := common.BoolWithFalseDefault(state.WaitForCreateComplete)
+	shouldWaitComputeNodesComplete := common.BoolWithFalseDefault(state.WaitForStdComputeNodesComplete)
+	if shouldWaitComputeNodesComplete && !shouldWaitCreationComplete {
+		response.Diagnostics.AddError(
+			summary,
+			"When waiting for standard compute nodes to complete it is also required to wait for creation of the cluster",
+		)
+		return
+	}
+
 	// In case version with "openshift-v" prefix was used here,
 	// Give a meaningful message to inform the user that it not supported any more
 	if common.HasValue(state.Version) && strings.HasPrefix(state.Version.ValueString(), rosa.VersionPrefix) {
@@ -565,7 +579,8 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 	}
 	object = add.Body()
 
-	if common.HasValue(state.WaitForCreateComplete) && state.WaitForCreateComplete.ValueBool() {
+	if shouldWaitCreationComplete {
+		tflog.Info(ctx, "Waiting for cluster to get ready")
 		object, err = r.ClusterWait.WaitForClusterToBeReady(ctx, object.ID(), rosa.DefaultWaitTimeoutInMinutes)
 		if err != nil {
 			response.Diagnostics.AddError(
@@ -574,6 +589,19 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 			)
 			if object == nil {
 				return
+			}
+		}
+		if shouldWaitComputeNodesComplete {
+			tflog.Info(ctx, "Waiting for standard compute nodes to get ready")
+			object, err = r.ClusterWait.WaitForStdComputeNodesToBeReady(ctx, object.ID(), rosa.DefaultWaitTimeoutInMinutes)
+			if err != nil {
+				response.Diagnostics.AddError(
+					"Waiting for std compute nodes completion finished with error",
+					fmt.Sprintf("Waiting for std compute nodes completion finished with the error %v", err),
+				)
+				if object == nil {
+					return
+				}
 			}
 		}
 	}
@@ -1029,7 +1057,7 @@ func (r *ClusterRosaHcpResource) Delete(ctx context.Context, request resource.De
 		if !isNotFound {
 			response.Diagnostics.AddWarning(
 				"Cluster wasn't deleted yet",
-				fmt.Sprintf("The cluster with identifier '%s' is not deleted yet, but the polling finisehd due to a timeout", state.ID.ValueString()),
+				fmt.Sprintf("The cluster with identifier '%s' is not deleted yet, but the polling finished due to a timeout", state.ID.ValueString()),
 			)
 		}
 
@@ -1286,7 +1314,7 @@ func (r *ClusterRosaHcpResource) waitTillClusterIsNotFoundWithTimeout(ctx contex
 		return true, nil
 	}
 	if err != nil {
-		tflog.Error(ctx, "Can't poll cluster deletion")
+		tflog.Error(ctx, fmt.Sprintf("Can't poll cluster deletion: %v", err))
 		return false, err
 	}
 

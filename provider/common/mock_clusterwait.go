@@ -53,3 +53,18 @@ func (mr *MockClusterWaitMockRecorder) WaitForClusterToBeReady(ctx, clusterId, w
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitForClusterToBeReady", reflect.TypeOf((*MockClusterWait)(nil).WaitForClusterToBeReady), ctx, clusterId, waitTimeoutMin)
 }
+
+// WaitForStdComputeNodesToBeReady mocks base method.
+func (m *MockClusterWait) WaitForStdComputeNodesToBeReady(ctx context.Context, clusterId string, waitTimeoutMin int64) (*v1.Cluster, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WaitForStdComputeNodesToBeReady", ctx, clusterId, waitTimeoutMin)
+	ret0, _ := ret[0].(*v1.Cluster)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// WaitForStdComputeNodesToBeReady indicates an expected call of WaitForStdComputeNodesToBeReady.
+func (mr *MockClusterWaitMockRecorder) WaitForStdComputeNodesToBeReady(ctx, clusterId, waitTimeoutMin any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitForStdComputeNodesToBeReady", reflect.TypeOf((*MockClusterWait)(nil).WaitForStdComputeNodesToBeReady), ctx, clusterId, waitTimeoutMin)
+}

@@ -47,7 +47,8 @@ type ClusterRosaHcpState struct {
 	UpgradeAcksFor types.String `tfsdk:"upgrade_acknowledgements_for"`
 
 	// Meta fields - not related to cluster spec
-	DisableWaitingInDestroy types.Bool  `tfsdk:"disable_waiting_in_destroy"`
-	DestroyTimeout          types.Int64 `tfsdk:"destroy_timeout"`
-	WaitForCreateComplete   types.Bool  `tfsdk:"wait_for_create_complete"`
+	DisableWaitingInDestroy        types.Bool  `tfsdk:"disable_waiting_in_destroy"`
+	DestroyTimeout                 types.Int64 `tfsdk:"destroy_timeout"`
+	WaitForCreateComplete          types.Bool  `tfsdk:"wait_for_create_complete"`
+	WaitForStdComputeNodesComplete types.Bool  `tfsdk:"wait_for_std_compute_nodes_complete"`
 }

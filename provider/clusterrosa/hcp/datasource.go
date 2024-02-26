@@ -275,7 +275,7 @@ func (r *ClusterRosaHcpDatasource) Read(ctx context.Context, request datasource.
 	state.DestroyTimeout = types.Int64Null()
 	state.UpgradeAcksFor = types.StringNull()
 	state.WaitForCreateComplete = types.BoolNull()
-	//state.AutoScalingEnabled = types.BoolNull()
+	state.WaitForStdComputeNodesComplete = types.BoolNull()
 	state.Replicas = types.Int64Null()
 	state.ComputeMachineType = types.StringNull()
 

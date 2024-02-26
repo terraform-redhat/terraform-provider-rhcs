@@ -24,12 +24,12 @@ terraform {
 
 
 provider "rhcs" {
-  url   = var.url
+  url = var.url
 }
 
 resource "rhcs_identity_provider" "htpasswd_idp" {
-  cluster = var.cluster_id
-  name    = var.name
+  cluster        = var.cluster_id
+  name           = var.name
   mapping_method = var.mapping_method
   htpasswd = {
     users = var.htpasswd_users

@@ -14,6 +14,7 @@ type VPCArgs struct {
 	VPCCIDR   string   `json:"vpc_cidr,omitempty"`
 	MultiAZ   bool     `json:"multi_az,omitempty"`
 	AZIDs     []string `json:"az_ids,omitempty"`
+	HCP       bool     `json:"hcp,omitempty"`
 }
 
 type VPCOutput struct {

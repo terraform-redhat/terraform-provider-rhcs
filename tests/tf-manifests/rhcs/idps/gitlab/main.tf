@@ -23,7 +23,7 @@ terraform {
 }
 
 provider "rhcs" {
-  url   = var.gateway
+  url = var.gateway
 }
 locals {
 

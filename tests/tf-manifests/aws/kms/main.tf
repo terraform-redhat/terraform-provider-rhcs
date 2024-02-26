@@ -15,18 +15,31 @@ provider "aws" {
 data "aws_caller_identity" "current" {
 }
 
-resource "aws_kms_key" "cluster_kms_key" {
-  description = "BYOK Test Key for API automation"
-  tags = {
+locals {
+  path = coalesce(var.path, "/")
+
+  iamRoles = var.hcp ? [
+    "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root",
+    ] : [
+    "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root",
+    "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${var.account_role_prefix}-Installer-Role",
+    "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${var.account_role_prefix}-Support-Role",
+    "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${var.account_role_prefix}-ControlPlane-Role",
+    "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${var.account_role_prefix}-Worker-Role"
+  ]
+
+  defaultTags = {
     Key         = var.tag_key
     Value       = var.tag_value
     Description = var.tag_description
   }
-  deletion_window_in_days = 7
+  optionalTags = var.hcp ? { red-hat = true } : {}
 }
 
-locals {
-  path = coalesce(var.path, "/")
+resource "aws_kms_key" "cluster_kms_key" {
+  description             = "BYOK Test Key for API automation"
+  tags                    = merge(local.defaultTags, local.optionalTags)
+  deletion_window_in_days = 7
 }
 
 resource "aws_kms_key_policy" "cluster_kms_key_policy" {
@@ -35,19 +48,13 @@ resource "aws_kms_key_policy" "cluster_kms_key_policy" {
     Id = var.kms_name
     Statement = [
       {
-        Action    = "kms:*"
-        Effect    = "Allow"
+        Action = "kms:*"
+        Effect = "Allow"
         Principal = {
-          AWS = [
-          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root",
-          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${var.account_role_prefix}-Installer-Role",
-          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${var.account_role_prefix}-Support-Role",
-          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${var.account_role_prefix}-ControlPlane-Role",
-          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${var.account_role_prefix}-Worker-Role"
-          ]
+          AWS = local.iamRoles
         }
-        Resource  = "*"
-        Sid       = "Enable IAM User Permissions"
+        Resource = "*"
+        Sid      = "Enable IAM User Permissions"
       },
     ]
     Version = "2012-10-17"

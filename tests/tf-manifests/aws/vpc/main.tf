@@ -28,6 +28,9 @@ locals {
 locals {
   private_subnets = var.multi_az ? local.private_cidr_map[var.vpc_cidr] : [local.private_cidr_map[var.vpc_cidr][0]]
   public_subnets  = var.multi_az ? local.public_cidr_map[var.vpc_cidr] : [local.public_cidr_map[var.vpc_cidr][0]]
+
+  private_subnet_tags = var.hcp ? { "kubernetes.io/role/internal-elb" = "1" } : {}
+  public_subnet_tags  = var.hcp ? { "kubernetes.io/role/elb" = "1" } : {}
 }
 data "aws_availability_zones" "available" {
   filter {
@@ -39,7 +42,6 @@ locals {
   filterAZs = var.multi_az ? slice(data.aws_availability_zones.available.names, 0, 3) : slice(data.aws_availability_zones.available.names, 0, 1)
 }
 locals {
-
   azs = var.az_ids == null ? local.filterAZs : var.az_ids
 }
 
@@ -51,14 +53,16 @@ module "vpc" {
   name = "${var.name}-vpc"
   cidr = var.vpc_cidr
 
-  azs             = local.azs
-  private_subnets = local.private_subnets
-  public_subnets  = local.public_subnets
+  azs                 = local.azs
+  private_subnets     = local.private_subnets
+  private_subnet_tags = local.private_subnet_tags
+  public_subnets      = local.public_subnets
+  public_subnet_tags  = local.public_subnet_tags
 
-  enable_nat_gateway   = true
-  single_nat_gateway   = var.multi_az
-  enable_dns_hostnames = true
-  enable_dns_support   = true
+  enable_nat_gateway      = true
+  single_nat_gateway      = var.multi_az
+  enable_dns_hostnames    = true
+  enable_dns_support      = true
   map_public_ip_on_launch = true
 }
 

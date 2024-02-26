@@ -2,9 +2,9 @@ profiles:
 # rosa-sts-pl :: creating a managed oidc config cluster 
 - as: rosa-sts-pl
   cluster:
+    cluster_type: rosa-classic
     multi_az: false
     product_id: "rosa"
-    hypershift: false
     cloud_provider: "aws"
     region: "us-east-1"
     ccs: true
@@ -33,9 +33,9 @@ profiles:
 # rosa-sts-ad :: creating unmanaged oidc config cluster 
 - as: rosa-sts-ad
   cluster:
+    cluster_type: rosa-classic
     multi_az: true
     product_id: "rosa"
-    hypershift: false
     cloud_provider: "aws"
     region: "ap-northeast-1"
     ccs: true
@@ -66,9 +66,9 @@ profiles:
 # rosa-up-y :: creating a cluster for y-stream upgrade purpose
 - as: rosa-up-y
   cluster:
+    cluster_type: rosa-classic
     multi_az: false
     product_id: "rosa"
-    hypershift: false
     cloud_provider: "aws"
     region: "ap-northeast-1"
     ccs: true
@@ -97,9 +97,9 @@ profiles:
 # rosa-up-z :: creating a cluster for z-stream upgrade purpose
 - as: rosa-up-z
   cluster:
+    cluster_type: rosa-classic
     multi_az: true
     product_id: "rosa"
-    hypershift: false
     cloud_provider: "aws"
     region: "ap-northeast-1"
     ccs: true

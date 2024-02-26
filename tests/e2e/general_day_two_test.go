@@ -82,11 +82,11 @@ var _ = Describe("TF day2 scenrios", func() {
 			profile = ci.LoadProfileYamlFileByENV()
 
 			// Initialize the cluster service
-			clusterService, err = exe.NewClusterService(profile.ManifestsDIR)
+			clusterService, err = exe.NewClusterService(profile.GetClusterManifestsDir())
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Read terraform.tfvars file and get its content as a map
-			terraformTFVarsContent := exe.ReadTerraformTFVars(profile.ManifestsDIR)
+			terraformTFVarsContent := exe.ReadTerraformTFVars(profile.GetClusterManifestsDir())
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Capture the original custom properties

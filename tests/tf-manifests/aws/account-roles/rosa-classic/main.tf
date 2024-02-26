@@ -12,7 +12,7 @@ terraform {
 }
 
 provider "rhcs" {
-  url   = var.url
+  url = var.url
 }
 
 locals {

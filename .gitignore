@@ -9,3 +9,4 @@ terraform.tfstate*
 terraform-provider-rhcs
 .vscode/**/*
 **/ginkgo.report
+/temp

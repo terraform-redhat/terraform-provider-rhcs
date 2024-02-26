@@ -13,7 +13,7 @@ terraform {
 }
 
 provider "rhcs" {
-  url   = var.url
+  url = var.url
 }
 provider "aws" {
   region = var.aws_region
@@ -37,9 +37,9 @@ resource "rhcs_rosa_oidc_config_input" "oidc_input" {
 
 # Create the OIDC config resources on AWS
 module "oidc_config_input_resources" {
-  count   = var.oidc_config == "un-managed" ? 1 : 0
-  source  = "terraform-redhat/rosa-sts/aws"
-  version = ">= 0.0.14"
+  count                        = var.oidc_config == "un-managed" ? 1 : 0
+  source                       = "terraform-redhat/rosa-sts/aws"
+  version                      = ">= 0.0.14"
   create_oidc_config_resources = var.oidc_config == "un-managed"
 
   bucket_name             = rhcs_rosa_oidc_config_input.oidc_input[0].bucket_name
@@ -65,7 +65,7 @@ resource "rhcs_rosa_oidc_config" "oidc_config_unmanaged" {
 
 data "rhcs_rosa_operator_roles" "operator_roles" {
   operator_role_prefix = var.operator_role_prefix
-  account_role_prefix  = var.account_role_prefix 
+  account_role_prefix  = var.account_role_prefix
 }
 
 # Create oidc provider and operator roles on AWS
@@ -80,5 +80,5 @@ module "operator_roles_and_oidc_provider" {
   rh_oidc_provider_thumbprint = var.oidc_config == "managed" ? rhcs_rosa_oidc_config.oidc_config_managed[0].thumbprint : rhcs_rosa_oidc_config.oidc_config_unmanaged[0].thumbprint
   rh_oidc_provider_url        = var.oidc_config == "managed" ? rhcs_rosa_oidc_config.oidc_config_managed[0].oidc_endpoint_url : rhcs_rosa_oidc_config.oidc_config_unmanaged[0].oidc_endpoint_url
   operator_roles_properties   = data.rhcs_rosa_operator_roles.operator_roles.operator_iam_roles
-  path = local.path
+  path                        = local.path
 }

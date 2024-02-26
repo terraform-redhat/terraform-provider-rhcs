@@ -24,7 +24,7 @@ terraform {
 }
 
 provider "rhcs" {
-  url   = var.gateway
+  url = var.gateway
 }
 
 resource "rhcs_identity_provider" "ldap_idp" {
@@ -32,11 +32,11 @@ resource "rhcs_identity_provider" "ldap_idp" {
   name           = var.name
   mapping_method = var.mapping_method
   ldap = {
-    ca            = var.ca
-    insecure      = true
-    url           = var.url
-    
+    ca       = var.ca
+    insecure = true
+    url      = var.url
+
     # optional
-    attributes    = var.attributes
+    attributes = var.attributes
   }
 }

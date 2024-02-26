@@ -1,8 +1,16 @@
 approvers:
 - xueli181114
 - yasun1
-- nirarg
+- yuwang-RH
+- radtriste
+reviewers:
+- xueli181114
+- yasun1
+- yuwang-RH
+- yingzhanredhat
+- jameszwang
+- radtriste
+- mgahagan73
+- oriAdler
 - amalykhi
-- tshefi
-- AsherShoshan
 - shellymiron

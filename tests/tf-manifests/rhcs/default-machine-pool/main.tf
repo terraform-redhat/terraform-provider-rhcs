@@ -8,7 +8,7 @@ terraform {
 }
 
 provider "rhcs" {
-  url   = var.url
+  url = var.url
 }
 
 resource "rhcs_machine_pool" "mp" {

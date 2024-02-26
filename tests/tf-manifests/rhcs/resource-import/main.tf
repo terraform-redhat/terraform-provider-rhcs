@@ -8,30 +8,30 @@ terraform {
 }
 
 provider "rhcs" {
-  url   = var.url
+  url = var.url
 }
 
 resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster_import" {
-  aws_account_id    = ""
-  cloud_region      = ""
-  name              = ""
+  aws_account_id = ""
+  cloud_region   = ""
+  name           = ""
 }
 resource "rhcs_cluster_rosa_classic" "rosa_import_no_cluster_id" {
-  aws_account_id    = ""
-  cloud_region      = ""
-  name              = ""
+  aws_account_id = ""
+  cloud_region   = ""
+  name           = ""
 }
 resource "rhcs_identity_provider" "idp_google_import" {
   name    = ""
   cluster = ""
   openid = {
-    client_id       = ""
-    client_secret   = ""
-    issuer          = ""
+    client_id     = ""
+    client_secret = ""
+    issuer        = ""
     claims = {
-      email             = []
-      groups            = []
-      name              = []
+      email              = []
+      groups             = []
+      name               = []
       preferred_username = []
     }
   }
@@ -41,13 +41,13 @@ resource "rhcs_identity_provider" "idp_gitlab_import" {
   name    = ""
   cluster = ""
   openid = {
-    client_id       = ""
-    client_secret   = ""
-    issuer          = ""
+    client_id     = ""
+    client_secret = ""
+    issuer        = ""
     claims = {
-      email             = []
-      groups            = []
-      name              = []
+      email              = []
+      groups             = []
+      name               = []
       preferred_username = []
     }
   }

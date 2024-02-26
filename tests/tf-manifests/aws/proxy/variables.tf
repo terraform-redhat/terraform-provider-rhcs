@@ -6,19 +6,19 @@ variable "aws_region" {
 variable "vpc_id" {
   type        = string
   description = " vpc id"
-  default = null
+  default     = null
 }
 
 
 variable "subnet_public_id" {
   type        = string
   description = "public subnet id"
-  default = null
+  default     = null
 }
 
 
 variable "trust_bundle_path" {
   type        = string
   description = "the file path of the trust bundle"
-  default = null
+  default     = null
 }

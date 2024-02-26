@@ -12,7 +12,7 @@ terraform {
 }
 
 provider "rhcs" {
-  url   = var.url
+  url = var.url
 }
 provider "aws" {
   region = var.aws_region
@@ -59,10 +59,10 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   availability_zones = var.aws_availability_zones
   multi_az           = var.multi_az
   properties = merge(
-        {
-            rosa_creator_arn = data.aws_caller_identity.current.arn
-        },
-        var.custom_properties
+    {
+      rosa_creator_arn = data.aws_caller_identity.current.arn
+    },
+    var.custom_properties
   )
   sts                                             = local.sts_roles
   replicas                                        = var.replicas

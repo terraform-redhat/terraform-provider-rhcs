@@ -27,7 +27,7 @@ var _ = Describe("RHCS Provider Test", func() {
 
 		})
 		Context("Author:amalykhi-Critical-OCP-63153 @OCP-63153 @amalykhi", func() {
-			It("Z-stream upgrade a ROSA STS cluster with RHCS provider", CI.Upgrade,
+			It("Z-stream upgrade a ROSA STS cluster with RHCS provider", CI.Upgrade, CI.NonHCPCluster,
 				func() {
 					if profile.VersionPattern != "z-1" {
 						Skip("The test is configured only for Z-stream upgrade")
@@ -37,7 +37,7 @@ var _ = Describe("RHCS Provider Test", func() {
 						CON.Z, clusterResp.Body().Version().AvailableUpgrades())
 					Expect(err).ToNot(HaveOccurred())
 
-					clusterService, err := EXE.NewClusterService(profile.ManifestsDIR)
+					clusterService, err := EXE.NewClusterService(profile.GetClusterManifestsDir())
 					Expect(err).ToNot(HaveOccurred())
 
 					By("Validate invalid OCP version - downgrade")
@@ -90,7 +90,7 @@ var _ = Describe("RHCS Provider Test", func() {
 				})
 		})
 		Context("Author:amalykhi-Critical-OCP-63152 @OCP-63152 @amalykhi", func() {
-			It("Y-stream Upgrade ROSA STS cluster with RHCS provider", CI.Upgrade,
+			It("Y-stream Upgrade ROSA STS cluster with RHCS provider", CI.Upgrade, CI.NonHCPCluster,
 				func() {
 
 					if profile.VersionPattern != "y-1" {
@@ -107,10 +107,10 @@ var _ = Describe("RHCS Provider Test", func() {
 					By("Upgrade account-roles")
 					majorVersion := CI.GetMajorVersion(targetV)
 					Expect(majorVersion).ToNot(Equal(""))
-					_, err = CI.PrepareAccountRoles(token, clusterResp.Body().Name(), profile.UnifiedAccRolesPath, profile.Region, majorVersion, profile.ChannelGroup, CON.AccountRolesDir)
+					_, err = CI.PrepareAccountRoles(token, clusterResp.Body().Name(), profile.UnifiedAccRolesPath, profile.Region, majorVersion, profile.ChannelGroup, profile.GetClusterType())
 					Expect(err).ToNot(HaveOccurred())
 
-					clusterService, err := EXE.NewClusterService(profile.ManifestsDIR)
+					clusterService, err := EXE.NewClusterService(profile.GetClusterManifestsDir())
 					Expect(err).ToNot(HaveOccurred())
 
 					By("Validate invalid OCP version field - downgrade")

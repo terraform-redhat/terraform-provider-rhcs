@@ -3,7 +3,6 @@ package ci
 import (
 	"encoding/json"
 	"fmt"
-	"path"
 	"sort"
 	"strings"
 
@@ -16,10 +15,8 @@ import (
 // The cfg will be used to define the testing environment
 var cfg = CON.RHCS
 
-func GetYAMLProfileFile(fileName string) (filename string) {
-	fPath := cfg.YAMLProfilesDir
-	filename = path.Join(fPath, fileName)
-	return
+func GetYAMLProfilesDir() string {
+	return cfg.YAMLProfilesDir
 }
 
 // ConvertToStringArray will convert the []interface to []string

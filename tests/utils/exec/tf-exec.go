@@ -263,7 +263,6 @@ func ReadTerraformTFVars(dirPath string) map[string]string {
 
 // delete the recorded TFvarsFile named terraform.tfvars
 func deleteTFvarsFile(fileDir string) error {
-
 	tfVarsFile := CON.GrantTFvarsFile(fileDir)
 	if _, err := os.Stat(tfVarsFile); err != nil {
 		return nil

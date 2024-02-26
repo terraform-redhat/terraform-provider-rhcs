@@ -35,7 +35,7 @@ variable "attributes" {
     name               = optional(list(string))
     preferred_username = optional(list(string))
   })
-  default = null
+  default     = null
   description = "attributes optional fields list"
 }
 

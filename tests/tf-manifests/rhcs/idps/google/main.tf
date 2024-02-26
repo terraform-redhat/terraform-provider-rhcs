@@ -23,7 +23,7 @@ terraform {
 }
 
 provider "rhcs" {
-  url   = var.url
+  url = var.url
 }
 resource "rhcs_identity_provider" "google_idp" {
   cluster        = var.cluster_id

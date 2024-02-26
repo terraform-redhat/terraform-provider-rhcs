@@ -21,7 +21,7 @@ var _ = Describe("RHCS account roles Test", func() {
 			profile = CI.LoadProfileYamlFileByENV()
 			Expect(err).ToNot(HaveOccurred())
 
-			accService, err = EXE.NewAccountRoleService(CON.AddAccountRolesDir)
+			accService, err = EXE.NewAccountRoleService(CON.GetAddAccountRoleDefaultManifestDir(profile.GetClusterType()))
 			Expect(err).ToNot(HaveOccurred())
 		})
 		AfterEach(func() {

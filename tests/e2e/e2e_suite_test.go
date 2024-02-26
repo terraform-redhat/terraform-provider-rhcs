@@ -25,7 +25,7 @@ var _ = BeforeSuite(func() {
 	token = os.Getenv(CON.TokenENVName)
 	var err error
 
-	err = H.AlignRHCSSourceVersion(CON.ConfigrationDir)
+	err = H.AlignRHCSSourceVersion(CON.ManifestsConfigurationDir)
 	Expect(err).ToNot(HaveOccurred())
 
 	clusterID, err = CI.PrepareRHCSClusterByProfileENV()

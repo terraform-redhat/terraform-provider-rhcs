@@ -25,12 +25,12 @@ var _ = Describe("RHCS Provider Negative Test", func() {
 			if !profile.AdminEnabled {
 				Skip("The tests configured for cluster admin only")
 			}
-			originalCreationArgs, _, err = ci.GenerateClusterCreationArgsByProfile(token, profile)
+			originalCreationArgs, err = ci.GenerateClusterCreationArgsByProfile(token, profile)
 			if err != nil {
 				defer ci.DestroyRHCSClusterByProfile(token, profile)
 			}
 			Expect(err).ToNot(HaveOccurred())
-			clusterService, err = exe.NewClusterService(profile.ManifestsDIR)
+			clusterService, err = exe.NewClusterService(profile.GetClusterManifestsDir())
 			if err != nil {
 				defer ci.DestroyRHCSClusterByProfile(token, profile)
 			}
@@ -49,7 +49,6 @@ var _ = Describe("RHCS Provider Negative Test", func() {
 		Context("Author:amalykhi-Medium-OCP-65961 @OCP-65961 @amalykhi", func() {
 			It("Cluster admin during deployment - validate user name policy", ci.Day1Negative,
 				func() {
-
 					By("Edit cluster admin user name to not valid")
 					creationArgs.AdminCredentials["username"] = "one:two"
 					err = clusterService.Apply(creationArgs, true, true)

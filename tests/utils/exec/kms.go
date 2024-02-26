@@ -16,6 +16,7 @@ type KMSArgs struct {
 	TagKey            string `json:"tag_key,omitempty"`
 	TagValue          string `json:"tag_value,omitempty"`
 	TagDescription    string `json:"tag_description,omitempty"`
+	HCP               bool   `json:"hcp,omitempty"`
 }
 
 type KMSOutput struct {

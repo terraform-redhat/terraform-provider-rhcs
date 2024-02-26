@@ -1,19 +1,19 @@
 variable "aws_region" {
-  type = string
+  type    = string
   default = null
 }
 
 variable "ids" {
-  type = list(string)
+  type    = list(string)
   default = null
 }
 
 variable "key" {
-  type = string
+  type    = string
   default = null
 }
 
 variable "value" {
-  type = string
+  type    = string
   default = null
 }

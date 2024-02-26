@@ -12,6 +12,6 @@ provider "rhcs" {
 }
 
 resource "rhcs_kubeletconfig" "kubeletconfig" {
-  cluster = var.cluster
+  cluster        = var.cluster
   pod_pids_limit = var.pod_pids_limit
 }

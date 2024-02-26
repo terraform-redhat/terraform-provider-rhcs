@@ -2,8 +2,12 @@ output "rhcs_versions" {
   value = data.rhcs_versions.all.items
 }
 
-output "account_roles_prefix" {
+output "account_role_prefix" {
   value = module.create_account_roles.account_role_prefix
+}
+
+output "path" {
+  value = var.path
 }
 
 output "major_version" {

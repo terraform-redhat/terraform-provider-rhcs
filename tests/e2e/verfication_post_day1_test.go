@@ -39,6 +39,7 @@ var _ = Describe("TF Test", func() {
 
 		})
 		AfterEach(func() {
+			// For future implementation
 		})
 
 		Context("Author:smiron-Medium-OCP-67607 @OCP-67607 @smiron", func() {
@@ -161,7 +162,7 @@ var _ = Describe("TF Test", func() {
 
 		Context("Author:smiron-Medium-OCP-65684 @OCP-65684 @smiron", func() {
 			It("OCP-65684 - cluster_rosa_classic resource can be import by the terraform import command",
-				ci.Day2, ci.Medium, ci.FeatureImport, func() {
+				ci.Day2, ci.Medium, ci.NonHCPCluster, ci.FeatureImport, func() {
 
 					By("Run the command to import rosa_classic resource")
 					importParam := &exe.ImportArgs{
@@ -230,7 +231,7 @@ var _ = Describe("TF Test", func() {
 
 				})
 		})
-		Context("Author:xueli-Critical-OCP-69145 @OCP-69145 @xueli", func() {
+		Context("Author:xueli-Critical-OCP-69145 @OCP-69145 @xueli", ci.NonHCPCluster, func() {
 			It("Create sts cluster with additional security group set will work via terraform provider",
 				ci.Day1Post, ci.Critical,
 				func() {
@@ -241,7 +242,7 @@ var _ = Describe("TF Test", func() {
 						Expect(cluster.AWS().AdditionalInfraSecurityGroupIds()).To(BeEmpty())
 					} else {
 						By("Verify CMS are using the correct configuration")
-						clusterService, err := exe.NewClusterService(con.ROSAClassic)
+						clusterService, err := exe.NewClusterService(profile.GetClusterManifestsDir())
 						Expect(err).ToNot(HaveOccurred())
 						output, err := clusterService.Output()
 						Expect(err).ToNot(HaveOccurred())
@@ -257,8 +258,8 @@ var _ = Describe("TF Test", func() {
 				})
 
 			// Skip this tests until OCM-5079 fixed
-			XIt("Apply to change security group will be forbidden", func() {
-				clusterService, err := exe.NewClusterService(con.ROSAClassic)
+			XIt("Apply to change security group will be forbidden", ci.NonHCPCluster, func() {
+				clusterService, err := exe.NewClusterService(profile.GetClusterManifestsDir())
 				Expect(err).ToNot(HaveOccurred())
 				outPut, err := clusterService.Output()
 				Expect(err).ToNot(HaveOccurred())
@@ -291,7 +292,7 @@ var _ = Describe("TF Test", func() {
 			})
 
 		})
-		Context("Author:xueli-Critical-OCP-69143 @OCP-69143 @xueli", func() {
+		Context("Author:xueli-Critical-OCP-69143 @OCP-69143 @xueli", ci.NonHCPCluster, func() {
 			It("Create cluster with worker disk size will work via terraform provider",
 				ci.Day1Post, ci.Critical,
 				func() {
@@ -309,21 +310,30 @@ var _ = Describe("TF Test", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(profile.UnifiedAccRolesPath).Should(ContainSubstring(unifiedPath))
 			})
-			Context("Author:amalykhi-Medium-OCP-63334 @OCP-63334 @amalykhi", func() {
-				It("Build a ROSA cluster with customer-managed KMS key", ci.Day1Post, ci.Medium, func() {
-					if !profile.KMSKey {
-						Skip("The test is configured only for the profile containing the KMS key")
+		})
+		Context("Author:amalykhi-Medium-OCP-63334 @OCP-63334 @amalykhi", func() {
+			It("Build a ROSA cluster with customer-managed KMS key", ci.Day1Post, ci.Medium, func() {
+				if !profile.KMSKey {
+					Skip("The test is configured only for the profile containing the KMS key")
+				}
+				By("Check the kmsKeyARN")
+				listRSresp, err := cms.ListClusterResources(ci.RHCSConnection, clusterID)
+				Expect(err).ToNot(HaveOccurred())
+
+				kmsService, err := exe.NewKMSService()
+				Expect(err).ToNot(HaveOccurred())
+				kmsOutput, _ := kmsService.Output()
+				expectedKeyArn := kmsOutput.KeyARN
+				if profile.GetClusterType().HCP {
+					for key, value := range listRSresp.Body().Resources() {
+						if strings.Contains(key, "workers") {
+							Expect(value).Should(ContainSubstring(`"encryptionKey":"` + expectedKeyArn + `"`))
+						}
 					}
-					By("Check the kmsKeyARN")
-					listRSresp, err := cms.ListClusterResources(ci.RHCSConnection, clusterID)
-					Expect(err).ToNot(HaveOccurred())
-
+				} else {
 					awsAccountClaim := listRSresp.Body().Resources()["aws_account_claim"]
-
-					kmsService, err := exe.NewKMSService()
-					kmsOutput, _ := kmsService.Output()
-					Expect(awsAccountClaim).Should(ContainSubstring(`"kmsKeyId":"` + kmsOutput.KeyARN + `"`))
-				})
+					Expect(awsAccountClaim).Should(ContainSubstring(`"kmsKeyId":"` + expectedKeyArn + `"`))
+				}
 			})
 		})
 	})

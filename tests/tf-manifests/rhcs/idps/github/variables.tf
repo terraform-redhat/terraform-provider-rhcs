@@ -23,10 +23,10 @@ variable "mapping_method" {
   default = "claim"
 }
 variable "organizations" {
-  type        = list
+  type = list(any)
   # description = "List of GitHub organizations"
-  default = ["aaa","ddd"]
+  default = ["aaa", "ddd"]
 }
 variable "name" {
-    type= string
+  type = string
 }

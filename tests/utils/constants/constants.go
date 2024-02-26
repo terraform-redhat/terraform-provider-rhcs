@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"strings"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
@@ -63,7 +62,6 @@ var (
 	CharsBytes                = "abcdefghijklmnopqrstuvwxyz123456789"
 	WorkSpace                 = "WORKSPACE"
 	RHCSPrefix                = "rhcs"
-	TFYAMLProfile             = "tf_cluster_profile.yml"
 	ConfigSuffix              = "kubeconfig"
 	DefaultAccountRolesPrefix = "account-role-"
 	ManifestsDirENV           = os.Getenv("MANIFESTS_FOLDER")
@@ -71,57 +69,6 @@ var (
 
 const (
 	DefaultAWSRegion = "us-east-2"
-)
-
-func initDIR() string {
-	if ManifestsDirENV != "" {
-		return ManifestsDirENV
-	}
-	currentDir, _ := os.Getwd()
-	manifestsDir := path.Join(strings.SplitAfter(currentDir, "tests")[0], "tf-manifests")
-	if _, err := os.Stat(manifestsDir); err != nil {
-		panic(fmt.Sprintf("Manifests dir %s doesn't exist. Make sure you have the manifests dir in testing repo or set the correct env MANIFESTS_DIR value", manifestsDir))
-	}
-	return manifestsDir
-}
-
-var ConfigrationDir = initDIR()
-
-// Provider dirs' name definition
-const (
-	AWSProviderDIR   = "aws"
-	AZUREProviderDIR = "azure"
-	RHCSProviderDIR  = "rhcs"
-)
-
-// Dirs of aws provider
-var (
-	AccountRolesDir                      = path.Join(ConfigrationDir, AWSProviderDIR, "account-roles")
-	AddAccountRolesDir                   = path.Join(ConfigrationDir, AWSProviderDIR, "add-account-roles")
-	OIDCProviderOperatorRolesManifestDir = path.Join(ConfigrationDir, AWSProviderDIR, "oidc-provider-operator-roles")
-	AWSVPCDir                            = path.Join(ConfigrationDir, AWSProviderDIR, "vpc")
-	AWSVPCTagDir                         = path.Join(ConfigrationDir, AWSProviderDIR, "vpc-tags")
-	AWSSecurityGroupDir                  = path.Join(ConfigrationDir, AWSProviderDIR, "security-groups")
-	ProxyDir                             = path.Join(ConfigrationDir, AWSProviderDIR, "proxy")
-	KMSDir                               = path.Join(ConfigrationDir, AWSProviderDIR, "kms")
-)
-
-// Dirs of rhcs provider
-var (
-	ClusterDir            = path.Join(ConfigrationDir, RHCSProviderDIR, "clusters")
-	ImportResourceDir     = path.Join(ConfigrationDir, RHCSProviderDIR, "resource-import")
-	IDPsDir               = path.Join(ConfigrationDir, RHCSProviderDIR, "idps")
-	MachinePoolDir        = path.Join(ConfigrationDir, RHCSProviderDIR, "machine-pools")
-	DNSDir                = path.Join(ConfigrationDir, RHCSProviderDIR, "dns")
-	RhcsInfoDir           = path.Join(ConfigrationDir, RHCSProviderDIR, "rhcs-info")
-	DefaultMachinePoolDir = path.Join(ConfigrationDir, RHCSProviderDIR, "default-machine-pool")
-	KubeletConfigDir      = path.Join(ConfigrationDir, RHCSProviderDIR, "kubelet-config")
-)
-
-// Dirs of different types of clusters
-var (
-	ROSAClassic = path.Join(ClusterDir, "rosa-classic")
-	OSDCCS      = path.Join(ClusterDir, "osd-ccs")
 )
 
 // Dirs of identity providers
@@ -134,17 +81,6 @@ var (
 	GoogleDir   = path.Join(IDPsDir, "google")
 	MultiIDPDir = path.Join(IDPsDir, "multi-idp")
 )
-
-// Supports abs and relatives
-func GrantClusterManifestDir(manifestDir string) string {
-	var targetDir string
-	if strings.Contains(manifestDir, ClusterDir) {
-		targetDir = manifestDir
-	} else {
-		targetDir = path.Join(ClusterDir, manifestDir)
-	}
-	return targetDir
-}
 
 func GrantTFvarsFile(manifestDir string) string {
 	return path.Join(manifestDir, "terraform.tfvars")
@@ -160,3 +96,31 @@ const (
 	NoSchedule       = "NoSchedule"
 	PreferNoSchedule = "PreferNoSchedule"
 )
+
+type ClusterType struct {
+	Name string
+	HCP  bool
+}
+
+var (
+	ROSA_CLASSIC = ClusterType{Name: "rosa-classic"}
+	ROSA_HCP     = ClusterType{Name: "rosa-hcp", HCP: true}
+
+	allClusterTypes = []ClusterType{
+		ROSA_CLASSIC,
+		ROSA_HCP,
+	}
+)
+
+func FindClusterType(clusterTypeName string) ClusterType {
+	for _, clusterType := range allClusterTypes {
+		if clusterType.String() == clusterTypeName {
+			return clusterType
+		}
+	}
+	panic(fmt.Sprintf("Unknown cluster type %s", clusterTypeName))
+}
+
+func (ct *ClusterType) String() string {
+	return ct.Name
+}

@@ -31,7 +31,7 @@ type OIDCProviderOperatorRolesService struct {
 }
 
 func (oidcOP *OIDCProviderOperatorRolesService) Init(manifestDirs ...string) error {
-	oidcOP.ManifestDir = CON.OIDCProviderOperatorRolesManifestDir
+	oidcOP.ManifestDir = CON.OIDCProviderOperatorRolesClassicManifestDir
 	if len(manifestDirs) != 0 {
 		oidcOP.ManifestDir = manifestDirs[0]
 	}
@@ -72,7 +72,7 @@ func (oidcOP *OIDCProviderOperatorRolesService) Output() (*OIDCProviderOperatorR
 		return nil, err
 	}
 	var oidcOPOutput = &OIDCProviderOperatorRolesOutput{
-		AccountRolePrefix:  h.DigString(out["account_roles_prefix"], "value"),
+		AccountRolePrefix:  h.DigString(out["account_role_prefix"], "value"),
 		OIDCConfigID:       h.DigString(out["oidc_config_id"], "value"),
 		OperatorRolePrefix: h.DigString(out["operator_role_prefix"], "value"),
 	}

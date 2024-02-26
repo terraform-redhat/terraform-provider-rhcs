@@ -89,8 +89,12 @@ fmt_go:
 fmt_tf:
 	terraform fmt -recursive examples
 
+.PHONY: fmt_tests
+fmt_tests:
+	terraform fmt -recursive tests
+
 .PHONY: fmt
-fmt: fmt_go fmt_tf
+fmt: fmt_go fmt_tf fmt_tests
 
 .PHONY: clean
 clean:

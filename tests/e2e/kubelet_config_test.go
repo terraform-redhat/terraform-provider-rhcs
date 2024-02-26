@@ -12,7 +12,7 @@ import (
 	exe "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 )
 
-var _ = Describe("TF Test", func() {
+var _ = Describe("TF Test", ci.NonHCPCluster, func() {
 
 	Describe("Pod pids limit test", func() {
 		var kcService *exe.KubeletConfigService

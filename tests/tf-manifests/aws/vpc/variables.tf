@@ -44,3 +44,9 @@ variable "name" {
   default     = "tf-ocm"
 
 }
+
+variable "hcp" {
+  type        = bool
+  description = "The VPC is created for a HCP cluster"
+  default     = false
+}

@@ -10,6 +10,20 @@ terraform {
 provider "aws" {
   region = var.aws_region
 }
+
+locals {
+  proxy_image_name = "al2023-ami-2023.3.20240122.0-kernel-6.1-x86_64"
+}
+
+data "aws_ami" "proxy_img" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = [local.proxy_image_name]
+  }
+}
+
 data "aws_vpc" "selected" {
   id = var.vpc_id
 }
@@ -51,7 +65,7 @@ resource "aws_key_pair" "generated_key" {
 
 
 resource "aws_instance" "tf-proxy" {
-  ami                         = "ami-05a03e6058638183d"
+  ami                         = data.aws_ami.proxy_img.image_id
   instance_type               = "t3.medium"
   key_name                    = aws_key_pair.generated_key.key_name
   subnet_id                   = var.subnet_public_id

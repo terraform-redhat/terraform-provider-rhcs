@@ -32,7 +32,7 @@ type AccountRoleService struct {
 }
 
 func (acc *AccountRoleService) Init(manifestDirs ...string) error {
-	acc.ManifestDir = CON.AccountRolesDir
+	acc.ManifestDir = CON.AccountRolesClassicDir
 	if len(manifestDirs) != 0 {
 		acc.ManifestDir = manifestDirs[0]
 	}
@@ -68,7 +68,7 @@ func (acc *AccountRoleService) Output() (*AccountRolesOutput, error) {
 		return nil, err
 	}
 	var accOutput = &AccountRolesOutput{
-		AccountRolePrefix: h.DigString(out["account_roles_prefix"], "value"),
+		AccountRolePrefix: h.DigString(out["account_role_prefix"], "value"),
 		MajorVersion:      h.DigString(out["major_version"], "value"),
 		ChannelGroup:      h.DigString(out["channel_group"], "value"),
 		RHCSGatewayUrl:    h.DigString(out["rhcs_gateway_url"], "value"),

@@ -16,7 +16,7 @@ variable "account_role_prefix" {
 
 variable "cluster_name" {
   type    = string
-  default = "rhcs-tf"
+  default = "rhcs-tf-hcp"
 }
 
 variable "aws_availability_zones" {
@@ -49,32 +49,10 @@ variable "product" {
   default = "rosa"
 }
 
-variable "autoscaling" {
-  type = object({
-    autoscaling_enabled = bool
-    min_replicas        = optional(number)
-    max_replicas        = optional(number)
-  })
-  default = {
-    autoscaling_enabled = false
-  }
-}
-
-variable "aws_http_tokens_state" {
-  type    = string
-  default = null
-}
-
-variable "private_link" {
-  type    = bool
-  default = false
-}
-
 variable "private" {
   type    = bool
   default = false
 }
-
 
 variable "aws_subnet_ids" {
   type    = list(string)
@@ -86,25 +64,7 @@ variable "compute_machine_type" {
   default = null
 }
 
-variable "default_mp_labels" {
-  type    = map(string)
-  default = null
-}
-
-variable "disable_scp_checks" {
-  type    = bool
-  default = false
-}
-variable "disable_workload_monitoring" {
-  type    = bool
-  default = false
-}
 variable "etcd_encryption" {
-  type    = bool
-  default = false
-}
-
-variable "fips" {
   type    = bool
   default = false
 }
@@ -166,36 +126,6 @@ variable "aws_region" {
 
 variable "oidc_config_id" {
   type    = string
-  default = null
-}
-
-variable "admin_credentials" {
-  description = "Admin user and password"
-  type        = map(string)
-  default     = null
-
-}
-
-variable "worker_disk_size" {
-  type    = number
-  default = null
-
-}
-
-variable "additional_compute_security_groups" {
-  type    = list(string)
-  default = null
-
-}
-
-variable "additional_infra_security_groups" {
-  type    = list(string)
-  default = null
-
-}
-
-variable "additional_control_plane_security_groups" {
-  type    = list(string)
   default = null
 }
 

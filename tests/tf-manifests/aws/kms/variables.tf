@@ -3,7 +3,7 @@ variable "aws_region" {
 }
 
 variable "kms_name" {
-  type = string
+  type    = string
   default = ""
 }
 
@@ -32,4 +32,10 @@ variable "path" {
   description = "(Optional) The arn path for the account/operator roles as well as their policies."
   type        = string
   default     = null
+}
+
+variable "hcp" {
+  type        = bool
+  description = "The KMS key is created for a HCP cluster"
+  default     = false
 }

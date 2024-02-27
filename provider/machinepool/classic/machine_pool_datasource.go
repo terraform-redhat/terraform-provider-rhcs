@@ -171,6 +171,7 @@ func (r *MachinePoolDatasource) Read(ctx context.Context, req datasource.ReadReq
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	state.ID = state.Name
 
 	notFound, diags := readState(ctx, state, r.collection)
 	if notFound {

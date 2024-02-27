@@ -156,6 +156,20 @@ func (r *HcpMachinePoolDatasource) Schema(ctx context.Context, req datasource.Sc
 				Optional:    true,
 				Computed:    true,
 			},
+			"version": schema.StringAttribute{
+				Description: "Desired version of OpenShift for the machine pool, for example '4.11.0'. If version is greater than the currently running version, an upgrade will be scheduled.",
+				Optional:    true,
+			},
+			"current_version": schema.StringAttribute{
+				Description: "The currently running version of OpenShift on the machine pool, for example '4.11.0'.",
+				Computed:    true,
+			},
+			"upgrade_acknowledgements_for": schema.StringAttribute{
+				Description: "Indicates acknowledgement of agreements required to upgrade the cluster version between" +
+					" minor versions (e.g. a value of \"4.12\" indicates acknowledgement of any agreements required to " +
+					"upgrade to OpenShift 4.12.z from 4.11 or before).",
+				Optional: true,
+			},
 		},
 	}
 }
@@ -168,6 +182,7 @@ func (r *HcpMachinePoolDatasource) Read(ctx context.Context, req datasource.Read
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	state.ID = state.Name
 
 	notFound, diags := readState(ctx, state, r.collection)
 	if notFound {
@@ -186,6 +201,7 @@ func (r *HcpMachinePoolDatasource) Read(ctx context.Context, req datasource.Read
 	}
 
 	state.UpgradeAcksFor = types.StringNull()
+	state.Version = types.StringNull()
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }

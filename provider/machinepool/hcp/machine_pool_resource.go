@@ -1047,6 +1047,7 @@ func populateState(object *cmv1.NodePool, state *HcpMachinePoolState) error {
 		if state.AutoScaling == nil {
 			state.AutoScaling = new(AutoScaling)
 		}
+		state.AutoScaling.Enabled = types.BoolValue(false)
 		state.AutoScaling.MinReplicas = types.Int64Null()
 		state.AutoScaling.MaxReplicas = types.Int64Null()
 	}

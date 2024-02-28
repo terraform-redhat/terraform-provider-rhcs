@@ -33,15 +33,15 @@ func AutoscalingDatasource() map[string]dsschema.Attribute {
 	return map[string]dsschema.Attribute{
 		"enabled": schema.BoolAttribute{
 			Description: "Enables autoscaling. If `true`, this variable requires you to set a maximum and minimum replicas range using the `max_replicas` and `min_replicas` variables.",
-			Required:    true,
+			Computed:    true,
 		},
 		"min_replicas": schema.Int64Attribute{
 			Description: "The minimum number of replicas for autoscaling functionality.",
-			Optional:    true,
+			Computed:    true,
 		},
 		"max_replicas": schema.Int64Attribute{
 			Description: "The maximum number of replicas for autoscaling functionality.",
-			Optional:    true,
+			Computed:    true,
 		},
 	}
 }

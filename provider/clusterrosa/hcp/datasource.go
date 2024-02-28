@@ -20,12 +20,16 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	rosa "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common"
+	rosaTypes "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common/types"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 
@@ -41,7 +45,7 @@ type ClusterRosaHcpDatasource struct {
 var _ datasource.DataSource = &ClusterRosaHcpDatasource{}
 var _ datasource.DataSourceWithConfigure = &ClusterRosaHcpDatasource{}
 
-const deprecatedMessage = "This attribute is not support for cluster data source. Therefore, it will not be displayed as an output of the datasource"
+const deprecatedMessage = "This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource"
 
 func NewDataSource() datasource.DataSource {
 	return &ClusterRosaHcpDatasource{}
@@ -95,14 +99,6 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				Description: "Encrypt etcd data. Note that all AWS storage is already encrypted. " + common.ValueCannotBeChangedStringDescription,
 				Computed:    true,
 			},
-			"domain": schema.StringAttribute{
-				Description: "DNS domain of cluster.",
-				Computed:    true,
-			},
-			"infra_id": schema.StringAttribute{
-				Description: "The ROSA cluster infrastructure ID.",
-				Computed:    true,
-			},
 			"api_url": schema.StringAttribute{
 				Description: "URL of the API server.",
 				Computed:    true,
@@ -111,8 +107,24 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				Description: "URL of the console.",
 				Computed:    true,
 			},
+			"domain": schema.StringAttribute{
+				Description: "DNS domain of cluster.",
+				Computed:    true,
+			},
+			"replicas": schema.Int64Attribute{
+				Description: deprecatedMessage,
+				Computed:    true,
+			},
+			"compute_machine_type": schema.StringAttribute{
+				Description: deprecatedMessage,
+				Computed:    true,
+			},
 			"aws_account_id": schema.StringAttribute{
 				Description: "Identifier of the AWS account. " + common.ValueCannotBeChangedStringDescription,
+				Computed:    true,
+			},
+			"aws_billing_account_id": schema.StringAttribute{
+				Description: "Identifier of the AWS account for billing. " + common.ValueCannotBeChangedStringDescription,
 				Computed:    true,
 			},
 			"aws_subnet_ids": schema.ListAttribute{
@@ -124,10 +136,22 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				Description: "The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, " +
 					"fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID" +
 					"(optional). " + common.ValueCannotBeChangedStringDescription,
-				Optional: true,
+				Computed: true,
 			},
 			"private": schema.BoolAttribute{
 				Description: "Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet. " + common.ValueCannotBeChangedStringDescription,
+				Computed:    true,
+			},
+			"availability_zones": schema.ListAttribute{
+				Description: "Availability zones. " + rosaTypes.Hcp.GeneratePoolMessage(),
+				ElementType: types.StringType,
+				Computed:    true,
+				Validators: []validator.List{
+					listvalidator.ValueStringsAre(rosa.AvailabilityZoneValidator),
+				},
+			},
+			"machine_cidr": schema.StringAttribute{
+				Description: "Block of IP addresses for nodes. " + common.ValueCannotBeChangedStringDescription,
 				Computed:    true,
 			},
 			"proxy": schema.SingleNestedAttribute{
@@ -135,28 +159,16 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				Attributes:  proxy.ProxyDatasource(),
 				Computed:    true,
 			},
-			"pod_cidr": schema.StringAttribute{
-				Description: "Block of IP addresses for pods. " + common.ValueCannotBeChangedStringDescription,
-				Computed:    true,
-			},
-			"machine_cidr": schema.StringAttribute{
-				Description: "Block of IP addresses for nodes. " + common.ValueCannotBeChangedStringDescription,
-				Computed:    true,
-			},
 			"service_cidr": schema.StringAttribute{
 				Description: "Block of IP addresses for the cluster service network. " + common.ValueCannotBeChangedStringDescription,
 				Computed:    true,
 			},
+			"pod_cidr": schema.StringAttribute{
+				Description: "Block of IP addresses for pods. " + common.ValueCannotBeChangedStringDescription,
+				Computed:    true,
+			},
 			"host_prefix": schema.Int64Attribute{
 				Description: "Length of the prefix of the subnet assigned to each node. " + common.ValueCannotBeChangedStringDescription,
-				Computed:    true,
-			},
-			"current_version": schema.StringAttribute{
-				Description: "The currently running version of OpenShift on the cluster, for example '4.11.0'.",
-				Computed:    true,
-			},
-			"state": schema.StringAttribute{
-				Description: "State of the cluster.",
 				Computed:    true,
 			},
 			"channel_group": schema.StringAttribute{
@@ -165,6 +177,14 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 			},
 			"version": schema.StringAttribute{
 				Description: deprecatedMessage,
+				Computed:    true,
+			},
+			"current_version": schema.StringAttribute{
+				Description: "The currently running version of OpenShift on the cluster, for example '4.11.0'.",
+				Computed:    true,
+			},
+			"state": schema.StringAttribute{
+				Description: "State of the cluster.",
 				Computed:    true,
 			},
 			"upgrade_acknowledgements_for": schema.StringAttribute{
@@ -188,15 +208,8 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				Description: deprecatedMessage,
 				Computed:    true,
 			},
-			// "autoscaling_enabled": schema.BoolAttribute{
-			// 	Description: deprecatedMessage,
-			// 	Computed:    true,
-			// },
-			"replicas": schema.Int64Attribute{
-				Description: deprecatedMessage,
-				Computed:    true,
-			},
-			"compute_machine_type": schema.StringAttribute{
+
+			"wait_for_std_compute_nodes_complete": schema.BoolAttribute{
 				Description: deprecatedMessage,
 				Computed:    true,
 			},

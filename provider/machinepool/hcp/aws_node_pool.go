@@ -44,7 +44,7 @@ func AwsNodePoolDatasource() map[string]dsschema.Attribute {
 			Description: "Identifier of the machine type used by the nodes, " +
 				"for example `m5.xlarge`. Use the `rhcs_machine_types` data " +
 				"source to find the possible values. " + common.ValueCannotBeChangedStringDescription,
-			Required: true,
+			Computed: true,
 		},
 		"instance_profile": schema.StringAttribute{
 			Description: "Instance profile attached to the replica",

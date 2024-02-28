@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -82,12 +81,12 @@ func (r *HcpMachinePoolDatasource) Schema(ctx context.Context, req datasource.Sc
 			},
 			"replicas": schema.Int64Attribute{
 				Description: "The number of machines of the pool",
-				Optional:    true,
+				Computed:    true,
 			},
 			"autoscaling": schema.SingleNestedAttribute{
 				Description: "Basic autoscaling options",
 				Attributes:  AutoscalingDatasource(),
-				Required:    true,
+				Computed:    true,
 			},
 			"taints": schema.ListNestedAttribute{
 				Description: "Taints for a machine pool. Format should be a comma-separated " +
@@ -115,25 +114,20 @@ func (r *HcpMachinePoolDatasource) Schema(ctx context.Context, req datasource.Sc
 				Validators: []validator.List{
 					listvalidator.SizeAtLeast(1),
 				},
-				Optional: true,
+				Computed: true,
 			},
 			"labels": schema.MapAttribute{
 				Description: "Labels for the machine pool. Format should be a comma-separated list of 'key = value'." +
 					" This list will overwrite any modifications made to node labels on an ongoing basis.",
 				ElementType: types.StringType,
-				Optional:    true,
-				Validators: []validator.Map{
-					mapvalidator.SizeAtLeast(1),
-				},
+				Computed:    true,
 			},
 			"availability_zone": schema.StringAttribute{
 				Description: "Select the availability zone in which to create a single AZ machine pool for a multi-AZ cluster. " + common.ValueCannotBeChangedStringDescription,
-				Optional:    true,
 				Computed:    true,
 			},
 			"subnet_id": schema.StringAttribute{
 				Description: "Select the subnet in which to create a single AZ machine pool for BYO-VPC cluster. " + common.ValueCannotBeChangedStringDescription,
-				Optional:    true,
 				Computed:    true,
 			},
 			"status": schema.SingleNestedAttribute{
@@ -144,12 +138,12 @@ func (r *HcpMachinePoolDatasource) Schema(ctx context.Context, req datasource.Sc
 			"aws_node_pool": schema.SingleNestedAttribute{
 				Description: "AWS settings for node pool",
 				Attributes:  AwsNodePoolDatasource(),
-				Optional:    true,
+				Computed:    true,
 			},
 			"tuning_configs": schema.ListAttribute{
 				Description: "A list of tuning configs attached to the replica.",
 				ElementType: types.StringType,
-				Optional:    true,
+				Computed:    true,
 			},
 			"auto_repair": schema.BoolAttribute{
 				Description: "Indicates use of autor repair for replica",
@@ -168,7 +162,7 @@ func (r *HcpMachinePoolDatasource) Schema(ctx context.Context, req datasource.Sc
 				Description: "Indicates acknowledgement of agreements required to upgrade the cluster version between" +
 					" minor versions (e.g. a value of \"4.12\" indicates acknowledgement of any agreements required to " +
 					"upgrade to OpenShift 4.12.z from 4.11 or before).",
-				Optional: true,
+				Computed: true,
 			},
 		},
 	}

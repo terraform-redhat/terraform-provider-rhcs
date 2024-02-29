@@ -122,7 +122,8 @@ func (c *Cluster) CreateNodes(clusterTopology rosaTypes.ClusterTopology, autoSca
 }
 
 func (c *Cluster) CreateAWSBuilder(clusterTopology rosaTypes.ClusterTopology,
-	awsTags map[string]string, ec2MetadataHttpTokens *string, kmsKeyARN *string,
+	awsTags map[string]string, ec2MetadataHttpTokens *string,
+	rootVolumeKmsKeyArn *string, etcdKmsKeyArn *string,
 	isPrivateLink bool, awsAccountID *string, awsBillingAccountId *string,
 	stsBuilder *cmv1.STSBuilder, awsSubnetIDs []string,
 	privateHostedZoneID *string, privateHostedZoneRoleARN *string,
@@ -132,6 +133,10 @@ func (c *Cluster) CreateAWSBuilder(clusterTopology rosaTypes.ClusterTopology,
 
 	if clusterTopology == rosaTypes.Hcp && awsSubnetIDs == nil {
 		return errors.New("Hosted Control Plane clusters must have a pre-configure VPC. Make sure to specify the subnet ids.")
+	}
+
+	if clusterTopology == rosaTypes.Classic && etcdKmsKeyArn != nil {
+		return errors.New("Etcd encryption using custom KMS is not supported on Classic clusters")
 	}
 
 	if isPrivateLink && awsSubnetIDs == nil {
@@ -151,17 +156,21 @@ func (c *Cluster) CreateAWSBuilder(clusterTopology rosaTypes.ClusterTopology,
 		}
 	}
 
-	err := c.ProcessKMSKeyARN(kmsKeyARN, awsBuilder)
+	err := c.ProcessKMSKeyARN(rootVolumeKmsKeyArn, awsBuilder)
 	if err != nil {
 		return err
 	}
 
-	if awsAccountID != nil {
-		awsBuilder.AccountID(*awsAccountID)
+	if clusterTopology == rosaTypes.Hcp {
+		err := c.ProcessEtcKMSKeyARN(etcdKmsKeyArn, awsBuilder)
+		if err != nil {
+			return err
+		}
+		awsBuilder.BillingAccountID(*awsBillingAccountId)
 	}
 
-	if clusterTopology == rosaTypes.Hcp {
-		awsBuilder.BillingAccountID(*awsBillingAccountId)
+	if awsAccountID != nil {
+		awsBuilder.AccountID(*awsAccountID)
 	}
 
 	awsBuilder.PrivateLink(isPrivateLink)
@@ -208,6 +217,15 @@ func (c *Cluster) ProcessKMSKeyARN(kmsKeyARN *string, awsBuilder *cmv1.AWSBuilde
 		return err
 	}
 	awsBuilder.KMSKeyArn(*kmsKeyARN)
+	return nil
+}
+
+func (c *Cluster) ProcessEtcKMSKeyARN(kmsKeyARN *string, awsBuilder *cmv1.AWSBuilder) error {
+	err := kmsArnRegexpValidator.ValidateKMSKeyARN(kmsKeyARN)
+	if err != nil || kmsKeyARN == nil {
+		return err
+	}
+	awsBuilder.EtcdEncryption(cmv1.NewAwsEtcdEncryption().KMSKeyARN(*kmsKeyARN))
 	return nil
 }
 

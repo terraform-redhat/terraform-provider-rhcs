@@ -133,7 +133,13 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				Computed:    true,
 			},
 			"kms_key_arn": schema.StringAttribute{
-				Description: "The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, " +
+				Description: "Used to encrypt root volume of compute node pools. The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, " +
+					"fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID" +
+					"(optional). " + common.ValueCannotBeChangedStringDescription,
+				Optional: true,
+			},
+			"etcd_kms_key_arn": schema.StringAttribute{
+				Description: "Used for etcd encryption. The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, " +
 					"fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID" +
 					"(optional). " + common.ValueCannotBeChangedStringDescription,
 				Computed: true,

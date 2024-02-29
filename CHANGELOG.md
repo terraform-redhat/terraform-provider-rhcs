@@ -1,3 +1,16 @@
+## 1.5.1 (Feb 29, 2024)
+FEATURES:
+* Add Machine Pool data source (OCM-5428)
+* Add Cluster data source (OCM-3259)
+* Add auto generated ClusterAdmin password (OCM-5632, OCM-6092)
+
+ENHANCEMENTS:
+* Move shared code to common library (OCM-5798, OCM-5397)
+* Add availability_zones and aws_submet_ids lists for MachinePool output (OCM-5414, OCM-5409)
+* Bug fixes:
+  * Cluster wait timeout should finish with error (OCM-5753, OCM-5399)
+
+
 ## 1.5.0 (Jan 3, 2024)
 FEATURES:
 * Allow additional security group day1 and day2 (OCM-4716, OCM-4717, OCM-4718)
@@ -16,7 +29,6 @@ ENHANCEMENTS:
 * Docs:
   * Add note for default MachinePool in cluster rosa classic - irrelevant after create (OCM-5418)
   * Add Onboarding page for new contributers (OCM-4473)
-
 
 ## 1.4.2 (Nov 28, 2023)
 FEATURES:

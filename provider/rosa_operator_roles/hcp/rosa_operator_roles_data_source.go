@@ -48,7 +48,7 @@ func New() datasource.DataSource {
 }
 
 func (s *RosaOperatorRolesDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_hcp_rosa_operator_roles"
+	resp.TypeName = req.ProviderTypeName + "_rosa_hcp_operator_roles"
 }
 
 func (s *RosaOperatorRolesDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {

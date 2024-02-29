@@ -255,7 +255,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Optional:    true,
 			},
 			"kms_key_arn": schema.StringAttribute{
-				Description: "The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, " +
+				Description: "Used to encrypt root volume of compute node pools. The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, " +
 					"fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID" +
 					"(optional). " + common.ValueCannotBeChangedStringDescription,
 				Optional: true,
@@ -608,7 +608,8 @@ func createClassicClusterObject(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
-	if err := ocmClusterResource.CreateAWSBuilder(rosaTypes.Classic, awsTags, ec2MetadataHttpTokens, kmsKeyARN,
+	if err := ocmClusterResource.CreateAWSBuilder(rosaTypes.Classic, awsTags, ec2MetadataHttpTokens,
+		kmsKeyARN, nil,
 		isPrivateLink, awsAccountID, nil, stsBuilder, awsSubnetIDs, privateHostedZoneID, privateHostedZoneRoleARN,
 		awsAdditionalComputeSecurityGroupIds, awsAdditionalInfraSecurityGroupIds,
 		awsAdditionalControlPlaneSecurityGroupIds); err != nil {

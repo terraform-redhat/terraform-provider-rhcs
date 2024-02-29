@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/arn"
 	semver "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -176,7 +177,13 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				Optional:    true,
 			},
 			"kms_key_arn": schema.StringAttribute{
-				Description: "The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, " +
+				Description: "Used to encrypt root volume of compute node pools. The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, " +
+					"fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID" +
+					"(optional). " + common.ValueCannotBeChangedStringDescription,
+				Optional: true,
+			},
+			"etcd_kms_key_arn": schema.StringAttribute{
+				Description: "Used for etcd encryption. The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, " +
 					"fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID" +
 					"(optional). " + common.ValueCannotBeChangedStringDescription,
 				Optional: true,
@@ -287,6 +294,12 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 	}
 }
 
+func (r *ClusterRosaHcpResource) ConfigValidators(context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.RequiredTogether(path.MatchRoot("etcd_encryption"), path.MatchRoot("etcd_kms_key_arn")),
+	}
+}
+
 func (r *ClusterRosaHcpResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
@@ -392,6 +405,7 @@ func createHcpClusterObject(ctx context.Context,
 	builder.CCS(ccs)
 
 	kmsKeyARN := common.OptionalString(state.KMSKeyArn)
+	etcdKmsKeyArn := common.OptionalString(state.EtcdKmsKeyArn)
 	awsAccountID := common.OptionalString(state.AWSAccountID)
 	awsBillingAccountId := common.OptionalString(state.AWSBillingAccountID)
 
@@ -411,7 +425,8 @@ func createHcpClusterObject(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
-	if err := ocmClusterResource.CreateAWSBuilder(rosaTypes.Hcp, awsTags, nil, kmsKeyARN,
+	if err := ocmClusterResource.CreateAWSBuilder(rosaTypes.Hcp, awsTags, nil,
+		kmsKeyARN, etcdKmsKeyArn,
 		isPrivate, awsAccountID, awsBillingAccountId, stsBuilder, awsSubnetIDs, nil, nil,
 		nil, nil, nil); err != nil {
 		return nil, err
@@ -1143,6 +1158,12 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 	kmsKeyArn, ok := object.AWS().GetKMSKeyArn()
 	if ok {
 		state.KMSKeyArn = types.StringValue(kmsKeyArn)
+	}
+	if object.EtcdEncryption() {
+		etcdKmsKeyArn, ok := object.AWS().EtcdEncryption().GetKMSKeyARN()
+		if ok {
+			state.EtcdKmsKeyArn = types.StringValue(etcdKmsKeyArn)
+		}
 	}
 
 	stsState, ok := object.AWS().GetSTS()

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2021 Red Hat, Inc.
+Copyright (c) 2024 Red Hat, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -827,6 +827,123 @@ var _ = Describe("HCP Cluster", func() {
 			Expect(terraform.Apply()).To(BeZero())
 			resource := terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
 			Expect(resource).To(MatchJQ(".attributes.current_version", "4.14.0"))
+		})
+
+		Context("Creates cluster with etcd encryption", func() {
+			BeforeEach(func() {
+				// Prepare the server:
+				server.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						VerifyJQ(`.name`, "my-cluster"),
+						VerifyJQ(`.cloud_provider.id`, "aws"),
+						VerifyJQ(`.region.id`, "us-west-1"),
+						VerifyJQ(`.product.id`, "rosa"),
+
+						RespondWithPatchedJSON(http.StatusCreated, template, `[
+						{
+						  "op": "add",
+						  "path": "/aws",
+						  "value": {
+							  "sts" : {
+								  "oidc_endpoint_url": "https://127.0.0.1",
+								  "thumbprint": "111111",
+								  "role_arn": "",
+								  "support_role_arn": "",
+								  "instance_iam_roles" : {
+									"worker_role_arn" : ""
+								  },
+								  "operator_role_prefix" : "test"
+							  },
+							  "etcd_encryption": {
+								"kms_key_arn": "arn:aws:kms:us-west-2:111122223333:key/mrk-78dcc31c5865498cbe98ad5ab9769a04"
+							  }
+						  }
+						},
+						{
+							"op": "add",
+							"path": "/etcd_encryption",
+							"value": true
+						}]`),
+					),
+				)
+			})
+			When("Required together etcd_encryption and etcd_kms_key_arn", func() {
+				It("fails when no etcd_kms_key_arn", func() {
+					terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123"
+					aws_billing_account_id = "123"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					etcd_encryption = true
+				}`)
+					Expect(terraform.Apply()).ToNot(BeZero())
+				})
+				It("fails when no etcd_encryption", func() {
+					terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123"
+					aws_billing_account_id = "123"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					etcd_kms_key_arn = "kms"
+				}`)
+					Expect(terraform.Apply()).ToNot(BeZero())
+				})
+			})
+			It("Creates cluster with etcd encryption", func() {
+				// Run the apply command:
+				terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123"
+					aws_billing_account_id = "123"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					etcd_encryption = true
+					etcd_kms_key_arn = "arn:aws:kms:us-west-2:111122223333:key/mrk-78dcc31c5865498cbe98ad5ab9769a04"
+				}`)
+				Expect(terraform.Apply()).To(BeZero())
+				resource := terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.current_version", "4.14.0"))
+			})
 		})
 
 		It("Creates basic cluster returned empty az list", func() {

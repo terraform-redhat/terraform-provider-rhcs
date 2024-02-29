@@ -26,6 +26,7 @@ type ClusterRosaHcpState struct {
 	Sts                 *sts.HcpSts  `tfsdk:"sts"`
 	CloudRegion         types.String `tfsdk:"cloud_region"`
 	KMSKeyArn           types.String `tfsdk:"kms_key_arn"`
+	EtcdKmsKeyArn       types.String `tfsdk:"etcd_kms_key_arn"`
 	Tags                types.Map    `tfsdk:"tags"`
 
 	// Network fields

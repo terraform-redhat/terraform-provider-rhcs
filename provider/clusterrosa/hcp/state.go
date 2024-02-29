@@ -9,6 +9,7 @@ import (
 type ClusterRosaHcpState struct {
 	ID             types.String `tfsdk:"id"`
 	Name           types.String `tfsdk:"name"`
+	DomainPrefix   types.String `tfsdk:"domain_prefix"`
 	ExternalID     types.String `tfsdk:"external_id"`
 	Private        types.Bool   `tfsdk:"private"`
 	APIURL         types.String `tfsdk:"api_url"`

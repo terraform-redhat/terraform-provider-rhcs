@@ -34,6 +34,7 @@ var _ = Describe("Cluster creation", func() {
 		"id": "osd"
 	  },
 	  "name": "my-cluster",
+	  "domain_prefix": "my-cluster",
 	  "cloud_provider": {
 	    "id": "aws"
 	  },

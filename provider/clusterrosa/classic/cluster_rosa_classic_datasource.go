@@ -65,8 +65,15 @@ func (r *ClusterRosaClassicDatasource) Schema(ctx context.Context, req datasourc
 				Computed:    true,
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the cluster. Cannot exceed 15 characters in length. " + common.ValueCannotBeChangedStringDescription,
+				Description: "Name of the cluster. Cannot exceed 54 characters in length. " + common.ValueCannotBeChangedStringDescription,
 				Computed:    true,
+			},
+			"domain_prefix": schema.StringAttribute{
+				Description: "The domain prefix is optionally assigned by the user." +
+					"It will appear in the Cluster's domain when the cluster is provisioned" +
+					"If not supplied, it will be auto generated." + common.ValueCannotBeChangedStringDescription,
+				Optional: true,
+				Computed: true,
 			},
 			"cloud_region": schema.StringAttribute{
 				Description: "Cloud region identifier, for example 'us-east-1'.",

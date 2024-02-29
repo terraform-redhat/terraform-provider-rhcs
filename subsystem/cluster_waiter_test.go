@@ -32,6 +32,7 @@ var _ = Describe("Cluster creation", func() {
 	const templateReadyState = `{
 	  "id": "123",
 	  "name": "my-cluster",
+	  "domain_prefix": "my-cluster",
 	  "state": "ready",
 	  "region": {
 	    "id": "us-west-1"
@@ -57,6 +58,7 @@ var _ = Describe("Cluster creation", func() {
 	const templateWaitingState = `{
 	  "id": "123",
 	  "name": "my-cluster",
+	  "domain_prefix": "my-cluster",
 	  "state": "waiting",
 	  "region": {
 	    "id": "us-west-1"
@@ -82,6 +84,7 @@ var _ = Describe("Cluster creation", func() {
 	const templateErrorState = `{
 	  "id": "123",
 	  "name": "my-cluster",
+	  "domain_prefix": "my-cluster",
 	  "state": "error",
 	  "region": {
 	    "id": "us-west-1"

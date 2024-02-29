@@ -99,10 +99,26 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				},
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the cluster. Cannot exceed 15 characters in length. " + common.ValueCannotBeChangedStringDescription,
-				Required:    true,
+				Description: fmt.Sprintf("Name of the cluster. Cannot exceed %d characters in length. %s",
+					rosa.MaxClusterNameLength,
+					common.ValueCannotBeChangedStringDescription),
+				Required: true,
 				Validators: []validator.String{
-					stringvalidator.LengthAtMost(15),
+					stringvalidator.LengthAtMost(rosa.MaxClusterNameLength),
+				},
+			},
+			"domain_prefix": schema.StringAttribute{
+				Description: fmt.Sprintf("The domain prefix is optionally assigned by the user."+
+					"It will appear in the Cluster's domain when the cluster is provisioned. "+
+					"If not supplied, it will be auto generated. It cannot exceed %d characters in length. %s",
+					rosa.MaxClusterDomainPrefixLength, common.ValueCannotBeChangedStringDescription),
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+				Validators: []validator.String{
+					stringvalidator.LengthAtMost(rosa.MaxClusterDomainPrefixLength),
 				},
 			},
 			"cloud_region": schema.StringAttribute{
@@ -331,7 +347,8 @@ func createHcpClusterObject(ctx context.Context,
 	builder.MultiAZ(true)
 	clusterName := state.Name.ValueString()
 	if len(clusterName) > rosa.MaxClusterNameLength {
-		errDescription := fmt.Sprintf("Expected a valid value for 'name' maximum of 15 characters in length. Provided Cluster name '%s' is of length '%d'",
+		errDescription := fmt.Sprintf("Expected a valid value for 'name' maximum of %d characters in length. Provided Cluster name '%s' is of length '%d'",
+			rosa.MaxClusterNameLength,
 			clusterName, len(clusterName),
 		)
 		tflog.Error(ctx, errDescription)
@@ -344,6 +361,9 @@ func createHcpClusterObject(ctx context.Context,
 	}
 
 	builder.Name(clusterName)
+	if common.HasValue(state.DomainPrefix) {
+		builder.DomainPrefix(state.DomainPrefix.ValueString())
+	}
 	builder.CloudProvider(cmv1.NewCloudProvider().ID(string(rosaTypes.Aws)))
 	builder.Product(cmv1.NewProduct().ID(string(rosaTypes.Rosa)))
 	builder.Region(cmv1.NewCloudRegion().ID(state.CloudRegion.ValueString()))
@@ -687,6 +707,7 @@ func (r *ClusterRosaHcpResource) Read(ctx context.Context, request resource.Read
 func validateNoImmutableAttChange(state, plan *ClusterRosaHcpState) diag.Diagnostics {
 	diags := diag.Diagnostics{}
 	common.ValidateStateAndPlanEquals(state.Name, plan.Name, "name", &diags)
+	common.ValidateStateAndPlanEquals(state.DomainPrefix, plan.DomainPrefix, "domain_prefix", &diags)
 	common.ValidateStateAndPlanEquals(state.ExternalID, plan.ExternalID, "external_id", &diags)
 	common.ValidateStateAndPlanEquals(state.Tags, plan.Tags, "tags", &diags)
 	common.ValidateStateAndPlanEquals(state.EtcdEncryption, plan.EtcdEncryption, "etcd_encryption", &diags)
@@ -1093,6 +1114,8 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 	object.API()
 	state.Name = types.StringValue(object.Name())
 	state.CloudRegion = types.StringValue(object.Region().ID())
+	state.DomainPrefix = types.StringValue(object.DomainPrefix())
+
 	if props, ok := object.GetProperties(); ok {
 		propertiesMap := map[string]string{}
 		ocmPropertiesMap := map[string]string{}
@@ -1117,7 +1140,7 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 	}
 	state.APIURL = types.StringValue(object.API().URL())
 	state.ConsoleURL = types.StringValue(object.Console().URL())
-	state.Domain = types.StringValue(fmt.Sprintf("%s.%s", object.Name(), object.DNS().BaseDomain()))
+	state.Domain = types.StringValue(fmt.Sprintf("%s.%s", object.DomainPrefix(), object.DNS().BaseDomain()))
 
 	if azs, ok := object.Nodes().GetAvailabilityZones(); ok {
 		listValue, err := common.StringArrayToList(azs)

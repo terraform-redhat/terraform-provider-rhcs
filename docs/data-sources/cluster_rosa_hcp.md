@@ -21,6 +21,7 @@ OpenShift managed cluster using rosa sts.
 
 ### Optional
 
+- `domain_prefix` (String) The domain prefix is optionally assigned by the user.It will appear in the Cluster's domain when the cluster is provisionedIf not supplied, it will be auto generated.After the creation of the resource, it is not possible to update the attribute value.
 - `kms_key_arn` (String) Used to encrypt root volume of compute node pools. The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID(optional). After the creation of the resource, it is not possible to update the attribute value.
 
 ### Read-Only
@@ -43,7 +44,7 @@ OpenShift managed cluster using rosa sts.
 - `external_id` (String) Unique external identifier of the cluster. After the creation of the resource, it is not possible to update the attribute value.
 - `host_prefix` (Number) Length of the prefix of the subnet assigned to each node. After the creation of the resource, it is not possible to update the attribute value.
 - `machine_cidr` (String) Block of IP addresses for nodes. After the creation of the resource, it is not possible to update the attribute value.
-- `name` (String) Name of the cluster. Cannot exceed 15 characters in length. After the creation of the resource, it is not possible to update the attribute value.
+- `name` (String) Name of the cluster. Cannot exceed 54 characters in length. After the creation of the resource, it is not possible to update the attribute value.
 - `ocm_properties` (Map of String) Merged properties defined by OCM and the user defined 'properties'.
 - `pod_cidr` (String) Block of IP addresses for pods. After the creation of the resource, it is not possible to update the attribute value.
 - `private` (Boolean) Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet. After the creation of the resource, it is not possible to update the attribute value.

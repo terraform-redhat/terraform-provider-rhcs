@@ -49,6 +49,7 @@ const (
 	clusterId           = "1n2j3k4l5m6n7o8p9q0r"
 	clusterName         = "my-cluster"
 	regionId            = "us-east-1"
+	domainPrefix        = "domain-prefix"
 	rosaCreatorArn      = "arn:aws:iam::123456789012:dummy/dummy"
 	apiUrl              = "https://api.my-cluster.com:6443"
 	consoleUrl          = "https://console.my-cluster.com"
@@ -87,8 +88,9 @@ var (
 
 func generateBasicRosaHcpClusterJson() map[string]interface{} {
 	return map[string]interface{}{
-		"id":   clusterId,
-		"name": clusterName,
+		"id":            clusterId,
+		"name":          clusterName,
+		"domain_prefix": domainPrefix,
 		"hypershift": map[string]interface{}{
 			"enabled": true,
 		},
@@ -146,6 +148,7 @@ func generateBasicRosaHcpClusterState() *ClusterRosaHcpState {
 	subnetIdsList, _ := types.ListValueFrom(context.TODO(), types.StringType, subnetIds)
 	return &ClusterRosaHcpState{
 		Name:                types.StringValue(clusterName),
+		DomainPrefix:        types.StringValue(domainPrefix),
 		CloudRegion:         types.StringValue(regionId),
 		AWSAccountID:        types.StringValue(awsAccountID),
 		AWSBillingAccountID: types.StringValue(awsBillingAccountId),
@@ -177,6 +180,7 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(rosaClusterObject.Name()).To(Equal(clusterName))
+			Expect(rosaClusterObject.DomainPrefix()).To(Equal(domainPrefix))
 
 			id, ok := rosaClusterObject.Region().GetID()
 			Expect(ok).To(BeTrue())
@@ -257,7 +261,8 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 
 			Expect(clusterState.APIURL.ValueString()).To(Equal(apiUrl))
 			Expect(clusterState.ConsoleURL.ValueString()).To(Equal(consoleUrl))
-			Expect(clusterState.Domain.ValueString()).To(Equal(fmt.Sprintf("%s.%s", clusterName, baseDomain)))
+			Expect(clusterState.Domain.ValueString()).To(Equal(fmt.Sprintf("%s.%s", domainPrefix, baseDomain)))
+			Expect(clusterState.DomainPrefix.ValueString()).To(Equal(domainPrefix))
 
 			Expect(clusterState.AvailabilityZones.Elements()).To(HaveLen(1))
 			azs, err := common.StringListToArray(context.Background(), clusterState.AvailabilityZones)

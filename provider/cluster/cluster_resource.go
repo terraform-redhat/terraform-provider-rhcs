@@ -74,6 +74,13 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 				Description: "Name of the cluster.",
 				Required:    true,
 			},
+			"domain_prefix": schema.StringAttribute{
+				Description: "The domain prefix is optionally assigned by the user." +
+					"It will appear in the Cluster's domain when the cluster is provisioned. " +
+					"If not supplied, it will be auto generated",
+				Optional: true,
+				Computed: true,
+			},
 			"cloud_provider": schema.StringAttribute{
 				Description: "Cloud provider identifier, for example 'aws'.",
 				Required:    true,
@@ -255,6 +262,9 @@ func createClusterObject(ctx context.Context,
 	// Create the cluster:
 	builder := cmv1.NewCluster()
 	builder.Name(state.Name.ValueString())
+	if common.HasValue(state.DomainPrefix) {
+		builder.DomainPrefix(state.DomainPrefix.ValueString())
+	}
 	builder.CloudProvider(cmv1.NewCloudProvider().ID(state.CloudProvider.ValueString()))
 	builder.Product(cmv1.NewProduct().ID(state.Product.ValueString()))
 	builder.Region(cmv1.NewCloudRegion().ID(state.CloudRegion.ValueString()))
@@ -635,6 +645,7 @@ func populateClusterState(object *cmv1.Cluster, state *ClusterState) error {
 	object.API()
 	state.Product = types.StringValue(object.Product().ID())
 	state.Name = types.StringValue(object.Name())
+	state.DomainPrefix = types.StringValue(object.DomainPrefix())
 	state.CloudProvider = types.StringValue(object.CloudProvider().ID())
 	state.CloudRegion = types.StringValue(object.Region().ID())
 	state.MultiAZ = types.BoolValue(object.MultiAZ())

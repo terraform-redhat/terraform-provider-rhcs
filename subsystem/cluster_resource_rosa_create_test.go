@@ -63,6 +63,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 	  "external_id": "123",
 	  "infra_id": "my-cluster-123",
 	  "name": "my-cluster",
+	  "domain_prefix": "mydomainprefix",
 	  "state": "ready",
 	  "region": {
 	    "id": "us-west-1"
@@ -108,6 +109,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 	  "external_id": "123",
 	  "infra_id": "my-cluster-123",
 	  "name": "my-cluster",
+	  "domain_prefix": "mydomainprefix",
 	  "additional_trust_bundle" : "REDUCTED",
 	  "state": "ready",
 	  "region": {
@@ -152,6 +154,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 	const templateReadyState = `{
 	  "id": "123",
 	  "name": "my-cluster",
+	  "domain_prefix": "my-cluster",
 	  "state": "ready",
 	  "region": {
 	    "id": "us-west-1"
@@ -572,6 +575,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
 					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.domain_prefix`, "mydomainprefix"),
 					VerifyJQ(`.cloud_provider.id`, "aws"),
 					VerifyJQ(`.region.id`, "us-west-1"),
 					VerifyJQ(`.product.id`, "rosa"),
@@ -603,6 +607,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
+			domain_prefix  = "mydomainprefix"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			sts = {
@@ -1797,11 +1802,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			Expect(terraform.Apply()).ToNot(BeZero())
 		})
 
-		It("Should fail cluster creation when cluster name length is more than 15", func() {
+		It("Should fail cluster creation when cluster name length is more than 54", func() {
 			// Run the apply command:
 			terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
-		    name           = "my-cluster-234567"
+		    name           = "my-cluster-234567-foobarfoobar-foobar-fooobaaar-fooo-baaaar"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123"
 			properties = {

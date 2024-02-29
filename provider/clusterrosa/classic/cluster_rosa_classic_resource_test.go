@@ -50,6 +50,7 @@ func (c MockHttpClient) Get(url string) (resp *http.Response, err error) {
 const (
 	clusterId         = "1n2j3k4l5m6n7o8p9q0r"
 	clusterName       = "my-cluster"
+	domainPrefix      = "domain-prefix"
 	regionId          = "us-east-1"
 	multiAz           = true
 	rosaCreatorArn    = "arn:aws:iam::123456789012:dummy/dummy"
@@ -85,8 +86,9 @@ var (
 
 func generateBasicRosaClassicClusterJson() map[string]interface{} {
 	return map[string]interface{}{
-		"id":   clusterId,
-		"name": clusterName,
+		"id":            clusterId,
+		"name":          clusterName,
+		"domain_prefix": domainPrefix,
 		"region": map[string]interface{}{
 			"id": regionId,
 		},
@@ -139,6 +141,7 @@ func generateBasicRosaClassicClusterState() *ClusterRosaClassicState {
 	}
 	return &ClusterRosaClassicState{
 		Name:              types.StringValue(clusterName),
+		DomainPrefix:      types.StringValue(domainPrefix),
 		CloudRegion:       types.StringValue(regionId),
 		AWSAccountID:      types.StringValue(awsAccountID),
 		AvailabilityZones: azs,
@@ -170,6 +173,7 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(rosaClusterObject.Name()).To(Equal(clusterName))
+			Expect(rosaClusterObject.DomainPrefix()).To(Equal(domainPrefix))
 
 			id, ok := rosaClusterObject.Region().GetID()
 			Expect(ok).To(BeTrue())
@@ -250,7 +254,8 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 
 			Expect(clusterState.APIURL.ValueString()).To(Equal(apiUrl))
 			Expect(clusterState.ConsoleURL.ValueString()).To(Equal(consoleUrl))
-			Expect(clusterState.Domain.ValueString()).To(Equal(fmt.Sprintf("%s.%s", clusterName, baseDomain)))
+			Expect(clusterState.DomainPrefix.ValueString()).To(Equal(domainPrefix))
+			Expect(clusterState.Domain.ValueString()).To(Equal(fmt.Sprintf("%s.%s", domainPrefix, baseDomain)))
 
 			Expect(clusterState.AvailabilityZones.Elements()).To(HaveLen(1))
 			azs, err := common.StringListToArray(context.Background(), clusterState.AvailabilityZones)

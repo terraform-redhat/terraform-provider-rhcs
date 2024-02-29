@@ -40,6 +40,7 @@ var _ = Describe("Cluster creation", func() {
 	clusterName := "my-cluster"
 	clusterVersion := "openshift-v4.11.12"
 	productId := "rosa"
+	domainPrefix := "my-cluster-dns-prefix"
 	cloudProviderId := "aws"
 	regionId := "us-east-1"
 	multiAz := true
@@ -59,8 +60,9 @@ var _ = Describe("Cluster creation", func() {
 		properties, _ := common.ConvertStringMapToMapType(map[string]string{"rosa_creator_arn": rosaCreatorArn})
 
 		clusterState := &ClusterState{
-			Name:    types.StringValue(clusterName),
-			Version: types.StringValue(clusterVersion),
+			Name:         types.StringValue(clusterName),
+			Version:      types.StringValue(clusterVersion),
+			DomainPrefix: types.StringValue(domainPrefix),
 
 			CloudRegion:       types.StringValue(regionId),
 			AWSAccountID:      types.StringValue(awsAccountID),
@@ -74,6 +76,7 @@ var _ = Describe("Cluster creation", func() {
 
 		Expect(clusterObject.Name()).To(Equal(clusterName))
 		Expect(clusterObject.Version().ID()).To(Equal(clusterVersion))
+		Expect(clusterObject.DomainPrefix()).To(Equal(domainPrefix))
 
 		id, ok := clusterObject.Region().GetID()
 		Expect(ok).To(BeTrue())
@@ -93,7 +96,8 @@ var _ = Describe("Cluster creation", func() {
 	It("populateClusterState converts correctly a Cluster object into a ClusterState", func() {
 		// We builder a Cluster object by creating a json and using cmv1.UnmarshalCluster on it
 		clusterJson := map[string]interface{}{
-			"id": clusterId,
+			"id":            clusterId,
+			"domain_prefix": domainPrefix,
 			"product": map[string]interface{}{
 				"id": productId,
 			},
@@ -148,6 +152,7 @@ var _ = Describe("Cluster creation", func() {
 		Expect(clusterState.ID.ValueString()).To(Equal(clusterId))
 		Expect(clusterState.Version.ValueString()).To(Equal(clusterVersion))
 		Expect(clusterState.Product.ValueString()).To(Equal(productId))
+		Expect(clusterState.DomainPrefix.ValueString()).To(Equal(domainPrefix))
 		Expect(clusterState.CloudProvider.ValueString()).To(Equal(cloudProviderId))
 		Expect(clusterState.CloudRegion.ValueString()).To(Equal(regionId))
 		Expect(clusterState.MultiAZ.ValueBool()).To(Equal(multiAz))

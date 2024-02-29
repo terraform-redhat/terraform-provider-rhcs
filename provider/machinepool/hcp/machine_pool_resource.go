@@ -502,8 +502,6 @@ func validateNoImmutableAttChange(state, plan *HcpMachinePoolState) diag.Diagnos
 	if state.AWSNodePool != nil && plan.AWSNodePool != nil {
 		validateStateAndPlanEquals(state.AWSNodePool.InstanceProfile, plan.AWSNodePool.InstanceProfile, "aws_node_pool.instance_profile", &diags)
 	}
-	validateStateAndPlanEquals(state.AvailabilityZone, plan.AvailabilityZone, "availability_zone", &diags)
-	validateStateAndPlanEquals(state.SubnetID, plan.SubnetID, "subnet_id", &diags)
 	return diags
 }
 
@@ -597,6 +595,10 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 			awsNodePoolBuilder.Tags(awsTags)
 		}
 		npBuilder.AWSNodePool(awsNodePoolBuilder)
+	}
+
+	if patchSubnet, should := common.ShouldPatchString(state.SubnetID, plan.SubnetID); should {
+		npBuilder.Subnet(patchSubnet)
 	}
 
 	computeNodesEnabled := false

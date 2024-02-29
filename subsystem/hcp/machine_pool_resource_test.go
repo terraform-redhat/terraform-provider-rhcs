@@ -1436,6 +1436,90 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(".attributes.id", "worker"))
 			Expect(resource).To(MatchJQ(`.attributes.labels | length`, 1))
 		})
+
+		It("can update subnet", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				// Get is for the Read function
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, workerNodePoolUri),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"replicas": 2,
+							"aws_node_pool":{
+								"instance_type":"r5.xlarge",
+								"instance_profile": "bla"
+							},
+							"version": {
+								"raw_id": "4.14.10"
+							},
+							"subnet": "subnet-123"
+						}`),
+				),
+				// Get is for the read during update
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, workerNodePoolUri),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"replicas": 2,
+							"aws_node_pool":{
+								"instance_type":"r5.xlarge",
+								"instance_profile": "bla"
+							},
+							"version": {
+								"raw_id": "4.14.10"
+							},
+							"subnet": "subnet-123"
+						}`),
+				),
+				// Patch is for the update
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, workerNodePoolUri),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"labels": {
+								"label_key1": "label_value1"
+							},
+							"replicas": 2,
+							"aws_node_pool":{
+								"instance_type":"r5.xlarge",
+								"instance_profile": "bla"
+							},
+							"version": {
+								"raw_id": "4.14.10"
+							},
+							"subnet": "subnet-124"
+						}`),
+				),
+			)
+			terraform.Source(`
+				resource "rhcs_hcp_machine_pool" "worker" {
+					cluster      = "123"
+					name         = "worker"
+					aws_node_pool = {
+						instance_type = "r5.xlarge"
+					}
+					autoscaling = {
+						enabled = false
+					}
+					replicas     = 2
+					labels = {
+						"label_key1" = "label_value1"
+					}
+					subnet_id = "subnet-124"
+					version = "4.14.10"
+				}`)
+			Expect(terraform.Apply()).To(BeZero())
+			resource := terraform.Resource("rhcs_hcp_machine_pool", "worker")
+			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+			Expect(resource).To(MatchJQ(".attributes.name", "worker"))
+			Expect(resource).To(MatchJQ(".attributes.id", "worker"))
+			Expect(resource).To(MatchJQ(`.attributes.labels | length`, 1))
+			Expect(resource).To(MatchJQ(".attributes.subnet_id", "subnet-124"))
+		})
 	})
 
 	Context("Machine pool creation for non exist cluster", func() {

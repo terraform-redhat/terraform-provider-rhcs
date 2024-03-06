@@ -4,15 +4,18 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"reflect"
 	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	idputils "github.com/openshift-online/ocm-common/pkg/idp/utils"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/identityprovider/htpasswd"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
@@ -119,4 +122,86 @@ func uniqueUsernameValidator() validator.List {
 			usernames[user.Username.ValueString()] = true
 		}
 	})
+}
+
+func htPasswdUserListToStringMaps(ctx context.Context, users []HTPasswdUser,
+	resource *cmv1.IdentityProviderClient) (map[string]htpasswd.HtPasswdUserWithId, error) {
+	csUserMap := make(map[string]htpasswd.HtPasswdUserWithId)
+	get, err := resource.HtpasswdUsers().List().SendContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, user := range get.Items().Slice() {
+		csUserMap[user.Username()] = htpasswd.HtPasswdUserWithId{user.ID(), user.Username(), ""}
+	}
+	for _, user := range users {
+		csUserMap[user.Username.ValueString()] = htpasswd.HtPasswdUserWithId{csUserMap[user.Username.ValueString()].Id,
+			csUserMap[user.Username.ValueString()].Username, user.Password.ValueString()}
+	}
+	finalUserMap := make(map[string]htpasswd.HtPasswdUserWithId)
+	// Remove deleted users
+	for _, user := range users {
+		if _, ok := csUserMap[user.Username.ValueString()]; ok {
+			finalUserMap[user.Username.ValueString()] = csUserMap[user.Username.ValueString()]
+		}
+	}
+	return finalUserMap, nil
+}
+
+func UpdateHTPasswd(ctx context.Context, resource *cmv1.IdentityProviderClient, state *IdentityProviderState,
+	plan *IdentityProviderState, response *resource.UpdateResponse) {
+	if reflect.DeepEqual(state.HTPasswd.Users, plan.HTPasswd.Users) {
+		return
+	}
+	stateUserMap, err := htPasswdUserListToStringMaps(ctx, state.HTPasswd.Users, resource)
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't get identity provider user ID",
+			fmt.Sprintf(
+				"Can't get identity provider user ID with identifier for "+
+					"cluster '%s': %v",
+				state.Cluster.ValueString(), err,
+			),
+		)
+		return
+	}
+	planUserMap, err := htPasswdUserListToStringMaps(ctx, plan.HTPasswd.Users, resource)
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't get identity provider user ID",
+			fmt.Sprintf(
+				"Can't get identity provider user ID with identifier for "+
+					"cluster '%s': %v",
+				state.Cluster.ValueString(), err,
+			),
+		)
+		return
+	}
+
+	patchParams := htpasswd.PatchParams{
+		ctx, stateUserMap, planUserMap, resource,
+		[]string{}, state.Cluster.ValueString(), response,
+	}
+
+	patchParams.RemovedUsers, err = htpasswd.DeleteUserFromState(patchParams)
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't delete identity provider user",
+			fmt.Sprintf(
+				"Can't delete identity provider user: '%v'", err,
+			),
+		)
+		return
+	}
+
+	err = htpasswd.PatchOrAddUserInState(patchParams)
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't patch/add identity provider user",
+			fmt.Sprintf(
+				"Can't patch/add identity provider user: '%v'", err,
+			),
+		)
+		return
+	}
 }

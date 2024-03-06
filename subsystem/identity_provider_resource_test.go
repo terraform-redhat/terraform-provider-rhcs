@@ -28,12 +28,51 @@ import (
 )
 
 const htpasswdValidPass = "123PasS8901234"
+const htpasswdValidPass2 = "123PasS89012342"
 const hashedPass = "hash(123PasS8901234)"
 const htpasswdInValidPass = "my-pass"
 
 var _ = Describe("Identity provider creation", func() {
 
-	Context("Idebtity Provider Failure", func() {
+	const users1 = `"items": [{
+					"username": "my-user",
+					"password": "` + htpasswdValidPass + `"
+				}]`
+
+	const users2 = `"items": [{
+					"username": "my-user",
+					"password": "` + htpasswdValidPass2 + `"
+				}]`
+
+	const users3 = `
+				"items": [{
+						"username": "my-user",
+						"password": "` + htpasswdValidPass2 + `"
+					},
+					{
+						"username": "my-user2",
+						"password": "` + htpasswdValidPass2 + `"
+				}]`
+
+	const templatePt1 = `
+		{
+			"kind": "IdentityProvider",
+			"id": "456",
+			"mapping_method": "claim",
+			"htpasswd": {
+				"users": {`
+
+	const templatePt2 = `
+				}
+			},
+			"name": "my-ip"
+		}`
+
+	const template = templatePt1 + users1 + templatePt2
+	const template2 = templatePt1 + users2 + templatePt2
+	const template3 = templatePt1 + users3 + templatePt2
+
+	Context("Identity Provider Failure", func() {
 		It("cluster_id not found", func() {
 			// Prepare the server:
 			server.AppendHandlers(
@@ -225,84 +264,7 @@ var _ = Describe("Identity provider creation", func() {
 	    	`)
 			Expect(terraform.Apply()).To(BeZero())
 		})
-
-		It("Can't update an identity provider", func() {
-			// Prepare the server:
-			server.AppendHandlers(
-				CombineHandlers(
-					VerifyRequest(
-						http.MethodPost,
-						"/api/clusters_mgmt/v1/clusters/123/identity_providers",
-					),
-					VerifyJSON(`{
-			    	  "kind": "IdentityProvider",
-			    	  "type": "HTPasswdIdentityProvider",
-                      "mapping_method": "claim",
-			    	  "name": "my-ip",
-			    	  "htpasswd": {
-                        "users": {"items":[{"username": "my-user", "hashed_password": "`+hashedPass+`"}]}
-			    	  }
-			    	}`),
-					RespondWithJSON(http.StatusOK, `{
-			    	  "id": "456",
-			    	  "name": "my-ip",
-                      "mapping_method": "claim",
-			    	  "htpasswd": {
-                        "users": {"items":[{"username": "my-user", "password": "`+htpasswdValidPass+`"}]}
-			    	  }
-			    	}`),
-				),
-			)
-
-			// Run the apply command:
-			terraform.Source(`
-	    	  resource "rhcs_identity_provider" "my_ip" {
-	    	    cluster = "123"
-	    	    name    = "my-ip"
-	    	    htpasswd = {
-                  users = [{
-	    	        username = "my-user"
-	    	        password = "` + htpasswdValidPass + `"
-                  }]
-	    	    }
-	    	  }
-	    	`)
-			Expect(terraform.Apply()).To(BeZero())
-
-			// update
-
-			// Prepare the server:
-			server.AppendHandlers(
-				CombineHandlers(
-					VerifyRequest(
-						http.MethodGet,
-						"/api/clusters_mgmt/v1/clusters/123/identity_providers/456",
-					),
-					RespondWithJSON(http.StatusOK, `{
-			    	  "id": "456",
-			    	  "name": "my-ip",
-                      "mapping_method": "claim",
-			    	  "htpasswd": {
-                        "users": {"items":[{"username": "my-user", "password": "`+htpasswdValidPass+`"}]}
-			    	  }
-			    	}`),
-				),
-			)
-			// Run the apply command for update:
-			terraform.Source(`
-	    	  resource "rhcs_identity_provider" "my_ip" {
-	    	    cluster = "123"
-	    	    name    = "my-ip"
-	    	    htpasswd = {
-                  users = [{
-	    	        username = "my-user"
-	    	        password = "` + htpasswdValidPass + `"
-                  }]
-	    	    }
-	    	  }
-	    	`)
-			Expect(terraform.Apply()).ToNot(BeZero())
-		})
+		
 		It("Reconcile an 'htpasswd' identity provider, when state exists but 404 from server", func() {
 			// Prepare the server:
 			server.AppendHandlers(
@@ -951,6 +913,190 @@ var _ = Describe("Identity provider creation", func() {
     		          }
     		        `)
 					Expect(terraform.Apply()).To(BeZero())
+				})
+
+				Describe("Htpasswd IDP tests", func() {
+
+					It("Should create htpasswd IDP", func() {
+						// Prepare the server:
+						server.AppendHandlers(
+							CombineHandlers(
+								VerifyRequest(
+									http.MethodPost,
+									"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+								),
+								VerifyJSON(`{
+									"kind": "IdentityProvider",
+									"htpasswd": {
+										"users": {
+											"items": [{
+												"hashed_password": "hash(123PasS8901234)",
+												"username": "my-user"
+											},
+											{
+												"hashed_password": "hash(123PasS89012342)",
+												"username": "my-user2"
+											}]
+										}
+									},
+									"mapping_method": "claim",
+									"name": "my-ip",
+									"type": "HTPasswdIdentityProvider"
+								}`),
+								RespondWithJSON(http.StatusOK, `{
+									"id": "456",
+									"name": "my-ip",
+									"mapping_method": "claim",
+									"htpasswd": {
+										"client_id": "test-client",
+										"client_secret": "test-secret",
+										"hosted_domain": "example.com"
+									}
+								}`),
+							),
+						)
+
+						// Run the apply command:
+						terraform.Source(`
+	    	  				resource "rhcs_identity_provider" "my_ip" {
+	    	    				cluster = "123"
+					    	    name    = "my-ip"
+	    					    htpasswd = {
+    	              				users = [{
+										username = "my-user",
+										password = "` + htpasswdValidPass + `"
+									},
+									{
+										username = "my-user2",
+										password = "` + htpasswdValidPass2 + `"
+									}]
+								}
+	    		  			}
+	    				`)
+						Expect(terraform.Apply()).To(BeZero())
+					})
+
+					It("Should delete htpasswd provider user (update)", func() {
+						// Prepare the server:
+						server.AppendHandlers(
+							CombineHandlers(
+								VerifyRequest(
+									http.MethodPost,
+									"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+								),
+								RespondWithPatchedJSON(http.StatusOK, template, `[{
+									"kind": "IdentityProvider",
+								    "op": "replace",
+				    				"path": "/htpasswd/users",
+									"mapping_method": "claim",
+									"value": {
+										"username": "my-user",
+										"password": "`+htpasswdValidPass+`"
+									}
+								}]`),
+							),
+						)
+
+						// Run the apply command:
+						terraform.Source(`
+	    	  				resource "rhcs_identity_provider" "my_ip" {
+	    	    				cluster = "123"
+					    	    name    = "my-ip"
+	    					    htpasswd = {
+    	              				users = [{
+										username = "my-user"
+										password = "` + htpasswdValidPass + `"
+									}]
+								}
+	    		  			}
+	    				`)
+						Expect(terraform.Apply()).To(BeZero())
+					})
+
+					It("Should edit htpasswd provider user's password (update)", func() {
+						// Prepare the server:
+						server.AppendHandlers(
+							CombineHandlers(
+								VerifyRequest(
+									http.MethodPost,
+									"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+								),
+								RespondWithPatchedJSON(http.StatusOK, template2, `[{
+									"kind": "IdentityProvider",
+								    "op": "replace",
+				    				"path": "/htpasswd/users",
+									"mapping_method": "claim",
+									"value": {
+										"username": "my-user",
+										"password": "`+htpasswdValidPass2+`"
+									}
+								}]`),
+							),
+						)
+
+						// Run the apply command:
+						terraform.Source(`
+	    	  				resource "rhcs_identity_provider" "my_ip" {
+	    	    				cluster = "123"
+					    	    name    = "my-ip"
+	    					    htpasswd = {
+    	              				users = [{
+										username = "my-user"
+										password = "` + htpasswdValidPass2 + `"
+									}]
+								}
+	    		  			}
+	    				`)
+						Expect(terraform.Apply()).To(BeZero())
+					})
+
+					It("Should add htpasswd provider user (update)", func() {
+						// Prepare the server:
+						server.AppendHandlers(
+							CombineHandlers(
+								VerifyRequest(
+									http.MethodPost,
+									"/api/clusters_mgmt/v1/clusters/123/identity_providers",
+								),
+								RespondWithPatchedJSON(http.StatusOK, template3, `[{
+									"kind": "IdentityProvider",
+								    "op": "replace",
+				    				"path": "/htpasswd/users",
+									"mapping_method": "claim",
+									"value": {
+										"items": [{
+											"username": "my-user",
+											"password": "`+htpasswdValidPass2+`"
+										},
+										{
+											"username": "my-user2",
+											"password": "`+htpasswdValidPass2+`"
+										}]
+									}
+								}]`),
+							),
+						)
+
+						// Run the apply command:
+						terraform.Source(`
+	    	  				resource "rhcs_identity_provider" "my_ip" {
+	    	    				cluster = "123"
+					    	    name    = "my-ip"
+	    					    htpasswd = {
+    	              				users = [{
+											username = "my-user"
+											password = "` + htpasswdValidPass2 + `"
+										},
+										{
+											username = "my-user2",
+											password = "` + htpasswdValidPass2 + `"
+										}
+									]
+								}
+	    		  			}
+	    				`)
+						Expect(terraform.Apply()).To(BeZero())
+					})
 				})
 
 				It("Should create provider without hosted_domain when mapping_method is set to 'lookup'", func() {

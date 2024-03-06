@@ -34,7 +34,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 
@@ -581,7 +580,36 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request resource.Re
 
 func (r *IdentityProviderResource) Update(ctx context.Context, request resource.UpdateRequest,
 	response *resource.UpdateResponse) {
-	response.Diagnostics.AddError("IDP Update not supported.", "This RHCS provider version does not support updating an existing IDP")
+	// Get the state:
+	state := &IdentityProviderState{}
+	diags := request.State.Get(ctx, state)
+	response.Diagnostics.Append(diags...)
+	if response.Diagnostics.HasError() {
+		return
+	}
+
+	if state.HTPasswd == nil {
+		response.Diagnostics.AddError("IDP Update not supported for non-HTPasswd IDPs.",
+			"This RHCS provider version does not support updating an existing IDP")
+		return
+	}
+
+	// Get the plan:
+	plan := &IdentityProviderState{}
+	diags = request.Plan.Get(ctx, plan)
+	response.Diagnostics.Append(diags...)
+	if response.Diagnostics.HasError() {
+		return
+	}
+	plan.ID = state.ID
+
+	resource := r.collection.Cluster(state.Cluster.ValueString()).IdentityProviders().
+		IdentityProvider(state.ID.ValueString())
+
+	UpdateHTPasswd(ctx, resource, state, plan, response)
+
+	diags = response.State.Set(ctx, plan)
+	response.Diagnostics.Append(diags...)
 }
 
 func (r *IdentityProviderResource) Delete(ctx context.Context, request resource.DeleteRequest,

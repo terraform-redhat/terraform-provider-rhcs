@@ -76,6 +76,8 @@ If you want to build a local Red Hat Cloud Services provider to develop improvem
     For example, the following location would contain the `terraform-rhcs-provider` binary file: 
     ```    
     ~/.terraform.d/plugins/terraform.local/local/rhcs/0.0.1/linux_amd64
+    ```
+  
 2. You now need to update your `main.tf` to the location of the local provider by pointing the required_providers rhcs to the local terraform directory.
 
     ```
@@ -92,6 +94,7 @@ If you want to build a local Red Hat Cloud Services provider to develop improvem
       token = var.token
       url = var.url
     }
+    ```
 
 ### Testing binary
 If you want to locally test the provider binary without building from sources, you can pull the `latest` binary container image and copy the binary file to your local by running `make binary` or the whole background command if you need to make custom changes:
@@ -103,4 +106,3 @@ Binary image only runs on AMD64 architectures up to now.
 
 ### Developing the Provider
 Detailed documentation for developing and contributing to RHCS provider can be found in our [contribution guide](CONTRIBUTE.md).
- 

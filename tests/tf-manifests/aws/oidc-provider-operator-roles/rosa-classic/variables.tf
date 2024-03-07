@@ -1,18 +1,16 @@
+variable "operator_role_prefix" {
+  type    = string
+  default = ""
+}
 
 variable "account_role_prefix" {
   type    = string
   default = ""
 }
 
-
 variable "url" {
   type    = string
   default = "https://api.stage.openshift.com"
-}
-
-variable "operator_role_prefix" {
-  type    = string
-  default = ""
 }
 
 variable "oidc_config" {

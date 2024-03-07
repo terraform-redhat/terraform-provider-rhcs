@@ -85,7 +85,7 @@ var _ = Describe("TF Test", func() {
 							By("Login with created htpasswd idp")
 							// this condition is for cases where the cluster profile
 							// has private_link enabled, then regular login won't work
-							if !profile.PrivateLink {
+							if !profile.IsPrivateLink() {
 								getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
 								Expect(err).ToNot(HaveOccurred())
 								server := getResp.Body().API().URL()
@@ -143,7 +143,7 @@ var _ = Describe("TF Test", func() {
 							By("Login with created ldap idp")
 							// this condition is for cases where the cluster profile
 							// has private_link enabled, then regular login won't work
-							if !profile.PrivateLink {
+							if !profile.IsPrivateLink() {
 								getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
 								Expect(err).ToNot(HaveOccurred())
 								server := getResp.Body().API().URL()
@@ -280,7 +280,7 @@ var _ = Describe("TF Test", func() {
 			Context("Multi IDPs applying scenrios", func() {
 				BeforeEach(func() {
 
-					if profile.PrivateLink {
+					if profile.IsPrivateLink() {
 						Skip("private_link is enabled, skipping test.")
 					}
 

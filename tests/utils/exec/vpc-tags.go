@@ -38,7 +38,7 @@ func (vpctag *VPCTagService) Init(manifestDirs ...string) error {
 func (vpctag *VPCTagService) Apply(createArgs *VPCTagArgs, recordtfvars bool, extraArgs ...string) error {
 	vpctag.CreationArgs = createArgs
 	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApplyWithArgs(vpctag.Context, vpctag.ManifestDir, args)
+	_, err := runTerraformApply(vpctag.Context, vpctag.ManifestDir, args...)
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func (vpctag *VPCTagService) Destroy(createArgs ...*VPCTagArgs) error {
 		destroyArgs = createArgs[0]
 	}
 	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroyWithArgs(vpctag.Context, vpctag.ManifestDir, args)
+	_, err := runTerraformDestroy(vpctag.Context, vpctag.ManifestDir, args...)
 
 	return err
 }

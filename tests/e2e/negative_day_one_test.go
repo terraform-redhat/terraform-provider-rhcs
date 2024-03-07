@@ -20,7 +20,7 @@ var profile *ci.Profile
 var _ = Describe("RHCS Provider Negative Test", func() {
 	profile = ci.LoadProfileYamlFileByENV()
 
-	Describe("Cluster admin Negative tests", Ordered, func() {
+	Describe("Cluster admin Negative tests", ci.NonHCPCluster, Ordered, func() {
 		BeforeAll(func() {
 			if !profile.AdminEnabled {
 				Skip("The tests configured for cluster admin only")

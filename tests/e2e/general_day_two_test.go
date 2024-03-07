@@ -24,7 +24,7 @@ var _ = Describe("TF day2 scenrios", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("OCP-67570 - Create and destroy dnsdomain via terraform provider",
-			ci.Day2, ci.Medium, ci.FeatureIDP, func() {
+			ci.Day2, ci.Medium, ci.FeatureIDP, ci.NonHCPCluster, func() {
 
 				By("Create/Apply dns-domain resource by terraform")
 				dnsArgs := &exe.DnsDomainArgs{}
@@ -109,7 +109,7 @@ var _ = Describe("TF day2 scenrios", func() {
 		})
 
 		It("should validate custom property operations on cluster - day 2",
-			ci.Day2, ci.Medium, ci.FeatureIDP, func() {
+			ci.Day2, ci.Medium, ci.FeatureIDP, ci.NonHCPCluster, func() {
 
 				By("Adding additional custom property to the existing cluster")
 				updatedCustomProperties := con.CustomProperties

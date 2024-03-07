@@ -66,7 +66,7 @@ func (mp *MachinePoolService) MagicImport(createArgs *MachinePoolArgs, extraArgs
 	createArgs.URL = CON.GateWayURL
 	mp.CreationArgs = createArgs
 	args, _ := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApplyWithArgs(mp.Context, mp.ManifestDir, args)
+	_, err := runTerraformApply(mp.Context, mp.ManifestDir, args...)
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func (mp *MachinePoolService) Apply(createArgs *MachinePoolArgs, recordtfargs bo
 	createArgs.URL = CON.GateWayURL
 	mp.CreationArgs = createArgs
 	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	output, err := runTerraformApplyWithArgs(mp.Context, mp.ManifestDir, args)
+	output, err := runTerraformApply(mp.Context, mp.ManifestDir, args...)
 	if err == nil && recordtfargs {
 		recordTFvarsFile(mp.ManifestDir, tfvars)
 	}
@@ -88,7 +88,7 @@ func (mp *MachinePoolService) Plan(createArgs *MachinePoolArgs, extraArgs ...str
 	createArgs.URL = CON.GateWayURL
 	mp.CreationArgs = createArgs
 	args, _ := combineStructArgs(createArgs, extraArgs...)
-	output, err := runTerraformPlanWithArgs(mp.Context, mp.ManifestDir, args)
+	output, err := runTerraformPlan(mp.Context, mp.ManifestDir, args...)
 	return output, err
 }
 
@@ -129,7 +129,7 @@ func (mp *MachinePoolService) Destroy(createArgs ...*MachinePoolArgs) (output st
 	destroyArgs.URL = CON.GateWayURL
 	args, _ := combineStructArgs(destroyArgs)
 
-	return runTerraformDestroyWithArgs(mp.Context, mp.ManifestDir, args)
+	return runTerraformDestroy(mp.Context, mp.ManifestDir, args...)
 }
 
 func NewMachinePoolService(manifestDir ...string) *MachinePoolService {

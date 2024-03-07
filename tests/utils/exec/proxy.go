@@ -46,7 +46,7 @@ func (proxy *ProxyService) Init(manifestDirs ...string) error {
 func (proxy *ProxyService) Apply(createArgs *ProxyArgs, recordtfvars bool, extraArgs ...string) error {
 	proxy.CreationArgs = createArgs
 	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApplyWithArgs(proxy.Context, proxy.ManifestDir, args)
+	_, err := runTerraformApply(proxy.Context, proxy.ManifestDir, args...)
 	if err != nil {
 		return err
 	}
@@ -93,7 +93,7 @@ func (proxy *ProxyService) Destroy(createArgs ...*ProxyArgs) error {
 		destroyArgs = createArgs[0]
 	}
 	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroyWithArgs(proxy.Context, proxy.ManifestDir, args)
+	_, err := runTerraformDestroy(proxy.Context, proxy.ManifestDir, args...)
 
 	return err
 }

@@ -52,7 +52,7 @@ func (oidcOP *OIDCProviderOperatorRolesService) Apply(createArgs *OIDCProviderOp
 	createArgs.OCMENV = CON.OCMENV
 	oidcOP.CreationArgs = createArgs
 	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApplyWithArgs(oidcOP.Context, oidcOP.ManifestDir, args)
+	_, err := runTerraformApply(oidcOP.Context, oidcOP.ManifestDir, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (oidcOP *OIDCProviderOperatorRolesService) Destroy(createArgs ...*OIDCProvi
 	destroyArgs.URL = CON.GateWayURL
 	destroyArgs.OCMENV = CON.OCMENV
 	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroyWithArgs(oidcOP.Context, oidcOP.ManifestDir, args)
+	_, err := runTerraformDestroy(oidcOP.Context, oidcOP.ManifestDir, args...)
 	return err
 }
 

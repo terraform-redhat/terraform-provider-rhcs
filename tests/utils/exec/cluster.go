@@ -117,7 +117,7 @@ func (creator *ClusterService) Apply(createArgs *ClusterCreationArgs, recordtfva
 		recordTFvarsFile(creator.ManifestDir, tfvars) // Record the tfvars before apply in case cluster creation error and we need clean
 	}
 
-	_, err := runTerraformApplyWithArgs(creator.Context, creator.ManifestDir, args)
+	_, err := runTerraformApply(creator.Context, creator.ManifestDir, args...)
 	if err != nil {
 		if tfvarsDeletion {
 			deleteTFvarsFile(creator.ManifestDir)
@@ -146,13 +146,13 @@ func (creator *ClusterService) Output() (*ClusterOutput, error) {
 func (creator *ClusterService) Destroy(createArgs *ClusterCreationArgs, extraArgs ...string) (string, error) {
 	createArgs.URL = CON.GateWayURL
 	args, _ := combineStructArgs(createArgs, extraArgs...)
-	return runTerraformDestroyWithArgs(creator.Context, creator.ManifestDir, args)
+	return runTerraformDestroy(creator.Context, creator.ManifestDir, args...)
 }
 
 func (creator *ClusterService) Plan(planargs *ClusterCreationArgs, extraArgs ...string) (string, error) {
 	planargs.URL = CON.GateWayURL
 	args, _ := combineStructArgs(planargs, extraArgs...)
-	output, err := runTerraformPlanWithArgs(creator.Context, creator.ManifestDir, args)
+	output, err := runTerraformPlan(creator.Context, creator.ManifestDir, args...)
 	return output, err
 }
 

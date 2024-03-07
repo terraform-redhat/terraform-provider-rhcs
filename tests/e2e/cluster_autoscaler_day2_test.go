@@ -47,7 +47,7 @@ var _ = Describe("TF Test", func() {
 			}
 		})
 		Context("Author:zhsun-High-OCP-69137 @zhsun", func() {
-			It("Author:zhsun-High-OCP-69137 - Create cluster autoscaler with ocm terraform provider", ci.Day2, ci.High, ci.FeatureClusterautoscaler, func() {
+			It("Author:zhsun-High-OCP-69137 - Create cluster autoscaler with ocm terraform provider", ci.Day2, ci.High, ci.NonHCPCluster, ci.FeatureClusterautoscaler, func() {
 				By("Delete clusterautoscaler when it exists in cluster")
 				if clusterAutoscalerStatusBefore == http.StatusOK {
 					caDeleteBody, err := cms.DeleteClusterAutoscaler(ci.RHCSConnection, clusterID)

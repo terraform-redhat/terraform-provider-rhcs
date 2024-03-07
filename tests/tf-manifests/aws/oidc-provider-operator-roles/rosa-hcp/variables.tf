@@ -1,5 +1,6 @@
 variable "operator_role_prefix" {
-  type = string
+  type    = string
+  default = ""
 }
 
 variable "account_role_prefix" {
@@ -15,12 +16,6 @@ variable "url" {
 variable "oidc_config" {
   type    = string
   default = ""
-}
-
-variable "installer_role_arn" {
-  type        = string
-  default     = null
-  description = "The Amazon Resource Name (ARN) associated with the AWS IAM role used by the ROSA installer. Applicable exclusively to unmanaged OIDC; otherwise, leave empty."
 }
 
 variable "aws_region" {
@@ -47,12 +42,6 @@ variable "tags" {
 
 variable "permissions_boundary" {
   description = "The ARN of the policy that is used to set the permissions boundary for the IAM roles in STS clusters."
-  type        = string
-  default     = ""
-}
-
-variable "cluster_id" {
-  description = "cluster ID"
   type        = string
   default     = ""
 }

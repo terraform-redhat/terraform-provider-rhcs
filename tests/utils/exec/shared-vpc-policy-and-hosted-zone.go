@@ -50,7 +50,7 @@ func (s *SharedVpcPolicyAndHostedZoneService) Init(manifestDirs ...string) error
 func (s *SharedVpcPolicyAndHostedZoneService) Apply(createArgs *SharedVpcPolicyAndHostedZoneArgs, recordtfvars bool, extraArgs ...string) error {
 	s.CreationArgs = createArgs
 	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApplyWithArgs(s.Context, s.ManifestDir, args)
+	_, err := runTerraformApply(s.Context, s.ManifestDir, args...)
 	if err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func (s *SharedVpcPolicyAndHostedZoneService) Destroy(createArgs ...*SharedVpcPo
 		destroyArgs = createArgs[0]
 	}
 	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroyWithArgs(s.Context, s.ManifestDir, args)
+	_, err := runTerraformDestroy(s.Context, s.ManifestDir, args...)
 
 	return err
 }

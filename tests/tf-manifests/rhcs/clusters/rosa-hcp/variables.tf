@@ -66,7 +66,7 @@ variable "compute_machine_type" {
 
 variable "etcd_encryption" {
   type    = bool
-  default = false
+  default = null # Temporary. Should be false but due to https://issues.redhat.com/browse/OCM-6593 it is set to null by default
 }
 
 variable "host_prefix" {

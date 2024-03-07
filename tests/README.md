@@ -77,6 +77,7 @@ Please read the structure and contribte code to the correct place
 * Label your case with importance defined in terraform-provider-rhcs/tests/ci/labels.go
 * Label your case with ***CI.Day1Post/CI.Day2/CI.Day3*** according to the case runtime
 * Label your case with ***CI.Exclude*** if it fails CI all  the time and you can't fix it in time
+* Label you case with ***CI.NonClassicCluster/CI.NonHCPCluster*** if it does not fit a type of cluster
 
 ## Running
 The cluster created by the automation scripts are shared across all of the test cases. [Why we need do this?](./docs/challenge.md).

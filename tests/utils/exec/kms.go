@@ -47,7 +47,7 @@ func (kms *KMSService) Init(manifestDirs ...string) error {
 func (kms *KMSService) Apply(createArgs *KMSArgs, recordtfvars bool, extraArgs ...string) error {
 	kms.CreationArgs = createArgs
 	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApplyWithArgs(kms.Context, kms.ManifestDir, args)
+	_, err := runTerraformApply(kms.Context, kms.ManifestDir, args...)
 	if err != nil {
 		return err
 	}
@@ -84,7 +84,7 @@ func (kms *KMSService) Destroy(createArgs ...*KMSArgs) error {
 		destroyArgs = createArgs[0]
 	}
 	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroyWithArgs(kms.Context, kms.ManifestDir, args)
+	_, err := runTerraformDestroy(kms.Context, kms.ManifestDir, args...)
 
 	return err
 }

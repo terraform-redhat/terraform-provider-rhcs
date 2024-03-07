@@ -53,7 +53,7 @@ func (idp *IDPService) Init(manifestDirs ...string) error {
 func (idp *IDPService) Apply(createArgs *IDPArgs, recordtfvars bool, extraArgs ...string) error {
 	idp.CreationArgs = createArgs
 	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApplyWithArgs(idp.Context, idp.ManifestDir, args)
+	_, err := runTerraformApply(idp.Context, idp.ManifestDir, args...)
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func (idp *IDPService) Destroy(createArgs ...*IDPArgs) error {
 		destroyArgs.URL = CON.GateWayURL
 	}
 	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroyWithArgs(idp.Context, idp.ManifestDir, args)
+	_, err := runTerraformDestroy(idp.Context, idp.ManifestDir, args...)
 
 	return err
 }

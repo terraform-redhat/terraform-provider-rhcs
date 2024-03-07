@@ -85,7 +85,7 @@ func (ca *ClusterAutoscalerService) Init(manifestDirs ...string) error {
 func (ca *ClusterAutoscalerService) Apply(createArgs *ClusterAutoscalerArgs, recordtfargs bool, extraArgs ...string) (string, error) {
 	ca.CreationArgs = createArgs
 	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	output, err := runTerraformApplyWithArgs(ca.Context, ca.ManifestDir, args)
+	output, err := runTerraformApply(ca.Context, ca.ManifestDir, args...)
 	if err == nil && recordtfargs {
 		recordTFvarsFile(ca.ManifestDir, tfvars)
 	}
@@ -95,7 +95,7 @@ func (ca *ClusterAutoscalerService) Apply(createArgs *ClusterAutoscalerArgs, rec
 func (ca *ClusterAutoscalerService) Plan(createArgs *ClusterAutoscalerArgs, extraArgs ...string) (string, error) {
 	ca.CreationArgs = createArgs
 	args, _ := combineStructArgs(createArgs, extraArgs...)
-	output, err := runTerraformPlanWithArgs(ca.Context, ca.ManifestDir, args)
+	output, err := runTerraformPlan(ca.Context, ca.ManifestDir, args...)
 	return output, err
 }
 
@@ -144,7 +144,7 @@ func (ca *ClusterAutoscalerService) Destroy(createArgs ...*ClusterAutoscalerArgs
 	}
 	args, _ := combineStructArgs(destroyArgs)
 
-	return runTerraformDestroyWithArgs(ca.Context, ca.ManifestDir, args)
+	return runTerraformDestroy(ca.Context, ca.ManifestDir, args...)
 }
 
 func NewClusterAutoscalerService(manifestDir ...string) *ClusterAutoscalerService {

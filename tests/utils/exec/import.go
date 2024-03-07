@@ -57,7 +57,7 @@ func (importService *ImportService) Import(importArgs *ImportArgs, extraArgs ...
 	args := combineImportStructArgs(importArgs)
 	args = append(args, extraArgs...)
 
-	_, err := runTerraformImportWithArgs(importService.Context, importService.ManifestDir, args)
+	_, err := runTerraformImport(importService.Context, importService.ManifestDir, args...)
 	if err != nil {
 		return fmt.Errorf("import failed: %w", err)
 	}
@@ -74,5 +74,5 @@ func (importService *ImportService) Destroy(createArgs ...*ImportArgs) (output s
 	if importService.CreationArgs == nil && len(createArgs) == 0 {
 		return "", fmt.Errorf("unset destroy args, set them in the object or pass as parameters")
 	}
-	return runTerraformDestroyWithoutArgs(importService.Context, importService.ManifestDir)
+	return runTerraformDestroy(importService.Context, importService.ManifestDir)
 }

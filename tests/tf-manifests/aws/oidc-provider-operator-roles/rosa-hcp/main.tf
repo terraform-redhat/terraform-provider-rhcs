@@ -35,15 +35,16 @@ data "aws_caller_identity" "current" {}
 ###########################################################################
 
 locals {
-  path    = coalesce(var.path, "/")
-  managed = var.oidc_config == "managed"
+  path               = coalesce(var.path, "/")
+  managed            = var.oidc_config == "managed"
+  installer_role_arn = local.managed ? null : "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${var.account_role_prefix}-HCP-ROSA-Installer-Role"
 }
 
 resource "rhcs_rosa_oidc_config" "oidc_config" {
   managed            = local.managed
   secret_arn         = local.managed ? null : module.aws_secrets_manager[0].secret_arn
   issuer_url         = local.managed ? null : rhcs_rosa_oidc_config_input.oidc_input[0].issuer_url
-  installer_role_arn = var.installer_role_arn
+  installer_role_arn = local.installer_role_arn
 }
 
 resource "aws_iam_openid_connect_provider" "oidc_provider" {
@@ -163,7 +164,7 @@ resource "time_sleep" "wait_10_seconds" {
 resource "null_resource" "unmanaged_vars_validation" {
   lifecycle {
     precondition {
-      condition = (local.managed == false && var.installer_role_arn != null) || (local.managed != false && var.installer_role_arn == null)
+      condition = (local.managed == false && local.installer_role_arn != null) || (local.managed != false && local.installer_role_arn == null)
       error_message = local.managed == true ? (
         "\"installer_role_arn\" variable should not contain a value when using a managed OIDC provider."
         ) : (

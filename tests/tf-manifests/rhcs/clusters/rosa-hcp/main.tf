@@ -66,9 +66,6 @@ resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
   sts      = local.sts_roles
   replicas = var.replicas
   proxy    = var.proxy
-  # autoscaling_enabled                             = var.autoscaling.autoscaling_enabled
-  # min_replicas                                    = var.autoscaling.min_replicas
-  # max_replicas                                    = var.autoscaling.max_replicas
   aws_subnet_ids               = var.aws_subnet_ids
   private                      = var.private
   compute_machine_type         = var.compute_machine_type

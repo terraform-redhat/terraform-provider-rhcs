@@ -95,7 +95,7 @@ var _ = Describe("TF Test", func() {
 		})
 		Context("Author:smiron-High-OCP-63133 @OCP-63133 @smiron", func() {
 			It("Verify private_link is enabled/disabled post cluster creation", ci.Day1Post, ci.High, func() {
-				Expect(cluster.AWS().PrivateLink()).To(Equal(profile.PrivateLink))
+				Expect(cluster.AWS().PrivateLink()).To(Equal(profile.IsPrivateLink()))
 			})
 		})
 		Context("Author:smiron-High-OCP-63143 @OCP-63143 @smiron", func() {

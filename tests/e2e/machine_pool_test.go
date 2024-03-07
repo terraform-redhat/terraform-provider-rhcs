@@ -17,7 +17,7 @@ import (
 )
 
 var _ = Describe("TF Test", func() {
-	Describe("Create MachinePool test cases", func() {
+	Describe("Create MachinePool test cases", ci.NonHCPCluster, func() {
 		var mpService *exe.MachinePoolService
 		var profile *ci.Profile
 
@@ -30,7 +30,7 @@ var _ = Describe("TF Test", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 		Context("Author:amalykhi-High-OCP-64757 @OCP-64757 @amalykhi", func() {
-			It("Author:amalykhi-High-OCP-64757 Create a second machine pool", ci.Day2, ci.High, ci.NonHCPCluster, ci.FeatureMachinepool, func() {
+			It("Author:amalykhi-High-OCP-64757 Create a second machine pool", ci.Day2, ci.High, ci.FeatureMachinepool, func() {
 				By("Create a second machine pool")
 				replicas := 3
 				machineType := "r5.xlarge"
@@ -59,7 +59,7 @@ var _ = Describe("TF Test", func() {
 		})
 		// Will fail with known issue OCM-5285
 		Context("Author:amalykhi-High-OCP-64905 @OCP-64905 @amalykhi", func() {
-			It("Author:amalykhi-High-OCP-64905 Edit/delete second machinepool labels", ci.Day2, ci.High, ci.NonHCPCluster, ci.FeatureMachinepool, ci.Exclude, func() {
+			It("Author:amalykhi-High-OCP-64905 Edit/delete second machinepool labels", ci.Day2, ci.High, ci.FeatureMachinepool, ci.Exclude, func() {
 				By("Create additional machinepool with labels")
 				replicas := 3
 				machineType := "r5.xlarge"
@@ -104,7 +104,7 @@ var _ = Describe("TF Test", func() {
 			})
 		})
 		Context("Author:amalykhi-Critical-OCP-68296 @OCP-68296 @amalykhi", func() {
-			It("Author:amalykhi-Critical-OCP-68296 Enable/disable/update autoscaling for additional machinepool", ci.Day2, ci.Critical, ci.NonHCPCluster, ci.FeatureMachinepool, func() {
+			It("Author:amalykhi-Critical-OCP-68296 Enable/disable/update autoscaling for additional machinepool", ci.Day2, ci.Critical, ci.FeatureMachinepool, func() {
 				By("Create additional machinepool with autoscaling")
 				replicas := 9
 				minReplicas := 3
@@ -160,7 +160,7 @@ var _ = Describe("TF Test", func() {
 			})
 		})
 		Context("Author:amalykhi-High-OCP-64904 @ocp-64904 @amalykhi", func() {
-			It("Author:amalykhi-High-OCP-64904 Edit second machinepool taints", ci.Day2, ci.High, ci.NonHCPCluster, ci.FeatureMachinepool, func() {
+			It("Author:amalykhi-High-OCP-64904 Edit second machinepool taints", ci.Day2, ci.High, ci.FeatureMachinepool, func() {
 				By("Create additional machinepool with labels")
 				replicas := 3
 				machineType := "r5.xlarge"
@@ -223,7 +223,7 @@ var _ = Describe("TF Test", func() {
 			})
 		})
 		Context("Author:amalykhi-High-OCP-68283 @OCP-68283 @amalykhi", func() {
-			It("Author:amalykhi-High-OCP-68283 Check the validations for the machinepool creation rosa clusters", ci.Day2, ci.High, ci.NonHCPCluster, ci.FeatureMachinepool, func() {
+			It("Author:amalykhi-High-OCP-68283 Check the validations for the machinepool creation rosa clusters", ci.Day2, ci.High, ci.FeatureMachinepool, func() {
 				By("Check the validations for the machinepool creation rosa cluster")
 				var (
 					machinepoolName                                                                                                           = "ocp-68283"
@@ -334,7 +334,7 @@ var _ = Describe("TF Test", func() {
 			})
 		})
 		Context("Author:amalykhi-High-OCP-65063 @OCP-65063 @amalykhi", func() {
-			It("Author:amalykhi-High-OCP-65063 Create single-az machinepool for multi-az cluster", ci.Day2, ci.High, ci.NonHCPCluster, ci.FeatureMachinepool, func() {
+			It("Author:amalykhi-High-OCP-65063 Create single-az machinepool for multi-az cluster", ci.Day2, ci.High, ci.FeatureMachinepool, func() {
 				if !profile.MultiAZ {
 					Skip("The test is configured for MultiAZ cluster only")
 				}
@@ -404,13 +404,13 @@ var _ = Describe("TF Test", func() {
 			})
 		})
 		Context("Author:amalykhi-High-OCP-65071 @OCP-65071 @amalykhi", func() {
-			It("Author:amalykhi-High-OCP-65071 subnet_id option is available for machinepool for BYO VPC single-az cluster", ci.Day2, ci.High, ci.NonHCPCluster, ci.FeatureMachinepool, func() {
+			It("Author:amalykhi-High-OCP-65071 subnet_id option is available for machinepool for BYO VPC single-az cluster", ci.Day2, ci.High, ci.FeatureMachinepool, func() {
 				if profile.MultiAZ || !profile.BYOVPC {
 					Skip("The test is configured for SingleAZ BYO VPC cluster only")
 				}
 				getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
 				var zones []string
-				vpcOutput, err := ci.PrepareVPC(profile.Region, false, true, zones, profile.GetClusterType(), getResp.Body().Name(), "")
+				vpcOutput, err := ci.PrepareVPC(profile.Region, true, zones, profile.GetClusterType(), getResp.Body().Name(), "")
 
 				By("Tag new subnet to be able to apply it to the machinepool")
 				VpcTagService := exe.NewVPCTagService()
@@ -454,7 +454,7 @@ var _ = Describe("TF Test", func() {
 			})
 		})
 		Context("Author:xueli-High-OCP-69144 @OCP-69144 @xueli", func() {
-			It("Author:xueli-High-OCP-69144 Create machinepool with disk size will work via terraform provider", ci.Day2, ci.High, ci.NonHCPCluster, ci.FeatureMachinepool, func() {
+			It("Author:xueli-High-OCP-69144 Create machinepool with disk size will work via terraform provider", ci.Day2, ci.High, ci.FeatureMachinepool, func() {
 				By("Create additional machinepool with disk size specified")
 				replicas := 3
 				machineType := "r5.xlarge"
@@ -518,7 +518,7 @@ var _ = Describe("TF Test", func() {
 			})
 		})
 		Context("Author:xueli-High-OCP-69146 @OCP-69146 @xueli", func() {
-			It("Author:xueli-High-OCP-69146 Create machinepool with additional security group set will work via terraform provider", ci.Day2, ci.High, ci.NonHCPCluster, ci.FeatureMachinepool, func() {
+			It("Author:xueli-High-OCP-69146 Create machinepool with additional security group set will work via terraform provider", ci.Day2, ci.High, ci.FeatureMachinepool, func() {
 				By("")
 				if !profile.BYOVPC {
 					Skip("This case only works for BYOVPC cluster profile")
@@ -616,7 +616,7 @@ var _ = Describe("TF Test", func() {
 			})
 		})
 		Context("Author:amalykhi-Medium-OCP-65645 @ocp-65645 @amalykhi", func() {
-			It("Author:amalykhi-Medium-OCP-65645 MP reconciliation basic flow", ci.Day2, ci.Medium, ci.NonHCPCluster, ci.FeatureMachinepool, func() {
+			It("Author:amalykhi-Medium-OCP-65645 MP reconciliation basic flow", ci.Day2, ci.Medium, ci.FeatureMachinepool, func() {
 				By("Create additional machinepool with taints")
 				replicas := 3
 				machineType := "r5.xlarge"
@@ -678,7 +678,7 @@ var _ = Describe("TF Test", func() {
 
 		Context("Author:prabinov-Medium-OCP-66403 @OCP-66403 @prabinov", func() {
 			It("OCP-66403 - rhcs_machinepool resource can be imported by the terraform import command",
-				ci.Day2, ci.Medium, ci.NonHCPCluster, ci.FeatureMachinepool, ci.FeatureImport, func() {
+				ci.Day2, ci.Medium, ci.FeatureMachinepool, ci.FeatureImport, func() {
 					By("Create additional machinepool for import")
 					minReplicas := 3
 					maxReplicas := 6
@@ -768,7 +768,7 @@ var _ = Describe("TF Test, default machinepool day-2 testing", func() {
 		})
 
 		Context("Author:yuwan-Critical-OCP-69073 @OCP-69073 @yuwan", func() {
-			It("Author:yuwan-High-OCP-69073 Check the validations and some negative scenarios of creating/editing/deleting default machinepool via terraform", ci.Day2, ci.Medium, ci.NonHCPCluster, ci.FeatureMachinepool, func() {
+			It("Author:yuwan-High-OCP-69073 Check the validations and some negative scenarios of creating/editing/deleting default machinepool via terraform", ci.Day2, ci.Medium, ci.FeatureMachinepool, func() {
 				dmpArgFromMachinepoolForTesting := originalDefaultMachinepoolArgs
 				By("Create machinepool with the default machinepool name 'worker' when it does exist")
 				output, err := dmpService.Apply(&originalDefaultMachinepoolArgs, false)
@@ -815,7 +815,7 @@ var _ = Describe("TF Test, default machinepool day-2 testing", func() {
 
 		Context("Author:yuwan-Critical-OCP-69009 @OCP-69009 @yuwan", func() {
 			It("Author:yuwan-High-OCP-69009 Check the default machinepool creation with the cluster and edit/delete it via terraform",
-				ci.Day2, ci.Critical, ci.NonHCPCluster, ci.FeatureMachinepool, ci.Exclude,
+				ci.Day2, ci.Critical, ci.FeatureMachinepool, ci.Exclude,
 				func() {
 					taint0 := map[string]string{"key": "k1", "value": "val", "schedule_type": con.NoExecute}
 					taint1 := map[string]string{"key": "k2", "value": "val2", "schedule_type": con.NoSchedule}
@@ -937,7 +937,7 @@ var _ = Describe("TF Test, day-3 default machinepool testing", func() {
 		})
 
 		Context("Author:yuwan-Critical-OCP-69727 @OCP-69727 @yuwan", func() {
-			It("Author:yuwan-High-OCP-69727 Check the default machinepool edit/delete operations with additional mp exists it via terraform", ci.Day3, ci.Critical, ci.NonHCPCluster, ci.FeatureMachinepool, func() {
+			It("Author:yuwan-High-OCP-69727 Check the default machinepool edit/delete operations with additional mp exists it via terraform", ci.Day3, ci.Critical, ci.FeatureMachinepool, func() {
 				By("Destroy default machinepool without additional machinepool existing")
 				resp, err := cms.ListMachinePool(ci.RHCSConnection, clusterID)
 				Expect(err).ToNot(HaveOccurred())

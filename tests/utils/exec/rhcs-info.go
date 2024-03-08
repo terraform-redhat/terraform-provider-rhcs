@@ -1,7 +1,6 @@
 package exec
 
 import (
-	"context"
 	"fmt"
 
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
@@ -14,58 +13,39 @@ type RhcsInfoArgs struct {
 }
 
 type RhcsInfoService struct {
-	CreationArgs *RhcsInfoArgs
-	ManifestDir  string
-	Context      context.Context
+	tfExec      TerraformExec
+	ManifestDir string
 }
 
-func (rhcsInfo *RhcsInfoService) Init(manifestDirs ...string) error {
-	rhcsInfo.ManifestDir = CON.DNSDir
-	if len(manifestDirs) != 0 {
-		rhcsInfo.ManifestDir = manifestDirs[0]
+func newRhcsInfoService(clusterType CON.ClusterType, tfExec TerraformExec) (*RhcsInfoService, error) {
+	rhcsInfo := &RhcsInfoService{
+		ManifestDir: GetRhcsInfoManifestDir(clusterType),
+		tfExec:      tfExec,
 	}
-	ctx := context.TODO()
-	rhcsInfo.Context = ctx
-	err := runTerraformInit(ctx, rhcsInfo.ManifestDir)
+	err := rhcsInfo.Init()
+	return rhcsInfo, err
+}
+
+func (rhcsInfo *RhcsInfoService) Init() error {
+	return rhcsInfo.tfExec.RunTerraformInit(rhcsInfo.ManifestDir)
+}
+
+func (rhcsInfo *RhcsInfoService) Apply(createArgs *RhcsInfoArgs) (output string, err error) {
+	var tfVars *TFVars
+	tfVars, err = NewTFArgs(createArgs)
 	if err != nil {
-		return err
+		return
 	}
-	return nil
-
+	output, err = rhcsInfo.tfExec.RunTerraformApply(rhcsInfo.ManifestDir, tfVars)
+	return
 }
 
-func (rhcsInfo *RhcsInfoService) Create(createArgs *RhcsInfoArgs, extraArgs ...string) error {
-	rhcsInfo.CreationArgs = createArgs
-	args, _ := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApply(rhcsInfo.Context, rhcsInfo.ManifestDir, args...)
-	if err != nil {
-		return err
-	}
-	return nil
+func (rhcsInfo *RhcsInfoService) Destroy(deleteTFVars bool) (string, error) {
+	return rhcsInfo.tfExec.RunTerraformDestroy(rhcsInfo.ManifestDir, deleteTFVars)
 }
 
-func (rhcsInfo *RhcsInfoService) Destroy(createArgs ...*RhcsInfoArgs) error {
-	if rhcsInfo.CreationArgs == nil && len(createArgs) == 0 {
-		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
-	}
-	destroyArgs := rhcsInfo.CreationArgs
-	if len(createArgs) != 0 {
-		destroyArgs = createArgs[0]
-	}
-	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroy(rhcsInfo.Context, rhcsInfo.ManifestDir, args...)
-
-	return err
-}
-
-func (rhcsInfoService *RhcsInfoService) ShowState(rhcsInfoArgs *RhcsInfoArgs) (string, error) {
+func (rhcsInfoService *RhcsInfoService) ShowState(rhcsInfoArgs *RhcsInfoArgs) (output string, err error) {
 	args := fmt.Sprintf("data.%s.%s", rhcsInfoArgs.ResourceKind, rhcsInfoArgs.ResourceName)
-	output, err := runTerraformState(rhcsInfoService.ManifestDir, "show", args)
-	return output, err
-}
-
-func NewRhcsInfoService(manifestDir ...string) *RhcsInfoService {
-	rhcsInfo := &RhcsInfoService{}
-	rhcsInfo.Init(manifestDir...)
-	return rhcsInfo
+	output, err = rhcsInfoService.tfExec.RunTerraformState(rhcsInfoService.ManifestDir, "show", args)
+	return
 }

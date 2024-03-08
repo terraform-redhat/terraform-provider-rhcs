@@ -1,10 +1,9 @@
 package exec
 
 import (
-	"context"
 	"fmt"
 
-	con "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 )
 
 type ImportArgs struct {
@@ -15,29 +14,26 @@ type ImportArgs struct {
 	ObjectName   string `json:"obj_name,omitempty"`
 }
 
+func (args *ImportArgs) appendURL() {
+	args.URL = CON.GateWayURL
+}
+
 type ImportService struct {
-	CreationArgs *ImportArgs
-	ManifestDir  string
-	Context      context.Context
+	tfExec      TerraformExec
+	ManifestDir string
 }
 
-func (importTF *ImportService) InitImport(manifestDirs ...string) error {
-	importTF.ManifestDir = con.ImportResourceDir
-	if len(manifestDirs) > 0 {
-		importTF.ManifestDir = manifestDirs[0]
+func newImportService(clusterType CON.ClusterType, tfExec TerraformExec) (*ImportService, error) {
+	importTF := &ImportService{
+		ManifestDir: GetImportManifestDir(clusterType),
+		tfExec:      tfExec,
 	}
-
-	importTF.Context = context.TODO()
-	return runTerraformInit(importTF.Context, importTF.ManifestDir)
+	err := importTF.Init()
+	return importTF, err
 }
 
-func NewImportService(manifestDir ...string) *ImportService {
-	importTF := &ImportService{}
-	if err := importTF.InitImport(manifestDir...); err != nil {
-		// handle the error as needed
-		panic(fmt.Sprintf("Failed to initialize ImportService: %v", err))
-	}
-	return importTF
+func (is *ImportService) Init() error {
+	return is.tfExec.RunTerraformInit(is.ManifestDir)
 }
 
 func combineImportStructArgs(importObj *ImportArgs) []string {
@@ -50,29 +46,39 @@ func combineImportStructArgs(importObj *ImportArgs) []string {
 	return []string{baseArgs, importObj.ClusterID}
 }
 
-func (importService *ImportService) Import(importArgs *ImportArgs, extraArgs ...string) error {
-	importArgs.URL = con.GateWayURL
-	importService.CreationArgs = importArgs
-
-	args := combineImportStructArgs(importArgs)
-	args = append(args, extraArgs...)
-
-	_, err := runTerraformImport(importService.Context, importService.ManifestDir, args...)
-	if err != nil {
-		return fmt.Errorf("import failed: %w", err)
-	}
-	return nil
+func getResourceFullName(importArgs *ImportArgs) string {
+	return fmt.Sprintf("%s.%s", importArgs.ResourceKind, importArgs.ResourceName)
 }
 
-func (importService *ImportService) ShowState(importArgs *ImportArgs) (string, error) {
+func (is *ImportService) Import(importArgs *ImportArgs) (output string, err error) {
+	importArgs.appendURL()
+
+	resourceFullName := getResourceFullName(importArgs)
+	var args []string
+	if importArgs.ResourceKind != "rhcs_cluster_rosa_classic" {
+		args = []string{resourceFullName, fmt.Sprintf("%s,%s", importArgs.ClusterID, importArgs.ObjectName)}
+	} else {
+		args = []string{resourceFullName, importArgs.ClusterID}
+	}
+
+	output, err = is.tfExec.RunTerraformImport(is.ManifestDir, args...)
+	return
+}
+
+func (is *ImportService) ShowState(importArgs *ImportArgs) (output string, err error) {
 	args := fmt.Sprintf("%s.%s", importArgs.ResourceKind, importArgs.ResourceName)
-	output, err := runTerraformState(importService.ManifestDir, "show", args)
-	return output, err
+	output, err = is.tfExec.RunTerraformState(is.ManifestDir, "show", args)
+	return
 }
 
-func (importService *ImportService) Destroy(createArgs ...*ImportArgs) (output string, err error) {
-	if importService.CreationArgs == nil && len(createArgs) == 0 {
-		return "", fmt.Errorf("unset destroy args, set them in the object or pass as parameters")
-	}
-	return runTerraformDestroy(importService.Context, importService.ManifestDir)
+func (is *ImportService) RemoveState(importArgs *ImportArgs) (output string, err error) {
+	importArgs.appendURL()
+
+	resourceFullName := getResourceFullName(importArgs)
+	output, err = is.tfExec.RunTerraformState(is.ManifestDir, "rm", resourceFullName)
+	return
+}
+
+func (is *ImportService) Destroy(deleteTFVars bool) (output string, err error) {
+	return is.tfExec.RunTerraformDestroy(is.ManifestDir, deleteTFVars)
 }

@@ -88,17 +88,6 @@ func gatewayURL() (url string, ocmENV string) {
 
 var GateWayURL, OCMENV = gatewayURL()
 
-func GetEnvWithDefault(key string, defaultValue string) string {
-	if value, ok := os.LookupEnv(key); ok {
-		return value
-	} else {
-		if key == TokenENVName {
-			panic(fmt.Errorf("ENV Variable RHCS_TOKEN is empty, please make sure you set the env value"))
-		}
-	}
-	return defaultValue
-}
-
 func GetRHCSOutputDir() string {
 	var rhcsNewOutPath string
 
@@ -118,4 +107,13 @@ func GetKubeConfigDir() string {
 		os.MkdirAll(configDir, 0777)
 	}
 	return configDir
+}
+
+func GetClusterAdminPassword() string {
+	path := fmt.Sprintf(path.Join(GetRHCSOutputDir(), ClusterAdminUser))
+	b, err := os.ReadFile(path)
+	if err != nil {
+		fmt.Print(err)
+	}
+	return string(b)
 }

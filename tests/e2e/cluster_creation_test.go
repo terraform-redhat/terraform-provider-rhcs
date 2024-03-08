@@ -12,7 +12,6 @@ var _ = Describe("RHCS Provider Test", func() {
 	Describe("Create cluster test", func() {
 		It("CreateClusterByProfile", CI.Day1Prepare,
 			func() {
-
 				// Generate/build cluster by profile selected
 				profile := CI.LoadProfileYamlFileByENV()
 				clusterID, err := CI.CreateRHCSClusterByProfile(token, profile)

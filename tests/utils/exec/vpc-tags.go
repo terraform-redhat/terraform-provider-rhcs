@@ -1,9 +1,6 @@
 package exec
 
 import (
-	"context"
-	"fmt"
-
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 )
 
@@ -15,56 +12,34 @@ type VPCTagArgs struct {
 }
 
 type VPCTagService struct {
-	CreationArgs *VPCTagArgs
-	ManifestDir  string
-	Context      context.Context
+	tfExec      TerraformExec
+	ManifestDir string
 }
 
-func (vpctag *VPCTagService) Init(manifestDirs ...string) error {
-	vpctag.ManifestDir = CON.AWSVPCTagDir
-	if len(manifestDirs) != 0 {
-		vpctag.ManifestDir = manifestDirs[0]
+func newVPCTagService(clusterType CON.ClusterType, tfExec TerraformExec) (*VPCTagService, error) {
+	vpctag := &VPCTagService{
+		ManifestDir: GetVpcTagManifestDir(clusterType),
+		tfExec:      tfExec,
 	}
-	ctx := context.TODO()
-	vpctag.Context = ctx
-	err := runTerraformInit(ctx, vpctag.ManifestDir)
+	err := vpctag.Init()
+	return vpctag, err
+}
+
+func (vpctag *VPCTagService) Init() error {
+	return vpctag.tfExec.RunTerraformInit(vpctag.ManifestDir)
+
+}
+
+func (vpctag *VPCTagService) Apply(createArgs *VPCTagArgs) (output string, err error) {
+	var tfVars *TFVars
+	tfVars, err = NewTFArgs(createArgs)
 	if err != nil {
-		return err
+		return
 	}
-	return nil
-
+	output, err = vpctag.tfExec.RunTerraformApply(vpctag.ManifestDir, tfVars)
+	return
 }
 
-func (vpctag *VPCTagService) Apply(createArgs *VPCTagArgs, recordtfvars bool, extraArgs ...string) error {
-	vpctag.CreationArgs = createArgs
-	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApply(vpctag.Context, vpctag.ManifestDir, args...)
-	if err != nil {
-		return err
-	}
-	if recordtfvars {
-		recordTFvarsFile(vpctag.ManifestDir, tfvars)
-	}
-
-	return nil
-}
-
-func (vpctag *VPCTagService) Destroy(createArgs ...*VPCTagArgs) error {
-	if vpctag.CreationArgs == nil && len(createArgs) == 0 {
-		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
-	}
-	destroyArgs := vpctag.CreationArgs
-	if len(createArgs) != 0 {
-		destroyArgs = createArgs[0]
-	}
-	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroy(vpctag.Context, vpctag.ManifestDir, args...)
-
-	return err
-}
-
-func NewVPCTagService(manifestDir ...string) *VPCTagService {
-	vpctag := &VPCTagService{}
-	vpctag.Init(manifestDir...)
-	return vpctag
+func (vpctag *VPCTagService) Destroy(deleteTFVars bool) (string, error) {
+	return vpctag.tfExec.RunTerraformDestroy(vpctag.ManifestDir, deleteTFVars)
 }

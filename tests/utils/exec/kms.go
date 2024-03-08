@@ -1,9 +1,6 @@
 package exec
 
 import (
-	"context"
-	"fmt"
-
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
@@ -24,73 +21,46 @@ type KMSOutput struct {
 }
 
 type KMSService struct {
-	CreationArgs *KMSArgs
-	ManifestDir  string
-	Context      context.Context
+	tfExec      TerraformExec
+	ManifestDir string
 }
 
-func (kms *KMSService) Init(manifestDirs ...string) error {
-	kms.ManifestDir = CON.KMSDir
-	if len(manifestDirs) != 0 {
-		kms.ManifestDir = manifestDirs[0]
+func newKMSService(clusterType CON.ClusterType, tfExec TerraformExec) (*KMSService, error) {
+	kms := &KMSService{
+		ManifestDir: GetKmsManifestDir(clusterType),
+		tfExec:      tfExec,
 	}
-	ctx := context.TODO()
-	kms.Context = ctx
-	err := runTerraformInit(ctx, kms.ManifestDir)
-	if err != nil {
-		return err
-	}
-	return nil
+	err := kms.Init()
+	return kms, err
+}
+
+func (kms *KMSService) Init() error {
+	return kms.tfExec.RunTerraformInit(kms.ManifestDir)
 
 }
 
-func (kms *KMSService) Apply(createArgs *KMSArgs, recordtfvars bool, extraArgs ...string) error {
-	kms.CreationArgs = createArgs
-	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApply(kms.Context, kms.ManifestDir, args...)
+func (kms *KMSService) Apply(createArgs *KMSArgs) (output string, err error) {
+	var tfVars *TFVars
+	tfVars, err = NewTFArgs(createArgs)
 	if err != nil {
-		return err
+		return
 	}
-	if recordtfvars {
-		recordTFvarsFile(kms.ManifestDir, tfvars)
-	}
-
-	return nil
+	output, err = kms.tfExec.RunTerraformApply(kms.ManifestDir, tfVars)
+	return
 }
 
-func (kms *KMSService) Output() (KMSOutput, error) {
-	kmsDir := CON.KMSDir
-	if kms.ManifestDir != "" {
-		kmsDir = kms.ManifestDir
-	}
-	var kmsOutput KMSOutput
-	out, err := runTerraformOutput(context.TODO(), kmsDir)
+func (kms *KMSService) Output() (*KMSOutput, error) {
+	out, err := kms.tfExec.RunTerraformOutput(kms.ManifestDir)
 	if err != nil {
-		return kmsOutput, err
+		return nil, err
 	}
-	kmsOutput = KMSOutput{
+	kmsOutput := &KMSOutput{
 		KeyARN: h.DigString(out["arn"], "value"),
 	}
 
 	return kmsOutput, nil
 }
 
-func (kms *KMSService) Destroy(createArgs ...*KMSArgs) error {
-	if kms.CreationArgs == nil && len(createArgs) == 0 {
-		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
-	}
-	destroyArgs := kms.CreationArgs
-	if len(createArgs) != 0 {
-		destroyArgs = createArgs[0]
-	}
-	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroy(kms.Context, kms.ManifestDir, args...)
-
-	return err
-}
-
-func NewKMSService(manifestDir ...string) (*KMSService, error) {
-	kms := &KMSService{}
-	err := kms.Init(manifestDir...)
-	return kms, err
+func (kms *KMSService) Destroy(deleteTFVars bool) (string, error) {
+	return kms.tfExec.RunTerraformDestroy(kms.ManifestDir, deleteTFVars)
 }

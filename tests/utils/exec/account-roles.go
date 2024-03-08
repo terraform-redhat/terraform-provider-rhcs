@@ -1,9 +1,6 @@
 package exec
 
 import (
-	"context"
-	"fmt"
-
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
@@ -18,6 +15,11 @@ type AccountRolesArgs struct {
 	SharedVpcRoleArn    string `json:"shared_vpc_role_arn,omitempty"`
 }
 
+func (args *AccountRolesArgs) appendURLAndENV() {
+	args.URL = CON.GateWayURL
+	args.OCMENV = CON.OCMENV
+}
+
 type AccountRolesOutput struct {
 	AccountRolePrefix string        `json:"account_role_prefix,omitempty"`
 	MajorVersion      string        `json:"major_version,omitempty"`
@@ -29,44 +31,37 @@ type AccountRolesOutput struct {
 }
 
 type AccountRoleService struct {
-	CreationArgs *AccountRolesArgs
-	ManifestDir  string
-	Context      context.Context
+	tfExec      TerraformExec
+	ManifestDir string
 }
 
-func (acc *AccountRoleService) Init(manifestDirs ...string) error {
-	acc.ManifestDir = CON.AccountRolesClassicDir
-	if len(manifestDirs) != 0 {
-		acc.ManifestDir = manifestDirs[0]
+func newAccountRoleService(clusterType CON.ClusterType, tfExec TerraformExec) (*AccountRoleService, error) {
+	ars := &AccountRoleService{
+		ManifestDir: GetAccountRoleManifestDir(clusterType),
+		tfExec:      tfExec,
 	}
-	ctx := context.TODO()
-	acc.Context = ctx
-	err := runTerraformInit(ctx, acc.ManifestDir)
+	err := ars.Init()
+	return ars, err
+}
+
+func (ars *AccountRoleService) Init() error {
+	return ars.tfExec.RunTerraformInit(ars.ManifestDir)
+}
+
+func (ars *AccountRoleService) Apply(createArgs *AccountRolesArgs, recordtfvars bool) (output string, err error) {
+	createArgs.appendURLAndENV()
+
+	var tfVars *TFVars
+	tfVars, err = NewTFArgs(createArgs)
 	if err != nil {
-		return err
+		return
 	}
-	return nil
-
+	output, err = ars.tfExec.RunTerraformApply(ars.ManifestDir, tfVars)
+	return
 }
 
-func (acc *AccountRoleService) Apply(createArgs *AccountRolesArgs, recordtfvars bool, extraArgs ...string) (*AccountRolesOutput, error) {
-	createArgs.URL = CON.GateWayURL
-	createArgs.OCMENV = CON.OCMENV
-	acc.CreationArgs = createArgs
-	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApply(acc.Context, acc.ManifestDir, args...)
-	if err != nil {
-		return nil, err
-	}
-	if recordtfvars {
-		recordTFvarsFile(acc.ManifestDir, tfvars)
-	}
-	output, err := acc.Output()
-	return output, err
-}
-
-func (acc *AccountRoleService) Output() (*AccountRolesOutput, error) {
-	out, err := runTerraformOutput(acc.Context, acc.ManifestDir)
+func (ars *AccountRoleService) Output() (*AccountRolesOutput, error) {
+	out, err := ars.tfExec.RunTerraformOutput(ars.ManifestDir)
 	if err != nil {
 		return nil, err
 	}
@@ -82,23 +77,6 @@ func (acc *AccountRoleService) Output() (*AccountRolesOutput, error) {
 	return accOutput, nil
 }
 
-func (acc *AccountRoleService) Destroy(createArgs ...*AccountRolesArgs) error {
-	if acc.CreationArgs == nil && len(createArgs) == 0 {
-		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
-	}
-	destroyArgs := acc.CreationArgs
-	if len(createArgs) != 0 {
-		destroyArgs = createArgs[0]
-	}
-	destroyArgs.URL = CON.GateWayURL
-	destroyArgs.OCMENV = CON.OCMENV
-	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroy(acc.Context, acc.ManifestDir, args...)
-	return err
-}
-
-func NewAccountRoleService(manifestDir ...string) (*AccountRoleService, error) {
-	acc := &AccountRoleService{}
-	err := acc.Init(manifestDir...)
-	return acc, err
+func (ars *AccountRoleService) Destroy(deleteTFVars bool) (output string, err error) {
+	return ars.tfExec.RunTerraformDestroy(ars.ManifestDir, deleteTFVars)
 }

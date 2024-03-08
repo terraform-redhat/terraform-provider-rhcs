@@ -20,6 +20,8 @@ import (
 
 var _ = Describe("TF Test", func() {
 	Describe("Identity Providers test cases", func() {
+		var err error
+		var tfExecHelper *exe.TerraformExecHelper
 
 		// all identity providers - declared for future cases
 		type IDPServices struct {
@@ -29,13 +31,11 @@ var _ = Describe("TF Test", func() {
 			google,
 			ldap,
 			multi_idp,
-			openid exe.IDPService
+			openid *exe.IDPService
 		}
 
-		var profile *ci.Profile
-
-		var idpService IDPServices
-		var importService exe.ImportService
+		var idpServices IDPServices
+		var importService *exe.ImportService
 		var htpasswdMap = []interface{}{map[string]string{}}
 
 		var userName, password,
@@ -43,7 +43,8 @@ var _ = Describe("TF Test", func() {
 			gitlabIDPClientSecret, gitlabIDPClientId,
 			githubIDPClientSecret, githubIDPClientId string
 		BeforeEach(func() {
-			profile = ci.LoadProfileYamlFileByENV()
+			tfExecHelper, err = ci.GetTerraformExecHelperForProfile(profile)
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		Describe("IDP Positive scenario test cases", func() {
@@ -53,11 +54,12 @@ var _ = Describe("TF Test", func() {
 					userName = "jacko"
 					password = h.GenerateRandomStringWithSymbols(15)
 					htpasswdMap = []interface{}{map[string]string{"username": userName, "password": password}}
-					idpService.htpasswd = *exe.NewIDPService(CON.HtpasswdDir) // init new htpasswd service
+					idpServices.htpasswd, err = tfExecHelper.GetIDPService(CON.IDPHtpasswd) // init new htpasswd service
+					Expect(err).ToNot(HaveOccurred())
 				})
 
 				AfterEach(func() {
-					err := idpService.htpasswd.Destroy()
+					_, err := idpServices.htpasswd.Destroy(true)
 					Expect(err).ToNot(HaveOccurred())
 				})
 
@@ -72,9 +74,9 @@ var _ = Describe("TF Test", func() {
 								Name:          "OCP-63151-htpasswd-idp-test",
 								HtpasswdUsers: htpasswdMap,
 							}
-							err := idpService.htpasswd.Apply(idpParam, false)
+							_, err := idpServices.htpasswd.Apply(idpParam)
 							Expect(err).ToNot(HaveOccurred())
-							idpID, _ := idpService.htpasswd.Output()
+							idpID, _ := idpServices.htpasswd.Output()
 
 							By("List existing HtpasswdUsers and compare to the created one")
 							htpasswdUsersList, _ := cms.ListHtpasswdUsers(ci.RHCSConnection, clusterID, idpID.ID)
@@ -115,11 +117,12 @@ var _ = Describe("TF Test", func() {
 
 					userName = "newton"
 					password = "password"
-					idpService.ldap = *exe.NewIDPService(CON.LdapDir) // init new ldap service
+					idpServices.ldap, err = tfExecHelper.GetIDPService(CON.IDPLdap) // init new ldap service
+					Expect(err).ToNot(HaveOccurred())
 				})
 
 				AfterEach(func() {
-					err := idpService.ldap.Destroy()
+					_, err := idpServices.ldap.Destroy(true)
 					Expect(err).ToNot(HaveOccurred())
 				})
 
@@ -137,7 +140,7 @@ var _ = Describe("TF Test", func() {
 								Attributes: make(map[string]interface{}),
 								Insecure:   true,
 							}
-							err := idpService.ldap.Apply(idpParam, false)
+							_, err := idpServices.ldap.Apply(idpParam)
 							Expect(err).ToNot(HaveOccurred())
 
 							By("Login with created ldap idp")
@@ -171,11 +174,12 @@ var _ = Describe("TF Test", func() {
 				BeforeEach(func() {
 					gitlabIDPClientId = h.GenerateRandomStringWithSymbols(20)
 					gitlabIDPClientSecret = h.GenerateRandomStringWithSymbols(30)
-					idpService.gitlab = *exe.NewIDPService(CON.GitlabDir) // init new gitlab service
+					idpServices.gitlab, err = tfExecHelper.GetIDPService(CON.IDPGitlab) // init new gitlab service
+					Expect(err).ToNot(HaveOccurred())
 				})
 
 				AfterEach(func() {
-					err := idpService.gitlab.Destroy()
+					_, err := idpServices.gitlab.Destroy(true)
 					Expect(err).ToNot(HaveOccurred())
 				})
 
@@ -190,11 +194,11 @@ var _ = Describe("TF Test", func() {
 							ClientSecret: gitlabIDPClientSecret,
 							URL:          CON.GitLabURL,
 						}
-						err := idpService.gitlab.Apply(idpParam, false)
+						_, err := idpServices.gitlab.Apply(idpParam)
 						Expect(err).ToNot(HaveOccurred())
 
 						By("Check gitlab idp created for the cluster")
-						idpID, err := idpService.gitlab.Output()
+						idpID, err := idpServices.gitlab.Output()
 						Expect(err).ToNot(HaveOccurred())
 
 						resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID)
@@ -208,11 +212,12 @@ var _ = Describe("TF Test", func() {
 
 					githubIDPClientSecret = h.GenerateRandomStringWithSymbols(20)
 					githubIDPClientId = h.GenerateRandomStringWithSymbols(30)
-					idpService.github = *exe.NewIDPService(CON.GithubDir) // init new github service
+					idpServices.github, err = tfExecHelper.GetIDPService(CON.IDPGithub) // init new github service
+					Expect(err).ToNot(HaveOccurred())
 				})
 
 				AfterEach(func() {
-					err := idpService.github.Destroy()
+					_, err := idpServices.github.Destroy(true)
 					Expect(err).ToNot(HaveOccurred())
 				})
 
@@ -227,11 +232,11 @@ var _ = Describe("TF Test", func() {
 							ClientSecret:  githubIDPClientSecret,
 							Organizations: CON.Organizations,
 						}
-						err := idpService.github.Apply(idpParam, false)
+						_, err := idpServices.github.Apply(idpParam)
 						Expect(err).ToNot(HaveOccurred())
 
 						By("Check github idp created for the cluster")
-						idpID, err := idpService.github.Output()
+						idpID, err := idpServices.github.Output()
 						Expect(err).ToNot(HaveOccurred())
 
 						resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID)
@@ -245,11 +250,12 @@ var _ = Describe("TF Test", func() {
 
 					googleIDPClientSecret = h.GenerateRandomStringWithSymbols(20)
 					googleIDPClientId = h.GenerateRandomStringWithSymbols(30)
-					idpService.google = *exe.NewIDPService(CON.GoogleDir) // init new google service
+					idpServices.google, err = tfExecHelper.GetIDPService(CON.IDPGoogle) // init new google service
+					Expect(err).ToNot(HaveOccurred())
 				})
 
 				AfterEach(func() {
-					err := idpService.google.Destroy()
+					_, err := idpServices.google.Destroy(true)
 					Expect(err).ToNot(HaveOccurred())
 				})
 
@@ -264,11 +270,11 @@ var _ = Describe("TF Test", func() {
 							ClientSecret: googleIDPClientSecret,
 							HostedDomain: CON.HostedDomain,
 						}
-						err := idpService.google.Apply(idpParam, false)
+						_, err := idpServices.google.Apply(idpParam)
 						Expect(err).ToNot(HaveOccurred())
 
 						By("Check google idp created for the cluster")
-						idpID, err := idpService.google.Output()
+						idpID, err := idpServices.google.Output()
 						Expect(err).ToNot(HaveOccurred())
 
 						resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID)
@@ -288,8 +294,10 @@ var _ = Describe("TF Test", func() {
 					password = "password"
 					googleIDPClientSecret = h.GenerateRandomStringWithSymbols(20)
 					googleIDPClientId = h.GenerateRandomStringWithSymbols(30)
-					idpService.htpasswd = *exe.NewIDPService(CON.HtpasswdDir)  // init new htpasswd service
-					idpService.multi_idp = *exe.NewIDPService(CON.MultiIDPDir) // init multi-idp service
+					idpServices.htpasswd, err = tfExecHelper.GetIDPService(CON.IDPHtpasswd) // init new htpasswd service
+					Expect(err).ToNot(HaveOccurred())
+					idpServices.multi_idp, err = tfExecHelper.GetIDPService(CON.IDPMultiIDP) // init multi-idp service
+					Expect(err).ToNot(HaveOccurred())
 				})
 
 				Context("Author:smiron-Medium-OCP-64030 @OCP-64030 @smiron", func() {
@@ -309,7 +317,7 @@ var _ = Describe("TF Test", func() {
 							Insecure:     true,
 						}
 
-						err := idpService.multi_idp.Apply(idpParam, false)
+						_, err := idpServices.multi_idp.Apply(idpParam)
 						Expect(err).ToNot(HaveOccurred())
 
 						By("Login to the ldap user created with terraform")
@@ -339,7 +347,7 @@ var _ = Describe("TF Test", func() {
 
 						// login to the cluster using cluster-admin creds
 						username := CON.ClusterAdminUser
-						password := h.GetClusterAdminPassword()
+						password := CON.GetClusterAdminPassword()
 						Expect(password).ToNot(BeEmpty())
 
 						ocAtter = &openshift.OcAttributes{
@@ -357,7 +365,7 @@ var _ = Describe("TF Test", func() {
 						Expect(err).ToNot(HaveOccurred())
 
 						defer func() {
-							err := idpService.multi_idp.Destroy()
+							_, err := idpServices.multi_idp.Destroy(true)
 							Expect(err).ToNot(HaveOccurred())
 						}()
 					})
@@ -381,7 +389,7 @@ var _ = Describe("TF Test", func() {
 							Name:          "OCP-66408-htpasswd-multi-test",
 							HtpasswdUsers: htpasswdMap,
 						}
-						err := idpService.htpasswd.Apply(idpParam, false)
+						_, err := idpServices.htpasswd.Apply(idpParam)
 						Expect(err).ToNot(HaveOccurred())
 
 						By("Login to the cluster with one of the users created")
@@ -402,7 +410,7 @@ var _ = Describe("TF Test", func() {
 						}
 						_, err = openshift.OcLogin(*ocAtter)
 						Expect(err).ToNot(HaveOccurred())
-						idpID, _ := idpService.htpasswd.Output()
+						idpID, _ := idpServices.htpasswd.Output()
 
 						By("Delete one of the users using backend api")
 						_, err = cms.DeleteIDP(ci.RHCSConnection, clusterID, idpID.ID)
@@ -412,7 +420,7 @@ var _ = Describe("TF Test", func() {
 						time.Sleep(time.Minute * 5)
 
 						By("Re-run terraform apply on the same resources")
-						err = idpService.htpasswd.Apply(idpParam, false)
+						_, err = idpServices.htpasswd.Apply(idpParam)
 						Expect(err).ToNot(HaveOccurred())
 
 						By("Re-login terraform apply on the same resources")
@@ -434,7 +442,7 @@ var _ = Describe("TF Test", func() {
 						Expect(err).ToNot(HaveOccurred())
 
 						defer func() {
-							err = idpService.htpasswd.Destroy()
+							_, err = idpServices.htpasswd.Destroy(true)
 							Expect(err).ToNot(HaveOccurred())
 						}()
 					})
@@ -454,11 +462,16 @@ var _ = Describe("TF Test", func() {
 				googleIDPClientSecret = h.GenerateRandomStringWithSymbols(20)
 				googleIDPClientId = h.GenerateRandomStringWithSymbols(30)
 
-				idpService.htpasswd = *exe.NewIDPService(CON.HtpasswdDir) // init new htpasswd service
-				idpService.ldap = *exe.NewIDPService(CON.LdapDir)         // init new ldap service
-				idpService.github = *exe.NewIDPService(CON.GithubDir)     // init new github service
-				idpService.gitlab = *exe.NewIDPService(CON.GitlabDir)     // init new gitlab service
-				idpService.google = *exe.NewIDPService(CON.GoogleDir)     // init new google service
+				idpServices.htpasswd, err = tfExecHelper.GetIDPService(CON.IDPHtpasswd) // init new htpasswd service
+				Expect(err).ToNot(HaveOccurred())
+				idpServices.ldap, err = tfExecHelper.GetIDPService(CON.IDPLdap) // init new ldap service
+				Expect(err).ToNot(HaveOccurred())
+				idpServices.github, err = tfExecHelper.GetIDPService(CON.IDPGithub) // init new github service
+				Expect(err).ToNot(HaveOccurred())
+				idpServices.gitlab, err = tfExecHelper.GetIDPService(CON.IDPGitlab) // init new gitlab service
+				Expect(err).ToNot(HaveOccurred())
+				idpServices.google, err = tfExecHelper.GetIDPService(CON.IDPGoogle) // init new google service
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			Context("Author:smiron-Medium-OCP-68939 @OCP-68939 @smiron", func() {
@@ -470,7 +483,7 @@ var _ = Describe("TF Test", func() {
 						Name:          "",
 						HtpasswdUsers: htpasswdMap,
 					}
-					err := idpService.htpasswd.Apply(idpParam, false)
+					_, err := idpServices.htpasswd.Apply(idpParam)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring(
@@ -486,7 +499,7 @@ var _ = Describe("TF Test", func() {
 						HtpasswdUsers: htpasswdMap,
 					}
 
-					err = idpService.htpasswd.Apply(idpParam, false)
+					_, err = idpServices.htpasswd.Apply(idpParam)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(ContainSubstring("Attribute 'username' is mandatory"))
 
@@ -499,7 +512,7 @@ var _ = Describe("TF Test", func() {
 						Name:          "htpasswd-idp-test",
 						HtpasswdUsers: htpasswdMap,
 					}
-					err = idpService.htpasswd.Apply(idpParam, false)
+					_, err = idpServices.htpasswd.Apply(idpParam)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(ContainSubstring("attribute \"password\" is required"))
 
@@ -512,7 +525,7 @@ var _ = Describe("TF Test", func() {
 						Attributes: make(map[string]interface{}),
 						Insecure:   true,
 					}
-					err = idpService.ldap.Apply(idpParam, false)
+					_, err = idpServices.ldap.Apply(idpParam)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring(
@@ -528,7 +541,7 @@ var _ = Describe("TF Test", func() {
 						Attributes: make(map[string]interface{}),
 						Insecure:   true,
 					}
-					err = idpService.ldap.Apply(idpParam, false)
+					_, err = idpServices.ldap.Apply(idpParam)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(ContainSubstring(
 						"Must set a configuration value for the ldap.url attribute"))
@@ -541,7 +554,7 @@ var _ = Describe("TF Test", func() {
 						Insecure:  true,
 					}
 
-					err = idpService.ldap.Apply(idpParam, false)
+					_, err = idpServices.ldap.Apply(idpParam)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring("provider has marked it as required"))
@@ -554,7 +567,7 @@ var _ = Describe("TF Test", func() {
 						ClientSecret:  githubIDPClientSecret,
 						Organizations: CON.Organizations,
 					}
-					err = idpService.github.Apply(idpParam, false)
+					_, err = idpServices.github.Apply(idpParam)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring(
@@ -568,7 +581,7 @@ var _ = Describe("TF Test", func() {
 						ClientSecret:  githubIDPClientSecret,
 						Organizations: CON.Organizations,
 					}
-					err = idpService.github.Apply(idpParam, false)
+					_, err = idpServices.github.Apply(idpParam)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring("No value for required variable"))
@@ -581,7 +594,7 @@ var _ = Describe("TF Test", func() {
 						ClientSecret:  "",
 						Organizations: CON.Organizations,
 					}
-					err = idpService.github.Apply(idpParam, false)
+					_, err = idpServices.github.Apply(idpParam)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring("No value for required variable"))
@@ -594,7 +607,7 @@ var _ = Describe("TF Test", func() {
 						ClientSecret: gitlabIDPClientSecret,
 						URL:          CON.GitLabURL,
 					}
-					err = idpService.gitlab.Apply(idpParam, false)
+					_, err = idpServices.gitlab.Apply(idpParam)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring(
@@ -608,7 +621,7 @@ var _ = Describe("TF Test", func() {
 						ClientSecret: gitlabIDPClientSecret,
 						URL:          CON.GitLabURL,
 					}
-					err = idpService.gitlab.Apply(idpParam, false)
+					_, err = idpServices.gitlab.Apply(idpParam)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring("provider has marked it as required"))
@@ -621,7 +634,7 @@ var _ = Describe("TF Test", func() {
 						ClientSecret: "",
 						URL:          CON.GitLabURL,
 					}
-					err = idpService.gitlab.Apply(idpParam, false)
+					_, err = idpServices.gitlab.Apply(idpParam)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring("provider has marked it as required"))
@@ -634,7 +647,7 @@ var _ = Describe("TF Test", func() {
 						ClientID:     gitlabIDPClientId,
 						ClientSecret: gitlabIDPClientSecret,
 					}
-					err = idpService.gitlab.Apply(idpParam, false)
+					_, err = idpServices.gitlab.Apply(idpParam)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring("Must set a configuration value for the gitlab.url"))
@@ -647,7 +660,7 @@ var _ = Describe("TF Test", func() {
 						ClientSecret: googleIDPClientSecret,
 						HostedDomain: CON.HostedDomain,
 					}
-					err = idpService.google.Apply(idpParam, false)
+					_, err = idpServices.google.Apply(idpParam)
 					Expect(err.Error()).Should(
 						ContainSubstring(
 							"The root module input variable \"name\" is not set, and has no default value"))
@@ -660,7 +673,7 @@ var _ = Describe("TF Test", func() {
 						ClientSecret: googleIDPClientSecret,
 						HostedDomain: CON.HostedDomain,
 					}
-					err = idpService.google.Apply(idpParam, false)
+					_, err = idpServices.google.Apply(idpParam)
 					Expect(err.Error()).Should(
 						ContainSubstring("provider has marked it as required"))
 
@@ -672,7 +685,7 @@ var _ = Describe("TF Test", func() {
 						ClientSecret: "",
 						HostedDomain: CON.HostedDomain,
 					}
-					err = idpService.google.Apply(idpParam, false)
+					_, err = idpServices.google.Apply(idpParam)
 					Expect(err.Error()).Should(
 						ContainSubstring("provider has marked it as required"))
 
@@ -688,7 +701,7 @@ var _ = Describe("TF Test", func() {
 						Name:          "OCP-66409-htpasswd-idp-test",
 						HtpasswdUsers: htpasswdMap,
 					}
-					err := idpService.htpasswd.Apply(idpParam, false)
+					_, err := idpServices.htpasswd.Apply(idpParam)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring(
@@ -714,7 +727,7 @@ var _ = Describe("TF Test", func() {
 						Name:          "OCP-66410-htpasswd-idp-test",
 						HtpasswdUsers: htpasswdMap,
 					}
-					err := idpService.htpasswd.Apply(idpParam, false)
+					_, err := idpServices.htpasswd.Apply(idpParam)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring(
@@ -732,7 +745,7 @@ var _ = Describe("TF Test", func() {
 						Name:          "OCP-66410-htpasswd-idp-test",
 						HtpasswdUsers: htpasswdMap,
 					}
-					err = idpService.htpasswd.Apply(idpParam, false)
+					_, err = idpServices.htpasswd.Apply(idpParam)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring(
@@ -751,7 +764,7 @@ var _ = Describe("TF Test", func() {
 						Name:          "OCP-66411-htpasswd-idp-test",
 						HtpasswdUsers: htpasswdMap,
 					}
-					err := idpService.htpasswd.Apply(idpParam, false)
+					_, err := idpServices.htpasswd.Apply(idpParam)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(
 						ContainSubstring(
@@ -769,8 +782,10 @@ var _ = Describe("TF Test", func() {
 			)
 
 			BeforeEach(func() {
-				idpService.ldap = *exe.NewIDPService(CON.LdapDir)     // init new ldap service
-				idpService.gitlab = *exe.NewIDPService(CON.GitlabDir) // init new gitlab service
+				idpServices.ldap, err = tfExecHelper.GetIDPService(CON.IDPLdap) // init new ldap service
+				Expect(err).ToNot(HaveOccurred())
+				idpServices.gitlab, err = tfExecHelper.GetIDPService(CON.IDPGitlab) // init new gitlab service
+				Expect(err).ToNot(HaveOccurred())
 				gitlabIdpOcmAPI = cmv1.NewIdentityProvider()
 				gitlabIDPClientId = h.GenerateRandomStringWithSymbols(20)
 				gitlabIDPClientSecret = h.GenerateRandomStringWithSymbols(30)
@@ -791,8 +806,9 @@ var _ = Describe("TF Test", func() {
 							Attributes: make(map[string]interface{}),
 							Insecure:   true,
 						}
-						Expect(idpService.ldap.Apply(idpParam, false)).To(Succeed())
-						idpID, _ := idpService.ldap.Output()
+						_, err = idpServices.ldap.Apply(idpParam)
+						Expect(err).ToNot(HaveOccurred())
+						idpID, _ := idpServices.ldap.Output()
 
 						By("Login to the ldap user")
 						resp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
@@ -822,11 +838,12 @@ var _ = Describe("TF Test", func() {
 						)
 
 						By("Re-apply the idp resource")
-						Expect(idpService.ldap.Apply(idpParam, false)).To(Succeed())
+						_, err = idpServices.ldap.Apply(idpParam)
+						Expect(err).To(HaveOccurred())
 
 						// Delete ldap idp from existing cluster after test ended
 						defer func() {
-							err := idpService.ldap.Destroy()
+							_, err := idpServices.ldap.Destroy(true)
 							Expect(err).ToNot(HaveOccurred())
 						}()
 
@@ -851,8 +868,9 @@ var _ = Describe("TF Test", func() {
 							ClientSecret: gitlabIDPClientSecret,
 							URL:          CON.GitLabURL,
 						}
-						Expect(idpService.gitlab.Apply(idpParam, false)).To(Succeed())
-						idpID, _ := idpService.gitlab.Output()
+						_, err = idpServices.gitlab.Apply(idpParam)
+						Expect(err).To(HaveOccurred())
+						idpID, _ := idpServices.gitlab.Output()
 
 						By("Delete gitlab idp using OCM API")
 						cms.DeleteIDP(ci.RHCSConnection, clusterID, idpID.ID)
@@ -879,7 +897,7 @@ var _ = Describe("TF Test", func() {
 						defer cms.DeleteIDP(ci.RHCSConnection, clusterID, res.Body().ID())
 
 						By("Re-apply gitlab idp using tf manifests with same ocm api args")
-						err = idpService.gitlab.Apply(idpParam, false)
+						_, err = idpServices.gitlab.Apply(idpParam)
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).Should(ContainSubstring(
 							"Identity Provider Name\n%s already exists", gitLabIdpName),
@@ -900,8 +918,9 @@ var _ = Describe("TF Test", func() {
 							ClientSecret: gitlabIDPClientSecret,
 							URL:          CON.GitLabURL,
 						}
-						Expect(idpService.gitlab.Apply(idpParam, false)).To(Succeed())
-						idpID, _ := idpService.gitlab.Output()
+						_, err = idpServices.gitlab.Apply(idpParam)
+						Expect(err).To(HaveOccurred())
+						idpID, _ := idpServices.gitlab.Output()
 
 						// Delete gitlab idp using OCM API after test end
 						defer func() {
@@ -938,7 +957,7 @@ var _ = Describe("TF Test", func() {
 							URL:          CON.GitLabURL,
 						}
 
-						err = idpService.gitlab.Apply(idpParam, true)
+						_, err = idpServices.gitlab.Apply(idpParam)
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).Should(ContainSubstring(
 							"This RHCS provider version does not support updating an existing IDP"),
@@ -958,18 +977,21 @@ var _ = Describe("TF Test", func() {
 			)
 
 			BeforeEach(func() {
-				idpService.google = *exe.NewIDPService(CON.GoogleDir)        // init new google service
-				idpService.gitlab = *exe.NewIDPService(CON.GitlabDir)        // init new gitlab service
-				importService = *exe.NewImportService(CON.ImportResourceDir) // init new import service
+				idpServices.google, err = tfExecHelper.GetIDPService(CON.IDPGoogle) // init new google service
+				Expect(err).ToNot(HaveOccurred())
+				idpServices.gitlab, err = tfExecHelper.GetIDPService(CON.IDPGitlab) // init new gitlab service
+				Expect(err).ToNot(HaveOccurred())
+				importService, err = tfExecHelper.GetImportService() // init new import service
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			AfterEach(func() {
 
 				By("Clean resources after test")
-				err = idpService.gitlab.Destroy()
+				_, err = idpServices.gitlab.Destroy(true)
 				Expect(err).ToNot(HaveOccurred())
 
-				_, importErr := importService.Destroy()
+				_, importErr := importService.Destroy(true)
 				Expect(importErr).ToNot(HaveOccurred())
 			})
 
@@ -990,7 +1012,8 @@ var _ = Describe("TF Test", func() {
 							ClientSecret: googleIDPClientSecret,
 							HostedDomain: CON.HostedDomain,
 						}
-						Expect(idpService.google.Apply(idpParam, false)).To(Succeed())
+						_, err = idpServices.google.Apply(idpParam)
+						Expect(err).ToNot(HaveOccurred())
 
 						idpParam = &exe.IDPArgs{
 							ClusterID:    clusterID,
@@ -999,7 +1022,8 @@ var _ = Describe("TF Test", func() {
 							ClientSecret: gitlabIDPClientSecret,
 							URL:          CON.GitLabURL,
 						}
-						Expect(idpService.gitlab.Apply(idpParam, false)).To(Succeed())
+						_, err = idpServices.gitlab.Apply(idpParam)
+						Expect(err).ToNot(HaveOccurred())
 
 						By("Run the command to import the idp")
 						importParam := &exe.ImportArgs{
@@ -1025,7 +1049,8 @@ var _ = Describe("TF Test", func() {
 							ObjectName:   unknownIdpName,
 						}
 
-						err = importService.Import(importParam)
+						_, err = importService.Import(importParam)
+						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(ContainSubstring("identity provider '%s' not found", unknownIdpName))
 
 						By("Validate terraform import with no clusterID returns error")
@@ -1038,7 +1063,8 @@ var _ = Describe("TF Test", func() {
 							ObjectName:   gitLabIdpName,
 						}
 
-						err = importService.Import(importParam)
+						_, err = importService.Import(importParam)
+						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(ContainSubstring("Cluster %s not found", unknownClusterID))
 
 					})

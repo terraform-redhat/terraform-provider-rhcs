@@ -1,9 +1,6 @@
 package exec
 
 import (
-	"context"
-	"fmt"
-
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
@@ -27,75 +24,48 @@ type SharedVpcPolicyAndHostedZoneOutput struct {
 }
 
 type SharedVpcPolicyAndHostedZoneService struct {
-	CreationArgs *SharedVpcPolicyAndHostedZoneArgs
-	ManifestDir  string
-	Context      context.Context
+	tfExec      TerraformExec
+	ManifestDir string
 }
 
-func (s *SharedVpcPolicyAndHostedZoneService) Init(manifestDirs ...string) error {
-	s.ManifestDir = CON.SharedVpcPolicyAndHostedZoneDir
-	if len(manifestDirs) != 0 {
-		s.ManifestDir = manifestDirs[0]
+func newSharedVPCPolicyAndHostedZoneService(clusterType CON.ClusterType, tfExec TerraformExec) (*SharedVpcPolicyAndHostedZoneService, error) {
+	sharedVPCService := &SharedVpcPolicyAndHostedZoneService{
+		ManifestDir: GetSharedVpcPolicyAndHostedZoneDir(clusterType),
+		tfExec:      tfExec,
 	}
-	ctx := context.TODO()
-	s.Context = ctx
-	err := runTerraformInit(ctx, s.ManifestDir)
-	if err != nil {
-		return err
-	}
-	return nil
+	err := sharedVPCService.Init()
+	return sharedVPCService, err
+}
+
+func (svs *SharedVpcPolicyAndHostedZoneService) Init() error {
+	return svs.tfExec.RunTerraformInit(svs.ManifestDir)
 
 }
 
-func (s *SharedVpcPolicyAndHostedZoneService) Apply(createArgs *SharedVpcPolicyAndHostedZoneArgs, recordtfvars bool, extraArgs ...string) error {
-	s.CreationArgs = createArgs
-	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApply(s.Context, s.ManifestDir, args...)
+func (svs *SharedVpcPolicyAndHostedZoneService) Apply(createArgs *SharedVpcPolicyAndHostedZoneArgs) (output string, err error) {
+	var tfVars *TFVars
+	tfVars, err = NewTFArgs(createArgs)
 	if err != nil {
-		return err
+		return
 	}
-	if recordtfvars {
-		recordTFvarsFile(s.ManifestDir, tfvars)
-	}
-
-	return nil
+	output, err = svs.tfExec.RunTerraformApply(svs.ManifestDir, tfVars)
+	return
 }
 
-func (s *SharedVpcPolicyAndHostedZoneService) Output() (SharedVpcPolicyAndHostedZoneOutput, error) {
-	d := CON.SharedVpcPolicyAndHostedZoneDir
-	if s.ManifestDir != "" {
-		d = s.ManifestDir
-	}
-	var o SharedVpcPolicyAndHostedZoneOutput
-	out, err := runTerraformOutput(context.TODO(), d)
+func (svs *SharedVpcPolicyAndHostedZoneService) Output() (*SharedVpcPolicyAndHostedZoneOutput, error) {
+	out, err := svs.tfExec.RunTerraformOutput(svs.ManifestDir)
 	if err != nil {
-		return o, err
+		return nil, err
 	}
-	o = SharedVpcPolicyAndHostedZoneOutput{
+	svsOut := &SharedVpcPolicyAndHostedZoneOutput{
 		SharedRole:   h.DigString(out["shared_role"], "value"),
 		HostedZoneId: h.DigString(out["hosted_zone_id"], "value"),
 		AZs:          h.DigArrayToString(out["azs"], "value"),
 	}
 
-	return o, nil
+	return svsOut, err
 }
 
-func (s *SharedVpcPolicyAndHostedZoneService) Destroy(createArgs ...*SharedVpcPolicyAndHostedZoneArgs) error {
-	if s.CreationArgs == nil && len(createArgs) == 0 {
-		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
-	}
-	destroyArgs := s.CreationArgs
-	if len(createArgs) != 0 {
-		destroyArgs = createArgs[0]
-	}
-	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroy(s.Context, s.ManifestDir, args...)
-
-	return err
-}
-
-func NewSharedVpcPolicyAndHostedZoneService(manifestDir ...string) (*SharedVpcPolicyAndHostedZoneService, error) {
-	s := &SharedVpcPolicyAndHostedZoneService{}
-	err := s.Init(manifestDir...)
-	return s, err
+func (svs *SharedVpcPolicyAndHostedZoneService) Destroy(deleteTFVars bool) (string, error) {
+	return svs.tfExec.RunTerraformDestroy(svs.ManifestDir, deleteTFVars)
 }

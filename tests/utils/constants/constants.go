@@ -3,7 +3,6 @@ package constants
 import (
 	"fmt"
 	"os"
-	"path"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
@@ -72,25 +71,6 @@ const (
 	DefaultAWSRegion = "us-east-2"
 )
 
-// Dirs of identity providers
-var (
-	HtpasswdDir = path.Join(IDPsDir, "htpasswd")
-	GitlabDir   = path.Join(IDPsDir, "gitlab")
-	GithubDir   = path.Join(IDPsDir, "github")
-	LdapDir     = path.Join(IDPsDir, "ldap")
-	OpenidDir   = path.Join(IDPsDir, "openid")
-	GoogleDir   = path.Join(IDPsDir, "google")
-	MultiIDPDir = path.Join(IDPsDir, "multi-idp")
-)
-
-func GrantTFvarsFile(manifestDir string) string {
-	return path.Join(manifestDir, "terraform.tfvars")
-}
-
-func GrantTFstateFile(manifestDir string) string {
-	return path.Join(manifestDir, "terraform.tfstate")
-}
-
 // Machine pool taints effect
 const (
 	NoExecute        = "NoExecute"
@@ -125,3 +105,15 @@ func FindClusterType(clusterTypeName string) ClusterType {
 func (ct *ClusterType) String() string {
 	return ct.Name
 }
+
+type IDPType string
+
+const (
+	IDPHtpasswd IDPType = "htpasswd"
+	IDPGitlab   IDPType = "gitlab"
+	IDPGithub   IDPType = "github"
+	IDPLdap     IDPType = "ldap"
+	IDPOpenid   IDPType = "openid"
+	IDPGoogle   IDPType = "google"
+	IDPMultiIDP IDPType = "multi-idp"
+)

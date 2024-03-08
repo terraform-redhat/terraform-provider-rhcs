@@ -1,9 +1,6 @@
 package exec
 
 import (
-	"context"
-	"fmt"
-
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
@@ -14,56 +11,59 @@ type KubeletConfigArgs struct {
 	PodPidsLimit int    `json:"pod_pids_limit,omitempty"`
 }
 
+func (args *KubeletConfigArgs) appendURL() {
+	args.URL = CON.GateWayURL
+}
+
 type KubeletConfigOutput struct {
 	Cluster      string `json:"cluster,omitempty"`
 	PodPidsLimit int    `json:"pod_pids_limit,omitempty"`
 }
 
 type KubeletConfigService struct {
-	CreationArgs *KubeletConfigArgs
-	ManifestDir  string
-	Context      context.Context
+	tfExec      TerraformExec
+	ManifestDir string
 }
 
-func (kc *KubeletConfigService) Init(manifestDirs ...string) error {
-	kc.ManifestDir = CON.KubeletConfigDir
-	if len(manifestDirs) != 0 {
-		kc.ManifestDir = manifestDirs[0]
+func newKubeletConfigService(clusterType CON.ClusterType, tfExec TerraformExec) (*KubeletConfigService, error) {
+	kc := &KubeletConfigService{
+		ManifestDir: GetKubeletConfigManifestDir(clusterType),
+		tfExec:      tfExec,
 	}
-	ctx := context.TODO()
-	kc.Context = ctx
-	err := runTerraformInit(ctx, kc.ManifestDir)
+	err := kc.Init()
+	return kc, err
+}
+
+func (kc *KubeletConfigService) Init() error {
+	return kc.tfExec.RunTerraformInit(kc.ManifestDir)
+
+}
+
+func (kc *KubeletConfigService) Apply(createArgs *KubeletConfigArgs) (output string, err error) {
+	createArgs.appendURL()
+
+	var tfVars *TFVars
+	tfVars, err = NewTFArgs(createArgs)
 	if err != nil {
-		return err
+		return
 	}
-	return nil
-
+	output, err = kc.tfExec.RunTerraformApply(kc.ManifestDir, tfVars)
+	return
 }
+func (kc *KubeletConfigService) Plan(planArgs *KubeletConfigArgs) (output string, err error) {
+	planArgs.appendURL()
 
-func (kc *KubeletConfigService) Apply(createArgs *KubeletConfigArgs, recordtfvars bool, extraArgs ...string) (*KubeletConfigOutput, error) {
-	createArgs.URL = CON.GateWayURL
-	kc.CreationArgs = createArgs
-	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApply(kc.Context, kc.ManifestDir, args...)
+	var tfVars *TFVars
+	tfVars, err = NewTFArgs(planArgs)
 	if err != nil {
-		return nil, err
+		return
 	}
-	if recordtfvars {
-		recordTFvarsFile(kc.ManifestDir, tfvars)
-	}
-	output, err := kc.Output()
-	return output, err
+	output, err = kc.tfExec.RunTerraformPlan(kc.ManifestDir, tfVars)
+	return
 }
-func (kc *KubeletConfigService) Plan(createArgs *KubeletConfigArgs, extraArgs ...string) (string, error) {
-	createArgs.URL = CON.GateWayURL
-	kc.CreationArgs = createArgs
-	args, _ := combineStructArgs(createArgs, extraArgs...)
-	output, err := runTerraformPlan(kc.Context, kc.ManifestDir, args...)
 
-	return output, err
-}
 func (kc *KubeletConfigService) Output() (*KubeletConfigOutput, error) {
-	out, err := runTerraformOutput(kc.Context, kc.ManifestDir)
+	out, err := kc.tfExec.RunTerraformOutput(kc.ManifestDir)
 	if err != nil {
 		return nil, err
 	}
@@ -73,22 +73,6 @@ func (kc *KubeletConfigService) Output() (*KubeletConfigOutput, error) {
 	return accOutput, nil
 }
 
-func (kc *KubeletConfigService) Destroy(createArgs ...*KubeletConfigArgs) (string, error) {
-	if kc.CreationArgs == nil && len(createArgs) == 0 {
-		return "", fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
-	}
-	destroyArgs := kc.CreationArgs
-	if len(createArgs) != 0 {
-		destroyArgs = createArgs[0]
-	}
-	destroyArgs.URL = CON.GateWayURL
-	args, _ := combineStructArgs(destroyArgs)
-	output, err := runTerraformDestroy(kc.Context, kc.ManifestDir, args...)
-	return output, err
-}
-
-func NewKubeletConfigService(manifestDir ...string) (*KubeletConfigService, error) {
-	kc := &KubeletConfigService{}
-	err := kc.Init(manifestDir...)
-	return kc, err
+func (kc *KubeletConfigService) Destroy(deleteTFVars bool) (string, error) {
+	return kc.tfExec.RunTerraformDestroy(kc.ManifestDir, deleteTFVars)
 }

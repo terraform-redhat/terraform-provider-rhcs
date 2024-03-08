@@ -24,14 +24,17 @@ import (
 
 var _ = Describe("TF Test", func() {
 	Describe("Verfication/Post day 1 tests", func() {
-		var err error
-		var profile *ci.Profile
-		var cluster *cmv1.Cluster
-		var importService *exe.ImportService
+		var (
+			tfExecHelper  *exe.TerraformExecHelper
+			err           error
+			cluster       *cmv1.Cluster
+			importService *exe.ImportService
+		)
 
 		BeforeEach(func() {
-			importService = exe.NewImportService(con.ImportResourceDir) // init new import service
-			profile = ci.LoadProfileYamlFileByENV()
+			tfExecHelper, err = ci.GetTerraformExecHelperForProfile(profile)
+			Expect(err).ToNot(HaveOccurred())
+			importService, err = tfExecHelper.GetImportService()
 			Expect(err).ToNot(HaveOccurred())
 			getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
@@ -171,6 +174,9 @@ var _ = Describe("TF Test", func() {
 						ResourceName: "rosa_sts_cluster_import",
 					}
 					Expect(importService.Import(importParam)).To(Succeed())
+					defer func() {
+						importService.RemoveState(importParam)
+					}()
 
 					By("Check resource state - import command succeeded")
 					output, err := importService.ShowState(importParam)
@@ -189,12 +195,8 @@ var _ = Describe("TF Test", func() {
 						ResourceName: "rosa_import_no_cluster_id",
 					}
 
-					err = importService.Import(importParam)
+					_, err = importService.Import(importParam)
 					Expect(err.Error()).To(ContainSubstring("Cannot import non-existent remote object"))
-
-					By("clean .tfstate file to revert test changes")
-					defer h.CleanManifestsStateFile(con.ImportResourceDir)
-
 				})
 		})
 
@@ -212,7 +214,7 @@ var _ = Describe("TF Test", func() {
 					server := getResp.Body().API().URL()
 
 					username := con.ClusterAdminUser
-					password := H.GetClusterAdminPassword()
+					password := con.GetClusterAdminPassword()
 					Expect(password).ToNot(BeEmpty())
 
 					ocAtter := &openshift.OcAttributes{
@@ -242,7 +244,7 @@ var _ = Describe("TF Test", func() {
 						Expect(cluster.AWS().AdditionalInfraSecurityGroupIds()).To(BeEmpty())
 					} else {
 						By("Verify CMS are using the correct configuration")
-						clusterService, err := exe.NewClusterService(profile.GetClusterManifestsDir())
+						clusterService, err := tfExecHelper.GetClusterService()
 						Expect(err).ToNot(HaveOccurred())
 						output, err := clusterService.Output()
 						Expect(err).ToNot(HaveOccurred())
@@ -259,7 +261,7 @@ var _ = Describe("TF Test", func() {
 
 			// Skip this tests until OCM-5079 fixed
 			XIt("Apply to change security group will be forbidden", ci.NonHCPCluster, func() {
-				clusterService, err := exe.NewClusterService(profile.GetClusterManifestsDir())
+				clusterService, err := tfExecHelper.GetClusterService()
 				Expect(err).ToNot(HaveOccurred())
 				outPut, err := clusterService.Output()
 				Expect(err).ToNot(HaveOccurred())
@@ -320,7 +322,7 @@ var _ = Describe("TF Test", func() {
 				listRSresp, err := cms.ListClusterResources(ci.RHCSConnection, clusterID)
 				Expect(err).ToNot(HaveOccurred())
 
-				kmsService, err := exe.NewKMSService()
+				kmsService, err := tfExecHelper.GetKMSService()
 				Expect(err).ToNot(HaveOccurred())
 				kmsOutput, _ := kmsService.Output()
 				expectedKeyArn := kmsOutput.KeyARN

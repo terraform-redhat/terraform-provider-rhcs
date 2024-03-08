@@ -1,8 +1,6 @@
 package exec
 
 import (
-	"context"
-
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
@@ -47,6 +45,11 @@ type ClusterCreationArgs struct {
 	BaseDnsDomain                        string             `json:"base_dns_domain,omitempty"`
 	PrivateHostedZone                    *PrivateHostedZone `json:"private_hosted_zone,omitempty"`
 }
+
+func (args *ClusterCreationArgs) appendURL() {
+	args.URL = CON.GateWayURL
+}
+
 type Proxy struct {
 	HTTPProxy             string `json:"http_proxy,omitempty"`
 	HTTPSProxy            string `json:"https_proxy,omitempty"`
@@ -93,42 +96,37 @@ const (
 )
 
 type ClusterService struct {
-	CreationArgs *ClusterCreationArgs
-	ManifestDir  string
-	Context      context.Context
+	tfExec      TerraformExec
+	ManifestDir string
 }
 
-func (creator *ClusterService) Init(manifestDir string) error {
-	creator.ManifestDir = CON.GrantClusterManifestDir(manifestDir)
-	ctx := context.TODO()
-	creator.Context = ctx
-	err := runTerraformInit(ctx, creator.ManifestDir)
+func newClusterService(clusterType CON.ClusterType, tfExec TerraformExec) (*ClusterService, error) {
+	sc := &ClusterService{
+		ManifestDir: GetClusterManifestsDir(clusterType),
+		tfExec:      tfExec,
+	}
+	err := sc.Init()
+	return sc, err
+}
+
+func (cs *ClusterService) Init() error {
+	return cs.tfExec.RunTerraformInit(cs.ManifestDir)
+}
+
+func (cs *ClusterService) Apply(createArgs *ClusterCreationArgs) (output string, err error) {
+	createArgs.appendURL()
+
+	var tfVars *TFVars
+	tfVars, err = NewTFArgs(createArgs)
 	if err != nil {
-		return err
+		return
 	}
-	return nil
-
+	output, err = cs.tfExec.RunTerraformApply(cs.ManifestDir, tfVars)
+	return
 }
 
-func (creator *ClusterService) Apply(createArgs *ClusterCreationArgs, recordtfvars bool, tfvarsDeletion bool, extraArgs ...string) error {
-	createArgs.URL = CON.GateWayURL
-	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	if recordtfvars {
-		recordTFvarsFile(creator.ManifestDir, tfvars) // Record the tfvars before apply in case cluster creation error and we need clean
-	}
-
-	_, err := runTerraformApply(creator.Context, creator.ManifestDir, args...)
-	if err != nil {
-		if tfvarsDeletion {
-			deleteTFvarsFile(creator.ManifestDir)
-		}
-		return err
-	}
-	return nil
-}
-
-func (creator *ClusterService) Output() (*ClusterOutput, error) {
-	out, err := runTerraformOutput(creator.Context, creator.ManifestDir)
+func (cs *ClusterService) Output() (*ClusterOutput, error) {
+	out, err := cs.tfExec.RunTerraformOutput(cs.ManifestDir)
 	if err != nil {
 		return nil, err
 	}
@@ -143,21 +141,22 @@ func (creator *ClusterService) Output() (*ClusterOutput, error) {
 	return clusterOutput, nil
 }
 
-func (creator *ClusterService) Destroy(createArgs *ClusterCreationArgs, extraArgs ...string) (string, error) {
-	createArgs.URL = CON.GateWayURL
-	args, _ := combineStructArgs(createArgs, extraArgs...)
-	return runTerraformDestroy(creator.Context, creator.ManifestDir, args...)
+func (cs *ClusterService) Destroy(deleteTFVars bool) (string, error) {
+	return cs.tfExec.RunTerraformDestroy(cs.ManifestDir, deleteTFVars)
 }
 
-func (creator *ClusterService) Plan(planargs *ClusterCreationArgs, extraArgs ...string) (string, error) {
-	planargs.URL = CON.GateWayURL
-	args, _ := combineStructArgs(planargs, extraArgs...)
-	output, err := runTerraformPlan(creator.Context, creator.ManifestDir, args...)
-	return output, err
+func (cs *ClusterService) Plan(planArgs *ClusterCreationArgs) (output string, err error) {
+	planArgs.appendURL()
+
+	var tfVars *TFVars
+	tfVars, err = NewTFArgs(planArgs)
+	if err != nil {
+		return
+	}
+	output, err = cs.tfExec.RunTerraformPlan(cs.ManifestDir, tfVars)
+	return
 }
 
-func NewClusterService(manifestDir string) (*ClusterService, error) {
-	sc := &ClusterService{}
-	err := sc.Init(manifestDir)
-	return sc, err
+func (cs *ClusterService) ReadTerraformTFVars() (map[string]string, error) {
+	return cs.tfExec.ReadTerraformTFVars(cs.ManifestDir)
 }

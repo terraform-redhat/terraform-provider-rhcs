@@ -9,12 +9,13 @@ import (
 )
 
 type VPCArgs struct {
-	Name      string   `json:"name,omitempty"`
-	AWSRegion string   `json:"aws_region,omitempty"`
-	VPCCIDR   string   `json:"vpc_cidr,omitempty"`
-	MultiAZ   bool     `json:"multi_az,omitempty"`
-	AZIDs     []string `json:"az_ids,omitempty"`
-	HCP       bool     `json:"hcp,omitempty"`
+	Name                      string   `json:"name,omitempty"`
+	AWSRegion                 string   `json:"aws_region,omitempty"`
+	VPCCIDR                   string   `json:"vpc_cidr,omitempty"`
+	MultiAZ                   bool     `json:"multi_az,omitempty"`
+	AZIDs                     []string `json:"az_ids,omitempty"`
+	HCP                       bool     `json:"hcp,omitempty"`
+	AWSSharedCredentialsFiles []string `json:"aws_shared_credentials_files,omitempty"`
 }
 
 type VPCOutput struct {

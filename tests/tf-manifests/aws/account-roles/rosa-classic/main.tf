@@ -15,9 +15,18 @@ provider "rhcs" {
   url = var.url
 }
 
+data "aws_caller_identity" "current" {
+}
+
+data "aws_partition" "current" {
+}
+
 locals {
+  path = coalesce(var.path, "/")
   major_version = "${split(".", var.openshift_version)[0]}.${split(".", var.openshift_version)[1]}"
   versionfilter = var.openshift_version == null ? "" : " and raw_id like '%${local.major_version}%'"
+  installer_role_arn = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${var.account_role_prefix}-Installer-Role"
+  aws_account_id = "${data.aws_caller_identity.current.account_id}"
 }
 
 data "rhcs_policies" "all_policies" {}
@@ -40,5 +49,6 @@ module "create_account_roles" {
   rosa_openshift_version = local.major_version
   account_role_policies  = data.rhcs_policies.all_policies.account_role_policies
   operator_role_policies = data.rhcs_policies.all_policies.operator_role_policies
+  shared_vpc_role_arn    = var.shared_vpc_role_arn
   path                   = var.path
 }

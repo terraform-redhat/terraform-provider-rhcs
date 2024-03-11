@@ -29,3 +29,9 @@ variable "path" {
   type        = string
   default     = null
 }
+
+variable "shared_vpc_role_arn" {
+  description = "(Optional) Create Shared-VPC policies."
+  type        = string
+  default     = ""
+}

@@ -58,9 +58,10 @@ type Profile struct {
 	WorkerDiskSize        int    `ini:"worker_disk_size,omitempty" json:"worker_disk_size,omitempty"`
 	AdditionalSGNumber    int    `ini:"additional_sg_number,omitempty" json:"additional_sg_number,omitempty"`
 	UnifiedAccRolesPath   string `ini:"unified_acc_role_path,omitempty" json:"unified_acc_role_path,omitempty"`
+	SharedVpc             bool   `ini:"shared_vpc,omitempty" json:"shared_vpc,omitempty"`
 }
 
-func PrepareVPC(region string, privateLink bool, multiZone bool, azIDs []string, clusterType CON.ClusterType, name ...string) (*EXE.VPCOutput, error) {
+func PrepareVPC(region string, privateLink bool, multiZone bool, azIDs []string, clusterType CON.ClusterType, name string, sharedVpcAWSSharedCredentialsFile string) (*EXE.VPCOutput, error) {
 	vpcService := EXE.NewVPCService()
 	vpcArgs := &EXE.VPCArgs{
 		AWSRegion: region,
@@ -80,9 +81,14 @@ func PrepareVPC(region string, privateLink bool, multiZone bool, azIDs []string,
 		}
 		vpcArgs.AZIDs = turnedZoneIDs
 	}
-	if len(name) == 1 {
-		vpcArgs.Name = name[0]
+	if name != "" {
+		vpcArgs.Name = name
 	}
+
+	if sharedVpcAWSSharedCredentialsFile != "" {
+		vpcArgs.AWSSharedCredentialsFiles = []string{sharedVpcAWSSharedCredentialsFile}
+	}
+
 	err := vpcService.Apply(vpcArgs, true)
 	if err != nil {
 		vpcService.Destroy()
@@ -119,7 +125,7 @@ func PrepareAdditionalSecurityGroups(region string, vpcID string, sgNumbers int)
 	return output.SGIDs, err
 }
 
-func PrepareAccountRoles(token string, accountRolePrefix string, accountRolesPath string, awsRegion string, openshiftVersion string, channelGroup string, clusterType CON.ClusterType) (
+func PrepareAccountRoles(token string, accountRolePrefix string, accountRolesPath string, awsRegion string, openshiftVersion string, channelGroup string, clusterType CON.ClusterType, sharedVpcRoleArn string) (
 	*EXE.AccountRolesOutput, error) {
 	accService, err := EXE.NewAccountRoleService(CON.GetAccountRoleDefaultManifestDir(clusterType))
 	if err != nil {
@@ -131,6 +137,11 @@ func PrepareAccountRoles(token string, accountRolePrefix string, accountRolesPat
 		ChannelGroup:        channelGroup,
 		UnifiedAccRolesPath: accountRolesPath,
 	}
+
+	if sharedVpcRoleArn != "" {
+		args.SharedVpcRoleArn = sharedVpcRoleArn
+	}
+
 	accRoleOutput, err := accService.Apply(args, true)
 	if err != nil {
 		accService.Destroy()
@@ -247,7 +258,59 @@ func PrepareKMSKey(profile *Profile, kmsName string, accountRolePrefix string, a
 	return kmsOutput.KeyARN, err
 }
 
-func PrepareRoute53() {}
+func PrepareRoute53() (string, error) {
+	s, err := EXE.NewDnsDomainService()
+	if err != nil {
+		return "", err
+	}
+	a := &EXE.DnsDomainArgs{}
+
+	err = s.Create(a)
+	if err != nil {
+		s.Destroy()
+		return "", err
+	}
+	output, err := s.Output()
+
+	return output.DnsDomainId, err
+}
+
+func PrepareSharedVpcPolicyAndHostedZone(region string,
+	shared_vpc_aws_shared_credentials_file string,
+	cluster_name string,
+	dns_domain_id string,
+	ingress_operator_role_arn string,
+	installer_role_arn string,
+	cluster_aws_account string,
+	vpc_id string,
+	subnets []string) (*EXE.SharedVpcPolicyAndHostedZoneOutput, error) {
+
+	s, err := EXE.NewSharedVpcPolicyAndHostedZoneService()
+	if err != nil {
+		return nil, err
+	}
+
+	a := &EXE.SharedVpcPolicyAndHostedZoneArgs{
+		SharedVpcAWSSharedCredentialsFiles: []string{shared_vpc_aws_shared_credentials_file},
+		Region:                             region,
+		ClusterName:                        cluster_name,
+		DnsDomainId:                        dns_domain_id,
+		IngressOperatorRoleArn:             ingress_operator_role_arn,
+		InstallerRoleArn:                   installer_role_arn,
+		ClusterAWSAccount:                  cluster_aws_account,
+		VpcId:                              vpc_id,
+		Subnets:                            subnets,
+	}
+
+	err = s.Apply(a, true)
+	if err != nil {
+		s.Destroy()
+		return nil, err
+	}
+	output, err := s.Output()
+
+	return &output, err
+}
 
 func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clusterArgs *EXE.ClusterCreationArgs, err error) {
 	profile.Version = PrepareVersion(RHCSConnection, profile.VersionPattern, profile.ChannelGroup, profile)
@@ -257,6 +320,11 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 	}
 
 	// Init cluster's args by profile's attributes
+
+	// For Shared VPC
+	var cluster_aws_account string
+	var installer_role_arn string
+	var ingress_role_arn string
 
 	if profile.FIPS {
 		clusterArgs.Fips = profile.FIPS
@@ -331,7 +399,19 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 
 	if profile.STS {
 		majorVersion := GetMajorVersion(profile.Version)
-		accountRolesOutput, err := PrepareAccountRoles(token, clusterArgs.ClusterName, profile.UnifiedAccRolesPath, clusterArgs.AWSRegion, majorVersion, profile.ChannelGroup, profile.GetClusterType())
+		var accountRolesOutput *EXE.AccountRolesOutput
+
+		shared_vpc_role_arn := ""
+		if profile.SharedVpc {
+			// FIXME:
+			//	To create Shared-VPC compatible policies, we need to pass a role arn to create_account_roles module.
+			//  But we got an chicken-egg prolems here:
+			//		* The Shared-VPC compatible policie requries installer role
+			//		* The install role (account roles) require Shared-VPC ARN.
+			//  Use hardcode as a temporary solution.
+			shared_vpc_role_arn = fmt.Sprintf("arn:aws:iam::641733028092:role/%s-shared-vpc-role", clusterArgs.ClusterName)
+		}
+		accountRolesOutput, err := PrepareAccountRoles(token, clusterArgs.ClusterName, profile.UnifiedAccRolesPath, clusterArgs.AWSRegion, majorVersion, profile.ChannelGroup, profile.GetClusterType(), shared_vpc_role_arn)
 		Expect(err).ToNot(HaveOccurred())
 		clusterArgs.AccountRolePrefix = accountRolesOutput.AccountRolePrefix
 		clusterArgs.UnifiedAccRolesPath = profile.UnifiedAccRolesPath
@@ -344,6 +424,10 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 		Expect(err).ToNot(HaveOccurred())
 		clusterArgs.OIDCConfigID = oidcOutput.OIDCConfigID
 		clusterArgs.OperatorRolePrefix = oidcOutput.OperatorRolePrefix
+
+		cluster_aws_account = accountRolesOutput.AWSAccountId
+		installer_role_arn = accountRolesOutput.InstallerRoleArn
+		ingress_role_arn = oidcOutput.IngressOperatorRoleArn
 	}
 
 	if profile.BYOVPC {
@@ -364,11 +448,20 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 				zones = strings.Split(profile.Zones, ",")
 			}
 
-			vpcOutput, err = PrepareVPC(profile.Region, profile.PrivateLink, profile.MultiAZ, zones, profile.GetClusterType(), clusterArgs.ClusterName)
+			shared_vpc_aws_shared_credentials_file := ""
+
+			if profile.SharedVpc {
+				if CON.SharedVpcAWSSharedCredentialsFileENV == "" {
+					panic(fmt.Errorf("SHARED_VPC_AWS_SHARED_CREDENTIALS_FILE env is not set or empty, it's requried by Shared-VPC cluster"))
+				}
+
+				shared_vpc_aws_shared_credentials_file = CON.SharedVpcAWSSharedCredentialsFileENV
+			}
+			vpcOutput, err = PrepareVPC(profile.Region, profile.PrivateLink, profile.MultiAZ, zones, profile.GetClusterType(), clusterArgs.ClusterName, shared_vpc_aws_shared_credentials_file)
 			if err != nil {
 				return
 			}
-			clusterArgs.AWSAvailabilityZones = vpcOutput.AZs
+
 			if vpcOutput.ClusterPrivateSubnets == nil {
 				err = fmt.Errorf("error when creating the vpc, check the previous log. The created resources had been destroyed")
 				return
@@ -382,6 +475,46 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 			} else {
 				clusterArgs.AWSSubnetIDs = append(vpcOutput.ClusterPrivateSubnets, vpcOutput.ClusterPublicSubnets...)
 			}
+
+			if profile.SharedVpc {
+				// Base domain
+				var base_dns_domain string
+				base_dns_domain, err = PrepareRoute53()
+				if err != nil {
+					return
+				}
+
+				// Resources for Shared-VPC
+				var sharedVpcPolicyAndHostedZoneOutput *EXE.SharedVpcPolicyAndHostedZoneOutput
+				sharedVpcPolicyAndHostedZoneOutput, err = PrepareSharedVpcPolicyAndHostedZone(
+					profile.Region,
+					CON.SharedVpcAWSSharedCredentialsFileENV,
+					clusterArgs.ClusterName,
+					base_dns_domain,
+					ingress_role_arn,
+					installer_role_arn,
+					cluster_aws_account,
+					vpcOutput.VPCID,
+					clusterArgs.AWSSubnetIDs)
+				if err != nil {
+					return
+				}
+
+				clusterArgs.BaseDnsDomain = base_dns_domain
+				private_hosted_zone := EXE.PrivateHostedZone{
+					ID:      sharedVpcPolicyAndHostedZoneOutput.HostedZoneId,
+					RoleArn: sharedVpcPolicyAndHostedZoneOutput.SharedRole,
+				}
+				clusterArgs.PrivateHostedZone = &private_hosted_zone
+				/*
+					The AZ us-east-1a for VPC-account might not have the same location as us-east-1a for Cluster-account.
+					For AZs which will be used in cluster configuration, the values should be the ones in Cluster-account.
+				*/
+				clusterArgs.AWSAvailabilityZones = sharedVpcPolicyAndHostedZoneOutput.AZs
+			} else {
+				clusterArgs.AWSAvailabilityZones = vpcOutput.AZs
+			}
+
 			clusterArgs.MachineCIDR = vpcOutput.VPCCIDR
 			if profile.AdditionalSGNumber != 0 {
 				// Prepare profile.AdditionalSGNumber+5 security groups for negative testing
@@ -531,9 +664,54 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 				return err
 			}
 		}
+
+		if profile.SharedVpc {
+
+			if CON.SharedVpcAWSSharedCredentialsFileENV == "" {
+				panic(fmt.Errorf("SHARED_VPC_AWS_SHARED_CREDENTIALS_FILE env is not set or empty, it's requried by Shared-VPC cluster"))
+			}
+
+			sharedVpcPolicyAndHostedZoneService, err := EXE.NewSharedVpcPolicyAndHostedZoneService()
+			if err != nil {
+				return err
+			}
+
+			sharedVpcPolicyAndHostedZoneArgs := &EXE.SharedVpcPolicyAndHostedZoneArgs{
+				SharedVpcAWSSharedCredentialsFiles: []string{CON.SharedVpcAWSSharedCredentialsFileENV},
+				Region:                             profile.Region,
+				ClusterName:                        clusterArgs.ClusterName,
+				DnsDomainId:                        "",
+				IngressOperatorRoleArn:             "",
+				ClusterAWSAccount:                  "",
+				VpcId:                              "",
+				// Subnets:
+			}
+			err = sharedVpcPolicyAndHostedZoneService.Destroy(sharedVpcPolicyAndHostedZoneArgs)
+
+			if err != nil {
+				return err
+			}
+
+			// DNS domain
+			dnsDomainService, err := EXE.NewDnsDomainService()
+			if err != nil {
+				return err
+			}
+
+			dnsDomainArgs := &EXE.DnsDomainArgs{}
+			err = dnsDomainService.Destroy(dnsDomainArgs)
+
+			if err != nil {
+				return err
+			}
+		}
+
 		vpcService := EXE.NewVPCService()
 		vpcArgs := &EXE.VPCArgs{
 			AWSRegion: profile.Region,
+		}
+		if profile.SharedVpc {
+			vpcArgs.AWSSharedCredentialsFiles = []string{CON.SharedVpcAWSSharedCredentialsFileENV}
 		}
 		err := vpcService.Destroy(vpcArgs)
 		if err != nil {

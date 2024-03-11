@@ -50,3 +50,9 @@ variable "hcp" {
   description = "The VPC is created for a HCP cluster"
   default     = false
 }
+
+variable "aws_shared_credentials_files" {
+  type        = list(string)
+  default     = null
+  description = "File path to the AWS shared credentials file. This file typically used by Shared-VPC cluster."
+}

@@ -19,9 +19,10 @@ type OIDCProviderOperatorRolesArgs struct {
 }
 
 type OIDCProviderOperatorRolesOutput struct {
-	OIDCConfigID       string `json:"oidc_config_id,omitempty"`
-	AccountRolePrefix  string `json:"account_role_prefix,omitempty"`
-	OperatorRolePrefix string `json:"operator_role_prefix,omitempty"`
+	OIDCConfigID           string `json:"oidc_config_id,omitempty"`
+	AccountRolePrefix      string `json:"account_role_prefix,omitempty"`
+	OperatorRolePrefix     string `json:"operator_role_prefix,omitempty"`
+	IngressOperatorRoleArn string `json:"ingress_operator_role_arn,omitempty"`
 }
 
 type OIDCProviderOperatorRolesService struct {
@@ -72,9 +73,10 @@ func (oidcOP *OIDCProviderOperatorRolesService) Output() (*OIDCProviderOperatorR
 		return nil, err
 	}
 	var oidcOPOutput = &OIDCProviderOperatorRolesOutput{
-		AccountRolePrefix:  h.DigString(out["account_role_prefix"], "value"),
-		OIDCConfigID:       h.DigString(out["oidc_config_id"], "value"),
-		OperatorRolePrefix: h.DigString(out["operator_role_prefix"], "value"),
+		AccountRolePrefix:      h.DigString(out["account_roles_prefix"], "value"),
+		OIDCConfigID:           h.DigString(out["oidc_config_id"], "value"),
+		OperatorRolePrefix:     h.DigString(out["operator_role_prefix"], "value"),
+		IngressOperatorRoleArn: h.DigString(out["ingress_operator_role_arn"], "value"),
 	}
 	return oidcOPOutput, nil
 }

@@ -209,3 +209,16 @@ variable "upgrade_acknowledgements_for" {
   type    = string
   default = null
 }
+
+variable "base_dns_domain" {
+  type        = string
+  default     = null
+}
+
+variable "private_hosted_zone" {
+  type = object({
+    id        = string
+    role_arn  = string
+  })
+  default = null
+}

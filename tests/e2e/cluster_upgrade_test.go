@@ -107,7 +107,7 @@ var _ = Describe("RHCS Provider Test", func() {
 					By("Upgrade account-roles")
 					majorVersion := CI.GetMajorVersion(targetV)
 					Expect(majorVersion).ToNot(Equal(""))
-					_, err = CI.PrepareAccountRoles(token, clusterResp.Body().Name(), profile.UnifiedAccRolesPath, profile.Region, majorVersion, profile.ChannelGroup, profile.GetClusterType())
+					_, err = CI.PrepareAccountRoles(token, clusterResp.Body().Name(), profile.UnifiedAccRolesPath, profile.Region, majorVersion, profile.ChannelGroup, profile.GetClusterType(), "")
 					Expect(err).ToNot(HaveOccurred())
 
 					clusterService, err := EXE.NewClusterService(profile.GetClusterManifestsDir())

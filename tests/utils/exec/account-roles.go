@@ -15,6 +15,7 @@ type AccountRolesArgs struct {
 	URL                 string `json:"url,omitempty"`
 	ChannelGroup        string `json:"channel_group,omitempty"`
 	UnifiedAccRolesPath string `json:"path,omitempty"`
+	SharedVpcRoleArn    string `json:"shared_vpc_role_arn,omitempty"`
 }
 
 type AccountRolesOutput struct {
@@ -23,6 +24,8 @@ type AccountRolesOutput struct {
 	ChannelGroup      string        `json:"channel_group,omitempty"`
 	RHCSGatewayUrl    string        `json:"rhcs_gateway_url,omitempty"`
 	RHCSVersions      []interface{} `json:"rhcs_versions,omitempty"`
+	InstallerRoleArn  string        `json:"installer_role_arn,omitempty"`
+	AWSAccountId      string        `json:"aws_account_id,omitempty"`
 }
 
 type AccountRoleService struct {
@@ -73,6 +76,8 @@ func (acc *AccountRoleService) Output() (*AccountRolesOutput, error) {
 		ChannelGroup:      h.DigString(out["channel_group"], "value"),
 		RHCSGatewayUrl:    h.DigString(out["rhcs_gateway_url"], "value"),
 		RHCSVersions:      h.DigArray(out["rhcs_versions"], "value"),
+		InstallerRoleArn:  h.DigString(out["installer_role_arn"], "value"),
+		AWSAccountId:      h.DigString(out["aws_account_id"], "value"),
 	}
 	return accOutput, nil
 }

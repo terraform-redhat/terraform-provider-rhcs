@@ -410,7 +410,7 @@ var _ = Describe("TF Test", func() {
 				}
 				getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
 				var zones []string
-				vpcOutput, err := ci.PrepareVPC(profile.Region, false, true, zones, profile.GetClusterType(), getResp.Body().Name())
+				vpcOutput, err := ci.PrepareVPC(profile.Region, false, true, zones, profile.GetClusterType(), getResp.Body().Name(), "")
 
 				By("Tag new subnet to be able to apply it to the machinepool")
 				VpcTagService := exe.NewVPCTagService()

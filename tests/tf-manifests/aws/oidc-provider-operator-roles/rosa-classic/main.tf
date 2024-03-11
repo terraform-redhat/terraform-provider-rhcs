@@ -20,6 +20,8 @@ provider "aws" {
 }
 data "aws_caller_identity" "current" {
 }
+data "aws_partition" "current" {
+}
 
 // ************** Managed oidc config ***************
 resource "rhcs_rosa_oidc_config" "oidc_config_managed" {
@@ -52,6 +54,8 @@ module "oidc_config_input_resources" {
 
 locals {
   path = coalesce(var.path, "/")
+  ingress_role_name = substr("${var.operator_role_prefix}-openshift-ingress-operator-cloud-credentials", 0, 64)
+  ingress_operator_role_arn = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${local.ingress_role_name}"
 }
 
 # Create unmanaged OIDC config in OCM

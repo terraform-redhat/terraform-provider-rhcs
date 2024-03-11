@@ -15,7 +15,9 @@ var _ = Describe("TF day2 scenrios", func() {
 	Context("Author:smiron-Medium-OCP-67570 @OCP-67570 @smiron", func() {
 		var dnsService *exe.DnsService
 		BeforeEach(func() {
-			dnsService = exe.NewDnsDomainService(con.DNSDir)
+			var err error
+			dnsService, err = exe.NewDnsDomainService(con.DNSDir)
+			Expect(err).ToNot(HaveOccurred())
 		})
 		AfterEach(func() {
 			err := dnsService.Destroy()

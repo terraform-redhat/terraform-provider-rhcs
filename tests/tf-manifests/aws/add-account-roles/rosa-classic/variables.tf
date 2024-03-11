@@ -13,6 +13,10 @@ variable "account_role_prefix" {
   default = ""
 }
 
+variable "shared_vpc_role_arn" {
+  type    = string
+  default = null
+}
 
 variable "url" {
   type    = string

@@ -58,13 +58,14 @@ const (
 )
 
 var (
-	DefaultMajorVersion       = "4.14"
-	CharsBytes                = "abcdefghijklmnopqrstuvwxyz123456789"
-	WorkSpace                 = "WORKSPACE"
-	RHCSPrefix                = "rhcs"
-	ConfigSuffix              = "kubeconfig"
-	DefaultAccountRolesPrefix = "account-role-"
-	ManifestsDirENV           = os.Getenv("MANIFESTS_FOLDER")
+	DefaultMajorVersion                  = "4.14"
+	CharsBytes                           = "abcdefghijklmnopqrstuvwxyz123456789"
+	WorkSpace                            = "WORKSPACE"
+	RHCSPrefix                           = "rhcs"
+	ConfigSuffix                         = "kubeconfig"
+	DefaultAccountRolesPrefix            = "account-role-"
+	ManifestsDirENV                      = os.Getenv("MANIFESTS_FOLDER")
+	SharedVpcAWSSharedCredentialsFileENV = os.Getenv("SHARED_VPC_AWS_SHARED_CREDENTIALS_FILE")
 )
 
 const (

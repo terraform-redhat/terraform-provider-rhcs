@@ -5,10 +5,15 @@ import (
 	"fmt"
 
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
 type DnsDomainArgs struct {
 	ID string `json:"id,omitempty"`
+}
+
+type DnsDomainOutput struct {
+	DnsDomainId string `json:"dns_domain_id,omitempty"`
 }
 
 type DnsService struct {
@@ -42,6 +47,23 @@ func (dns *DnsService) Create(createArgs *DnsDomainArgs, extraArgs ...string) er
 	return nil
 }
 
+func (dns *DnsService) Output() (DnsDomainOutput, error) {
+	dnsDir := CON.DNSDir
+	if dns.ManifestDir != "" {
+		dnsDir = dns.ManifestDir
+	}
+	var dnsOut DnsDomainOutput
+	out, err := runTerraformOutput(context.TODO(), dnsDir)
+	if err != nil {
+		return dnsOut, err
+	}
+	dnsOut = DnsDomainOutput{
+		DnsDomainId: h.DigString(out["dns_domain_id"], "value"),
+	}
+
+	return dnsOut, nil
+}
+
 func (dns *DnsService) Destroy(createArgs ...*DnsDomainArgs) error {
 	if dns.CreationArgs == nil && len(createArgs) == 0 {
 		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
@@ -56,8 +78,8 @@ func (dns *DnsService) Destroy(createArgs ...*DnsDomainArgs) error {
 	return err
 }
 
-func NewDnsDomainService(manifestDir ...string) *DnsService {
+func NewDnsDomainService(manifestDir ...string) (*DnsService, error) {
 	dns := &DnsService{}
-	dns.Init(manifestDir...)
-	return dns
+	err := dns.Init(manifestDir...)
+	return dns, err
 }

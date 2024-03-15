@@ -26,7 +26,7 @@ profiles:
     tagging: true
     channel_group: candidate
     zones: "a,b,c"
-    imdsv2: ""
+    ec2_metadata_http_tokens: ""
     oidc_config: "managed"
     admin_enabled: false # Not yet supported
 # rosa-hcp-sts-pl :: creating a managed oidc config cluster 
@@ -56,7 +56,7 @@ profiles:
 #     tagging: false
 #     channel_group: candidate
 #     zones: ""
-#     imdsv2: "optional"
+#     ec2_metadata_http_tokens: "optional"
 #     oidc_config: "managed"
 #     admin_enabled: false # Not yet supported
 #     unified_acc_role_path: ""
@@ -87,7 +87,7 @@ profiles:
 #     tagging: true
 #     channel_group: stable
 #     zones: ""
-#     imdsv2: ""
+#     ec2_metadata_http_tokens: ""
 #     oidc_config: "managed"
 #     admin_enabled: false # Not yet supported
 #     unified_acc_role_path: "/uni-fied/"
@@ -118,7 +118,7 @@ profiles:
 #     tagging: false
 #     channel_group: stable
 #     zones: ""
-#     imdsv2: ""
+#     ec2_metadata_http_tokens: ""
 #     oidc_config: "managed"
 #     admin_enabled: false # Not yet supported
 #     unified_acc_role_path: ""

@@ -60,7 +60,7 @@ variable "autoscaling" {
   }
 }
 
-variable "aws_http_tokens_state" {
+variable "ec2_metadata_http_tokens" {
   type    = string
   default = null
 }

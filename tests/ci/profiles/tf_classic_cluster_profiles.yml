@@ -26,7 +26,7 @@ profiles:
     tagging: false
     channel_group: stable
     zones: ""
-    imdsv2: "optional"
+    ec2_metadata_http_tokens: "optional"
     oidc_config: "managed"
     admin_enabled: false
     unified_acc_role_path: ""
@@ -57,7 +57,7 @@ profiles:
     tagging: true
     channel_group: stable
     zones: ""
-    imdsv2: "required"
+    ec2_metadata_http_tokens: "required"
     oidc_config: "un-managed"
     admin_enabled: true
     additional_sg_number: 4
@@ -124,7 +124,7 @@ profiles:
     tagging: true
     channel_group: stable
     zones: ""
-    imdsv2: ""
+    ec2_metadata_http_tokens: ""
     oidc_config: "managed"
     admin_enabled: true
     unified_acc_role_path: "/uni-fied/"
@@ -155,7 +155,7 @@ profiles:
     tagging: false
     channel_group: stable
     zones: ""
-    imdsv2: ""
+    ec2_metadata_http_tokens: ""
     oidc_config: "managed"
     admin_enabled: true
     unified_acc_role_path: ""

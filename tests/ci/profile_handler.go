@@ -50,7 +50,7 @@ type Profile struct {
 	Proxy                 bool   `ini:"proxy,omitempty" json:"proxy,omitempty"`
 	OIDCConfig            string `ini:"oidc_config,omitempty" json:"oidc_config,omitempty"`
 	ProvisionShard        string `ini:"provisionShard,omitempty" json:"provisionShard,omitempty"`
-	Ec2MetadataHttpTokens string `ini:"imdsv2,omitempty" json:"imdsv2,omitempty"`
+	Ec2MetadataHttpTokens string `ini:"ec2_metadata_http_tokens,omitempty" json:"ec2_metadata_http_tokens,omitempty"`
 	ComputeMachineType    string `ini:"compute_machine_type,omitempty" json:"compute_machine_type,omitempty"`
 	AuditLogForward       bool   `ini:"auditlog_forward,omitempty" json:"auditlog_forward,omitempty"`
 	AdminEnabled          bool   `ini:"admin_enabled,omitempty" json:"admin_enabled,omitempty"`
@@ -352,6 +352,10 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 
 	if profile.ChannelGroup != "" {
 		clusterArgs.ChannelGroup = profile.ChannelGroup
+	}
+
+	if profile.Ec2MetadataHttpTokens != "" {
+		clusterArgs.Ec2MetadataHttpTokens = profile.Ec2MetadataHttpTokens
 	}
 
 	if profile.Region == "" {

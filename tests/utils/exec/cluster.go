@@ -18,7 +18,7 @@ type ClusterCreationArgs struct {
 	AWSAvailabilityZones                 []string           `json:"aws_availability_zones,omitempty"`
 	Replicas                             int                `json:"replicas,omitempty"`
 	ChannelGroup                         string             `json:"channel_group,omitempty"`
-	AWSHttpTokensState                   string             `json:"aws_http_tokens_state,omitempty"`
+	Ec2MetadataHttpTokens                string             `json:"ec2_metadata_http_tokens,omitempty"`
 	PrivateLink                          bool               `json:"private_link,omitempty"`
 	Private                              bool               `json:"private,omitempty"`
 	Fips                                 bool               `json:"fips,omitempty"`

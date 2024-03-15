@@ -42,8 +42,8 @@ var _ = Describe("TF Test", func() {
 			// For future implementation
 		})
 
-		Context("Author:smiron-Medium-OCP-67607 @OCP-67607 @smiron", func() {
-			It("Validate Rosa cluster with proxy will be created successfully via terraform-provider", ci.Day1Post, ci.Medium, func() {
+		Context("Author:smiron-High-OCP-67607 @OCP-67607 @smiron", func() {
+			It("Validate Rosa cluster with proxy will be created successfully via terraform-provider", ci.Day1Post, ci.High, func() {
 
 				if !profile.Proxy {
 					Skip("No proxy is configured for the cluster. skipping the test.")

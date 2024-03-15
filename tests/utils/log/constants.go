@@ -12,4 +12,5 @@ var RedactKeyList = []*regexp.Regexp{
 	regexp.MustCompile(`(\\?"password\\?":\\?")([^"]*)(\\?")`),
 	regexp.MustCompile(`(\\?"additional_trust_bundle\\?":\\?")([^"]*)(\\?")`),
 	regexp.MustCompile(`(-----BEGIN CERTIFICATE-----\n)([^-----]*)(-----END CERTIFICATE-----)`),
+	regexp.MustCompile(`(password\s*=\s*)([^\n\\\n]+)([\n\\\n]+)`),
 }

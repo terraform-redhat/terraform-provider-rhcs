@@ -103,7 +103,7 @@ var _ = Describe("HCP Cluster", func() {
 			"rosa_tf_commit":  build.Commit,
 		}).
 		Nodes(cmv1.NewClusterNodes().
-			Compute(3).AvailabilityZones("us-west-1a").
+			Compute(3).AvailabilityZones("us-west-1a", "us-west-1b", "us-west-1c").
 			ComputeMachineType(cmv1.NewMachineType().ID("r5.xlarge")),
 		).
 		Network(cmv1.NewNetwork().
@@ -229,6 +229,11 @@ var _ = Describe("HCP Cluster", func() {
 					aws_subnet_ids = [
 						"id1", "id2", "id3"
 					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
 					version = "4.14.1"
 				}`)
 				Expect(terraform.Apply()).To(BeZero())
@@ -299,6 +304,11 @@ var _ = Describe("HCP Cluster", func() {
 					}
 					aws_subnet_ids = [
 						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
 					]
 					channel_group = "fast"
 					version = "4.50.0"
@@ -419,6 +429,11 @@ var _ = Describe("HCP Cluster", func() {
 					aws_subnet_ids = [
 						"id1", "id2", "id3"
 					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
 					wait_for_create_complete = true
 				}`)
 				Expect(terraform.Apply()).ToNot(BeZero())
@@ -497,6 +512,11 @@ var _ = Describe("HCP Cluster", func() {
 					}
 					aws_subnet_ids = [
 						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
 					]
 					wait_for_create_complete = true
 				}`)
@@ -603,6 +623,11 @@ var _ = Describe("HCP Cluster", func() {
 				}
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
 				]
 				wait_for_create_complete = true
 				wait_for_std_compute_nodes_complete = true
@@ -713,6 +738,11 @@ var _ = Describe("HCP Cluster", func() {
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
 				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
 				wait_for_create_complete = false
 				wait_for_std_compute_nodes_complete = true
 			}`)
@@ -736,6 +766,11 @@ var _ = Describe("HCP Cluster", func() {
 				}
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
 				]
 				wait_for_std_compute_nodes_complete = true
 			}`)
@@ -761,6 +796,11 @@ var _ = Describe("HCP Cluster", func() {
 				}
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
 				]
 				wait_for_create_complete = true
 				wait_for_std_compute_nodes_complete = true
@@ -822,6 +862,11 @@ var _ = Describe("HCP Cluster", func() {
 				}
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
 				]
 			}`)
 			Expect(terraform.Apply()).To(BeZero())
@@ -891,6 +936,11 @@ var _ = Describe("HCP Cluster", func() {
 					aws_subnet_ids = [
 						"id1", "id2", "id3"
 					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
 					etcd_encryption = true
 				}`)
 					Expect(terraform.Apply()).ToNot(BeZero())
@@ -912,6 +962,11 @@ var _ = Describe("HCP Cluster", func() {
 					}
 					aws_subnet_ids = [
 						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
 					]
 					etcd_kms_key_arn = "kms"
 				}`)
@@ -937,6 +992,11 @@ var _ = Describe("HCP Cluster", func() {
 					aws_subnet_ids = [
 						"id1", "id2", "id3"
 					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
 					etcd_encryption = true
 					etcd_kms_key_arn = "arn:aws:kms:us-west-2:111122223333:key/mrk-78dcc31c5865498cbe98ad5ab9769a04"
 				}`)
@@ -944,76 +1004,6 @@ var _ = Describe("HCP Cluster", func() {
 				resource := terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
 				Expect(resource).To(MatchJQ(".attributes.current_version", "4.14.0"))
 			})
-		})
-
-		It("Creates basic cluster returned empty az list", func() {
-			// Prepare the server:
-			server.AppendHandlers(
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-					RespondWithJSON(http.StatusOK, versionListPage),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
-					VerifyJQ(`.name`, "my-cluster"),
-					VerifyJQ(`.cloud_provider.id`, "aws"),
-					VerifyJQ(`.region.id`, "us-west-1"),
-					VerifyJQ(`.product.id`, "rosa"),
-
-					RespondWithPatchedJSON(http.StatusCreated, template, `
-					[
-						{
-							"op": "add",
-							"path": "/aws",
-							"value": {
-								"sts" : {
-									"oidc_endpoint_url": "https://127.0.0.1",
-									"thumbprint": "111111",
-									"role_arn": "",
-									"support_role_arn": "",
-									"instance_iam_roles" : {
-										"worker_role_arn" : ""
-									},
-									"operator_role_prefix" : "test"
-								}
-							}
-						},
-						{
-							"op": "replace",
-							"path": "/nodes",
-							"value": {
-								"compute": 3,
-								"compute_machine_type": {
-								"id": "r5.xlarge"
-								}
-							}
-						}
-					]`),
-				),
-			)
-
-			// Run the apply command:
-			terraform.Source(`
-			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-				name           = "my-cluster"
-				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
-				sts = {
-					operator_role_prefix = "test"
-					role_arn = "",
-					support_role_arn = "",
-					instance_iam_roles = {
-						worker_role_arn = "",
-					}
-				}
-				aws_subnet_ids = [
-					"id1", "id2", "id3"
-				]
-			}`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
-			Expect(resource).To(MatchJQ(".attributes.current_version", "4.14.0"))
 		})
 
 		It("Creates basic cluster - and reconcile on a 404", func() {
@@ -1067,6 +1057,11 @@ var _ = Describe("HCP Cluster", func() {
 				}
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
 				]
 			}`)
 			Expect(terraform.Apply()).To(BeZero())
@@ -1133,6 +1128,11 @@ var _ = Describe("HCP Cluster", func() {
 				}
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
 				]
 			}`)
 			Expect(terraform.Apply()).To(BeZero())
@@ -1204,6 +1204,11 @@ var _ = Describe("HCP Cluster", func() {
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
 				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
 			}`, propKey, propValue))
 			Expect(terraform.Apply()).To(BeZero())
 		})
@@ -1272,6 +1277,11 @@ var _ = Describe("HCP Cluster", func() {
 				}
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
 				]
 			}`, propKey, propValue))
 			Expect(terraform.Apply()).To(BeZero())
@@ -1365,6 +1375,11 @@ var _ = Describe("HCP Cluster", func() {
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
 				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
 			}`, propKey, propValue+"_1"))
 			Expect(terraform.Apply()).To(BeZero())
 			resource = terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
@@ -1437,6 +1452,11 @@ var _ = Describe("HCP Cluster", func() {
 				}
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
 				]
 			}`, propKey, propValue))
 			Expect(terraform.Apply()).To(BeZero())
@@ -1531,6 +1551,11 @@ var _ = Describe("HCP Cluster", func() {
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
 				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
 			}`)
 			Expect(terraform.Apply()).To(BeZero())
 			resource = terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
@@ -1594,6 +1619,11 @@ var _ = Describe("HCP Cluster", func() {
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
 				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
 			}`)
 			Expect(terraform.Apply()).ToNot(BeZero())
 		})
@@ -1619,6 +1649,11 @@ var _ = Describe("HCP Cluster", func() {
 				}
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
 				]
 			}`)
 			Expect(terraform.Apply()).ToNot(BeZero())
@@ -1691,6 +1726,11 @@ var _ = Describe("HCP Cluster", func() {
 					aws_subnet_ids = [
 						"id1", "id2", "id3"
 			 		]
+					 availability_zones = [
+						 "us-west-1a",
+						 "us-west-1b",
+						 "us-west-1c",
+					 ]
 				}`)
 				// it should return a warning so exit code will be "0":
 				Expect(terraform.Apply()).To(BeZero())
@@ -1721,6 +1761,11 @@ var _ = Describe("HCP Cluster", func() {
 					aws_subnet_ids = [
 						"id1", "id2", "id3"
 			  		]
+					  availability_zones = [
+						  "us-west-1a",
+						  "us-west-1b",
+						  "us-west-1c",
+					  ]
 				}`)
 				// it should return a warning so exit code will be "0":
 				Expect(terraform.Apply()).To(BeZero())
@@ -1752,6 +1797,11 @@ var _ = Describe("HCP Cluster", func() {
 					aws_subnet_ids = [
 						"id1", "id2", "id3"
 					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
 				}`)
 				// it should return a warning so exit code will be "0":
 				Expect(terraform.Apply()).To(BeZero())
@@ -1782,6 +1832,11 @@ var _ = Describe("HCP Cluster", func() {
 					}
 					aws_subnet_ids = [
 						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
 					]
 				  }`)
 				// it should return a warning so exit code will be "0":
@@ -1857,6 +1912,11 @@ var _ = Describe("HCP Cluster", func() {
 					}
 					aws_subnet_ids = [
 						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
 					]
 				}`)
 				Expect(terraform.Apply()).To(BeZero())
@@ -1962,6 +2022,11 @@ var _ = Describe("HCP Cluster", func() {
 					aws_subnet_ids = [
 						"id1", "id2", "id3"
 					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
 				}`)
 				Expect(terraform.Apply()).To(BeZero())
 				resource := terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
@@ -2020,6 +2085,11 @@ var _ = Describe("HCP Cluster", func() {
 					}
 					aws_subnet_ids = [
 						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
 					]
 				}`)
 				Expect(terraform.Apply()).To(BeZero())
@@ -2090,6 +2160,11 @@ var _ = Describe("HCP Cluster", func() {
 					aws_subnet_ids = [
 						"id1", "id2", "id3"
 					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
 				}`)
 				Expect(terraform.Apply()).To(BeZero())
 			})
@@ -2114,6 +2189,11 @@ var _ = Describe("HCP Cluster", func() {
 				}
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
 				]
 			 }`)
 			Expect(terraform.Apply()).NotTo(BeZero())
@@ -2168,6 +2248,11 @@ var _ = Describe("HCP Cluster", func() {
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
 				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
 			}`)
 			Expect(terraform.Apply()).To(BeZero())
 
@@ -2220,7 +2305,9 @@ var _ = Describe("HCP Cluster", func() {
 					  "path": "/nodes",
 					  "value": {
 						"availability_zones": [
-      						"us-west-1a"
+      						"us-west-1a",
+							"us-west-1b",
+							"us-west-1c"
     					],
 						"compute_machine_type": {
 						   "id": "r5.xlarge"
@@ -2237,7 +2324,6 @@ var _ = Describe("HCP Cluster", func() {
 				cloud_region   = "us-west-1"
 				aws_account_id = "123"
 				aws_billing_account_id = "123"
-				availability_zones = ["us-west-1a"]
 				private = true
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
@@ -2250,6 +2336,11 @@ var _ = Describe("HCP Cluster", func() {
 						worker_role_arn = "",
 					}
 				}
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
 			}`)
 			Expect(terraform.Apply()).To(BeZero())
 		})
@@ -2308,6 +2399,11 @@ var _ = Describe("HCP Cluster", func() {
 				}
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
 				]
 			}`)
 			Expect(terraform.Apply()).To(BeZero())
@@ -2376,6 +2472,11 @@ var _ = Describe("HCP Cluster", func() {
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
 				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
 		  	}`)
 			Expect(terraform.Apply()).To(BeZero())
 		})
@@ -2431,6 +2532,11 @@ var _ = Describe("HCP Cluster", func() {
 				}
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
 				]
 			}`)
 			// expect to get an error
@@ -2492,6 +2598,11 @@ var _ = Describe("HCP Cluster", func() {
 				}
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
 				]
 				version = "4.14.0"
 			}`)
@@ -2673,6 +2784,11 @@ var _ = Describe("HCP Cluster", func() {
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
 				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
 				version = "4.14.1"
 			}`)
 			Expect(terraform.Apply()).To(BeZero())
@@ -2795,6 +2911,11 @@ var _ = Describe("HCP Cluster", func() {
 				}
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
 				]
 				version = "4.14.1"
 			}`)
@@ -2950,6 +3071,11 @@ var _ = Describe("HCP Cluster", func() {
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
 				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
 				version = "4.14.1"
 			}`)
 			Expect(terraform.Apply()).To(BeZero())
@@ -3022,6 +3148,11 @@ var _ = Describe("HCP Cluster", func() {
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
 				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
 				version = "4.14.0"
 			}`)
 			Expect(terraform.Apply()).To(BeZero())
@@ -3058,6 +3189,11 @@ var _ = Describe("HCP Cluster", func() {
 				}
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
 				]
 				version = "4.14.1"
 			}`)
@@ -3101,6 +3237,11 @@ var _ = Describe("HCP Cluster", func() {
 				}
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
 				]
 				version = "4.14.0"
 			}`)
@@ -3226,6 +3367,11 @@ var _ = Describe("HCP Cluster", func() {
 					aws_subnet_ids = [
 						"id1", "id2", "id3"
 					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
 					version = "4.14.1"
 				}`)
 				Expect(terraform.Apply()).NotTo(BeZero())
@@ -3247,6 +3393,11 @@ var _ = Describe("HCP Cluster", func() {
 					}
 					aws_subnet_ids = [
 						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
 					]
 					version = "4.14.1"
 					upgrade_acknowledgements_for = "1.1"
@@ -3316,6 +3467,11 @@ var _ = Describe("HCP Cluster", func() {
 					}
 					aws_subnet_ids = [
 						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
 					]
 					version = "4.14.1"
 					upgrade_acknowledgements_for = "4.14"

@@ -17,15 +17,16 @@ OpenShift managed cluster using ROSA HCP.
 
 ### Required
 
+- `availability_zones` (List of String) Availability zones. This attribute is specifically applies for the Worker Node Pool and becomes irrelevant once the resource is created. Any modifications to the default Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Node Pool in ROSA Cluster](../guides/worker-machine-pool.md)
 - `aws_account_id` (String) Identifier of the AWS account. After the creation of the resource, it is not possible to update the attribute value.
 - `aws_billing_account_id` (String) Identifier of the AWS account for billing. After the creation of the resource, it is not possible to update the attribute value.
+- `aws_subnet_ids` (List of String) AWS subnet IDs. After the creation of the resource, it is not possible to update the attribute value.
 - `cloud_region` (String) AWS region identifier, for example 'us-east-1'.
 - `name` (String) Name of the cluster. Cannot exceed 15 characters in length. After the creation of the resource, it is not possible to update the attribute value.
+- `sts` (Attributes) STS configuration. (see [below for nested schema](#nestedatt--sts))
 
 ### Optional
 
-- `availability_zones` (List of String) Availability zones. This attribute is specifically applies for the Worker Node Pool and becomes irrelevant once the resource is created. Any modifications to the default Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Node Pool in ROSA Cluster](../guides/worker-machine-pool.md)
-- `aws_subnet_ids` (List of String) AWS subnet IDs. After the creation of the resource, it is not possible to update the attribute value.
 - `channel_group` (String) Name of the channel group where you select the OpenShift cluster version, for example 'stable'. For ROSA, only 'stable' is supported. After the creation of the resource, it is not possible to update the attribute value.
 - `compute_machine_type` (String) Identifies the machine type used by the initial worker nodes, for example `m5.xlarge`. Use the `rhcs_machine_types` data source to find the possible values. This attribute is specifically applies for the Worker Node Pool and becomes irrelevant once the resource is created. Any modifications to the default Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Node Pool in ROSA Cluster](../guides/worker-machine-pool.md)
 - `destroy_timeout` (Number) This value sets the maximum duration in minutes to allow for destroying resources. Default value is 60 minutes.
@@ -38,11 +39,10 @@ OpenShift managed cluster using ROSA HCP.
 - `machine_cidr` (String) Block of IP addresses for nodes. After the creation of the resource, it is not possible to update the attribute value.
 - `pod_cidr` (String) Block of IP addresses for pods. After the creation of the resource, it is not possible to update the attribute value.
 - `private` (Boolean) Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet. After the creation of the resource, it is not possible to update the attribute value.
-- `properties` (Map of String) User defined properties.
+- `properties` (Map of String) User defined properties. It is essential to include property 'role_creator_arn' with the value of the user creating the cluster. Example: properties = {rosa_creator_arn = data.aws_caller_identity.current.arn}
 - `proxy` (Attributes) proxy (see [below for nested schema](#nestedatt--proxy))
 - `replicas` (Number) Number of worker/compute nodes to provision. Single zone clusters need at least 2 nodes, multizone clusters need at least 3 nodes. This attribute is specifically applies for the Worker Node Pool and becomes irrelevant once the resource is created. Any modifications to the default Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Node Pool in ROSA Cluster](../guides/worker-machine-pool.md)
 - `service_cidr` (String) Block of IP addresses for the cluster service network. After the creation of the resource, it is not possible to update the attribute value.
-- `sts` (Attributes) STS configuration. (see [below for nested schema](#nestedatt--sts))
 - `tags` (Map of String) Apply user defined tags to all cluster resources created in AWS. After the creation of the resource, it is not possible to update the attribute value.
 - `upgrade_acknowledgements_for` (String) Indicates acknowledgement of agreements required to upgrade the cluster version between minor versions (e.g. a value of "4.12" indicates acknowledgement of any agreements required to upgrade to OpenShift 4.12.z from 4.11 or before).
 - `version` (String) Desired version of OpenShift for the cluster, for example '4.11.0'. If version is greater than the currently running version, an upgrade will be scheduled.
@@ -58,17 +58,6 @@ OpenShift managed cluster using ROSA HCP.
 - `id` (String) Unique identifier of the cluster.
 - `ocm_properties` (Map of String) Merged properties defined by OCM and the user defined 'properties'.
 - `state` (String) State of the cluster.
-
-<a id="nestedatt--proxy"></a>
-### Nested Schema for `proxy`
-
-Optional:
-
-- `additional_trust_bundle` (String) A string containing a PEM-encoded X.509 certificate bundle that will be added to the nodes' trusted certificate store.
-- `http_proxy` (String) HTTP proxy.
-- `https_proxy` (String) HTTPS proxy.
-- `no_proxy` (String) No proxy.
-
 
 <a id="nestedatt--sts"></a>
 ### Nested Schema for `sts`
@@ -95,3 +84,15 @@ Read-Only:
 Required:
 
 - `worker_role_arn` (String) Worker/Compute Node Role ARN
+
+
+
+<a id="nestedatt--proxy"></a>
+### Nested Schema for `proxy`
+
+Optional:
+
+- `additional_trust_bundle` (String) A string containing a PEM-encoded X.509 certificate bundle that will be added to the nodes' trusted certificate store.
+- `http_proxy` (String) HTTP proxy.
+- `https_proxy` (String) HTTPS proxy.
+- `no_proxy` (String) No proxy.

@@ -101,7 +101,6 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 			},
 			"external_id": schema.StringAttribute{
 				Description: "Unique external identifier of the cluster. " + common.ValueCannotBeChangedStringDescription,
-				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),

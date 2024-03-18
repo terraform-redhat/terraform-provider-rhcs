@@ -72,7 +72,6 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
 - `disable_workload_monitoring` (Boolean) Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE) platform metrics.
 - `ec2_metadata_http_tokens` (String) This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the cluster.This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). This feature is available from OpenShift version 4.11.0 and newer. After the creation of the resource, it is not possible to update the attribute value.
 - `etcd_encryption` (Boolean) Encrypt etcd data. Note that all AWS storage is already encrypted. After the creation of the resource, it is not possible to update the attribute value.
-- `external_id` (String) Unique external identifier of the cluster. After the creation of the resource, it is not possible to update the attribute value.
 - `fips` (Boolean) Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries. After the creation of the resource, it is not possible to update the attribute value.
 - `host_prefix` (Number) Length of the prefix of the subnet assigned to each node. After the creation of the resource, it is not possible to update the attribute value.
 - `kms_key_arn` (String) Used to encrypt root volume of compute node pools. The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID(optional). After the creation of the resource, it is not possible to update the attribute value.
@@ -101,6 +100,7 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
 - `console_url` (String) URL of the console.
 - `current_version` (String) The currently running version of OpenShift on the cluster, for example '4.11.0'.
 - `domain` (String) DNS domain of cluster.
+- `external_id` (String) Unique external identifier of the cluster. After the creation of the resource, it is not possible to update the attribute value.
 - `id` (String) Unique identifier of the cluster.
 - `infra_id` (String) The ROSA cluster infrastructure ID.
 - `ocm_properties` (Map of String) Merged properties defined by OCM and the user defined 'properties'.

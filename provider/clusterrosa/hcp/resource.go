@@ -113,10 +113,10 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 			"sts": schema.SingleNestedAttribute{
 				Description: "STS configuration.",
 				Attributes:  sts.HcpStsResource(),
-				Optional:    true,
+				Required:    true,
 			},
 			"properties": schema.MapAttribute{
-				Description: "User defined properties.",
+				Description: "User defined properties. It is essential to include property 'role_creator_arn' with the value of the user creating the cluster. Example: properties = {rosa_creator_arn = data.aws_caller_identity.current.arn}",
 				ElementType: types.StringType,
 				Optional:    true,
 				Computed:    true,
@@ -174,7 +174,7 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 			"aws_subnet_ids": schema.ListAttribute{
 				Description: "AWS subnet IDs. " + common.ValueCannotBeChangedStringDescription,
 				ElementType: types.StringType,
-				Optional:    true,
+				Required:    true,
 			},
 			"kms_key_arn": schema.StringAttribute{
 				Description: "Used to encrypt root volume of compute node pools. The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, " +
@@ -199,8 +199,7 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 			"availability_zones": schema.ListAttribute{
 				Description: "Availability zones. " + rosaTypes.Hcp.GeneratePoolMessage(),
 				ElementType: types.StringType,
-				Optional:    true,
-				Computed:    true,
+				Required:    true,
 				Validators: []validator.List{
 					listvalidator.ValueStringsAre(rosa.AvailabilityZoneValidator),
 				},

@@ -93,7 +93,6 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 			},
 			"external_id": schema.StringAttribute{
 				Description: "Unique external identifier of the cluster. " + common.ValueCannotBeChangedStringDescription,
-				Optional:    true,
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),

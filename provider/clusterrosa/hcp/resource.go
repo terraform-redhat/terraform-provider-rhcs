@@ -928,6 +928,10 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 		}
 	}
 
+	if toPatch, shouldPatch := common.ShouldPatchString(state.AWSBillingAccountID, plan.AWSBillingAccountID); shouldPatch {
+		clusterBuilder.AWS(cmv1.NewAWS().BillingAccountID(toPatch))
+	}
+
 	clusterSpec, err := clusterBuilder.Build()
 	if err != nil {
 		response.Diagnostics.AddError(

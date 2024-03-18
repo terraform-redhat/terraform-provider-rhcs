@@ -1271,6 +1271,182 @@ var _ = Describe("HCP Cluster", func() {
 			Expect(terraform.Apply()).To(BeZero())
 		})
 
+		It("Creates basic cluster and update billing acount ID", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.aws.billing_account_id`, "123456789012"),
+					RespondWithPatchedJSON(http.StatusCreated, template, fmt.Sprintf(`[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+                    {
+                      "op": "add",
+                      "path": "/properties",
+                      "value": {
+						"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+                        "rosa_tf_commit":"%s",
+                        "rosa_tf_version":"%s"
+                      }
+                    }]`, build.Commit, build.Version)),
+				),
+			)
+
+			// Run the apply command:
+			terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				properties = { 
+					rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
+				}
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+			}`)
+			Expect(terraform.Apply()).To(BeZero())
+			resource := terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.aws_billing_account_id`, "123456789012"))
+
+			// Prepare server for update
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					{
+						"op": "add",
+						"path": "/properties",
+						"value": {
+							"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+						  	"rosa_tf_commit":"%s",
+						  	"rosa_tf_version":"%s"
+						}
+					}]`, build.Commit, build.Version)),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, cluster123Route),
+					VerifyJQ(`.aws.billing_account_id`, "123456799012"),
+					RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"billing_account_id": "123456799012"
+						}
+					  },
+					{
+						"op": "add",
+						"path": "/properties",
+						"value": {
+							"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+						  	"rosa_tf_commit":"%s",
+						  	"rosa_tf_version":"%s"
+						}
+					}]`, build.Commit, build.Version)),
+				),
+			)
+
+			// Run the apply command:
+			terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456799012"
+				properties = {
+					rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
+				}
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+			}`)
+			Expect(terraform.Apply()).To(BeZero())
+			resource = terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.aws_billing_account_id`, "123456799012"))
+		})
+
 		It("Creates basic cluster with properties and update them", func() {
 			// Prepare the server:
 			server.AppendHandlers(

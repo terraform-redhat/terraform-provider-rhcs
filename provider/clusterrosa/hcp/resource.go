@@ -165,6 +165,7 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 			"aws_account_id": schema.StringAttribute{
 				Description: "Identifier of the AWS account. " + common.ValueCannotBeChangedStringDescription,
 				Required:    true,
+				Sensitive:   true,
 			},
 			"aws_billing_account_id": schema.StringAttribute{
 				Description: "Identifier of the AWS account for billing. " + common.ValueCannotBeChangedStringDescription,

@@ -18,7 +18,7 @@ OpenShift managed cluster using ROSA HCP.
 ### Required
 
 - `availability_zones` (List of String) Availability zones. This attribute is specifically applies for the Worker Node Pool and becomes irrelevant once the resource is created. Any modifications to the default Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Node Pool in ROSA Cluster](../guides/worker-machine-pool.md)
-- `aws_account_id` (String) Identifier of the AWS account. After the creation of the resource, it is not possible to update the attribute value.
+- `aws_account_id` (String, Sensitive) Identifier of the AWS account. After the creation of the resource, it is not possible to update the attribute value.
 - `aws_billing_account_id` (String) Identifier of the AWS account for billing. After the creation of the resource, it is not possible to update the attribute value.
 - `aws_subnet_ids` (List of String) AWS subnet IDs. After the creation of the resource, it is not possible to update the attribute value.
 - `cloud_region` (String) AWS region identifier, for example 'us-east-1'.

@@ -232,6 +232,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 			"aws_account_id": schema.StringAttribute{
 				Description: "Identifier of the AWS account. " + common.ValueCannotBeChangedStringDescription,
 				Required:    true,
+				Sensitive:   true,
 			},
 			"aws_subnet_ids": schema.ListAttribute{
 				Description: "AWS subnet IDs. " + common.ValueCannotBeChangedStringDescription,

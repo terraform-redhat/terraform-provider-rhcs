@@ -47,7 +47,7 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
 
 ### Required
 
-- `aws_account_id` (String) Identifier of the AWS account. After the creation of the resource, it is not possible to update the attribute value.
+- `aws_account_id` (String, Sensitive) Identifier of the AWS account. After the creation of the resource, it is not possible to update the attribute value.
 - `cloud_region` (String) Cloud region identifier, for example 'us-east-1'.
 - `name` (String) Name of the cluster. Cannot exceed 15 characters in length. After the creation of the resource, it is not possible to update the attribute value.
 

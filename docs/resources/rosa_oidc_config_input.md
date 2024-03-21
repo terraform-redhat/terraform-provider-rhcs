@@ -32,6 +32,6 @@ resource "rhcs_rosa_oidc_config_input" "oidc_input" {
 - `discovery_doc` (String) The discovery document string file
 - `issuer_url` (String) The issuer URL
 - `jwks` (String) JSON web key set string file
-- `private_key` (String) RSA private key
+- `private_key` (String, Sensitive) RSA private key
 - `private_key_file_name` (String) The private key file name
 - `private_key_secret_name` (String) The secret name that stores the private key

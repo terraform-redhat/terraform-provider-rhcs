@@ -63,6 +63,7 @@ func (o *RosaOidcConfigInputResource) Schema(ctx context.Context, request resour
 			"private_key": schema.StringAttribute{
 				Description: "RSA private key",
 				Computed:    true,
+				Sensitive:   true,
 			},
 			"private_key_file_name": schema.StringAttribute{
 				Description: "The private key file name",

@@ -24,7 +24,7 @@ profiles:
     proxy: false
     labeling: false
     tagging: false
-    channel_group: candidate
+    channel_group: stable
     zones: ""
     imdsv2: "optional"
     oidc_config: "managed"
@@ -55,7 +55,7 @@ profiles:
     proxy: true
     labeling: true
     tagging: true
-    channel_group: candidate
+    channel_group: stable
     zones: ""
     imdsv2: "required"
     oidc_config: "un-managed"
@@ -88,7 +88,7 @@ profiles:
     proxy: false
     labeling: true
     tagging: true
-    channel_group: candidate
+    channel_group: stable
     zones: ""
     imdsv2: "required"
     oidc_config: "managed"

@@ -36,7 +36,9 @@ func AwsNodePoolResource() map[string]schema.Attribute {
 			},
 		},
 		"tags": schema.MapAttribute{
-			Description: "Apply user defined tags to all machine pool resources created in AWS. " + common.ValueCannotBeChangedStringDescription,
+			Description: "Apply user defined tags to all machine pool resources created in AWS." +
+				" If tags have been supplied at cluster level please include those in your management file for the machine. " +
+				common.ValueCannotBeChangedStringDescription,
 			ElementType: types.StringType,
 			Optional:    true,
 		},

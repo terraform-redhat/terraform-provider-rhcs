@@ -11,9 +11,9 @@ terraform {
   }
 }
 
-# Define RHCS_TOKEN and RHCS_URL instead
-# provider "rhcs" {
-# }
+provider "rhcs" {
+  url = var.url
+}
 
 provider "aws" {
   region = var.aws_region

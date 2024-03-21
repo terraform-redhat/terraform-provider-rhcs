@@ -423,7 +423,8 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 	}
 
 	collection := resource.NodePools()
-	add, err := collection.Add().Body(object).SendContext(ctx)
+	add, err := collection.Add().Body(object).
+		Parameter("fetchUserTagsOnly", true).SendContext(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Cannot create machine pool",
@@ -526,7 +527,8 @@ func readState(ctx context.Context, state *HcpMachinePoolState, collection *cmv1
 	resource := collection.Cluster(state.Cluster.ValueString()).
 		NodePools().
 		NodePool(state.ID.ValueString())
-	get, err := resource.Get().SendContext(ctx)
+	get, err := resource.Get().
+		Parameter("fetchUserTagsOnly", true).SendContext(ctx)
 	if err != nil {
 		if get.Status() == http.StatusNotFound {
 			poolNotFound = true
@@ -562,6 +564,7 @@ func validateNoImmutableAttChange(state, plan *HcpMachinePoolState) diag.Diagnos
 	validateStateAndPlanEquals(state.Name, plan.Name, "name", &diags)
 	if state.AWSNodePool != nil && plan.AWSNodePool != nil {
 		validateStateAndPlanEquals(state.AWSNodePool.InstanceProfile, plan.AWSNodePool.InstanceProfile, "aws_node_pool.instance_profile", &diags)
+		validateStateAndPlanEquals(state.AWSNodePool.Tags, plan.AWSNodePool.Tags, "aws_node_pool.tags", &diags)
 	}
 	return diags
 }
@@ -643,18 +646,6 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 		awsNodePoolBuilder := cmv1.NewAWSNodePool()
 		// FIXME: even though we do not necessarily need to patch OCM CS API enforces this value cannot be empty
 		awsNodePoolBuilder.InstanceType(plan.AWSNodePool.InstanceType.ValueString())
-
-		if _, ok := common.ShouldPatchMap(state.AWSNodePool.Tags, plan.AWSNodePool.Tags); ok {
-			awsTags, err := common.OptionalMap(ctx, plan.AWSNodePool.Tags)
-			if err != nil {
-				diags.AddError(
-					"Cannot update machine pool",
-					fmt.Sprintf("Cannot update machine pool for cluster '%s': %v",
-						state.Cluster.ValueString(), err),
-				)
-			}
-			awsNodePoolBuilder.Tags(awsTags)
-		}
 		npBuilder.AWSNodePool(awsNodePoolBuilder)
 	}
 
@@ -745,7 +736,8 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 	}
 	update, err := r.clusterCollection.Cluster(state.Cluster.ValueString()).
 		NodePools().
-		NodePool(state.ID.ValueString()).Update().Body(nodePool).SendContext(ctx)
+		NodePool(state.ID.ValueString()).Update().
+		Parameter("fetchUserTagsOnly", true).Body(nodePool).SendContext(ctx)
 	if err != nil {
 		diags.AddError(
 			"Failed to update machine pool",
@@ -1090,7 +1082,13 @@ func populateState(object *cmv1.NodePool, state *HcpMachinePoolState) error {
 		if instanceProfile, ok := awsNodePool.GetInstanceProfile(); ok {
 			state.AWSNodePool.InstanceProfile = types.StringValue(instanceProfile)
 		}
-		if !common.HasValue(state.AWSNodePool.Tags) {
+		if awsTags, ok := awsNodePool.GetTags(); ok {
+			mapValue, err := common.ConvertStringMapToMapType(awsTags)
+			if err != nil {
+				return err
+			}
+			state.AWSNodePool.Tags = mapValue
+		} else {
 			state.AWSNodePool.Tags = types.MapNull(types.StringType)
 		}
 		if additionalSecurityGroupIds, ok := awsNodePool.GetAdditionalSecurityGroupIds(); ok {

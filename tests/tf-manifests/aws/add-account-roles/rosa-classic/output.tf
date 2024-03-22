@@ -21,11 +21,3 @@ output "channel_group" {
 output "rhcs_gateway_url" {
   value = var.url
 }
-
-output "installer_role_arn" {
-  value = local.installer_role_arn
-}
-
-output "aws_account_id" {
-  value = local.aws_account_id
-}

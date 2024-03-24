@@ -285,7 +285,7 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				Optional:    true,
 			},
 			"wait_for_std_compute_nodes_complete": schema.BoolAttribute{
-				Description: "Wait until the cluster standard compute pools are created. The waiter has a timeout of 60 minutes, with the default value set to false",
+				Description: "Wait until the cluster standard compute pools are created. The waiter has a timeout of 60 minutes, with the default value set to false. This can only be provided when also waiting for create completion.",
 				Optional:    true,
 			},
 		},

@@ -203,6 +203,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					},
 				]
 				version = "4.14.10"
+				auto_repair = true
 			}`)
 			Expect(terraform.Apply()).To(BeZero())
 
@@ -277,6 +278,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				},
 		    ]
 			version = "4.14.10"
+			auto_repair = true
 		}`)
 			Expect(terraform.Apply()).To(BeZero())
 
@@ -374,6 +376,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				},
 		    ]
 			version = "4.14.10"
+			auto_repair = true
 		}`)
 			Expect(terraform.Apply()).To(BeZero())
 
@@ -435,6 +438,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			}
 			version = "4.14.10"
 			subnet_id = "subnet-123"
+			auto_repair = true
 		}`)
 			Expect(terraform.Apply()).To(BeZero())
 
@@ -540,6 +544,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			}
 			version = "4.14.10"
 			subnet_id = "subnet-123"
+			auto_repair = true
 		}`)
 			Expect(terraform.Apply()).To(BeZero())
 
@@ -641,6 +646,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			}
 			version = "4.14.10"
 			subnet_id = "subnet-123"
+			auto_repair = true
 		}`)
 			Expect(terraform.Apply()).ToNot(BeZero())
 			// Valid deletion
@@ -657,6 +663,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			}
 			version = "4.14.10"
 			subnet_id = "subnet-123"
+			auto_repair = true
 		}`)
 			Expect(terraform.Apply()).To(BeZero())
 
@@ -724,6 +731,7 @@ var _ = Describe("Hcp Machine pool", func() {
 		    ]
 			version = "4.14.10"
 			subnet_id = "subnet-123"
+			auto_repair = true
 		  }
 		`)
 			Expect(terraform.Apply()).To(BeZero())
@@ -856,6 +864,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			}
 			version = "4.14.10"
 			subnet_id = "subnet-123"
+			auto_repair = true
 		  }
 		`)
 			Expect(terraform.Apply()).To(BeZero())
@@ -923,6 +932,7 @@ var _ = Describe("Hcp Machine pool", func() {
 		    ]
 			version = "4.14.10"
 			subnet_id = "subnet-123"
+			auto_repair = true
 		  }
 		`)
 			Expect(terraform.Apply()).To(BeZero())
@@ -1033,6 +1043,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			}
 			version = "4.14.10"
 			subnet_id = "subnet-123"
+			auto_repair = true
 		  }
 		`)
 
@@ -1052,6 +1063,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			}
 			version = "4.14.10"
 			subnet_id = "subnet-123"
+			auto_repair = true
 		  }
 		`)
 			Expect(terraform.Apply()).To(BeZero())
@@ -1109,6 +1121,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			}
 			version = "4.14.10"
 			subnet_id = "subnet-123"
+			auto_repair = true
 		}`)
 			Expect(terraform.Apply()).To(BeZero())
 
@@ -1209,6 +1222,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			}
 			version = "4.14.10"
 			subnet_id = "subnet-123"
+			auto_repair = true
 		}`)
 			Expect(terraform.Apply()).To(BeZero())
 
@@ -1273,6 +1287,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					version = "4.14.10"
 					replicas     = 2
 					subnet_id = "subnet-123"
+					auto_repair = true
 				}`)
 			Expect(terraform.Apply()).NotTo(BeZero())
 		})
@@ -1295,7 +1310,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"version": {
 								"raw_id": "4.14.10"
 							},
-							"subnet": "subnet-123"
+							"subnet": "subnet-123",
+							"auto_repair": true
 						}`),
 				),
 				// Get is for the read during update
@@ -1312,7 +1328,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"version": {
 								"raw_id": "4.14.10"
 							},
-							"subnet": "subnet-123"
+							"subnet": "subnet-123",
+							"auto_repair": true
 						}`),
 				),
 				// Patch is for the update
@@ -1328,7 +1345,8 @@ var _ = Describe("Hcp Machine pool", func() {
 								"raw_id": "4.14.10"
 							},
 							"subnet": "subnet-123",
-							"replicas": 4
+							"replicas": 4,
+							"auto_repair": true
 						}`),
 				),
 			)
@@ -1345,6 +1363,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					subnet_id = "subnet-123"
 					version = "4.14.10"
 					replicas     = 4
+					auto_repair = true
 				}`)
 			Expect(terraform.Apply()).To(BeZero())
 			resource := terraform.Resource("rhcs_hcp_machine_pool", "worker")
@@ -1371,7 +1390,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"version": {
 								"raw_id": "4.14.10"
 							},
-							"subnet": "subnet-123"
+							"subnet": "subnet-123",
+							"auto_repair": true
 						}`),
 				),
 				// Get is for the read during update
@@ -1388,7 +1408,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"version": {
 								"raw_id": "4.14.10"
 							},
-							"subnet": "subnet-123"
+							"subnet": "subnet-123",
+							"auto_repair": true
 						}`),
 				),
 				// Patch is for the update
@@ -1408,7 +1429,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"version": {
 								"raw_id": "4.14.10"
 							},
-							"subnet": "subnet-123"
+							"subnet": "subnet-123",
+							"auto_repair": true
 						}`),
 				),
 			)
@@ -1428,6 +1450,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					}
 					subnet_id = "subnet-123"
 					version = "4.14.10"
+					auto_repair = true
 				}`)
 			Expect(terraform.Apply()).To(BeZero())
 			resource := terraform.Resource("rhcs_hcp_machine_pool", "worker")
@@ -1454,7 +1477,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"version": {
 								"raw_id": "4.14.10"
 							},
-							"subnet": "subnet-123"
+							"subnet": "subnet-123",
+							"auto_repair": true
 						}`),
 				),
 				// Get is for the read during update
@@ -1471,7 +1495,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"version": {
 								"raw_id": "4.14.10"
 							},
-							"subnet": "subnet-123"
+							"subnet": "subnet-123",
+							"auto_repair": true
 						}`),
 				),
 				// Patch is for the update
@@ -1491,7 +1516,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"version": {
 								"raw_id": "4.14.10"
 							},
-							"subnet": "subnet-124"
+							"subnet": "subnet-124",
+							"auto_repair": true
 						}`),
 				),
 			)
@@ -1511,6 +1537,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					}
 					subnet_id = "subnet-124"
 					version = "4.14.10"
+					auto_repair = true
 				}`)
 			Expect(terraform.Apply()).To(BeZero())
 			resource := terraform.Resource("rhcs_hcp_machine_pool", "worker")
@@ -1519,6 +1546,95 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(".attributes.id", "worker"))
 			Expect(resource).To(MatchJQ(`.attributes.labels | length`, 1))
 			Expect(resource).To(MatchJQ(".attributes.subnet_id", "subnet-124"))
+		})
+
+		It("can update auto repair", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				// Get is for the Read function
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, workerNodePoolUri),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"replicas": 2,
+							"aws_node_pool":{
+								"instance_type":"r5.xlarge",
+								"instance_profile": "bla"
+							},
+							"version": {
+								"raw_id": "4.14.10"
+							},
+							"subnet": "subnet-123",
+							"auto_repair": true
+						}`),
+				),
+				// Get is for the read during update
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, workerNodePoolUri),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"replicas": 2,
+							"aws_node_pool":{
+								"instance_type":"r5.xlarge",
+								"instance_profile": "bla"
+							},
+							"version": {
+								"raw_id": "4.14.10"
+							},
+							"subnet": "subnet-123",
+							"auto_repair": true
+						}`),
+				),
+				// Patch is for the update
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, workerNodePoolUri),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"labels": {
+								"label_key1": "label_value1"
+							},
+							"replicas": 2,
+							"aws_node_pool":{
+								"instance_type":"r5.xlarge",
+								"instance_profile": "bla"
+							},
+							"version": {
+								"raw_id": "4.14.10"
+							},
+							"subnet": "subnet-123",
+							"auto_repair": false
+						}`),
+				),
+			)
+			terraform.Source(`
+				resource "rhcs_hcp_machine_pool" "worker" {
+					cluster      = "123"
+					name         = "worker"
+					aws_node_pool = {
+						instance_type = "r5.xlarge"
+					}
+					autoscaling = {
+						enabled = false
+					}
+					replicas     = 2
+					labels = {
+						"label_key1" = "label_value1"
+					}
+					subnet_id = "subnet-123"
+					version = "4.14.10"
+					auto_repair = false
+				}`)
+			Expect(terraform.Apply()).To(BeZero())
+			resource := terraform.Resource("rhcs_hcp_machine_pool", "worker")
+			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+			Expect(resource).To(MatchJQ(".attributes.name", "worker"))
+			Expect(resource).To(MatchJQ(".attributes.id", "worker"))
+			Expect(resource).To(MatchJQ(`.attributes.labels | length`, 1))
+			Expect(resource).To(MatchJQ(".attributes.subnet_id", "subnet-123"))
+			Expect(resource).To(MatchJQ(".attributes.auto_repair", false))
 		})
 	})
 
@@ -1547,6 +1663,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				replicas     = 4
 				subnet_id = "not-in-vpc-of-cluster"
 				version = "4.14.10"
+				auto_repair = true
 			  }
 			`)
 			Expect(terraform.Apply()).NotTo(BeZero())
@@ -1633,6 +1750,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					"version": {
 						"raw_id": "4.14.10"
 					},
+					"auto_repair": true,
 					"subnet": "subnet-123"
 				}`, "PoolId", poolId, "ClusterId", clusterId),
 				),
@@ -1659,6 +1777,7 @@ var _ = Describe("Hcp Machine pool", func() {
 						"version": {
 							"raw_id": "4.14.10"
 						},
+						"auto_repair": true,
 						"subnet": "subnet-123"
 					}`, "PoolId", poolId),
 				),
@@ -1677,6 +1796,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					enabled = false
 				}
 				version = "4.14.10"
+				auto_repair = true
 			}`, "PoolId", poolId, "ClusterId", clusterId))
 
 			// Run the apply command:
@@ -1737,7 +1857,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"version": {
 								"raw_id": "4.14.10"
 							},
-							"subnet": "subnet-123"
+							"subnet": "subnet-123",
+							"auto_repair": true
 						  },
 						  {
 							"kind": "NodePool",
@@ -1752,7 +1873,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"version": {
 								"raw_id": "4.14.10"
 							},
-							"subnet": "subnet-123"
+							"subnet": "subnet-123",
+							"auto_repair": true
 						  }
 						]
 					  }`),
@@ -1794,7 +1916,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"version": {
 								"raw_id": "4.14.10"
 							},
-							"subnet": "subnet-123"
+							"subnet": "subnet-123",
+							"auto_repair": true
 						  }
 						]
 					  }`),
@@ -1882,6 +2005,7 @@ var _ = Describe("Hcp Machine pool", func() {
 							"hosted_control_plane_enabled": true,
 							"available_upgrades": ["4.14.1"]
 						},
+						"auto_repair": true,
 						"subnet": "subnet-123"
 					}`, "PoolId", poolId, "ClusterId", clusterId),
 				),
@@ -1908,6 +2032,7 @@ var _ = Describe("Hcp Machine pool", func() {
 						"version": {
 							"raw_id": "4.14.0"
 						},
+						"auto_repair": true,
 						"subnet": "subnet-123"
 					}`, "PoolId", poolId),
 				),
@@ -1926,6 +2051,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					enabled = false
 				}
 				version = "4.14.0"
+				auto_repair = true
 			}`, "PoolId", poolId, "ClusterId", clusterId))
 
 			// Run the apply command:
@@ -2029,7 +2155,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					{
 						"id": "pool1",
 						"replicas": 3,
-						"subnet": "subnet-123"
+						"subnet": "subnet-123",
+						"auto_repair": true
 					}`),
 				),
 			)
@@ -2047,6 +2174,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					enabled = false
 				}
 				version = "4.14.1"
+				auto_repair = true
 			}`, "PoolId", poolId, "ClusterId", clusterId))
 
 			// Run the apply command:
@@ -2110,6 +2238,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					enabled = false
 				}
 				version = "4.14.1"
+				auto_repair = true
 			}`, "PoolId", poolId, "ClusterId", clusterId))
 
 			// Will fail due to upgrade in progress
@@ -2194,7 +2323,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					{
 						"id": "pool1",
 						"replicas": 3,
-						"subnet": "subnet-123"
+						"subnet": "subnet-123",
+						"auto_repair": true
 					}`),
 				),
 			)
@@ -2212,6 +2342,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					enabled = false
 				}
 				version = "4.14.1"
+				auto_repair = true
 			}`, "PoolId", poolId, "ClusterId", clusterId))
 
 			Expect(terraform.Apply()).To(BeZero())
@@ -2292,6 +2423,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					enabled = false
 				}
 				version = "4.14.0"
+				auto_repair = true
 			}`, "PoolId", poolId, "ClusterId", clusterId))
 
 			Expect(terraform.Apply()).To(BeZero())
@@ -2364,6 +2496,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					enabled = false
 				}
 				version = "4.14.1"
+				auto_repair = true
 			}`, "PoolId", poolId, "ClusterId", clusterId))
 
 			Expect(terraform.Apply()).NotTo(BeZero())
@@ -2391,7 +2524,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"rosa_enabled": true,
 							"hosted_control_plane_enabled": true
 						},
-						"subnet": "subnet-123"
+						"subnet": "subnet-123",
+						"auto_repair": true
 					}`, "PoolId", poolId, "ClusterId", clusterId),
 				),
 			)
@@ -2416,7 +2550,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"rosa_enabled": true,
 							"hosted_control_plane_enabled": true
 						},
-						"subnet": "subnet-123"
+						"subnet": "subnet-123",
+						"auto_repair": true
 					}`, "PoolId", poolId, "ClusterId", clusterId),
 				),
 			)
@@ -2434,6 +2569,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					enabled = false
 				}
 				version = "4.14.0"
+				auto_repair = true
 			}`, "PoolId", poolId, "ClusterId", clusterId))
 
 			Expect(terraform.Apply()).To(BeZero())
@@ -2497,6 +2633,7 @@ var _ = Describe("Hcp Machine pool", func() {
 						enabled = false
 					}
 					version = "4.14.1"
+					auto_repair = true
 				}`, "PoolId", poolId, "ClusterId", clusterId))
 
 				// Run the apply command:
@@ -2517,6 +2654,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					}
 					version = "4.14.1"
 					upgrade_acknowledgements_for = "1.1"
+					auto_repair = true
 				}`, "PoolId", poolId, "ClusterId", clusterId))
 
 				// Run the apply command:
@@ -2568,7 +2706,8 @@ var _ = Describe("Hcp Machine pool", func() {
 						{
 							"id": "pool1",
 							"replicas": 3,
-							"subnet": "subnet-123"
+							"subnet": "subnet-123",
+							"auto_repair": true
 						}`),
 					),
 				)
@@ -2586,6 +2725,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					}
 					version = "4.14.1"
 					upgrade_acknowledgements_for = "4.14"
+					auto_repair = true
 				}`, "PoolId", poolId, "ClusterId", clusterId))
 				Expect(terraform.Apply()).To(BeZero())
 			})

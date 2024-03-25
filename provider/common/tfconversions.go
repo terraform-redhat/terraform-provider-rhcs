@@ -8,6 +8,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+func BoolWithTrueDefault(tfVal types.Bool) bool {
+	if HasValue(tfVal) {
+		return tfVal.ValueBool()
+	}
+	return true
+}
+
 func BoolWithFalseDefault(tfVal types.Bool) bool {
 	if HasValue(tfVal) {
 		return tfVal.ValueBool()

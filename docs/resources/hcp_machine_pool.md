@@ -17,6 +17,7 @@ Machine pool.
 
 ### Required
 
+- `auto_repair` (Boolean) Indicates use of autor repair for the pool
 - `autoscaling` (Attributes) Basic autoscaling options (see [below for nested schema](#nestedatt--autoscaling))
 - `aws_node_pool` (Attributes) AWS settings for node pool (see [below for nested schema](#nestedatt--aws_node_pool))
 - `cluster` (String) Identifier of the cluster. After the creation of the resource, it is not possible to update the attribute value.
@@ -25,7 +26,6 @@ Machine pool.
 
 ### Optional
 
-- `auto_repair` (Boolean) Indicates use of autor repair for the pool
 - `labels` (Map of String) Labels for the machine pool. Format should be a comma-separated list of 'key = value'. This list will overwrite any modifications made to node labels on an ongoing basis.
 - `replicas` (Number) The number of machines of the pool
 - `taints` (Attributes List) Taints for a machine pool. Format should be a comma-separated list of 'key=value'. This list will overwrite any modifications made to node taints on an ongoing basis. (see [below for nested schema](#nestedatt--taints))

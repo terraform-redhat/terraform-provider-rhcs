@@ -172,8 +172,7 @@ func (r *HcpMachinePoolResource) Schema(ctx context.Context, req resource.Schema
 			},
 			"auto_repair": schema.BoolAttribute{
 				Description: "Indicates use of autor repair for the pool",
-				Optional:    true,
-				Computed:    true,
+				Required:    true,
 			},
 			"version": schema.StringAttribute{
 				Description: "Desired version of OpenShift for the machine pool, for example '4.11.0'. If version is greater than the currently running version, an upgrade will be scheduled.",
@@ -357,6 +356,10 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 		if tuningConfigs != nil {
 			builder.TuningConfigs(tuningConfigs...)
 		}
+	}
+
+	if common.HasValue(plan.AutoRepair) {
+		builder.AutoRepair(common.BoolWithTrueDefault(plan.AutoRepair))
 	}
 
 	object, err := builder.Build()
@@ -638,6 +641,10 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 			),
 		)
 		return diags
+	}
+
+	if patchAutoRepair, ok := common.ShouldPatchBool(state.AutoRepair, plan.AutoRepair); ok {
+		npBuilder.AutoRepair(patchAutoRepair)
 	}
 
 	patchLabels, shouldPatchLabels := common.ShouldPatchMap(state.Labels, plan.Labels)

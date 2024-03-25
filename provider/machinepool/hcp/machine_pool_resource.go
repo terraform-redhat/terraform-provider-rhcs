@@ -163,7 +163,7 @@ func (r *HcpMachinePoolResource) Schema(ctx context.Context, req resource.Schema
 			"aws_node_pool": schema.SingleNestedAttribute{
 				Description: "AWS settings for node pool",
 				Attributes:  AwsNodePoolResource(),
-				Optional:    true,
+				Required:    true,
 			},
 			"tuning_configs": schema.ListAttribute{
 				Description: "A list of tuning configs attached to the pool.",

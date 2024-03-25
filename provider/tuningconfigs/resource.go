@@ -48,7 +48,6 @@ func (r *TuningConfigResource) Schema(ctx context.Context, req resource.SchemaRe
 			"id": schema.StringAttribute{
 				Description: "Unique identifier of the tuning config.",
 				Computed:    true,
-				Optional:    true,
 				PlanModifiers: []planmodifier.String{
 					// This passes the state through to the plan, preventing
 					// "known after apply" since we know it won't change.

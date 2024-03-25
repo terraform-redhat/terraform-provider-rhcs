@@ -21,6 +21,6 @@ Edit a cluster tuning config
 - `name` (String) Name of the tuning configuration. After the creation of the resource, it is not possible to update the attribute value.
 - `spec` (String) Definition of the spec
 
-### Optional
+### Read-Only
 
 - `id` (String) Unique identifier of the tuning config.

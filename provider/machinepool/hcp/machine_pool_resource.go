@@ -302,15 +302,25 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 		computeNodeEnabled = true
 		builder.Replicas(int(plan.Replicas.ValueInt64()))
 	}
-	if (!autoscalingEnabled && !computeNodeEnabled) || (autoscalingEnabled && computeNodeEnabled) {
+	if !autoscalingEnabled && !computeNodeEnabled {
 		resp.Diagnostics.AddError(
 			"Cannot build machine pool",
 			fmt.Sprintf(
-				"Cannot build machine pool for cluster '%s', please provide a value for either the 'replicas' or 'autoscaling.enabled' parameter. It is mandatory to include at least one of these parameters in the resource plan.",
+				"Cannot build machine pool for cluster '%s', please provide a value for 'replicas' when 'autoscaling.enabled' is set to 'false'.",
 				plan.Cluster.ValueString(),
 			),
 		)
 		return
+	}
+
+	if autoscalingEnabled && computeNodeEnabled {
+		resp.Diagnostics.AddError(
+			"Cannot build machine pool",
+			fmt.Sprintf(
+				"Cannot build machine pool for cluster '%s', please do not provide a value for 'replicas' when 'autoscaling.enabled' is set to 'true'.",
+				plan.Cluster.ValueString(),
+			),
+		)
 	}
 
 	if plan.Taints != nil && len(plan.Taints) > 0 {

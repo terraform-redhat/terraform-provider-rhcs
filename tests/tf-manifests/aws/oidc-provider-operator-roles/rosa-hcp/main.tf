@@ -21,6 +21,13 @@ terraform {
   }
 }
 
+provider "rhcs" {
+  url = var.url
+}
+provider "aws" {
+  region = var.aws_region
+}
+
 data "aws_caller_identity" "current" {}
 
 ###########################################################################
@@ -95,7 +102,7 @@ data "aws_iam_policy_document" "allow_access_from_another_account" {
 resource "rhcs_rosa_oidc_config_input" "oidc_input" {
   count = local.managed ? 0 : 1
 
-  region = data.aws_region.current.name
+  region = var.aws_region
 }
 
 module "aws_secrets_manager" {
@@ -140,8 +147,6 @@ resource "aws_s3_object" "s3_object" {
     red-hat-managed = true
   })
 }
-
-data "aws_region" "current" {}
 
 resource "time_sleep" "wait_10_seconds" {
   create_duration  = "10s"

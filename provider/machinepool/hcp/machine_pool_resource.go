@@ -264,6 +264,28 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 
 	// Create the machine pool:
 	resource := r.clusterCollection.Cluster(plan.Cluster.ValueString())
+
+	get, err := resource.Get().SendContext(ctx)
+	if err != nil {
+		if get.Status() == http.StatusNotFound {
+			tflog.Warn(ctx, fmt.Sprintf("cluster '%s' not found, clearing state",
+				plan.Cluster.ValueString(),
+			))
+			resp.State.RemoveResource(ctx)
+			return
+		}
+		resp.Diagnostics.AddError(
+			"Can't find cluster",
+			fmt.Sprintf(
+				"Can't find cluster with identifier '%s': %v",
+				plan.Cluster.ValueString(), err,
+			),
+		)
+		return
+	}
+
+	cluster := get.Body()
+
 	builder := cmv1.NewNodePool().ID(plan.ID.ValueString())
 	builder.ID(plan.Name.ValueString())
 
@@ -360,6 +382,14 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 
 	if common.HasValue(plan.AutoRepair) {
 		builder.AutoRepair(common.BoolWithTrueDefault(plan.AutoRepair))
+	}
+
+	if common.HasValue(plan.Version) {
+		vBuilder := cmv1.NewVersion()
+		versionID := fmt.Sprintf("openshift-v%s", plan.Version.ValueString())
+		vBuilder.ID(versionID)
+		vBuilder.ChannelGroup(cluster.Version().ChannelGroup())
+		builder.Version(vBuilder)
 	}
 
 	object, err := builder.Build()

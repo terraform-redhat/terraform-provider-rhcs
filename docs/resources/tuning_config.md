@@ -19,7 +19,7 @@ Edit a cluster tuning config
 
 - `cluster` (String) Identifier of the cluster. After the creation of the resource, it is not possible to update the attribute value.
 - `name` (String) Name of the tuning configuration. After the creation of the resource, it is not possible to update the attribute value.
-- `spec` (String) Definition of the spec
+- `spec` (String) Definition of the spec. It is required to supply this field wrapped in a jsonencode call. Example: jsonencode({<tuning_config_spec})
 
 ### Optional
 

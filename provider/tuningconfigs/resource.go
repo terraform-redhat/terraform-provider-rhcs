@@ -60,7 +60,7 @@ func (r *TuningConfigResource) Schema(ctx context.Context, req resource.SchemaRe
 				Required:    true,
 			},
 			"spec": schema.StringAttribute{
-				Description: "Definition of the spec",
+				Description: "Definition of the spec. It is required to supply this field wrapped in a jsonencode call. Example: jsonencode({<tuning_config_spec})",
 				Required:    true,
 			},
 		},

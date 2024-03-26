@@ -18,15 +18,15 @@ func BuildProxy(state *Proxy, builder *cmv1.ClusterBuilder) (*cmv1.ClusterBuilde
 		proxy := cmv1.NewProxy()
 		proxyIsEmpty := true
 
-		if !common.IsStringAttributeUnknownOrEmpty(state.HttpProxy) {
+		if common.HasValue(state.HttpProxy) {
 			proxy.HTTPProxy(state.HttpProxy.ValueString())
 			proxyIsEmpty = false
 		}
-		if !common.IsStringAttributeUnknownOrEmpty(state.HttpsProxy) {
+		if common.HasValue(state.HttpsProxy) {
 			proxy.HTTPSProxy(state.HttpsProxy.ValueString())
 			proxyIsEmpty = false
 		}
-		if !common.IsStringAttributeUnknownOrEmpty(state.NoProxy) {
+		if common.HasValue(state.NoProxy) {
 			proxy.NoProxy(state.NoProxy.ValueString())
 			proxyIsEmpty = false
 		}
@@ -34,7 +34,7 @@ func BuildProxy(state *Proxy, builder *cmv1.ClusterBuilder) (*cmv1.ClusterBuilde
 			builder.Proxy(proxy)
 		}
 
-		if !common.IsStringAttributeUnknownOrEmpty(state.AdditionalTrustBundle) {
+		if common.HasValue(state.AdditionalTrustBundle) {
 			builder.AdditionalTrustBundle(state.AdditionalTrustBundle.ValueString())
 		}
 

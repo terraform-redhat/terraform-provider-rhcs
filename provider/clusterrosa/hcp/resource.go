@@ -237,7 +237,6 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				Description: "proxy",
 				Attributes:  proxy.ProxyResource(),
 				Optional:    true,
-				Validators:  []validator.Object{proxy.ProxyValidator()},
 			},
 			"service_cidr": schema.StringAttribute{
 				Description: "Block of IP addresses for the cluster service network. " + common.ValueCannotBeChangedStringDescription,
@@ -1235,29 +1234,32 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 			state.Proxy = &proxy.Proxy{}
 		}
 		httpProxy, ok := proxyObj.GetHTTPProxy()
-		if ok {
+		if ok && httpProxy != "" {
 			state.Proxy.HttpProxy = types.StringValue(httpProxy)
 		}
 
 		httpsProxy, ok := proxyObj.GetHTTPSProxy()
-		if ok {
+		if ok && httpsProxy != "" {
 			state.Proxy.HttpsProxy = types.StringValue(httpsProxy)
 		}
 
 		noProxy, ok := proxyObj.GetNoProxy()
-		if ok {
+		if ok && noProxy != "" {
 			state.Proxy.NoProxy = types.StringValue(noProxy)
 		}
 	} else {
 		// We cannot set the proxy to nil because the attribute state.Proxy.AdditionalTrustBundle might contain a value.
-		// Due to the sensitivity of this attribute, the backend returns the value `REDUCTED` for a non-empty AdditionalTrustBundle
+		// Due to the sensitivity of this attribute, the backend returns the value `REDACTED` for a non-empty AdditionalTrustBundle
 		// and if state.Proxy is null it will override the actual value.
 		hasProxy = false
+		if state.Proxy != nil {
+			hasProxy = true
+		}
 	}
 
 	trustBundle, ok := object.GetAdditionalTrustBundle()
 	if ok {
-		// If AdditionalTrustBundle is not empty, the ocm-backend always "REDUCTED" (sensitive value)
+		// If AdditionalTrustBundle is not empty, the ocm-backend always "REDACTED" (sensitive value)
 		// Therefore, we would like to update the state only if the current state is Null or Empty
 		// it can happen after `import` command or when it was updated from a different cli tool
 		if state.Proxy == nil || common.IsStringAttributeKnownAndEmpty(state.Proxy.AdditionalTrustBundle) {

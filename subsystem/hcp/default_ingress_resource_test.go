@@ -84,7 +84,6 @@ var _ = Describe("rhcs_cluster_rosa_hcp - default ingress", func() {
 		// Run the apply command:
 		terraform.Source(`
 			resource "rhcs_hcp_default_ingress" "default_ingress" {
-			id = "d6z2"
 			cluster = "123"
 			listening_method = "internal"
 		}`)

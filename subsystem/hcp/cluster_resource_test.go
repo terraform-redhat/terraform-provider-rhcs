@@ -2170,34 +2170,7 @@ var _ = Describe("HCP Cluster", func() {
 			})
 		})
 
-		It("Except to fail on proxy validators", func() {
-			// Expected at least one of the following: http-proxy, https-proxy, additional-trust-bundle
-			terraform.Source(`
-			 resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-				name           = "my-cluster"
-				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
-				proxy = {}
-				sts = {
-					operator_role_prefix = "test"
-					role_arn = "",
-					support_role_arn = "",
-					instance_iam_roles = {
-						worker_role_arn = "",
-					}
-				}
-				aws_subnet_ids = [
-					"id1", "id2", "id3"
-				]
-				availability_zones = [
-					"us-west-1a",
-					"us-west-1b",
-					"us-west-1c",
-				]
-			 }`)
-			Expect(terraform.Apply()).NotTo(BeZero())
-
+		It("Accepts to reset proxy values", func() {
 			// Prepare the server:
 			server.AppendHandlers(
 				CombineHandlers(
@@ -2254,6 +2227,76 @@ var _ = Describe("HCP Cluster", func() {
 					"us-west-1c",
 				]
 			}`)
+			Expect(terraform.Apply()).To(BeZero())
+
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithPatchedJSON(http.StatusOK, templateWithTrustBundle, `[
+				{
+				  "op": "add",
+				  "path": "/aws",
+				  "value": {
+					  "sts" : {
+						  "oidc_endpoint_url": "https://127.0.0.1",
+						  "thumbprint": "111111",
+						  "role_arn": "",
+						  "support_role_arn": "",
+						  "instance_iam_roles" : {
+							"worker_role_arn" : ""
+						  },
+						  "operator_role_prefix" : "test"
+					  }
+				  }
+				}]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+				{
+				  "op": "add",
+				  "path": "/aws",
+				  "value": {
+					  "sts" : {
+						  "oidc_endpoint_url": "https://127.0.0.1",
+						  "thumbprint": "111111",
+						  "role_arn": "",
+						  "support_role_arn": "",
+						  "instance_iam_roles" : {
+							"worker_role_arn" : ""
+						  },
+						  "operator_role_prefix" : "test"
+					  }
+				  }
+				}]`),
+				),
+			)
+			terraform.Source(`
+			 resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123"
+				aws_billing_account_id = "123"
+				proxy = {
+					additional_trust_bundle = ""
+				}
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+			 }`)
 			Expect(terraform.Apply()).To(BeZero())
 
 		})

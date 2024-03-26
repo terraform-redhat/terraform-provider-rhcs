@@ -32,7 +32,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -203,7 +202,6 @@ func (r *ClusterResource) Schema(ctx context.Context, req resource.SchemaRequest
 				Description: "proxy",
 				Attributes:  proxy.ProxyResource(),
 				Optional:    true,
-				Validators:  []validator.Object{proxy.ProxyValidator()},
 			},
 			"service_cidr": schema.StringAttribute{
 				Description: "Block of IP addresses for services.",

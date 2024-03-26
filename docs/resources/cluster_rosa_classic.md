@@ -130,10 +130,10 @@ Required:
 
 Optional:
 
-- `additional_trust_bundle` (String) A string containing a PEM-encoded X.509 certificate bundle that will be added to the nodes' trusted certificate store.
-- `http_proxy` (String) HTTP proxy.
-- `https_proxy` (String) HTTPS proxy.
-- `no_proxy` (String) No proxy.
+- `additional_trust_bundle` (String) A string containing a PEM-encoded X.509 certificate bundle that will be added to the nodes' trusted certificate store. To reset please provide '' (empty string)
+- `http_proxy` (String) HTTP proxy. To reset please provide '' (empty string)
+- `https_proxy` (String) HTTPS proxy. To reset please provide '' (empty string)
+- `no_proxy` (String) No proxy. To reset please provide '' (empty string)
 
 
 <a id="nestedatt--sts"></a>

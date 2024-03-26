@@ -20,6 +20,6 @@ Edit a cluster ingress (load balancer)
 - `cluster` (String) Identifier of the cluster. After the creation of the resource, it is not possible to update the attribute value.
 - `listening_method` (String) Listening Method for apps ingress. Options are external,internal.
 
-### Optional
+### Read-Only
 
 - `id` (String) Unique identifier of the ingress.

@@ -51,7 +51,6 @@ func (r *DefaultIngressResource) Schema(ctx context.Context, req resource.Schema
 			"id": schema.StringAttribute{
 				Description: "Unique identifier of the ingress.",
 				Computed:    true,
-				Optional:    true,
 				PlanModifiers: []planmodifier.String{
 					// This passes the state through to the plan, preventing
 					// "known after apply" since we know it won't change.

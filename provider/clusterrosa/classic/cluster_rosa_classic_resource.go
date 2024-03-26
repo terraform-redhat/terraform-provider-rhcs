@@ -303,7 +303,6 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Description: "proxy",
 				Attributes:  proxy.ProxyResource(),
 				Optional:    true,
-				Validators:  []validator.Object{proxy.ProxyValidator()},
 			},
 			"service_cidr": schema.StringAttribute{
 				Description: "Block of IP addresses for the cluster service network. " + common.ValueCannotBeChangedStringDescription,

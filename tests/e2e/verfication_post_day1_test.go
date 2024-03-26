@@ -337,7 +337,7 @@ var _ = Describe("TF Test", func() {
 			})
 		})
 		Context("Author:zhsun-Critical-OCP-63950 @zhsun", func() {
-			It("Verify imdsv2 value is set post cluster creation", ci.Day1Post, ci.Critical, func() {
+			It("Verify imdsv2 value is set post cluster creation", ci.Day1Post, ci.Critical, ci.NonHCPCluster, func() {
 				if profile.Ec2MetadataHttpTokens != "" {
 					Expect(string(cluster.AWS().Ec2MetadataHttpTokens())).To(Equal(profile.Ec2MetadataHttpTokens))
 				} else {

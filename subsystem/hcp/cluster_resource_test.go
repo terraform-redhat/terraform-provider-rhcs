@@ -1628,11 +1628,11 @@ var _ = Describe("HCP Cluster", func() {
 			Expect(terraform.Apply()).ToNot(BeZero())
 		})
 
-		It("Should fail cluster creation when cluster name length is more than 15", func() {
+		It("Should fail cluster creation when cluster name length is more than 54", func() {
 			// Run the apply command:
 			terraform.Source(`
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
-				name           = "my-cluster-234567"
+				name           = "my-cluster-234567-foobar-foobar-foobar-foobar-fooobaaar-fooobaaz"
 				cloud_region   = "us-west-1"
 				aws_account_id = "123"
 				aws_billing_account_id = "123"

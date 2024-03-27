@@ -17,7 +17,8 @@ const (
 	NonPositiveTimeoutSummary       = "Can't poll cluster state with a non-positive timeout"
 	NonPositiveTimeoutFormat        = "Can't poll state of cluster with identifier '%s', the timeout that was set is not a positive number"
 
-	MaxClusterNameLength = 15
+	MaxClusterNameLength         = 54
+	MaxClusterDomainPrefixLength = 15
 )
 
 var OCMProperties = map[string]string{

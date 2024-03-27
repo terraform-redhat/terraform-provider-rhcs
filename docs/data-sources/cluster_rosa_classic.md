@@ -27,6 +27,7 @@ data "rhcs_cluster_rosa_classic" "cluster" {
 
 ### Optional
 
+- `domain_prefix` (String) The domain prefix is optionally assigned by the user.It will appear in the Cluster's domain when the cluster is provisionedIf not supplied, it will be auto generated.After the creation of the resource, it is not possible to update the attribute value.
 - `kms_key_arn` (String) Used to encrypt root volume of compute node pools. The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID(optional). After the creation of the resource, it is not possible to update the attribute value.
 
 ### Read-Only
@@ -65,7 +66,7 @@ data "rhcs_cluster_rosa_classic" "cluster" {
 - `max_replicas` (Number) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `min_replicas` (Number) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `multi_az` (Boolean) Indicates if the cluster should be deployed to multiple availability zones. Default value is 'false'. This attribute is specifically applies for the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the default Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)
-- `name` (String) Name of the cluster. Cannot exceed 15 characters in length. After the creation of the resource, it is not possible to update the attribute value.
+- `name` (String) Name of the cluster. Cannot exceed 54 characters in length. After the creation of the resource, it is not possible to update the attribute value.
 - `ocm_properties` (Map of String) Merged properties defined by OCM and the user defined 'properties'.
 - `pod_cidr` (String) Block of IP addresses for pods. After the creation of the resource, it is not possible to update the attribute value.
 - `private` (Boolean) Restrict cluster API endpoint and application routes to, private connectivity. This requires that PrivateLink be enabled and by extension, your own VPC. After the creation of the resource, it is not possible to update the attribute value.

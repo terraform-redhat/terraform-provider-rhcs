@@ -22,7 +22,7 @@ OpenShift managed cluster using ROSA HCP.
 - `aws_billing_account_id` (String) Identifier of the AWS account for billing. After the creation of the resource, it is not possible to update the attribute value.
 - `aws_subnet_ids` (List of String) AWS subnet IDs. After the creation of the resource, it is not possible to update the attribute value.
 - `cloud_region` (String) AWS region identifier, for example 'us-east-1'.
-- `name` (String) Name of the cluster. Cannot exceed 15 characters in length. After the creation of the resource, it is not possible to update the attribute value.
+- `name` (String) Name of the cluster. Cannot exceed 54 characters in length. After the creation of the resource, it is not possible to update the attribute value.
 - `sts` (Attributes) STS configuration. (see [below for nested schema](#nestedatt--sts))
 
 ### Optional
@@ -31,6 +31,7 @@ OpenShift managed cluster using ROSA HCP.
 - `compute_machine_type` (String) Identifies the machine type used by the initial worker nodes, for example `m5.xlarge`. Use the `rhcs_machine_types` data source to find the possible values. This attribute is specifically applies for the Worker Node Pool and becomes irrelevant once the resource is created. Any modifications to the default Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Node Pool in ROSA Cluster](../guides/worker-machine-pool.md)
 - `destroy_timeout` (Number) This value sets the maximum duration in minutes to allow for destroying resources. Default value is 60 minutes.
 - `disable_waiting_in_destroy` (Boolean) Disable addressing cluster state in the destroy resource. Default value is false, and so a `destroy` will wait for the cluster to be deleted.
+- `domain_prefix` (String) The domain prefix is optionally assigned by the user.It will appear in the Cluster's domain when the cluster is provisioned. If not supplied, it will be auto generated. It cannot exceed 15 characters in length. After the creation of the resource, it is not possible to update the attribute value.
 - `etcd_encryption` (Boolean) Encrypt etcd data. Note that all AWS storage is already encrypted. After the creation of the resource, it is not possible to update the attribute value.
 - `etcd_kms_key_arn` (String) Used for etcd encryption. The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID(optional). After the creation of the resource, it is not possible to update the attribute value.
 - `host_prefix` (Number) Length of the prefix of the subnet assigned to each node. After the creation of the resource, it is not possible to update the attribute value.

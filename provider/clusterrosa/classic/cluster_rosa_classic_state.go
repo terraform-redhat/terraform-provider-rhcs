@@ -58,6 +58,7 @@ type ClusterRosaClassicState struct {
 	DisableSCPChecks                          types.Bool                   `tfsdk:"disable_scp_checks"`
 	AvailabilityZones                         types.List                   `tfsdk:"availability_zones"`
 	Name                                      types.String                 `tfsdk:"name"`
+	DomainPrefix                              types.String                 `tfsdk:"domain_prefix"`
 	PodCIDR                                   types.String                 `tfsdk:"pod_cidr"`
 	Properties                                types.Map                    `tfsdk:"properties"`
 	OCMProperties                             types.Map                    `tfsdk:"ocm_properties"`

@@ -29,6 +29,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - import", func() {
 	const template = `{
 		"id": "123",
 		"name": "my-cluster",
+		"domain_prefix": "my-cluster",
 		"region": {
 		  "id": "us-west-1"
 		},

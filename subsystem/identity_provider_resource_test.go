@@ -1152,6 +1152,7 @@ var _ = Describe("Identity provider import", func() {
 	  "external_id": "123",
 	  "infra_id": "my-cluster-123",
 	  "name": "my-cluster",
+	  "domain_prefix": "my-cluster",
 	  "state": "ready",
 	  "region": {
 	    "id": "us-west-1"

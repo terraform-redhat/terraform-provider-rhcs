@@ -62,6 +62,7 @@ Required:
 
 Optional:
 
+- `additional_security_group_ids` (List of String) Additional security group ids. After the creation of the resource, it is not possible to update the attribute value.
 - `tags` (Map of String) Apply user defined tags to all machine pool resources created in AWS. After the creation of the resource, it is not possible to update the attribute value.
 
 Read-Only:

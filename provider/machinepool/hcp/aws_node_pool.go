@@ -10,9 +10,10 @@ import (
 )
 
 type AWSNodePool struct {
-	InstanceType    types.String `tfsdk:"instance_type"`
-	InstanceProfile types.String `tfsdk:"instance_profile"`
-	Tags            types.Map    `tfsdk:"tags"`
+	InstanceType               types.String `tfsdk:"instance_type"`
+	InstanceProfile            types.String `tfsdk:"instance_profile"`
+	Tags                       types.Map    `tfsdk:"tags"`
+	AdditionalSecurityGroupIds types.List   `tfsdk:"additional_security_group_ids"`
 }
 
 func AwsNodePoolResource() map[string]schema.Attribute {
@@ -35,6 +36,11 @@ func AwsNodePoolResource() map[string]schema.Attribute {
 			ElementType: types.StringType,
 			Optional:    true,
 		},
+		"additional_security_group_ids": schema.ListAttribute{
+			Description: "Additional security group ids. " + common.ValueCannotBeChangedStringDescription,
+			ElementType: types.StringType,
+			Optional:    true,
+		},
 	}
 }
 
@@ -52,6 +58,11 @@ func AwsNodePoolDatasource() map[string]dsschema.Attribute {
 		},
 		"tags": schema.MapAttribute{
 			Description: "Apply user defined tags to all machine pool resources created in AWS. " + common.ValueCannotBeChangedStringDescription,
+			ElementType: types.StringType,
+			Optional:    true,
+		},
+		"additional_security_group_ids": schema.ListAttribute{
+			Description: "Additional security group ids. " + common.ValueCannotBeChangedStringDescription,
 			ElementType: types.StringType,
 			Optional:    true,
 		},

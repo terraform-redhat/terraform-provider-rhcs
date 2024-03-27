@@ -59,7 +59,7 @@ var _ = Describe("RHCS Provider Negative Test", func() {
 					creationArgs.AdminCredentials["username"] = ""
 					err = clusterService.Apply(creationArgs, true, true)
 					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("Attribute 'username' is mandatory"))
+					Expect(err.Error()).To(ContainSubstring("Attribute admin_credentials.username username may not be empty/blank string"))
 				})
 		})
 		Context("Author:amalykhi-Medium-OCP-65963 @OCP-65963 @amalykhi", func() {

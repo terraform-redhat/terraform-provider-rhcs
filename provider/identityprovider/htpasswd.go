@@ -37,6 +37,7 @@ var (
 
 	HTPasswdUsernameValidators = []validator.String{
 		stringvalidator.RegexMatches(regexp.MustCompile(`^[^/:%]*$`), "username may not contain the characters: '/:%'"),
+		stringvalidator.RegexMatches(regexp.MustCompile(`.*\S.*`), "username may not be empty/blank string"),
 	}
 )
 

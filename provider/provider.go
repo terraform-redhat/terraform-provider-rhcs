@@ -55,6 +55,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfiginput"
 	classicOperatorRoles "github.com/terraform-redhat/terraform-provider-rhcs/provider/rosa_operator_roles/classic"
 	hcpOperatorRoles "github.com/terraform-redhat/terraform-provider-rhcs/provider/rosa_operator_roles/hcp"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/trusted_ip_addresses"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/tuningconfigs"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/versions"
 )
@@ -242,5 +243,6 @@ func (p *Provider) DataSources(ctx context.Context) []func() datasource.DataSour
 		nodepool.NewDatasource,
 		hcpOperatorRoles.New,
 		hcpStsPolicies.New,
+		trusted_ip_addresses.New,
 	}
 }

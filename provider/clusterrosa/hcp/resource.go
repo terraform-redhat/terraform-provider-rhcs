@@ -26,6 +26,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/arn"
 	semver "github.com/hashicorp/go-version"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -44,6 +45,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/openshift-online/ocm-common/pkg/ocm/consts"
 	ocmConsts "github.com/openshift-online/ocm-common/pkg/ocm/consts"
+	ocmUtils "github.com/openshift-online/ocm-common/pkg/ocm/utils"
 	"github.com/openshift-online/ocm-common/pkg/rosa/oidcconfigs"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -481,14 +483,8 @@ func createHcpClusterObject(ctx context.Context,
 			return nil, errors.New(errHeadline + "\n" + description)
 		}
 		vBuilder := cmv1.NewVersion()
-		versionID := fmt.Sprintf("openshift-v%s", state.Version.ValueString())
-		// When using a channel group other than the default, the channel name
-		// must be appended to the version ID or the API server will return an
-		// error stating unexpected channel group.
-		if channelGroup != ocmConsts.DefaultChannelGroup {
-			versionID = versionID + "-" + channelGroup
-		}
-		vBuilder.ID(versionID)
+
+		vBuilder.ID(ocmUtils.CreateVersionId(state.Version.ValueString(), channelGroup))
 		vBuilder.ChannelGroup(channelGroup)
 		builder.Version(vBuilder)
 	}

@@ -48,6 +48,7 @@ import (
 	idputils "github.com/openshift-online/ocm-common/pkg/idp/utils"
 	"github.com/openshift-online/ocm-common/pkg/ocm/consts"
 	ocmConsts "github.com/openshift-online/ocm-common/pkg/ocm/consts"
+	ocmUtils "github.com/openshift-online/ocm-common/pkg/ocm/utils"
 	"github.com/openshift-online/ocm-common/pkg/rosa/oidcconfigs"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -670,14 +671,7 @@ func createClassicClusterObject(ctx context.Context,
 			return nil, errors.New(errHeadline + "\n" + description)
 		}
 		vBuilder := cmv1.NewVersion()
-		versionID := fmt.Sprintf("openshift-v%s", state.Version.ValueString())
-		// When using a channel group other than the default, the channel name
-		// must be appended to the version ID or the API server will return an
-		// error stating unexpected channel group.
-		if channelGroup != ocmConsts.DefaultChannelGroup {
-			versionID = versionID + "-" + channelGroup
-		}
-		vBuilder.ID(versionID)
+		vBuilder.ID(ocmUtils.CreateVersionId(state.Version.ValueString(), channelGroup))
 		vBuilder.ChannelGroup(channelGroup)
 		builder.Version(vBuilder)
 	}
@@ -1175,10 +1169,11 @@ func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context,
 
 func (r *ClusterRosaClassicResource) validateUpgrade(ctx context.Context, state, plan *ClusterRosaClassicState) error {
 	// Make sure the desired version is available
-	versionId := fmt.Sprintf("openshift-v%s", state.CurrentVersion.ValueString())
-	if common.HasValue(state.ChannelGroup) && state.ChannelGroup.ValueString() != ocmConsts.DefaultChannelGroup {
-		versionId += "-" + state.ChannelGroup.ValueString()
+	channelGroup := ocmConsts.DefaultChannelGroup
+	if common.HasValue(state.ChannelGroup) {
+		channelGroup = state.ChannelGroup.ValueString()
 	}
+	versionId := ocmUtils.CreateVersionId(state.Version.ValueString(), channelGroup)
 	availableVersions, err := upgrade.GetAvailableUpgradeVersions(ctx, r.VersionCollection, versionId)
 	if err != nil {
 		return fmt.Errorf("failed to get available upgrades: %v", err)

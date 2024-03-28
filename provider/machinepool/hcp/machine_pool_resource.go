@@ -39,6 +39,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	ocmUtils "github.com/openshift-online/ocm-common/pkg/ocm/utils"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	rosa "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common"
@@ -401,8 +402,7 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 
 	if common.HasValue(plan.Version) {
 		vBuilder := cmv1.NewVersion()
-		versionID := fmt.Sprintf("openshift-v%s", plan.Version.ValueString())
-		vBuilder.ID(versionID)
+		vBuilder.ID(ocmUtils.CreateVersionId(plan.Version.ValueString(), cluster.Version().ChannelGroup()))
 		vBuilder.ChannelGroup(cluster.Version().ChannelGroup())
 		builder.Version(vBuilder)
 	}

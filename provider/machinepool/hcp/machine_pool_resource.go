@@ -299,6 +299,21 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 		if len(awsTags) > 0 {
 			awsNodePoolBuilder.Tags(awsTags)
 		}
+
+		if common.HasValue(plan.AWSNodePool.AdditionalSecurityGroupIds) {
+			additionalSecurityGroupIds, err := common.StringListToArray(ctx, plan.AWSNodePool.AdditionalSecurityGroupIds)
+			if err != nil {
+				resp.Diagnostics.AddError(
+					"Cannot convert Additional Security Groups to slice",
+					fmt.Sprintf(
+						"Cannot convert Additional Security Groups to slice for cluster '%s: %v'", plan.Cluster.ValueString(), err,
+					),
+				)
+				return
+			}
+			awsNodePoolBuilder.AdditionalSecurityGroupIds(additionalSecurityGroupIds...)
+		}
+
 		builder.AWSNodePool(awsNodePoolBuilder)
 	}
 
@@ -1074,6 +1089,15 @@ func populateState(object *cmv1.NodePool, state *HcpMachinePoolState) error {
 		}
 		if !common.HasValue(state.AWSNodePool.Tags) {
 			state.AWSNodePool.Tags = types.MapNull(types.StringType)
+		}
+		if additionalSecurityGroupIds, ok := awsNodePool.GetAdditionalSecurityGroupIds(); ok {
+			additionalSecurityGroupsList, err := common.StringArrayToList(additionalSecurityGroupIds)
+			if err != nil {
+				return err
+			}
+			state.AWSNodePool.AdditionalSecurityGroupIds = additionalSecurityGroupsList
+		} else {
+			state.AWSNodePool.AdditionalSecurityGroupIds = types.ListNull(types.StringType)
 		}
 	}
 

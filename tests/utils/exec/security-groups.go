@@ -44,7 +44,7 @@ func (sgs *SecurityGroupService) Init(manifestDirs ...string) error {
 func (sgs *SecurityGroupService) Apply(createArgs *SecurityGroupArgs, recordtfvars bool, extraArgs ...string) error {
 	sgs.CreationArgs = createArgs
 	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApplyWithArgs(sgs.Context, sgs.ManifestDir, args)
+	_, err := runTerraformApply(sgs.Context, sgs.ManifestDir, args...)
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func (sgs *SecurityGroupService) Destroy(createArgs ...*SecurityGroupArgs) error
 		destroyArgs = createArgs[0]
 	}
 	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroyWithArgs(sgs.Context, sgs.ManifestDir, args)
+	_, err := runTerraformDestroy(sgs.Context, sgs.ManifestDir, args...)
 
 	return err
 }

@@ -44,7 +44,7 @@ func (kc *KubeletConfigService) Apply(createArgs *KubeletConfigArgs, recordtfvar
 	createArgs.URL = CON.GateWayURL
 	kc.CreationArgs = createArgs
 	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApplyWithArgs(kc.Context, kc.ManifestDir, args)
+	_, err := runTerraformApply(kc.Context, kc.ManifestDir, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func (kc *KubeletConfigService) Plan(createArgs *KubeletConfigArgs, extraArgs ..
 	createArgs.URL = CON.GateWayURL
 	kc.CreationArgs = createArgs
 	args, _ := combineStructArgs(createArgs, extraArgs...)
-	output, err := runTerraformPlanWithArgs(kc.Context, kc.ManifestDir, args)
+	output, err := runTerraformPlan(kc.Context, kc.ManifestDir, args...)
 
 	return output, err
 }
@@ -83,7 +83,7 @@ func (kc *KubeletConfigService) Destroy(createArgs ...*KubeletConfigArgs) (strin
 	}
 	destroyArgs.URL = CON.GateWayURL
 	args, _ := combineStructArgs(destroyArgs)
-	output, err := runTerraformDestroyWithArgs(kc.Context, kc.ManifestDir, args)
+	output, err := runTerraformDestroy(kc.Context, kc.ManifestDir, args...)
 	return output, err
 }
 

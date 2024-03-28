@@ -61,7 +61,7 @@ type Profile struct {
 	SharedVpc             bool   `ini:"shared_vpc,omitempty" json:"shared_vpc,omitempty"`
 }
 
-func PrepareVPC(region string, privateLink bool, multiZone bool, azIDs []string, clusterType CON.ClusterType, name string, sharedVpcAWSSharedCredentialsFile string) (*EXE.VPCOutput, error) {
+func PrepareVPC(region string, multiZone bool, azIDs []string, clusterType CON.ClusterType, name string, sharedVpcAWSSharedCredentialsFile string) (*EXE.VPCOutput, error) {
 	vpcService := EXE.NewVPCService()
 	vpcArgs := &EXE.VPCArgs{
 		AWSRegion: region,
@@ -461,7 +461,7 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 
 				shared_vpc_aws_shared_credentials_file = CON.SharedVpcAWSSharedCredentialsFileENV
 			}
-			vpcOutput, err = PrepareVPC(profile.Region, profile.PrivateLink, profile.MultiAZ, zones, profile.GetClusterType(), clusterArgs.ClusterName, shared_vpc_aws_shared_credentials_file)
+			vpcOutput, err = PrepareVPC(profile.Region, profile.MultiAZ, zones, profile.GetClusterType(), clusterArgs.ClusterName, shared_vpc_aws_shared_credentials_file)
 			if err != nil {
 				return
 			}
@@ -472,8 +472,8 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 			}
 			if profile.Private {
 				clusterArgs.Private = profile.Private
-				if profile.PrivateLink {
-					clusterArgs.PrivateLink = profile.PrivateLink
+				clusterArgs.PrivateLink = profile.PrivateLink
+				if profile.IsPrivateLink() {
 					clusterArgs.AWSSubnetIDs = vpcOutput.ClusterPrivateSubnets
 				}
 			} else {
@@ -798,4 +798,12 @@ func (profile *Profile) GetClusterType() CON.ClusterType {
 func (profile *Profile) GetClusterManifestsDir() string {
 	manifestsDir := CON.GetClusterManifestsDir(profile.GetClusterType())
 	return manifestsDir
+}
+
+func (profile *Profile) IsPrivateLink() bool {
+	if profile.GetClusterType().HCP {
+		return profile.Private
+	} else {
+		return profile.PrivateLink
+	}
 }

@@ -51,7 +51,7 @@ func (vpc *VPCService) Init(manifestDirs ...string) error {
 func (vpc *VPCService) Apply(createArgs *VPCArgs, recordtfvars bool, extraArgs ...string) error {
 	vpc.CreationArgs = createArgs
 	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApplyWithArgs(vpc.Context, vpc.ManifestDir, args)
+	_, err := runTerraformApply(vpc.Context, vpc.ManifestDir, args...)
 	if err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func (vpc *VPCService) Destroy(createArgs ...*VPCArgs) error {
 		destroyArgs = createArgs[0]
 	}
 	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroyWithArgs(vpc.Context, vpc.ManifestDir, args)
+	_, err := runTerraformDestroy(vpc.Context, vpc.ManifestDir, args...)
 
 	return err
 }

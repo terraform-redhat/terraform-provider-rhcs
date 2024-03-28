@@ -62,7 +62,7 @@ Required:
 
 Optional:
 
-- `tags` (Map of String) Apply user defined tags to all machine pool resources created in AWS. After the creation of the resource, it is not possible to update the attribute value.
+- `tags` (Map of String) Apply user defined tags to all machine pool resources created in AWS. If tags have been supplied at cluster level please include those in your management file for the machine. After the creation of the resource, it is not possible to update the attribute value.
 
 Read-Only:
 

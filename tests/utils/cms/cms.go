@@ -255,6 +255,26 @@ func RetrieveClusterMachinePool(connection *client.Connection, clusterID string,
 	return resp.Body(), nil
 }
 
+func CreateClusterAutoscaler(connection *client.Connection, clusterID string, body *cmv1.ClusterAutoscaler) (*cmv1.AutoscalerPostResponse, error) {
+	resp, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).Autoscaler().Post().Request(body).Send()
+	return resp, err
+}
+
+func PatchClusterAutoscaler(connection *client.Connection, clusterID string, body *cmv1.ClusterAutoscaler) (*cmv1.AutoscalerUpdateResponse, error) {
+	resp, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).Autoscaler().Update().Body(body).Send()
+	return resp, err
+}
+
+func DeleteClusterAutoscaler(connection *client.Connection, clusterID string) (*cmv1.AutoscalerDeleteResponse, error) {
+	resp, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).Autoscaler().Delete().Send()
+	return resp, err
+}
+
+func RetrieveClusterAutoscaler(connection *client.Connection, clusterID string) (*cmv1.AutoscalerGetResponse, error) {
+	resp, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).Autoscaler().Get().Send()
+	return resp, err
+}
+
 // Upgrade policies related
 func ListUpgradePolicies(connection *client.Connection, clusterID string, params ...map[string]interface{}) (*cmv1.UpgradePoliciesListResponse, error) {
 	request := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).UpgradePolicies().List()

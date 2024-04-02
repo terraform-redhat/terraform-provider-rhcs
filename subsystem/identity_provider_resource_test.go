@@ -73,6 +73,14 @@ var _ = Describe("Identity provider creation", func() {
 	const template3 = templatePt1 + users3 + templatePt2
 
 	Context("Identity Provider Failure", func() {
+		It("fails if cluster ID is empty", func() {
+			terraform.Source(`
+			data "rhcs_identity_provider" "my_idp" {
+					cluster = ""
+				}
+			`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
 		It("cluster_id not found", func() {
 			// Prepare the server:
 			server.AppendHandlers(
@@ -88,7 +96,7 @@ var _ = Describe("Identity provider creation", func() {
 
 			// Run the apply command:
 			terraform.Source(`
-	    	  resource "rhcs_identity_provider" "my_ip" {
+	    	  resource "rhcs_identity_provider" "my_idp" {
 	    	    cluster = "123"
 	    	    name    = "my-ip"
 	    	    htpasswd = {
@@ -129,7 +137,7 @@ var _ = Describe("Identity provider creation", func() {
 			It("Can't create a 'htpasswd' identity provider. No users provided", func() {
 				// Run the apply command:
 				terraform.Source(`
-	    	      resource "rhcs_identity_provider" "my_ip" {
+	    	      resource "rhcs_identity_provider" "my_idp" {
 	    	        cluster = "123"
 	    	        name    = "my-ip"
 	    	        htpasswd = {
@@ -142,7 +150,7 @@ var _ = Describe("Identity provider creation", func() {
 			It("Can't create a 'htpasswd' identity provider. duplication of username", func() {
 				// Run the apply command:
 				terraform.Source(`
-	    	      resource "rhcs_identity_provider" "my_ip" {
+	    	      resource "rhcs_identity_provider" "my_idp" {
 	    	        cluster = "123"
 	    	        name    = "my-ip"
 	    	        htpasswd = {
@@ -164,7 +172,7 @@ var _ = Describe("Identity provider creation", func() {
 			It("Can't create a 'htpasswd' identity provider. invalid username", func() {
 				// Run the apply command:
 				terraform.Source(`
-	    	      resource "rhcs_identity_provider" "my_ip" {
+	    	      resource "rhcs_identity_provider" "my_idp" {
 	    	        cluster = "123"
 	    	        name    = "my-ip"
 	    	        htpasswd = {
@@ -180,7 +188,7 @@ var _ = Describe("Identity provider creation", func() {
 			It("Can't create a 'htpasswd' identity provider. invalid password", func() {
 				// Run the apply command:
 				terraform.Source(`
-	    	      resource "rhcs_identity_provider" "my_ip" {
+	    	      resource "rhcs_identity_provider" "my_idp" {
 	    	        cluster = "123"
 	    	        name    = "my-ip"
 	    	        htpasswd = {
@@ -251,7 +259,7 @@ var _ = Describe("Identity provider creation", func() {
 
 			// Run the apply command:
 			terraform.Source(`
-	    	  resource "rhcs_identity_provider" "my_ip" {
+	    	  resource "rhcs_identity_provider" "my_idp" {
 	    	    cluster = "123"
 	    	    name    = "my-ip"
 	    	    htpasswd = {
@@ -264,7 +272,7 @@ var _ = Describe("Identity provider creation", func() {
 	    	`)
 			Expect(terraform.Apply()).To(BeZero())
 		})
-		
+
 		It("Reconcile an 'htpasswd' identity provider, when state exists but 404 from server", func() {
 			// Prepare the server:
 			server.AppendHandlers(
@@ -295,7 +303,7 @@ var _ = Describe("Identity provider creation", func() {
 
 			// Run the apply command:
 			terraform.Source(`
-	    	  resource "rhcs_identity_provider" "my_ip" {
+	    	  resource "rhcs_identity_provider" "my_idp" {
 	    	    cluster = "123"
 	    	    name    = "my-ip"
 	    	    htpasswd = {
@@ -361,7 +369,7 @@ var _ = Describe("Identity provider creation", func() {
 
 			// Run the apply command:
 			terraform.Source(`
-	    	  resource "rhcs_identity_provider" "my_ip" {
+	    	  resource "rhcs_identity_provider" "my_idp" {
 	    	    cluster = "123"
 	    	    name    = "my-ip"
 	    	    htpasswd = {
@@ -373,7 +381,7 @@ var _ = Describe("Identity provider creation", func() {
 	    	  }
 	    	`)
 			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_identity_provider", "my_ip")
+			resource := terraform.Resource("rhcs_identity_provider", "my_idp")
 			Expect(resource).To(MatchJQ(".attributes.id", "457"))
 		})
 
@@ -413,7 +421,7 @@ var _ = Describe("Identity provider creation", func() {
 
 			// Run the apply command:
 			terraform.Source(`
-	    	  resource "rhcs_identity_provider" "my_ip" {
+	    	  resource "rhcs_identity_provider" "my_idp" {
 	    	    cluster = "123"
 	    	    name    = "my-ip"
 	    	    gitlab = {
@@ -431,7 +439,7 @@ var _ = Describe("Identity provider creation", func() {
 			Context("Invalid 'github' identity provider config", func() {
 				It("Should fail with both 'teams' and 'organizations'", func() {
 					terraform.Source(`
-	    	          resource "rhcs_identity_provider" "my_ip" {
+	    	          resource "rhcs_identity_provider" "my_idp" {
 	    	            cluster = "123"
 	    	            name    = "my-ip"
 	    	            github = {
@@ -448,7 +456,7 @@ var _ = Describe("Identity provider creation", func() {
 
 				It("Should fail without 'teams' or 'organizations'", func() {
 					terraform.Source(`
-	    	          resource "rhcs_identity_provider" "my_ip" {
+	    	          resource "rhcs_identity_provider" "my_idp" {
 	    	            cluster = "123"
 	    	            name    = "my-ip"
 	    	            github = {
@@ -463,7 +471,7 @@ var _ = Describe("Identity provider creation", func() {
 
 				It("Should fail if teams contain an invalid format", func() {
 					terraform.Source(`
-	    	          resource "rhcs_identity_provider" "my_ip" {
+	    	          resource "rhcs_identity_provider" "my_idp" {
 	    	            cluster = "123"
 	    	            name    = "my-ip"
 	    	            github = {
@@ -476,7 +484,7 @@ var _ = Describe("Identity provider creation", func() {
 	    	        `)
 					Expect(terraform.Apply()).ToNot(BeZero())
 					terraform.Source(`
-	    	          resource "rhcs_identity_provider" "my_ip" {
+	    	          resource "rhcs_identity_provider" "my_idp" {
 	    	            cluster = "123"
 	    	            name    = "my-ip"
 	    	            github = {
@@ -492,7 +500,7 @@ var _ = Describe("Identity provider creation", func() {
 
 				It("Should fail with an invalid hostname", func() {
 					terraform.Source(`
-	    	          resource "rhcs_identity_provider" "my_ip" {
+	    	          resource "rhcs_identity_provider" "my_idp" {
 	    	            cluster = "123"
 	    	            name    = "my-ip"
 	    	            github = {
@@ -544,7 +552,7 @@ var _ = Describe("Identity provider creation", func() {
 
 				// Run the apply command:
 				terraform.Source(`
-    		      resource "rhcs_identity_provider" "my_ip" {
+    		      resource "rhcs_identity_provider" "my_idp" {
     		        cluster = "123"
     		        name    = "my-ip"
     		        github = {
@@ -595,7 +603,7 @@ var _ = Describe("Identity provider creation", func() {
 
 				// Run the apply command:
 				terraform.Source(`
-		          resource "rhcs_identity_provider" "my_ip" {
+		          resource "rhcs_identity_provider" "my_idp" {
 		            cluster = "123"
 		            name    = "my-ip"
 		            github = {
@@ -615,7 +623,7 @@ var _ = Describe("Identity provider creation", func() {
 				It("Should fail if not both bind properties are set", func() {
 					// Run the apply command:
 					terraform.Source(`
-        		      resource "rhcs_identity_provider" "my_ip" {
+        		      resource "rhcs_identity_provider" "my_idp" {
         		        cluster    = "123"
         		        name       = "my-ip"
         		        ldap = {
@@ -682,7 +690,7 @@ var _ = Describe("Identity provider creation", func() {
 
 				// Run the apply command:
 				terraform.Source(`
-        		  resource "rhcs_identity_provider" "my_ip" {
+        		  resource "rhcs_identity_provider" "my_idp" {
         		    cluster    = "123"
         		    name       = "my-ip"
         		    ldap = {
@@ -745,7 +753,7 @@ var _ = Describe("Identity provider creation", func() {
 
 				// Run the apply command:
 				terraform.Source(`
-        		  resource "rhcs_identity_provider" "my_ip" {
+        		  resource "rhcs_identity_provider" "my_idp" {
         		    cluster    = "123"
         		    name       = "my-ip"
         		    ldap = {
@@ -812,7 +820,7 @@ var _ = Describe("Identity provider creation", func() {
 
 				// Run the apply command:
 				terraform.Source(`
-        		  resource "rhcs_identity_provider" "my_ip" {
+        		  resource "rhcs_identity_provider" "my_idp" {
         		    cluster    = "123"
         		    name       = "my-ip"
         		    ldap = {
@@ -837,7 +845,7 @@ var _ = Describe("Identity provider creation", func() {
 				It("Should fail with invalid hosted_domain", func() {
 					// Run the apply command:
 					terraform.Source(`
-    		          resource "rhcs_identity_provider" "my_ip" {
+    		          resource "rhcs_identity_provider" "my_idp" {
     		            cluster = "123"
     		            name    = "my-ip"
     		            google = {
@@ -853,7 +861,7 @@ var _ = Describe("Identity provider creation", func() {
 				It("Should fail when mapping_method is not lookup and no hosted_domain", func() {
 					// Run the apply command:
 					terraform.Source(`
-    		          resource "rhcs_identity_provider" "my_ip" {
+    		          resource "rhcs_identity_provider" "my_idp" {
     		            cluster = "123"
     		            name    = "my-ip"
     		            google = {
@@ -902,7 +910,7 @@ var _ = Describe("Identity provider creation", func() {
 
 					// Run the apply command:
 					terraform.Source(`
-    		          resource "rhcs_identity_provider" "my_ip" {
+    		          resource "rhcs_identity_provider" "my_idp" {
     		            cluster = "123"
     		            name    = "my-ip"
     		            google = {
@@ -958,7 +966,7 @@ var _ = Describe("Identity provider creation", func() {
 
 						// Run the apply command:
 						terraform.Source(`
-	    	  				resource "rhcs_identity_provider" "my_ip" {
+	    	  				resource "rhcs_identity_provider" "my_idp" {
 	    	    				cluster = "123"
 					    	    name    = "my-ip"
 	    					    htpasswd = {
@@ -999,7 +1007,7 @@ var _ = Describe("Identity provider creation", func() {
 
 						// Run the apply command:
 						terraform.Source(`
-	    	  				resource "rhcs_identity_provider" "my_ip" {
+	    	  				resource "rhcs_identity_provider" "my_idp" {
 	    	    				cluster = "123"
 					    	    name    = "my-ip"
 	    					    htpasswd = {
@@ -1036,7 +1044,7 @@ var _ = Describe("Identity provider creation", func() {
 
 						// Run the apply command:
 						terraform.Source(`
-	    	  				resource "rhcs_identity_provider" "my_ip" {
+	    	  				resource "rhcs_identity_provider" "my_idp" {
 	    	    				cluster = "123"
 					    	    name    = "my-ip"
 	    					    htpasswd = {
@@ -1079,7 +1087,7 @@ var _ = Describe("Identity provider creation", func() {
 
 						// Run the apply command:
 						terraform.Source(`
-	    	  				resource "rhcs_identity_provider" "my_ip" {
+	    	  				resource "rhcs_identity_provider" "my_idp" {
 	    	    				cluster = "123"
 					    	    name    = "my-ip"
 	    					    htpasswd = {
@@ -1131,7 +1139,7 @@ var _ = Describe("Identity provider creation", func() {
 
 					// Run the apply command:
 					terraform.Source(`
-    		          resource "rhcs_identity_provider" "my_ip" {
+    		          resource "rhcs_identity_provider" "my_idp" {
     		            cluster = "123"
     		            name    = "my-ip"
                         mapping_method = "lookup"
@@ -1229,7 +1237,7 @@ var _ = Describe("Identity provider creation", func() {
 
 			// Run the apply command:
 			terraform.Source(`
-    		  resource "rhcs_identity_provider" "my_ip" {
+    		  resource "rhcs_identity_provider" "my_idp" {
     		    cluster    				= "123"
     		    name       				= "my-ip"
     		    openid = {
@@ -1251,14 +1259,14 @@ var _ = Describe("Identity provider creation", func() {
     		  }
     		`)
 			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_identity_provider", "my_ip")
+			resource := terraform.Resource("rhcs_identity_provider", "my_idp")
 			Expect(resource).To(MatchJQ(`.attributes.openid.extra_authorize_parameters.test_key`, "test_value"))
 		})
 
 		It("Should fail with invalid mapping_method", func() {
 			// Run the apply command:
 			terraform.Source(`
-    		  resource "rhcs_identity_provider" "my_ip" {
+    		  resource "rhcs_identity_provider" "my_idp" {
     		    cluster = "123"
     		    name    = "my-ip"
                 mapping_method = "invalid"
@@ -1275,7 +1283,7 @@ var _ = Describe("Identity provider creation", func() {
 		It("Should fail with invalid htpasswd password", func() {
 			// Run the apply command:
 			terraform.Source(`
-    		  resource "rhcs_identity_provider" "my_ip" {
+    		  resource "rhcs_identity_provider" "my_idp" {
     		    cluster = "123"
     		    name    = "my-ip"
                 mapping_method = "invalid"

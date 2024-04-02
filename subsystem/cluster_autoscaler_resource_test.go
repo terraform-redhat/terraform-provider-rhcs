@@ -27,6 +27,16 @@ import (
 
 var _ = Describe("Cluster Autoscaler", func() {
 	Context("creation", func() {
+
+		It("fails if cluster ID is empty", func() {
+			terraform.Source(`
+				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
+					cluster = ""
+				}
+			`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
+
 		It("fails if given an out-of-range utilization threshold", func() {
 			terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {

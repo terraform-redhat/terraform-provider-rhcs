@@ -42,6 +42,15 @@ var _ = Describe("Group membership creation", func() {
 		)
 	})
 
+	It("fails if cluster ID is empty", func() {
+		terraform.Source(`
+		resource "rhcs_group_membership" "my_membership" {
+				cluster = ""
+			}
+		`)
+		Expect(terraform.Apply()).ToNot(BeZero())
+	})
+
 	It("Can create a group membership", func() {
 		// Prepare the server:
 		server.AppendHandlers(

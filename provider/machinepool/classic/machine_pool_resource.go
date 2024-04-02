@@ -78,6 +78,9 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 			"cluster": schema.StringAttribute{
 				Description: "Identifier of the cluster. " + common.ValueCannotBeChangedStringDescription,
 				Required:    true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(regexp.MustCompile(`.*\S.*`), "cluster ID may not be empty/blank string"),
+				},
 			},
 			"id": schema.StringAttribute{
 				Description: "Unique identifier of the machine pool.",

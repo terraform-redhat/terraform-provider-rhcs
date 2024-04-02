@@ -72,6 +72,14 @@ var _ = Describe("Tuning Configs", func() {
 	tuningConfigSpecTemplate := b.String()
 
 	Context("tuning configs creation", func() {
+		It("fails if cluster ID is empty", func() {
+			terraform.Source(`
+			resource "rhcs_tuning_config" "tuning_config" {
+					cluster = ""
+				}
+			`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
 		It("fails to find a matching cluster object", func() {
 			server.AppendHandlers(
 				CombineHandlers(

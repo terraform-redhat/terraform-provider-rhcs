@@ -19,7 +19,9 @@ package kubeletconfig
 import (
 	"context"
 	"fmt"
+	"regexp"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -71,6 +73,9 @@ func (k *KubeletConfigResource) Schema(_ context.Context, _ resource.SchemaReque
 			"cluster": schema.StringAttribute{
 				Required:    true,
 				Description: "Identifier of the cluster." + common.ValueCannotBeChangedStringDescription,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(regexp.MustCompile(`.*\S.*`), "cluster ID may not be empty/blank string"),
+				},
 			},
 			"pod_pids_limit": schema.Int64Attribute{
 				Required: true,

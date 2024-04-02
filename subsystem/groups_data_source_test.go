@@ -26,6 +26,14 @@ import (
 )
 
 var _ = Describe("Groups data source", func() {
+	It("fails if cluster ID is empty", func() {
+		terraform.Source(`
+		data "rhcs_groups" "my_groups" {
+				cluster = ""
+			}
+		`)
+		Expect(terraform.Apply()).ToNot(BeZero())
+	})
 	It("Can list groups", func() {
 		// Prepare the server:
 		server.AppendHandlers(

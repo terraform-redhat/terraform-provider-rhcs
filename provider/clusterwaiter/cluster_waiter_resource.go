@@ -3,8 +3,10 @@ package clusterwaiter
 import (
 	"context"
 	"fmt"
+	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -40,6 +42,9 @@ func (r *ClusterWaiterResource) Schema(ctx context.Context, req resource.SchemaR
 			"cluster": schema.StringAttribute{
 				Description: "Identifier of the cluster.",
 				Required:    true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(regexp.MustCompile(`.*\S.*`), "cluster ID may not be empty/blank string"),
+				},
 			},
 			"timeout": schema.Int64Attribute{
 				Description: "An optional timeout until the cluster is ready. The timeout value is set in minutes." +

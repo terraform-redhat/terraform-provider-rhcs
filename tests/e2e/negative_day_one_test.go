@@ -18,6 +18,8 @@ var err error
 var profile *ci.Profile
 
 var _ = Describe("Negative Tests", func() {
+	defer GinkgoRecover()
+
 	profile = ci.LoadProfileYamlFileByENV()
 
 	Describe("cluster admin", ci.NonHCPCluster, Ordered, func() {

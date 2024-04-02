@@ -13,6 +13,7 @@ import (
 )
 
 var _ = Describe("Kubelet config", ci.NonHCPCluster, func() {
+	defer GinkgoRecover()
 
 	var kcService *exe.KubeletConfigService
 	BeforeEach(func() {

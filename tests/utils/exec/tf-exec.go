@@ -221,7 +221,6 @@ func recordTFvarsFile(fileDir string, tfvars map[string]string) error {
 	}
 	for k, v := range tfvars {
 		section.Key(k).SetValue(v)
-
 	}
 	return iniConn.SaveTo(tfvarsFile)
 }

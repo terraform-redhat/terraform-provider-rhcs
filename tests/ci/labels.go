@@ -6,6 +6,8 @@ import (
 
 // Features
 var FeatureClusterautoscaler = Label("feature-clusterautoscaler")
+var FeatureClusterMisc = Label("feature-cluster-misc")
+var FeatureClusterProxy = Label("feature-cluster-proxy")
 var FeatureMachinepool = Label("feature-machinepool")
 var FeatureIDP = Label("feature-idp")
 var FeatureImport = Label("feature-import")

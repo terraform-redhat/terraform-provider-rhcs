@@ -23,6 +23,7 @@ import (
 )
 
 var _ = Describe("Verify cluster", func() {
+	defer GinkgoRecover()
 
 	var err error
 	var profile *ci.Profile

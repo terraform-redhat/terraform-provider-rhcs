@@ -26,6 +26,14 @@ import (
 )
 
 var _ = Describe("Machine pool (static) validation", func() {
+	It("fails if cluster ID is empty", func() {
+		terraform.Source(`
+		resource "rhcs_machine_pool" "my_pool" {
+				cluster = ""
+			}
+		`)
+		Expect(terraform.Apply()).ToNot(BeZero())
+	})
 	It("is invalid to specify both availability_zone and subnet_id", func() {
 		terraform.Source(`
 		  resource "rhcs_machine_pool" "my_pool" {

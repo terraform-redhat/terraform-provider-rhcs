@@ -19,9 +19,12 @@ package classic
 import (
 	"context"
 	"fmt"
+	"regexp"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -66,6 +69,9 @@ func (r *MachinePoolDatasource) Schema(ctx context.Context, req datasource.Schem
 			"cluster": schema.StringAttribute{
 				Description: "Identifier of the cluster of the machine pool. ",
 				Required:    true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(regexp.MustCompile(`.*\S.*`), "cluster ID may not be empty/blank string"),
+				},
 			},
 			"id": schema.StringAttribute{
 				Description: "Unique identifier of the machine pool.",

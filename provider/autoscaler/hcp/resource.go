@@ -20,7 +20,9 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"regexp"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -61,6 +63,9 @@ func (r *ClusterAutoscalerResource) Schema(ctx context.Context, req resource.Sch
 			"cluster": schema.StringAttribute{
 				Description: "Identifier of the cluster." + common.ValueCannotBeChangedStringDescription,
 				Required:    true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(regexp.MustCompile(`.*\S.*`), "cluster ID may not be empty/blank string"),
+				},
 			},
 			"max_pod_grace_period": schema.Int64Attribute{
 				Description: "Gives pods graceful termination time before scaling down.",

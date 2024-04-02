@@ -5,13 +5,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	sdk "github.com/openshift-online/ocm-sdk-go"
@@ -44,6 +47,9 @@ func (r *TuningConfigResource) Schema(ctx context.Context, req resource.SchemaRe
 			"cluster": schema.StringAttribute{
 				Description: "Identifier of the cluster. " + common.ValueCannotBeChangedStringDescription,
 				Required:    true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(regexp.MustCompile(`.*\S.*`), "cluster ID may not be empty/blank string"),
+				},
 			},
 			"id": schema.StringAttribute{
 				Description: "Unique identifier of the tuning config.",

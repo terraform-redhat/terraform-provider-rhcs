@@ -94,6 +94,9 @@ func (r *HcpMachinePoolResource) Schema(ctx context.Context, req resource.Schema
 			"cluster": schema.StringAttribute{
 				Description: "Identifier of the cluster. " + common.ValueCannotBeChangedStringDescription,
 				Required:    true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(regexp.MustCompile(`.*\S.*`), "cluster ID may not be empty/blank string"),
+				},
 			},
 			"replicas": schema.Int64Attribute{
 				Description: "The number of machines of the pool",

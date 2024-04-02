@@ -108,6 +108,15 @@ var _ = Describe("Cluster creation", func() {
 	}`
 
 	Context("Create cluster waiter resource", func() {
+
+		It("fails if cluster ID is empty", func() {
+			terraform.Source(`
+				resource "rhcs_cluster_wait" "rosa_cluster" {
+				  cluster = ""
+				}
+			`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
 		It("Create cluster waiter without a timeout", func() {
 			// Prepare the server:
 			server.AppendHandlers(

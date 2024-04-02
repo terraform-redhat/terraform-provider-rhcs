@@ -58,6 +58,15 @@ var _ = Describe("default ingress", func() {
 						}
 					`
 
+	It("fails if cluster ID is empty", func() {
+		terraform.Source(`
+			resource "rhcs_default_ingress" "default_ingress" {
+				cluster = ""
+			}
+		`)
+		Expect(terraform.Apply()).ToNot(BeZero())
+	})
+
 	It("Sends updates to attribute individually", func() {
 		// Prepare the server:
 		server.AppendHandlers(

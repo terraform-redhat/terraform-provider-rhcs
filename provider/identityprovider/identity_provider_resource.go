@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -71,6 +72,9 @@ func (r *IdentityProviderResource) Schema(ctx context.Context, req resource.Sche
 			"cluster": schema.StringAttribute{
 				Description: "Identifier of the cluster.",
 				Required:    true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(regexp.MustCompile(`.*\S.*`), "cluster ID may not be empty/blank string"),
+				},
 			},
 			"id": schema.StringAttribute{
 				Description: "Unique identifier of the identity provider.",

@@ -27,6 +27,14 @@ import (
 
 var _ = Describe("Hcp Cluster Autoscaler", func() {
 	Context("creation", func() {
+		It("fails if cluster ID is empty", func() {
+			terraform.Source(`
+				resource "rhcs_hcp_cluster_autoscaler" "cluster_autoscaler" {
+					cluster = ""
+				}
+			`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
 		It("fails if given an invalid duration string", func() {
 			terraform.Source(`
 				resource "rhcs_hcp_cluster_autoscaler" "cluster_autoscaler" {

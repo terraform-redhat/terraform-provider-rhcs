@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
@@ -57,6 +58,9 @@ func (r *DefaultIngressResource) Schema(ctx context.Context, req resource.Schema
 			"cluster": schema.StringAttribute{
 				Description: "Identifier of the cluster. " + common.ValueCannotBeChangedStringDescription,
 				Required:    true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(regexp.MustCompile(`.*\S.*`), "cluster ID may not be empty/blank string"),
+				},
 			},
 			"id": schema.StringAttribute{
 				Description: "Unique identifier of the ingress.",

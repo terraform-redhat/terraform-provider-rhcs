@@ -27,6 +27,14 @@ import (
 
 var _ = Describe("Cluster KubeletConfig", func() {
 	Context("Create KubeletConfig", func() {
+		It("fails if cluster ID is empty", func() {
+			terraform.Source(`
+			resource "rhcs_kubeletconfig" "cluster_kubeletconfig" {
+					cluster = ""
+				}
+			`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
 		It("It fails if the requested podPidsLimit is below the minimum", func() {
 			terraform.Source(`
 				resource "rhcs_kubeletconfig" "cluster_kubeletconfig" {

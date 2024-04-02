@@ -55,6 +55,15 @@ var _ = Describe("rhcs_cluster_rosa_hcp - default ingress", func() {
 						}
 					`
 
+	It("fails if cluster ID is empty", func() {
+		terraform.Source(`
+			resource "rhcs_hcp_default_ingress" "default_ingress" {
+				cluster = ""
+			}
+		`)
+		Expect(terraform.Apply()).ToNot(BeZero())
+	})
+
 	It("Updates ListeningMethod", func() {
 		// Prepare the server:
 		server.AppendHandlers(

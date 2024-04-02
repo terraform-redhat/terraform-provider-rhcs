@@ -34,6 +34,14 @@ const (
 
 var _ = Describe("Hcp Machine pool", func() {
 	Context("static validation", func() {
+		It("fails if cluster ID is empty", func() {
+			terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+					cluster = ""
+				}
+			`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
 		It("is invalid to specify both availability_zone and subnet_id", func() {
 			terraform.Source(`
 			resource "rhcs_hcp_machine_pool" "my_pool" {

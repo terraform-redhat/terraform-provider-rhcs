@@ -168,6 +168,7 @@ func (r *TuningConfigResource) Update(ctx context.Context, req resource.UpdateRe
 
 	// assert cluster attribute wasn't changed:
 	common.ValidateStateAndPlanEquals(state.Cluster, plan.Cluster, "cluster", &diags)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}

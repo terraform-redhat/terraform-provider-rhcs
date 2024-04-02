@@ -16,6 +16,8 @@ import (
 )
 
 var _ = Describe("Create cluster autoscaler", func() {
+	defer GinkgoRecover()
+
 	var caService *exe.ClusterAutoscalerService
 	var clusterAutoScalerBodyForRecreate *cmv1.ClusterAutoscaler
 	var clusterAutoscalerStatusBefore int

@@ -19,6 +19,7 @@ import (
 )
 
 var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
+	defer GinkgoRecover()
 
 	// all identity providers - declared for future cases
 	type IDPServices struct {

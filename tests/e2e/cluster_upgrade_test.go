@@ -17,6 +17,7 @@ import (
 )
 
 var _ = Describe("Upgrade", func() {
+	defer GinkgoRecover()
 
 	var targetV string
 	var clusterID string

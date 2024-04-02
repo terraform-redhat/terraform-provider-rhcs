@@ -68,6 +68,9 @@ func (vpc *VPCService) Output() (*VPCOutput, error) {
 		vpcDir = vpc.ManifestDir
 	}
 	out, err := runTerraformOutput(context.TODO(), vpcDir)
+	if err != nil {
+		return nil, err
+	}
 	vpcOutput := &VPCOutput{
 		VPCCIDR:               h.DigString(out["vpc-cidr"], "value"),
 		ClusterPrivateSubnets: h.DigArrayToString(out["cluster-private-subnet"], "value"),

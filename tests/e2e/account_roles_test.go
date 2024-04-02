@@ -12,6 +12,8 @@ import (
 )
 
 var _ = Describe("Edit Account roles", func() {
+	defer GinkgoRecover()
+
 	var err error
 	var profile *CI.Profile
 	var accService *EXE.AccountRoleService

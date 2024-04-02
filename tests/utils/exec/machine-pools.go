@@ -31,10 +31,11 @@ type MachinePoolArgs struct {
 	AdditionalSecurityGroups *[]string            `json:"additional_security_groups,omitempty"`
 
 	// HCP supported
-	TuningConfigs              *[]string `json:"tuning_configs,omitempty"`
-	UpgradeAcknowledgementsFor *string   `json:"upgrade_acknowledgements_for,omitempty"`
-	OpenshiftVersion           *string   `json:"openshift_version,omitempty"`
-	AutoRepair                 *bool     `json:"auto_repair,omitempty"`
+	TuningConfigs              *[]string          `json:"tuning_configs,omitempty"`
+	UpgradeAcknowledgementsFor *string            `json:"upgrade_acknowledgements_for,omitempty"`
+	OpenshiftVersion           *string            `json:"openshift_version,omitempty"`
+	AutoRepair                 *bool              `json:"auto_repair,omitempty"`
+	Tags                       *map[string]string `json:"tags,omitempty"`
 }
 
 type MachinePoolService struct {

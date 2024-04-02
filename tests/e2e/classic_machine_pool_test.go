@@ -17,6 +17,8 @@ import (
 )
 
 var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMachinepool, func() {
+	defer GinkgoRecover()
+
 	var mpService *exe.MachinePoolService
 	var profile *ci.Profile
 

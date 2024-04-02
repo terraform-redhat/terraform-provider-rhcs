@@ -32,17 +32,8 @@ const (
 )
 
 const (
-	poolMessage = "This attribute is specifically applies for the Worker %[1]s Pool and becomes irrelevant once the resource is created. Any modifications to the default Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker %[1]s Pool in ROSA Cluster](../guides/worker-machine-pool.md)"
+	PoolMessage = "This attribute specifically applies to the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the initial Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)"
 )
-
-func (ct ClusterTopology) GeneratePoolMessage() string {
-	switch ct {
-	case Hcp:
-		return fmt.Sprintf(poolMessage, "Node")
-	default:
-		return fmt.Sprintf(poolMessage, "Machine")
-	}
-}
 
 type BaseCluster struct {
 	ClusterCollection *cmv1.ClustersClient

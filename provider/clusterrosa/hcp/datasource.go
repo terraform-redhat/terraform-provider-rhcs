@@ -149,7 +149,7 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				Computed:    true,
 			},
 			"availability_zones": schema.ListAttribute{
-				Description: "Availability zones. " + rosaTypes.Hcp.GeneratePoolMessage(),
+				Description: "Availability zones. " + rosaTypes.PoolMessage,
 				ElementType: types.StringType,
 				Computed:    true,
 				Validators: []validator.List{

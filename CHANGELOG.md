@@ -1,3 +1,12 @@
+## 1.6.1 (Apr 10, 2024)
+ENHANCEMENTS:
+* Updated docs for HCP resources
+* Updated default timeout for control plane readiness waiting period
+
+## 1.6.0 (Mar 21, 2024)
+FEATURES:
+* HCP Resources (OCM-5758)
+
 ## 1.5.1 (Feb 29, 2024)
 FEATURES:
 * Add Machine Pool data source (OCM-5428)

@@ -170,14 +170,15 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				Computed:    true,
 			},
 			"replicas": schema.Int64Attribute{
-				Description: "Number of worker/compute nodes to provision. Single zone clusters need at least 2 nodes, " +
-					"multizone clusters need at least 3 nodes. " + rosaTypes.Hcp.GeneratePoolMessage(),
+				Description: "Number of worker/compute nodes to provision. " +
+					"Requires that the number supplied be a multiple of the number of private subnets. " +
+					rosaTypes.PoolMessage,
 				Optional: true,
 			},
 			"compute_machine_type": schema.StringAttribute{
 				Description: "Identifies the machine type used by the initial worker nodes, " +
 					"for example `m5.xlarge`. Use the `rhcs_machine_types` data " +
-					"source to find the possible values. " + rosaTypes.Hcp.GeneratePoolMessage(),
+					"source to find the possible values. " + rosaTypes.PoolMessage,
 				Optional: true,
 			},
 			"aws_account_id": schema.StringAttribute{
@@ -214,7 +215,7 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				},
 			},
 			"availability_zones": schema.ListAttribute{
-				Description: "Availability zones. " + rosaTypes.Hcp.GeneratePoolMessage(),
+				Description: "Availability zones. " + rosaTypes.PoolMessage,
 				ElementType: types.StringType,
 				Required:    true,
 				Validators: []validator.List{
@@ -299,7 +300,7 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				Optional: true,
 			},
 			"wait_for_create_complete": schema.BoolAttribute{
-				Description: "Wait until the cluster is either in a ready state or in an error state. The waiter has a timeout of 60 minutes, with the default value set to false",
+				Description: "Wait until the cluster is either in a ready state or in an error state. The waiter has a timeout of 20 minutes, with the default value set to false",
 				Optional:    true,
 			},
 			"wait_for_std_compute_nodes_complete": schema.BoolAttribute{
@@ -610,7 +611,7 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 
 	if shouldWaitCreationComplete {
 		tflog.Info(ctx, "Waiting for cluster to get ready")
-		object, err = r.ClusterWait.WaitForClusterToBeReady(ctx, object.ID(), rosa.DefaultWaitTimeoutInMinutes)
+		object, err = r.ClusterWait.WaitForClusterToBeReady(ctx, object.ID(), rosa.DefaultWaitTimeoutForHCPControlPlaneInMinutes)
 		if err != nil {
 			response.Diagnostics.AddError(
 				"Waiting for cluster creation finished with error",

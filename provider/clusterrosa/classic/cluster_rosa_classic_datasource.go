@@ -86,7 +86,7 @@ func (r *ClusterRosaClassicDatasource) Schema(ctx context.Context, req datasourc
 			},
 			"multi_az": schema.BoolAttribute{
 				Description: "Indicates if the cluster should be deployed to " +
-					"multiple availability zones. Default value is 'false'. " + rosaTypes.Classic.GeneratePoolMessage(),
+					"multiple availability zones. Default value is 'false'. " + rosaTypes.PoolMessage,
 				Computed: true,
 			},
 			"disable_workload_monitoring": schema.BoolAttribute{
@@ -187,7 +187,7 @@ func (r *ClusterRosaClassicDatasource) Schema(ctx context.Context, req datasourc
 				Computed:    true,
 			},
 			"availability_zones": schema.ListAttribute{
-				Description: "Availability zones. " + rosaTypes.Classic.GeneratePoolMessage(),
+				Description: "Availability zones. " + rosaTypes.PoolMessage,
 				ElementType: types.StringType,
 				Computed:    true,
 			},

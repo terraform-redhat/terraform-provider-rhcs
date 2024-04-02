@@ -139,7 +139,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 			},
 			"multi_az": schema.BoolAttribute{
 				Description: "Indicates if the cluster should be deployed to " +
-					"multiple availability zones. Default value is 'false'. " + rosaTypes.Classic.GeneratePoolMessage(),
+					"multiple availability zones. Default value is 'false'. " + rosaTypes.PoolMessage,
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.Bool{
@@ -186,15 +186,15 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				},
 			},
 			"autoscaling_enabled": schema.BoolAttribute{
-				Description: "Enable autoscaling for the initial worker pool. " + rosaTypes.Classic.GeneratePoolMessage(),
+				Description: "Enable autoscaling for the initial worker pool. " + rosaTypes.PoolMessage,
 				Optional:    true,
 			},
 			"min_replicas": schema.Int64Attribute{
-				Description: "Minimum replicas of worker nodes in a machine pool. " + rosaTypes.Classic.GeneratePoolMessage(),
+				Description: "Minimum replicas of worker nodes in a machine pool. " + rosaTypes.PoolMessage,
 				Optional:    true,
 			},
 			"max_replicas": schema.Int64Attribute{
-				Description: "Maximum replicas of worker nodes in a machine pool. " + rosaTypes.Classic.GeneratePoolMessage(),
+				Description: "Maximum replicas of worker nodes in a machine pool. " + rosaTypes.PoolMessage,
 				Optional:    true,
 			},
 			"api_url": schema.StringAttribute{
@@ -225,22 +225,22 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 			},
 			"replicas": schema.Int64Attribute{
 				Description: "Number of worker/compute nodes to provision. Single zone clusters need at least 2 nodes, " +
-					"multizone clusters need at least 3 nodes. " + rosaTypes.Classic.GeneratePoolMessage(),
+					"multizone clusters need at least 3 nodes. " + rosaTypes.PoolMessage,
 				Optional: true,
 			},
 			"compute_machine_type": schema.StringAttribute{
 				Description: "Identifies the machine type used by the initial worker nodes, " +
 					"for example `m5.xlarge`. Use the `rhcs_machine_types` data " +
-					"source to find the possible values. " + rosaTypes.Classic.GeneratePoolMessage(),
+					"source to find the possible values. " + rosaTypes.PoolMessage,
 				Optional: true,
 			},
 			"worker_disk_size": schema.Int64Attribute{
-				Description: "Compute node root disk size, in GiB. " + rosaTypes.Classic.GeneratePoolMessage(),
+				Description: "Compute node root disk size, in GiB. " + rosaTypes.PoolMessage,
 				Optional:    true,
 			},
 			"default_mp_labels": schema.MapAttribute{
 				Description: "This value is the default/initial machine pool labels. Format should be a comma-separated list of '{\"key1\"=\"value1\", \"key2\"=\"value2\"}'. " +
-					rosaTypes.Classic.GeneratePoolMessage(),
+					rosaTypes.PoolMessage,
 				ElementType: types.StringType,
 				Optional:    true,
 			},
@@ -295,7 +295,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				},
 			},
 			"availability_zones": schema.ListAttribute{
-				Description: "Availability zones. " + rosaTypes.Classic.GeneratePoolMessage(),
+				Description: "Availability zones. " + rosaTypes.PoolMessage,
 				ElementType: types.StringType,
 				Optional:    true,
 				Computed:    true,

@@ -341,7 +341,7 @@ var _ = Describe("TF Test", func() {
 				if profile.Ec2MetadataHttpTokens != "" {
 					Expect(string(cluster.AWS().Ec2MetadataHttpTokens())).To(Equal(profile.Ec2MetadataHttpTokens))
 				} else {
-					Expect(string(cluster.AWS().Ec2MetadataHttpTokens())).To(Equal(cmv1.Ec2MetadataHttpTokensOptional))
+					Expect(cluster.AWS().Ec2MetadataHttpTokens()).To(Equal(cmv1.Ec2MetadataHttpTokensOptional))
 				}
 			})
 		})

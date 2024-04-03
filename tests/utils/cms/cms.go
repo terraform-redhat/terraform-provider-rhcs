@@ -254,7 +254,13 @@ func RetrieveClusterMachinePool(connection *client.Connection, clusterID string,
 	}
 	return resp.Body(), nil
 }
-
+func RetrieveClusterNodePool(connection *client.Connection, clusterID string, machinePoolID string) (*cmv1.NodePool, error) {
+	resp, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).NodePools().NodePool(machinePoolID).Get().Send()
+	if err != nil {
+		return nil, err
+	}
+	return resp.Body(), nil
+}
 func CreateClusterAutoscaler(connection *client.Connection, clusterID string, body *cmv1.ClusterAutoscaler) (*cmv1.AutoscalerPostResponse, error) {
 	resp, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).Autoscaler().Post().Request(body).Send()
 	return resp, err

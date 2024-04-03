@@ -25,6 +25,7 @@ var ManifestsConfigurationDir = initManifestsDir()
 const (
 	AWSProviderDir  = "aws"
 	RHCSProviderDir = "rhcs"
+	MachinePoolsDir = "machine-pools"
 )
 
 // Dirs of aws provider
@@ -72,7 +73,8 @@ var (
 	ClusterDir            = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "clusters")
 	ImportResourceDir     = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "resource-import")
 	IDPsDir               = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "idps")
-	MachinePoolDir        = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "machine-pools")
+	ClassicMachinePoolDir = path.Join(ManifestsConfigurationDir, RHCSProviderDir, MachinePoolsDir, "classic")
+	HCPMachinePoolDir     = path.Join(ManifestsConfigurationDir, RHCSProviderDir, MachinePoolsDir, "hcp")
 	DNSDir                = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "dns")
 	RhcsInfoDir           = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "rhcs-info")
 	DefaultMachinePoolDir = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "default-machine-pool")

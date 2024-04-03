@@ -473,3 +473,6 @@ func IntPointer(i int) *int {
 func Float64Pointer(f float64) *float64 {
 	return &f
 }
+func Pointer(f interface{}) *interface{} {
+	return &f
+}

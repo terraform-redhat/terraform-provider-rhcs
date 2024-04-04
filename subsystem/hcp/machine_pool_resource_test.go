@@ -369,6 +369,38 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.additional_security_group_ids.[0]", "id1"))
 		})
 
+		It("Rejects machine pool with more than 10 additional security groups", func() {
+			// Run the apply command:
+			terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge",
+					additional_security_group_ids = ["id1","id2","id3","id4","id5","id6","id7","id8","id9","id10","id11"]
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 12
+				labels = {
+					"label_key1" = "label_value1",
+					"label_key2" = "label_value2"
+				}
+				taints = [
+					{
+						key = "key1",
+						value = "value1",
+						schedule_type = "NoSchedule",
+					},
+				]
+				version = "4.14.10"
+				auto_repair = true
+			}`)
+			Expect(terraform.Apply()).To(Equal(1))
+		})
+
 		It("Can create machine pool with compute nodes when 404 (not found)", func() {
 			// Prepare the server:
 			server.AppendHandlers(

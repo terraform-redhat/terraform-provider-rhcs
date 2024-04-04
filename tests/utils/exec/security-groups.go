@@ -1,9 +1,6 @@
 package exec
 
 import (
-	"context"
-	"fmt"
-
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
@@ -21,46 +18,38 @@ type SecurityGroupsOutput struct {
 }
 
 type SecurityGroupService struct {
-	CreationArgs *SecurityGroupArgs
-	ManifestDir  string
-	Context      context.Context
+	tfExec      TerraformExec
+	ManifestDir string
 }
 
-func (sgs *SecurityGroupService) Init(manifestDirs ...string) error {
-	sgs.ManifestDir = CON.AWSSecurityGroupDir
-	if len(manifestDirs) != 0 {
-		sgs.ManifestDir = manifestDirs[0]
+func newSecurityGroupService(clusterType CON.ClusterType, tfExec TerraformExec) (*SecurityGroupService, error) {
+	sgs := &SecurityGroupService{
+		ManifestDir: GetSecurityGroupManifestDir(clusterType),
+		tfExec:      tfExec,
 	}
-	ctx := context.TODO()
-	sgs.Context = ctx
-	err := runTerraformInit(ctx, sgs.ManifestDir)
-	if err != nil {
-		return err
-	}
-	return nil
-
+	err := sgs.Init()
+	return sgs, err
 }
 
-func (sgs *SecurityGroupService) Apply(createArgs *SecurityGroupArgs, recordtfvars bool, extraArgs ...string) error {
-	sgs.CreationArgs = createArgs
-	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApply(sgs.Context, sgs.ManifestDir, args...)
-	if err != nil {
-		return err
-	}
-	if recordtfvars {
-		recordTFvarsFile(sgs.ManifestDir, tfvars)
-	}
+func (sgs *SecurityGroupService) Init() error {
+	return sgs.tfExec.RunTerraformInit(sgs.ManifestDir)
+}
 
-	return nil
+func (sgs *SecurityGroupService) Apply(createArgs *SecurityGroupArgs) (output string, err error) {
+	var tfVars *TFVars
+	tfVars, err = NewTFArgs(createArgs)
+	if err != nil {
+		return
+	}
+	output, err = sgs.tfExec.RunTerraformApply(sgs.ManifestDir, tfVars)
+	return
 }
 
 func (sgs *SecurityGroupService) Output() (*SecurityGroupsOutput, error) {
-	sgsDir := CON.AWSSecurityGroupDir
-	if sgs.ManifestDir != "" {
-		sgsDir = sgs.ManifestDir
+	out, err := sgs.tfExec.RunTerraformOutput(sgs.ManifestDir)
+	if err != nil {
+		return nil, err
 	}
-	out, err := runTerraformOutput(context.TODO(), sgsDir)
 	sgOut := &SecurityGroupsOutput{
 		SGIDs: h.DigArrayToString(out["sg_ids"], "value"),
 	}
@@ -68,22 +57,6 @@ func (sgs *SecurityGroupService) Output() (*SecurityGroupsOutput, error) {
 	return sgOut, err
 }
 
-func (sgs *SecurityGroupService) Destroy(createArgs ...*SecurityGroupArgs) error {
-	if sgs.CreationArgs == nil && len(createArgs) == 0 {
-		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
-	}
-	destroyArgs := sgs.CreationArgs
-	if len(createArgs) != 0 {
-		destroyArgs = createArgs[0]
-	}
-	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroy(sgs.Context, sgs.ManifestDir, args...)
-
-	return err
-}
-
-func NewSecurityGroupService(manifestDir ...string) *SecurityGroupService {
-	sgs := &SecurityGroupService{}
-	sgs.Init(manifestDir...)
-	return sgs
+func (sgs *SecurityGroupService) Destroy(deleteTFVars bool) (string, error) {
+	return sgs.tfExec.RunTerraformDestroy(sgs.ManifestDir, deleteTFVars)
 }

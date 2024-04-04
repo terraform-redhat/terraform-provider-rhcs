@@ -1,9 +1,6 @@
 package exec
 
 import (
-	"context"
-	"fmt"
-
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
@@ -28,46 +25,38 @@ type VPCOutput struct {
 }
 
 type VPCService struct {
-	CreationArgs *VPCArgs
-	ManifestDir  string
-	Context      context.Context
+	tfExec      TerraformExec
+	ManifestDir string
 }
 
-func (vpc *VPCService) Init(manifestDirs ...string) error {
-	vpc.ManifestDir = CON.AWSVPCDir
-	if len(manifestDirs) != 0 {
-		vpc.ManifestDir = manifestDirs[0]
+func newVPCService(clusterType CON.ClusterType, tfExec TerraformExec) (*VPCService, error) {
+	vpc := &VPCService{
+		ManifestDir: GetVpcManifestDir(clusterType),
+		tfExec:      tfExec,
 	}
-	ctx := context.TODO()
-	vpc.Context = ctx
-	err := runTerraformInit(ctx, vpc.ManifestDir)
-	if err != nil {
-		return err
-	}
-	return nil
-
+	err := vpc.Init()
+	return vpc, err
 }
 
-func (vpc *VPCService) Apply(createArgs *VPCArgs, recordtfvars bool, extraArgs ...string) error {
-	vpc.CreationArgs = createArgs
-	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApply(vpc.Context, vpc.ManifestDir, args...)
-	if err != nil {
-		return err
-	}
-	if recordtfvars {
-		recordTFvarsFile(vpc.ManifestDir, tfvars)
-	}
+func (vpc *VPCService) Init() error {
+	return vpc.tfExec.RunTerraformInit(vpc.ManifestDir)
+}
 
-	return nil
+func (vpc *VPCService) Apply(createArgs *VPCArgs) (output string, err error) {
+	var tfVars *TFVars
+	tfVars, err = NewTFArgs(createArgs)
+	if err != nil {
+		return
+	}
+	output, err = vpc.tfExec.RunTerraformApply(vpc.ManifestDir, tfVars)
+	return
 }
 
 func (vpc *VPCService) Output() (*VPCOutput, error) {
-	vpcDir := CON.AWSVPCDir
-	if vpc.ManifestDir != "" {
-		vpcDir = vpc.ManifestDir
+	out, err := vpc.tfExec.RunTerraformOutput(vpc.ManifestDir)
+	if err != nil {
+		return nil, err
 	}
-	out, err := runTerraformOutput(context.TODO(), vpcDir)
 	vpcOutput := &VPCOutput{
 		VPCCIDR:               h.DigString(out["vpc-cidr"], "value"),
 		ClusterPrivateSubnets: h.DigArrayToString(out["cluster-private-subnet"], "value"),
@@ -80,22 +69,6 @@ func (vpc *VPCService) Output() (*VPCOutput, error) {
 	return vpcOutput, err
 }
 
-func (vpc *VPCService) Destroy(createArgs ...*VPCArgs) error {
-	if vpc.CreationArgs == nil && len(createArgs) == 0 {
-		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
-	}
-	destroyArgs := vpc.CreationArgs
-	if len(createArgs) != 0 {
-		destroyArgs = createArgs[0]
-	}
-	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroy(vpc.Context, vpc.ManifestDir, args...)
-
-	return err
-}
-
-func NewVPCService(manifestDir ...string) *VPCService {
-	vpc := &VPCService{}
-	vpc.Init(manifestDir...)
-	return vpc
+func (vpc *VPCService) Destroy(deleteTFVars bool) (string, error) {
+	return vpc.tfExec.RunTerraformDestroy(vpc.ManifestDir, deleteTFVars)
 }

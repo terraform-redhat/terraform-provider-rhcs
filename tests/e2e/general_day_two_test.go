@@ -10,17 +10,19 @@ import (
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
-var _ = Describe("TF day2 scenrios", func() {
+var _ = Describe("TF day2 scenarios", func() {
 
 	Context("Author:smiron-Medium-OCP-67570 @OCP-67570 @smiron", func() {
 		var dnsService *exe.DnsService
 		BeforeEach(func() {
-			var err error
-			dnsService, err = exe.NewDnsDomainService(con.DNSDir)
+			tfExecHelper, err := ci.GetTerraformExecHelperForProfile(profile)
+			Expect(err).ToNot(HaveOccurred())
+
+			dnsService, err = tfExecHelper.GetDnsDomainService()
 			Expect(err).ToNot(HaveOccurred())
 		})
 		AfterEach(func() {
-			err := dnsService.Destroy()
+			_, err := dnsService.Destroy(true)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("OCP-67570 - Create and destroy dnsdomain via terraform provider",
@@ -28,7 +30,7 @@ var _ = Describe("TF day2 scenrios", func() {
 
 				By("Create/Apply dns-domain resource by terraform")
 				dnsArgs := &exe.DnsDomainArgs{}
-				err := dnsService.Create(dnsArgs)
+				_, err := dnsService.Apply(dnsArgs)
 				Expect(err).ToNot(HaveOccurred())
 			})
 	})
@@ -36,7 +38,11 @@ var _ = Describe("TF day2 scenrios", func() {
 		var rhcsInfoService *exe.RhcsInfoService
 
 		BeforeEach(func() {
-			rhcsInfoService = exe.NewRhcsInfoService(con.RhcsInfoDir)
+			tfExecHelper, err := ci.GetTerraformExecHelperForProfile(profile)
+			Expect(err).ToNot(HaveOccurred())
+
+			rhcsInfoService, err = tfExecHelper.GetRhcsInfoService()
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("OCP-68301 - Verify the state of the rhcs_info data source",
@@ -44,7 +50,8 @@ var _ = Describe("TF day2 scenrios", func() {
 
 				By("Creating/Applying rhcs-info resource by terraform")
 				rhcsInfoArgs := &exe.RhcsInfoArgs{}
-				Expect(rhcsInfoService.Create(rhcsInfoArgs)).ShouldNot(HaveOccurred())
+				_, err := rhcsInfoService.Apply(rhcsInfoArgs)
+				Expect(err).ShouldNot(HaveOccurred())
 
 				By("Comparing rhcs-info state output to OCM API output")
 				currentAccountInfo, err := cms.RetrieveCurrentAccount(ci.RHCSConnection)
@@ -80,15 +87,16 @@ var _ = Describe("TF day2 scenrios", func() {
 		)
 
 		BeforeEach(func() {
-			// Load profile from YAML file based on environment
-			profile = ci.LoadProfileYamlFileByENV()
+			tfExecHelper, err := ci.GetTerraformExecHelperForProfile(profile)
+			Expect(err).ToNot(HaveOccurred())
 
 			// Initialize the cluster service
-			clusterService, err = exe.NewClusterService(profile.GetClusterManifestsDir())
+			clusterService, err = tfExecHelper.GetClusterService()
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Read terraform.tfvars file and get its content as a map
-			terraformTFVarsContent := exe.ReadTerraformTFVars(profile.GetClusterManifestsDir())
+			var terraformTFVarsContent map[string]string
+			terraformTFVarsContent, err = clusterService.ReadTerraformTFVars()
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Capture the original custom properties
@@ -104,7 +112,7 @@ var _ = Describe("TF day2 scenrios", func() {
 			}
 
 			// Restore cluster state
-			err = clusterService.Apply(clusterArgs, false, true)
+			_, err = clusterService.Apply(clusterArgs)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
@@ -121,7 +129,7 @@ var _ = Describe("TF day2 scenrios", func() {
 					CustomProperties: updatedCustomProperties,
 				}
 
-				err = clusterService.Apply(clusterArgs, false, true)
+				_, err = clusterService.Apply(clusterArgs)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				// Validating cluster's custom property update
@@ -139,7 +147,7 @@ var _ = Describe("TF day2 scenrios", func() {
 					CustomProperties: updatedCustomProperties,
 				}
 
-				err = clusterService.Apply(clusterArgs, false, false)
+				_, err = clusterService.Apply(clusterArgs)
 				Expect(err).Should(HaveOccurred())
 				Expect(err.Error()).Should(ContainSubstring("Can not override reserved properties keys"))
 			})

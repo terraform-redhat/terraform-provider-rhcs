@@ -1,9 +1,6 @@
 package exec
 
 import (
-	"context"
-	"fmt"
-
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
@@ -18,6 +15,11 @@ type OIDCProviderOperatorRolesArgs struct {
 	UnifiedAccRolesPath string `json:"path,omitempty"`
 }
 
+func (args *OIDCProviderOperatorRolesArgs) appendURL() {
+	args.URL = CON.GateWayURL
+	args.OCMENV = CON.OCMENV
+}
+
 type OIDCProviderOperatorRolesOutput struct {
 	OIDCConfigID           string `json:"oidc_config_id,omitempty"`
 	AccountRolePrefix      string `json:"account_role_prefix,omitempty"`
@@ -26,49 +28,38 @@ type OIDCProviderOperatorRolesOutput struct {
 }
 
 type OIDCProviderOperatorRolesService struct {
-	CreationArgs *OIDCProviderOperatorRolesArgs
-	ManifestDir  string
-	Context      context.Context
+	tfExec      TerraformExec
+	ManifestDir string
 }
 
-func (oidcOP *OIDCProviderOperatorRolesService) Init(manifestDirs ...string) error {
-	oidcOP.ManifestDir = CON.OIDCProviderOperatorRolesClassicManifestDir
-	if len(manifestDirs) != 0 {
-		oidcOP.ManifestDir = manifestDirs[0]
+func newOIDCProviderOperatorRoleService(clusterType CON.ClusterType, tfExec TerraformExec) (*OIDCProviderOperatorRolesService, error) {
+	oidcOP := &OIDCProviderOperatorRolesService{
+		ManifestDir: GetOIDCProviderOperatorRolesManifestDir(clusterType),
+		tfExec:      tfExec,
 	}
-	ctx := context.TODO()
-	oidcOP.Context = ctx
-	err := runTerraformInit(ctx, oidcOP.ManifestDir)
-	if err != nil {
-		return err
-	}
-	return nil
-
+	err := oidcOP.Init()
+	return oidcOP, err
 }
 
-func (oidcOP *OIDCProviderOperatorRolesService) Apply(createArgs *OIDCProviderOperatorRolesArgs, recordtfvars bool, extraArgs ...string) (
-	*OIDCProviderOperatorRolesOutput, error) {
-	createArgs.URL = CON.GateWayURL
-	createArgs.OCMENV = CON.OCMENV
-	oidcOP.CreationArgs = createArgs
-	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApply(oidcOP.Context, oidcOP.ManifestDir, args...)
-	if err != nil {
-		return nil, err
-	}
-	output, err := oidcOP.Output()
-	if err != nil {
-		return nil, err
-	}
-	if recordtfvars {
-		recordTFvarsFile(oidcOP.ManifestDir, tfvars)
-	}
+func (oidcOP *OIDCProviderOperatorRolesService) Init() error {
+	return oidcOP.tfExec.RunTerraformInit(oidcOP.ManifestDir)
+}
 
-	return output, nil
+func (oidcOP *OIDCProviderOperatorRolesService) Apply(createArgs *OIDCProviderOperatorRolesArgs) (
+	output string, err error) {
+	createArgs.appendURL()
+
+	var tfVars *TFVars
+	tfVars, err = NewTFArgs(createArgs)
+	if err != nil {
+		return
+	}
+	output, err = oidcOP.tfExec.RunTerraformApply(oidcOP.ManifestDir, tfVars)
+	return
 }
 
 func (oidcOP *OIDCProviderOperatorRolesService) Output() (*OIDCProviderOperatorRolesOutput, error) {
-	out, err := runTerraformOutput(oidcOP.Context, oidcOP.ManifestDir)
+	out, err := oidcOP.tfExec.RunTerraformOutput(oidcOP.ManifestDir)
 	if err != nil {
 		return nil, err
 	}
@@ -81,23 +72,6 @@ func (oidcOP *OIDCProviderOperatorRolesService) Output() (*OIDCProviderOperatorR
 	return oidcOPOutput, nil
 }
 
-func (oidcOP *OIDCProviderOperatorRolesService) Destroy(createArgs ...*OIDCProviderOperatorRolesArgs) error {
-	if oidcOP.CreationArgs == nil && len(createArgs) == 0 {
-		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
-	}
-	destroyArgs := oidcOP.CreationArgs
-	if len(createArgs) != 0 {
-		destroyArgs = createArgs[0]
-	}
-	destroyArgs.URL = CON.GateWayURL
-	destroyArgs.OCMENV = CON.OCMENV
-	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroy(oidcOP.Context, oidcOP.ManifestDir, args...)
-	return err
-}
-
-func NewOIDCProviderOperatorRolesService(manifestDir ...string) (*OIDCProviderOperatorRolesService, error) {
-	oidcOP := &OIDCProviderOperatorRolesService{}
-	err := oidcOP.Init(manifestDir...)
-	return oidcOP, err
+func (oidcOP *OIDCProviderOperatorRolesService) Destroy(deleteTFVars bool) (string, error) {
+	return oidcOP.tfExec.RunTerraformDestroy(oidcOP.ManifestDir, deleteTFVars)
 }

@@ -1,9 +1,6 @@
 package exec
 
 import (
-	"context"
-	"fmt"
-
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
@@ -15,12 +12,6 @@ type ProxyArgs struct {
 	TrustBundleFilePath string `json:"trust_bundle_path,omitempty"`
 }
 
-type ProxyService struct {
-	CreationArgs *ProxyArgs
-	ManifestDir  string
-	Context      context.Context
-}
-
 // for now holds only ID, additional vars might be needed in the future
 type ProxyOutput struct {
 	HttpProxy             string `json:"http_proxy,omitempty"`
@@ -29,77 +20,47 @@ type ProxyOutput struct {
 	AdditionalTrustBundle string `json:"additional_trust_bundle,omitempty"`
 }
 
-func (proxy *ProxyService) Init(manifestDirs ...string) error {
-	proxy.ManifestDir = CON.ProxyDir
-	if len(manifestDirs) != 0 {
-		proxy.ManifestDir = manifestDirs[0]
-	}
-	ctx := context.TODO()
-	proxy.Context = ctx
-	err := runTerraformInit(ctx, proxy.ManifestDir)
-	if err != nil {
-		return err
-	}
-	return nil
+type ProxyService struct {
+	tfExec      TerraformExec
+	ManifestDir string
 }
 
-func (proxy *ProxyService) Apply(createArgs *ProxyArgs, recordtfvars bool, extraArgs ...string) error {
-	proxy.CreationArgs = createArgs
-	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApply(proxy.Context, proxy.ManifestDir, args...)
-	if err != nil {
-		return err
+func newProxyService(clusterType CON.ClusterType, tfExec TerraformExec) (*ProxyService, error) {
+	proxy := &ProxyService{
+		ManifestDir: GetProxyManifestDir(clusterType),
 	}
-	if recordtfvars {
-		recordTFvarsFile(proxy.ManifestDir, tfvars)
-	}
-
-	return nil
+	err := proxy.Init()
+	return proxy, err
 }
 
-func (proxy *ProxyService) Output() (ProxyOutput, error) {
-	idpDir := CON.IDPsDir
-	if proxy.ManifestDir != "" {
-		idpDir = proxy.ManifestDir
-	}
-	var output ProxyOutput
-	out, err := runTerraformOutput(context.TODO(), idpDir)
-	if err != nil {
-		return output, err
-	}
-	if err != nil {
-		return output, err
-	}
-	httpProxy := h.DigString(out["http_proxy"], "value")
-	httpsProxy := h.DigString(out["https_proxy"], "value")
-	noProxy := h.DigString(out["no_proxy"], "value")
-	additionalTrustBundle := h.DigString(out["additional_trust_bundle"], "value")
+func (proxy *ProxyService) Init() error {
+	return proxy.tfExec.RunTerraformInit(proxy.ManifestDir)
+}
 
-	output = ProxyOutput{
-		HttpProxy:             httpProxy,
-		HttpsProxy:            httpsProxy,
-		NoProxy:               noProxy,
-		AdditionalTrustBundle: additionalTrustBundle,
+func (proxy *ProxyService) Apply(createArgs *ProxyArgs) (output string, err error) {
+	var tfVars *TFVars
+	tfVars, err = NewTFArgs(createArgs)
+	if err != nil {
+		return
+	}
+	output, err = proxy.tfExec.RunTerraformApply(proxy.ManifestDir, tfVars)
+	return
+}
+
+func (proxy *ProxyService) Output() (*ProxyOutput, error) {
+	out, err := proxy.tfExec.RunTerraformOutput(proxy.ManifestDir)
+	if err != nil {
+		return nil, err
+	}
+	output := &ProxyOutput{
+		HttpProxy:             h.DigString(out["http_proxy"], "value"),
+		HttpsProxy:            h.DigString(out["https_proxy"], "value"),
+		NoProxy:               h.DigString(out["no_proxy"], "value"),
+		AdditionalTrustBundle: h.DigString(out["additional_trust_bundle"], "value"),
 	}
 	return output, nil
 }
 
-func (proxy *ProxyService) Destroy(createArgs ...*ProxyArgs) error {
-	if proxy.CreationArgs == nil && len(createArgs) == 0 {
-		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
-	}
-	destroyArgs := proxy.CreationArgs
-	if len(createArgs) != 0 {
-		destroyArgs = createArgs[0]
-	}
-	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroy(proxy.Context, proxy.ManifestDir, args...)
-
-	return err
-}
-
-func NewProxyService(manifestDir ...string) (*ProxyService, error) {
-	proxy := &ProxyService{}
-	err := proxy.Init(manifestDir...)
-	return proxy, err
+func (proxy *ProxyService) Destroy(deleteTFVars bool) (string, error) {
+	return proxy.tfExec.RunTerraformDestroy(proxy.ManifestDir, deleteTFVars)
 }

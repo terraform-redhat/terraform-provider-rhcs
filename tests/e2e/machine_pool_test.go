@@ -12,21 +12,25 @@ import (
 	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	cms "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	con "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	exe "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
 var _ = Describe("TF Test", func() {
 	Describe("Create MachinePool test cases", ci.NonHCPCluster, func() {
+		var tfExecHelper *exe.TerraformExecHelper
+		var err error
 		var mpService *exe.MachinePoolService
-		var profile *ci.Profile
 
 		BeforeEach(func() {
-			profile = ci.LoadProfileYamlFileByENV()
-			mpService = exe.NewMachinePoolService(con.MachinePoolDir)
+			tfExecHelper, err = ci.GetTerraformExecHelperForProfile(profile)
+			Expect(err).ToNot(HaveOccurred())
+			mpService, err = tfExecHelper.GetMachinePoolService()
+			Expect(err).ToNot(HaveOccurred())
 		})
 		AfterEach(func() {
-			_, err := mpService.Destroy()
+			_, err := mpService.Destroy(true)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		Context("Author:amalykhi-High-OCP-64757 @OCP-64757 @amalykhi", func() {
@@ -42,7 +46,7 @@ var _ = Describe("TF Test", func() {
 					Name:        &name,
 				}
 
-				_, err := mpService.Apply(MachinePoolArgs, false)
+				_, err := mpService.Apply(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
 				_, err = mpService.Output()
 				Expect(err).ToNot(HaveOccurred())
@@ -75,7 +79,7 @@ var _ = Describe("TF Test", func() {
 					Labels:      &creationLabels,
 				}
 
-				_, err := mpService.Apply(MachinePoolArgs, false)
+				_, err := mpService.Apply(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Verify the parameters of the created machinepool")
@@ -85,7 +89,7 @@ var _ = Describe("TF Test", func() {
 
 				By("Edit the labels of the machinepool")
 				MachinePoolArgs.Labels = &updatingLabels
-				_, err = mpService.Apply(MachinePoolArgs, false)
+				_, err = mpService.Apply(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
 				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
 				Expect(err).ToNot(HaveOccurred())
@@ -93,7 +97,7 @@ var _ = Describe("TF Test", func() {
 
 				By("Delete the labels of the machinepool")
 				MachinePoolArgs.Labels = &emptyLabels
-				_, err = mpService.Apply(MachinePoolArgs, false)
+				_, err = mpService.Apply(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Verify the parameters of the updated machinepool")
@@ -120,7 +124,7 @@ var _ = Describe("TF Test", func() {
 					AutoscalingEnabled: h.BoolPointer(true),
 				}
 
-				_, err := mpService.Apply(MachinePoolArgs, false)
+				_, err := mpService.Apply(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Verify the parameters of the created machinepool")
@@ -132,7 +136,7 @@ var _ = Describe("TF Test", func() {
 				By("Change the number of replicas of the machinepool")
 				minReplicas = minReplicas * 2
 				maxReplicas = maxReplicas * 2
-				_, err = mpService.Apply(MachinePoolArgs, false)
+				_, err = mpService.Apply(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Verify the parameters of the updated machinepool")
@@ -149,7 +153,7 @@ var _ = Describe("TF Test", func() {
 					Name:        &name,
 				}
 
-				_, err = mpService.Apply(MachinePoolArgs, false)
+				_, err = mpService.Apply(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Verify the parameters of the updated machinepool")
@@ -177,7 +181,7 @@ var _ = Describe("TF Test", func() {
 					Taints:      &taints,
 				}
 
-				_, err := mpService.Apply(MachinePoolArgs, false)
+				_, err := mpService.Apply(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Verify the parameters of the created machinepool")
@@ -197,7 +201,7 @@ var _ = Describe("TF Test", func() {
 				taints = append(taints, taint2)
 
 				By("Apply the changes to the machinepool")
-				_, err = mpService.Apply(MachinePoolArgs, false)
+				_, err = mpService.Apply(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Verify the parameters of the updated machinepool")
@@ -212,7 +216,7 @@ var _ = Describe("TF Test", func() {
 
 				By("Delete the taints of the machinepool")
 				MachinePoolArgs.Taints = nil
-				_, err = mpService.Apply(MachinePoolArgs, false)
+				_, err = mpService.Apply(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Verify the parameters of the updated machinepool")
@@ -238,7 +242,7 @@ var _ = Describe("TF Test", func() {
 					Name:        &invalidMachinepoolName,
 					MachineType: &machineType,
 				}
-				_, err := mpService.Apply(MachinePoolArgs, false)
+				_, err := mpService.Apply(MachinePoolArgs)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).Should(ContainSubstring("Expected a valid value for 'name'"))
 
@@ -249,7 +253,7 @@ var _ = Describe("TF Test", func() {
 					Name:        &machinepoolName,
 					MachineType: &machineType,
 				}
-				_, err = mpService.Apply(MachinePoolArgs, false)
+				_, err = mpService.Apply(MachinePoolArgs)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).Should(ContainSubstring("Attribute 'replicas'\nmust be a non-negative integer"))
 
@@ -260,7 +264,7 @@ var _ = Describe("TF Test", func() {
 					Name:        &machinepoolName,
 					MachineType: &InvalidInstanceType,
 				}
-				_, err = mpService.Apply(MachinePoolArgs, false)
+				_, err = mpService.Apply(MachinePoolArgs)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).Should(ContainSubstring("Machine type\n'%s' is not supported for cloud provider", InvalidInstanceType))
 
@@ -272,7 +276,7 @@ var _ = Describe("TF Test", func() {
 					AutoscalingEnabled: h.BoolPointer(true),
 					MachineType:        &machineType,
 				}
-				_, err = mpService.Apply(MachinePoolArgs, false)
+				_, err = mpService.Apply(MachinePoolArgs)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).Should(ContainSubstring("when\nenabling autoscaling, should set value for maxReplicas"))
 
@@ -285,7 +289,7 @@ var _ = Describe("TF Test", func() {
 					AutoscalingEnabled: h.BoolPointer(true),
 					MachineType:        &machineType,
 				}
-				_, err = mpService.Apply(MachinePoolArgs, false)
+				_, err = mpService.Apply(MachinePoolArgs)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).Should(ContainSubstring("'min_replicas' must be less than or equal to 'max_replicas'"))
 
@@ -297,7 +301,7 @@ var _ = Describe("TF Test", func() {
 					Name:        &machinepoolName,
 					MachineType: &machineType,
 				}
-				_, err = mpService.Apply(MachinePoolArgs, false)
+				_, err = mpService.Apply(MachinePoolArgs)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).Should(ContainSubstring("when\ndisabling autoscaling, cannot set min_replicas and/or max_replicas"))
 
@@ -313,7 +317,7 @@ var _ = Describe("TF Test", func() {
 						MachineType:        &machineType,
 						AutoscalingEnabled: h.BoolPointer(true),
 					}
-					_, err = mpService.Apply(MachinePoolArgs, false)
+					_, err = mpService.Apply(MachinePoolArgs)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(ContainSubstring("Multi AZ clusters require that the number of replicas be a\nmultiple of 3"))
 
@@ -325,7 +329,7 @@ var _ = Describe("TF Test", func() {
 						MachineType:        &machineType,
 						AutoscalingEnabled: h.BoolPointer(true),
 					}
-					_, err = mpService.Apply(MachinePoolArgs, false)
+					_, err = mpService.Apply(MachinePoolArgs)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(ContainSubstring("Multi AZ clusters require that the number of replicas be a\nmultiple of 3"))
 
@@ -353,7 +357,7 @@ var _ = Describe("TF Test", func() {
 					AvailabilityZone: &azs[0],
 				}
 
-				_, err = mpService.Apply(MachinePoolArgs, false)
+				_, err = mpService.Apply(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Verify the parameters of the created machinepool")
@@ -361,7 +365,7 @@ var _ = Describe("TF Test", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(mpResponseBody.AvailabilityZones()[0]).To(Equal(azs[0]))
 
-				_, err = mpService.Destroy()
+				_, err = mpService.Destroy(true)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Create additional machinepool with subnet id specified")
@@ -374,7 +378,7 @@ var _ = Describe("TF Test", func() {
 					SubnetID:    &awsSubnetIds[0],
 				}
 
-				_, err = mpService.Apply(MachinePoolArgs, false)
+				_, err = mpService.Apply(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Verify the parameters of the created machinepool")
@@ -382,7 +386,7 @@ var _ = Describe("TF Test", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(mpResponseBody.Subnets()[0]).To(Equal(awsSubnetIds[0]))
 
-				_, err = mpService.Destroy()
+				_, err = mpService.Destroy(true)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Create additional machinepool with multi_availability_zone=false specified")
@@ -395,7 +399,7 @@ var _ = Describe("TF Test", func() {
 					AvailabilityZone: &azs[1],
 				}
 
-				_, err = mpService.Apply(MachinePoolArgs, false)
+				_, err = mpService.Apply(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
 				By("Verify the parameters of the created machinepool")
 				mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
@@ -410,20 +414,22 @@ var _ = Describe("TF Test", func() {
 				}
 				getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
 				var zones []string
-				vpcOutput, err := ci.PrepareVPC(profile.Region, true, zones, profile.GetClusterType(), getResp.Body().Name(), "")
+				vpcOutput, err := tfExecHelper.PrepareVPC(profile.Region, true, zones, getResp.Body().Name(), "")
 
 				By("Tag new subnet to be able to apply it to the machinepool")
-				VpcTagService := exe.NewVPCTagService()
+				vpcTagService, err := tfExecHelper.GetVPCTagService()
+				Expect(err).ToNot(HaveOccurred())
 				tagKey := fmt.Sprintf("kubernetes.io/cluster/%s", getResp.Body().InfraID())
 				tagValue := "shared"
-				VPCTagArgs := &exe.VPCTagArgs{
+				vpcTagArgs := &exe.VPCTagArgs{
 					AWSRegion: getResp.Body().Region().DisplayName(),
 					IDs:       vpcOutput.ClusterPrivateSubnets,
 					TagKey:    tagKey,
 					TagValue:  tagValue,
 				}
-				err = VpcTagService.Apply(VPCTagArgs, true)
+				_, err = vpcTagService.Apply(vpcTagArgs)
 				Expect(err).ToNot(HaveOccurred())
+
 				By("Create additional machinepool with subnet id specified")
 				replicas := 1
 				machineType := "r5.xlarge"
@@ -436,7 +442,7 @@ var _ = Describe("TF Test", func() {
 					Name:        &name,
 					SubnetID:    &newZonePrivateSubnet,
 				}
-				_, err = mpService.Apply(MachinePoolArgs, false)
+				_, err = mpService.Apply(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
 
 				mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
@@ -444,7 +450,7 @@ var _ = Describe("TF Test", func() {
 				Expect(mpResponseBody.Subnets()[0]).To(Equal(newZonePrivateSubnet))
 
 				replicas = 4
-				_, err = mpService.Apply(MachinePoolArgs, false)
+				_, err = mpService.Apply(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Verify the parameters of the updated machinepool")
@@ -468,10 +474,10 @@ var _ = Describe("TF Test", func() {
 					DiskSize:    &diskSize,
 				}
 
-				_, err := mpService.Apply(MachinePoolArgs, false)
+				_, err := mpService.Apply(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
 				defer func() {
-					_, err = mpService.Destroy()
+					_, err = mpService.Destroy(true)
 					Expect(err).ToNot(HaveOccurred())
 				}()
 
@@ -490,12 +496,12 @@ var _ = Describe("TF Test", func() {
 					DiskSize:    h.IntPointer(320),
 				}
 
-				output, err := mpService.Apply(MachinePoolArgs, false)
+				output, err := mpService.Apply(MachinePoolArgs)
 				Expect(err).To(HaveOccurred())
 				Expect(output).Should(ContainSubstring("Attribute disk_size, cannot be changed from 249 to 320"))
 
 				MachinePoolArgs.DiskSize = &diskSize
-				_, err = mpService.Destroy(MachinePoolArgs)
+				_, err = mpService.Destroy(true)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Create another machinepool without disksize will create another machinepool with default value")
@@ -506,7 +512,7 @@ var _ = Describe("TF Test", func() {
 					Name:        &name,
 				}
 
-				_, err = mpService.Apply(MachinePoolArgs, false)
+				_, err = mpService.Apply(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Verify the parameters of the created machinepool")
@@ -524,11 +530,13 @@ var _ = Describe("TF Test", func() {
 					Skip("This case only works for BYOVPC cluster profile")
 				}
 				By("Prepare additional security groups")
-				sgService := exe.NewSecurityGroupService()
+				sgService, err := tfExecHelper.GetSecurityGroupService()
+				Expect(err).ToNot(HaveOccurred())
 				output, err := sgService.Output()
 				Expect(err).ToNot(HaveOccurred())
 				if output.SGIDs == nil {
-					vpcService := exe.NewVPCService()
+					vpcService, err := tfExecHelper.GetVPCService()
+					Expect(err).ToNot(HaveOccurred())
 					vpcOutput, err := vpcService.Output()
 					Expect(err).ToNot(HaveOccurred())
 					sgArgs := &exe.SecurityGroupArgs{
@@ -536,9 +544,9 @@ var _ = Describe("TF Test", func() {
 						VPCID:     vpcOutput.VPCID,
 						SGNumber:  4,
 					}
-					err = sgService.Apply(sgArgs, true)
+					_, err = sgService.Apply(sgArgs)
 					Expect(err).ToNot(HaveOccurred())
-					defer sgService.Destroy()
+					defer sgService.Destroy(true)
 				}
 
 				output, err = sgService.Output()
@@ -561,10 +569,10 @@ var _ = Describe("TF Test", func() {
 					AdditionalSecurityGroups: &sgIDs,
 				}
 
-				_, err = mpService.Apply(MachinePoolArgs, false)
+				_, err = mpService.Apply(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
 				defer func() {
-					_, err = mpService.Destroy()
+					_, err = mpService.Destroy(true)
 					Expect(err).ToNot(HaveOccurred())
 				}()
 
@@ -586,13 +594,12 @@ var _ = Describe("TF Test", func() {
 					AdditionalSecurityGroups: &testAdditionalSecurityGroups,
 				}
 
-				applyOutput, err := mpService.Apply(MachinePoolArgs, false)
+				applyOutput, err := mpService.Apply(MachinePoolArgs)
 				Expect(err).To(HaveOccurred())
 				Expect(applyOutput).Should(ContainSubstring("Attribute aws_additional_security_group_ids, cannot be changed"))
 
 				By("Destroy the machinepool")
-				mpService.CreationArgs.AdditionalSecurityGroups = &sgIDs
-				_, err = mpService.Destroy()
+				_, err = mpService.Destroy(true)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Create another machinepool without additional sg ")
@@ -604,7 +611,7 @@ var _ = Describe("TF Test", func() {
 					Name:        &name,
 				}
 
-				_, err = mpService.Apply(MachinePoolArgs, false)
+				_, err = mpService.Apply(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Verify the parameters of the created machinepool")
@@ -631,7 +638,7 @@ var _ = Describe("TF Test", func() {
 					Taints:      &taints,
 				}
 
-				_, err := mpService.Apply(MachinePoolArgs, false)
+				_, err := mpService.Apply(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Verify the parameters of the created machinepool")
@@ -645,7 +652,7 @@ var _ = Describe("TF Test", func() {
 				Expect(err.Error()).Should(ContainSubstring("Machine pool with id '%s' not found", mpName))
 
 				By("ReApply the machinepool manifest")
-				_, err = mpService.Apply(MachinePoolArgs, false)
+				_, err = mpService.Apply(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Verify the parameters of the machinepool")
@@ -663,16 +670,22 @@ var _ = Describe("TF Test", func() {
 	})
 
 	Describe("Validate terraform Import operations", func() {
+		var tfExecHelper *exe.TerraformExecHelper
+		var err error
 		var mpService *exe.MachinePoolService
-		var importService exe.ImportService
+		var importService *exe.ImportService
 
 		BeforeEach(func() {
-			mpService = exe.NewMachinePoolService(con.MachinePoolDir)
-			importService = *exe.NewImportService(con.ImportResourceDir) // init new import service
+			tfExecHelper, err = ci.GetTerraformExecHelperForProfile(profile)
+			Expect(err).ToNot(HaveOccurred())
+			mpService, err = tfExecHelper.GetMachinePoolService()
+			Expect(err).ToNot(HaveOccurred())
+			importService, err = tfExecHelper.GetImportService()
+			Expect(err).ToNot(HaveOccurred())
 		})
 		AfterEach(func() {
 			By("Destroy import service")
-			_, importErr := importService.Destroy()
+			_, importErr := importService.Destroy(true)
 			Expect(importErr).ToNot(HaveOccurred())
 		})
 
@@ -695,13 +708,13 @@ var _ = Describe("TF Test", func() {
 						AutoscalingEnabled: h.BoolPointer(true),
 					}
 
-					_, err := mpService.Apply(MachinePoolArgs, false)
+					_, err := mpService.Apply(MachinePoolArgs)
 					Expect(err).ToNot(HaveOccurred())
 
 					By("Run the command to import the machinepool")
 					importParam := &exe.ImportArgs{
 						ClusterID:    clusterID,
-						ResourceKind: "rhcs_machine_pool",
+						ResourceKind: con.MachinePoolResourceKind,
 						ResourceName: "mp_import",
 						ObjectName:   name,
 					}
@@ -724,29 +737,42 @@ var _ = Describe("TF Test, default machinepool day-2 testing", func() {
 	Describe("Default MachinePool test cases", func() {
 
 		var (
-			dmpService                     *exe.MachinePoolService
-			mpService                      *exe.MachinePoolService
-			defaultMachinePoolNmae         = "worker"
-			defaultMachinepoolResponse     *cmv1.MachinePool
-			originalDefaultMachinepoolArgs exe.MachinePoolArgs
+			defaultTfExecHelper        *exe.TerraformExecHelper
+			additionalTfExecHelper     *exe.TerraformExecHelper
+			err                        error
+			defaultMPService           *exe.MachinePoolService
+			additionalMPService        *exe.MachinePoolService
+			defaultMachinePoolName     = "worker"
+			defaultMachinepoolResponse *cmv1.MachinePool
 		)
 
-		BeforeEach(func() {
-			dmpService = exe.NewMachinePoolService(con.DefaultMachinePoolDir)
-			mpService = exe.NewMachinePoolService(con.MachinePoolDir)
+		getOriginalMachinePoolArgs := func() (defaultMachinepoolArgs *exe.MachinePoolArgs) {
+			defaultMachinepoolArgs = exe.BuildMachinePoolArgsFromCSResponse(defaultMachinepoolResponse)
+			defaultMachinepoolArgs.Cluster = clusterID
+			return
+		}
 
-			defaultMachinepoolResponse, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, defaultMachinePoolNmae)
-			if err != nil && strings.Contains(err.Error(), fmt.Sprintf("Machine pool with id '%s' not found", defaultMachinePoolNmae)) {
+		BeforeEach(func() {
+			defaultTfExecHelper, err = ci.GetTerraformExecHelperForProfile(profile)
+			Expect(err).ToNot(HaveOccurred())
+			defaultMPService, err = defaultTfExecHelper.GetMachinePoolService()
+			Expect(err).ToNot(HaveOccurred())
+
+			additionalTfExecHelper, err = exec.NewTerraformExecHelperWithWorkspaceName(profile.GetClusterType(), ci.GenerateNewTerraformWorkspaceFromProfile(profile))
+			Expect(err).ToNot(HaveOccurred())
+			additionalMPService, err = additionalTfExecHelper.GetMachinePoolService()
+			Expect(err).ToNot(HaveOccurred())
+
+			defaultMachinepoolResponse, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, defaultMachinePoolName)
+			if err != nil && strings.Contains(err.Error(), fmt.Sprintf("Machine pool with id '%s' not found", defaultMachinePoolName)) {
 				Skip("The default machinepool does not exist")
 			}
-			originalDefaultMachinepoolArgs = exe.BuildMachinePoolArgsFromCSResponse(defaultMachinepoolResponse)
-			originalDefaultMachinepoolArgs.Cluster = clusterID
 
 			By("Make sure the default machinepool imported from cluster state")
-			imported, _ := h.CheckDefaultMachinePoolImported()
-			if !imported {
+			_, err = defaultMPService.ShowState("mp")
+			if err != nil {
 				By("Create default machinepool by importing from CMS ")
-				_, err = dmpService.Apply(&originalDefaultMachinepoolArgs, false)
+				_, err = defaultMPService.Apply(getOriginalMachinePoolArgs())
 				Expect(err).ToNot(HaveOccurred())
 			}
 		})
@@ -757,46 +783,44 @@ var _ = Describe("TF Test, default machinepool day-2 testing", func() {
 			}
 
 			By("Recover the default machinepool to the original state")
-			_, err := dmpService.Apply(&originalDefaultMachinepoolArgs, false)
+			_, err := defaultMPService.Apply(getOriginalMachinePoolArgs())
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Destroy additonal mp")
-			if mpService.CreationArgs != nil {
-				_, err = mpService.Destroy()
-				Expect(err).ToNot(HaveOccurred())
-			}
+			_, err = additionalMPService.Destroy(true)
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		Context("Author:yuwan-Critical-OCP-69073 @OCP-69073 @yuwan", func() {
 			It("Author:yuwan-High-OCP-69073 Check the validations and some negative scenarios of creating/editing/deleting default machinepool via terraform", ci.Day2, ci.Medium, ci.FeatureMachinepool, func() {
-				dmpArgFromMachinepoolForTesting := originalDefaultMachinepoolArgs
 				By("Create machinepool with the default machinepool name 'worker' when it does exist")
-				output, err := dmpService.Apply(&originalDefaultMachinepoolArgs, false)
+				machinePoolArgs := getOriginalMachinePoolArgs()
+				output, err := defaultMPService.Apply(getOriginalMachinePoolArgs())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(output).To(ContainSubstring("No changes. Your infrastructure matches the configuration."))
 				if _, ok := defaultMachinepoolResponse.GetAutoscaling(); ok {
 					By("Edit the deafult machinepool max and min replicas to 0")
 					zeroReplicas := 0
-					dmpArgFromMachinepoolForTesting.MaxReplicas = &zeroReplicas
-					dmpArgFromMachinepoolForTesting.MinReplicas = &zeroReplicas
+					machinePoolArgs.MaxReplicas = &zeroReplicas
+					machinePoolArgs.MinReplicas = &zeroReplicas
+					_, err = defaultMPService.Apply(machinePoolArgs)
 					Expect(err).To(HaveOccurred())
 					Expect(output).To(ContainSubstring("Failed to update machine pool"))
 					Expect(output).To(ContainSubstring("must be a integer greater than 0"))
 				} else {
 					By("Edit the deafult machinepool replicas to 0")
 					zeroReplicas := 0
-					dmpArgFromMachinepoolForTesting = originalDefaultMachinepoolArgs
-					dmpArgFromMachinepoolForTesting.Replicas = &zeroReplicas
-					_, err = dmpService.Apply(&dmpArgFromMachinepoolForTesting, false)
+					machinePoolArgs.Replicas = &zeroReplicas
+					_, err = defaultMPService.Apply(machinePoolArgs)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("Failed to update machine pool"))
 					Expect(err.Error()).To(ContainSubstring("least one machine pool able to run OCP workload is required"))
 				}
 
 				By("Check the machine type change will triger re-creation")
-				dmpArgFromMachinepoolForTesting = originalDefaultMachinepoolArgs
-				dmpArgFromMachinepoolForTesting.MachineType = h.StringPointer("r5.xlarge")
-				out, err := dmpService.Apply(&dmpArgFromMachinepoolForTesting, false)
+				machinePoolArgs = getOriginalMachinePoolArgs()
+				machinePoolArgs.MachineType = h.StringPointer("r5.xlarge")
+				out, err := defaultMPService.Apply(machinePoolArgs)
 				Expect(err).To(HaveOccurred())
 				Expect(out).To(ContainSubstring("machine_type, cannot be changed"))
 
@@ -806,7 +830,7 @@ var _ = Describe("TF Test, default machinepool day-2 testing", func() {
 				Expect(resp.Total()).To(Equal(1), "multiple machinepools found")
 
 				// Only check this when confirm no other machinepool existing
-				output, err = dmpService.Destroy()
+				output, err = defaultMPService.Destroy(true)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(output).To(ContainSubstring("Warning: Cannot delete machine pool"))
 
@@ -821,22 +845,22 @@ var _ = Describe("TF Test, default machinepool day-2 testing", func() {
 					taint1 := map[string]string{"key": "k2", "value": "val2", "schedule_type": con.NoSchedule}
 					taints := []map[string]string{taint0, taint1}
 					defaultMPName := "worker"
-					dmpArgFromMachinepoolForTesting := originalDefaultMachinepoolArgs
+					machinePoolArgs := getOriginalMachinePoolArgs()
 
 					By("Edit the taints without additional machinepool")
-					dmpArgFromMachinepoolForTesting.Taints = &taints
-					_, err = dmpService.Apply(&dmpArgFromMachinepoolForTesting, false)
+					machinePoolArgs.Taints = &taints
+					_, err = defaultMPService.Apply(machinePoolArgs)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("Failed to update machine pool"))
 					Expect(err.Error()).To(ContainSubstring("least one machine pool able to run OCP workload is required. Pool should not"))
-					dmpArgFromMachinepoolForTesting = originalDefaultMachinepoolArgs
+					machinePoolArgs = getOriginalMachinePoolArgs()
 					if _, ok := defaultMachinepoolResponse.GetAutoscaling(); ok {
 						By("Edit default machinepool with autoscale configuration")
 						minReplicas := 3
 						maxReplicas := 6
-						dmpArgFromMachinepoolForTesting.MinReplicas = &minReplicas
-						dmpArgFromMachinepoolForTesting.MaxReplicas = &maxReplicas
-						_, err := dmpService.Apply(&dmpArgFromMachinepoolForTesting, false)
+						machinePoolArgs.MinReplicas = &minReplicas
+						machinePoolArgs.MaxReplicas = &maxReplicas
+						_, err := defaultMPService.Apply(machinePoolArgs)
 						Expect(err).ToNot(HaveOccurred())
 
 						By("Verify the parameters of the created machinepool")
@@ -847,8 +871,8 @@ var _ = Describe("TF Test, default machinepool day-2 testing", func() {
 					} else {
 						By("Edit default machinepool with replicas")
 						replicas := 6
-						dmpArgFromMachinepoolForTesting.Replicas = &replicas
-						_, err := dmpService.Apply(&dmpArgFromMachinepoolForTesting, false)
+						machinePoolArgs.Replicas = &replicas
+						_, err := defaultMPService.Apply(machinePoolArgs)
 						Expect(err).ToNot(HaveOccurred())
 
 						By("Verify the parameters of the created machinepool")
@@ -858,10 +882,10 @@ var _ = Describe("TF Test, default machinepool day-2 testing", func() {
 					}
 
 					By("Edit default machinepool with labels")
-					dmpArgFromMachinepoolForTesting = originalDefaultMachinepoolArgs
+					machinePoolArgs = getOriginalMachinePoolArgs()
 					creationLabels := map[string]string{"fo1": "bar1", "fo2": "baz2"}
-					dmpArgFromMachinepoolForTesting.Labels = &creationLabels
-					_, err = dmpService.Apply(&dmpArgFromMachinepoolForTesting, false)
+					machinePoolArgs.Labels = &creationLabels
+					_, err = defaultMPService.Apply(machinePoolArgs)
 					Expect(err).ToNot(HaveOccurred())
 
 					By("Verify the parameters of the created machinepool")
@@ -882,13 +906,13 @@ var _ = Describe("TF Test, default machinepool day-2 testing", func() {
 						// Taints:      &taints,
 					}
 
-					_, err = mpService.Apply(MachinePoolArgs, false)
+					_, err = additionalMPService.Apply(MachinePoolArgs)
 					Expect(err).ToNot(HaveOccurred())
 
 					By("Edit the default machinepool with taints")
-					dmpArgFromMachinepoolForTesting = originalDefaultMachinepoolArgs
-					dmpArgFromMachinepoolForTesting.Taints = &taints
-					_, err = dmpService.Apply(&dmpArgFromMachinepoolForTesting, false)
+					machinePoolArgs = getOriginalMachinePoolArgs()
+					machinePoolArgs.Taints = &taints
+					_, err = defaultMPService.Apply(machinePoolArgs)
 					Expect(err).ToNot(HaveOccurred())
 
 					By("Verify the parameters of the default machinepool")
@@ -910,27 +934,45 @@ var _ = Describe("TF Test, day-3 default machinepool testing", func() {
 	Describe("Default MachinePool day-3 test cases", func() {
 
 		var (
-			dmpService                 *exe.MachinePoolService
-			defaultMachinePoolArgs     exe.MachinePoolArgs
-			mpService                  *exe.MachinePoolService
+			defaultTfExecHelper        *exe.TerraformExecHelper
+			additionalTfExecHelper     *exe.TerraformExecHelper
+			err                        error
+			defaultMPService           *exe.MachinePoolService
+			additionalMPService        *exe.MachinePoolService
+			defaultMachinePoolName     = "worker"
 			defaultMachinepoolResponse *cmv1.MachinePool
-			defaultMachinePoolNmae     = "worker"
 		)
 
-		BeforeEach(func() {
-			dmpService = exe.NewMachinePoolService(con.DefaultMachinePoolDir)
-			mpService = exe.NewMachinePoolService(con.MachinePoolDir)
+		getOriginalMachinePoolArgs := func() (defaultMachinepoolArgs *exe.MachinePoolArgs) {
+			defaultMachinepoolArgs = exe.BuildMachinePoolArgsFromCSResponse(defaultMachinepoolResponse)
+			defaultMachinepoolArgs.Cluster = clusterID
+			return
+		}
 
-			defaultMachinepoolResponse, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, defaultMachinePoolNmae)
+		BeforeEach(func() {
+			defaultTfExecHelper, err = ci.GetTerraformExecHelperForProfile(profile)
 			Expect(err).ToNot(HaveOccurred())
-			defaultMachinePoolArgs = exe.BuildMachinePoolArgsFromCSResponse(defaultMachinepoolResponse)
-			defaultMachinePoolArgs.Cluster = clusterID
+			defaultMPService, err = defaultTfExecHelper.GetMachinePoolService()
+			Expect(err).ToNot(HaveOccurred())
+
+			additionalTfExecHelper, err = exec.NewTerraformExecHelperWithWorkspaceName(profile.GetClusterType(), ci.GenerateNewTerraformWorkspaceFromProfile(profile))
+			Expect(err).ToNot(HaveOccurred())
+			additionalMPService, err = additionalTfExecHelper.GetMachinePoolService()
+			Expect(err).ToNot(HaveOccurred())
+
+			defaultMachinepoolResponse, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, defaultMachinePoolName)
+			if err != nil && strings.Contains(err.Error(), fmt.Sprintf("Machine pool with id '%s' not found", defaultMachinePoolName)) {
+				Skip("The default machinepool does not exist")
+			}
+
+			defaultMachinepoolResponse, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, defaultMachinePoolName)
+			Expect(err).ToNot(HaveOccurred())
 
 			By("Make sure the default machinepool imported from cluster state")
-			imported, _ := h.CheckDefaultMachinePoolImported()
-			if !imported {
+			defaultMPService.ShowState("mp")
+			if err != nil {
 				By("Create default machinepool by importing from CMS ")
-				_, err = dmpService.Apply(&defaultMachinePoolArgs, false)
+				_, err = defaultMPService.Apply(getOriginalMachinePoolArgs())
 				Expect(err).ToNot(HaveOccurred())
 			}
 
@@ -944,7 +986,7 @@ var _ = Describe("TF Test, day-3 default machinepool testing", func() {
 				num, _ := resp.GetSize()
 				Expect(num).To(Equal(1))
 
-				output, err := dmpService.Destroy()
+				output, err := defaultMPService.Destroy(true)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(output).To(ContainSubstring("Warning: Cannot delete machine pool"))
 				Expect(output).To(ContainSubstring("must have at least"))
@@ -961,26 +1003,26 @@ var _ = Describe("TF Test, day-3 default machinepool testing", func() {
 					Name:        &name,
 				}
 
-				_, err = mpService.Apply(MachinePoolArgs, false)
+				_, err = additionalMPService.Apply(MachinePoolArgs)
 				Expect(err).ToNot(HaveOccurred())
 
-				By("Import the default machinepool state")
-				_, err = dmpService.Apply(&defaultMachinePoolArgs, false)
+				By("Reset the default machinepool state")
+				_, err = defaultMPService.Apply(getOriginalMachinePoolArgs())
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Destroy default machinepool")
-				output, err = dmpService.Destroy()
+				output, err = defaultMPService.Destroy(true)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(output).To(ContainSubstring("Destroy complete! Resources: 1 destroyed."))
 
 				By("Create default machinepool after delete")
-				DefaultMachinePoolArgs := &exe.MachinePoolArgs{
+				machinePoolArgs := &exe.MachinePoolArgs{
 					Cluster:     clusterID,
 					Replicas:    &replicas,
 					MachineType: &machineType,
-					Name:        &defaultMachinePoolNmae,
+					Name:        &defaultMachinePoolName,
 				}
-				output, err = dmpService.Apply(DefaultMachinePoolArgs, false)
+				output, err = defaultMPService.Apply(machinePoolArgs)
 				Expect(err).To(HaveOccurred())
 				Expect(output).To(ContainSubstring("machine pool 'worker' was deleted"))
 				Expect(output).To(ContainSubstring("Please use a different name"))

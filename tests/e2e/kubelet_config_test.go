@@ -8,21 +8,23 @@ import (
 	. "github.com/onsi/gomega"
 	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	cms "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	exe "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 )
 
 var _ = Describe("TF Test", ci.NonHCPCluster, func() {
 
 	Describe("Pod pids limit test", func() {
+		var err error
 		var kcService *exe.KubeletConfigService
+		var tfExecHelper *exe.TerraformExecHelper
 		BeforeEach(func() {
-			var err error
-			kcService, err = exe.NewKubeletConfigService(CON.KubeletConfigDir)
+			tfExecHelper, err = ci.GetTerraformExecHelperForProfile(profile)
+			Expect(err).ToNot(HaveOccurred())
+			kcService, err = tfExecHelper.GetKubeletConfigService()
 			Expect(err).ToNot(HaveOccurred())
 		})
 		AfterEach(func() {
-			_, err := kcService.Destroy()
+			_, err := kcService.Destroy(true)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		Context("Author:xueli-High-OCP-70128 @OCP-70128 @xueli", func() {
@@ -34,10 +36,10 @@ var _ = Describe("TF Test", ci.NonHCPCluster, func() {
 					Cluster:      clusterID,
 				}
 
-				_, err := kcService.Apply(kcArgs, false)
+				_, err := kcService.Apply(kcArgs)
 				Expect(err).ToNot(HaveOccurred())
 				defer func() {
-					_, err = kcService.Destroy()
+					_, err = kcService.Destroy(true)
 					Expect(err).ToNot(HaveOccurred())
 				}()
 
@@ -50,10 +52,10 @@ var _ = Describe("TF Test", ci.NonHCPCluster, func() {
 				podPidsLimit = 12346
 				kcArgs.PodPidsLimit = podPidsLimit
 
-				_, err = kcService.Apply(kcArgs, false)
+				_, err = kcService.Apply(kcArgs)
 				Expect(err).ToNot(HaveOccurred())
 				defer func() {
-					_, err = kcService.Destroy()
+					_, err = kcService.Destroy(true)
 					Expect(err).ToNot(HaveOccurred())
 				}()
 
@@ -63,7 +65,7 @@ var _ = Describe("TF Test", ci.NonHCPCluster, func() {
 				Expect(kubeletConfig.PodPidsLimit()).To(Equal(podPidsLimit))
 
 				By("Destroy the kubeletconfig")
-				_, err = kcService.Destroy()
+				_, err = kcService.Destroy(true)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Verify the created kubeletconfig")

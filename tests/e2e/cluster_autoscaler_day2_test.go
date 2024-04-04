@@ -11,7 +11,6 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
-	con "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	exe "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 )
 
@@ -22,7 +21,11 @@ var _ = Describe("TF Test", func() {
 		var clusterAutoscalerStatusBefore int
 
 		BeforeEach(func() {
-			caService = exe.NewClusterAutoscalerService(con.ClusterAutoscalerDir)
+			tfExecHelper, err := ci.GetTerraformExecHelperForProfile(profile)
+			Expect(err).ToNot(HaveOccurred())
+			caService, err = tfExecHelper.GetClusterAutoscalerService()
+			Expect(err).ToNot(HaveOccurred())
+
 			caRetrieveBody, _ := cms.RetrieveClusterAutoscaler(ci.RHCSConnection, clusterID)
 			clusterAutoscalerStatusBefore = caRetrieveBody.Status()
 			if clusterAutoscalerStatusBefore == http.StatusOK {
@@ -90,7 +93,7 @@ var _ = Describe("TF Test", func() {
 				ignoreDaemonsetsUtilization := true
 				maxNodeProvisionTime := "1h"
 				balancingIgnoredLabels := []string{"l1", "l2"}
-				ClusterAutoscalerArgs := &exe.ClusterAutoscalerArgs{
+				clusterAutoscalerArgs := &exe.ClusterAutoscalerArgs{
 					Cluster:                     clusterID,
 					BalanceSimilarNodeGroups:    balanceSimilarNodeGroups,
 					SkipNodesWithLocalStorage:   skipNodesWithLocalStorage,
@@ -103,7 +106,7 @@ var _ = Describe("TF Test", func() {
 					ResourceLimits:              resourceLimits,
 					ScaleDown:                   scaleDown,
 				}
-				_, err = caService.Apply(ClusterAutoscalerArgs, false)
+				_, err := caService.Apply(clusterAutoscalerArgs)
 				Expect(err).ToNot(HaveOccurred())
 				_, err = caService.Output()
 				Expect(err).ToNot(HaveOccurred())

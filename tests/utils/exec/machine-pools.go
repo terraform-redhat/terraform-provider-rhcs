@@ -1,10 +1,10 @@
 package exec
 
 import (
-	"context"
 	"fmt"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
@@ -31,10 +31,8 @@ type MachinePoolArgs struct {
 	AdditionalSecurityGroups *[]string            `json:"additional_security_groups,omitempty"`
 }
 
-type MachinePoolService struct {
-	CreationArgs *MachinePoolArgs
-	ManifestDir  string
-	Context      context.Context
+func (args *MachinePoolArgs) appendURL() {
+	args.URL = CON.GateWayURL
 }
 
 type MachinePoolOutput struct {
@@ -47,95 +45,71 @@ type MachinePoolOutput struct {
 	Labels             map[string]string `json:"labels,omitempty"`
 }
 
-func (mp *MachinePoolService) Init(manifestDirs ...string) error {
-	mp.ManifestDir = CON.AWSVPCDir
-	if len(manifestDirs) != 0 {
-		mp.ManifestDir = manifestDirs[0]
+type MachinePoolService struct {
+	tfExec      TerraformExec
+	ManifestDir string
+}
+
+func newMachinePoolService(clusterType CON.ClusterType, tfExec TerraformExec) (*MachinePoolService, error) {
+	mp := &MachinePoolService{
+		ManifestDir: GetMachinePoolsManifestDir(clusterType),
+		tfExec:      tfExec,
 	}
-	ctx := context.TODO()
-	mp.Context = ctx
-	err := runTerraformInit(ctx, mp.ManifestDir)
-	if err != nil {
-		return err
-	}
-	return nil
+	err := mp.Init()
+	return mp, err
+}
+
+func (mp *MachinePoolService) Init() error {
+	return mp.tfExec.RunTerraformInit(mp.ManifestDir)
 
 }
 
-func (mp *MachinePoolService) MagicImport(createArgs *MachinePoolArgs, extraArgs ...string) error {
-	createArgs.URL = CON.GateWayURL
-	mp.CreationArgs = createArgs
-	args, _ := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApply(mp.Context, mp.ManifestDir, args...)
+func (mp *MachinePoolService) Apply(createArgs *MachinePoolArgs) (output string, err error) {
+	createArgs.appendURL()
+
+	var tfVars *TFVars
+	tfVars, err = NewTFArgs(createArgs)
 	if err != nil {
-		return err
+		return
 	}
-	return nil
+	output, err = mp.tfExec.RunTerraformApply(mp.ManifestDir, tfVars)
+	return
 }
 
-func (mp *MachinePoolService) Apply(createArgs *MachinePoolArgs, recordtfargs bool, extraArgs ...string) (string, error) {
-	createArgs.URL = CON.GateWayURL
-	mp.CreationArgs = createArgs
-	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	output, err := runTerraformApply(mp.Context, mp.ManifestDir, args...)
-	if err == nil && recordtfargs {
-		recordTFvarsFile(mp.ManifestDir, tfvars)
+func (mp *MachinePoolService) Plan(planArgs *MachinePoolArgs) (output string, err error) {
+	planArgs.appendURL()
+
+	var tfVars *TFVars
+	tfVars, err = NewTFArgs(planArgs)
+	if err != nil {
+		return
 	}
-	return output, err
+	output, err = mp.tfExec.RunTerraformPlan(mp.ManifestDir, tfVars)
+	return
 }
 
-func (mp *MachinePoolService) Plan(createArgs *MachinePoolArgs, extraArgs ...string) (string, error) {
-	createArgs.URL = CON.GateWayURL
-	mp.CreationArgs = createArgs
-	args, _ := combineStructArgs(createArgs, extraArgs...)
-	output, err := runTerraformPlan(mp.Context, mp.ManifestDir, args...)
-	return output, err
-}
-
-func (mp *MachinePoolService) Output() (MachinePoolOutput, error) {
-	mpDir := CON.MachinePoolDir
-	if mp.ManifestDir != "" {
-		mpDir = mp.ManifestDir
-	}
-	var output MachinePoolOutput
-	out, err := runTerraformOutput(context.TODO(), mpDir)
+func (mp *MachinePoolService) Output() (*MachinePoolOutput, error) {
+	out, err := mp.tfExec.RunTerraformOutput(mp.ManifestDir)
 	if err != nil {
-		return output, err
+		return nil, err
 	}
-	if err != nil {
-		return output, err
-	}
-	replicas := h.DigInt(out["replicas"], "value")
-	machine_type := h.DigString(out["machine_type"], "value")
-	name := h.DigString(out["name"], "value")
-	autoscaling_enabled := h.DigBool(out["autoscaling_enabled"])
-	output = MachinePoolOutput{
-		Replicas:           replicas,
-		MachineType:        machine_type,
-		Name:               name,
-		AutoscalingEnabled: autoscaling_enabled,
+	output := &MachinePoolOutput{
+		Replicas:           h.DigInt(out["replicas"], "value"),
+		MachineType:        h.DigString(out["machine_type"], "value"),
+		Name:               h.DigString(out["name"], "value"),
+		AutoscalingEnabled: h.DigBool(out["autoscaling_enabled"]),
 	}
 	return output, nil
 }
 
-func (mp *MachinePoolService) Destroy(createArgs ...*MachinePoolArgs) (output string, err error) {
-	if mp.CreationArgs == nil && len(createArgs) == 0 {
-		return "", fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
-	}
-	destroyArgs := mp.CreationArgs
-	if len(createArgs) != 0 {
-		destroyArgs = createArgs[0]
-	}
-	destroyArgs.URL = CON.GateWayURL
-	args, _ := combineStructArgs(destroyArgs)
-
-	return runTerraformDestroy(mp.Context, mp.ManifestDir, args...)
+func (mp *MachinePoolService) Destroy(deleteTFVars bool) (output string, err error) {
+	return mp.tfExec.RunTerraformDestroy(mp.ManifestDir, deleteTFVars)
 }
 
-func NewMachinePoolService(manifestDir ...string) *MachinePoolService {
-	mp := &MachinePoolService{}
-	mp.Init(manifestDir...)
-	return mp
+func (mp *MachinePoolService) ShowState(mpResourceName string) (output string, err error) {
+	args := fmt.Sprintf("%s.%s", constants.MachinePoolResourceKind, mpResourceName)
+	output, err = mp.tfExec.RunTerraformState(mp.ManifestDir, "show", args)
+	return
 }
 
 func BuildDefaultMachinePoolArgsFromClusterState(clusterResource interface{}) (MachinePoolArgs, error) {
@@ -222,8 +196,8 @@ func BuildDefaultMachinePoolArgsFromDefaultMachinePoolState(defaultMachinePoolRe
 			DiskSize                 	done
 			AdditionalSecurityGroups *[]string           done
 */
-func BuildMachinePoolArgsFromCSResponse(machinePool *cmv1.MachinePool) MachinePoolArgs {
-	var machinePoolArgs MachinePoolArgs
+func BuildMachinePoolArgsFromCSResponse(machinePool *cmv1.MachinePool) (machinePoolArgs *MachinePoolArgs) {
+	machinePoolArgs = &MachinePoolArgs{}
 
 	if id, ok := machinePool.GetID(); ok {
 		machinePoolArgs.Name = h.StringPointer(id)

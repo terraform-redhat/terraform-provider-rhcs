@@ -7,9 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
-	"os"
 	"os/exec"
-	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -430,6 +428,22 @@ func GenerateRandomStringWithSymbols(length int) string {
 	return randomString
 }
 
+// Generate random string
+func GenerateRandomString(n int) string {
+	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	rand.Seed(time.Now().UnixNano())
+
+	s := make([]byte, n)
+	for i := range s {
+		s[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(s)
+}
+
+func GenerateRandomName(prefix string, n int) string {
+	return fmt.Sprintf("%s-%s", prefix, strings.ToLower(GenerateRandomString(n)))
+}
+
 func Subfix(length int) string {
 	subfix := make([]byte, length)
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -441,18 +455,8 @@ func Subfix(length int) string {
 }
 
 func GenerateClusterName(profileName string) string {
-
 	clusterPrefix := CON.RHCSPrefix + CON.HyphenConnector + profileName[5:]
 	return clusterPrefix + CON.HyphenConnector + Subfix(3)
-}
-
-func GetClusterAdminPassword() string {
-	path := fmt.Sprintf(path.Join(CON.GetRHCSOutputDir(), CON.ClusterAdminUser))
-	b, err := os.ReadFile(path)
-	if err != nil {
-		fmt.Print(err)
-	}
-	return string(b)
 }
 
 // Return a bool pointer of the input bool value
@@ -472,4 +476,14 @@ func IntPointer(i int) *int {
 
 func Float64Pointer(f float64) *float64 {
 	return &f
+}
+
+func GetMajorVersion(rawVersion string) string {
+	versionRegex := regexp.MustCompile(`^[0-9]+\.[0-9]+`)
+	vResults := versionRegex.FindAllStringSubmatch(rawVersion, 1)
+	vResult := ""
+	if len(vResults) != 0 {
+		vResult = vResults[0][0]
+	}
+	return vResult
 }

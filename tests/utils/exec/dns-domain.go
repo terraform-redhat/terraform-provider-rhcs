@@ -1,9 +1,6 @@
 package exec
 
 import (
-	"context"
-	"fmt"
-
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
@@ -17,69 +14,46 @@ type DnsDomainOutput struct {
 }
 
 type DnsService struct {
-	CreationArgs *DnsDomainArgs
-	ManifestDir  string
-	Context      context.Context
+	tfExec      TerraformExec
+	ManifestDir string
+}
+
+func newDnsDomainService(clusterType CON.ClusterType, tfExec TerraformExec) (*DnsService, error) {
+	dns := &DnsService{
+		ManifestDir: GetDnsDomainManifestDir(clusterType),
+		tfExec:      tfExec,
+	}
+	err := dns.Init()
+	return dns, err
 }
 
 func (dns *DnsService) Init(manifestDirs ...string) error {
-	dns.ManifestDir = CON.DNSDir
-	if len(manifestDirs) != 0 {
-		dns.ManifestDir = manifestDirs[0]
-	}
-	ctx := context.TODO()
-	dns.Context = ctx
-	err := runTerraformInit(ctx, dns.ManifestDir)
-	if err != nil {
-		return err
-	}
-	return nil
+	return dns.tfExec.RunTerraformInit(dns.ManifestDir)
 
 }
 
-func (dns *DnsService) Create(createArgs *DnsDomainArgs, extraArgs ...string) error {
-	dns.CreationArgs = createArgs
-	args, _ := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApply(dns.Context, dns.ManifestDir, args...)
+func (dns *DnsService) Apply(createArgs *DnsDomainArgs) (output string, err error) {
+	var tfVars *TFVars
+	tfVars, err = NewTFArgs(createArgs)
 	if err != nil {
-		return err
+		return
 	}
-	return nil
+	output, err = dns.tfExec.RunTerraformApply(dns.ManifestDir, tfVars)
+	return
 }
 
-func (dns *DnsService) Output() (DnsDomainOutput, error) {
-	dnsDir := CON.DNSDir
-	if dns.ManifestDir != "" {
-		dnsDir = dns.ManifestDir
-	}
-	var dnsOut DnsDomainOutput
-	out, err := runTerraformOutput(context.TODO(), dnsDir)
+func (dns *DnsService) Output() (*DnsDomainOutput, error) {
+	out, err := dns.tfExec.RunTerraformOutput(dns.ManifestDir)
 	if err != nil {
-		return dnsOut, err
+		return nil, err
 	}
-	dnsOut = DnsDomainOutput{
+	dnsOut := &DnsDomainOutput{
 		DnsDomainId: h.DigString(out["dns_domain_id"], "value"),
 	}
 
-	return dnsOut, nil
+	return dnsOut, err
 }
 
-func (dns *DnsService) Destroy(createArgs ...*DnsDomainArgs) error {
-	if dns.CreationArgs == nil && len(createArgs) == 0 {
-		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
-	}
-	destroyArgs := dns.CreationArgs
-	if len(createArgs) != 0 {
-		destroyArgs = createArgs[0]
-	}
-	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroy(dns.Context, dns.ManifestDir, args...)
-
-	return err
-}
-
-func NewDnsDomainService(manifestDir ...string) (*DnsService, error) {
-	dns := &DnsService{}
-	err := dns.Init(manifestDir...)
-	return dns, err
+func (dns *DnsService) Destroy(deleteTFVars bool) (string, error) {
+	return dns.tfExec.RunTerraformDestroy(dns.ManifestDir, deleteTFVars)
 }

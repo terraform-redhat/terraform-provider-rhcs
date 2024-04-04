@@ -1,9 +1,6 @@
 package exec
 
 import (
-	"context"
-	"fmt"
-
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
@@ -25,10 +22,14 @@ type IDPArgs struct {
 	HtpasswdUsers []interface{} `json:"htpasswd_users,omitempty"`
 }
 
+func (args *IDPArgs) appendURL() {
+	args.URL = CON.GateWayURL
+}
+
 type IDPService struct {
-	CreationArgs *IDPArgs
-	ManifestDir  string
-	Context      context.Context
+	tfExec      TerraformExec
+	ManifestDir string
+	idpType     string
 }
 
 // for now holds only ID, additional vars might be needed in the future
@@ -36,73 +37,44 @@ type IDPOutput struct {
 	ID string `json:"idp_id,omitempty"`
 }
 
-func (idp *IDPService) Init(manifestDirs ...string) error {
-	idp.ManifestDir = CON.IDPsDir
-	if len(manifestDirs) != 0 {
-		idp.ManifestDir = manifestDirs[0]
+func newIDPService(idpType CON.IDPType, clusterType CON.ClusterType, tfExec TerraformExec) (*IDPService, error) {
+	idp := &IDPService{
+		ManifestDir: GetIDPsManifestDir(idpType, clusterType),
+		tfExec:      tfExec,
 	}
-	ctx := context.TODO()
-	idp.Context = ctx
-	err := runTerraformInit(ctx, idp.ManifestDir)
-	if err != nil {
-		return err
-	}
-	return nil
+	err := idp.Init()
+	return idp, err
 }
 
-func (idp *IDPService) Apply(createArgs *IDPArgs, recordtfvars bool, extraArgs ...string) error {
-	idp.CreationArgs = createArgs
-	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApply(idp.Context, idp.ManifestDir, args...)
-	if err != nil {
-		return err
-	}
-	if recordtfvars {
-		recordTFvarsFile(idp.ManifestDir, tfvars)
-	}
-
-	return nil
+func (idps *IDPService) Init() error {
+	return idps.tfExec.RunTerraformInit(idps.ManifestDir)
 }
 
-func (idp *IDPService) Output() (IDPOutput, error) {
-	idpDir := CON.IDPsDir
-	if idp.ManifestDir != "" {
-		idpDir = idp.ManifestDir
-	}
-	var output IDPOutput
-	out, err := runTerraformOutput(context.TODO(), idpDir)
+func (idps *IDPService) Apply(createArgs *IDPArgs) (output string, err error) {
+	createArgs.appendURL()
+
+	var tfVars *TFVars
+	tfVars, err = NewTFArgs(createArgs)
 	if err != nil {
-		return output, err
+		return
 	}
+	output, err = idps.tfExec.RunTerraformApply(idps.ManifestDir, tfVars)
+	return
+}
+
+func (idps *IDPService) Output() (*IDPOutput, error) {
+	out, err := idps.tfExec.RunTerraformOutput(idps.ManifestDir)
 	if err != nil {
-		return output, err
+		return nil, err
 	}
-	id := h.DigString(out["idp_id"], "value")
 
 	// right now only "holds" id, more vars might be needed in the future
-	output = IDPOutput{
-		ID: id,
+	output := &IDPOutput{
+		ID: h.DigString(out["idp_id"], "value"),
 	}
 	return output, nil
 }
 
-func (idp *IDPService) Destroy(createArgs ...*IDPArgs) error {
-	if idp.CreationArgs == nil && len(createArgs) == 0 {
-		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
-	}
-	destroyArgs := idp.CreationArgs
-	if len(createArgs) != 0 {
-		destroyArgs = createArgs[0]
-		destroyArgs.URL = CON.GateWayURL
-	}
-	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroy(idp.Context, idp.ManifestDir, args...)
-
-	return err
-}
-
-func NewIDPService(manifestDir ...string) *IDPService {
-	idp := &IDPService{}
-	idp.Init(manifestDir...)
-	return idp
+func (idps *IDPService) Destroy(deleteTFVars bool) (string, error) {
+	return idps.tfExec.RunTerraformDestroy(idps.ManifestDir, deleteTFVars)
 }

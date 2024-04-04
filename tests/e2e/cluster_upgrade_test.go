@@ -13,6 +13,7 @@ import (
 	CMS "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	EXE "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
+	HELPER "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/openshift"
 )
 
@@ -20,11 +21,9 @@ var _ = Describe("RHCS Provider Test", func() {
 	Describe("Upgrade cluster tests", func() {
 
 		var targetV string
-		var clusterID string
+		// var clusterID string
 		BeforeEach(OncePerOrdered, func() {
-			clusterID, err = CI.PrepareRHCSClusterByProfileENV()
-			Expect(err).ToNot(HaveOccurred())
-
+			// TODO
 		})
 		Context("Author:amalykhi-Critical-OCP-63153 @OCP-63153 @amalykhi", func() {
 			It("Z-stream upgrade a ROSA STS cluster with RHCS provider", CI.Upgrade, CI.NonHCPCluster,
@@ -32,12 +31,15 @@ var _ = Describe("RHCS Provider Test", func() {
 					if profile.VersionPattern != "z-1" {
 						Skip("The test is configured only for Z-stream upgrade")
 					}
+					tfExecHelper, err := CI.GetTerraformExecHelperForProfile(profile)
+					Expect(err).ToNot(HaveOccurred())
+
 					clusterResp, err := CMS.RetrieveClusterDetail(CI.RHCSConnection, clusterID)
 					targetV, err = CMS.GetVersionUpgradeTarget(clusterResp.Body().Version().RawID(),
 						CON.Z, clusterResp.Body().Version().AvailableUpgrades())
 					Expect(err).ToNot(HaveOccurred())
 
-					clusterService, err := EXE.NewClusterService(profile.GetClusterManifestsDir())
+					clusterService, err := tfExecHelper.GetClusterService()
 					Expect(err).ToNot(HaveOccurred())
 
 					By("Validate invalid OCP version - downgrade")
@@ -54,7 +56,7 @@ var _ = Describe("RHCS Provider Test", func() {
 						clusterArgs := &EXE.ClusterCreationArgs{
 							OpenshiftVersion: downgradedVersion,
 						}
-						err = clusterService.Apply(clusterArgs, false, false)
+						_, err = clusterService.Apply(clusterArgs)
 						Expect(err).To(HaveOccurred())
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(ContainSubstring("cluster version is already above the\nrequested version"))
@@ -65,7 +67,7 @@ var _ = Describe("RHCS Provider Test", func() {
 					clusterArgs := &EXE.ClusterCreationArgs{
 						OpenshiftVersion: targetV,
 					}
-					err = clusterService.Apply(clusterArgs, false, false)
+					_, err = clusterService.Apply(clusterArgs)
 					Expect(err).ToNot(HaveOccurred())
 
 					By("Wait the upgrade finished")
@@ -92,10 +94,12 @@ var _ = Describe("RHCS Provider Test", func() {
 		Context("Author:amalykhi-Critical-OCP-63152 @OCP-63152 @amalykhi", func() {
 			It("Y-stream Upgrade ROSA STS cluster with RHCS provider", CI.Upgrade, CI.NonHCPCluster,
 				func() {
-
 					if profile.VersionPattern != "y-1" {
 						Skip("The test is configured only for Y-stream upgrade")
 					}
+
+					tfExecHelper, err := CI.GetTerraformExecHelperForProfile(profile)
+					Expect(err).ToNot(HaveOccurred())
 
 					clusterResp, err := CMS.RetrieveClusterDetail(CI.RHCSConnection, clusterID)
 
@@ -105,12 +109,12 @@ var _ = Describe("RHCS Provider Test", func() {
 					Expect(targetV).ToNot(Equal(""))
 
 					By("Upgrade account-roles")
-					majorVersion := CI.GetMajorVersion(targetV)
+					majorVersion := HELPER.GetMajorVersion(targetV)
 					Expect(majorVersion).ToNot(Equal(""))
-					_, err = CI.PrepareAccountRoles(token, clusterResp.Body().Name(), profile.UnifiedAccRolesPath, profile.Region, majorVersion, profile.ChannelGroup, profile.GetClusterType(), "")
+					_, err = tfExecHelper.PrepareAccountRoles(token, clusterResp.Body().Name(), profile.UnifiedAccRolesPath, profile.Region, majorVersion, profile.ChannelGroup, "")
 					Expect(err).ToNot(HaveOccurred())
 
-					clusterService, err := EXE.NewClusterService(profile.GetClusterManifestsDir())
+					clusterService, err := tfExecHelper.GetClusterService()
 					Expect(err).ToNot(HaveOccurred())
 
 					By("Validate invalid OCP version field - downgrade")
@@ -126,7 +130,7 @@ var _ = Describe("RHCS Provider Test", func() {
 						clusterArgs := &EXE.ClusterCreationArgs{
 							OpenshiftVersion: downgradedVersion,
 						}
-						err = clusterService.Apply(clusterArgs, false, false)
+						_, err = clusterService.Apply(clusterArgs)
 						Expect(err).To(HaveOccurred())
 						Expect(err).To(HaveOccurred())
 						Expect(err.Error()).To(ContainSubstring("cluster version is already above the\nrequested version"))
@@ -139,7 +143,7 @@ var _ = Describe("RHCS Provider Test", func() {
 						OpenshiftVersion: targetV,
 					}
 
-					err = clusterService.Apply(clusterArgs, false, false)
+					_, err = clusterService.Apply(clusterArgs)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("Missing required acknowledgements to schedule upgrade"))
 
@@ -150,7 +154,7 @@ var _ = Describe("RHCS Provider Test", func() {
 						UpgradeAcknowledgementsFor: majorVersion,
 					}
 
-					err = clusterService.Apply(clusterArgs, false, false)
+					_, err = clusterService.Apply(clusterArgs)
 					Expect(err).ToNot(HaveOccurred())
 
 					By("Wait the upgrade finished")

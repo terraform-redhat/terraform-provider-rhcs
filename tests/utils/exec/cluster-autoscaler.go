@@ -1,9 +1,6 @@
 package exec
 
 import (
-	"context"
-	"fmt"
-
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
@@ -39,11 +36,7 @@ type ResourceRange struct {
 	Max int `json:"max,omitempty"`
 	Min int `json:"min,omitempty"`
 }
-type ClusterAutoscalerService struct {
-	CreationArgs *ClusterAutoscalerArgs
-	ManifestDir  string
-	Context      context.Context
-}
+
 type ClusterAutoscalerOutput struct {
 	Cluster                     string   `json:"cluster_id,omitempty"`
 	BalanceSimilarNodeGroups    bool     `json:"balance_similar_node_groups,omitempty"`
@@ -67,49 +60,51 @@ type ClusterAutoscalerOutput struct {
 	Enabled                     bool     `json:"enabled,omitempty"`
 }
 
+type ClusterAutoscalerService struct {
+	tfExec      TerraformExec
+	ManifestDir string
+}
+
+func newClusterAutoscalerService(clusterType CON.ClusterType, tfExec TerraformExec) (*ClusterAutoscalerService, error) {
+	ca := &ClusterAutoscalerService{
+		ManifestDir: GetClusterAutoscalerDir(clusterType),
+		tfExec:      tfExec,
+	}
+
+	err := ca.Init()
+	return ca, err
+}
+
 func (ca *ClusterAutoscalerService) Init(manifestDirs ...string) error {
-	ca.ManifestDir = CON.ClusterAutoscalerDir
-	if len(manifestDirs) != 0 {
-		ca.ManifestDir = manifestDirs[0]
-	}
-	ctx := context.TODO()
-	ca.Context = ctx
-	err := runTerraformInit(ctx, ca.ManifestDir)
+	return ca.tfExec.RunTerraformInit(ca.ManifestDir)
+}
+
+func (ca *ClusterAutoscalerService) Apply(createArgs *ClusterAutoscalerArgs) (output string, err error) {
+	var tfVars *TFVars
+	tfVars, err = NewTFArgs(createArgs)
 	if err != nil {
-		return err
+		return
 	}
-	return nil
-
+	output, err = ca.tfExec.RunTerraformApply(ca.ManifestDir, tfVars)
+	return
 }
 
-func (ca *ClusterAutoscalerService) Apply(createArgs *ClusterAutoscalerArgs, recordtfargs bool, extraArgs ...string) (string, error) {
-	ca.CreationArgs = createArgs
-	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	output, err := runTerraformApply(ca.Context, ca.ManifestDir, args...)
-	if err == nil && recordtfargs {
-		recordTFvarsFile(ca.ManifestDir, tfvars)
-	}
-	return output, err
-}
-
-func (ca *ClusterAutoscalerService) Plan(createArgs *ClusterAutoscalerArgs, extraArgs ...string) (string, error) {
-	ca.CreationArgs = createArgs
-	args, _ := combineStructArgs(createArgs, extraArgs...)
-	output, err := runTerraformPlan(ca.Context, ca.ManifestDir, args...)
-	return output, err
-}
-
-func (ca *ClusterAutoscalerService) Output() (ClusterAutoscalerOutput, error) {
-	caDir := CON.ClusterAutoscalerDir
-	if ca.ManifestDir != "" {
-		caDir = ca.ManifestDir
-	}
-	var output ClusterAutoscalerOutput
-	out, err := runTerraformOutput(context.TODO(), caDir)
+func (ca *ClusterAutoscalerService) Plan(planArgs *ClusterAutoscalerArgs) (output string, err error) {
+	var tfVars *TFVars
+	tfVars, err = NewTFArgs(planArgs)
 	if err != nil {
-		return output, err
+		return
 	}
-	output = ClusterAutoscalerOutput{
+	output, err = ca.tfExec.RunTerraformPlan(ca.ManifestDir, tfVars)
+	return
+}
+
+func (ca *ClusterAutoscalerService) Output() (*ClusterAutoscalerOutput, error) {
+	out, err := ca.tfExec.RunTerraformOutput(ca.ManifestDir)
+	if err != nil {
+		return nil, err
+	}
+	output := &ClusterAutoscalerOutput{
 		Cluster:                     h.DigString(out["cluster_id"], "value"),
 		LogVerbosity:                h.DigInt(out["log_verbosity"], "value"),
 		BalanceSimilarNodeGroups:    h.DigBool(out["balance_similar_node_groups"], "value"),
@@ -134,21 +129,6 @@ func (ca *ClusterAutoscalerService) Output() (ClusterAutoscalerOutput, error) {
 	return output, nil
 }
 
-func (ca *ClusterAutoscalerService) Destroy(createArgs ...*ClusterAutoscalerArgs) (output string, err error) {
-	if ca.CreationArgs == nil && len(createArgs) == 0 {
-		return "", fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
-	}
-	destroyArgs := ca.CreationArgs
-	if len(createArgs) != 0 {
-		destroyArgs = createArgs[0]
-	}
-	args, _ := combineStructArgs(destroyArgs)
-
-	return runTerraformDestroy(ca.Context, ca.ManifestDir, args...)
-}
-
-func NewClusterAutoscalerService(manifestDir ...string) *ClusterAutoscalerService {
-	ca := &ClusterAutoscalerService{}
-	ca.Init(manifestDir...)
-	return ca
+func (ca *ClusterAutoscalerService) Destroy(deleteTFVars bool) (string, error) {
+	return ca.tfExec.RunTerraformDestroy(ca.ManifestDir, deleteTFVars)
 }

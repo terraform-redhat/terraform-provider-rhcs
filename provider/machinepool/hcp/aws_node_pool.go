@@ -1,13 +1,17 @@
 package hcp
 
 import (
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	dsschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
+
+const MaxAdditionalSecurityGroupHcp = 10
 
 type AWSNodePool struct {
 	InstanceType               types.String `tfsdk:"instance_type"`
@@ -39,7 +43,10 @@ func AwsNodePoolResource() map[string]schema.Attribute {
 		"additional_security_group_ids": schema.ListAttribute{
 			Description: "Additional security group ids. " + common.ValueCannotBeChangedStringDescription,
 			ElementType: types.StringType,
-			Optional:    true,
+			Validators: []validator.List{
+				listvalidator.SizeAtMost(MaxAdditionalSecurityGroupHcp),
+			},
+			Optional: true,
 		},
 	}
 }

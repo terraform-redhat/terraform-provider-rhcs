@@ -9,20 +9,18 @@ import (
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 )
 
-var _ = Describe("TF Test", func() {
-	Describe("Delete cluster test", func() {
-		It("DestroyClusterByProfile", CI.Destroy,
-			func() {
-				// Destroy kubeconfig folder
-				if _, err := os.Stat(CON.RHCS.KubeConfigDir); err == nil {
-					os.RemoveAll(CON.RHCS.KubeConfigDir)
-				}
+var _ = Describe("Delete cluster", func() {
+	It("DestroyClusterByProfile", CI.Destroy,
+		func() {
+			// Destroy kubeconfig folder
+			if _, err := os.Stat(CON.RHCS.KubeConfigDir); err == nil {
+				os.RemoveAll(CON.RHCS.KubeConfigDir)
+			}
 
-				// Generate/build cluster by profile selected
-				profile := CI.LoadProfileYamlFileByENV()
-				err := CI.DestroyRHCSClusterByProfile(token, profile)
+			// Generate/build cluster by profile selected
+			profile := CI.LoadProfileYamlFileByENV()
+			err := CI.DestroyRHCSClusterByProfile(token, profile)
 
-				Expect(err).ToNot(HaveOccurred())
-			})
-	})
+			Expect(err).ToNot(HaveOccurred())
+		})
 })

@@ -82,6 +82,7 @@ var (
 	DefaultMachinePoolDir = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "default-machine-pool")
 	KubeletConfigDir      = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "kubelet-config")
 	ClusterAutoscalerDir  = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "cluster-autoscaler")
+	TuningConfigDir       = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "tuning-config")
 )
 
 func GetClusterManifestsDir(clusterType ClusterType) string {

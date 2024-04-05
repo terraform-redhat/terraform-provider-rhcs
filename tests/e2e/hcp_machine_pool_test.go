@@ -24,12 +24,14 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 	defer GinkgoRecover()
 	var (
 		mpService *exec.MachinePoolService
+		tcService *exec.TuningConfigService
 		mpArgs    *exec.MachinePoolArgs
 		vpcOutput *exec.VPCOutput
 	)
 
 	BeforeEach(func() {
 		mpService = exec.NewMachinePoolService(constants.HCPMachinePoolDir)
+		tcService = exec.NewTuningConfigService(constants.TuningConfigDir)
 
 		By("Get vpc output")
 		vpcService := exec.NewVPCService()
@@ -39,7 +41,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 	AfterEach(func() {
 		mpService.Destroy()
-
+		tcService.Destroy()
 	})
 
 	It("can be created with only required attributes - [id:72504]",
@@ -237,7 +239,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			Expect(err).ToNot(HaveOccurred())
 			workAroundTags := npDetail.AWSNodePool().Tags()
 
-			MachinePoolArgs := &exec.MachinePoolArgs{
+			mpArgs = &exec.MachinePoolArgs{
 				Cluster:                  clusterID,
 				Replicas:                 &replicas,
 				MachineType:              &machineType,
@@ -248,7 +250,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 				SubnetID:                 &vpcOutput.ClusterPrivateSubnets[0],
 				Tags:                     &workAroundTags,
 			}
-			_, err = mpService.Apply(MachinePoolArgs, true)
+			_, err = mpService.Apply(mpArgs, true)
 			Expect(err).ToNot(HaveOccurred())
 			defer func() {
 				_, err = mpService.Destroy()
@@ -265,11 +267,11 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 			By("Update security groups is not allowed to a machinepool")
 			testAdditionalSecurityGroups := output.SGIDs[0:1]
-			MachinePoolArgs = &exec.MachinePoolArgs{
+			mpArgs = &exec.MachinePoolArgs{
 				AdditionalSecurityGroups: &testAdditionalSecurityGroups,
 			}
 
-			applyOutput, err := mpService.Apply(MachinePoolArgs, false)
+			applyOutput, err := mpService.Apply(mpArgs, false)
 			Expect(err).To(HaveOccurred())
 			Expect(applyOutput).Should(ContainSubstring("aws_node_pool.additional_security_group_ids, cannot be changed"))
 
@@ -279,7 +281,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 			By("Create another machinepool without additional sg ")
 			name = "add-73068"
-			MachinePoolArgs = &exec.MachinePoolArgs{
+			mpArgs = &exec.MachinePoolArgs{
 				Cluster:            clusterID,
 				Replicas:           &replicas,
 				MachineType:        helper.StringPointer("m5.2xlarge"),
@@ -290,7 +292,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 				SubnetID:           &vpcOutput.ClusterPrivateSubnets[0],
 			}
 
-			_, err = mpService.Apply(MachinePoolArgs, false)
+			_, err = mpService.Apply(mpArgs, false)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify the parameters of the created machinepool")
@@ -310,7 +312,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			fakeSgIDs := []string{"sg-fake"}
 
 			By("Run terraform apply cannot work with invalid sg IDs")
-			MachinePoolArgs := &exec.MachinePoolArgs{
+			mpArgs = &exec.MachinePoolArgs{
 				Cluster:                  clusterID,
 				Replicas:                 &replicas,
 				MachineType:              &machineType,
@@ -320,7 +322,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 				AutoRepair:               helper.BoolPointer(false),
 				SubnetID:                 &vpcOutput.ClusterPrivateSubnets[0],
 			}
-			output, err := mpService.Apply(MachinePoolArgs, false)
+			output, err := mpService.Apply(mpArgs, false)
 			Expect(err).To(HaveOccurred())
 			Expect(output).Should(ContainSubstring("is not attached to VPC"))
 
@@ -330,7 +332,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 				fakeSgIDs = append(fakeSgIDs, fmt.Sprintf("sg-fakeid%d", i))
 				i++
 			}
-			MachinePoolArgs = &exec.MachinePoolArgs{
+			mpArgs = &exec.MachinePoolArgs{
 				Cluster:                  clusterID,
 				Replicas:                 &replicas,
 				MachineType:              &machineType,
@@ -340,7 +342,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 				AutoRepair:               helper.BoolPointer(false),
 				SubnetID:                 &vpcOutput.ClusterPrivateSubnets[0],
 			}
-			output, err = mpService.Plan(MachinePoolArgs)
+			output, err = mpService.Plan(mpArgs)
 			Expect(err).To(HaveOccurred())
 			Expect(output).Should(
 				MatchRegexp(`Attribute aws_node_pool.additional_security_group_ids list must contain at[\s\S]?most 10 elements, got: %d`, len(fakeSgIDs)))
@@ -529,17 +531,88 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			Expect(mpResponseBody.AWSNodePool().Tags()).To(HaveKeyWithValue("aaa", "bbb"))
 			Expect(mpResponseBody.AWSNodePool().Tags()).To(HaveKeyWithValue("ccc", "ddd"))
 
-			// Blocked by https://issues.redhat.com/browse/OCM-6885
-			// By("Edit machinepool tags")
-			// delete(tags, "aaa")
-			// tags["ccc"] = "fff"
+			// Workaround to make sure we have the correct tags
+			tags = mpResponseBody.AWSNodePool().Tags()
+
+			By("Edit machinepool tags")
+			delete(tags, "aaa")
+			tags["ccc"] = "fff"
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Verify tags are correctly updated")
+			mpResponseBody, err = cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(mpResponseBody.AWSNodePool().Tags()).ToNot(HaveKey("aaa"))
+			Expect(mpResponseBody.AWSNodePool().Tags()).To(HaveKeyWithValue("ccc", "fff"))
+		})
+
+	It("can be created with tuning configs - [id:72508]",
+		ci.High, func() {
+			var tuningconfigs []string
+			var tcArgs *exec.TuningConfigArgs
+
+			By("Create tuning configs")
+			tcCount := 3
+			tcArgs = &exec.TuningConfigArgs{
+				Cluster:           clusterID,
+				NamePrefix:        "tc",
+				Count:             &tcCount,
+				SpecVMDirtyRatios: &[]int{65, 65, 65},
+				SpecPriorities:    &[]int{10, 10, 10},
+			}
+			_, err := tcService.Apply(tcArgs, false)
+			Expect(err).ToNot(HaveOccurred())
+			tcOut, err := tcService.Output()
+			Expect(err).ToNot(HaveOccurred())
+			createdTuningConfigs := tcOut.Names
+			Logger.Infof("Retrieved tuning configs: %v", createdTuningConfigs)
+
+			By("Create machinepool")
+			replicas := 3
+			machineType := "m5.2xlarge"
+			name := helper.GenerateRandomName("np-72504", 2)
+			subnetId := vpcOutput.ClusterPrivateSubnets[0]
+			tuningconfigs = append(tuningconfigs, createdTuningConfigs...)
+			mpArgs = &exec.MachinePoolArgs{
+				Cluster:            clusterID,
+				AutoscalingEnabled: helper.BoolPointer(false),
+				Replicas:           &replicas,
+				Name:               &name,
+				SubnetID:           &subnetId,
+				MachineType:        &machineType,
+				AutoRepair:         helper.BoolPointer(true),
+				TuningConfigs:      &tuningconfigs,
+				Tags:               &constants.Tags,
+			}
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Verify tuning configs are correctly set")
+			mpResponseBody, err := cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(mpResponseBody.TuningConfigs()).To(Equal(tuningconfigs))
+
+			By("Edit tuning configs")
+			tuningconfigs = []string{createdTuningConfigs[0]}
+			mpArgs.TuningConfigs = &tuningconfigs
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Verify tuning configs are correctly updated")
+			mpResponseBody, err = cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(mpResponseBody.TuningConfigs()).To(Equal(tuningconfigs))
+
+			// Disabled as blocked by https://issues.redhat.com/browse/OCM-7347
+			// By("Remove tuning configs")
+			// mpArgs.TuningConfigs = &[]string{}
 			// _, err = mpService.Apply(mpArgs, false)
 			// Expect(err).ToNot(HaveOccurred())
 
-			// By("Verify tags are correctly updated")
+			// By("Verify tuning configs are correctly updated")
 			// mpResponseBody, err = cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
 			// Expect(err).ToNot(HaveOccurred())
-			// Expect(mpResponseBody.AWSNodePool().Tags()).ToNot(HaveKey("aaa"))
-			// Expect(mpResponseBody.AWSNodePool().Tags()).To(HaveKeyWithValue("ccc", "fff"))
+			// Expect(mpResponseBody.TuningConfigs()).To(BeEmpty())
 		})
 })

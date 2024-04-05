@@ -67,7 +67,7 @@ variable "tags" {
 
 variable "tuning_configs" {
   type    = list(string)
-  default = null
+  default = []
 }
 
 variable "upgrade_acknowledgements_for" {

@@ -394,3 +394,11 @@ func WaitClusterDeleted(connection *client.Connection, clusterID string, timeout
 	err := fmt.Errorf(">>> [Error] Met timeout( %s minites) when wait for cluster deleted via OCM", timeout.String())
 	return err
 }
+
+func RetrieveTuningConfig(connection *client.Connection, clusterID string, tcName string) (*cmv1.TuningConfigGetResponse, error) {
+	return connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).TuningConfigs().TuningConfig(tcName).Get().Send()
+}
+
+func ListTuningConfigs(connection *client.Connection, clusterID string) (*cmv1.TuningConfigsListResponse, error) {
+	return connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).TuningConfigs().List().Send()
+}

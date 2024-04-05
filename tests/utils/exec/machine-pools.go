@@ -55,7 +55,7 @@ type MachinePoolOutput struct {
 }
 
 func (mp *MachinePoolService) Init(manifestDirs ...string) error {
-	mp.ManifestDir = CON.AWSVPCDir
+	mp.ManifestDir = CON.ClassicMachinePoolDir
 	if len(manifestDirs) != 0 {
 		mp.ManifestDir = manifestDirs[0]
 	}

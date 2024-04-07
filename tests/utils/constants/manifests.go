@@ -26,6 +26,7 @@ const (
 	AWSProviderDir  = "aws"
 	RHCSProviderDir = "rhcs"
 	MachinePoolsDir = "machine-pools"
+	IngressDir      = "ingresses"
 )
 
 // Dirs of aws provider
@@ -76,6 +77,7 @@ var (
 	ClassicMachinePoolDir = path.Join(ManifestsConfigurationDir, RHCSProviderDir, MachinePoolsDir, "classic")
 	HCPMachinePoolDir     = path.Join(ManifestsConfigurationDir, RHCSProviderDir, MachinePoolsDir, "hcp")
 	DNSDir                = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "dns")
+	ClassicIngressDir     = path.Join(ManifestsConfigurationDir, RHCSProviderDir, IngressDir, "classic")
 	RhcsInfoDir           = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "rhcs-info")
 	DefaultMachinePoolDir = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "default-machine-pool")
 	KubeletConfigDir      = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "kubelet-config")

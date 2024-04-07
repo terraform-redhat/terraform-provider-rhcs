@@ -240,38 +240,40 @@ var _ = Describe("Verify cluster", func() {
 		})
 
 	// Skip this tests until OCM-5079 fixed
-	XIt("can not apply changes to security group - [id:69145]", ci.NonHCPCluster, func() {
-		clusterService, err := exe.NewClusterService(profile.GetClusterManifestsDir())
-		Expect(err).ToNot(HaveOccurred())
-		outPut, err := clusterService.Output()
-		Expect(err).ToNot(HaveOccurred())
-		args := map[string]*exe.ClusterCreationArgs{
-			"aws_additional_compute_security_group_ids": {
-				AdditionalComputeSecurityGroups:      outPut.AdditionalComputeSecurityGroups[0:1],
-				AdditionalInfraSecurityGroups:        outPut.AdditionalInfraSecurityGroups,
-				AdditionalControlPlaneSecurityGroups: outPut.AdditionalControlPlaneSecurityGroups,
-				AWSRegion:                            profile.Region,
-			},
-			"aws_additional_infra_security_group_ids": {
-				AdditionalInfraSecurityGroups:        outPut.AdditionalInfraSecurityGroups[0:1],
-				AdditionalComputeSecurityGroups:      outPut.AdditionalComputeSecurityGroups,
-				AdditionalControlPlaneSecurityGroups: outPut.AdditionalControlPlaneSecurityGroups,
-				AWSRegion:                            profile.Region,
-			},
-			"aws_additional_control_plane_security_group_ids": {
-				AdditionalControlPlaneSecurityGroups: outPut.AdditionalControlPlaneSecurityGroups[0:1],
-				AdditionalComputeSecurityGroups:      outPut.AdditionalComputeSecurityGroups,
-				AdditionalInfraSecurityGroups:        outPut.AdditionalInfraSecurityGroups,
-				AWSRegion:                            profile.Region,
-			},
-		}
-		for keyword, updatingArgs := range args {
-			output, err := clusterService.Plan(updatingArgs)
-			Expect(err).To(HaveOccurred(), keyword)
-			Expect(output).Should(ContainSubstring(`attribute "%s" must have a known value and may not be changed.`, keyword))
-		}
+	It("can not apply changes to security group - [id:69145]",
+		ci.NonHCPCluster, ci.Exclude, ci.Day2,
+		func() {
+			clusterService, err := exe.NewClusterService(profile.GetClusterManifestsDir())
+			Expect(err).ToNot(HaveOccurred())
+			outPut, err := clusterService.Output()
+			Expect(err).ToNot(HaveOccurred())
+			args := map[string]*exe.ClusterCreationArgs{
+				"aws_additional_compute_security_group_ids": {
+					AdditionalComputeSecurityGroups:      outPut.AdditionalComputeSecurityGroups[0:1],
+					AdditionalInfraSecurityGroups:        outPut.AdditionalInfraSecurityGroups,
+					AdditionalControlPlaneSecurityGroups: outPut.AdditionalControlPlaneSecurityGroups,
+					AWSRegion:                            profile.Region,
+				},
+				"aws_additional_infra_security_group_ids": {
+					AdditionalInfraSecurityGroups:        outPut.AdditionalInfraSecurityGroups[0:1],
+					AdditionalComputeSecurityGroups:      outPut.AdditionalComputeSecurityGroups,
+					AdditionalControlPlaneSecurityGroups: outPut.AdditionalControlPlaneSecurityGroups,
+					AWSRegion:                            profile.Region,
+				},
+				"aws_additional_control_plane_security_group_ids": {
+					AdditionalControlPlaneSecurityGroups: outPut.AdditionalControlPlaneSecurityGroups[0:1],
+					AdditionalComputeSecurityGroups:      outPut.AdditionalComputeSecurityGroups,
+					AdditionalInfraSecurityGroups:        outPut.AdditionalInfraSecurityGroups,
+					AWSRegion:                            profile.Region,
+				},
+			}
+			for keyword, updatingArgs := range args {
+				err := clusterService.Apply(updatingArgs, false, false)
+				Expect(err).To(HaveOccurred(), keyword)
+				Expect(err.Error()).Should(ContainSubstring(`Attribute value cannot be changed`))
+			}
 
-	})
+		})
 
 	It("worker disk size is set correctly - [id:69143]",
 		ci.Day1Post, ci.Critical, ci.NonHCPCluster,

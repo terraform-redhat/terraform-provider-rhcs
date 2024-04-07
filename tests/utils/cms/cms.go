@@ -14,6 +14,16 @@ func RetrieveClusterDetail(connection *client.Connection, clusterID string) (*cm
 	return connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).Get().Send()
 }
 
+// RetrieveClusterIngress will retrieve default ingress detail information based on the clusterID
+func RetrieveClusterIngress(connection *client.Connection, clusterID string) (*cmv1.Ingress, error) {
+	ListResp, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).Ingresses().List().Send()
+	if err != nil {
+		return nil, err
+	}
+
+	return ListResp.Items().Get(0), nil
+}
+
 // ListClusters will list the clusters
 func ListClusters(connection *client.Connection, parameters ...map[string]interface{}) (response *cmv1.ClustersListResponse, err error) {
 

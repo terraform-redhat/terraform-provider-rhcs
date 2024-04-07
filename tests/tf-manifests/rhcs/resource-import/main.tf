@@ -58,3 +58,9 @@ resource "rhcs_machine_pool" "mp_import" {
   machine_type = ""
   cluster      = ""
 }
+
+resource "rhcs_default_ingress" "default_ingress"{
+  cluster = ""
+  load_balancer_type = ""
+  id = ""
+}

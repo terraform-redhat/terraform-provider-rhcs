@@ -409,6 +409,149 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(terraform.Apply()).To(Equal(1))
 		})
 
+		It("Can't update additional security groups for machine pool", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools",
+					),
+					RespondWithJSON(http.StatusCreated, `{
+					"id":"my-pool",
+					"aws_node_pool":{
+					   "instance_type":"r5.xlarge",
+					   "instance_profile": "bla",
+					   "additional_security_group_ids": ["id1","id2"]
+					},
+					"auto_repair": true,
+					"replicas":12,
+					"labels":{
+					   "label_key1":"label_value1",
+					   "label_key2":"label_value2"
+					},
+					"subnet":"id-1",
+					"availability_zone":"us-east-1a",
+					"taints":[
+					   {
+						  "effect":"NoSchedule",
+						  "key":"key1",
+						  "value":"value1"
+					   }
+					],
+					"version": {
+						"raw_id": "4.14.10"
+					}
+				}`),
+				),
+			)
+
+			// Run the apply command:
+			terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge",
+					additional_security_group_ids = ["id1","id2"]
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 12
+				labels = {
+					"label_key1" = "label_value1",
+					"label_key2" = "label_value2"
+				}
+				taints = [
+					{
+						key = "key1",
+						value = "value1",
+						schedule_type = "NoSchedule",
+					},
+				]
+				version = "4.14.10"
+				auto_repair = true
+			}`)
+			Expect(terraform.Apply()).To(BeZero())
+
+			// Check the state:
+			resource := terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
+			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
+			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.instance_type", "r5.xlarge"))
+			Expect(resource).To(MatchJQ(".attributes.replicas", 12.0))
+			Expect(resource).To(MatchJQ(`.attributes.labels | length`, 2))
+			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.additional_security_group_ids.[0]", "id1"))
+
+			// Update - change additional security groups IDs
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodGet,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+					),
+					RespondWithJSON(http.StatusOK, `{
+					"id":"my-pool",
+					"aws_node_pool":{
+					   "instance_type":"r5.xlarge",
+					   "instance_profile": "bla",
+					   "additional_security_group_ids": ["id1","id2"]
+					},
+					"auto_repair": true,
+					"replicas":12,
+					"labels":{
+					   "label_key1":"label_value1",
+					   "label_key2":"label_value2"
+					},
+					"subnet":"id-1",
+					"availability_zone":"us-east-1a",
+					"taints":[
+					   {
+						  "effect":"NoSchedule",
+						  "key":"key1",
+						  "value":"value1"
+					   }
+					],
+					"version": {
+						"raw_id": "4.14.10"
+					}
+				}`),
+				),
+			)
+
+			terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge",
+					additional_security_group_ids = ["id1"]
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 12
+				labels = {
+					"label_key1" = "label_value1",
+					"label_key2" = "label_value2"
+				}
+				taints = [
+					{
+						key = "key1",
+						value = "value1",
+						schedule_type = "NoSchedule",
+					},
+				]
+				version = "4.14.10"
+				auto_repair = true
+			}`)
+			Expect(terraform.Apply()).To(Equal(1))
+		})
+
 		It("Can create machine pool with compute nodes when 404 (not found)", func() {
 			// Prepare the server:
 			server.AppendHandlers(

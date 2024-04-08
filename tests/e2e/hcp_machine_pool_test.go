@@ -164,12 +164,8 @@ var _ = Describe("TF Test", func() {
 					}
 					output, err = HCPMachinePoolService.Plan(MachinePoolArgs)
 					Expect(err).To(HaveOccurred())
-					defer func() {
-						_, err = HCPMachinePoolService.Destroy()
-						Expect(err).ToNot(HaveOccurred())
-					}()
-
-					Expect(output).Should(ContainSubstring("Security number shouldn't be more than 10"))
+					Expect(output).Should(
+						MatchRegexp(`Attribute aws_node_pool.additional_security_group_ids list must contain at[\s\S]?most 10 elements, got: %d`, len(fakeSgIDs)))
 
 				})
 		})

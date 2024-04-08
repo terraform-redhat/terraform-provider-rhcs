@@ -506,6 +506,71 @@ var _ = Describe("default ingress", func() {
 		Expect(terraform.Apply()).To(Equal(1))
 	})
 
+	It("Create cluster with default ingress - component_routes set to actual value", func() {
+		// Prepare the server:
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, clusterReady),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/ingresses"),
+				RespondWithJSON(http.StatusOK, defaultDay1Template),
+			),
+
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
+				RespondWithJSON(http.StatusOK, `
+					{
+						"kind": "Ingress",
+						"href": "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2",
+						"id": "d6z2",
+						"listening": "external",
+						"default": true,
+						"dns_name": "redhat.com",
+						"load_balancer_type": "classic",
+						"route_wildcard_policy": "WildcardsDisallowed",
+						"route_namespace_ownership_policy": "Strict",
+						"component_routes": {
+							"console": {
+							  "hostname": "console-host",
+							  "tls_secret_ref": "console-secret"
+							},
+							"downloads": {
+							  "hostname": "downloads-host",
+							  "tls_secret_ref": "downloads-secret"
+							},
+							"oauth": {
+							  "hostname": "oauth-host-new",
+							  "tls_secret_ref": "oauth-secret"
+							}
+						}
+					}
+				`),
+			),
+		)
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_default_ingress" "default_ingress" {
+			cluster = "123"
+	        component_routes = {
+				"oauth" = {
+				  "hostname"       = "oauth-host-new"
+				  "tls_secret_ref" = "oauth-secret"
+				}
+				"console" = {
+				  "hostname"       = "console-host"
+				  "tls_secret_ref" = "console-secret"
+				}
+				"downloads" = {
+				  "hostname"       = "downloads-host"
+				  "tls_secret_ref" = "downloads-secret"
+				}
+			}
+		}`)
+		Expect(terraform.Apply()).To(BeZero())
+	})
+
 	It("Create default ingress and delete it", func() {
 		// Prepare the server:
 		server.AppendHandlers(

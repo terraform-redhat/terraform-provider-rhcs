@@ -23,9 +23,18 @@ Edit a cluster ingress (load balancer)
 
 - `cluster_routes_hostname` (String) Components route hostname for oauth, console, download.
 - `cluster_routes_tls_secret_ref` (String) Components route TLS secret reference for oauth, console, download.
+- `component_routes` (Map of Object) Component route parameters for oauth, console, downloads. (see [below for nested schema](#nestedatt--component_routes))
 - `excluded_namespaces` (List of String) Excluded namespaces for ingress. Format should be a comma-separated list 'value1, value2...'. If no values are specified, all namespaces will be exposed.
 - `id` (String) Unique identifier of the ingress.
 - `load_balancer_type` (String) Type of Load Balancer. Options are classic,nlb.
 - `route_namespace_ownership_policy` (String) Namespace Ownership Policy for ingress. Options are Strict,InterNamespaceAllowed. Default is 'Strict'.
 - `route_selectors` (Map of String) Route Selectors for ingress. Format should be a comma-separated list of 'key=value'. If no label is specified, all routes will be exposed on both routers.For legacy ingress support these are inclusion labels, otherwise they are treated as exclusion label.
 - `route_wildcard_policy` (String) Wildcard Policy for ingress. Options are WildcardsDisallowed,WildcardsAllowed. Default is 'WildcardsDisallowed'.
+
+<a id="nestedatt--component_routes"></a>
+### Nested Schema for `component_routes`
+
+Optional:
+
+- `hostname` (String)
+- `tls_secret_ref` (String)

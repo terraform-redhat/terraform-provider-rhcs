@@ -779,6 +779,10 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 		state.AWSNodePool.Tags = plan.AWSNodePool.Tags
 	}
 
+	if common.HasValue(plan.TuningConfigs) {
+		state.TuningConfigs = plan.TuningConfigs
+	}
+
 	// Save the state:
 	err = populateState(ctx, object, state, clusterObject)
 	if err != nil {
@@ -1179,14 +1183,15 @@ func populateState(ctx context.Context, object *cmv1.NodePool, state *HcpMachine
 		state.NodePoolStatus = nodePoolStatusNull()
 	}
 
+	if !common.HasValue(state.TuningConfigs) {
+		state.TuningConfigs = types.ListNull(types.StringType)
+	}
 	if len(object.TuningConfigs()) > 0 {
 		tuningConfigsList, err := common.StringArrayToList(object.TuningConfigs())
 		if err != nil {
 			return err
 		}
 		state.TuningConfigs = tuningConfigsList
-	} else {
-		state.TuningConfigs = types.ListNull(types.StringType)
 	}
 
 	if object.Version() != nil {

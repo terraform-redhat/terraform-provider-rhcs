@@ -326,3 +326,27 @@ func RetrieveKubeletConfig(connection *client.Connection, clusterID string) (*cm
 	resp, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).KubeletConfig().Get().Send()
 	return resp.Body(), err
 }
+
+// RetrieveNodePool returns the nodePool detail of HCP
+func RetrieveNodePool(connection *client.Connection, clusterID string, npID string, parameter ...map[string]interface{}) (*cmv1.NodePool, error) {
+	request := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).NodePools().NodePool(npID).Get()
+	for _, param := range parameter {
+		for k, v := range param {
+			request = request.Parameter(k, v)
+		}
+	}
+	resp, err := request.Send()
+	return resp.Body(), err
+}
+
+// RetrieveNodePool returns the nodePool detail of HCP
+func ListNodePools(connection *client.Connection, clusterID string, parameter ...map[string]interface{}) ([]*cmv1.NodePool, error) {
+	request := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).NodePools().List()
+	for _, param := range parameter {
+		for k, v := range param {
+			request = request.Parameter(k, v)
+		}
+	}
+	resp, err := request.Send()
+	return resp.Items().Slice(), err
+}

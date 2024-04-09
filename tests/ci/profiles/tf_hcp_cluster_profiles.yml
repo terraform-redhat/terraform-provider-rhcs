@@ -10,23 +10,24 @@ profiles:
     sts: true
     byovpc: true
     private: false
-    etcd_encryption: true
-    kms_key_arn: true
+    etcd_encryption: true # id:72483 # id:72807
+    kms_key_arn: true # id:72483 # id:72484 # id:72807
     fips: false
-    autoscale: true
+    autoscale: true # id:72523
     byok: true
-    version_pattern: "latest"
-    version: ""
-    major_version: "4.15"
-    compute_machine_type: "m5.2xlarge"
-    proxy: true
+    version_pattern: "latest" # id:72472
+    version: "" # id:72472
+    major_version: "4.15" # id:72472
+    compute_replicas: 6 # id:72446
+    compute_machine_type: "m5.2xlarge" # id:72448
+    proxy: true # id:72488
     labeling: false # not yet supported
-    tagging: true
-    channel_group: candidate
-    zones: "a,b,c"
-    oidc_config: "managed"
+    tagging: true # id:72624
+    channel_group: candidate # id:72473
+    zones: "a,b,c"  # id:72457
+    oidc_config: "managed" # id:72492
     admin_enabled: false # Not yet supported
-    unified_acc_role_path: ""
+    unified_acc_role_path: "/advanced/" # id:72495
 # rosa-hcp-sts-pl :: creating a managed oidc config cluster 
 - as: rosa-hcp-pl
   cluster:
@@ -37,24 +38,26 @@ profiles:
     region: "us-west-2"
     sts: true
     byovpc: true
-    private: true
+    private: true # id:72479
     etcd_encryption: false
     kms_key_arn: false
     fips: false
     autoscale: false
     byok: false
-    version_pattern: "latest"
-    version: ""
-    major_version: "4.14"
-    compute_machine_type: "m5.xlarge"
+    version_pattern: "latest" # id:72472
+    version: "" # id:72472
+    major_version: "4.14" # id:72472
+    compute_machine_type: "m5.xlarge" # id:72448
     proxy: false
     labeling: false # not yet supported
     tagging: false
-    channel_group: candidate
-    zones: ""
-    oidc_config: "un-managed"
+    channel_group: candidate # id:72473
+    zones: "" # id:72456
+    oidc_config: "un-managed" # id:72493
     admin_enabled: false # Not yet supported
     unified_acc_role_path: ""
+
+# Upgrade profiles
 # # rosa-up-y :: creating a cluster for y-stream upgrade purpose
 # - as: rosa-up-y
 #   cluster:
@@ -62,7 +65,7 @@ profiles:
 #     multi_az: false
 #     product_id: "rosa"
 #     cloud_provider: "aws"
-#     region: "ap-northeast-1"
+#     region: "us-west-2"
 #     ccs: true
 #     sts: true
 #     byovpc: false
@@ -76,12 +79,12 @@ profiles:
 #     version_pattern: "y-1"
 #     version: ""
 #     major_version: "4.14"
-#     compute_machine_type: "m5.xlarge"
+#     compute_machine_type: "m5.xlarge" # id:72448
 #     proxy: false
 #     labeling: false # not yet supported
 #     tagging: true
 #     channel_group: stable
-#     zones: ""
+#     zones: "" # id:72456
 #     ec2_metadata_http_tokens: ""
 #     oidc_config: "managed"
 #     admin_enabled: false # Not yet supported
@@ -107,12 +110,12 @@ profiles:
 #     version_pattern: "z-1"
 #     version: ""
 #     major_version: "4.14"
-#     compute_machine_type: "m5.xlarge"
+#     compute_machine_type: "m5.xlarge" # id:72448
 #     proxy: false
 #     labeling: false # not yet supported
 #     tagging: false
 #     channel_group: stable
-#     zones: ""
+#     zones: "" # id:72456
 #     ec2_metadata_http_tokens: ""
 #     oidc_config: "managed"
 #     admin_enabled: false # Not yet supported

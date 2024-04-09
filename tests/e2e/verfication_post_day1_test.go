@@ -102,6 +102,13 @@ var _ = Describe("Verify cluster", func() {
 		Expect(cluster.Nodes().ComputeMachineType().ID()).To(Equal(profile.ComputeMachineType))
 	})
 
+	It("compute_replicas is correctly set - [id:73153]", ci.Day1Post, ci.Medium, func() {
+		if profile.ComputeReplicas <= 0 {
+			Skip("No compute_replicas is configured for the cluster. skipping the test.")
+		}
+		Expect(cluster.Nodes().Compute()).To(Equal(profile.ComputeReplicas))
+	})
+
 	It("availability zones and multi-az are correctly set - [id:63141]", ci.Day1Post, ci.Medium, func() {
 		getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
 		zonesArray := strings.Split(profile.Zones, ",")

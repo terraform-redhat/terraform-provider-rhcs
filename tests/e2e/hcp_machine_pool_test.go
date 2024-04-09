@@ -54,7 +54,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			var initialReplicas int
 			if profile.Autoscale {
 				initialMinReplicas = clusterRespBody.Body().Nodes().AutoscaleCompute().MinReplicas()
-				initialMaxReplicas = clusterRespBody.Body().Nodes().AutoscaleCompute().MinReplicas()
+				initialMaxReplicas = clusterRespBody.Body().Nodes().AutoscaleCompute().MaxReplicas()
 			} else {
 				initialReplicas = clusterRespBody.Body().Nodes().Compute()
 			}

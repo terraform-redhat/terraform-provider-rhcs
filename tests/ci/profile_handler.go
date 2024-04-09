@@ -51,6 +51,7 @@ type Profile struct {
 	OIDCConfig            string `ini:"oidc_config,omitempty" json:"oidc_config,omitempty"`
 	ProvisionShard        string `ini:"provisionShard,omitempty" json:"provisionShard,omitempty"`
 	Ec2MetadataHttpTokens string `ini:"ec2_metadata_http_tokens,omitempty" json:"ec2_metadata_http_tokens,omitempty"`
+	ComputeReplicas       int    `ini:"compute_replicas,omitempty" json:"compute_replicas,omitempty"`
 	ComputeMachineType    string `ini:"compute_machine_type,omitempty" json:"compute_machine_type,omitempty"`
 	AuditLogForward       bool   `ini:"auditlog_forward,omitempty" json:"auditlog_forward,omitempty"`
 	AdminEnabled          bool   `ini:"admin_enabled,omitempty" json:"admin_enabled,omitempty"`
@@ -350,6 +351,10 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 		clusterArgs.ComputeMachineType = profile.ComputeMachineType
 	}
 
+	if profile.ComputeReplicas > 0 {
+		clusterArgs.Replicas = profile.ComputeReplicas
+	}
+
 	if profile.ChannelGroup != "" {
 		clusterArgs.ChannelGroup = profile.ChannelGroup
 	}
@@ -563,7 +568,7 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 		clusterArgs.WorkerDiskSize = profile.WorkerDiskSize
 	}
 	clusterArgs.UnifiedAccRolesPath = profile.UnifiedAccRolesPath
-	clusterArgs.CustomProperties = CON.CustomProperties
+	clusterArgs.CustomProperties = CON.CustomProperties // id:72450
 
 	return clusterArgs, err
 }

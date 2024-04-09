@@ -247,7 +247,7 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 	}
 
 	// Wait till the cluster is ready:
-	_, err := r.clusterWait.WaitForClusterToBeReady(ctx, plan.Cluster.ValueString(), 60)
+	clusterObject, err := r.clusterWait.WaitForClusterToBeReady(ctx, plan.Cluster.ValueString(), 60)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Cannot poll cluster state",
@@ -267,29 +267,6 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 	}
 
 	// Create the machine pool:
-	resource := r.clusterCollection.Cluster(plan.Cluster.ValueString())
-
-	get, err := resource.Get().SendContext(ctx)
-	if err != nil {
-		if get.Status() == http.StatusNotFound {
-			tflog.Warn(ctx, fmt.Sprintf("cluster '%s' not found, clearing state",
-				plan.Cluster.ValueString(),
-			))
-			resp.State.RemoveResource(ctx)
-			return
-		}
-		resp.Diagnostics.AddError(
-			"Can't find cluster",
-			fmt.Sprintf(
-				"Can't find cluster with identifier '%s': %v",
-				plan.Cluster.ValueString(), err,
-			),
-		)
-		return
-	}
-
-	cluster := get.Body()
-
 	builder := cmv1.NewNodePool().ID(plan.ID.ValueString())
 	builder.ID(plan.Name.ValueString())
 
@@ -405,8 +382,8 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 
 	if common.HasValue(plan.Version) {
 		vBuilder := cmv1.NewVersion()
-		vBuilder.ID(ocmUtils.CreateVersionId(plan.Version.ValueString(), cluster.Version().ChannelGroup()))
-		vBuilder.ChannelGroup(cluster.Version().ChannelGroup())
+		vBuilder.ID(ocmUtils.CreateVersionId(plan.Version.ValueString(), clusterObject.Version().ChannelGroup()))
+		vBuilder.ChannelGroup(clusterObject.Version().ChannelGroup())
 		builder.Version(vBuilder)
 	}
 
@@ -422,7 +399,7 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
-	collection := resource.NodePools()
+	collection := r.clusterCollection.Cluster(clusterObject.ID()).NodePools()
 	add, err := collection.Add().Body(object).
 		Parameter("fetchUserTagsOnly", true).SendContext(ctx)
 	if err != nil {
@@ -438,7 +415,7 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 	object = add.Body()
 
 	// Save the state:
-	err = populateState(object, plan)
+	err = populateState(ctx, object, plan, clusterObject)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Can't populate machine pool state",
@@ -521,16 +498,43 @@ func (r *HcpMachinePoolResource) Read(ctx context.Context, req resource.ReadRequ
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
+func fetchCluster(ctx context.Context, state *HcpMachinePoolState, collection *cmv1.ClustersClient, diags *diag.Diagnostics) *cmv1.Cluster {
+	clusterResource := collection.Cluster(state.Cluster.ValueString())
+	getCluster, err := clusterResource.Get().SendContext(ctx)
+	if err != nil {
+		if getCluster.Status() == http.StatusNotFound {
+			tflog.Warn(ctx, fmt.Sprintf("cluster '%s' not found, clearing state",
+				state.Cluster.ValueString(),
+			))
+			return nil
+		}
+		diags.AddError(
+			"Can't find cluster",
+			fmt.Sprintf(
+				"Can't find cluster with identifier '%s': %v",
+				state.Cluster.ValueString(), err,
+			),
+		)
+		return nil
+	}
+	return getCluster.Body()
+}
+
 func readState(ctx context.Context, state *HcpMachinePoolState, collection *cmv1.ClustersClient) (poolNotFound bool, diags diag.Diagnostics) {
 	diags = diag.Diagnostics{}
 
-	resource := collection.Cluster(state.Cluster.ValueString()).
+	clusterObject := fetchCluster(ctx, state, collection, &diags)
+	if clusterObject == nil {
+		return
+	}
+
+	nodePoolResource := collection.Cluster(state.Cluster.ValueString()).
 		NodePools().
 		NodePool(state.ID.ValueString())
-	get, err := resource.Get().
+	getNp, err := nodePoolResource.Get().
 		Parameter("fetchUserTagsOnly", true).SendContext(ctx)
 	if err != nil {
-		if get.Status() == http.StatusNotFound {
+		if getNp.Status() == http.StatusNotFound {
 			poolNotFound = true
 			return
 		}
@@ -538,14 +542,14 @@ func readState(ctx context.Context, state *HcpMachinePoolState, collection *cmv1
 			"Failed to fetch machine pool",
 			fmt.Sprintf(
 				"Failed to fetch machine pool with identifier %s for cluster %s. Response code: %v",
-				state.ID.ValueString(), state.Cluster.ValueString(), get.Status(),
+				state.ID.ValueString(), state.Cluster.ValueString(), getNp.Status(),
 			),
 		)
 		return
 	}
 
-	object := get.Body()
-	err = populateState(object, state)
+	npObject := getNp.Body()
+	err = populateState(ctx, npObject, state, clusterObject)
 	if err != nil {
 		diags.AddError(
 			"Can't populate machine pool state",
@@ -613,6 +617,11 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 	//assert no changes on specific attributes
 	diags := validateNoImmutableAttChange(state, plan)
 	if diags.HasError() {
+		return diags
+	}
+
+	clusterObject := fetchCluster(ctx, plan, r.clusterCollection, &diags)
+	if clusterObject == nil {
 		return diags
 	}
 
@@ -771,7 +780,7 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 	}
 
 	// Save the state:
-	err = populateState(object, state)
+	err = populateState(ctx, object, state, clusterObject)
 	if err != nil {
 		diags.AddError(
 			"Can't populate machine pool state",
@@ -1070,7 +1079,7 @@ func (r *HcpMachinePoolResource) ImportState(ctx context.Context, req resource.I
 }
 
 // populateState copies the data from the API object to the Terraform state.
-func populateState(object *cmv1.NodePool, state *HcpMachinePoolState) error {
+func populateState(ctx context.Context, object *cmv1.NodePool, state *HcpMachinePoolState, cluster *cmv1.Cluster) error {
 	state.ID = types.StringValue(object.ID())
 	state.Name = types.StringValue(object.ID())
 
@@ -1085,11 +1094,18 @@ func populateState(object *cmv1.NodePool, state *HcpMachinePoolState) error {
 			state.AWSNodePool.InstanceProfile = types.StringValue(instanceProfile)
 		}
 		if awsTags, ok := awsNodePool.GetTags(); ok {
-			mapValue, err := common.ConvertStringMapToMapType(awsTags)
+			filteredAwsTags, err := filterClusterTagsNotPresentInNpInput(ctx, state, cluster, awsTags)
 			if err != nil {
 				return err
 			}
-			state.AWSNodePool.Tags = mapValue
+			state.AWSNodePool.Tags = types.MapNull(types.StringType)
+			if len(filteredAwsTags) > 0 {
+				mapValue, err := common.ConvertStringMapToMapType(filteredAwsTags)
+				if err != nil {
+					return err
+				}
+				state.AWSNodePool.Tags = mapValue
+			}
 		} else {
 			state.AWSNodePool.Tags = types.MapNull(types.StringType)
 		}
@@ -1187,6 +1203,30 @@ func populateState(object *cmv1.NodePool, state *HcpMachinePoolState) error {
 
 	state.AutoRepair = types.BoolValue(object.AutoRepair())
 	return nil
+}
+
+func filterClusterTagsNotPresentInNpInput(ctx context.Context, state *HcpMachinePoolState, cluster *cmv1.Cluster, awsTags map[string]string) (map[string]string, error) {
+	if len(awsTags) == 0 {
+		return awsTags, nil
+	}
+	if cluster.AWS() == nil || len(cluster.AWS().Tags()) == 0 {
+		return awsTags, nil
+	}
+	filteredTags := make(map[string]string, len(awsTags))
+	for k, v := range awsTags {
+		filteredTags[k] = v
+	}
+	currentNpTfTags, err := common.OptionalMap(ctx, state.AWSNodePool.Tags)
+	if err != nil {
+		return filteredTags, err
+	}
+	clusterTags := cluster.AWS().Tags()
+	for k := range clusterTags {
+		if _, ok := currentNpTfTags[k]; !ok {
+			delete(filteredTags, k)
+		}
+	}
+	return filteredTags, nil
 }
 
 func shouldPatchTaints(a, b []Taints) bool {

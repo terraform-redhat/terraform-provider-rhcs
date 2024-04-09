@@ -28,11 +28,39 @@ import (
 )
 
 const (
-	cluster123Uri     = "/api/clusters_mgmt/v1/clusters/123"
-	workerNodePoolUri = cluster123Uri + "/node_pools/worker"
+	clusterUri        = "/api/clusters_mgmt/v1/clusters/"
+	workerNodePoolUri = clusterUri + "123" + "/node_pools/worker"
 )
 
 var _ = Describe("Hcp Machine pool", func() {
+	prepareClusterRead := func(clusterId string) {
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, clusterUri+clusterId),
+				RespondWithJSONTemplate(http.StatusOK, `{
+				  "id": "{{.ClusterId}}",
+				  "name": "my-cluster",
+				  "multi_az": true,
+				  "nodes": {
+					"availability_zones": [
+					  "us-east-1a",
+					  "us-east-1b",
+					  "us-east-1c"
+					]
+				  },
+				  "state": "ready",
+				  "version": {
+					"channel_group": "stable"
+				  },
+				  "aws": {
+					"tags": {
+						"cluster-tag": "cluster-value"
+					}
+				  }
+				}`, "ClusterId", clusterId),
+			),
+		)
+	}
 	Context("static validation", func() {
 		It("fails if cluster ID is empty", func() {
 			terraform.Source(`
@@ -130,46 +158,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			// The first thing that the provider will do for any operation on machine pools
 			// is check that the cluster is ready, so we always need to prepare the server to
 			// respond to that:
-			server.AppendHandlers(
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, cluster123Uri),
-					RespondWithJSON(http.StatusOK, `{
-					  "id": "123",
-					  "name": "my-cluster",
-					  "multi_az": true,
-					  "nodes": {
-						"availability_zones": [
-						  "us-east-1a",
-						  "us-east-1b",
-						  "us-east-1c"
-						]
-					  },
-					  "state": "ready",
-					  "version": {
-						"channel_group": "stable"
-					  }
-					}`),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, cluster123Uri),
-					RespondWithJSON(http.StatusOK, `{
-					  "id": "123",
-					  "name": "my-cluster",
-					  "multi_az": true,
-					  "nodes": {
-						"availability_zones": [
-						  "us-east-1a",
-						  "us-east-1b",
-						  "us-east-1c"
-						]
-					  },
-					  "state": "ready",
-					  "version": {
-						"channel_group": "stable"
-					  }
-					}`),
-				),
-			)
+			prepareClusterRead("123")
 		})
 
 		It("Can create machine pool with compute nodes", func() {
@@ -487,6 +476,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.additional_security_group_ids.[0]", "id1"))
 
 			// Update - change additional security groups IDs
+			prepareClusterRead("123")
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
@@ -627,6 +617,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(`.attributes.labels | length`, 2))
 
 			// Prepare the server for update
+			prepareClusterRead("123")
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
@@ -635,42 +626,9 @@ var _ = Describe("Hcp Machine pool", func() {
 					),
 					RespondWithJSON(http.StatusNotFound, "{}"),
 				),
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, cluster123Uri),
-					RespondWithJSON(http.StatusOK, `
-				{
-				  "id": "123",
-				  "name": "my-cluster",
-				  "multi_az": true,
-				  "nodes": {
-					"availability_zones": [
-					  "us-east-1a",
-					  "us-east-1b",
-					  "us-east-1c"
-					]
-				  },
-				  "state": "ready"
-				}`),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, cluster123Uri),
-					RespondWithJSON(http.StatusOK, `{
-					  "id": "123",
-					  "name": "my-cluster",
-					  "multi_az": true,
-					  "nodes": {
-						"availability_zones": [
-						  "us-east-1a",
-						  "us-east-1b",
-						  "us-east-1c"
-						]
-					  },
-					  "state": "ready",
-					  "version": {
-						"channel_group": "stable"
-					  }
-					}`),
-				),
+			)
+			prepareClusterRead("123")
+			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
@@ -805,101 +763,107 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(".attributes.replicas", 12.0))
 			Expect(resource).To(MatchJQ(`.attributes.labels | length`, 2))
 
-			// Update - change lables
+			// Update - change labels
+			prepareClusterRead("123")
 			server.AppendHandlers(
 				// First get is for the Read function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
 					RespondWithJSON(http.StatusOK, `
-				{
-				  "id": "my-pool",
-				  "kind": "MachinePool",
-				  "href": "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
-	              "replicas": 12,
-				  "labels": {
-				    "label_key1": "label_value1",
-				    "label_key2": "label_value2"
-				  },
-				  "aws_node_pool": {
-					"instance_type": "r5.xlarge",
-					"instance_profile": "bla"
-				  },
-				  "auto_repair": true,
-				  "version": {
-					  "raw_id": "4.14.10"
-				  },
-				  "subnet": "subnet-123"
-				}`),
+					{
+					  "id": "my-pool",
+					  "kind": "MachinePool",
+					  "href": "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+			          "replicas": 12,
+					  "labels": {
+					    "label_key1": "label_value1",
+					    "label_key2": "label_value2"
+					  },
+					  "aws_node_pool": {
+						"instance_type": "r5.xlarge",
+						"instance_profile": "bla"
+					  },
+					  "auto_repair": true,
+					  "version": {
+						  "raw_id": "4.14.10"
+					  },
+					  "subnet": "subnet-123"
+					}`),
 				),
+			)
+			prepareClusterRead("123")
+			server.AppendHandlers(
 				// Second get is for the Update function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
 					RespondWithJSON(http.StatusOK, `
-				{
-				  "id": "my-pool",
-				  "kind": "MachinePool",
-				  "href": "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
-				  "replicas": 12,
-				  "labels": {
-				    "label_key1": "label_value1",
-				    "label_key2": "label_value2"
-				  },
-				  "aws_node_pool": {
-					"instance_type": "r5.xlarge",
-					"instance_profile": "bla"
-				  },
-				  "auto_repair": true,
-				  "version": {
-					  "raw_id": "4.14.10"
-				  },
-				  "subnet": "subnet-123"
-				}`),
+					{
+					  "id": "my-pool",
+					  "kind": "MachinePool",
+					  "href": "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+					  "replicas": 12,
+					  "labels": {
+					    "label_key1": "label_value1",
+					    "label_key2": "label_value2"
+					  },
+					  "aws_node_pool": {
+						"instance_type": "r5.xlarge",
+						"instance_profile": "bla"
+					  },
+					  "auto_repair": true,
+					  "version": {
+						  "raw_id": "4.14.10"
+					  },
+					  "subnet": "subnet-123"
+					}`),
 				),
+			)
+			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPatch,
 						"/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
 					),
 					RespondWithJSON(http.StatusOK, `
-				{
-				  "id": "my-pool",
-				  "href": "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
-				  "kind": "MachinePool",
-				  "replicas": 12,
-				  "labels": {
-				    "label_key3": "label_value3"
-				  },
-				  "aws_node_pool": {
-					"instance_type": "r5.xlarge",
-					"instance_profile": "bla"
-				  },
-				  "auto_repair": true,
-				  "version": {
-					  "raw_id": "4.14.10"
-				  },
-				  "subnet": "subnet-123"
-				}`),
+					{
+					  "id": "my-pool",
+					  "href": "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+					  "kind": "MachinePool",
+					  "replicas": 12,
+					  "labels": {
+					    "label_key3": "label_value3"
+					  },
+					  "aws_node_pool": {
+						"instance_type": "r5.xlarge",
+						"instance_profile": "bla"
+					  },
+					  "auto_repair": true,
+					  "version": {
+						  "raw_id": "4.14.10"
+					  },
+					  "subnet": "subnet-123"
+					}`),
 				),
 			)
 
 			terraform.Source(`
-		resource "rhcs_hcp_machine_pool" "my_pool" {
-		    cluster      = "123"
-		    name         = "my-pool"
-		    aws_node_pool = {
-				instance_type = "r5.xlarge"
-			}
-		    replicas     = 12
-			labels = {
-				"label_key3" = "label_value3"
-			}
-			autoscaling = {
-				enabled = false,
-			}
-			version = "4.14.10"
-			subnet_id = "subnet-123"
-			auto_repair = true
-		}`)
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+			    cluster      = "123"
+			    name         = "my-pool"
+			    aws_node_pool = {
+					instance_type = "r5.xlarge"
+				}
+			    replicas     = 12
+				labels = {
+					"label_key3" = "label_value3"
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				version = "4.14.10"
+				subnet_id = "subnet-123"
+				auto_repair = true
+			}`)
 			Expect(terraform.Apply()).To(BeZero())
 
 			// Check the state:
@@ -911,114 +875,120 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(".attributes.replicas", 12.0))
 			Expect(resource).To(MatchJQ(`.attributes.labels | length`, 1))
 
-			// Update - delete lables
+			// Invalid deletion - labels map can't be empty
+			terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+			    cluster      = "123"
+			    name         = "my-pool"
+			    aws_node_pool = {
+					instance_type = "r5.xlarge"
+				}
+			    replicas     = 12
+			    labels       = {}
+				autoscaling = {
+					enabled = false,
+				}
+				version = "4.14.10"
+				subnet_id = "subnet-123"
+				auto_repair = true
+			}`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+
+			// Update - delete labels
+			prepareClusterRead("123")
 			server.AppendHandlers(
 				// First get is for the Read function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
 					RespondWithJSON(http.StatusOK, `
-				{
-				  "id": "my-pool",
-				  "kind": "MachinePool",
-				  "href": "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
-	              "replicas": 12,
-				  "labels": {
-				    "label_key1": "label_value1",
-				    "label_key2": "label_value2"
-				  },
-				  "aws_node_pool": {
-					"instance_type": "r5.xlarge",
-					"instance_profile": "bla"
-				  },
-				  "auto_repair": true,
-				  "version": {
-					  "raw_id": "4.14.10"
-				  },
-				  "subnet": "subnet-123"
-				}`),
+					{
+					  "id": "my-pool",
+					  "kind": "MachinePool",
+					  "href": "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+			          "replicas": 12,
+					  "labels": {
+					    "label_key1": "label_value1",
+					    "label_key2": "label_value2"
+					  },
+					  "aws_node_pool": {
+						"instance_type": "r5.xlarge",
+						"instance_profile": "bla"
+					  },
+					  "auto_repair": true,
+					  "version": {
+						  "raw_id": "4.14.10"
+					  },
+					  "subnet": "subnet-123"
+					}`),
 				),
+			)
+			prepareClusterRead("123")
+			server.AppendHandlers(
 				// Second get is for the Update function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
 					RespondWithJSON(http.StatusOK, `
-				{
-				  "id": "my-pool",
-				  "kind": "MachinePool",
-				  "href": "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
-	              "replicas": 12,
-				  "labels": {
-				    "label_key1": "label_value1",
-				    "label_key2": "label_value2"
-				  },
-				  "aws_node_pool": {
-					"instance_type": "r5.xlarge",
-					"instance_profile": "bla"
-				  },
-				  "auto_repair": true,
-				  "version": {
-					  "raw_id": "4.14.10"
-				  },
-				  "subnet": "subnet-123"
-				}`),
+					{
+					  "id": "my-pool",
+					  "kind": "MachinePool",
+					  "href": "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+			          "replicas": 12,
+					  "labels": {
+					    "label_key1": "label_value1",
+					    "label_key2": "label_value2"
+					  },
+					  "aws_node_pool": {
+						"instance_type": "r5.xlarge",
+						"instance_profile": "bla"
+					  },
+					  "auto_repair": true,
+					  "version": {
+						  "raw_id": "4.14.10"
+					  },
+					  "subnet": "subnet-123"
+					}`),
 				),
+			)
+			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPatch,
 						"/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
 					),
 					RespondWithJSON(http.StatusOK, `
-				{
-				  "id": "my-pool",
-				  "href": "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
-				  "kind": "MachinePool",
-				  "replicas": 12,
-				  "aws_node_pool": {
-					"instance_type": "r5.xlarge",
-					"instance_profile": "bla"
-				  },
-				  "auto_repair": true,
-				  "version": {
-					  "raw_id": "4.14.10"
-				  },
-				  "subnet": "subnet-123"
-				}`),
+					{
+					  "id": "my-pool",
+					  "href": "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+					  "kind": "MachinePool",
+					  "replicas": 12,
+					  "aws_node_pool": {
+						"instance_type": "r5.xlarge",
+						"instance_profile": "bla"
+					  },
+					  "auto_repair": true,
+					  "version": {
+						  "raw_id": "4.14.10"
+					  },
+					  "subnet": "subnet-123"
+					}`),
 				),
 			)
-
-			// Invalid deletion - labels map can't be empty
-			terraform.Source(`
-		resource "rhcs_hcp_machine_pool" "my_pool" {
-		    cluster      = "123"
-		    name         = "my-pool"
-		    aws_node_pool = {
-				instance_type = "r5.xlarge"
-			}
-		    replicas     = 12
-	        labels       = {}
-			autoscaling = {
-				enabled = false,
-			}
-			version = "4.14.10"
-			subnet_id = "subnet-123"
-			auto_repair = true
-		}`)
-			Expect(terraform.Apply()).ToNot(BeZero())
 			// Valid deletion
 			terraform.Source(`
-		resource "rhcs_hcp_machine_pool" "my_pool" {
-		    cluster      = "123"
-		    name         = "my-pool"
-		    aws_node_pool = {
-				instance_type = "r5.xlarge"
-			}
-		    replicas     = 12
-			autoscaling = {
-				enabled = false,
-			}
-			version = "4.14.10"
-			subnet_id = "subnet-123"
-			auto_repair = true
-		}`)
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+			    cluster      = "123"
+			    name         = "my-pool"
+			    aws_node_pool = {
+					instance_type = "r5.xlarge"
+				}
+			    replicas     = 12
+				autoscaling = {
+					enabled = false,
+				}
+				version = "4.14.10"
+				subnet_id = "subnet-123"
+				auto_repair = true
+			}`)
 			Expect(terraform.Apply()).To(BeZero())
 
 			// Check the state:
@@ -1099,6 +1069,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(".attributes.replicas", 12.0))
 			Expect(resource).To(MatchJQ(`.attributes.taints | length`, 1))
 
+			prepareClusterRead("123")
 			server.AppendHandlers(
 				// First get is for the Read function
 				CombineHandlers(
@@ -1128,6 +1099,9 @@ var _ = Describe("Hcp Machine pool", func() {
 				  "subnet": "subnet-123"
 				}`),
 				),
+			)
+			prepareClusterRead("123")
+			server.AppendHandlers(
 				// Second get is for the Update function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
@@ -1300,6 +1274,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(".attributes.replicas", 12.0))
 			Expect(resource).To(MatchJQ(`.attributes.taints | length`, 1))
 
+			prepareClusterRead("123")
 			server.AppendHandlers(
 				// First get is for the Read function
 				CombineHandlers(
@@ -1329,6 +1304,9 @@ var _ = Describe("Hcp Machine pool", func() {
 				  "subnet": "subnet-123"
 				}`),
 				),
+			)
+			prepareClusterRead("123")
+			server.AppendHandlers(
 				// Second get is for the Update function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
@@ -1491,6 +1469,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(".attributes.replicas", 12.0))
 			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.tags | length`, 1))
 
+			prepareClusterRead("123")
 			server.AppendHandlers(
 				// First get is for the Read function
 				CombineHandlers(
@@ -1516,6 +1495,9 @@ var _ = Describe("Hcp Machine pool", func() {
 				  "subnet": "subnet-123"
 				}`),
 				),
+			)
+			prepareClusterRead("123")
+			server.AppendHandlers(
 				// Second get is for the Update function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
@@ -1562,6 +1544,111 @@ var _ = Describe("Hcp Machine pool", func() {
 		`)
 
 			Expect(terraform.Apply()).ToNot(BeZero())
+		})
+
+		It("Can create machine pool without supplying tags even though cluster has tags", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools",
+					),
+					RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "availability_zone": "us-east-1a",
+				  "replicas": 12,
+				  "aws_node_pool": {
+					"instance_type": "r5.xlarge",
+					"instance_profile": "bla",
+					"tags": {
+						"cluster-tag": "cluster-value",
+						"test-label":"test-value"
+					}
+				  },
+				  "auto_repair": true,
+				  "version": {
+					  "raw_id": "4.14.10"
+				  },
+				  "subnet": "subnet-123"
+				}`),
+				),
+			)
+
+			// Run the apply command:
+			terraform.Source(`
+		  resource "rhcs_hcp_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    aws_node_pool = {
+				instance_type = "r5.xlarge"
+				tags = {
+					"test-label" = "test-value"
+				}
+			}
+			autoscaling = {
+				enabled = false
+			}
+		    replicas     = 12
+			version = "4.14.10"
+			subnet_id = "subnet-123"
+			auto_repair = true
+		  }
+		`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
+
+		It("Can create machine pool supplying tags even though cluster has tags", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools",
+					),
+					RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "availability_zone": "us-east-1a",
+				  "replicas": 12,
+				  "aws_node_pool": {
+					"instance_type": "r5.xlarge",
+					"instance_profile": "bla",
+					"tags": {
+						"cluster-tag": "mp-value",
+						"test-label":"test-value"
+					}
+				  },
+				  "auto_repair": true,
+				  "version": {
+					  "raw_id": "4.14.10"
+				  },
+				  "subnet": "subnet-123"
+				}`),
+				),
+			)
+
+			// Run the apply command:
+			terraform.Source(`
+		  resource "rhcs_hcp_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    aws_node_pool = {
+				instance_type = "r5.xlarge"
+				tags = {
+					"cluster-tag" = "mp-value"
+					"test-label" = "test-value"
+				}
+			}
+			autoscaling = {
+				enabled = false
+			}
+		    replicas     = 12
+			version = "4.14.10"
+			subnet_id = "subnet-123"
+			auto_repair = true
+		  }
+		`)
+			Expect(terraform.Apply()).To(BeZero())
 		})
 
 		It("Can create machine pool with autoscaling enabled and update to compute nodes", func() {
@@ -1621,6 +1708,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(".attributes.autoscaling.min_replicas", float64(0)))
 			Expect(resource).To(MatchJQ(".attributes.autoscaling.max_replicas", float64(3)))
 
+			prepareClusterRead("123")
 			server.AppendHandlers(
 				// First get is for the Read function
 				CombineHandlers(
@@ -1646,6 +1734,9 @@ var _ = Describe("Hcp Machine pool", func() {
 				  "subnet": "subnet-123"
 				}`),
 				),
+			)
+			prepareClusterRead("123")
+			server.AppendHandlers(
 				// Second get is for the Update function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
@@ -1724,27 +1815,12 @@ var _ = Describe("Hcp Machine pool", func() {
 
 	Context("Standard workers machine pool", func() {
 		BeforeEach(func() {
-			server.AppendHandlers(
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, cluster123Uri),
-					RespondWithJSON(http.StatusOK, `
-						{
-							"id": "123",
-							"name": "my-cluster",
-							"multi_az": false,
-							"nodes": {
-								"availability_zones": [
-									"us-east-1a"
-								]
-							},
-							"state": "ready"
-						}`),
-				),
-			)
+			prepareClusterRead("123")
 		})
 
 		It("cannot be created", func() {
 			// Prepare the server:
+			prepareClusterRead("123")
 			server.AppendHandlers(
 				// Get is for the Read function
 				CombineHandlers(
@@ -1781,6 +1857,7 @@ var _ = Describe("Hcp Machine pool", func() {
 		It("is automatically imported and updates applied", func() {
 			// Import automatically "Create()", and update the # of replicas: 2 -> 4
 			// Prepare the server:
+			prepareClusterRead("123")
 			server.AppendHandlers(
 				// Get is for the Read function
 				CombineHandlers(
@@ -1800,6 +1877,9 @@ var _ = Describe("Hcp Machine pool", func() {
 							"auto_repair": true
 						}`),
 				),
+			)
+			prepareClusterRead("123")
+			server.AppendHandlers(
 				// Get is for the read during update
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -1861,6 +1941,7 @@ var _ = Describe("Hcp Machine pool", func() {
 
 		It("can update labels", func() {
 			// Prepare the server:
+			prepareClusterRead("123")
 			server.AppendHandlers(
 				// Get is for the Read function
 				CombineHandlers(
@@ -1880,6 +1961,9 @@ var _ = Describe("Hcp Machine pool", func() {
 							"auto_repair": true
 						}`),
 				),
+			)
+			prepareClusterRead("123")
+			server.AppendHandlers(
 				// Get is for the read during update
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -1948,6 +2032,7 @@ var _ = Describe("Hcp Machine pool", func() {
 
 		It("can update subnet", func() {
 			// Prepare the server:
+			prepareClusterRead("123")
 			server.AppendHandlers(
 				// Get is for the Read function
 				CombineHandlers(
@@ -1967,6 +2052,9 @@ var _ = Describe("Hcp Machine pool", func() {
 							"auto_repair": true
 						}`),
 				),
+			)
+			prepareClusterRead("123")
+			server.AppendHandlers(
 				// Get is for the read during update
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -2036,6 +2124,7 @@ var _ = Describe("Hcp Machine pool", func() {
 
 		It("can update auto repair", func() {
 			// Prepare the server:
+			prepareClusterRead("123")
 			server.AppendHandlers(
 				// Get is for the Read function
 				CombineHandlers(
@@ -2055,6 +2144,9 @@ var _ = Describe("Hcp Machine pool", func() {
 							"auto_repair": true
 						}`),
 				),
+			)
+			prepareClusterRead("123")
+			server.AppendHandlers(
 				// Get is for the read during update
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -2126,11 +2218,10 @@ var _ = Describe("Hcp Machine pool", func() {
 
 	Context("Machine pool creation for non exist cluster", func() {
 		It("Fail to create machine pool if cluster is not exist", func() {
-			// Prepare the server:
 			server.AppendHandlers(
 				// Get is for the Read function
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, cluster123Uri),
+					VerifyRequest(http.MethodGet, clusterUri+"123"),
 					RespondWithJSON(http.StatusNotFound, `{}`),
 				),
 			)
@@ -2158,6 +2249,7 @@ var _ = Describe("Hcp Machine pool", func() {
 
 	Context("Import", func() {
 		It("Can import a machine pool", func() {
+			prepareClusterRead("123")
 			// Prepare the server:
 			server.AppendHandlers(
 				// Get is for the Read function
@@ -2198,30 +2290,6 @@ var _ = Describe("Hcp Machine pool", func() {
 	Context("Machine pool delete", func() {
 		clusterId := "123"
 
-		prepareClusterRead := func(clusterId string) {
-			server.AppendHandlers(
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/"+clusterId),
-					RespondWithJSONTemplate(http.StatusOK, `{
-					  "id": "{{.ClusterId}}",
-					  "name": "my-cluster",
-					  "multi_az": true,
-					  "nodes": {
-						"availability_zones": [
-						  "us-east-1a",
-						  "us-east-1b",
-						  "us-east-1c"
-						]
-					  },
-					  "state": "ready",
-					  "version": {
-						"channel_group": "stable"
-					  }
-					}`, "ClusterId", clusterId),
-				),
-			)
-		}
-
 		preparePoolRead := func(clusterId string, poolId string) {
 			server.AppendHandlers(
 				CombineHandlers(
@@ -2247,7 +2315,6 @@ var _ = Describe("Hcp Machine pool", func() {
 		}
 
 		createPool := func(clusterId string, poolId string) {
-			prepareClusterRead(clusterId)
 			prepareClusterRead(clusterId)
 			server.AppendHandlers(
 				CombineHandlers(
@@ -2303,6 +2370,7 @@ var _ = Describe("Hcp Machine pool", func() {
 
 		It("can delete a machine pool", func() {
 			// Prepare for refresh (Read) of the pools prior to changes
+			prepareClusterRead(clusterId)
 			preparePoolRead(clusterId, "pool1")
 			// Prepare for the delete of pool1
 			server.AppendHandlers(
@@ -2318,6 +2386,7 @@ var _ = Describe("Hcp Machine pool", func() {
 		})
 		It("will return an error if delete fails and not the last pool", func() {
 			// Prepare for refresh (Read) of the pools prior to changes
+			prepareClusterRead(clusterId)
 			preparePoolRead(clusterId, "pool1")
 			// Prepare for the delete of pool1
 			server.AppendHandlers(
@@ -2377,6 +2446,7 @@ var _ = Describe("Hcp Machine pool", func() {
 		})
 		It("will ignore the error if delete fails and is the last pool", func() {
 			// Prepare for refresh (Read) of the pools prior to changes
+			prepareClusterRead(clusterId)
 			preparePoolRead(clusterId, "pool1")
 			// Prepare for the delete of pool1
 			server.AppendHandlers(
@@ -2504,7 +2574,6 @@ var _ = Describe("Hcp Machine pool", func() {
 
 		createPool := func(clusterId string, poolId string) {
 			prepareClusterRead(clusterId)
-			prepareClusterRead(clusterId)
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
@@ -2558,7 +2627,9 @@ var _ = Describe("Hcp Machine pool", func() {
 		})
 
 		It("Upgrades Machine Pool", func() {
+			prepareClusterRead(clusterId)
 			preparePoolRead(clusterId, poolId)
+			prepareClusterRead(clusterId)
 			preparePoolRead(clusterId, poolId)
 			prepareClusterRead(clusterId)
 			preparePoolRead(clusterId, poolId)
@@ -2673,7 +2744,9 @@ var _ = Describe("Hcp Machine pool", func() {
 		})
 
 		It("Does nothing if upgrade is in progress to a different version than the desired", func() {
+			prepareClusterRead(clusterId)
 			preparePoolRead(clusterId, poolId)
+			prepareClusterRead(clusterId)
 			preparePoolRead(clusterId, poolId)
 			prepareClusterRead(clusterId)
 			preparePoolRead(clusterId, poolId)
@@ -2737,7 +2810,9 @@ var _ = Describe("Hcp Machine pool", func() {
 		})
 
 		It("Cancels and upgrade for the wrong version & schedules new", func() {
+			prepareClusterRead(clusterId)
 			preparePoolRead(clusterId, poolId)
+			prepareClusterRead(clusterId)
 			preparePoolRead(clusterId, poolId)
 			prepareClusterRead(clusterId)
 			preparePoolRead(clusterId, poolId)
@@ -2840,7 +2915,9 @@ var _ = Describe("Hcp Machine pool", func() {
 		})
 
 		It("Cancels upgrade if version=current_version", func() {
+			prepareClusterRead(clusterId)
 			preparePoolRead(clusterId, poolId)
+			prepareClusterRead(clusterId)
 			preparePoolRead(clusterId, poolId)
 			prepareClusterRead(clusterId)
 			preparePoolRead(clusterId, poolId)
@@ -2921,6 +2998,7 @@ var _ = Describe("Hcp Machine pool", func() {
 		})
 
 		It("is an error to request a version older than current", func() {
+			prepareClusterRead(clusterId)
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/node_pools/"+poolId),
@@ -2947,6 +3025,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					}`, "PoolId", poolId, "ClusterId", clusterId),
 				),
 			)
+			prepareClusterRead(clusterId)
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/node_pools/"+poolId),
@@ -2994,6 +3073,7 @@ var _ = Describe("Hcp Machine pool", func() {
 		})
 
 		It("older than current is allowed as long as not changed", func() {
+			prepareClusterRead(clusterId)
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/node_pools/"+poolId),
@@ -3020,6 +3100,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					}`, "PoolId", poolId, "ClusterId", clusterId),
 				),
 			)
+			prepareClusterRead(clusterId)
 			server.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/node_pools/"+poolId),
@@ -3068,7 +3149,9 @@ var _ = Describe("Hcp Machine pool", func() {
 
 		Context("Un-acked gates", func() {
 			BeforeEach(func() {
+				prepareClusterRead(clusterId)
 				preparePoolRead(clusterId, poolId)
+				prepareClusterRead(clusterId)
 				preparePoolRead(clusterId, poolId)
 				prepareClusterRead(clusterId)
 				preparePoolRead(clusterId, poolId)

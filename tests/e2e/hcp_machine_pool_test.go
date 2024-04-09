@@ -15,7 +15,6 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
-	exe "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -202,19 +201,19 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 	It("can be created with security groups - [id:73068]", ci.High,
 		func() {
 			By("Prepare additional security groups")
-			sgService := exe.NewSecurityGroupService()
+			sgService := exec.NewSecurityGroupService()
 			output, err := sgService.Output()
 			Expect(err).ToNot(HaveOccurred())
 			if output.SGIDs == nil {
 
-				sgArgs := &exe.SecurityGroupArgs{
+				sgArgs := &exec.SecurityGroupArgs{
 					AWSRegion: profile.Region,
 					VPCID:     vpcOutput.VPCID,
 					SGNumber:  4,
 				}
 				err = sgService.Apply(sgArgs, true)
 				Expect(err).ToNot(HaveOccurred())
-				// defer sgService.Destroy()
+				defer sgService.Destroy()
 			}
 
 			output, err = sgService.Output()
@@ -222,12 +221,23 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 			replicas := 0
 			machineType := "r5.xlarge"
-			name := "ocp-73068-2"
+			name := "ocp-73068"
 			sgIDs := output.SGIDs
 			if len(sgIDs) >= 4 {
 				sgIDs = sgIDs[0:4]
 			}
-			MachinePoolArgs := &exe.MachinePoolArgs{
+
+			// workaround
+			By("Check cluster tags and set it to the machinepool")
+			resp, err := cms.ListNodePools(ci.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			npDetail, err := cms.RetrieveNodePool(ci.RHCSConnection, clusterID, resp[0].ID(), map[string]interface{}{
+				"fetchUserTagsOnly": true,
+			})
+			Expect(err).ToNot(HaveOccurred())
+			workAroundTags := npDetail.AWSNodePool().Tags()
+
+			MachinePoolArgs := &exec.MachinePoolArgs{
 				Cluster:                  clusterID,
 				Replicas:                 &replicas,
 				MachineType:              &machineType,
@@ -236,6 +246,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 				AutoscalingEnabled:       helper.BoolPointer(false),
 				AutoRepair:               helper.BoolPointer(false),
 				SubnetID:                 &vpcOutput.ClusterPrivateSubnets[0],
+				Tags:                     &workAroundTags,
 			}
 			_, err = mpService.Apply(MachinePoolArgs, true)
 			Expect(err).ToNot(HaveOccurred())
@@ -254,13 +265,13 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 			By("Update security groups is not allowed to a machinepool")
 			testAdditionalSecurityGroups := output.SGIDs[0:1]
-			MachinePoolArgs = &exe.MachinePoolArgs{
+			MachinePoolArgs = &exec.MachinePoolArgs{
 				AdditionalSecurityGroups: &testAdditionalSecurityGroups,
 			}
 
 			applyOutput, err := mpService.Apply(MachinePoolArgs, false)
 			Expect(err).To(HaveOccurred())
-			Expect(applyOutput).Should(ContainSubstring("Attribute aws_additional_security_group_ids, cannot be changed"))
+			Expect(applyOutput).Should(ContainSubstring("aws_node_pool.additional_security_group_ids, cannot be changed"))
 
 			By("Destroy the machinepool")
 			_, err = mpService.Destroy()
@@ -268,11 +279,15 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 			By("Create another machinepool without additional sg ")
 			name = "add-73068"
-			MachinePoolArgs = &exe.MachinePoolArgs{
-				Cluster:     clusterID,
-				Replicas:    &replicas,
-				MachineType: helper.StringPointer("m5.2xlarge"),
-				Name:        &name,
+			MachinePoolArgs = &exec.MachinePoolArgs{
+				Cluster:            clusterID,
+				Replicas:           &replicas,
+				MachineType:        helper.StringPointer("m5.2xlarge"),
+				Name:               &name,
+				Tags:               &workAroundTags,
+				AutoscalingEnabled: helper.BoolPointer(false),
+				AutoRepair:         helper.BoolPointer(false),
+				SubnetID:           &vpcOutput.ClusterPrivateSubnets[0],
 			}
 
 			_, err = mpService.Apply(MachinePoolArgs, false)
@@ -295,7 +310,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			fakeSgIDs := []string{"sg-fake"}
 
 			By("Run terraform apply cannot work with invalid sg IDs")
-			MachinePoolArgs := &exe.MachinePoolArgs{
+			MachinePoolArgs := &exec.MachinePoolArgs{
 				Cluster:                  clusterID,
 				Replicas:                 &replicas,
 				MachineType:              &machineType,
@@ -315,7 +330,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 				fakeSgIDs = append(fakeSgIDs, fmt.Sprintf("sg-fakeid%d", i))
 				i++
 			}
-			MachinePoolArgs = &exe.MachinePoolArgs{
+			MachinePoolArgs = &exec.MachinePoolArgs{
 				Cluster:                  clusterID,
 				Replicas:                 &replicas,
 				MachineType:              &machineType,

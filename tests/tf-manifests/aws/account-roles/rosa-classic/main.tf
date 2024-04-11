@@ -21,11 +21,11 @@ data "aws_partition" "current" {
 }
 
 locals {
-  path = coalesce(var.path, "/")
-  major_version = "${split(".", var.openshift_version)[0]}.${split(".", var.openshift_version)[1]}"
-  versionfilter = var.openshift_version == null ? "" : " and raw_id like '%${local.major_version}%'"
+  path               = coalesce(var.path, "/")
+  major_version      = "${split(".", var.openshift_version)[0]}.${split(".", var.openshift_version)[1]}"
+  versionfilter      = var.openshift_version == null ? "" : " and raw_id like '%${local.major_version}%'"
   installer_role_arn = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${var.account_role_prefix}-Installer-Role"
-  aws_account_id = "${data.aws_caller_identity.current.account_id}"
+  aws_account_id     = data.aws_caller_identity.current.account_id
 }
 
 data "rhcs_policies" "all_policies" {}
@@ -36,18 +36,20 @@ data "rhcs_versions" "all" {
 }
 
 module "create_account_roles" {
-  source  = "terraform-redhat/rosa-sts/aws"
-  version = ">= 0.0.14"
+  source  = "terraform-redhat/rosa-classic/rhcs//modules/account-iam-resources"
+  version = ">=1.5.0"
 
-  create_operator_roles  = false
-  create_oidc_provider   = false
-  create_account_roles   = true
-  all_versions           = data.rhcs_versions.all
-  account_role_prefix    = var.account_role_prefix
-  ocm_environment        = var.rhcs_environment
-  rosa_openshift_version = local.major_version
-  account_role_policies  = data.rhcs_policies.all_policies.account_role_policies
-  operator_role_policies = data.rhcs_policies.all_policies.operator_role_policies
-  shared_vpc_role_arn    = var.shared_vpc_role_arn
-  path                   = local.path
+  account_role_prefix = var.account_role_prefix
+  openshift_version   = var.openshift_version
+  path                = local.path
+}
+
+module "rosa-classic_operator-policies" {
+  source  = "terraform-redhat/rosa-classic/rhcs//modules/operator-policies"
+  version = ">=1.5.0"
+
+  account_role_prefix = var.account_role_prefix
+  openshift_version   = var.openshift_version
+  path                = local.path
+  shared_vpc_role_arn = var.shared_vpc_role_arn
 }

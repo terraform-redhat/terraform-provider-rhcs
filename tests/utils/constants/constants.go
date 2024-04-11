@@ -54,10 +54,16 @@ const (
 	MajorVersion              = "MAJOR_VERSION_ENV"
 	RHCSVersion               = "RHCS_VERSION"
 	RHCSSource                = "RHCS_SOURCE"
-	WaitOperators             = "WAIT_OPERATORS"
-	RHCS_CLUSTER_NAME         = "RHCS_CLUSTER_NAME"
-	RHCS_CLUSTER_NAME_PREFIX  = "RHCS_CLUSTER_NAME_PREFIX"
-	RHCS_CLUSTER_NAME_SUFFIX  = "RHCS_CLUSTER_NAME_SUFFIX"
+	// Set this to update the version for the terraform-redhat/rosa-classic/rhcs module
+	ModuleVersion = "MODULE_VERSION"
+	// Set this to update the source for the terraform-redhat/rosa-classic/rhcs module
+	ModuleSource = "MODULE_SOURCE"
+	// Set this to any value if `MODULE_SOURCE` refers to a local path, in which case `MODULE_VERSION` will be ignored
+	ModuleSourceLocal        = "MODULE_SOURCE_LOCAL"
+	WaitOperators            = "WAIT_OPERATORS"
+	RHCS_CLUSTER_NAME        = "RHCS_CLUSTER_NAME"
+	RHCS_CLUSTER_NAME_PREFIX = "RHCS_CLUSTER_NAME_PREFIX"
+	RHCS_CLUSTER_NAME_SUFFIX = "RHCS_CLUSTER_NAME_SUFFIX"
 )
 
 var (

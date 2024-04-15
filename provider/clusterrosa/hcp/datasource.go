@@ -226,6 +226,25 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				Description: deprecatedMessage,
 				Computed:    true,
 			},
+			"create_admin_user": schema.BoolAttribute{
+				Description: deprecatedMessage,
+				Computed:    true,
+			},
+			"admin_credentials": schema.SingleNestedAttribute{
+				Description: deprecatedMessage,
+				Attributes: map[string]schema.Attribute{
+					"username": schema.StringAttribute{
+						Description: "Admin username that will be created with the cluster.",
+						Computed:    true,
+					},
+					"password": schema.StringAttribute{
+						Description: "Admin password that will be created with the cluster.",
+						Computed:    true,
+						Sensitive:   true,
+					},
+				},
+				Computed: true,
+			},
 		},
 	}
 }
@@ -304,6 +323,8 @@ func (r *ClusterRosaHcpDatasource) Read(ctx context.Context, request datasource.
 	state.WaitForStdComputeNodesComplete = types.BoolNull()
 	state.Replicas = types.Int64Null()
 	state.ComputeMachineType = types.StringNull()
+	state.CreateAdminUser = types.BoolNull()
+	state.AdminCredentials = rosaTypes.AdminCredentialsNull()
 
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)

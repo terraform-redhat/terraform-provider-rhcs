@@ -29,9 +29,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	. "github.com/onsi/ginkgo/v2/dsl/core" // nolint
 	. "github.com/onsi/gomega"             // nolint
+	commonutils "github.com/openshift-online/ocm-common/pkg/utils"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
+	rosaTypes "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common/types"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
@@ -307,6 +309,45 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 			err = populateRosaHcpClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clusterState.Sts.Thumbprint.ValueString()).To(Equal(""))
+		})
+	})
+
+	Context("create cluster admin user", func() {
+		It("No cluster admin user created", func() {
+			clusterState := generateBasicRosaHcpClusterState()
+			rosaClusterObject, err := createHcpClusterObject(context.Background(), clusterState, diag.Diagnostics{})
+			Expect(err).To(BeNil())
+			idp := rosaClusterObject.Htpasswd()
+			Expect(idp).To(BeZero())
+		})
+		It("Cluster admin user is created with create_admin_user", func() {
+			clusterState := generateBasicRosaHcpClusterState()
+			clusterState.CreateAdminUser = types.BoolValue(true)
+			rosaClusterObject, err := createHcpClusterObject(context.Background(), clusterState, diag.Diagnostics{})
+			Expect(err).To(BeNil())
+			idp := rosaClusterObject.Htpasswd()
+			Expect(idp).NotTo(BeZero())
+			Expect(idp.Users().Len()).To(Equal(1))
+			user := idp.Users().Get(0)
+			Expect(user.Username()).To(Equal(commonutils.ClusterAdminUsername))
+			Expect(user.Password()).To(BeEmpty())
+			Expect(user.HashedPassword()).NotTo(BeEmpty())
+		})
+		It("Cluster admin user is created with customized username", func() {
+			username := "test-username"
+			password := "test-password123456789$"
+			clusterState := generateBasicRosaHcpClusterState()
+			clusterState.AdminCredentials = rosaTypes.FlattenAdminCredentials(username, "")
+			rosaClusterObject, err := createHcpClusterObject(context.Background(), clusterState, diag.Diagnostics{})
+			Expect(err).To(BeNil())
+			idp := rosaClusterObject.Htpasswd()
+			Expect(idp).NotTo(BeZero())
+			Expect(idp.Users().Len()).To(Equal(1))
+			user := idp.Users().Get(0)
+			Expect(user.Username()).To(Equal(username))
+			Expect(user.Password()).To(BeEmpty())
+			Expect(user.HashedPassword()).NotTo(BeEmpty())
+			Expect(user.HashedPassword()).NotTo(Equal(password))
 		})
 	})
 })

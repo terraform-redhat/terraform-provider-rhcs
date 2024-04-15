@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -37,19 +38,23 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	idputils "github.com/openshift-online/ocm-common/pkg/idp/utils"
 	"github.com/openshift-online/ocm-common/pkg/ocm/consts"
 	ocmConsts "github.com/openshift-online/ocm-common/pkg/ocm/consts"
 	ocmUtils "github.com/openshift-online/ocm-common/pkg/ocm/utils"
 	"github.com/openshift-online/ocm-common/pkg/rosa/oidcconfigs"
+	commonutils "github.com/openshift-online/ocm-common/pkg/utils"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	ocm_errors "github.com/openshift-online/ocm-sdk-go/errors"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/identityprovider"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 
 	ocmr "github.com/terraform-redhat/terraform-provider-rhcs/internal/ocm/resource"
@@ -306,6 +311,40 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				Description: "Wait until the cluster standard compute pools are created. The waiter has a timeout of 60 minutes, with the default value set to false. This can only be provided when also waiting for create completion.",
 				Optional:    true,
 			},
+			"create_admin_user": schema.BoolAttribute{
+				Description: "Indicates if create cluster admin user. Set it true to create cluster admin user with default username `cluster-admin` " +
+					"and generated password. It will be ignored if `admin_credentials` is set." + common.ValueCannotBeChangedStringDescription,
+				Optional: true,
+			},
+			"admin_credentials": schema.SingleNestedAttribute{
+				Description: "Admin user credentials. " + common.ValueCannotBeChangedStringDescription,
+				Attributes: map[string]schema.Attribute{
+					"username": schema.StringAttribute{
+						Description: "Admin username that will be created with the cluster.",
+						Optional:    true,
+						Computed:    true,
+						Validators:  identityprovider.HTPasswdUsernameValidators,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+					},
+					"password": schema.StringAttribute{
+						Description: "Admin password that will be created with the cluster.",
+						Optional:    true,
+						Computed:    true,
+						Sensitive:   true,
+						Validators:  identityprovider.HTPasswdPasswordValidators,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+					},
+				},
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
+			},
 		},
 	}
 }
@@ -508,6 +547,36 @@ func createHcpClusterObject(ctx context.Context,
 		vBuilder.ChannelGroup(channelGroup)
 		builder.Version(vBuilder)
 	}
+
+	username, password := rosaTypes.ExpandAdminCredentials(ctx, state.AdminCredentials, diags)
+	if common.BoolWithFalseDefault(state.CreateAdminUser) || common.HasValue(state.AdminCredentials) {
+		if username == "" {
+			username = commonutils.ClusterAdminUsername
+		}
+		if password == "" {
+			password, err = idputils.GenerateRandomPassword()
+			if err != nil {
+				tflog.Error(ctx, "Failed to generate random password")
+				return nil, err
+			}
+		}
+
+		hashedPwd, err := idputils.GenerateHTPasswdCompatibleHash(password)
+		if err != nil {
+			tflog.Error(ctx, "Failed to hash the password")
+			return nil, err
+		}
+		if os.Getenv("IS_TEST") == "true" {
+			hashedPwd = fmt.Sprintf("hash(%s)", password)
+		}
+		htpasswdUsers := []*cmv1.HTPasswdUserBuilder{
+			cmv1.NewHTPasswdUser().Username(username).HashedPassword(hashedPwd),
+		}
+		htpassUserList := cmv1.NewHTPasswdUserList().Items(htpasswdUsers...)
+		htPasswdIDP := cmv1.NewHTPasswdIdentityProvider().Users(htpassUserList)
+		builder.Htpasswd(htPasswdIDP)
+	}
+	state.AdminCredentials = rosaTypes.FlattenAdminCredentials(username, password)
 
 	builder, err = proxy.BuildProxy(state.Proxy, builder)
 	if err != nil {
@@ -722,6 +791,12 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaHcpState) diag.Diagnos
 	common.ValidateStateAndPlanEquals(state.Replicas, plan.Replicas, "replicas", &diags)
 	common.ValidateStateAndPlanEquals(state.ComputeMachineType, plan.ComputeMachineType, "compute_machine_type", &diags)
 	common.ValidateStateAndPlanEquals(state.AvailabilityZones, plan.AvailabilityZones, "availability_zones", &diags)
+
+	// cluster admin attributes
+	common.ValidateStateAndPlanEquals(state.CreateAdminUser, plan.CreateAdminUser, "create_admin_user", &diags)
+	if !rosaTypes.AdminCredentialsEqual(state.AdminCredentials, plan.AdminCredentials) {
+		diags.AddError(common.AssertionErrorSummaryMessage, fmt.Sprintf(common.AssertionErrorDetailsMessage, "admin_credentials", state.AdminCredentials, plan.AdminCredentials))
+	}
 
 	return diags
 
@@ -1322,6 +1397,9 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 	state.State = types.StringValue(string(object.State()))
 	state.Name = types.StringValue(object.Name())
 	state.CloudRegion = types.StringValue(object.Region().ID())
+	if state.AdminCredentials.IsUnknown() {
+		state.AdminCredentials = rosaTypes.AdminCredentialsNull()
+	}
 
 	return nil
 }

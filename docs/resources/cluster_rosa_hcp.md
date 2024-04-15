@@ -27,8 +27,10 @@ OpenShift managed cluster using ROSA HCP.
 
 ### Optional
 
+- `admin_credentials` (Attributes) Admin user credentials. After the creation of the resource, it is not possible to update the attribute value. (see [below for nested schema](#nestedatt--admin_credentials))
 - `channel_group` (String) Name of the channel group where you select the OpenShift cluster version, for example 'stable'. For ROSA, only 'stable' is supported. After the creation of the resource, it is not possible to update the attribute value.
 - `compute_machine_type` (String) Identifies the machine type used by the initial worker nodes, for example `m5.xlarge`. Use the `rhcs_machine_types` data source to find the possible values. This attribute specifically applies to the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the initial Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)
+- `create_admin_user` (Boolean) Indicates if create cluster admin user. Set it true to create cluster admin user with default username `cluster-admin` and generated password. It will be ignored if `admin_credentials` is set.After the creation of the resource, it is not possible to update the attribute value.
 - `destroy_timeout` (Number) This value sets the maximum duration in minutes to allow for destroying resources. Default value is 60 minutes.
 - `disable_waiting_in_destroy` (Boolean) Disable addressing cluster state in the destroy resource. Default value is false, and so a `destroy` will wait for the cluster to be deleted.
 - `domain_prefix` (String) The domain prefix is optionally assigned by the user.It will appear in the Cluster's domain when the cluster is provisioned. If not supplied, it will be auto generated. It cannot exceed 15 characters in length. After the creation of the resource, it is not possible to update the attribute value.
@@ -86,6 +88,15 @@ Required:
 
 - `worker_role_arn` (String) Worker/Compute Node Role ARN
 
+
+
+<a id="nestedatt--admin_credentials"></a>
+### Nested Schema for `admin_credentials`
+
+Optional:
+
+- `password` (String, Sensitive) Admin password that will be created with the cluster.
+- `username` (String) Admin username that will be created with the cluster.
 
 
 <a id="nestedatt--proxy"></a>

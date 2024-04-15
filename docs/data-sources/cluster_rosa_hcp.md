@@ -26,6 +26,7 @@ OpenShift managed cluster using rosa sts.
 
 ### Read-Only
 
+- `admin_credentials` (Attributes) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource (see [below for nested schema](#nestedatt--admin_credentials))
 - `api_url` (String) URL of the API server.
 - `availability_zones` (List of String) Availability zones. This attribute specifically applies to the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the initial Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)
 - `aws_account_id` (String) Identifier of the AWS account. After the creation of the resource, it is not possible to update the attribute value.
@@ -35,6 +36,7 @@ OpenShift managed cluster using rosa sts.
 - `cloud_region` (String) Cloud region identifier, for example 'us-east-1'.
 - `compute_machine_type` (String) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `console_url` (String) URL of the console.
+- `create_admin_user` (Boolean) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `current_version` (String) The currently running version of OpenShift on the cluster, for example '4.11.0'.
 - `destroy_timeout` (Number) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `disable_waiting_in_destroy` (Boolean) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
@@ -59,6 +61,15 @@ OpenShift managed cluster using rosa sts.
 - `version` (String) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `wait_for_create_complete` (Boolean) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `wait_for_std_compute_nodes_complete` (Boolean) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
+
+<a id="nestedatt--admin_credentials"></a>
+### Nested Schema for `admin_credentials`
+
+Read-Only:
+
+- `password` (String, Sensitive) Admin password that will be created with the cluster.
+- `username` (String) Admin username that will be created with the cluster.
+
 
 <a id="nestedatt--proxy"></a>
 ### Nested Schema for `proxy`

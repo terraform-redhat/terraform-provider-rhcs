@@ -53,4 +53,8 @@ type ClusterRosaHcpState struct {
 	DestroyTimeout                 types.Int64 `tfsdk:"destroy_timeout"`
 	WaitForCreateComplete          types.Bool  `tfsdk:"wait_for_create_complete"`
 	WaitForStdComputeNodesComplete types.Bool  `tfsdk:"wait_for_std_compute_nodes_complete"`
+
+	// Admin user fields
+	CreateAdminUser  types.Bool   `tfsdk:"create_admin_user"`
+	AdminCredentials types.Object `tfsdk:"admin_credentials"`
 }

@@ -885,6 +885,10 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 		return
 	}
 
+	if newBillingAcc, ok := common.ShouldPatchString(state.AWSBillingAccountID, plan.AWSBillingAccountID); ok {
+		clusterBuilder.AWS(cmv1.NewAWS().BillingAccountID(newBillingAcc))
+	}
+
 	patchProperties := shouldPatchProperties(state, plan)
 	if patchProperties {
 		propertiesElements, err := common.OptionalMap(ctx, plan.Properties)

@@ -90,6 +90,9 @@ func (r *HcpMachinePoolResource) Schema(ctx context.Context, req resource.Schema
 			"name": schema.StringAttribute{
 				Description: "Name of the machine pool. Must consist of lower-case alphanumeric characters or '-', start and end with an alphanumeric character. " + common.ValueCannotBeChangedStringDescription,
 				Required:    true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(regexp.MustCompile(`.*\S.*`), "name may not be empty/blank string"),
+				},
 			},
 			"cluster": schema.StringAttribute{
 				Description: "Identifier of the cluster. " + common.ValueCannotBeChangedStringDescription,
@@ -156,6 +159,9 @@ func (r *HcpMachinePoolResource) Schema(ctx context.Context, req resource.Schema
 				Required:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+				},
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(regexp.MustCompile(`.*\S.*`), "subnet ID may not be empty/blank string"),
 				},
 			},
 			"status": schema.SingleNestedAttribute{

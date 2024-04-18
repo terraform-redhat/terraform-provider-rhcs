@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"regexp"
 	"strings"
 	"time"
 
@@ -247,6 +248,9 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 			"aws_account_id": schema.StringAttribute{
 				Description: "Identifier of the AWS account. " + common.ValueCannotBeChangedStringDescription,
 				Required:    true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(regexp.MustCompile(`^\d{12}$`), "aws account ID must be only digits and exactly 12 in length"),
+				},
 			},
 			"aws_subnet_ids": schema.ListAttribute{
 				Description: "AWS subnet IDs. " + common.ValueCannotBeChangedStringDescription,

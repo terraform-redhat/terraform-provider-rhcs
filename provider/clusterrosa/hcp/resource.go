@@ -30,7 +30,6 @@ import (
 	semver "github.com/hashicorp/go-version"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -356,12 +355,6 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 	}
 }
 
-func (r *ClusterRosaHcpResource) ConfigValidators(context.Context) []resource.ConfigValidator {
-	return []resource.ConfigValidator{
-		resourcevalidator.RequiredTogether(path.MatchRoot("etcd_encryption"), path.MatchRoot("etcd_kms_key_arn")),
-	}
-}
-
 func (r *ClusterRosaHcpResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
@@ -625,6 +618,16 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 		response.Diagnostics.AddError(
 			summary,
 			"When waiting for standard compute nodes to complete it is also required to wait for creation of the cluster",
+		)
+		return
+	}
+
+	hasEtcdEncrpytion := common.BoolWithFalseDefault(state.EtcdEncryption)
+	hasEtcdKmsKeyArn := common.HasValue(state.EtcdKmsKeyArn) && state.EtcdKmsKeyArn.ValueString() != ""
+	if !(hasEtcdEncrpytion && hasEtcdKmsKeyArn) {
+		response.Diagnostics.AddError(
+			summary,
+			"When utilizing etcd encryption an etcd kms key arn must also be supplied and vice versa",
 		)
 		return
 	}

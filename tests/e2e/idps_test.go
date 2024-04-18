@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	. "github.com/openshift-online/ocm-sdk-go/testing"
 	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
@@ -49,11 +50,11 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 		profile = ci.LoadProfileYamlFileByENV()
 	})
 
-	Describe("provision", func() {
+	Describe("provision and update", func() {
 		Context("Htpasswd", func() {
 
 			BeforeEach(func() {
-				userName = "jacko"
+				userName = "my-admin-user"
 				password = h.GenerateRandomStringWithSymbols(15)
 				htpasswdMap = []interface{}{map[string]string{"username": userName, "password": password}}
 				idpService.htpasswd = *exe.NewIDPService(CON.HtpasswdDir) // init new htpasswd service
@@ -63,53 +64,136 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				err := idpService.htpasswd.Destroy()
 				Expect(err).ToNot(HaveOccurred())
 			})
-			It("will succeed - [id:63151]", ci.High,
-				ci.Exclude,
-				func() {
-					By("Create htpasswd idp for an existing cluster")
+			It("will succeed - [id:63151]", ci.High, ci.Exclude, func() {
+				By("Create htpasswd idp for an existing cluster")
 
-					idpParam := &exe.IDPArgs{
-						ClusterID:     clusterID,
-						Name:          "OCP-63151-htpasswd-idp-test",
-						HtpasswdUsers: htpasswdMap,
-					}
-					err := idpService.htpasswd.Apply(idpParam, false)
+				idpParam := &exe.IDPArgs{
+					ClusterID:     clusterID,
+					Name:          "OCP-63151-htpasswd-idp-test",
+					HtpasswdUsers: htpasswdMap,
+				}
+				err := idpService.htpasswd.Apply(idpParam, false)
+				Expect(err).ToNot(HaveOccurred())
+				idpID, _ := idpService.htpasswd.Output()
+
+				By("List existing HtpasswdUsers and compare to the created one")
+				htpasswdUsersList, _ := cms.ListHtpasswdUsers(ci.RHCSConnection, clusterID, idpID.ID)
+				Expect(htpasswdUsersList.Status()).To(Equal(http.StatusOK))
+				respUserName, _ := htpasswdUsersList.Items().Slice()[0].GetUsername()
+				Expect(respUserName).To(Equal(userName))
+
+				By("Login with created htpasswd idp")
+				// this condition is for cases where the cluster profile
+				// has private_link enabled, then regular login won't work
+				if !profile.IsPrivateLink() {
+					getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
 					Expect(err).ToNot(HaveOccurred())
-					idpID, _ := idpService.htpasswd.Output()
+					server := getResp.Body().API().URL()
 
-					By("List existing HtpasswdUsers and compare to the created one")
-					htpasswdUsersList, _ := cms.ListHtpasswdUsers(ci.RHCSConnection, clusterID, idpID.ID)
-					Expect(htpasswdUsersList.Status()).To(Equal(http.StatusOK))
-					respUserName, _ := htpasswdUsersList.Items().Slice()[0].GetUsername()
-					Expect(respUserName).To(Equal(userName))
-
-					By("Login with created htpasswd idp")
-					// this condition is for cases where the cluster profile
-					// has private_link enabled, then regular login won't work
-					if !profile.IsPrivateLink() {
-						getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
-						Expect(err).ToNot(HaveOccurred())
-						server := getResp.Body().API().URL()
-
-						ocAtter := &openshift.OcAttributes{
-							Server:    server,
-							Username:  userName,
-							Password:  password,
-							ClusterID: clusterID,
-							AdditioanlFlags: []string{
-								"--insecure-skip-tls-verify",
-								fmt.Sprintf("--kubeconfig %s", path.Join(CON.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName))),
-							},
-							Timeout: 7,
-						}
-						_, err = openshift.OcLogin(*ocAtter)
-						Expect(err).ToNot(HaveOccurred())
-					} else {
-						l.Logger.Infof("private_link is enabled, skipping login command check.")
+					ocAtter := &openshift.OcAttributes{
+						Server:    server,
+						Username:  userName,
+						Password:  password,
+						ClusterID: clusterID,
+						AdditioanlFlags: []string{
+							"--insecure-skip-tls-verify",
+							fmt.Sprintf("--kubeconfig %s", path.Join(CON.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName))),
+						},
+						Timeout: 7,
 					}
+					_, err = openshift.OcLogin(*ocAtter)
+					Expect(err).ToNot(HaveOccurred())
+				} else {
+					l.Logger.Infof("private_link is enabled, skipping login command check.")
+				}
+			})
+			It("Update htpasswd idp - [id:73154]", ci.High, func() {
+				htpIDPName := "tf-htpassed-idp"
+				By("Create htpasswd idp for an existing cluster")
+				idpParam := &exe.IDPArgs{
+					ClusterID:     clusterID,
+					Name:          htpIDPName,
+					HtpasswdUsers: htpasswdMap,
+				}
+				err := idpService.htpasswd.Apply(idpParam, false)
+				Expect(err).ToNot(HaveOccurred())
+				idpID, _ := idpService.htpasswd.Output()
 
-				})
+				By("List existing HtpasswdUsers and compare to the created one")
+				htpasswdUsersList, _ := cms.ListHtpasswdUsers(ci.RHCSConnection, clusterID, idpID.ID)
+				Expect(htpasswdUsersList.Status()).To(Equal(http.StatusOK))
+				respUserName, _ := htpasswdUsersList.Items().Slice()[0].GetUsername()
+				Expect(respUserName).To(Equal(userName))
+
+				By("Update htpasswd idp password of 'my-admin-user'")
+				newPassword := h.GenerateRandomStringWithSymbols(15)
+				htpasswdMap = []interface{}{map[string]string{"username": userName, "password": newPassword}}
+				idpParam = &exe.IDPArgs{
+					ClusterID:     clusterID,
+					Name:          htpIDPName,
+					HtpasswdUsers: htpasswdMap,
+				}
+				err = idpService.htpasswd.Apply(idpParam, true)
+				Expect(err).ToNot(HaveOccurred())
+
+				By("Check resource state file is updated")
+				resource, err := h.GetResource(CON.HtpasswdDir, "rhcs_identity_provider", "htpasswd_idp")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(resource).To(MatchJQ(fmt.Sprintf(`.instances[0].attributes.htpasswd.users[] | select(.username == "%s") .password`, userName), newPassword))
+
+				By("Update htpasswd idp by adding two new users")
+				userName2 := "my-admin-user2"
+				password2 := h.GenerateRandomStringWithSymbols(15)
+				userName3 := "my-admin-user3"
+				password3 := h.GenerateRandomStringWithSymbols(15)
+
+				htpasswdMap = []interface{}{map[string]string{"username": userName, "password": password},
+					map[string]string{"username": userName2, "password": password2},
+					map[string]string{"username": userName3, "password": password3}}
+				idpParam = &exe.IDPArgs{
+					ClusterID:     clusterID,
+					Name:          htpIDPName,
+					HtpasswdUsers: htpasswdMap,
+				}
+				err = idpService.htpasswd.Apply(idpParam, true)
+				Expect(err).ToNot(HaveOccurred())
+
+				By("Update htpasswd idp on the second user password")
+				newPassword2 := h.GenerateRandomStringWithSymbols(15)
+				htpasswdMap = []interface{}{map[string]string{"username": userName, "password": password},
+					map[string]string{"username": userName2, "password": newPassword2},
+					map[string]string{"username": userName3, "password": password3}}
+				idpParam = &exe.IDPArgs{
+					ClusterID:     clusterID,
+					Name:          htpIDPName,
+					HtpasswdUsers: htpasswdMap,
+				}
+				err = idpService.htpasswd.Apply(idpParam, true)
+				Expect(err).ToNot(HaveOccurred())
+
+				By("Check resource state file is updated")
+				resource, err = h.GetResource(CON.HtpasswdDir, "rhcs_identity_provider", "htpasswd_idp")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(resource).To(MatchJQ(fmt.Sprintf(`.instances[0].attributes.htpasswd.users[] | select(.username == "%s") .password`, userName2), newPassword2))
+
+				By("List existing HtpasswdUsers and compare to the created one")
+				htpasswdUsersList, _ = cms.ListHtpasswdUsers(ci.RHCSConnection, clusterID, idpID.ID)
+				Expect(htpasswdUsersList.Status()).To(Equal(http.StatusOK))
+				Expect(htpasswdUsersList.Items().Len()).To(Equal(3))
+
+				respUserSlice := htpasswdUsersList.Items().Slice()
+				userNameToCheck := map[string]bool{
+					userName:  true,
+					userName2: true,
+					userName3: true,
+				}
+				for _, user := range respUserSlice {
+					_, existed := userNameToCheck[user.Username()]
+					Expect(existed).To(BeTrue())
+				}
+			})
 		})
+
 		Context("LDAP", func() {
 			BeforeEach(func() {
 				userName = "newton"
@@ -994,5 +1078,4 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				)
 			})
 	})
-
 })

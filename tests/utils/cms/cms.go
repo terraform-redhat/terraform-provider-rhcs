@@ -3,10 +3,14 @@ package cms
 import (
 	"errors"
 	"fmt"
+	"math"
+	"time"
 
 	client "github.com/openshift-online/ocm-sdk-go"
 	v1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
 // RetrieveClusterDetail will retrieve cluster detailed information based on the clusterID
@@ -349,4 +353,44 @@ func ListNodePools(connection *client.Connection, clusterID string, parameter ..
 	}
 	resp, err := request.Send()
 	return resp.Items().Slice(), err
+}
+
+// Delete cluster
+func DeleteCluster(connection *client.Connection, clusterID string, params ...map[string]interface{}) (*cmv1.ClusterDeleteResponse, error) {
+	request := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).Delete()
+	for _, param := range params {
+		for k, v := range param {
+			request = request.Parameter(k, v)
+		}
+	}
+	return request.Send()
+}
+
+// Wait for cluster deleted via OCM
+func WaitClusterDeleted(connection *client.Connection, clusterID string, timeoutMinute ...int) error {
+	timeout := 30 * time.Minute
+	if len(timeoutMinute) == 1 {
+		timeout = time.Duration(timeoutMinute[0]) * time.Minute
+	}
+	start := time.Now()
+	for time.Since(start) < timeout {
+		Logger.Infof("Waiting for the cluster %s deleted. Timeout after %d mins\n",
+			clusterID, int(math.Ceil(timeout.Minutes()-time.Since(start).Minutes())))
+		resp, _ := RetrieveClusterDetail(connection, clusterID)
+
+		if resp.Status() != CON.HTTPOK && resp.Status() != CON.HTTPNotFound {
+			err := fmt.Errorf(">>> [Error] Getting the cluster information meets error: %s", resp.Error().Reason())
+			return err
+		}
+
+		if resp.Status() == CON.HTTPNotFound {
+			Logger.Infof("OOH! The cluster  %s is deleted.\n", clusterID)
+			return nil
+		}
+
+		time.Sleep(90 * time.Second)
+	}
+
+	err := fmt.Errorf(">>> [Error] Met timeout( %s minites) when wait for cluster deleted via OCM", timeout.String())
+	return err
 }

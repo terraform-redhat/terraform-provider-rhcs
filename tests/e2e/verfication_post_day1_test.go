@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	rosaAccountRoles "github.com/openshift-online/ocm-common/pkg/rosa/accountroles"
+	. "github.com/openshift-online/ocm-sdk-go/testing"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
@@ -196,6 +197,26 @@ var _ = Describe("Verify cluster", func() {
 			if !profile.AdminEnabled {
 				Skip("The test configured only for cluster admin profile")
 			}
+
+			By("List existing Htpasswd IDP")
+			idpList, _ := cms.ListClusterIDPs(ci.RHCSConnection, clusterID)
+			Expect(idpList.Items().Len()).To(Equal(1))
+			Expect(idpList.Items().Slice()[0].Name()).To(Equal("cluster-admin"))
+
+			By("List existing HtpasswdUsers and compare to the created one")
+			idpID := idpList.Items().Slice()[0].ID()
+			htpasswdUsersList, _ := cms.ListHtpasswdUsers(ci.RHCSConnection, clusterID, idpID)
+			Expect(htpasswdUsersList.Status()).To(Equal(http.StatusOK))
+			respUserName, _ := htpasswdUsersList.Items().Slice()[0].GetUsername()
+			Expect(respUserName).To(Equal("rhcs-clusteradmin"))
+
+			By("Check resource state file is updated")
+			resource, err := h.GetResource(profile.GetClusterManifestsDir(), "rhcs_cluster_rosa_classic", "rosa_sts_cluster")
+			Expect(err).ToNot(HaveOccurred())
+			passwordInState, _ := JQ(`.instances[0].attributes.admin_credentials.password`, resource)
+			Expect(passwordInState).NotTo(BeEmpty())
+			Expect(resource).To(MatchJQ(`.instances[0].attributes.admin_credentials.username`, "rhcs-clusteradmin"))
+
 			By("Login with created cluster admin password")
 			getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())

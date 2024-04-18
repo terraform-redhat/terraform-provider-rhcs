@@ -89,8 +89,8 @@ var _ = Describe("HCP Cluster", func() {
 		ExternalID("123").
 		Name("my-cluster").
 		AWS(cmv1.NewAWS().
-			AccountID("123").
-			BillingAccountID("123").
+			AccountID("123456789012").
+			BillingAccountID("123456789012").
 			SubnetIDs("id1", "id2", "id3")).
 		State(cmv1.ClusterStateReady).
 		Region(cmv1.NewCloudRegion().ID("us-west-1")).
@@ -99,8 +99,9 @@ var _ = Describe("HCP Cluster", func() {
 		API(cmv1.NewClusterAPI().URL("https://my-api.example.com")).
 		Console(cmv1.NewClusterConsole().URL("https://my-console.example.com")).
 		Properties(map[string]string{
-			"rosa_tf_version": build.Version,
-			"rosa_tf_commit":  build.Commit,
+			"rosa_creator_arn:": "arn:aws:iam::123456789012:user/dummy",
+			"rosa_tf_version":   build.Version,
+			"rosa_tf_commit":    build.Commit,
 		}).
 		Nodes(cmv1.NewClusterNodes().
 			Compute(3).AvailabilityZones("us-west-1a", "us-west-1b", "us-west-1c").
@@ -136,8 +137,8 @@ var _ = Describe("HCP Cluster", func() {
 				  name           = "my-cluster"
 				  cloud_region   = "us-west-1"
 				  availability_zones = ["us-east-1a"]
-				  aws_account_id = "123"
-				  aws_billing_account_id = "123"
+				  aws_account_id = "123456789012"
+				  aws_billing_account_id = "123456789012"
 				  sts = {
 					  operator_role_prefix = "test"
 					  role_arn = "",
@@ -161,8 +162,8 @@ var _ = Describe("HCP Cluster", func() {
 				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				  name           = "my-cluster"
 				  cloud_region   = "us-west-1"
-				  aws_account_id = "123"
-				  aws_billing_account_id = "123"
+				  aws_account_id = "123456789012"
+				  aws_billing_account_id = "123456789012"
 				  sts = {
 					  operator_role_prefix = "test"
 					  role_arn = "",
@@ -216,8 +217,8 @@ var _ = Describe("HCP Cluster", func() {
 				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
-					aws_billing_account_id = "123"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
 					sts = {
 						operator_role_prefix = "test"
 						role_arn = "",
@@ -292,8 +293,8 @@ var _ = Describe("HCP Cluster", func() {
 				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
-					aws_billing_account_id = "123"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
 					sts = {
 						operator_role_prefix = "test"
 						role_arn = "",
@@ -337,8 +338,8 @@ var _ = Describe("HCP Cluster", func() {
 				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
-					aws_billing_account_id = "123"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
 					sts = {
 						operator_role_prefix = "test"
 						role_arn = "",
@@ -416,8 +417,8 @@ var _ = Describe("HCP Cluster", func() {
 				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
-					aws_billing_account_id = "123"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
 					sts = {
 						operator_role_prefix = "test"
 						role_arn = "",
@@ -500,8 +501,8 @@ var _ = Describe("HCP Cluster", func() {
 				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
-					aws_billing_account_id = "123"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
 					sts = {
 						operator_role_prefix = "test"
 						role_arn = "",
@@ -611,8 +612,8 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				sts = {
 					operator_role_prefix = "test"
 					role_arn = "",
@@ -725,8 +726,8 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				sts = {
 					operator_role_prefix = "test"
 					role_arn = "",
@@ -754,8 +755,8 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				sts = {
 					operator_role_prefix = "test"
 					role_arn = "",
@@ -784,8 +785,8 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				sts = {
 					operator_role_prefix = "test"
 					role_arn = "",
@@ -850,8 +851,8 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				sts = {
 					operator_role_prefix = "test"
 					role_arn = "",
@@ -918,13 +919,68 @@ var _ = Describe("HCP Cluster", func() {
 				)
 			})
 			When("Required together etcd_encryption and etcd_kms_key_arn", func() {
+				It("creates cluster without etcd encryption", func() {
+					terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					etcd_encryption = false
+				}`)
+					Expect(terraform.Apply()).ToNot(BeZero())
+				})
+				It("fails if etcd encryption is false, but has kms key arn", func() {
+					terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					etcd_encryption = false
+					etcd_kms_key_arn = "kms"
+				}`)
+					Expect(terraform.Apply()).ToNot(BeZero())
+				})
 				It("fails when no etcd_kms_key_arn", func() {
 					terraform.Source(`
 				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
-					aws_billing_account_id = "123"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
 					sts = {
 						operator_role_prefix = "test"
 						role_arn = "",
@@ -950,8 +1006,8 @@ var _ = Describe("HCP Cluster", func() {
 				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
-					aws_billing_account_id = "123"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
 					sts = {
 						operator_role_prefix = "test"
 						role_arn = "",
@@ -979,8 +1035,8 @@ var _ = Describe("HCP Cluster", func() {
 				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
-					aws_billing_account_id = "123"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
 					sts = {
 						operator_role_prefix = "test"
 						role_arn = "",
@@ -1045,8 +1101,8 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				sts = {
 					operator_role_prefix = "test"
 					role_arn = "",
@@ -1116,8 +1172,8 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				sts = {
 					operator_role_prefix = "test"
 					role_arn = "",
@@ -1177,6 +1233,7 @@ var _ = Describe("HCP Cluster", func() {
                       "op": "add",
                       "path": "/properties",
                       "value": {
+						"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
                         "%s": "%s"
                       }
                     }]`, propKey, propValue)),
@@ -1188,9 +1245,10 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
-				properties = { 
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				properties = {
+					rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
 					%s = "%s"
 				}
 				sts = {
@@ -1249,6 +1307,7 @@ var _ = Describe("HCP Cluster", func() {
                       "op": "add",
                       "path": "/properties",
                       "value": {
+						"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
                         "rosa_tf_commit":"%s",
                         "rosa_tf_version":"%s",
                         "%s": "%s"
@@ -1262,9 +1321,10 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				properties = { 
+					rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
 					%s = "%s"
 				}
 				sts = {
@@ -1316,9 +1376,10 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/properties",
 						"value": {
-						  "rosa_tf_commit":"%s",
-						  "rosa_tf_version":"%s",
-						  "%s": "%s"
+							"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+						  	"rosa_tf_commit":"%s",
+						  	"rosa_tf_version":"%s",
+						  	"%s": "%s"
 						}
 					}]`, build.Commit, build.Version, propKey, propValue)),
 				),
@@ -1346,9 +1407,10 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/properties",
 						"value": {
-						  "rosa_tf_commit":"%s",
-						  "rosa_tf_version":"%s",
-						  "%s": "%s"
+							"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+						  	"rosa_tf_commit":"%s",
+						  	"rosa_tf_version":"%s",
+						  	"%s": "%s"
 						}
 					}]`, build.Commit, build.Version, propKey, propValue+"_1")),
 				),
@@ -1359,9 +1421,10 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				properties = {
+					rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
 					%s = "%s"
 				}
 				sts = {
@@ -1424,9 +1487,10 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/properties",
 						"value": {
-						  "rosa_tf_commit":"%s",
-						  "rosa_tf_version":"%s",
-						  "%s": "%s"
+							"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+						  	"rosa_tf_commit":"%s",
+						  	"rosa_tf_version":"%s",
+						  	"%s": "%s"
 						}
 					}]`, build.Commit, build.Version, propKey, propValue)),
 				),
@@ -1437,9 +1501,10 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
-				properties = { 
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				properties = {
+					rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
 					%s = "%s"
 				}
 				sts = {
@@ -1465,8 +1530,8 @@ var _ = Describe("HCP Cluster", func() {
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_version`, build.Version))
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.`+propKey, propValue))
 			Expect(resource).To(MatchJQ(`.attributes.properties.`+propKey, propValue))
-			Expect(resource).To(MatchJQ(`.attributes.properties| keys | length`, 1))
-			Expect(resource).To(MatchJQ(`.attributes.ocm_properties| keys | length`, 3))
+			Expect(resource).To(MatchJQ(`.attributes.properties| keys | length`, 2))
+			Expect(resource).To(MatchJQ(`.attributes.ocm_properties| keys | length`, 4))
 
 			// Prepare server for update
 			server.AppendHandlers(
@@ -1493,6 +1558,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/properties",
 						"value": {
+						  "rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
 						  "rosa_tf_commit":"%s",
 						  "rosa_tf_version":"%s",
 						  "%s": "%s"
@@ -1523,6 +1589,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/properties",
 						"value": {
+						  "rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
 						  "rosa_tf_commit":"%s",
 						  "rosa_tf_version":"%s"
 						}
@@ -1535,10 +1602,10 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				properties = {
-
+					rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy"
 				}
 				sts = {
 					operator_role_prefix = "test"
@@ -1561,8 +1628,8 @@ var _ = Describe("HCP Cluster", func() {
 			resource = terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_commit`, build.Commit))
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_version`, build.Version))
-			Expect(resource).To(MatchJQ(`.attributes.properties | keys | length`, 0))
-			Expect(resource).To(MatchJQ(`.attributes.ocm_properties | keys | length`, 2))
+			Expect(resource).To(MatchJQ(`.attributes.properties | keys | length`, 1))
+			Expect(resource).To(MatchJQ(`.attributes.ocm_properties | keys | length`, 3))
 		})
 
 		It("Should fail cluster creation when trying to override reserved properties", func() {
@@ -1603,9 +1670,10 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				properties = {
+					rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
 					rosa_tf_version = "bob"
 				}
 				sts = {
@@ -1634,9 +1702,10 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster-234567-foobar-foobar-foobar-foobar-fooobaaar-fooobaaz"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				properties = {
+					rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
 					cluster_name = "too_long"
 				}
 				sts = {
@@ -1701,8 +1770,8 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				create_admin_user = true
 				sts = {
 					operator_role_prefix = "test"
@@ -1770,8 +1839,8 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				admin_credentials = {
 					username = "test-admin"
 					password = "1234AbB2341234"
@@ -1817,7 +1886,7 @@ var _ = Describe("HCP Cluster", func() {
 						VerifyJQ(`.aws.sts.operator_role_prefix`, "test"),
 						VerifyJQ(`.aws.sts.role_arn`, ""),
 						VerifyJQ(`.aws.sts.support_role_arn`, ""),
-						VerifyJQ(`.aws.account_id`, "123"),
+						VerifyJQ(`.aws.account_id`, "123456789012"),
 						RespondWithPatchedJSON(http.StatusCreated, template, `[
 						{
 						"op": "add",
@@ -1852,8 +1921,8 @@ var _ = Describe("HCP Cluster", func() {
 				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
-					aws_billing_account_id = "123"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
 					disable_waiting_in_destroy = true
 					sts = {
 						operator_role_prefix = "test"
@@ -1888,8 +1957,8 @@ var _ = Describe("HCP Cluster", func() {
 				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
-					aws_billing_account_id = "123"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
 					sts = {
 						operator_role_prefix = "test"
 						role_arn = "",
@@ -1923,8 +1992,8 @@ var _ = Describe("HCP Cluster", func() {
 				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
-					aws_billing_account_id = "123"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
 					destroy_timeout = -1
 					sts = {
 						operator_role_prefix = "test"
@@ -1959,8 +2028,8 @@ var _ = Describe("HCP Cluster", func() {
 				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
-					aws_billing_account_id = "123"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
 					destroy_timeout = 10
 					sts = {
 						operator_role_prefix = "test"
@@ -2035,8 +2104,8 @@ var _ = Describe("HCP Cluster", func() {
 				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
-					aws_billing_account_id = "123"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
 					proxy = {
 						http_proxy = "http://proxy.com",
 						https_proxy = "https://proxy.com",
@@ -2144,8 +2213,8 @@ var _ = Describe("HCP Cluster", func() {
 				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
-					aws_billing_account_id = "123"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
 					proxy = {
 						https_proxy = "https://proxy2.com",
 						no_proxy = "test"
@@ -2213,8 +2282,8 @@ var _ = Describe("HCP Cluster", func() {
 				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
-					aws_billing_account_id = "123"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
 					sts = {
 						operator_role_prefix = "test"
 						role_arn = "",
@@ -2284,8 +2353,8 @@ var _ = Describe("HCP Cluster", func() {
 				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
-					aws_billing_account_id = "123"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
 					proxy = {
 						additional_trust_bundle = "123",
 					}
@@ -2345,8 +2414,8 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				proxy = {
 					additional_trust_bundle = "123",
 				}
@@ -2415,8 +2484,8 @@ var _ = Describe("HCP Cluster", func() {
 			 resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				proxy = {
 					additional_trust_bundle = ""
 				}
@@ -2505,8 +2574,8 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				private = true
 				aws_subnet_ids = [
 					"id1", "id2", "id3"
@@ -2569,8 +2638,8 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				private = false
 				sts = {
 					operator_role_prefix = "test"
@@ -2641,8 +2710,8 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				sts = {
 					role_arn = "",
 					support_role_arn = "",
@@ -2702,8 +2771,8 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				version = "openshift-v4.12"
 				sts = {
 					operator_role_prefix = "test"
@@ -2769,8 +2838,8 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				sts = {
 					operator_role_prefix = "test"
 					role_arn = "",
@@ -2954,8 +3023,8 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				sts = {
 					operator_role_prefix = "test"
 					role_arn = ""
@@ -3082,8 +3151,8 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				sts = {
 					operator_role_prefix = "test"
 					role_arn = ""
@@ -3241,8 +3310,8 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				sts = {
 					operator_role_prefix = "test"
 					role_arn = ""
@@ -3318,8 +3387,8 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				sts = {
 					operator_role_prefix = "test"
 					role_arn = ""
@@ -3360,8 +3429,8 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				sts = {
 					operator_role_prefix = "test"
 					role_arn = ""
@@ -3408,8 +3477,8 @@ var _ = Describe("HCP Cluster", func() {
 			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
-				aws_billing_account_id = "123"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
 				sts = {
 					operator_role_prefix = "test"
 					role_arn = ""
@@ -3537,8 +3606,8 @@ var _ = Describe("HCP Cluster", func() {
 				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
-					aws_billing_account_id = "123"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
 					sts = {
 						operator_role_prefix = "test"
 						role_arn = ""
@@ -3564,8 +3633,8 @@ var _ = Describe("HCP Cluster", func() {
 				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
-					aws_billing_account_id = "123"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
 					sts = {
 						operator_role_prefix = "test"
 						role_arn = ""
@@ -3638,8 +3707,8 @@ var _ = Describe("HCP Cluster", func() {
 				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
-					aws_billing_account_id = "123"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
 					sts = {
 						operator_role_prefix = "test"
 						role_arn = ""

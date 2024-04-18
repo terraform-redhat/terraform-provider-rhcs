@@ -53,7 +53,7 @@ const (
 	domainPrefix      = "domain-prefix"
 	regionId          = "us-east-1"
 	multiAz           = true
-	rosaCreatorArn    = "arn:aws:iam::123456789012:dummy/dummy"
+	rosaCreatorArn    = "arn:aws:iam::123456789012:user/dummy"
 	apiUrl            = "https://api.my-cluster.com:6443"
 	consoleUrl        = "https://console.my-cluster.com"
 	baseDomain        = "alias.p1.openshiftapps.com"

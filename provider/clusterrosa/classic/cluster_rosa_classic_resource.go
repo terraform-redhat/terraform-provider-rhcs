@@ -536,6 +536,25 @@ func createClassicClusterObject(ctx context.Context,
 			return nil, errors.New(errHeadline + "\n" + errDescription)
 		}
 
+		// TODO: refactor to common pkg in properties file
+		creatorArn, ok := propertiesElements[rosa.PropertyRosaCreatorArn]
+		if !ok {
+			errDescription := fmt.Sprintf("Expected property '%s'. Please include it, for instance by supplying 'data.aws_caller_identity.current.arn'", rosa.PropertyRosaCreatorArn)
+			diags.AddError(
+				errHeadline,
+				errDescription,
+			)
+			return nil, errors.New(errHeadline + "\n" + errDescription)
+		}
+		if !rosa.UserArnRE.MatchString(creatorArn) {
+			errDescription := fmt.Sprintf("Property '%s' does not have a valid user arn. Please include it, for instance by supplying 'data.aws_caller_identity.current.arn'", rosa.PropertyRosaCreatorArn)
+			diags.AddError(
+				errHeadline,
+				errDescription,
+			)
+			return nil, errors.New(errHeadline + "\n" + errDescription)
+		}
+
 		for k, v := range propertiesElements {
 			properties[k] = v
 		}
@@ -1059,11 +1078,11 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resourc
 
 	patchProperties := shouldPatchProperties(state, plan)
 	if patchProperties {
-		propertiesElements, err := common.OptionalMap(ctx, plan.Properties)
+		propertiesElements, err := rosa.ValidatePatchProperties(ctx, state.Properties, plan.Properties)
 		if err != nil {
 			response.Diagnostics.AddError(
-				"Can't upgrade cluster",
-				fmt.Sprintf("Can't upgrade cluster version with identifier: `%s`, %v", state.ID.ValueString(), err),
+				"Can't patch cluster",
+				fmt.Sprintf("Can't patch cluster with identifier: '%s', %v", state.ID.ValueString(), err),
 			)
 			return
 		}
@@ -1449,7 +1468,7 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		state.AWSAccountID = types.StringValue(awsAccountID)
 	} else {
 		// rosa cli gets it from the properties, so we do the same
-		if creatorARN, ok := object.Properties()[ocmConsts.CreatorArn]; ok {
+		if creatorARN, ok := object.Properties()[rosa.PropertyRosaCreatorArn]; ok {
 			if arn, err := arn.Parse(creatorARN); err == nil {
 				state.AWSAccountID = types.StringValue(arn.AccountID)
 			}

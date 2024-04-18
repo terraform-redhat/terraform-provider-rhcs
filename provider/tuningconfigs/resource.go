@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -172,8 +173,7 @@ func (r *TuningConfigResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
-	// assert cluster attribute wasn't changed:
-	common.ValidateStateAndPlanEquals(state.Cluster, plan.Cluster, "cluster", &diags)
+	diags = validateNoImmutableAttChange(state, plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -199,6 +199,13 @@ func (r *TuningConfigResource) Update(ctx context.Context, req resource.UpdateRe
 	// Save the state:
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
+}
+
+func validateNoImmutableAttChange(state, plan *TuningConfig) diag.Diagnostics {
+	diags := diag.Diagnostics{}
+	common.ValidateStateAndPlanEquals(state.Cluster, plan.Cluster, "cluster", &diags)
+	common.ValidateStateAndPlanEquals(state.Name, plan.Name, "name", &diags)
+	return diags
 }
 
 func (r *TuningConfigResource) Delete(ctx context.Context, req resource.DeleteRequest,

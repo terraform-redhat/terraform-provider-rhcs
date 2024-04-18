@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/ocm_policies/common"
 )
 
 const (
@@ -41,6 +42,7 @@ const (
 	// Policy IDs from type account roles
 	Installer            = "sts_installer_permission_policy"
 	Support              = "sts_support_permission_policy"
+	SupportRhSreRole     = "sts_support_rh_sre_role"
 	InstanceWorker       = "sts_instance_worker_permission_policy"
 	InstanceControlPlane = "sts_instance_controlplane_permission_policy"
 )
@@ -98,6 +100,9 @@ func (s *OcmPoliciesDataSource) Schema(ctx context.Context, req datasource.Schem
 						Computed: true,
 					},
 					Support: schema.StringAttribute{
+						Computed: true,
+					},
+					SupportRhSreRole: schema.StringAttribute{
 						Computed: true,
 					},
 					InstanceWorker: schema.StringAttribute{
@@ -166,6 +171,12 @@ func (s *OcmPoliciesDataSource) Read(ctx context.Context, req datasource.ReadReq
 			accountRolePolicies.Installer = types.StringValue(awsPolicy.Details())
 		case Support:
 			accountRolePolicies.Support = types.StringValue(awsPolicy.Details())
+		case "sts_support_trust_policy":
+			jitRole, err := common.ParseRhSupportRole(ctx, awsPolicy.Details())
+			if err != nil {
+				resp.Diagnostics.AddError("failed to fetch Classic policies", fmt.Sprintf("%v", err))
+			}
+			accountRolePolicies.SupportRhSreRole = types.StringValue(jitRole)
 		case InstanceWorker:
 			accountRolePolicies.InstanceWorker = types.StringValue(awsPolicy.Details())
 		case InstanceControlPlane:
@@ -175,7 +186,9 @@ func (s *OcmPoliciesDataSource) Read(ctx context.Context, req datasource.ReadReq
 		}
 		return true
 	})
-
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	state.OperatorRolePolicies = &operatorRolePolicies
 	state.AccountRolePolicies = &accountRolePolicies
 

@@ -28,6 +28,7 @@ Read-Only:
 - `sts_hcp_installer_permission_policy` (String)
 - `sts_hcp_instance_worker_permission_policy` (String)
 - `sts_hcp_support_permission_policy` (String)
+- `sts_support_rh_sre_role` (String)
 
 
 <a id="nestedatt--operator_role_policies"></a>
@@ -43,4 +44,3 @@ Read-Only:
 - `openshift_hcp_ingress_operator_cloud_credentials_policy` (String)
 - `openshift_hcp_kms_provider_credentials_policy` (String)
 - `openshift_hcp_kube_controller_manager_credentials_policy` (String)
-- `shared_vpc_openshift_ingress_operator_cloud_credentials_policy` (String)

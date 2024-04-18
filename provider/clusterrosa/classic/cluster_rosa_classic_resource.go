@@ -944,6 +944,13 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaClassicState) diag.Dia
 	common.ValidateStateAndPlanEquals(state.ChannelGroup, plan.ChannelGroup, "channel_group", &diags)
 	common.ValidateStateAndPlanEquals(state.Ec2MetadataHttpTokens, plan.Ec2MetadataHttpTokens, "ec2_metadata_http_tokens", &diags)
 
+	// STS field validations
+	common.ValidateStateAndPlanEquals(state.Sts.RoleARN, plan.Sts.RoleARN, "sts.role_arn", &diags)
+	common.ValidateStateAndPlanEquals(state.Sts.SupportRoleArn, plan.Sts.SupportRoleArn, "sts.support_role_arn", &diags)
+	common.ValidateStateAndPlanEquals(state.Sts.InstanceIAMRoles.WorkerRoleARN, plan.Sts.InstanceIAMRoles.WorkerRoleARN, "sts.instance_iam_roles.worker_role_arn", &diags)
+	common.ValidateStateAndPlanEquals(state.Sts.OIDCConfigID, plan.Sts.OIDCConfigID, "sts.oidc_config_id", &diags)
+	common.ValidateStateAndPlanEquals(state.Sts.OperatorRolePrefix, plan.Sts.OperatorRolePrefix, "sts.operator_role_prefix", &diags)
+
 	// security group's attributes
 	common.ValidateStateAndPlanEquals(state.AWSAdditionalControlPlaneSecurityGroupIds, plan.AWSAdditionalControlPlaneSecurityGroupIds, "aws_additional_control_plane_security_group_ids", &diags)
 	common.ValidateStateAndPlanEquals(state.AWSAdditionalInfraSecurityGroupIds, plan.AWSAdditionalInfraSecurityGroupIds, "aws_additional_infra_security_group_ids", &diags)

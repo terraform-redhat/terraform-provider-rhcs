@@ -575,6 +575,8 @@ func validateNoImmutableAttChange(state, plan *HcpMachinePoolState) diag.Diagnos
 	if state.AWSNodePool != nil && plan.AWSNodePool != nil {
 		validateStateAndPlanEquals(state.AWSNodePool.InstanceProfile, plan.AWSNodePool.InstanceProfile, "aws_node_pool.instance_profile", &diags)
 		validateStateAndPlanEquals(state.AWSNodePool.Tags, plan.AWSNodePool.Tags, "aws_node_pool.tags", &diags)
+		validateStateAndPlanEquals(state.AWSNodePool.InstanceType, plan.AWSNodePool.InstanceType,
+			"aws_node_pool.instance_type", &diags)
 		validateStateAndPlanEquals(state.AWSNodePool.AdditionalSecurityGroupIds, plan.AWSNodePool.AdditionalSecurityGroupIds,
 			"aws_node_pool.additional_security_group_ids", &diags)
 	}

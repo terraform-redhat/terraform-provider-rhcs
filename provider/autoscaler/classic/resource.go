@@ -325,14 +325,13 @@ func (r *ClusterAutoscalerResource) Update(ctx context.Context, request resource
 		return
 	}
 
-	// assert cluster attribute wasn't changed:
-	common.ValidateStateAndPlanEquals(state.Cluster, plan.Cluster, "cluster", &diags)
+	diags = validateNoImmutableAttChange(state, plan)
+	response.Diagnostics.Append(diags...)
 	if response.Diagnostics.HasError() {
 		return
 	}
 
 	_, err := r.collection.Cluster(plan.Cluster.ValueString()).Autoscaler().Get().SendContext(ctx)
-
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Failed getting cluster autoscaler",
@@ -378,6 +377,12 @@ func (r *ClusterAutoscalerResource) Update(ctx context.Context, request resource
 	if response.Diagnostics.HasError() {
 		return
 	}
+}
+
+func validateNoImmutableAttChange(state, plan *ClusterAutoscalerState) diag.Diagnostics {
+	diags := diag.Diagnostics{}
+	common.ValidateStateAndPlanEquals(state.Cluster, plan.Cluster, "cluster", &diags)
+	return diags
 }
 
 func (r *ClusterAutoscalerResource) Delete(ctx context.Context, request resource.DeleteRequest,

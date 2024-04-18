@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/ocm_policies/common"
 )
 
 const (
@@ -39,12 +40,11 @@ const (
 	ControlPlaneOperatorKubeSystem  = "openshift_hcp_control_plane_operator_credentials_policy"
 	KmsProviderKubeSystem           = "openshift_hcp_kms_provider_credentials_policy"
 
-	SharedVpcIngressOperator = "shared_vpc_openshift_ingress_operator_cloud_credentials_policy"
-
 	// Policy IDs from type account roles
-	Installer      = "sts_hcp_installer_permission_policy"
-	Support        = "sts_hcp_support_permission_policy"
-	InstanceWorker = "sts_hcp_instance_worker_permission_policy"
+	Installer        = "sts_hcp_installer_permission_policy"
+	Support          = "sts_hcp_support_permission_policy"
+	SupportRhSreRole = "sts_support_rh_sre_role"
+	InstanceWorker   = "sts_hcp_instance_worker_permission_policy"
 )
 
 type OcmPoliciesDataSource struct {
@@ -81,10 +81,6 @@ func (s *OcmPoliciesDataSource) Schema(ctx context.Context, req datasource.Schem
 					CloudNetwork: schema.StringAttribute{
 						Computed: true,
 					},
-
-					SharedVpcIngressOperator: schema.StringAttribute{
-						Computed: true,
-					},
 					KubeControllerManagerKubeSystem: schema.StringAttribute{
 						Computed: true,
 					},
@@ -107,6 +103,9 @@ func (s *OcmPoliciesDataSource) Schema(ctx context.Context, req datasource.Schem
 						Computed: true,
 					},
 					Support: schema.StringAttribute{
+						Computed: true,
+					},
+					SupportRhSreRole: schema.StringAttribute{
 						Computed: true,
 					},
 					InstanceWorker: schema.StringAttribute{
@@ -161,8 +160,6 @@ func (s *OcmPoliciesDataSource) Read(ctx context.Context, req datasource.ReadReq
 			operatorRolePolicies.ClusterCSI = types.StringValue(awsPolicy.ARN())
 		case CloudNetwork:
 			operatorRolePolicies.CloudNetwork = types.StringValue(awsPolicy.ARN())
-		case SharedVpcIngressOperator:
-			operatorRolePolicies.SharedVpcIngressOperator = types.StringValue(awsPolicy.ARN())
 		case KubeControllerManagerKubeSystem:
 			operatorRolePolicies.KubeControllerManagerKubeSystem = types.StringValue(awsPolicy.ARN())
 		case CapaControllerManagerKubeSystem:
@@ -171,12 +168,17 @@ func (s *OcmPoliciesDataSource) Read(ctx context.Context, req datasource.ReadReq
 			operatorRolePolicies.ControlPlaneOperatorKubeSystem = types.StringValue(awsPolicy.ARN())
 		case KmsProviderKubeSystem:
 			operatorRolePolicies.KmsProviderKubeSystem = types.StringValue(awsPolicy.ARN())
-
 		// account roles
 		case Installer:
 			accountRolePolicies.Installer = types.StringValue(awsPolicy.ARN())
 		case Support:
 			accountRolePolicies.Support = types.StringValue(awsPolicy.ARN())
+		case "sts_support_trust_policy":
+			jitRole, err := common.ParseRhSupportRole(ctx, awsPolicy.Details())
+			if err != nil {
+				resp.Diagnostics.AddError("failed to fetch HCP policies", fmt.Sprintf("%v", err))
+			}
+			accountRolePolicies.SupportRhSreRole = types.StringValue(jitRole)
 		case InstanceWorker:
 			accountRolePolicies.InstanceWorker = types.StringValue(awsPolicy.ARN())
 		default:

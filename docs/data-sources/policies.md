@@ -33,6 +33,7 @@ Read-Only:
 - `sts_instance_controlplane_permission_policy` (String)
 - `sts_instance_worker_permission_policy` (String)
 - `sts_support_permission_policy` (String)
+- `sts_support_rh_sre_role` (String)
 
 
 <a id="nestedatt--operator_role_policies"></a>

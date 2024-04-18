@@ -16,6 +16,7 @@ limitations under the License.
 package provider
 
 import (
+	"fmt"
 	"net/http"
 
 	. "github.com/onsi/ginkgo/v2/dsl/core"             // nolint
@@ -181,12 +182,19 @@ const (
 			"details": "{}",
 			"arn": "arn:aws:iam::aws:policy/service-role/ROSASRESupportPolicy",
 			"type": "AccountRole"
-		  }
+		  },
+		  {
+			"kind":"STSPolicy",
+			"id":"sts_support_trust_policy",
+			"details":"{\"Version\": \"2012-10-17\", \"Statement\": [{\"Action\": [\"sts:AssumeRole\"], \"Effect\": \"Allow\", \"Principal\": {\"AWS\": [\"arn:aws:iam::12345678912:role/RH-Technical-Support-12345678\"]}}]}",
+			"arn":"",
+			"type":"AccountRole"
+		  }	  
 		],
 		"kind": "STSPoliciesList",
 		"page": 1,
-		"size": 22,
-		"total": 22
+		"size": 23,
+		"total": 23
 	  }`
 )
 
@@ -210,7 +218,7 @@ var _ = Describe("OCM policies data source", func() {
 
 		// Check the state:
 		resource := terraform.Resource("rhcs_policies", "my_policies").(map[string]interface{})
-		Expect(resource["attributes"]).To(Equal(
+		Expect(fmt.Sprint(resource["attributes"])).To(Equal(fmt.Sprint(
 			map[string]interface{}{
 				"operator_role_policies": map[string]interface{}{
 					"openshift_cloud_credential_operator_cloud_credential_operator_iam_ro_creds_policy": "{}",
@@ -226,8 +234,9 @@ var _ = Describe("OCM policies data source", func() {
 					"sts_support_permission_policy":               "{}",
 					"sts_instance_worker_permission_policy":       "{}",
 					"sts_instance_controlplane_permission_policy": "{}",
+					"sts_support_rh_sre_role":                     "arn:aws:iam::12345678912:role/RH-Technical-Support-12345678",
 				},
 			},
-		))
+		)))
 	})
 })

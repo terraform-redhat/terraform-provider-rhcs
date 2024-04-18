@@ -28,7 +28,6 @@ type OperatorRolePolicies struct {
 	IngressOperator                 types.String `tfsdk:"openshift_hcp_ingress_operator_cloud_credentials_policy"`
 	ClusterCSI                      types.String `tfsdk:"openshift_hcp_cluster_csi_drivers_ebs_cloud_credentials_policy"`
 	CloudNetwork                    types.String `tfsdk:"openshift_hcp_cloud_network_config_controller_cloud_credentials_policy"`
-	SharedVpcIngressOperator        types.String `tfsdk:"shared_vpc_openshift_ingress_operator_cloud_credentials_policy"`
 	KubeControllerManagerKubeSystem types.String `tfsdk:"openshift_hcp_kube_controller_manager_credentials_policy"`
 	CapaControllerManagerKubeSystem types.String `tfsdk:"openshift_hcp_capa_controller_manager_credentials_policy"`
 	ControlPlaneOperatorKubeSystem  types.String `tfsdk:"openshift_hcp_control_plane_operator_credentials_policy"`
@@ -36,7 +35,8 @@ type OperatorRolePolicies struct {
 }
 
 type AccountRolePolicies struct {
-	Installer      types.String `tfsdk:"sts_hcp_installer_permission_policy"`
-	Support        types.String `tfsdk:"sts_hcp_support_permission_policy"`
-	InstanceWorker types.String `tfsdk:"sts_hcp_instance_worker_permission_policy"`
+	Installer        types.String `tfsdk:"sts_hcp_installer_permission_policy"`
+	Support          types.String `tfsdk:"sts_hcp_support_permission_policy"`
+	SupportRhSreRole types.String `tfsdk:"sts_support_rh_sre_role"`
+	InstanceWorker   types.String `tfsdk:"sts_hcp_instance_worker_permission_policy"`
 }

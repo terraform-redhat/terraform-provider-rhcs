@@ -16,6 +16,7 @@ limitations under the License.
 package hcp
 
 import (
+	"fmt"
 	"net/http"
 
 	. "github.com/onsi/ginkgo/v2/dsl/core"             // nolint
@@ -181,7 +182,14 @@ const (
 				"details": "{}",
 				"arn": "arn:aws:iam::aws:policy/service-role/ROSASRESupportPolicy",
 				"type": "AccountRole"
-			  }
+			  },
+			  {
+				"kind":"STSPolicy",
+				"id":"sts_support_trust_policy",
+				"details":"{\"Version\": \"2012-10-17\", \"Statement\": [{\"Action\": [\"sts:AssumeRole\"], \"Effect\": \"Allow\", \"Principal\": {\"AWS\": [\"arn:aws:iam::12345678912:role/RH-Technical-Support-12345678\"]}}]}",
+				"arn":"",
+				"type":"AccountRole"
+			  }	 
 			],
 		"kind": "STSPoliciesList",
 		"page": 1,
@@ -210,14 +218,13 @@ var _ = Describe("Hcp OCM policies data source", func() {
 
 		// Check the state:
 		resource := terraform.Resource("rhcs_hcp_policies", "my_policies").(map[string]interface{})
-		Expect(resource["attributes"]).To(Equal(
+		Expect(fmt.Sprint(resource["attributes"])).To(Equal(fmt.Sprint(
 			map[string]interface{}{
 				"operator_role_policies": map[string]interface{}{
 					"openshift_hcp_image_registry_installer_cloud_credentials_policy":        "arn:aws:iam::aws:policy/service-role/ROSAImageRegistryOperatorPolicy",
 					"openshift_hcp_ingress_operator_cloud_credentials_policy":                "arn:aws:iam::aws:policy/service-role/ROSAIngressOperatorPolicy",
 					"openshift_hcp_cluster_csi_drivers_ebs_cloud_credentials_policy":         "arn:aws:iam::aws:policy/service-role/ROSAAmazonEBSCSIDriverOperatorPolicy",
 					"openshift_hcp_cloud_network_config_controller_cloud_credentials_policy": "arn:aws:iam::aws:policy/service-role/ROSACloudNetworkConfigOperatorPolicy",
-					"shared_vpc_openshift_ingress_operator_cloud_credentials_policy":         "",
 					"openshift_hcp_kube_controller_manager_credentials_policy":               "arn:aws:iam::aws:policy/service-role/ROSAKubeControllerPolicy",
 					"openshift_hcp_capa_controller_manager_credentials_policy":               "arn:aws:iam::aws:policy/service-role/ROSANodePoolManagementPolicy",
 					"openshift_hcp_control_plane_operator_credentials_policy":                "arn:aws:iam::aws:policy/service-role/ROSAControlPlaneOperatorPolicy",
@@ -227,8 +234,9 @@ var _ = Describe("Hcp OCM policies data source", func() {
 					"sts_hcp_installer_permission_policy":       "arn:aws:iam::aws:policy/service-role/ROSAInstallerPolicy",
 					"sts_hcp_support_permission_policy":         "arn:aws:iam::aws:policy/service-role/ROSASRESupportPolicy",
 					"sts_hcp_instance_worker_permission_policy": "arn:aws:iam::aws:policy/service-role/ROSAWorkerInstancePolicy",
+					"sts_support_rh_sre_role":                   "arn:aws:iam::12345678912:role/RH-Technical-Support-12345678",
 				},
 			},
-		))
+		)))
 	})
 })

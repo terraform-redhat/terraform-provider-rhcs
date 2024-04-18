@@ -79,6 +79,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 	    "url": "https://my-console.example.com"
 	  },
       "properties": {
+		 "rosa_creator_arn:": "arn:aws:iam::123456789012:user/dummy",
          "rosa_tf_version": "` + build.Version + `",
          "rosa_tf_commit": "` + build.Commit + `"
       },
@@ -194,7 +195,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			  name           = "my-cluster"
 			  cloud_region   = "us-west-1"
               availability_zones = ["us-east-1a"]
-			  aws_account_id = "123"
+			  aws_account_id = "123456789012"
 			  sts = {
 				  operator_role_prefix = "test"
 				  role_arn = "",
@@ -214,7 +215,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			  name           = "my-cluster"
 			  cloud_region   = "us-west-1"
-			  aws_account_id = "123"
+			  aws_account_id = "123456789012"
 			  sts = {
 				  operator_role_prefix = "test"
 				  role_arn = "",
@@ -271,7 +272,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			  name           = "my-cluster"
 			  cloud_region   = "us-west-1"
-			  aws_account_id = "123"
+			  aws_account_id = "123456789012"
 			  sts = {
 				  operator_role_prefix = "test"
 				  role_arn = "",
@@ -345,7 +346,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			  name           = "my-cluster"
 			  cloud_region   = "us-west-1"
-			  aws_account_id = "123"
+			  aws_account_id = "123456789012"
 			  sts = {
 				  operator_role_prefix = "test"
 				  role_arn = "",
@@ -384,7 +385,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			  name           = "my-cluster"
 			  cloud_region   = "us-west-1"
-			  aws_account_id = "123"
+			  aws_account_id = "123456789012"
 			  sts = {
 				  operator_role_prefix = "test"
 				  role_arn = "",
@@ -466,7 +467,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -547,7 +548,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -609,7 +610,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		    name           = "my-cluster"
 			domain_prefix  = "mydomainprefix"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -680,7 +681,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -740,7 +741,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
             create_admin_user = true
 			sts = {
 				operator_role_prefix = "test"
@@ -803,7 +804,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
             admin_credentials = {
                 username = "test-admin"
                 password = "1234AbB2341234"
@@ -868,7 +869,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
             admin_credentials = {}
 			sts = {
 				operator_role_prefix = "test"
@@ -958,7 +959,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
+				aws_account_id = "123456789012"
 				admin_credentials = {}
 				sts = {
 					operator_role_prefix = "test"
@@ -1016,7 +1017,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -1105,7 +1106,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
+				aws_account_id = "123456789012"
 				sts = {
 					operator_role_prefix = "test"
 					role_arn = "",
@@ -1164,7 +1165,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -1231,7 +1232,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -1308,7 +1309,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
+				aws_account_id = "123456789012"
 				sts = {
 					operator_role_prefix = "test"
 					role_arn = "",
@@ -1368,6 +1369,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
                       "op": "add",
                       "path": "/properties",
                       "value": {
+						"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
                         "`+prop_key+`": "`+prop_val+`"
                       }
                     }]`),
@@ -1375,14 +1377,15 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			terraform.Source(fmt.Sprintf(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-            properties = { ` +
-				prop_key + ` = "` + prop_val + `"` +
-				`}
+			aws_account_id = "123456789012"
+            properties = { 
+				rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
+				%s = "%s"
+			}
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -1393,7 +1396,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				}
 			}
 		  }
-		`)
+		`, prop_key, prop_val))
 			Expect(terraform.Apply()).To(BeZero())
 		})
 
@@ -1438,6 +1441,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
                       "op": "add",
                       "path": "/properties",
                       "value": {
+						"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
                         "rosa_tf_commit":"`+build.Commit+`",
                         "rosa_tf_version":"`+build.Version+`",
                         "`+prop_key+`": "`+prop_val+`"
@@ -1447,14 +1451,15 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			terraform.Source(fmt.Sprintf(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-            properties = { ` +
-				prop_key + ` = "` + prop_val + `"` +
-				`}
+			aws_account_id = "123456789012"
+            properties = {
+				rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
+				%s = "%s"
+			}
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -1465,7 +1470,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				}
 			}
 		  }
-		`)
+		`, prop_key, prop_val))
 			Expect(terraform.Apply()).To(BeZero())
 			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_commit`, build.Commit))
@@ -1501,6 +1506,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
                       "op": "add",
                       "path": "/properties",
                       "value": {
+						"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
                         "rosa_tf_commit":"`+build.Commit+`",
                         "rosa_tf_version":"`+build.Version+`",
                         "`+prop_key+`": "`+prop_val+`"
@@ -1535,6 +1541,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
                       "op": "add",
                       "path": "/properties",
                       "value": {
+						"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
                         "rosa_tf_commit":"`+build.Commit+`",
                         "rosa_tf_version":"`+build.Version+`",
                         "`+prop_key+`": "`+prop_val+`_1"
@@ -1544,14 +1551,15 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			terraform.Source(fmt.Sprintf(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-            properties = { ` +
-				prop_key + ` = "` + prop_val + `_1"` +
-				`}
+			aws_account_id = "123456789012"
+            properties = {
+				rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
+				%s = "%s"
+			}
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -1562,7 +1570,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				}
 			}
 		  }
-		`)
+		`, prop_key, prop_val+"_1"))
 			Expect(terraform.Apply()).To(BeZero())
 			resource = terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_commit`, build.Commit))
@@ -1612,6 +1620,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
                       "op": "add",
                       "path": "/properties",
                       "value": {
+						"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
                         "rosa_tf_commit":"`+build.Commit+`",
                         "rosa_tf_version":"`+build.Version+`",
                         "`+prop_key+`": "`+prop_val+`"
@@ -1621,14 +1630,15 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			terraform.Source(fmt.Sprintf(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-            properties = { ` +
-				prop_key + ` = "` + prop_val + `"` +
-				`}
+			aws_account_id = "123456789012"
+            properties = {
+				rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
+				%s = "%s"
+			}
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -1639,15 +1649,15 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				}
 			}
 		  }
-		`)
+		`, prop_key, prop_val))
 			Expect(terraform.Apply()).To(BeZero())
 			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_commit`, build.Commit))
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_version`, build.Version))
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.`+prop_key, prop_val))
 			Expect(resource).To(MatchJQ(`.attributes.properties.`+prop_key, prop_val))
-			Expect(resource).To(MatchJQ(`.attributes.properties| keys | length`, 1))
-			Expect(resource).To(MatchJQ(`.attributes.ocm_properties| keys | length`, 3))
+			Expect(resource).To(MatchJQ(`.attributes.properties| keys | length`, 2))
+			Expect(resource).To(MatchJQ(`.attributes.ocm_properties| keys | length`, 4))
 
 			// Prepare server for update
 			server.AppendHandlers(
@@ -1676,6 +1686,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
                       "op": "add",
                       "path": "/properties",
                       "value": {
+						"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
                         "rosa_tf_commit":"`+build.Commit+`",
                         "rosa_tf_version":"`+build.Version+`",
                         "`+prop_key+`": "`+prop_val+`"
@@ -1710,6 +1721,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
                       "op": "add",
                       "path": "/properties",
                       "value": {
+						"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
                         "rosa_tf_commit":"`+build.Commit+`",
                         "rosa_tf_version":"`+build.Version+`"
                       }
@@ -1722,8 +1734,10 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
-            properties = {}
+			aws_account_id = "123456789012"
+            properties = {
+				rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy"
+			}
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -1739,8 +1753,8 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			resource = terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_commit`, build.Commit))
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_version`, build.Version))
-			Expect(resource).To(MatchJQ(`.attributes.properties | keys | length`, 0))
-			Expect(resource).To(MatchJQ(`.attributes.ocm_properties | keys | length`, 2))
+			Expect(resource).To(MatchJQ(`.attributes.properties | keys | length`, 1))
+			Expect(resource).To(MatchJQ(`.attributes.ocm_properties | keys | length`, 3))
 		})
 
 		It("Should fail cluster creation when trying to override reserved properties", func() {
@@ -1784,8 +1798,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			properties = {
+				rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
    				rosa_tf_version = "bob"
 			}
 			sts = {
@@ -1808,8 +1823,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster-234567-foobarfoobar-foobar-fooobaaar-fooo-baaaar"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			properties = {
+				rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
    				cluster_name = "too_long"
 			}
 			sts = {
@@ -1845,7 +1861,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						VerifyJQ(`.aws.sts.operator_role_prefix`, "test"),
 						VerifyJQ(`.aws.sts.role_arn`, ""),
 						VerifyJQ(`.aws.sts.support_role_arn`, ""),
-						VerifyJQ(`.aws.account_id`, "123"),
+						VerifyJQ(`.aws.account_id`, "123456789012"),
 						RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
@@ -1882,7 +1898,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
+					aws_account_id = "123456789012"
 					disable_waiting_in_destroy = true
 					sts = {
 						operator_role_prefix = "test"
@@ -1913,7 +1929,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
+					aws_account_id = "123456789012"
 					sts = {
 						operator_role_prefix = "test"
 						role_arn = "",
@@ -1942,7 +1958,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
+					aws_account_id = "123456789012"
 					destroy_timeout = -1
 					sts = {
 						operator_role_prefix = "test"
@@ -1972,7 +1988,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
+					aws_account_id = "123456789012"
 					destroy_timeout = 10
 					sts = {
 						operator_role_prefix = "test"
@@ -2038,7 +2054,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
+					aws_account_id = "123456789012"
 					disable_workload_monitoring = true
 					sts = {
 						operator_role_prefix = "test"
@@ -2133,7 +2149,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
+					aws_account_id = "123456789012"
 					disable_workload_monitoring = false
 					sts = {
 						operator_role_prefix = "test"
@@ -2205,7 +2221,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			proxy = {
 				http_proxy = "http://proxy.com",
 				https_proxy = "https://proxy.com",
@@ -2312,7 +2328,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			proxy = {
 				https_proxy = "https://proxy2.com",
 				no_proxy = "test"
@@ -2376,7 +2392,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -2445,7 +2461,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			proxy = {
 				additional_trust_bundle = "123",
 			}
@@ -2519,7 +2535,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
             default_mp_labels = {
                 label_key1 = "label_value1"
             }
@@ -2578,7 +2594,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			proxy = {
 				additional_trust_bundle = "123",
 			}
@@ -2642,7 +2658,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			 resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			   name           = "my-cluster"
 			   cloud_region   = "us-west-1"
-				aws_account_id = "123"
+				aws_account_id = "123456789012"
 				proxy = {
 					additional_trust_bundle = ""
 				}
@@ -2731,7 +2747,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			availability_zones = ["us-west-1a"]
 			aws_private_link = false
 			private = true
@@ -2817,7 +2833,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			availability_zones = ["us-west-1a"]
 			private = true
 			aws_private_link = true
@@ -2881,7 +2897,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			aws_private_link = false
 			sts = {
 				operator_role_prefix = "test"
@@ -2966,7 +2982,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			availability_zones = ["us-west-1a"]
 			aws_subnet_ids = [
 				"id1", "id2", "id3"
@@ -3061,7 +3077,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			autoscaling_enabled = "true"
 			min_replicas = "2"
 			max_replicas = "4"
@@ -3139,7 +3155,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			sts = {
 				role_arn = "",
 				support_role_arn = "",
@@ -3195,7 +3211,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			version = "openshift-v4.12"
 			sts = {
 				operator_role_prefix = "test"
@@ -3249,7 +3265,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			ec2_metadata_http_tokens = "required"
 			sts = {
 				operator_role_prefix = "test"
@@ -3302,7 +3318,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			ec2_metadata_http_tokens = "required"
 			version = "openshift-v4.10"
 			sts = {
@@ -3357,7 +3373,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			ec2_metadata_http_tokens = "bad_string"
 			version = "4.12"
 			sts = {
@@ -3452,7 +3468,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			availability_zones = ["us-west-1a"]
 			aws_private_link = false
 			private = true
@@ -3552,7 +3568,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
+					aws_account_id = "123456789012"
 					disable_workload_monitoring = true
 					admin_credentials = {
 						username = "cluster_admin"
@@ -3637,7 +3653,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					replicas = "3"
 					compute_machine_type = "r5.xlarge"
 					cloud_region   = "us-west-1"
-					aws_account_id = "123"
+					aws_account_id = "123456789012"
 					disable_workload_monitoring = false
 
 					# >>>> update username 
@@ -3679,7 +3695,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 
 					# >>>> change autoscaling_enabled from null to true
 					autoscaling_enabled = true
-					aws_account_id = "123"
+					aws_account_id = "123456789012"
 					disable_workload_monitoring = true
 					admin_credentials = {
 						username = "cluster_admin"
@@ -3713,7 +3729,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					replicas = "4"
 
 					compute_machine_type = "r5.xlarge"
-					aws_account_id = "123"
+					aws_account_id = "123456789012"
 					disable_workload_monitoring = true
 					admin_credentials = {
 						username = "cluster_admin"
@@ -3751,7 +3767,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 
 					replicas = "3"
 					compute_machine_type = "r5.xlarge"
-					aws_account_id = "123"
+					aws_account_id = "123456789012"
 					disable_workload_monitoring = true
 					admin_credentials = {
 						username = "cluster_admin"
@@ -3785,7 +3801,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					worker_disk_size = "2"
 					replicas = "3"
 					compute_machine_type = "r5.xlarge"
-					aws_account_id = "123"
+					aws_account_id = "123456789012"
 					disable_workload_monitoring = true
 					admin_credentials = {
 						username = "cluster_admin"

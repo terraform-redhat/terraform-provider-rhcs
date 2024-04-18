@@ -154,7 +154,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -328,7 +328,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = ""
@@ -452,7 +452,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -523,7 +523,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -637,7 +637,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -708,7 +708,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -742,7 +742,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -782,7 +782,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
-			aws_account_id = "123"
+			aws_account_id = "123456789012"
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -854,7 +854,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
+				aws_account_id = "123456789012"
 				sts = {
 					operator_role_prefix = "test"
 					role_arn = "",
@@ -873,7 +873,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
+				aws_account_id = "123456789012"
 				sts = {
 					operator_role_prefix = "test"
 					role_arn = "",
@@ -950,7 +950,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
-				aws_account_id = "123"
+				aws_account_id = "123456789012"
 				sts = {
 					operator_role_prefix = "test"
 					role_arn = "",

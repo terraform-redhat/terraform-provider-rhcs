@@ -54,6 +54,7 @@ import (
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	ocm_errors "github.com/openshift-online/ocm-sdk-go/errors"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/identityprovider"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 
@@ -62,7 +63,6 @@ import (
 	rosaTypes "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common/types"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/hcp/upgrade"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 
 const (
@@ -414,6 +414,8 @@ func createHcpClusterObject(ctx context.Context,
 	for k, v := range rosa.OCMProperties {
 		properties[k] = v
 	}
+
+	// TODO: refactor to common pkg in properties file
 	if common.HasValue(state.Properties) {
 		propertiesElements, err := common.OptionalMap(ctx, state.Properties)
 		if err != nil {
@@ -422,6 +424,24 @@ func createHcpClusterObject(ctx context.Context,
 			)
 			tflog.Error(ctx, errDescription)
 
+			diags.AddError(
+				errHeadline,
+				errDescription,
+			)
+			return nil, errors.New(errHeadline + "\n" + errDescription)
+		}
+
+		creatorArn, ok := propertiesElements[rosa.PropertyRosaCreatorArn]
+		if !ok {
+			errDescription := fmt.Sprintf("Expected property '%s'. Please include it, for instance by supplying 'data.aws_caller_identity.current.arn'", rosa.PropertyRosaCreatorArn)
+			diags.AddError(
+				errHeadline,
+				errDescription,
+			)
+			return nil, errors.New(errHeadline + "\n" + errDescription)
+		}
+		if !rosa.UserArnRE.MatchString(creatorArn) {
+			errDescription := fmt.Sprintf("Property '%s' does not have a valid user arn. Please include it, for instance by supplying 'data.aws_caller_identity.current.arn'", rosa.PropertyRosaCreatorArn)
 			diags.AddError(
 				errHeadline,
 				errDescription,
@@ -624,7 +644,7 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 
 	hasEtcdEncrpytion := common.BoolWithFalseDefault(state.EtcdEncryption)
 	hasEtcdKmsKeyArn := common.HasValue(state.EtcdKmsKeyArn) && state.EtcdKmsKeyArn.ValueString() != ""
-	if !(hasEtcdEncrpytion && hasEtcdKmsKeyArn) {
+	if (!hasEtcdEncrpytion && hasEtcdKmsKeyArn) || (hasEtcdEncrpytion && !hasEtcdKmsKeyArn) {
 		response.Diagnostics.AddError(
 			summary,
 			"When utilizing etcd encryption an etcd kms key arn must also be supplied and vice versa",
@@ -892,11 +912,11 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 
 	patchProperties := shouldPatchProperties(state, plan)
 	if patchProperties {
-		propertiesElements, err := common.OptionalMap(ctx, plan.Properties)
+		propertiesElements, err := rosa.ValidatePatchProperties(ctx, state.Properties, plan.Properties)
 		if err != nil {
 			response.Diagnostics.AddError(
-				"Can't upgrade cluster",
-				fmt.Sprintf("Can't upgrade cluster version with identifier: `%s`, %v", state.ID.ValueString(), err),
+				"Can't patch cluster",
+				fmt.Sprintf("Can't patch cluster with identifier: '%s', %v", state.ID.ValueString(), err),
 			)
 			return
 		}
@@ -1255,7 +1275,7 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 		state.AWSAccountID = types.StringValue(awsAccountID)
 	} else {
 		// rosa cli gets it from the properties, so we do the same
-		if creatorARN, ok := object.Properties()[ocmConsts.CreatorArn]; ok {
+		if creatorARN, ok := object.Properties()[rosa.PropertyRosaCreatorArn]; ok {
 			if arn, err := arn.Parse(creatorARN); err == nil {
 				state.AWSAccountID = types.StringValue(arn.AccountID)
 			}

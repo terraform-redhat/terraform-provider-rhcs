@@ -2030,7 +2030,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(`.attributes.labels | length`, 1))
 		})
 
-		It("can update subnet", func() {
+		It("can't update instance type", func() {
 			// Prepare the server:
 			prepareClusterRead("123")
 			server.AppendHandlers(
@@ -2073,15 +2073,38 @@ var _ = Describe("Hcp Machine pool", func() {
 							"auto_repair": true
 						}`),
 				),
-				// Patch is for the update
+			)
+			terraform.Source(`
+				resource "rhcs_hcp_machine_pool" "worker" {
+					cluster      = "123"
+					name         = "worker"
+					aws_node_pool = {
+						instance_type = "m5.xlarge"
+					}
+					autoscaling = {
+						enabled = false
+					}
+					replicas     = 2
+					labels = {
+						"label_key1" = "label_value1"
+					}
+					subnet_id = "subnet-123"
+					version = "4.14.10"
+					auto_repair = true
+				}`)
+			Expect(terraform.Apply()).To(Equal(1))
+		})
+
+		It("can't update subnet", func() {
+			// Prepare the server:
+			prepareClusterRead("123")
+			server.AppendHandlers(
+				// Get is for the Read function
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, workerNodePoolUri),
+					VerifyRequest(http.MethodGet, workerNodePoolUri),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"id": "worker",
-							"labels": {
-								"label_key1": "label_value1"
-							},
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
@@ -2090,7 +2113,28 @@ var _ = Describe("Hcp Machine pool", func() {
 							"version": {
 								"raw_id": "4.14.10"
 							},
-							"subnet": "subnet-124",
+							"subnet": "subnet-123",
+							"auto_repair": true
+						}`),
+				),
+			)
+			prepareClusterRead("123")
+			server.AppendHandlers(
+				// Get is for the read during update
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, workerNodePoolUri),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"replicas": 2,
+							"aws_node_pool":{
+								"instance_type":"r5.xlarge",
+								"instance_profile": "bla"
+							},
+							"version": {
+								"raw_id": "4.14.10"
+							},
+							"subnet": "subnet-123",
 							"auto_repair": true
 						}`),
 				),
@@ -2113,13 +2157,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					version = "4.14.10"
 					auto_repair = true
 				}`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_hcp_machine_pool", "worker")
-			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
-			Expect(resource).To(MatchJQ(".attributes.name", "worker"))
-			Expect(resource).To(MatchJQ(".attributes.id", "worker"))
-			Expect(resource).To(MatchJQ(`.attributes.labels | length`, 1))
-			Expect(resource).To(MatchJQ(".attributes.subnet_id", "subnet-124"))
+			Expect(terraform.Apply()).To(Equal(1))
 		})
 
 		It("can update auto repair", func() {

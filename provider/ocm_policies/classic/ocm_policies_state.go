@@ -36,6 +36,7 @@ type OperatorRolePolicies struct {
 type AccountRolePolicies struct {
 	Installer            types.String `tfsdk:"sts_installer_permission_policy"`
 	Support              types.String `tfsdk:"sts_support_permission_policy"`
+	SupportRhSreRole     types.String `tfsdk:"sts_support_rh_sre_role"`
 	InstanceWorker       types.String `tfsdk:"sts_instance_worker_permission_policy"`
 	InstanceControlPlane types.String `tfsdk:"sts_instance_controlplane_permission_policy"`
 }

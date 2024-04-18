@@ -93,7 +93,6 @@ var _ = Describe("Negative Tests", func() {
 			err = clusterService.Apply(creationArgs, true, true)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("Attribute admin_credentials.password password should use ASCII-standard\ncharacters only"))
-
 		})
 	})
 })

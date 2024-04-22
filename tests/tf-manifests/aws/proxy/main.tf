@@ -110,4 +110,3 @@ data "local_file" "additional_trust_bundle" {
   depends_on = [aws_instance.tf-proxy]
   filename   = var.trust_bundle_path
 }
-

@@ -21,23 +21,6 @@ resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
   ignore_daemonsets_utilization = var.ignore_daemonsets_utilization
   max_node_provision_time       = var.max_node_provision_time
   balancing_ignored_labels      = var.balancing_ignored_labels
-  resource_limits = {
-    max_nodes_total = var.max_nodes_total
-    cores = {
-      min = var.min_cores
-      max = var.max_cores
-    }
-    memory = {
-      min = var.min_memory
-      max = var.max_memory
-    }
-  }
-  scale_down = {
-    enabled               = var.enabled
-    utilization_threshold = var.utilization_threshold
-    unneeded_time         = var.unneeded_time
-    delay_after_add       = var.delay_after_add
-    delay_after_delete    = var.delay_after_delete
-    delay_after_failure   = var.delay_after_failure
-  }
+  resource_limits = var.resource_limits
+  scale_down = var.scale_down
 }

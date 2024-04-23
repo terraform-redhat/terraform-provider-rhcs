@@ -71,18 +71,20 @@ func GetOIDCProviderOperatorRolesDefaultManifestDir(clusterType ClusterType) str
 
 // Dirs of rhcs provider
 var (
-	ClusterDir            = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "clusters")
-	ImportResourceDir     = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "resource-import")
-	IDPsDir               = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "idps")
-	ClassicMachinePoolDir = path.Join(ManifestsConfigurationDir, RHCSProviderDir, MachinePoolsDir, "classic")
-	HCPMachinePoolDir     = path.Join(ManifestsConfigurationDir, RHCSProviderDir, MachinePoolsDir, "hcp")
-	DNSDir                = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "dns")
-	ClassicIngressDir     = path.Join(ManifestsConfigurationDir, RHCSProviderDir, IngressDir, "classic")
-	RhcsInfoDir           = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "rhcs-info")
-	DefaultMachinePoolDir = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "default-machine-pool")
-	KubeletConfigDir      = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "kubelet-config")
-	ClusterAutoscalerDir  = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "cluster-autoscaler")
-	TuningConfigDir       = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "tuning-config")
+	ClusterDir                  = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "clusters")
+	ImportResourceDir           = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "resource-import")
+	IDPsDir                     = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "idps")
+	ClassicMachinePoolDir       = path.Join(ManifestsConfigurationDir, RHCSProviderDir, MachinePoolsDir, "classic")
+	HCPMachinePoolDir           = path.Join(ManifestsConfigurationDir, RHCSProviderDir, MachinePoolsDir, "hcp")
+	DNSDir                      = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "dns")
+	ClassicIngressDir           = path.Join(ManifestsConfigurationDir, RHCSProviderDir, IngressDir, "classic")
+	HCPIngressDir               = path.Join(ManifestsConfigurationDir, RHCSProviderDir, IngressDir, "hcp")
+	RhcsInfoDir                 = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "rhcs-info")
+	DefaultMachinePoolDir       = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "default-machine-pool")
+	KubeletConfigDir            = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "kubelet-config")
+	ClassicClusterAutoscalerDir = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "cluster-autoscaler", "classic")
+	HCPClusterAutoscalerDir     = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "cluster-autoscaler", "hcp")
+	TuningConfigDir             = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "tuning-config")
 )
 
 func GetClusterManifestsDir(clusterType ClusterType) string {

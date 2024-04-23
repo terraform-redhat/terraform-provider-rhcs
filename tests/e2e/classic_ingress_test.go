@@ -13,7 +13,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 )
 
-var _ = Describe("Ingress updating", func() {
+var _ = Describe("Ingress updating", ci.NonHCPCluster, func() {
 
 	var err error
 	var profile *ci.Profile

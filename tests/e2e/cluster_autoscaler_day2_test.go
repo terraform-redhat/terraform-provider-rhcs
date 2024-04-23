@@ -17,7 +17,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 )
 
-var _ = Describe("Cluster Autoscaler", ci.FeatureClusterautoscaler, func() {
+var _ = Describe("Cluster Autoscaler", ci.FeatureClusterAutoscaler, func() {
 	defer GinkgoRecover()
 
 	var caService *exec.ClusterAutoscalerService
@@ -48,7 +48,7 @@ var _ = Describe("Cluster Autoscaler", ci.FeatureClusterautoscaler, func() {
 			Expect(recreateAutoscaler.Status()).To(Equal(http.StatusCreated))
 		}
 	})
-	It("can be added/destroyed to Classic cluster - [id:69137]", ci.Day2, ci.High, ci.NonHCPCluster, func() {
+	It("can be added/destroyed to Classic cluster - [id:69137]", ci.Day2, ci.High, ci.NonHCPCluster, ci.FeatureClusterAutoscaler, func() {
 		caService = exec.NewClusterAutoscalerService(constants.ClassicClusterAutoscalerDir)
 
 		By("Delete clusterautoscaler when it exists in cluster")

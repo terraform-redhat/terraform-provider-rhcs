@@ -139,3 +139,28 @@ variable "upgrade_acknowledgements_for" {
   type    = string
   default = null
 }
+
+variable "aws_account_id" {
+ type    = string
+  default = null 
+}
+
+variable "aws_billing_account_id" {
+ type    = string
+  default = null 
+}
+
+variable "installer_role" {
+ type    = string
+  default = null 
+}
+
+variable "support_role" {
+ type    = string
+  default = null 
+}
+
+variable "worker_role" {
+ type    = string
+  default = null 
+}

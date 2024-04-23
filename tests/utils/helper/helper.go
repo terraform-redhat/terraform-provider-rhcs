@@ -20,20 +20,6 @@ import (
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
-type m = map[string]string
-
-// combine two strings maps to one,
-// if key already exists - do nothing
-func MergeMaps(map1, map2 m) m {
-	for k, v := range map2 {
-		_, ok := map1[k]
-		if !ok {
-			map1[k] = v
-		}
-	}
-	return map1
-}
-
 // Parse parses the given JSON data and returns a map of strings containing the result.
 func Parse(data []byte) map[string]interface{} {
 	var object map[string]interface{}
@@ -138,6 +124,22 @@ func DigArrayToString(object interface{}, keys ...interface{}) []string {
 		strR = append(strR, r.(string))
 	}
 	return strR
+}
+
+func DigMapToString(object interface{}, keys ...interface{}) map[string]string {
+	value := Dig(object, keys)
+	if value == nil {
+		return nil
+	}
+	result, ok := value.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	strMap := map[string]string{}
+	for k, v := range result {
+		strMap[k] = v.(string)
+	}
+	return strMap
 }
 
 // DigInt tries to find an attribute inside the given object with the given path, and returns its

@@ -25,7 +25,7 @@ type ClusterCreationArgs struct {
 	Tagging                              map[string]string  `json:"tags,omitempty"`
 	AuditLogForward                      bool               `json:"audit_log_forward,omitempty"`
 	Autoscale                            bool               `json:"autoscaling_enabled,omitempty"`
-	Etcd                                 bool               `json:"etcd_encryption,omitempty"`
+	Etcd                                 *bool              `json:"etcd_encryption,omitempty"`
 	KmsKeyARN                            string             `json:"kms_key_arn,omitempty"`
 	AWSSubnetIDs                         []string           `json:"aws_subnet_ids,omitempty"`
 	ComputeMachineType                   string             `json:"compute_machine_type,omitempty"`
@@ -46,12 +46,21 @@ type ClusterCreationArgs struct {
 	UpgradeAcknowledgementsFor           string             `json:"upgrade_acknowledgements_for,omitempty"`
 	BaseDnsDomain                        string             `json:"base_dns_domain,omitempty"`
 	PrivateHostedZone                    *PrivateHostedZone `json:"private_hosted_zone,omitempty"`
+
+	AWSAccountID        string `json:"aws_account_id,omitempty"`
+	AWSBillingAccountID string `json:"aws_billing_account_id,omitempty"`
+	HostPrefix          int    `json:"host_prefix,omitempty"`
+	ServiceCIDR         string `json:"service_cidr,omitempty"`
+	PodCIDR             string `json:"pod_cidr,omitempty"`
+	StsInstallerRole    string `json:"installer_role,omitempty"`
+	StsSupportRole      string `json:"support_role,omitempty"`
+	StsWorkerRole       string `json:"worker_role,omitempty"`
 }
 type Proxy struct {
-	HTTPProxy             string `json:"http_proxy,omitempty"`
-	HTTPSProxy            string `json:"https_proxy,omitempty"`
-	AdditionalTrustBundle string `json:"additional_trust_bundle,omitempty"`
-	NoProxy               string `json:"no_proxy,omitempty"`
+	HTTPProxy             *string `json:"http_proxy,omitempty"`
+	HTTPSProxy            *string `json:"https_proxy,omitempty"`
+	AdditionalTrustBundle *string `json:"additional_trust_bundle,omitempty"`
+	NoProxy               *string `json:"no_proxy,omitempty"`
 }
 
 type PrivateHostedZone struct {
@@ -61,12 +70,13 @@ type PrivateHostedZone struct {
 
 // Just a placeholder, not research what to output yet.
 type ClusterOutput struct {
-	ClusterID                            string   `json:"cluster_id,omitempty"`
-	ClusterName                          string   `json:"cluster_name,omitempty"`
-	ClusterVersion                       string   `json:"cluster_version,omitempty"`
-	AdditionalComputeSecurityGroups      []string `json:"additional_compute_security_groups,omitempty"`
-	AdditionalInfraSecurityGroups        []string `json:"additional_infra_security_groups,omitempty"`
-	AdditionalControlPlaneSecurityGroups []string `json:"additional_control_plane_security_groups,omitempty"`
+	ClusterID                            string            `json:"cluster_id,omitempty"`
+	ClusterName                          string            `json:"cluster_name,omitempty"`
+	ClusterVersion                       string            `json:"cluster_version,omitempty"`
+	AdditionalComputeSecurityGroups      []string          `json:"additional_compute_security_groups,omitempty"`
+	AdditionalInfraSecurityGroups        []string          `json:"additional_infra_security_groups,omitempty"`
+	AdditionalControlPlaneSecurityGroups []string          `json:"additional_control_plane_security_groups,omitempty"`
+	Properties                           map[string]string `json:"properties,omitempty"`
 }
 
 // ******************************************************
@@ -140,6 +150,7 @@ func (creator *ClusterService) Output() (*ClusterOutput, error) {
 		AdditionalComputeSecurityGroups:      h.DigArrayToString(out["additional_compute_security_groups"], "value"),
 		AdditionalInfraSecurityGroups:        h.DigArrayToString(out["additional_infra_security_groups"], "value"),
 		AdditionalControlPlaneSecurityGroups: h.DigArrayToString(out["additional_control_plane_security_groups"], "value"),
+		Properties:                           h.DigMapToString(out["properties"], "value"),
 	}
 
 	return clusterOutput, nil

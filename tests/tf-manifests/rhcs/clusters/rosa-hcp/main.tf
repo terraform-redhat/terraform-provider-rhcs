@@ -19,27 +19,23 @@ provider "aws" {
   region = var.aws_region
 }
 
-locals {
-  versionfilter = var.openshift_version == null ? "" : " and id like '%${var.openshift_version}%'"
-}
-
 data "rhcs_versions" "version" {
-  search = "enabled='t' and rosa_enabled='t' and channel_group='${var.channel_group}'${local.versionfilter}"
+  search = "enabled='t' and rosa_enabled='t' and channel_group='${var.channel_group}'"
   order  = "id"
 }
 
 locals {
-  version = data.rhcs_versions.version.items[0].name
+  version = var.openshift_version != null ? var.openshift_version : data.rhcs_versions.version.items[0].name
 }
 
 locals {
   account_role_path = coalesce(var.path, "/")
 
   sts_roles = {
-    role_arn         = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.account_role_path}${var.account_role_prefix}-HCP-ROSA-Installer-Role",
-    support_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.account_role_path}${var.account_role_prefix}-HCP-ROSA-Support-Role",
+    role_arn         = var.installer_role != null ? var.installer_role : "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.account_role_path}${var.account_role_prefix}-HCP-ROSA-Installer-Role",
+    support_role_arn = var.support_role != null ? var.support_role : "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.account_role_path}${var.account_role_prefix}-HCP-ROSA-Support-Role",
     instance_iam_roles = {
-      worker_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.account_role_path}${var.account_role_prefix}-HCP-ROSA-Worker-Role"
+      worker_role_arn = var.worker_role != null ? var.worker_role : "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.account_role_path}${var.account_role_prefix}-HCP-ROSA-Worker-Role"
     }
     operator_role_prefix = var.operator_role_prefix
     oidc_config_id       = var.oidc_config_id
@@ -54,8 +50,8 @@ resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
   version                = local.version
   channel_group          = var.channel_group
   cloud_region           = var.aws_region
-  aws_account_id         = data.aws_caller_identity.current.account_id
-  aws_billing_account_id = data.aws_caller_identity.current.account_id
+  aws_account_id         = var.aws_account_id != null ? var.aws_account_id : data.aws_caller_identity.current.account_id
+  aws_billing_account_id = var.aws_billing_account_id != null ? var.aws_billing_account_id : data.aws_caller_identity.current.account_id
   availability_zones     = var.aws_availability_zones
   properties = merge(
     {

@@ -332,7 +332,7 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 	}
 
 	if profile.Etcd {
-		clusterArgs.Etcd = profile.Etcd
+		clusterArgs.Etcd = &profile.Etcd
 	}
 
 	if profile.MultiAZ {
@@ -544,10 +544,10 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 					return
 				}
 				proxy := EXE.Proxy{
-					AdditionalTrustBundle: proxyOutput.AdditionalTrustBundle,
-					HTTPSProxy:            proxyOutput.HttpsProxy,
-					HTTPProxy:             proxyOutput.HttpProxy,
-					NoProxy:               proxyOutput.NoProxy,
+					AdditionalTrustBundle: &proxyOutput.AdditionalTrustBundle,
+					HTTPSProxy:            &proxyOutput.HttpsProxy,
+					HTTPProxy:             &proxyOutput.HttpProxy,
+					NoProxy:               &proxyOutput.NoProxy,
 				}
 				clusterArgs.Proxy = &proxy
 			}

@@ -49,12 +49,12 @@ var _ = Describe("Cluster miscellaneous", func() {
 		}
 
 		// Restore cluster state
-		err = clusterService.Apply(clusterArgs, false, true)
+		err = clusterService.Apply(clusterArgs, false, false)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	It("should validate custom property operations on cluster - [id:64907]",
-		ci.Day2, ci.Medium, ci.FeatureIDP, ci.NonHCPCluster, func() {
+		ci.Day2, ci.Medium, ci.FeatureClusterMisc, ci.NonHCPCluster, func() {
 
 			By("Adding additional custom property to the existing cluster")
 			updatedCustomProperties := constants.CustomProperties
@@ -66,7 +66,7 @@ var _ = Describe("Cluster miscellaneous", func() {
 				CustomProperties: updatedCustomProperties,
 			}
 
-			err = clusterService.Apply(clusterArgs, false, true)
+			err = clusterService.Apply(clusterArgs, false, false)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Validating cluster's custom property update
@@ -99,7 +99,7 @@ var _ = Describe("Cluster miscellaneous", func() {
 			AWSRegion:        profile.Region,
 			CustomProperties: updatedCustomProperties,
 		}
-		err = clusterService.Apply(clusterArgs, false, true)
+		err = clusterService.Apply(clusterArgs, false, false)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("Verify new properties from cluster")
@@ -111,7 +111,7 @@ var _ = Describe("Cluster miscellaneous", func() {
 		By("Update properties to cluster")
 		updatedCustomProperties["some"] = "thing2"
 		clusterArgs.CustomProperties = updatedCustomProperties
-		err = clusterService.Apply(clusterArgs, false, true)
+		err = clusterService.Apply(clusterArgs, false, false)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("Verify updated properties from cluster")
@@ -122,7 +122,7 @@ var _ = Describe("Cluster miscellaneous", func() {
 
 		By("Remove properties from cluster")
 		clusterArgs.CustomProperties = originalCustomProperties
-		err = clusterService.Apply(clusterArgs, false, true)
+		err = clusterService.Apply(clusterArgs, false, false)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("Verify properties are removed from cluster")

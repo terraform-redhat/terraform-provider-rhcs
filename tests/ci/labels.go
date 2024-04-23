@@ -5,8 +5,13 @@ import (
 )
 
 // Features
-var FeatureClusterautoscaler = Label("feature-clusterautoscaler")
+var FeatureClusterAutoscaler = Label("feature-cluster-autoscaler")
+var FeatureClusterCompute = Label("feature-cluster-compute")
+var FeatureClusterDefault = Label("feature-cluster-default")
+var FeatureClusterEncryption = Label("feature-cluster-encryption")
 var FeatureClusterMisc = Label("feature-cluster-misc")
+var FeatureClusterNetwork = Label("feature-cluster-network")
+var FeatureClusterPrivate = Label("feature-cluster-private")
 var FeatureClusterProxy = Label("feature-cluster-proxy")
 var FeatureIngress = Label("feature-ingress")
 var FeatureMachinepool = Label("feature-machinepool")

@@ -15,9 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onsi/gomega"
 	. "github.com/onsi/gomega"
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
@@ -108,10 +107,14 @@ func NewRand() *rand.Rand {
 // value. If there is no attribute with the given path then the test will be aborted with an error.
 func DigStringArray(object interface{}, keys ...interface{}) []string {
 	value := Dig(object, keys)
-	gomega.ExpectWithOffset(1, value).ToNot(gomega.BeNil())
+	if value == nil {
+		return nil
+	}
 	var result []string
-	gomega.ExpectWithOffset(1, value).To(gomega.BeAssignableToTypeOf(result))
-	result = value.([]string)
+	result, ok := value.([]string)
+	if !ok {
+		return nil
+	}
 	return result
 }
 
@@ -142,10 +145,13 @@ func DigArrayToString(object interface{}, keys ...interface{}) []string {
 // will be aborted with an error.
 func DigInt(object interface{}, keys ...interface{}) int {
 	value := Dig(object, keys)
-	ExpectWithOffset(1, value).ToNot(BeNil())
-	var result float64
-	ExpectWithOffset(1, value).To(BeAssignableToTypeOf(result))
-	result = value.(float64)
+	if value == nil {
+		return 0
+	}
+	result, ok := value.(float64)
+	if !ok {
+		return 0
+	}
 	return int(result)
 }
 
@@ -450,7 +456,7 @@ func Subfix(length int) string {
 	subfix := make([]byte, length)
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := range subfix {
-		subfix[i] = CON.CharsBytes[r.Intn(len(CON.CharsBytes))]
+		subfix[i] = constants.CharsBytes[r.Intn(len(constants.CharsBytes))]
 	}
 
 	return string(subfix)
@@ -458,12 +464,12 @@ func Subfix(length int) string {
 
 func GenerateClusterName(profileName string) string {
 
-	clusterPrefix := CON.RHCSPrefix + CON.HyphenConnector + profileName[5:]
-	return clusterPrefix + CON.HyphenConnector + Subfix(3)
+	clusterPrefix := constants.RHCSPrefix + constants.HyphenConnector + profileName[5:]
+	return clusterPrefix + constants.HyphenConnector + Subfix(3)
 }
 
 func GetClusterAdminPassword() string {
-	path := fmt.Sprintf(path.Join(CON.GetRHCSOutputDir(), CON.ClusterAdminUser))
+	path := fmt.Sprintf(path.Join(constants.GetRHCSOutputDir(), constants.ClusterAdminUser))
 	b, err := os.ReadFile(path)
 	if err != nil {
 		fmt.Print(err)

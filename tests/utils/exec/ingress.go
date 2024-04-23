@@ -9,9 +9,11 @@ import (
 )
 
 type IngressArgs struct {
-	ID                            string            `json:"id,omitempty"`
-	Cluster                       string            `json:"cluster,omitempty"`
-	URL                           string            `json:"url,omitempty"`
+	ID      string `json:"id,omitempty"`
+	Cluster string `json:"cluster,omitempty"`
+	URL     string `json:"url,omitempty"`
+
+	// Classic
 	RouteNamespaceOwnershipPolicy string            `json:"route_namespace_ownership_policy,omitempty"`
 	RouteWildcardPolicy           string            `json:"route_wildcard_policy,omitempty"`
 	ClusterRoutesHostename        string            `json:"cluster_routes_hostname,omitempty"`
@@ -19,6 +21,9 @@ type IngressArgs struct {
 	LoadBalancerType              string            `json:"load_balancer_type,omitempty"`
 	ExcludedNamespaces            []string          `json:"excluded_namespaces,omitempty"`
 	RouteSelectors                map[string]string `json:"route_selectors,omitempty"`
+
+	// HCP
+	ListeningMethod string `json:"listening_method,omitempty"`
 }
 
 type IngressOutput struct {

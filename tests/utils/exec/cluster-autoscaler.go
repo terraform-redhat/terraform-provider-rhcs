@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
 type ClusterAutoscalerArgs struct {
@@ -68,7 +68,7 @@ type ClusterAutoscalerOutput struct {
 }
 
 func (ca *ClusterAutoscalerService) Init(manifestDirs ...string) error {
-	ca.ManifestDir = CON.ClusterAutoscalerDir
+	ca.ManifestDir = constants.ClassicClusterAutoscalerDir
 	if len(manifestDirs) != 0 {
 		ca.ManifestDir = manifestDirs[0]
 	}
@@ -100,7 +100,7 @@ func (ca *ClusterAutoscalerService) Plan(createArgs *ClusterAutoscalerArgs, extr
 }
 
 func (ca *ClusterAutoscalerService) Output() (ClusterAutoscalerOutput, error) {
-	caDir := CON.ClusterAutoscalerDir
+	caDir := constants.ClassicClusterAutoscalerDir
 	if ca.ManifestDir != "" {
 		caDir = ca.ManifestDir
 	}
@@ -110,26 +110,26 @@ func (ca *ClusterAutoscalerService) Output() (ClusterAutoscalerOutput, error) {
 		return output, err
 	}
 	output = ClusterAutoscalerOutput{
-		Cluster:                     h.DigString(out["cluster_id"], "value"),
-		LogVerbosity:                h.DigInt(out["log_verbosity"], "value"),
-		BalanceSimilarNodeGroups:    h.DigBool(out["balance_similar_node_groups"], "value"),
-		SkipNodesWithLocalStorage:   h.DigBool(out["skip_nodes_with_local_storage"], "value"),
-		MaxPodGracePeriod:           h.DigInt(out["max_pod_grace_period"], "value"),
-		PodPriorityThreshold:        h.DigInt(out["pod_priority_threshold"], "value"),
-		IgnoreDaemonsetsUtilization: h.DigBool(out["ignore_daemonsets_utilization"], "value"),
-		MaxNodeProvisionTime:        h.DigString(out["max_node_provision_time"], "value"),
-		BalancingIgnoredLabels:      h.DigArrayToString(out["balancing_ignored_labels"], "value"),
-		MaxNodesTotal:               h.DigInt(out["max_nodes_total"], "value"),
-		MinCores:                    h.DigInt(out["min_cores"], "value"),
-		MaxCores:                    h.DigInt(out["max_cores"], "value"),
-		MinMemory:                   h.DigInt(out["min_memory"], "value"),
-		MaxMemory:                   h.DigInt(out["max_memory"], "value"),
-		DelayAfterAdd:               h.DigString(out["delay_after_add"], "value"),
-		DelayAfterDelete:            h.DigString(out["delay_after_delete"], "value"),
-		DelayAfterFailure:           h.DigString(out["delay_after_failure"], "value"),
-		UnneededTime:                h.DigString(out["unneeded_time"], "value"),
-		UtilizationThreshold:        h.DigString(out["utilization_threshold"], "value"),
-		Enabled:                     h.DigBool(out["enabled"], "value"),
+		Cluster:                     helper.DigString(out["cluster_id"], "value"),
+		LogVerbosity:                helper.DigInt(out["log_verbosity"], "value"),
+		BalanceSimilarNodeGroups:    helper.DigBool(out["balance_similar_node_groups"], "value"),
+		SkipNodesWithLocalStorage:   helper.DigBool(out["skip_nodes_with_local_storage"], "value"),
+		MaxPodGracePeriod:           helper.DigInt(out["max_pod_grace_period"], "value"),
+		PodPriorityThreshold:        helper.DigInt(out["pod_priority_threshold"], "value"),
+		IgnoreDaemonsetsUtilization: helper.DigBool(out["ignore_daemonsets_utilization"], "value"),
+		MaxNodeProvisionTime:        helper.DigString(out["max_node_provision_time"], "value"),
+		BalancingIgnoredLabels:      helper.DigArrayToString(out["balancing_ignored_labels"], "value"),
+		MaxNodesTotal:               helper.DigInt(out["max_nodes_total"], "value"),
+		MinCores:                    helper.DigInt(out["min_cores"], "value"),
+		MaxCores:                    helper.DigInt(out["max_cores"], "value"),
+		MinMemory:                   helper.DigInt(out["min_memory"], "value"),
+		MaxMemory:                   helper.DigInt(out["max_memory"], "value"),
+		DelayAfterAdd:               helper.DigString(out["delay_after_add"], "value"),
+		DelayAfterDelete:            helper.DigString(out["delay_after_delete"], "value"),
+		DelayAfterFailure:           helper.DigString(out["delay_after_failure"], "value"),
+		UnneededTime:                helper.DigString(out["unneeded_time"], "value"),
+		UtilizationThreshold:        helper.DigString(out["utilization_threshold"], "value"),
+		Enabled:                     helper.DigBool(out["enabled"], "value"),
 	}
 	return output, nil
 }

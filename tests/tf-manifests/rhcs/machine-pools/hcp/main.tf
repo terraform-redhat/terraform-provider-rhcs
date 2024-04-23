@@ -24,6 +24,7 @@ locals {
 }
 
 resource "rhcs_hcp_machine_pool" "mp" {
+  count = var.npCount
   cluster                      = var.cluster
   name                         = var.name
   subnet_id                    = var.subnet_id

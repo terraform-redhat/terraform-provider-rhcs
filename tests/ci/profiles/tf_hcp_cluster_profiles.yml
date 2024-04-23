@@ -46,7 +46,7 @@ profiles:
     byok: false
     version_pattern: "latest" # id:72472
     version: "" # id:72472
-    major_version: "4.14" # id:72472
+    major_version: "4.15" # id:72472
     compute_machine_type: "m5.xlarge" # id:72448
     proxy: false
     labeling: false # not yet supported

@@ -561,7 +561,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 
 			err = idpService.htpasswd.Apply(idpParam, false)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(ContainSubstring("Attribute 'username' is mandatory"))
+			Expect(err.Error()).Should(ContainSubstring("htpasswd.users[0].username username may not be empty/blank string"))
 
 			By("Create htpasswd idp without/empty password field")
 			userName = "jacko"

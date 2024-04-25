@@ -15,9 +15,10 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
+	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
-var _ = Describe("Cluster Autoscaler", ci.FeatureClusterAutoscaler, func() {
+var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, func() {
 	defer GinkgoRecover()
 
 	var caService *exec.ClusterAutoscalerService
@@ -48,7 +49,7 @@ var _ = Describe("Cluster Autoscaler", ci.FeatureClusterAutoscaler, func() {
 			Expect(recreateAutoscaler.Status()).To(Equal(http.StatusCreated))
 		}
 	})
-	It("can be added/destroyed to Classic cluster - [id:69137]", ci.Day2, ci.High, ci.NonHCPCluster, ci.FeatureClusterAutoscaler, func() {
+	It("can be added/destroyed to Classic cluster - [id:69137]", ci.High, ci.NonHCPCluster, func() {
 		caService = exec.NewClusterAutoscalerService(constants.ClassicClusterAutoscalerDir)
 
 		By("Delete clusterautoscaler when it exists in cluster")
@@ -94,7 +95,7 @@ var _ = Describe("Cluster Autoscaler", ci.FeatureClusterAutoscaler, func() {
 		maxNodeProvisionTime := "1h"
 		balancingIgnoredLabels := []string{"l1", "l2"}
 		ClusterAutoscalerArgs := &exec.ClusterAutoscalerArgs{
-			Cluster:                     clusterID,
+			Cluster:                     &clusterID,
 			BalanceSimilarNodeGroups:    balanceSimilarNodeGroups,
 			SkipNodesWithLocalStorage:   skipNodesWithLocalStorage,
 			LogVerbosity:                logVerbosity,
@@ -134,7 +135,6 @@ var _ = Describe("Cluster Autoscaler", ci.FeatureClusterAutoscaler, func() {
 	})
 
 	It("can be created/edited/deleted to HCP cluster - [id:72524][id:72525]",
-		ci.Day2,
 		ci.High,
 		ci.NonClassicCluster,
 		func() {
@@ -156,7 +156,7 @@ var _ = Describe("Cluster Autoscaler", ci.FeatureClusterAutoscaler, func() {
 			podPriorityThreshold := -10
 			maxNodeProvisionTime := "1h"
 			clusterAutoscalerArgs := &exec.ClusterAutoscalerArgs{
-				Cluster:              clusterID,
+				Cluster:              &clusterID,
 				MaxPodGracePeriod:    maxPodGracePeriod,
 				PodPriorityThreshold: podPriorityThreshold,
 				MaxNodeProvisionTime: maxNodeProvisionTime,
@@ -184,7 +184,7 @@ var _ = Describe("Cluster Autoscaler", ci.FeatureClusterAutoscaler, func() {
 			podPriorityThreshold = 3
 			maxNodeProvisionTime = "60m"
 			clusterAutoscalerArgs = &exec.ClusterAutoscalerArgs{
-				Cluster:              clusterID,
+				Cluster:              &clusterID,
 				MaxPodGracePeriod:    maxPodGracePeriod,
 				PodPriorityThreshold: podPriorityThreshold,
 				MaxNodeProvisionTime: maxNodeProvisionTime,
@@ -212,4 +212,64 @@ var _ = Describe("Cluster Autoscaler", ci.FeatureClusterAutoscaler, func() {
 			Expect(err).To(HaveOccurred())
 			Expect(caResponse.Status()).To(Equal(http.StatusNotFound))
 		})
+
+	It("can be validated against HCP cluster - [id:72526]", ci.Medium, ci.NonClassicCluster, func() {
+		caService = exec.NewClusterAutoscalerService(constants.HCPClusterAutoscalerDir)
+
+		if clusterAutoscalerStatusBefore == http.StatusOK {
+			By("Delete current cluster autoscaler")
+			caDeleteBody, err := cms.DeleteClusterAutoscaler(ci.RHCSConnection, clusterID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(caDeleteBody.Status()).To(Equal(http.StatusNoContent))
+		}
+
+		By("Try to create tuning config with empty cluster ID")
+		args := &exec.ClusterAutoscalerArgs{
+			Cluster:        &constants.EmptyStringValue,
+			ResourceLimits: &exec.ResourceLimits{},
+		}
+		_, err := caService.Apply(args, false)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Attribute cluster cluster ID may not be empty/blank string, got:"))
+
+		By("Try to create tuning config with wrong cluster ID")
+		value := "wrong"
+		args = &exec.ClusterAutoscalerArgs{
+			Cluster:        &value,
+			ResourceLimits: &exec.ResourceLimits{},
+		}
+		_, err = caService.Apply(args, false)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Cluster 'wrong' not found"))
+
+		By("Create Autoscaler")
+		args = &exec.ClusterAutoscalerArgs{
+			Cluster:        &clusterID,
+			ResourceLimits: &exec.ResourceLimits{},
+		}
+		_, err = caService.Apply(args, false)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("Try to edit cluster with other cluster ID")
+		clustersResp, err := cms.ListClusters(ci.RHCSConnection)
+		Expect(err).ToNot(HaveOccurred())
+		var otherClusterID string
+		for _, cluster := range clustersResp.Items().Slice() {
+			if cluster.ID() != clusterID {
+				otherClusterID = cluster.ID()
+				break
+			}
+		}
+		if otherClusterID != "" {
+			args = &exec.ClusterAutoscalerArgs{
+				Cluster:        &otherClusterID,
+				ResourceLimits: &exec.ResourceLimits{},
+			}
+			_, err = caService.Apply(args, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Attribute cluster, cannot be changed from"))
+		} else {
+			Logger.Info("No other cluster accessible for testing this change")
+		}
+	})
 })

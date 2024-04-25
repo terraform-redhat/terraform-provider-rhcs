@@ -10,7 +10,7 @@ import (
 )
 
 type MachinePoolArgs struct {
-	Cluster                  string               `json:"cluster,omitempty"`
+	Cluster                  *string              `json:"cluster,omitempty"`
 	OCMENV                   string               `json:"ocm_environment,omitempty"`
 	Name                     *string              `json:"name,omitempty"`
 	URL                      string               `json:"url,omitempty"`

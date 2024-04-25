@@ -9,9 +9,9 @@ import (
 )
 
 type IngressArgs struct {
-	ID      string `json:"id,omitempty"`
-	Cluster string `json:"cluster,omitempty"`
-	URL     string `json:"url,omitempty"`
+	ID      string  `json:"id,omitempty"`
+	Cluster *string `json:"cluster,omitempty"`
+	URL     string  `json:"url,omitempty"`
 
 	// Classic
 	RouteNamespaceOwnershipPolicy string            `json:"route_namespace_ownership_policy,omitempty"`
@@ -23,7 +23,7 @@ type IngressArgs struct {
 	RouteSelectors                map[string]string `json:"route_selectors,omitempty"`
 
 	// HCP
-	ListeningMethod string `json:"listening_method,omitempty"`
+	ListeningMethod *string `json:"listening_method,omitempty"`
 }
 
 type IngressOutput struct {

@@ -1,5 +1,6 @@
 variable "cluster" {
   type = string
+  default = null
 }
 variable "machine_type" {
   default = null
@@ -7,6 +8,7 @@ variable "machine_type" {
 }
 variable "name" {
   type = string
+  default = null
 }
 variable "autoscaling_enabled" {
   default = null

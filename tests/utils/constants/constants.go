@@ -8,6 +8,8 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
+var EmptyStringValue = ""
+
 // OCP version streams
 const (
 	X = "x"

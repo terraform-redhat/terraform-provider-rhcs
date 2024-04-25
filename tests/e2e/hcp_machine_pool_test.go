@@ -66,7 +66,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			name := helper.GenerateRandomName("np-72504", 2)
 			subnetId := vpcOutput.ClusterPrivateSubnets[0]
 			mpArgs = &exec.MachinePoolArgs{
-				Cluster:            clusterID,
+				Cluster:            &clusterID,
 				AutoscalingEnabled: helper.BoolPointer(false),
 				Replicas:           &replicas,
 				Name:               &name,
@@ -120,7 +120,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 			By("Create machinepool")
 			mpArgs = &exec.MachinePoolArgs{
-				Cluster:            clusterID,
+				Cluster:            &clusterID,
 				AutoscalingEnabled: helper.BoolPointer(true),
 				MinReplicas:        &minReplicas,
 				MaxReplicas:        &maxReplicas,
@@ -240,7 +240,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			workAroundTags := npDetail.AWSNodePool().Tags()
 
 			mpArgs = &exec.MachinePoolArgs{
-				Cluster:                  clusterID,
+				Cluster:                  &clusterID,
 				Replicas:                 &replicas,
 				MachineType:              &machineType,
 				Name:                     &name,
@@ -282,7 +282,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			By("Create another machinepool without additional sg ")
 			name = "add-73068"
 			mpArgs = &exec.MachinePoolArgs{
-				Cluster:            clusterID,
+				Cluster:            &clusterID,
 				Replicas:           &replicas,
 				MachineType:        helper.StringPointer("m5.2xlarge"),
 				Name:               &name,
@@ -313,7 +313,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 			By("Run terraform apply cannot work with invalid sg IDs")
 			mpArgs = &exec.MachinePoolArgs{
-				Cluster:                  clusterID,
+				Cluster:                  &clusterID,
 				Replicas:                 &replicas,
 				MachineType:              &machineType,
 				Name:                     &name,
@@ -333,7 +333,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 				i++
 			}
 			mpArgs = &exec.MachinePoolArgs{
-				Cluster:                  clusterID,
+				Cluster:                  &clusterID,
 				Replicas:                 &replicas,
 				MachineType:              &machineType,
 				Name:                     &name,
@@ -363,7 +363,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			taint1 := map[string]string{"key": "t1", "value": "v1", "schedule_type": constants.NoSchedule}
 			taints := []map[string]string{taint1}
 			mpArgs = &exec.MachinePoolArgs{
-				Cluster:            clusterID,
+				Cluster:            &clusterID,
 				AutoscalingEnabled: helper.BoolPointer(false),
 				Replicas:           &replicas,
 				Name:               &name,
@@ -433,7 +433,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			name := helper.GenerateRandomName("np-72509", 2)
 			subnetId := vpcOutput.ClusterPrivateSubnets[0]
 			mpArgs = &exec.MachinePoolArgs{
-				Cluster:            clusterID,
+				Cluster:            &clusterID,
 				AutoscalingEnabled: helper.BoolPointer(false),
 				Replicas:           &replicas,
 				Name:               &name,
@@ -513,7 +513,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 				"ccc": "ddd",
 			}
 			mpArgs = &exec.MachinePoolArgs{
-				Cluster:            clusterID,
+				Cluster:            &clusterID,
 				AutoscalingEnabled: helper.BoolPointer(false),
 				Replicas:           &replicas,
 				Name:               &name,
@@ -539,9 +539,10 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 			By("Create tuning configs")
 			tcCount := 3
+			tcName := "tc"
 			tcArgs = &exec.TuningConfigArgs{
-				Cluster:           clusterID,
-				NamePrefix:        "tc",
+				Cluster:           &clusterID,
+				Name:              &tcName,
 				Count:             &tcCount,
 				SpecVMDirtyRatios: &[]int{65, 65, 65},
 				SpecPriorities:    &[]int{10, 10, 10},
@@ -560,7 +561,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			subnetId := vpcOutput.ClusterPrivateSubnets[0]
 			tuningconfigs = append(tuningconfigs, createdTuningConfigs...)
 			mpArgs = &exec.MachinePoolArgs{
-				Cluster:            clusterID,
+				Cluster:            &clusterID,
 				AutoscalingEnabled: helper.BoolPointer(false),
 				Replicas:           &replicas,
 				Name:               &name,
@@ -599,4 +600,287 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mpResponseBody.TuningConfigs()).To(BeEmpty())
 		})
+
+	Context("can validate", func() {
+		getDefaultMPArgs := func(name string) *exec.MachinePoolArgs {
+			replicas := 2
+			machineType := "m5.2xlarge"
+			subnetId := vpcOutput.ClusterPrivateSubnets[0]
+			autoscalingEnabled := helper.BoolPointer(false)
+			autoRepair := helper.BoolPointer(true)
+			return &exec.MachinePoolArgs{
+				Cluster:            &clusterID,
+				AutoscalingEnabled: autoscalingEnabled,
+				Replicas:           &replicas,
+				Name:               &name,
+				SubnetID:           &subnetId,
+				MachineType:        &machineType,
+				AutoRepair:         autoRepair,
+			}
+		}
+		It("creation fields - [id:72514]", ci.Medium, func() {
+			mpName := helper.GenerateRandomName("np-72514", 2)
+
+			By("Retrieve current cluster information")
+			clusterResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Try to create a nodepool with empty cluster")
+			mpArgs = getDefaultMPArgs(mpName)
+			mpArgs.Cluster = &constants.EmptyStringValue
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Attribute cluster cluster ID may not be empty/blank string, got: "))
+
+			By("Try to create a nodepool with empty name")
+			mpArgs = getDefaultMPArgs(mpName)
+			mpArgs.Name = &constants.EmptyStringValue
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Attribute name name may not be empty/blank string"))
+
+			By("Try to create a nodepool with wrong name")
+			mpArgs = getDefaultMPArgs(mpName)
+			newValue := "any_wrong_$name"
+			mpArgs.Name = &newValue
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Expected a valid value"))
+			Expect(err.Error()).To(ContainSubstring("'name' matching"))
+
+			By("Try to create a nodepool with empty subnet_id")
+			mpArgs = getDefaultMPArgs(mpName)
+			mpArgs.SubnetID = &constants.EmptyStringValue
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Attribute subnet_id subnet ID may not be empty/blank string"))
+
+			By("Try to create a nodepool with wrong subnet")
+			mpArgs = getDefaultMPArgs(mpName)
+			newValue = "subnet-0123456789"
+			mpArgs.SubnetID = &newValue
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("The subnet ID 'subnet-0123456789' does not exist"))
+
+			By("Try to create a nodepool with autoscaling disabled and without replicas")
+			mpArgs = getDefaultMPArgs(mpName)
+			mpArgs.AutoscalingEnabled = helper.BoolPointer(false)
+			mpArgs.Replicas = nil
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("please provide a value for 'replicas' when 'autoscaling.enabled' is set to"))
+
+			By("Try to create a nodepool with replicas = -2")
+			mpArgs = getDefaultMPArgs(mpName)
+			newReplicas := -2
+			mpArgs.Replicas = &newReplicas
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("must be a non-negative integer."))
+
+			By("Try to create a nodepool with empty instance_type")
+			mpArgs = getDefaultMPArgs(mpName)
+			mpArgs.MachineType = &constants.EmptyStringValue
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("'aws_node_pool.instance_type' cannot be empty."))
+
+			By("Try to create a nodepool with version > CP version")
+			currentVersion := clusterResp.Body().Version().RawID()
+			currentSemVer, _ := semver.NewVersion(currentVersion)
+			versions := cms.GetHcpHigherVersions(ci.RHCSConnection, currentVersion, profile.ChannelGroup)
+			if len(versions) > 0 {
+				mpArgs = getDefaultMPArgs(mpName)
+				newValue = versions[0]
+				mpArgs.OpenshiftVersion = &newValue
+				_, err = mpService.Apply(mpArgs, false)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("must not be greater than Control Plane version"))
+			} else {
+				Logger.Info("No version > CP version found to test against")
+			}
+
+			By("Try to create a nodepool with version < CP version-2")
+			throttleVersion := fmt.Sprintf("%v.%v.0", currentSemVer.Major(), currentSemVer.Minor()-2)
+			versionsStr := cms.GetHcpLowerVersions(ci.RHCSConnection, throttleVersion, profile.ChannelGroup)
+			if len(versionsStr) > 0 {
+				mpArgs = getDefaultMPArgs(mpName)
+				newValue = versionsStr[0]
+				mpArgs.OpenshiftVersion = &newValue
+				_, err = mpService.Apply(mpArgs, false)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("must be greater than the lowest supported version"))
+			} else {
+				Logger.Info("No version < CP version - 2 found to test against")
+			}
+
+			By("Try to create a nodepool with not supported version")
+			mpArgs = getDefaultMPArgs(mpName)
+			newValue = "4.8.0"
+			mpArgs.OpenshiftVersion = &newValue
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("must be greater than the lowest supported version"))
+
+			By("Try to create a nodepool with wrong version")
+			mpArgs = getDefaultMPArgs(mpName)
+			newValue = "any_version"
+			mpArgs.OpenshiftVersion = &newValue
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("'openshift-vany_version-candidate' not found"))
+
+			By("Try to create a nodepool with autoscaling enabled and without min replicas")
+			mpArgs = getDefaultMPArgs(mpName)
+			maxReplicas := 3
+			mpArgs.AutoscalingEnabled = helper.BoolPointer(true)
+			mpArgs.Replicas = nil
+			mpArgs.MaxReplicas = &maxReplicas
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("These attributes must be configured together:"))
+			Expect(err.Error()).To(ContainSubstring("[autoscaling.min_replicas,autoscaling.max_replicas]"))
+
+			By("Try to create a nodepool with autoscaling enabled and without max replicas")
+			mpArgs = getDefaultMPArgs(mpName)
+			minReplicas := 1
+			mpArgs.AutoscalingEnabled = helper.BoolPointer(true)
+			mpArgs.Replicas = nil
+			mpArgs.MinReplicas = &minReplicas
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("These attributes must be configured together:"))
+			Expect(err.Error()).To(ContainSubstring("[autoscaling.min_replicas,autoscaling.max_replicas]"))
+
+			By("Try to create a nodepool with autoscaling enabled and without any replicas")
+			mpArgs = getDefaultMPArgs(mpName)
+			mpArgs.AutoscalingEnabled = helper.BoolPointer(true)
+			mpArgs.Replicas = nil
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("enabling autoscaling, should set value for maxReplicas"))
+
+			By("Try to create a nodepool with autoscaling enabled and min_replicas=0")
+			mpArgs = getDefaultMPArgs(mpName)
+			minReplicas = 0
+			maxReplicas = 3
+			mpArgs.AutoscalingEnabled = helper.BoolPointer(true)
+			mpArgs.Replicas = nil
+			mpArgs.MinReplicas = &minReplicas
+			mpArgs.MaxReplicas = &maxReplicas
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("'autoscaling.min_replica' must be greater than zero"))
+
+			By("Try to create a nodepool with both replicas and autoscaling enabled")
+			mpArgs = getDefaultMPArgs(mpName)
+			minReplicas = 1
+			maxReplicas = 3
+			mpArgs.AutoscalingEnabled = helper.BoolPointer(true)
+			mpArgs.MinReplicas = &minReplicas
+			mpArgs.MaxReplicas = &maxReplicas
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("These attributes cannot be configured together:"))
+			Expect(err.Error()).To(ContainSubstring("[replicas,autoscaling.min_replicas]"))
+
+			By("Try to create a nodepool with taint with no key, eg `=v1:NoSchedule`")
+			mpArgs = getDefaultMPArgs(mpName)
+			taint1 := map[string]string{"key": "", "value": "v1", "schedule_type": constants.NoSchedule}
+			taints := []map[string]string{taint1}
+			mpArgs.Taints = &taints
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("taint key is mandatory"))
+
+			By("Try to create a nodepool with taint with wring scheduletype, eg `k1=v1:Wrong`")
+			mpArgs = getDefaultMPArgs(mpName)
+			taint1 = map[string]string{"key": "k1", "value": "v1", "schedule_type": "Wrong"}
+			taints = []map[string]string{taint1}
+			mpArgs.Taints = &taints
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Attribute taints[0].schedule_type value must be one of"))
+
+			By("Try to create a nodepool with system tags")
+			mpArgs = getDefaultMPArgs(mpName)
+			newMapValue := map[string]string{
+				"api.openshift.com/id": "any id",
+			}
+			mpArgs.Tags = &newMapValue
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("'aws_node_pool.tags' can not contain system tag 'api.openshift.com/id'"))
+		})
+
+		It("edit fields - [id:73431]", ci.Medium, func() {
+			mpName := helper.GenerateRandomName("np-73431", 2)
+
+			By("Create machinepool")
+			mpArgs = getDefaultMPArgs(mpName)
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Try to edit cluster")
+			mpArgs = getDefaultMPArgs(mpName)
+			newValue := "2a7il826aa41csgpiab2s1un856498ut"
+			mpArgs.Cluster = &newValue
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Attribute cluster, cannot be changed from"))
+
+			By("Try to edit name")
+			mpArgs = getDefaultMPArgs(mpName)
+			newValue = "anyName"
+			mpArgs.Name = &newValue
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Attribute name, cannot be changed from"))
+
+			By("Try to edit subnet")
+			mpArgs = getDefaultMPArgs(mpName)
+			newValue = "subnet-0a3fbd578b6af3e12"
+			mpArgs.SubnetID = &newValue
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Attribute aws_node_pool.subnet_id, cannot be changed from"))
+
+			By("Try to edit tags")
+			mpArgs = getDefaultMPArgs(mpName)
+			newMapValue := map[string]string{
+				"tag1": "value1",
+			}
+			mpArgs.Tags = &newMapValue
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Attribute aws_node_pool.tags, cannot be changed from"))
+
+			By("Try to edit compute machine type")
+			mpArgs = getDefaultMPArgs(mpName)
+			newValue = "m5.xlarge"
+			mpArgs.MachineType = &newValue
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Attribute aws_node_pool.instance_type, cannot be changed from"))
+
+			By("Try to update taint with no key, eg `=v1:NoSchedule`")
+			mpArgs = getDefaultMPArgs(mpName)
+			taint1 := map[string]string{"key": "", "value": "v1", "schedule_type": constants.NoSchedule}
+			taints := []map[string]string{taint1}
+			mpArgs.Taints = &taints
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("key is mandatory"))
+
+			By("Try to update taint with wrong scheduletype, eg `k1=v1:Wrong`")
+			mpArgs = getDefaultMPArgs(mpName)
+			taint1 = map[string]string{"key": "k1", "value": "v1", "schedule_type": "Wrong"}
+			taints = []map[string]string{taint1}
+			mpArgs.Taints = &taints
+			_, err = mpService.Apply(mpArgs, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Attribute taints[0].schedule_type value must be one of"))
+		})
+	})
 })

@@ -11,9 +11,13 @@ import (
 	cms "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	con "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
+	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
-var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, func() {
+var internalListeningMethod = "internal"
+var externalListeningMethod = "external"
+
+var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, ci.Day2, func() {
 
 	var err error
 	var ingressBefore *cmv1.Ingress
@@ -30,21 +34,21 @@ var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, func() 
 	})
 
 	AfterEach(func() {
+		listeningMethod := string(ingressBefore.Listening())
 		args := exec.IngressArgs{
-			Cluster:         clusterID,
-			ListeningMethod: string(ingressBefore.Listening()),
+			Cluster:         &clusterID,
+			ListeningMethod: &listeningMethod,
 		}
 		ingressService.Apply(&args)
 	})
 
 	It("can be edited - [id:72517]",
-		ci.Day2,
 		ci.High,
 		func() {
 			By("Set Listening method to internal")
 			args := exec.IngressArgs{
-				Cluster:         clusterID,
-				ListeningMethod: "internal",
+				Cluster:         &clusterID,
+				ListeningMethod: &internalListeningMethod,
 			}
 			err = ingressService.Apply(&args)
 			Expect(err).ToNot(HaveOccurred())
@@ -56,8 +60,8 @@ var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, func() 
 
 			By("Set Listening method to external")
 			args = exec.IngressArgs{
-				Cluster:         clusterID,
-				ListeningMethod: "external",
+				Cluster:         &clusterID,
+				ListeningMethod: &externalListeningMethod,
 			}
 			err = ingressService.Apply(&args)
 			Expect(err).ToNot(HaveOccurred())
@@ -76,4 +80,68 @@ var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, func() 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(ingress.Listening())).To(Equal("external"))
 		})
+
+	It("validate edit - [id:72520]", ci.Medium, func() {
+		By("Try to edit with empty cluster")
+		args := exec.IngressArgs{
+			Cluster:         &con.EmptyStringValue,
+			ListeningMethod: &internalListeningMethod,
+		}
+		err = ingressService.Apply(&args)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Attribute cluster cluster ID may not be empty/blank string"))
+
+		By("Try to edit cluster with other cluster ID")
+		clustersResp, err := cms.ListClusters(ci.RHCSConnection)
+		Expect(err).ToNot(HaveOccurred())
+		var otherClusterID string
+		for _, cluster := range clustersResp.Items().Slice() {
+			if cluster.ID() != clusterID {
+				otherClusterID = cluster.ID()
+				break
+			}
+		}
+		if otherClusterID != "" {
+			args = exec.IngressArgs{
+				Cluster:         &otherClusterID,
+				ListeningMethod: &internalListeningMethod,
+			}
+			err = ingressService.Apply(&args)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Attribute cluster, cannot be changed from"))
+		} else {
+			Logger.Info("No other cluster accessible for testing this change")
+		}
+
+		By("Try to edit cluster field with wrong value")
+		value := "wrong"
+		args = exec.IngressArgs{
+			Cluster:         &value,
+			ListeningMethod: &internalListeningMethod,
+		}
+		err = ingressService.Apply(&args)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Cluster 'wrong' not"))
+
+		By("Try to edit with empty listening_method")
+		args = exec.IngressArgs{
+			Cluster:         &clusterID,
+			ListeningMethod: &con.EmptyStringValue,
+		}
+		err = ingressService.Apply(&args)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Expected a valid param"))
+		Expect(err.Error()).To(ContainSubstring("Options are"))
+
+		By("Try to edit with wrong listening_method")
+		value = "wrong"
+		args = exec.IngressArgs{
+			Cluster:         &clusterID,
+			ListeningMethod: &value,
+		}
+		err = ingressService.Apply(&args)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Expected a valid param"))
+		Expect(err.Error()).To(ContainSubstring("Options are"))
+	})
 })

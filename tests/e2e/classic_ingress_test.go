@@ -29,7 +29,7 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 
 	AfterEach(func() {
 		args := exec.IngressArgs{
-			Cluster:                       clusterID,
+			Cluster:                       &clusterID,
 			ExcludedNamespaces:            ingressBefore.ExcludedNamespaces(),
 			LoadBalancerType:              string(ingressBefore.LoadBalancerType()),
 			RouteSelectors:                ingressBefore.RouteSelectors(),
@@ -46,7 +46,7 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			By("update the LB type to classic")
 			args := exec.IngressArgs{
 				LoadBalancerType: "classic",
-				Cluster:          clusterID,
+				Cluster:          &clusterID,
 			}
 			err = ingressService.Apply(&args)
 			if profile.GetClusterType().HCP {
@@ -65,7 +65,7 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			By("update the LB type to back to NLB")
 			args = exec.IngressArgs{
 				LoadBalancerType: "nlb",
-				Cluster:          clusterID,
+				Cluster:          &clusterID,
 			}
 			err = ingressService.Apply(&args)
 			Expect(err).ToNot(HaveOccurred())
@@ -84,7 +84,7 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 				ExcludedNamespaces: []string{
 					"qe",
 					"test"},
-				Cluster: clusterID,
+				Cluster: &clusterID,
 				RouteSelectors: map[string]string{
 					"route": "internal",
 				},
@@ -110,7 +110,7 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			By("just update one of cluster_routes_tls_secret_ref and cluster_routes_hostname, not update both together.")
 			args = exec.IngressArgs{
 				ClusterRoutesHostename: "test.example.com",
-				Cluster:                clusterID,
+				Cluster:                &clusterID,
 			}
 			err = ingressService.Apply(&args)
 			Expect(err).To(HaveOccurred())

@@ -9,12 +9,13 @@ import (
 )
 
 type TuningConfigArgs struct {
-	Cluster           string `json:"cluster,omitempty"`
-	NamePrefix        string `json:"name_prefix,omitempty"`
-	URL               string `json:"url,omitempty"`
-	Count             *int   `json:"tc_count,omitempty"`
-	SpecVMDirtyRatios *[]int `json:"spec_vm_dirty_ratios,omitempty"`
-	SpecPriorities    *[]int `json:"spec_priorities,omitempty"`
+	Cluster           *string `json:"cluster,omitempty"`
+	Name              *string `json:"name,omitempty"`
+	URL               string  `json:"url,omitempty"`
+	Count             *int    `json:"tc_count,omitempty"`
+	Spec              *string `json:"spec,omitempty"`
+	SpecVMDirtyRatios *[]int  `json:"spec_vm_dirty_ratios,omitempty"`
+	SpecPriorities    *[]int  `json:"spec_priorities,omitempty"`
 }
 
 type TuningConfigService struct {

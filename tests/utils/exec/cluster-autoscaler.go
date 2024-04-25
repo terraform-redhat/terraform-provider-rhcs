@@ -9,7 +9,7 @@ import (
 )
 
 type ClusterAutoscalerArgs struct {
-	Cluster                     string          `json:"cluster_id,omitempty"`
+	Cluster                     *string         `json:"cluster_id,omitempty"`
 	OCMENV                      string          `json:"ocm_environment,omitempty"`
 	BalanceSimilarNodeGroups    bool            `json:"balance_similar_node_groups,omitempty"`
 	SkipNodesWithLocalStorage   bool            `json:"skip_nodes_with_local_storage,omitempty"`

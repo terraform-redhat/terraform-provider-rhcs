@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
@@ -364,10 +365,9 @@ var _ = Describe("Edit cluster", ci.Day2, ci.NonClassicCluster, func() {
 
 			By("Edit proxy with http-proxy and http-proxy empty but no-proxy")
 			value = "test.com"
-			emptyValue := ""
 			proxyArgs = exec.Proxy{
-				HTTPProxy:  &emptyValue,
-				HTTPSProxy: &emptyValue,
+				HTTPProxy:  &constants.EmptyStringValue,
+				HTTPSProxy: &constants.EmptyStringValue,
 				NoProxy:    &value,
 			}
 			clusterArgs.Proxy = &proxyArgs

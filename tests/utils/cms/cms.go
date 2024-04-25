@@ -30,7 +30,6 @@ func RetrieveClusterIngress(connection *client.Connection, clusterID string) (*c
 
 // ListClusters will list the clusters
 func ListClusters(connection *client.Connection, parameters ...map[string]interface{}) (response *cmv1.ClustersListResponse, err error) {
-
 	request := connection.ClustersMgmt().V1().Clusters().List()
 	for _, param := range parameters {
 		for k, v := range param {

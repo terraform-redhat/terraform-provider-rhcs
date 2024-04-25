@@ -38,7 +38,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		machineType := "r5.xlarge"
 		name := "ocp-64757"
 		MachinePoolArgs := &exe.MachinePoolArgs{
-			Cluster:     clusterID,
+			Cluster:     &clusterID,
 			Replicas:    &replicas,
 			MachineType: &machineType,
 			Name:        &name,
@@ -69,7 +69,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		updatingLabels := map[string]string{"fo1": "bar3", "fo3": "baz3"}
 		emptyLabels := map[string]string{}
 		MachinePoolArgs := &exe.MachinePoolArgs{
-			Cluster:     clusterID,
+			Cluster:     &clusterID,
 			Replicas:    &replicas,
 			MachineType: &machineType,
 			Name:        &name,
@@ -111,7 +111,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		machineType := "r5.xlarge"
 		name := "ocp-68296"
 		MachinePoolArgs := &exe.MachinePoolArgs{
-			Cluster:            clusterID,
+			Cluster:            &clusterID,
 			MinReplicas:        &minReplicas,
 			MaxReplicas:        &maxReplicas,
 			MachineType:        &machineType,
@@ -142,7 +142,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 
 		By("Disable autoscaling of the machinepool")
 		MachinePoolArgs = &exe.MachinePoolArgs{
-			Cluster:     clusterID,
+			Cluster:     &clusterID,
 			Replicas:    &replicas,
 			MachineType: &machineType,
 			Name:        &name,
@@ -167,7 +167,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		taint2 := map[string]string{"key": "k3", "value": "val3", "schedule_type": con.PreferNoSchedule}
 		taints := []map[string]string{taint0, taint1}
 		MachinePoolArgs := &exe.MachinePoolArgs{
-			Cluster:     clusterID,
+			Cluster:     &clusterID,
 			Replicas:    &replicas,
 			MachineType: &machineType,
 			Name:        &name,
@@ -228,7 +228,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		)
 		By("Create machinepool with invalid name")
 		MachinePoolArgs := &exe.MachinePoolArgs{
-			Cluster:     clusterID,
+			Cluster:     &clusterID,
 			Replicas:    &invalidMpReplicas,
 			Name:        &invalidMachinepoolName,
 			MachineType: &machineType,
@@ -239,7 +239,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 
 		By("Create machinepool with invalid replica value")
 		MachinePoolArgs = &exe.MachinePoolArgs{
-			Cluster:     clusterID,
+			Cluster:     &clusterID,
 			Replicas:    &invalidMpReplicas,
 			Name:        &machinepoolName,
 			MachineType: &machineType,
@@ -250,7 +250,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 
 		By("Create machinepool with invalid instance type")
 		MachinePoolArgs = &exe.MachinePoolArgs{
-			Cluster:     clusterID,
+			Cluster:     &clusterID,
 			Replicas:    &mpReplicas,
 			Name:        &machinepoolName,
 			MachineType: &InvalidInstanceType,
@@ -261,7 +261,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 
 		By("Create machinepool with setting replicas and enable-autoscaling at the same time")
 		MachinePoolArgs = &exe.MachinePoolArgs{
-			Cluster:            clusterID,
+			Cluster:            &clusterID,
 			Replicas:           &mpReplicas,
 			Name:               &machinepoolName,
 			AutoscalingEnabled: h.BoolPointer(true),
@@ -273,7 +273,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 
 		By("Create machinepool with setting min-replicas large than max-replicas")
 		MachinePoolArgs = &exe.MachinePoolArgs{
-			Cluster:            clusterID,
+			Cluster:            &clusterID,
 			MinReplicas:        &maxReplicas,
 			MaxReplicas:        &minReplicas,
 			Name:               &machinepoolName,
@@ -286,7 +286,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 
 		By("Create machinepool with setting min-replicas and max-replicas but without setting --enable-autoscaling")
 		MachinePoolArgs = &exe.MachinePoolArgs{
-			Cluster:     clusterID,
+			Cluster:     &clusterID,
 			MinReplicas: &minReplicas,
 			MaxReplicas: &maxReplicas,
 			Name:        &machinepoolName,
@@ -301,7 +301,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		if profile.MultiAZ {
 			By("Create machinepool with setting min-replicas and max-replicas not multiple 3 for multi-az")
 			MachinePoolArgs = &exe.MachinePoolArgs{
-				Cluster:            clusterID,
+				Cluster:            &clusterID,
 				MinReplicas:        &minReplicas,
 				MaxReplicas:        &invalidMaxReplicas4Mutilcluster,
 				Name:               &machinepoolName,
@@ -313,7 +313,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 			Expect(err.Error()).Should(ContainSubstring("Multi AZ clusters require that the number of replicas be a\nmultiple of 3"))
 
 			MachinePoolArgs = &exe.MachinePoolArgs{
-				Cluster:            clusterID,
+				Cluster:            &clusterID,
 				MinReplicas:        &invalidMinReplicas4Mutilcluster,
 				MaxReplicas:        &maxReplicas,
 				Name:               &machinepoolName,
@@ -339,7 +339,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		machineType := "r5.xlarge"
 		name := "ocp-65063"
 		MachinePoolArgs := &exe.MachinePoolArgs{
-			Cluster:          clusterID,
+			Cluster:          &clusterID,
 			Replicas:         &replicas,
 			MachineType:      &machineType,
 			Name:             &name,
@@ -360,7 +360,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		By("Create additional machinepool with subnet id specified")
 		awsSubnetIds := getResp.Body().AWS().SubnetIDs()
 		MachinePoolArgs = &exe.MachinePoolArgs{
-			Cluster:     clusterID,
+			Cluster:     &clusterID,
 			Replicas:    &replicas,
 			MachineType: &machineType,
 			Name:        &name,
@@ -380,7 +380,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 
 		By("Create additional machinepool with multi_availability_zone=false specified")
 		MachinePoolArgs = &exe.MachinePoolArgs{
-			Cluster:          clusterID,
+			Cluster:          &clusterID,
 			Replicas:         &replicas,
 			MachineType:      &machineType,
 			Name:             &name,
@@ -422,7 +422,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		name := "ocp-65071"
 		newZonePrivateSubnet := vpcOutput.ClusterPrivateSubnets[2]
 		MachinePoolArgs := &exe.MachinePoolArgs{
-			Cluster:     clusterID,
+			Cluster:     &clusterID,
 			Replicas:    &replicas,
 			MachineType: &machineType,
 			Name:        &name,
@@ -452,14 +452,14 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		name := "ocp-69144"
 		diskSize := 249
 		MachinePoolArgs := &exe.MachinePoolArgs{
-			Cluster:     clusterID,
+			Cluster:     &clusterID,
 			Replicas:    &replicas,
 			MachineType: &machineType,
 			Name:        &name,
 			DiskSize:    &diskSize,
 		}
 
-		_, err := mpService.Apply(MachinePoolArgs, false)
+		_, err = mpService.Apply(MachinePoolArgs, false)
 		Expect(err).ToNot(HaveOccurred())
 		defer func() {
 			_, err = mpService.Destroy()
@@ -474,7 +474,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 
 		By("Update disksize is not allowed ")
 		MachinePoolArgs = &exe.MachinePoolArgs{
-			Cluster:     clusterID,
+			Cluster:     &clusterID,
 			Replicas:    &replicas,
 			MachineType: &machineType,
 			Name:        &name,
@@ -491,7 +491,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 
 		By("Create another machinepool without disksize will create another machinepool with default value")
 		MachinePoolArgs = &exe.MachinePoolArgs{
-			Cluster:     clusterID,
+			Cluster:     &clusterID,
 			Replicas:    &replicas,
 			MachineType: h.StringPointer("m5.2xlarge"),
 			Name:        &name,
@@ -543,7 +543,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 			sgIDs = sgIDs[0:4]
 		}
 		MachinePoolArgs := &exe.MachinePoolArgs{
-			Cluster:                  clusterID,
+			Cluster:                  &clusterID,
 			Replicas:                 &replicas,
 			MachineType:              &machineType,
 			Name:                     &name,
@@ -568,7 +568,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		By("Update security groups is not allowed to a machinepool")
 		testAdditionalSecurityGroups := output.SGIDs[0:1]
 		MachinePoolArgs = &exe.MachinePoolArgs{
-			Cluster:                  clusterID,
+			Cluster:                  &clusterID,
 			Replicas:                 &replicas,
 			MachineType:              &machineType,
 			Name:                     &name,
@@ -587,7 +587,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		By("Create another machinepool without additional sg ")
 		name = "add-69146"
 		MachinePoolArgs = &exe.MachinePoolArgs{
-			Cluster:     clusterID,
+			Cluster:     &clusterID,
 			Replicas:    &replicas,
 			MachineType: h.StringPointer("m5.2xlarge"),
 			Name:        &name,
@@ -611,7 +611,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		taint0 := map[string]string{"key": "k1", "value": "val", "schedule_type": con.NoExecute}
 		taints := []map[string]string{taint0}
 		MachinePoolArgs := &exe.MachinePoolArgs{
-			Cluster:     clusterID,
+			Cluster:     &clusterID,
 			Replicas:    &replicas,
 			MachineType: &machineType,
 			Name:        &mpName,
@@ -669,7 +669,7 @@ var _ = Describe("Import MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureImpo
 		machineType := "r5.xlarge"
 		name := "ocp-66403"
 		MachinePoolArgs := &exe.MachinePoolArgs{
-			Cluster:            clusterID,
+			Cluster:            &clusterID,
 			MinReplicas:        &minReplicas,
 			MaxReplicas:        &maxReplicas,
 			MachineType:        &machineType,
@@ -720,7 +720,7 @@ var _ = Describe("Edit MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMachin
 			Skip("The default machinepool does not exist")
 		}
 		originalDefaultMachinepoolArgs = exe.BuildMachinePoolArgsFromCSResponse(defaultMachinepoolResponse)
-		originalDefaultMachinepoolArgs.Cluster = clusterID
+		originalDefaultMachinepoolArgs.Cluster = &clusterID
 
 		By("Make sure the default machinepool imported from cluster state")
 		imported, _ := h.CheckDefaultMachinePoolImported()
@@ -851,7 +851,7 @@ var _ = Describe("Edit MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMachin
 			name := "amp-69009"
 
 			MachinePoolArgs := &exe.MachinePoolArgs{
-				Cluster:     clusterID,
+				Cluster:     &clusterID,
 				Replicas:    &replicas,
 				MachineType: &machineType,
 				Name:        &name,
@@ -896,7 +896,7 @@ var _ = Describe("Destroy MachinePool", ci.Day3, ci.NonHCPCluster, ci.FeatureMac
 		defaultMachinepoolResponse, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, defaultMachinePoolNmae)
 		Expect(err).ToNot(HaveOccurred())
 		defaultMachinePoolArgs = exe.BuildMachinePoolArgsFromCSResponse(defaultMachinepoolResponse)
-		defaultMachinePoolArgs.Cluster = clusterID
+		defaultMachinePoolArgs.Cluster = &clusterID
 
 		By("Make sure the default machinepool imported from cluster state")
 		imported, _ := h.CheckDefaultMachinePoolImported()
@@ -926,7 +926,7 @@ var _ = Describe("Destroy MachinePool", ci.Day3, ci.NonHCPCluster, ci.FeatureMac
 		name := "amp-69727"
 
 		MachinePoolArgs := &exe.MachinePoolArgs{
-			Cluster:     clusterID,
+			Cluster:     &clusterID,
 			Replicas:    &replicas,
 			MachineType: &machineType,
 			Name:        &name,
@@ -946,7 +946,7 @@ var _ = Describe("Destroy MachinePool", ci.Day3, ci.NonHCPCluster, ci.FeatureMac
 
 		By("Create default machinepool after delete")
 		DefaultMachinePoolArgs := &exe.MachinePoolArgs{
-			Cluster:     clusterID,
+			Cluster:     &clusterID,
 			Replicas:    &replicas,
 			MachineType: &machineType,
 			Name:        &defaultMachinePoolNmae,

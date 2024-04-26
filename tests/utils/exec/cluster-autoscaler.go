@@ -36,8 +36,8 @@ type ScaleDown struct {
 	Enabled              bool   `json:"enabled,omitempty"`
 }
 type ResourceRange struct {
-	Max int `json:"max,omitempty"`
-	Min int `json:"min,omitempty"`
+	Max interface{} `json:"max,omitempty"`
+	Min interface{} `json:"min,omitempty"`
 }
 type ClusterAutoscalerService struct {
 	CreationArgs *ClusterAutoscalerArgs

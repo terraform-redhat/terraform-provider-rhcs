@@ -35,14 +35,14 @@ var _ = Describe("Tuning Config", ci.NonClassicCluster, ci.FeatureTuningConfig, 
 
 	It("can create/edit/delete - [id:72521]",
 		ci.Day2, ci.High, func() {
-
+			namePrefix := "tc-72521"
 			tcCount := 1
 			specVMDirtyRatios := []int{65}
 			specPriorities := []int{20}
 			By("Create one tuning config")
 			tcArgs = &exec.TuningConfigArgs{
 				Cluster:           clusterID,
-				NamePrefix:        "tc-72521",
+				NamePrefix:        namePrefix,
 				Count:             &tcCount,
 				SpecVMDirtyRatios: &specVMDirtyRatios,
 				SpecPriorities:    &specPriorities,
@@ -55,7 +55,7 @@ var _ = Describe("Tuning Config", ci.NonClassicCluster, ci.FeatureTuningConfig, 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(tcsResp.Size()).To(Equal(tcCount))
 			tc := tcsResp.Items().Get(0)
-			Expect(tc.Name()).To(Equal(fmt.Sprintf("tc-%v", 0)))
+			Expect(tc.Name()).To(Equal(fmt.Sprintf("%s-%v", namePrefix, 0)))
 			verifyTuningConfigSpec(tc.Spec(), specVMDirtyRatios[0], specPriorities[0])
 
 			By("Add one more tuning config")
@@ -70,7 +70,7 @@ var _ = Describe("Tuning Config", ci.NonClassicCluster, ci.FeatureTuningConfig, 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(tcsResp.Size()).To(Equal(tcCount))
 			for index, tc := range tcsResp.Items().Slice() {
-				Expect(tc.Name()).To(Equal(fmt.Sprintf("tc-%v", index)))
+				Expect(tc.Name()).To(Equal(fmt.Sprintf("%s-%v", namePrefix, index)))
 				verifyTuningConfigSpec(tc.Spec(), specVMDirtyRatios[index], specPriorities[index])
 			}
 
@@ -85,7 +85,7 @@ var _ = Describe("Tuning Config", ci.NonClassicCluster, ci.FeatureTuningConfig, 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(tcsResp.Size()).To(Equal(tcCount))
 			for index, tc := range tcsResp.Items().Slice() {
-				Expect(tc.Name()).To(Equal(fmt.Sprintf("tc-%v", index)))
+				Expect(tc.Name()).To(Equal(fmt.Sprintf("%s-%v", namePrefix, index)))
 				verifyTuningConfigSpec(tc.Spec(), specVMDirtyRatios[index], specPriorities[index])
 			}
 

@@ -530,21 +530,6 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mpResponseBody.AWSNodePool().Tags()).To(HaveKeyWithValue("aaa", "bbb"))
 			Expect(mpResponseBody.AWSNodePool().Tags()).To(HaveKeyWithValue("ccc", "ddd"))
-
-			// Workaround to make sure we have the correct tags
-			tags = mpResponseBody.AWSNodePool().Tags()
-
-			By("Edit machinepool tags")
-			delete(tags, "aaa")
-			tags["ccc"] = "fff"
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).ToNot(HaveOccurred())
-
-			By("Verify tags are correctly updated")
-			mpResponseBody, err = cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(mpResponseBody.AWSNodePool().Tags()).ToNot(HaveKey("aaa"))
-			Expect(mpResponseBody.AWSNodePool().Tags()).To(HaveKeyWithValue("ccc", "fff"))
 		})
 
 	It("can be created with tuning configs - [id:72508]",

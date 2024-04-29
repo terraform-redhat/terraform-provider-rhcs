@@ -372,7 +372,7 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 	}
 
 	if profile.Tagging {
-		clusterArgs.Tagging = CON.Tags
+		clusterArgs.Tags = CON.Tags
 	}
 
 	if profile.AdminEnabled {

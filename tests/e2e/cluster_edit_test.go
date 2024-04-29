@@ -389,6 +389,42 @@ var _ = Describe("Edit cluster", ci.Day2, ci.NonClassicCluster, func() {
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("no-proxy value: '*' should match the regular expression"))
 		})
+
+		It("tags - [id:72628]", ci.Medium, ci.FeatureClusterMisc, func() {
+			By("Retrieve current tags")
+			out, err := clusterService.Output()
+			Expect(err).ToNot(HaveOccurred())
+			currentTags := out.UserTags
+
+			By("Try to edit tags")
+			tags := helper.CopyStringMap(currentTags)
+			var firstKey string
+			// Remove first key
+			for k := range tags {
+				firstKey = k
+				break
+			}
+			if firstKey != "" {
+				delete(tags, firstKey)
+			}
+			// Edit second key
+			for k := range tags {
+				firstKey = k
+				break
+			}
+			if firstKey != "" {
+				tags[firstKey] = "newValue"
+			}
+			// Add new key
+			tags["newTag"] = "appendTag"
+
+			clusterArgs = &exec.ClusterCreationArgs{
+				Tags: tags,
+			}
+			err = clusterService.Apply(clusterArgs, false, false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Attribute tags, cannot be changed from"))
+		})
 	})
 
 })

@@ -22,7 +22,7 @@ type ClusterCreationArgs struct {
 	PrivateLink                          bool               `json:"private_link,omitempty"`
 	Private                              bool               `json:"private,omitempty"`
 	Fips                                 bool               `json:"fips,omitempty"`
-	Tagging                              map[string]string  `json:"tags,omitempty"`
+	Tags                                 map[string]string  `json:"tags,omitempty"`
 	AuditLogForward                      bool               `json:"audit_log_forward,omitempty"`
 	Autoscale                            bool               `json:"autoscaling_enabled,omitempty"`
 	Etcd                                 *bool              `json:"etcd_encryption,omitempty"`
@@ -77,6 +77,7 @@ type ClusterOutput struct {
 	AdditionalInfraSecurityGroups        []string          `json:"additional_infra_security_groups,omitempty"`
 	AdditionalControlPlaneSecurityGroups []string          `json:"additional_control_plane_security_groups,omitempty"`
 	Properties                           map[string]string `json:"properties,omitempty"`
+	UserTags                             map[string]string `json:"tags,omitempty"`
 }
 
 // ******************************************************
@@ -151,6 +152,7 @@ func (creator *ClusterService) Output() (*ClusterOutput, error) {
 		AdditionalInfraSecurityGroups:        h.DigArrayToString(out["additional_infra_security_groups"], "value"),
 		AdditionalControlPlaneSecurityGroups: h.DigArrayToString(out["additional_control_plane_security_groups"], "value"),
 		Properties:                           h.DigMapToString(out["properties"], "value"),
+		UserTags:                             h.DigMapToString(out["tags"], "value"),
 	}
 
 	return clusterOutput, nil

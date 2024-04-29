@@ -13,3 +13,7 @@ output "cluster_version" {
 output "properties" {
   value = rhcs_cluster_rosa_hcp.rosa_hcp_cluster.properties
 }
+
+output "tags" {
+ value = rhcs_cluster_rosa_hcp.rosa_hcp_cluster.tags 
+}

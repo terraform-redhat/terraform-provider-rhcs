@@ -4,15 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
 type AccountRolesArgs struct {
 	AccountRolePrefix   string `json:"account_role_prefix,omitempty"`
 	OCMENV              string `json:"rhcs_environment,omitempty"`
 	OpenshiftVersion    string `json:"openshift_version,omitempty"`
-	URL                 string `json:"url,omitempty"`
 	ChannelGroup        string `json:"channel_group,omitempty"`
 	UnifiedAccRolesPath string `json:"path,omitempty"`
 	SharedVpcRoleArn    string `json:"shared_vpc_role_arn,omitempty"`
@@ -22,7 +21,6 @@ type AccountRolesOutput struct {
 	AccountRolePrefix string        `json:"account_role_prefix,omitempty"`
 	MajorVersion      string        `json:"major_version,omitempty"`
 	ChannelGroup      string        `json:"channel_group,omitempty"`
-	RHCSGatewayUrl    string        `json:"rhcs_gateway_url,omitempty"`
 	RHCSVersions      []interface{} `json:"rhcs_versions,omitempty"`
 	InstallerRoleArn  string        `json:"installer_role_arn,omitempty"`
 	AWSAccountId      string        `json:"aws_account_id,omitempty"`
@@ -35,7 +33,7 @@ type AccountRoleService struct {
 }
 
 func (acc *AccountRoleService) Init(manifestDirs ...string) error {
-	acc.ManifestDir = CON.AccountRolesClassicDir
+	acc.ManifestDir = constants.AccountRolesClassicDir
 	if len(manifestDirs) != 0 {
 		acc.ManifestDir = manifestDirs[0]
 	}
@@ -50,8 +48,7 @@ func (acc *AccountRoleService) Init(manifestDirs ...string) error {
 }
 
 func (acc *AccountRoleService) Apply(createArgs *AccountRolesArgs, recordtfvars bool, extraArgs ...string) (*AccountRolesOutput, error) {
-	createArgs.URL = CON.GateWayURL
-	createArgs.OCMENV = CON.OCMENV
+	createArgs.OCMENV = constants.RHCS.OCMEnv
 	acc.CreationArgs = createArgs
 	args, tfvars := combineStructArgs(createArgs, extraArgs...)
 	_, err := runTerraformApply(acc.Context, acc.ManifestDir, args...)
@@ -71,13 +68,12 @@ func (acc *AccountRoleService) Output() (*AccountRolesOutput, error) {
 		return nil, err
 	}
 	var accOutput = &AccountRolesOutput{
-		AccountRolePrefix: h.DigString(out["account_role_prefix"], "value"),
-		MajorVersion:      h.DigString(out["major_version"], "value"),
-		ChannelGroup:      h.DigString(out["channel_group"], "value"),
-		RHCSGatewayUrl:    h.DigString(out["rhcs_gateway_url"], "value"),
-		RHCSVersions:      h.DigArray(out["rhcs_versions"], "value"),
-		InstallerRoleArn:  h.DigString(out["installer_role_arn"], "value"),
-		AWSAccountId:      h.DigString(out["aws_account_id"], "value"),
+		AccountRolePrefix: helper.DigString(out["account_role_prefix"], "value"),
+		MajorVersion:      helper.DigString(out["major_version"], "value"),
+		ChannelGroup:      helper.DigString(out["channel_group"], "value"),
+		RHCSVersions:      helper.DigArray(out["rhcs_versions"], "value"),
+		InstallerRoleArn:  helper.DigString(out["installer_role_arn"], "value"),
+		AWSAccountId:      helper.DigString(out["aws_account_id"], "value"),
 	}
 	return accOutput, nil
 }
@@ -90,8 +86,7 @@ func (acc *AccountRoleService) Destroy(createArgs ...*AccountRolesArgs) error {
 	if len(createArgs) != 0 {
 		destroyArgs = createArgs[0]
 	}
-	destroyArgs.URL = CON.GateWayURL
-	destroyArgs.OCMENV = CON.OCMENV
+	destroyArgs.OCMENV = constants.RHCS.OCMEnv
 	args, _ := combineStructArgs(destroyArgs)
 	_, err := runTerraformDestroy(acc.Context, acc.ManifestDir, args...)
 	return err

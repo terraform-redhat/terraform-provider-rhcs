@@ -1,7 +1,3 @@
-variable "gateway" {
-  type    = string
-  default = "https://api.stage.openshift.com"
-}
 // Shared by all of the IDPs
 variable "cluster_id" {
   type = string

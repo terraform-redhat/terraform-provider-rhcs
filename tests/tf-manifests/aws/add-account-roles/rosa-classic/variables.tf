@@ -18,11 +18,6 @@ variable "shared_vpc_role_arn" {
   default = null
 }
 
-variable "url" {
-  type    = string
-  default = "https://api.stage.openshift.com"
-}
-
 variable "channel_group" {
   type    = string
   default = "stable"

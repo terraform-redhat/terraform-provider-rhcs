@@ -1,6 +1,5 @@
-variable "gateway" {
+variable "idp_url" {
   type    = string
-  default = "https://api.stage.openshift.com"
 }
 
 // Shared by all of the IDPs
@@ -44,10 +43,6 @@ variable "attributes" {
 }
 
 variable "ca" {
-  type    = string
-  default = null
-}
-variable "url" {
   type    = string
   default = null
 }

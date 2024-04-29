@@ -44,10 +44,6 @@ variable "use_spot_instances" {
   type    = bool
   default = false
 }
-variable "url" {
-  type    = string
-  default = "https://api.stage.openshift.com"
-}
 
 variable "availability_zone" {
   type    = string

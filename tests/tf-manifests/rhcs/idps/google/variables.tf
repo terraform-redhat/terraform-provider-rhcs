@@ -1,9 +1,3 @@
-variable "url" {
-  type        = string
-  description = "Provide RHCS environment by setting a value to url"
-  default     = "https://api.stage.openshift.com"
-}
-
 // Shared by all of the IDPs
 variable "cluster_id" {
   type = string

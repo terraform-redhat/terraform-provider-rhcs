@@ -23,12 +23,6 @@ terraform {
   }
 }
 
-provider "rhcs" {
-  url = var.gateway
-}
-
-
-
 resource "rhcs_identity_provider" "openid_idp" {
   cluster        = var.cluster_id
   name           = var.name

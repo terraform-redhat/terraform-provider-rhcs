@@ -11,9 +11,7 @@ terraform {
   }
 }
 
-provider "rhcs" {
-  url = var.url
-}
+
 provider "aws" {
   region = var.aws_region
 }

@@ -7,9 +7,7 @@ terraform {
   }
 }
 
-provider "rhcs" {
-  url = var.url
-}
+
 
 resource "rhcs_hcp_cluster_autoscaler" "cluster_autoscaler" {
   cluster                 = var.cluster_id

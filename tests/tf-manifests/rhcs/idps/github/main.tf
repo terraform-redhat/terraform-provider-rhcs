@@ -22,9 +22,7 @@ terraform {
   }
 }
 
-provider "rhcs" {
-  url = var.url
-}
+
 resource "rhcs_identity_provider" "github_idp" {
   cluster        = var.cluster_id
   mapping_method = var.mapping_method

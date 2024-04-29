@@ -11,7 +11,6 @@ import (
 type TuningConfigArgs struct {
 	Cluster           *string `json:"cluster,omitempty"`
 	Name              *string `json:"name,omitempty"`
-	URL               string  `json:"url,omitempty"`
 	Count             *int    `json:"tc_count,omitempty"`
 	Spec              *string `json:"spec,omitempty"`
 	SpecVMDirtyRatios *[]int  `json:"spec_vm_dirty_ratios,omitempty"`
@@ -44,7 +43,6 @@ func (tcs *TuningConfigService) Init(manifestDirs ...string) error {
 }
 
 func (tcs *TuningConfigService) Apply(createArgs *TuningConfigArgs, recordtfargs bool, extraArgs ...string) (string, error) {
-	createArgs.URL = CON.GateWayURL
 	tcs.CreationArgs = createArgs
 	args, tfvars := combineStructArgs(createArgs, extraArgs...)
 	output, err := runTerraformApply(tcs.Context, tcs.ManifestDir, args...)
@@ -77,7 +75,6 @@ func (tcs *TuningConfigService) Destroy(createArgs ...*TuningConfigArgs) (output
 	if len(createArgs) != 0 {
 		destroyArgs = createArgs[0]
 	}
-	destroyArgs.URL = CON.GateWayURL
 	args, _ := combineStructArgs(destroyArgs)
 
 	return runTerraformDestroy(tcs.Context, tcs.ManifestDir, args...)

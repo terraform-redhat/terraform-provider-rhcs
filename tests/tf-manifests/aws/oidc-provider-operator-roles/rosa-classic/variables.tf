@@ -8,11 +8,6 @@ variable "account_role_prefix" {
   default = ""
 }
 
-variable "url" {
-  type    = string
-  default = "https://api.stage.openshift.com"
-}
-
 variable "oidc_config" {
   type    = string
   default = ""

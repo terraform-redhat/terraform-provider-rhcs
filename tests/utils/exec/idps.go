@@ -4,16 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
 type IDPArgs struct {
 	ClusterID     string        `json:"cluster_id,omitempty"`
 	Name          string        `json:"name,omitempty"`
 	ID            string        `json:"id,omitempty"`
-	OCMENV        string        `json:"ocm_environment,omitempty"`
-	URL           string        `json:"url,omitempty"`
 	CA            string        `json:"ca,omitempty"`
 	Attributes    interface{}   `json:"attributes,omitempty"`
 	ClientID      string        `json:"client_id,omitempty"`
@@ -23,6 +21,7 @@ type IDPArgs struct {
 	Insecure      bool          `json:"insecure,omitempty"`
 	MappingMethod string        `json:"mapping_method,omitempty"`
 	HtpasswdUsers []interface{} `json:"htpasswd_users,omitempty"`
+	URL           string        `json:"idp_url,omitempty"`
 }
 
 type IDPService struct {
@@ -37,7 +36,7 @@ type IDPOutput struct {
 }
 
 func (idp *IDPService) Init(manifestDirs ...string) error {
-	idp.ManifestDir = CON.IDPsDir
+	idp.ManifestDir = constants.IDPsDir
 	if len(manifestDirs) != 0 {
 		idp.ManifestDir = manifestDirs[0]
 	}
@@ -65,7 +64,7 @@ func (idp *IDPService) Apply(createArgs *IDPArgs, recordtfvars bool, extraArgs .
 }
 
 func (idp *IDPService) Output() (IDPOutput, error) {
-	idpDir := CON.IDPsDir
+	idpDir := constants.IDPsDir
 	if idp.ManifestDir != "" {
 		idpDir = idp.ManifestDir
 	}
@@ -77,7 +76,7 @@ func (idp *IDPService) Output() (IDPOutput, error) {
 	if err != nil {
 		return output, err
 	}
-	id := h.DigString(out["idp_id"], "value")
+	id := helper.DigString(out["idp_id"], "value")
 
 	// right now only "holds" id, more vars might be needed in the future
 	output = IDPOutput{
@@ -93,7 +92,6 @@ func (idp *IDPService) Destroy(createArgs ...*IDPArgs) error {
 	destroyArgs := idp.CreationArgs
 	if len(createArgs) != 0 {
 		destroyArgs = createArgs[0]
-		destroyArgs.URL = CON.GateWayURL
 	}
 	args, _ := combineStructArgs(destroyArgs)
 	_, err := runTerraformDestroy(idp.Context, idp.ManifestDir, args...)

@@ -23,7 +23,8 @@ var RHCS = new(RHCSconfig)
 // RHCSConfig contains platforms info for the RHCS testing
 type RHCSconfig struct {
 	// Env is the OpenShift Cluster Management environment used to provision clusters.
-	RHCSEnv               string `env:"RHCS_ENV" default:"staging" yaml:"env"`
+	RHCSURL               string `env:"RHCS_URL" default:"api.stage.openshift.com" yaml:"env"`
+	OCMEnv                string `env:"OCM_ENV" default:"staging" yaml:"env"`
 	ClusterProfile        string `env:"CLUSTER_PROFILE" yaml:"clusterProfile,omitempty"`
 	ClusterProfileDir     string `env:"CLUSTER_PROFILE_DIR" yaml:"clusterProfileDir,omitempty"`
 	RhcsOutputDir         string
@@ -43,7 +44,9 @@ func init() {
 	RHCS.RootDir = GetEnvWithDefault(WorkSpace, strings.SplitAfter(currentDir, project)[0])
 
 	// defaulted to staging
-	RHCS.RHCSEnv = GetEnvWithDefault(RHCSENV, RHCS.RHCSEnv)
+	RHCS.RHCSURL = GetEnvWithDefault(RHCSURL, RHCS.RHCSURL)
+	Logger.Infof("Running against RHCS URL: %s", RHCS.RHCSURL)
+	RHCS.OCMEnv = ocmEnv(RHCS.RHCSURL)
 
 	RHCS.RHCSClusterName = GetEnvWithDefault(RHCS_CLUSTER_NAME, RHCS.RHCSClusterName)
 	RHCS.RHCSClusterNamePrefix = GetEnvWithDefault(RHCS_CLUSTER_NAME_PREFIX, RHCS.RHCSClusterNamePrefix)
@@ -61,39 +64,22 @@ func init() {
 	RHCS.YAMLProfilesDir = path.Join(RHCS.RootDir, "tests", "ci", "profiles")
 }
 
-// gatewayURL is used to get the global env of default gateway for testing
-// GATEWAY_URL can be set directly in case anybody run on a sandbox url
-// Otherwize can use export RHCS_ENV=<staging, production, integration> to set
-// Default value is https://api.stage.openshift.com which is staging env
-func gatewayURL() (url string, ocmENV string) {
-	url = GetEnvWithDefault("GATEWAY_URL", "")
-	if url != "" {
-		return url, ""
-	} else {
-		switch os.Getenv(RHCSENV) {
-		case "production", "prod":
-			url = "api.openshift.com"
-			ocmENV = "production"
-		case "staging", "stage":
-			url = "api.stage.openshift.com"
-			ocmENV = "staging"
-		case "integration", "int":
-			url = "api.integration.openshift.com"
-			ocmENV = "integration"
-		case "local":
-			url = ""
-			ocmENV = "local"
-		default:
-			url = "api.stage.openshift.com"
-			ocmENV = "staging"
-		}
+// ocmEnv retrieve the env name based on
+// Values: production, staging, integration, local
+func ocmEnv(rhcsURL string) (ocmENV string) {
+	switch rhcsURL {
+	case "api.openshift.com":
+		return "production"
+	case "api.stage.openshift.com":
+		return "staging"
+	case "api.integration.openshift.com":
+		return "integration"
+	case "":
+		return "local"
+	default:
+		return "staging"
 	}
-	url = fmt.Sprintf("https://%s", url)
-	Logger.Infof("Running against env %s with gateway url %s", ocmENV, url)
-	return url, ocmENV
 }
-
-var GateWayURL, OCMENV = gatewayURL()
 
 func GetEnvWithDefault(key string, defaultValue string) string {
 	if value, ok := os.LookupEnv(key); ok {

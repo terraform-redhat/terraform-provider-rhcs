@@ -5,15 +5,13 @@ import (
 	"fmt"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
 type MachinePoolArgs struct {
 	Cluster                  *string              `json:"cluster,omitempty"`
-	OCMENV                   string               `json:"ocm_environment,omitempty"`
 	Name                     *string              `json:"name,omitempty"`
-	URL                      string               `json:"url,omitempty"`
 	MachineType              *string              `json:"machine_type,omitempty"`
 	Replicas                 *int                 `json:"replicas,omitempty"`
 	AutoscalingEnabled       *bool                `json:"autoscaling_enabled,omitempty"`
@@ -55,7 +53,7 @@ type MachinePoolOutput struct {
 }
 
 func (mp *MachinePoolService) Init(manifestDirs ...string) error {
-	mp.ManifestDir = CON.ClassicMachinePoolDir
+	mp.ManifestDir = constants.ClassicMachinePoolDir
 	if len(manifestDirs) != 0 {
 		mp.ManifestDir = manifestDirs[0]
 	}
@@ -70,7 +68,6 @@ func (mp *MachinePoolService) Init(manifestDirs ...string) error {
 }
 
 func (mp *MachinePoolService) MagicImport(createArgs *MachinePoolArgs, extraArgs ...string) error {
-	createArgs.URL = CON.GateWayURL
 	mp.CreationArgs = createArgs
 	args, _ := combineStructArgs(createArgs, extraArgs...)
 	_, err := runTerraformApply(mp.Context, mp.ManifestDir, args...)
@@ -81,7 +78,6 @@ func (mp *MachinePoolService) MagicImport(createArgs *MachinePoolArgs, extraArgs
 }
 
 func (mp *MachinePoolService) Apply(createArgs *MachinePoolArgs, recordtfargs bool, extraArgs ...string) (string, error) {
-	createArgs.URL = CON.GateWayURL
 	mp.CreationArgs = createArgs
 	args, tfvars := combineStructArgs(createArgs, extraArgs...)
 	output, err := runTerraformApply(mp.Context, mp.ManifestDir, args...)
@@ -92,7 +88,6 @@ func (mp *MachinePoolService) Apply(createArgs *MachinePoolArgs, recordtfargs bo
 }
 
 func (mp *MachinePoolService) Plan(createArgs *MachinePoolArgs, extraArgs ...string) (string, error) {
-	createArgs.URL = CON.GateWayURL
 	mp.CreationArgs = createArgs
 	args, _ := combineStructArgs(createArgs, extraArgs...)
 	output, err := runTerraformPlan(mp.Context, mp.ManifestDir, args...)
@@ -102,7 +97,7 @@ func (mp *MachinePoolService) Plan(createArgs *MachinePoolArgs, extraArgs ...str
 func (mp *MachinePoolService) Output() (MachinePoolOutput, error) {
 	mpDir := mp.ManifestDir
 	if mp.ManifestDir == "" {
-		mpDir = CON.ClassicMachinePoolDir
+		mpDir = constants.ClassicMachinePoolDir
 	}
 	var output MachinePoolOutput
 	out, err := runTerraformOutput(context.TODO(), mpDir)
@@ -112,10 +107,10 @@ func (mp *MachinePoolService) Output() (MachinePoolOutput, error) {
 	if err != nil {
 		return output, err
 	}
-	replicas := h.DigInt(out["replicas"], "value")
-	machine_type := h.DigString(out["machine_type"], "value")
-	name := h.DigString(out["name"], "value")
-	autoscaling_enabled := h.DigBool(out["autoscaling_enabled"])
+	replicas := helper.DigInt(out["replicas"], "value")
+	machine_type := helper.DigString(out["machine_type"], "value")
+	name := helper.DigString(out["name"], "value")
+	autoscaling_enabled := helper.DigBool(out["autoscaling_enabled"])
 	output = MachinePoolOutput{
 		Replicas:           replicas,
 		MachineType:        machine_type,
@@ -133,7 +128,6 @@ func (mp *MachinePoolService) Destroy(createArgs ...*MachinePoolArgs) (output st
 	if len(createArgs) != 0 {
 		destroyArgs = createArgs[0]
 	}
-	destroyArgs.URL = CON.GateWayURL
 	args, _ := combineStructArgs(destroyArgs)
 
 	return runTerraformDestroy(mp.Context, mp.ManifestDir, args...)
@@ -147,22 +141,22 @@ func NewMachinePoolService(manifestDir ...string) *MachinePoolService {
 
 func BuildDefaultMachinePoolArgsFromClusterState(clusterResource interface{}) (MachinePoolArgs, error) {
 	var machinePoolArgs MachinePoolArgs
-	if h.DigString(clusterResource, "type") != "rhcs_cluster_rosa_classic" {
-		return machinePoolArgs, fmt.Errorf("expected a cluster resource of type rhcs_cluster_rosa_classic, got %s", h.DigString(clusterResource, "type"))
+	if helper.DigString(clusterResource, "type") != "rhcs_cluster_rosa_classic" {
+		return machinePoolArgs, fmt.Errorf("expected a cluster resource of type rhcs_cluster_rosa_classic, got %s", helper.DigString(clusterResource, "type"))
 	}
-	if h.DigBool(h.DigArray(clusterResource, "instances")[0], "attributes", "autoscaling_enabled") {
-		machinePoolArgs.AutoscalingEnabled = h.BoolPointer(true)
-		maxReplicas := h.DigInt(h.DigArray(clusterResource, "instances")[0], "attributes", "max_replicas")
-		minReplicas := h.DigInt(h.DigArray(clusterResource, "instances")[0], "attributes", "min_replicas")
+	if helper.DigBool(helper.DigArray(clusterResource, "instances")[0], "attributes", "autoscaling_enabled") {
+		machinePoolArgs.AutoscalingEnabled = helper.BoolPointer(true)
+		maxReplicas := helper.DigInt(helper.DigArray(clusterResource, "instances")[0], "attributes", "max_replicas")
+		minReplicas := helper.DigInt(helper.DigArray(clusterResource, "instances")[0], "attributes", "min_replicas")
 		machinePoolArgs.MaxReplicas = &maxReplicas
 		machinePoolArgs.MinReplicas = &minReplicas
 	} else {
-		replicas := h.DigInt(h.DigArray(clusterResource, "instances")[0], "attributes", "replicas")
+		replicas := helper.DigInt(helper.DigArray(clusterResource, "instances")[0], "attributes", "replicas")
 		machinePoolArgs.Replicas = &replicas
 	}
-	machinePoolArgs.Name = h.StringPointer("worker")
-	machinePoolArgs.MachineType = h.StringPointer(h.DigString(h.DigArray(clusterResource, "instances")[0], "attributes", "compute_machine_type"))
-	labelsInterface := h.DigObject(h.DigArray(clusterResource, "instances")[0], "attributes", "default_mp_labels")
+	machinePoolArgs.Name = helper.StringPointer("worker")
+	machinePoolArgs.MachineType = helper.StringPointer(helper.DigString(helper.DigArray(clusterResource, "instances")[0], "attributes", "compute_machine_type"))
+	labelsInterface := helper.DigObject(helper.DigArray(clusterResource, "instances")[0], "attributes", "default_mp_labels")
 	labels := make(map[string]string)
 	for key, value := range labelsInterface.(map[string]interface{}) {
 		labels[key] = fmt.Sprint(value)
@@ -173,29 +167,29 @@ func BuildDefaultMachinePoolArgsFromClusterState(clusterResource interface{}) (M
 
 func BuildDefaultMachinePoolArgsFromDefaultMachinePoolState(defaultMachinePoolResource interface{}) (MachinePoolArgs, error) {
 	var machinePoolArgs MachinePoolArgs
-	if h.DigString(defaultMachinePoolResource, "type") != "rhcs_machine_pool" && h.DigString(defaultMachinePoolResource, "name") != "worker" {
-		return machinePoolArgs, fmt.Errorf("expected a default machinepool resource of type rhcs_machine_pool and named worker, got %s named %s", h.DigString(defaultMachinePoolResource, "type"), h.DigString(defaultMachinePoolResource, "name"))
+	if helper.DigString(defaultMachinePoolResource, "type") != "rhcs_machine_pool" && helper.DigString(defaultMachinePoolResource, "name") != "worker" {
+		return machinePoolArgs, fmt.Errorf("expected a default machinepool resource of type rhcs_machine_pool and named worker, got %s named %s", helper.DigString(defaultMachinePoolResource, "type"), helper.DigString(defaultMachinePoolResource, "name"))
 	}
-	if h.DigBool(h.DigArray(defaultMachinePoolResource, "instances")[0], "attributes", "autoscaling_enabled") {
-		machinePoolArgs.AutoscalingEnabled = h.BoolPointer(true)
-		maxReplicas := h.DigInt(h.DigArray(defaultMachinePoolResource, "instances")[0], "attributes", "max_replicas")
-		minReplicas := h.DigInt(h.DigArray(defaultMachinePoolResource, "instances")[0], "attributes", "min_replicas")
+	if helper.DigBool(helper.DigArray(defaultMachinePoolResource, "instances")[0], "attributes", "autoscaling_enabled") {
+		machinePoolArgs.AutoscalingEnabled = helper.BoolPointer(true)
+		maxReplicas := helper.DigInt(helper.DigArray(defaultMachinePoolResource, "instances")[0], "attributes", "max_replicas")
+		minReplicas := helper.DigInt(helper.DigArray(defaultMachinePoolResource, "instances")[0], "attributes", "min_replicas")
 		machinePoolArgs.MaxReplicas = &maxReplicas
 		machinePoolArgs.MinReplicas = &minReplicas
 	} else {
-		replicas := h.DigInt(h.DigArray(defaultMachinePoolResource, "instances")[0], "attributes", "replicas")
+		replicas := helper.DigInt(helper.DigArray(defaultMachinePoolResource, "instances")[0], "attributes", "replicas")
 		machinePoolArgs.Replicas = &replicas
 	}
-	machinePoolArgs.Name = h.StringPointer("worker")
-	machinePoolArgs.MachineType = h.StringPointer(h.DigString(h.DigArray(defaultMachinePoolResource, "instances")[0], "attributes", "machine_type"))
-	labelsInterface := h.DigObject(h.DigArray(defaultMachinePoolResource, "instances")[0], "attributes", "labels")
+	machinePoolArgs.Name = helper.StringPointer("worker")
+	machinePoolArgs.MachineType = helper.StringPointer(helper.DigString(helper.DigArray(defaultMachinePoolResource, "instances")[0], "attributes", "machine_type"))
+	labelsInterface := helper.DigObject(helper.DigArray(defaultMachinePoolResource, "instances")[0], "attributes", "labels")
 	labels := make(map[string]string)
 	for key, value := range labelsInterface.(map[string]interface{}) {
 		labels[key] = fmt.Sprint(value)
 	}
 	machinePoolArgs.Labels = &labels
-	if h.DigObject(h.DigArray(defaultMachinePoolResource, "instances")[0], "attributes", "taints") != nil {
-		taintsInterface := h.DigArray(h.DigArray(defaultMachinePoolResource, "instances")[0], "attributes", "taints")
+	if helper.DigObject(helper.DigArray(defaultMachinePoolResource, "instances")[0], "attributes", "taints") != nil {
+		taintsInterface := helper.DigArray(helper.DigArray(defaultMachinePoolResource, "instances")[0], "attributes", "taints")
 		taints := make([]map[string]string, len(taintsInterface))
 		for i, taintInterface := range taintsInterface {
 			taintMap := taintInterface.(map[string]interface{})
@@ -233,22 +227,22 @@ func BuildMachinePoolArgsFromCSResponse(machinePool *cmv1.MachinePool) MachinePo
 	var machinePoolArgs MachinePoolArgs
 
 	if id, ok := machinePool.GetID(); ok {
-		machinePoolArgs.Name = h.StringPointer(id)
+		machinePoolArgs.Name = helper.StringPointer(id)
 	}
 	if replicas, ok := machinePool.GetReplicas(); ok {
-		machinePoolArgs.Replicas = h.IntPointer(replicas)
+		machinePoolArgs.Replicas = helper.IntPointer(replicas)
 	}
 	if instanceType, ok := machinePool.GetInstanceType(); ok {
-		machinePoolArgs.MachineType = h.StringPointer(instanceType)
+		machinePoolArgs.MachineType = helper.StringPointer(instanceType)
 	}
 	if autoscalingEnabled, ok := machinePool.GetAutoscaling(); ok {
-		machinePoolArgs.MaxReplicas = h.IntPointer(autoscalingEnabled.MaxReplicas())
-		machinePoolArgs.MinReplicas = h.IntPointer(autoscalingEnabled.MinReplicas())
+		machinePoolArgs.MaxReplicas = helper.IntPointer(autoscalingEnabled.MaxReplicas())
+		machinePoolArgs.MinReplicas = helper.IntPointer(autoscalingEnabled.MinReplicas())
 	}
 
 	if maxSpotPrice, ok := machinePool.AWS().GetSpotMarketOptions(); ok {
-		machinePoolArgs.MaxSpotPrice = h.Float64Pointer(maxSpotPrice.MaxPrice())
-		machinePoolArgs.UseSpotInstances = h.BoolPointer(true)
+		machinePoolArgs.MaxSpotPrice = helper.Float64Pointer(maxSpotPrice.MaxPrice())
+		machinePoolArgs.UseSpotInstances = helper.BoolPointer(true)
 	}
 	if labels, ok := machinePool.GetLabels(); ok {
 		machinePoolArgs.Labels = &labels
@@ -271,7 +265,7 @@ func BuildMachinePoolArgsFromCSResponse(machinePool *cmv1.MachinePool) MachinePo
 		machinePoolArgs.Taints = &taintsMap
 	}
 	if diskSize, ok := machinePool.GetRootVolume(); ok {
-		machinePoolArgs.DiskSize = h.IntPointer(diskSize.AWS().Size())
+		machinePoolArgs.DiskSize = helper.IntPointer(diskSize.AWS().Size())
 	}
 	if additionalSecurityGroups, ok := machinePool.AWS().GetAdditionalSecurityGroupIds(); ok {
 		machinePoolArgs.AdditionalSecurityGroups = &additionalSecurityGroups

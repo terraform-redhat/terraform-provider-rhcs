@@ -22,9 +22,6 @@ terraform {
   }
 }
 
-provider "rhcs" {
-  url = var.gateway
-}
 locals {
 
 }
@@ -35,6 +32,6 @@ resource "rhcs_identity_provider" "gitlab_idp" {
   gitlab = {
     client_id     = var.client_id
     client_secret = var.client_secret
-    url           = var.url
+    url           = var.idp_url
   }
 }

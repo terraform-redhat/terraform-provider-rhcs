@@ -17,7 +17,3 @@ output "major_version" {
 output "channel_group" {
   value = var.channel_group
 }
-
-output "rhcs_gateway_url" {
-  value = var.url
-}

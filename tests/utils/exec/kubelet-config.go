@@ -4,12 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
 type KubeletConfigArgs struct {
-	URL          string `json:"url,omitempty"`
 	Cluster      string `json:"cluster,omitempty"`
 	PodPidsLimit int    `json:"pod_pids_limit,omitempty"`
 }
@@ -26,7 +25,7 @@ type KubeletConfigService struct {
 }
 
 func (kc *KubeletConfigService) Init(manifestDirs ...string) error {
-	kc.ManifestDir = CON.KubeletConfigDir
+	kc.ManifestDir = constants.KubeletConfigDir
 	if len(manifestDirs) != 0 {
 		kc.ManifestDir = manifestDirs[0]
 	}
@@ -41,7 +40,6 @@ func (kc *KubeletConfigService) Init(manifestDirs ...string) error {
 }
 
 func (kc *KubeletConfigService) Apply(createArgs *KubeletConfigArgs, recordtfvars bool, extraArgs ...string) (*KubeletConfigOutput, error) {
-	createArgs.URL = CON.GateWayURL
 	kc.CreationArgs = createArgs
 	args, tfvars := combineStructArgs(createArgs, extraArgs...)
 	_, err := runTerraformApply(kc.Context, kc.ManifestDir, args...)
@@ -55,7 +53,6 @@ func (kc *KubeletConfigService) Apply(createArgs *KubeletConfigArgs, recordtfvar
 	return output, err
 }
 func (kc *KubeletConfigService) Plan(createArgs *KubeletConfigArgs, extraArgs ...string) (string, error) {
-	createArgs.URL = CON.GateWayURL
 	kc.CreationArgs = createArgs
 	args, _ := combineStructArgs(createArgs, extraArgs...)
 	output, err := runTerraformPlan(kc.Context, kc.ManifestDir, args...)
@@ -68,7 +65,7 @@ func (kc *KubeletConfigService) Output() (*KubeletConfigOutput, error) {
 		return nil, err
 	}
 	var accOutput = &KubeletConfigOutput{
-		PodPidsLimit: h.DigInt(out["pod_pids_limit"], "value"),
+		PodPidsLimit: helper.DigInt(out["pod_pids_limit"], "value"),
 	}
 	return accOutput, nil
 }
@@ -81,7 +78,6 @@ func (kc *KubeletConfigService) Destroy(createArgs ...*KubeletConfigArgs) (strin
 	if len(createArgs) != 0 {
 		destroyArgs = createArgs[0]
 	}
-	destroyArgs.URL = CON.GateWayURL
 	args, _ := combineStructArgs(destroyArgs)
 	output, err := runTerraformDestroy(kc.Context, kc.ManifestDir, args...)
 	return output, err

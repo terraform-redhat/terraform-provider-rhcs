@@ -3,17 +3,15 @@ package exec
 import (
 	"context"
 
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
 type ClusterCreationArgs struct {
 	AccountRolePrefix                    string             `json:"account_role_prefix,omitempty"`
-	OCMENV                               string             `json:"rhcs_environment,omitempty"`
 	ClusterName                          *string            `json:"cluster_name,omitempty"`
 	OperatorRolePrefix                   *string            `json:"operator_role_prefix,omitempty"`
 	OpenshiftVersion                     string             `json:"openshift_version,omitempty"`
-	URL                                  string             `json:"url,omitempty"`
 	AWSRegion                            *string            `json:"aws_region,omitempty"`
 	AWSAvailabilityZones                 *[]string          `json:"aws_availability_zones,omitempty"`
 	Replicas                             int                `json:"replicas,omitempty"`
@@ -114,7 +112,7 @@ type ClusterService struct {
 }
 
 func (creator *ClusterService) Init(manifestDir string) error {
-	creator.ManifestDir = CON.GrantClusterManifestDir(manifestDir)
+	creator.ManifestDir = constants.GrantClusterManifestDir(manifestDir)
 	ctx := context.TODO()
 	creator.Context = ctx
 	err := runTerraformInit(ctx, creator.ManifestDir)
@@ -126,7 +124,6 @@ func (creator *ClusterService) Init(manifestDir string) error {
 }
 
 func (creator *ClusterService) Apply(createArgs *ClusterCreationArgs, recordtfvars bool, tfvarsDeletion bool, extraArgs ...string) error {
-	createArgs.URL = CON.GateWayURL
 	args, tfvars := combineStructArgs(createArgs, extraArgs...)
 	if recordtfvars {
 		recordTFvarsFile(creator.ManifestDir, tfvars) // Record the tfvars before apply in case cluster creation error and we need clean
@@ -148,27 +145,25 @@ func (creator *ClusterService) Output() (*ClusterOutput, error) {
 		return nil, err
 	}
 	clusterOutput := &ClusterOutput{
-		ClusterID:                            h.DigString(out["cluster_id"], "value"),
-		ClusterName:                          h.DigString(out["cluster_name"], "value"),
-		ClusterVersion:                       h.DigString(out["cluster_version"], "value"),
-		AdditionalComputeSecurityGroups:      h.DigArrayToString(out["additional_compute_security_groups"], "value"),
-		AdditionalInfraSecurityGroups:        h.DigArrayToString(out["additional_infra_security_groups"], "value"),
-		AdditionalControlPlaneSecurityGroups: h.DigArrayToString(out["additional_control_plane_security_groups"], "value"),
-		Properties:                           h.DigMapToString(out["properties"], "value"),
-		UserTags:                             h.DigMapToString(out["tags"], "value"),
+		ClusterID:                            helper.DigString(out["cluster_id"], "value"),
+		ClusterName:                          helper.DigString(out["cluster_name"], "value"),
+		ClusterVersion:                       helper.DigString(out["cluster_version"], "value"),
+		AdditionalComputeSecurityGroups:      helper.DigArrayToString(out["additional_compute_security_groups"], "value"),
+		AdditionalInfraSecurityGroups:        helper.DigArrayToString(out["additional_infra_security_groups"], "value"),
+		AdditionalControlPlaneSecurityGroups: helper.DigArrayToString(out["additional_control_plane_security_groups"], "value"),
+		Properties:                           helper.DigMapToString(out["properties"], "value"),
+		UserTags:                             helper.DigMapToString(out["tags"], "value"),
 	}
 
 	return clusterOutput, nil
 }
 
 func (creator *ClusterService) Destroy(createArgs *ClusterCreationArgs, extraArgs ...string) (string, error) {
-	createArgs.URL = CON.GateWayURL
 	args, _ := combineStructArgs(createArgs, extraArgs...)
 	return runTerraformDestroy(creator.Context, creator.ManifestDir, args...)
 }
 
 func (creator *ClusterService) Plan(planargs *ClusterCreationArgs, extraArgs ...string) (string, error) {
-	planargs.URL = CON.GateWayURL
 	args, _ := combineStructArgs(planargs, extraArgs...)
 	output, err := runTerraformPlan(creator.Context, creator.ManifestDir, args...)
 	return output, err

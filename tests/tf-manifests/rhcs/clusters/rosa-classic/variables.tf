@@ -1,9 +1,3 @@
-
-variable "url" {
-  type    = string
-  default = "https://api.stage.openshift.com"
-}
-
 variable "operator_role_prefix" {
   type    = string
   default = ""
@@ -37,11 +31,6 @@ variable "openshift_version" {
 variable "channel_group" {
   type    = string
   default = "stable"
-}
-
-variable "rhcs_environment" {
-  type    = string
-  default = "staging"
 }
 
 variable "product" {

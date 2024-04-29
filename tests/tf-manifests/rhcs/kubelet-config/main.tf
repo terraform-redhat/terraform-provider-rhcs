@@ -7,9 +7,7 @@ terraform {
   }
 }
 
-provider "rhcs" {
-  url = var.url
-}
+
 
 resource "rhcs_kubeletconfig" "kubeletconfig" {
   cluster        = var.cluster

@@ -1,3 +1,3 @@
 data "rhcs_cluster_rosa_classic" "cluster" {
-  id = var.cluster_id
+  id = "cluster-id-123"
 }

@@ -56,3 +56,8 @@ variable "aws_shared_credentials_files" {
   default     = null
   description = "File path to the AWS shared credentials file. This file typically used by Shared-VPC cluster."
 }
+
+variable "disable_subnet_tagging" {
+  type = bool
+  default = false
+}

@@ -46,5 +46,8 @@ func AssertWaitPollWithErr(e error, msg string) {
 
 	err := fmt.Errorf("case: %v\nexpected error not got because of %v", CurrentSpecReport().FullText(), msg)
 	Expect(err).NotTo(HaveOccurred())
+}
 
+func ExpectTFErrorContains(err error, substring string) {
+	Expect(GetTFErrorMessage(err)).To(ContainSubstring(substring))
 }

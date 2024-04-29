@@ -627,14 +627,14 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 			By("Try to create a nodepool with empty cluster")
 			mpArgs = getDefaultMPArgs(mpName)
-			mpArgs.Cluster = &constants.EmptyStringValue
+			mpArgs.Cluster = helper.EmptyStringPointer
 			_, err = mpService.Apply(mpArgs, false)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("Attribute cluster cluster ID may not be empty/blank string, got: "))
 
 			By("Try to create a nodepool with empty name")
 			mpArgs = getDefaultMPArgs(mpName)
-			mpArgs.Name = &constants.EmptyStringValue
+			mpArgs.Name = helper.EmptyStringPointer
 			_, err = mpService.Apply(mpArgs, false)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("Attribute name name may not be empty/blank string"))
@@ -650,7 +650,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 			By("Try to create a nodepool with empty subnet_id")
 			mpArgs = getDefaultMPArgs(mpName)
-			mpArgs.SubnetID = &constants.EmptyStringValue
+			mpArgs.SubnetID = helper.EmptyStringPointer
 			_, err = mpService.Apply(mpArgs, false)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("Attribute subnet_id subnet ID may not be empty/blank string"))
@@ -681,7 +681,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 			By("Try to create a nodepool with empty instance_type")
 			mpArgs = getDefaultMPArgs(mpName)
-			mpArgs.MachineType = &constants.EmptyStringValue
+			mpArgs.MachineType = helper.EmptyStringPointer
 			_, err = mpService.Apply(mpArgs, false)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("'aws_node_pool.instance_type' cannot be empty."))

@@ -16,6 +16,7 @@ type VPCArgs struct {
 	AZIDs                     []string `json:"az_ids,omitempty"`
 	HCP                       bool     `json:"hcp,omitempty"`
 	AWSSharedCredentialsFiles []string `json:"aws_shared_credentials_files,omitempty"`
+	DisableSubnetTagging      bool     `json:"disable_subnet_tagging,omitempty"`
 }
 
 type VPCOutput struct {

@@ -117,21 +117,21 @@ var _ = Describe("Tuning Config", ci.NonClassicCluster, ci.FeatureTuningConfig, 
 
 		By("Try to create tuning config with empty cluster ID")
 		tcArgs = getDefaultTCArgs()
-		tcArgs.Cluster = &constants.EmptyStringValue
+		tcArgs.Cluster = helper.EmptyStringPointer
 		_, err := tcService.Apply(tcArgs, false)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Attribute cluster cluster ID may not be empty/blank string, got:"))
 
 		By("Try to create tuning config with empty name")
 		tcArgs = getDefaultTCArgs()
-		tcArgs.Name = &constants.EmptyStringValue
+		tcArgs.Name = helper.EmptyStringPointer
 		_, err = tcService.Apply(tcArgs, false)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("The name must be a lowercase RFC 1123 subdomain"))
 
 		By("Try to create tuning config with empty spec")
 		tcArgs = getDefaultTCArgs()
-		tcArgs.Spec = &constants.EmptyStringValue
+		tcArgs.Spec = helper.EmptyStringPointer
 		_, err = tcService.Apply(tcArgs, false)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring(" Attribute 'spec' must\nbe set"))

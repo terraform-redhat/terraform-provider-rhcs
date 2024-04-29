@@ -479,6 +479,14 @@ func GetClusterAdminPassword() string {
 	return string(b)
 }
 
+var (
+	emptyStringValue      = ""
+	emptyStringSliceValue = []string{}
+)
+
+var EmptyStringPointer = StringPointer(emptyStringValue)
+var EmptyStringSlicePointer = StringSlicePointer(emptyStringSliceValue)
+
 // Return a bool pointer of the input bool value
 func BoolPointer(b bool) *bool {
 	return &b
@@ -497,6 +505,15 @@ func IntPointer(i int) *int {
 func Float64Pointer(f float64) *float64 {
 	return &f
 }
+
+func StringSlicePointer(f []string) *[]string {
+	return &f
+}
+
 func Pointer(f interface{}) *interface{} {
 	return &f
+}
+
+func GetTFErrorMessage(err error) string {
+	return strings.ReplaceAll(err.Error(), "\n", " ")
 }

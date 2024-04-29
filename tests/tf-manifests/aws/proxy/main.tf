@@ -59,7 +59,7 @@ resource "tls_private_key" "proxy_ssh_key" {
 }
 
 resource "aws_key_pair" "generated_key" {
-  key_name   = "imported-proxy-key-${timestamp()}"
+  key_name   = "imported-proxy-key-${var.key_pair_id != null ? var.key_pair_id : timestamp()}"
   public_key = tls_private_key.proxy_ssh_key.public_key_openssh
 }
 

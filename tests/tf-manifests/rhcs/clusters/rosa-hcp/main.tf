@@ -26,6 +26,11 @@ data "rhcs_versions" "version" {
 
 locals {
   version = var.openshift_version != null ? var.openshift_version : data.rhcs_versions.version.items[0].name
+
+  creatorProps = {
+      rosa_creator_arn = data.aws_caller_identity.current.arn
+    }
+  properties = var.include_creator_property ? merge(local.creatorProps, var.custom_properties) : var.custom_properties
 }
 
 locals {
@@ -53,12 +58,7 @@ resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
   aws_account_id         = var.aws_account_id != null ? var.aws_account_id : data.aws_caller_identity.current.account_id
   aws_billing_account_id = var.aws_billing_account_id != null ? var.aws_billing_account_id : data.aws_caller_identity.current.account_id
   availability_zones     = var.aws_availability_zones
-  properties = merge(
-    {
-      rosa_creator_arn = data.aws_caller_identity.current.arn
-    },
-    var.custom_properties
-  )
+  properties = local.properties
   sts      = local.sts_roles
   replicas = var.replicas
   proxy    = var.proxy
@@ -66,7 +66,7 @@ resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
   private                      = var.private
   compute_machine_type         = var.compute_machine_type
   etcd_encryption              = var.etcd_encryption
-  etcd_kms_key_arn             = var.kms_key_arn
+  etcd_kms_key_arn             = var.etcd_kms_key_arn != null ? var.etcd_kms_key_arn : var.kms_key_arn
   kms_key_arn                  = var.kms_key_arn
   host_prefix                  = var.host_prefix
   machine_cidr                 = var.machine_cidr

@@ -44,7 +44,7 @@ var _ = Describe("Cluster miscellaneous", func() {
 	AfterEach(func() {
 		By("Recover cluster properties")
 		clusterArgs := &exec.ClusterCreationArgs{
-			AWSRegion:        profile.Region,
+			AWSRegion:        &profile.Region,
 			CustomProperties: originalCustomProperties,
 		}
 
@@ -62,7 +62,7 @@ var _ = Describe("Cluster miscellaneous", func() {
 
 			// Apply updated custom properties to the cluster
 			clusterArgs := &exec.ClusterCreationArgs{
-				AWSRegion:        profile.Region,
+				AWSRegion:        &profile.Region,
 				CustomProperties: updatedCustomProperties,
 			}
 
@@ -80,7 +80,7 @@ var _ = Describe("Cluster miscellaneous", func() {
 			}
 
 			clusterArgs = &exec.ClusterCreationArgs{
-				AWSRegion:        profile.Region,
+				AWSRegion:        &profile.Region,
 				CustomProperties: updatedCustomProperties,
 			}
 
@@ -96,7 +96,7 @@ var _ = Describe("Cluster miscellaneous", func() {
 		updatedCustomProperties["some"] = "thing"
 		updatedCustomProperties["nothing"] = ""
 		clusterArgs := &exec.ClusterCreationArgs{
-			AWSRegion:        profile.Region,
+			AWSRegion:        &profile.Region,
 			CustomProperties: updatedCustomProperties,
 		}
 		err = clusterService.Apply(clusterArgs, false, false)

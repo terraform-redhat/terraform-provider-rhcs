@@ -15,6 +15,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
@@ -225,7 +226,7 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 
 		By("Try to create tuning config with empty cluster ID")
 		args := &exec.ClusterAutoscalerArgs{
-			Cluster:        &constants.EmptyStringValue,
+			Cluster:        helper.EmptyStringPointer,
 			ResourceLimits: &exec.ResourceLimits{},
 		}
 		_, err := caService.Apply(args, false)

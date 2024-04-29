@@ -66,12 +66,17 @@ variable "compute_machine_type" {
 
 variable "etcd_encryption" {
   type    = bool
-  default = null # Temporary. Should be false but due to https://issues.redhat.com/browse/OCM-6593 it is set to null by default
+  default = false
 }
 
 variable "host_prefix" {
   type    = number
   default = 24
+}
+
+variable "etcd_kms_key_arn" {
+  type    = string
+  default = null
 }
 
 variable "kms_key_arn" {
@@ -163,4 +168,9 @@ variable "support_role" {
 variable "worker_role" {
  type    = string
   default = null 
+}
+
+variable "include_creator_property" {
+  type = bool
+  default = true
 }

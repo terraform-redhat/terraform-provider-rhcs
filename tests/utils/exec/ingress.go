@@ -4,14 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
 type IngressArgs struct {
 	ID      string  `json:"id,omitempty"`
 	Cluster *string `json:"cluster,omitempty"`
-	URL     string  `json:"url,omitempty"`
 
 	// Classic
 	RouteNamespaceOwnershipPolicy string            `json:"route_namespace_ownership_policy,omitempty"`
@@ -37,7 +36,7 @@ type IngressService struct {
 }
 
 func (ing *IngressService) Init(manifestDirs ...string) error {
-	ing.ManifestDir = CON.ClassicIngressDir
+	ing.ManifestDir = constants.ClassicIngressDir
 	if len(manifestDirs) != 0 {
 		ing.ManifestDir = manifestDirs[0]
 	}
@@ -62,7 +61,7 @@ func (ing *IngressService) Apply(createArgs *IngressArgs, extraArgs ...string) e
 }
 
 func (ing *IngressService) Output() (IngressOutput, error) {
-	ingressDir := CON.ClassicIngressDir
+	ingressDir := constants.ClassicIngressDir
 	if ing.ManifestDir != "" {
 		ingressDir = ing.ManifestDir
 	}
@@ -72,7 +71,7 @@ func (ing *IngressService) Output() (IngressOutput, error) {
 		return ingressOut, err
 	}
 	ingressOut = IngressOutput{
-		ID: h.DigString(out["id"], "value"),
+		ID: helper.DigString(out["id"], "value"),
 	}
 
 	return ingressOut, nil

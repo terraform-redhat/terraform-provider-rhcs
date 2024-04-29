@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	con "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 )
 
 type ImportArgs struct {
-	URL          string `json:"url,omitempty"`
 	ResourceKind string `json:"resource_kind,omitempty"`
 	ResourceName string `json:"resource_name,omitempty"`
 	ClusterID    string `json:"cluster_id,omitempty"`
@@ -22,7 +21,7 @@ type ImportService struct {
 }
 
 func (importTF *ImportService) InitImport(manifestDirs ...string) error {
-	importTF.ManifestDir = con.ImportResourceDir
+	importTF.ManifestDir = constants.ImportResourceDir
 	if len(manifestDirs) > 0 {
 		importTF.ManifestDir = manifestDirs[0]
 	}
@@ -51,7 +50,6 @@ func combineImportStructArgs(importObj *ImportArgs) []string {
 }
 
 func (importService *ImportService) Import(importArgs *ImportArgs, extraArgs ...string) error {
-	importArgs.URL = con.GateWayURL
 	importService.CreationArgs = importArgs
 
 	args := combineImportStructArgs(importArgs)

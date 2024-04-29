@@ -39,11 +39,6 @@ variable "taints" {
   }))
 }
 
-variable "url" {
-  type    = string
-  default = "https://api.stage.openshift.com"
-}
-
 variable "availability_zone" {
   type    = string
   default = null

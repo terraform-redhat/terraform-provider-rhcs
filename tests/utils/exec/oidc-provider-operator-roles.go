@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
@@ -11,7 +12,6 @@ import (
 type OIDCProviderOperatorRolesArgs struct {
 	AccountRolePrefix   string `json:"account_role_prefix,omitempty"`
 	OperatorRolePrefix  string `json:"operator_role_prefix,omitempty"`
-	URL                 string `json:"url,omitempty"`
 	OIDCConfig          string `json:"oidc_config,omitempty"`
 	AWSRegion           string `json:"aws_region,omitempty"`
 	OCMENV              string `json:"rhcs_environment,omitempty"`
@@ -48,8 +48,7 @@ func (oidcOP *OIDCProviderOperatorRolesService) Init(manifestDirs ...string) err
 
 func (oidcOP *OIDCProviderOperatorRolesService) Apply(createArgs *OIDCProviderOperatorRolesArgs, recordtfvars bool, extraArgs ...string) (
 	*OIDCProviderOperatorRolesOutput, error) {
-	createArgs.URL = CON.GateWayURL
-	createArgs.OCMENV = CON.OCMENV
+	createArgs.OCMENV = constants.RHCS.OCMEnv
 	oidcOP.CreationArgs = createArgs
 	args, tfvars := combineStructArgs(createArgs, extraArgs...)
 	_, err := runTerraformApply(oidcOP.Context, oidcOP.ManifestDir, args...)
@@ -89,8 +88,7 @@ func (oidcOP *OIDCProviderOperatorRolesService) Destroy(createArgs ...*OIDCProvi
 	if len(createArgs) != 0 {
 		destroyArgs = createArgs[0]
 	}
-	destroyArgs.URL = CON.GateWayURL
-	destroyArgs.OCMENV = CON.OCMENV
+	destroyArgs.OCMENV = constants.RHCS.OCMEnv
 	args, _ := combineStructArgs(destroyArgs)
 	_, err := runTerraformDestroy(oidcOP.Context, oidcOP.ManifestDir, args...)
 	return err

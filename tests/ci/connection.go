@@ -47,7 +47,7 @@ func createConnectionWithToken(token string) *client.Connection {
 		Logger(logger).
 		Insecure(true).
 		TokenURL(CON.TokenURL).
-		URL(CON.GateWayURL).
+		URL(CON.RHCS.RHCSURL).
 		Client(CON.ClientID, CON.ClientSecret).
 		Tokens(token).
 		Build()

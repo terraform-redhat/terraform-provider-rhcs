@@ -23,10 +23,6 @@ terraform {
   }
 }
 
-provider "rhcs" {
-  url = var.gateway
-}
-
 resource "rhcs_identity_provider" "ldap_idp" {
   cluster        = var.cluster_id
   name           = var.name
@@ -34,7 +30,7 @@ resource "rhcs_identity_provider" "ldap_idp" {
   ldap = {
     ca       = var.ca
     insecure = true
-    url      = var.url
+    url      = var.idp_url
 
     # optional
     attributes = var.attributes

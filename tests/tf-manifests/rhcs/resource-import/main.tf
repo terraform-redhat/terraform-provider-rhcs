@@ -7,9 +7,7 @@ terraform {
   }
 }
 
-provider "rhcs" {
-  url = var.url
-}
+
 
 resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster_import" {
   aws_account_id = ""

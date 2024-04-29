@@ -7,9 +7,7 @@ terraform {
   }
 }
 
-provider "rhcs" {
-  url = var.url
-}
+
 
 resource "rhcs_hcp_default_ingress" "default_ingress" {
   cluster          = var.cluster

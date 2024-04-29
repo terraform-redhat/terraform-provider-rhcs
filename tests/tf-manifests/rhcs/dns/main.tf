@@ -7,8 +7,6 @@ terraform {
   }
 }
 
-provider "rhcs" {
-  url = var.url
-}
+
 
 resource "rhcs_dns_domain" "dns_domain" {}

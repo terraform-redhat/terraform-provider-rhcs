@@ -47,7 +47,7 @@ var (
 const (
 	TokenENVName              = "RHCS_TOKEN"
 	ClusterIDEnv              = "CLUSTER_ID"
-	RHCSENV                   = "RHCS_ENV"
+	RHCSURL                   = "RHCS_URL"
 	RhcsClusterProfileENV     = "CLUSTER_PROFILE"
 	QEUsage                   = "QE_USAGE"
 	ClusterTypeManifestDirEnv = "CLUSTER_ROSA_TYPE"

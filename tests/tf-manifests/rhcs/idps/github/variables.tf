@@ -3,12 +3,6 @@ variable "cluster_id" {
   description = "The OCP cluster ID"
 }
 
-variable "url" {
-  type        = string
-  description = "Provide RHCS environment by setting a value to url"
-  default     = "https://api.stage.openshift.com"
-}
-
 # IDP Variables
 variable "client_id" {
   type        = string

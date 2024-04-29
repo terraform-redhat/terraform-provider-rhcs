@@ -31,11 +31,6 @@ variable "openshift_version" {
   default = "4.13.13"
 }
 
-variable "url" {
-  type    = string
-  default = "https://api.stage.openshift.com"
-}
-
 variable "channel_group" {
   type    = string
   default = "stable"

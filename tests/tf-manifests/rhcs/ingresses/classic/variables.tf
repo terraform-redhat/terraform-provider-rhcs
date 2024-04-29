@@ -1,10 +1,6 @@
 variable "cluster" {
   type = string
 }
-variable "url" {
-  type    = string
-  default = "https://api.stage.openshift.com"
-}
 
 variable "cluster_routes_hostname" {
   type    = string

@@ -11,10 +11,6 @@ terraform {
   }
 }
 
-provider "rhcs" {
-  url = var.url
-}
-
 data "aws_caller_identity" "current" {
 }
 

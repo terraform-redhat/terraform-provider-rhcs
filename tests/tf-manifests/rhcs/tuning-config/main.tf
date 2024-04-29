@@ -7,9 +7,7 @@ terraform {
   }
 }
 
-provider "rhcs" {
-  url = var.url
-}
+
 
 locals {
   defaultSpec = jsonencode(

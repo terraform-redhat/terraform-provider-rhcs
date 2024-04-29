@@ -11,9 +11,7 @@ terraform {
   }
 }
 
-provider "rhcs" {
-  url = var.url
-}
+
 
 locals {
   major_version = "${split(".", var.openshift_version)[0]}.${split(".", var.openshift_version)[1]}"

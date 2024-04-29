@@ -9,11 +9,6 @@ variable "name" {
   description = "name will be used as it is if tc_count == 1, else it will be considered as a prefix for the instance names"
 }
 
-variable "url" {
-  type    = string
-  default = "https://api.stage.openshift.com"
-}
-
 variable "tc_count"{
   type    = number
   default = 1

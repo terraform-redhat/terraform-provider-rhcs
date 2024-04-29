@@ -6,11 +6,14 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
-	cms "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
-	con "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
@@ -29,7 +32,7 @@ var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, ci.Day2
 		ingressBefore, err = cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
 
-		ingressService, err = exec.NewIngressService(con.HCPIngressDir)
+		ingressService, err = exec.NewIngressService(constants.HCPIngressDir)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -84,7 +87,7 @@ var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, ci.Day2
 	It("validate edit - [id:72520]", ci.Medium, func() {
 		By("Try to edit with empty cluster")
 		args := exec.IngressArgs{
-			Cluster:         &con.EmptyStringValue,
+			Cluster:         helper.EmptyStringPointer,
 			ListeningMethod: &internalListeningMethod,
 		}
 		err = ingressService.Apply(&args)
@@ -126,7 +129,7 @@ var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, ci.Day2
 		By("Try to edit with empty listening_method")
 		args = exec.IngressArgs{
 			Cluster:         &clusterID,
-			ListeningMethod: &con.EmptyStringValue,
+			ListeningMethod: helper.EmptyStringPointer,
 		}
 		err = ingressService.Apply(&args)
 		Expect(err).To(HaveOccurred())

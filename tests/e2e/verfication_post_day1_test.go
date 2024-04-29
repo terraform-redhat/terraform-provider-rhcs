@@ -273,26 +273,26 @@ var _ = Describe("Verify cluster", func() {
 		func() {
 			clusterService, err := exe.NewClusterService(profile.GetClusterManifestsDir())
 			Expect(err).ToNot(HaveOccurred())
-			outPut, err := clusterService.Output()
+			output, err := clusterService.Output()
 			Expect(err).ToNot(HaveOccurred())
 			args := map[string]*exe.ClusterCreationArgs{
 				"aws_additional_compute_security_group_ids": {
-					AdditionalComputeSecurityGroups:      outPut.AdditionalComputeSecurityGroups[0:1],
-					AdditionalInfraSecurityGroups:        outPut.AdditionalInfraSecurityGroups,
-					AdditionalControlPlaneSecurityGroups: outPut.AdditionalControlPlaneSecurityGroups,
-					AWSRegion:                            profile.Region,
+					AdditionalComputeSecurityGroups:      output.AdditionalComputeSecurityGroups[0:1],
+					AdditionalInfraSecurityGroups:        output.AdditionalInfraSecurityGroups,
+					AdditionalControlPlaneSecurityGroups: output.AdditionalControlPlaneSecurityGroups,
+					AWSRegion:                            &profile.Region,
 				},
 				"aws_additional_infra_security_group_ids": {
-					AdditionalInfraSecurityGroups:        outPut.AdditionalInfraSecurityGroups[0:1],
-					AdditionalComputeSecurityGroups:      outPut.AdditionalComputeSecurityGroups,
-					AdditionalControlPlaneSecurityGroups: outPut.AdditionalControlPlaneSecurityGroups,
-					AWSRegion:                            profile.Region,
+					AdditionalInfraSecurityGroups:        output.AdditionalInfraSecurityGroups[0:1],
+					AdditionalComputeSecurityGroups:      output.AdditionalComputeSecurityGroups,
+					AdditionalControlPlaneSecurityGroups: output.AdditionalControlPlaneSecurityGroups,
+					AWSRegion:                            &profile.Region,
 				},
 				"aws_additional_control_plane_security_group_ids": {
-					AdditionalControlPlaneSecurityGroups: outPut.AdditionalControlPlaneSecurityGroups[0:1],
-					AdditionalComputeSecurityGroups:      outPut.AdditionalComputeSecurityGroups,
-					AdditionalInfraSecurityGroups:        outPut.AdditionalInfraSecurityGroups,
-					AWSRegion:                            profile.Region,
+					AdditionalControlPlaneSecurityGroups: output.AdditionalControlPlaneSecurityGroups[0:1],
+					AdditionalComputeSecurityGroups:      output.AdditionalComputeSecurityGroups,
+					AdditionalInfraSecurityGroups:        output.AdditionalInfraSecurityGroups,
+					AWSRegion:                            &profile.Region,
 				},
 			}
 			for keyword, updatingArgs := range args {

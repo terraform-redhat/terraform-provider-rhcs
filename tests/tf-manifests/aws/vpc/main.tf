@@ -30,8 +30,8 @@ locals {
   private_subnets = var.multi_az ? local.private_cidr_map[var.vpc_cidr] : [local.private_cidr_map[var.vpc_cidr][0]]
   public_subnets  = var.multi_az ? local.public_cidr_map[var.vpc_cidr] : [local.public_cidr_map[var.vpc_cidr][0]]
 
-  private_subnet_tags = var.hcp ? { "kubernetes.io/role/internal-elb" = "1" } : {}
-  public_subnet_tags  = var.hcp ? { "kubernetes.io/role/elb" = "1" } : {}
+  private_subnet_tags = var.hcp && !var.disable_subnet_tagging ? { "kubernetes.io/role/internal-elb" = "1" } : {}
+  public_subnet_tags  = var.hcp && !var.disable_subnet_tagging ? { "kubernetes.io/role/elb" = "1" } : {}
 }
 data "aws_availability_zones" "available" {
   filter {

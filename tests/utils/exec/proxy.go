@@ -13,6 +13,7 @@ type ProxyArgs struct {
 	VPCID               string `json:"vpc_id,omitempty"`
 	PublicSubnetID      string `json:"subnet_public_id,omitempty"`
 	TrustBundleFilePath string `json:"trust_bundle_path,omitempty"`
+	KeyPairID           string `json:"key_pair_id",omitempty`
 }
 
 type ProxyService struct {
@@ -57,31 +58,28 @@ func (proxy *ProxyService) Apply(createArgs *ProxyArgs, recordtfvars bool, extra
 	return nil
 }
 
-func (proxy *ProxyService) Output() (ProxyOutput, error) {
+func (proxy *ProxyService) Output() (output *ProxyOutput, err error) {
 	idpDir := CON.IDPsDir
 	if proxy.ManifestDir != "" {
 		idpDir = proxy.ManifestDir
 	}
-	var output ProxyOutput
-	out, err := runTerraformOutput(context.TODO(), idpDir)
+	var out map[string]interface{}
+	out, err = runTerraformOutput(context.TODO(), idpDir)
 	if err != nil {
-		return output, err
-	}
-	if err != nil {
-		return output, err
+		return
 	}
 	httpProxy := h.DigString(out["http_proxy"], "value")
 	httpsProxy := h.DigString(out["https_proxy"], "value")
 	noProxy := h.DigString(out["no_proxy"], "value")
 	additionalTrustBundle := h.DigString(out["additional_trust_bundle"], "value")
 
-	output = ProxyOutput{
+	output = &ProxyOutput{
 		HttpProxy:             httpProxy,
 		HttpsProxy:            httpsProxy,
 		NoProxy:               noProxy,
 		AdditionalTrustBundle: additionalTrustBundle,
 	}
-	return output, nil
+	return
 }
 
 func (proxy *ProxyService) Destroy(createArgs ...*ProxyArgs) error {

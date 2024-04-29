@@ -10,12 +10,12 @@ import (
 type ClusterCreationArgs struct {
 	AccountRolePrefix                    string             `json:"account_role_prefix,omitempty"`
 	OCMENV                               string             `json:"rhcs_environment,omitempty"`
-	ClusterName                          string             `json:"cluster_name,omitempty"`
-	OperatorRolePrefix                   string             `json:"operator_role_prefix,omitempty"`
+	ClusterName                          *string            `json:"cluster_name,omitempty"`
+	OperatorRolePrefix                   *string            `json:"operator_role_prefix,omitempty"`
 	OpenshiftVersion                     string             `json:"openshift_version,omitempty"`
 	URL                                  string             `json:"url,omitempty"`
-	AWSRegion                            string             `json:"aws_region,omitempty"`
-	AWSAvailabilityZones                 []string           `json:"aws_availability_zones,omitempty"`
+	AWSRegion                            *string            `json:"aws_region,omitempty"`
+	AWSAvailabilityZones                 *[]string          `json:"aws_availability_zones,omitempty"`
 	Replicas                             int                `json:"replicas,omitempty"`
 	ChannelGroup                         string             `json:"channel_group,omitempty"`
 	Ec2MetadataHttpTokens                string             `json:"ec2_metadata_http_tokens,omitempty"`
@@ -26,8 +26,9 @@ type ClusterCreationArgs struct {
 	AuditLogForward                      bool               `json:"audit_log_forward,omitempty"`
 	Autoscale                            bool               `json:"autoscaling_enabled,omitempty"`
 	Etcd                                 *bool              `json:"etcd_encryption,omitempty"`
-	KmsKeyARN                            string             `json:"kms_key_arn,omitempty"`
-	AWSSubnetIDs                         []string           `json:"aws_subnet_ids,omitempty"`
+	EtcdKmsKeyARN                        *string            `json:"etcd_kms_key_arn,omitempty"`
+	KmsKeyARN                            *string            `json:"kms_key_arn,omitempty"`
+	AWSSubnetIDs                         *[]string          `json:"aws_subnet_ids,omitempty"`
 	ComputeMachineType                   string             `json:"compute_machine_type,omitempty"`
 	DefaultMPLabels                      map[string]string  `json:"default_mp_labels,omitempty"`
 	DisableSCPChecks                     bool               `json:"disable_scp_checks,omitempty"`
@@ -38,7 +39,7 @@ type ClusterCreationArgs struct {
 	AdditionalInfraSecurityGroups        []string           `json:"additional_infra_security_groups,omitempty"`
 	AdditionalControlPlaneSecurityGroups []string           `json:"additional_control_plane_security_groups,omitempty"`
 	MachineCIDR                          string             `json:"machine_cidr,omitempty"`
-	OIDCConfigID                         string             `json:"oidc_config_id,omitempty"`
+	OIDCConfigID                         *string            `json:"oidc_config_id,omitempty"`
 	AdminCredentials                     map[string]string  `json:"admin_credentials,omitempty"`
 	DisableUWM                           bool               `json:"disable_workload_monitoring,omitempty"`
 	Proxy                                *Proxy             `json:"proxy,omitempty"`
@@ -47,14 +48,16 @@ type ClusterCreationArgs struct {
 	BaseDnsDomain                        string             `json:"base_dns_domain,omitempty"`
 	PrivateHostedZone                    *PrivateHostedZone `json:"private_hosted_zone,omitempty"`
 
-	AWSAccountID        string `json:"aws_account_id,omitempty"`
-	AWSBillingAccountID string `json:"aws_billing_account_id,omitempty"`
-	HostPrefix          int    `json:"host_prefix,omitempty"`
-	ServiceCIDR         string `json:"service_cidr,omitempty"`
-	PodCIDR             string `json:"pod_cidr,omitempty"`
-	StsInstallerRole    string `json:"installer_role,omitempty"`
-	StsSupportRole      string `json:"support_role,omitempty"`
-	StsWorkerRole       string `json:"worker_role,omitempty"`
+	AWSAccountID        *string `json:"aws_account_id,omitempty"`
+	AWSBillingAccountID *string `json:"aws_billing_account_id,omitempty"`
+	HostPrefix          int     `json:"host_prefix,omitempty"`
+	ServiceCIDR         string  `json:"service_cidr,omitempty"`
+	PodCIDR             string  `json:"pod_cidr,omitempty"`
+	StsInstallerRole    *string `json:"installer_role,omitempty"`
+	StsSupportRole      *string `json:"support_role,omitempty"`
+	StsWorkerRole       *string `json:"worker_role,omitempty"`
+
+	IncludeCreatorProperty *bool `json:"include_creator_property,omitempty"`
 }
 type Proxy struct {
 	HTTPProxy             *string `json:"http_proxy,omitempty"`

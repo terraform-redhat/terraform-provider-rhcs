@@ -32,6 +32,7 @@ type RHCSconfig struct {
 	KubeConfigDir     string
 	RHCSSource        string `env:"RHCS_SOURCE" default:"staging" yaml:"env"`
 	RHCSVersion       string `env:"RHCS_VERSION" default:"staging" yaml:"env"`
+	RHCSClusterName   string `env:"RHCS_CLUSTER_NAME" yaml:"clusterName"`
 }
 
 func init() {
@@ -41,6 +42,8 @@ func init() {
 
 	// defaulted to staging
 	RHCS.RHCSEnv = GetEnvWithDefault(RHCSENV, RHCS.RHCSEnv)
+
+	RHCS.RHCSClusterName = GetEnvWithDefault(RHCS_CLUSTER_NAME, RHCS.RHCSClusterName)
 
 	if os.Getenv("CLUSTER_PROFILE") != "" {
 		RHCS.ClusterProfile = os.Getenv("CLUSTER_PROFILE")

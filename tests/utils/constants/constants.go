@@ -8,8 +8,6 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
-var EmptyStringValue = ""
-
 // OCP version streams
 const (
 	X = "x"
@@ -57,6 +55,7 @@ const (
 	RHCSVersion               = "RHCS_VERSION"
 	RHCSSource                = "RHCS_SOURCE"
 	WaitOperators             = "WAIT_OPERATORS"
+	RHCS_CLUSTER_NAME         = "RHCS_CLUSTER_NAME"
 )
 
 var (
@@ -70,7 +69,7 @@ var (
 	SharedVpcAWSSharedCredentialsFileENV = os.Getenv("SHARED_VPC_AWS_SHARED_CREDENTIALS_FILE")
 )
 
-const (
+var (
 	DefaultAWSRegion = "us-east-2"
 )
 

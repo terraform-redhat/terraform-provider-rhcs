@@ -22,3 +22,9 @@ variable "trust_bundle_path" {
   description = "the file path of the trust bundle"
   default     = null
 }
+
+variable "key_pair_id" {
+  type = string
+  description = "used for key pair name. Default will be randomly generated"
+  default     = null
+}

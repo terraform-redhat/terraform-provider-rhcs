@@ -1,3 +1,11 @@
+## 1.6.2 (May 02, 2024)
+FEATURES:
+* Adjustment to include RH SRE support role into policies data source
+
+## 1.6.1 (Apr 11, 2024)
+FEATURES:
+* Adjustments to documentation and HCP control plane readiness timeout
+
 ## 1.6.0 (Mar 21, 2024)
 FEATURES:
 * HCP Resources (OCM-5758)

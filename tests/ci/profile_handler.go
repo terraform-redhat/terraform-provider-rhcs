@@ -480,7 +480,7 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 				return
 			}
 			if profile.Private {
-				clusterArgs.Private = profile.Private
+				clusterArgs.Private = helper.BoolPointer(profile.Private)
 				clusterArgs.PrivateLink = profile.PrivateLink
 				if profile.IsPrivateLink() {
 					clusterArgs.AWSSubnetIDs = &vpcOutput.ClusterPrivateSubnets

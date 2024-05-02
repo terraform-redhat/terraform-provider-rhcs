@@ -81,8 +81,19 @@ var _ = Describe("Tuning Config", ci.NonClassicCluster, ci.FeatureTuningConfig, 
 		tcsResp, err = cms.ListTuningConfigs(ci.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(tcsResp.Size()).To(Equal(tcCount))
-		for index, tc := range tcsResp.Items().Slice() {
-			Expect(tc.Name()).To(Equal(fmt.Sprintf("%s-%v", name, index)))
+		var expectedNames []string
+		for i := 0; i < tcCount; i++ {
+			expectedNames = append(expectedNames, fmt.Sprintf("%s-%v", name, i))
+		}
+		for _, tc := range tcsResp.Items().Slice() {
+			Expect(tc.Name()).To(BeElementOf(expectedNames))
+			index := 0
+			for index < len(expectedNames) {
+				if expectedNames[index] == tc.Name() {
+					break
+				}
+				index++
+			}
 			verifyTuningConfigSpec(tc.Spec(), specVMDirtyRatios[index], specPriorities[index])
 		}
 
@@ -96,8 +107,19 @@ var _ = Describe("Tuning Config", ci.NonClassicCluster, ci.FeatureTuningConfig, 
 		tcsResp, err = cms.ListTuningConfigs(ci.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(tcsResp.Size()).To(Equal(tcCount))
-		for index, tc := range tcsResp.Items().Slice() {
-			Expect(tc.Name()).To(Equal(fmt.Sprintf("%s-%v", name, index)))
+		expectedNames = []string{}
+		for i := 0; i < tcCount; i++ {
+			expectedNames = append(expectedNames, fmt.Sprintf("%s-%v", name, i))
+		}
+		for _, tc := range tcsResp.Items().Slice() {
+			Expect(tc.Name()).To(BeElementOf(expectedNames))
+			index := 0
+			for index < len(expectedNames) {
+				if expectedNames[index] == tc.Name() {
+					break
+				}
+				index++
+			}
 			verifyTuningConfigSpec(tc.Spec(), specVMDirtyRatios[index], specPriorities[index])
 		}
 

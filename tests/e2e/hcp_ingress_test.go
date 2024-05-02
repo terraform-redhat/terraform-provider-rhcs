@@ -42,7 +42,11 @@ var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, ci.Day2
 			Cluster:         &clusterID,
 			ListeningMethod: &listeningMethod,
 		}
-		ingressService.Apply(&args)
+		err = ingressService.Apply(&args)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = ingressService.Destroy()
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("can be edited - [id:72517]",
@@ -85,8 +89,17 @@ var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, ci.Day2
 		})
 
 	It("validate edit - [id:72520]", ci.Medium, func() {
-		By("Try to edit with empty cluster")
+		By("Initialize ingress state")
+		listeningMethod := string(ingressBefore.Listening())
 		args := exec.IngressArgs{
+			Cluster:         &clusterID,
+			ListeningMethod: &listeningMethod,
+		}
+		err = ingressService.Apply(&args)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("Try to edit with empty cluster")
+		args = exec.IngressArgs{
 			Cluster:         helper.EmptyStringPointer,
 			ListeningMethod: &internalListeningMethod,
 		}
@@ -99,7 +112,7 @@ var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, ci.Day2
 		Expect(err).ToNot(HaveOccurred())
 		var otherClusterID string
 		for _, cluster := range clustersResp.Items().Slice() {
-			if cluster.ID() != clusterID {
+			if cluster.ID() != clusterID && cluster.Status().State() == cmv1.ClusterStateReady {
 				otherClusterID = cluster.ID()
 				break
 			}

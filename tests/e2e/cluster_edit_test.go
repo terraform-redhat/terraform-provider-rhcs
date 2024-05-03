@@ -47,13 +47,21 @@ var _ = Describe("Edit cluster", ci.Day2, ci.NonClassicCluster, func() {
 			helper.ExpectTFErrorContains(err, "Attribute aws_account_id, cannot be changed from")
 
 			// To be activated once issue is solved
-			// By("Try to edit billing account")
-			// clusterArgs = &exec.ClusterCreationArgs{
-			// 	AWSBillingAccountID: "anything",
-			// }
-			// err = clusterService.Apply(clusterArgs, false, true)
-			// Expect(err).To(HaveOccurred())
-			// helper.ExpectTFErrorContains(err, "Attribute aws_billing_account_id, cannot be changed from")
+			By("Try to edit billing account with wrong value")
+			clusterArgs = &exec.ClusterCreationArgs{
+				AWSBillingAccountID: helper.StringPointer("anything"),
+			}
+			err = clusterService.Apply(clusterArgs, false, false)
+			Expect(err).To(HaveOccurred())
+			helper.ExpectTFErrorContains(err, "Attribute aws_billing_account_id aws billing account ID must be only digits and exactly 12 in length")
+
+			By("Try to edit billing account with wrong account")
+			clusterArgs = &exec.ClusterCreationArgs{
+				AWSBillingAccountID: helper.StringPointer("000000000000"),
+			}
+			err = clusterService.Apply(clusterArgs, false, false)
+			Expect(err).To(HaveOccurred())
+			helper.ExpectTFErrorContains(err, "billing account 000000000000 not linked to organization")
 
 			By("Try to edit cloud region")
 			region := "us-east-1"

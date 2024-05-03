@@ -273,14 +273,13 @@ var _ = Describe("Edit cluster", ci.Day2, ci.NonClassicCluster, func() {
 			Expect(err).To(HaveOccurred())
 			helper.ExpectTFErrorContains(err, "Attribute etcd_encryption, cannot be changed from")
 
-			// Waiting for OCM-7820
-			// By("Try to edit etcd_kms_key_arn")
-			// clusterArgs = &exec.ClusterCreationArgs{
-			// 	EtcdKmsKeyARN: helper.StringPointer("anything"),
-			// }
-			// err = clusterService.Apply(clusterArgs, false, false)
-			// Expect(err).To(HaveOccurred())
-			// helper.ExpectTFErrorContains(err, "Attribute etcd_kms_key_arn, cannot be changed from")
+			By("Try to edit etcd_kms_key_arn")
+			clusterArgs = &exec.ClusterCreationArgs{
+				EtcdKmsKeyARN: helper.StringPointer("anything"),
+			}
+			err = clusterService.Apply(clusterArgs, false, false)
+			Expect(err).To(HaveOccurred())
+			helper.ExpectTFErrorContains(err, "Attribute etcd_kms_key_arn, cannot be changed from")
 
 			By("Try to edit kms_key_arn")
 			clusterArgs = &exec.ClusterCreationArgs{

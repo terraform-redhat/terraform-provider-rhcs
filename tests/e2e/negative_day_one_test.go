@@ -605,7 +605,7 @@ var _ = Describe("Negative Tests", Ordered, func() {
 				creationArgs.AWSSubnetIDs = oldSubnetIDs
 			}
 			subnetIDs := []string{"subnet-08f6089e344f3e1f"}
-			if !creationArgs.Private {
+			if !*creationArgs.Private {
 				subnetIDs = append(subnetIDs, "subnet-08f6089e344f3e1d")
 			}
 			creationArgs.AWSSubnetIDs = helper.StringSlicePointer(subnetIDs)
@@ -712,7 +712,7 @@ var _ = Describe("Negative Tests", Ordered, func() {
 				}
 				creationArgs.AWSAvailabilityZones = helper.StringSlicePointer([]string{vpcOutput.AZs[0]})
 				subnetIDs := []string{vpcOutput.ClusterPrivateSubnets[1]}
-				if !creationArgs.Private {
+				if !*creationArgs.Private {
 					subnetIDs = append(subnetIDs, vpcOutput.ClusterPublicSubnets[1])
 				}
 				creationArgs.AWSSubnetIDs = helper.StringSlicePointer(subnetIDs)
@@ -735,7 +735,7 @@ var _ = Describe("Negative Tests", Ordered, func() {
 				}
 				creationArgs.AWSAvailabilityZones = helper.StringSlicePointer([]string{vpcOutput.AZs[0], vpcOutput.AZs[1]})
 				subnetIDs := []string{vpcOutput.ClusterPrivateSubnets[1]}
-				if !creationArgs.Private {
+				if !*creationArgs.Private {
 					subnetIDs = append(subnetIDs, vpcOutput.ClusterPublicSubnets[1])
 				}
 				creationArgs.AWSSubnetIDs = helper.StringSlicePointer(subnetIDs)
@@ -761,7 +761,7 @@ var _ = Describe("Negative Tests", Ordered, func() {
 				creationArgs.Replicas = 2
 				creationArgs.AWSAvailabilityZones = helper.StringSlicePointer([]string{vpcOutput.AZs[0], vpcOutput.AZs[1], vpcOutput.AZs[2]})
 				subnetIDs := []string{vpcOutput.ClusterPrivateSubnets[0], vpcOutput.ClusterPrivateSubnets[1], vpcOutput.ClusterPrivateSubnets[2]}
-				if !creationArgs.Private {
+				if !*creationArgs.Private {
 					subnetIDs = append(subnetIDs, vpcOutput.ClusterPublicSubnets[1])
 				}
 				creationArgs.AWSSubnetIDs = helper.StringSlicePointer(subnetIDs)
@@ -808,7 +808,7 @@ var _ = Describe("Negative Tests", Ordered, func() {
 				creationArgs.AWSSubnetIDs = oldSubnetIDs
 				creationArgs.Private = oldPrivate
 			}
-			creationArgs.Private = false
+			creationArgs.Private = helper.BoolPointer(false)
 			subnetIDs = *oldSubnetIDs
 			subnetIDs = append(subnetIDs, vpcOutput.ClusterPublicSubnets[0])
 			creationArgs.AWSSubnetIDs = helper.StringSlicePointer(subnetIDs)
@@ -827,7 +827,7 @@ var _ = Describe("Negative Tests", Ordered, func() {
 				creationArgs.Private = oldPrivate
 				creationArgs.AWSAvailabilityZones = oldAZs
 			}
-			creationArgs.Private = true
+			creationArgs.Private = helper.BoolPointer(true)
 			creationArgs.AWSSubnetIDs = helper.StringSlicePointer(vpcOutput.ClusterPrivateSubnets)
 			creationArgs.AWSAvailabilityZones = helper.StringSlicePointer(vpcOutput.AZs)
 			defer restoreValues()

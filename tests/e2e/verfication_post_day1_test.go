@@ -40,9 +40,6 @@ var _ = Describe("Verify cluster", func() {
 		cluster = getResp.Body()
 
 	})
-	AfterEach(func() {
-		// For future implementation
-	})
 
 	It("proxy is correctly set - [id:67607]", ci.Day1Post, ci.High, func() {
 		if !profile.Proxy {

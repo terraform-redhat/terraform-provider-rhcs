@@ -20,7 +20,7 @@ type ClusterCreationArgs struct {
 	ChannelGroup                         string             `json:"channel_group,omitempty"`
 	Ec2MetadataHttpTokens                string             `json:"ec2_metadata_http_tokens,omitempty"`
 	PrivateLink                          bool               `json:"private_link,omitempty"`
-	Private                              bool               `json:"private,omitempty"`
+	Private                              *bool              `json:"private,omitempty"`
 	Fips                                 bool               `json:"fips,omitempty"`
 	Tags                                 map[string]string  `json:"tags,omitempty"`
 	AuditLogForward                      bool               `json:"audit_log_forward,omitempty"`

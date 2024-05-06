@@ -43,7 +43,6 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 	AfterEach(func() {
 		mpService.Destroy()
-		tcService.Destroy()
 	})
 
 	It("can be created with only required attributes - [id:72504]",
@@ -547,6 +546,10 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			}
 			_, err := tcService.Apply(tcArgs, false)
 			Expect(err).ToNot(HaveOccurred())
+			defer func() {
+				_, err = tcService.Destroy()
+				Expect(err).ToNot(HaveOccurred())
+			}()
 			tcOut, err := tcService.Output()
 			Expect(err).ToNot(HaveOccurred())
 			createdTuningConfigs := tcOut.Names
@@ -819,6 +822,12 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			mpArgs = getDefaultMPArgs(mpName)
 			_, err = mpService.Apply(mpArgs, false)
 			Expect(err).ToNot(HaveOccurred())
+			defer func() {
+				By("Restore machinepool")
+				mpArgs = getDefaultMPArgs(mpName)
+				_, err = mpService.Apply(mpArgs, false)
+				Expect(err).ToNot(HaveOccurred())
+			}()
 
 			By("Try to edit cluster")
 			mpArgs = getDefaultMPArgs(mpName)

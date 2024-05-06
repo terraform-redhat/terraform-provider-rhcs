@@ -98,7 +98,7 @@ func runTerraformDestroy(ctx context.Context, dir string, terraformArgs ...strin
 	terraformDestroy.Dir = dir
 	var stdoutput bytes.Buffer
 	terraformDestroy.Stdout = &stdoutput
-	terraformDestroy.Stderr = os.Stderr
+	terraformDestroy.Stderr = &stdoutput
 	fmt.Println("args: ", terraformDestroy)
 	err = terraformDestroy.Run()
 	output = h.Strip(stdoutput.String(), "\n")

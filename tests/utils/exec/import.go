@@ -70,6 +70,12 @@ func (importService *ImportService) ShowState(importArgs *ImportArgs) (string, e
 	return output, err
 }
 
+func (importService *ImportService) RemoveState(importArgs *ImportArgs) (string, error) {
+	args := fmt.Sprintf("%s.%s", importArgs.ResourceKind, importArgs.ResourceName)
+	output, err := runTerraformState(importService.ManifestDir, "rm", args)
+	return output, err
+}
+
 func (importService *ImportService) Destroy(createArgs ...*ImportArgs) (output string, err error) {
 	if importService.CreationArgs == nil && len(createArgs) == 0 {
 		return "", fmt.Errorf("unset destroy args, set them in the object or pass as parameters")

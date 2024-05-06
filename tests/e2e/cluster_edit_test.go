@@ -256,7 +256,7 @@ var _ = Describe("Edit cluster", ci.Day2, ci.NonClassicCluster, func() {
 		It("private fields - [id:72480]", ci.Medium, ci.FeatureClusterPrivate, func() {
 			By("Try to edit private")
 			clusterArgs = &exec.ClusterCreationArgs{
-				Private: !profile.Private,
+				Private: helper.BoolPointer(!profile.Private),
 			}
 			err = clusterService.Apply(clusterArgs, false, false)
 			Expect(err).To(HaveOccurred())
@@ -383,11 +383,7 @@ var _ = Describe("Edit cluster", ci.Day2, ci.NonClassicCluster, func() {
 			clusterArgs.Proxy = &proxyArgs
 			err = clusterService.Apply(clusterArgs, false, false)
 			Expect(err).To(HaveOccurred())
-			if profile.Proxy {
-				helper.ExpectTFErrorContains(err, "'proxy.no_proxy' attribute 'test.com' while removing 'proxy.http_proxy'")
-			} else {
-				helper.ExpectTFErrorContains(err, "'proxy.http_proxy' or 'proxy.https_proxy' attributes is needed to set 'proxy.no_proxy' 'test.com'")
-			}
+			helper.ExpectTFErrorContains(err, "Cannot set 'proxy.no_proxy' attribute 'test.com' while removing 'proxy.http_proxy'")
 
 			By("Edit proxy with with invalid no_proxy")
 			proxyArgs = exec.Proxy{

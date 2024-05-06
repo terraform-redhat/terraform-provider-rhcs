@@ -25,7 +25,7 @@ const (
 	MaxClusterDomainPrefixLength = 15
 )
 
-var UserArnRE = regexp.MustCompile("^(arn:(aws|aws-us-gov|aws-cn):iam::\\d{12}(?:|:(?:root|user\\/[0-9A-Za-z\\+\\.@_,-]{1,64})))$")
+var UserArnRE = regexp.MustCompile("^(arn:(?:aws|aws-us-gov|aws-cn):(?:iam|sts)::\\d{12}(?:|:(?:root|user|assumed-role(?:\\/?.+\\/?)?)(?:\\/[0-9A-Za-z\\+\\.@_,-]{1,64})))$")
 
 var OCMProperties = map[string]string{
 	PropertyRosaTfVersion: build.Version,

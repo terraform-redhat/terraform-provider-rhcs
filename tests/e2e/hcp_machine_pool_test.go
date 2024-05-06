@@ -30,6 +30,8 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 	)
 
 	BeforeEach(func() {
+		profile = ci.LoadProfileYamlFileByENV()
+
 		mpService = exec.NewMachinePoolService(constants.HCPMachinePoolDir)
 		tcService = exec.NewTuningConfigService(constants.TuningConfigDir)
 
@@ -424,10 +426,6 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 	It("can be created with specific version - [id:72509]",
 		ci.High, func() {
-			if profile.ChannelGroup != "" && profile.ChannelGroup != "stable" {
-				Skip("Skip test due channel group not `stable` and https://issues.redhat.com/browse/OCM-7083")
-			}
-
 			replicas := 3
 			machineType := "m5.2xlarge"
 			name := helper.GenerateRandomName("np-72509", 2)
@@ -452,22 +450,22 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Retrieve z-1 version")
-			zLowerVersions := cms.SortRawVersions(cms.GetHcpLowerVersions(ci.RHCSConnection, clusterVersion, exec.StableChannel)) // Should be changed once https://issues.redhat.com/browse/OCM-7083 is solved
+			zLowerVersions := cms.SortVersions(cms.GetHcpLowerVersions(ci.RHCSConnection, clusterVersion, profile.ChannelGroup))
 			if len(zLowerVersions) > 0 {
 				zversion := zLowerVersions[len(zLowerVersions)-1]
-				zSemVer, err := semver.NewVersion(zversion)
+				zSemVer, err := semver.NewVersion(zversion.RawID)
 				Expect(err).ToNot(HaveOccurred())
 
 				if zSemVer.Major() == clusterSemVer.Major() && zSemVer.Minor() == clusterSemVer.Minor() {
 					By("Create machinepool with z-1")
-					mpArgs.OpenshiftVersion = &zversion
+					mpArgs.OpenshiftVersion = helper.StringPointer(zversion.RawID)
 					_, err = mpService.Apply(mpArgs, true)
 					Expect(err).ToNot(HaveOccurred())
 
 					By("Verify machinepool with z-1")
 					mpResponseBody, err := cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
 					Expect(err).ToNot(HaveOccurred())
-					Expect(mpResponseBody.Version()).To(Equal(zversion))
+					Expect(mpResponseBody.Version().ID()).To(Equal(zversion.ID))
 
 					By("Destroy machinepool with z-1")
 					_, err = mpService.Destroy()
@@ -481,19 +479,19 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 			By("Retrieve y-1 version")
 			throttleVersion := fmt.Sprintf("%v.%v.0", clusterSemVer.Major(), clusterSemVer.Minor())
-			yLowerVersions := cms.SortRawVersions(cms.GetHcpLowerVersions(ci.RHCSConnection, throttleVersion, exec.StableChannel)) // Channel should be changed once https://issues.redhat.com/browse/OCM-7083 is solved
+			yLowerVersions := cms.SortVersions(cms.GetHcpLowerVersions(ci.RHCSConnection, throttleVersion, profile.ChannelGroup))
 			if len(yLowerVersions) > 0 {
-				yVersion := yLowerVersions[len(zLowerVersions)-1]
+				yVersion := yLowerVersions[len(yLowerVersions)-1]
 
 				By("Create machinepool with y-1")
-				mpArgs.OpenshiftVersion = &yVersion
+				mpArgs.OpenshiftVersion = helper.StringPointer(yVersion.RawID)
 				_, err = mpService.Apply(mpArgs, true)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Verify machinepool with z-1")
 				mpResponseBody, err := cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(mpResponseBody.Version()).To(Equal(yVersion))
+				Expect(mpResponseBody.Version().ID()).To(Equal(yVersion.ID))
 
 				By("Destroy machinepool with z-1")
 				_, err = mpService.Destroy()
@@ -692,7 +690,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			versions := cms.GetHcpHigherVersions(ci.RHCSConnection, currentVersion, profile.ChannelGroup)
 			if len(versions) > 0 {
 				mpArgs = getDefaultMPArgs(mpName)
-				newValue = versions[0]
+				newValue = versions[0].RawID
 				mpArgs.OpenshiftVersion = &newValue
 				_, err = mpService.Apply(mpArgs, false)
 				Expect(err).To(HaveOccurred())
@@ -703,10 +701,10 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 			By("Try to create a nodepool with version < CP version-2")
 			throttleVersion := fmt.Sprintf("%v.%v.0", currentSemVer.Major(), currentSemVer.Minor()-2)
-			versionsStr := cms.GetHcpLowerVersions(ci.RHCSConnection, throttleVersion, profile.ChannelGroup)
-			if len(versionsStr) > 0 {
+			versions = cms.GetHcpLowerVersions(ci.RHCSConnection, throttleVersion, profile.ChannelGroup)
+			if len(versions) > 0 {
 				mpArgs = getDefaultMPArgs(mpName)
-				newValue = versionsStr[0]
+				newValue = versions[0].RawID
 				mpArgs.OpenshiftVersion = &newValue
 				_, err = mpService.Apply(mpArgs, false)
 				Expect(err).To(HaveOccurred())

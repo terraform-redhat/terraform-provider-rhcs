@@ -259,38 +259,32 @@ func GetDefaultVersion(connection *client.Connection) *v1.Version {
 }
 
 // It will return all the versions lower that throttle version for the specified channel
-func GetHcpLowerVersions(connection *client.Connection, throttleVersion string, channel string) (versions []string) {
-	resp, _ := connection.ClustersMgmt().V1().Versions().List().Parameter("size", "-1").Send()
+func GetHcpLowerVersions(connection *client.Connection, throttleVersion string, channel string) (versions []*ImageVersion) {
 	throttleVersionSem, semVersionError := semver.NewVersion(throttleVersion)
-	semver.NewVersion(throttleVersion)
-	for _, ver := range resp.Items().Slice() {
-		if semVersionError != nil {
-			continue
-		}
-		if (ver.ChannelGroup() == channel) && ver.HostedControlPlaneEnabled() && ver.Enabled() {
-			versionSem, _ := semver.NewVersion(ver.RawID())
-			if versionSem.LessThan(throttleVersionSem) {
-				versions = append(versions, ver.RawID())
-			}
+	if semVersionError != nil {
+		return
+	}
+	hcpVersions := HCPEnabledVersions(connection, channel)
+	for _, ver := range hcpVersions {
+		versionSem, _ := semver.NewVersion(ver.RawID)
+		if versionSem.LessThan(throttleVersionSem) {
+			versions = append(versions, ver)
 		}
 	}
-	return versions
+	return
 }
 
 // It will return all the versions higher that throttle version for the specified channel
-func GetHcpHigherVersions(connection *client.Connection, throttleVersion string, channel string) (versions []string) {
-	resp, _ := connection.ClustersMgmt().V1().Versions().List().Parameter("size", "-1").Send()
+func GetHcpHigherVersions(connection *client.Connection, throttleVersion string, channel string) (versions []*ImageVersion) {
 	throttleVersionSem, semVersionError := semver.NewVersion(throttleVersion)
-	semver.NewVersion(throttleVersion)
-	for _, ver := range resp.Items().Slice() {
-		if semVersionError != nil {
-			continue
-		}
-		if (ver.ChannelGroup() == channel) && ver.HostedControlPlaneEnabled() && ver.Enabled() {
-			versionSem, _ := semver.NewVersion(ver.RawID())
-			if versionSem.GreaterThan(throttleVersionSem) {
-				versions = append(versions, ver.RawID())
-			}
+	if semVersionError != nil {
+		return
+	}
+	hcpVersions := HCPEnabledVersions(connection, channel)
+	for _, ver := range hcpVersions {
+		versionSem, _ := semver.NewVersion(ver.RawID)
+		if versionSem.GreaterThan(throttleVersionSem) {
+			versions = append(versions, ver)
 		}
 	}
 	return versions

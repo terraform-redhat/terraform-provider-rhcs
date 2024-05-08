@@ -40,6 +40,7 @@ type MachinePoolState struct {
 	SubnetIDs                  types.List    `tfsdk:"subnet_ids"`
 	DiskSize                   types.Int64   `tfsdk:"disk_size"`
 	AdditionalSecurityGroupIds types.List    `tfsdk:"aws_additional_security_group_ids"`
+	AwsTags                    types.Map     `tfsdk:"aws_tags"`
 }
 
 type Taints struct {

@@ -1670,6 +1670,59 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.replicas", 12.0))
 		Expect(resource).To(MatchJQ(".attributes.disk_size", 400.0))
 	})
+
+	It("Can create pool w/ aws tags", func() {
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				),
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 3,
+				  "aws": {
+					"kind": "AWSMachinePool",
+					"tags": {
+					  "foo": "bar"
+					}
+				  }
+				}`),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 3,
+				  "availability_zones": [
+					"us-east-1a"
+				  ],
+				  "aws": {
+					"tags": {
+						"foo": "bar"
+					}
+				  }
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 3
+			aws_tags 	 = {"foo": "bar"}
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		// Check the state:
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool")
+		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+		Expect(resource).To(MatchJQ(".attributes.aws_tags.[\"foo\"]", "bar"))
+	})
 })
 
 var _ = Describe("Machine pool w/ mAZ cluster", func() {

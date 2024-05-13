@@ -23,6 +23,7 @@ var _ = Describe("Edit cluster", ci.Day2, ci.NonClassicCluster, func() {
 
 		// Initialize the cluster service
 		By("Create cluster service")
+		var err error
 		clusterService, err = exec.NewClusterService(profile.GetClusterManifestsDir())
 		Expect(err).ShouldNot(HaveOccurred())
 	})
@@ -33,7 +34,7 @@ var _ = Describe("Edit cluster", ci.Day2, ci.NonClassicCluster, func() {
 			clusterArgs = &exec.ClusterCreationArgs{
 				AWSAccountID: helper.StringPointer("another_account"),
 			}
-			err = clusterService.Apply(clusterArgs, false, false)
+			err := clusterService.Apply(clusterArgs, false, false)
 			Expect(err).To(HaveOccurred())
 			helper.ExpectTFErrorContains(err, "Attribute aws_account_id aws account ID must be only digits and exactly 12")
 
@@ -264,7 +265,7 @@ var _ = Describe("Edit cluster", ci.Day2, ci.NonClassicCluster, func() {
 			clusterArgs = &exec.ClusterCreationArgs{
 				Private: helper.BoolPointer(!profile.Private),
 			}
-			err = clusterService.Apply(clusterArgs, false, false)
+			err := clusterService.Apply(clusterArgs, false, false)
 			Expect(err).To(HaveOccurred())
 			helper.ExpectTFErrorContains(err, "Attribute private, cannot be changed from")
 		})
@@ -275,7 +276,7 @@ var _ = Describe("Edit cluster", ci.Day2, ci.NonClassicCluster, func() {
 			clusterArgs = &exec.ClusterCreationArgs{
 				Etcd: &etcd,
 			}
-			err = clusterService.Apply(clusterArgs, false, false)
+			err := clusterService.Apply(clusterArgs, false, false)
 			Expect(err).To(HaveOccurred())
 			helper.ExpectTFErrorContains(err, "Attribute etcd_encryption, cannot be changed from")
 
@@ -301,7 +302,7 @@ var _ = Describe("Edit cluster", ci.Day2, ci.NonClassicCluster, func() {
 			clusterArgs = &exec.ClusterCreationArgs{
 				OIDCConfigID: helper.StringPointer("2a4rv4o76gljek6c3po16abquaciv0a7"),
 			}
-			err = clusterService.Apply(clusterArgs, false, false)
+			err := clusterService.Apply(clusterArgs, false, false)
 			Expect(err).To(HaveOccurred())
 			helper.ExpectTFErrorContains(err, "Attribute sts.oidc_config_id, cannot be changed from")
 
@@ -348,7 +349,7 @@ var _ = Describe("Edit cluster", ci.Day2, ci.NonClassicCluster, func() {
 				HTTPProxy: helper.StringPointer("aaaaxxxx"),
 			}
 			clusterArgs.Proxy = &proxyArgs
-			err = clusterService.Apply(clusterArgs, false, false)
+			err := clusterService.Apply(clusterArgs, false, false)
 			Expect(err).To(HaveOccurred())
 			helper.ExpectTFErrorContains(err, "Invalid 'proxy.http_proxy' attribute 'aaaaxxxx'")
 

@@ -982,7 +982,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 
 				By("Delete gitlab idp using OCM API")
 				cms.DeleteIDP(ci.RHCSConnection, clusterID, idpID.ID)
-				_, err = cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID)
+				_, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).Should(ContainSubstring(
 					"Identity provider ID '%s' for cluster '%s' not found", idpID.ID, clusterID),
@@ -1032,7 +1032,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				// Delete gitlab idp using OCM API after test end
 				defer func() {
 					cms.DeleteIDP(ci.RHCSConnection, clusterID, idpID.ID)
-					_, err = cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID)
+					_, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(ContainSubstring(
 						"Identity provider ID '%s' for cluster '%s' not found", idpID.ID, clusterID),

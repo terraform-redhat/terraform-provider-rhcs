@@ -9,36 +9,44 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	CI "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
-	CMS "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	EXE "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
+	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/openshift"
 )
 
 var _ = Describe("Upgrade", func() {
 	defer GinkgoRecover()
 
-	var targetV string
-	var clusterID string
+	var (
+		targetV   string
+		clusterID string
+		profile   *ci.Profile
+	)
 
 	BeforeEach(OncePerOrdered, func() {
-		clusterID, err = CI.PrepareRHCSClusterByProfileENV()
+		profile = ci.LoadProfileYamlFileByENV()
+
+		var err error
+		clusterID, err = ci.PrepareRHCSClusterByProfileENV()
 		Expect(err).ToNot(HaveOccurred())
 
 	})
 
-	It("ROSA STS cluster on Z-stream - [id:63153]", CI.Upgrade, CI.NonHCPCluster,
+	It("ROSA STS cluster on Z-stream - [id:63153]", ci.Upgrade, ci.NonHCPCluster,
 		func() {
 			if profile.VersionPattern != "z-1" {
 				Skip("The test is configured only for Z-stream upgrade")
 			}
-			clusterResp, err := CMS.RetrieveClusterDetail(CI.RHCSConnection, clusterID)
-			targetV, err = CMS.GetVersionUpgradeTarget(clusterResp.Body().Version().RawID(),
-				CON.Z, clusterResp.Body().Version().AvailableUpgrades())
+			clusterResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			targetV, err = cms.GetVersionUpgradeTarget(clusterResp.Body().Version().RawID(),
+				constants.Z, clusterResp.Body().Version().AvailableUpgrades())
 			Expect(err).ToNot(HaveOccurred())
 
-			clusterService, err := EXE.NewClusterService(profile.GetClusterManifestsDir())
+			clusterService, err := exec.NewClusterService(profile.GetClusterManifestsDir())
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Validate invalid OCP version - downgrade")
@@ -49,10 +57,10 @@ var _ = Describe("Upgrade", func() {
 
 			downgradedVersion := fmt.Sprintf("%s.%s.%s", splittedVersion[0], splittedVersion[1], fmt.Sprint(zStreamV-1))
 
-			imageVersionsList := CMS.EnabledVersions(CI.RHCSConnection, profile.ChannelGroup, profile.MajorVersion, true)
-			versionsList := CMS.GetRawVersionList(imageVersionsList)
+			imageVersionsList := cms.EnabledVersions(ci.RHCSConnection, profile.ChannelGroup, profile.MajorVersion, true)
+			versionsList := cms.GetRawVersionList(imageVersionsList)
 			if slices.Contains(versionsList, downgradedVersion) {
-				clusterArgs := &EXE.ClusterCreationArgs{
+				clusterArgs := &exec.ClusterCreationArgs{
 					OpenshiftVersion: downgradedVersion,
 				}
 				err = clusterService.Apply(clusterArgs, false, false)
@@ -63,54 +71,54 @@ var _ = Describe("Upgrade", func() {
 			}
 
 			By("Run the cluster update")
-			clusterArgs := &EXE.ClusterCreationArgs{
+			clusterArgs := &exec.ClusterCreationArgs{
 				OpenshiftVersion: targetV,
 			}
 			err = clusterService.Apply(clusterArgs, false, false)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Wait the upgrade finished")
-			err = openshift.WaitClusterUpgradeFinished(CI.RHCSConnection, clusterID)
+			err = openshift.WaitClassicClusterUpgradeFinished(ci.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred(), "Cluster upgrade %s failed with the error %v", clusterID, err)
 
 			By("Wait for 10 minutes to be sure the version is synced in clusterdeployment")
 			time.Sleep(10 * time.Minute)
 
 			By("Check the cluster status and OCP version")
-			clusterResp, err = CMS.RetrieveClusterDetail(CI.RHCSConnection, clusterID)
+			clusterResp, err = cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(string(clusterResp.Body().State())).To(Equal(CON.Ready))
+			Expect(string(clusterResp.Body().State())).To(Equal(constants.Ready))
 			Expect(string(clusterResp.Body().Version().RawID())).To(Equal(targetV))
 
-			if CON.GetEnvWithDefault(CON.WaitOperators, "false") == "true" && !profile.Private {
+			if constants.GetEnvWithDefault(constants.WaitOperators, "false") == "true" && !profile.Private {
 				// WaitClusterOperatorsToReadyStatus will wait for cluster operators ready
 				timeout := 60
-				err = openshift.WaitForOperatorsToBeReady(CI.RHCSConnection, clusterID, timeout)
+				err = openshift.WaitForOperatorsToBeReady(ci.RHCSConnection, clusterID, timeout)
 				Expect(err).ToNot(HaveOccurred())
 			}
 		})
 
-	It("ROSA STS cluster on Y-stream - [id:63152]", CI.Upgrade, CI.NonHCPCluster,
+	It("ROSA STS cluster on Y-stream - [id:63152]", ci.Upgrade, ci.NonHCPCluster,
 		func() {
 
 			if profile.VersionPattern != "y-1" {
 				Skip("The test is configured only for Y-stream upgrade")
 			}
 
-			clusterResp, err := CMS.RetrieveClusterDetail(CI.RHCSConnection, clusterID)
-
-			targetV, err = CMS.GetVersionUpgradeTarget(clusterResp.Body().Version().RawID(),
-				CON.Y, clusterResp.Body().Version().AvailableUpgrades())
+			clusterResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			targetV, err = cms.GetVersionUpgradeTarget(clusterResp.Body().Version().RawID(),
+				constants.Y, clusterResp.Body().Version().AvailableUpgrades())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(targetV).ToNot(Equal(""))
 
 			By("Upgrade account-roles")
-			majorVersion := CI.GetMajorVersion(targetV)
+			majorVersion := ci.GetMajorVersion(targetV)
 			Expect(majorVersion).ToNot(Equal(""))
-			_, err = CI.PrepareAccountRoles(token, clusterResp.Body().Name(), profile.UnifiedAccRolesPath, profile.Region, majorVersion, profile.ChannelGroup, profile.GetClusterType(), "")
+			_, err = ci.PrepareAccountRoles(token, clusterResp.Body().Name(), profile.UnifiedAccRolesPath, profile.Region, majorVersion, profile.ChannelGroup, profile.GetClusterType(), "")
 			Expect(err).ToNot(HaveOccurred())
 
-			clusterService, err := EXE.NewClusterService(profile.GetClusterManifestsDir())
+			clusterService, err := exec.NewClusterService(profile.GetClusterManifestsDir())
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Validate invalid OCP version field - downgrade")
@@ -120,10 +128,10 @@ var _ = Describe("Upgrade", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			downgradedVersion := fmt.Sprintf("%s.%s.%s", splittedVersion[0], fmt.Sprint(yStreamV-1), splittedVersion[2])
-			imageVersionsList := CMS.EnabledVersions(CI.RHCSConnection, profile.ChannelGroup, profile.MajorVersion, true)
-			versionsList := CMS.GetRawVersionList(imageVersionsList)
+			imageVersionsList := cms.EnabledVersions(ci.RHCSConnection, profile.ChannelGroup, profile.MajorVersion, true)
+			versionsList := cms.GetRawVersionList(imageVersionsList)
 			if slices.Contains(versionsList, downgradedVersion) {
-				clusterArgs := &EXE.ClusterCreationArgs{
+				clusterArgs := &exec.ClusterCreationArgs{
 					OpenshiftVersion: downgradedVersion,
 				}
 				err = clusterService.Apply(clusterArgs, false, false)
@@ -135,7 +143,7 @@ var _ = Describe("Upgrade", func() {
 
 			By("Validate  the cluster Upgrade upgrade_acknowledge field")
 
-			clusterArgs := &EXE.ClusterCreationArgs{
+			clusterArgs := &exec.ClusterCreationArgs{
 				OpenshiftVersion: targetV,
 			}
 
@@ -145,7 +153,7 @@ var _ = Describe("Upgrade", func() {
 
 			By("Apply the cluster Upgrade")
 
-			clusterArgs = &EXE.ClusterCreationArgs{
+			clusterArgs = &exec.ClusterCreationArgs{
 				OpenshiftVersion:           targetV,
 				UpgradeAcknowledgementsFor: majorVersion,
 			}
@@ -154,22 +162,122 @@ var _ = Describe("Upgrade", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Wait the upgrade finished")
-			err = openshift.WaitClusterUpgradeFinished(CI.RHCSConnection, clusterID)
+			err = openshift.WaitClassicClusterUpgradeFinished(ci.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred(), "Cluster %s failed with the error %v", clusterID, err)
 
 			By("Wait for 10 minutes to be sure the version is synced in clusterdeployment")
 			time.Sleep(10 * time.Minute)
 
 			By("Check the cluster status and OCP version")
-			clusterResp, err = CMS.RetrieveClusterDetail(CI.RHCSConnection, clusterID)
+			clusterResp, err = cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(string(clusterResp.Body().State())).To(Equal(CON.Ready))
+			Expect(string(clusterResp.Body().State())).To(Equal(constants.Ready))
 			Expect(string(clusterResp.Body().Version().RawID())).To(Equal(targetV))
 
-			if CON.GetEnvWithDefault(CON.WaitOperators, "false") == "true" && !profile.Private {
+			if constants.GetEnvWithDefault(constants.WaitOperators, "false") == "true" && !profile.Private {
 				// WaitClusterOperatorsToReadyStatus will wait for cluster operators ready
 				timeout := 60
-				err = openshift.WaitForOperatorsToBeReady(CI.RHCSConnection, clusterID, timeout)
+				err = openshift.WaitForOperatorsToBeReady(ci.RHCSConnection, clusterID, timeout)
+				Expect(err).ToNot(HaveOccurred())
+			}
+		})
+
+	It("ROSA HCP cluster on Z-stream - [id:72474]", ci.Upgrade, ci.NonHCPCluster,
+		func() {
+			if profile.VersionPattern != "z-1" {
+				Skip("The test is configured only for Z-stream upgrade")
+			}
+
+			clusterService, err := exec.NewClusterService(profile.GetClusterManifestsDir())
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Retrieve cluster information and upgrade version")
+			clusterResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			targetV, err = cms.GetVersionUpgradeTarget(clusterResp.Body().Version().RawID(),
+				constants.Z, clusterResp.Body().Version().AvailableUpgrades())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(targetV).ToNot(BeEmpty())
+
+			Logger.Infof("Gonna upgrade to version %s", targetV)
+
+			By("Run the cluster update")
+			clusterArgs := &exec.ClusterCreationArgs{
+				OpenshiftVersion: targetV,
+			}
+			err = clusterService.Apply(clusterArgs, false, false)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Wait the upgrade finished")
+			err = openshift.WaitHCPClusterUpgradeFinished(ci.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred(), "Cluster upgrade %s failed with the error %v", clusterID, err)
+
+			By("Check the cluster status and OCP version")
+			clusterResp, err = cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(clusterResp.Body().State())).To(Equal(constants.Ready))
+			Expect(string(clusterResp.Body().Version().RawID())).To(Equal(targetV))
+
+			if constants.GetEnvWithDefault(constants.WaitOperators, "false") == "true" && !profile.Private {
+				// WaitClusterOperatorsToReadyStatus will wait for cluster operators ready
+				timeout := 60
+				err = openshift.WaitForOperatorsToBeReady(ci.RHCSConnection, clusterID, timeout)
+				Expect(err).ToNot(HaveOccurred())
+			}
+		})
+
+	It("ROSA HCP cluster on Y-stream - [id:72475]", ci.Upgrade, ci.NonHCPCluster,
+		func() {
+			if profile.VersionPattern != "y-1" {
+				Skip("The test is configured only for Y-stream upgrade")
+			}
+
+			clusterService, err := exec.NewClusterService(profile.GetClusterManifestsDir())
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Retrieve cluster information and upgrade version")
+			clusterResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			targetV, err = cms.GetVersionUpgradeTarget(clusterResp.Body().Version().RawID(),
+				constants.Y, clusterResp.Body().Version().AvailableUpgrades())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(targetV).ToNot(BeEmpty())
+			majorVersion := ci.GetMajorVersion(targetV)
+			Expect(majorVersion).ToNot(BeEmpty())
+
+			Logger.Infof("Gonna upgrade to version %s", targetV)
+
+			// Blocked by OCM-7641
+			// By("Validate the cluster Upgrade upgrade_acknowledge field")
+			// clusterArgs := &exec.ClusterCreationArgs{
+			// 	OpenshiftVersion: targetV,
+			// }
+			// err = clusterService.Apply(clusterArgs, false, false)
+			// Expect(err).To(HaveOccurred())
+			// Expect(err.Error()).To(ContainSubstring("Missing required acknowledgements to schedule upgrade"))
+
+			By("Apply the cluster Upgrade")
+			clusterArgs := &exec.ClusterCreationArgs{
+				OpenshiftVersion:           targetV,
+				UpgradeAcknowledgementsFor: majorVersion,
+			}
+			err = clusterService.Apply(clusterArgs, false, false)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Wait the upgrade finished")
+			err = openshift.WaitHCPClusterUpgradeFinished(ci.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred(), "Cluster %s failed with the error %v", clusterID, err)
+
+			By("Check the cluster status and OCP version")
+			clusterResp, err = cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(clusterResp.Body().State())).To(Equal(constants.Ready))
+			Expect(string(clusterResp.Body().Version().RawID())).To(Equal(targetV))
+
+			if constants.GetEnvWithDefault(constants.WaitOperators, "false") == "true" && !profile.Private {
+				// WaitClusterOperatorsToReadyStatus will wait for cluster operators ready
+				timeout := 60
+				err = openshift.WaitForOperatorsToBeReady(ci.RHCSConnection, clusterID, timeout)
 				Expect(err).ToNot(HaveOccurred())
 			}
 		})

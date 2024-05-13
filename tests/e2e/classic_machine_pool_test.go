@@ -20,8 +20,10 @@ import (
 var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMachinepool, func() {
 	defer GinkgoRecover()
 
-	var mpService *exe.MachinePoolService
-	var profile *ci.Profile
+	var (
+		mpService *exe.MachinePoolService
+		profile   *ci.Profile
+	)
 
 	BeforeEach(func() {
 		profile = ci.LoadProfileYamlFileByENV()
@@ -460,7 +462,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 			DiskSize:    &diskSize,
 		}
 
-		_, err = mpService.Apply(MachinePoolArgs, false)
+		_, err := mpService.Apply(MachinePoolArgs, false)
 		Expect(err).ToNot(HaveOccurred())
 		defer func() {
 			_, err = mpService.Destroy()
@@ -716,6 +718,7 @@ var _ = Describe("Edit MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMachin
 		dmpService = exe.NewMachinePoolService(con.DefaultMachinePoolDir)
 		mpService = exe.NewMachinePoolService(con.ClassicMachinePoolDir)
 
+		var err error
 		defaultMachinepoolResponse, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, defaultMachinePoolNmae)
 		if err != nil && strings.Contains(err.Error(), fmt.Sprintf("Machine pool with id '%s' not found", defaultMachinePoolNmae)) {
 			Skip("The default machinepool does not exist")
@@ -802,7 +805,7 @@ var _ = Describe("Edit MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMachin
 
 			By("Edit the taints without additional machinepool")
 			dmpArgFromMachinepoolForTesting.Taints = &taints
-			_, err = dmpService.Apply(&dmpArgFromMachinepoolForTesting, false)
+			_, err := dmpService.Apply(&dmpArgFromMachinepoolForTesting, false)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("Failed to update machine pool"))
 			Expect(err.Error()).To(ContainSubstring("least one machine pool able to run OCP workload is required. Pool should not"))
@@ -894,6 +897,7 @@ var _ = Describe("Destroy MachinePool", ci.Day3, ci.NonHCPCluster, ci.FeatureMac
 		dmpService = exe.NewMachinePoolService(con.DefaultMachinePoolDir)
 		mpService = exe.NewMachinePoolService(con.ClassicMachinePoolDir)
 
+		var err error
 		defaultMachinepoolResponse, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, defaultMachinePoolNmae)
 		Expect(err).ToNot(HaveOccurred())
 		defaultMachinePoolArgs = exe.BuildMachinePoolArgsFromCSResponse(defaultMachinepoolResponse)

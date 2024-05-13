@@ -14,15 +14,16 @@ import (
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
-var originalCreationArgs *exec.ClusterCreationArgs
-var creationArgs *exec.ClusterCreationArgs
-var clusterService *exec.ClusterService
-var err error
-
-var profile *ci.Profile
-
 var _ = Describe("Negative Tests", Ordered, func() {
 	defer GinkgoRecover()
+
+	var (
+		profile              *ci.Profile
+		originalCreationArgs *exec.ClusterCreationArgs
+		creationArgs         *exec.ClusterCreationArgs
+		clusterService       *exec.ClusterService
+		err                  error
+	)
 
 	BeforeAll(func() {
 		profile = ci.LoadProfileYamlFileByENV()

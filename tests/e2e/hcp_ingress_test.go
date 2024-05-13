@@ -22,13 +22,13 @@ var externalListeningMethod = "external"
 
 var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, ci.Day2, func() {
 
-	var err error
-	var ingressBefore *cmv1.Ingress
-	var ingressService *exec.IngressService
+	var (
+		err            error
+		ingressBefore  *cmv1.Ingress
+		ingressService *exec.IngressService
+	)
 
 	BeforeEach(func() {
-		profile = ci.LoadProfileYamlFileByENV()
-
 		ingressBefore, err = cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
 

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	client "github.com/openshift-online/ocm-sdk-go"
+	v1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	CMS "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
@@ -152,7 +153,59 @@ func WaitForUpgradePolicyToState(connection *client.Connection, clusterID string
 
 }
 
-func WaitClusterUpgradeFinished(connection *client.Connection, clusterID string) error {
+// WaitForControlPlaneUpgradePolicyToState will time out after <timeout> minutes
+// Be careful for state completed. Make sure the automatic policy is in status of other status rather than pending
+func WaitForControlPlaneUpgradePolicyToState(connection *client.Connection, clusterID string, policyID string, state v1.UpgradePolicyStateValue, timeout int) error {
+	fmt.Println("Going to wait upgrade to status ", state)
+	startTime := time.Now()
+	resp, err := CMS.RetrieveControlPlaneUpgradePolicy(connection, clusterID, policyID)
+	if err != nil {
+		return err
+	}
+	if resp.Status() != http.StatusOK {
+		return fmt.Errorf(">>> Error happened when retrieve policy detail: %s", resp.Error())
+	}
+	scheduleType := resp.Body().ScheduleType()
+
+	for time.Now().Before(startTime.Add(time.Duration(timeout) * time.Minute)) {
+		resp, _ := CMS.RetrieveControlPlaneUpgradePolicy(connection, clusterID, policyID)
+
+		switch state {
+		case v1.UpgradePolicyStateValueCompleted:
+			if scheduleType == CON.ManualScheduleType {
+				if resp.Status() == http.StatusNotFound {
+					return nil
+				} else if resp.Status() != http.StatusOK {
+					return fmt.Errorf(">>> Got response %s when retrieve the policy state: %s", resp.Error(), state)
+				}
+			} else {
+				if resp.Status() != http.StatusOK {
+					return fmt.Errorf(">>> Got response %s when retrieve the policy state: %s", resp.Error(), state)
+				}
+				if resp.Body().State().Value() == v1.UpgradePolicyStateValuePending {
+					return nil
+				}
+			}
+
+		default:
+			if resp.Status() != http.StatusOK {
+				return fmt.Errorf(">>> Got response %s when retrieve the policy state: %s", resp.Error(), state)
+			}
+			if resp.Body().State().Value() == state {
+				return nil
+			}
+
+		}
+
+		time.Sleep(1 * time.Minute)
+
+	}
+	return fmt.Errorf("ERROR!Timeout after %d minutes to wait for the policy %s into status %s of cluster %s",
+		timeout, policyID, state, clusterID)
+
+}
+
+func WaitClassicClusterUpgradeFinished(connection *client.Connection, clusterID string) error {
 	Logger.Infof("Get the automatic policy created for the cluster upgrade")
 	policyIDs, err := CMS.ListUpgradePolicies(ci.RHCSConnection, clusterID)
 	if err != nil {
@@ -161,7 +214,7 @@ func WaitClusterUpgradeFinished(connection *client.Connection, clusterID string)
 	policyID := policyIDs.Items().Get(0).ID()
 
 	Logger.Infof("Wait the policy to be scheduled")
-	err = WaitForUpgradePolicyToState(ci.RHCSConnection, clusterID, policyID, CON.Scheduled, 2)
+	err = WaitForUpgradePolicyToState(ci.RHCSConnection, clusterID, policyID, CON.Scheduled, 4)
 	if err != nil {
 		return fmt.Errorf("Policy %s not moved to state %s in 2 minutes with the error: %s", CON.Scheduled, policyID, err.Error())
 	}
@@ -180,6 +233,34 @@ func WaitClusterUpgradeFinished(connection *client.Connection, clusterID string)
 	err = WaitForUpgradePolicyToState(ci.RHCSConnection, clusterID, policyID, CON.Completed, 2*60)
 	if err != nil {
 		return fmt.Errorf("Policy %s not moved to state %s in 2 hour with the error: %s", CON.Completed, policyID, err.Error())
+	}
+	return nil
+}
+
+func WaitHCPClusterUpgradeFinished(connection *client.Connection, clusterID string) error {
+	Logger.Infof("Get the automatic policy created for the cluster upgrade")
+	policyIDs, err := CMS.ListControlPlaneUpgradePolicies(ci.RHCSConnection, clusterID)
+	if err != nil {
+		return err
+	}
+	policyID := policyIDs.Items().Get(0).ID()
+	Logger.Infof("Got policy ID %s", policyID)
+
+	Logger.Infof("Wait the policy to be scheduled")
+	err = WaitForControlPlaneUpgradePolicyToState(ci.RHCSConnection, clusterID, policyID, v1.UpgradePolicyStateValueScheduled, 4)
+	if err != nil {
+		return fmt.Errorf("Policy %s not moved to state %s in 2 minutes with the error: %s", v1.UpgradePolicyStateValueScheduled, policyID, err.Error())
+	}
+
+	Logger.Infof("Watch for the upgrade Started in 1 hour")
+	err = WaitForControlPlaneUpgradePolicyToState(ci.RHCSConnection, clusterID, policyID, v1.UpgradePolicyStateValueStarted, 60)
+	if err != nil {
+		return fmt.Errorf("Policy %s not moved to state %s in 1 hour with the error: %s", v1.UpgradePolicyStateValueStarted, policyID, err.Error())
+	}
+	Logger.Infof("Watch for the upgrade finished in 2 hours")
+	err = WaitForControlPlaneUpgradePolicyToState(ci.RHCSConnection, clusterID, policyID, v1.UpgradePolicyStateValueCompleted, 2*60)
+	if err != nil {
+		return fmt.Errorf("Policy %s not moved to state %s in 2 hour with the error: %s", v1.UpgradePolicyStateValueCompleted, policyID, err.Error())
 	}
 	return nil
 }

@@ -108,7 +108,7 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 			ResourceLimits:              resourceLimits,
 			ScaleDown:                   scaleDown,
 		}
-		_, err = caService.Apply(ClusterAutoscalerArgs, false)
+		_, err := caService.Apply(ClusterAutoscalerArgs, false)
 		Expect(err).ToNot(HaveOccurred())
 		_, err = caService.Output()
 		Expect(err).ToNot(HaveOccurred())
@@ -163,7 +163,7 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 				MaxNodeProvisionTime: maxNodeProvisionTime,
 				ResourceLimits:       resourceLimits,
 			}
-			_, err = caService.Apply(clusterAutoscalerArgs, false)
+			_, err := caService.Apply(clusterAutoscalerArgs, false)
 			Expect(err).ToNot(HaveOccurred())
 			_, err = caService.Output()
 			Expect(err).ToNot(HaveOccurred())

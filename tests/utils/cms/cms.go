@@ -315,6 +315,22 @@ func RetrieveUpgradePolicies(connection *client.Connection, clusterID string, up
 	return resp, err
 }
 
+// ControlPlane Upgrade policies related
+func ListControlPlaneUpgradePolicies(connection *client.Connection, clusterID string, params ...map[string]interface{}) (*cmv1.ControlPlaneUpgradePoliciesListResponse, error) {
+	request := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).ControlPlane().UpgradePolicies().List()
+	for _, param := range params {
+		for k, v := range param {
+			request = request.Parameter(k, v)
+		}
+	}
+	return request.Send()
+}
+
+func RetrieveControlPlaneUpgradePolicy(connection *client.Connection, clusterID string, upgradepolicyID string) (*cmv1.ControlPlaneUpgradePolicyGetResponse, error) {
+	resp, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).ControlPlane().UpgradePolicies().ControlPlaneUpgradePolicy(upgradepolicyID).Get().Send()
+	return resp, err
+}
+
 // RetrieveCurrentAccount return the response of retrieve current account
 func RetrieveCurrentAccount(connection *client.Connection, params ...map[string]interface{}) (resp *v1.CurrentAccountGetResponse, err error) {
 	if len(params) > 1 {

@@ -27,6 +27,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 		tcService *exec.TuningConfigService
 		mpArgs    *exec.MachinePoolArgs
 		vpcOutput *exec.VPCOutput
+		profile   *ci.Profile
 	)
 
 	BeforeEach(func() {
@@ -36,7 +37,8 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 		tcService = exec.NewTuningConfigService(constants.TuningConfigDir)
 
 		By("Get vpc output")
-		vpcService := exec.NewVPCService(constants.GetAWSVPCDefaultManifestDir(profile.GetClusterType()))
+		var err error
+		vpcService := exec.NewVPCService()
 		vpcOutput, err = vpcService.Output()
 		Expect(err).ToNot(HaveOccurred())
 	})
@@ -440,7 +442,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			}
 
 			By("Retrieve cluster version")
-			clusterService, err = exec.NewClusterService(constants.GetClusterManifestsDir(profile.GetClusterType()))
+			clusterService, err := exec.NewClusterService(constants.GetClusterManifestsDir(profile.GetClusterType()))
 			Expect(err).ToNot(HaveOccurred())
 			clusterOutput, err := clusterService.Output()
 			Expect(err).ToNot(HaveOccurred())
@@ -519,7 +521,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 				AutoRepair:         helper.BoolPointer(true),
 				Tags:               &tags,
 			}
-			_, err = mpService.Apply(mpArgs, false)
+			_, err := mpService.Apply(mpArgs, false)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify tags are correctly set")
@@ -820,7 +822,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 			By("Create machinepool")
 			mpArgs = getDefaultMPArgs(mpName)
-			_, err = mpService.Apply(mpArgs, false)
+			_, err := mpService.Apply(mpArgs, false)
 			Expect(err).ToNot(HaveOccurred())
 			defer func() {
 				By("Restore machinepool")

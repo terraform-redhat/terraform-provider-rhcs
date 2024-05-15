@@ -210,6 +210,11 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				ElementType: types.StringType,
 				Optional:    true,
 			},
+			"aws_tags": schema.MapAttribute{
+				Description: "Apply user defined tags to all machine pool resources created in AWS. " + common.ValueCannotBeChangedStringDescription,
+				ElementType: types.StringType,
+				Optional:    true,
+			},
 		},
 	}
 }
@@ -338,6 +343,22 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 			return
 		}
 		awsMachinePoolBuilder.AdditionalSecurityGroupIds(additionalSecurityGroupIds...)
+	}
+	if common.HasValue(plan.AwsTags) {
+		if awsMachinePoolBuilder == nil {
+			awsMachinePoolBuilder = cmv1.NewAWSMachinePool()
+		}
+		awsTags, err := common.OptionalMap(ctx, plan.AwsTags)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Cannot convert AWS tags map object to string map",
+				fmt.Sprintf(
+					"Cannot convert AWS tags map object to string map for cluster '%s: %v'", plan.Cluster.ValueString(), err,
+				),
+			)
+			return
+		}
+		awsMachinePoolBuilder.Tags(awsTags)
 	}
 	if awsMachinePoolBuilder != nil {
 		builder.AWS(awsMachinePoolBuilder)
@@ -558,6 +579,7 @@ func validateNoImmutableAttChange(state, plan *MachinePoolState) diag.Diagnostic
 	validateStateAndPlanEquals(state.SubnetID, plan.SubnetID, "subnet_id", &diags)
 	validateStateAndPlanEquals(state.DiskSize, plan.DiskSize, "disk_size", &diags)
 	validateStateAndPlanEquals(state.AdditionalSecurityGroupIds, plan.AdditionalSecurityGroupIds, "aws_additional_security_group_ids", &diags)
+	validateStateAndPlanEquals(state.AwsTags, plan.AwsTags, "aws_tags", &diags)
 
 	return diags
 
@@ -1033,6 +1055,14 @@ func populateState(object *cmv1.MachinePool, state *MachinePoolState) error {
 			}
 		}
 	}
+
+	tags := object.AWS().Tags()
+	if len(tags) > 0 {
+		state.AwsTags, _ = common.ConvertStringMapToMapType(tags)
+	} else {
+		state.AwsTags = types.MapNull(types.StringType)
+	}
+
 	return nil
 }
 

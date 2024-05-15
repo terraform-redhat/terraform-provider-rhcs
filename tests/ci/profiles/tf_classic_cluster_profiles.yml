@@ -19,7 +19,7 @@ profiles:
     byok: false
     version_pattern: "latest"
     version: ""
-    major_version: "4.14"
+    major_version: "4.15"
     compute_machine_type: "m5.xlarge"
     proxy: false
     labeling: false
@@ -50,7 +50,7 @@ profiles:
     byok: true
     version_pattern: "latest"
     version: ""
-    major_version: "4.14"
+    major_version: "4.15"
     compute_machine_type: "m5.2xlarge"
     proxy: true
     labeling: true
@@ -83,7 +83,7 @@ profiles:
     byok: false
     version_pattern: "latest"
     version: ""
-    major_version: "4.14"
+    major_version: "4.15"
     compute_machine_type: "m5.2xlarge"
     proxy: false
     labeling: true
@@ -117,7 +117,7 @@ profiles:
     byok: true
     version_pattern: "y-1"
     version: ""
-    major_version: "4.14"
+    major_version: "4.15"
     compute_machine_type: "m5.xlarge"
     proxy: false
     labeling: false
@@ -148,7 +148,7 @@ profiles:
     byok: true
     version_pattern: "z-1"
     version: ""
-    major_version: "4.14"
+    major_version: "4.15"
     compute_machine_type: "m5.xlarge"
     proxy: false
     labeling: true

@@ -16,10 +16,12 @@ import (
 var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 
 	var err error
+	var profile *ci.Profile
 	var ingressBefore *cmv1.Ingress
 	var ingressService *exec.IngressService
 
 	BeforeEach(func() {
+		profile = ci.LoadProfileYamlFileByENV()
 		ingressBefore, err = cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
 

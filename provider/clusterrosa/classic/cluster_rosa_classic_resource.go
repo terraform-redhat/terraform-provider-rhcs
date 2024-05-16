@@ -948,6 +948,7 @@ func (r *ClusterRosaClassicResource) Read(ctx context.Context, request resource.
 func validateNoImmutableAttChange(state, plan *ClusterRosaClassicState) diag.Diagnostics {
 	diags := diag.Diagnostics{}
 	common.ValidateStateAndPlanEquals(state.Name, plan.Name, "name", &diags)
+	common.ValidateStateAndPlanEquals(state.CloudRegion, plan.CloudRegion, "cloud_region", &diags)
 	common.ValidateStateAndPlanEquals(state.DomainPrefix, plan.DomainPrefix, "domain_prefix", &diags)
 	common.ValidateStateAndPlanEquals(state.ExternalID, plan.ExternalID, "external_id", &diags)
 	common.ValidateStateAndPlanEquals(state.DisableSCPChecks, plan.DisableSCPChecks, "disable_scp_checks", &diags)
@@ -966,7 +967,6 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaClassicState) diag.Dia
 	common.ValidateStateAndPlanEquals(state.HostPrefix, plan.HostPrefix, "host_prefix", &diags)
 	common.ValidateStateAndPlanEquals(state.ChannelGroup, plan.ChannelGroup, "channel_group", &diags)
 	common.ValidateStateAndPlanEquals(state.Ec2MetadataHttpTokens, plan.Ec2MetadataHttpTokens, "ec2_metadata_http_tokens", &diags)
-	common.ValidateStateAndPlanEquals(state.CloudRegion, plan.CloudRegion, "cloud_region", &diags)
 
 	// STS field validations
 	common.ValidateStateAndPlanEquals(state.Sts.RoleARN, plan.Sts.RoleARN, "sts.role_arn", &diags)

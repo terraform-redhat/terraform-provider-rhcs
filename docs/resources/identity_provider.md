@@ -15,7 +15,7 @@ Identity provider.
 ```terraform
 # htpasswd
 resource "rhcs_identity_provider" "htpasswd_idp" {
-  cluster = "<cluster-id>"
+  cluster = "cluster-id-123"
   name    = "htpasswd"
   htpasswd = {
     users = [{
@@ -28,7 +28,7 @@ resource "rhcs_identity_provider" "htpasswd_idp" {
 
 # github
 resource "ocm_identity_provider" "github_idp" {
-  cluster = "<cluster-id>"
+  cluster = "cluster-id-123"
   name    = "Github"
   github = {
     client_id     = "<client-id>"
@@ -39,7 +39,7 @@ resource "ocm_identity_provider" "github_idp" {
 
 # gitlab
 resource "ocm_identity_provider" "gitlab_idp" {
-  cluster = "<cluster-id>"
+  cluster = "cluster-id-123"
   name    = "GitLab"
   gitlab = {
     client_id     = "<client-id>"
@@ -50,7 +50,7 @@ resource "ocm_identity_provider" "gitlab_idp" {
 
 # google
 resource "ocm_identity_provider" "google_idp" {
-  cluster = "<cluster-id>"
+  cluster = "cluster-id-123"
   name = "google"
   google = {
     client_id = "<id>"
@@ -61,7 +61,7 @@ resource "ocm_identity_provider" "google_idp" {
 
 # ldap
 resource "rhcs_identity_provider" "ldap_idp" {
-  cluster = "<cluster-id>"
+  cluster = "cluster-id-123"
   name    = "ldap"
   ldap = {
     url        = "<ldap-url>"
@@ -74,7 +74,7 @@ resource "rhcs_identity_provider" "ldap_idp" {
 
 # openid
 resource "rhcs_identity_provider" "openid_idp" {
-  cluster = "<cluster-id>"
+  cluster = "cluster-id-123"
   name = "OpenID"
   openid = {
      client_id = "<client_id>"

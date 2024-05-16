@@ -14,7 +14,7 @@ Machine pool.
 
 ```terraform
 resource "rhcs_machine_pool" "machine_pool" {
-  cluster             = "<cluster-id>"
+  cluster             = "cluster-id-123"
   name                = "mpname"
   machine_type        = "r5.xlarge"
   replicas            = 3

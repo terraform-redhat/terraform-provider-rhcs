@@ -231,9 +231,9 @@ func (o *RosaOidcConfigResource) Read(ctx context.Context, request resource.Read
 func (o *RosaOidcConfigResource) Update(ctx context.Context, request resource.UpdateRequest,
 	response *resource.UpdateResponse) {
 	response.Diagnostics.AddError(
-		"Update methode is not supported for that resource",
+		"Update method is not supported for that resource",
 		fmt.Sprintf(
-			"Update methode is not supported for that resource",
+			"Update method is not supported for that resource",
 		),
 	)
 	return

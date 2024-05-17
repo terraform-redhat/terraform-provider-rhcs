@@ -465,9 +465,15 @@ func Subfix(length int) string {
 }
 
 func GenerateClusterName(profileName string) string {
-
-	clusterPrefix := constants.RHCSPrefix + constants.HyphenConnector + profileName[5:]
-	return clusterPrefix + constants.HyphenConnector + Subfix(3)
+	var clusterNameParts []string
+	if constants.RHCS.RHCSClusterNamePrefix != "" {
+		clusterNameParts = append(clusterNameParts, constants.RHCS.RHCSClusterNamePrefix)
+	}
+	clusterNameParts = append(clusterNameParts, constants.RHCSPrefix, profileName[5:], Subfix(3))
+	if constants.RHCS.RHCSClusterNameSuffix != "" {
+		clusterNameParts = append(clusterNameParts, constants.RHCS.RHCSClusterNameSuffix)
+	}
+	return strings.Join(clusterNameParts, constants.HyphenConnector)
 }
 
 func GetClusterAdminPassword() string {

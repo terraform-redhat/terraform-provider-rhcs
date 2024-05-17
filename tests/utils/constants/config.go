@@ -23,16 +23,18 @@ var RHCS = new(RHCSconfig)
 // RHCSConfig contains platforms info for the RHCS testing
 type RHCSconfig struct {
 	// Env is the OpenShift Cluster Management environment used to provision clusters.
-	RHCSEnv           string `env:"RHCS_ENV" default:"staging" yaml:"env"`
-	ClusterProfile    string `env:"CLUSTER_PROFILE" yaml:"clusterProfile,omitempty"`
-	ClusterProfileDir string `env:"CLUSTER_PROFILE_DIR" yaml:"clusterProfileDir,omitempty"`
-	RhcsOutputDir     string
-	YAMLProfilesDir   string
-	RootDir           string
-	KubeConfigDir     string
-	RHCSSource        string `env:"RHCS_SOURCE" default:"staging" yaml:"env"`
-	RHCSVersion       string `env:"RHCS_VERSION" default:"staging" yaml:"env"`
-	RHCSClusterName   string `env:"RHCS_CLUSTER_NAME" yaml:"clusterName"`
+	RHCSEnv               string `env:"RHCS_ENV" default:"staging" yaml:"env"`
+	ClusterProfile        string `env:"CLUSTER_PROFILE" yaml:"clusterProfile,omitempty"`
+	ClusterProfileDir     string `env:"CLUSTER_PROFILE_DIR" yaml:"clusterProfileDir,omitempty"`
+	RhcsOutputDir         string
+	YAMLProfilesDir       string
+	RootDir               string
+	KubeConfigDir         string
+	RHCSSource            string `env:"RHCS_SOURCE" default:"staging" yaml:"env"`
+	RHCSVersion           string `env:"RHCS_VERSION" default:"staging" yaml:"env"`
+	RHCSClusterName       string `env:"RHCS_CLUSTER_NAME" yaml:"clusterName"`
+	RHCSClusterNamePrefix string `env:"RHCS_CLUSTER_NAME_PREFIX" yaml:"clusterNamePrefix"`
+	RHCSClusterNameSuffix string `env:"RHCS_CLUSTER_NAME_SUFFIX" yaml:"clusterNameSuffix"`
 }
 
 func init() {
@@ -44,6 +46,8 @@ func init() {
 	RHCS.RHCSEnv = GetEnvWithDefault(RHCSENV, RHCS.RHCSEnv)
 
 	RHCS.RHCSClusterName = GetEnvWithDefault(RHCS_CLUSTER_NAME, RHCS.RHCSClusterName)
+	RHCS.RHCSClusterNamePrefix = GetEnvWithDefault(RHCS_CLUSTER_NAME_PREFIX, RHCS.RHCSClusterNamePrefix)
+	RHCS.RHCSClusterNameSuffix = GetEnvWithDefault(RHCS_CLUSTER_NAME_SUFFIX, RHCS.RHCSClusterNameSuffix)
 
 	if os.Getenv("CLUSTER_PROFILE") != "" {
 		RHCS.ClusterProfile = os.Getenv("CLUSTER_PROFILE")

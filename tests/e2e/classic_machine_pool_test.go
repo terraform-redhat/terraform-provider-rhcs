@@ -409,7 +409,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		tagKey := fmt.Sprintf("kubernetes.io/cluster/%s", getResp.Body().InfraID())
 		tagValue := "shared"
 		VPCTagArgs := &exe.VPCTagArgs{
-			AWSRegion: getResp.Body().Region().DisplayName(),
+			AWSRegion: getResp.Body().Region().ID(),
 			IDs:       vpcOutput.ClusterPrivateSubnets,
 			TagKey:    tagKey,
 			TagValue:  tagValue,

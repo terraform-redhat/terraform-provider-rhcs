@@ -32,7 +32,7 @@ Best coding standards for golang can be found [here](https://go.dev/doc/effectiv
 
 ### 4. Test your changes and use the CI (Pre Merge)
 We are holding three types of tests that must pass for a PR to finally be accepted and merged: 
-* `unit-tests` - for testing a small unit of resource or data source functionality [here is an example of cluster_rosa_classic unit-tests](provider/clusterrosaclassic/cluster_rosa_classic_resource_test.go)
+* `unit-tests` - for testing a small unit of resource or data source functionality [here is an example of cluster_rosa_classic unit-tests](provider/clusterrosa/classic/cluster_rosa_classic_resource_test.go)
 * `subsystem test` - write a test that describing what you will fix and locate it in the [subsystem test directory](subsystem).
 * `end-to-end tests` - those tests simulate a real resources and run in official OpenShift CI platform.
 Both `unit-tests` and `subsystem`, can be run locally before submitting a PR, by running `make tests`.

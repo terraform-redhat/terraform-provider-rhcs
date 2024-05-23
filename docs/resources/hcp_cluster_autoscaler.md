@@ -3,12 +3,12 @@
 page_title: "rhcs_hcp_cluster_autoscaler Resource - terraform-provider-rhcs"
 subcategory: ""
 description: |-
-  Cluster-wide autoscaling configuration.
+  Cluster-wide autoscaling configuration. This resource is currently unavailable and using will result in error 'Autoscaler configuration is not available'
 ---
 
 # rhcs_hcp_cluster_autoscaler (Resource)
 
-Cluster-wide autoscaling configuration.
+Cluster-wide autoscaling configuration. This resource is currently unavailable and using will result in error 'Autoscaler configuration is not available'
 
 ## Example Usage
 

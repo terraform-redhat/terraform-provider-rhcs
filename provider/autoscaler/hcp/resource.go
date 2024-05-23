@@ -58,7 +58,7 @@ func (r *ClusterAutoscalerResource) Metadata(ctx context.Context, req resource.M
 
 func (r *ClusterAutoscalerResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Cluster-wide autoscaling configuration.",
+		Description: `Cluster-wide autoscaling configuration. This resource is currently unavailable and using will result in error 'Autoscaler configuration is not available'`,
 		Attributes: map[string]schema.Attribute{
 			"cluster": schema.StringAttribute{
 				Description: "Identifier of the cluster." + common.ValueCannotBeChangedStringDescription,

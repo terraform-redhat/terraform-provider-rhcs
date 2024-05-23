@@ -14,7 +14,6 @@ type VPCArgs struct {
 	VPCCIDR                   string   `json:"vpc_cidr,omitempty"`
 	MultiAZ                   bool     `json:"multi_az,omitempty"`
 	AZIDs                     []string `json:"az_ids,omitempty"`
-	HCP                       bool     `json:"hcp,omitempty"`
 	AWSSharedCredentialsFiles []string `json:"aws_shared_credentials_files,omitempty"`
 	DisableSubnetTagging      bool     `json:"disable_subnet_tagging,omitempty"`
 }
@@ -35,7 +34,7 @@ type VPCService struct {
 }
 
 func (vpc *VPCService) Init(manifestDirs ...string) error {
-	vpc.ManifestDir = CON.AWSVPCDir
+	vpc.ManifestDir = CON.AWSVPCClassicDir
 	if len(manifestDirs) != 0 {
 		vpc.ManifestDir = manifestDirs[0]
 	}
@@ -64,7 +63,7 @@ func (vpc *VPCService) Apply(createArgs *VPCArgs, recordtfvars bool, extraArgs .
 }
 
 func (vpc *VPCService) Output() (*VPCOutput, error) {
-	vpcDir := CON.AWSVPCDir
+	vpcDir := CON.AWSVPCClassicDir
 	if vpc.ManifestDir != "" {
 		vpcDir = vpc.ManifestDir
 	}

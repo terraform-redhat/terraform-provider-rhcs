@@ -121,6 +121,11 @@ e2e_sanity_test: tools install
 		--openshift-version=$(openshift_version) \
 		$(NULL)
 
+.PHONY: e2e_clean_tf_files
+e2e_clean_tf_files:
+	find tests/tf-manifests -name '.terraform*' -exec rm -rf {} \; || true
+	find tests/tf-manifests -name 'terraform.*' -exec rm -rf {} \; || true
+
 .PHONY: apply_folder
 apply_folder: install
 	bash ./ci/apply_folder.sh

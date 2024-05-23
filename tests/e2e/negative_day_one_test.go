@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
@@ -567,7 +568,7 @@ var _ = Describe("Negative Tests", Ordered, func() {
 
 		It("validate network fields - [id:72468]", ci.Medium, func() {
 			By("Retrieve VPC output")
-			vpcService := exec.NewVPCService()
+			vpcService := exec.NewVPCService(constants.GetAWSVPCDefaultManifestDir(profile.GetClusterType()))
 			vpcOutput, err := vpcService.Output()
 			Expect(err).ToNot(HaveOccurred())
 

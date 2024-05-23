@@ -37,7 +37,8 @@ var (
 	AddAccountRolesHCPDir                       = path.Join(ManifestsConfigurationDir, AWSProviderDir, "add-account-roles", "rosa-hcp")
 	OIDCProviderOperatorRolesClassicManifestDir = path.Join(ManifestsConfigurationDir, AWSProviderDir, "oidc-provider-operator-roles", "rosa-classic")
 	OIDCProviderOperatorRolesHCPManifestDir     = path.Join(ManifestsConfigurationDir, AWSProviderDir, "oidc-provider-operator-roles", "rosa-hcp")
-	AWSVPCDir                                   = path.Join(ManifestsConfigurationDir, AWSProviderDir, "vpc")
+	AWSVPCClassicDir                            = path.Join(ManifestsConfigurationDir, AWSProviderDir, "vpc", "rosa-classic")
+	AWSVPCHCPDir                                = path.Join(ManifestsConfigurationDir, AWSProviderDir, "vpc", "rosa-hcp")
 	AWSVPCTagDir                                = path.Join(ManifestsConfigurationDir, AWSProviderDir, "vpc-tags")
 	AWSSecurityGroupDir                         = path.Join(ManifestsConfigurationDir, AWSProviderDir, "security-groups")
 	ProxyDir                                    = path.Join(ManifestsConfigurationDir, AWSProviderDir, "proxy")
@@ -66,6 +67,14 @@ func GetOIDCProviderOperatorRolesDefaultManifestDir(clusterType ClusterType) str
 		return OIDCProviderOperatorRolesHCPManifestDir
 	} else {
 		return OIDCProviderOperatorRolesClassicManifestDir
+	}
+}
+
+func GetAWSVPCDefaultManifestDir(clusterType ClusterType) string {
+	if clusterType.HCP {
+		return AWSVPCHCPDir
+	} else {
+		return AWSVPCClassicDir
 	}
 }
 

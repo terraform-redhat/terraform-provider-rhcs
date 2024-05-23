@@ -17,8 +17,8 @@ var _ = Describe("Tuning Config", ci.NonClassicCluster, ci.FeatureTuningConfig, 
 	var (
 		tcService *exec.TuningConfigService
 		tcArgs    *exec.TuningConfigArgs
-
 		mpService *exec.MachinePoolService
+		profile   *ci.Profile
 	)
 
 	verifyTuningConfigSpec := func(spec interface{}, specVmDirtyRatio, specPriority int) {
@@ -30,6 +30,8 @@ var _ = Describe("Tuning Config", ci.NonClassicCluster, ci.FeatureTuningConfig, 
 	}
 
 	BeforeEach(func() {
+		profile = ci.LoadProfileYamlFileByENV()
+
 		mpService = exec.NewMachinePoolService(constants.HCPMachinePoolDir)
 		tcService = exec.NewTuningConfigService(constants.TuningConfigDir)
 	})
@@ -208,7 +210,7 @@ var _ = Describe("Tuning Config", ci.NonClassicCluster, ci.FeatureTuningConfig, 
 		Expect(err.Error()).To(ContainSubstring("cannot unmarshal string"))
 
 		By("Get vpc output")
-		vpcService := exec.NewVPCService()
+		vpcService := exec.NewVPCService(constants.GetAWSVPCDefaultManifestDir(profile.GetClusterType()))
 		vpcOutput, err := vpcService.Output()
 		Expect(err).ToNot(HaveOccurred())
 

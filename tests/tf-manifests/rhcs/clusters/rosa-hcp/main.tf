@@ -79,6 +79,7 @@ resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
     ignore_changes = [availability_zones]
   }
   wait_for_create_complete   = true
+  wait_for_std_compute_nodes_complete = true
   disable_waiting_in_destroy = false
 }
 

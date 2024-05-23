@@ -63,12 +63,11 @@ type Profile struct {
 }
 
 func PrepareVPC(region string, multiZone bool, azIDs []string, clusterType constants.ClusterType, name string, sharedVpcAWSSharedCredentialsFile string) (*exec.VPCOutput, error) {
-	vpcService := exec.NewVPCService()
+	vpcService := exec.NewVPCService(constants.GetAWSVPCDefaultManifestDir(clusterType))
 	vpcArgs := &exec.VPCArgs{
 		AWSRegion: region,
 		MultiAZ:   multiZone,
 		VPCCIDR:   constants.DefaultVPCCIDR,
-		HCP:       clusterType.HCP,
 	}
 
 	if len(azIDs) != 0 {
@@ -724,7 +723,7 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 			}
 		}
 
-		vpcService := exec.NewVPCService()
+		vpcService := exec.NewVPCService(constants.GetAWSVPCDefaultManifestDir(profile.GetClusterType()))
 		vpcArgs := &exec.VPCArgs{
 			AWSRegion: profile.Region,
 		}

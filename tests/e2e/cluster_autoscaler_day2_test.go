@@ -36,7 +36,6 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 	AfterEach(func() {
 		By("Recover clusterautoscaler")
 		clusterAutoscalerAfter, _ := cms.RetrieveClusterAutoscaler(ci.RHCSConnection, clusterID)
-		Expect(err).NotTo(HaveOccurred())
 		if (clusterAutoscalerAfter.Status() == clusterAutoscalerStatusBefore) && clusterAutoscalerStatusBefore != http.StatusNotFound {
 			recreateAutoscaler, err := cms.PatchClusterAutoscaler(ci.RHCSConnection, clusterID, clusterAutoScalerBodyForRecreate)
 			Expect(err).NotTo(HaveOccurred())

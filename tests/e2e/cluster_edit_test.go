@@ -225,8 +225,14 @@ var _ = Describe("Edit cluster", ci.Day2, ci.NonClassicCluster, func() {
 			Expect(err).ToNot(HaveOccurred())
 			currentVersion := clusterResp.Body().Version().RawID()
 
+			By("Get new channel group")
+			otherChannelGroup := exec.NightlyChannel
+			if profile.ChannelGroup == exec.NightlyChannel {
+				otherChannelGroup = exec.CandidateChannel
+			}
+
 			By("Retrieve latest version")
-			versions := cms.SortVersions(cms.HCPEnabledVersions(ci.RHCSConnection, profile.ChannelGroup))
+			versions := cms.SortVersions(cms.HCPEnabledVersions(ci.RHCSConnection, otherChannelGroup))
 			lastVersion := versions[len(versions)-1]
 
 			if lastVersion.RawID != currentVersion {
@@ -240,7 +246,7 @@ var _ = Describe("Edit cluster", ci.Day2, ci.NonClassicCluster, func() {
 			}
 
 			By("Try to edit channel_group")
-			otherChannelGroup := "stable"
+			otherChannelGroup = "stable"
 			if profile.ChannelGroup == exec.StableChannel {
 				otherChannelGroup = exec.CandidateChannel
 			}

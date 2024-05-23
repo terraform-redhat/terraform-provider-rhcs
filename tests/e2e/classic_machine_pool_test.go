@@ -11,6 +11,7 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	cms "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	con "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	exe "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
@@ -517,7 +518,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		output, err := sgService.Output()
 		Expect(err).ToNot(HaveOccurred())
 		if output.SGIDs == nil {
-			vpcService := exe.NewVPCService()
+			vpcService := exe.NewVPCService(constants.GetAWSVPCDefaultManifestDir(profile.GetClusterType()))
 			vpcOutput, err := vpcService.Output()
 			Expect(err).ToNot(HaveOccurred())
 			sgArgs := &exe.SecurityGroupArgs{

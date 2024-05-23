@@ -36,7 +36,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 		tcService = exec.NewTuningConfigService(constants.TuningConfigDir)
 
 		By("Get vpc output")
-		vpcService := exec.NewVPCService()
+		vpcService := exec.NewVPCService(constants.GetAWSVPCDefaultManifestDir(profile.GetClusterType()))
 		vpcOutput, err = vpcService.Output()
 		Expect(err).ToNot(HaveOccurred())
 	})

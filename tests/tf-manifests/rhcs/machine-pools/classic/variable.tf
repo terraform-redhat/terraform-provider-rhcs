@@ -65,3 +65,7 @@ variable "additional_security_groups" {
   type    = list(string)
   default = null
 }
+variable "tags" {
+  type    = map(string)
+  default = null
+}

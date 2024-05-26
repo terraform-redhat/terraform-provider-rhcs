@@ -23,19 +23,19 @@ var RHCS = new(RHCSconfig)
 // RHCSConfig contains platforms info for the RHCS testing
 type RHCSconfig struct {
 	// Env is the OpenShift Cluster Management environment used to provision clusters.
-	RHCSURL               string `env:"RHCS_URL" default:"api.stage.openshift.com" yaml:"env"`
-	OCMEnv                string `env:"OCM_ENV" default:"staging" yaml:"env"`
+	RHCSURL               string `env:"RHCS_URL" yaml:"rhcsURL,omitempty"`
+	OCMEnv                string `env:"OCM_ENV" default:"staging" yaml:"ocmENV,omitempty"`
 	ClusterProfile        string `env:"CLUSTER_PROFILE" yaml:"clusterProfile,omitempty"`
 	ClusterProfileDir     string `env:"CLUSTER_PROFILE_DIR" yaml:"clusterProfileDir,omitempty"`
 	RhcsOutputDir         string
 	YAMLProfilesDir       string
 	RootDir               string
 	KubeConfigDir         string
-	RHCSSource            string `env:"RHCS_SOURCE" default:"staging" yaml:"env"`
-	RHCSVersion           string `env:"RHCS_VERSION" default:"staging" yaml:"env"`
-	RHCSClusterName       string `env:"RHCS_CLUSTER_NAME" yaml:"clusterName"`
-	RHCSClusterNamePrefix string `env:"RHCS_CLUSTER_NAME_PREFIX" yaml:"clusterNamePrefix"`
-	RHCSClusterNameSuffix string `env:"RHCS_CLUSTER_NAME_SUFFIX" yaml:"clusterNameSuffix"`
+	RHCSSource            string `env:"RHCS_SOURCE" default:"staging" yaml:"rhcsSource,omitempty"`
+	RHCSVersion           string `env:"RHCS_VERSION" default:"staging" yaml:"rhcsVersion,omitempty"`
+	RHCSClusterName       string `env:"RHCS_CLUSTER_NAME" yaml:"clusterName,omitempty"`
+	RHCSClusterNamePrefix string `env:"RHCS_CLUSTER_NAME_PREFIX" yaml:"clusterNamePrefix,omitempty"`
+	RHCSClusterNameSuffix string `env:"RHCS_CLUSTER_NAME_SUFFIX" yaml:"clusterNameSuffix,omitempty"`
 }
 
 func init() {
@@ -44,7 +44,7 @@ func init() {
 	RHCS.RootDir = GetEnvWithDefault(WorkSpace, strings.SplitAfter(currentDir, project)[0])
 
 	// defaulted to staging
-	RHCS.RHCSURL = GetEnvWithDefault(RHCSURL, RHCS.RHCSURL)
+	RHCS.RHCSURL = GetEnvWithDefault(RHCSURL, "https://api.openshift.com")
 	Logger.Infof("Running against RHCS URL: %s", RHCS.RHCSURL)
 	RHCS.OCMEnv = ocmEnv(RHCS.RHCSURL)
 

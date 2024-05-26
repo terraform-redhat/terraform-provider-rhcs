@@ -27,13 +27,13 @@ type MachinePoolArgs struct {
 	MultiAZ                  *bool                `json:"multi_availability_zone,omitempty"`
 	DiskSize                 *int                 `json:"disk_size,omitempty"`
 	AdditionalSecurityGroups *[]string            `json:"additional_security_groups,omitempty"`
+	Tags                     *map[string]string   `json:"tags,omitempty"`
 
 	// HCP supported
-	TuningConfigs              *[]string          `json:"tuning_configs,omitempty"`
-	UpgradeAcknowledgementsFor *string            `json:"upgrade_acknowledgements_for,omitempty"`
-	OpenshiftVersion           *string            `json:"openshift_version,omitempty"`
-	AutoRepair                 *bool              `json:"auto_repair,omitempty"`
-	Tags                       *map[string]string `json:"tags,omitempty"`
+	TuningConfigs              *[]string `json:"tuning_configs,omitempty"`
+	UpgradeAcknowledgementsFor *string   `json:"upgrade_acknowledgements_for,omitempty"`
+	OpenshiftVersion           *string   `json:"openshift_version,omitempty"`
+	AutoRepair                 *bool     `json:"auto_repair,omitempty"`
 }
 
 type MachinePoolService struct {

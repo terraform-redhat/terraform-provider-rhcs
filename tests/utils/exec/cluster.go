@@ -22,7 +22,7 @@ type ClusterCreationArgs struct {
 	Fips                                 bool               `json:"fips,omitempty"`
 	Tags                                 map[string]string  `json:"tags,omitempty"`
 	AuditLogForward                      bool               `json:"audit_log_forward,omitempty"`
-	Autoscale                            bool               `json:"autoscaling_enabled,omitempty"`
+	Autoscaling                          *Autoscaling       `json:"autoscaling,omitempty"`
 	Etcd                                 *bool              `json:"etcd_encryption,omitempty"`
 	EtcdKmsKeyARN                        *string            `json:"etcd_kms_key_arn,omitempty"`
 	KmsKeyARN                            *string            `json:"kms_key_arn,omitempty"`
@@ -79,6 +79,12 @@ type ClusterOutput struct {
 	AdditionalControlPlaneSecurityGroups []string          `json:"additional_control_plane_security_groups,omitempty"`
 	Properties                           map[string]string `json:"properties,omitempty"`
 	UserTags                             map[string]string `json:"tags,omitempty"`
+}
+
+type Autoscaling struct {
+	AutoscalingEnabled bool `json:"autoscaling_enabled,omitempty"`
+	MinReplicas        int  `json:"min_replicas,omitempty"`
+	MaxReplicas        int  `json:"max_replicas,omitempty"`
 }
 
 // ******************************************************

@@ -26,6 +26,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 		var err error
 		clusterService, err = exec.NewClusterService(profile.GetClusterManifestsDir())
 		Expect(err).ShouldNot(HaveOccurred())
+
 	})
 
 	Context("can edit/delete", func() {
@@ -536,6 +537,39 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			Expect(err).To(HaveOccurred())
 			helper.ExpectTFErrorContains(err, "Attribute tags, cannot be changed from")
 		})
+	})
+	Context("work for", func() {
+		It("autoscaling change - [id:63147]",
+			ci.Medium,
+			func() {
+				if profile.GetClusterType().HCP {
+					Skip("This case only works for classic now")
+				}
+
+				By("Define the recovery of the cluster")
+				defer clusterService.Apply(&exec.ClusterCreationArgs{}, false, false)
+
+				By("Update the cluster to autoscaling")
+
+				clusterArgs = &exec.ClusterCreationArgs{
+					Autoscaling: &exec.Autoscaling{
+						AutoscalingEnabled: true,
+						MinReplicas:        3,
+						MaxReplicas:        6,
+					},
+				}
+				if profile.Autoscale {
+					clusterArgs = &exec.ClusterCreationArgs{
+						Autoscaling: &exec.Autoscaling{
+							AutoscalingEnabled: false,
+						},
+						Replicas: 3,
+					}
+				}
+				err := clusterService.Apply(clusterArgs, false, false)
+				Expect(err).To(HaveOccurred())
+				helper.ExpectTFErrorContains(err, "Attribute max_replicas, cannot be changed from")
+			})
 	})
 
 })

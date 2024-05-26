@@ -41,7 +41,6 @@ var (
 )
 
 func createConnectionWithToken(token string) *client.Connection {
-
 	// Create the connection:
 	connection, err := client.NewConnectionBuilder().
 		Logger(logger).

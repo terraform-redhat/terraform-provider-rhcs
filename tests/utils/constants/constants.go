@@ -101,6 +101,11 @@ const (
 	PreferNoSchedule = "PreferNoSchedule"
 )
 
+// Machine pool
+const (
+	DefaultMachinePoolName = "worker"
+)
+
 type ClusterType struct {
 	Name string
 	HCP  bool

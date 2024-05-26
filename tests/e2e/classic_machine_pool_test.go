@@ -606,6 +606,40 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		Expect(mpResponseBody.InstanceType()).To(Equal("m5.2xlarge"))
 	})
 
+	It("can create machinepool with customized tags - [id:73942]", ci.High, ci.NonHCPCluster, func() {
+
+		By("Create a machinepool with variable aws_tags")
+		name := "mp-73942"
+		replicas := 0
+		machineType := "r5.xlarge"
+
+		validTags := map[string]string{
+			"tagsKey": "tagValue",
+		}
+		MachinePoolArgs := &exe.MachinePoolArgs{
+			Cluster:     &clusterID,
+			Replicas:    &replicas,
+			MachineType: &machineType,
+			Name:        &name,
+			Tags:        &validTags,
+		}
+		_, err := mpService.Apply(MachinePoolArgs, false)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("Check the machinepool detail state")
+		resp, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+		Expect(err).ToNot(HaveOccurred())
+		for tagKey, tagValue := range validTags {
+			Expect(tagValue).To(BeElementOf(resp.AWS().Tags()[tagKey]))
+		}
+
+		By("Update the machinepool tags is not allowed")
+		validTags["tagKey2"] = "tagValue2"
+		_, err = mpService.Apply(MachinePoolArgs, false)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).Should(ContainSubstring("Attribute aws_tags, cannot be changed from"))
+	})
+
 	It("can reconciliate with basic flow - [id:65645]", ci.Medium, func() {
 		By("Create additional machinepool with taints")
 		replicas := 3
@@ -647,6 +681,50 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 			Expect(taint.Key()).To(Equal(taints[index]["key"]))
 			Expect(taint.Value()).To(Equal(taints[index]["value"]))
 		}
+	})
+	It("will validate well - [id:63139]", ci.Medium, ci.NonHCPCluster, func() {
+		By("Will validate the subnet")
+		MachinePoolArgs := &exe.MachinePoolArgs{
+			Cluster:     &clusterID,
+			Replicas:    h.IntPointer(0),
+			MachineType: h.StringPointer("m5.xlarge"),
+			Name:        h.StringPointer("invalidsub"),
+			SubnetID:    h.StringPointer("subnet-invalidsubnetid"),
+		}
+		output, err := mpService.Apply(MachinePoolArgs, false)
+		Expect(err).To(HaveOccurred())
+		Expect(output).Should(ContainSubstring("Failed to find subnet"))
+
+		By("Will validate the instance type")
+		MachinePoolArgs = &exe.MachinePoolArgs{
+			Cluster:     &clusterID,
+			Replicas:    h.IntPointer(0),
+			MachineType: h.StringPointer("invalid"),
+			Name:        h.StringPointer("invalidinstype"),
+		}
+		output, err = mpService.Apply(MachinePoolArgs, false)
+		Expect(err).To(HaveOccurred())
+		Expect(output).Should(MatchRegexp(`[\s\S]*Machine type 'invalid'[\n\\n\s\t]*is not supported for cloud provider`))
+
+		By("Create machinepool creation plan with invalid tags")
+		invalidTags := map[string]string{
+			"aws:tags": "awsvalue",
+		}
+		replicas := 0
+		machineType := "r5.xlarge"
+		name := "mp-73942"
+
+		MachinePoolArgs = &exe.MachinePoolArgs{
+			Cluster:     &clusterID,
+			Replicas:    &replicas,
+			MachineType: &machineType,
+			Name:        &name,
+			Tags:        &invalidTags,
+		}
+		output, err = mpService.Apply(MachinePoolArgs, false)
+		Expect(err).To(HaveOccurred())
+		Expect(output).Should(ContainSubstring("Tags that begin with 'aws:' are reserved"))
+
 	})
 })
 

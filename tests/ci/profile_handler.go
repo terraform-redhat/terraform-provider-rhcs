@@ -345,7 +345,11 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 	}
 
 	if profile.Autoscale {
-		clusterArgs.Autoscale = profile.Autoscale
+		clusterArgs.Autoscaling = &exec.Autoscaling{
+			AutoscalingEnabled: true,
+			MinReplicas:        3,
+			MaxReplicas:        6,
+		}
 	}
 
 	if profile.ComputeMachineType != "" {

@@ -182,7 +182,7 @@ var _ = Describe("Upgrade", func() {
 			}
 		})
 
-	It("ROSA HCP cluster on Z-stream - [id:72474]", ci.Upgrade, ci.NonHCPCluster,
+	It("ROSA HCP cluster on Z-stream - [id:72474]", ci.Upgrade, ci.NonClassicCluster,
 		func() {
 			if profile.VersionPattern != "z-1" {
 				Skip("The test is configured only for Z-stream upgrade")
@@ -226,7 +226,7 @@ var _ = Describe("Upgrade", func() {
 			}
 		})
 
-	It("ROSA HCP cluster on Y-stream - [id:72475]", ci.Upgrade, ci.NonHCPCluster,
+	It("ROSA HCP cluster on Y-stream - [id:72475]", ci.Upgrade, ci.NonClassicCluster,
 		func() {
 			if profile.VersionPattern != "y-1" {
 				Skip("The test is configured only for Y-stream upgrade")

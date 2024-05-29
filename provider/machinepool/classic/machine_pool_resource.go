@@ -434,7 +434,7 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 	}
 
 	collection := resource.MachinePools()
-	add, err := collection.Add().Body(object).SendContext(ctx)
+	add, err := collection.Add().Body(object).Parameter("fetchUserTagsOnly", true).SendContext(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Cannot create machine pool",
@@ -537,7 +537,7 @@ func readState(ctx context.Context, state *MachinePoolState, collection *cmv1.Cl
 	resource := collection.Cluster(state.Cluster.ValueString()).
 		MachinePools().
 		MachinePool(state.ID.ValueString())
-	get, err := resource.Get().SendContext(ctx)
+	get, err := resource.Get().Parameter("fetchUserTagsOnly", true).SendContext(ctx)
 	if err != nil {
 		if get.Status() == http.StatusNotFound {
 			poolNotFound = true
@@ -633,7 +633,7 @@ func (r *MachinePoolResource) doUpdate(ctx context.Context, state *MachinePoolSt
 	resource := r.collection.Cluster(state.Cluster.ValueString()).
 		MachinePools().
 		MachinePool(state.ID.ValueString())
-	_, err := resource.Get().SendContext(ctx)
+	_, err := resource.Get().Parameter("fetchUserTagsOnly", true).SendContext(ctx)
 
 	if err != nil {
 		diags.AddError(
@@ -723,7 +723,7 @@ func (r *MachinePoolResource) doUpdate(ctx context.Context, state *MachinePoolSt
 	}
 	update, err := r.collection.Cluster(state.Cluster.ValueString()).
 		MachinePools().
-		MachinePool(state.ID.ValueString()).Update().Body(machinePool).SendContext(ctx)
+		MachinePool(state.ID.ValueString()).Update().Parameter("fetchUserTagsOnly", true).Body(machinePool).SendContext(ctx)
 	if err != nil {
 		diags.AddError(
 			"Failed to update machine pool",

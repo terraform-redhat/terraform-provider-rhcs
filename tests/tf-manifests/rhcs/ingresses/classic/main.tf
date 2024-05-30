@@ -7,7 +7,8 @@ terraform {
   }
 }
 
-
+provider "rhcs" {
+}
 
 resource "rhcs_default_ingress" "default_ingress" {
   cluster                          = var.cluster

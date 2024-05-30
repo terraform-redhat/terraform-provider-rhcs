@@ -22,8 +22,8 @@ terraform {
   }
 }
 
-
-
+provider "rhcs" {
+}
 
 resource "rhcs_identity_provider" "htpasswd_idp" {
   cluster        = var.cluster_id

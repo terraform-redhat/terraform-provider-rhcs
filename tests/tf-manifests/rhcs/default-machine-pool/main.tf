@@ -7,7 +7,8 @@ terraform {
   }
 }
 
-
+provider "rhcs" {
+}
 
 resource "rhcs_machine_pool" "mp" {
   cluster                           = var.cluster

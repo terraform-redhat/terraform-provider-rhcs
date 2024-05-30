@@ -11,6 +11,9 @@ terraform {
   }
 }
 
+provider "rhcs" {
+}
+
 data "aws_caller_identity" "current" {
 }
 

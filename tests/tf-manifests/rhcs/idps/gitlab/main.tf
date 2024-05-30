@@ -22,9 +22,9 @@ terraform {
   }
 }
 
-locals {
-
+provider "rhcs" {
 }
+
 resource "rhcs_identity_provider" "gitlab_idp" {
   cluster        = var.cluster_id
   mapping_method = var.mapping_method

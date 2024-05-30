@@ -7,6 +7,8 @@ terraform {
   }
 }
 
+provider "rhcs" {
+}
 
 locals {
   autoscaling = var.autoscaling_enabled == null && var.min_replicas == null && var.max_replicas == null ? null : {

@@ -68,11 +68,11 @@ func init() {
 // Values: production, staging, integration, local
 func ocmEnv(rhcsURL string) (ocmENV string) {
 	switch rhcsURL {
-	case "api.openshift.com":
+	case "https://api.openshift.com", "api.openshift.com":
 		return "production"
-	case "api.stage.openshift.com":
+	case "https://api.stage.openshift.com", "api.stage.openshift.com":
 		return "staging"
-	case "api.integration.openshift.com":
+	case "https://api.integration.openshift.com", "api.integration.openshift.com":
 		return "integration"
 	case "":
 		return "local"

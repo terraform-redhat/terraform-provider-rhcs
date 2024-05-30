@@ -22,6 +22,9 @@ terraform {
   }
 }
 
+provider "rhcs" {
+}
+
 resource "rhcs_identity_provider" "google_idp" {
   cluster        = var.cluster_id
   name           = "multi-google-idp"

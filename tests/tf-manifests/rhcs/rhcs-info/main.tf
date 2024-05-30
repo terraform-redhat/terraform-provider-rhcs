@@ -7,4 +7,7 @@ terraform {
   }
 }
 
+provider "rhcs" {
+}
+
 data "rhcs_info" "info" {}

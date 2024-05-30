@@ -7,7 +7,8 @@ terraform {
   }
 }
 
-
+provider "rhcs" {
+}
 
 locals {
   defaultSpec = jsonencode(

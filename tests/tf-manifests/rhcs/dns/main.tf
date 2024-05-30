@@ -7,6 +7,7 @@ terraform {
   }
 }
 
-
+provider "rhcs" {
+}
 
 resource "rhcs_dns_domain" "dns_domain" {}

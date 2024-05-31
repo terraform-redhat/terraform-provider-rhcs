@@ -121,10 +121,20 @@ e2e_sanity_test: tools install
 		--openshift-version=$(openshift_version) \
 		$(NULL)
 
-.PHONY: e2e_clean_tf_files
+.PHONY: e2e_clean_tf_states
+e2e_clean_tf_files:
+	find tests/tf-manifests -name 'terraform.tfstate*' -exec rm -rf {} \; || true
+
+.PHONY: e2e_clean_tf_vars
+e2e_clean_tf_files:
+	find tests/tf-manifests -name 'terraform.tfvars*' -exec rm -rf {} \; || true
+
+.PHONY: e2e_clean_tf_init
 e2e_clean_tf_files:
 	find tests/tf-manifests -name '.terraform*' -exec rm -rf {} \; || true
-	find tests/tf-manifests -name 'terraform.*' -exec rm -rf {} \; || true
+
+.PHONY: e2e_clean_tf
+e2e_clean_tf_files: e2e_clean_tf_init e2e_clean_tf_states e2e_clean_tf_vars
 
 .PHONY: apply_folder
 apply_folder: install

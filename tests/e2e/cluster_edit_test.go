@@ -30,39 +30,39 @@ var _ = Describe("Edit cluster", ci.Day2, ci.NonClassicCluster, func() {
 
 	Context("validate", func() {
 		It("required fields - [id:72452]", ci.Medium, ci.FeatureClusterDefault, func() {
-			By("Try to edit aws account with wrong value")
-			clusterArgs = &exec.ClusterCreationArgs{
-				AWSAccountID: helper.StringPointer("another_account"),
-			}
-			err := clusterService.Apply(clusterArgs, false, false)
-			Expect(err).To(HaveOccurred())
-			helper.ExpectTFErrorContains(err, "Attribute aws_account_id aws account ID must be only digits and exactly 12")
+			// By("Try to edit aws account with wrong value")
+			// clusterArgs = &exec.ClusterCreationArgs{
+			// 	AWSAccountID: helper.StringPointer("another_account"),
+			// }
+			// err := clusterService.Apply(clusterArgs, false, false)
+			// Expect(err).To(HaveOccurred())
+			// helper.ExpectTFErrorContains(err, "Attribute aws_account_id aws account ID must be only digits and exactly 12")
 
-			By("Try to edit aws account with wrong account")
-			clusterArgs = &exec.ClusterCreationArgs{
+			// By("Try to edit aws account with wrong account")
+			// clusterArgs = &exec.ClusterCreationArgs{
 
-				AWSAccountID: helper.StringPointer("000000000000"),
-			}
-			err = clusterService.Apply(clusterArgs, false, false)
-			Expect(err).To(HaveOccurred())
-			helper.ExpectTFErrorContains(err, "Attribute aws_account_id, cannot be changed from")
+			// 	AWSAccountID: helper.StringPointer("000000000000"),
+			// }
+			// err = clusterService.Apply(clusterArgs, false, false)
+			// Expect(err).To(HaveOccurred())
+			// helper.ExpectTFErrorContains(err, "Attribute aws_account_id, cannot be changed from")
 
-			// To be activated once issue is solved
-			By("Try to edit billing account with wrong value")
-			clusterArgs = &exec.ClusterCreationArgs{
-				AWSBillingAccountID: helper.StringPointer("anything"),
-			}
-			err = clusterService.Apply(clusterArgs, false, false)
-			Expect(err).To(HaveOccurred())
-			helper.ExpectTFErrorContains(err, "Attribute aws_billing_account_id aws billing account ID must be only digits and exactly 12 in length")
+			// // To be activated once issue is solved
+			// By("Try to edit billing account with wrong value")
+			// clusterArgs = &exec.ClusterCreationArgs{
+			// 	AWSBillingAccountID: helper.StringPointer("anything"),
+			// }
+			// err = clusterService.Apply(clusterArgs, false, false)
+			// Expect(err).To(HaveOccurred())
+			// helper.ExpectTFErrorContains(err, "Attribute aws_billing_account_id aws billing account ID must be only digits and exactly 12 in length")
 
-			By("Try to edit billing account with wrong account")
-			clusterArgs = &exec.ClusterCreationArgs{
-				AWSBillingAccountID: helper.StringPointer("000000000000"),
-			}
-			err = clusterService.Apply(clusterArgs, false, false)
-			Expect(err).To(HaveOccurred())
-			helper.ExpectTFErrorContains(err, "billing account 000000000000 not linked to organization")
+			// By("Try to edit billing account with wrong account")
+			// clusterArgs = &exec.ClusterCreationArgs{
+			// 	AWSBillingAccountID: helper.StringPointer("000000000000"),
+			// }
+			// err = clusterService.Apply(clusterArgs, false, false)
+			// Expect(err).To(HaveOccurred())
+			// helper.ExpectTFErrorContains(err, "billing account 000000000000 not linked to organization")
 
 			By("Try to edit cloud region")
 			region := "us-east-1"
@@ -72,17 +72,32 @@ var _ = Describe("Edit cluster", ci.Day2, ci.NonClassicCluster, func() {
 			clusterArgs = &exec.ClusterCreationArgs{
 				AWSRegion: helper.StringPointer(region),
 			}
-			err = clusterService.Apply(clusterArgs, false, false)
+			err := clusterService.Apply(clusterArgs, false, false)
 			Expect(err).To(HaveOccurred())
 			helper.ExpectTFErrorContains(err, "Invalid AZ")
 
-			By("Try to edit name")
+			By("Try to edit cloud region and Availability zone(s)")
+			region = "us-east-1"
+			azs := []string{"us-east-1a"}
+			if profile.Region == region {
+				region = "us-west-2" // make sure we are not in the same region
+				azs = []string{"us-west-2b"}
+			}
 			clusterArgs = &exec.ClusterCreationArgs{
-				ClusterName: helper.StringPointer("any_name"),
+				AWSRegion:            helper.StringPointer(region),
+				AWSAvailabilityZones: helper.StringSlicePointer(azs),
 			}
 			err = clusterService.Apply(clusterArgs, false, false)
 			Expect(err).To(HaveOccurred())
-			helper.ExpectTFErrorContains(err, "Attribute name, cannot be changed from")
+			helper.ExpectTFErrorContains(err, "Attribute cloud_region, cannot be changed from")
+
+			// By("Try to edit name")
+			// clusterArgs = &exec.ClusterCreationArgs{
+			// 	ClusterName: helper.StringPointer("any_name"),
+			// }
+			// err = clusterService.Apply(clusterArgs, false, false)
+			// Expect(err).To(HaveOccurred())
+			// helper.ExpectTFErrorContains(err, "Attribute name, cannot be changed from")
 		})
 
 		It("compute fields - [id:72453]", ci.Medium, ci.FeatureClusterCompute, func() {

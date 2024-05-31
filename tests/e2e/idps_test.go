@@ -595,14 +595,14 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 			}
 			err = idpServices.ldap.Apply(idpParam, false)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(ContainSubstring(
-				"Must set a configuration value for the ldap.url attribute"))
+			Expect(err.Error()).Should(ContainSubstring("The root module input variable \"idp_url\" is not set, and has no default\nvalue."))
 
 			By("Create ldap idp without attributes field")
 			idpParam = &exec.IDPArgs{
 				ClusterID: clusterID,
 				Name:      "ldap-idp-test",
 				CA:        "",
+				URL:       constants.LdapURL,
 				Insecure:  true,
 			}
 
@@ -701,8 +701,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 			}
 			err = idpServices.gitlab.Apply(idpParam, false)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(
-				ContainSubstring("Must set a configuration value for the gitlab.url"))
+			Expect(err.Error()).Should(ContainSubstring("The root module input variable \"idp_url\" is not set, and has no default\nvalue."))
 
 			By("Create google idp without/empty name field")
 			idpParam = &exec.IDPArgs{

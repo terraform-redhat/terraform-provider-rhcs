@@ -38,7 +38,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 		By("Get vpc output")
 		var err error
-		vpcService := exec.NewVPCService()
+		vpcService := exec.NewVPCService(constants.GetAWSVPCDefaultManifestDir(profile.GetClusterType()))
 		vpcOutput, err = vpcService.Output()
 		Expect(err).ToNot(HaveOccurred())
 	})
@@ -233,15 +233,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			}
 
 			// workaround
-			By("Check cluster tags and set it to the machinepool")
-			resp, err := cms.ListNodePools(ci.RHCSConnection, clusterID)
-			Expect(err).ToNot(HaveOccurred())
-			npDetail, err := cms.RetrieveNodePool(ci.RHCSConnection, clusterID, resp[0].ID(), map[string]interface{}{
-				"fetchUserTagsOnly": true,
-			})
-			Expect(err).ToNot(HaveOccurred())
-			workAroundTags := npDetail.AWSNodePool().Tags()
-
+			By("Create machinepool")
 			mpArgs = &exec.MachinePoolArgs{
 				Cluster:                  &clusterID,
 				Replicas:                 &replicas,
@@ -251,7 +243,6 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 				AutoscalingEnabled:       helper.BoolPointer(false),
 				AutoRepair:               helper.BoolPointer(false),
 				SubnetID:                 &vpcOutput.ClusterPrivateSubnets[0],
-				Tags:                     &workAroundTags,
 			}
 			_, err = mpService.Apply(mpArgs, true)
 			Expect(err).ToNot(HaveOccurred())
@@ -289,7 +280,6 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 				Replicas:           &replicas,
 				MachineType:        helper.StringPointer("m5.2xlarge"),
 				Name:               &name,
-				Tags:               &workAroundTags,
 				AutoscalingEnabled: helper.BoolPointer(false),
 				AutoRepair:         helper.BoolPointer(false),
 				SubnetID:           &vpcOutput.ClusterPrivateSubnets[0],

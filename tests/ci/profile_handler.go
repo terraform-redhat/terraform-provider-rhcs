@@ -216,6 +216,7 @@ func PrepareProxy(region string, VPCID string, subnetPublicID string, keyPairID 
 		return nil, err
 	}
 	proxyArgs := &exec.ProxyArgs{
+		ProxyCount:          1,
 		Region:              region,
 		VPCID:               VPCID,
 		PublicSubnetID:      subnetPublicID,
@@ -230,7 +231,7 @@ func PrepareProxy(region string, VPCID string, subnetPublicID string, keyPairID 
 	}
 	proxyOutput, err := proxyService.Output()
 
-	return proxyOutput, err
+	return proxyOutput.Proxies[0], err
 }
 
 func PrepareKMSKey(profile *Profile, kmsName string, accountRolePrefix string, accountRolePath string, clusterType constants.ClusterType) (string, error) {

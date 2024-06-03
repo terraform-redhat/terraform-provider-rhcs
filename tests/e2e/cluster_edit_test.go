@@ -11,7 +11,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
-var _ = Describe("Edit cluster", ci.Day2, ci.NonClassicCluster, func() {
+var _ = Describe("Edit cluster", ci.Day2, func() {
 
 	var profile *ci.Profile
 	var clusterService *exec.ClusterService
@@ -28,41 +28,125 @@ var _ = Describe("Edit cluster", ci.Day2, ci.NonClassicCluster, func() {
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
-	Context("validate", func() {
+	Context("can edit/delete", func() {
+		It("proxy - [id:72489]", ci.High, ci.FeatureClusterProxy, func() {
+			By("Retrieve Proxy service")
+			proxyService, err := exec.NewProxyService()
+			Expect(err).ShouldNot(HaveOccurred())
+			proxiesOutput, err := proxyService.Output()
+			Expect(err).ShouldNot(HaveOccurred())
+			originalProxyOutput := proxiesOutput.Proxies[0]
+			defer func() {
+				By("Set back orignal proxy")
+				proxy := exec.Proxy{
+					AdditionalTrustBundle: &originalProxyOutput.AdditionalTrustBundle,
+					HTTPSProxy:            &originalProxyOutput.HttpsProxy,
+					HTTPProxy:             &originalProxyOutput.HttpProxy,
+					NoProxy:               &originalProxyOutput.NoProxy,
+				}
+				clusterArgs := &exec.ClusterCreationArgs{
+					Proxy: &proxy,
+				}
+				clusterService.Apply(clusterArgs, false, false)
+			}()
+
+			By("Create new proxy")
+			proxyArgs := &exec.ProxyArgs{
+				ProxyCount: 2,
+			}
+			err = proxyService.Apply(proxyArgs, false)
+			Expect(err).ShouldNot(HaveOccurred())
+			defer func() {
+				By("Delete create proxy")
+				proxyArgs := &exec.ProxyArgs{
+					ProxyCount: 1,
+				}
+				err = proxyService.Apply(proxyArgs, false)
+				Expect(err).ShouldNot(HaveOccurred())
+			}()
+			proxiesOutput, err = proxyService.Output()
+			Expect(err).ShouldNot(HaveOccurred())
+			newProxyOutput := proxiesOutput.Proxies[1]
+
+			By("Edit cluster proxy with new proxy information")
+			proxy := exec.Proxy{
+				AdditionalTrustBundle: &newProxyOutput.AdditionalTrustBundle,
+				HTTPSProxy:            &newProxyOutput.HttpsProxy,
+				HTTPProxy:             &newProxyOutput.HttpProxy,
+				NoProxy:               &newProxyOutput.NoProxy,
+			}
+			clusterArgs := &exec.ClusterCreationArgs{
+				Proxy: &proxy,
+			}
+			clusterService.Apply(clusterArgs, false, false)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			By("Verify new proxy information are set")
+			clusterResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			clusterProxy := clusterResp.Body().Proxy()
+			Expect(clusterProxy.HTTPProxy()).To(Equal(newProxyOutput.HttpProxy))
+			Expect(clusterProxy.HTTPSProxy()).To(Equal(newProxyOutput.HttpsProxy))
+			Expect(clusterProxy.NoProxy()).To(Equal(newProxyOutput.NoProxy))
+
+			// Remove proxy completely
+			By("Remove proxy from cluster")
+			proxy = exec.Proxy{
+				AdditionalTrustBundle: helper.EmptyStringPointer,
+				HTTPSProxy:            helper.EmptyStringPointer,
+				HTTPProxy:             helper.EmptyStringPointer,
+				NoProxy:               helper.EmptyStringPointer,
+			}
+			clusterArgs = &exec.ClusterCreationArgs{
+				Proxy: &proxy,
+			}
+			clusterService.Apply(clusterArgs, false, false)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			By("Check proxy is removed")
+			clusterResp, err = cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			clusterProxy = clusterResp.Body().Proxy()
+			Expect(clusterProxy.HTTPProxy()).To(BeEmpty())
+			Expect(clusterProxy.HTTPSProxy()).To(BeEmpty())
+			Expect(clusterProxy.NoProxy()).To(BeEmpty())
+		})
+	})
+
+	Context("validate", ci.NonClassicCluster, func() {
 		It("required fields - [id:72452]", ci.Medium, ci.FeatureClusterDefault, func() {
-			// By("Try to edit aws account with wrong value")
-			// clusterArgs = &exec.ClusterCreationArgs{
-			// 	AWSAccountID: helper.StringPointer("another_account"),
-			// }
-			// err := clusterService.Apply(clusterArgs, false, false)
-			// Expect(err).To(HaveOccurred())
-			// helper.ExpectTFErrorContains(err, "Attribute aws_account_id aws account ID must be only digits and exactly 12")
+			By("Try to edit aws account with wrong value")
+			clusterArgs = &exec.ClusterCreationArgs{
+				AWSAccountID: helper.StringPointer("another_account"),
+			}
+			err := clusterService.Apply(clusterArgs, false, false)
+			Expect(err).To(HaveOccurred())
+			helper.ExpectTFErrorContains(err, "Attribute aws_account_id aws account ID must be only digits and exactly 12")
 
-			// By("Try to edit aws account with wrong account")
-			// clusterArgs = &exec.ClusterCreationArgs{
+			By("Try to edit aws account with wrong account")
+			clusterArgs = &exec.ClusterCreationArgs{
 
-			// 	AWSAccountID: helper.StringPointer("000000000000"),
-			// }
-			// err = clusterService.Apply(clusterArgs, false, false)
-			// Expect(err).To(HaveOccurred())
-			// helper.ExpectTFErrorContains(err, "Attribute aws_account_id, cannot be changed from")
+				AWSAccountID: helper.StringPointer("000000000000"),
+			}
+			err = clusterService.Apply(clusterArgs, false, false)
+			Expect(err).To(HaveOccurred())
+			helper.ExpectTFErrorContains(err, "Attribute aws_account_id, cannot be changed from")
 
-			// // To be activated once issue is solved
-			// By("Try to edit billing account with wrong value")
-			// clusterArgs = &exec.ClusterCreationArgs{
-			// 	AWSBillingAccountID: helper.StringPointer("anything"),
-			// }
-			// err = clusterService.Apply(clusterArgs, false, false)
-			// Expect(err).To(HaveOccurred())
-			// helper.ExpectTFErrorContains(err, "Attribute aws_billing_account_id aws billing account ID must be only digits and exactly 12 in length")
+			By("Try to edit billing account with wrong value")
+			clusterArgs = &exec.ClusterCreationArgs{
+				AWSBillingAccountID: helper.StringPointer("anything"),
+			}
+			err = clusterService.Apply(clusterArgs, false, false)
+			Expect(err).To(HaveOccurred())
+			helper.ExpectTFErrorContains(err, "Attribute aws_billing_account_id aws billing account ID must be only digits and exactly 12 in length")
 
-			// By("Try to edit billing account with wrong account")
-			// clusterArgs = &exec.ClusterCreationArgs{
-			// 	AWSBillingAccountID: helper.StringPointer("000000000000"),
-			// }
-			// err = clusterService.Apply(clusterArgs, false, false)
-			// Expect(err).To(HaveOccurred())
-			// helper.ExpectTFErrorContains(err, "billing account 000000000000 not linked to organization")
+			By("Try to edit billing account with wrong account")
+			clusterArgs = &exec.ClusterCreationArgs{
+				AWSBillingAccountID: helper.StringPointer("000000000000"),
+			}
+			err = clusterService.Apply(clusterArgs, false, false)
+			Expect(err).To(HaveOccurred())
+			helper.ExpectTFErrorContains(err, "billing account 000000000000 not linked to organization")
 
 			By("Try to edit cloud region")
 			region := "us-east-1"
@@ -72,7 +156,7 @@ var _ = Describe("Edit cluster", ci.Day2, ci.NonClassicCluster, func() {
 			clusterArgs = &exec.ClusterCreationArgs{
 				AWSRegion: helper.StringPointer(region),
 			}
-			err := clusterService.Apply(clusterArgs, false, false)
+			err = clusterService.Apply(clusterArgs, false, false)
 			Expect(err).To(HaveOccurred())
 			helper.ExpectTFErrorContains(err, "Invalid AZ")
 
@@ -91,13 +175,13 @@ var _ = Describe("Edit cluster", ci.Day2, ci.NonClassicCluster, func() {
 			Expect(err).To(HaveOccurred())
 			helper.ExpectTFErrorContains(err, "Attribute cloud_region, cannot be changed from")
 
-			// By("Try to edit name")
-			// clusterArgs = &exec.ClusterCreationArgs{
-			// 	ClusterName: helper.StringPointer("any_name"),
-			// }
-			// err = clusterService.Apply(clusterArgs, false, false)
-			// Expect(err).To(HaveOccurred())
-			// helper.ExpectTFErrorContains(err, "Attribute name, cannot be changed from")
+			By("Try to edit name")
+			clusterArgs = &exec.ClusterCreationArgs{
+				ClusterName: helper.StringPointer("any_name"),
+			}
+			err = clusterService.Apply(clusterArgs, false, false)
+			Expect(err).To(HaveOccurred())
+			helper.ExpectTFErrorContains(err, "Attribute name, cannot be changed from")
 		})
 
 		It("compute fields - [id:72453]", ci.Medium, ci.FeatureClusterCompute, func() {

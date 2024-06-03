@@ -122,19 +122,19 @@ e2e_sanity_test: tools install
 		$(NULL)
 
 .PHONY: e2e_clean_tf_states
-e2e_clean_tf_files:
+e2e_clean_tf_states:
 	find tests/tf-manifests -name 'terraform.tfstate*' -exec rm -rf {} \; || true
 
 .PHONY: e2e_clean_tf_vars
-e2e_clean_tf_files:
+e2e_clean_tf_vars:
 	find tests/tf-manifests -name 'terraform.tfvars*' -exec rm -rf {} \; || true
 
 .PHONY: e2e_clean_tf_init
-e2e_clean_tf_files:
+e2e_clean_tf_init:
 	find tests/tf-manifests -name '.terraform*' -exec rm -rf {} \; || true
 
 .PHONY: e2e_clean_tf
-e2e_clean_tf_files: e2e_clean_tf_init e2e_clean_tf_states e2e_clean_tf_vars
+e2e_clean_tf: e2e_clean_tf_init e2e_clean_tf_states e2e_clean_tf_vars
 
 .PHONY: apply_folder
 apply_folder: install

@@ -1,3 +1,9 @@
+variable proxy_count {
+  type = number
+  description = "Number of proxies to create"
+  default = 1
+}
+
 variable "aws_region" {
   type        = string
   description = "aws region in use"

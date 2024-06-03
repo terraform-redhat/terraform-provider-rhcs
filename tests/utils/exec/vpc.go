@@ -12,6 +12,7 @@ type VPCArgs struct {
 	Name                      string   `json:"name,omitempty"`
 	AWSRegion                 string   `json:"aws_region,omitempty"`
 	VPCCIDR                   string   `json:"vpc_cidr,omitempty"`
+	EnableNatGateway          *bool    `json:"enable_nat_gateway,omitempty"`
 	MultiAZ                   bool     `json:"multi_az,omitempty"`
 	AZIDs                     []string `json:"az_ids,omitempty"`
 	AWSSharedCredentialsFiles []string `json:"aws_shared_credentials_files,omitempty"`

@@ -1,15 +1,15 @@
-output "https_proxy" {
-  value = "https://${aws_instance.tf-proxy.private_ip}:8080"
+output "https_proxies" {
+  value = [for proxy in aws_instance.proxies: "https://${proxy.private_ip}:8080" ]
 }
 
-output "http_proxy" {
-  value = "http://${aws_instance.tf-proxy.private_ip}:8080"
+output "http_proxies" {
+  value = [for proxy in aws_instance.proxies: "http://${proxy.private_ip}:8080" ]
 }
 
-output "no_proxy" {
-  value = "quay.io"
+output "no_proxies" {
+  value = [for proxy in aws_instance.proxies: "quay.io" ]
 }
 
-output "additional_trust_bundle" {
-  value = data.local_file.additional_trust_bundle.content
+output "additional_trust_bundles" {
+  value = [for proxy in aws_instance.proxies: data.local_file.additional_trust_bundle.content ]
 }

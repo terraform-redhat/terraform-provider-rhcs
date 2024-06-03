@@ -9,11 +9,12 @@ import (
 )
 
 type ProxyArgs struct {
+	ProxyCount          int    `json:"proxy_count,omitempty"`
 	Region              string `json:"aws_region,omitempty"`
 	VPCID               string `json:"vpc_id,omitempty"`
 	PublicSubnetID      string `json:"subnet_public_id,omitempty"`
 	TrustBundleFilePath string `json:"trust_bundle_path,omitempty"`
-	KeyPairID           string `json:"key_pair_id",omitempty`
+	KeyPairID           string `json:"key_pair_id,omitempty"`
 }
 
 type ProxyService struct {
@@ -28,6 +29,10 @@ type ProxyOutput struct {
 	HttpsProxy            string `json:"https_proxy,omitempty"`
 	NoProxy               string `json:"no_proxy,omitempty"`
 	AdditionalTrustBundle string `json:"additional_trust_bundle,omitempty"`
+}
+
+type ProxiesOutput struct {
+	Proxies []*ProxyOutput
 }
 
 func (proxy *ProxyService) Init(manifestDirs ...string) error {
@@ -58,7 +63,7 @@ func (proxy *ProxyService) Apply(createArgs *ProxyArgs, recordtfvars bool, extra
 	return nil
 }
 
-func (proxy *ProxyService) Output() (output *ProxyOutput, err error) {
+func (proxy *ProxyService) Output() (output *ProxiesOutput, err error) {
 	idpDir := CON.IDPsDir
 	if proxy.ManifestDir != "" {
 		idpDir = proxy.ManifestDir
@@ -68,17 +73,22 @@ func (proxy *ProxyService) Output() (output *ProxyOutput, err error) {
 	if err != nil {
 		return
 	}
-	httpProxy := h.DigString(out["http_proxy"], "value")
-	httpsProxy := h.DigString(out["https_proxy"], "value")
-	noProxy := h.DigString(out["no_proxy"], "value")
-	additionalTrustBundle := h.DigString(out["additional_trust_bundle"], "value")
+	httpProxies := h.DigArrayToString(out["http_proxies"], "value")
+	httpsProxies := h.DigArrayToString(out["https_proxies"], "value")
+	noProxies := h.DigArrayToString(out["no_proxies"], "value")
+	additionalTrustBundles := h.DigArrayToString(out["additional_trust_bundles"], "value")
 
-	output = &ProxyOutput{
-		HttpProxy:             httpProxy,
-		HttpsProxy:            httpsProxy,
-		NoProxy:               noProxy,
-		AdditionalTrustBundle: additionalTrustBundle,
+	var proxies []*ProxyOutput
+	for index, _ := range httpProxies {
+		proxy := &ProxyOutput{
+			HttpProxy:             httpProxies[index],
+			HttpsProxy:            httpsProxies[index],
+			NoProxy:               noProxies[index],
+			AdditionalTrustBundle: additionalTrustBundles[index],
+		}
+		proxies = append(proxies, proxy)
 	}
+	output = &ProxiesOutput{Proxies: proxies}
 	return
 }
 

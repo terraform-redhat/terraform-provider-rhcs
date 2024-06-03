@@ -64,7 +64,8 @@ resource "aws_key_pair" "generated_key" {
 }
 
 
-resource "aws_instance" "tf-proxy" {
+resource "aws_instance" "proxies" {
+  count                       = var.proxy_count
   ami                         = data.aws_ami.proxy_img.image_id
   instance_type               = "t3.medium"
   key_name                    = aws_key_pair.generated_key.key_name
@@ -72,7 +73,9 @@ resource "aws_instance" "tf-proxy" {
   vpc_security_group_ids      = [aws_security_group.proxy_access.id]
   associate_public_ip_address = true
 
-  tags = { Name = "tf-proxy" }
+  tags = { 
+    Name = "tf-proxy-${count.index}"
+  }
 
   provisioner "remote-exec" {
     connection {
@@ -102,12 +105,12 @@ resource "aws_instance" "tf-proxy" {
     command = <<-EOT
             echo '${tls_private_key.proxy_ssh_key.private_key_pem}' > /tmp/private_key.pem
             chmod 600 /tmp/private_key.pem
-            scp -i /tmp/private_key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ec2-user@${aws_instance.tf-proxy.public_ip}:~/mitm-ca.pem ${var.trust_bundle_path}
+            scp -i /tmp/private_key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ec2-user@${self.public_ip}:~/mitm-ca.pem ${var.trust_bundle_path}
         EOT
   }
 }
 data "local_file" "additional_trust_bundle" {
-  depends_on = [aws_instance.tf-proxy]
+  depends_on = [aws_instance.proxies]
   filename   = var.trust_bundle_path
 }
 

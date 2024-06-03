@@ -7,10 +7,12 @@ variable "vpc_cidr" {
   }
 
 }
+
 variable "multi_az" {
   type    = bool
   default = false
 }
+
 variable "aws_region" {
   type        = string
   description = "The region to create the ROSA cluster in"
@@ -49,4 +51,10 @@ variable "aws_shared_credentials_files" {
   type        = list(string)
   default     = null
   description = "File path to the AWS shared credentials file. This file typically used by Shared-VPC cluster."
+}
+
+variable "enable_nat_gateway" {
+  type        = bool
+  default     = true
+  description = "enable_nat_gateway for private subnets or not. For cluster creation, if enable_nat_gateway=false cluster will be error"
 }

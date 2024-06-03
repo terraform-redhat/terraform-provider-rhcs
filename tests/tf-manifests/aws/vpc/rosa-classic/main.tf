@@ -10,7 +10,7 @@ terraform {
 
 
 provider "aws" {
-  region = var.aws_region
+  region                   = var.aws_region
   shared_credentials_files = var.aws_shared_credentials_files
 }
 locals {
@@ -51,11 +51,10 @@ module "vpc" {
   name = "${var.name}-vpc"
   cidr = var.vpc_cidr
 
-  azs                 = local.azs
-  private_subnets     = local.private_subnets
-  public_subnets      = local.public_subnets
-
-  enable_nat_gateway      = true
+  azs                     = local.azs
+  private_subnets         = local.private_subnets
+  public_subnets          = local.public_subnets
+  enable_nat_gateway      = var.enable_nat_gateway
   single_nat_gateway      = var.multi_az
   enable_dns_hostnames    = true
   enable_dns_support      = true

@@ -55,8 +55,8 @@ var machinepoolNameRE = regexp.MustCompile(
 )
 
 type MachinePoolResource struct {
-	collection  *cmv1.ClustersClient
-	clusterWait common.ClusterWait
+	clusterCollection *cmv1.ClustersClient
+	clusterWait       common.ClusterWait
 }
 
 var _ resource.ResourceWithConfigure = &MachinePoolResource{}
@@ -242,8 +242,8 @@ func (r *MachinePoolResource) Configure(ctx context.Context, req resource.Config
 		return
 	}
 
-	r.collection = connection.ClustersMgmt().V1().Clusters()
-	r.clusterWait = common.NewClusterWait(r.collection)
+	r.clusterCollection = connection.ClustersMgmt().V1().Clusters()
+	r.clusterWait = common.NewClusterWait(r.clusterCollection)
 }
 
 func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -268,7 +268,7 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 
 	// Wait till the cluster is ready:
 	waitTimeoutInMinutes := int64(60)
-	_, err := r.clusterWait.WaitForClusterToBeReady(ctx, plan.Cluster.ValueString(), waitTimeoutInMinutes)
+	cluster, err := r.clusterWait.WaitForClusterToBeReady(ctx, plan.Cluster.ValueString(), waitTimeoutInMinutes)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Cannot poll cluster state",
@@ -288,7 +288,7 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 	}
 
 	// Create the machine pool:
-	resource := r.collection.Cluster(plan.Cluster.ValueString())
+	resource := r.clusterCollection.Cluster(plan.Cluster.ValueString())
 	builder := cmv1.NewMachinePool().ID(plan.ID.ValueString()).InstanceType(plan.MachineType.ValueString())
 	builder.ID(plan.Name.ValueString())
 
@@ -311,7 +311,7 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	isMultiAZPool, err := r.validateAZConfig(plan)
+	isMultiAZPool, err := r.validateAZConfig(cluster, plan)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Cannot build machine pool",
@@ -448,7 +448,7 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 	object = add.Body()
 
 	// Save the state:
-	err = populateState(object, plan)
+	err = populateState(ctx, object, plan, cluster)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Can't populate machine pool state",
@@ -474,7 +474,7 @@ func (r *MachinePoolResource) magicImport(ctx context.Context, plan *MachinePool
 	}
 	plan.ID = types.StringValue(machinepoolName)
 
-	notFound, diags := readState(ctx, state, r.collection)
+	notFound, diags := readState(ctx, state, r.clusterCollection)
 	if notFound {
 		// We disallow creating a machine pool with the default name. This
 		// case can only happen if the default machine pool was deleted and
@@ -512,7 +512,7 @@ func (r *MachinePoolResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	notFound, diags := readState(ctx, state, r.collection)
+	notFound, diags := readState(ctx, state, r.clusterCollection)
 	if notFound {
 		// If we can't find the machine pool, it was deleted. Remove if from the
 		// state and don't return an error so the TF apply() will automatically
@@ -531,8 +531,35 @@ func (r *MachinePoolResource) Read(ctx context.Context, req resource.ReadRequest
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
+func fetchCluster(ctx context.Context, state *MachinePoolState, collection *cmv1.ClustersClient, diags *diag.Diagnostics) *cmv1.Cluster {
+	clusterResource := collection.Cluster(state.Cluster.ValueString())
+	getCluster, err := clusterResource.Get().SendContext(ctx)
+	if err != nil {
+		if getCluster.Status() == http.StatusNotFound {
+			tflog.Warn(ctx, fmt.Sprintf("cluster '%s' not found, clearing state",
+				state.Cluster.ValueString(),
+			))
+			return nil
+		}
+		diags.AddError(
+			"Can't find cluster",
+			fmt.Sprintf(
+				"Can't find cluster with identifier '%s': %v",
+				state.Cluster.ValueString(), err,
+			),
+		)
+		return nil
+	}
+	return getCluster.Body()
+}
+
 func readState(ctx context.Context, state *MachinePoolState, collection *cmv1.ClustersClient) (poolNotFound bool, diags diag.Diagnostics) {
 	diags = diag.Diagnostics{}
+
+	clusterObject := fetchCluster(ctx, state, collection, &diags)
+	if clusterObject == nil {
+		return
+	}
 
 	resource := collection.Cluster(state.Cluster.ValueString()).
 		MachinePools().
@@ -554,7 +581,7 @@ func readState(ctx context.Context, state *MachinePoolState, collection *cmv1.Cl
 	}
 
 	object := get.Body()
-	err = populateState(object, state)
+	err = populateState(ctx, object, state, clusterObject)
 	if err != nil {
 		diags.AddError(
 			"Can't populate machine pool state",
@@ -630,7 +657,12 @@ func (r *MachinePoolResource) doUpdate(ctx context.Context, state *MachinePoolSt
 		return diags
 	}
 
-	resource := r.collection.Cluster(state.Cluster.ValueString()).
+	clusterObject := fetchCluster(ctx, plan, r.clusterCollection, &diags)
+	if clusterObject == nil {
+		return diags
+	}
+
+	resource := r.clusterCollection.Cluster(state.Cluster.ValueString()).
 		MachinePools().
 		MachinePool(state.ID.ValueString())
 	_, err := resource.Get().Parameter("fetchUserTagsOnly", true).SendContext(ctx)
@@ -721,7 +753,7 @@ func (r *MachinePoolResource) doUpdate(ctx context.Context, state *MachinePoolSt
 		)
 		return diags
 	}
-	update, err := r.collection.Cluster(state.Cluster.ValueString()).
+	update, err := r.clusterCollection.Cluster(state.Cluster.ValueString()).
 		MachinePools().
 		MachinePool(state.ID.ValueString()).Update().Parameter("fetchUserTagsOnly", true).Body(machinePool).SendContext(ctx)
 	if err != nil {
@@ -743,7 +775,7 @@ func (r *MachinePoolResource) doUpdate(ctx context.Context, state *MachinePoolSt
 	state.Replicas = plan.Replicas
 
 	// Save the state:
-	err = populateState(object, state)
+	err = populateState(ctx, object, state, clusterObject)
 	if err != nil {
 		diags.AddError(
 			"Can't populate machine pool state",
@@ -758,12 +790,7 @@ func (r *MachinePoolResource) doUpdate(ctx context.Context, state *MachinePoolSt
 
 // Validate the machine pool's settings that pertain to availability zones.
 // Returns whether the machine pool is/will be multi-AZ.
-func (r *MachinePoolResource) validateAZConfig(state *MachinePoolState) (bool, error) {
-	resp, err := r.collection.Cluster(state.Cluster.ValueString()).Get().Send()
-	if err != nil {
-		return false, fmt.Errorf("failed to get information for cluster %s: %v", state.Cluster.ValueString(), err)
-	}
-	cluster := resp.Body()
+func (r *MachinePoolResource) validateAZConfig(cluster *cmv1.Cluster, state *MachinePoolState) (bool, error) {
 	isMultiAZCluster := cluster.MultiAZ()
 	clusterAZs := cluster.Nodes().AvailabilityZones()
 
@@ -874,7 +901,7 @@ func (r *MachinePoolResource) Delete(ctx context.Context, req resource.DeleteReq
 	}
 
 	// Send the request to delete the machine pool:
-	resource := r.collection.Cluster(state.Cluster.ValueString()).
+	resource := r.clusterCollection.Cluster(state.Cluster.ValueString()).
 		MachinePools().
 		MachinePool(state.ID.ValueString())
 	_, err := resource.Delete().SendContext(ctx)
@@ -915,7 +942,7 @@ func (r *MachinePoolResource) Delete(ctx context.Context, req resource.DeleteReq
 
 // countPools returns the number of machine pools in the given cluster
 func (r *MachinePoolResource) countPools(ctx context.Context, clusterID string) (int, error) {
-	resource := r.collection.Cluster(clusterID).MachinePools()
+	resource := r.clusterCollection.Cluster(clusterID).MachinePools()
 	resp, err := resource.List().SendContext(ctx)
 	if err != nil {
 		return 0, err
@@ -940,7 +967,7 @@ func (r *MachinePoolResource) ImportState(ctx context.Context, req resource.Impo
 }
 
 // populateState copies the data from the API object to the Terraform state.
-func populateState(object *cmv1.MachinePool, state *MachinePoolState) error {
+func populateState(ctx context.Context, object *cmv1.MachinePool, state *MachinePoolState, cluster *cmv1.Cluster) error {
 	state.ID = types.StringValue(object.ID())
 	state.Name = types.StringValue(object.ID())
 
@@ -1056,14 +1083,46 @@ func populateState(object *cmv1.MachinePool, state *MachinePoolState) error {
 		}
 	}
 
-	tags := object.AWS().Tags()
-	if len(tags) > 0 {
-		state.AwsTags, _ = common.ConvertStringMapToMapType(tags)
+	if awsTags, ok := object.AWS().GetTags(); ok {
+		filteredAwsTags, err := filterClusterTagsNotPresentInNpInput(ctx, state, cluster, awsTags)
+		if err != nil {
+			return err
+		}
+		if len(filteredAwsTags) > 0 {
+			state.AwsTags, err = common.ConvertStringMapToMapType(filteredAwsTags)
+			if err != nil {
+				return err
+			}
+		}
 	} else {
 		state.AwsTags = types.MapNull(types.StringType)
 	}
 
 	return nil
+}
+
+func filterClusterTagsNotPresentInNpInput(ctx context.Context, state *MachinePoolState, cluster *cmv1.Cluster, awsTags map[string]string) (map[string]string, error) {
+	if len(awsTags) == 0 {
+		return awsTags, nil
+	}
+	if cluster.AWS() == nil || len(cluster.AWS().Tags()) == 0 {
+		return awsTags, nil
+	}
+	filteredTags := make(map[string]string, len(awsTags))
+	for k, v := range awsTags {
+		filteredTags[k] = v
+	}
+	currentNpTfTags, err := common.OptionalMap(ctx, state.AwsTags)
+	if err != nil {
+		return filteredTags, err
+	}
+	clusterTags := cluster.AWS().Tags()
+	for k := range clusterTags {
+		if _, ok := currentNpTfTags[k]; !ok {
+			delete(filteredTags, k)
+		}
+	}
+	return filteredTags, nil
 }
 
 func shouldPatchTaints(a, b []Taints) bool {

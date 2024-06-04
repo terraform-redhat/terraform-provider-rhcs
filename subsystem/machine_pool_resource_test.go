@@ -89,10 +89,7 @@ var _ = Describe("Machine pool (static) validation", func() {
 })
 
 var _ = Describe("Machine pool creation", func() {
-	BeforeEach(func() {
-		// The first thing that the provider will do for any operation on machine pools
-		// is check that the cluster is ready, so we always need to prepare the server to
-		// respond to that:
+	prepareClusterRead := func(clusterId string) {
 		server.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
@@ -107,26 +104,21 @@ var _ = Describe("Machine pool creation", func() {
 					  "us-east-1c"
 					]
 				  },
-				  "state": "ready"
+				  "state": "ready",
+				  "aws": {
+					"tags": {
+						"cluster-tag": "cluster-value"
+					}
+				  }
 				}`),
 			),
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-				RespondWithJSON(http.StatusOK, `{
-					"id": "123",
-					"name": "my-cluster",
-					"multi_az": true,
-					"nodes": {
-					  "availability_zones": [
-						"us-east-1a",
-						"us-east-1b",
-						"us-east-1c"
-					  ]
-					},
-					"state": "ready"
-				  }`),
-			),
 		)
+	}
+	BeforeEach(func() {
+		// The first thing that the provider will do for any operation on machine pools
+		// is check that the cluster is ready, so we always need to prepare the server to
+		// respond to that:
+		prepareClusterRead("123")
 	})
 
 	It("Can create machine pool with compute nodes", func() {
@@ -291,6 +283,7 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 2))
 
 		// Prepare the server for update
+		prepareClusterRead("123")
 		server.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(
@@ -299,38 +292,9 @@ var _ = Describe("Machine pool creation", func() {
 				),
 				RespondWithJSON(http.StatusNotFound, "{}"),
 			),
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-				RespondWithJSON(http.StatusOK, `{
-				  "id": "123",
-				  "name": "my-cluster",
-				  "multi_az": true,
-				  "nodes": {
-					"availability_zones": [
-					  "us-east-1a",
-					  "us-east-1b",
-					  "us-east-1c"
-					]
-				  },
-				  "state": "ready"
-				}`),
-			),
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-				RespondWithJSON(http.StatusOK, `{
-				  "id": "123",
-				  "name": "my-cluster",
-				  "multi_az": true,
-				  "nodes": {
-					"availability_zones": [
-					  "us-east-1a",
-					  "us-east-1b",
-					  "us-east-1c"
-					]
-				  },
-				  "state": "ready"
-				}`),
-			),
+		)
+		prepareClusterRead("123")
+		server.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(
 					http.MethodPost,
@@ -474,6 +438,7 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 2))
 
 		// Update - change lables
+		prepareClusterRead("123")
 		server.AppendHandlers(
 			// First get is for the Read function
 			CombineHandlers(
@@ -496,6 +461,9 @@ var _ = Describe("Machine pool creation", func() {
 				  "instance_type": "r5.xlarge"
 				}`),
 			),
+		)
+		prepareClusterRead("123")
+		server.AppendHandlers(
 			// Second get is for the Update function
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool"),
@@ -572,6 +540,7 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(`.attributes.labels | length`, 1))
 
 		// Update - delete lables
+		prepareClusterRead("123")
 		server.AppendHandlers(
 			// First get is for the Read function
 			CombineHandlers(
@@ -594,6 +563,9 @@ var _ = Describe("Machine pool creation", func() {
 				  "instance_type": "r5.xlarge"
 				}`),
 			),
+		)
+		prepareClusterRead("123")
+		server.AppendHandlers(
 			// Second get is for the Update function
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool"),
@@ -748,6 +720,7 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.replicas", 12.0))
 		Expect(resource).To(MatchJQ(`.attributes.taints | length`, 1))
 
+		prepareClusterRead("123")
 		server.AppendHandlers(
 			// First get is for the Read function
 			CombineHandlers(
@@ -778,6 +751,9 @@ var _ = Describe("Machine pool creation", func() {
 				  "instance_type": "r5.xlarge"
 				}`),
 			),
+		)
+		prepareClusterRead("123")
+		server.AppendHandlers(
 			// Second get is for the Update function
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool"),
@@ -967,6 +943,7 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.replicas", 12.0))
 		Expect(resource).To(MatchJQ(`.attributes.taints | length`, 1))
 
+		prepareClusterRead("123")
 		server.AppendHandlers(
 			// First get is for the Read function
 			CombineHandlers(
@@ -997,6 +974,9 @@ var _ = Describe("Machine pool creation", func() {
 				  "instance_type": "r5.xlarge"
 				}`),
 			),
+		)
+		prepareClusterRead("123")
+		server.AppendHandlers(
 			// Second get is for the Update function
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool"),
@@ -1154,6 +1134,7 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.min_replicas", float64(0)))
 		Expect(resource).To(MatchJQ(".attributes.max_replicas", float64(3)))
 
+		prepareClusterRead("123")
 		server.AppendHandlers(
 			// First get is for the Read function
 			CombineHandlers(
@@ -1181,6 +1162,9 @@ var _ = Describe("Machine pool creation", func() {
 				  "instance_type": "r5.xlarge"
 				}`),
 			),
+		)
+		prepareClusterRead("123")
+		server.AppendHandlers(
 			// Second get is for the Update function
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool"),
@@ -1671,7 +1655,60 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.disk_size", 400.0))
 	})
 
-	It("Can create pool w/ aws tags", func() {
+	It("Can create pool replacing cluster aws tags", func() {
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				),
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 3,
+				  "aws": {
+					"kind": "AWSMachinePool",
+					"tags": {
+						"cluster-tag": "mp-value"
+					}
+				  }
+				}`),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 3,
+				  "availability_zones": [
+					"us-east-1a"
+				  ],
+				  "aws": {
+					"tags": {
+						"cluster-tag": "mp-value"
+					}
+				  }
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 3
+			aws_tags 	 = {"cluster-tag": "mp-value"}
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		// Check the state:
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool")
+		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+		Expect(resource).To(MatchJQ(".attributes.aws_tags.[\"cluster-tag\"]", "mp-value"))
+	})
+
+	It("Can create pool w/ new aws tags", func() {
 		server.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(
@@ -1723,47 +1760,145 @@ var _ = Describe("Machine pool creation", func() {
 		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 		Expect(resource).To(MatchJQ(".attributes.aws_tags.[\"foo\"]", "bar"))
 	})
+
+	It("Can create pool w/ new aws tags, but cannot edit", func() {
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodPost,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+				),
+				VerifyJSON(`{
+				  "kind": "MachinePool",
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 3,
+				  "aws": {
+					"kind": "AWSMachinePool",
+					"tags": {
+					  "foo": "bar"
+					}
+				  }
+				}`),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 3,
+				  "availability_zones": [
+					"us-east-1a"
+				  ],
+				  "aws": {
+					"tags": {
+						"foo": "bar"
+					}
+				  }
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 3
+			aws_tags 	 = {"foo": "bar"}
+		  }
+		`)
+		Expect(terraform.Apply()).To(BeZero())
+
+		// Check the state:
+		resource := terraform.Resource("rhcs_machine_pool", "my_pool")
+		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+		Expect(resource).To(MatchJQ(".attributes.aws_tags.[\"foo\"]", "bar"))
+
+		prepareClusterRead("123")
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodGet,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
+				),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 3,
+				  "availability_zones": [
+					"us-east-1a"
+				  ],
+				  "aws": {
+					"tags": {
+						"foo": "bar"
+					}
+				  }
+				}`),
+			),
+		)
+
+		prepareClusterRead("123")
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(
+					http.MethodGet,
+					"/api/clusters_mgmt/v1/clusters/123/machine_pools/my-pool",
+				),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "instance_type": "r5.xlarge",
+				  "replicas": 3,
+				  "availability_zones": [
+					"us-east-1a"
+				  ],
+				  "aws": {
+					"tags": {
+						"foo": "bar"
+					}
+				  }
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		terraform.Source(`
+		  resource "rhcs_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    machine_type = "r5.xlarge"
+		    replicas     = 3
+			aws_tags 	 = {"foo": "new-bar"}
+		  }
+		`)
+		Expect(terraform.Apply()).ToNot(BeZero())
+	})
 })
 
 var _ = Describe("Machine pool w/ mAZ cluster", func() {
-	BeforeEach(func() {
-		// The first thing that the provider will do for any operation on machine pools
-		// is check that the cluster is ready, so we always need to prepare the server to
-		// respond to that:
+	prepareClusterRead := func(clusterId string) {
 		server.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, `{
-				  "id": "123",
-				  "name": "my-cluster",
-				  "multi_az": true,
-				  "nodes": {
-					"availability_zones": [
-					  "us-east-1a",
-					  "us-east-1b",
-					  "us-east-1c"
-					]
-				  },
-				  "state": "ready"
-				}`),
-			),
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-				RespondWithJSON(http.StatusOK, `{
-					"id": "123",
-					"name": "my-cluster",
-					"multi_az": true,
-					"nodes": {
-					  "availability_zones": [
-						"us-east-1a",
-						"us-east-1b",
-						"us-east-1c"
-					  ]
-					},
-					"state": "ready"
-				  }`),
+			  "id": "123",
+			  "name": "my-cluster",
+			  "multi_az": true,
+			  "nodes": {
+				"availability_zones": [
+				  "us-east-1a",
+				  "us-east-1b",
+				  "us-east-1c"
+				]
+			  },
+			  "state": "ready"
+			}`),
 			),
 		)
+	}
+	BeforeEach(func() {
+		// The first thing that the provider will do for any operation on machine pools
+		// is check that the cluster is ready, so we always need to prepare the server to
+		// respond to that:
+		prepareClusterRead("123")
 	})
 
 	It("Can create mAZ pool", func() {
@@ -1962,10 +2097,7 @@ var _ = Describe("Machine pool w/ mAZ cluster", func() {
 })
 
 var _ = Describe("Machine pool w/ 1AZ cluster", func() {
-	BeforeEach(func() {
-		// The first thing that the provider will do for any operation on machine pools
-		// is checking that the cluster is ready, so we always need to prepare the server to
-		// respond to that:
+	prepareClusterRead := func(clusterId string) {
 		server.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
@@ -1981,21 +2113,13 @@ var _ = Describe("Machine pool w/ 1AZ cluster", func() {
 				  "state": "ready"
 				}`),
 			),
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-				RespondWithJSON(http.StatusOK, `{
-				  "id": "123",
-				  "name": "my-cluster",
-				  "multi_az": false,
-				  "nodes": {
-					"availability_zones": [
-					  "us-east-1a"
-					]
-				  },
-				  "state": "ready"
-				}`),
-			),
 		)
+	}
+	BeforeEach(func() {
+		// The first thing that the provider will do for any operation on machine pools
+		// is checking that the cluster is ready, so we always need to prepare the server to
+		// respond to that:
+		prepareClusterRead("123")
 	})
 
 	It("Can create 1az pool", func() {
@@ -2099,10 +2223,7 @@ var _ = Describe("Machine pool w/ 1AZ cluster", func() {
 })
 
 var _ = Describe("Machine pool w/ 1AZ byo VPC cluster", func() {
-	BeforeEach(func() {
-		// The first thing that the provider will do for any operation on machine pools
-		// is check that the cluster is ready, so we always need to prepare the server to
-		// respond to that:
+	prepareClusterRead := func(clusterId string) {
 		server.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
@@ -2123,26 +2244,13 @@ var _ = Describe("Machine pool w/ 1AZ byo VPC cluster", func() {
 				  "state": "ready"
 					}`),
 			),
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-				RespondWithJSON(http.StatusOK, `{
-					  "id": "123",
-					  "name": "my-cluster",
-					  "multi_az": false,
-					  "nodes": {
-						"availability_zones": [
-						  "us-east-1a"
-						]
-					  },
-					  "aws": {
-						"subnet_ids": [
-							"id1"
-						]
-					},
-				  "state": "ready"
-					}`),
-			),
 		)
+	}
+	BeforeEach(func() {
+		// The first thing that the provider will do for any operation on machine pools
+		// is check that the cluster is ready, so we always need to prepare the server to
+		// respond to that:
+		prepareClusterRead("123")
 	})
 
 	It("Can create pool w/ subnet_id for byo vpc", func() {
@@ -2255,7 +2363,33 @@ var _ = Describe("Machine pool w/ 1AZ byo VPC cluster", func() {
 })
 
 var _ = Describe("Machine pool import", func() {
+	prepareClusterRead := func(clusterId string) {
+		server.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, `{
+				  "id": "123",
+				  "name": "my-cluster",
+				  "multi_az": true,
+				  "nodes": {
+					"availability_zones": [
+					  "us-east-1a",
+					  "us-east-1b",
+					  "us-east-1c"
+					]
+				  },
+				  "state": "ready",
+				  "aws": {
+					"tags": {
+						"cluster-tag": "cluster-value"
+					}
+				  }
+				}`),
+			),
+		)
+	}
 	It("Can import a machine pool", func() {
+		prepareClusterRead("123")
 		// Prepare the server:
 		server.AppendHandlers(
 			// Get is for the Read function
@@ -2314,10 +2448,7 @@ var _ = Describe("Machine pool creation for non exist cluster", func() {
 })
 
 var _ = Describe("Day-1 machine pool (worker)", func() {
-	BeforeEach(func() {
-		// The first thing that the provider will do for any operation on machine pools
-		// is check that the cluster is ready, so we always need to prepare the server to
-		// respond to that:
+	prepareClusterRead := func(clusterId string) {
 		server.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
@@ -2334,9 +2465,16 @@ var _ = Describe("Day-1 machine pool (worker)", func() {
 				}`),
 			),
 		)
+	}
+	BeforeEach(func() {
+		// The first thing that the provider will do for any operation on machine pools
+		// is check that the cluster is ready, so we always need to prepare the server to
+		// respond to that:
+		prepareClusterRead("123")
 	})
 
 	It("cannot be created", func() {
+		prepareClusterRead("123")
 		// Prepare the server:
 		server.AppendHandlers(
 			// Get is for the Read function
@@ -2367,6 +2505,7 @@ var _ = Describe("Day-1 machine pool (worker)", func() {
 	It("is automatically imported and updates applied", func() {
 		// Import automatically "Create()", and update the # of replicas: 2 -> 4
 		// Prepare the server:
+		prepareClusterRead("123")
 		server.AppendHandlers(
 			// Get is for the Read function
 			CombineHandlers(
@@ -2380,6 +2519,9 @@ var _ = Describe("Day-1 machine pool (worker)", func() {
 						"instance_type": "r5.xlarge"
 					}`),
 			),
+		)
+		prepareClusterRead("123")
+		server.AppendHandlers(
 			// Get is for the read during update
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker"),
@@ -2427,6 +2569,7 @@ var _ = Describe("Day-1 machine pool (worker)", func() {
 	})
 
 	It("can update labels", func() {
+		prepareClusterRead("123")
 		// Prepare the server:
 		server.AppendHandlers(
 			// Get is for the Read function
@@ -2441,6 +2584,9 @@ var _ = Describe("Day-1 machine pool (worker)", func() {
 							"instance_type": "r5.xlarge"
 						}`),
 			),
+		)
+		prepareClusterRead("123")
+		server.AppendHandlers(
 			// Get is for the read during update
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/machine_pools/worker"),
@@ -2497,6 +2643,7 @@ var _ = Describe("Day-1 machine pool (worker)", func() {
 	})
 
 	It("can't update availability_zone", func() {
+		prepareClusterRead("123")
 		// Prepare the server:
 		server.AppendHandlers(
 			// Get is for the Read function
@@ -2553,6 +2700,7 @@ var _ = Describe("Machine pool delete", func() {
 	}
 
 	preparePoolRead := func(clusterId string, poolId string) {
+		prepareClusterRead("123")
 		server.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/machine_pools/"+poolId),
@@ -2571,7 +2719,6 @@ var _ = Describe("Machine pool delete", func() {
 	}
 
 	createPool := func(clusterId string, poolId string) {
-		prepareClusterRead(clusterId)
 		prepareClusterRead(clusterId)
 		server.AppendHandlers(
 			CombineHandlers(

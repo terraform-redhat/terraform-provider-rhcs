@@ -841,4 +841,24 @@ var _ = Describe("Negative Tests", Ordered, func() {
 			restoreSubnetTagging()
 		})
 	})
+
+	var _ = Describe("The EOL OCP version validation", ci.Day1Negative, func() {
+		BeforeEach(OncePerOrdered, func() {
+			creationArgs = originalCreationArgs
+		})
+
+		It("version validation - [id:64095]", ci.Medium, func() {
+			By("create cluster with an EOL OCP version")
+			oldVersion := creationArgs.OpenshiftVersion
+			restoreValues := func() {
+				creationArgs.OpenshiftVersion = oldVersion
+			}
+			creationArgs.OpenshiftVersion = "4.9.59"
+			defer restoreValues()
+			err = clusterService.Apply(creationArgs, false, false)
+			Expect(err).To(HaveOccurred())
+			helper.ExpectTFErrorContains(err, "version 4.59.59 is not in the list of supported versions")
+			restoreValues()
+		})
+	})
 })

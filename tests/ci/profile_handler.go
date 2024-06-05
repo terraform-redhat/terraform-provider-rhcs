@@ -421,7 +421,7 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 			//		* The Shared-VPC compatible policie requries installer role
 			//		* The install role (account roles) require Shared-VPC ARN.
 			//  Use hardcode as a temporary solution.
-			shared_vpc_role_arn = fmt.Sprintf("arn:aws:iam::641733028092:role/%s-shared-vpc-role", clusterArgs.ClusterName)
+			shared_vpc_role_arn = fmt.Sprintf("arn:aws:iam::641733028092:role/%s-shared-vpc-role", *clusterArgs.ClusterName)
 		}
 		accountRolesOutput, err := PrepareAccountRoles(token, *clusterArgs.ClusterName, profile.UnifiedAccRolesPath, *clusterArgs.AWSRegion, majorVersion, profile.ChannelGroup, profile.GetClusterType(), shared_vpc_role_arn)
 		Expect(err).ToNot(HaveOccurred())
@@ -647,6 +647,11 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 		AccountRolePrefix:  "",
 		OperatorRolePrefix: helper.EmptyStringPointer,
 	}
+	if profile.SharedVpc {
+		output, err := clusterService.Output()
+		Expect(err).ToNot(HaveOccurred())
+		clusterArgs.ClusterName = &output.ClusterName
+	}
 	if profile.AdditionalSGNumber != 0 {
 		output, err := clusterService.Output()
 		Expect(err).ToNot(HaveOccurred())
@@ -704,7 +709,6 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 				// Subnets:
 			}
 			err = sharedVpcPolicyAndHostedZoneService.Destroy(sharedVpcPolicyAndHostedZoneArgs)
-
 			if err != nil {
 				return err
 			}

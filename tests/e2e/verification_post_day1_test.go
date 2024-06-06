@@ -10,16 +10,15 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	rosaAccountRoles "github.com/openshift-online/ocm-common/pkg/rosa/accountroles"
+	"github.com/openshift-online/ocm-common/pkg/rosa/accountroles"
 	. "github.com/openshift-online/ocm-sdk-go/testing"
 
-	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
-	cms "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
-	con "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	exe "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
-	H "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
-	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	cmsv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/openshift"
 )
 
@@ -28,11 +27,9 @@ var _ = Describe("Verify cluster", func() {
 
 	var err error
 	var profile *ci.Profile
-	var cluster *cmv1.Cluster
-	var importService *exe.ImportService
+	var cluster *cmsv1.Cluster
 
 	BeforeEach(func() {
-		importService = exe.NewImportService(con.ImportResourceDir) // init new import service
 		profile = ci.LoadProfileYamlFileByENV()
 		Expect(err).ToNot(HaveOccurred())
 		getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
@@ -115,7 +112,7 @@ var _ = Describe("Verify cluster", func() {
 		Expect(getResp.Body().MultiAZ()).To(Equal(profile.MultiAZ))
 
 		if profile.Zones != "" {
-			Expect(clusterAvailZones).To(Equal(H.JoinStringWithArray(profile.Region, zonesArray)))
+			Expect(clusterAvailZones).To(Equal(helper.JoinStringWithArray(profile.Region, zonesArray)))
 		} else {
 			// the default zone for each region
 			Expect(clusterAvailZones[0]).To(Equal(fmt.Sprintf("%sa", profile.Region)))
@@ -124,9 +121,9 @@ var _ = Describe("Verify cluster", func() {
 
 	It("compute_labels are correctly set - [id:68423]", ci.Day1Post, ci.High, func() {
 		if profile.Labeling {
-			Expect(cluster.Nodes().ComputeLabels()).To(Equal(con.DefaultMPLabels))
+			Expect(cluster.Nodes().ComputeLabels()).To(Equal(constants.DefaultMPLabels))
 		} else {
-			Expect(cluster.Nodes().ComputeLabels()).To(Equal(con.NilMap))
+			Expect(cluster.Nodes().ComputeLabels()).To(Equal(constants.NilMap))
 		}
 	})
 
@@ -140,7 +137,7 @@ var _ = Describe("Verify cluster", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		if profile.Tagging {
-			allClusterTags := H.MergeMaps(buildInTags, con.Tags)
+			allClusterTags := helper.MergeMaps(buildInTags, constants.Tags)
 			Expect(len(getResp.Body().AWS().Tags())).To(Equal(len(allClusterTags)))
 
 			// compare cluster tags to the expected tags to appear
@@ -153,17 +150,22 @@ var _ = Describe("Verify cluster", func() {
 	})
 	It("can be imported - [id:65684]",
 		ci.Day2, ci.Medium, ci.NonHCPCluster, ci.FeatureImport, func() {
+			importService, err := exec.NewImportService(constants.ImportResourceDir) // init new import service
+			Expect(err).ToNot(HaveOccurred())
 
 			By("Run the command to import rosa_classic resource")
-			importParam := &exe.ImportArgs{
-				ClusterID:    clusterID,
-				ResourceKind: "rhcs_cluster_rosa_classic",
-				ResourceName: "rosa_sts_cluster_import",
+			defer func() {
+				importService.Destroy()
+			}()
+			importParam := &exec.ImportArgs{
+				ClusterID: clusterID,
+				Resource:  "rhcs_cluster_rosa_classic.rosa_sts_cluster_import",
 			}
-			Expect(importService.Import(importParam)).To(Succeed())
+			_, err = importService.Import(importParam)
+			Expect(err).ToNot(HaveOccurred())
 
 			By("Check resource state - import command succeeded")
-			output, err := importService.ShowState(importParam)
+			output, err := importService.ShowState(importParam.Resource)
 			Expect(err).ToNot(HaveOccurred())
 
 			// validate import was successful by checking samples fields
@@ -172,19 +174,14 @@ var _ = Describe("Verify cluster", func() {
 			Expect(output).To(ContainSubstring(profile.ChannelGroup))
 
 			By("Validate terraform import with no clusterID returns error")
-			var unknownClusterID = h.GenerateRandomStringWithSymbols(20)
-			importParam = &exe.ImportArgs{
-				ClusterID:    unknownClusterID,
-				ResourceKind: "rhcs_cluster_rosa_classic",
-				ResourceName: "rosa_import_no_cluster_id",
+			var unknownClusterID = helper.GenerateRandomStringWithSymbols(20)
+			importParam = &exec.ImportArgs{
+				ClusterID: unknownClusterID,
+				Resource:  "rhcs_cluster_rosa_classic.rosa_import_no_cluster_id",
 			}
 
-			err = importService.Import(importParam)
+			_, err = importService.Import(importParam)
 			Expect(err.Error()).To(ContainSubstring("Cannot import non-existent remote object"))
-
-			By("clean .tfstate file to revert test changes")
-			defer h.CleanManifestsStateFile(con.ImportResourceDir)
-
 		})
 
 	It("confirm cluster admin user created ONLY during cluster creation operation - [id:65928]",
@@ -208,7 +205,7 @@ var _ = Describe("Verify cluster", func() {
 			Expect(respUserName).To(Equal("rhcs-clusteradmin"))
 
 			By("Check resource state file is updated")
-			resource, err := h.GetResource(profile.GetClusterManifestsDir(), "rhcs_cluster_rosa_classic", "rosa_sts_cluster")
+			resource, err := helper.GetResource(profile.GetClusterManifestsDir(), "rhcs_cluster_rosa_classic", "rosa_sts_cluster")
 			Expect(err).ToNot(HaveOccurred())
 			passwordInState, _ := JQ(`.instances[0].attributes.admin_credentials.password`, resource)
 			Expect(passwordInState).NotTo(BeEmpty())
@@ -219,8 +216,8 @@ var _ = Describe("Verify cluster", func() {
 			Expect(err).ToNot(HaveOccurred())
 			server := getResp.Body().API().URL()
 
-			username := con.ClusterAdminUser
-			password := H.GetClusterAdminPassword()
+			username := constants.ClusterAdminUser
+			password := helper.GetClusterAdminPassword()
 			Expect(password).ToNot(BeEmpty())
 
 			ocAtter := &openshift.OcAttributes{
@@ -230,7 +227,7 @@ var _ = Describe("Verify cluster", func() {
 				ClusterID: clusterID,
 				AdditioanlFlags: []string{
 					"--insecure-skip-tls-verify",
-					fmt.Sprintf("--kubeconfig %s", path.Join(con.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, username))),
+					fmt.Sprintf("--kubeconfig %s", path.Join(constants.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, username))),
 				},
 				Timeout: 10,
 			}
@@ -249,7 +246,7 @@ var _ = Describe("Verify cluster", func() {
 				Expect(cluster.AWS().AdditionalInfraSecurityGroupIds()).To(BeEmpty())
 			} else {
 				By("Verify CMS are using the correct configuration")
-				clusterService, err := exe.NewClusterService(profile.GetClusterManifestsDir())
+				clusterService, err := exec.NewClusterService(profile.GetClusterManifestsDir())
 				Expect(err).ToNot(HaveOccurred())
 				output, err := clusterService.Output()
 				Expect(err).ToNot(HaveOccurred())
@@ -260,42 +257,6 @@ var _ = Describe("Verify cluster", func() {
 					Expect(sg).To(BeElementOf(cluster.AWS().AdditionalComputeSecurityGroupIds()))
 				}
 
-			}
-
-		})
-
-	// Skip this tests until OCM-5079 fixed
-	It("can not apply changes to security group - [id:69145]",
-		ci.NonHCPCluster, ci.Exclude, ci.Day2,
-		func() {
-			clusterService, err := exe.NewClusterService(profile.GetClusterManifestsDir())
-			Expect(err).ToNot(HaveOccurred())
-			output, err := clusterService.Output()
-			Expect(err).ToNot(HaveOccurred())
-			args := map[string]*exe.ClusterCreationArgs{
-				"aws_additional_compute_security_group_ids": {
-					AdditionalComputeSecurityGroups:      output.AdditionalComputeSecurityGroups[0:1],
-					AdditionalInfraSecurityGroups:        output.AdditionalInfraSecurityGroups,
-					AdditionalControlPlaneSecurityGroups: output.AdditionalControlPlaneSecurityGroups,
-					AWSRegion:                            &profile.Region,
-				},
-				"aws_additional_infra_security_group_ids": {
-					AdditionalInfraSecurityGroups:        output.AdditionalInfraSecurityGroups[0:1],
-					AdditionalComputeSecurityGroups:      output.AdditionalComputeSecurityGroups,
-					AdditionalControlPlaneSecurityGroups: output.AdditionalControlPlaneSecurityGroups,
-					AWSRegion:                            &profile.Region,
-				},
-				"aws_additional_control_plane_security_group_ids": {
-					AdditionalControlPlaneSecurityGroups: output.AdditionalControlPlaneSecurityGroups[0:1],
-					AdditionalComputeSecurityGroups:      output.AdditionalComputeSecurityGroups,
-					AdditionalInfraSecurityGroups:        output.AdditionalInfraSecurityGroups,
-					AWSRegion:                            &profile.Region,
-				},
-			}
-			for keyword, updatingArgs := range args {
-				err := clusterService.Apply(updatingArgs, false, false)
-				Expect(err).To(HaveOccurred(), keyword)
-				Expect(err.Error()).Should(ContainSubstring(`Attribute value cannot be changed`))
 			}
 
 		})
@@ -312,7 +273,7 @@ var _ = Describe("Verify cluster", func() {
 		})
 
 	It("account roles/policies unified path is correctly set - [id:63138]", ci.Day1Post, ci.Medium, func() {
-		unifiedPath, err := rosaAccountRoles.GetPathFromAccountRole(cluster, rosaAccountRoles.AccountRoles[rosaAccountRoles.InstallerAccountRole].Name)
+		unifiedPath, err := accountroles.GetPathFromAccountRole(cluster, accountroles.AccountRoles[accountroles.InstallerAccountRole].Name)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(profile.UnifiedAccRolesPath).Should(ContainSubstring(unifiedPath))
 	})
@@ -325,7 +286,7 @@ var _ = Describe("Verify cluster", func() {
 		listRSresp, err := cms.ListClusterResources(ci.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
 
-		kmsService, err := exe.NewKMSService()
+		kmsService, err := exec.NewKMSService()
 		Expect(err).ToNot(HaveOccurred())
 		kmsOutput, _ := kmsService.Output()
 		expectedKeyArn := kmsOutput.KeyARN
@@ -345,7 +306,7 @@ var _ = Describe("Verify cluster", func() {
 		if profile.Ec2MetadataHttpTokens != "" {
 			Expect(string(cluster.AWS().Ec2MetadataHttpTokens())).To(Equal(profile.Ec2MetadataHttpTokens))
 		} else {
-			Expect(cluster.AWS().Ec2MetadataHttpTokens()).To(Equal(cmv1.Ec2MetadataHttpTokensOptional))
+			Expect(cluster.AWS().Ec2MetadataHttpTokens()).To(Equal(cmsv1.Ec2MetadataHttpTokensOptional))
 		}
 	})
 })

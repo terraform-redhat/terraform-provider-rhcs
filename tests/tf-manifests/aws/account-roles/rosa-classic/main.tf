@@ -49,5 +49,5 @@ module "create_account_roles" {
   account_role_policies  = data.rhcs_policies.all_policies.account_role_policies
   operator_role_policies = data.rhcs_policies.all_policies.operator_role_policies
   shared_vpc_role_arn    = var.shared_vpc_role_arn
-  path                   = var.path
+  path                   = local.path
 }

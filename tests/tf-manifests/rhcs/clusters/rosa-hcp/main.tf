@@ -82,7 +82,7 @@ resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
   disable_waiting_in_destroy = false
 }
 
-resource "rhcs_cluster_wait" "rosa_cluster" {
+resource "rhcs_cluster_wait" "rosa_cluster" { # id: 71869
   cluster = rhcs_cluster_rosa_hcp.rosa_hcp_cluster.id
   timeout = 60 # in minutes
 }

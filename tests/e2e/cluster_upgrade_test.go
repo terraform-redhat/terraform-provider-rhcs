@@ -13,6 +13,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/openshift"
 )
@@ -21,18 +22,25 @@ var _ = Describe("Upgrade", func() {
 	defer GinkgoRecover()
 
 	var (
-		targetV   string
-		clusterID string
-		profile   *ci.Profile
+		targetV        string
+		clusterID      string
+		profile        *ci.Profile
+		clusterArgs    *exec.ClusterArgs
+		clusterService exec.ClusterService
 	)
 
-	BeforeEach(OncePerOrdered, func() {
+	BeforeEach(func() {
 		profile = ci.LoadProfileYamlFileByENV()
 
 		var err error
 		clusterID, err = ci.PrepareRHCSClusterByProfileENV()
 		Expect(err).ToNot(HaveOccurred())
 
+		By("Retrieve cluster args")
+		clusterService, err = exec.NewClusterService(profile.GetClusterManifestsDir())
+		Expect(err).ToNot(HaveOccurred())
+		clusterArgs, err = clusterService.ReadTFVars()
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("ROSA STS cluster on Z-stream - [id:63153]", ci.Upgrade, ci.NonHCPCluster,
@@ -46,9 +54,6 @@ var _ = Describe("Upgrade", func() {
 				constants.Z, clusterResp.Body().Version().AvailableUpgrades())
 			Expect(err).ToNot(HaveOccurred())
 
-			clusterService, err := exec.NewClusterService(profile.GetClusterManifestsDir())
-			Expect(err).ToNot(HaveOccurred())
-
 			By("Validate invalid OCP version - downgrade")
 			currentVersion := string(clusterResp.Body().Version().RawID())
 			splittedVersion := strings.Split(currentVersion, ".")
@@ -60,10 +65,8 @@ var _ = Describe("Upgrade", func() {
 			imageVersionsList := cms.EnabledVersions(ci.RHCSConnection, profile.ChannelGroup, profile.MajorVersion, true)
 			versionsList := cms.GetRawVersionList(imageVersionsList)
 			if slices.Contains(versionsList, downgradedVersion) {
-				clusterArgs := &exec.ClusterCreationArgs{
-					OpenshiftVersion: downgradedVersion,
-				}
-				err = clusterService.Apply(clusterArgs, false, false)
+				clusterArgs.OpenshiftVersion = helper.StringPointer(downgradedVersion)
+				_, err = clusterService.Apply(clusterArgs)
 				Expect(err).To(HaveOccurred())
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("cluster version is already above the\nrequested version"))
@@ -71,10 +74,8 @@ var _ = Describe("Upgrade", func() {
 			}
 
 			By("Run the cluster update")
-			clusterArgs := &exec.ClusterCreationArgs{
-				OpenshiftVersion: targetV,
-			}
-			err = clusterService.Apply(clusterArgs, false, false)
+			clusterArgs.OpenshiftVersion = helper.StringPointer(targetV)
+			_, err = clusterService.Apply(clusterArgs)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Wait the upgrade finished")
@@ -118,9 +119,6 @@ var _ = Describe("Upgrade", func() {
 			_, err = ci.PrepareAccountRoles(token, clusterResp.Body().Name(), profile.UnifiedAccRolesPath, profile.Region, majorVersion, profile.ChannelGroup, profile.GetClusterType(), "")
 			Expect(err).ToNot(HaveOccurred())
 
-			clusterService, err := exec.NewClusterService(profile.GetClusterManifestsDir())
-			Expect(err).ToNot(HaveOccurred())
-
 			By("Validate invalid OCP version field - downgrade")
 			currentVersion := string(clusterResp.Body().Version().RawID())
 			splittedVersion := strings.Split(currentVersion, ".")
@@ -131,10 +129,8 @@ var _ = Describe("Upgrade", func() {
 			imageVersionsList := cms.EnabledVersions(ci.RHCSConnection, profile.ChannelGroup, profile.MajorVersion, true)
 			versionsList := cms.GetRawVersionList(imageVersionsList)
 			if slices.Contains(versionsList, downgradedVersion) {
-				clusterArgs := &exec.ClusterCreationArgs{
-					OpenshiftVersion: downgradedVersion,
-				}
-				err = clusterService.Apply(clusterArgs, false, false)
+				clusterArgs.OpenshiftVersion = helper.StringPointer(downgradedVersion)
+				_, err = clusterService.Apply(clusterArgs)
 				Expect(err).To(HaveOccurred())
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("cluster version is already above the\nrequested version"))
@@ -142,23 +138,14 @@ var _ = Describe("Upgrade", func() {
 			}
 
 			By("Validate  the cluster Upgrade upgrade_acknowledge field")
-
-			clusterArgs := &exec.ClusterCreationArgs{
-				OpenshiftVersion: targetV,
-			}
-
-			err = clusterService.Apply(clusterArgs, false, false)
+			clusterArgs.OpenshiftVersion = helper.StringPointer(targetV)
+			_, err = clusterService.Apply(clusterArgs)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("Missing required acknowledgements to schedule upgrade"))
 
 			By("Apply the cluster Upgrade")
-
-			clusterArgs = &exec.ClusterCreationArgs{
-				OpenshiftVersion:           targetV,
-				UpgradeAcknowledgementsFor: majorVersion,
-			}
-
-			err = clusterService.Apply(clusterArgs, false, false)
+			clusterArgs.UpgradeAcknowledgementsFor = helper.StringPointer(majorVersion)
+			_, err = clusterService.Apply(clusterArgs)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Wait the upgrade finished")
@@ -188,9 +175,6 @@ var _ = Describe("Upgrade", func() {
 				Skip("The test is configured only for Z-stream upgrade")
 			}
 
-			clusterService, err := exec.NewClusterService(profile.GetClusterManifestsDir())
-			Expect(err).ToNot(HaveOccurred())
-
 			By("Retrieve cluster information and upgrade version")
 			clusterResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
@@ -202,10 +186,8 @@ var _ = Describe("Upgrade", func() {
 			Logger.Infof("Gonna upgrade to version %s", targetV)
 
 			By("Run the cluster update")
-			clusterArgs := &exec.ClusterCreationArgs{
-				OpenshiftVersion: targetV,
-			}
-			err = clusterService.Apply(clusterArgs, false, false)
+			clusterArgs.OpenshiftVersion = helper.StringPointer(targetV)
+			_, err = clusterService.Apply(clusterArgs)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Wait the upgrade finished")
@@ -232,9 +214,6 @@ var _ = Describe("Upgrade", func() {
 				Skip("The test is configured only for Y-stream upgrade")
 			}
 
-			clusterService, err := exec.NewClusterService(profile.GetClusterManifestsDir())
-			Expect(err).ToNot(HaveOccurred())
-
 			By("Retrieve cluster information and upgrade version")
 			clusterResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
@@ -247,21 +226,16 @@ var _ = Describe("Upgrade", func() {
 
 			Logger.Infof("Gonna upgrade to version %s", targetV)
 
+			clusterArgs.OpenshiftVersion = helper.StringPointer(targetV)
 			// Blocked by OCM-7641
 			// By("Validate the cluster Upgrade upgrade_acknowledge field")
-			// clusterArgs := &exec.ClusterCreationArgs{
-			// 	OpenshiftVersion: targetV,
-			// }
-			// err = clusterService.Apply(clusterArgs, false, false)
+			// err = clusterService.Apply(clusterArgs)
 			// Expect(err).To(HaveOccurred())
 			// Expect(err.Error()).To(ContainSubstring("Missing required acknowledgements to schedule upgrade"))
 
 			By("Apply the cluster Upgrade")
-			clusterArgs := &exec.ClusterCreationArgs{
-				OpenshiftVersion:           targetV,
-				UpgradeAcknowledgementsFor: majorVersion,
-			}
-			err = clusterService.Apply(clusterArgs, false, false)
+			clusterArgs.UpgradeAcknowledgementsFor = helper.StringPointer(majorVersion)
+			_, err = clusterService.Apply(clusterArgs)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Wait the upgrade finished")

@@ -1,82 +1,111 @@
 package exec
 
 import (
-	"context"
+	"bufio"
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 )
 
 type ImportArgs struct {
-	ResourceKind string `json:"resource_kind,omitempty"`
-	ResourceName string `json:"resource_name,omitempty"`
-	ClusterID    string `json:"cluster_id,omitempty"`
-	ObjectName   string `json:"obj_name,omitempty"`
+	ClusterID  string
+	Resource   string
+	ObjectName string
 }
 
-type ImportService struct {
-	CreationArgs *ImportArgs
-	ManifestDir  string
-	Context      context.Context
+type StateOutput struct {
+	Resource string
 }
 
-func (importTF *ImportService) InitImport(manifestDirs ...string) error {
-	importTF.ManifestDir = constants.ImportResourceDir
-	if len(manifestDirs) > 0 {
-		importTF.ManifestDir = manifestDirs[0]
+type StatesOutput struct {
+	States []StateOutput
+}
+
+type ImportService interface {
+	Init() error
+	Import(importArgs *ImportArgs) (string, error)
+	ListStates() (*StatesOutput, error)
+	ShowState(resource string) (string, error)
+	RemoveState(resource string) (string, error)
+	Destroy() (string, error)
+}
+
+type importService struct {
+	tfExecutor TerraformExecutor
+}
+
+func NewImportService(manifestsDirs ...string) (ImportService, error) {
+	manifestsDir := constants.ImportResourceDir
+	if len(manifestsDirs) > 0 {
+		manifestsDir = manifestsDirs[0]
 	}
-
-	importTF.Context = context.TODO()
-	return runTerraformInit(importTF.Context, importTF.ManifestDir)
-}
-
-func NewImportService(manifestDir ...string) *ImportService {
-	importTF := &ImportService{}
-	if err := importTF.InitImport(manifestDir...); err != nil {
-		// handle the error as needed
-		panic(fmt.Sprintf("Failed to initialize ImportService: %v", err))
+	svc := &importService{
+		tfExecutor: NewTerraformExecutor(manifestsDir),
 	}
-	return importTF
+	err := svc.Init()
+	return svc, err
 }
 
-func combineImportStructArgs(importObj *ImportArgs) []string {
-	baseArgs := fmt.Sprintf("%s.%s", importObj.ResourceKind, importObj.ResourceName)
+func (svc *importService) Init() (err error) {
+	_, err = svc.tfExecutor.RunTerraformInit()
+	return
+}
 
-	if importObj.ResourceKind != "rhcs_cluster_rosa_classic" {
-		return []string{baseArgs, fmt.Sprintf("%s,%s", importObj.ClusterID, importObj.ObjectName)}
+func (svc *importService) Import(importArgs *ImportArgs) (string, error) {
+	args := []string{importArgs.Resource}
+	if importArgs.ObjectName != "" {
+		args = append(args, fmt.Sprintf("%s,%s", importArgs.ClusterID, importArgs.ObjectName))
+	} else {
+		args = append(args, importArgs.ClusterID)
 	}
-
-	return []string{baseArgs, importObj.ClusterID}
+	return svc.tfExecutor.RunTerraformImport(args...)
 }
 
-func (importService *ImportService) Import(importArgs *ImportArgs, extraArgs ...string) error {
-	importService.CreationArgs = importArgs
-
-	args := combineImportStructArgs(importArgs)
-	args = append(args, extraArgs...)
-
-	_, err := runTerraformImport(importService.Context, importService.ManifestDir, args...)
+func (svc *importService) ListStates() (*StatesOutput, error) {
+	output, err := svc.tfExecutor.RunTerraformState("list")
 	if err != nil {
-		return fmt.Errorf("import failed: %w", err)
+		return nil, err
 	}
-	return nil
-}
-
-func (importService *ImportService) ShowState(importArgs *ImportArgs) (string, error) {
-	args := fmt.Sprintf("%s.%s", importArgs.ResourceKind, importArgs.ResourceName)
-	output, err := runTerraformState(importService.ManifestDir, "show", args)
-	return output, err
-}
-
-func (importService *ImportService) RemoveState(importArgs *ImportArgs) (string, error) {
-	args := fmt.Sprintf("%s.%s", importArgs.ResourceKind, importArgs.ResourceName)
-	output, err := runTerraformState(importService.ManifestDir, "rm", args)
-	return output, err
-}
-
-func (importService *ImportService) Destroy(createArgs ...*ImportArgs) (output string, err error) {
-	if importService.CreationArgs == nil && len(createArgs) == 0 {
-		return "", fmt.Errorf("unset destroy args, set them in the object or pass as parameters")
+	states := StatesOutput{}
+	scanner := bufio.NewScanner(strings.NewReader(output))
+	for scanner.Scan() {
+		states.States = append(states.States, StateOutput{
+			Resource: scanner.Text(),
+		})
 	}
-	return runTerraformDestroy(importService.Context, importService.ManifestDir)
+	if err = scanner.Err(); err != nil {
+		return nil, err
+	}
+	return &states, nil
+}
+
+func (svc *importService) ShowState(resource string) (string, error) {
+	return svc.tfExecutor.RunTerraformState("show", resource)
+}
+
+func (svc *importService) RemoveState(resource string) (string, error) {
+	return svc.tfExecutor.RunTerraformState("rm", resource)
+}
+
+func (svc *importService) Destroy() (string, error) {
+	states, err := svc.ListStates()
+	if err != nil {
+		return "", err
+	}
+	var errs []error
+	var resourceNames []string
+	for _, state := range states.States {
+		_, err = svc.RemoveState(state.Resource)
+		if err != nil {
+			errs = append(errs, err)
+		} else {
+			resourceNames = append(resourceNames, state.Resource)
+		}
+	}
+	if len(errs) > 0 {
+		return "", errors.Join(errs...)
+	}
+	return fmt.Sprintf("Removed resources: %v", resourceNames), nil
 }

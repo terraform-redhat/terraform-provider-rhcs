@@ -23,9 +23,8 @@ import (
 var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMachinepool, func() {
 	defer GinkgoRecover()
 	var (
-		mpService *exec.MachinePoolService
-		tcService *exec.TuningConfigService
-		mpArgs    *exec.MachinePoolArgs
+		mpService exec.MachinePoolService
+		tcService exec.TuningConfigService
 		vpcOutput *exec.VPCOutput
 		profile   *ci.Profile
 	)
@@ -33,12 +32,15 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 	BeforeEach(func() {
 		profile = ci.LoadProfileYamlFileByENV()
 
-		mpService = exec.NewMachinePoolService(constants.HCPMachinePoolDir)
-		tcService = exec.NewTuningConfigService(constants.TuningConfigDir)
+		var err error
+		mpService, err = exec.NewMachinePoolService(constants.HCPMachinePoolDir)
+		Expect(err).ToNot(HaveOccurred())
+		tcService, err = exec.NewTuningConfigService(constants.TuningConfigDir)
+		Expect(err).ToNot(HaveOccurred())
 
 		By("Get vpc output")
-		var err error
-		vpcService := exec.NewVPCService(constants.GetAWSVPCDefaultManifestDir(profile.GetClusterType()))
+		vpcService, err := exec.NewVPCService(constants.GetAWSVPCDefaultManifestDir(profile.GetClusterType()))
+		Expect(err).ToNot(HaveOccurred())
 		vpcOutput, err = vpcService.Output()
 		Expect(err).ToNot(HaveOccurred())
 	})
@@ -68,16 +70,16 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			machineType := "m5.2xlarge"
 			name := helper.GenerateRandomName("np-72504", 2)
 			subnetId := vpcOutput.ClusterPrivateSubnets[0]
-			mpArgs = &exec.MachinePoolArgs{
-				Cluster:            &clusterID,
+			mpArgs := &exec.MachinePoolArgs{
+				Cluster:            helper.StringPointer(clusterID),
 				AutoscalingEnabled: helper.BoolPointer(false),
-				Replicas:           &replicas,
-				Name:               &name,
-				SubnetID:           &subnetId,
-				MachineType:        &machineType,
+				Replicas:           helper.IntPointer(replicas),
+				Name:               helper.StringPointer(name),
+				SubnetID:           helper.StringPointer(subnetId),
+				MachineType:        helper.StringPointer(machineType),
 				AutoRepair:         helper.BoolPointer(true),
 			}
-			_, err = mpService.Apply(mpArgs, false)
+			_, err = mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify attributes are correctly set")
@@ -122,17 +124,17 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			subnetId := vpcOutput.ClusterPrivateSubnets[0]
 
 			By("Create machinepool")
-			mpArgs = &exec.MachinePoolArgs{
-				Cluster:            &clusterID,
+			mpArgs := &exec.MachinePoolArgs{
+				Cluster:            helper.StringPointer(clusterID),
 				AutoscalingEnabled: helper.BoolPointer(true),
-				MinReplicas:        &minReplicas,
-				MaxReplicas:        &maxReplicas,
-				Name:               &name,
-				SubnetID:           &subnetId,
-				MachineType:        &machineType,
+				MinReplicas:        helper.IntPointer(minReplicas),
+				MaxReplicas:        helper.IntPointer(maxReplicas),
+				Name:               helper.StringPointer(name),
+				SubnetID:           helper.StringPointer(subnetId),
+				MachineType:        helper.StringPointer(machineType),
 				AutoRepair:         helper.BoolPointer(true),
 			}
-			_, err := mpService.Apply(mpArgs, false)
+			_, err := mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
 			// Verify
 			mpResponseBody, err := cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
@@ -144,7 +146,9 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			By("Update autoscaling")
 			minReplicas = 1
 			maxReplicas = 3
-			_, err = mpService.Apply(mpArgs, false)
+			mpArgs.MinReplicas = helper.IntPointer(minReplicas)
+			mpArgs.MaxReplicas = helper.IntPointer(maxReplicas)
+			_, err = mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
 			// Verify
 			mpResponseBody, err = cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
@@ -157,8 +161,8 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			mpArgs.AutoscalingEnabled = helper.BoolPointer(false)
 			mpArgs.MinReplicas = nil
 			mpArgs.MaxReplicas = nil
-			mpArgs.Replicas = &replicas
-			_, err = mpService.Apply(mpArgs, false)
+			mpArgs.Replicas = helper.IntPointer(replicas)
+			_, err = mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
 			// Verify
 			mpResponseBody, err = cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
@@ -168,7 +172,8 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 			By("Scale up")
 			replicas = 4
-			_, err = mpService.Apply(mpArgs, false)
+			mpArgs.Replicas = helper.IntPointer(replicas)
+			_, err = mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
 			// Verify
 			mpResponseBody, err = cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
@@ -178,7 +183,8 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 			By("Scale to zero")
 			replicas = 0
-			_, err = mpService.Apply(mpArgs, false)
+			mpArgs.Replicas = helper.IntPointer(replicas)
+			_, err = mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
 			// Verify
 			mpResponseBody, err = cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
@@ -191,9 +197,9 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			maxReplicas = 2
 			mpArgs.Replicas = nil
 			mpArgs.AutoscalingEnabled = helper.BoolPointer(true)
-			mpArgs.MinReplicas = &minReplicas
-			mpArgs.MaxReplicas = &maxReplicas
-			_, err = mpService.Apply(mpArgs, false)
+			mpArgs.MinReplicas = helper.IntPointer(minReplicas)
+			mpArgs.MaxReplicas = helper.IntPointer(maxReplicas)
+			_, err = mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
 			// Verify
 			mpResponseBody, err = cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
@@ -206,17 +212,16 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 	It("can be created with security groups - [id:73068]", ci.High,
 		func() {
 			By("Prepare additional security groups")
-			sgService := exec.NewSecurityGroupService()
+			sgService, err := exec.NewSecurityGroupService()
 			output, err := sgService.Output()
 			Expect(err).ToNot(HaveOccurred())
 			if output.SGIDs == nil {
-
 				sgArgs := &exec.SecurityGroupArgs{
-					AWSRegion: profile.Region,
-					VPCID:     vpcOutput.VPCID,
-					SGNumber:  4,
+					AWSRegion: helper.StringPointer(profile.Region),
+					VPCID:     helper.StringPointer(vpcOutput.VPCID),
+					SGNumber:  helper.IntPointer(4),
 				}
-				err = sgService.Apply(sgArgs, true)
+				_, err = sgService.Apply(sgArgs)
 				Expect(err).ToNot(HaveOccurred())
 				defer sgService.Destroy()
 			}
@@ -234,17 +239,17 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 			// workaround
 			By("Create machinepool")
-			mpArgs = &exec.MachinePoolArgs{
-				Cluster:                  &clusterID,
-				Replicas:                 &replicas,
-				MachineType:              &machineType,
-				Name:                     &name,
-				AdditionalSecurityGroups: &output.SGIDs,
+			mpArgs := &exec.MachinePoolArgs{
+				Cluster:                  helper.StringPointer(clusterID),
+				Replicas:                 helper.IntPointer(replicas),
+				MachineType:              helper.StringPointer(machineType),
+				Name:                     helper.StringPointer(name),
+				AdditionalSecurityGroups: helper.StringSlicePointer(output.SGIDs),
 				AutoscalingEnabled:       helper.BoolPointer(false),
 				AutoRepair:               helper.BoolPointer(false),
-				SubnetID:                 &vpcOutput.ClusterPrivateSubnets[0],
+				SubnetID:                 helper.StringPointer(vpcOutput.ClusterPrivateSubnets[0]),
 			}
-			_, err = mpService.Apply(mpArgs, true)
+			_, err = mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
 			defer func() {
 				_, err = mpService.Destroy()
@@ -260,12 +265,8 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			}
 
 			By("Update security groups is not allowed to a machinepool")
-			testAdditionalSecurityGroups := output.SGIDs[0:1]
-			mpArgs = &exec.MachinePoolArgs{
-				AdditionalSecurityGroups: &testAdditionalSecurityGroups,
-			}
-
-			applyOutput, err := mpService.Apply(mpArgs, false)
+			mpArgs.AdditionalSecurityGroups = helper.StringSlicePointer(output.SGIDs[0:1])
+			applyOutput, err := mpService.Apply(mpArgs)
 			Expect(err).To(HaveOccurred())
 			Expect(applyOutput).Should(ContainSubstring("aws_node_pool.additional_security_group_ids, cannot be changed"))
 
@@ -273,19 +274,13 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			_, err = mpService.Destroy()
 			Expect(err).ToNot(HaveOccurred())
 
-			By("Create another machinepool without additional sg ")
+			By("Create another machinepool without additional sg")
 			name = "add-73068"
-			mpArgs = &exec.MachinePoolArgs{
-				Cluster:            &clusterID,
-				Replicas:           &replicas,
-				MachineType:        helper.StringPointer("m5.2xlarge"),
-				Name:               &name,
-				AutoscalingEnabled: helper.BoolPointer(false),
-				AutoRepair:         helper.BoolPointer(false),
-				SubnetID:           &vpcOutput.ClusterPrivateSubnets[0],
-			}
-
-			_, err = mpService.Apply(mpArgs, false)
+			machineType = "m5.2xlarge"
+			mpArgs.Name = helper.StringPointer(name)
+			mpArgs.MachineType = helper.StringPointer(machineType)
+			mpArgs.AdditionalSecurityGroups = nil
+			_, err = mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify the parameters of the created machinepool")
@@ -305,17 +300,17 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			fakeSgIDs := []string{"sg-fake"}
 
 			By("Run terraform apply cannot work with invalid sg IDs")
-			mpArgs = &exec.MachinePoolArgs{
-				Cluster:                  &clusterID,
-				Replicas:                 &replicas,
-				MachineType:              &machineType,
-				Name:                     &name,
-				AdditionalSecurityGroups: &fakeSgIDs,
+			mpArgs := &exec.MachinePoolArgs{
+				Cluster:                  helper.StringPointer(clusterID),
+				Replicas:                 helper.IntPointer(replicas),
+				MachineType:              helper.StringPointer(machineType),
+				Name:                     helper.StringPointer(name),
+				AdditionalSecurityGroups: helper.StringSlicePointer(fakeSgIDs),
 				AutoscalingEnabled:       helper.BoolPointer(false),
 				AutoRepair:               helper.BoolPointer(false),
-				SubnetID:                 &vpcOutput.ClusterPrivateSubnets[0],
+				SubnetID:                 helper.StringPointer(vpcOutput.ClusterPrivateSubnets[0]),
 			}
-			output, err := mpService.Apply(mpArgs, false)
+			output, err := mpService.Apply(mpArgs)
 			Expect(err).To(HaveOccurred())
 			Expect(output).Should(ContainSubstring("is not attached to VPC"))
 
@@ -325,16 +320,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 				fakeSgIDs = append(fakeSgIDs, fmt.Sprintf("sg-fakeid%d", i))
 				i++
 			}
-			mpArgs = &exec.MachinePoolArgs{
-				Cluster:                  &clusterID,
-				Replicas:                 &replicas,
-				MachineType:              &machineType,
-				Name:                     &name,
-				AdditionalSecurityGroups: &fakeSgIDs,
-				AutoscalingEnabled:       helper.BoolPointer(false),
-				AutoRepair:               helper.BoolPointer(false),
-				SubnetID:                 &vpcOutput.ClusterPrivateSubnets[0],
-			}
+			mpArgs.AdditionalSecurityGroups = helper.StringSlicePointer(fakeSgIDs)
 			output, err = mpService.Plan(mpArgs)
 			Expect(err).To(HaveOccurred())
 			Expect(output).Should(
@@ -355,18 +341,18 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			}
 			taint1 := map[string]string{"key": "t1", "value": "v1", "schedule_type": constants.NoSchedule}
 			taints := []map[string]string{taint1}
-			mpArgs = &exec.MachinePoolArgs{
-				Cluster:            &clusterID,
+			mpArgs := &exec.MachinePoolArgs{
+				Cluster:            helper.StringPointer(clusterID),
 				AutoscalingEnabled: helper.BoolPointer(false),
-				Replicas:           &replicas,
-				Name:               &name,
-				SubnetID:           &subnetId,
-				MachineType:        &machineType,
+				Replicas:           helper.IntPointer(replicas),
+				Name:               helper.StringPointer(name),
+				SubnetID:           helper.StringPointer(subnetId),
+				MachineType:        helper.StringPointer(machineType),
 				AutoRepair:         helper.BoolPointer(false),
-				Labels:             &labels,
+				Labels:             helper.StringMapPointer(labels),
 				Taints:             &taints,
 			}
-			_, err := mpService.Apply(mpArgs, false)
+			_, err := mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
 			// Verify
 			mpResponseBody, err := cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
@@ -381,14 +367,14 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			Expect(mpResponseBody.Labels()).To(Equal(labels))
 
 			By("Update labels/taints/autorepair")
-			mpArgs.AutoRepair = helper.BoolPointer(true)
-			taint2 := map[string]string{"key": "t2", "value": "", "schedule_type": constants.NoExecute}
-			taints = append(taints, taint2)
+			taints = append(taints, map[string]string{"key": "t2", "value": "", "schedule_type": constants.NoExecute})
 			labels = map[string]string{
 				"l3": "v3",
 			}
-			mpArgs.Labels = &labels
-			_, err = mpService.Apply(mpArgs, false)
+			mpArgs.AutoRepair = helper.BoolPointer(true)
+			mpArgs.Taints = &taints
+			mpArgs.Labels = helper.StringMapPointer(labels)
+			_, err = mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
 			// Verify
 			mpResponseBody, err = cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
@@ -405,7 +391,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			By("Remove labels/taints")
 			mpArgs.Labels = nil
 			mpArgs.Taints = nil
-			_, err = mpService.Apply(mpArgs, false)
+			_, err = mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
 			// Verify
 			mpResponseBody, err = cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
@@ -419,15 +405,14 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 		ci.High, func() {
 			replicas := 3
 			machineType := "m5.2xlarge"
-			name := helper.GenerateRandomName("np-72509", 2)
 			subnetId := vpcOutput.ClusterPrivateSubnets[0]
-			mpArgs = &exec.MachinePoolArgs{
-				Cluster:            &clusterID,
+			mpArgs := &exec.MachinePoolArgs{
+				Cluster:            helper.StringPointer(clusterID),
 				AutoscalingEnabled: helper.BoolPointer(false),
-				Replicas:           &replicas,
-				Name:               &name,
-				SubnetID:           &subnetId,
-				MachineType:        &machineType,
+				Replicas:           helper.IntPointer(replicas),
+				Name:               helper.StringPointer(helper.GenerateRandomName("np-72509", 2)),
+				SubnetID:           helper.StringPointer(subnetId),
+				MachineType:        helper.StringPointer(machineType),
 				AutoRepair:         helper.BoolPointer(true),
 			}
 
@@ -448,9 +433,12 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 				Expect(err).ToNot(HaveOccurred())
 
 				if zSemVer.Major() == clusterSemVer.Major() && zSemVer.Minor() == clusterSemVer.Minor() {
+					name := helper.GenerateRandomName("np-72509-z", 2)
+
 					By("Create machinepool with z-1")
+					mpArgs.Name = helper.StringPointer(name)
 					mpArgs.OpenshiftVersion = helper.StringPointer(zversion.RawID)
-					_, err = mpService.Apply(mpArgs, true)
+					_, err = mpService.Apply(mpArgs)
 					Expect(err).ToNot(HaveOccurred())
 
 					By("Verify machinepool with z-1")
@@ -473,10 +461,12 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			yLowerVersions := cms.SortVersions(cms.GetHcpLowerVersions(ci.RHCSConnection, throttleVersion, profile.ChannelGroup))
 			if len(yLowerVersions) > 0 {
 				yVersion := yLowerVersions[len(yLowerVersions)-1]
+				name := helper.GenerateRandomName("np-72509-z", 2)
 
 				By("Create machinepool with y-1")
+				mpArgs.Name = helper.StringPointer(name)
 				mpArgs.OpenshiftVersion = helper.StringPointer(yVersion.RawID)
-				_, err = mpService.Apply(mpArgs, true)
+				_, err = mpService.Apply(mpArgs)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Verify machinepool with z-1")
@@ -501,17 +491,17 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 				"aaa": "bbb",
 				"ccc": "ddd",
 			}
-			mpArgs = &exec.MachinePoolArgs{
-				Cluster:            &clusterID,
+			mpArgs := &exec.MachinePoolArgs{
+				Cluster:            helper.StringPointer(clusterID),
 				AutoscalingEnabled: helper.BoolPointer(false),
-				Replicas:           &replicas,
-				Name:               &name,
-				SubnetID:           &subnetId,
-				MachineType:        &machineType,
+				Replicas:           helper.IntPointer(replicas),
+				Name:               helper.StringPointer(name),
+				SubnetID:           helper.StringPointer(subnetId),
+				MachineType:        helper.StringPointer(machineType),
 				AutoRepair:         helper.BoolPointer(true),
-				Tags:               &tags,
+				Tags:               helper.StringMapPointer(tags),
 			}
-			_, err := mpService.Apply(mpArgs, false)
+			_, err := mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify tags are correctly set")
@@ -530,13 +520,13 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			tcCount := 3
 			tcName := "tc"
 			tcArgs = &exec.TuningConfigArgs{
-				Cluster:           &clusterID,
-				Name:              &tcName,
-				Count:             &tcCount,
-				SpecVMDirtyRatios: &[]int{65, 65, 65},
-				SpecPriorities:    &[]int{10, 10, 10},
+				Cluster:           helper.StringPointer(clusterID),
+				Name:              helper.StringPointer(tcName),
+				Count:             helper.IntPointer(tcCount),
+				SpecVMDirtyRatios: helper.IntSlicePointer([]int{65, 65, 65}),
+				SpecPriorities:    helper.IntSlicePointer([]int{10, 10, 10}),
 			}
-			_, err := tcService.Apply(tcArgs, false)
+			_, err := tcService.Apply(tcArgs)
 			Expect(err).ToNot(HaveOccurred())
 			defer func() {
 				_, err = tcService.Destroy()
@@ -550,21 +540,21 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			By("Create machinepool")
 			replicas := 3
 			machineType := "m5.2xlarge"
-			name := helper.GenerateRandomName("np-72504", 2)
+			name := helper.GenerateRandomName("np-72508", 2)
 			subnetId := vpcOutput.ClusterPrivateSubnets[0]
 			tuningconfigs = append(tuningconfigs, createdTuningConfigs...)
-			mpArgs = &exec.MachinePoolArgs{
-				Cluster:            &clusterID,
+			mpArgs := &exec.MachinePoolArgs{
+				Cluster:            helper.StringPointer(clusterID),
 				AutoscalingEnabled: helper.BoolPointer(false),
-				Replicas:           &replicas,
-				Name:               &name,
-				SubnetID:           &subnetId,
-				MachineType:        &machineType,
+				Replicas:           helper.IntPointer(replicas),
+				Name:               helper.StringPointer(name),
+				SubnetID:           helper.StringPointer(subnetId),
+				MachineType:        helper.StringPointer(machineType),
 				AutoRepair:         helper.BoolPointer(true),
-				TuningConfigs:      &tuningconfigs,
-				Tags:               &constants.Tags,
+				TuningConfigs:      helper.StringSlicePointer(tuningconfigs),
+				Tags:               helper.StringMapPointer(constants.Tags),
 			}
-			_, err = mpService.Apply(mpArgs, false)
+			_, err = mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify tuning configs are correctly set")
@@ -574,8 +564,8 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 			By("Edit tuning configs")
 			tuningconfigs = []string{createdTuningConfigs[0]}
-			mpArgs.TuningConfigs = &tuningconfigs
-			_, err = mpService.Apply(mpArgs, false)
+			mpArgs.TuningConfigs = helper.StringSlicePointer(tuningconfigs)
+			_, err = mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify tuning configs are correctly updated")
@@ -584,8 +574,8 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			Expect(mpResponseBody.TuningConfigs()).To(Equal(tuningconfigs))
 
 			By("Remove tuning configs")
-			mpArgs.TuningConfigs = &[]string{}
-			_, err = mpService.Apply(mpArgs, false)
+			mpArgs.TuningConfigs = helper.EmptyStringSlicePointer
+			_, err = mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify tuning configs are correctly updated")
@@ -599,18 +589,26 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			replicas := 2
 			machineType := "m5.2xlarge"
 			subnetId := vpcOutput.ClusterPrivateSubnets[0]
-			autoscalingEnabled := helper.BoolPointer(false)
-			autoRepair := helper.BoolPointer(true)
 			return &exec.MachinePoolArgs{
-				Cluster:            &clusterID,
-				AutoscalingEnabled: autoscalingEnabled,
-				Replicas:           &replicas,
-				Name:               &name,
-				SubnetID:           &subnetId,
-				MachineType:        &machineType,
-				AutoRepair:         autoRepair,
+				Cluster:            helper.StringPointer(clusterID),
+				AutoscalingEnabled: helper.BoolPointer(false),
+				Replicas:           helper.IntPointer(replicas),
+				Name:               helper.StringPointer(name),
+				SubnetID:           helper.StringPointer(subnetId),
+				MachineType:        helper.StringPointer(machineType),
+				AutoRepair:         helper.BoolPointer(true),
 			}
 		}
+		validateMPArgAgainstErrorSubstrings := func(mpName string, updateFields func(args *exec.MachinePoolArgs), errSubStrings ...string) {
+			mpArgs := getDefaultMPArgs(mpName)
+			updateFields(mpArgs)
+			_, err := mpService.Apply(mpArgs)
+			Expect(err).To(HaveOccurred())
+			for _, errStr := range errSubStrings {
+				helper.ExpectTFErrorContains(err, errStr)
+			}
+		}
+
 		It("creation fields - [id:72514]", ci.Medium, func() {
 			mpName := helper.GenerateRandomName("np-72514", 2)
 
@@ -619,77 +617,57 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Try to create a nodepool with empty cluster")
-			mpArgs = getDefaultMPArgs(mpName)
-			mpArgs.Cluster = helper.EmptyStringPointer
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Attribute cluster cluster ID may not be empty/blank string, got: "))
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.Cluster = helper.EmptyStringPointer
+			}, "Attribute cluster cluster ID may not be empty/blank string, got: ")
 
 			By("Try to create a nodepool with empty name")
-			mpArgs = getDefaultMPArgs(mpName)
-			mpArgs.Name = helper.EmptyStringPointer
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Attribute name name may not be empty/blank string"))
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.Name = helper.EmptyStringPointer
+			}, "Attribute name name may not be empty/blank string")
 
 			By("Try to create a nodepool with wrong name")
-			mpArgs = getDefaultMPArgs(mpName)
-			newValue := "any_wrong_$name"
-			mpArgs.Name = &newValue
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Expected a valid value"))
-			Expect(err.Error()).To(ContainSubstring("'name' matching"))
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.Name = helper.StringPointer("any_wrong_$name")
+			},
+				"Expected a valid value",
+				"'name' matching",
+			)
 
 			By("Try to create a nodepool with empty subnet_id")
-			mpArgs = getDefaultMPArgs(mpName)
-			mpArgs.SubnetID = helper.EmptyStringPointer
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Attribute subnet_id subnet ID may not be empty/blank string"))
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.SubnetID = helper.EmptyStringPointer
+			}, "Attribute subnet_id subnet ID may not be empty/blank string")
 
 			By("Try to create a nodepool with wrong subnet")
-			mpArgs = getDefaultMPArgs(mpName)
-			newValue = "subnet-0123456789"
-			mpArgs.SubnetID = &newValue
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("The subnet ID 'subnet-0123456789' does not exist"))
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.SubnetID = helper.StringPointer("subnet-0123456789")
+			}, "The subnet ID 'subnet-0123456789' does not exist")
 
 			By("Try to create a nodepool with autoscaling disabled and without replicas")
-			mpArgs = getDefaultMPArgs(mpName)
-			mpArgs.AutoscalingEnabled = helper.BoolPointer(false)
-			mpArgs.Replicas = nil
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("please provide a value for 'replicas' when 'autoscaling.enabled' is set to"))
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.AutoscalingEnabled = helper.BoolPointer(false)
+				args.Replicas = nil
+			}, "please provide a value for 'replicas' when 'autoscaling.enabled' is set to")
 
 			By("Try to create a nodepool with replicas = -2")
-			mpArgs = getDefaultMPArgs(mpName)
-			newReplicas := -2
-			mpArgs.Replicas = &newReplicas
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("must be a non-negative integer."))
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.Replicas = helper.IntPointer(-2)
+			}, "must be a non-negative integer.")
 
 			By("Try to create a nodepool with empty instance_type")
-			mpArgs = getDefaultMPArgs(mpName)
-			mpArgs.MachineType = helper.EmptyStringPointer
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("'aws_node_pool.instance_type' cannot be empty."))
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.MachineType = helper.EmptyStringPointer
+			}, "'aws_node_pool.instance_type' cannot be empty.")
 
 			By("Try to create a nodepool with version > CP version")
 			currentVersion := clusterResp.Body().Version().RawID()
 			currentSemVer, _ := semver.NewVersion(currentVersion)
 			versions := cms.GetHcpHigherVersions(ci.RHCSConnection, currentVersion, profile.ChannelGroup)
 			if len(versions) > 0 {
-				mpArgs = getDefaultMPArgs(mpName)
-				newValue = versions[0].RawID
-				mpArgs.OpenshiftVersion = &newValue
-				_, err = mpService.Apply(mpArgs, false)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("must not be greater than Control Plane version"))
+				validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+					args.OpenshiftVersion = helper.StringPointer(versions[0].RawID)
+				}, "must not be greater than Control Plane version")
 			} else {
 				Logger.Info("No version > CP version found to test against")
 			}
@@ -698,188 +676,138 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			throttleVersion := fmt.Sprintf("%v.%v.0", currentSemVer.Major(), currentSemVer.Minor()-2)
 			versions = cms.GetHcpLowerVersions(ci.RHCSConnection, throttleVersion, profile.ChannelGroup)
 			if len(versions) > 0 {
-				mpArgs = getDefaultMPArgs(mpName)
-				newValue = versions[0].RawID
-				mpArgs.OpenshiftVersion = &newValue
-				_, err = mpService.Apply(mpArgs, false)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("must be greater than the lowest supported version"))
+				validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+					args.OpenshiftVersion = helper.StringPointer(versions[0].RawID)
+				}, "must be greater than the lowest supported version")
 			} else {
 				Logger.Info("No version < CP version - 2 found to test against")
 			}
 
 			By("Try to create a nodepool with not supported version")
-			mpArgs = getDefaultMPArgs(mpName)
-			newValue = "4.8.0"
-			mpArgs.OpenshiftVersion = &newValue
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("must be greater than the lowest supported version"))
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.OpenshiftVersion = helper.StringPointer("4.8.0")
+			}, "must be greater than the lowest supported version")
 
 			By("Try to create a nodepool with wrong version")
-			mpArgs = getDefaultMPArgs(mpName)
-			newValue = "any_version"
-			mpArgs.OpenshiftVersion = &newValue
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("'openshift-vany_version-candidate' not found"))
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.OpenshiftVersion = helper.StringPointer("any_version")
+			}, "'openshift-vany_version-candidate' not found")
 
 			By("Try to create a nodepool with autoscaling enabled and without min replicas")
-			mpArgs = getDefaultMPArgs(mpName)
-			maxReplicas := 3
-			mpArgs.AutoscalingEnabled = helper.BoolPointer(true)
-			mpArgs.Replicas = nil
-			mpArgs.MaxReplicas = &maxReplicas
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("These attributes must be configured together:"))
-			Expect(err.Error()).To(ContainSubstring("[autoscaling.min_replicas,autoscaling.max_replicas]"))
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.AutoscalingEnabled = helper.BoolPointer(true)
+				args.Replicas = nil
+				args.MaxReplicas = helper.IntPointer(3)
+			},
+				"These attributes must be configured together:",
+				"[autoscaling.min_replicas,autoscaling.max_replicas]",
+			)
 
 			By("Try to create a nodepool with autoscaling enabled and without max replicas")
-			mpArgs = getDefaultMPArgs(mpName)
-			minReplicas := 1
-			mpArgs.AutoscalingEnabled = helper.BoolPointer(true)
-			mpArgs.Replicas = nil
-			mpArgs.MinReplicas = &minReplicas
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("These attributes must be configured together:"))
-			Expect(err.Error()).To(ContainSubstring("[autoscaling.min_replicas,autoscaling.max_replicas]"))
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.AutoscalingEnabled = helper.BoolPointer(true)
+				args.Replicas = nil
+				args.MinReplicas = helper.IntPointer(1)
+			},
+				"These attributes must be configured together:",
+				"[autoscaling.min_replicas,autoscaling.max_replicas]",
+			)
 
 			By("Try to create a nodepool with autoscaling enabled and without any replicas")
-			mpArgs = getDefaultMPArgs(mpName)
-			mpArgs.AutoscalingEnabled = helper.BoolPointer(true)
-			mpArgs.Replicas = nil
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("enabling autoscaling, should set value for maxReplicas"))
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.AutoscalingEnabled = helper.BoolPointer(true)
+				args.Replicas = nil
+			}, "enabling autoscaling, should set value for maxReplicas")
 
 			By("Try to create a nodepool with autoscaling enabled and min_replicas=0")
-			mpArgs = getDefaultMPArgs(mpName)
-			minReplicas = 0
-			maxReplicas = 3
-			mpArgs.AutoscalingEnabled = helper.BoolPointer(true)
-			mpArgs.Replicas = nil
-			mpArgs.MinReplicas = &minReplicas
-			mpArgs.MaxReplicas = &maxReplicas
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("'autoscaling.min_replica' must be greater than zero"))
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.AutoscalingEnabled = helper.BoolPointer(true)
+				args.Replicas = nil
+				args.MinReplicas = helper.IntPointer(0)
+				args.MaxReplicas = helper.IntPointer(3)
+			}, "'autoscaling.min_replica' must be greater than zero")
 
 			By("Try to create a nodepool with both replicas and autoscaling enabled")
-			mpArgs = getDefaultMPArgs(mpName)
-			minReplicas = 1
-			maxReplicas = 3
-			mpArgs.AutoscalingEnabled = helper.BoolPointer(true)
-			mpArgs.MinReplicas = &minReplicas
-			mpArgs.MaxReplicas = &maxReplicas
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("These attributes cannot be configured together:"))
-			Expect(err.Error()).To(ContainSubstring("[replicas,autoscaling.min_replicas]"))
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.AutoscalingEnabled = helper.BoolPointer(true)
+				args.MinReplicas = helper.IntPointer(1)
+				args.MaxReplicas = helper.IntPointer(3)
+			},
+				"These attributes cannot be configured together:",
+				"[replicas,autoscaling.min_replicas]",
+			)
 
 			By("Try to create a nodepool with taint with no key, eg `=v1:NoSchedule`")
-			mpArgs = getDefaultMPArgs(mpName)
 			taint1 := map[string]string{"key": "", "value": "v1", "schedule_type": constants.NoSchedule}
 			taints := []map[string]string{taint1}
-			mpArgs.Taints = &taints
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("taint key is mandatory"))
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.Taints = &taints
+			}, "taint key is mandatory")
 
 			By("Try to create a nodepool with taint with wring scheduletype, eg `k1=v1:Wrong`")
-			mpArgs = getDefaultMPArgs(mpName)
 			taint1 = map[string]string{"key": "k1", "value": "v1", "schedule_type": "Wrong"}
 			taints = []map[string]string{taint1}
-			mpArgs.Taints = &taints
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Attribute taints[0].schedule_type value must be one of"))
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.Taints = &taints
+			}, "Attribute taints[0].schedule_type value must be one of")
 
 			By("Try to create a nodepool with system tags")
-			mpArgs = getDefaultMPArgs(mpName)
 			newMapValue := map[string]string{
 				"api.openshift.com/id": "any id",
 			}
-			mpArgs.Tags = &newMapValue
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("'aws_node_pool.tags' can not contain system tag 'api.openshift.com/id'"))
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.Tags = helper.StringMapPointer(newMapValue)
+			}, "'aws_node_pool.tags' can not contain system tag 'api.openshift.com/id'")
 		})
 
 		It("edit fields - [id:73431]", ci.Medium, func() {
 			mpName := helper.GenerateRandomName("np-73431", 2)
 
 			By("Create machinepool")
-			mpArgs = getDefaultMPArgs(mpName)
-			_, err := mpService.Apply(mpArgs, false)
+			mpArgs := getDefaultMPArgs(mpName)
+			_, err := mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
-			defer func() {
-				By("Restore machinepool")
-				mpArgs = getDefaultMPArgs(mpName)
-				_, err = mpService.Apply(mpArgs, false)
-				Expect(err).ToNot(HaveOccurred())
-			}()
 
 			By("Try to edit cluster")
-			mpArgs = getDefaultMPArgs(mpName)
-			newValue := "2a7il826aa41csgpiab2s1un856498ut"
-			mpArgs.Cluster = &newValue
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Attribute cluster, cannot be changed from"))
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.Cluster = helper.StringPointer("2a7il826aa41csgpiab2s1un856498ut")
+			}, "Attribute cluster, cannot be changed from")
 
 			By("Try to edit name")
-			mpArgs = getDefaultMPArgs(mpName)
-			newValue = "anyName"
-			mpArgs.Name = &newValue
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Attribute name, cannot be changed from"))
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.Name = helper.StringPointer("anyName")
+			}, "Attribute name, cannot be changed from")
 
 			By("Try to edit subnet")
-			mpArgs = getDefaultMPArgs(mpName)
-			newValue = "subnet-0a3fbd578b6af3e12"
-			mpArgs.SubnetID = &newValue
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Attribute aws_node_pool.subnet_id, cannot be changed from"))
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.SubnetID = helper.StringPointer("subnet-0a3fbd578b6af3e12")
+			}, "Attribute aws_node_pool.subnet_id, cannot be changed from")
 
 			By("Try to edit tags")
-			mpArgs = getDefaultMPArgs(mpName)
-			newMapValue := map[string]string{
-				"tag1": "value1",
-			}
-			mpArgs.Tags = &newMapValue
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Attribute aws_node_pool.tags, cannot be changed from"))
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.Tags = helper.StringMapPointer(map[string]string{
+					"tag1": "value1",
+				})
+			}, "Attribute aws_node_pool.tags, cannot be changed from")
 
 			By("Try to edit compute machine type")
-			mpArgs = getDefaultMPArgs(mpName)
-			newValue = "m5.xlarge"
-			mpArgs.MachineType = &newValue
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Attribute aws_node_pool.instance_type, cannot be changed from"))
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.MachineType = helper.StringPointer("m5.xlarge")
+			}, "Attribute aws_node_pool.instance_type, cannot be changed from")
 
 			By("Try to update taint with no key, eg `=v1:NoSchedule`")
-			mpArgs = getDefaultMPArgs(mpName)
 			taint1 := map[string]string{"key": "", "value": "v1", "schedule_type": constants.NoSchedule}
 			taints := []map[string]string{taint1}
-			mpArgs.Taints = &taints
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("key is mandatory"))
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.Taints = &taints
+			}, "key is mandatory")
 
 			By("Try to update taint with wrong scheduletype, eg `k1=v1:Wrong`")
-			mpArgs = getDefaultMPArgs(mpName)
 			taint1 = map[string]string{"key": "k1", "value": "v1", "schedule_type": "Wrong"}
 			taints = []map[string]string{taint1}
-			mpArgs.Taints = &taints
-			_, err = mpService.Apply(mpArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Attribute taints[0].schedule_type value must be one of"))
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.Taints = &taints
+			}, "Attribute taints[0].schedule_type value must be one of")
 		})
 	})
 })

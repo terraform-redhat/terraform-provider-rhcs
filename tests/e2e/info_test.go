@@ -11,10 +11,12 @@ import (
 )
 
 var _ = Describe("RHCS Info", func() {
-	var rhcsInfoService *exec.RhcsInfoService
+	var rhcsInfoService exec.RhcsInfoService
 
 	BeforeEach(func() {
-		rhcsInfoService = exec.NewRhcsInfoService(constants.RhcsInfoDir)
+		var err error
+		rhcsInfoService, err = exec.NewRhcsInfoService(constants.RhcsInfoDir)
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("can verify the state of the rhcs_info data source - [id:68301]",
@@ -22,18 +24,15 @@ var _ = Describe("RHCS Info", func() {
 
 			By("Creating/Applying rhcs-info resource by terraform")
 			rhcsInfoArgs := &exec.RhcsInfoArgs{}
-			Expect(rhcsInfoService.Create(rhcsInfoArgs)).ShouldNot(HaveOccurred())
+			_, err := rhcsInfoService.Apply(rhcsInfoArgs)
+			Expect(err).ShouldNot(HaveOccurred())
 
 			By("Comparing rhcs-info state output to OCM API output")
 			currentAccountInfo, err := cms.RetrieveCurrentAccount(ci.RHCSConnection)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Address the resource's kind and name for the state command
-			rhcsInfoArgs = &exec.RhcsInfoArgs{
-				ResourceKind: "rhcs_info",
-				ResourceName: "info",
-			}
-			currentResourceState, err := rhcsInfoService.ShowState(rhcsInfoArgs)
+			currentResourceState, err := rhcsInfoService.ShowState("data.rhcs_info.info")
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// convert given string to a map of values

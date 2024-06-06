@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	cmsv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
@@ -24,9 +24,18 @@ var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, ci.Day2
 
 	var (
 		err            error
-		ingressBefore  *cmv1.Ingress
-		ingressService *exec.IngressService
+		ingressBefore  *cmsv1.Ingress
+		ingressService exec.IngressService
+		ingressArgs    *exec.IngressArgs
 	)
+
+	initializeIngressArgs := func() {
+		ingressArgs, err = ingressService.ReadTFVars()
+		Expect(err).ToNot(HaveOccurred())
+		if ingressArgs.Cluster == nil {
+			ingressArgs.Cluster = helper.StringPointer(clusterID)
+		}
+	}
 
 	BeforeEach(func() {
 		ingressBefore, err = cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
@@ -34,18 +43,13 @@ var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, ci.Day2
 
 		ingressService, err = exec.NewIngressService(constants.HCPIngressDir)
 		Expect(err).ToNot(HaveOccurred())
+
+		initializeIngressArgs()
 	})
 
 	AfterEach(func() {
-		listeningMethod := string(ingressBefore.Listening())
-		args := exec.IngressArgs{
-			Cluster:         &clusterID,
-			ListeningMethod: &listeningMethod,
-		}
-		err = ingressService.Apply(&args)
-		Expect(err).ToNot(HaveOccurred())
-
-		err = ingressService.Destroy()
+		ingressArgs.ListeningMethod = helper.StringPointer(string(ingressBefore.Listening()))
+		_, err = ingressService.Apply(ingressArgs)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -53,11 +57,8 @@ var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, ci.Day2
 		ci.High,
 		func() {
 			By("Set Listening method to internal")
-			args := exec.IngressArgs{
-				Cluster:         &clusterID,
-				ListeningMethod: &internalListeningMethod,
-			}
-			err = ingressService.Apply(&args)
+			ingressArgs.ListeningMethod = helper.StringPointer(internalListeningMethod)
+			_, err = ingressService.Apply(ingressArgs)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify Cluster Ingress")
@@ -66,11 +67,8 @@ var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, ci.Day2
 			Expect(string(ingress.Listening())).To(Equal("internal"))
 
 			By("Set Listening method to external")
-			args = exec.IngressArgs{
-				Cluster:         &clusterID,
-				ListeningMethod: &externalListeningMethod,
-			}
-			err = ingressService.Apply(&args)
+			ingressArgs.ListeningMethod = helper.StringPointer(externalListeningMethod)
+			_, err = ingressService.Apply(ingressArgs)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify Cluster Ingress")
@@ -79,7 +77,7 @@ var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, ci.Day2
 			Expect(string(ingress.Listening())).To(Equal("external"))
 
 			By("Destroy Cluster Ingress")
-			err = ingressService.Destroy()
+			_, err = ingressService.Destroy()
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify Cluster Ingress is still present")
@@ -90,20 +88,15 @@ var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, ci.Day2
 
 	It("validate edit - [id:72520]", ci.Medium, func() {
 		By("Initialize ingress state")
-		listeningMethod := string(ingressBefore.Listening())
-		args := exec.IngressArgs{
-			Cluster:         &clusterID,
-			ListeningMethod: &listeningMethod,
-		}
-		err = ingressService.Apply(&args)
+		initializeIngressArgs()
+		ingressArgs.ListeningMethod = helper.StringPointer(string(ingressBefore.Listening()))
+		_, err = ingressService.Apply(ingressArgs)
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Try to edit with empty cluster")
-		args = exec.IngressArgs{
-			Cluster:         helper.EmptyStringPointer,
-			ListeningMethod: &internalListeningMethod,
-		}
-		err = ingressService.Apply(&args)
+		initializeIngressArgs()
+		ingressArgs.Cluster = helper.EmptyStringPointer
+		_, err = ingressService.Apply(ingressArgs)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Attribute cluster cluster ID may not be empty/blank string"))
 
@@ -112,17 +105,15 @@ var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, ci.Day2
 		Expect(err).ToNot(HaveOccurred())
 		var otherClusterID string
 		for _, cluster := range clustersResp.Items().Slice() {
-			if cluster.ID() != clusterID && cluster.Status().State() == cmv1.ClusterStateReady {
+			if cluster.ID() != clusterID && cluster.Status().State() == cmsv1.ClusterStateReady {
 				otherClusterID = cluster.ID()
 				break
 			}
 		}
 		if otherClusterID != "" {
-			args = exec.IngressArgs{
-				Cluster:         &otherClusterID,
-				ListeningMethod: &internalListeningMethod,
-			}
-			err = ingressService.Apply(&args)
+			initializeIngressArgs()
+			ingressArgs.Cluster = helper.StringPointer(otherClusterID)
+			_, err = ingressService.Apply(ingressArgs)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("Attribute cluster, cannot be changed from"))
 		} else {
@@ -130,32 +121,24 @@ var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, ci.Day2
 		}
 
 		By("Try to edit cluster field with wrong value")
-		value := "wrong"
-		args = exec.IngressArgs{
-			Cluster:         &value,
-			ListeningMethod: &internalListeningMethod,
-		}
-		err = ingressService.Apply(&args)
+		initializeIngressArgs()
+		ingressArgs.Cluster = helper.StringPointer("wrong")
+		_, err = ingressService.Apply(ingressArgs)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Cluster 'wrong' not"))
 
 		By("Try to edit with empty listening_method")
-		args = exec.IngressArgs{
-			Cluster:         &clusterID,
-			ListeningMethod: helper.EmptyStringPointer,
-		}
-		err = ingressService.Apply(&args)
+		initializeIngressArgs()
+		ingressArgs.ListeningMethod = helper.EmptyStringPointer
+		_, err = ingressService.Apply(ingressArgs)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Expected a valid param"))
 		Expect(err.Error()).To(ContainSubstring("Options are"))
 
 		By("Try to edit with wrong listening_method")
-		value = "wrong"
-		args = exec.IngressArgs{
-			Cluster:         &clusterID,
-			ListeningMethod: &value,
-		}
-		err = ingressService.Apply(&args)
+		initializeIngressArgs()
+		ingressArgs.ListeningMethod = helper.StringPointer("wrong")
+		_, err = ingressService.Apply(ingressArgs)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Expected a valid param"))
 		Expect(err.Error()).To(ContainSubstring("Options are"))

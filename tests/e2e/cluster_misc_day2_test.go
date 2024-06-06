@@ -17,10 +17,11 @@ var _ = Describe("Cluster miscellaneous", func() {
 	defer GinkgoRecover()
 
 	var (
-		clusterService           *exec.ClusterService
+		clusterService           exec.ClusterService
 		err                      error
 		profile                  *ci.Profile
 		originalCustomProperties map[string]string
+		clusterArgs              *exec.ClusterArgs
 	)
 
 	BeforeEach(func() {
@@ -35,21 +36,17 @@ var _ = Describe("Cluster miscellaneous", func() {
 
 		// Read terraform.tfvars file and get its content as a map
 		By("Retrieve current properties")
-		terraformTFVarsContent := exec.ReadTerraformTFVars(profile.GetClusterManifestsDir())
+		clusterArgs, err = clusterService.ReadTFVars()
 		Expect(err).ShouldNot(HaveOccurred())
-		originalCustomProperties, err = helper.ParseStringToMap(terraformTFVarsContent["custom_properties"])
-		Expect(err).ShouldNot(HaveOccurred())
+		originalCustomProperties = *clusterArgs.CustomProperties
 	})
 
 	AfterEach(func() {
 		By("Recover cluster properties")
-		clusterArgs := &exec.ClusterCreationArgs{
-			AWSRegion:        &profile.Region,
-			CustomProperties: originalCustomProperties,
-		}
+		clusterArgs.CustomProperties = helper.StringMapPointer(originalCustomProperties)
 
 		// Restore cluster state
-		err = clusterService.Apply(clusterArgs, false, false)
+		_, err = clusterService.Apply(clusterArgs)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -61,12 +58,8 @@ var _ = Describe("Cluster miscellaneous", func() {
 			updatedCustomProperties["second_custom_property"] = "test2"
 
 			// Apply updated custom properties to the cluster
-			clusterArgs := &exec.ClusterCreationArgs{
-				AWSRegion:        &profile.Region,
-				CustomProperties: updatedCustomProperties,
-			}
-
-			err = clusterService.Apply(clusterArgs, false, false)
+			clusterArgs.CustomProperties = helper.StringMapPointer(updatedCustomProperties)
+			_, err = clusterService.Apply(clusterArgs)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Validating cluster's custom property update
@@ -78,13 +71,8 @@ var _ = Describe("Cluster miscellaneous", func() {
 			updatedCustomProperties = map[string]string{
 				"rosa_tf_version": "true",
 			}
-
-			clusterArgs = &exec.ClusterCreationArgs{
-				AWSRegion:        &profile.Region,
-				CustomProperties: updatedCustomProperties,
-			}
-
-			err = clusterService.Apply(clusterArgs, false, false)
+			clusterArgs.CustomProperties = helper.StringMapPointer(updatedCustomProperties)
+			_, err = clusterService.Apply(clusterArgs)
 			Expect(err).Should(HaveOccurred())
 			Expect(err.Error()).Should(ContainSubstring("Can not override reserved properties keys"))
 		})
@@ -95,11 +83,8 @@ var _ = Describe("Cluster miscellaneous", func() {
 		By("Add properties to cluster")
 		updatedCustomProperties["some"] = "thing"
 		updatedCustomProperties["nothing"] = ""
-		clusterArgs := &exec.ClusterCreationArgs{
-			AWSRegion:        &profile.Region,
-			CustomProperties: updatedCustomProperties,
-		}
-		err = clusterService.Apply(clusterArgs, false, false)
+		clusterArgs.CustomProperties = helper.StringMapPointer(updatedCustomProperties)
+		_, err = clusterService.Apply(clusterArgs)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("Verify new properties from cluster")
@@ -110,8 +95,8 @@ var _ = Describe("Cluster miscellaneous", func() {
 
 		By("Update properties to cluster")
 		updatedCustomProperties["some"] = "thing2"
-		clusterArgs.CustomProperties = updatedCustomProperties
-		err = clusterService.Apply(clusterArgs, false, false)
+		clusterArgs.CustomProperties = helper.StringMapPointer(updatedCustomProperties)
+		_, err = clusterService.Apply(clusterArgs)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("Verify updated properties from cluster")
@@ -121,8 +106,8 @@ var _ = Describe("Cluster miscellaneous", func() {
 		Expect(clusterDetails.Body().Properties()["nothing"]).To(Equal(updatedCustomProperties["nothing"]))
 
 		By("Remove properties from cluster")
-		clusterArgs.CustomProperties = originalCustomProperties
-		err = clusterService.Apply(clusterArgs, false, false)
+		clusterArgs.CustomProperties = helper.StringMapPointer(originalCustomProperties)
+		_, err = clusterService.Apply(clusterArgs)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("Verify properties are removed from cluster")

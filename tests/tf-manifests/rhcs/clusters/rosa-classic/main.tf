@@ -17,16 +17,13 @@ provider "rhcs" {
 provider "aws" {
   region = var.aws_region
 }
-locals {
-  versionfilter = var.openshift_version == null ? "" : " and id like '%${var.openshift_version}%'"
-}
 
 data "rhcs_versions" "version" {
-  search = "enabled='t' and rosa_enabled='t' and channel_group='${var.channel_group}'${local.versionfilter}"
+  search = "enabled='t' and rosa_enabled='t' and channel_group='${var.channel_group}'"
   order  = "id"
 }
 locals {
-  version = data.rhcs_versions.version.items[0].name
+  version = var.openshift_version != null ? var.openshift_version : data.rhcs_versions.version.items[0].name
 }
 
 locals {
@@ -101,7 +98,7 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   wait_for_create_complete = true
 }
 
-resource "rhcs_cluster_wait" "rosa_cluster" {
+resource "rhcs_cluster_wait" "rosa_cluster" { # id: 71869
   cluster = rhcs_cluster_rosa_classic.rosa_sts_cluster.id
   timeout = 120
 }

@@ -2,283 +2,234 @@ package exec
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path"
-	"strconv"
 	"strings"
 
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
+
+	"github.com/hashicorp/hcl/v2/gohcl"
+	"github.com/hashicorp/hcl/v2/hclparse"
+	"github.com/hashicorp/hcl/v2/hclwrite"
 )
 
-type TerraformExec interface {
-	RunTerraformInit() error
-	RunTerraformPlan(terraformArgs ...string)
-	RunTerraformApply(autoApprove bool, terraformArgs ...string) (string, error)
-	RunTerraformDestroy(terraformArgs ...string) (string, error)
-	RunTerraformOutput() (map[string]interface{}, error)
-	RunTerraformState(subcommand string, terraformArgs ...string) (string, error)
-	RunTerraformImport(terraformArgs ...string) (string, error)
+type TerraformExecutor interface {
+	RunTerraformInit() (string, error)
+	RunTerraformPlan(argObj interface{}) (string, error)
+	RunTerraformApply(argObj interface{}) (string, error)
+	RunTerraformDestroy() (string, error)
+	RunTerraformOutput() (string, error)
+	RunTerraformOutputIntoObject(obj any) error
+	RunTerraformState(subcommand string, options ...string) (string, error)
+	RunTerraformImport(importArgs ...string) (string, error)
+
+	ReadTerraformVars(obj interface{}) error
+	WriteTerraformVars(obj interface{}) error
+	DeleteTerraformVars() error
 }
 
-type terraformExec struct {
+type terraformExecutorContext struct {
 	manifestsDir string
 }
 
-// ************************ TF CMD***********************************
+func NewTerraformExecutor(manifestsDir string) TerraformExecutor {
+	return &terraformExecutorContext{
+		manifestsDir: manifestsDir,
+	}
+}
 
-func runTerraformInit(ctx context.Context, dir string) error {
-	Logger.Infof("Running terraform init against the dir %s", dir)
-	terraformInitCmd := exec.Command("terraform", "init", "-no-color")
-	terraformInitCmd.Dir = dir
+// ************************ TF CMD***********************************
+func (ctx *terraformExecutorContext) runTerraformCommand(tfCmd string, cmdFlags ...string) (string, error) {
+	Logger.Infof("Running terraform %s against the dir %s", tfCmd, ctx.manifestsDir)
+	cmd, flags := getTerraformCommand(tfCmd, cmdFlags...)
+	Logger.Debugf("Running terraform command: %v", flags)
+	return ctx.execCommand(cmd, flags)
+}
+
+func getTerraformCommand(tfCmd string, cmdFlags ...string) (string, []string) {
+	flags := []string{tfCmd}
+	flags = append(flags, cmdFlags...)
+	return "terraform", flags
+}
+
+func (ctx *terraformExecutorContext) execCommand(cmd string, flags []string) (output string, err error) {
+	finalCmd := exec.Command(cmd, flags...)
+	finalCmd.Dir = ctx.manifestsDir
 	var stdoutput bytes.Buffer
-	terraformInitCmd.Stdout = &stdoutput
-	terraformInitCmd.Stderr = &stdoutput
-	err := terraformInitCmd.Run()
-	output := h.Strip(stdoutput.String(), "\n")
-	Logger.Debugf(output)
+	finalCmd.Stdout = &stdoutput
+	finalCmd.Stderr = &stdoutput
+	err = finalCmd.Run()
+	output = helper.Strip(stdoutput.String(), "\n")
 	if err != nil {
 		Logger.Errorf(output)
-		err = fmt.Errorf("terraform init failed %s: %s", err.Error(), output)
+		err = fmt.Errorf("%s: %s", err.Error(), output)
+		return
+	}
+	Logger.Debugf(output)
+	return
+}
+
+func (ctx *terraformExecutorContext) RunTerraformInit() (string, error) {
+	return ctx.runTerraformCommand("init", "-no-color")
+}
+
+func (ctx *terraformExecutorContext) RunTerraformPlan(argObj interface{}) (output string, err error) {
+	tempFile, err := WriteTemporaryTFVarsFile(argObj)
+	if err != nil {
+		return "", err
+	}
+	defer DeleteTFvarsFile(tempFile)
+	planArgs := append([]string{"-no-color"}, "-var-file", tempFile)
+	return ctx.runTerraformCommand("plan", planArgs...)
+}
+
+func (ctx *terraformExecutorContext) RunTerraformApply(argObj interface{}) (string, error) {
+	tempFile, err := WriteTemporaryTFVarsFile(argObj)
+	if err != nil {
+		return "", err
+	}
+	defer DeleteTFvarsFile(tempFile)
+
+	output, err := ctx.runTerraformCommand("apply", "-auto-approve", "-no-color", "-var-file", tempFile)
+	if err == nil {
+		// If it works, tf vars are officially recorded
+		err = ctx.WriteTerraformVars(argObj)
+	}
+	return output, err
+}
+
+func (ctx *terraformExecutorContext) RunTerraformDestroy() (output string, err error) {
+	output, err = ctx.runTerraformCommand("destroy", "-auto-approve", "-no-color", "-var-file", ctx.grantTFvarsFile())
+	if err == nil {
+		ctx.DeleteTerraformVars()
+	}
+	return
+}
+
+func (ctx *terraformExecutorContext) RunTerraformOutput() (string, error) {
+	outputArgs := []string{"-json"}
+	cmd, flags := getTerraformCommand("output", outputArgs...)
+	tfCmd := strings.Join(append([]string{cmd}, flags...), " ")
+	parseTFOutputCmd := "jq 'with_entries(.value |= .value)'" // Needed to get only values from TF output
+	finalCmd := strings.Join([]string{tfCmd, parseTFOutputCmd}, " | ")
+	return ctx.execCommand("bash", []string{"-c", finalCmd})
+}
+
+func (ctx *terraformExecutorContext) RunTerraformOutputIntoObject(obj any) error {
+	output, err := ctx.RunTerraformOutput()
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal([]byte(output), obj)
+	if err != nil {
+		return err
 	}
 
+	return nil
+}
+
+func (ctx *terraformExecutorContext) RunTerraformState(subcommand string, options ...string) (string, error) {
+	stateArgs := []string{subcommand}
+	if len(options) > 0 {
+		stateArgs = append(stateArgs, options...)
+	}
+	return ctx.runTerraformCommand("state", stateArgs...)
+}
+
+func (ctx *terraformExecutorContext) RunTerraformImport(importArgs ...string) (output string, err error) {
+	return ctx.runTerraformCommand("import", importArgs...)
+}
+
+func (ctx *terraformExecutorContext) WriteTerraformVars(obj interface{}) error {
+	Logger.Infof("Write tfvars file")
+	return WriteTFvarsFile(obj, ctx.grantTFvarsFile())
+}
+
+func WriteTFvarsFile(obj interface{}, tfvarsFilePath string) error {
+	tfVarsFile, err := os.Create(tfvarsFilePath)
+	if err != nil {
+		return err
+	}
+	defer tfVarsFile.Close()
+	Logger.Debugf("Recording tfvars file %s", tfvarsFilePath)
+
+	hclFile := hclwrite.NewEmptyFile()
+	gohcl.EncodeIntoBody(obj, hclFile.Body())
+
+	var buff bytes.Buffer
+	hclFile.WriteTo(&buff)
+	Logger.Debugf("Recording tfvars values %v", buff.String())
+
+	_, err = hclFile.WriteTo(tfVarsFile)
 	return err
 }
 
-func runTerraformApply(ctx context.Context, dir string, terraformArgs ...string) (output string, err error) {
-	applyArgs := append([]string{"apply", "-auto-approve", "-no-color"}, terraformArgs...)
-	Logger.Infof("Running terraform apply against the dir: %s with args %v", dir, terraformArgs)
-	terraformApply := exec.Command("terraform", applyArgs...)
-	terraformApply.Dir = dir
-	var stdoutput bytes.Buffer
-
-	terraformApply.Stdout = &stdoutput
-	terraformApply.Stderr = &stdoutput
-	err = terraformApply.Run()
-	output = h.Strip(stdoutput.String(), "\n")
+func WriteTemporaryTFVarsFile(obj interface{}) (string, error) {
+	file, err := createVarsTempFile()
 	if err != nil {
-		Logger.Errorf(output)
-		err = fmt.Errorf("%s: %s", err.Error(), output)
-		return
+		return "", err
 	}
-	Logger.Debugf(output)
-	return
+	return file, WriteTFvarsFile(obj, file)
 }
 
-func runTerraformPlan(ctx context.Context, dir string, terraformArgs ...string) (output string, err error) {
-	planArgs := append([]string{"plan", "-no-color"}, terraformArgs...)
-	Logger.Infof("Running terraform plan against the dir: %s with args %v", dir, terraformArgs)
-	terraformPlan := exec.Command("terraform", planArgs...)
-	terraformPlan.Dir = dir
-	var stdoutput bytes.Buffer
+// Function to read parse tf vars in an object
+// See https://hclguide.readthedocs.io/en/latest/go_decoding_gohcl.html
+func (ctx *terraformExecutorContext) ReadTerraformVars(obj interface{}) error {
+	return ReadTerraformVarsFile(ctx.grantTFvarsFile(), obj)
+}
 
-	terraformPlan.Stdout = &stdoutput
-	terraformPlan.Stderr = &stdoutput
-	err = terraformPlan.Run()
-	output = h.Strip(stdoutput.String(), "\n")
+func ReadTerraformVarsFile(filePath string, obj interface{}) error {
+	_, err := os.Stat(filePath)
 	if err != nil {
-		Logger.Errorf(output)
-		err = fmt.Errorf("%s: %s", err.Error(), output)
-		return
-	}
-	Logger.Debugf(output)
-	return
-}
-
-func runTerraformDestroy(ctx context.Context, dir string, terraformArgs ...string) (output string, err error) {
-	destroyArgs := append([]string{"destroy", "-auto-approve", "-no-color"}, terraformArgs...)
-	Logger.Infof("Running terraform destroy against the dir: %s", dir)
-	terraformDestroy := exec.Command("terraform", destroyArgs...)
-	terraformDestroy.Dir = dir
-	var stdoutput bytes.Buffer
-	terraformDestroy.Stdout = &stdoutput
-	terraformDestroy.Stderr = &stdoutput
-	fmt.Println("args: ", terraformDestroy)
-	err = terraformDestroy.Run()
-	output = h.Strip(stdoutput.String(), "\n")
-	if err != nil {
-		err = fmt.Errorf("%s: %s", err.Error(), output)
-		Logger.Errorf(err.Error())
-		return
-	}
-	deleteTFvarsFile(dir)
-	Logger.Debugf(output)
-	return
-}
-
-func runTerraformOutput(ctx context.Context, dir string) (map[string]interface{}, error) {
-	outputArgs := []string{"output", "-json"}
-	Logger.Infof("Running terraform output against the dir: %s", dir)
-	terraformOutput := exec.Command("terraform", outputArgs...)
-	terraformOutput.Dir = dir
-	output, err := terraformOutput.Output()
-	if err != nil {
-		return nil, err
-	}
-	parsedResult := h.Parse(output)
-	if err != nil {
-		Logger.Errorf(string(output))
-		err = fmt.Errorf("%s: %s", err.Error(), output)
-		return nil, err
-	}
-	Logger.Debugf(string(output))
-	return parsedResult, err
-}
-
-func runTerraformState(dir, subcommand string, terraformArgs ...string) (string, error) {
-	stateArgs := append([]string{"state", subcommand}, terraformArgs...)
-	Logger.Infof("Running terraform state %s against the dir: %s", subcommand, dir)
-
-	terraformState := exec.Command("terraform", stateArgs...)
-	terraformState.Dir = dir
-
-	var stdOutput bytes.Buffer
-	terraformState.Stdout = &stdOutput
-	terraformState.Stderr = &stdOutput
-
-	if err := terraformState.Run(); err != nil {
-		errMsg := fmt.Sprintf("%s: %s", err, stdOutput.String())
-		Logger.Errorf(errMsg)
-		return "", fmt.Errorf("terraform state %s failed: %w", subcommand, errors.New(errMsg))
-	}
-
-	output := h.Strip(stdOutput.String(), "\n")
-	Logger.Debugf(output)
-
-	return output, nil
-}
-
-func runTerraformImport(ctx context.Context, dir string, terraformArgs ...string) (output string, err error) {
-	Logger.Infof("Running terraform import against the dir: %s with args %v", dir, terraformArgs)
-
-	terraformImport := exec.CommandContext(ctx, "terraform", append([]string{"import"}, terraformArgs...)...)
-	terraformImport.Dir = dir
-
-	var stdOutput bytes.Buffer
-	terraformImport.Stdout = &stdOutput
-	terraformImport.Stderr = &stdOutput
-
-	if err := terraformImport.Run(); err != nil {
-		errMsg := fmt.Sprintf("%s: %s", err.Error(), stdOutput.String())
-		Logger.Errorf(errMsg)
-		return "", errors.New(errMsg)
-	}
-
-	output = h.Strip(stdOutput.String(), "\n")
-	Logger.Debugf(output)
-
-	return output, nil
-}
-
-func combineArgs(varArgs map[string]interface{}, abArgs ...string) ([]string, map[string]string) {
-	args := []string{}
-	tfArgs := map[string]string{}
-	for k, v := range varArgs {
-		var argV string
-		var tfvarV string
-		switch v := v.(type) {
-		case string:
-			tfvarV = fmt.Sprintf(`"%s"`, v)
-			argV = v
-		case int:
-			argV = strconv.Itoa(v)
-			tfvarV = argV
-		case float64:
-			argV = fmt.Sprintf("%v", v)
-			tfvarV = argV
-		default:
-			mv, _ := json.Marshal(v)
-			argV = string(mv)
-			tfvarV = argV
+		if os.IsNotExist(err) {
+			return nil
 		}
-		arg := fmt.Sprintf("%s=%v", k, argV)
-		args = append(args, "-var")
-		args = append(args, arg)
-		tfArgs[k] = tfvarV
-	}
-
-	args = append(args, abArgs...)
-	return args, tfArgs
-}
-func recordTFvarsFile(fileDir string, tfvars map[string]string) error {
-	tfvarsFile := CON.GrantTFvarsFile(fileDir)
-	iniConn, err := h.IniConnection(tfvarsFile)
-	Logger.Infof("Recording tfvars file %s", tfvarsFile)
-
-	if err != nil {
 		return err
 	}
-	defer iniConn.SaveTo(tfvarsFile)
-	section, err := iniConn.GetSection("")
-	if err != nil {
-		return err
+
+	Logger.Debugf("Reading tfvars file %s", filePath)
+	parser := hclparse.NewParser()
+	f, diags := parser.ParseHCLFile(filePath)
+	if diags.HasErrors() {
+		return errors.Join(diags.Errs()...)
 	}
-	for k, v := range tfvars {
-		section.Key(k).SetValue(v)
+
+	diags = gohcl.DecodeBody(f.Body, nil, obj)
+	if diags.HasErrors() {
+		return errors.Join(diags.Errs()...)
 	}
-	return iniConn.SaveTo(tfvarsFile)
+	return nil
 }
 
-// Function to read terraform.tfvars file and return its content as a map
-func ReadTerraformTFVars(dirPath string) map[string]string {
-	filePath := CON.GrantTFvarsFile(dirPath)
-	content, err := os.ReadFile(filePath)
-	if err != nil {
-		Logger.Errorf("Can't read file %s - not found or could not be fetched", filePath)
-		return nil
-	}
-
-	lines := strings.Split(string(content), "\n")
-	properties := make(map[string]string)
-
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if strings.Contains(line, "=") {
-			parts := strings.SplitN(line, "=", 2)
-			if len(parts) == 2 {
-				key := strings.TrimSpace(parts[0])
-				value := strings.TrimSpace(parts[1])
-				// Remove quotes if present
-				value = strings.Trim(value, `"`)
-				properties[key] = value
-			}
-		}
-	}
-
-	return properties
+func (ctx *terraformExecutorContext) DeleteTerraformVars() error {
+	Logger.Info("Deleting tfvars file")
+	return DeleteTFvarsFile(ctx.grantTFvarsFile())
 }
 
-// delete the recorded TFvarsFile named terraform.tfvars
-func deleteTFvarsFile(fileDir string) error {
-	tfVarsFile := CON.GrantTFvarsFile(fileDir)
+func DeleteTFvarsFile(tfVarsFile string) error {
 	if _, err := os.Stat(tfVarsFile); err != nil {
 		return nil
 	}
-	Logger.Infof("Deleting tfvars file %s", tfVarsFile)
-	return h.DeleteFile(CON.GrantTFvarsFile(fileDir))
+	Logger.Debugf("Deleting tfvars file %s", tfVarsFile)
+	return helper.DeleteFile(tfVarsFile)
 }
 
-func combineStructArgs(argObj interface{}, abArgs ...string) ([]string, map[string]string) {
-	parambytes, _ := json.Marshal(argObj)
-	args := map[string]interface{}{}
-	json.Unmarshal(parambytes, &args)
-	return combineArgs(args, abArgs...)
-}
-
-func CleanTFTempFiles(providerDir string) error {
-	tempList := []string{}
-	for _, temp := range tempList {
-		tempPath := path.Join(providerDir, temp)
-		err := os.RemoveAll(tempPath)
-		if err != nil {
-			return err
-		}
+func createVarsTempFile() (string, error) {
+	f, err := os.CreateTemp("", "tfvars-")
+	if err != nil {
+		return "", err
 	}
-	return nil
+	return f.Name(), nil
+}
+
+func (ctx *terraformExecutorContext) grantTFvarsFile() string {
+	// We don't name it `terraform.tfvars` as that one is load automatically
+	// See https://developer.hashicorp.com/terraform/language/values/variables#variable-definition-precedence
+	// And we don't want to load them when applying new values
+	return path.Join(ctx.manifestsDir, "terraform.e2e.tfvars")
 }

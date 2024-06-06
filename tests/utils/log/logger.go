@@ -11,7 +11,7 @@ func GetLogger() *Log {
 	// Create the logger
 	logger := logging.New()
 	// Set logger level for your debug command
-	logger.SetLevel(logging.InfoLevel)
+	logger.SetLevel(logging.DebugLevel) // TODO set back
 	return &Log{logger: logger, redActSensitive: true}
 }
 

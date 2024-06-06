@@ -61,7 +61,7 @@ locals {
     ) : (
     []
   )
-  account_role_prefix_valid = var.account_role_prefix != null ? (
+  account_role_prefix_valid = var.account_role_prefix != null && var.account_role_prefix != "" ? (
     var.account_role_prefix
     ) : (
     "account-role-${random_string.default_random[0].result}"
@@ -112,7 +112,7 @@ module "account_iam_role" {
 data "rhcs_hcp_policies" "all_policies" {}
 
 resource "random_string" "default_random" {
-  count = var.account_role_prefix != null ? 0 : 1
+  count = var.account_role_prefix != null && var.account_role_prefix != "" ? 0 : 1
 
   length  = 4
   special = false

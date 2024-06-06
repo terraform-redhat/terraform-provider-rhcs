@@ -113,7 +113,7 @@ To execute the test cases, we need to prepare the [offline token](https://consol
 
 The default rhcs enviroment is `staging`. To specify running on production, integration or local, you can export the global variable:
 
-* export RHCS_URL = "api.openshift.com"
+* export RHCS_URL = "https://api.openshift.com"
 
 ##### CLUSTER_PROFILE
 
@@ -131,7 +131,7 @@ This feature allows for running tests through a case filter to simulate CI. Anyo
   * Export the token
     * `export RHCS_TOKEN=<rhcs token>`
   * Set up the OCM URL (if different from staging)
-    * `export RHCS_URL="api.openshift.com"`
+    * `export RHCS_URL="https://api.openshift.com"`
   * Run ginkgo run command
     * `ginkgo run --label-filter day1-prepare tests/e2e`
 * Run day2 day1 post cases with profile
@@ -140,7 +140,7 @@ This feature allows for running tests through a case filter to simulate CI. Anyo
   * Export the token
     * `export RHCS_TOKEN=<rhcs token>` #If it had been run, then you can skip
   * Set up the OCM URL (if different from staging)
-    * `export RHCS_URL="api.openshift.com"`
+    * `export RHCS_URL="https://api.openshift.com"`
   * Run ginkgo run command
     * `ginkgo run --label-filter '(Critical,High)&&(day1-post,day2)&&!Exclude' tests/e2e`
 * Run a specified case to debug
@@ -151,7 +151,7 @@ This feature allows for running tests through a case filter to simulate CI. Anyo
   * Export the token
     * `export RHCS_TOKEN=<rhcs token>` #If it had been run, then you can skip
   * Set up the OCM URL (if different from staging)
-    * `export RHCS_URL="api.openshift.com"`
+    * `export RHCS_URL="https://api.openshift.com"`
   * Run ginkgo run command
     * `ginkgo run --label-filter destroy tests/e2e`
 

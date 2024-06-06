@@ -1,101 +1,87 @@
 package exec
 
 import (
-	"context"
-	"fmt"
-
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 )
 
 type SharedVpcPolicyAndHostedZoneArgs struct {
-	SharedVpcAWSSharedCredentialsFiles []string `json:"shared_vpc_aws_shared_credentials_files,omitempty"`
-	Region                             string   `json:"region,omitempty"`
-	ClusterName                        string   `json:"cluster_name,omitempty"`
-	DnsDomainId                        string   `json:"dns_domain_id,omitempty"`
-	IngressOperatorRoleArn             string   `json:"ingress_operator_role_arn,omitempty"`
-	InstallerRoleArn                   string   `json:"installer_role_arn,omitempty"`
-	ClusterAWSAccount                  string   `json:"cluster_aws_account,omitempty"`
-	VpcId                              string   `json:"vpc_id,omitempty"`
-	Subnets                            []string `json:"subnets,omitempty"`
+	SharedVpcAWSSharedCredentialsFiles *[]string `hcl:"shared_vpc_aws_shared_credentials_files"`
+	Region                             *string   `hcl:"region"`
+	ClusterName                        *string   `hcl:"cluster_name"`
+	DnsDomainId                        *string   `hcl:"dns_domain_id"`
+	IngressOperatorRoleArn             *string   `hcl:"ingress_operator_role_arn"`
+	InstallerRoleArn                   *string   `hcl:"installer_role_arn"`
+	ClusterAWSAccount                  *string   `hcl:"cluster_aws_account"`
+	VpcId                              *string   `hcl:"vpc_id"`
+	Subnets                            *[]string `hcl:"subnets"`
 }
 
 type SharedVpcPolicyAndHostedZoneOutput struct {
-	SharedRole   string   `json:"shared_role,omitempty"`
-	HostedZoneId string   `json:"hosted_zone_id,omitempty"`
-	AZs          []string `json:"azs,omitempty"`
+	SharedRole    string   `json:"shared_role,omitempty"`
+	HostedZoneId  string   `json:"hosted_zone_id,omitempty"`
+	SharedSubnets []string `json:"shared_subnets,omitempty"`
+	AZs           []string `json:"azs,omitempty"`
 }
 
-type SharedVpcPolicyAndHostedZoneService struct {
-	CreationArgs *SharedVpcPolicyAndHostedZoneArgs
-	ManifestDir  string
-	Context      context.Context
+type SharedVpcPolicyAndHostedZoneService interface {
+	Init() error
+	Plan(args *SharedVpcPolicyAndHostedZoneArgs) (string, error)
+	Apply(args *SharedVpcPolicyAndHostedZoneArgs) (string, error)
+	Output() (*SharedVpcPolicyAndHostedZoneOutput, error)
+	Destroy() (string, error)
+
+	ReadTFVars() (*SharedVpcPolicyAndHostedZoneArgs, error)
+	DeleteTFVars() error
 }
 
-func (s *SharedVpcPolicyAndHostedZoneService) Init(manifestDirs ...string) error {
-	s.ManifestDir = CON.SharedVpcPolicyAndHostedZoneDir
-	if len(manifestDirs) != 0 {
-		s.ManifestDir = manifestDirs[0]
+type sharedVpcPolicyAndHostedZoneService struct {
+	tfExecutor TerraformExecutor
+}
+
+func NewSharedVpcPolicyAndHostedZoneService(manifestsDirs ...string) (SharedVpcPolicyAndHostedZoneService, error) {
+	manifestsDir := constants.SharedVpcPolicyAndHostedZoneDir
+	if len(manifestsDirs) > 0 {
+		manifestsDir = manifestsDirs[0]
 	}
-	ctx := context.TODO()
-	s.Context = ctx
-	err := runTerraformInit(ctx, s.ManifestDir)
+	svc := &sharedVpcPolicyAndHostedZoneService{
+		tfExecutor: NewTerraformExecutor(manifestsDir),
+	}
+	err := svc.Init()
+	return svc, err
+}
+
+func (svc *sharedVpcPolicyAndHostedZoneService) Init() (err error) {
+	_, err = svc.tfExecutor.RunTerraformInit()
+	return
+}
+
+func (svc *sharedVpcPolicyAndHostedZoneService) Plan(args *SharedVpcPolicyAndHostedZoneArgs) (string, error) {
+	return svc.tfExecutor.RunTerraformPlan(args)
+}
+
+func (svc *sharedVpcPolicyAndHostedZoneService) Apply(args *SharedVpcPolicyAndHostedZoneArgs) (string, error) {
+	return svc.tfExecutor.RunTerraformApply(args)
+}
+
+func (svc *sharedVpcPolicyAndHostedZoneService) Output() (*SharedVpcPolicyAndHostedZoneOutput, error) {
+	var output SharedVpcPolicyAndHostedZoneOutput
+	err := svc.tfExecutor.RunTerraformOutputIntoObject(&output)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
-
+	return &output, nil
 }
 
-func (s *SharedVpcPolicyAndHostedZoneService) Apply(createArgs *SharedVpcPolicyAndHostedZoneArgs, recordtfvars bool, extraArgs ...string) error {
-	s.CreationArgs = createArgs
-	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApply(s.Context, s.ManifestDir, args...)
-	if err != nil {
-		return err
-	}
-	if recordtfvars {
-		recordTFvarsFile(s.ManifestDir, tfvars)
-	}
-
-	return nil
+func (svc *sharedVpcPolicyAndHostedZoneService) Destroy() (string, error) {
+	return svc.tfExecutor.RunTerraformDestroy()
 }
 
-func (s *SharedVpcPolicyAndHostedZoneService) Output() (SharedVpcPolicyAndHostedZoneOutput, error) {
-	d := CON.SharedVpcPolicyAndHostedZoneDir
-	if s.ManifestDir != "" {
-		d = s.ManifestDir
-	}
-	var o SharedVpcPolicyAndHostedZoneOutput
-	out, err := runTerraformOutput(context.TODO(), d)
-	if err != nil {
-		return o, err
-	}
-	o = SharedVpcPolicyAndHostedZoneOutput{
-		SharedRole:   h.DigString(out["shared_role"], "value"),
-		HostedZoneId: h.DigString(out["hosted_zone_id"], "value"),
-		AZs:          h.DigArrayToString(out["azs"], "value"),
-	}
-
-	return o, nil
+func (svc *sharedVpcPolicyAndHostedZoneService) ReadTFVars() (*SharedVpcPolicyAndHostedZoneArgs, error) {
+	args := &SharedVpcPolicyAndHostedZoneArgs{}
+	err := svc.tfExecutor.ReadTerraformVars(args)
+	return args, err
 }
 
-func (s *SharedVpcPolicyAndHostedZoneService) Destroy(createArgs ...*SharedVpcPolicyAndHostedZoneArgs) error {
-	if s.CreationArgs == nil && len(createArgs) == 0 {
-		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
-	}
-	destroyArgs := s.CreationArgs
-	if len(createArgs) != 0 {
-		destroyArgs = createArgs[0]
-	}
-	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroy(s.Context, s.ManifestDir, args...)
-
-	return err
-}
-
-func NewSharedVpcPolicyAndHostedZoneService(manifestDir ...string) (*SharedVpcPolicyAndHostedZoneService, error) {
-	s := &SharedVpcPolicyAndHostedZoneService{}
-	err := s.Init(manifestDir...)
-	return s, err
+func (svc *sharedVpcPolicyAndHostedZoneService) DeleteTFVars() error {
+	return svc.tfExecutor.DeleteTerraformVars()
 }

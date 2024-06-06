@@ -1,23 +1,19 @@
-output "cluster-private-subnet" {
+output "cluster_private_subnet" {
   value = aws_subnet.private_subnet[*].id
 }
 
-output "cluster-public-subnet" {
+output "cluster_public_subnet" {
   value = aws_subnet.public_subnet[*].id
-}
-
-output "node-private-subnet" {
-  value = aws_subnet.private_subnet[*].id
 }
 
 output "azs" {
   value       = aws_subnet.private_subnet[*].availability_zone
 }
 
-output "vpc-id" {
+output "vpc_id" {
   value       = time_sleep.vpc_resources_wait.triggers["vpc_id"]
 }
 
-output "vpc-cidr" {
+output "vpc_cidr" {
   value = var.vpc_cidr
 }

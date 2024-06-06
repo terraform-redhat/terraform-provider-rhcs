@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	cmsv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
@@ -22,8 +22,8 @@ import (
 var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, func() {
 	defer GinkgoRecover()
 
-	var caService *exec.ClusterAutoscalerService
-	var clusterAutoScalerBodyForRecreate *cmv1.ClusterAutoscaler
+	var caService exec.ClusterAutoscalerService
+	var clusterAutoScalerBodyForRecreate *cmsv1.ClusterAutoscaler
 	var clusterAutoscalerStatusBefore int
 
 	BeforeEach(func() {
@@ -51,7 +51,9 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 		}
 	})
 	It("can be added/destroyed to Classic cluster - [id:69137]", ci.High, ci.NonHCPCluster, func() {
-		caService = exec.NewClusterAutoscalerService(constants.ClassicClusterAutoscalerDir)
+		var err error
+		caService, err = exec.NewClusterAutoscalerService(constants.ClassicClusterAutoscalerDir)
+		Expect(err).NotTo(HaveOccurred())
 
 		By("Delete clusterautoscaler when it exists in cluster")
 		if clusterAutoscalerStatusBefore == http.StatusOK {
@@ -64,13 +66,13 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 		max := 1
 		min := 0
 		resourceRange := &exec.ResourceRange{
-			Max: max,
-			Min: min,
+			Max: helper.IntPointer(max),
+			Min: helper.IntPointer(min),
 		}
 		maxNodesTotal := 10
 		resourceLimits := &exec.ResourceLimits{
 			Cores:         resourceRange,
-			MaxNodesTotal: maxNodesTotal,
+			MaxNodesTotal: helper.IntPointer(maxNodesTotal),
 			Memory:        resourceRange,
 		}
 		delayAfterAdd := "3h"
@@ -80,12 +82,12 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 		utilizationThreshold := "0.5"
 		enabled := true
 		scaleDown := &exec.ScaleDown{
-			DelayAfterAdd:        delayAfterAdd,
-			DelayAfterDelete:     delayAfterDelete,
-			DelayAfterFailure:    delayAfterFailure,
-			UnneededTime:         unneededTime,
-			UtilizationThreshold: utilizationThreshold,
-			Enabled:              enabled,
+			DelayAfterAdd:        helper.StringPointer(delayAfterAdd),
+			DelayAfterDelete:     helper.StringPointer(delayAfterDelete),
+			DelayAfterFailure:    helper.StringPointer(delayAfterFailure),
+			UnneededTime:         helper.StringPointer(unneededTime),
+			UtilizationThreshold: helper.StringPointer(utilizationThreshold),
+			Enabled:              helper.BoolPointer(enabled),
 		}
 		balanceSimilarNodeGroups := true
 		skipNodesWithLocalStorage := true
@@ -97,18 +99,18 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 		balancingIgnoredLabels := []string{"l1", "l2"}
 		ClusterAutoscalerArgs := &exec.ClusterAutoscalerArgs{
 			Cluster:                     &clusterID,
-			BalanceSimilarNodeGroups:    balanceSimilarNodeGroups,
-			SkipNodesWithLocalStorage:   skipNodesWithLocalStorage,
-			LogVerbosity:                logVerbosity,
-			MaxPodGracePeriod:           maxPodGracePeriod,
-			PodPriorityThreshold:        podPriorityThreshold,
-			IgnoreDaemonsetsUtilization: ignoreDaemonsetsUtilization,
-			MaxNodeProvisionTime:        maxNodeProvisionTime,
-			BalancingIgnoredLabels:      balancingIgnoredLabels,
+			BalanceSimilarNodeGroups:    helper.BoolPointer(balanceSimilarNodeGroups),
+			SkipNodesWithLocalStorage:   helper.BoolPointer(skipNodesWithLocalStorage),
+			LogVerbosity:                helper.IntPointer(logVerbosity),
+			MaxPodGracePeriod:           helper.IntPointer(maxPodGracePeriod),
+			PodPriorityThreshold:        helper.IntPointer(podPriorityThreshold),
+			IgnoreDaemonsetsUtilization: helper.BoolPointer(ignoreDaemonsetsUtilization),
+			MaxNodeProvisionTime:        helper.StringPointer(maxNodeProvisionTime),
+			BalancingIgnoredLabels:      helper.StringSlicePointer(balancingIgnoredLabels),
 			ResourceLimits:              resourceLimits,
 			ScaleDown:                   scaleDown,
 		}
-		_, err := caService.Apply(ClusterAutoscalerArgs, false)
+		_, err = caService.Apply(ClusterAutoscalerArgs)
 		Expect(err).ToNot(HaveOccurred())
 		_, err = caService.Output()
 		Expect(err).ToNot(HaveOccurred())
@@ -139,7 +141,9 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 		ci.High,
 		ci.NonClassicCluster,
 		func() {
-			caService = exec.NewClusterAutoscalerService(constants.HCPClusterAutoscalerDir)
+			var err error
+			caService, err = exec.NewClusterAutoscalerService(constants.HCPClusterAutoscalerDir)
+			Expect(err).NotTo(HaveOccurred())
 
 			if clusterAutoscalerStatusBefore == http.StatusOK {
 				By("Delete current cluster autoscaler")
@@ -151,19 +155,19 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 			By("Add autoscaler to cluster")
 			maxNodesTotal := 10
 			resourceLimits := &exec.ResourceLimits{
-				MaxNodesTotal: maxNodesTotal,
+				MaxNodesTotal: helper.IntPointer(maxNodesTotal),
 			}
 			maxPodGracePeriod := 10
 			podPriorityThreshold := -10
 			maxNodeProvisionTime := "1h"
 			clusterAutoscalerArgs := &exec.ClusterAutoscalerArgs{
-				Cluster:              &clusterID,
-				MaxPodGracePeriod:    maxPodGracePeriod,
-				PodPriorityThreshold: podPriorityThreshold,
-				MaxNodeProvisionTime: maxNodeProvisionTime,
+				Cluster:              helper.StringPointer(clusterID),
+				MaxPodGracePeriod:    helper.IntPointer(maxPodGracePeriod),
+				PodPriorityThreshold: helper.IntPointer(podPriorityThreshold),
+				MaxNodeProvisionTime: helper.StringPointer(maxNodeProvisionTime),
 				ResourceLimits:       resourceLimits,
 			}
-			_, err := caService.Apply(clusterAutoscalerArgs, false)
+			_, err = caService.Apply(clusterAutoscalerArgs)
 			Expect(err).ToNot(HaveOccurred())
 			_, err = caService.Output()
 			Expect(err).ToNot(HaveOccurred())
@@ -179,19 +183,17 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 			By("Edit cluster autoscaler")
 			maxNodesTotal = 20
 			resourceLimits = &exec.ResourceLimits{
-				MaxNodesTotal: maxNodesTotal,
+				MaxNodesTotal: helper.IntPointer(maxNodesTotal),
 			}
 			maxPodGracePeriod = 5
 			podPriorityThreshold = 3
 			maxNodeProvisionTime = "60m"
-			clusterAutoscalerArgs = &exec.ClusterAutoscalerArgs{
-				Cluster:              &clusterID,
-				MaxPodGracePeriod:    maxPodGracePeriod,
-				PodPriorityThreshold: podPriorityThreshold,
-				MaxNodeProvisionTime: maxNodeProvisionTime,
-				ResourceLimits:       resourceLimits,
-			}
-			_, err = caService.Apply(clusterAutoscalerArgs, false)
+
+			clusterAutoscalerArgs.MaxPodGracePeriod = helper.IntPointer(maxPodGracePeriod)
+			clusterAutoscalerArgs.PodPriorityThreshold = helper.IntPointer(podPriorityThreshold)
+			clusterAutoscalerArgs.MaxNodeProvisionTime = helper.StringPointer(maxNodeProvisionTime)
+			clusterAutoscalerArgs.ResourceLimits = resourceLimits
+			_, err = caService.Apply(clusterAutoscalerArgs)
 			Expect(err).ToNot(HaveOccurred())
 			_, err = caService.Output()
 			Expect(err).ToNot(HaveOccurred())
@@ -215,7 +217,9 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 		})
 
 	It("can be validated against HCP cluster - [id:72526]", ci.Medium, ci.NonClassicCluster, func() {
-		caService = exec.NewClusterAutoscalerService(constants.HCPClusterAutoscalerDir)
+		var err error
+		caService, err = exec.NewClusterAutoscalerService(constants.HCPClusterAutoscalerDir)
+		Expect(err).NotTo(HaveOccurred())
 
 		if clusterAutoscalerStatusBefore == http.StatusOK {
 			By("Delete current cluster autoscaler")
@@ -229,26 +233,26 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 			Cluster:        helper.EmptyStringPointer,
 			ResourceLimits: &exec.ResourceLimits{},
 		}
-		_, err := caService.Apply(args, false)
+		_, err = caService.Apply(args)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Attribute cluster cluster ID may not be empty/blank string, got:"))
 
 		By("Try to create tuning config with wrong cluster ID")
 		value := "wrong"
 		args = &exec.ClusterAutoscalerArgs{
-			Cluster:        &value,
+			Cluster:        helper.StringPointer(value),
 			ResourceLimits: &exec.ResourceLimits{},
 		}
-		_, err = caService.Apply(args, false)
+		_, err = caService.Apply(args)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Cluster 'wrong' not found"))
 
 		By("Create Autoscaler")
 		args = &exec.ClusterAutoscalerArgs{
-			Cluster:        &clusterID,
+			Cluster:        helper.StringPointer(clusterID),
 			ResourceLimits: &exec.ResourceLimits{},
 		}
-		_, err = caService.Apply(args, false)
+		_, err = caService.Apply(args)
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Try to edit cluster with other cluster ID")
@@ -263,10 +267,10 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 		}
 		if otherClusterID != "" {
 			args = &exec.ClusterAutoscalerArgs{
-				Cluster:        &otherClusterID,
+				Cluster:        helper.StringPointer(otherClusterID),
 				ResourceLimits: &exec.ResourceLimits{},
 			}
-			_, err = caService.Apply(args, false)
+			_, err = caService.Apply(args)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("Attribute cluster, cannot be changed from"))
 		} else {

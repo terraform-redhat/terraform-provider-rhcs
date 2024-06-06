@@ -1,48 +1,41 @@
 package exec
 
-import (
-	"context"
-	"fmt"
-
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
-)
+import "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 
 type ClusterAutoscalerArgs struct {
-	Cluster                     *string         `json:"cluster_id,omitempty"`
-	BalanceSimilarNodeGroups    bool            `json:"balance_similar_node_groups,omitempty"`
-	SkipNodesWithLocalStorage   bool            `json:"skip_nodes_with_local_storage,omitempty"`
-	LogVerbosity                int             `json:"log_verbosity,omitempty"`
-	MaxPodGracePeriod           int             `json:"max_pod_grace_period,omitempty"`
-	PodPriorityThreshold        int             `json:"pod_priority_threshold,omitempty"`
-	IgnoreDaemonsetsUtilization bool            `json:"ignore_daemonsets_utilization,omitempty"`
-	MaxNodeProvisionTime        string          `json:"max_node_provision_time,omitempty"`
-	BalancingIgnoredLabels      []string        `json:"balancing_ignored_labels,omitempty"`
-	ResourceLimits              *ResourceLimits `json:"resource_limits,omitempty"`
-	ScaleDown                   *ScaleDown      `json:"scale_down,omitempty"`
+	Cluster                     *string         `hcl:"cluster_id"`
+	BalanceSimilarNodeGroups    *bool           `hcl:"balance_similar_node_groups"`
+	SkipNodesWithLocalStorage   *bool           `hcl:"skip_nodes_with_local_storage"`
+	LogVerbosity                *int            `hcl:"log_verbosity"`
+	MaxPodGracePeriod           *int            `hcl:"max_pod_grace_period"`
+	PodPriorityThreshold        *int            `hcl:"pod_priority_threshold"`
+	IgnoreDaemonsetsUtilization *bool           `hcl:"ignore_daemonsets_utilization"`
+	MaxNodeProvisionTime        *string         `hcl:"max_node_provision_time"`
+	BalancingIgnoredLabels      *[]string       `hcl:"balancing_ignored_labels"`
+	ResourceLimits              *ResourceLimits `hcl:"resource_limits"`
+	ScaleDown                   *ScaleDown      `hcl:"scale_down"`
 }
+
 type ResourceLimits struct {
-	Cores         *ResourceRange `json:"cores,omitempty"`
-	MaxNodesTotal int            `json:"max_nodes_total,omitempty"`
-	Memory        *ResourceRange `json:"memory,omitempty"`
+	Cores         *ResourceRange `cty:"cores"`
+	MaxNodesTotal *int           `cty:"max_nodes_total"`
+	Memory        *ResourceRange `cty:"memory"`
 }
+
 type ScaleDown struct {
-	DelayAfterAdd        string `json:"delay_after_add,omitempty"`
-	DelayAfterDelete     string `json:"delay_after_delete,omitempty"`
-	DelayAfterFailure    string `json:"delay_after_failure,omitempty"`
-	UnneededTime         string `json:"unneeded_time,omitempty"`
-	UtilizationThreshold string `json:"utilization_threshold,omitempty"`
-	Enabled              bool   `json:"enabled,omitempty"`
+	DelayAfterAdd        *string `cty:"delay_after_add"`
+	DelayAfterDelete     *string `cty:"delay_after_delete"`
+	DelayAfterFailure    *string `cty:"delay_after_failure"`
+	UnneededTime         *string `cty:"unneeded_time"`
+	UtilizationThreshold *string `cty:"utilization_threshold"`
+	Enabled              *bool   `cty:"enabled"`
 }
+
 type ResourceRange struct {
-	Max interface{} `json:"max,omitempty"`
-	Min interface{} `json:"min,omitempty"`
+	Max *int `cty:"max"`
+	Min *int `cty:"min"`
 }
-type ClusterAutoscalerService struct {
-	CreationArgs *ClusterAutoscalerArgs
-	ManifestDir  string
-	Context      context.Context
-}
+
 type ClusterAutoscalerOutput struct {
 	Cluster                     string   `json:"cluster_id,omitempty"`
 	BalanceSimilarNodeGroups    bool     `json:"balance_similar_node_groups,omitempty"`
@@ -66,88 +59,65 @@ type ClusterAutoscalerOutput struct {
 	Enabled                     bool     `json:"enabled,omitempty"`
 }
 
-func (ca *ClusterAutoscalerService) Init(manifestDirs ...string) error {
-	ca.ManifestDir = constants.ClassicClusterAutoscalerDir
-	if len(manifestDirs) != 0 {
-		ca.ManifestDir = manifestDirs[0]
-	}
-	ctx := context.TODO()
-	ca.Context = ctx
-	err := runTerraformInit(ctx, ca.ManifestDir)
-	if err != nil {
-		return err
-	}
-	return nil
+type ClusterAutoscalerService interface {
+	Init() error
+	Plan(args *ClusterAutoscalerArgs) (string, error)
+	Apply(args *ClusterAutoscalerArgs) (string, error)
+	Output() (*ClusterAutoscalerOutput, error)
+	Destroy() (string, error)
 
+	ReadTFVars() (*ClusterAutoscalerArgs, error)
+	DeleteTFVars() error
 }
 
-func (ca *ClusterAutoscalerService) Apply(createArgs *ClusterAutoscalerArgs, recordtfargs bool, extraArgs ...string) (string, error) {
-	ca.CreationArgs = createArgs
-	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	output, err := runTerraformApply(ca.Context, ca.ManifestDir, args...)
-	if err == nil && recordtfargs {
-		recordTFvarsFile(ca.ManifestDir, tfvars)
-	}
-	return output, err
+type clusterAutoscalerService struct {
+	tfExecutor TerraformExecutor
 }
 
-func (ca *ClusterAutoscalerService) Plan(createArgs *ClusterAutoscalerArgs, extraArgs ...string) (string, error) {
-	ca.CreationArgs = createArgs
-	args, _ := combineStructArgs(createArgs, extraArgs...)
-	output, err := runTerraformPlan(ca.Context, ca.ManifestDir, args...)
-	return output, err
+func NewClusterAutoscalerService(manifestsDirs ...string) (ClusterAutoscalerService, error) {
+	manifestsDir := constants.ClassicClusterAutoscalerDir
+	if len(manifestsDirs) > 0 {
+		manifestsDir = manifestsDirs[0]
+	}
+	svc := &clusterAutoscalerService{
+		tfExecutor: NewTerraformExecutor(manifestsDir),
+	}
+	err := svc.Init()
+	return svc, err
 }
 
-func (ca *ClusterAutoscalerService) Output() (ClusterAutoscalerOutput, error) {
-	caDir := constants.ClassicClusterAutoscalerDir
-	if ca.ManifestDir != "" {
-		caDir = ca.ManifestDir
-	}
+func (svc *clusterAutoscalerService) Init() (err error) {
+	_, err = svc.tfExecutor.RunTerraformInit()
+	return
+}
+
+func (svc *clusterAutoscalerService) Plan(args *ClusterAutoscalerArgs) (string, error) {
+	return svc.tfExecutor.RunTerraformPlan(args)
+}
+
+func (svc *clusterAutoscalerService) Apply(args *ClusterAutoscalerArgs) (string, error) {
+	return svc.tfExecutor.RunTerraformApply(args)
+}
+
+func (svc *clusterAutoscalerService) Output() (*ClusterAutoscalerOutput, error) {
 	var output ClusterAutoscalerOutput
-	out, err := runTerraformOutput(context.TODO(), caDir)
+	err := svc.tfExecutor.RunTerraformOutputIntoObject(&output)
 	if err != nil {
-		return output, err
+		return nil, err
 	}
-	output = ClusterAutoscalerOutput{
-		Cluster:                     helper.DigString(out["cluster_id"], "value"),
-		LogVerbosity:                helper.DigInt(out["log_verbosity"], "value"),
-		BalanceSimilarNodeGroups:    helper.DigBool(out["balance_similar_node_groups"], "value"),
-		SkipNodesWithLocalStorage:   helper.DigBool(out["skip_nodes_with_local_storage"], "value"),
-		MaxPodGracePeriod:           helper.DigInt(out["max_pod_grace_period"], "value"),
-		PodPriorityThreshold:        helper.DigInt(out["pod_priority_threshold"], "value"),
-		IgnoreDaemonsetsUtilization: helper.DigBool(out["ignore_daemonsets_utilization"], "value"),
-		MaxNodeProvisionTime:        helper.DigString(out["max_node_provision_time"], "value"),
-		BalancingIgnoredLabels:      helper.DigArrayToString(out["balancing_ignored_labels"], "value"),
-		MaxNodesTotal:               helper.DigInt(out["max_nodes_total"], "value"),
-		MinCores:                    helper.DigInt(out["min_cores"], "value"),
-		MaxCores:                    helper.DigInt(out["max_cores"], "value"),
-		MinMemory:                   helper.DigInt(out["min_memory"], "value"),
-		MaxMemory:                   helper.DigInt(out["max_memory"], "value"),
-		DelayAfterAdd:               helper.DigString(out["delay_after_add"], "value"),
-		DelayAfterDelete:            helper.DigString(out["delay_after_delete"], "value"),
-		DelayAfterFailure:           helper.DigString(out["delay_after_failure"], "value"),
-		UnneededTime:                helper.DigString(out["unneeded_time"], "value"),
-		UtilizationThreshold:        helper.DigString(out["utilization_threshold"], "value"),
-		Enabled:                     helper.DigBool(out["enabled"], "value"),
-	}
-	return output, nil
+	return &output, nil
 }
 
-func (ca *ClusterAutoscalerService) Destroy(createArgs ...*ClusterAutoscalerArgs) (output string, err error) {
-	if ca.CreationArgs == nil && len(createArgs) == 0 {
-		return "", fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
-	}
-	destroyArgs := ca.CreationArgs
-	if len(createArgs) != 0 {
-		destroyArgs = createArgs[0]
-	}
-	args, _ := combineStructArgs(destroyArgs)
-
-	return runTerraformDestroy(ca.Context, ca.ManifestDir, args...)
+func (svc *clusterAutoscalerService) Destroy() (string, error) {
+	return svc.tfExecutor.RunTerraformDestroy()
 }
 
-func NewClusterAutoscalerService(manifestDir ...string) *ClusterAutoscalerService {
-	ca := &ClusterAutoscalerService{}
-	ca.Init(manifestDir...)
-	return ca
+func (svc *clusterAutoscalerService) ReadTFVars() (*ClusterAutoscalerArgs, error) {
+	args := &ClusterAutoscalerArgs{}
+	err := svc.tfExecutor.ReadTerraformVars(args)
+	return args, err
+}
+
+func (svc *clusterAutoscalerService) DeleteTFVars() error {
+	return svc.tfExecutor.DeleteTerraformVars()
 }

@@ -41,11 +41,13 @@ const (
 	failedToCreateSummary = "Failed to create KubeletConfig"
 	failedToUpdateSummary = "Failed to update KubeletConfig"
 	failedToDeleteSummary = "Failed to delete KubeletConfig"
+	failedToReadSummary   = "Failed to read KubeletConfig"
 )
 
 type KubeletConfigResource struct {
-	configClient client.KubeletConfigClient
-	clusterWait  common.ClusterWait
+	clusterClient common.ClusterClient
+	configsClient client.KubeletConfigsClient
+	clusterWait   common.ClusterWait
 }
 
 // Interface checks
@@ -70,6 +72,11 @@ func (k *KubeletConfigResource) Schema(_ context.Context, _ resource.SchemaReque
 	resp.Schema = schema.Schema{
 		Description: "KubeletConfig allows setting a customized Kubelet configuration",
 		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Optional:    true,
+				Computed:    true,
+				Description: "ID of the KubeletConfig." + common.ValueCannotBeChangedStringDescription,
+			},
 			"cluster": schema.StringAttribute{
 				Required:    true,
 				Description: "Identifier of the cluster." + common.ValueCannotBeChangedStringDescription,
@@ -85,6 +92,11 @@ func (k *KubeletConfigResource) Schema(_ context.Context, _ resource.SchemaReque
 					PidsLimitValidator{},
 				},
 			},
+			"name": schema.StringAttribute{
+				Optional:    true,
+				Computed:    true,
+				Description: "Name of the KubeletConfig." + common.ValueCannotBeChangedStringDescription,
+			},
 		},
 	}
 }
@@ -97,7 +109,14 @@ func (k *KubeletConfigResource) Create(ctx context.Context, req resource.CreateR
 	}
 
 	clusterId := plan.Cluster.ValueString()
-
+	isHCP, err := isHCP(ctx, clusterId, k.clusterClient)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Can't check cluster is HyperShift or not",
+			err.Error(),
+		)
+		return
+	}
 	waitTimeoutInMinutes := int64(60)
 	if _, err := k.clusterWait.WaitForClusterToBeReady(ctx, clusterId, waitTimeoutInMinutes); err != nil {
 		resp.Diagnostics.AddError(
@@ -107,10 +126,17 @@ func (k *KubeletConfigResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
-	if exists, _, err := k.configClient.Exists(ctx, clusterId); err != nil || exists {
-		resp.Diagnostics.AddError(failedToCreateSummary,
-			fmt.Sprintf("KubeletConfig for cluster '%s' may already exist: %v", clusterId, err))
-		return
+	if !isHCP {
+		configs, _, err := k.configsClient.List(ctx, clusterId, client.NewPaging(1, -1))
+		if err != nil {
+			resp.Diagnostics.AddError(failedToCreateSummary, err.Error())
+			return
+		}
+		if len(configs) > 0 {
+			resp.Diagnostics.AddError(failedToCreateSummary,
+				fmt.Sprintf("KubeletConfig for cluster '%s' already exist: %v", clusterId, err))
+			return
+		}
 	}
 
 	kubeletConfig, err := k.convertStateToApiResource(plan)
@@ -120,24 +146,35 @@ func (k *KubeletConfigResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
-	if _, err = k.configClient.Create(ctx, clusterId, kubeletConfig); err != nil {
+	createdConfig, err := k.configsClient.Create(ctx, clusterId, kubeletConfig)
+	if err != nil {
 		resp.Diagnostics.AddError(failedToCreateSummary,
 			fmt.Sprintf("Failed to create KubeletConfig on cluster '%s': %v", clusterId, err))
 		return
 	}
 
+	plan.ID = types.StringValue(createdConfig.ID())
+	plan.Name = types.StringValue(createdConfig.Name())
 	k.writeStateToResponse(ctx, plan, &resp.State, &resp.Diagnostics)
 }
 
 func (k *KubeletConfigResource) convertStateToApiResource(state *KubeletConfigState) (*cmv1.KubeletConfig, error) {
 	builder := cmv1.KubeletConfigBuilder{}
 	builder.PodPidsLimit(int(state.PodPidsLimit.ValueInt64()))
+	if !common.IsStringAttributeUnknownOrEmpty(state.Name) {
+		builder.Name(state.Name.ValueString())
+	}
+	if !common.IsStringAttributeUnknownOrEmpty(state.ID) {
+		builder.ID(state.ID.ValueString())
+	}
 	return builder.Build()
 }
 
 func (k *KubeletConfigResource) convertApiResourceToState(
 	kubeletConfig *cmv1.KubeletConfig, state *KubeletConfigState) {
 	state.PodPidsLimit = types.Int64Value(int64(kubeletConfig.PodPidsLimit()))
+	state.Name = types.StringValue(kubeletConfig.Name())
+	state.ID = types.StringValue(kubeletConfig.ID())
 }
 
 func (k *KubeletConfigResource) getKubeletConfigStateFromState(
@@ -163,10 +200,17 @@ func (k *KubeletConfigResource) Read(ctx context.Context, req resource.ReadReque
 	}
 
 	clusterId := state.Cluster.ValueString()
-	exists, kubeletConfig, err := k.configClient.Exists(ctx, clusterId)
+	name := state.Name.ValueString()
+	kubeletConfigId, err := getKubeletConfigId(ctx, state, clusterId, name, k.configsClient)
 	if err != nil {
-		resp.Diagnostics.AddError("Cannot read KubeletConfig",
-			fmt.Sprintf("Cannot read KubeletConfig for cluster '%s': %v", clusterId, err))
+		resp.Diagnostics.AddError(failedToReadSummary, err.Error())
+		return
+	}
+
+	exists, kubeletConfig, err := k.configsClient.Exists(ctx, clusterId, kubeletConfigId)
+	if err != nil {
+		resp.Diagnostics.AddError(failedToReadSummary,
+			fmt.Sprintf("Cannot read KubeletConfig '%s' for cluster '%s': %v", kubeletConfigId, clusterId, err))
 		return
 	}
 
@@ -200,31 +244,45 @@ func (k *KubeletConfigResource) Update(ctx context.Context, req resource.UpdateR
 		return
 	}
 
-	// assert cluster attribute wasn't changed:
+	// assert attribute cluster&name weren't changed:
 	common.ValidateStateAndPlanEquals(state.Cluster, plan.Cluster, "cluster", &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if !common.IsStringAttributeUnknownOrEmpty(plan.Name) {
+		common.ValidateStateAndPlanEquals(state.Name, plan.Name, "name", &resp.Diagnostics)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
 
-	clusterId := plan.Cluster.ValueString()
-
-	if _, err := k.configClient.Get(ctx, clusterId); err != nil {
+	clusterId := state.Cluster.ValueString()
+	name := state.Name.ValueString()
+	kubeletConfigId, err := getKubeletConfigId(ctx, state, clusterId, name, k.configsClient)
+	if err != nil {
+		resp.Diagnostics.AddError(failedToUpdateSummary, err.Error())
+		return
+	}
+	if _, err := k.configsClient.Get(ctx, clusterId, kubeletConfigId); err != nil {
 		resp.Diagnostics.AddError(failedToUpdateSummary,
-			fmt.Sprintf("Failed to read details of existing KubeletConfig for cluster '%s': %v", clusterId, err))
+			fmt.Sprintf("Failed to read details of existing KubeletConfig '%s' for cluster '%s': %v", kubeletConfigId, clusterId, err))
 		return
 	}
 
+	plan.ID = types.StringValue(kubeletConfigId)
 	kubeletConfig, err := k.convertStateToApiResource(plan)
 	if err != nil {
 		resp.Diagnostics.AddError(failedToUpdateSummary,
-			fmt.Sprintf("Failed to build request to update existing KubeletConfig for cluster '%s': %v", clusterId, err))
+			fmt.Sprintf("Failed to build request to update existing KubeletConfig '%s' for cluster '%s': %v",
+				kubeletConfigId, clusterId, err))
 		return
 	}
 
-	updateResponse, err := k.configClient.Update(ctx, clusterId, kubeletConfig)
+	updateResponse, err := k.configsClient.Update(ctx, clusterId, kubeletConfig)
 	if err != nil {
 		resp.Diagnostics.AddError(failedToUpdateSummary,
-			fmt.Sprintf("Failed to update existing KubeletConfig for cluster '%s': %v", clusterId, err))
+			fmt.Sprintf("Failed to update existing KubeletConfig '%s' for cluster '%s': %v",
+				kubeletConfigId, clusterId, err))
 		return
 	}
 
@@ -239,10 +297,17 @@ func (k *KubeletConfigResource) Delete(ctx context.Context, req resource.DeleteR
 	}
 
 	clusterId := state.Cluster.ValueString()
-	err := k.configClient.Delete(ctx, clusterId)
+	name := state.Name.ValueString()
+	kubeletConfigId, err := getKubeletConfigId(ctx, state, clusterId, name, k.configsClient)
+	if err != nil {
+		resp.Diagnostics.AddError(failedToDeleteSummary, err.Error())
+		return
+	}
+
+	err = k.configsClient.Delete(ctx, clusterId, kubeletConfigId)
 	if err != nil {
 		resp.Diagnostics.AddError(failedToDeleteSummary,
-			fmt.Sprintf("Failed to delete KubeletConfig for cluster '%s': %v", clusterId, err))
+			fmt.Sprintf("Failed to delete KubeletConfig '%s' for cluster '%s': %v", kubeletConfigId, clusterId, err))
 		return
 	}
 
@@ -264,7 +329,48 @@ func (k *KubeletConfigResource) Configure(_ context.Context, req resource.Config
 		return
 	}
 
-	collection := connection.ClustersMgmt().V1().Clusters()
-	k.configClient = client.NewKubeletConfigClient(collection)
-	k.clusterWait = common.NewClusterWait(collection)
+	clusterCollection := connection.ClustersMgmt().V1().Clusters()
+	k.clusterClient = common.NewClusterClient(clusterCollection)
+	k.configsClient = client.NewKubeletConfigsClient(clusterCollection)
+	k.clusterWait = common.NewClusterWait(clusterCollection)
+}
+
+func isHCP(ctx context.Context, clusterId string, clusterClient common.ClusterClient) (bool, error) {
+	isHCP := false
+	cluster, err := clusterClient.FetchCluster(ctx, clusterId)
+	if err != nil {
+		return isHCP, err
+	}
+	return cluster.Hypershift().Enabled(), nil
+}
+
+func getKubeletConfigId(ctx context.Context, state *KubeletConfigState, clusterId string, name string,
+	configsClient client.KubeletConfigsClient) (string, error) {
+	id := ""
+	if common.IsStringAttributeUnknownOrEmpty(state.ID) {
+		kubeletConfigs, _, err := configsClient.List(ctx, clusterId, client.NewPaging(1, -1))
+		if err != nil {
+			return id, fmt.Errorf("Cannot list KubeletConfigs for cluster '%s': %v", clusterId, err)
+		}
+		// for classic cluster, there is maxium one kubeletconfig
+		if name == "" {
+			if len(kubeletConfigs) > 0 {
+				return kubeletConfigs[0].ID(), nil
+			} else {
+				return id, fmt.Errorf("Cannot find KubeletConfig for cluster '%s'", clusterId)
+			}
+		}
+		for _, config := range kubeletConfigs {
+			if config.Name() == name {
+				id = config.ID()
+				break
+			}
+		}
+		if id == "" {
+			return id, fmt.Errorf("Cannot find KubeletConfig '%s' for cluster '%s'", name, clusterId)
+		}
+	} else {
+		id = state.ID.ValueString()
+	}
+	return id, nil
 }

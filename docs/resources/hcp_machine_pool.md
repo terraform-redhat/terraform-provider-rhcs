@@ -42,6 +42,7 @@ resource "rhcs_hcp_machine_pool" "machine_pool" {
 
 ### Optional
 
+- `kubelet_configs` (String) Name of the kubelet config applied to the machine pool. A single kubelet config is allowed. Kubelet config must already exist.
 - `labels` (Map of String) Labels for the machine pool. Format should be a comma-separated list of 'key = value'. This list will overwrite any modifications made to node labels on an ongoing basis.
 - `replicas` (Number) The number of machines of the pool
 - `taints` (Attributes List) Taints for a machine pool. Format should be a comma-separated list of 'key=value'. This list will overwrite any modifications made to node taints on an ongoing basis. (see [below for nested schema](#nestedatt--taints))

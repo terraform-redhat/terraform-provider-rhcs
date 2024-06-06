@@ -80,8 +80,22 @@ var _ = Describe("Cluster KubeletConfig", func() {
 			Expect(terraform.Apply()).ToNot(BeZero())
 		})
 
-		It("fails if OCM backend fails to create the object", func() {
+		It("fails if there is already one kubelet config for classic cluster", func() {
 			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"kind": "Cluster",
+							"id": "123",
+							"href": "/api/clusters_mgmt/v1/clusters/123",
+							"name": "cluster",
+							"hypershift": {
+								"enabled": false
+							}
+						}
+					`),
+				),
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `
@@ -106,11 +120,221 @@ var _ = Describe("Cluster KubeletConfig", func() {
 					`),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_config"),
-					RespondWithJSON(http.StatusNotFound, "{}"),
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs"),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"items": [
+								{
+								  "kind": "KubeletConfig",
+								  "id": "456",
+								  "href": "/api/clusters_mgmt/v1/clusters/123/kubelet_configs/456",
+								  "name": "my_name",
+								  "pod_pids_limit": 5000
+								}
+							  ]
+						}
+					`),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/kubelet_config"),
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs"),
+					RespondWithJSON(http.StatusInternalServerError, "Internal Server Error"),
+				),
+			)
+
+			terraform.Source(`
+				resource "rhcs_kubeletconfig" "cluster_kubeletconfig" {
+					cluster = "123"
+				}
+	    	`)
+			Expect(terraform.Apply()).ToNot(BeZero())
+		})
+
+		It("Successfully creates two KubeletConfigs for HCP cluster", func() {
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"kind": "Cluster",
+							"id": "123",
+							"href": "/api/clusters_mgmt/v1/clusters/123",
+							"name": "cluster",
+							"state": "ready",
+							"hypershift": {
+								"enabled": true
+							}
+						}
+					`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"kind": "Cluster",
+							"id": "123",
+							"href": "/api/clusters_mgmt/v1/clusters/123",
+							"name": "cluster"
+						}
+					`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"kind": "Cluster",
+							"id": "123",
+							"href": "/api/clusters_mgmt/v1/clusters/123",
+							"name": "cluster",
+							"state": "ready"
+						}
+					`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs"),
+					VerifyJQ(".pod_pids_limit", float64(5000)),
+					RespondWithJSON(http.StatusCreated, `
+						{
+							"kind": "KubeletConfig",
+							"id": "456",
+							"name": "my_name",
+							"href": "/api/clusters_mgmt/v1/clusters/123/kubelet_configs/456",
+							"pod_pids_limit": 5000
+						}
+					`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs/456"),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"kind": "KubeletConfig",
+							"id": "456",
+							"href": "/api/clusters_mgmt/v1/clusters/123/kubelet_configs/456",
+							"name": "my_name",
+							"pod_pids_limit": 5000
+						}
+					`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"kind": "Cluster",
+							"id": "123",
+							"href": "/api/clusters_mgmt/v1/clusters/123",
+							"name": "cluster",
+							"state": "ready",
+							"hypershift": {
+								"enabled": true
+							}
+						}
+					`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"kind": "Cluster",
+							"id": "123",
+							"href": "/api/clusters_mgmt/v1/clusters/123",
+							"name": "cluster"
+						}
+					`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"kind": "Cluster",
+							"id": "123",
+							"href": "/api/clusters_mgmt/v1/clusters/123",
+							"name": "cluster",
+							"state": "ready"
+						}
+					`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs"),
+					VerifyJQ(".pod_pids_limit", float64(10000)),
+					VerifyJQ(".name", "custom_name"),
+					RespondWithJSON(http.StatusCreated, `
+						{
+							"kind": "KubeletConfig",
+							"id": "789",
+							"name": "custom_name",
+							"href": "/api/clusters_mgmt/v1/clusters/123/kubelet_configs/789",
+							"pod_pids_limit": 10000
+						}
+					`),
+				),
+			)
+
+			terraform.Source(`
+				resource "rhcs_kubeletconfig" "cluster_kubeletconfig" {
+					cluster = "123"
+					pod_pids_limit = 5000
+				}
+	    	`)
+			Expect(terraform.Apply()).To(BeZero())
+			terraform.Source(`
+				resource "rhcs_kubeletconfig" "cluster_kubeletconfig" {
+					cluster = "123"
+					pod_pids_limit = 5000
+				}
+
+				resource "rhcs_kubeletconfig" "cluster_kubeletconfig_1" {
+					cluster = "123"
+					pod_pids_limit = 10000
+					name = "custom_name"
+				}
+	    	`)
+			Expect(terraform.Apply()).To(BeZero())
+		})
+
+		It("fails if OCM backend fails to create the object", func() {
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"kind": "Cluster",
+							"id": "123",
+							"href": "/api/clusters_mgmt/v1/clusters/123",
+							"name": "cluster",
+							"hypershift": {
+								"enabled": false
+							}
+						}
+					`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"kind": "Cluster",
+							"id": "123",
+							"href": "/api/clusters_mgmt/v1/clusters/123",
+							"name": "cluster",
+						}
+					`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"kind": "Cluster",
+							"id": "123",
+							"href": "/api/clusters_mgmt/v1/clusters/123",
+							"name": "cluster",
+							"state": "ready"
+						}
+					`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs"),
+					RespondWithJSON(http.StatusOK, "{}"),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs"),
 					RespondWithJSON(http.StatusInternalServerError, "Internal Server Error"),
 				),
 			)
@@ -133,6 +357,21 @@ var _ = Describe("Cluster KubeletConfig", func() {
 							"id": "123",
 							"href": "/api/clusters_mgmt/v1/clusters/123",
 							"name": "cluster",
+							"state": "ready",
+							"hypershift": {
+								"enabled": false
+							}
+						}
+					`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"kind": "Cluster",
+							"id": "123",
+							"href": "/api/clusters_mgmt/v1/clusters/123",
+							"name": "cluster",
 						}
 					`),
 				),
@@ -149,17 +388,19 @@ var _ = Describe("Cluster KubeletConfig", func() {
 					`),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_config"),
-					RespondWithJSON(http.StatusNotFound, "{}"),
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs"),
+					RespondWithJSON(http.StatusOK, "{}"),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/kubelet_config"),
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs"),
 					VerifyJQ(".pod_pids_limit", float64(5000)),
 					RespondWithJSON(http.StatusCreated, `
 						{
 							"kind": "KubeletConfig",
-							"id": "123",
-							"href": "/api/clusters_mgmt/v1/clusters/123/kubelet_config"
+							"id": "456",
+							"name": "my_name",
+							"href": "/api/clusters_mgmt/v1/clusters/123/kubelet_configs/456",
+							"pod_pids_limit": 5000
 						}
 					`),
 				),
@@ -179,17 +420,8 @@ var _ = Describe("Cluster KubeletConfig", func() {
 		It("fails if resource does not exist in OCM", func() {
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_config"),
-					RespondWithJSON(http.StatusNotFound, `
-						{
-							"kind": "Error",
-							"id": "404",
-							"href": "/api/clusters_mgmt/v1/errors/404",
-							"code": "CLUSTERS-MGMT-404",
-							"reason": "KubeletConfig for cluster ID '123' is not found",
-							"operation_id": "96ae3bc2-dd56-4640-8092-4703c81ad2c1"
-						}
-					`),
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs"),
+					RespondWithJSON(http.StatusOK, "{}"),
 				),
 			)
 
@@ -204,21 +436,29 @@ var _ = Describe("Cluster KubeletConfig", func() {
 		It("succeeds if resource exists in OCM", func() {
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_config"),
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs"),
 					RespondWithJSON(http.StatusOK, `
 						{
-							"kind": "KubeletConfig",
-							"href": "/api/clusters_mgmt/v1/clusters/123/kubelet_config",
-							"pod_pids_limit": 5000
+							"items": [
+								{
+								  "kind": "KubeletConfig",
+								  "id": "456",
+								  "href": "/api/clusters_mgmt/v1/clusters/123/kubelet_configs/456",
+								  "name": "my_name",
+								  "pod_pids_limit": 5000
+								}
+							  ]
 						}
 					`),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_config"),
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs/456"),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"kind": "KubeletConfig",
-							"href": "/api/clusters_mgmt/v1/clusters/123/kubelet_config",
+							"id": "456",
+							"href": "/api/clusters_mgmt/v1/clusters/123/kubelet_configs/456",
+							"name": "my_name",
 							"pod_pids_limit": 5000
 						}
 					`),
@@ -238,6 +478,8 @@ var _ = Describe("Cluster KubeletConfig", func() {
 			Expect(actualResource["attributes"]).To(Equal(
 				map[string]interface{}{
 					"cluster":        "123",
+					"id":             "456",
+					"name":           "my_name",
 					"pod_pids_limit": float64(5000),
 				},
 			))
@@ -247,6 +489,21 @@ var _ = Describe("Cluster KubeletConfig", func() {
 	Context("updating", func() {
 		BeforeEach(func() {
 			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"kind": "Cluster",
+							"id": "123",
+							"href": "/api/clusters_mgmt/v1/clusters/123",
+							"name": "cluster",
+							"state": "ready",
+							"hypershift": {
+								"enabled": false
+							}
+						}
+					`),
+				),
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `
@@ -271,17 +528,19 @@ var _ = Describe("Cluster KubeletConfig", func() {
 					`),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_config"),
-					RespondWithJSON(http.StatusNotFound, "{}"),
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs"),
+					RespondWithJSON(http.StatusOK, "{}"),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/kubelet_config"),
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs"),
 					VerifyJQ(".pod_pids_limit", float64(5000)),
 					RespondWithJSON(http.StatusCreated, `
 						{
 							"kind": "KubeletConfig",
-							"id": "123",
-							"href": "/api/clusters_mgmt/v1/clusters/123/kubelet_config"
+							"id": "456",
+							"name": "my_name",
+							"href": "/api/clusters_mgmt/v1/clusters/123/kubelet_configs/456",
+							"pod_pids_limit": 5000
 						}
 					`),
 				),
@@ -299,32 +558,38 @@ var _ = Describe("Cluster KubeletConfig", func() {
 		It("successfully applies the changes in OCM", func() {
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_config"),
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs/456"),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"kind": "KubeletConfig",
-							"href": "/api/clusters_mgmt/v1/clusters/123/kubelet_config",
+							"id": "456",
+							"href": "/api/clusters_mgmt/v1/clusters/123/kubelet_configs/456",
+							"name": "my_name",
 							"pod_pids_limit": 5000
 						}
 					`),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_config"),
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs/456"),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"kind": "KubeletConfig",
-							"href": "/api/clusters_mgmt/v1/clusters/123/kubelet_config",
+							"id": "456",
+							"href": "/api/clusters_mgmt/v1/clusters/123/kubelet_configs/456",
+							"name": "my_name",
 							"pod_pids_limit": 5000
 						}
 					`),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/kubelet_config"),
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs/456"),
 					VerifyJQ(".pod_pids_limit", float64(10000)),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"kind": "KubeletConfig",
-							"href": "/api/clusters_mgmt/v1/clusters/123/kubelet_config",
+							"id": "456",
+							"href": "/api/clusters_mgmt/v1/clusters/123/kubelet_configs/456",
+							"name": "my_name",
 							"pod_pids_limit": 10000
 						}
 					`),
@@ -346,6 +611,8 @@ var _ = Describe("Cluster KubeletConfig", func() {
 				map[string]interface{}{
 					"cluster":        "123",
 					"pod_pids_limit": float64(10000),
+					"id":             "456",
+					"name":           "my_name",
 				},
 			))
 		})
@@ -354,6 +621,21 @@ var _ = Describe("Cluster KubeletConfig", func() {
 	Context("deletion", func() {
 		BeforeEach(func() {
 			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"kind": "Cluster",
+							"id": "123",
+							"href": "/api/clusters_mgmt/v1/clusters/123",
+							"name": "cluster",
+							"state": "ready",
+							"hypershift": {
+								"enabled": false
+							}
+						}
+					`),
+				),
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `
@@ -378,17 +660,19 @@ var _ = Describe("Cluster KubeletConfig", func() {
 					`),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_config"),
-					RespondWithJSON(http.StatusNotFound, "{}"),
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs"),
+					RespondWithJSON(http.StatusOK, "{}"),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/kubelet_config"),
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs"),
 					VerifyJQ(".pod_pids_limit", float64(5000)),
 					RespondWithJSON(http.StatusCreated, `
 						{
 							"kind": "KubeletConfig",
-							"id": "123",
-							"href": "/api/clusters_mgmt/v1/clusters/123/kubelet_config"
+							"id": "456",
+							"name": "my_name",
+							"href": "/api/clusters_mgmt/v1/clusters/123/kubelet_configs/456",
+							"pod_pids_limit": 5000
 						}
 					`),
 				),
@@ -406,7 +690,7 @@ var _ = Describe("Cluster KubeletConfig", func() {
 		It("trivially succeeds if the kubeletconfig object does not exist in OCM", func() {
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_config"),
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs/456"),
 					RespondWithJSON(http.StatusNotFound, `
 						{
 							"kind": "Error",
@@ -426,17 +710,19 @@ var _ = Describe("Cluster KubeletConfig", func() {
 		It("successfully applies the deletion in OCM", func() {
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_config"),
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs/456"),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"kind": "KubeletConfig",
-							"href": "/api/clusters_mgmt/v1/clusters/123/kubelet_config",
+							"id": "456",
+							"name": "my_name",
+							"href": "/api/clusters_mgmt/v1/clusters/123/kubelet_configs/456",
 							"pod_pids_limit": 5000
 						}
 					`),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/123/kubelet_config"),
+					VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs/456"),
 					RespondWithJSON(http.StatusNoContent, "{}"),
 				),
 			)

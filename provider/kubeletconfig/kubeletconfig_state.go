@@ -19,6 +19,8 @@ package kubeletconfig
 import "github.com/hashicorp/terraform-plugin-framework/types"
 
 type KubeletConfigState struct {
+	ID           types.String `tfsdk:"id"`
 	Cluster      types.String `tfsdk:"cluster"`
 	PodPidsLimit types.Int64  `tfsdk:"pod_pids_limit"`
+	Name         types.String `tfsdk:"name"`
 }

@@ -39,6 +39,7 @@ data "rhcs_hcp_machine_pool" "machine_pool" {
 - `aws_node_pool` (Attributes) AWS settings for node pool (see [below for nested schema](#nestedatt--aws_node_pool))
 - `current_version` (String) The currently running version of OpenShift on the machine pool, for example '4.11.0'.
 - `id` (String) Unique identifier of the machine pool.
+- `kubelet_configs` (String) Name of the kubelet config applied to the machine pool.
 - `labels` (Map of String) Labels for the machine pool. Format should be a comma-separated list of 'key = value'. This list will overwrite any modifications made to node labels on an ongoing basis.
 - `replicas` (Number) The number of machines of the pool
 - `status` (Attributes) HCP replica status (see [below for nested schema](#nestedatt--status))

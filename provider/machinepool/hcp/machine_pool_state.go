@@ -40,6 +40,7 @@ type HcpMachinePoolState struct {
 	NodePoolStatus types.Object `tfsdk:"status"`
 	AWSNodePool    *AWSNodePool `tfsdk:"aws_node_pool"`
 	TuningConfigs  types.List   `tfsdk:"tuning_configs"`
+	KubeletConfigs types.String `tfsdk:"kubelet_configs"`
 	AutoRepair     types.Bool   `tfsdk:"auto_repair"`
 }
 

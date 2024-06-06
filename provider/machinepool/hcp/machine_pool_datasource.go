@@ -149,6 +149,10 @@ func (r *HcpMachinePoolDatasource) Schema(ctx context.Context, req datasource.Sc
 				ElementType: types.StringType,
 				Computed:    true,
 			},
+			"kubelet_configs": schema.StringAttribute{
+				Description: "Name of the kubelet config applied to the machine pool.",
+				Computed:    true,
+			},
 			"auto_repair": schema.BoolAttribute{
 				Description: "Indicates use of autor repair for replica",
 				Optional:    true,

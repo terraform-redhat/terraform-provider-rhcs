@@ -180,6 +180,10 @@ func (r *HcpMachinePoolResource) Schema(ctx context.Context, req resource.Schema
 				ElementType: types.StringType,
 				Optional:    true,
 			},
+			"kubelet_configs": schema.StringAttribute{
+				Description: "Name of the kubelet config applied to the machine pool. A single kubelet config is allowed. Kubelet config must already exist.",
+				Optional:    true,
+			},
 			"auto_repair": schema.BoolAttribute{
 				Description: "Indicates use of autor repair for the pool",
 				Required:    true,
@@ -380,6 +384,10 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 		if tuningConfigs != nil {
 			builder.TuningConfigs(tuningConfigs...)
 		}
+	}
+
+	if !common.IsStringAttributeUnknownOrEmpty(plan.KubeletConfigs) {
+		builder.KubeletConfigs(plan.KubeletConfigs.ValueString())
 	}
 
 	if common.HasValue(plan.AutoRepair) {
@@ -742,6 +750,11 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 		if tuningConfigs != nil {
 			npBuilder.TuningConfigs(tuningConfigs...)
 		}
+	}
+
+	patchKubeletConfigs, shouldPatchKubeletConfigs := common.ShouldPatchString(state.KubeletConfigs, plan.KubeletConfigs)
+	if shouldPatchKubeletConfigs {
+		npBuilder.KubeletConfigs(patchKubeletConfigs)
 	}
 
 	nodePool, err := npBuilder.Build()
@@ -1201,6 +1214,10 @@ func populateState(ctx context.Context, object *cmv1.NodePool, state *HcpMachine
 			return err
 		}
 		state.TuningConfigs = tuningConfigsList
+	}
+
+	if len(object.KubeletConfigs()) > 0 {
+		state.KubeletConfigs = types.StringValue(object.KubeletConfigs()[0])
 	}
 
 	if object.Version() != nil {

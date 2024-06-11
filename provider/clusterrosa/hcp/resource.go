@@ -707,6 +707,18 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 	}
 	object = add.Body()
 
+	// Save initial state:
+	err = populateRosaHcpClusterState(ctx, object, state, common.DefaultHttpClient{})
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't populate cluster state",
+			fmt.Sprintf(
+				"Received error %v", err,
+			),
+		)
+		return
+	}
+
 	if shouldWaitCreationComplete {
 		tflog.Info(ctx, "Waiting for cluster to get ready")
 		object, err = r.ClusterWait.WaitForClusterToBeReady(ctx, object.ID(), rosa.DefaultWaitTimeoutForHCPControlPlaneInMinutes)
@@ -716,6 +728,8 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 				fmt.Sprintf("Waiting for cluster creation finished with the error %v", err),
 			)
 			if object == nil {
+				diags = response.State.Set(ctx, state)
+				response.Diagnostics.Append(diags...)
 				return
 			}
 		}
@@ -728,13 +742,15 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 					fmt.Sprintf("Waiting for std compute nodes completion finished with the error %v", err),
 				)
 				if object == nil {
+					diags = response.State.Set(ctx, state)
+					response.Diagnostics.Append(diags...)
 					return
 				}
 			}
 		}
 	}
 
-	// Save the state:
+	// Save the state post wait completion:
 	err = populateRosaHcpClusterState(ctx, object, state, common.DefaultHttpClient{})
 	if err != nil {
 		response.Diagnostics.AddError(

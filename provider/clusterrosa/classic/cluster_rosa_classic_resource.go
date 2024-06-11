@@ -867,6 +867,18 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 	}
 	object = add.Body()
 
+	// Save initial state:
+	err = populateRosaClassicClusterState(ctx, object, state, common.DefaultHttpClient{})
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't populate cluster state",
+			fmt.Sprintf(
+				"Received error %v", err,
+			),
+		)
+		return
+	}
+
 	if common.HasValue(state.WaitForCreateComplete) && state.WaitForCreateComplete.ValueBool() {
 		object, err = r.ClusterWait.WaitForClusterToBeReady(ctx, object.ID(), rosa.DefaultWaitTimeoutInMinutes)
 		if err != nil {
@@ -875,12 +887,14 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 				fmt.Sprintf("Waiting for cluster creation finished with the error %v", err),
 			)
 			if object == nil {
+				diags = response.State.Set(ctx, state)
+				response.Diagnostics.Append(diags...)
 				return
 			}
 		}
 	}
 
-	// Save the state:
+	// Save the state post wait completion:
 	err = populateRosaClassicClusterState(ctx, object, state, common.DefaultHttpClient{})
 	if err != nil {
 		response.Diagnostics.AddError(

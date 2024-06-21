@@ -50,13 +50,13 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 
 		originalClusterArgs, err := ci.GenerateClusterCreationArgsByProfile(token, profile)
 		if err != nil {
-			defer ci.DestroyRHCSClusterByProfile(token, profile)
+			defer ci.DestroyRHCSClusterResourcesByProfile(token, profile)
 		}
 		Expect(err).ToNot(HaveOccurred())
 
 		clusterService, err = exec.NewClusterService(profile.GetClusterManifestsDir())
 		if err != nil {
-			defer ci.DestroyRHCSClusterByProfile(token, profile)
+			defer ci.DestroyRHCSClusterResourcesByProfile(token, profile)
 		}
 		Expect(err).ToNot(HaveOccurred())
 
@@ -69,7 +69,7 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 			exec.DeleteTFvarsFile(originalClusterVarsFile)
 		}
 
-		err := ci.DestroyRHCSClusterByProfile(token, profile)
+		err := ci.DestroyRHCSClusterResourcesByProfile(token, profile)
 		Expect(err).ToNot(HaveOccurred())
 	})
 

@@ -13,12 +13,17 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
-var _ = Describe("Kubelet config", ci.NonHCPCluster, func() {
+var _ = Describe("Kubelet config", func() {
 	defer GinkgoRecover()
 
 	var kcService exe.KubeletConfigService
 
 	BeforeEach(func() {
+		profile := ci.LoadProfileYamlFileByENV()
+		if profile.GetClusterType().HCP {
+			Skip("Test can run only on Classic cluster")
+		}
+
 		var err error
 		kcService, err = exe.NewKubeletConfigService(CON.KubeletConfigDir)
 		Expect(err).ToNot(HaveOccurred())

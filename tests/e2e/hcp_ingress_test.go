@@ -20,7 +20,7 @@ import (
 var internalListeningMethod = "internal"
 var externalListeningMethod = "external"
 
-var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, ci.Day2, func() {
+var _ = Describe("HCP Ingress", ci.FeatureIngress, ci.Day2, func() {
 
 	var (
 		err            error
@@ -38,6 +38,11 @@ var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, ci.Day2
 	}
 
 	BeforeEach(func() {
+		profile := ci.LoadProfileYamlFileByENV()
+		if !profile.GetClusterType().HCP {
+			Skip("Test can run only on Hosted cluster")
+		}
+
 		ingressBefore, err = cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
 

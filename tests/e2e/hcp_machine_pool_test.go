@@ -20,7 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMachinepool, func() {
+var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 	defer GinkgoRecover()
 	var (
 		mpService exec.MachinePoolService
@@ -31,6 +31,10 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 	BeforeEach(func() {
 		profile = ci.LoadProfileYamlFileByENV()
+
+		if !profile.GetClusterType().HCP {
+			Skip("Test can run only on Hosted cluster")
+		}
 
 		var err error
 		mpService, err = exec.NewMachinePoolService(constants.HCPMachinePoolDir)

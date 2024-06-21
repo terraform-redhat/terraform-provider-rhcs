@@ -21,7 +21,11 @@ var _ = Describe("DNS Domain", func() {
 	})
 
 	It("can create and destroy dnsdomain - [id:67570]",
-		ci.Day2, ci.Medium, ci.FeatureIDP, ci.NonHCPCluster, func() {
+		ci.Day2, ci.Medium, ci.FeatureIDP, func() {
+			profile := ci.LoadProfileYamlFileByENV()
+			if profile.GetClusterType().HCP {
+				Skip("Test can run only on Classic cluster")
+			}
 
 			By("Retrieve DNS creation args")
 			dnsArgs, err := dnsService.ReadTFVars()

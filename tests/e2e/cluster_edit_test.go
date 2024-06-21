@@ -112,7 +112,13 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 		})
 	})
 
-	Context("validate", ci.NonClassicCluster, func() {
+	Context("validate", func() {
+		BeforeEach(func() {
+			if !profile.GetClusterType().HCP {
+				Skip("Test can run only on Hosted cluster")
+			}
+		})
+
 		validateClusterArg := func(updateFields func(args *exec.ClusterArgs), validateErrFunc func(err error)) {
 			updateFields(clusterArgs)
 			_, err := clusterService.Apply(clusterArgs)
@@ -451,8 +457,11 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 
 		// Skip this tests until OCM-5079 fixed
 		It("security groups - [id:69145]",
-			ci.NonHCPCluster, ci.Exclude, ci.Day2,
+			ci.Exclude, ci.Day2,
 			func() {
+				if profile.GetClusterType().HCP {
+					Skip("Test can run only on Classic cluster")
+				}
 				clusterService, err := exec.NewClusterService(profile.GetClusterManifestsDir())
 				Expect(err).ToNot(HaveOccurred())
 				output, err := clusterService.Output()

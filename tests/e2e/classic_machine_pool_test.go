@@ -17,7 +17,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
-var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMachinepool, func() {
+var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 	defer GinkgoRecover()
 
 	var (
@@ -27,6 +27,9 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 
 	BeforeEach(func() {
 		profile = ci.LoadProfileYamlFileByENV()
+		if profile.GetClusterType().HCP {
+			Skip("Test can run only on Classic cluster")
+		}
 
 		var err error
 		mpService, err = exec.NewMachinePoolService(constants.ClassicMachinePoolDir)
@@ -624,7 +627,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		Expect(mpResponseBody.InstanceType()).To(Equal("m5.2xlarge"))
 	})
 
-	It("can create machinepool with customized tags - [id:73942]", ci.High, ci.NonHCPCluster, func() {
+	It("can create machinepool with customized tags - [id:73942]", ci.High, func() {
 
 		By("Create a machinepool with variable aws_tags")
 		name := "mp-73942"
@@ -700,7 +703,8 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 			Expect(taint.Value()).To(Equal(taints[index]["value"]))
 		}
 	})
-	It("will validate well - [id:63139]", ci.Medium, ci.NonHCPCluster, func() {
+
+	It("will validate well - [id:63139]", ci.Medium, func() {
 		By("Will validate the subnet")
 		mpArgs := &exe.MachinePoolArgs{
 			Cluster:     helper.StringPointer(clusterID),
@@ -746,11 +750,15 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 	})
 })
 
-var _ = Describe("Import MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureImport, func() {
+var _ = Describe("Import MachinePool", ci.Day2, ci.FeatureImport, func() {
 	var mpService exec.MachinePoolService
 	var importService exec.ImportService
 
 	BeforeEach(func() {
+		profile := ci.LoadProfileYamlFileByENV()
+		if profile.GetClusterType().HCP {
+			Skip("Test can run only on Classic cluster")
+		}
 		var err error
 
 		mpService, err = exec.NewMachinePoolService(constants.ClassicMachinePoolDir)
@@ -806,7 +814,7 @@ var _ = Describe("Import MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureImpo
 	})
 })
 
-var _ = Describe("Edit MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMachinepool, func() {
+var _ = Describe("Edit MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 	var (
 		dmpService                     exec.MachinePoolService
@@ -817,6 +825,11 @@ var _ = Describe("Edit MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMachin
 	)
 
 	BeforeEach(func() {
+		profile := ci.LoadProfileYamlFileByENV()
+		if profile.GetClusterType().HCP {
+			Skip("Test can run only on Classic cluster")
+		}
+
 		var err error
 		dmpService, err = exec.NewMachinePoolService(constants.DefaultMachinePoolDir)
 		Expect(err).ToNot(HaveOccurred())
@@ -982,7 +995,7 @@ var _ = Describe("Edit MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMachin
 
 })
 
-var _ = Describe("Destroy MachinePool", ci.Day3, ci.NonHCPCluster, ci.FeatureMachinepool, func() {
+var _ = Describe("Destroy MachinePool", ci.Day3, ci.FeatureMachinepool, func() {
 	var (
 		dmpService                 exec.MachinePoolService
 		defaultMachinePoolArgs     *exec.MachinePoolArgs
@@ -992,6 +1005,11 @@ var _ = Describe("Destroy MachinePool", ci.Day3, ci.NonHCPCluster, ci.FeatureMac
 	)
 
 	BeforeEach(func() {
+		profile := ci.LoadProfileYamlFileByENV()
+		if profile.GetClusterType().HCP {
+			Skip("Test can run only on Classic cluster")
+		}
+
 		var err error
 		dmpService, err = exec.NewMachinePoolService(constants.DefaultMachinePoolDir)
 		Expect(err).ToNot(HaveOccurred())

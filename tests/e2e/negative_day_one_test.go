@@ -73,8 +73,11 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	Describe("cluster admin", ci.NonHCPCluster, ci.Day1Negative, func() {
+	Describe("cluster admin", ci.Day1Negative, func() {
 		BeforeEach(OncePerOrdered, func() {
+			if profile.GetClusterType().HCP {
+				Skip("Test can run only on Classic cluster")
+			}
 			if !profile.AdminEnabled {
 				Skip("The tests configured for cluster admin only")
 			}
@@ -121,7 +124,13 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 		})
 	})
 
-	Describe("Create HCP cluster", ci.NonClassicCluster, ci.Day1Negative, func() {
+	Describe("Create HCP cluster", ci.Day1Negative, func() {
+		BeforeEach(OncePerOrdered, func() {
+			if !profile.GetClusterType().HCP {
+				Skip("Test can run only on Hosted cluster")
+			}
+		})
+
 		It("validate required fields - [id:72445]", ci.High, func() {
 			By("Create cluster with wrong billing account")
 			newValue := "012345678912"

@@ -42,7 +42,3 @@ var Low = Label("Low")
 
 // exclude
 var Exclude = Label("Exclude")
-
-// Cluster Type
-var NonClassicCluster = Label("NonClassicCluster")
-var NonHCPCluster = Label("NonHCPCluster")

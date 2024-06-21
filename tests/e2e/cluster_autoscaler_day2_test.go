@@ -25,8 +25,10 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 	var caService exec.ClusterAutoscalerService
 	var clusterAutoScalerBodyForRecreate *cmsv1.ClusterAutoscaler
 	var clusterAutoscalerStatusBefore int
+	var profile *ci.Profile
 
 	BeforeEach(func() {
+		profile = ci.LoadProfileYamlFileByENV()
 		caRetrieveBody, _ := cms.RetrieveClusterAutoscaler(ci.RHCSConnection, clusterID)
 		clusterAutoscalerStatusBefore = caRetrieveBody.Status()
 		if clusterAutoscalerStatusBefore == http.StatusOK {
@@ -50,7 +52,11 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 			Expect(recreateAutoscaler.Status()).To(Equal(http.StatusCreated))
 		}
 	})
-	It("can be added/destroyed to Classic cluster - [id:69137]", ci.High, ci.NonHCPCluster, func() {
+	It("can be added/destroyed to Classic cluster - [id:69137]", ci.High, func() {
+		if profile.GetClusterType().HCP {
+			Skip("Test can run only on Classic cluster")
+		}
+
 		var err error
 		caService, err = exec.NewClusterAutoscalerService(constants.ClassicClusterAutoscalerDir)
 		Expect(err).NotTo(HaveOccurred())
@@ -139,8 +145,11 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 
 	It("can be created/edited/deleted to HCP cluster - [id:72524][id:72525]",
 		ci.High,
-		ci.NonClassicCluster,
 		func() {
+			if !profile.GetClusterType().HCP {
+				Skip("Test can run only on Hosted cluster")
+			}
+
 			var err error
 			caService, err = exec.NewClusterAutoscalerService(constants.HCPClusterAutoscalerDir)
 			Expect(err).NotTo(HaveOccurred())
@@ -216,7 +225,11 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 			Expect(caResponse.Status()).To(Equal(http.StatusNotFound))
 		})
 
-	It("can be validated against HCP cluster - [id:72526]", ci.Medium, ci.NonClassicCluster, func() {
+	It("can be validated against HCP cluster - [id:72526]", ci.Medium, func() {
+		if !profile.GetClusterType().HCP {
+			Skip("Test can run only on Hosted cluster")
+		}
+
 		var err error
 		caService, err = exec.NewClusterAutoscalerService(constants.HCPClusterAutoscalerDir)
 		Expect(err).NotTo(HaveOccurred())

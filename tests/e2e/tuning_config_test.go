@@ -13,7 +13,7 @@ import (
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
-var _ = Describe("Tuning Config", ci.NonClassicCluster, ci.FeatureTuningConfig, ci.Day2, func() {
+var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 	var (
 		tcService exec.TuningConfigService
 		mpService exec.MachinePoolService
@@ -30,6 +30,10 @@ var _ = Describe("Tuning Config", ci.NonClassicCluster, ci.FeatureTuningConfig, 
 
 	BeforeEach(func() {
 		profile = ci.LoadProfileYamlFileByENV()
+
+		if !profile.GetClusterType().HCP {
+			Skip("Test can run only on Hosted cluster")
+		}
 
 		var err error
 		mpService, err = exec.NewMachinePoolService(constants.HCPMachinePoolDir)

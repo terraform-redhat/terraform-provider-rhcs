@@ -149,7 +149,12 @@ var _ = Describe("Verify cluster", func() {
 		}
 	})
 	It("can be imported - [id:65684]",
-		ci.Day2, ci.Medium, ci.NonHCPCluster, ci.FeatureImport, func() {
+		ci.Day2, ci.Medium, ci.FeatureImport, func() {
+
+			if profile.GetClusterType().HCP {
+				Skip("Test can run only on Classic cluster")
+			}
+
 			importService, err := exec.NewImportService(constants.ImportResourceDir) // init new import service
 			Expect(err).ToNot(HaveOccurred())
 
@@ -237,8 +242,11 @@ var _ = Describe("Verify cluster", func() {
 		})
 
 	It("additional security group are correctly set - [id:69145]",
-		ci.Day1Post, ci.Critical, ci.NonHCPCluster,
+		ci.Day1Post, ci.Critical,
 		func() {
+			if profile.GetClusterType().HCP {
+				Skip("Test can run only on Classic cluster")
+			}
 			By("Check the profile settings")
 			if profile.AdditionalSGNumber == 0 {
 				Expect(cluster.AWS().AdditionalComputeSecurityGroupIds()).To(BeEmpty())
@@ -262,8 +270,12 @@ var _ = Describe("Verify cluster", func() {
 		})
 
 	It("worker disk size is set correctly - [id:69143]",
-		ci.Day1Post, ci.Critical, ci.NonHCPCluster,
+		ci.Day1Post, ci.Critical,
 		func() {
+			if profile.GetClusterType().HCP {
+				Skip("Test can run only on Classic cluster")
+			}
+
 			switch profile.WorkerDiskSize {
 			case 0:
 				Expect(cluster.Nodes().ComputeRootVolume().AWS().Size()).To(Equal(300))
@@ -302,7 +314,10 @@ var _ = Describe("Verify cluster", func() {
 		}
 	})
 
-	It("imdsv2 value is set correctly - [id:63950]", ci.Day1Post, ci.Critical, ci.NonHCPCluster, func() {
+	It("imdsv2 value is set correctly - [id:63950]", ci.Day1Post, ci.Critical, func() {
+		if profile.GetClusterType().HCP {
+			Skip("Test can run only on Classic cluster")
+		}
 		if profile.Ec2MetadataHttpTokens != "" {
 			Expect(string(cluster.AWS().Ec2MetadataHttpTokens())).To(Equal(profile.Ec2MetadataHttpTokens))
 		} else {

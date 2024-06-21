@@ -51,7 +51,10 @@ var _ = Describe("Cluster miscellaneous", func() {
 	})
 
 	It("should validate custom property operations on cluster - [id:64907]",
-		ci.Day2, ci.Medium, ci.FeatureClusterMisc, ci.NonHCPCluster, func() {
+		ci.Day2, ci.Medium, ci.FeatureClusterMisc, func() {
+			if profile.GetClusterType().HCP {
+				Skip("Test can run only on Classic cluster")
+			}
 
 			By("Adding additional custom property to the existing cluster")
 			updatedCustomProperties := constants.CustomProperties
@@ -77,7 +80,11 @@ var _ = Describe("Cluster miscellaneous", func() {
 			Expect(err.Error()).Should(ContainSubstring("Can not override reserved properties keys"))
 		})
 
-	It("can edit/delete cluster properties - [id:72451]", ci.Day2, ci.Medium, ci.NonClassicCluster, ci.FeatureClusterMisc, func() {
+	It("can edit/delete cluster properties - [id:72451]", ci.Day2, ci.Medium, ci.FeatureClusterMisc, func() {
+		if !profile.GetClusterType().HCP {
+			Skip("Test can run only on Hosted cluster")
+		}
+
 		updatedCustomProperties := helper.CopyStringMap(originalCustomProperties)
 
 		By("Add properties to cluster")

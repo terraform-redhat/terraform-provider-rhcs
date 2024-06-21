@@ -99,7 +99,10 @@ var _ = Describe("Create Account roles with shared vpc role", ci.Exclude, func()
 		accService.Destroy()
 	})
 
-	It("create and destroy account roles for shared vpc - [id:67574]", ci.Day2, ci.Medium, ci.NonHCPCluster, func() {
+	It("create and destroy account roles for shared vpc - [id:67574]", ci.Day2, ci.Medium, func() {
+		if profile.GetClusterType().HCP {
+			Skip("Test can run only on Classic cluster")
+		}
 		By("Create account role without shared vpc role arn")
 		accArgs := &exec.AccountRolesArgs{
 			AccountRolePrefix: helper.StringPointer("OCP-67574"),

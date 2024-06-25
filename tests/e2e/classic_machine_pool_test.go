@@ -828,10 +828,15 @@ var _ = Describe("Edit MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMachin
 			Skip("The default machinepool does not exist")
 		}
 
-		By("Create default machinepool by importing from CMS ")
+		By("Make sure the default machinepool imported from cluster state")
 		originalDefaultMachinepoolArgs = exec.BuildMachinePoolArgsFromCSResponse(clusterID, defaultMachinepoolResponse)
-		_, err = dmpService.Apply(originalDefaultMachinepoolArgs)
-		Expect(err).ToNot(HaveOccurred())
+		_, err = dmpService.ShowState("rhcs_machine_pool.mp")
+		if err != nil {
+			// no state, set it
+			By("Create default machinepool by importing from CMS ")
+			_, err = dmpService.Apply(originalDefaultMachinepoolArgs)
+			Expect(err).ToNot(HaveOccurred())
+		}
 	})
 	AfterEach(func() {
 		// Check if current test is skipped, skip this AfterEach block too
@@ -1000,12 +1005,13 @@ var _ = Describe("Destroy MachinePool", ci.Day3, ci.NonHCPCluster, ci.FeatureMac
 
 		defaultMachinepoolResponse, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, defaultMachinePoolName)
 		Expect(err).ToNot(HaveOccurred())
+
 		defaultMachinePoolArgs = exec.BuildMachinePoolArgsFromCSResponse(clusterID, defaultMachinepoolResponse)
 		defaultMachinePoolName = *defaultMachinePoolArgs.Name
 
 		By("Make sure the default machinepool imported from cluster state")
-		imported, _ := helper.CheckDefaultMachinePoolImported()
-		if !imported {
+		_, err = dmpService.ShowState("rhcs_machine_pool.mp")
+		if err != nil {
 			By("Create default machinepool by importing from CMS ")
 			_, err = dmpService.Apply(defaultMachinePoolArgs)
 			Expect(err).ToNot(HaveOccurred())

@@ -10,11 +10,12 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 
 var _ = Describe("Edit cluster", ci.Day2, func() {
 
-	var profile *ci.Profile
+	var profileHandler profilehandler.ProfileHandler
 	var clusterService exec.ClusterService
 	var clusterArgs *exec.ClusterArgs
 	var originalClusterArgs *exec.ClusterArgs
@@ -27,13 +28,14 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 	}
 
 	BeforeEach(func() {
+		var err error
 		By("Load profile")
-		profile = ci.LoadProfileYamlFileByENV()
+		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
+		Expect(err).ShouldNot(HaveOccurred())
 
 		// Initialize the cluster service
 		By("Create cluster service")
-		var err error
-		clusterService, err = exec.NewClusterService(profile.GetClusterManifestsDir())
+		clusterService, err = profileHandler.Services().GetClusterService()
 		Expect(err).ShouldNot(HaveOccurred())
 
 		clusterArgs = retrieveClusterArgs()
@@ -46,12 +48,12 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 
 	Context("can edit/delete", func() {
 		It("proxy - [id:72489]", ci.High, ci.FeatureClusterProxy, func() {
-			if !profile.Proxy {
+			if !profileHandler.Profile().IsProxy() {
 				Skip("No proxy configured")
 			}
 
 			By("Retrieve Proxy service")
-			proxyService, err := exec.NewProxyService()
+			proxyService, err := profileHandler.Services().GetProxyService()
 			Expect(err).ShouldNot(HaveOccurred())
 
 			readProxyArgs := func() (*exec.ProxyArgs, error) {
@@ -85,7 +87,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			By("Verify new proxy information are set")
-			clusterResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			clusterResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			clusterProxy := clusterResp.Body().Proxy()
 			Expect(clusterProxy.HTTPProxy()).To(Equal(newProxyOutput.HttpProxy))
@@ -104,7 +106,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			By("Check proxy is removed")
-			clusterResp, err = cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			clusterResp, err = cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			clusterProxy = clusterResp.Body().Proxy()
 			Expect(clusterProxy.HTTPProxy()).To(BeEmpty())
@@ -115,7 +117,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 
 	Context("validate", func() {
 		BeforeEach(func() {
-			if !profile.GetClusterType().HCP {
+			if !profileHandler.Profile().IsHCP() {
 				Skip("Test can run only on Hosted cluster")
 			}
 		})
@@ -159,7 +161,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			By("Try to edit cloud region")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				region := "us-east-1"
-				if profile.Region == region {
+				if profileHandler.Profile().GetRegion() == region {
 					region = "us-west-2" // make sure we are not in the same region
 				}
 				args.AWSRegion = helper.StringPointer(region)
@@ -169,7 +171,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				region := "us-east-1"
 				azs := []string{"us-east-1a"}
-				if profile.Region == region {
+				if profileHandler.Profile().GetRegion() == region {
 					region = "us-west-2" // make sure we are not in the same region
 					azs = []string{"us-west-2b"}
 				}
@@ -185,7 +187,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 
 		It("compute fields - [id:72453]", ci.Medium, ci.FeatureClusterCompute, func() {
 			By("Retrieve cluster information")
-			clusterResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			clusterResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Try to edit compute machine type")
@@ -221,7 +223,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 				args.CustomProperties = helper.StringMapPointer(props)
 			}, func(err error) {
 				Expect(err).ToNot(HaveOccurred())
-				clusterResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+				clusterResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(clusterResp.Body().Properties()["rosa_creator_arn"]).To(Equal(currentProperties["rosa_creator_arn"]))
 			})
@@ -243,7 +245,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 
 		It("network fields - [id:72470]", ci.Medium, ci.FeatureClusterNetwork, func() {
 			By("Retrieve cluster information")
-			clusterResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			clusterResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			originalAZs := clusterResp.Body().Nodes().AvailabilityZones()
 
@@ -257,7 +259,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 				args.AWSAvailabilityZones = helper.StringSlicePointer(azs)
 			}, func(err error) {
 				Expect(err).ToNot(HaveOccurred())
-				clusterResp, err = cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+				clusterResp, err = cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(clusterResp.Body().Nodes().AvailabilityZones()).To(Equal(originalAZs))
 			})
@@ -291,18 +293,18 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 
 		It("version fields - [id:72478]", ci.Medium, ci.FeatureClusterNetwork, func() {
 			By("Retrieve cluster information")
-			clusterResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			clusterResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			currentVersion := clusterResp.Body().Version().RawID()
 
 			By("Get new channel group")
-			otherChannelGroup := exec.NightlyChannel
-			if profile.ChannelGroup == exec.NightlyChannel {
-				otherChannelGroup = exec.CandidateChannel
+			otherChannelGroup := constants.VersionNightlyChannel
+			if profileHandler.Profile().GetChannelGroup() == constants.VersionNightlyChannel {
+				otherChannelGroup = constants.VersionCandidateChannel
 			}
 
 			By("Retrieve latest version")
-			versions := cms.SortVersions(cms.HCPEnabledVersions(ci.RHCSConnection, otherChannelGroup))
+			versions := cms.SortVersions(cms.HCPEnabledVersions(cms.RHCSConnection, otherChannelGroup))
 			lastVersion := versions[len(versions)-1]
 
 			if lastVersion.RawID != currentVersion {
@@ -314,9 +316,9 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			}
 
 			By("Try to edit channel_group")
-			otherChannelGroup = "stable"
-			if profile.ChannelGroup == exec.StableChannel {
-				otherChannelGroup = exec.CandidateChannel
+			otherChannelGroup = constants.VersionStableChannel
+			if profileHandler.Profile().GetChannelGroup() == constants.VersionStableChannel {
+				otherChannelGroup = constants.VersionCandidateChannel
 			}
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.ChannelGroup = helper.StringPointer(otherChannelGroup)
@@ -326,13 +328,13 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 		It("private fields - [id:72480]", ci.Medium, ci.FeatureClusterPrivate, func() {
 			By("Try to edit private")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.Private = helper.BoolPointer(!profile.Private)
+				args.Private = helper.BoolPointer(!profileHandler.Profile().IsPrivate())
 			}, "Attribute private, cannot be changed from")
 		})
 
 		It("imdsv2 fields - [id:75414]", ci.Medium, ci.FeatureClusterIMDSv2, func() {
 			By("Try to edit ec2_metadata_http_tokens value")
-			otherHttpToken := profile.Ec2MetadataHttpTokens
+			otherHttpToken := profileHandler.Profile().GetImdsv2()
 			if otherHttpToken == constants.RequiredEc2MetadataHttpTokens {
 				otherHttpToken = constants.OptionalEc2MetadataHttpTokens
 			} else {
@@ -346,7 +348,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 		It("encryption fields - [id:72487]", ci.Medium, ci.FeatureClusterEncryption, func() {
 			By("Try to edit etcd_encryption")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.Etcd = helper.BoolPointer(!profile.Etcd)
+				args.Etcd = helper.BoolPointer(!profileHandler.Profile().IsEtcd())
 			}, "Attribute etcd_encryption, cannot be changed from")
 
 			By("Try to edit etcd_kms_key_arn")
@@ -473,10 +475,10 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 		It("security groups - [id:69145]",
 			ci.Exclude, ci.Day2,
 			func() {
-				if profile.GetClusterType().HCP {
+				if profileHandler.Profile().IsHCP() {
 					Skip("Test can run only on Classic cluster")
 				}
-				clusterService, err := exec.NewClusterService(profile.GetClusterManifestsDir())
+				clusterService, err := profileHandler.Services().GetClusterService()
 				Expect(err).ToNot(HaveOccurred())
 				output, err := clusterService.Output()
 				Expect(err).ToNot(HaveOccurred())
@@ -485,19 +487,19 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 						AdditionalComputeSecurityGroups:      helper.StringSlicePointer(output.AdditionalComputeSecurityGroups[0:1]),
 						AdditionalInfraSecurityGroups:        helper.StringSlicePointer(output.AdditionalInfraSecurityGroups),
 						AdditionalControlPlaneSecurityGroups: helper.StringSlicePointer(output.AdditionalControlPlaneSecurityGroups),
-						AWSRegion:                            helper.StringPointer(profile.Region),
+						AWSRegion:                            helper.StringPointer(profileHandler.Profile().GetRegion()),
 					},
 					"aws_additional_infra_security_group_ids": {
 						AdditionalInfraSecurityGroups:        helper.StringSlicePointer(output.AdditionalInfraSecurityGroups[0:1]),
 						AdditionalComputeSecurityGroups:      helper.StringSlicePointer(output.AdditionalComputeSecurityGroups),
 						AdditionalControlPlaneSecurityGroups: helper.StringSlicePointer(output.AdditionalControlPlaneSecurityGroups),
-						AWSRegion:                            helper.StringPointer(profile.Region),
+						AWSRegion:                            helper.StringPointer(profileHandler.Profile().GetRegion()),
 					},
 					"aws_additional_control_plane_security_group_ids": {
 						AdditionalControlPlaneSecurityGroups: helper.StringSlicePointer(output.AdditionalControlPlaneSecurityGroups[0:1]),
 						AdditionalComputeSecurityGroups:      helper.StringSlicePointer(output.AdditionalComputeSecurityGroups),
 						AdditionalInfraSecurityGroups:        helper.StringSlicePointer(output.AdditionalInfraSecurityGroups),
-						AWSRegion:                            helper.StringPointer(profile.Region),
+						AWSRegion:                            helper.StringPointer(profileHandler.Profile().GetRegion()),
 					},
 				}
 				for keyword, updatingArgs := range args {
@@ -512,7 +514,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 		It("autoscaling change - [id:63147]",
 			ci.Medium,
 			func() {
-				if profile.GetClusterType().HCP {
+				if profileHandler.Profile().IsHCP() {
 					Skip("This case only works for classic now")
 				}
 
@@ -523,7 +525,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 					MaxReplicas:        helper.IntPointer(6),
 				}
 
-				if profile.Autoscale {
+				if profileHandler.Profile().IsAutoscale() {
 					clusterArgs.Autoscaling = &exec.Autoscaling{
 						AutoscalingEnabled: helper.BoolPointer(false),
 					}

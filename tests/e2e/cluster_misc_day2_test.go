@@ -11,6 +11,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 
 var _ = Describe("Cluster miscellaneous", func() {
@@ -18,20 +19,21 @@ var _ = Describe("Cluster miscellaneous", func() {
 
 	var (
 		clusterService           exec.ClusterService
-		err                      error
-		profile                  *ci.Profile
+		profileHandler           profilehandler.ProfileHandler
 		originalCustomProperties map[string]string
 		clusterArgs              *exec.ClusterArgs
 	)
 
 	BeforeEach(func() {
+		var err error
 		// Load profile from YAML file based on environment
 		By("Load profile")
-		profile = ci.LoadProfileYamlFileByENV()
+		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
+		Expect(err).ShouldNot(HaveOccurred())
 
 		// Initialize the cluster service
 		By("Create cluster service")
-		clusterService, err = exec.NewClusterService(profile.GetClusterManifestsDir())
+		clusterService, err = profileHandler.Services().GetClusterService()
 		Expect(err).ShouldNot(HaveOccurred())
 
 		// Read terraform.tfvars file and get its content as a map
@@ -46,13 +48,13 @@ var _ = Describe("Cluster miscellaneous", func() {
 		clusterArgs.CustomProperties = helper.StringMapPointer(originalCustomProperties)
 
 		// Restore cluster state
-		_, err = clusterService.Apply(clusterArgs)
+		_, err := clusterService.Apply(clusterArgs)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	It("should validate custom property operations on cluster - [id:64907]",
 		ci.Day2, ci.Medium, ci.FeatureClusterMisc, func() {
-			if profile.GetClusterType().HCP {
+			if profileHandler.Profile().IsHCP() {
 				Skip("Test can run only on Classic cluster")
 			}
 
@@ -62,11 +64,11 @@ var _ = Describe("Cluster miscellaneous", func() {
 
 			// Apply updated custom properties to the cluster
 			clusterArgs.CustomProperties = helper.StringMapPointer(updatedCustomProperties)
-			_, err = clusterService.Apply(clusterArgs)
+			_, err := clusterService.Apply(clusterArgs)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Validating cluster's custom property update
-			clusterDetails, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			clusterDetails, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(clusterDetails.Body().Properties()["second_custom_property"]).Should(Equal(updatedCustomProperties["second_custom_property"]))
 
@@ -81,7 +83,7 @@ var _ = Describe("Cluster miscellaneous", func() {
 		})
 
 	It("can edit/delete cluster properties - [id:72451]", ci.Day2, ci.Medium, ci.FeatureClusterMisc, func() {
-		if !profile.GetClusterType().HCP {
+		if !profileHandler.Profile().IsHCP() {
 			Skip("Test can run only on Hosted cluster")
 		}
 
@@ -91,11 +93,11 @@ var _ = Describe("Cluster miscellaneous", func() {
 		updatedCustomProperties["some"] = "thing"
 		updatedCustomProperties["nothing"] = ""
 		clusterArgs.CustomProperties = helper.StringMapPointer(updatedCustomProperties)
-		_, err = clusterService.Apply(clusterArgs)
+		_, err := clusterService.Apply(clusterArgs)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("Verify new properties from cluster")
-		clusterDetails, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+		clusterDetails, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(clusterDetails.Body().Properties()["some"]).Should(Equal(updatedCustomProperties["some"]))
 		Expect(clusterDetails.Body().Properties()["nothing"]).Should(Equal(updatedCustomProperties["nothing"]))
@@ -107,7 +109,7 @@ var _ = Describe("Cluster miscellaneous", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("Verify updated properties from cluster")
-		clusterDetails, err = cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+		clusterDetails, err = cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(clusterDetails.Body().Properties()["some"]).Should(Equal(updatedCustomProperties["some"]))
 		Expect(clusterDetails.Body().Properties()["nothing"]).To(Equal(updatedCustomProperties["nothing"]))
@@ -118,7 +120,7 @@ var _ = Describe("Cluster miscellaneous", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		By("Verify properties are removed from cluster")
-		clusterDetails, err = cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+		clusterDetails, err = cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(clusterDetails.Body().Properties()["some"]).To(BeEmpty())
 		Expect(clusterDetails.Body().Properties()["nothing"]).To(BeEmpty())

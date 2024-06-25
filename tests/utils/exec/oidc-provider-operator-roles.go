@@ -2,6 +2,7 @@ package exec
 
 import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
 )
 
 type OIDCProviderOperatorRolesArgs struct {
@@ -34,13 +35,9 @@ type oidcProviderOperatorRolesService struct {
 	tfExecutor TerraformExecutor
 }
 
-func NewOIDCProviderOperatorRolesService(manifestsDirs ...string) (OIDCProviderOperatorRolesService, error) {
-	manifestsDir := constants.OIDCProviderOperatorRolesClassicManifestDir
-	if len(manifestsDirs) > 0 {
-		manifestsDir = manifestsDirs[0]
-	}
+func NewOIDCProviderOperatorRolesService(tfWorkspace string, clusterType constants.ClusterType) (OIDCProviderOperatorRolesService, error) {
 	svc := &oidcProviderOperatorRolesService{
-		tfExecutor: NewTerraformExecutor(manifestsDir),
+		tfExecutor: NewTerraformExecutor(tfWorkspace, manifests.GetAWSOIDCProviderOperatorRolesManifestDir(clusterType)),
 	}
 	err := svc.Init()
 	return svc, err

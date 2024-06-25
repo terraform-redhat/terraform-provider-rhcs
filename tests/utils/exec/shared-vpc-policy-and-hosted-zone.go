@@ -2,6 +2,7 @@ package exec
 
 import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
 )
 
 type SharedVpcPolicyAndHostedZoneArgs struct {
@@ -39,13 +40,9 @@ type sharedVpcPolicyAndHostedZoneService struct {
 	tfExecutor TerraformExecutor
 }
 
-func NewSharedVpcPolicyAndHostedZoneService(manifestsDirs ...string) (SharedVpcPolicyAndHostedZoneService, error) {
-	manifestsDir := constants.SharedVpcPolicyAndHostedZoneDir
-	if len(manifestsDirs) > 0 {
-		manifestsDir = manifestsDirs[0]
-	}
+func NewSharedVpcPolicyAndHostedZoneService(tfWorkspace string, clusterType constants.ClusterType) (SharedVpcPolicyAndHostedZoneService, error) {
 	svc := &sharedVpcPolicyAndHostedZoneService{
-		tfExecutor: NewTerraformExecutor(manifestsDir),
+		tfExecutor: NewTerraformExecutor(tfWorkspace, manifests.GetAWSSharedVPCPolicyAndHostedZoneManifestDir(clusterType)),
 	}
 	err := svc.Init()
 	return svc, err

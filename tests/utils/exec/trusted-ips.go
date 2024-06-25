@@ -2,6 +2,7 @@ package exec
 
 import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
 )
 
 type TrustedIPsArgs struct {
@@ -36,13 +37,9 @@ type trustedIPsService struct {
 	tfExecutor TerraformExecutor
 }
 
-func NewTrustedIPsService(manifestsDirs ...string) (TrustedIPsService, error) {
-	manifestsDir := constants.TrustedIPsDir
-	if len(manifestsDirs) > 0 {
-		manifestsDir = manifestsDirs[0]
-	}
+func NewTrustedIPsService(tfWorkspace string, clusterType constants.ClusterType) (TrustedIPsService, error) {
 	svc := &trustedIPsService{
-		tfExecutor: NewTerraformExecutor(manifestsDir),
+		tfExecutor: NewTerraformExecutor(tfWorkspace, manifests.GetTrustedIPsManifestsDir(clusterType)),
 	}
 	err := svc.Init()
 	return svc, err

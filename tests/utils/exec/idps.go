@@ -1,6 +1,9 @@
 package exec
 
-import "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+import (
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
+)
 
 type IDPArgs struct {
 	ClusterID      *string           `hcl:"cluster_id"`
@@ -44,6 +47,8 @@ type IDPService interface {
 	Output() (*IDPOutput, error)
 	Destroy() (string, error)
 
+	GetStateResource(resourceType string, resoureName string) (interface{}, error)
+
 	ReadTFVars() (*IDPArgs, error)
 	DeleteTFVars() error
 }
@@ -52,13 +57,9 @@ type idpService struct {
 	tfExecutor TerraformExecutor
 }
 
-func NewIDPService(manifestsDirs ...string) (IDPService, error) {
-	manifestsDir := constants.IDPsDir
-	if len(manifestsDirs) > 0 {
-		manifestsDir = manifestsDirs[0]
-	}
+func NewIDPService(tfWorkspace string, clusterType constants.ClusterType, idpType constants.IDPType) (IDPService, error) {
 	svc := &idpService{
-		tfExecutor: NewTerraformExecutor(manifestsDir),
+		tfExecutor: NewTerraformExecutor(tfWorkspace, manifests.GetIDPManifestsDir(clusterType, idpType)),
 	}
 	err := svc.Init()
 	return svc, err
@@ -88,6 +89,10 @@ func (svc *idpService) Output() (*IDPOutput, error) {
 
 func (svc *idpService) Destroy() (string, error) {
 	return svc.tfExecutor.RunTerraformDestroy()
+}
+
+func (svc *idpService) GetStateResource(resourceType string, resoureName string) (interface{}, error) {
+	return svc.tfExecutor.GetStateResource(resourceType, resoureName)
 }
 
 func (svc *idpService) ReadTFVars() (*IDPArgs, error) {

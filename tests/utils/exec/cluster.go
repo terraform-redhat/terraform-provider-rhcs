@@ -1,6 +1,9 @@
 package exec
 
-import "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+import (
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
+)
 
 type ClusterArgs struct {
 	AccountRolePrefix                    *string            `hcl:"account_role_prefix"`
@@ -87,36 +90,14 @@ type ClusterOutput struct {
 	UserTags                             map[string]string `json:"tags,omitempty"`
 }
 
-// ******************************************************
-// RHCS test cases used
-const (
-
-	// MaxExpiration in unit of hour
-	MaxExpiration = 168
-
-	// MaxNodeNumber means max node number per cluster/machinepool
-	MaxNodeNumber = 180
-
-	// MaxNameLength means cluster name will be trimed when request certificate
-	MaxNameLength = 15
-
-	MaxIngressNumber = 2
-)
-
-// version channel_groups
-const (
-	FastChannel      = "fast"
-	StableChannel    = "stable"
-	NightlyChannel   = "nightly"
-	CandidateChannel = "candidate"
-)
-
 type ClusterService interface {
 	Init() error
 	Plan(args *ClusterArgs) (string, error)
 	Apply(args *ClusterArgs) (string, error)
 	Output() (*ClusterOutput, error)
 	Destroy() (string, error)
+
+	GetStateResource(resourceType string, resoureName string) (interface{}, error)
 
 	ReadTFVars() (*ClusterArgs, error)
 	WriteTFVars(args *ClusterArgs) error
@@ -127,10 +108,9 @@ type clusterService struct {
 	tfExecutor TerraformExecutor
 }
 
-func NewClusterService(manifestDir string) (ClusterService, error) {
-	manifestsDir := constants.GrantClusterManifestDir(manifestDir)
+func NewClusterService(tfWorkspace string, clusterType constants.ClusterType) (ClusterService, error) {
 	svc := &clusterService{
-		tfExecutor: NewTerraformExecutor(manifestsDir),
+		tfExecutor: NewTerraformExecutor(tfWorkspace, manifests.GetClusterManifestsDir(clusterType)),
 	}
 	err := svc.Init()
 	return svc, err
@@ -160,6 +140,10 @@ func (svc *clusterService) Output() (*ClusterOutput, error) {
 
 func (svc *clusterService) Destroy() (string, error) {
 	return svc.tfExecutor.RunTerraformDestroy()
+}
+
+func (svc *clusterService) GetStateResource(resourceType string, resoureName string) (interface{}, error) {
+	return svc.tfExecutor.GetStateResource(resourceType, resoureName)
 }
 
 func (svc *clusterService) ReadTFVars() (*ClusterArgs, error) {

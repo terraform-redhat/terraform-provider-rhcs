@@ -28,6 +28,7 @@ type TerraformExecutor interface {
 	RunTerraformOutput() (string, error)
 	RunTerraformOutputIntoObject(obj any) error
 	RunTerraformState(subcommand string, options ...string) (string, error)
+	GetStateResource(resourceType string, resoureName string) (interface{}, error)
 	RunTerraformImport(importArgs ...string) (string, error)
 
 	ReadTerraformVars(obj interface{}) error
@@ -37,17 +38,19 @@ type TerraformExecutor interface {
 
 type terraformExecutorContext struct {
 	manifestsDir string
+	tfWorkspace  string
 }
 
-func NewTerraformExecutor(manifestsDir string) TerraformExecutor {
+func NewTerraformExecutor(tfWorkspace string, manifestsDir string) TerraformExecutor {
 	return &terraformExecutorContext{
 		manifestsDir: manifestsDir,
+		tfWorkspace:  tfWorkspace,
 	}
 }
 
 // ************************ TF CMD***********************************
 func (ctx *terraformExecutorContext) runTerraformCommand(tfCmd string, cmdFlags ...string) (string, error) {
-	Logger.Infof("Running terraform %s against the dir %s", tfCmd, ctx.manifestsDir)
+	Logger.Infof("Running terraform %s in workspace %s and against the dir %s", tfCmd, ctx.tfWorkspace, ctx.manifestsDir)
 	cmd, flags := getTerraformCommand(tfCmd, cmdFlags...)
 	Logger.Debugf("Running terraform command: %v", flags)
 	return ctx.execCommand(cmd, flags)
@@ -61,6 +64,9 @@ func getTerraformCommand(tfCmd string, cmdFlags ...string) (string, []string) {
 
 func (ctx *terraformExecutorContext) execCommand(cmd string, flags []string) (output string, err error) {
 	finalCmd := exec.Command(cmd, flags...)
+	if ctx.tfWorkspace != "" {
+		finalCmd.Env = append(os.Environ(), fmt.Sprintf("TF_WORKSPACE=%s", ctx.tfWorkspace))
+	}
 	finalCmd.Dir = ctx.manifestsDir
 	var stdoutput bytes.Buffer
 	finalCmd.Stdout = &stdoutput
@@ -234,12 +240,58 @@ func DeleteTFvarsFile(tfVarsFile string) error {
 }
 
 func (ctx *terraformExecutorContext) grantTFvarsFile() string {
-	// We don't name it `terraform.tfvars` as that one is load automatically
-	// See https://developer.hashicorp.com/terraform/language/values/variables#variable-definition-precedence
-	// And we don't want to load them when applying new values
-	return path.Join(ctx.manifestsDir, fmt.Sprintf(tfVarsFilenameTemplate, "e2e"))
+	return path.Join(ctx.getTFVarsWorkspaceFolder(), "terraform.tfvars")
 }
 
 func (ctx *terraformExecutorContext) grantTFvarsTempFile() string {
-	return path.Join(ctx.manifestsDir, fmt.Sprintf(tfVarsFilenameTemplate, "e2e.tmp"))
+	return path.Join(ctx.getTFVarsWorkspaceFolder(), "terraform.tmp.tfvars")
+}
+
+func (ctx *terraformExecutorContext) getTFVarsWorkspaceFolder() string {
+	wk := "e2e"
+	if ctx.tfWorkspace != "" {
+		wk = ctx.tfWorkspace
+	}
+	path := path.Join(ctx.manifestsDir, "terraform.tfvars.d", wk)
+	err := os.MkdirAll(path, 0777)
+	if err != nil {
+		panic(err)
+	}
+	return path
+}
+
+func (ctx *terraformExecutorContext) grantTFstateFile() string {
+	parentPath := path.Join(ctx.manifestsDir)
+	if ctx.tfWorkspace != "" {
+		parentPath = path.Join(ctx.manifestsDir, "terraform.tfstate.d", ctx.tfWorkspace)
+	}
+	return path.Join(parentPath, "terraform.tfstate")
+}
+
+// Get the resoources state from the terraform.tfstate file by resource type and name
+func (ctx *terraformExecutorContext) GetStateResource(resourceType string, resoureName string) (interface{}, error) {
+	// Check if there is a terraform.tfstate file in the manifest directory
+	stateFile := ctx.grantTFstateFile()
+	if _, err := os.Stat(stateFile); err == nil {
+		// Read the terraform.tfstate file
+		data, err := os.ReadFile(stateFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to readFile %s folder,%v", stateFile, err)
+		}
+		// Unmarshal the data from the terraform.tfstate file
+		var state map[string]interface{}
+		err = json.Unmarshal(data, &state)
+		if err != nil {
+			return nil, fmt.Errorf("failed to Unmarshal state %v", err)
+		}
+		//Find resource by resource type and resource name
+		for _, resource := range state["resources"].([]interface{}) {
+			if helper.DigString(resource, "type") == resourceType && helper.DigString(resource, "name") == resoureName && resource != nil {
+				return resource, err
+			}
+		}
+
+		return nil, fmt.Errorf("no resource named %s of type %s is found", resoureName, resourceType)
+	}
+	return nil, fmt.Errorf("terraform.tfstate file doesn't exist in %s folder", ctx.manifestsDir)
 }

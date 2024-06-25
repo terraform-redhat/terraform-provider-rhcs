@@ -15,13 +15,14 @@ import (
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 
 	"github.com/openshift-online/ocm-common/pkg/aws/aws_client"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 
 var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 	defer GinkgoRecover()
 
 	var (
-		profile                 *ci.Profile
+		profileHandler          profilehandler.ProfileHandler
 		originalClusterVarsFile string
 		clusterService          exec.ClusterService
 	)
@@ -49,17 +50,19 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 	}
 
 	BeforeAll(func() {
-		profile = ci.LoadProfileYamlFileByENV()
+		var err error
+		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
+		Expect(err).ToNot(HaveOccurred())
 
-		originalClusterArgs, err := ci.GenerateClusterCreationArgsByProfile(token, profile)
+		originalClusterArgs, err := profileHandler.GenerateClusterCreationArgs(token)
 		if err != nil {
-			defer ci.DestroyRHCSClusterResourcesByProfile(token, profile)
+			defer profileHandler.DestroyRHCSClusterResources(token)
 		}
 		Expect(err).ToNot(HaveOccurred())
 
-		clusterService, err = exec.NewClusterService(profile.GetClusterManifestsDir())
+		clusterService, err = profileHandler.Services().GetClusterService()
 		if err != nil {
-			defer ci.DestroyRHCSClusterResourcesByProfile(token, profile)
+			defer profileHandler.DestroyRHCSClusterResources(token)
 		}
 		Expect(err).ToNot(HaveOccurred())
 
@@ -76,15 +79,15 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 			exec.DeleteTFvarsFile(originalClusterVarsFile)
 		}
 
-		ci.DestroyRHCSClusterResourcesByProfile(token, profile)
+		profileHandler.DestroyRHCSClusterResources(token)
 	})
 
 	Describe("cluster admin", ci.Day1Negative, func() {
 		BeforeEach(OncePerOrdered, func() {
-			if profile.GetClusterType().HCP {
+			if profileHandler.Profile().IsHCP() {
 				Skip("Test can run only on Classic cluster")
 			}
-			if !profile.AdminEnabled {
+			if !profileHandler.Profile().IsAdminEnabled() {
 				Skip("The tests configured for cluster admin only")
 			}
 		})
@@ -132,7 +135,7 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 
 	Describe("Create HCP cluster", ci.Day1Negative, func() {
 		BeforeEach(OncePerOrdered, func() {
-			if !profile.GetClusterType().HCP {
+			if !profileHandler.Profile().IsHCP() {
 				Skip("Test can run only on Hosted cluster")
 			}
 		})
@@ -230,12 +233,12 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 			}, "Could not find versions")
 
 			By("Create cluster with version from another channel group")
-			versions := cms.HCPEnabledVersions(ci.RHCSConnection, exec.CandidateChannel)
+			versions := cms.HCPEnabledVersions(cms.RHCSConnection, constants.VersionCandidateChannel)
 			versions = cms.SortVersions(versions)
 			vs := versions[len(versions)-1].RawID
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.OpenshiftVersion = helper.StringPointer(vs)
-				args.ChannelGroup = helper.StringPointer(exec.StableChannel)
+				args.ChannelGroup = helper.StringPointer(constants.VersionStableChannel)
 			}, fmt.Sprintf("version %s is not in the list of supported versions", vs))
 		})
 
@@ -354,7 +357,7 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 
 		It("validate network fields - [id:72468]", ci.Medium, func() {
 			By("Retrieve VPC output")
-			vpcService, err := exec.NewVPCService(constants.GetAWSVPCDefaultManifestDir(profile.GetClusterType()))
+			vpcService, err := profileHandler.Services().GetVPCService()
 			Expect(err).ToNot(HaveOccurred())
 			vpcOutput, err := vpcService.Output()
 			Expect(err).ToNot(HaveOccurred())
@@ -366,7 +369,7 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 
 			By("Create cluster with AZ not in region name")
 			az := "us-west-2a"
-			if profile.Region == "us-west-2" {
+			if profileHandler.Profile().GetRegion() == "us-west-2" {
 				az = "us-east-1a"
 			}
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
@@ -540,7 +543,7 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 
 	Describe("The EOL OCP version validation", ci.Day1Negative, func() {
 		It("version validation - [id:64095]", ci.Medium, func() {
-			if profile.AdditionalSGNumber > 0 {
+			if profileHandler.Profile().GetAdditionalSGNumber() > 0 {
 				Skip("Test is not made when security groups is enabled as the message will not be related to EOL support")
 			}
 			By("create cluster with an EOL OCP version")

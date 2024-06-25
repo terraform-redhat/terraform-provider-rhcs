@@ -1,6 +1,9 @@
 package exec
 
-import "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+import (
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
+)
 
 type ClusterAutoscalerArgs struct {
 	Cluster                     *string         `hcl:"cluster_id"`
@@ -74,13 +77,9 @@ type clusterAutoscalerService struct {
 	tfExecutor TerraformExecutor
 }
 
-func NewClusterAutoscalerService(manifestsDirs ...string) (ClusterAutoscalerService, error) {
-	manifestsDir := constants.ClassicClusterAutoscalerDir
-	if len(manifestsDirs) > 0 {
-		manifestsDir = manifestsDirs[0]
-	}
+func NewClusterAutoscalerService(tfWorkspace string, clusterType constants.ClusterType) (ClusterAutoscalerService, error) {
 	svc := &clusterAutoscalerService{
-		tfExecutor: NewTerraformExecutor(manifestsDir),
+		tfExecutor: NewTerraformExecutor(tfWorkspace, manifests.GetClusterAutoscalerManifestsDir(clusterType)),
 	}
 	err := svc.Init()
 	return svc, err

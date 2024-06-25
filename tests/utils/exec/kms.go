@@ -2,6 +2,7 @@ package exec
 
 import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
 )
 
 type KMSArgs struct {
@@ -34,13 +35,9 @@ type kmsService struct {
 	tfExecutor TerraformExecutor
 }
 
-func NewKMSService(manifestsDirs ...string) (KMSService, error) {
-	manifestsDir := constants.KMSDir
-	if len(manifestsDirs) > 0 {
-		manifestsDir = manifestsDirs[0]
-	}
+func NewKMSService(tfWorkspace string, clusterType constants.ClusterType) (KMSService, error) {
 	svc := &kmsService{
-		tfExecutor: NewTerraformExecutor(manifestsDir),
+		tfExecutor: NewTerraformExecutor(tfWorkspace, manifests.GetAWSKMSManifestDir(clusterType)),
 	}
 	err := svc.Init()
 	return svc, err

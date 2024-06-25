@@ -1,6 +1,9 @@
 package exec
 
-import "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+import (
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
+)
 
 type ClusterWaiterArgs struct {
 	Cluster      *string `hcl:"cluster_id"`
@@ -27,9 +30,9 @@ type clusterWaiterService struct {
 	tfExecutor TerraformExecutor
 }
 
-func NewClusterWaiterService() (ClusterWaiterService, error) {
+func NewClusterWaiterService(tfWorkspace string, clusterType constants.ClusterType) (ClusterWaiterService, error) {
 	svc := &clusterWaiterService{
-		tfExecutor: NewTerraformExecutor(constants.ClusterWaiterDir),
+		tfExecutor: NewTerraformExecutor(tfWorkspace, manifests.GetClusterWaiterManifestsDir(clusterType)),
 	}
 	err := svc.Init()
 	return svc, err

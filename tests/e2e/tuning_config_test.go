@@ -8,18 +8,18 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 	"gopkg.in/yaml.v2"
 )
 
 var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 	var (
-		tcService exec.TuningConfigService
-		mpService exec.MachinePoolService
-		profile   *ci.Profile
+		profileHandler profilehandler.ProfileHandler
+		tcService      exec.TuningConfigService
+		mpService      exec.MachinePoolService
 	)
 
 	verifyTuningConfigSpec := func(spec interface{}, profileName string, specVmDirtyRatio, specPriority int) {
@@ -33,16 +33,17 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 	}
 
 	BeforeEach(func() {
-		profile = ci.LoadProfileYamlFileByENV()
+		var err error
+		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
+		Expect(err).ToNot(HaveOccurred())
 
-		if !profile.GetClusterType().HCP {
+		if !profileHandler.Profile().IsHCP() {
 			Skip("Test can run only on Hosted cluster")
 		}
 
-		var err error
-		mpService, err = exec.NewMachinePoolService(constants.HCPMachinePoolDir)
+		mpService, err = profileHandler.Services().GetMachinePoolsService()
 		Expect(err).ToNot(HaveOccurred())
-		tcService, err = exec.NewTuningConfigService(constants.TuningConfigDir)
+		tcService, err = profileHandler.Services().GetTuningConfigService()
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -77,7 +78,7 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify tuning config")
-		tcsResp, err := cms.ListTuningConfigs(ci.RHCSConnection, clusterID)
+		tcsResp, err := cms.ListTuningConfigs(cms.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(tcsResp.Size()).To(Equal(tcCount))
 		tc := tcsResp.Items().Get(0)
@@ -102,7 +103,7 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify tuning configs")
-		tcsResp, err = cms.ListTuningConfigs(ci.RHCSConnection, clusterID)
+		tcsResp, err = cms.ListTuningConfigs(cms.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(tcsResp.Size()).To(Equal(tcCount))
 		var expectedNames []string
@@ -141,7 +142,7 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify tuning configs")
-		tcsResp, err = cms.ListTuningConfigs(ci.RHCSConnection, clusterID)
+		tcsResp, err = cms.ListTuningConfigs(cms.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(tcsResp.Size()).To(Equal(tcCount))
 		expectedNames = []string{}
@@ -215,7 +216,7 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Try to edit cluster with other cluster ID")
-		clustersResp, err := cms.ListClusters(ci.RHCSConnection)
+		clustersResp, err := cms.ListClusters(cms.RHCSConnection)
 		Expect(err).ToNot(HaveOccurred())
 		var otherClusterID string
 		for _, cluster := range clustersResp.Items().Slice() {
@@ -257,7 +258,7 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 		}, "cannot unmarshal string")
 
 		By("Get vpc output")
-		vpcService, err := exec.NewVPCService(constants.GetAWSVPCDefaultManifestDir(profile.GetClusterType()))
+		vpcService, err := profileHandler.Services().GetVPCService()
 		Expect(err).ToNot(HaveOccurred())
 		vpcOutput, err := vpcService.Output()
 		Expect(err).ToNot(HaveOccurred())

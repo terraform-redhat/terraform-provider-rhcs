@@ -1,19 +1,62 @@
-package ci
+package profilehandler
 
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"slices"
 	"sort"
 	"strings"
 
 	rosa "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common"
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	EXE "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+
+	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
 // The cfg will be used to define the testing environment
-var cfg = CON.RHCS
+var cfg = constants.RHCS
+
+func loadProfileYamlFile(profileName string) (*Profile, error) {
+	p, err := helper.GetProfile(profileName, GetYAMLProfilesDir())
+	if err != nil {
+		return nil, err
+	}
+	Logger.Infof("Loaded cluster profile configuration from profile %s : %v", profileName, p.Cluster)
+	profile := Profile{
+		Name: profileName,
+	}
+	err = helper.MapStructure(p.Cluster, &profile)
+	return &profile, err
+}
+
+func LoadProfileYamlFileByENV() (profile *Profile, err error) {
+	profileEnv := os.Getenv(constants.RhcsClusterProfileENV)
+	if profileEnv == "" {
+		panic(fmt.Errorf("ENV Variable CLUSTER_PROFILE is empty, please make sure you set the env value"))
+	}
+	profile, err = loadProfileYamlFile(profileEnv)
+	if err != nil {
+		return
+	}
+
+	// Supporting global env setting to overrite profile settings
+	if os.Getenv("CHANNEL_GROUP") != "" {
+		Logger.Infof("Got global env settings for CHANNEL_GROUP, overwritten the profile setting with value %s", os.Getenv("CHANNEL_GROUP"))
+		profile.ChannelGroup = os.Getenv("CHANNEL_GROUP")
+	}
+	if os.Getenv("VERSION") != "" {
+		Logger.Infof("Got global env settings for VERSION, overwritten the profile setting with value %s", os.Getenv("VERSION"))
+		profile.Version = os.Getenv("VERSION")
+	}
+	if os.Getenv("REGION") != "" {
+		Logger.Infof("Got global env settings for REGION, overwritten the profile setting with value %s", os.Getenv("REGION"))
+		profile.Region = os.Getenv("REGION")
+	}
+	return
+}
 
 func GetYAMLProfilesDir() string {
 	return cfg.YAMLProfilesDir
@@ -74,6 +117,33 @@ func convertToString(searchMap map[string]interface{}) (filter string) {
 	return
 }
 
+func getRandomProfile(clusterTypes ...constants.ClusterType) (profile *Profile, err error) {
+	if len(clusterTypes) > 0 {
+		Logger.Infof("Get random profile for cluster types: %v", clusterTypes)
+	} else {
+		Logger.Info("Get random profile from all profiles")
+	}
+
+	profilesMap, err := helper.ParseProfiles(GetYAMLProfilesDir())
+	if err != nil {
+		return
+	}
+	profilesNames := make([]string, 0, len(profilesMap))
+	for k, v := range profilesMap {
+		clusterType := constants.FindClusterType(fmt.Sprintf("%v", v.Cluster["cluster_type"]))
+		if !v.NeedSpecificConfig {
+			if len(clusterTypes) <= 0 || slices.Contains(clusterTypes, clusterType) {
+				profilesNames = append(profilesNames, k)
+			}
+		}
+	}
+	Logger.Debugf("Got profile names %v", profilesNames)
+	profileName := profilesMap[profilesNames[helper.RandomInt(len(profilesNames))]].Name
+	profile, err = loadProfileYamlFile(profileName)
+	Logger.Debugf("Choose profile: %s", profile.Name)
+	return profile, err
+}
+
 // ConvertFilterToString will Convert a fileter struct to a string
 // if "like" in the value will be keeped
 // if no 'like' in value, the string will contains key=value
@@ -85,8 +155,8 @@ func ConvertFilterToString(qs interface{}) (filter string) {
 }
 
 func TrimName(name string) string {
-	if len(name) >= EXE.MaxNameLength {
-		name = name[0:EXE.MaxNameLength]
+	if len(name) >= constants.ClusterMaxNameLength {
+		name = name[0:constants.ClusterMaxNameLength]
 	}
 	return name
 }
@@ -94,7 +164,7 @@ func TrimName(name string) string {
 func TrimVersion(version string, groupChannel string) string {
 	prefix := rosa.VersionPrefix
 	suffix := ""
-	if groupChannel != EXE.StableChannel {
+	if groupChannel != constants.VersionStableChannel {
 		suffix = "-" + groupChannel
 	}
 	trimedVersion := h.Rstrip(h.Lstrip(version, prefix), suffix)
@@ -115,7 +185,7 @@ func ElementInArray(target string, str_array []string) bool {
 // If num 0 and itemkey id passed it will return the itemkey value with index 0
 func GetElements(content map[string]interface{}, element string, num ...int) interface{} {
 	var result []interface{}
-	keys := strings.Split(element, CON.DotConnector)
+	keys := strings.Split(element, constants.DotConnector)
 	var keysInterface []interface{}
 	for _, key := range keys {
 		keysInterface = append(keysInterface, key)

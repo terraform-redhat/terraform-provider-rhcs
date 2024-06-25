@@ -8,25 +8,31 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
+
+	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
 var _ = Describe("Edit Account roles", func() {
 	// To improve with OCM-8602
 	defer GinkgoRecover()
 
-	var err error
-	var profile *ci.Profile
-	var accService exec.AccountRoleService
+	var (
+		accService     exec.AccountRoleService
+		profileHandler profilehandler.ProfileHandler
+	)
 
 	BeforeEach(func() {
-		profile = ci.LoadProfileYamlFileByENV()
+		var err error
+		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
 		Expect(err).ToNot(HaveOccurred())
 
-		accService, err = exec.NewAccountRoleService(constants.GetAddAccountRoleDefaultManifestDir(profile.GetClusterType()))
+		accTFWorkspace := helper.GenerateRandomName("add-"+profileHandler.Profile().GetName(), 2)
+		accService, err = exec.NewAccountRoleService(accTFWorkspace, profileHandler.Profile().GetClusterType())
 		Expect(err).ToNot(HaveOccurred())
 	})
 	AfterEach(func() {
@@ -37,7 +43,7 @@ var _ = Describe("Edit Account roles", func() {
 		By("Create account roles with empty prefix")
 		args := &exec.AccountRolesArgs{
 			AccountRolePrefix: helper.EmptyStringPointer,
-			OpenshiftVersion:  helper.StringPointer(profile.MajorVersion),
+			OpenshiftVersion:  helper.StringPointer(profileHandler.Profile().GetMajorVersion()),
 		}
 		_, err := accService.Apply(args)
 		Expect(err).ToNot(HaveOccurred())
@@ -48,7 +54,7 @@ var _ = Describe("Edit Account roles", func() {
 		By("Create account roles with no prefix defined")
 		args = &exec.AccountRolesArgs{
 			AccountRolePrefix: nil,
-			OpenshiftVersion:  helper.StringPointer(profile.MajorVersion),
+			OpenshiftVersion:  helper.StringPointer(profileHandler.Profile().GetMajorVersion()),
 		}
 		_, err = accService.Apply(args)
 		Expect(err).ToNot(HaveOccurred())
@@ -61,7 +67,7 @@ var _ = Describe("Edit Account roles", func() {
 	It("can delete account roles via account-role module - [id:63316]", ci.Day2, ci.Critical, func() {
 		args := &exec.AccountRolesArgs{
 			AccountRolePrefix: helper.StringPointer("OCP-63316"),
-			OpenshiftVersion:  helper.StringPointer(profile.MajorVersion),
+			OpenshiftVersion:  helper.StringPointer(profileHandler.Profile().GetMajorVersion()),
 		}
 		_, err := accService.Apply(args)
 		Expect(err).ToNot(HaveOccurred())
@@ -71,34 +77,39 @@ var _ = Describe("Edit Account roles", func() {
 })
 
 var _ = Describe("Create Account roles with shared vpc role", ci.Exclude, func() {
-	// TODO Should be re-enabled with OCM-8602 and usage of different workspaces
-	// Else this test does alter the account role and VPC configuration ...
 	defer GinkgoRecover()
 
-	var err error
-	var profile *ci.Profile
-	var accService exec.AccountRoleService
-	var oidcOpService exec.OIDCProviderOperatorRolesService
-	var dnsService exec.DnsDomainService
-	var vpcService exec.VPCService
-	var sharedVPCService exec.SharedVpcPolicyAndHostedZoneService
+	var (
+		profileHandler   profilehandler.ProfileHandler
+		accService       exec.AccountRoleService
+		oidcOpService    exec.OIDCProviderOperatorRolesService
+		dnsService       exec.DnsDomainService
+		vpcService       exec.VPCService
+		sharedVPCService exec.SharedVpcPolicyAndHostedZoneService
+	)
 
 	BeforeEach(func() {
-		profile = ci.LoadProfileYamlFileByENV()
+		tempWorkspace := helper.GenerateRandomName("ocp-67574"+profileHandler.Profile().GetName(), 2)
+		Logger.Infof("Using temp workspace '%s' for creating resources", tempWorkspace)
+
+		var err error
+		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
 		Expect(err).ToNot(HaveOccurred())
-		accService, err = exec.NewAccountRoleService(constants.GetAccountRoleDefaultManifestDir(profile.GetClusterType()))
+		clusterType := profileHandler.Profile().GetClusterType()
+
+		accService, err = exec.NewAccountRoleService(tempWorkspace, clusterType)
 		Expect(err).ToNot(HaveOccurred())
 
-		oidcOpService, err = exec.NewOIDCProviderOperatorRolesService(constants.GetOIDCProviderOperatorRolesDefaultManifestDir(profile.GetClusterType()))
+		oidcOpService, err = exec.NewOIDCProviderOperatorRolesService(tempWorkspace, clusterType)
 		Expect(err).ToNot(HaveOccurred())
 
-		dnsService, err = exec.NewDnsDomainService()
+		dnsService, err = exec.NewDnsDomainService(tempWorkspace, clusterType)
 		Expect(err).ToNot(HaveOccurred())
 
-		vpcService, err = exec.NewVPCService(constants.GetAWSVPCDefaultManifestDir(profile.GetClusterType()))
+		vpcService, err = exec.NewVPCService(tempWorkspace, clusterType)
 		Expect(err).ToNot(HaveOccurred())
 
-		sharedVPCService, err = exec.NewSharedVpcPolicyAndHostedZoneService()
+		sharedVPCService, err = exec.NewSharedVpcPolicyAndHostedZoneService(tempWorkspace, clusterType)
 		Expect(err).ToNot(HaveOccurred())
 	})
 	AfterEach(func() {
@@ -110,13 +121,13 @@ var _ = Describe("Create Account roles with shared vpc role", ci.Exclude, func()
 	})
 
 	It("create and destroy account roles for shared vpc - [id:67574]", ci.Day2, ci.Medium, func() {
-		if profile.GetClusterType().HCP {
+		if profileHandler.Profile().IsHCP() {
 			Skip("Test can run only on Classic cluster")
 		}
 		By("Create account role without shared vpc role arn")
 		accArgs := &exec.AccountRolesArgs{
-			AccountRolePrefix: helper.StringPointer("OCP-67574"),
-			OpenshiftVersion:  helper.StringPointer(profile.MajorVersion),
+			AccountRolePrefix: helper.StringPointer(helper.GenerateRandomName("OCP-67574", 2)),
+			OpenshiftVersion:  helper.StringPointer(profileHandler.Profile().GetMajorVersion()),
 		}
 		_, err := accService.Apply(accArgs)
 		Expect(err).ToNot(HaveOccurred())
@@ -128,7 +139,7 @@ var _ = Describe("Create Account roles with shared vpc role", ci.Exclude, func()
 		oidcOpArgs := &exec.OIDCProviderOperatorRolesArgs{
 			AccountRolePrefix:  helper.StringPointer(accRoleOutput.AccountRolePrefix),
 			OperatorRolePrefix: helper.StringPointer(accRoleOutput.AccountRolePrefix),
-			OIDCConfig:         helper.StringPointer(profile.OIDCConfig),
+			OIDCConfig:         helper.StringPointer(profileHandler.Profile().GetOIDCConfig()),
 		}
 		_, err = oidcOpService.Apply(oidcOpArgs)
 		Expect(err).ToNot(HaveOccurred())
@@ -152,7 +163,7 @@ var _ = Describe("Create Account roles with shared vpc role", ci.Exclude, func()
 		clusterName := "OCP-67574"
 		vpcArgs := &exec.VPCArgs{
 			NamePrefix:                helper.StringPointer(clusterName),
-			AWSRegion:                 helper.StringPointer(profile.Region),
+			AWSRegion:                 helper.StringPointer(profileHandler.Profile().GetRegion()),
 			VPCCIDR:                   helper.StringPointer(constants.DefaultVPCCIDR),
 			AWSSharedCredentialsFiles: helper.StringSlicePointer([]string{constants.SharedVpcAWSSharedCredentialsFileENV}),
 		}
@@ -162,7 +173,7 @@ var _ = Describe("Create Account roles with shared vpc role", ci.Exclude, func()
 		Expect(err).ToNot(HaveOccurred())
 		sharedVPCArgs := &exec.SharedVpcPolicyAndHostedZoneArgs{
 			SharedVpcAWSSharedCredentialsFiles: helper.StringSlicePointer([]string{constants.SharedVpcAWSSharedCredentialsFileENV}),
-			Region:                             helper.StringPointer(profile.Region),
+			Region:                             helper.StringPointer(profileHandler.Profile().GetRegion()),
 			ClusterName:                        helper.StringPointer(clusterName),
 			DnsDomainId:                        helper.StringPointer(dnsDomainOutput.DnsDomainId),
 			IngressOperatorRoleArn:             helper.StringPointer(oidcOpOutput.IngressOperatorRoleArn),
@@ -179,7 +190,7 @@ var _ = Describe("Create Account roles with shared vpc role", ci.Exclude, func()
 		By("Add shared vpc role arn to account role")
 		accArgs = &exec.AccountRolesArgs{
 			AccountRolePrefix: helper.StringPointer(accRoleOutput.AccountRolePrefix),
-			OpenshiftVersion:  helper.StringPointer(profile.MajorVersion),
+			OpenshiftVersion:  helper.StringPointer(profileHandler.Profile().GetMajorVersion()),
 			SharedVpcRoleArn:  helper.StringPointer(sharedVPCOutput.SharedRole),
 		}
 		_, err = accService.Apply(accArgs)

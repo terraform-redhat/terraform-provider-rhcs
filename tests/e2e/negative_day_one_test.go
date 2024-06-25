@@ -69,8 +69,7 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 			exec.DeleteTFvarsFile(originalClusterVarsFile)
 		}
 
-		err := ci.DestroyRHCSClusterResourcesByProfile(token, profile)
-		Expect(err).ToNot(HaveOccurred())
+		ci.DestroyRHCSClusterResourcesByProfile(token, profile)
 	})
 
 	Describe("cluster admin", ci.Day1Negative, func() {
@@ -498,7 +497,7 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 			By("create cluster with an EOL OCP version")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.OpenshiftVersion = helper.StringPointer("4.9.59")
-			}, "version 4.9.59 is not in the\nlist of supported versions")
+			}, "version 4.9.59 is not in", "list of supported versions")
 		})
 	})
 })

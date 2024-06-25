@@ -9,9 +9,9 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	cms "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	exe "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 
 var _ = Describe("Kubelet config", func() {
@@ -22,12 +22,13 @@ var _ = Describe("Kubelet config", func() {
 	var cluster *cmv1.Cluster
 
 	BeforeEach(func() {
-
 		var err error
-		kcService, err = exe.NewKubeletConfigService(CON.KubeletConfigDir)
+		profileHandler, err := profilehandler.NewProfileHandlerFromYamlFile()
+		Expect(err).ToNot(HaveOccurred())
+		kcService, err = profileHandler.Services().GetKubeletConfigService()
 		Expect(err).ToNot(HaveOccurred())
 
-		resp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+		resp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
 		cluster = resp.Body()
 
@@ -54,12 +55,12 @@ var _ = Describe("Kubelet config", func() {
 		By("Verify the created kubeletconfig")
 		if cluster.Hypershift().Enabled() {
 			for _, kubeConfig := range kubeletconfigs {
-				kubeletConfig, err := cms.RetrieveHCPKubeletConfig(ci.RHCSConnection, clusterID, kubeConfig.ID)
+				kubeletConfig, err := cms.RetrieveHCPKubeletConfig(cms.RHCSConnection, clusterID, kubeConfig.ID)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(kubeletConfig.PodPidsLimit()).To(Equal(podPidsLimit))
 			}
 		} else {
-			kubeletConfig, err := cms.RetrieveKubeletConfig(ci.RHCSConnection, clusterID)
+			kubeletConfig, err := cms.RetrieveKubeletConfig(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(kubeletConfig.PodPidsLimit()).To(Equal(podPidsLimit))
 		}
@@ -73,12 +74,12 @@ var _ = Describe("Kubelet config", func() {
 		By("Verify the updated kubeletconfig")
 		if cluster.Hypershift().Enabled() {
 			for _, kubeConfig := range kubeletconfigs {
-				kubeletConfig, err := cms.RetrieveHCPKubeletConfig(ci.RHCSConnection, clusterID, kubeConfig.ID)
+				kubeletConfig, err := cms.RetrieveHCPKubeletConfig(cms.RHCSConnection, clusterID, kubeConfig.ID)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(kubeletConfig.PodPidsLimit()).To(Equal(podPidsLimit))
 			}
 		} else {
-			kubeletConfig, err := cms.RetrieveKubeletConfig(ci.RHCSConnection, clusterID)
+			kubeletConfig, err := cms.RetrieveKubeletConfig(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(kubeletConfig.PodPidsLimit()).To(Equal(podPidsLimit))
 		}
@@ -90,11 +91,11 @@ var _ = Describe("Kubelet config", func() {
 		By("Verify the created kubeletconfig")
 		if cluster.Hypershift().Enabled() {
 			for _, kubeConfig := range kubeletconfigs {
-				_, err := cms.RetrieveHCPKubeletConfig(ci.RHCSConnection, clusterID, kubeConfig.ID)
+				_, err := cms.RetrieveHCPKubeletConfig(cms.RHCSConnection, clusterID, kubeConfig.ID)
 				Expect(err).To(HaveOccurred())
 			}
 		} else {
-			_, err := cms.RetrieveKubeletConfig(ci.RHCSConnection, clusterID)
+			_, err := cms.RetrieveKubeletConfig(cms.RHCSConnection, clusterID)
 			Expect(err).To(HaveOccurred())
 		}
 

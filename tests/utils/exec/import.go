@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
 )
 
 type ImportArgs struct {
@@ -36,13 +37,9 @@ type importService struct {
 	tfExecutor TerraformExecutor
 }
 
-func NewImportService(manifestsDirs ...string) (ImportService, error) {
-	manifestsDir := constants.ImportResourceDir
-	if len(manifestsDirs) > 0 {
-		manifestsDir = manifestsDirs[0]
-	}
+func NewImportService(tfWorkspace string, clusterType constants.ClusterType) (ImportService, error) {
 	svc := &importService{
-		tfExecutor: NewTerraformExecutor(manifestsDir),
+		tfExecutor: NewTerraformExecutor(tfWorkspace, manifests.GetImportManifestsDir(clusterType)),
 	}
 	err := svc.Init()
 	return svc, err

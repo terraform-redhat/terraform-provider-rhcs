@@ -3,7 +3,6 @@ package constants
 import (
 	"fmt"
 	"os"
-	"path"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
@@ -82,21 +81,6 @@ var (
 	DefaultAWSRegion = "us-east-2"
 )
 
-// Dirs of identity providers
-var (
-	HtpasswdDir = path.Join(IDPsDir, "htpasswd")
-	GitlabDir   = path.Join(IDPsDir, "gitlab")
-	GithubDir   = path.Join(IDPsDir, "github")
-	LdapDir     = path.Join(IDPsDir, "ldap")
-	OpenidDir   = path.Join(IDPsDir, "openid")
-	GoogleDir   = path.Join(IDPsDir, "google")
-	MultiIDPDir = path.Join(IDPsDir, "multi-idp")
-)
-
-func GrantTFstateFile(manifestDir string) string {
-	return path.Join(manifestDir, "terraform.tfstate")
-}
-
 // Machine pool taints effect
 const (
 	NoExecute        = "NoExecute"
@@ -153,3 +137,37 @@ func GetHCPClusterTypes() (types []ClusterType) {
 func (ct *ClusterType) String() string {
 	return ct.Name
 }
+
+type IDPType string
+
+const (
+	IDPHTPassword IDPType = "htpasswd"
+	IDPGitlab     IDPType = "gitlab"
+	IDPGithub     IDPType = "github"
+	IDPGoogle     IDPType = "google"
+	IDPLDAP       IDPType = "ldap"
+	IDPOpenID     IDPType = "openid"
+	IDPMulti      IDPType = "multi-idp"
+)
+
+const (
+
+	// MaxExpiration in unit of hour
+	ClusterMaxExpiration = 168
+
+	// MaxNodeNumber means max node number per cluster/machinepool
+	ClusterMaxNodeNumber = 180
+
+	// MaxNameLength means cluster name will be trimed when request certificate
+	ClusterMaxNameLength = 15
+
+	ClusterMaxIngressNumber = 2
+)
+
+// version channel_groups
+const (
+	VersionFastChannel      = "fast"
+	VersionStableChannel    = "stable"
+	VersionNightlyChannel   = "nightly"
+	VersionCandidateChannel = "candidate"
+)

@@ -2,6 +2,7 @@ package exec
 
 import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
 )
 
 type IngressArgs struct {
@@ -46,13 +47,9 @@ type ingressService struct {
 	tfExecutor TerraformExecutor
 }
 
-func NewIngressService(manifestsDirs ...string) (IngressService, error) {
-	manifestsDir := constants.ClassicIngressDir
-	if len(manifestsDirs) > 0 {
-		manifestsDir = manifestsDirs[0]
-	}
+func NewIngressService(tfWorkspace string, clusterType constants.ClusterType) (IngressService, error) {
 	svc := &ingressService{
-		tfExecutor: NewTerraformExecutor(manifestsDir),
+		tfExecutor: NewTerraformExecutor(tfWorkspace, manifests.GetIngressManifestsDir(clusterType)),
 	}
 	err := svc.Init()
 	return svc, err

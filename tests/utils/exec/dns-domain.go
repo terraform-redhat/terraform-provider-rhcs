@@ -1,6 +1,9 @@
 package exec
 
-import "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+import (
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
+)
 
 type DnsDomainArgs struct {
 	ID *string `hcl:"id"`
@@ -25,13 +28,9 @@ type dnsDomainService struct {
 	tfExecutor TerraformExecutor
 }
 
-func NewDnsDomainService(manifestsDirs ...string) (DnsDomainService, error) {
-	manifestsDir := constants.DNSDir
-	if len(manifestsDirs) > 0 {
-		manifestsDir = manifestsDirs[0]
-	}
+func NewDnsDomainService(tfWorkspace string, clusterType constants.ClusterType) (DnsDomainService, error) {
 	svc := &dnsDomainService{
-		tfExecutor: NewTerraformExecutor(manifestsDir),
+		tfExecutor: NewTerraformExecutor(tfWorkspace, manifests.GetDnsDomainManifestsDir(clusterType)),
 	}
 	err := svc.Init()
 	return svc, err

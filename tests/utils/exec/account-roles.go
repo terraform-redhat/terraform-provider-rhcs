@@ -2,6 +2,7 @@ package exec
 
 import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
 )
 
 type AccountRolesArgs struct {
@@ -34,13 +35,9 @@ type svcountRoleService struct {
 	tfExecutor TerraformExecutor
 }
 
-func NewAccountRoleService(manifestsDirs ...string) (AccountRoleService, error) {
-	manifestsDir := constants.AccountRolesClassicDir
-	if len(manifestsDirs) > 0 {
-		manifestsDir = manifestsDirs[0]
-	}
+func NewAccountRoleService(tfWorkspace string, clusterType constants.ClusterType) (AccountRoleService, error) {
 	svc := &svcountRoleService{
-		tfExecutor: NewTerraformExecutor(manifestsDir),
+		tfExecutor: NewTerraformExecutor(tfWorkspace, manifests.GetAWSAccountRolesManifestDir(clusterType)),
 	}
 	err := svc.Init()
 	return svc, err

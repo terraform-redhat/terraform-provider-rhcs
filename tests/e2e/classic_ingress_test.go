@@ -11,31 +11,33 @@ import (
 	cmsv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 
 var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 
 	var (
-		profile        *ci.Profile
+		profileHandler profilehandler.ProfileHandler
 		err            error
 		ingressBefore  *cmsv1.Ingress
 		ingressService exec.IngressService
 	)
 
 	BeforeEach(func() {
-		profile = ci.LoadProfileYamlFileByENV()
+		var err error
+		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
+		Expect(err).ToNot(HaveOccurred())
 
-		if profile.GetClusterType().HCP {
+		if profileHandler.Profile().IsHCP() {
 			Skip("Test can run only on Classic cluster")
 		}
 
-		ingressBefore, err = cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
+		ingressBefore, err = cms.RetrieveClusterIngress(cms.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
 
-		ingressService, err = exec.NewIngressService(constants.ClassicIngressDir)
+		ingressService, err = profileHandler.Services().GetIngressService()
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -91,7 +93,7 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("use API to check if ingress LB type updated")
-			ingress, err := cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
+			ingress, err := cms.RetrieveClusterIngress(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(string(ingress.LoadBalancerType())).To(Equal("classic"))
@@ -103,7 +105,7 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			}
 			_, err = ingressService.Apply(&args)
 			Expect(err).ToNot(HaveOccurred())
-			ingress, err = cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
+			ingress, err = cms.RetrieveClusterIngress(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(ingress.LoadBalancerType())).To(Equal("nlb"))
 		})
@@ -135,7 +137,7 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("use ocm API to check if component routes updated")
-			ingress, err := cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
+			ingress, err := cms.RetrieveClusterIngress(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(ingress.ComponentRoutes()["oauth"].Hostname()).To(Equal(*componentRoutes["oauth"].Hostname))
 			Expect(ingress.ComponentRoutes()["oauth"].TlsSecretRef()).To(Equal(*componentRoutes["oauth"].TlsSecretRef))
@@ -167,7 +169,7 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("use ocm API to check if component routes updated")
-			ingress, err = cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
+			ingress, err = cms.RetrieveClusterIngress(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(ingress.ComponentRoutes()["oauth"].Hostname()).To(Equal(*componentRoutes["oauth"].Hostname))
 			Expect(ingress.ComponentRoutes()["oauth"].TlsSecretRef()).To(Equal(*componentRoutes["oauth"].TlsSecretRef))
@@ -191,7 +193,7 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("use ocm API to check if component routes updated")
-			ingress, err = cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
+			ingress, err = cms.RetrieveClusterIngress(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(ingress.ComponentRoutes()["oauth"].Hostname()).To(Equal(*componentRoutes["oauth"].Hostname))
 			Expect(ingress.ComponentRoutes()["oauth"].TlsSecretRef()).To(Equal(*componentRoutes["oauth"].TlsSecretRef))
@@ -207,7 +209,7 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("use ocm API to check if component routes deleted")
-			ingress, err = cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
+			ingress, err = cms.RetrieveClusterIngress(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(ingress.ComponentRoutes())).To(Equal(0))
 		})
@@ -354,7 +356,7 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("use ocm API to check if ingress config updated")
-			ingress, err := cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
+			ingress, err := cms.RetrieveClusterIngress(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(ingress.RouteNamespaceOwnershipPolicy())).To(Equal(*args.RouteNamespaceOwnershipPolicy))
 			Expect(string(ingress.RouteWildcardPolicy())).To(Equal(*args.RouteWildcardPolicy))

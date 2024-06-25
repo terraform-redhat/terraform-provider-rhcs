@@ -2,6 +2,7 @@ package exec
 
 import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
@@ -37,13 +38,9 @@ type tuningConfigService struct {
 	tfExecutor TerraformExecutor
 }
 
-func NewTuningConfigService(manifestsDirs ...string) (TuningConfigService, error) {
-	manifestsDir := constants.TuningConfigDir
-	if len(manifestsDirs) > 0 {
-		manifestsDir = manifestsDirs[0]
-	}
+func NewTuningConfigService(tfWorkspace string, clusterType constants.ClusterType) (TuningConfigService, error) {
 	svc := &tuningConfigService{
-		tfExecutor: NewTerraformExecutor(manifestsDir),
+		tfExecutor: NewTerraformExecutor(tfWorkspace, manifests.GetTuningConfigManifestsDir(clusterType)),
 	}
 	err := svc.Init()
 	return svc, err

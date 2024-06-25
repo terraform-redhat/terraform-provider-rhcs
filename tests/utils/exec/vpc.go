@@ -2,6 +2,7 @@ package exec
 
 import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
 )
 
 type VPCArgs struct {
@@ -36,13 +37,9 @@ type vpcService struct {
 	tfExecutor TerraformExecutor
 }
 
-func NewVPCService(manifestsDirs ...string) (VPCService, error) {
-	manifestsDir := constants.ClassicClusterAutoscalerDir
-	if len(manifestsDirs) > 0 {
-		manifestsDir = manifestsDirs[0]
-	}
+func NewVPCService(tfWorkspace string, clusterType constants.ClusterType) (VPCService, error) {
 	svc := &vpcService{
-		tfExecutor: NewTerraformExecutor(manifestsDir),
+		tfExecutor: NewTerraformExecutor(tfWorkspace, manifests.GetAWSVPCManifestDir(clusterType)),
 	}
 	err := svc.Init()
 	return svc, err

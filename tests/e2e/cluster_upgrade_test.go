@@ -16,6 +16,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/openshift"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 
 var _ = Describe("Upgrade", func() {
@@ -24,20 +25,21 @@ var _ = Describe("Upgrade", func() {
 	var (
 		targetV        string
 		clusterID      string
-		profile        *ci.Profile
+		profileHandler profilehandler.ProfileHandler
 		clusterArgs    *exec.ClusterArgs
 		clusterService exec.ClusterService
 	)
 
 	BeforeEach(func() {
-		profile = ci.LoadProfileYamlFileByENV()
-
 		var err error
-		clusterID, err = ci.PrepareRHCSClusterByProfileENV()
+		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
+		Expect(err).ToNot(HaveOccurred())
+
+		clusterID, err = profileHandler.RetrieveClusterID()
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Retrieve cluster args")
-		clusterService, err = exec.NewClusterService(profile.GetClusterManifestsDir())
+		clusterService, err = profileHandler.Services().GetClusterService()
 		Expect(err).ToNot(HaveOccurred())
 		clusterArgs, err = clusterService.ReadTFVars()
 		Expect(err).ToNot(HaveOccurred())
@@ -45,10 +47,10 @@ var _ = Describe("Upgrade", func() {
 
 	It("ROSA STS cluster on Z-stream - [id:63153]", ci.Upgrade, ci.NonHCPCluster,
 		func() {
-			if profile.VersionPattern != "z-1" {
+			if profileHandler.Profile().GetVersionPattern() != "z-1" {
 				Skip("The test is configured only for Z-stream upgrade")
 			}
-			clusterResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			clusterResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			targetV, err = cms.GetVersionUpgradeTarget(clusterResp.Body().Version().RawID(),
 				constants.Z, clusterResp.Body().Version().AvailableUpgrades())
@@ -62,7 +64,7 @@ var _ = Describe("Upgrade", func() {
 
 			downgradedVersion := fmt.Sprintf("%s.%s.%s", splittedVersion[0], splittedVersion[1], fmt.Sprint(zStreamV-1))
 
-			imageVersionsList := cms.EnabledVersions(ci.RHCSConnection, profile.ChannelGroup, profile.MajorVersion, true)
+			imageVersionsList := cms.EnabledVersions(cms.RHCSConnection, profileHandler.Profile().GetChannelGroup(), profileHandler.Profile().GetMajorVersion(), true)
 			versionsList := cms.GetRawVersionList(imageVersionsList)
 			if slices.Contains(versionsList, downgradedVersion) {
 				clusterArgs.OpenshiftVersion = helper.StringPointer(downgradedVersion)
@@ -79,34 +81,33 @@ var _ = Describe("Upgrade", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Wait the upgrade finished")
-			err = openshift.WaitClassicClusterUpgradeFinished(ci.RHCSConnection, clusterID)
+			err = openshift.WaitClassicClusterUpgradeFinished(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred(), "Cluster upgrade %s failed with the error %v", clusterID, err)
 
 			By("Wait for 10 minutes to be sure the version is synced in clusterdeployment")
 			time.Sleep(10 * time.Minute)
 
 			By("Check the cluster status and OCP version")
-			clusterResp, err = cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			clusterResp, err = cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(clusterResp.Body().State())).To(Equal(constants.Ready))
 			Expect(string(clusterResp.Body().Version().RawID())).To(Equal(targetV))
 
-			if constants.GetEnvWithDefault(constants.WaitOperators, "false") == "true" && !profile.Private {
+			if constants.GetEnvWithDefault(constants.WaitOperators, "false") == "true" && !profileHandler.Profile().IsPrivate() {
 				// WaitClusterOperatorsToReadyStatus will wait for cluster operators ready
 				timeout := 60
-				err = openshift.WaitForOperatorsToBeReady(ci.RHCSConnection, clusterID, timeout)
+				err = openshift.WaitForOperatorsToBeReady(cms.RHCSConnection, clusterID, timeout)
 				Expect(err).ToNot(HaveOccurred())
 			}
 		})
 
 	It("ROSA STS cluster on Y-stream - [id:63152]", ci.Upgrade, ci.NonHCPCluster,
 		func() {
-
-			if profile.VersionPattern != "y-1" {
+			if profileHandler.Profile().GetVersionPattern() != "y-1" {
 				Skip("The test is configured only for Y-stream upgrade")
 			}
 
-			clusterResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			clusterResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			targetV, err = cms.GetVersionUpgradeTarget(clusterResp.Body().Version().RawID(),
 				constants.Y, clusterResp.Body().Version().AvailableUpgrades())
@@ -114,9 +115,14 @@ var _ = Describe("Upgrade", func() {
 			Expect(targetV).ToNot(Equal(""))
 
 			By("Upgrade account-roles")
-			majorVersion := ci.GetMajorVersion(targetV)
+			majorVersion := helper.GetMajorVersion(targetV)
 			Expect(majorVersion).ToNot(Equal(""))
-			_, err = ci.PrepareAccountRoles(token, clusterResp.Body().Name(), profile.UnifiedAccRolesPath, profile.Region, majorVersion, profile.ChannelGroup, profile.GetClusterType(), "")
+			accountRolesService, err := profileHandler.Services().GetAccountRolesService()
+			Expect(err).ToNot(HaveOccurred())
+			accountRolesArgs, err := accountRolesService.ReadTFVars()
+			Expect(err).ToNot(HaveOccurred())
+			accountRolesArgs.OpenshiftVersion = helper.StringPointer(majorVersion)
+			accountRolesService.Apply(accountRolesArgs)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Validate invalid OCP version field - downgrade")
@@ -126,7 +132,7 @@ var _ = Describe("Upgrade", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			downgradedVersion := fmt.Sprintf("%s.%s.%s", splittedVersion[0], fmt.Sprint(yStreamV-1), splittedVersion[2])
-			imageVersionsList := cms.EnabledVersions(ci.RHCSConnection, profile.ChannelGroup, profile.MajorVersion, true)
+			imageVersionsList := cms.EnabledVersions(cms.RHCSConnection, profileHandler.Profile().GetChannelGroup(), profileHandler.Profile().GetMajorVersion(), true)
 			versionsList := cms.GetRawVersionList(imageVersionsList)
 			if slices.Contains(versionsList, downgradedVersion) {
 				clusterArgs.OpenshiftVersion = helper.StringPointer(downgradedVersion)
@@ -149,34 +155,34 @@ var _ = Describe("Upgrade", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Wait the upgrade finished")
-			err = openshift.WaitClassicClusterUpgradeFinished(ci.RHCSConnection, clusterID)
+			err = openshift.WaitClassicClusterUpgradeFinished(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred(), "Cluster %s failed with the error %v", clusterID, err)
 
 			By("Wait for 10 minutes to be sure the version is synced in clusterdeployment")
 			time.Sleep(10 * time.Minute)
 
 			By("Check the cluster status and OCP version")
-			clusterResp, err = cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			clusterResp, err = cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(clusterResp.Body().State())).To(Equal(constants.Ready))
 			Expect(string(clusterResp.Body().Version().RawID())).To(Equal(targetV))
 
-			if constants.GetEnvWithDefault(constants.WaitOperators, "false") == "true" && !profile.Private {
+			if constants.GetEnvWithDefault(constants.WaitOperators, "false") == "true" && !profileHandler.Profile().IsPrivate() {
 				// WaitClusterOperatorsToReadyStatus will wait for cluster operators ready
 				timeout := 60
-				err = openshift.WaitForOperatorsToBeReady(ci.RHCSConnection, clusterID, timeout)
+				err = openshift.WaitForOperatorsToBeReady(cms.RHCSConnection, clusterID, timeout)
 				Expect(err).ToNot(HaveOccurred())
 			}
 		})
 
 	It("ROSA HCP cluster on Z-stream - [id:72474]", ci.Upgrade, ci.NonClassicCluster,
 		func() {
-			if profile.VersionPattern != "z-1" {
+			if profileHandler.Profile().GetVersionPattern() != "z-1" {
 				Skip("The test is configured only for Z-stream upgrade")
 			}
 
 			By("Retrieve cluster information and upgrade version")
-			clusterResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			clusterResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			targetV, err = cms.GetVersionUpgradeTarget(clusterResp.Body().Version().RawID(),
 				constants.Z, clusterResp.Body().Version().AvailableUpgrades())
@@ -191,37 +197,37 @@ var _ = Describe("Upgrade", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Wait the upgrade finished")
-			err = openshift.WaitHCPClusterUpgradeFinished(ci.RHCSConnection, clusterID)
+			err = openshift.WaitHCPClusterUpgradeFinished(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred(), "Cluster upgrade %s failed with the error %v", clusterID, err)
 
 			By("Check the cluster status and OCP version")
-			clusterResp, err = cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			clusterResp, err = cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(clusterResp.Body().State())).To(Equal(constants.Ready))
 			Expect(string(clusterResp.Body().Version().RawID())).To(Equal(targetV))
 
-			if constants.GetEnvWithDefault(constants.WaitOperators, "false") == "true" && !profile.Private {
+			if constants.GetEnvWithDefault(constants.WaitOperators, "false") == "true" && !profileHandler.Profile().IsPrivate() {
 				// WaitClusterOperatorsToReadyStatus will wait for cluster operators ready
 				timeout := 60
-				err = openshift.WaitForOperatorsToBeReady(ci.RHCSConnection, clusterID, timeout)
+				err = openshift.WaitForOperatorsToBeReady(cms.RHCSConnection, clusterID, timeout)
 				Expect(err).ToNot(HaveOccurred())
 			}
 		})
 
 	It("ROSA HCP cluster on Y-stream - [id:72475]", ci.Upgrade, ci.NonClassicCluster,
 		func() {
-			if profile.VersionPattern != "y-1" {
+			if profileHandler.Profile().GetVersionPattern() != "y-1" {
 				Skip("The test is configured only for Y-stream upgrade")
 			}
 
 			By("Retrieve cluster information and upgrade version")
-			clusterResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			clusterResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			targetV, err = cms.GetVersionUpgradeTarget(clusterResp.Body().Version().RawID(),
 				constants.Y, clusterResp.Body().Version().AvailableUpgrades())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(targetV).ToNot(BeEmpty())
-			majorVersion := ci.GetMajorVersion(targetV)
+			majorVersion := helper.GetMajorVersion(targetV)
 			Expect(majorVersion).ToNot(BeEmpty())
 
 			Logger.Infof("Gonna upgrade to version %s", targetV)
@@ -239,19 +245,19 @@ var _ = Describe("Upgrade", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Wait the upgrade finished")
-			err = openshift.WaitHCPClusterUpgradeFinished(ci.RHCSConnection, clusterID)
+			err = openshift.WaitHCPClusterUpgradeFinished(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred(), "Cluster %s failed with the error %v", clusterID, err)
 
 			By("Check the cluster status and OCP version")
-			clusterResp, err = cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			clusterResp, err = cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(clusterResp.Body().State())).To(Equal(constants.Ready))
 			Expect(string(clusterResp.Body().Version().RawID())).To(Equal(targetV))
 
-			if constants.GetEnvWithDefault(constants.WaitOperators, "false") == "true" && !profile.Private {
+			if constants.GetEnvWithDefault(constants.WaitOperators, "false") == "true" && !profileHandler.Profile().IsPrivate() {
 				// WaitClusterOperatorsToReadyStatus will wait for cluster operators ready
 				timeout := 60
-				err = openshift.WaitForOperatorsToBeReady(ci.RHCSConnection, clusterID, timeout)
+				err = openshift.WaitForOperatorsToBeReady(cms.RHCSConnection, clusterID, timeout)
 				Expect(err).ToNot(HaveOccurred())
 			}
 		})

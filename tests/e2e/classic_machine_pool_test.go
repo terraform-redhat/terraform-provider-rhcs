@@ -15,21 +15,23 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	exe "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 
 var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMachinepool, func() {
 	defer GinkgoRecover()
 
 	var (
-		mpService exec.MachinePoolService
-		profile   *ci.Profile
+		mpService      exec.MachinePoolService
+		profileHandler profilehandler.ProfileHandler
 	)
 
 	BeforeEach(func() {
-		profile = ci.LoadProfileYamlFileByENV()
-
 		var err error
-		mpService, err = exec.NewMachinePoolService(constants.ClassicMachinePoolDir)
+		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
+		Expect(err).ToNot(HaveOccurred())
+
+		mpService, err = profileHandler.Services().GetMachinePoolsService()
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -57,7 +59,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		By("Verify the parameters of the created machinepool")
 		mpOut, err := mpService.Output()
 		Expect(err).ToNot(HaveOccurred())
-		mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+		mpResponseBody, err := cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(mpResponseBody.Replicas()).To(Equal(mpOut.Replicas))
 		Expect(mpResponseBody.InstanceType()).To(Equal(mpOut.MachineType))
@@ -85,7 +87,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify the parameters of the created machinepool")
-		mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+		mpResponseBody, err := cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(mpResponseBody.Labels()).To(Equal(creationLabels))
 
@@ -93,7 +95,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		mpArgs.Labels = helper.StringMapPointer(updatingLabels)
 		_, err = mpService.Apply(mpArgs)
 		Expect(err).ToNot(HaveOccurred())
-		mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+		mpResponseBody, err = cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(mpResponseBody.Labels()).To(Equal(updatingLabels))
 
@@ -103,7 +105,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify the parameters of the updated machinepool")
-		mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+		mpResponseBody, err = cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(mpResponseBody.Labels()).To(BeNil())
 	})
@@ -128,7 +130,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify the parameters of the created machinepool")
-		mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+		mpResponseBody, err := cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(mpResponseBody.Autoscaling().MinReplicas()).To(Equal(minReplicas))
 		Expect(mpResponseBody.Autoscaling().MaxReplicas()).To(Equal(maxReplicas))
@@ -142,7 +144,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify the parameters of the updated machinepool")
-		mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+		mpResponseBody, err = cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(mpResponseBody.Autoscaling().MinReplicas()).To(Equal(minReplicas))
 		Expect(mpResponseBody.Autoscaling().MaxReplicas()).To(Equal(maxReplicas))
@@ -159,7 +161,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify the parameters of the updated machinepool")
-		mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+		mpResponseBody, err = cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(mpResponseBody.Autoscaling()).To(BeNil())
 	})
@@ -185,7 +187,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify the parameters of the created machinepool")
-		mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+		mpResponseBody, err := cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
 		Expect(err).ToNot(HaveOccurred())
 		respTaints := mpResponseBody.Taints()
 		for index, taint := range respTaints {
@@ -207,7 +209,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify the parameters of the updated machinepool")
-		mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+		mpResponseBody, err = cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
 		Expect(err).ToNot(HaveOccurred())
 		respTaints = mpResponseBody.Taints()
 		for index, taint := range respTaints {
@@ -222,7 +224,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify the parameters of the updated machinepool")
-		mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+		mpResponseBody, err = cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(mpResponseBody.Taints()).To(BeNil())
 	})
@@ -311,7 +313,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		Expect(err.Error()).Should(ContainSubstring("when\ndisabling autoscaling, cannot set min_replicas and/or max_replicas"))
 
 		By("Create machinepool with setting min-replicas large than max-replicas")
-		if profile.MultiAZ {
+		if profileHandler.Profile().IsMultiAZ() {
 			By("Create machinepool with setting min-replicas and max-replicas not multiple 3 for multi-az")
 			mpArgs = &exec.MachinePoolArgs{
 				Cluster:            helper.StringPointer(clusterID),
@@ -341,10 +343,10 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 	})
 
 	It("can create single-az machinepool for multi-az cluster - [id:65063]", ci.High, func() {
-		if !profile.MultiAZ {
+		if !profileHandler.Profile().IsMultiAZ() {
 			Skip("The test is configured for MultiAZ cluster only")
 		}
-		getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+		getResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
 		azs := getResp.Body().Nodes().AvailabilityZones()
 		By("Create additional machinepool with availability zone specified")
@@ -363,7 +365,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify the parameters of the created machinepool")
-		mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+		mpResponseBody, err := cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(mpResponseBody.AvailabilityZones()[0]).To(Equal(azs[0]))
 
@@ -384,7 +386,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify the parameters of the created machinepool")
-		mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+		mpResponseBody, err = cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(mpResponseBody.Subnets()[0]).To(Equal(awsSubnetIds[0]))
 
@@ -405,24 +407,24 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify the parameters of the created machinepool")
-		mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+		mpResponseBody, err = cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(len(mpResponseBody.AvailabilityZones())).To(Equal(1))
 	})
 
 	It("can create machinepool with subnet_id option for BYO VPC single-az cluster - [id:65071]", ci.High, func() {
-		if profile.MultiAZ || !profile.BYOVPC {
+		if profileHandler.Profile().IsMultiAZ() || !profileHandler.Profile().IsBYOVPC() {
 			Skip("The test is configured for SingleAZ BYO VPC cluster only")
 		}
 
-		clusterResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+		clusterResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
 		var zones []string
-		vpcOutput, err := ci.PrepareVPC(profile.Region, true, zones, profile.GetClusterType(), clusterResp.Body().Name(), "")
+		vpcOutput, err := profileHandler.Prepare().PrepareVPC(true, zones, clusterResp.Body().Name(), "")
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Tag new subnet to be able to apply it to the machinepool")
-		vpcTagService, err := exec.NewVPCTagService()
+		vpcTagService, err := profileHandler.Services().GetVPCTagService()
 		Expect(err).ToNot(HaveOccurred())
 		tagKey := fmt.Sprintf("kubernetes.io/cluster/%s", clusterResp.Body().InfraID())
 		tagValue := "shared"
@@ -450,7 +452,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		_, err = mpService.Apply(mpArgs)
 		Expect(err).ToNot(HaveOccurred())
 
-		mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+		mpResponseBody, err := cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(mpResponseBody.Subnets()[0]).To(Equal(newZonePrivateSubnet))
 
@@ -460,7 +462,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify the parameters of the updated machinepool")
-		mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+		mpResponseBody, err = cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(mpResponseBody.Replicas()).To(Equal(4))
 	})
@@ -487,7 +489,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		}()
 
 		By("Verify the parameters of the created machinepool")
-		mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+		mpResponseBody, err := cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(mpResponseBody.RootVolume().AWS().Size()).To(Equal(diskSize))
 		Expect(mpResponseBody.InstanceType()).To(Equal(machineType))
@@ -521,29 +523,29 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify the parameters of the created machinepool")
-		mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+		mpResponseBody, err = cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(mpResponseBody.RootVolume().AWS().Size()).To(Equal(300))
 		Expect(mpResponseBody.InstanceType()).To(Equal("m5.2xlarge"))
 	})
 
 	It("can create machinepool with additional security group - [id:69146]", ci.High, func() {
-		if !profile.BYOVPC {
+		if !profileHandler.Profile().IsBYOVPC() {
 			Skip("This case only works for BYOVPC cluster profile")
 		}
 
 		By("Prepare additional security groups")
-		sgService, err := exec.NewSecurityGroupService()
+		sgService, err := profileHandler.Services().GetSecurityGroupService()
 		Expect(err).ToNot(HaveOccurred())
 		output, err := sgService.Output()
 		Expect(err).ToNot(HaveOccurred())
 		if output.SGIDs == nil {
-			vpcService, err := exec.NewVPCService(constants.GetAWSVPCDefaultManifestDir(profile.GetClusterType()))
+			vpcService, err := profileHandler.Services().GetVPCService()
 			Expect(err).ToNot(HaveOccurred())
 			vpcOutput, err := vpcService.Output()
 			Expect(err).ToNot(HaveOccurred())
 			sgArgs := &exec.SecurityGroupArgs{
-				AWSRegion: helper.StringPointer(profile.Region),
+				AWSRegion: helper.StringPointer(profileHandler.Profile().GetRegion()),
 				VPCID:     helper.StringPointer(vpcOutput.VPCID),
 				SGNumber:  helper.IntPointer(4),
 			}
@@ -580,7 +582,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		}()
 
 		By("Verify the parameters of the created machinepool")
-		mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+		mpResponseBody, err := cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(len(mpResponseBody.AWS().AdditionalSecurityGroupIds())).To(Equal(len(sgIDs)))
 		for _, sg := range mpResponseBody.AWS().AdditionalSecurityGroupIds() {
@@ -618,7 +620,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify the parameters of the created machinepool")
-		mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+		mpResponseBody, err = cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(mpResponseBody.AWS().AdditionalSecurityGroupIds()).To(BeNil())
 		Expect(mpResponseBody.InstanceType()).To(Equal("m5.2xlarge"))
@@ -645,7 +647,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Check the machinepool detail state")
-		resp, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
+		resp, err := cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
 		Expect(err).ToNot(HaveOccurred())
 		for tagKey, tagValue := range validTags {
 			Expect(tagValue).To(BeElementOf(resp.AWS().Tags()[tagKey]))
@@ -677,12 +679,12 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify the parameters of the created machinepool")
-		_, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, mpName)
+		_, err = cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, mpName)
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Delete machinepool by OCM API")
-		cms.DeleteMachinePool(ci.RHCSConnection, clusterID, mpName)
-		_, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, mpName)
+		cms.DeleteMachinePool(cms.RHCSConnection, clusterID, mpName)
+		_, err = cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, mpName)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).Should(ContainSubstring("Machine pool with id '%s' not found", mpName))
 
@@ -691,7 +693,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify the parameters of the machinepool")
-		mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, mpName)
+		mpResponseBody, err := cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, mpName)
 		Expect(err).ToNot(HaveOccurred())
 		respTaints := mpResponseBody.Taints()
 		for index, taint := range respTaints {
@@ -747,16 +749,19 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMach
 })
 
 var _ = Describe("Import MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureImport, func() {
+	var profileHandler profilehandler.ProfileHandler
 	var mpService exec.MachinePoolService
 	var importService exec.ImportService
 
 	BeforeEach(func() {
 		var err error
-
-		mpService, err = exec.NewMachinePoolService(constants.ClassicMachinePoolDir)
+		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
 		Expect(err).ToNot(HaveOccurred())
 
-		importService, err = exec.NewImportService(constants.ImportResourceDir) // init new import service
+		mpService, err = profileHandler.Services().GetMachinePoolsService()
+		Expect(err).ToNot(HaveOccurred())
+
+		importService, err = profileHandler.Services().GetImportService()
 		Expect(err).ToNot(HaveOccurred())
 	})
 	AfterEach(func() {
@@ -809,6 +814,7 @@ var _ = Describe("Import MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureImpo
 var _ = Describe("Edit MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMachinepool, func() {
 
 	var (
+		profileHandler                 profilehandler.ProfileHandler
 		dmpService                     exec.MachinePoolService
 		mpService                      exec.MachinePoolService
 		defaultMachinePoolNmae         = "worker"
@@ -818,12 +824,15 @@ var _ = Describe("Edit MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMachin
 
 	BeforeEach(func() {
 		var err error
-		dmpService, err = exec.NewMachinePoolService(constants.DefaultMachinePoolDir)
+		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
 		Expect(err).ToNot(HaveOccurred())
-		mpService, err = exec.NewMachinePoolService(constants.ClassicMachinePoolDir)
+		dmpTFWorkspace := helper.GenerateRandomName("dft-"+profileHandler.Profile().GetName(), 2)
+		dmpService, err = exec.NewMachinePoolService(dmpTFWorkspace, profileHandler.Profile().GetClusterType())
+		Expect(err).ToNot(HaveOccurred())
+		mpService, err = profileHandler.Services().GetMachinePoolsService()
 		Expect(err).ToNot(HaveOccurred())
 
-		defaultMachinepoolResponse, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, defaultMachinePoolNmae)
+		defaultMachinepoolResponse, err = cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, defaultMachinePoolNmae)
 		if err != nil && strings.Contains(err.Error(), fmt.Sprintf("Machine pool with id '%s' not found", defaultMachinePoolNmae)) {
 			Skip("The default machinepool does not exist")
 		}
@@ -881,7 +890,7 @@ var _ = Describe("Edit MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMachin
 		Expect(out).To(ContainSubstring("machine_type, cannot be changed"))
 
 		By("Delete dmp without additional mp exists")
-		resp, err := cms.ListMachinePool(ci.RHCSConnection, clusterID)
+		resp, err := cms.ListMachinePool(cms.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(resp.Total()).To(Equal(1), "multiple machinepools found")
 
@@ -921,7 +930,7 @@ var _ = Describe("Edit MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMachin
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Verify the parameters of the created machinepool")
-				mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, defaultMPName)
+				mpResponseBody, err := cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, defaultMPName)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(mpResponseBody.Autoscaling().MinReplicas()).To(Equal(minReplicas))
 				Expect(mpResponseBody.Autoscaling().MaxReplicas()).To(Equal(maxReplicas))
@@ -933,7 +942,7 @@ var _ = Describe("Edit MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMachin
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Verify the parameters of the created machinepool")
-				mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, defaultMPName)
+				mpResponseBody, err := cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, defaultMPName)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(mpResponseBody.Replicas()).To(Equal(replicas))
 			}
@@ -945,7 +954,7 @@ var _ = Describe("Edit MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMachin
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify the parameters of the created machinepool")
-			mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, defaultMPName)
+			mpResponseBody, err := cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, defaultMPName)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mpResponseBody.Labels()).To(Equal(creationLabels))
 
@@ -970,7 +979,7 @@ var _ = Describe("Edit MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMachin
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify the parameters of the default machinepool")
-			mpResponseBody, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, "worker")
+			mpResponseBody, err = cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, "worker")
 			Expect(err).ToNot(HaveOccurred())
 			respTaints := mpResponseBody.Taints()
 			for index, taint := range respTaints {
@@ -984,6 +993,7 @@ var _ = Describe("Edit MachinePool", ci.Day2, ci.NonHCPCluster, ci.FeatureMachin
 
 var _ = Describe("Destroy MachinePool", ci.Day3, ci.NonHCPCluster, ci.FeatureMachinepool, func() {
 	var (
+		profileHandler             profilehandler.ProfileHandler
 		dmpService                 exec.MachinePoolService
 		defaultMachinePoolArgs     *exec.MachinePoolArgs
 		mpService                  exec.MachinePoolService
@@ -993,19 +1003,22 @@ var _ = Describe("Destroy MachinePool", ci.Day3, ci.NonHCPCluster, ci.FeatureMac
 
 	BeforeEach(func() {
 		var err error
-		dmpService, err = exec.NewMachinePoolService(constants.DefaultMachinePoolDir)
+		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
+
+		dmpTFWorkspace := helper.GenerateRandomName("dft-"+profileHandler.Profile().GetName(), 2)
+		dmpService, err = exec.NewMachinePoolService(dmpTFWorkspace, profileHandler.Profile().GetClusterType())
 		Expect(err).ToNot(HaveOccurred())
-		mpService, err = exec.NewMachinePoolService(constants.ClassicMachinePoolDir)
+		mpService, err = profileHandler.Services().GetMachinePoolsService()
 		Expect(err).ToNot(HaveOccurred())
 
-		defaultMachinepoolResponse, err = cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, defaultMachinePoolName)
+		defaultMachinepoolResponse, err = cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, defaultMachinePoolName)
 		Expect(err).ToNot(HaveOccurred())
 		defaultMachinePoolArgs = exec.BuildMachinePoolArgsFromCSResponse(clusterID, defaultMachinepoolResponse)
 		defaultMachinePoolName = *defaultMachinePoolArgs.Name
 
 		By("Make sure the default machinepool imported from cluster state")
-		imported, _ := helper.CheckDefaultMachinePoolImported()
-		if !imported {
+		_, err = dmpService.ShowState("rhcs_machine_pool.mp")
+		if err != nil {
 			By("Create default machinepool by importing from CMS ")
 			_, err = dmpService.Apply(defaultMachinePoolArgs)
 			Expect(err).ToNot(HaveOccurred())
@@ -1015,7 +1028,7 @@ var _ = Describe("Destroy MachinePool", ci.Day3, ci.NonHCPCluster, ci.FeatureMac
 
 	It("check the default machinepool edit/delete operations with additional mp exists it - [id:69727]", ci.Critical, func() {
 		By("Destroy default machinepool without additional machinepool existing")
-		resp, err := cms.ListMachinePool(ci.RHCSConnection, clusterID)
+		resp, err := cms.ListMachinePool(cms.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
 		num, _ := resp.GetSize()
 		Expect(num).To(Equal(1))

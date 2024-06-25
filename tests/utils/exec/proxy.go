@@ -2,6 +2,7 @@ package exec
 
 import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
 )
 
 type ProxyArgs struct {
@@ -47,13 +48,9 @@ type proxyService struct {
 	tfExecutor TerraformExecutor
 }
 
-func NewProxyService(manifestsDirs ...string) (ProxyService, error) {
-	manifestsDir := constants.ProxyDir
-	if len(manifestsDirs) > 0 {
-		manifestsDir = manifestsDirs[0]
-	}
+func NewProxyService(tfWorkspace string, clusterType constants.ClusterType) (ProxyService, error) {
 	svc := &proxyService{
-		tfExecutor: NewTerraformExecutor(manifestsDir),
+		tfExecutor: NewTerraformExecutor(tfWorkspace, manifests.GetAWSProxyManifestDir(clusterType)),
 	}
 	err := svc.Init()
 	return svc, err

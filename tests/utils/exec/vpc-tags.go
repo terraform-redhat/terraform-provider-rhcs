@@ -2,6 +2,7 @@ package exec
 
 import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
 )
 
 type VPCTagArgs struct {
@@ -29,13 +30,9 @@ type vpcTagService struct {
 	tfExecutor TerraformExecutor
 }
 
-func NewVPCTagService(manifestsDirs ...string) (VPCTagService, error) {
-	manifestsDir := constants.AWSVPCTagDir
-	if len(manifestsDirs) > 0 {
-		manifestsDir = manifestsDirs[0]
-	}
+func NewVPCTagService(tfWorkspace string, clusterType constants.ClusterType) (VPCTagService, error) {
 	svc := &vpcTagService{
-		tfExecutor: NewTerraformExecutor(manifestsDir),
+		tfExecutor: NewTerraformExecutor(tfWorkspace, manifests.GetAWSVPCTagManifestDir(clusterType)),
 	}
 	err := svc.Init()
 	return svc, err

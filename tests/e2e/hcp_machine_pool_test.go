@@ -17,29 +17,31 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMachinepool, func() {
 	defer GinkgoRecover()
 	var (
-		mpService exec.MachinePoolService
-		tcService exec.TuningConfigService
-		vpcOutput *exec.VPCOutput
-		profile   *ci.Profile
+		mpService      exec.MachinePoolService
+		tcService      exec.TuningConfigService
+		vpcOutput      *exec.VPCOutput
+		profileHandler profilehandler.ProfileHandler
 	)
 
 	BeforeEach(func() {
-		profile = ci.LoadProfileYamlFileByENV()
-
 		var err error
-		mpService, err = exec.NewMachinePoolService(constants.HCPMachinePoolDir)
+		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
 		Expect(err).ToNot(HaveOccurred())
-		tcService, err = exec.NewTuningConfigService(constants.TuningConfigDir)
+
+		mpService, err = profileHandler.Services().GetMachinePoolsService()
+		Expect(err).ToNot(HaveOccurred())
+		tcService, err = profileHandler.Services().GetTuningConfigService()
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Get vpc output")
-		vpcService, err := exec.NewVPCService(constants.GetAWSVPCDefaultManifestDir(profile.GetClusterType()))
+		vpcService, err := profileHandler.Services().GetVPCService()
 		Expect(err).ToNot(HaveOccurred())
 		vpcOutput, err = vpcService.Output()
 		Expect(err).ToNot(HaveOccurred())
@@ -52,13 +54,13 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 	It("can be created with only required attributes - [id:72504]",
 		ci.Critical, func() {
 			By("Retrieve current cluster information")
-			clusterRespBody, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			clusterRespBody, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 
 			var initialMinReplicas int
 			var initialMaxReplicas int
 			var initialReplicas int
-			if profile.Autoscale {
+			if profileHandler.Profile().IsAutoscale() {
 				initialMinReplicas = clusterRespBody.Body().Nodes().AutoscaleCompute().MinReplicas()
 				initialMaxReplicas = clusterRespBody.Body().Nodes().AutoscaleCompute().MaxReplicas()
 			} else {
@@ -83,7 +85,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify attributes are correctly set")
-			mpResponseBody, err := cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
+			mpResponseBody, err := cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mpResponseBody.ID()).To(Equal(name))
 			Expect(mpResponseBody.Autoscaling()).To(BeNil())
@@ -94,11 +96,11 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 			By("Wait for machinepool replicas available")
 			err = wait.PollUntilContextTimeout(context.Background(), 30*time.Second, 20*time.Minute, false, func(context.Context) (bool, error) {
-				clusterRespBody, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+				clusterRespBody, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 				if err != nil {
 					return false, err
 				}
-				if profile.Autoscale {
+				if profileHandler.Profile().IsAutoscale() {
 					return clusterRespBody.Body().Nodes().AutoscaleCompute().MaxReplicas() == (initialMaxReplicas+replicas) &&
 						clusterRespBody.Body().Nodes().AutoscaleCompute().MinReplicas() == (initialMinReplicas+replicas), nil
 				} else {
@@ -110,7 +112,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			By("Delete machinepool")
 			_, err = mpService.Destroy()
 			Expect(err).ToNot(HaveOccurred())
-			mpResponseBody, err = cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
+			mpResponseBody, err = cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
 			Expect(err).To(HaveOccurred())
 		})
 
@@ -137,7 +139,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			_, err := mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
 			// Verify
-			mpResponseBody, err := cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
+			mpResponseBody, err := cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mpResponseBody.Autoscaling()).ToNot(BeNil())
 			Expect(mpResponseBody.Autoscaling().MaxReplica()).To(Equal(maxReplicas))
@@ -151,7 +153,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			_, err = mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
 			// Verify
-			mpResponseBody, err = cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
+			mpResponseBody, err = cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mpResponseBody.Autoscaling()).ToNot(BeNil())
 			Expect(mpResponseBody.Autoscaling().MaxReplica()).To(Equal(maxReplicas))
@@ -165,7 +167,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			_, err = mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
 			// Verify
-			mpResponseBody, err = cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
+			mpResponseBody, err = cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mpResponseBody.Autoscaling()).To(BeNil())
 			Expect(mpResponseBody.Replicas()).To(Equal(replicas))
@@ -176,7 +178,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			_, err = mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
 			// Verify
-			mpResponseBody, err = cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
+			mpResponseBody, err = cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mpResponseBody.Autoscaling()).To(BeNil())
 			Expect(mpResponseBody.Replicas()).To(Equal(replicas))
@@ -187,7 +189,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			_, err = mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
 			// Verify
-			mpResponseBody, err = cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
+			mpResponseBody, err = cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mpResponseBody.Autoscaling()).To(BeNil())
 			Expect(mpResponseBody.Replicas()).To(Equal(replicas))
@@ -202,7 +204,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			_, err = mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
 			// Verify
-			mpResponseBody, err = cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
+			mpResponseBody, err = cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mpResponseBody.Autoscaling()).ToNot(BeNil())
 			Expect(mpResponseBody.Autoscaling().MaxReplica()).To(Equal(maxReplicas))
@@ -212,12 +214,12 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 	It("can be created with security groups - [id:73068]", ci.High,
 		func() {
 			By("Prepare additional security groups")
-			sgService, err := exec.NewSecurityGroupService()
+			sgService, err := profileHandler.Services().GetSecurityGroupService()
 			output, err := sgService.Output()
 			Expect(err).ToNot(HaveOccurred())
 			if output.SGIDs == nil {
 				sgArgs := &exec.SecurityGroupArgs{
-					AWSRegion: helper.StringPointer(profile.Region),
+					AWSRegion: helper.StringPointer(profileHandler.Profile().GetRegion()),
 					VPCID:     helper.StringPointer(vpcOutput.VPCID),
 					SGNumber:  helper.IntPointer(4),
 				}
@@ -257,7 +259,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			}()
 
 			By("Verify the parameters of the created machinepool")
-			mpResponseBody, err := cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
+			mpResponseBody, err := cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(mpResponseBody.AWSNodePool().AdditionalSecurityGroupIds())).To(Equal(len(sgIDs)))
 			for _, sg := range mpResponseBody.AWSNodePool().AdditionalSecurityGroupIds() {
@@ -284,7 +286,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify the parameters of the created machinepool")
-			mpResponseBody, err = cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
+			mpResponseBody, err = cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mpResponseBody.AWSNodePool().AdditionalSecurityGroupIds()).To(BeNil())
 			Expect(mpResponseBody.AWSNodePool().InstanceType()).To(Equal("m5.2xlarge"))
@@ -355,7 +357,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			_, err := mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
 			// Verify
-			mpResponseBody, err := cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
+			mpResponseBody, err := cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
 			Expect(err).ToNot(HaveOccurred())
 			respTaints := mpResponseBody.Taints()
 			for index, taint := range respTaints {
@@ -377,7 +379,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			_, err = mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
 			// Verify
-			mpResponseBody, err = cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
+			mpResponseBody, err = cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
 			Expect(err).ToNot(HaveOccurred())
 			respTaints = mpResponseBody.Taints()
 			for index, taint := range respTaints {
@@ -394,7 +396,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			_, err = mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
 			// Verify
-			mpResponseBody, err = cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
+			mpResponseBody, err = cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mpResponseBody.Taints()).To(BeEmpty())
 			Expect(mpResponseBody.AutoRepair()).To(BeTrue())
@@ -417,7 +419,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			}
 
 			By("Retrieve cluster version")
-			clusterService, err := exec.NewClusterService(constants.GetClusterManifestsDir(profile.GetClusterType()))
+			clusterService, err := profileHandler.Services().GetClusterService()
 			Expect(err).ToNot(HaveOccurred())
 			clusterOutput, err := clusterService.Output()
 			Expect(err).ToNot(HaveOccurred())
@@ -426,7 +428,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Retrieve z-1 version")
-			zLowerVersions := cms.SortVersions(cms.GetHcpLowerVersions(ci.RHCSConnection, clusterVersion, profile.ChannelGroup))
+			zLowerVersions := cms.SortVersions(cms.GetHcpLowerVersions(cms.RHCSConnection, clusterVersion, profileHandler.Profile().GetChannelGroup()))
 			if len(zLowerVersions) > 0 {
 				zversion := zLowerVersions[len(zLowerVersions)-1]
 				zSemVer, err := semver.NewVersion(zversion.RawID)
@@ -442,7 +444,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 					Expect(err).ToNot(HaveOccurred())
 
 					By("Verify machinepool with z-1")
-					mpResponseBody, err := cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
+					mpResponseBody, err := cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(mpResponseBody.Version().ID()).To(Equal(zversion.ID))
 
@@ -458,7 +460,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 			By("Retrieve y-1 version")
 			throttleVersion := fmt.Sprintf("%v.%v.0", clusterSemVer.Major(), clusterSemVer.Minor())
-			yLowerVersions := cms.SortVersions(cms.GetHcpLowerVersions(ci.RHCSConnection, throttleVersion, profile.ChannelGroup))
+			yLowerVersions := cms.SortVersions(cms.GetHcpLowerVersions(cms.RHCSConnection, throttleVersion, profileHandler.Profile().GetChannelGroup()))
 			if len(yLowerVersions) > 0 {
 				yVersion := yLowerVersions[len(yLowerVersions)-1]
 				name := helper.GenerateRandomName("np-72509-z", 2)
@@ -470,7 +472,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Verify machinepool with z-1")
-				mpResponseBody, err := cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
+				mpResponseBody, err := cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(mpResponseBody.Version().ID()).To(Equal(yVersion.ID))
 
@@ -505,7 +507,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify tags are correctly set")
-			mpResponseBody, err := cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
+			mpResponseBody, err := cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mpResponseBody.AWSNodePool().Tags()).To(HaveKeyWithValue("aaa", "bbb"))
 			Expect(mpResponseBody.AWSNodePool().Tags()).To(HaveKeyWithValue("ccc", "ddd"))
@@ -558,7 +560,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify tuning configs are correctly set")
-			mpResponseBody, err := cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
+			mpResponseBody, err := cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mpResponseBody.TuningConfigs()).To(Equal(tuningconfigs))
 
@@ -569,7 +571,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify tuning configs are correctly updated")
-			mpResponseBody, err = cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
+			mpResponseBody, err = cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mpResponseBody.TuningConfigs()).To(Equal(tuningconfigs))
 
@@ -579,7 +581,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify tuning configs are correctly updated")
-			mpResponseBody, err = cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
+			mpResponseBody, err = cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mpResponseBody.TuningConfigs()).To(BeEmpty())
 		})
@@ -613,7 +615,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			mpName := helper.GenerateRandomName("np-72514", 2)
 
 			By("Retrieve current cluster information")
-			clusterResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			clusterResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Try to create a nodepool with empty cluster")
@@ -663,7 +665,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 			By("Try to create a nodepool with version > CP version")
 			currentVersion := clusterResp.Body().Version().RawID()
 			currentSemVer, _ := semver.NewVersion(currentVersion)
-			versions := cms.GetHcpHigherVersions(ci.RHCSConnection, currentVersion, profile.ChannelGroup)
+			versions := cms.GetHcpHigherVersions(cms.RHCSConnection, currentVersion, profileHandler.Profile().GetChannelGroup())
 			if len(versions) > 0 {
 				validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
 					args.OpenshiftVersion = helper.StringPointer(versions[0].RawID)
@@ -674,7 +676,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.NonClassicCluster, ci.FeatureMac
 
 			By("Try to create a nodepool with version < CP version-2")
 			throttleVersion := fmt.Sprintf("%v.%v.0", currentSemVer.Major(), currentSemVer.Minor()-2)
-			versions = cms.GetHcpLowerVersions(ci.RHCSConnection, throttleVersion, profile.ChannelGroup)
+			versions = cms.GetHcpLowerVersions(cms.RHCSConnection, throttleVersion, profileHandler.Profile().GetChannelGroup())
 			if len(versions) > 0 {
 				validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
 					args.OpenshiftVersion = helper.StringPointer(versions[0].RawID)

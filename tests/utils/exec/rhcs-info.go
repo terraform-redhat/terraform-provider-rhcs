@@ -2,6 +2,7 @@ package exec
 
 import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
 )
 
 type RhcsInfoArgs struct {
@@ -19,13 +20,9 @@ type rhcsInfoService struct {
 	tfExecutor TerraformExecutor
 }
 
-func NewRhcsInfoService(manifestsDirs ...string) (RhcsInfoService, error) {
-	manifestsDir := constants.RhcsInfoDir
-	if len(manifestsDirs) > 0 {
-		manifestsDir = manifestsDirs[0]
-	}
+func NewRhcsInfoService(tfWorkspace string, clusterType constants.ClusterType) (RhcsInfoService, error) {
 	svc := &rhcsInfoService{
-		tfExecutor: NewTerraformExecutor(manifestsDir),
+		tfExecutor: NewTerraformExecutor(tfWorkspace, manifests.GetRHCSInfoManifestsDir(clusterType)),
 	}
 	err := svc.Init()
 	return svc, err

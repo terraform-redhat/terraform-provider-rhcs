@@ -2,6 +2,7 @@ package exec
 
 import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
 )
 
 type SecurityGroupArgs struct {
@@ -31,13 +32,9 @@ type securityGroupService struct {
 	tfExecutor TerraformExecutor
 }
 
-func NewSecurityGroupService(manifestsDirs ...string) (SecurityGroupService, error) {
-	manifestsDir := constants.AWSSecurityGroupDir
-	if len(manifestsDirs) > 0 {
-		manifestsDir = manifestsDirs[0]
-	}
+func NewSecurityGroupService(tfWorkspace string, clusterType constants.ClusterType) (SecurityGroupService, error) {
 	svc := &securityGroupService{
-		tfExecutor: NewTerraformExecutor(manifestsDir),
+		tfExecutor: NewTerraformExecutor(tfWorkspace, manifests.GetAWSSecurityGroupManifestDir(clusterType)),
 	}
 	err := svc.Init()
 	return svc, err

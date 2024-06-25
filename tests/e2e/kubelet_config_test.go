@@ -8,9 +8,9 @@ import (
 	. "github.com/onsi/gomega"
 	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	cms "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	exe "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 
 var _ = Describe("Kubelet config", ci.NonHCPCluster, func() {
@@ -19,8 +19,9 @@ var _ = Describe("Kubelet config", ci.NonHCPCluster, func() {
 	var kcService exe.KubeletConfigService
 
 	BeforeEach(func() {
-		var err error
-		kcService, err = exe.NewKubeletConfigService(CON.KubeletConfigDir)
+		profileHandler, err := profilehandler.NewProfileHandlerFromYamlFile()
+		Expect(err).ToNot(HaveOccurred())
+		kcService, err = profileHandler.Services().GetKubeletConfigService()
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -40,7 +41,7 @@ var _ = Describe("Kubelet config", ci.NonHCPCluster, func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify the created kubeletconfig")
-		kubeletConfig, err := cms.RetrieveKubeletConfig(ci.RHCSConnection, clusterID)
+		kubeletConfig, err := cms.RetrieveKubeletConfig(cms.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(kubeletConfig.PodPidsLimit()).To(Equal(podPidsLimit))
 
@@ -51,7 +52,7 @@ var _ = Describe("Kubelet config", ci.NonHCPCluster, func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify the created kubeletconfig")
-		kubeletConfig, err = cms.RetrieveKubeletConfig(ci.RHCSConnection, clusterID)
+		kubeletConfig, err = cms.RetrieveKubeletConfig(cms.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(kubeletConfig.PodPidsLimit()).To(Equal(podPidsLimit))
 
@@ -60,7 +61,7 @@ var _ = Describe("Kubelet config", ci.NonHCPCluster, func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify the created kubeletconfig")
-		_, err = cms.RetrieveKubeletConfig(ci.RHCSConnection, clusterID)
+		_, err = cms.RetrieveKubeletConfig(cms.RHCSConnection, clusterID)
 		Expect(err).To(HaveOccurred())
 
 	})

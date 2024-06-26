@@ -27,8 +27,8 @@ locals {
   version = var.openshift_version != null ? var.openshift_version : data.rhcs_versions.version.items[0].name
 
   creatorProps = {
-      rosa_creator_arn = data.aws_caller_identity.current.arn
-    }
+    rosa_creator_arn = data.aws_caller_identity.current.arn
+  }
   properties = var.include_creator_property ? merge(local.creatorProps, var.custom_properties) : var.custom_properties
 }
 
@@ -50,17 +50,17 @@ data "aws_caller_identity" "current" {
 }
 
 resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
-  name                   = var.cluster_name
-  version                = local.version
-  channel_group          = var.channel_group
-  cloud_region           = var.aws_region
-  aws_account_id         = var.aws_account_id != null ? var.aws_account_id : data.aws_caller_identity.current.account_id
-  aws_billing_account_id = var.aws_billing_account_id != null ? var.aws_billing_account_id : data.aws_caller_identity.current.account_id
-  availability_zones     = var.aws_availability_zones
-  properties = local.properties
-  sts      = local.sts_roles
-  replicas = var.replicas
-  proxy    = var.proxy
+  name                         = var.cluster_name
+  version                      = local.version
+  channel_group                = var.channel_group
+  cloud_region                 = var.aws_region
+  aws_account_id               = var.aws_account_id != null ? var.aws_account_id : data.aws_caller_identity.current.account_id
+  aws_billing_account_id       = var.aws_billing_account_id != null ? var.aws_billing_account_id : data.aws_caller_identity.current.account_id
+  availability_zones           = var.aws_availability_zones
+  properties                   = local.properties
+  sts                          = local.sts_roles
+  replicas                     = var.replicas
+  proxy                        = var.proxy
   aws_subnet_ids               = var.aws_subnet_ids
   private                      = var.private
   compute_machine_type         = var.compute_machine_type
@@ -77,13 +77,13 @@ resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
   lifecycle {
     ignore_changes = [availability_zones]
   }
-  wait_for_create_complete   = true
+  wait_for_create_complete            = true
   wait_for_std_compute_nodes_complete = true
-  disable_waiting_in_destroy = false
+  disable_waiting_in_destroy          = false
 }
 
 resource "rhcs_cluster_wait" "rosa_cluster" { # id: 71869
-  count = var.deactivate_cluster_waiter ? 0 : 1
+  count   = var.deactivate_cluster_waiter ? 0 : 1
   cluster = rhcs_cluster_rosa_hcp.rosa_hcp_cluster.id
   timeout = 60 # in minutes
 }

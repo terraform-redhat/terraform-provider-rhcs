@@ -99,7 +99,7 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
 }
 
 resource "rhcs_cluster_wait" "rosa_cluster" { # id: 71869
-  count = var.deactivate_cluster_waiter ? 0 : 1
+  count   = var.deactivate_cluster_waiter ? 0 : 1
   cluster = rhcs_cluster_rosa_classic.rosa_sts_cluster.id
   timeout = 120
 }

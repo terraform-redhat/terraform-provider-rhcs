@@ -217,6 +217,9 @@ func GetMajorVersion(rawVersion string) string {
 }
 
 func PrepareProxy(region string, VPCID string, subnetPublicID string, keyPairID string) (*exec.ProxyOutput, error) {
+	if VPCID == "" {
+		return nil, fmt.Errorf("vpc ID is empty. Cannot prepare proxy")
+	}
 	proxyService, err := exec.NewProxyService()
 	if err != nil {
 		return nil, err

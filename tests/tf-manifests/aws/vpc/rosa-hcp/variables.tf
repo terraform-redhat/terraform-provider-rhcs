@@ -42,6 +42,6 @@ variable "tags" {
 }
 
 variable "disable_subnet_tagging" {
-  type = bool
+  type    = bool
   default = false
 }

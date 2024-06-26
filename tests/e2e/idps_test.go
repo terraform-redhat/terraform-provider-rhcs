@@ -52,7 +52,7 @@ func getDefaultHTPasswordArgs(idpName string) *exec.IDPArgs {
 		ClusterID: helper.StringPointer(clusterID),
 		Name:      helper.StringPointer(idpName),
 		HtpasswdUsers: &[]exec.HTPasswordUser{
-			exec.HTPasswordUser{
+			{
 				Username: helper.StringPointer(defaultHTPUsername),
 				Password: helper.StringPointer(defaultHTPPassword),
 			},

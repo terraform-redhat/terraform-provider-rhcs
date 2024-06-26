@@ -1,7 +1,7 @@
-variable proxy_count {
-  type = number
+variable "proxy_count" {
+  type        = number
   description = "Number of proxies to create"
-  default = 1
+  default     = 1
 }
 
 variable "aws_region" {
@@ -30,7 +30,7 @@ variable "trust_bundle_path" {
 }
 
 variable "key_pair_id" {
-  type = string
+  type        = string
   description = "used for key pair name. Default will be randomly generated"
   default     = null
 }

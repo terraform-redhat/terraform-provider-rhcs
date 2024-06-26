@@ -36,4 +36,5 @@ resource "rhcs_hcp_machine_pool" "mp" {
   version                      = var.openshift_version
   autoscaling                  = local.autoscaling
   aws_node_pool                = local.aws_node_pool
+  kubelet_configs              = var.kubelet_configs
 }

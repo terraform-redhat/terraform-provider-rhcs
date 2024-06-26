@@ -19,7 +19,7 @@ output "channel_group" {
 }
 
 output "installer_role_arn" {
-  value =  module.account_iam_role[0].iam_role_arn
+  value = module.account_iam_role[0].iam_role_arn
 }
 
 output "aws_account_id" {

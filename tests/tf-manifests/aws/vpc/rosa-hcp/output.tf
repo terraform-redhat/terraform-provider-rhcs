@@ -7,11 +7,11 @@ output "cluster_public_subnet" {
 }
 
 output "azs" {
-  value       = aws_subnet.private_subnet[*].availability_zone
+  value = aws_subnet.private_subnet[*].availability_zone
 }
 
 output "vpc_id" {
-  value       = time_sleep.vpc_resources_wait.triggers["vpc_id"]
+  value = time_sleep.vpc_resources_wait.triggers["vpc_id"]
 }
 
 output "vpc_cidr" {

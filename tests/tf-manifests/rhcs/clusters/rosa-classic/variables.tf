@@ -200,19 +200,19 @@ variable "upgrade_acknowledgements_for" {
 }
 
 variable "base_dns_domain" {
-  type        = string
-  default     = null
+  type    = string
+  default = null
 }
 
 variable "private_hosted_zone" {
   type = object({
-    id        = string
-    role_arn  = string
+    id       = string
+    role_arn = string
   })
   default = null
 }
 
 variable "deactivate_cluster_waiter" {
-  type = bool
+  type    = bool
   default = false
 }

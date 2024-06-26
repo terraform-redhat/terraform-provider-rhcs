@@ -6,7 +6,7 @@ require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/aws/aws-sdk-go v1.45.26
 	github.com/hashicorp/go-version v1.6.0
-	github.com/hashicorp/hcl/v2 v2.8.2
+	github.com/hashicorp/hcl/v2 v2.21.0
 	github.com/hashicorp/terraform-plugin-docs v0.16.0
 	github.com/hashicorp/terraform-plugin-framework v1.3.5
 	github.com/hashicorp/terraform-plugin-framework-validators v0.12.0

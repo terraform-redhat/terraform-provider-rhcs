@@ -15,5 +15,5 @@ output "properties" {
 }
 
 output "tags" {
- value = rhcs_cluster_rosa_hcp.rosa_hcp_cluster.tags 
+  value = rhcs_cluster_rosa_hcp.rosa_hcp_cluster.tags
 }

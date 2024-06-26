@@ -346,6 +346,12 @@ func RetrieveKubeletConfig(connection *client.Connection, clusterID string) (*cm
 	return resp.Body(), err
 }
 
+// RetrieveHCPKubeletConfig returns the kubeletconfig
+func RetrieveHCPKubeletConfig(connection *client.Connection, clusterID string, kubeConfigID string) (*cmv1.KubeletConfig, error) {
+	resp, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).KubeletConfigs().KubeletConfig(kubeConfigID).Get().Send()
+	return resp.Body(), err
+}
+
 // RetrieveNodePool returns the nodePool detail of HCP
 func RetrieveNodePool(connection *client.Connection, clusterID string, npID string, parameter ...map[string]interface{}) (*cmv1.NodePool, error) {
 	request := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).NodePools().NodePool(npID).Get()

@@ -20,6 +20,6 @@ resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
   ignore_daemonsets_utilization = var.ignore_daemonsets_utilization
   max_node_provision_time       = var.max_node_provision_time
   balancing_ignored_labels      = var.balancing_ignored_labels
-  resource_limits = var.resource_limits
-  scale_down = var.scale_down
+  resource_limits               = var.resource_limits
+  scale_down                    = var.scale_down
 }

@@ -33,6 +33,7 @@ type MachinePoolArgs struct {
 	UpgradeAcknowledgementsFor *string   `hcl:"upgrade_acknowledgements_for"`
 	OpenshiftVersion           *string   `hcl:"openshift_version"`
 	AutoRepair                 *bool     `hcl:"auto_repair"`
+	KubeletConfigs             *string   `hcl:"kubelet_configs"`
 }
 
 type MachinePoolOutput struct {

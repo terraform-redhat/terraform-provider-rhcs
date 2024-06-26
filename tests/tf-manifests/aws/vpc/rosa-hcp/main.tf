@@ -8,13 +8,13 @@ terraform {
 }
 
 provider "aws" {
-  region = var.aws_region
+  region                   = var.aws_region
   shared_credentials_files = var.aws_shared_credentials_files
 }
 
 locals {
   availability_zones_count = var.multi_az ? 3 : 1
-  tags = var.tags == null ? {} : var.tags
+  tags                     = var.tags == null ? {} : var.tags
 
   private_subnet_tags = var.disable_subnet_tagging ? {} : { "kubernetes.io/role/internal-elb" = "" }
   public_subnet_tags  = var.disable_subnet_tagging ? {} : { "kubernetes.io/role/elb" = "" }
@@ -219,7 +219,7 @@ resource "aws_route_table_association" "private_route_table_association" {
 # This resource is used in order to add dependencies on all resources 
 # Any resource uses this VPC ID, must wait to all resources creation completion
 resource "time_sleep" "vpc_resources_wait" {
-  create_duration = "20s"
+  create_duration  = "20s"
   destroy_duration = "20s"
   triggers = {
     vpc_id                                           = aws_vpc.vpc.id

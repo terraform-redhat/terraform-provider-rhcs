@@ -1,5 +1,5 @@
 variable "cluster" {
-  type = string
+  type    = string
   default = null
 }
 variable "machine_type" {
@@ -7,7 +7,7 @@ variable "machine_type" {
   type    = string
 }
 variable "name" {
-  type = string
+  type    = string
   default = null
 }
 variable "autoscaling_enabled" {
@@ -72,6 +72,11 @@ variable "upgrade_acknowledgements_for" {
   default = null
 }
 variable "openshift_version" {
+  type    = string
+  default = null
+}
+
+variable "kubelet_configs" {
   type    = string
   default = null
 }

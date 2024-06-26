@@ -31,3 +31,7 @@ output "taints" {
 output "tuning_configs" {
   value = rhcs_hcp_machine_pool.mp.tuning_configs
 }
+
+output "kubelet_configs" {
+  value = rhcs_hcp_machine_pool.mp.kubelet_configs
+}

@@ -127,7 +127,7 @@ e2e_clean_tf_states:
 
 .PHONY: e2e_clean_tf_vars
 e2e_clean_tf_vars:
-	find tests/tf-manifests -name 'terraform.tfvars*' -exec rm -rf {} \; || true
+	find tests/tf-manifests -name 'terraform.e2e.tfvars*' -exec rm -rf {} \; || true
 
 .PHONY: e2e_clean_tf_init
 e2e_clean_tf_init:

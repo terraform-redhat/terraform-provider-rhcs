@@ -80,7 +80,7 @@ func (svc *proxyService) Output() (*ProxiesOutput, error) {
 	}
 
 	var proxies []*ProxyOutput
-	for index, _ := range svcOutput.HttpProxies {
+	for index := range svcOutput.HttpProxies {
 		proxies = append(proxies, &ProxyOutput{
 			HttpProxy:             svcOutput.HttpProxies[index],
 			HttpsProxy:            svcOutput.HttpsProxies[index],

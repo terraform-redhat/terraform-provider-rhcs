@@ -5,20 +5,27 @@ import (
 )
 
 type KubeletConfigArgs struct {
-	Cluster      *string `hcl:"cluster"`
-	PodPidsLimit *int    `hcl:"pod_pids_limit"`
+	Cluster             *string `hcl:"cluster"`
+	PodPidsLimit        *int    `hcl:"pod_pids_limit"`
+	KubeLetConfigNumber *int    `hcl:"kubelet_config_number"`
+	NamePrefix          *string `hcl:"name_prefix"`
 }
 
-type KubeletConfigOutput struct {
-	Cluster      string `json:"cluster_id,omitempty"`
+type KubeletConfig struct {
+	Cluster      string `json:"cluster,omitempty"`
 	PodPidsLimit int    `json:"pod_pids_limit,omitempty"`
+	ID           string `json:"id,omitempty"`
+	Name         string `json:"name,omitempty"`
+}
+type KubeletConfigs struct {
+	KubeConfigs []*KubeletConfig `json:"kubelet_configs,omitempty"`
 }
 
 type KubeletConfigService interface {
 	Init() error
 	Plan(args *KubeletConfigArgs) (string, error)
 	Apply(args *KubeletConfigArgs) (string, error)
-	Output() (*KubeletConfigOutput, error)
+	Output() ([]*KubeletConfig, error)
 	Destroy() (string, error)
 
 	ReadTFVars() (*KubeletConfigArgs, error)
@@ -54,13 +61,13 @@ func (svc *kubeletConfigService) Apply(args *KubeletConfigArgs) (string, error) 
 	return svc.tfExecutor.RunTerraformApply(args)
 }
 
-func (svc *kubeletConfigService) Output() (*KubeletConfigOutput, error) {
-	var output KubeletConfigOutput
+func (svc *kubeletConfigService) Output() ([]*KubeletConfig, error) {
+	output := &KubeletConfigs{}
 	err := svc.tfExecutor.RunTerraformOutputIntoObject(&output)
 	if err != nil {
 		return nil, err
 	}
-	return &output, nil
+	return output.KubeConfigs, nil
 }
 
 func (svc *kubeletConfigService) Destroy() (string, error) {

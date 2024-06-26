@@ -135,36 +135,36 @@ variable "upgrade_acknowledgements_for" {
 }
 
 variable "aws_account_id" {
- type    = string
-  default = null 
+  type    = string
+  default = null
 }
 
 variable "aws_billing_account_id" {
- type    = string
-  default = null 
+  type    = string
+  default = null
 }
 
 variable "installer_role" {
- type    = string
-  default = null 
+  type    = string
+  default = null
 }
 
 variable "support_role" {
- type    = string
-  default = null 
+  type    = string
+  default = null
 }
 
 variable "worker_role" {
- type    = string
-  default = null 
+  type    = string
+  default = null
 }
 
 variable "include_creator_property" {
-  type = bool
+  type    = bool
   default = true
 }
 
 variable "deactivate_cluster_waiter" {
-  type = bool
+  type    = bool
   default = false
 }

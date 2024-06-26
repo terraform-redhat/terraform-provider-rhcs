@@ -103,7 +103,7 @@ resource "aws_ram_principal_association" "shared_vpc_resource_share" {
 
 resource "aws_ram_resource_association" "shared_vpc_resource_association" {
 
-  count = length(var.subnets)
+  count              = length(var.subnets)
   resource_arn       = "${local.resource_arn_prefix}${var.subnets[count.index]}"
   resource_share_arn = aws_ram_resource_share.shared_vpc_resource_share.arn
 }
@@ -137,9 +137,9 @@ locals {
 }
 
 data "aws_subnet" "shared_subnets" {
-  provider = aws.cluster_account
-  for_each = toset(local.shared_subnets)
-  vpc_id = var.vpc_id
-  id = each.value
+  provider   = aws.cluster_account
+  for_each   = toset(local.shared_subnets)
+  vpc_id     = var.vpc_id
+  id         = each.value
   depends_on = [time_sleep.shared_resources_propagation]
 }

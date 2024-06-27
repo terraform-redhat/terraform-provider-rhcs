@@ -9,26 +9,32 @@ import (
 )
 
 var _ = Describe("DNS Domain", func() {
-	var dnsService *exec.DnsService
+	var dnsService exec.DnsDomainService
 	BeforeEach(func() {
 		var err error
 		dnsService, err = exec.NewDnsDomainService(constants.DNSDir)
 		Expect(err).ToNot(HaveOccurred())
 	})
+
 	AfterEach(func() {
-		err := dnsService.Destroy()
-		Expect(err).ToNot(HaveOccurred())
+		dnsService.Destroy()
 	})
+
 	It("can create and destroy dnsdomain - [id:67570]",
 		ci.Day2, ci.Medium, ci.FeatureIDP, ci.NonHCPCluster, func() {
 
+			By("Retrieve DNS creation args")
+			dnsArgs, err := dnsService.ReadTFVars()
+			if err != nil {
+				dnsArgs = &exec.DnsDomainArgs{}
+			}
+
 			By("Create/Apply dns-domain resource by terraform")
-			dnsArgs := &exec.DnsDomainArgs{}
-			err := dnsService.Create(dnsArgs)
+			_, err = dnsService.Apply(dnsArgs)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Destroy dns-domain resource by terraform")
-			err = dnsService.Destroy(dnsArgs)
+			_, err = dnsService.Destroy()
 			Expect(err).ToNot(HaveOccurred())
 		})
 })

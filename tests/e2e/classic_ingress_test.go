@@ -6,11 +6,12 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
-	cms "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
-	con "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	cmsv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
 var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
@@ -18,8 +19,8 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 	var (
 		profile        *ci.Profile
 		err            error
-		ingressBefore  *cmv1.Ingress
-		ingressService *exec.IngressService
+		ingressBefore  *cmsv1.Ingress
+		ingressService exec.IngressService
 	)
 
 	BeforeEach(func() {
@@ -28,18 +29,18 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 		ingressBefore, err = cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
 
-		ingressService, err = exec.NewIngressService(con.ClassicIngressDir)
+		ingressService, err = exec.NewIngressService(constants.ClassicIngressDir)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
 		args := exec.IngressArgs{
-			Cluster:                       &clusterID,
-			ExcludedNamespaces:            ingressBefore.ExcludedNamespaces(),
-			LoadBalancerType:              string(ingressBefore.LoadBalancerType()),
-			RouteSelectors:                ingressBefore.RouteSelectors(),
-			RouteNamespaceOwnershipPolicy: string(ingressBefore.RouteNamespaceOwnershipPolicy()),
-			RouteWildcardPolicy:           string(ingressBefore.RouteWildcardPolicy()),
+			Cluster:                       helper.StringPointer(clusterID),
+			ExcludedNamespaces:            helper.StringSlicePointer(ingressBefore.ExcludedNamespaces()),
+			LoadBalancerType:              helper.StringPointer(string(ingressBefore.LoadBalancerType())),
+			RouteSelectors:                helper.StringMapPointer(ingressBefore.RouteSelectors()),
+			RouteNamespaceOwnershipPolicy: helper.StringPointer(string(ingressBefore.RouteNamespaceOwnershipPolicy())),
+			RouteWildcardPolicy:           helper.StringPointer(string(ingressBefore.RouteWildcardPolicy())),
 		}
 		ingressService.Apply(&args)
 	})
@@ -50,10 +51,10 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 		func() {
 			By("update the LB type to classic")
 			args := exec.IngressArgs{
-				LoadBalancerType: "classic",
-				Cluster:          &clusterID,
+				LoadBalancerType: helper.StringPointer("classic"),
+				Cluster:          helper.StringPointer(clusterID),
 			}
-			err = ingressService.Apply(&args)
+			_, err = ingressService.Apply(&args)
 			if profile.GetClusterType().HCP {
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).Should(MatchRegexp(`Can't update load balancer type on[\s\S]?Hosted Control Plane cluster '%s'`, clusterID))
@@ -69,10 +70,10 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 
 			By("update the LB type to back to NLB")
 			args = exec.IngressArgs{
-				LoadBalancerType: "nlb",
-				Cluster:          &clusterID,
+				LoadBalancerType: helper.StringPointer("nlb"),
+				Cluster:          helper.StringPointer(clusterID),
 			}
-			err = ingressService.Apply(&args)
+			_, err = ingressService.Apply(&args)
 			Expect(err).ToNot(HaveOccurred())
 			ingress, err = cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
@@ -84,19 +85,18 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 		ci.High,
 		func() {
 			By("update ingress attributes")
-
 			args := exec.IngressArgs{
-				ExcludedNamespaces: []string{
+				ExcludedNamespaces: helper.StringSlicePointer([]string{
 					"qe",
-					"test"},
+					"test"}),
 				Cluster: &clusterID,
-				RouteSelectors: map[string]string{
+				RouteSelectors: helper.StringMapPointer(map[string]string{
 					"route": "internal",
-				},
-				RouteNamespaceOwnershipPolicy: "Strict",
-				RouteWildcardPolicy:           "WildcardsAllowed",
+				}),
+				RouteNamespaceOwnershipPolicy: helper.StringPointer("Strict"),
+				RouteWildcardPolicy:           helper.StringPointer("WildcardsAllowed"),
 			}
-			err = ingressService.Apply(&args)
+			_, err = ingressService.Apply(&args)
 			if profile.GetClusterType().HCP {
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).Should(MatchRegexp(`Can't update route selectors on[\s\S]?Hosted Control Plane cluster '%s'`, clusterID))
@@ -107,17 +107,17 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			By("use ocm API to check if ingress config updated")
 			ingress, err := cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(string(ingress.RouteNamespaceOwnershipPolicy())).To(Equal(args.RouteNamespaceOwnershipPolicy))
-			Expect(string(ingress.RouteWildcardPolicy())).To(Equal(args.RouteWildcardPolicy))
-			Expect(ingress.RouteSelectors()["route"]).To(Equal(args.RouteSelectors["route"]))
-			Expect(ingress.ExcludedNamespaces()).To(Equal(args.ExcludedNamespaces))
+			Expect(string(ingress.RouteNamespaceOwnershipPolicy())).To(Equal(*args.RouteNamespaceOwnershipPolicy))
+			Expect(string(ingress.RouteWildcardPolicy())).To(Equal(*args.RouteWildcardPolicy))
+			Expect(ingress.RouteSelectors()["route"]).To(Equal((*args.RouteSelectors)["route"]))
+			Expect(ingress.ExcludedNamespaces()).To(Equal(*args.ExcludedNamespaces))
 
 			By("just update one of cluster_routes_tls_secret_ref and cluster_routes_hostname, not update both together.")
 			args = exec.IngressArgs{
-				ClusterRoutesHostename: "test.example.com",
-				Cluster:                &clusterID,
+				ClusterRoutesHostename: helper.StringPointer("test.example.com"),
+				Cluster:                helper.StringPointer(clusterID),
 			}
-			err = ingressService.Apply(&args)
+			_, err = ingressService.Apply(&args)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).Should(ContainSubstring("must be set together"))
 

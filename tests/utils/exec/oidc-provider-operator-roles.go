@@ -1,21 +1,16 @@
 package exec
 
 import (
-	"context"
-	"fmt"
-
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
 type OIDCProviderOperatorRolesArgs struct {
-	AccountRolePrefix   string `json:"account_role_prefix,omitempty"`
-	OperatorRolePrefix  string `json:"operator_role_prefix,omitempty"`
-	OIDCConfig          string `json:"oidc_config,omitempty"`
-	AWSRegion           string `json:"aws_region,omitempty"`
-	OCMENV              string `json:"rhcs_environment,omitempty"`
-	UnifiedAccRolesPath string `json:"path,omitempty"`
+	AccountRolePrefix   *string `hcl:"account_role_prefix"`
+	OperatorRolePrefix  *string `hcl:"operator_role_prefix"`
+	OIDCConfig          *string `hcl:"oidc_config"`
+	AWSRegion           *string `hcl:"aws_region"`
+	OCMENV              *string `hcl:"rhcs_environment"`
+	UnifiedAccRolesPath *string `hcl:"path"`
 }
 
 type OIDCProviderOperatorRolesOutput struct {
@@ -25,77 +20,67 @@ type OIDCProviderOperatorRolesOutput struct {
 	IngressOperatorRoleArn string `json:"ingress_operator_role_arn,omitempty"`
 }
 
-type OIDCProviderOperatorRolesService struct {
-	CreationArgs *OIDCProviderOperatorRolesArgs
-	ManifestDir  string
-	Context      context.Context
+type OIDCProviderOperatorRolesService interface {
+	Init() error
+	Plan(args *OIDCProviderOperatorRolesArgs) (string, error)
+	Apply(args *OIDCProviderOperatorRolesArgs) (string, error)
+	Output() (*OIDCProviderOperatorRolesOutput, error)
+	Destroy() (string, error)
+
+	ReadTFVars() (*OIDCProviderOperatorRolesArgs, error)
+	DeleteTFVars() error
 }
 
-func (oidcOP *OIDCProviderOperatorRolesService) Init(manifestDirs ...string) error {
-	oidcOP.ManifestDir = CON.OIDCProviderOperatorRolesClassicManifestDir
-	if len(manifestDirs) != 0 {
-		oidcOP.ManifestDir = manifestDirs[0]
-	}
-	ctx := context.TODO()
-	oidcOP.Context = ctx
-	err := runTerraformInit(ctx, oidcOP.ManifestDir)
-	if err != nil {
-		return err
-	}
-	return nil
-
+type oidcProviderOperatorRolesService struct {
+	tfExecutor TerraformExecutor
 }
 
-func (oidcOP *OIDCProviderOperatorRolesService) Apply(createArgs *OIDCProviderOperatorRolesArgs, recordtfvars bool, extraArgs ...string) (
-	*OIDCProviderOperatorRolesOutput, error) {
-	createArgs.OCMENV = constants.RHCS.OCMEnv
-	oidcOP.CreationArgs = createArgs
-	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApply(oidcOP.Context, oidcOP.ManifestDir, args...)
+func NewOIDCProviderOperatorRolesService(manifestsDirs ...string) (OIDCProviderOperatorRolesService, error) {
+	manifestsDir := constants.OIDCProviderOperatorRolesClassicManifestDir
+	if len(manifestsDirs) > 0 {
+		manifestsDir = manifestsDirs[0]
+	}
+	svc := &oidcProviderOperatorRolesService{
+		tfExecutor: NewTerraformExecutor(manifestsDir),
+	}
+	err := svc.Init()
+	return svc, err
+}
+
+func (svc *oidcProviderOperatorRolesService) Init() (err error) {
+	_, err = svc.tfExecutor.RunTerraformInit()
+	return
+}
+
+func (svc *oidcProviderOperatorRolesService) Plan(args *OIDCProviderOperatorRolesArgs) (string, error) {
+	args.OCMENV = &constants.RHCS.OCMEnv
+	return svc.tfExecutor.RunTerraformPlan(args)
+}
+
+func (svc *oidcProviderOperatorRolesService) Apply(args *OIDCProviderOperatorRolesArgs) (string, error) {
+	args.OCMENV = &constants.RHCS.OCMEnv
+	return svc.tfExecutor.RunTerraformApply(args)
+}
+
+func (svc *oidcProviderOperatorRolesService) Output() (*OIDCProviderOperatorRolesOutput, error) {
+	var output OIDCProviderOperatorRolesOutput
+	err := svc.tfExecutor.RunTerraformOutputIntoObject(&output)
 	if err != nil {
 		return nil, err
 	}
-	output, err := oidcOP.Output()
-	if err != nil {
-		return nil, err
-	}
-	if recordtfvars {
-		recordTFvarsFile(oidcOP.ManifestDir, tfvars)
-	}
-
-	return output, nil
+	return &output, nil
 }
 
-func (oidcOP *OIDCProviderOperatorRolesService) Output() (*OIDCProviderOperatorRolesOutput, error) {
-	out, err := runTerraformOutput(oidcOP.Context, oidcOP.ManifestDir)
-	if err != nil {
-		return nil, err
-	}
-	var oidcOPOutput = &OIDCProviderOperatorRolesOutput{
-		AccountRolePrefix:      h.DigString(out["account_roles_prefix"], "value"),
-		OIDCConfigID:           h.DigString(out["oidc_config_id"], "value"),
-		OperatorRolePrefix:     h.DigString(out["operator_role_prefix"], "value"),
-		IngressOperatorRoleArn: h.DigString(out["ingress_operator_role_arn"], "value"),
-	}
-	return oidcOPOutput, nil
+func (svc *oidcProviderOperatorRolesService) Destroy() (string, error) {
+	return svc.tfExecutor.RunTerraformDestroy()
 }
 
-func (oidcOP *OIDCProviderOperatorRolesService) Destroy(createArgs ...*OIDCProviderOperatorRolesArgs) error {
-	if oidcOP.CreationArgs == nil && len(createArgs) == 0 {
-		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
-	}
-	destroyArgs := oidcOP.CreationArgs
-	if len(createArgs) != 0 {
-		destroyArgs = createArgs[0]
-	}
-	destroyArgs.OCMENV = constants.RHCS.OCMEnv
-	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroy(oidcOP.Context, oidcOP.ManifestDir, args...)
-	return err
+func (svc *oidcProviderOperatorRolesService) ReadTFVars() (*OIDCProviderOperatorRolesArgs, error) {
+	args := &OIDCProviderOperatorRolesArgs{}
+	err := svc.tfExecutor.ReadTerraformVars(args)
+	return args, err
 }
 
-func NewOIDCProviderOperatorRolesService(manifestDir ...string) (*OIDCProviderOperatorRolesService, error) {
-	oidcOP := &OIDCProviderOperatorRolesService{}
-	err := oidcOP.Init(manifestDir...)
-	return oidcOP, err
+func (svc *oidcProviderOperatorRolesService) DeleteTFVars() error {
+	return svc.tfExecutor.DeleteTerraformVars()
 }

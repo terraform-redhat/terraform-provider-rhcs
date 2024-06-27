@@ -1,72 +1,73 @@
 package exec
 
-import (
-	"context"
+import "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
-)
+type ClusterArgs struct {
+	AccountRolePrefix                    *string            `hcl:"account_role_prefix"`
+	ClusterName                          *string            `hcl:"cluster_name"`
+	OperatorRolePrefix                   *string            `hcl:"operator_role_prefix"`
+	OpenshiftVersion                     *string            `hcl:"openshift_version"`
+	AWSRegion                            *string            `hcl:"aws_region"`
+	AWSAvailabilityZones                 *[]string          `hcl:"aws_availability_zones"`
+	Replicas                             *int               `hcl:"replicas"`
+	ChannelGroup                         *string            `hcl:"channel_group"`
+	Ec2MetadataHttpTokens                *string            `hcl:"ec2_metadata_http_tokens"`
+	PrivateLink                          *bool              `hcl:"private_link"`
+	Private                              *bool              `hcl:"private"`
+	Fips                                 *bool              `hcl:"fips"`
+	Tags                                 *map[string]string `hcl:"tags"`
+	AuditLogForward                      *bool              `hcl:"audit_log_forward"`
+	Autoscaling                          *Autoscaling       `hcl:"autoscaling_enabled"`
+	Etcd                                 *bool              `hcl:"etcd_encryption"`
+	EtcdKmsKeyARN                        *string            `hcl:"etcd_kms_key_arn"`
+	KmsKeyARN                            *string            `hcl:"kms_key_arn"`
+	AWSSubnetIDs                         *[]string          `hcl:"aws_subnet_ids"`
+	ComputeMachineType                   *string            `hcl:"compute_machine_type"`
+	DefaultMPLabels                      *map[string]string `hcl:"default_mp_labels"`
+	DisableSCPChecks                     *bool              `hcl:"disable_scp_checks"`
+	MultiAZ                              *bool              `hcl:"multi_az"`
+	CustomProperties                     *map[string]string `hcl:"custom_properties"`
+	WorkerDiskSize                       *int               `hcl:"worker_disk_size"`
+	AdditionalComputeSecurityGroups      *[]string          `hcl:"additional_compute_security_groups"`
+	AdditionalInfraSecurityGroups        *[]string          `hcl:"additional_infra_security_groups"`
+	AdditionalControlPlaneSecurityGroups *[]string          `hcl:"additional_control_plane_security_groups"`
+	MachineCIDR                          *string            `hcl:"machine_cidr"`
+	OIDCConfigID                         *string            `hcl:"oidc_config_id"`
+	AdminCredentials                     *map[string]string `hcl:"admin_credentials"`
+	DisableUWM                           *bool              `hcl:"disable_workload_monitoring"`
+	Proxy                                *Proxy             `hcl:"proxy"`
+	UnifiedAccRolesPath                  *string            `hcl:"path"`
+	UpgradeAcknowledgementsFor           *string            `hcl:"upgrade_acknowledgements_for"`
+	BaseDnsDomain                        *string            `hcl:"base_dns_domain"`
+	PrivateHostedZone                    *PrivateHostedZone `hcl:"private_hosted_zone"`
 
-type ClusterCreationArgs struct {
-	AccountRolePrefix                    string             `json:"account_role_prefix,omitempty"`
-	ClusterName                          *string            `json:"cluster_name,omitempty"`
-	OperatorRolePrefix                   *string            `json:"operator_role_prefix,omitempty"`
-	OpenshiftVersion                     string             `json:"openshift_version,omitempty"`
-	AWSRegion                            *string            `json:"aws_region,omitempty"`
-	AWSAvailabilityZones                 *[]string          `json:"aws_availability_zones,omitempty"`
-	Replicas                             int                `json:"replicas,omitempty"`
-	ChannelGroup                         string             `json:"channel_group,omitempty"`
-	Ec2MetadataHttpTokens                string             `json:"ec2_metadata_http_tokens,omitempty"`
-	PrivateLink                          bool               `json:"private_link,omitempty"`
-	Private                              *bool              `json:"private,omitempty"`
-	Fips                                 bool               `json:"fips,omitempty"`
-	Tags                                 map[string]string  `json:"tags,omitempty"`
-	AuditLogForward                      bool               `json:"audit_log_forward,omitempty"`
-	Autoscaling                          *Autoscaling       `json:"autoscaling,omitempty"`
-	Etcd                                 *bool              `json:"etcd_encryption,omitempty"`
-	EtcdKmsKeyARN                        *string            `json:"etcd_kms_key_arn,omitempty"`
-	KmsKeyARN                            *string            `json:"kms_key_arn,omitempty"`
-	AWSSubnetIDs                         *[]string          `json:"aws_subnet_ids,omitempty"`
-	ComputeMachineType                   string             `json:"compute_machine_type,omitempty"`
-	DefaultMPLabels                      map[string]string  `json:"default_mp_labels,omitempty"`
-	DisableSCPChecks                     bool               `json:"disable_scp_checks,omitempty"`
-	MultiAZ                              bool               `json:"multi_az,omitempty"`
-	CustomProperties                     map[string]string  `json:"custom_properties,omitempty"`
-	WorkerDiskSize                       int                `json:"worker_disk_size,omitempty"`
-	AdditionalComputeSecurityGroups      []string           `json:"additional_compute_security_groups,omitempty"`
-	AdditionalInfraSecurityGroups        []string           `json:"additional_infra_security_groups,omitempty"`
-	AdditionalControlPlaneSecurityGroups []string           `json:"additional_control_plane_security_groups,omitempty"`
-	MachineCIDR                          string             `json:"machine_cidr,omitempty"`
-	OIDCConfigID                         *string            `json:"oidc_config_id,omitempty"`
-	AdminCredentials                     map[string]string  `json:"admin_credentials,omitempty"`
-	DisableUWM                           bool               `json:"disable_workload_monitoring,omitempty"`
-	Proxy                                *Proxy             `json:"proxy,omitempty"`
-	UnifiedAccRolesPath                  string             `json:"path,omitempty"`
-	UpgradeAcknowledgementsFor           string             `json:"upgrade_acknowledgements_for,omitempty"`
-	BaseDnsDomain                        string             `json:"base_dns_domain,omitempty"`
-	PrivateHostedZone                    *PrivateHostedZone `json:"private_hosted_zone,omitempty"`
+	AWSAccountID        *string `hcl:"aws_account_id"`
+	AWSBillingAccountID *string `hcl:"aws_billing_account_id"`
+	HostPrefix          *int    `hcl:"host_prefix"`
+	ServiceCIDR         *string `hcl:"service_cidr"`
+	PodCIDR             *string `hcl:"pod_cidr"`
+	StsInstallerRole    *string `hcl:"installer_role"`
+	StsSupportRole      *string `hcl:"support_role"`
+	StsWorkerRole       *string `hcl:"worker_role"`
 
-	AWSAccountID        *string `json:"aws_account_id,omitempty"`
-	AWSBillingAccountID *string `json:"aws_billing_account_id,omitempty"`
-	HostPrefix          int     `json:"host_prefix,omitempty"`
-	ServiceCIDR         string  `json:"service_cidr,omitempty"`
-	PodCIDR             string  `json:"pod_cidr,omitempty"`
-	StsInstallerRole    *string `json:"installer_role,omitempty"`
-	StsSupportRole      *string `json:"support_role,omitempty"`
-	StsWorkerRole       *string `json:"worker_role,omitempty"`
-
-	IncludeCreatorProperty *bool `json:"include_creator_property,omitempty"`
+	IncludeCreatorProperty *bool `hcl:"include_creator_property"`
 }
 type Proxy struct {
-	HTTPProxy             *string `json:"http_proxy,omitempty"`
-	HTTPSProxy            *string `json:"https_proxy,omitempty"`
-	AdditionalTrustBundle *string `json:"additional_trust_bundle,omitempty"`
-	NoProxy               *string `json:"no_proxy,omitempty"`
+	HTTPProxy             *string `cty:"http_proxy"`
+	HTTPSProxy            *string `cty:"https_proxy"`
+	AdditionalTrustBundle *string `cty:"additional_trust_bundle"`
+	NoProxy               *string `cty:"no_proxy"`
 }
 
 type PrivateHostedZone struct {
-	ID      string `json:"id,omitempty"`
-	RoleArn string `json:"role_arn,omitempty"`
+	ID      string `cty:"id"`
+	RoleArn string `cty:"role_arn"`
+}
+
+type Autoscaling struct {
+	AutoscalingEnabled *bool `cty:"autoscaling_enabled"`
+	MinReplicas        *int  `cty:"min_replicas"`
+	MaxReplicas        *int  `cty:"max_replicas"`
 }
 
 // Just a placeholder, not research what to output yet.
@@ -79,12 +80,6 @@ type ClusterOutput struct {
 	AdditionalControlPlaneSecurityGroups []string          `json:"additional_control_plane_security_groups,omitempty"`
 	Properties                           map[string]string `json:"properties,omitempty"`
 	UserTags                             map[string]string `json:"tags,omitempty"`
-}
-
-type Autoscaling struct {
-	AutoscalingEnabled bool `json:"autoscaling_enabled,omitempty"`
-	MinReplicas        int  `json:"min_replicas,omitempty"`
-	MaxReplicas        int  `json:"max_replicas,omitempty"`
 }
 
 // ******************************************************
@@ -111,72 +106,68 @@ const (
 	CandidateChannel = "candidate"
 )
 
-type ClusterService struct {
-	CreationArgs *ClusterCreationArgs
-	ManifestDir  string
-	Context      context.Context
+type ClusterService interface {
+	Init() error
+	Plan(args *ClusterArgs) (string, error)
+	Apply(args *ClusterArgs) (string, error)
+	Output() (*ClusterOutput, error)
+	Destroy() (string, error)
+
+	ReadTFVars() (*ClusterArgs, error)
+	WriteTFVars(args *ClusterArgs) error
+	DeleteTFVars() error
 }
 
-func (creator *ClusterService) Init(manifestDir string) error {
-	creator.ManifestDir = constants.GrantClusterManifestDir(manifestDir)
-	ctx := context.TODO()
-	creator.Context = ctx
-	err := runTerraformInit(ctx, creator.ManifestDir)
-	if err != nil {
-		return err
-	}
-	return nil
-
+type clusterService struct {
+	tfExecutor TerraformExecutor
 }
 
-func (creator *ClusterService) Apply(createArgs *ClusterCreationArgs, recordtfvars bool, tfvarsDeletion bool, extraArgs ...string) error {
-	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	if recordtfvars {
-		recordTFvarsFile(creator.ManifestDir, tfvars) // Record the tfvars before apply in case cluster creation error and we need clean
+func NewClusterService(manifestDir string) (ClusterService, error) {
+	manifestsDir := constants.GrantClusterManifestDir(manifestDir)
+	svc := &clusterService{
+		tfExecutor: NewTerraformExecutor(manifestsDir),
 	}
-
-	_, err := runTerraformApply(creator.Context, creator.ManifestDir, args...)
-	if err != nil {
-		if tfvarsDeletion {
-			deleteTFvarsFile(creator.ManifestDir)
-		}
-		return err
-	}
-	return nil
+	err := svc.Init()
+	return svc, err
 }
 
-func (creator *ClusterService) Output() (*ClusterOutput, error) {
-	out, err := runTerraformOutput(creator.Context, creator.ManifestDir)
+func (svc *clusterService) Init() (err error) {
+	_, err = svc.tfExecutor.RunTerraformInit()
+	return
+}
+
+func (svc *clusterService) Plan(args *ClusterArgs) (string, error) {
+	return svc.tfExecutor.RunTerraformPlan(args)
+}
+
+func (svc *clusterService) Apply(args *ClusterArgs) (string, error) {
+	return svc.tfExecutor.RunTerraformApply(args)
+}
+
+func (svc *clusterService) Output() (*ClusterOutput, error) {
+	var output ClusterOutput
+	err := svc.tfExecutor.RunTerraformOutputIntoObject(&output)
 	if err != nil {
 		return nil, err
 	}
-	clusterOutput := &ClusterOutput{
-		ClusterID:                            helper.DigString(out["cluster_id"], "value"),
-		ClusterName:                          helper.DigString(out["cluster_name"], "value"),
-		ClusterVersion:                       helper.DigString(out["cluster_version"], "value"),
-		AdditionalComputeSecurityGroups:      helper.DigArrayToString(out["additional_compute_security_groups"], "value"),
-		AdditionalInfraSecurityGroups:        helper.DigArrayToString(out["additional_infra_security_groups"], "value"),
-		AdditionalControlPlaneSecurityGroups: helper.DigArrayToString(out["additional_control_plane_security_groups"], "value"),
-		Properties:                           helper.DigMapToString(out["properties"], "value"),
-		UserTags:                             helper.DigMapToString(out["tags"], "value"),
-	}
-
-	return clusterOutput, nil
+	return &output, nil
 }
 
-func (creator *ClusterService) Destroy(createArgs *ClusterCreationArgs, extraArgs ...string) (string, error) {
-	args, _ := combineStructArgs(createArgs, extraArgs...)
-	return runTerraformDestroy(creator.Context, creator.ManifestDir, args...)
+func (svc *clusterService) Destroy() (string, error) {
+	return svc.tfExecutor.RunTerraformDestroy()
 }
 
-func (creator *ClusterService) Plan(planargs *ClusterCreationArgs, extraArgs ...string) (string, error) {
-	args, _ := combineStructArgs(planargs, extraArgs...)
-	output, err := runTerraformPlan(creator.Context, creator.ManifestDir, args...)
-	return output, err
+func (svc *clusterService) ReadTFVars() (*ClusterArgs, error) {
+	args := &ClusterArgs{}
+	err := svc.tfExecutor.ReadTerraformVars(args)
+	return args, err
 }
 
-func NewClusterService(manifestDir string) (*ClusterService, error) {
-	sc := &ClusterService{}
-	err := sc.Init(manifestDir)
-	return sc, err
+func (svc *clusterService) WriteTFVars(args *ClusterArgs) error {
+	err := svc.tfExecutor.WriteTerraformVars(args)
+	return err
+}
+
+func (svc *clusterService) DeleteTFVars() error {
+	return svc.tfExecutor.DeleteTerraformVars()
 }

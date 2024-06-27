@@ -15,9 +15,8 @@ import (
 
 var _ = Describe("Tuning Config", ci.NonClassicCluster, ci.FeatureTuningConfig, ci.Day2, func() {
 	var (
-		tcService *exec.TuningConfigService
-		tcArgs    *exec.TuningConfigArgs
-		mpService *exec.MachinePoolService
+		tcService exec.TuningConfigService
+		mpService exec.MachinePoolService
 		profile   *ci.Profile
 	)
 
@@ -32,8 +31,11 @@ var _ = Describe("Tuning Config", ci.NonClassicCluster, ci.FeatureTuningConfig, 
 	BeforeEach(func() {
 		profile = ci.LoadProfileYamlFileByENV()
 
-		mpService = exec.NewMachinePoolService(constants.HCPMachinePoolDir)
-		tcService = exec.NewTuningConfigService(constants.TuningConfigDir)
+		var err error
+		mpService, err = exec.NewMachinePoolService(constants.HCPMachinePoolDir)
+		Expect(err).ToNot(HaveOccurred())
+		tcService, err = exec.NewTuningConfigService(constants.TuningConfigDir)
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -45,12 +47,12 @@ var _ = Describe("Tuning Config", ci.NonClassicCluster, ci.FeatureTuningConfig, 
 		name := "tc-72521"
 		tcCount := 1
 		By("Create one tuning config")
-		tcArgs = &exec.TuningConfigArgs{
-			Cluster: &clusterID,
-			Name:    &name,
-			Count:   &tcCount,
+		tcArgs := &exec.TuningConfigArgs{
+			Cluster: helper.StringPointer(clusterID),
+			Name:    helper.StringPointer(name),
+			Count:   helper.IntPointer(tcCount),
 		}
-		_, err := tcService.Apply(tcArgs, false)
+		_, err := tcService.Apply(tcArgs)
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify tuning config")
@@ -69,14 +71,10 @@ var _ = Describe("Tuning Config", ci.NonClassicCluster, ci.FeatureTuningConfig, 
 		tcCount = 2
 		specVMDirtyRatios := []int{65, 45}
 		specPriorities := []int{20, 10}
-		tcArgs = &exec.TuningConfigArgs{
-			Cluster:           &clusterID,
-			Name:              &name,
-			Count:             &tcCount,
-			SpecVMDirtyRatios: &specVMDirtyRatios,
-			SpecPriorities:    &specPriorities,
-		}
-		_, err = tcService.Apply(tcArgs, false)
+		tcArgs.Count = helper.IntPointer(tcCount)
+		tcArgs.SpecVMDirtyRatios = helper.IntSlicePointer(specVMDirtyRatios)
+		tcArgs.SpecPriorities = helper.IntSlicePointer(specPriorities)
+		_, err = tcService.Apply(tcArgs)
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify tuning configs")
@@ -102,7 +100,9 @@ var _ = Describe("Tuning Config", ci.NonClassicCluster, ci.FeatureTuningConfig, 
 		By("Update first tuning config")
 		specVMDirtyRatios[0] = 55
 		specPriorities[0] = 1
-		_, err = tcService.Apply(tcArgs, false)
+		tcArgs.SpecVMDirtyRatios = helper.IntSlicePointer(specVMDirtyRatios)
+		tcArgs.SpecPriorities = helper.IntSlicePointer(specPriorities)
+		_, err = tcService.Apply(tcArgs)
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify tuning configs")
@@ -131,38 +131,41 @@ var _ = Describe("Tuning Config", ci.NonClassicCluster, ci.FeatureTuningConfig, 
 	})
 
 	It("can validate - [id:72522]", ci.Medium, func() {
+		tcName := helper.GenerateRandomName("tc-72522", 3)
 		getDefaultTCArgs := func() *exec.TuningConfigArgs {
-			name := "tc-72522"
 			return &exec.TuningConfigArgs{
-				Cluster: &clusterID,
-				Name:    &name,
+				Cluster: helper.StringPointer(clusterID),
+				Name:    helper.StringPointer(tcName),
+			}
+		}
+
+		validateTCArgAgainstErrorSubstrings := func(updateFields func(args *exec.TuningConfigArgs), errSubStrings ...string) {
+			tcArgs := getDefaultTCArgs()
+			updateFields(tcArgs)
+			_, err := tcService.Apply(tcArgs)
+			Expect(err).To(HaveOccurred())
+			for _, errStr := range errSubStrings {
+				helper.ExpectTFErrorContains(err, errStr)
 			}
 		}
 
 		By("Try to create tuning config with empty cluster ID")
-		tcArgs = getDefaultTCArgs()
-		tcArgs.Cluster = helper.EmptyStringPointer
-		_, err := tcService.Apply(tcArgs, false)
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("Attribute cluster cluster ID may not be empty/blank string, got:"))
+		validateTCArgAgainstErrorSubstrings(func(args *exec.TuningConfigArgs) {
+			args.Cluster = helper.EmptyStringPointer
+		}, "Attribute cluster cluster ID may not be empty/blank string, got:")
 
 		By("Try to create tuning config with empty name")
-		tcArgs = getDefaultTCArgs()
-		tcArgs.Name = helper.EmptyStringPointer
-		_, err = tcService.Apply(tcArgs, false)
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("The name must be a lowercase RFC 1123 subdomain"))
+		validateTCArgAgainstErrorSubstrings(func(args *exec.TuningConfigArgs) {
+			args.Name = helper.EmptyStringPointer
+		}, "The name must be a lowercase RFC 1123 subdomain")
 
 		By("Try to create tuning config with empty spec")
-		tcArgs = getDefaultTCArgs()
-		tcArgs.Spec = helper.EmptyStringPointer
-		_, err = tcService.Apply(tcArgs, false)
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring(" Attribute 'spec' must\nbe set"))
+		validateTCArgAgainstErrorSubstrings(func(args *exec.TuningConfigArgs) {
+			args.Spec = helper.EmptyStringPointer
+		}, "Attribute 'spec' must be set")
 
 		By("Create tuning config for edit")
-		tcArgs = getDefaultTCArgs()
-		_, err = tcService.Apply(tcArgs, false)
+		_, err := tcService.Apply(getDefaultTCArgs())
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Try to edit cluster with other cluster ID")
@@ -176,41 +179,31 @@ var _ = Describe("Tuning Config", ci.NonClassicCluster, ci.FeatureTuningConfig, 
 			}
 		}
 		if otherClusterID != "" {
-			tcArgs = getDefaultTCArgs()
-			tcArgs.Cluster = &otherClusterID
-			_, err = tcService.Apply(tcArgs, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Attribute cluster, cannot be changed from"))
+			validateTCArgAgainstErrorSubstrings(func(args *exec.TuningConfigArgs) {
+				args.Cluster = helper.StringPointer(otherClusterID)
+			}, "Attribute cluster, cannot be changed from")
 		} else {
 			Logger.Info("No other cluster accessible for testing this change")
 		}
 
 		By("Try to edit cluster field with wrong value")
-		value := "wrong"
-		tcArgs = getDefaultTCArgs()
-		tcArgs.Cluster = &value
-		_, err = tcService.Apply(tcArgs, false)
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("Attribute cluster, cannot be changed from"))
+		validateTCArgAgainstErrorSubstrings(func(args *exec.TuningConfigArgs) {
+			args.Cluster = helper.StringPointer("wrong")
+		}, "Attribute cluster, cannot be changed from")
 
 		By("Try to edit name field")
-		value = "new_name"
-		tcArgs = getDefaultTCArgs()
-		tcArgs.Name = &value
-		_, err = tcService.Apply(tcArgs, false)
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("Attribute name, cannot be changed from"))
+		validateTCArgAgainstErrorSubstrings(func(args *exec.TuningConfigArgs) {
+			args.Name = helper.StringPointer("new_name")
+		}, "Attribute name, cannot be changed from")
 
 		By("Try to edit spec field with non json value")
-		value = "wrong"
-		tcArgs = getDefaultTCArgs()
-		tcArgs.Spec = &value
-		_, err = tcService.Apply(tcArgs, false)
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("cannot unmarshal string"))
+		validateTCArgAgainstErrorSubstrings(func(args *exec.TuningConfigArgs) {
+			args.Spec = helper.StringPointer("wrong")
+		}, "cannot unmarshal string")
 
 		By("Get vpc output")
-		vpcService := exec.NewVPCService(constants.GetAWSVPCDefaultManifestDir(profile.GetClusterType()))
+		vpcService, err := exec.NewVPCService(constants.GetAWSVPCDefaultManifestDir(profile.GetClusterType()))
+		Expect(err).ToNot(HaveOccurred())
 		vpcOutput, err := vpcService.Output()
 		Expect(err).ToNot(HaveOccurred())
 
@@ -219,18 +212,18 @@ var _ = Describe("Tuning Config", ci.NonClassicCluster, ci.FeatureTuningConfig, 
 		machineType := "m5.2xlarge"
 		name := helper.GenerateRandomName("np-72522", 2)
 		subnetId := vpcOutput.ClusterPrivateSubnets[0]
-		tuningConfigs := []string{*tcArgs.Name}
+		tuningConfigs := []string{tcName}
 		mpArgs := &exec.MachinePoolArgs{
-			Cluster:            &clusterID,
+			Cluster:            helper.StringPointer(clusterID),
 			AutoscalingEnabled: helper.BoolPointer(false),
-			Replicas:           &replicas,
-			Name:               &name,
-			SubnetID:           &subnetId,
-			MachineType:        &machineType,
+			Replicas:           helper.IntPointer(replicas),
+			Name:               helper.StringPointer(name),
+			SubnetID:           helper.StringPointer(subnetId),
+			MachineType:        helper.StringPointer(machineType),
 			AutoRepair:         helper.BoolPointer(true),
-			TuningConfigs:      &tuningConfigs,
+			TuningConfigs:      helper.StringSlicePointer(tuningConfigs),
 		}
-		_, err = mpService.Apply(mpArgs, false)
+		_, err = mpService.Apply(mpArgs)
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Delete Tuning config used by machinepool")

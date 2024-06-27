@@ -86,10 +86,6 @@ var (
 	MultiIDPDir = path.Join(IDPsDir, "multi-idp")
 )
 
-func GrantTFvarsFile(manifestDir string) string {
-	return path.Join(manifestDir, "terraform.tfvars")
-}
-
 func GrantTFstateFile(manifestDir string) string {
 	return path.Join(manifestDir, "terraform.tfstate")
 }

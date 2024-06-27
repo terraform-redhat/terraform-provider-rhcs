@@ -1,87 +1,81 @@
 package exec
 
 import (
-	"context"
-	"fmt"
-
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 )
 
 type TuningConfigArgs struct {
-	Cluster           *string `json:"cluster,omitempty"`
-	Name              *string `json:"name,omitempty"`
-	Count             *int    `json:"tc_count,omitempty"`
-	Spec              *string `json:"spec,omitempty"`
-	SpecVMDirtyRatios *[]int  `json:"spec_vm_dirty_ratios,omitempty"`
-	SpecPriorities    *[]int  `json:"spec_priorities,omitempty"`
+	Cluster           *string `hcl:"cluster"`
+	Name              *string `hcl:"name"`
+	Count             *int    `hcl:"tc_count"`
+	Spec              *string `hcl:"spec"`
+	SpecVMDirtyRatios *[]int  `hcl:"spec_vm_dirty_ratios"`
+	SpecPriorities    *[]int  `hcl:"spec_priorities"`
 }
-
-type TuningConfigService struct {
-	CreationArgs *TuningConfigArgs
-	ManifestDir  string
-	Context      context.Context
-}
-
 type TuningConfigOutput struct {
 	Names []string `json:"names,omitempty"`
+	Specs []string `json:"specs,omitempty"`
 }
 
-func (tcs *TuningConfigService) Init(manifestDirs ...string) error {
-	tcs.ManifestDir = CON.TuningConfigDir
-	if len(manifestDirs) != 0 {
-		tcs.ManifestDir = manifestDirs[0]
+type TuningConfigService interface {
+	Init() error
+	Plan(args *TuningConfigArgs) (string, error)
+	Apply(args *TuningConfigArgs) (string, error)
+	Output() (*TuningConfigOutput, error)
+	Destroy() (string, error)
+
+	ReadTFVars() (*TuningConfigArgs, error)
+	DeleteTFVars() error
+}
+
+type tuningConfigService struct {
+	tfExecutor TerraformExecutor
+}
+
+func NewTuningConfigService(manifestsDirs ...string) (TuningConfigService, error) {
+	manifestsDir := constants.TuningConfigDir
+	if len(manifestsDirs) > 0 {
+		manifestsDir = manifestsDirs[0]
 	}
-	ctx := context.TODO()
-	tcs.Context = ctx
-	err := runTerraformInit(ctx, tcs.ManifestDir)
+	svc := &tuningConfigService{
+		tfExecutor: NewTerraformExecutor(manifestsDir),
+	}
+	err := svc.Init()
+	return svc, err
+}
+
+func (svc *tuningConfigService) Init() (err error) {
+	_, err = svc.tfExecutor.RunTerraformInit()
+	return
+}
+
+func (svc *tuningConfigService) Plan(args *TuningConfigArgs) (string, error) {
+	return svc.tfExecutor.RunTerraformPlan(args)
+}
+
+func (svc *tuningConfigService) Apply(args *TuningConfigArgs) (string, error) {
+	return svc.tfExecutor.RunTerraformApply(args)
+}
+
+func (svc *tuningConfigService) Output() (*TuningConfigOutput, error) {
+	var output TuningConfigOutput
+	err := svc.tfExecutor.RunTerraformOutputIntoObject(&output)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
-
+	return &output, nil
 }
 
-func (tcs *TuningConfigService) Apply(createArgs *TuningConfigArgs, recordtfargs bool, extraArgs ...string) (string, error) {
-	tcs.CreationArgs = createArgs
-	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	output, err := runTerraformApply(tcs.Context, tcs.ManifestDir, args...)
-	if err == nil && recordtfargs {
-		recordTFvarsFile(tcs.ManifestDir, tfvars)
-	}
-	return output, err
+func (svc *tuningConfigService) Destroy() (string, error) {
+	return svc.tfExecutor.RunTerraformDestroy()
 }
 
-func (tcs *TuningConfigService) Output() (output *TuningConfigOutput, err error) {
-	mpDir := tcs.ManifestDir
-	if tcs.ManifestDir == "" {
-		mpDir = CON.ClassicMachinePoolDir
-	}
-	out, err := runTerraformOutput(context.TODO(), mpDir)
-	if err != nil {
-		return output, err
-	}
-	output = &TuningConfigOutput{
-		Names: h.DigArrayToString(out["names"], "value"),
-	}
-	return output, nil
+func (svc *tuningConfigService) ReadTFVars() (*TuningConfigArgs, error) {
+	args := &TuningConfigArgs{}
+	err := svc.tfExecutor.ReadTerraformVars(args)
+	return args, err
 }
 
-func (tcs *TuningConfigService) Destroy(createArgs ...*TuningConfigArgs) (output string, err error) {
-	if tcs.CreationArgs == nil && len(createArgs) == 0 {
-		return "", fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
-	}
-	destroyArgs := tcs.CreationArgs
-	if len(createArgs) != 0 {
-		destroyArgs = createArgs[0]
-	}
-	args, _ := combineStructArgs(destroyArgs)
-
-	return runTerraformDestroy(tcs.Context, tcs.ManifestDir, args...)
-}
-
-func NewTuningConfigService(manifestDir ...string) *TuningConfigService {
-	mp := &TuningConfigService{}
-	mp.Init(manifestDir...)
-	return mp
+func (svc *tuningConfigService) DeleteTFVars() error {
+	return svc.tfExecutor.DeleteTerraformVars()
 }

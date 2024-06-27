@@ -1,113 +1,109 @@
 package exec
 
 import (
-	"context"
-	"fmt"
-
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 )
 
 type ProxyArgs struct {
-	ProxyCount          int    `json:"proxy_count,omitempty"`
-	Region              string `json:"aws_region,omitempty"`
-	VPCID               string `json:"vpc_id,omitempty"`
-	PublicSubnetID      string `json:"subnet_public_id,omitempty"`
-	TrustBundleFilePath string `json:"trust_bundle_path,omitempty"`
-	KeyPairID           string `json:"key_pair_id,omitempty"`
-}
-
-type ProxyService struct {
-	CreationArgs *ProxyArgs
-	ManifestDir  string
-	Context      context.Context
+	ProxyCount          *int    `hcl:"proxy_count"`
+	Region              *string `hcl:"aws_region"`
+	VPCID               *string `hcl:"vpc_id"`
+	PublicSubnetID      *string `hcl:"subnet_public_id"`
+	TrustBundleFilePath *string `hcl:"trust_bundle_path"`
+	KeyPairID           *string `hcl:"key_pair_id"`
 }
 
 // for now holds only ID, additional vars might be needed in the future
+type ProxyServiceOutput struct {
+	HttpProxies            []string `json:"http_proxies,omitempty"`
+	HttpsProxies           []string `json:"https_proxies,omitempty"`
+	NoProxies              []string `json:"no_proxies,omitempty"`
+	AdditionalTrustBundles []string `json:"additional_trust_bundles,omitempty"`
+}
+
 type ProxyOutput struct {
-	HttpProxy             string `json:"http_proxy,omitempty"`
-	HttpsProxy            string `json:"https_proxy,omitempty"`
-	NoProxy               string `json:"no_proxy,omitempty"`
-	AdditionalTrustBundle string `json:"additional_trust_bundle,omitempty"`
+	HttpProxy             string
+	HttpsProxy            string
+	NoProxy               string
+	AdditionalTrustBundle string
 }
 
 type ProxiesOutput struct {
 	Proxies []*ProxyOutput
 }
 
-func (proxy *ProxyService) Init(manifestDirs ...string) error {
-	proxy.ManifestDir = CON.ProxyDir
-	if len(manifestDirs) != 0 {
-		proxy.ManifestDir = manifestDirs[0]
-	}
-	ctx := context.TODO()
-	proxy.Context = ctx
-	err := runTerraformInit(ctx, proxy.ManifestDir)
-	if err != nil {
-		return err
-	}
-	return nil
+type ProxyService interface {
+	Init() error
+	Plan(args *ProxyArgs) (string, error)
+	Apply(args *ProxyArgs) (string, error)
+	Output() (*ProxiesOutput, error)
+	Destroy() (string, error)
+
+	ReadTFVars() (*ProxyArgs, error)
+	DeleteTFVars() error
 }
 
-func (proxy *ProxyService) Apply(createArgs *ProxyArgs, recordtfvars bool, extraArgs ...string) error {
-	proxy.CreationArgs = createArgs
-	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApply(proxy.Context, proxy.ManifestDir, args...)
-	if err != nil {
-		return err
-	}
-	if recordtfvars {
-		recordTFvarsFile(proxy.ManifestDir, tfvars)
-	}
-
-	return nil
+type proxyService struct {
+	tfExecutor TerraformExecutor
 }
 
-func (proxy *ProxyService) Output() (output *ProxiesOutput, err error) {
-	idpDir := CON.IDPsDir
-	if proxy.ManifestDir != "" {
-		idpDir = proxy.ManifestDir
+func NewProxyService(manifestsDirs ...string) (ProxyService, error) {
+	manifestsDir := constants.ProxyDir
+	if len(manifestsDirs) > 0 {
+		manifestsDir = manifestsDirs[0]
 	}
-	var out map[string]interface{}
-	out, err = runTerraformOutput(context.TODO(), idpDir)
-	if err != nil {
-		return
+	svc := &proxyService{
+		tfExecutor: NewTerraformExecutor(manifestsDir),
 	}
-	httpProxies := h.DigArrayToString(out["http_proxies"], "value")
-	httpsProxies := h.DigArrayToString(out["https_proxies"], "value")
-	noProxies := h.DigArrayToString(out["no_proxies"], "value")
-	additionalTrustBundles := h.DigArrayToString(out["additional_trust_bundles"], "value")
+	err := svc.Init()
+	return svc, err
+}
 
-	var proxies []*ProxyOutput
-	for index, _ := range httpProxies {
-		proxy := &ProxyOutput{
-			HttpProxy:             httpProxies[index],
-			HttpsProxy:            httpsProxies[index],
-			NoProxy:               noProxies[index],
-			AdditionalTrustBundle: additionalTrustBundles[index],
-		}
-		proxies = append(proxies, proxy)
-	}
-	output = &ProxiesOutput{Proxies: proxies}
+func (svc *proxyService) Init() (err error) {
+	_, err = svc.tfExecutor.RunTerraformInit()
 	return
 }
 
-func (proxy *ProxyService) Destroy(createArgs ...*ProxyArgs) error {
-	if proxy.CreationArgs == nil && len(createArgs) == 0 {
-		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
-	}
-	destroyArgs := proxy.CreationArgs
-	if len(createArgs) != 0 {
-		destroyArgs = createArgs[0]
-	}
-	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroy(proxy.Context, proxy.ManifestDir, args...)
-
-	return err
+func (svc *proxyService) Plan(args *ProxyArgs) (string, error) {
+	return svc.tfExecutor.RunTerraformPlan(args)
 }
 
-func NewProxyService(manifestDir ...string) (*ProxyService, error) {
-	proxy := &ProxyService{}
-	err := proxy.Init(manifestDir...)
-	return proxy, err
+func (svc *proxyService) Apply(args *ProxyArgs) (string, error) {
+	return svc.tfExecutor.RunTerraformApply(args)
+}
+
+func (svc *proxyService) Output() (*ProxiesOutput, error) {
+	var svcOutput ProxyServiceOutput
+	err := svc.tfExecutor.RunTerraformOutputIntoObject(&svcOutput)
+	if err != nil {
+		return nil, err
+	}
+
+	var proxies []*ProxyOutput
+	for index, _ := range svcOutput.HttpProxies {
+		proxies = append(proxies, &ProxyOutput{
+			HttpProxy:             svcOutput.HttpProxies[index],
+			HttpsProxy:            svcOutput.HttpsProxies[index],
+			NoProxy:               svcOutput.NoProxies[index],
+			AdditionalTrustBundle: svcOutput.AdditionalTrustBundles[index],
+		})
+	}
+
+	return &ProxiesOutput{
+		Proxies: proxies,
+	}, nil
+}
+
+func (svc *proxyService) Destroy() (string, error) {
+	return svc.tfExecutor.RunTerraformDestroy()
+}
+
+func (svc *proxyService) ReadTFVars() (*ProxyArgs, error) {
+	args := &ProxyArgs{}
+	err := svc.tfExecutor.ReadTerraformVars(args)
+	return args, err
+}
+
+func (svc *proxyService) DeleteTFVars() error {
+	return svc.tfExecutor.DeleteTerraformVars()
 }

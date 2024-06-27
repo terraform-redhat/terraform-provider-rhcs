@@ -1,7 +1,6 @@
 package exec
 
 import (
-	"context"
 	"fmt"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -10,133 +9,111 @@ import (
 )
 
 type MachinePoolArgs struct {
-	Cluster                  *string              `json:"cluster,omitempty"`
-	Name                     *string              `json:"name,omitempty"`
-	MachineType              *string              `json:"machine_type,omitempty"`
-	Replicas                 *int                 `json:"replicas,omitempty"`
-	AutoscalingEnabled       *bool                `json:"autoscaling_enabled,omitempty"`
-	UseSpotInstances         *bool                `json:"use_spot_instances,omitempty"`
-	MaxReplicas              *int                 `json:"max_replicas,omitempty"`
-	MinReplicas              *int                 `json:"min_replicas,omitempty"`
-	MaxSpotPrice             *float64             `json:"max_spot_price,omitempty"`
-	Labels                   *map[string]string   `json:"labels,omitempty"`
-	Taints                   *[]map[string]string `json:"taints,omitempty"`
-	ID                       *string              `json:"id,omitempty"`
-	AvailabilityZone         *string              `json:"availability_zone,omitempty"`
-	SubnetID                 *string              `json:"subnet_id,omitempty"`
-	MultiAZ                  *bool                `json:"multi_availability_zone,omitempty"`
-	DiskSize                 *int                 `json:"disk_size,omitempty"`
-	AdditionalSecurityGroups *[]string            `json:"additional_security_groups,omitempty"`
-	Tags                     *map[string]string   `json:"tags,omitempty"`
+	Cluster                  *string              `hcl:"cluster"`
+	Name                     *string              `hcl:"name"`
+	MachineType              *string              `hcl:"machine_type"`
+	Replicas                 *int                 `hcl:"replicas"`
+	AutoscalingEnabled       *bool                `hcl:"autoscaling_enabled"`
+	UseSpotInstances         *bool                `hcl:"use_spot_instances"`
+	MaxReplicas              *int                 `hcl:"max_replicas"`
+	MinReplicas              *int                 `hcl:"min_replicas"`
+	MaxSpotPrice             *float64             `hcl:"max_spot_price"`
+	Labels                   *map[string]string   `hcl:"labels"`
+	Taints                   *[]map[string]string `hcl:"taints"`
+	ID                       *string              `hcl:"id"`
+	AvailabilityZone         *string              `hcl:"availability_zone"`
+	SubnetID                 *string              `hcl:"subnet_id"`
+	MultiAZ                  *bool                `hcl:"multi_availability_zone"`
+	DiskSize                 *int                 `hcl:"disk_size"`
+	AdditionalSecurityGroups *[]string            `hcl:"additional_security_groups"`
+	Tags                     *map[string]string   `hcl:"tags"`
 
 	// HCP supported
-	TuningConfigs              *[]string `json:"tuning_configs,omitempty"`
-	UpgradeAcknowledgementsFor *string   `json:"upgrade_acknowledgements_for,omitempty"`
-	OpenshiftVersion           *string   `json:"openshift_version,omitempty"`
-	AutoRepair                 *bool     `json:"auto_repair,omitempty"`
-}
-
-type MachinePoolService struct {
-	CreationArgs *MachinePoolArgs
-	ManifestDir  string
-	Context      context.Context
+	TuningConfigs              *[]string `hcl:"tuning_configs"`
+	UpgradeAcknowledgementsFor *string   `hcl:"upgrade_acknowledgements_for"`
+	OpenshiftVersion           *string   `hcl:"openshift_version"`
+	AutoRepair                 *bool     `hcl:"auto_repair"`
 }
 
 type MachinePoolOutput struct {
-	ID                 string            `json:"machine_pool_id,omitempty"`
-	Name               string            `json:"name,omitempty"`
-	ClusterID          string            `json:"cluster_id,omitempty"`
-	Replicas           int               `json:"replicas,omitempty"`
-	MachineType        string            `json:"machine_type,omitempty"`
-	AutoscalingEnabled bool              `json:"autoscaling_enabled,omitempty"`
-	Labels             map[string]string `json:"labels,omitempty"`
+	ID                 string             `json:"machine_pool_id,omitempty"`
+	Name               string             `json:"name,omitempty"`
+	ClusterID          string             `json:"cluster_id,omitempty"`
+	Replicas           int                `json:"replicas,omitempty"`
+	MachineType        string             `json:"machine_type,omitempty"`
+	AutoscalingEnabled bool               `json:"autoscaling_enabled,omitempty"`
+	Labels             map[string]string  `json:"labels,omitempty"`
+	Taints             []MachinePoolTaint `json:"taints,omitempty"`
+	TuningConfigs      []string           `json:"tuning_configs,omitempty"`
 }
 
-func (mp *MachinePoolService) Init(manifestDirs ...string) error {
-	mp.ManifestDir = constants.ClassicMachinePoolDir
-	if len(manifestDirs) != 0 {
-		mp.ManifestDir = manifestDirs[0]
-	}
-	ctx := context.TODO()
-	mp.Context = ctx
-	err := runTerraformInit(ctx, mp.ManifestDir)
-	if err != nil {
-		return err
-	}
-	return nil
-
+type MachinePoolTaint struct {
+	Key          string `json:"key,omitempty"`
+	Value        string `json:"value,omitempty"`
+	ScheduleType string `json:"schedule_type,omitempty"`
 }
 
-func (mp *MachinePoolService) MagicImport(createArgs *MachinePoolArgs, extraArgs ...string) error {
-	mp.CreationArgs = createArgs
-	args, _ := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApply(mp.Context, mp.ManifestDir, args...)
-	if err != nil {
-		return err
-	}
-	return nil
+type MachinePoolService interface {
+	Init() error
+	Plan(args *MachinePoolArgs) (string, error)
+	Apply(args *MachinePoolArgs) (string, error)
+	Output() (*MachinePoolOutput, error)
+	Destroy() (string, error)
+
+	ReadTFVars() (*MachinePoolArgs, error)
+	DeleteTFVars() error
 }
 
-func (mp *MachinePoolService) Apply(createArgs *MachinePoolArgs, recordtfargs bool, extraArgs ...string) (string, error) {
-	mp.CreationArgs = createArgs
-	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	output, err := runTerraformApply(mp.Context, mp.ManifestDir, args...)
-	if err == nil && recordtfargs {
-		recordTFvarsFile(mp.ManifestDir, tfvars)
-	}
-	return output, err
+type machinePoolService struct {
+	tfExecutor TerraformExecutor
 }
 
-func (mp *MachinePoolService) Plan(createArgs *MachinePoolArgs, extraArgs ...string) (string, error) {
-	mp.CreationArgs = createArgs
-	args, _ := combineStructArgs(createArgs, extraArgs...)
-	output, err := runTerraformPlan(mp.Context, mp.ManifestDir, args...)
-	return output, err
+func NewMachinePoolService(manifestsDirs ...string) (MachinePoolService, error) {
+	manifestsDir := constants.ClassicMachinePoolDir
+	if len(manifestsDirs) > 0 {
+		manifestsDir = manifestsDirs[0]
+	}
+	svc := &machinePoolService{
+		tfExecutor: NewTerraformExecutor(manifestsDir),
+	}
+	err := svc.Init()
+	return svc, err
 }
 
-func (mp *MachinePoolService) Output() (MachinePoolOutput, error) {
-	mpDir := mp.ManifestDir
-	if mp.ManifestDir == "" {
-		mpDir = constants.ClassicMachinePoolDir
-	}
+func (svc *machinePoolService) Init() (err error) {
+	_, err = svc.tfExecutor.RunTerraformInit()
+	return
+}
+
+func (svc *machinePoolService) Plan(args *MachinePoolArgs) (string, error) {
+	return svc.tfExecutor.RunTerraformPlan(args)
+}
+
+func (svc *machinePoolService) Apply(args *MachinePoolArgs) (string, error) {
+	return svc.tfExecutor.RunTerraformApply(args)
+}
+
+func (svc *machinePoolService) Output() (*MachinePoolOutput, error) {
 	var output MachinePoolOutput
-	out, err := runTerraformOutput(context.TODO(), mpDir)
+	err := svc.tfExecutor.RunTerraformOutputIntoObject(&output)
 	if err != nil {
-		return output, err
+		return nil, err
 	}
-	if err != nil {
-		return output, err
-	}
-	replicas := helper.DigInt(out["replicas"], "value")
-	machine_type := helper.DigString(out["machine_type"], "value")
-	name := helper.DigString(out["name"], "value")
-	autoscaling_enabled := helper.DigBool(out["autoscaling_enabled"])
-	output = MachinePoolOutput{
-		Replicas:           replicas,
-		MachineType:        machine_type,
-		Name:               name,
-		AutoscalingEnabled: autoscaling_enabled,
-	}
-	return output, nil
+	return &output, nil
 }
 
-func (mp *MachinePoolService) Destroy(createArgs ...*MachinePoolArgs) (output string, err error) {
-	if mp.CreationArgs == nil && len(createArgs) == 0 {
-		return "", fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
-	}
-	destroyArgs := mp.CreationArgs
-	if len(createArgs) != 0 {
-		destroyArgs = createArgs[0]
-	}
-	args, _ := combineStructArgs(destroyArgs)
-
-	return runTerraformDestroy(mp.Context, mp.ManifestDir, args...)
+func (svc *machinePoolService) Destroy() (string, error) {
+	return svc.tfExecutor.RunTerraformDestroy()
 }
 
-func NewMachinePoolService(manifestDir ...string) *MachinePoolService {
-	mp := &MachinePoolService{}
-	mp.Init(manifestDir...)
-	return mp
+func (svc *machinePoolService) ReadTFVars() (*MachinePoolArgs, error) {
+	args := &MachinePoolArgs{}
+	err := svc.tfExecutor.ReadTerraformVars(args)
+	return args, err
+}
+
+func (svc *machinePoolService) DeleteTFVars() error {
+	return svc.tfExecutor.DeleteTerraformVars()
 }
 
 func BuildDefaultMachinePoolArgsFromClusterState(clusterResource interface{}) (MachinePoolArgs, error) {
@@ -223,8 +200,10 @@ func BuildDefaultMachinePoolArgsFromDefaultMachinePoolState(defaultMachinePoolRe
 			DiskSize                 	done
 			AdditionalSecurityGroups *[]string           done
 */
-func BuildMachinePoolArgsFromCSResponse(machinePool *cmv1.MachinePool) MachinePoolArgs {
+func BuildMachinePoolArgsFromCSResponse(clusterID string, machinePool *cmv1.MachinePool) *MachinePoolArgs {
 	var machinePoolArgs MachinePoolArgs
+
+	machinePoolArgs.Cluster = helper.StringPointer(clusterID)
 
 	if id, ok := machinePool.GetID(); ok {
 		machinePoolArgs.Name = helper.StringPointer(id)
@@ -270,5 +249,5 @@ func BuildMachinePoolArgsFromCSResponse(machinePool *cmv1.MachinePool) MachinePo
 	if additionalSecurityGroups, ok := machinePool.AWS().GetAdditionalSecurityGroupIds(); ok {
 		machinePoolArgs.AdditionalSecurityGroups = &additionalSecurityGroups
 	}
-	return machinePoolArgs
+	return &machinePoolArgs
 }

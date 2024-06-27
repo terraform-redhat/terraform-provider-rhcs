@@ -1,23 +1,19 @@
-output "cluster-private-subnet" {
+output "cluster_private_subnet" {
   value = module.vpc.private_subnets
 }
 
-output "cluster-public-subnet" {
+output "cluster_public_subnet" {
   value = module.vpc.public_subnets
-}
-
-output "node-private-subnet" {
-  value = module.vpc.private_subnets
 }
 
 output "azs" {
   value = module.vpc.azs
 }
 
-output "vpc-id" {
+output "vpc_id" {
   value = module.vpc.vpc_id
 }
 
-output "vpc-cidr" {
+output "vpc_cidr" {
   value = var.vpc_cidr
 }

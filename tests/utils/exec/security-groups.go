@@ -1,89 +1,80 @@
 package exec
 
 import (
-	"context"
-	"fmt"
-
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 )
 
 type SecurityGroupArgs struct {
-	NamePrefix  string `json:"name_prefix,omitempty"`
-	SGNumber    int    `json:"sg_number,omitempty"`
-	VPCID       string `json:"vpc_id,omitempty"`
-	Description string `json:"description,omitempty"`
-	AWSRegion   string `json:"aws_region,omitempty"`
+	NamePrefix  *string `hcl:"name_prefix"`
+	SGNumber    *int    `hcl:"sg_number"`
+	VPCID       *string `hcl:"vpc_id"`
+	Description *string `hcl:"description"`
+	AWSRegion   *string `hcl:"aws_region"`
 }
 
 type SecurityGroupsOutput struct {
 	SGIDs []string `json:"sg_ids,omitempty"`
 }
 
-type SecurityGroupService struct {
-	CreationArgs *SecurityGroupArgs
-	ManifestDir  string
-	Context      context.Context
+type SecurityGroupService interface {
+	Init() error
+	Plan(args *SecurityGroupArgs) (string, error)
+	Apply(args *SecurityGroupArgs) (string, error)
+	Output() (*SecurityGroupsOutput, error)
+	Destroy() (string, error)
+
+	ReadTFVars() (*SecurityGroupArgs, error)
+	DeleteTFVars() error
 }
 
-func (sgs *SecurityGroupService) Init(manifestDirs ...string) error {
-	sgs.ManifestDir = CON.AWSSecurityGroupDir
-	if len(manifestDirs) != 0 {
-		sgs.ManifestDir = manifestDirs[0]
+type securityGroupService struct {
+	tfExecutor TerraformExecutor
+}
+
+func NewSecurityGroupService(manifestsDirs ...string) (SecurityGroupService, error) {
+	manifestsDir := constants.AWSSecurityGroupDir
+	if len(manifestsDirs) > 0 {
+		manifestsDir = manifestsDirs[0]
 	}
-	ctx := context.TODO()
-	sgs.Context = ctx
-	err := runTerraformInit(ctx, sgs.ManifestDir)
+	svc := &securityGroupService{
+		tfExecutor: NewTerraformExecutor(manifestsDir),
+	}
+	err := svc.Init()
+	return svc, err
+}
+
+func (svc *securityGroupService) Init() (err error) {
+	_, err = svc.tfExecutor.RunTerraformInit()
+	return
+}
+
+func (svc *securityGroupService) Plan(args *SecurityGroupArgs) (string, error) {
+	return svc.tfExecutor.RunTerraformPlan(args)
+}
+
+func (svc *securityGroupService) Apply(args *SecurityGroupArgs) (string, error) {
+	return svc.tfExecutor.RunTerraformApply(args)
+}
+
+func (svc *securityGroupService) Output() (*SecurityGroupsOutput, error) {
+	var output SecurityGroupsOutput
+	err := svc.tfExecutor.RunTerraformOutputIntoObject(&output)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
-
+	return &output, nil
 }
 
-func (sgs *SecurityGroupService) Apply(createArgs *SecurityGroupArgs, recordtfvars bool, extraArgs ...string) error {
-	sgs.CreationArgs = createArgs
-	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApply(sgs.Context, sgs.ManifestDir, args...)
-	if err != nil {
-		return err
-	}
-	if recordtfvars {
-		recordTFvarsFile(sgs.ManifestDir, tfvars)
-	}
-
-	return nil
+func (svc *securityGroupService) Destroy() (string, error) {
+	return svc.tfExecutor.RunTerraformDestroy()
 }
 
-func (sgs *SecurityGroupService) Output() (*SecurityGroupsOutput, error) {
-	sgsDir := CON.AWSSecurityGroupDir
-	if sgs.ManifestDir != "" {
-		sgsDir = sgs.ManifestDir
-	}
-	out, err := runTerraformOutput(context.TODO(), sgsDir)
-	sgOut := &SecurityGroupsOutput{
-		SGIDs: h.DigArrayToString(out["sg_ids"], "value"),
-	}
-
-	return sgOut, err
+func (svc *securityGroupService) ReadTFVars() (*SecurityGroupArgs, error) {
+	args := &SecurityGroupArgs{}
+	err := svc.tfExecutor.ReadTerraformVars(args)
+	return args, err
 }
 
-func (sgs *SecurityGroupService) Destroy(createArgs ...*SecurityGroupArgs) error {
-	if sgs.CreationArgs == nil && len(createArgs) == 0 {
-		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
-	}
-	destroyArgs := sgs.CreationArgs
-	if len(createArgs) != 0 {
-		destroyArgs = createArgs[0]
-	}
-	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroy(sgs.Context, sgs.ManifestDir, args...)
-
-	return err
-}
-
-func NewSecurityGroupService(manifestDir ...string) *SecurityGroupService {
-	sgs := &SecurityGroupService{}
-	sgs.Init(manifestDir...)
-	return sgs
+func (svc *securityGroupService) DeleteTFVars() error {
+	return svc.tfExecutor.DeleteTerraformVars()
 }

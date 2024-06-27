@@ -268,7 +268,7 @@ module "operator_iam_role" {
 
   role_name = substr("${local.operator_role_prefix}-${local.operator_roles_properties[count.index].operator_namespace}-${local.operator_roles_properties[count.index].operator_name}", 0, 64)
 
-  role_path                     = var.path
+  role_path                     = local.path
   role_permissions_boundary_arn = var.permissions_boundary
 
   create_custom_role_trust_policy = true

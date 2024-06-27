@@ -1,105 +1,86 @@
 package exec
 
 import (
-	"context"
-	"fmt"
-
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 )
 
 type VPCArgs struct {
-	Name                      string   `json:"name,omitempty"`
-	AWSRegion                 string   `json:"aws_region,omitempty"`
-	VPCCIDR                   string   `json:"vpc_cidr,omitempty"`
-	EnableNatGateway          *bool    `json:"enable_nat_gateway,omitempty"`
-	MultiAZ                   bool     `json:"multi_az,omitempty"`
-	AZIDs                     []string `json:"az_ids,omitempty"`
-	AWSSharedCredentialsFiles []string `json:"aws_shared_credentials_files,omitempty"`
-	DisableSubnetTagging      bool     `json:"disable_subnet_tagging,omitempty"`
+	Name                      *string   `hcl:"name"`
+	AWSRegion                 *string   `hcl:"aws_region"`
+	VPCCIDR                   *string   `hcl:"vpc_cidr"`
+	EnableNatGateway          *bool     `hcl:"enable_nat_gateway"`
+	MultiAZ                   *bool     `hcl:"multi_az"`
+	AZIDs                     *[]string `hcl:"az_ids"`
+	AWSSharedCredentialsFiles *[]string `hcl:"aws_shared_credentials_files"`
+	DisableSubnetTagging      *bool     `hcl:"disable_subnet_tagging"`
 }
 
 type VPCOutput struct {
-	ClusterPublicSubnets  []string `json:"cluster-public-subnet,omitempty"`
-	VPCCIDR               string   `json:"vpc-cidr,omitempty"`
-	ClusterPrivateSubnets []string `json:"cluster-private-subnet,omitempty"`
+	ClusterPublicSubnets  []string `json:"cluster_public_subnet,omitempty"`
+	ClusterPrivateSubnets []string `json:"cluster_private_subnet,omitempty"`
+	VPCCIDR               string   `json:"vpc_cidr,omitempty"`
 	AZs                   []string `json:"azs,omitempty"`
-	NodePrivateSubnets    []string `json:"node-private-subnet,omitempty"`
 	VPCID                 string   `json:"vpc_id,omitempty"`
 }
+type VPCService interface {
+	Init() error
+	Plan(args *VPCArgs) (string, error)
+	Apply(args *VPCArgs) (string, error)
+	Output() (*VPCOutput, error)
+	Destroy() (string, error)
 
-type VPCService struct {
-	CreationArgs *VPCArgs
-	ManifestDir  string
-	Context      context.Context
+	ReadTFVars() (*VPCArgs, error)
+	DeleteTFVars() error
 }
 
-func (vpc *VPCService) Init(manifestDirs ...string) error {
-	vpc.ManifestDir = CON.AWSVPCClassicDir
-	if len(manifestDirs) != 0 {
-		vpc.ManifestDir = manifestDirs[0]
-	}
-	ctx := context.TODO()
-	vpc.Context = ctx
-	err := runTerraformInit(ctx, vpc.ManifestDir)
-	if err != nil {
-		return err
-	}
-	return nil
-
+type vpcService struct {
+	tfExecutor TerraformExecutor
 }
 
-func (vpc *VPCService) Apply(createArgs *VPCArgs, recordtfvars bool, extraArgs ...string) error {
-	vpc.CreationArgs = createArgs
-	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApply(vpc.Context, vpc.ManifestDir, args...)
-	if err != nil {
-		return err
+func NewVPCService(manifestsDirs ...string) (VPCService, error) {
+	manifestsDir := constants.ClassicClusterAutoscalerDir
+	if len(manifestsDirs) > 0 {
+		manifestsDir = manifestsDirs[0]
 	}
-	if recordtfvars {
-		recordTFvarsFile(vpc.ManifestDir, tfvars)
+	svc := &vpcService{
+		tfExecutor: NewTerraformExecutor(manifestsDir),
 	}
-
-	return nil
+	err := svc.Init()
+	return svc, err
 }
 
-func (vpc *VPCService) Output() (*VPCOutput, error) {
-	vpcDir := CON.AWSVPCClassicDir
-	if vpc.ManifestDir != "" {
-		vpcDir = vpc.ManifestDir
-	}
-	out, err := runTerraformOutput(context.TODO(), vpcDir)
+func (svc *vpcService) Init() (err error) {
+	_, err = svc.tfExecutor.RunTerraformInit()
+	return
+}
+
+func (svc *vpcService) Plan(args *VPCArgs) (string, error) {
+	return svc.tfExecutor.RunTerraformPlan(args)
+}
+
+func (svc *vpcService) Apply(args *VPCArgs) (string, error) {
+	return svc.tfExecutor.RunTerraformApply(args)
+}
+
+func (svc *vpcService) Output() (*VPCOutput, error) {
+	var output VPCOutput
+	err := svc.tfExecutor.RunTerraformOutputIntoObject(&output)
 	if err != nil {
 		return nil, err
 	}
-	vpcOutput := &VPCOutput{
-		VPCCIDR:               h.DigString(out["vpc-cidr"], "value"),
-		ClusterPrivateSubnets: h.DigArrayToString(out["cluster-private-subnet"], "value"),
-		ClusterPublicSubnets:  h.DigArrayToString(out["cluster-public-subnet"], "value"),
-		NodePrivateSubnets:    h.DigArrayToString(out["node-private-subnet"], "value"),
-		AZs:                   h.DigArrayToString(out["azs"], "value"),
-		VPCID:                 h.DigString(out["vpc-id"], "value"),
-	}
-
-	return vpcOutput, err
+	return &output, nil
 }
 
-func (vpc *VPCService) Destroy(createArgs ...*VPCArgs) error {
-	if vpc.CreationArgs == nil && len(createArgs) == 0 {
-		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
-	}
-	destroyArgs := vpc.CreationArgs
-	if len(createArgs) != 0 {
-		destroyArgs = createArgs[0]
-	}
-	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroy(vpc.Context, vpc.ManifestDir, args...)
-
-	return err
+func (svc *vpcService) Destroy() (string, error) {
+	return svc.tfExecutor.RunTerraformDestroy()
 }
 
-func NewVPCService(manifestDir ...string) *VPCService {
-	vpc := &VPCService{}
-	vpc.Init(manifestDir...)
-	return vpc
+func (svc *vpcService) ReadTFVars() (*VPCArgs, error) {
+	args := &VPCArgs{}
+	err := svc.tfExecutor.ReadTerraformVars(args)
+	return args, err
+}
+
+func (svc *vpcService) DeleteTFVars() error {
+	return svc.tfExecutor.DeleteTerraformVars()
 }

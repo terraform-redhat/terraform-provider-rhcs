@@ -27,7 +27,74 @@ type IDPServices struct {
 	google,
 	ldap,
 	multi_idp,
-	openid *exec.IDPService
+	openid exec.IDPService
+}
+
+var (
+	defaultHTPUsername = "my-admin-user"
+	defaultHTPPassword = helper.GenerateRandomStringWithSymbols(15)
+
+	defaultLDAPUsername = "newton"
+	defaultLDAPPassword = "password"
+
+	defaultGoogleIDPClientId     = helper.GenerateRandomStringWithSymbols(30)
+	defaultGoogleIDPClientSecret = helper.GenerateRandomStringWithSymbols(20)
+
+	defaultGitlabIDPClientId     = helper.GenerateRandomStringWithSymbols(20)
+	defaultGitlabIDPClientSecret = helper.GenerateRandomStringWithSymbols(30)
+
+	defaultGithubIDPClientId     = helper.GenerateRandomStringWithSymbols(30)
+	defaultGithubIDPClientSecret = helper.GenerateRandomStringWithSymbols(20)
+)
+
+func getDefaultHTPasswordArgs(idpName string) *exec.IDPArgs {
+	return &exec.IDPArgs{
+		ClusterID: helper.StringPointer(clusterID),
+		Name:      helper.StringPointer(idpName),
+		HtpasswdUsers: &[]exec.HTPasswordUser{
+			exec.HTPasswordUser{
+				Username: helper.StringPointer(defaultHTPUsername),
+				Password: helper.StringPointer(defaultHTPPassword),
+			},
+		},
+	}
+}
+func getDefaultLDAPArgs(idpName string) *exec.IDPArgs {
+	return &exec.IDPArgs{
+		ClusterID:      helper.StringPointer(clusterID),
+		Name:           helper.StringPointer(idpName),
+		CA:             helper.EmptyStringPointer,
+		URL:            helper.StringPointer(constants.LdapURL),
+		LDAPAttributes: &exec.LDAPAttributes{},
+		Insecure:       helper.BoolPointer(true),
+	}
+}
+func getDefaultGitHubArgs(idpName string) *exec.IDPArgs {
+	return &exec.IDPArgs{
+		ClusterID:     helper.StringPointer(clusterID),
+		Name:          helper.StringPointer(idpName),
+		ClientID:      helper.StringPointer(defaultGithubIDPClientId),
+		ClientSecret:  helper.StringPointer(defaultGithubIDPClientSecret),
+		Organizations: helper.StringSlicePointer(constants.Organizations),
+	}
+}
+func getDefaultGitlabArgs(idpName string) *exec.IDPArgs {
+	return &exec.IDPArgs{
+		ClusterID:    helper.StringPointer(clusterID),
+		Name:         helper.StringPointer(idpName),
+		ClientID:     helper.StringPointer(defaultGitlabIDPClientId),
+		ClientSecret: helper.StringPointer(defaultGitlabIDPClientSecret),
+		URL:          helper.StringPointer(constants.GitLabURL),
+	}
+}
+func getDefaultGoogleArgs(idpName string) *exec.IDPArgs {
+	return &exec.IDPArgs{
+		ClusterID:    helper.StringPointer(clusterID),
+		Name:         helper.StringPointer(idpName),
+		ClientID:     helper.StringPointer(defaultGoogleIDPClientId),
+		ClientSecret: helper.StringPointer(defaultGoogleIDPClientSecret),
+		HostedDomain: helper.StringPointer(constants.HostedDomain),
+	}
 }
 
 var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
@@ -35,15 +102,6 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 
 	var profile *ci.Profile
 	var idpServices = IDPServices{}
-	var importService *exec.ImportService
-	var htpasswdMap = []interface{}{map[string]string{}}
-
-	var userName, password,
-		googleIdpName,
-		gitLabIdpName,
-		googleIDPClientSecret, googleIDPClientId,
-		gitlabIDPClientSecret, gitlabIDPClientId,
-		githubIDPClientSecret, githubIDPClientId string
 
 	BeforeEach(func() {
 		profile = ci.LoadProfileYamlFileByENV()
@@ -84,29 +142,24 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 	Describe("provision and update", func() {
 		Context("Htpasswd", func() {
 			BeforeEach(func() {
-				userName = "my-admin-user"
-				password = helper.GenerateRandomStringWithSymbols(15)
-				htpasswdMap = []interface{}{map[string]string{"username": userName, "password": password}}
-				idpServices.htpasswd = exec.NewIDPService(constants.HtpasswdDir) // init new htpasswd service
+				var err error
+				idpServices.htpasswd, err = exec.NewIDPService(constants.HtpasswdDir) // init new htpasswd service
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("will succeed - [id:63151]", ci.High, ci.Exclude, func() {
 				By("Create htpasswd idp for an existing cluster")
-
-				idpParam := &exec.IDPArgs{
-					ClusterID:     clusterID,
-					Name:          "OCP-63151-htpasswd-idp-test",
-					HtpasswdUsers: htpasswdMap,
-				}
-				err := idpServices.htpasswd.Apply(idpParam, false)
+				idpParam := getDefaultHTPasswordArgs("OCP-63151-htpasswd-idp-test")
+				_, err := idpServices.htpasswd.Apply(idpParam)
 				Expect(err).ToNot(HaveOccurred())
-				idpID, _ := idpServices.htpasswd.Output()
+				idpOutput, err := idpServices.htpasswd.Output()
+				Expect(err).ToNot(HaveOccurred())
 
 				By("List existing HtpasswdUsers and compare to the created one")
-				htpasswdUsersList, _ := cms.ListHtpasswdUsers(ci.RHCSConnection, clusterID, idpID.ID)
+				htpasswdUsersList, _ := cms.ListHtpasswdUsers(ci.RHCSConnection, clusterID, idpOutput.ID)
 				Expect(htpasswdUsersList.Status()).To(Equal(http.StatusOK))
 				respUserName, _ := htpasswdUsersList.Items().Slice()[0].GetUsername()
-				Expect(respUserName).To(Equal(userName))
+				Expect(respUserName).To(Equal(defaultHTPUsername))
 
 				By("Login with created htpasswd idp")
 				// this condition is for cases where the cluster profile
@@ -118,12 +171,12 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 
 					ocAtter := &openshift.OcAttributes{
 						Server:    server,
-						Username:  userName,
-						Password:  password,
+						Username:  defaultHTPUsername,
+						Password:  defaultHTPPassword,
 						ClusterID: clusterID,
 						AdditioanlFlags: []string{
 							"--insecure-skip-tls-verify",
-							fmt.Sprintf("--kubeconfig %s", path.Join(constants.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName))),
+							fmt.Sprintf("--kubeconfig %s", path.Join(constants.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, defaultHTPUsername))),
 						},
 						Timeout: 7,
 					}
@@ -135,37 +188,30 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 			})
 			It("Update htpasswd idp - [id:73154]", ci.High, func() {
 				htpIDPName := "tf-htpassed-idp"
+
 				By("Create htpasswd idp for an existing cluster")
-				idpParam := &exec.IDPArgs{
-					ClusterID:     clusterID,
-					Name:          htpIDPName,
-					HtpasswdUsers: htpasswdMap,
-				}
-				err := idpServices.htpasswd.Apply(idpParam, false)
+				idpParam := getDefaultHTPasswordArgs(htpIDPName)
+				_, err := idpServices.htpasswd.Apply(idpParam)
 				Expect(err).ToNot(HaveOccurred())
-				idpID, _ := idpServices.htpasswd.Output()
+				idpOutput, err := idpServices.htpasswd.Output()
+				Expect(err).ToNot(HaveOccurred())
 
 				By("List existing HtpasswdUsers and compare to the created one")
-				htpasswdUsersList, _ := cms.ListHtpasswdUsers(ci.RHCSConnection, clusterID, idpID.ID)
+				htpasswdUsersList, _ := cms.ListHtpasswdUsers(ci.RHCSConnection, clusterID, idpOutput.ID)
 				Expect(htpasswdUsersList.Status()).To(Equal(http.StatusOK))
 				respUserName, _ := htpasswdUsersList.Items().Slice()[0].GetUsername()
-				Expect(respUserName).To(Equal(userName))
+				Expect(respUserName).To(Equal(defaultHTPUsername))
 
 				By("Update htpasswd idp password of 'my-admin-user'")
 				newPassword := helper.GenerateRandomStringWithSymbols(15)
-				htpasswdMap = []interface{}{map[string]string{"username": userName, "password": newPassword}}
-				idpParam = &exec.IDPArgs{
-					ClusterID:     clusterID,
-					Name:          htpIDPName,
-					HtpasswdUsers: htpasswdMap,
-				}
-				err = idpServices.htpasswd.Apply(idpParam, true)
+				(*idpParam.HtpasswdUsers)[0].Password = helper.StringPointer(newPassword)
+				_, err = idpServices.htpasswd.Apply(idpParam)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Check resource state file is updated")
 				resource, err := helper.GetResource(constants.HtpasswdDir, "rhcs_identity_provider", "htpasswd_idp")
 				Expect(err).ToNot(HaveOccurred())
-				Expect(resource).To(MatchJQ(fmt.Sprintf(`.instances[0].attributes.htpasswd.users[] | select(.username == "%s") .password`, userName), newPassword))
+				Expect(resource).To(MatchJQ(fmt.Sprintf(`.instances[0].attributes.htpasswd.users[] | select(.username == "%s") .password`, defaultHTPUsername), newPassword))
 
 				By("Update htpasswd idp by adding two new users")
 				userName2 := "my-admin-user2"
@@ -173,28 +219,24 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				userName3 := "my-admin-user3"
 				password3 := helper.GenerateRandomStringWithSymbols(15)
 
-				htpasswdMap = []interface{}{map[string]string{"username": userName, "password": password},
-					map[string]string{"username": userName2, "password": password2},
-					map[string]string{"username": userName3, "password": password3}}
-				idpParam = &exec.IDPArgs{
-					ClusterID:     clusterID,
-					Name:          htpIDPName,
-					HtpasswdUsers: htpasswdMap,
-				}
-				err = idpServices.htpasswd.Apply(idpParam, true)
+				htpUsers := (*idpParam.HtpasswdUsers)
+				htpUsers = append(htpUsers,
+					exec.HTPasswordUser{
+						Username: helper.StringPointer(userName2),
+						Password: helper.StringPointer(password2),
+					},
+					exec.HTPasswordUser{
+						Username: helper.StringPointer(userName3),
+						Password: helper.StringPointer(password3),
+					})
+				idpParam.HtpasswdUsers = &htpUsers
+				_, err = idpServices.htpasswd.Apply(idpParam)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Update htpasswd idp on the second user password")
 				newPassword2 := helper.GenerateRandomStringWithSymbols(15)
-				htpasswdMap = []interface{}{map[string]string{"username": userName, "password": password},
-					map[string]string{"username": userName2, "password": newPassword2},
-					map[string]string{"username": userName3, "password": password3}}
-				idpParam = &exec.IDPArgs{
-					ClusterID:     clusterID,
-					Name:          htpIDPName,
-					HtpasswdUsers: htpasswdMap,
-				}
-				err = idpServices.htpasswd.Apply(idpParam, true)
+				(*idpParam.HtpasswdUsers)[1].Password = helper.StringPointer(newPassword2)
+				_, err = idpServices.htpasswd.Apply(idpParam)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Check resource state file is updated")
@@ -203,15 +245,15 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				Expect(resource).To(MatchJQ(fmt.Sprintf(`.instances[0].attributes.htpasswd.users[] | select(.username == "%s") .password`, userName2), newPassword2))
 
 				By("List existing HtpasswdUsers and compare to the created one")
-				htpasswdUsersList, _ = cms.ListHtpasswdUsers(ci.RHCSConnection, clusterID, idpID.ID)
+				htpasswdUsersList, _ = cms.ListHtpasswdUsers(ci.RHCSConnection, clusterID, idpOutput.ID)
 				Expect(htpasswdUsersList.Status()).To(Equal(http.StatusOK))
 				Expect(htpasswdUsersList.Items().Len()).To(Equal(3))
 
 				respUserSlice := htpasswdUsersList.Items().Slice()
 				userNameToCheck := map[string]bool{
-					userName:  true,
-					userName2: true,
-					userName3: true,
+					defaultHTPUsername: true,
+					userName2:          true,
+					userName3:          true,
 				}
 				for _, user := range respUserSlice {
 					_, existed := userNameToCheck[user.Username()]
@@ -222,9 +264,12 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 
 		Context("LDAP", func() {
 			BeforeEach(func() {
-				userName = "newton"
-				password = "password"
-				idpServices.ldap = exec.NewIDPService(constants.LdapDir) // init new ldap service
+				defaultLDAPUsername = "newton"
+				defaultLDAPPassword = "password"
+
+				var err error
+				idpServices.ldap, err = exec.NewIDPService(constants.LdapDir) // init new ldap service
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("will succeed - [id:63332]", ci.High,
@@ -233,14 +278,14 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 					By("Create LDAP idp for an existing cluster")
 
 					idpParam := &exec.IDPArgs{
-						ClusterID:  clusterID,
-						Name:       "OCP-63332-ldap-idp-test",
-						CA:         "",
-						URL:        constants.LdapURL,
-						Attributes: make(map[string]interface{}),
-						Insecure:   true,
+						ClusterID:      helper.StringPointer(clusterID),
+						Name:           helper.StringPointer("OCP-63332-ldap-idp-test"),
+						CA:             helper.EmptyStringPointer,
+						URL:            helper.StringPointer(constants.LdapURL),
+						LDAPAttributes: &exec.LDAPAttributes{},
+						Insecure:       helper.BoolPointer(true),
 					}
-					err := idpServices.ldap.Apply(idpParam, false)
+					_, err := idpServices.ldap.Apply(idpParam)
 					Expect(err).ToNot(HaveOccurred())
 
 					By("Login with created ldap idp")
@@ -253,12 +298,12 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 
 						ocAtter := &openshift.OcAttributes{
 							Server:    server,
-							Username:  userName,
-							Password:  password,
+							Username:  defaultLDAPUsername,
+							Password:  defaultLDAPPassword,
 							ClusterID: clusterID,
 							AdditioanlFlags: []string{
 								"--insecure-skip-tls-verify",
-								fmt.Sprintf("--kubeconfig %s", path.Join(constants.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName))),
+								fmt.Sprintf("--kubeconfig %s", path.Join(constants.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, defaultLDAPUsername))),
 							},
 							Timeout: 7,
 						}
@@ -271,89 +316,87 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 		})
 		Context("GitLab", func() {
 			BeforeEach(func() {
-				gitlabIDPClientId = helper.GenerateRandomStringWithSymbols(20)
-				gitlabIDPClientSecret = helper.GenerateRandomStringWithSymbols(30)
-				idpServices.gitlab = exec.NewIDPService(constants.GitlabDir) // init new gitlab service
+				var err error
+				idpServices.gitlab, err = exec.NewIDPService(constants.GitlabDir) // init new gitlab service
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("will succeed - [id:64028]", ci.High, func() {
 				By("Create GitLab idp for an existing cluster")
 
 				idpParam := &exec.IDPArgs{
-					ClusterID:    clusterID,
-					Name:         "OCP-64028-gitlab-idp-test",
-					ClientID:     gitlabIDPClientId,
-					ClientSecret: gitlabIDPClientSecret,
-					URL:          constants.GitLabURL,
+					ClusterID:    helper.StringPointer(clusterID),
+					Name:         helper.StringPointer("OCP-64028-gitlab-idp-test"),
+					ClientID:     helper.StringPointer(defaultGitlabIDPClientId),
+					ClientSecret: helper.StringPointer(defaultGitlabIDPClientSecret),
+					URL:          helper.StringPointer(constants.GitLabURL),
 				}
-				err := idpServices.gitlab.Apply(idpParam, false)
+				_, err := idpServices.gitlab.Apply(idpParam)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Check gitlab idp created for the cluster")
-				idpID, err := idpServices.gitlab.Output()
+				idpOutput, err := idpServices.gitlab.Output()
 				Expect(err).ToNot(HaveOccurred())
 
-				resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID)
+				resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpOutput.ID)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(resp.Status()).To(Equal(http.StatusOK))
 			})
 		})
 		Context("GitHub", func() {
 			BeforeEach(func() {
-
-				githubIDPClientSecret = helper.GenerateRandomStringWithSymbols(20)
-				githubIDPClientId = helper.GenerateRandomStringWithSymbols(30)
-				idpServices.github = exec.NewIDPService(constants.GithubDir) // init new github service
+				var err error
+				idpServices.github, err = exec.NewIDPService(constants.GithubDir) // init new github service
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("will succeed - [id:64027]", ci.High, func() {
 				By("Create GitHub idp for an existing cluster")
 
 				idpParam := &exec.IDPArgs{
-					ClusterID:     clusterID,
-					Name:          "OCP-64027-github-idp-test",
-					ClientID:      githubIDPClientId,
-					ClientSecret:  githubIDPClientSecret,
-					Organizations: constants.Organizations,
+					ClusterID:     helper.StringPointer(clusterID),
+					Name:          helper.StringPointer("OCP-64027-github-idp-test"),
+					ClientID:      helper.StringPointer(defaultGithubIDPClientId),
+					ClientSecret:  helper.StringPointer(defaultGithubIDPClientSecret),
+					Organizations: helper.StringSlicePointer(constants.Organizations),
 				}
-				err := idpServices.github.Apply(idpParam, false)
+				_, err := idpServices.github.Apply(idpParam)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Check github idp created for the cluster")
-				idpID, err := idpServices.github.Output()
+				idpOutput, err := idpServices.github.Output()
 				Expect(err).ToNot(HaveOccurred())
 
-				resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID)
+				resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpOutput.ID)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(resp.Status()).To(Equal(http.StatusOK))
 			})
 		})
 		Context("Google", func() {
 			BeforeEach(func() {
-
-				googleIDPClientSecret = helper.GenerateRandomStringWithSymbols(20)
-				googleIDPClientId = helper.GenerateRandomStringWithSymbols(30)
-				idpServices.google = exec.NewIDPService(constants.GoogleDir) // init new google service
+				var err error
+				idpServices.google, err = exec.NewIDPService(constants.GoogleDir) // init new google service
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("will succeeed - [id:64029]", ci.High, func() {
 				By("Create Google idp for an existing cluster")
 
 				idpParam := &exec.IDPArgs{
-					ClusterID:    clusterID,
-					Name:         "OCP-64029-google-idp-test",
-					ClientID:     googleIDPClientId,
-					ClientSecret: googleIDPClientSecret,
-					HostedDomain: constants.HostedDomain,
+					ClusterID:    helper.StringPointer(clusterID),
+					Name:         helper.StringPointer("OCP-64029-google-idp-test"),
+					ClientID:     helper.StringPointer(defaultGoogleIDPClientId),
+					ClientSecret: helper.StringPointer(defaultGoogleIDPClientSecret),
+					HostedDomain: helper.StringPointer(constants.HostedDomain),
 				}
-				err := idpServices.google.Apply(idpParam, false)
+				_, err := idpServices.google.Apply(idpParam)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Check google idp created for the cluster")
-				idpID, err := idpServices.google.Output()
+				idpOutput, err := idpServices.google.Output()
 				Expect(err).ToNot(HaveOccurred())
 
-				resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID)
+				resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpOutput.ID)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(resp.Status()).To(Equal(http.StatusOK))
 			})
@@ -364,29 +407,29 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 					Skip("private_link is enabled, skipping test.")
 				}
 
-				userName = "newton"
-				password = "password"
-				googleIDPClientSecret = helper.GenerateRandomStringWithSymbols(20)
-				googleIDPClientId = helper.GenerateRandomStringWithSymbols(30)
+				defaultLDAPUsername = "newton"
+				defaultLDAPPassword = "password"
 			})
 
 			It("will succeed - [id:64030]", ci.Medium, ci.Exclude, func() {
-				idpServices.multi_idp = exec.NewIDPService(constants.MultiIDPDir) // init multi-idp service
+				var err error
+				idpServices.multi_idp, err = exec.NewIDPService(constants.MultiIDPDir) // init multi-idp service
+				Expect(err).ToNot(HaveOccurred())
 
 				By("Applying google & ldap idps users using terraform")
 				idpParam := &exec.IDPArgs{
-					ClusterID:    clusterID,
-					Name:         "OCP-64030",
-					ClientID:     googleIDPClientId,
-					ClientSecret: googleIDPClientSecret,
-					HostedDomain: constants.HostedDomain,
-					CA:           "",
-					URL:          constants.LdapURL,
-					Attributes:   make(map[string]interface{}),
-					Insecure:     true,
+					ClusterID:      helper.StringPointer(clusterID),
+					Name:           helper.StringPointer("OCP-64030"),
+					ClientID:       helper.StringPointer(defaultGoogleIDPClientId),
+					ClientSecret:   helper.StringPointer(defaultGoogleIDPClientSecret),
+					HostedDomain:   helper.StringPointer(constants.HostedDomain),
+					CA:             helper.EmptyStringPointer,
+					URL:            helper.StringPointer(constants.LdapURL),
+					LDAPAttributes: &exec.LDAPAttributes{},
+					Insecure:       helper.BoolPointer(true),
 				}
 
-				err := idpServices.multi_idp.Apply(idpParam, false)
+				_, err = idpServices.multi_idp.Apply(idpParam)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Login to the ldap user created with terraform")
@@ -398,12 +441,12 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 
 				ocAtter := &openshift.OcAttributes{
 					Server:    server,
-					Username:  userName,
-					Password:  password,
+					Username:  defaultLDAPUsername,
+					Password:  defaultLDAPPassword,
 					ClusterID: clusterID,
 					AdditioanlFlags: []string{
 						"--insecure-skip-tls-verify",
-						fmt.Sprintf("--kubeconfig %s", path.Join(constants.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName))),
+						fmt.Sprintf("--kubeconfig %s", path.Join(constants.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, defaultLDAPUsername))),
 					},
 					Timeout: 7,
 				}
@@ -434,25 +477,25 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				Expect(err).ToNot(HaveOccurred())
 			})
 			It("with multiple users will reconcile a multiuser config - [id:66408]", ci.Medium, ci.Exclude, func() {
-				idpServices.htpasswd = exec.NewIDPService(constants.HtpasswdDir) // init new htpasswd service
+				var err error
+				idpServices.htpasswd, err = exec.NewIDPService(constants.HtpasswdDir) // init new htpasswd service
+				Expect(err).ToNot(HaveOccurred())
 
-				userName = "first_user"
-				password = helper.GenerateRandomStringWithSymbols(15)
 				By("Create 3 htpasswd users for existing cluster")
-				htpasswdMap = []interface{}{
-					map[string]string{"username": userName,
-						"password": password},
-					map[string]string{"username": "second_user",
-						"password": helper.GenerateRandomStringWithSymbols(15)},
-					map[string]string{"username": "third_user",
-						"password": helper.GenerateRandomStringWithSymbols(15)}}
+				idpParam := getDefaultHTPasswordArgs("OCP-66408-htpasswd-multi-test")
 
-				idpParam := &exec.IDPArgs{
-					ClusterID:     clusterID,
-					Name:          "OCP-66408-htpasswd-multi-test",
-					HtpasswdUsers: htpasswdMap,
-				}
-				err := idpServices.htpasswd.Apply(idpParam, false)
+				htpUsers := (*idpParam.HtpasswdUsers)
+				htpUsers = append(htpUsers,
+					exec.HTPasswordUser{
+						Username: helper.StringPointer("second_user"),
+						Password: helper.StringPointer(helper.GenerateRandomStringWithSymbols(15)),
+					},
+					exec.HTPasswordUser{
+						Username: helper.StringPointer("third_user"),
+						Password: helper.StringPointer(helper.GenerateRandomStringWithSymbols(15)),
+					},
+				)
+				_, err = idpServices.htpasswd.Apply(idpParam)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Login to the cluster with one of the users created")
@@ -462,28 +505,29 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 
 				ocAtter := &openshift.OcAttributes{
 					Server:    server,
-					Username:  userName,
-					Password:  password,
+					Username:  defaultHTPUsername,
+					Password:  defaultHTPPassword,
 					ClusterID: clusterID,
 					AdditioanlFlags: []string{
 						"--insecure-skip-tls-verify",
-						fmt.Sprintf("--kubeconfig %s", path.Join(constants.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName))),
+						fmt.Sprintf("--kubeconfig %s", path.Join(constants.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, defaultHTPUsername))),
 					},
 					Timeout: 10,
 				}
 				_, err = openshift.OcLogin(*ocAtter)
 				Expect(err).ToNot(HaveOccurred())
-				idpID, _ := idpServices.htpasswd.Output()
+				idpOutput, err := idpServices.htpasswd.Output()
+				Expect(err).ToNot(HaveOccurred())
 
 				By("Delete one of the users using backend api")
-				_, err = cms.DeleteIDP(ci.RHCSConnection, clusterID, idpID.ID)
+				_, err = cms.DeleteIDP(ci.RHCSConnection, clusterID, idpOutput.ID)
 				Expect(err).ToNot(HaveOccurred())
 
 				// wait few minutes before trying to create the resource again
 				time.Sleep(time.Minute * 5)
 
 				By("Re-run terraform apply on the same resources")
-				err = idpServices.htpasswd.Apply(idpParam, false)
+				_, err = idpServices.htpasswd.Apply(idpParam)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Re-login terraform apply on the same resources")
@@ -492,12 +536,12 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				// hence, the test is currently skipped for ci
 				ocAtter = &openshift.OcAttributes{
 					Server:    server,
-					Username:  userName,
-					Password:  password,
+					Username:  defaultHTPUsername,
+					Password:  defaultHTPPassword,
 					ClusterID: clusterID,
 					AdditioanlFlags: []string{
 						"--insecure-skip-tls-verify",
-						fmt.Sprintf("--kubeconfig %s", path.Join(constants.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName))),
+						fmt.Sprintf("--kubeconfig %s", path.Join(constants.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, defaultHTPUsername))),
 					},
 					Timeout: 10,
 				}
@@ -508,387 +552,243 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 	})
 
 	Describe("validate", func() {
-
-		BeforeEach(func() {
-			userName = "jacko"
-			password = helper.GenerateRandomStringWithSymbols(15)
-			googleIdpName = "google-idp"
-			gitLabIdpName = "gitlab-idp"
-			gitlabIDPClientId = helper.GenerateRandomStringWithSymbols(20)
-			gitlabIDPClientSecret = helper.GenerateRandomStringWithSymbols(30)
-			githubIDPClientSecret = helper.GenerateRandomStringWithSymbols(20)
-			githubIDPClientId = helper.GenerateRandomStringWithSymbols(30)
-			googleIDPClientSecret = helper.GenerateRandomStringWithSymbols(20)
-			googleIDPClientId = helper.GenerateRandomStringWithSymbols(30)
-		})
+		validateIDPArgAgainstErrorSubstrings := func(svc exec.IDPService, idpArgs *exec.IDPArgs, errSubStrings ...string) {
+			_, err := svc.Apply(idpArgs)
+			Expect(err).To(HaveOccurred())
+			for _, errStr := range errSubStrings {
+				helper.ExpectTFErrorContains(err, errStr)
+			}
+		}
 
 		It("the mandatory idp's attributes must be set - [id:68939]", ci.Medium, func() {
-			idpServices.htpasswd = exec.NewIDPService(constants.HtpasswdDir) // init new htpasswd service
-			idpServices.ldap = exec.NewIDPService(constants.LdapDir)         // init new ldap service
-			idpServices.github = exec.NewIDPService(constants.GithubDir)     // init new github service
-			idpServices.gitlab = exec.NewIDPService(constants.GitlabDir)     // init new gitlab service
-			idpServices.google = exec.NewIDPService(constants.GoogleDir)     // init new google service
+			var err error
+			idpServices.htpasswd, err = exec.NewIDPService(constants.HtpasswdDir) // init new htpasswd service
+			Expect(err).ToNot(HaveOccurred())
+			idpServices.ldap, err = exec.NewIDPService(constants.LdapDir) // init new ldap service
+			Expect(err).ToNot(HaveOccurred())
+			idpServices.github, err = exec.NewIDPService(constants.GithubDir) // init new github service
+			Expect(err).ToNot(HaveOccurred())
+			idpServices.gitlab, err = exec.NewIDPService(constants.GitlabDir) // init new gitlab service
+			Expect(err).ToNot(HaveOccurred())
+			idpServices.google, err = exec.NewIDPService(constants.GoogleDir) // init new google service
+			Expect(err).ToNot(HaveOccurred())
+			idpName := "ocp-68939-htp"
 
-			By("Create htpasswd idp without/empty name field")
-			idpParam := &exec.IDPArgs{
-				ClusterID:     clusterID,
-				Name:          "",
-				HtpasswdUsers: htpasswdMap,
-			}
-			err := idpServices.htpasswd.Apply(idpParam, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(
-				ContainSubstring(
-					"The root module input variable \"name\" is not set, and has no default value"))
+			By("Create htpasswd idp with empty name field")
+			args := getDefaultHTPasswordArgs(idpName)
+			args.Name = helper.EmptyStringPointer
+			validateIDPArgAgainstErrorSubstrings(idpServices.htpasswd, args, "Attribute 'name' is mandatory")
 
-			By("Create htpasswd idp without/empty username field")
-			userName = ""
-			htpasswdMap = []interface{}{map[string]string{
-				"username": userName, "password": password}}
-			idpParam = &exec.IDPArgs{
-				ClusterID:     clusterID,
-				Name:          "htpasswd-idp-test",
-				HtpasswdUsers: htpasswdMap,
-			}
+			By("Create htpasswd idp with empty username field")
+			args = getDefaultHTPasswordArgs(idpName)
+			(*args.HtpasswdUsers)[0].Username = helper.EmptyStringPointer
+			validateIDPArgAgainstErrorSubstrings(idpServices.htpasswd, args, "htpasswd.users[0].username username may not be empty/blank string")
 
-			err = idpServices.htpasswd.Apply(idpParam, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(ContainSubstring("htpasswd.users[0].username username may not be empty/blank string"))
+			By("Create htpasswd idp with empty password field")
+			args = getDefaultHTPasswordArgs(idpName)
+			(*args.HtpasswdUsers)[0].Password = helper.EmptyStringPointer
+			validateIDPArgAgainstErrorSubstrings(idpServices.htpasswd, args, "htpasswd.users[0].password password must contain numbers or symbols")
 
-			By("Create htpasswd idp without/empty password field")
-			userName = "jacko"
-			htpasswdMap = []interface{}{map[string]string{
-				"username": userName}}
-			idpParam = &exec.IDPArgs{
-				ClusterID:     clusterID,
-				Name:          "htpasswd-idp-test",
-				HtpasswdUsers: htpasswdMap,
-			}
-			err = idpServices.htpasswd.Apply(idpParam, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(ContainSubstring("attribute \"password\" is required"))
+			By("Create ldap idp with empty name field")
+			args = getDefaultLDAPArgs(idpName)
+			args.Name = helper.EmptyStringPointer
+			validateIDPArgAgainstErrorSubstrings(idpServices.ldap, args, "Attribute 'name' is mandatory")
 
-			By("Create ldap idp without/empty name field")
-			idpParam = &exec.IDPArgs{
-				ClusterID:  clusterID,
-				Name:       "",
-				CA:         "",
-				URL:        constants.LdapURL,
-				Attributes: make(map[string]interface{}),
-				Insecure:   true,
-			}
-			err = idpServices.ldap.Apply(idpParam, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(
-				ContainSubstring(
-					"The root module input variable \"name\" is not set, " +
-						"and has no default value"))
-
-			By("Create ldap idp without url field")
-			idpParam = &exec.IDPArgs{
-				ClusterID:  clusterID,
-				Name:       "ldap-idp-test",
-				CA:         "",
-				URL:        "",
-				Attributes: make(map[string]interface{}),
-				Insecure:   true,
-			}
-			err = idpServices.ldap.Apply(idpParam, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(ContainSubstring("The root module input variable \"idp_url\" is not set, and has no default\nvalue."))
+			By("Create ldap idp with empty url field")
+			args = getDefaultLDAPArgs(idpName)
+			args.URL = helper.EmptyStringPointer
+			validateIDPArgAgainstErrorSubstrings(idpServices.ldap, args, "'url' field is mandatory")
 
 			By("Create ldap idp without attributes field")
-			idpParam = &exec.IDPArgs{
-				ClusterID: clusterID,
-				Name:      "ldap-idp-test",
-				CA:        "",
-				URL:       constants.LdapURL,
-				Insecure:  true,
-			}
+			args = getDefaultLDAPArgs(idpName)
+			args.LDAPAttributes = nil
+			validateIDPArgAgainstErrorSubstrings(idpServices.ldap, args, "provider has marked it as required")
 
-			err = idpServices.ldap.Apply(idpParam, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(
-				ContainSubstring("provider has marked it as required"))
+			By("Create github idp with empty name field")
+			args = getDefaultGitHubArgs(idpName)
+			args.Name = helper.EmptyStringPointer
+			validateIDPArgAgainstErrorSubstrings(idpServices.github, args, "Attribute 'name' is mandatory")
 
-			By("Create github idp without/empty name field")
-			idpParam = &exec.IDPArgs{
-				ClusterID:     clusterID,
-				Name:          "",
-				ClientID:      githubIDPClientId,
-				ClientSecret:  githubIDPClientSecret,
-				Organizations: constants.Organizations,
-			}
-			err = idpServices.github.Apply(idpParam, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(
-				ContainSubstring(
-					"The root module input variable \"name\" is not set, and has no default value"))
+			By("Create github idp without client_id field")
+			args = getDefaultGitHubArgs(idpName)
+			args.ClientID = nil
+			validateIDPArgAgainstErrorSubstrings(idpServices.github, args, "No value for required variable")
 
-			By("Create github idp without/empty client_id field")
-			idpParam = &exec.IDPArgs{
-				ClusterID:     clusterID,
-				Name:          "github-idp-test",
-				ClientID:      "",
-				ClientSecret:  githubIDPClientSecret,
-				Organizations: constants.Organizations,
-			}
-			err = idpServices.github.Apply(idpParam, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(
-				ContainSubstring("No value for required variable"))
+			By("Create github idp with empty client_id field")
+			args = getDefaultGitHubArgs(idpName)
+			args.ClientID = helper.EmptyStringPointer
+			validateIDPArgAgainstErrorSubstrings(idpServices.github, args, "Attribute 'client_id' is mandatory")
 
-			By("Create github idp without/empty client_secret field")
-			idpParam = &exec.IDPArgs{
-				ClusterID:     clusterID,
-				Name:          "github-idp-test",
-				ClientID:      githubIDPClientId,
-				ClientSecret:  "",
-				Organizations: constants.Organizations,
-			}
-			err = idpServices.github.Apply(idpParam, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(
-				ContainSubstring("No value for required variable"))
+			By("Create github idp without client_secret field")
+			args = getDefaultGitHubArgs(idpName)
+			args.ClientSecret = nil
+			validateIDPArgAgainstErrorSubstrings(idpServices.github, args, "No value for required variable")
 
-			By("Create gitlab idp without/empty name field")
-			idpParam = &exec.IDPArgs{
-				ClusterID:    clusterID,
-				Name:         "",
-				ClientID:     gitlabIDPClientId,
-				ClientSecret: gitlabIDPClientSecret,
-				URL:          constants.GitLabURL,
-			}
-			err = idpServices.gitlab.Apply(idpParam, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(
-				ContainSubstring(
-					"The root module input variable \"name\" is not set, and has no default value"))
+			By("Create github idp with empty client_secret field")
+			args = getDefaultGitHubArgs(idpName)
+			args.ClientSecret = helper.EmptyStringPointer
+			validateIDPArgAgainstErrorSubstrings(idpServices.github, args, "Attribute 'client_secret' is mandatory")
 
-			By("Create gitlab idp without/empty client_id field")
-			idpParam = &exec.IDPArgs{
-				ClusterID:    clusterID,
-				Name:         "gitlab-idp-test",
-				ClientID:     "",
-				ClientSecret: gitlabIDPClientSecret,
-				URL:          constants.GitLabURL,
-			}
-			err = idpServices.gitlab.Apply(idpParam, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(
-				ContainSubstring("provider has marked it as required"))
+			By("Create gitlab idp with empty name field")
+			args = getDefaultGitlabArgs(idpName)
+			args.Name = helper.EmptyStringPointer
+			validateIDPArgAgainstErrorSubstrings(idpServices.gitlab, args, "Attribute 'name' is mandatory")
 
-			By("Create gitlab idp without/empty client_secret field")
-			idpParam = &exec.IDPArgs{
-				ClusterID:    clusterID,
-				Name:         "gitlab-idp-test",
-				ClientID:     gitlabIDPClientId,
-				ClientSecret: "",
-				URL:          constants.GitLabURL,
-			}
-			err = idpServices.gitlab.Apply(idpParam, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(
-				ContainSubstring("provider has marked it as required"))
+			By("Create gitlab idp without client_id field")
+			args = getDefaultGitlabArgs(idpName)
+			args.ClientID = nil
+			validateIDPArgAgainstErrorSubstrings(idpServices.gitlab, args, "provider has marked it as required")
 
-			By("Create gitlab idp without url field")
-			idpParam = &exec.IDPArgs{
-				ClusterID:    clusterID,
-				Name:         "gitlab-idp-test",
-				URL:          "",
-				ClientID:     gitlabIDPClientId,
-				ClientSecret: gitlabIDPClientSecret,
-			}
-			err = idpServices.gitlab.Apply(idpParam, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(ContainSubstring("The root module input variable \"idp_url\" is not set, and has no default\nvalue."))
+			By("Create gitlab idp with empty client_id field")
+			args = getDefaultGitlabArgs(idpName)
+			args.ClientID = helper.EmptyStringPointer
+			validateIDPArgAgainstErrorSubstrings(idpServices.gitlab, args, "Attribute 'client_id' is mandatory")
 
-			By("Create google idp without/empty name field")
-			idpParam = &exec.IDPArgs{
-				ClusterID:    clusterID,
-				Name:         "",
-				ClientID:     googleIDPClientId,
-				ClientSecret: googleIDPClientSecret,
-				HostedDomain: constants.HostedDomain,
-			}
-			err = idpServices.google.Apply(idpParam, false)
-			Expect(err.Error()).Should(
-				ContainSubstring(
-					"The root module input variable \"name\" is not set, and has no default value"))
+			By("Create gitlab idp with empty client_secret field")
+			args = getDefaultGitlabArgs(idpName)
+			args.ClientSecret = helper.EmptyStringPointer
+			validateIDPArgAgainstErrorSubstrings(idpServices.gitlab, args, "Attribute 'client_secret' is mandatory")
 
-			By("Create google idp without/empty client_id field")
-			idpParam = &exec.IDPArgs{
-				ClusterID:    clusterID,
-				Name:         "google-idp-test",
-				ClientID:     "",
-				ClientSecret: googleIDPClientSecret,
-				HostedDomain: constants.HostedDomain,
-			}
-			err = idpServices.google.Apply(idpParam, false)
-			Expect(err.Error()).Should(
-				ContainSubstring("provider has marked it as required"))
+			By("Create google idp with empty name field")
+			args = getDefaultGoogleArgs(idpName)
+			args.Name = helper.EmptyStringPointer
+			validateIDPArgAgainstErrorSubstrings(idpServices.google, args, "Attribute 'name' is mandatory")
 
-			By("Create google idp without/empty client_secret field")
-			idpParam = &exec.IDPArgs{
-				ClusterID:    clusterID,
-				Name:         "google-idp-test",
-				ClientID:     googleIDPClientId,
-				ClientSecret: "",
-				HostedDomain: constants.HostedDomain,
-			}
-			err = idpServices.google.Apply(idpParam, false)
-			Expect(err.Error()).Should(
-				ContainSubstring("provider has marked it as required"))
+			By("Create google idp without client_id field")
+			args = getDefaultGoogleArgs(idpName)
+			args.ClientID = nil
+			validateIDPArgAgainstErrorSubstrings(idpServices.google, args, "provider has marked it as required")
 
+			By("Create google idp with empty client_id field")
+			args = getDefaultGoogleArgs(idpName)
+			args.ClientID = helper.EmptyStringPointer
+			validateIDPArgAgainstErrorSubstrings(idpServices.google, args, "Attribute 'client_id' is mandatory")
+
+			By("Create google idp without client_secret field")
+			args = getDefaultGoogleArgs(idpName)
+			args.ClientSecret = nil
+			validateIDPArgAgainstErrorSubstrings(idpServices.google, args, "provider has marked it as required")
+
+			By("Create google idp with empty client_secret field")
+			args = getDefaultGoogleArgs(idpName)
+			args.ClientSecret = helper.EmptyStringPointer
+			validateIDPArgAgainstErrorSubstrings(idpServices.google, args, "Attribute 'client_secret' is mandatory")
 		})
 
 		It("htpasswd with empty user-password list will fail - [id:66409]", ci.Medium, func() {
-			idpServices.htpasswd = exec.NewIDPService(constants.HtpasswdDir) // init new htpasswd service
+			var err error
+			idpServices.htpasswd, err = exec.NewIDPService(constants.HtpasswdDir) // init new htpasswd service
+			Expect(err).ToNot(HaveOccurred())
+			idpName := "ocp-66409"
 
 			By("Validate idp can't be created with empty htpasswdMap")
-			htpasswdMap = []interface{}{map[string]string{}}
-
-			idpParam := &exec.IDPArgs{
-				ClusterID:     clusterID,
-				Name:          "OCP-66409-htpasswd-idp-test",
-				HtpasswdUsers: htpasswdMap,
-			}
-			err := idpServices.htpasswd.Apply(idpParam, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(
-				ContainSubstring(
-					"attributes \"password\" and \"username\" are required"))
+			args := getDefaultHTPasswordArgs(idpName)
+			args.HtpasswdUsers = &[]exec.HTPasswordUser{}
+			validateIDPArgAgainstErrorSubstrings(idpServices.htpasswd, args, "Attribute htpasswd.users list must contain at least 1 elements")
 		})
 
 		It("htpasswd password policy - [id:66410]", ci.Medium, func() {
-			idpServices.htpasswd = exec.NewIDPService(constants.HtpasswdDir) // init new htpasswd service
+			var err error
+			idpServices.htpasswd, err = exec.NewIDPService(constants.HtpasswdDir) // init new htpasswd service
+			Expect(err).ToNot(HaveOccurred())
+			idpName := "ocp-66410"
 
 			var usernameInvalid = "userWithInvalidPassword"
-			var passwordInvalid string
 
 			By("Validate idp can't be created with password less than 14")
-
-			passwordInvalid = helper.GenerateRandomStringWithSymbols(3)
-			htpasswdMap = []interface{}{map[string]string{
-				"username": userName, "password": password},
-				map[string]string{"username": usernameInvalid,
-					"password": passwordInvalid}}
-
-			idpParam := &exec.IDPArgs{
-				ClusterID:     clusterID,
-				Name:          "OCP-66410-htpasswd-idp-test",
-				HtpasswdUsers: htpasswdMap,
-			}
-			err := idpServices.htpasswd.Apply(idpParam, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(
-				ContainSubstring(
-					"password string length must be at least 14"))
+			args := getDefaultHTPasswordArgs(idpName)
+			newHTPwd := append(*args.HtpasswdUsers, exec.HTPasswordUser{
+				Username: helper.StringPointer(usernameInvalid),
+				Password: helper.StringPointer(helper.GenerateRandomStringWithSymbols(3)),
+			})
+			args.HtpasswdUsers = &newHTPwd
+			validateIDPArgAgainstErrorSubstrings(idpServices.htpasswd, args, "password string length must be at least 14")
 
 			By("Validate idp can't be created without upercase letter in password")
-
-			passwordInvalid = helper.Subfix(3)
-			htpasswdMap = []interface{}{map[string]string{
-				"username": userName, "password": password},
-				map[string]string{"username": usernameInvalid,
-					"password": passwordInvalid}}
-			idpParam = &exec.IDPArgs{
-				ClusterID:     clusterID,
-				Name:          "OCP-66410-htpasswd-idp-test",
-				HtpasswdUsers: htpasswdMap,
-			}
-			err = idpServices.htpasswd.Apply(idpParam, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(
-				ContainSubstring(
-					"password must contain uppercase"))
+			args = getDefaultHTPasswordArgs(idpName)
+			newHTPwd = append(*args.HtpasswdUsers, exec.HTPasswordUser{
+				Username: helper.StringPointer(usernameInvalid),
+				Password: helper.StringPointer(helper.Subfix(3)),
+			})
+			args.HtpasswdUsers = &newHTPwd
+			validateIDPArgAgainstErrorSubstrings(idpServices.htpasswd, args, "password must contain uppercase")
 		})
 
 		It("htpasswd with duplicate usernames will fail - [id:66411]", ci.Medium, func() {
-			idpServices.htpasswd = exec.NewIDPService(constants.HtpasswdDir) // init new htpasswd service
+			var err error
+			idpServices.htpasswd, err = exec.NewIDPService(constants.HtpasswdDir) // init new htpasswd service
+			Expect(err).ToNot(HaveOccurred())
+			idpName := "ocp-66411"
 
 			By("Create 2 htpasswd idps with the same username")
-			htpasswdMap = []interface{}{map[string]string{
-				"username": userName, "password": password},
-				map[string]string{"username": userName, "password": password}}
-
-			idpParam := &exec.IDPArgs{
-				ClusterID:     clusterID,
-				Name:          "OCP-66411-htpasswd-idp-test",
-				HtpasswdUsers: htpasswdMap,
-			}
-			err := idpServices.htpasswd.Apply(idpParam, false)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(
-				ContainSubstring(
-					"Usernames in HTPasswd user list must be unique"))
+			args := getDefaultHTPasswordArgs(idpName)
+			newHTPwd := append(*args.HtpasswdUsers, exec.HTPasswordUser{
+				Username: helper.StringPointer(defaultHTPUsername),
+				Password: helper.StringPointer(defaultHTPPassword),
+			})
+			args.HtpasswdUsers = &newHTPwd
+			validateIDPArgAgainstErrorSubstrings(idpServices.htpasswd, args, "Usernames in HTPasswd user list must be unique")
 		})
 
 		It("resource can be imported - [id:65981]",
 			ci.Medium, ci.FeatureImport, func() {
-				idpServices.gitlab = exec.NewIDPService(constants.GitlabDir) // init new gitlab service
-				idpServices.google = exec.NewIDPService(constants.GoogleDir) // init new google service
-				importService = exec.NewImportService(constants.ImportResourceDir)
+				var err error
+
+				idpServices.gitlab, err = exec.NewIDPService(constants.GitlabDir) // init new gitlab service
+				Expect(err).ToNot(HaveOccurred())
+				idpServices.google, err = exec.NewIDPService(constants.GoogleDir) // init new google service
+				Expect(err).ToNot(HaveOccurred())
+				importService, err := exec.NewImportService(constants.ImportResourceDir)
+				Expect(err).ToNot(HaveOccurred())
 
 				By("Create sample idps to test the import functionality")
-				idpParam := &exec.IDPArgs{
-					ClusterID:    clusterID,
-					Name:         googleIdpName,
-					ClientID:     googleIDPClientId,
-					ClientSecret: googleIDPClientSecret,
-					HostedDomain: constants.HostedDomain,
-				}
-				Expect(idpServices.google.Apply(idpParam, false)).To(Succeed())
+				idpGoogleName := "ocp-65981-google"
+				idpParam := getDefaultGoogleArgs(idpGoogleName)
+				_, err = idpServices.google.Apply(idpParam)
+				Expect(err).ToNot(HaveOccurred())
 
-				idpParam = &exec.IDPArgs{
-					ClusterID:    clusterID,
-					Name:         gitLabIdpName,
-					ClientID:     gitlabIDPClientId,
-					ClientSecret: gitlabIDPClientSecret,
-					URL:          constants.GitLabURL,
-				}
-				Expect(idpServices.gitlab.Apply(idpParam, false)).To(Succeed())
+				idpGitlabName := "ocp-65981-gitlab"
+				idpParam = getDefaultGitlabArgs(idpGitlabName)
+				_, err = idpServices.gitlab.Apply(idpParam)
+				Expect(err).ToNot(HaveOccurred())
 
 				By("Run the command to import the idp")
+				defer func() {
+					importService.Destroy()
+				}()
 				successImportParams := &exec.ImportArgs{
-					ClusterID:    clusterID,
-					ResourceKind: "rhcs_identity_provider",
-					ResourceName: "idp_google_import",
-					ObjectName:   googleIdpName,
+					ClusterID:  clusterID,
+					Resource:   "rhcs_identity_provider.idp_google_import",
+					ObjectName: idpGoogleName,
 				}
 				importParam := successImportParams
-				Expect(importService.Import(importParam)).To(Succeed())
-				defer func() {
-					_, importErr := importService.RemoveState(successImportParams)
-					Expect(importErr).ToNot(HaveOccurred())
-				}()
+				_, err = importService.Import(importParam)
+				Expect(err).ToNot(HaveOccurred())
 
 				By("Check resource state - import command succeeded")
-				output, err := importService.ShowState(importParam)
+				output, err := importService.ShowState(importParam.Resource)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(output).To(ContainSubstring(googleIDPClientId))
+				Expect(output).To(ContainSubstring(defaultGoogleIDPClientId))
 				Expect(output).To(ContainSubstring(constants.HostedDomain))
 
 				By("Validate terraform import with no idp object name returns error")
 				var unknownIdpName = "unknown_idp_name"
 				importParam = &exec.ImportArgs{
-					ClusterID:    clusterID,
-					ResourceKind: "rhcs_identity_provider",
-					ResourceName: "idp_google_import",
-					ObjectName:   unknownIdpName,
+					ClusterID:  clusterID,
+					Resource:   "rhcs_identity_provider.idp_google_import",
+					ObjectName: unknownIdpName,
 				}
-				err = importService.Import(importParam)
+				_, err = importService.Import(importParam)
 				Expect(err.Error()).To(ContainSubstring("identity provider '%s' not found", unknownIdpName))
 
 				By("Validate terraform import with no clusterID returns error")
 				var unknownClusterID = helper.GenerateRandomStringWithSymbols(20)
 				importParam = &exec.ImportArgs{
-					ClusterID:    unknownClusterID,
-					ResourceKind: "rhcs_identity_provider",
-					ResourceName: "idp_gitlab_import",
-					ObjectName:   gitLabIdpName,
+					ClusterID:  unknownClusterID,
+					Resource:   "rhcs_identity_provider.idp_gitlab_import",
+					ObjectName: idpGitlabName,
 				}
-				err = importService.Import(importParam)
+				_, err = importService.Import(importParam)
 				Expect(err.Error()).To(ContainSubstring("Cluster %s not found", unknownClusterID))
 
 			})
@@ -896,35 +796,27 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 
 	Describe("reconciliation", func() {
 		var (
-			gitLabIdpName         string
-			gitlabIDPClientId     string
-			gitlabIDPClientSecret string
-			gitlabIdpOcmAPI       *cmsv1.IdentityProviderBuilder
+			gitlabIdpOcmAPI *cmsv1.IdentityProviderBuilder
 		)
 
 		BeforeEach(func() {
 			gitlabIdpOcmAPI = cmsv1.NewIdentityProvider()
-			gitlabIDPClientId = helper.GenerateRandomStringWithSymbols(20)
-			gitlabIDPClientSecret = helper.GenerateRandomStringWithSymbols(30)
-			userName = "newton"
-			password = "password"
+
 		})
 
 		It("verify basic flow - [id:65808]",
 			ci.Medium, ci.Exclude, func() {
-				idpServices.ldap = exec.NewIDPService(constants.LdapDir) // init new ldap service
+				var err error
+				idpServices.ldap, err = exec.NewIDPService(constants.LdapDir) // init new ldap service
+				Expect(err).ToNot(HaveOccurred())
+				idpName := "ocp-65808"
 
 				By("Create ldap idp user")
-				idpParam := &exec.IDPArgs{
-					ClusterID:  clusterID,
-					Name:       "OCP-65808-ldap-reconcil",
-					CA:         "",
-					URL:        constants.LdapURL,
-					Attributes: make(map[string]interface{}),
-					Insecure:   true,
-				}
-				Expect(idpServices.ldap.Apply(idpParam, false)).To(Succeed())
-				idpID, _ := idpServices.ldap.Output()
+				idpParam := getDefaultLDAPArgs(idpName)
+				_, err = idpServices.ldap.Apply(idpParam)
+				Expect(err).ToNot(HaveOccurred())
+				idpOutput, err := idpServices.ldap.Output()
+				Expect(err).ToNot(HaveOccurred())
 
 				By("Login to the ldap user")
 				resp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
@@ -933,12 +825,12 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 
 				ocAtter := &openshift.OcAttributes{
 					Server:    server,
-					Username:  userName,
-					Password:  password,
+					Username:  defaultLDAPUsername,
+					Password:  defaultLDAPPassword,
 					ClusterID: clusterID,
 					AdditioanlFlags: []string{
 						"--insecure-skip-tls-verify",
-						fmt.Sprintf("--kubeconfig %s", path.Join(constants.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, userName))),
+						fmt.Sprintf("--kubeconfig %s", path.Join(constants.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, defaultLDAPUsername))),
 					},
 					Timeout: 7,
 				}
@@ -946,15 +838,16 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Delete ldap idp by OCM API")
-				cms.DeleteIDP(ci.RHCSConnection, clusterID, idpID.ID)
-				_, err = cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID)
+				cms.DeleteIDP(ci.RHCSConnection, clusterID, idpOutput.ID)
+				_, err = cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpOutput.ID)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).Should(ContainSubstring(
-					"Identity provider ID '%s' for cluster '%s' not found", idpID.ID, clusterID),
+					"Identity provider ID '%s' for cluster '%s' not found", idpOutput.ID, clusterID),
 				)
 
 				By("Re-apply the idp resource")
-				Expect(idpServices.ldap.Apply(idpParam, false)).To(Succeed())
+				_, err = idpServices.ldap.Apply(idpParam)
+				Expect(err).ToNot(HaveOccurred())
 
 				By("re-login with the ldpa idp username/password")
 				_, err = openshift.OcLogin(*ocAtter)
@@ -964,35 +857,32 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 
 		It("try to restore/duplicate an existing IDP - [id:65816]",
 			ci.Medium, func() {
-				idpServices.gitlab = exec.NewIDPService(constants.GitlabDir) // init new gitlab service
-
-				gitLabIdpName = "OCP-65816-gitlab-idp-reconcil"
+				var err error
+				idpServices.gitlab, err = exec.NewIDPService(constants.GitlabDir) // init new gitlab service
+				Expect(err).ToNot(HaveOccurred())
+				gitLabIDPName := "OCP-65816-gitlab-idp-reconcil"
 
 				By("Create gitlab idp for existing cluster")
-				idpParam := &exec.IDPArgs{
-					ClusterID:    clusterID,
-					Name:         gitLabIdpName,
-					ClientID:     gitlabIDPClientId,
-					ClientSecret: gitlabIDPClientSecret,
-					URL:          constants.GitLabURL,
-				}
-				Expect(idpServices.gitlab.Apply(idpParam, false)).To(Succeed())
-				idpID, _ := idpServices.gitlab.Output()
+				idpParam := getDefaultGitlabArgs(gitLabIDPName)
+				_, err = idpServices.gitlab.Apply(idpParam)
+				Expect(err).ToNot(HaveOccurred())
+				idpOutput, err := idpServices.gitlab.Output()
+				Expect(err).ToNot(HaveOccurred())
 
 				By("Delete gitlab idp using OCM API")
-				cms.DeleteIDP(ci.RHCSConnection, clusterID, idpID.ID)
-				_, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID)
+				cms.DeleteIDP(ci.RHCSConnection, clusterID, idpOutput.ID)
+				_, err = cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpOutput.ID)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).Should(ContainSubstring(
-					"Identity provider ID '%s' for cluster '%s' not found", idpID.ID, clusterID),
+					"Identity provider ID '%s' for cluster '%s' not found", idpOutput.ID, clusterID),
 				)
 
 				By("Create gitlab idp using OCM api with the same parameters")
 				requestBody, _ := gitlabIdpOcmAPI.Type("GitlabIdentityProvider").
-					Name(gitLabIdpName).
+					Name(gitLabIDPName).
 					Gitlab(cmsv1.NewGitlabIdentityProvider().
-						ClientID(gitlabIDPClientId).
-						ClientSecret(gitlabIDPClientSecret).
+						ClientID(defaultGitlabIDPClientId).
+						ClientSecret(defaultGitlabIDPClientSecret).
 						URL(constants.GitLabURL)).
 					MappingMethod("claim").
 					Build()
@@ -1004,37 +894,34 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				defer cms.DeleteIDP(ci.RHCSConnection, clusterID, res.Body().ID())
 
 				By("Re-apply gitlab idp using tf manifests with same ocm api args")
-				err = idpServices.gitlab.Apply(idpParam, false)
+				_, err = idpServices.gitlab.Apply(idpParam)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).Should(ContainSubstring(
-					"Identity Provider Name\n%s already exists", gitLabIdpName),
+					"Identity Provider Name\n%s already exists", gitLabIDPName),
 				)
 			})
 
 		It("try to restore to an updated IDP config - [id:65814]",
 			ci.Medium, func() {
-				idpServices.gitlab = exec.NewIDPService(constants.GitlabDir) // init new gitlab service
-
-				gitLabIdpName = "OCP-65814-gitlab-idp-reconcil"
+				var err error
+				idpServices.gitlab, err = exec.NewIDPService(constants.GitlabDir) // init new gitlab service
+				Expect(err).ToNot(HaveOccurred())
+				gitLabIDPName := "OCP-65814-gitlab-idp-reconcil"
 
 				By("Create gitlab idp for existing cluster")
-				idpParam := &exec.IDPArgs{
-					ClusterID:    clusterID,
-					Name:         gitLabIdpName,
-					ClientID:     gitlabIDPClientId,
-					ClientSecret: gitlabIDPClientSecret,
-					URL:          constants.GitLabURL,
-				}
-				Expect(idpServices.gitlab.Apply(idpParam, false)).To(Succeed())
-				idpID, _ := idpServices.gitlab.Output()
+				idpParam := getDefaultGitlabArgs(gitLabIDPName)
+				_, err = idpServices.gitlab.Apply(idpParam)
+				Expect(err).ToNot(HaveOccurred())
+				idpOutput, err := idpServices.gitlab.Output()
+				Expect(err).ToNot(HaveOccurred())
 
 				// Delete gitlab idp using OCM API after test end
 				defer func() {
-					cms.DeleteIDP(ci.RHCSConnection, clusterID, idpID.ID)
-					_, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpID.ID)
+					cms.DeleteIDP(ci.RHCSConnection, clusterID, idpOutput.ID)
+					_, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpOutput.ID)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(ContainSubstring(
-						"Identity provider ID '%s' for cluster '%s' not found", idpID.ID, clusterID),
+						"Identity provider ID '%s' for cluster '%s' not found", idpOutput.ID, clusterID),
 					)
 				}()
 
@@ -1042,28 +929,21 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				newClientSecret := helper.GenerateRandomStringWithSymbols(30)
 				requestBody, _ := gitlabIdpOcmAPI.Type("GitlabIdentityProvider").
 					Gitlab(cmsv1.NewGitlabIdentityProvider().
-						ClientID(gitlabIDPClientId).
+						ClientID(defaultGitlabIDPClientSecret).
 						ClientSecret(newClientSecret).
 						URL(constants.GitLabURL)).
 					MappingMethod("claim").
 					Build()
 
-				resp, err := cms.PatchIDP(ci.RHCSConnection, clusterID, idpID.ID, requestBody)
+				resp, err := cms.PatchIDP(ci.RHCSConnection, clusterID, idpOutput.ID, requestBody)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(resp.Status()).To(Equal(http.StatusOK))
 
 				// update is currently not supported for idp :: OCM-4622
 				By("Update and apply idp using terraform")
 				newClientSecret = helper.GenerateRandomStringWithSymbols(30)
-				idpParam = &exec.IDPArgs{
-					ClusterID:    clusterID,
-					Name:         gitLabIdpName,
-					ClientID:     gitlabIDPClientId,
-					ClientSecret: newClientSecret,
-					URL:          constants.GitLabURL,
-				}
-
-				err = idpServices.gitlab.Apply(idpParam, true)
+				idpParam.ClientSecret = helper.StringPointer(newClientSecret)
+				_, err = idpServices.gitlab.Apply(idpParam)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).Should(ContainSubstring(
 					"This RHCS provider version does not support updating an existing IDP"),

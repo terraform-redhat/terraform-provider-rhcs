@@ -1,98 +1,89 @@
 package exec
 
 import (
-	"context"
-	"fmt"
-
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
 type IngressArgs struct {
-	ID      string  `json:"id,omitempty"`
-	Cluster *string `json:"cluster,omitempty"`
+	Cluster *string `hcl:"cluster"`
 
 	// Classic
-	RouteNamespaceOwnershipPolicy string            `json:"route_namespace_ownership_policy,omitempty"`
-	RouteWildcardPolicy           string            `json:"route_wildcard_policy,omitempty"`
-	ClusterRoutesHostename        string            `json:"cluster_routes_hostname,omitempty"`
-	ClusterRoutestlsSecretRef     string            `json:"cluster_routes_tls_secret_ref,omitempty"`
-	LoadBalancerType              string            `json:"load_balancer_type,omitempty"`
-	ExcludedNamespaces            []string          `json:"excluded_namespaces,omitempty"`
-	RouteSelectors                map[string]string `json:"route_selectors,omitempty"`
+	ID                            *string            `hcl:"id"`
+	RouteNamespaceOwnershipPolicy *string            `hcl:"route_namespace_ownership_policy"`
+	RouteWildcardPolicy           *string            `hcl:"route_wildcard_policy"`
+	ClusterRoutesHostename        *string            `hcl:"cluster_routes_hostname"`
+	ClusterRoutestlsSecretRef     *string            `hcl:"cluster_routes_tls_secret_ref"`
+	LoadBalancerType              *string            `hcl:"load_balancer_type"`
+	ExcludedNamespaces            *[]string          `hcl:"excluded_namespaces"`
+	RouteSelectors                *map[string]string `hcl:"route_selectors"`
 
 	// HCP
-	ListeningMethod *string `json:"listening_method,omitempty"`
+	ListeningMethod *string `hcl:"listening_method"`
 }
 
 type IngressOutput struct {
 	ID string `json:"id,omitempty"`
 }
 
-type IngressService struct {
-	CreationArgs *IngressArgs
-	ManifestDir  string
-	Context      context.Context
+type IngressService interface {
+	Init() error
+	Plan(args *IngressArgs) (string, error)
+	Apply(args *IngressArgs) (string, error)
+	Output() (*IngressOutput, error)
+	Destroy() (string, error)
+
+	ReadTFVars() (*IngressArgs, error)
+	DeleteTFVars() error
 }
 
-func (ing *IngressService) Init(manifestDirs ...string) error {
-	ing.ManifestDir = constants.ClassicIngressDir
-	if len(manifestDirs) != 0 {
-		ing.ManifestDir = manifestDirs[0]
+type ingressService struct {
+	tfExecutor TerraformExecutor
+}
+
+func NewIngressService(manifestsDirs ...string) (IngressService, error) {
+	manifestsDir := constants.ClassicIngressDir
+	if len(manifestsDirs) > 0 {
+		manifestsDir = manifestsDirs[0]
 	}
-	ctx := context.TODO()
-	ing.Context = ctx
-	err := runTerraformInit(ctx, ing.ManifestDir)
+	svc := &ingressService{
+		tfExecutor: NewTerraformExecutor(manifestsDir),
+	}
+	err := svc.Init()
+	return svc, err
+}
+
+func (svc *ingressService) Init() (err error) {
+	_, err = svc.tfExecutor.RunTerraformInit()
+	return
+}
+
+func (svc *ingressService) Plan(args *IngressArgs) (string, error) {
+	return svc.tfExecutor.RunTerraformPlan(args)
+}
+
+func (svc *ingressService) Apply(args *IngressArgs) (string, error) {
+	return svc.tfExecutor.RunTerraformApply(args)
+}
+
+func (svc *ingressService) Output() (*IngressOutput, error) {
+	var output IngressOutput
+	err := svc.tfExecutor.RunTerraformOutputIntoObject(&output)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
-
+	return &output, nil
 }
 
-func (ing *IngressService) Apply(createArgs *IngressArgs, extraArgs ...string) error {
-	ing.CreationArgs = createArgs
-	args, _ := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApply(ing.Context, ing.ManifestDir, args...)
-	if err != nil {
-		return err
-	}
-	return nil
+func (svc *ingressService) Destroy() (string, error) {
+	return svc.tfExecutor.RunTerraformDestroy()
 }
 
-func (ing *IngressService) Output() (IngressOutput, error) {
-	ingressDir := constants.ClassicIngressDir
-	if ing.ManifestDir != "" {
-		ingressDir = ing.ManifestDir
-	}
-	var ingressOut IngressOutput
-	out, err := runTerraformOutput(context.TODO(), ingressDir)
-	if err != nil {
-		return ingressOut, err
-	}
-	ingressOut = IngressOutput{
-		ID: helper.DigString(out["id"], "value"),
-	}
-
-	return ingressOut, nil
+func (svc *ingressService) ReadTFVars() (*IngressArgs, error) {
+	args := &IngressArgs{}
+	err := svc.tfExecutor.ReadTerraformVars(args)
+	return args, err
 }
 
-func (ing *IngressService) Destroy(createArgs ...*IngressArgs) error {
-	if ing.CreationArgs == nil && len(createArgs) == 0 {
-		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
-	}
-	destroyArgs := ing.CreationArgs
-	if len(createArgs) != 0 {
-		destroyArgs = createArgs[0]
-	}
-	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroy(ing.Context, ing.ManifestDir, args...)
-
-	return err
-}
-
-func NewIngressService(manifestDir ...string) (*IngressService, error) {
-	ing := &IngressService{}
-	err := ing.Init(manifestDir...)
-	return ing, err
+func (svc *ingressService) DeleteTFVars() error {
+	return svc.tfExecutor.DeleteTerraformVars()
 }

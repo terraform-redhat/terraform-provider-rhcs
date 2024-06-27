@@ -1,106 +1,101 @@
 package exec
 
-import (
-	"context"
-	"fmt"
-
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
-)
+import "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 
 type IDPArgs struct {
-	ClusterID     string        `json:"cluster_id,omitempty"`
-	Name          string        `json:"name,omitempty"`
-	ID            string        `json:"id,omitempty"`
-	CA            string        `json:"ca,omitempty"`
-	Attributes    interface{}   `json:"attributes,omitempty"`
-	ClientID      string        `json:"client_id,omitempty"`
-	ClientSecret  string        `json:"client_secret,omitempty"`
-	Organizations []string      `json:"organizations,omitempty"`
-	HostedDomain  string        `json:"hosted_domain,omitempty"`
-	Insecure      bool          `json:"insecure,omitempty"`
-	MappingMethod string        `json:"mapping_method,omitempty"`
-	HtpasswdUsers []interface{} `json:"htpasswd_users,omitempty"`
-	URL           string        `json:"idp_url,omitempty"`
+	ClusterID      *string           `hcl:"cluster_id"`
+	Name           *string           `hcl:"name"`
+	ID             *string           `hcl:"id"`
+	CA             *string           `hcl:"ca"`
+	LDAPAttributes *LDAPAttributes   `hcl:"attributes"`
+	ClientID       *string           `hcl:"client_id"`
+	ClientSecret   *string           `hcl:"client_secret"`
+	Organizations  *[]string         `hcl:"organizations"`
+	HostedDomain   *string           `hcl:"hosted_domain"`
+	Insecure       *bool             `hcl:"insecure"`
+	MappingMethod  *string           `hcl:"mapping_method"`
+	HtpasswdUsers  *[]HTPasswordUser `hcl:"htpasswd_users"`
+	URL            *string           `hcl:"idp_url"`
 }
 
-type IDPService struct {
-	CreationArgs *IDPArgs
-	ManifestDir  string
-	Context      context.Context
+type HTPasswordUser struct {
+	Username *string `cty:"username"`
+	Password *string `cty:"password"`
+}
+
+type LDAPAttributes struct {
+	Emails             *[]string `cty:"email"`
+	IDs                *[]string `cty:"id"`
+	Names              *[]string `cty:"name"`
+	PreferredUsernames *[]string `cty:"preferred_username"`
 }
 
 // for now holds only ID, additional vars might be needed in the future
 type IDPOutput struct {
-	ID string `json:"idp_id,omitempty"`
+	ID       string `json:"idp_id,omitempty"`
+	GoogleID string `json:"idp_google_id,omitempty"`
+	LDAPID   string `json:"idp_ldap_id,omitempty"`
 }
 
-func (idp *IDPService) Init(manifestDirs ...string) error {
-	idp.ManifestDir = constants.IDPsDir
-	if len(manifestDirs) != 0 {
-		idp.ManifestDir = manifestDirs[0]
-	}
-	ctx := context.TODO()
-	idp.Context = ctx
-	err := runTerraformInit(ctx, idp.ManifestDir)
-	if err != nil {
-		return err
-	}
-	return nil
+type IDPService interface {
+	Init() error
+	Plan(args *IDPArgs) (string, error)
+	Apply(args *IDPArgs) (string, error)
+	Output() (*IDPOutput, error)
+	Destroy() (string, error)
+
+	ReadTFVars() (*IDPArgs, error)
+	DeleteTFVars() error
 }
 
-func (idp *IDPService) Apply(createArgs *IDPArgs, recordtfvars bool, extraArgs ...string) error {
-	idp.CreationArgs = createArgs
-	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApply(idp.Context, idp.ManifestDir, args...)
-	if err != nil {
-		return err
-	}
-	if recordtfvars {
-		recordTFvarsFile(idp.ManifestDir, tfvars)
-	}
-
-	return nil
+type idpService struct {
+	tfExecutor TerraformExecutor
 }
 
-func (idp *IDPService) Output() (IDPOutput, error) {
-	idpDir := constants.IDPsDir
-	if idp.ManifestDir != "" {
-		idpDir = idp.ManifestDir
+func NewIDPService(manifestsDirs ...string) (IDPService, error) {
+	manifestsDir := constants.IDPsDir
+	if len(manifestsDirs) > 0 {
+		manifestsDir = manifestsDirs[0]
 	}
+	svc := &idpService{
+		tfExecutor: NewTerraformExecutor(manifestsDir),
+	}
+	err := svc.Init()
+	return svc, err
+}
+
+func (svc *idpService) Init() (err error) {
+	_, err = svc.tfExecutor.RunTerraformInit()
+	return
+}
+
+func (svc *idpService) Plan(args *IDPArgs) (string, error) {
+	return svc.tfExecutor.RunTerraformPlan(args)
+}
+
+func (svc *idpService) Apply(args *IDPArgs) (string, error) {
+	return svc.tfExecutor.RunTerraformApply(args)
+}
+
+func (svc *idpService) Output() (*IDPOutput, error) {
 	var output IDPOutput
-	out, err := runTerraformOutput(context.TODO(), idpDir)
+	err := svc.tfExecutor.RunTerraformOutputIntoObject(&output)
 	if err != nil {
-		return output, err
+		return nil, err
 	}
-	if err != nil {
-		return output, err
-	}
-	id := helper.DigString(out["idp_id"], "value")
-
-	// right now only "holds" id, more vars might be needed in the future
-	output = IDPOutput{
-		ID: id,
-	}
-	return output, nil
+	return &output, nil
 }
 
-func (idp *IDPService) Destroy(createArgs ...*IDPArgs) error {
-	if idp.CreationArgs == nil && len(createArgs) == 0 {
-		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
-	}
-	destroyArgs := idp.CreationArgs
-	if len(createArgs) != 0 {
-		destroyArgs = createArgs[0]
-	}
-	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroy(idp.Context, idp.ManifestDir, args...)
-
-	return err
+func (svc *idpService) Destroy() (string, error) {
+	return svc.tfExecutor.RunTerraformDestroy()
 }
 
-func NewIDPService(manifestDir ...string) *IDPService {
-	idp := &IDPService{}
-	idp.Init(manifestDir...)
-	return idp
+func (svc *idpService) ReadTFVars() (*IDPArgs, error) {
+	args := &IDPArgs{}
+	err := svc.tfExecutor.ReadTerraformVars(args)
+	return args, err
+}
+
+func (svc *idpService) DeleteTFVars() error {
+	return svc.tfExecutor.DeleteTerraformVars()
 }

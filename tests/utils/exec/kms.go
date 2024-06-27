@@ -1,96 +1,83 @@
 package exec
 
 import (
-	"context"
-	"fmt"
-
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 )
 
 type KMSArgs struct {
-	KMSName           string `json:"kms_name,omitempty"`
-	AWSRegion         string `json:"aws_region,omitempty"`
-	AccountRolePrefix string `json:"account_role_prefix,omitempty"`
-	AccountRolePath   string `json:"path,omitempty"`
-	TagKey            string `json:"tag_key,omitempty"`
-	TagValue          string `json:"tag_value,omitempty"`
-	TagDescription    string `json:"tag_description,omitempty"`
-	HCP               bool   `json:"hcp,omitempty"`
+	KMSName           *string `hcl:"kms_name"`
+	AWSRegion         *string `hcl:"aws_region"`
+	AccountRolePrefix *string `hcl:"account_role_prefix"`
+	AccountRolePath   *string `hcl:"path"`
+	TagKey            *string `hcl:"tag_key"`
+	TagValue          *string `hcl:"tag_value"`
+	TagDescription    *string `hcl:"tag_description"`
+	HCP               *bool   `hcl:"hcp"`
 }
 
 type KMSOutput struct {
 	KeyARN string `json:"arn,omitempty"`
 }
 
-type KMSService struct {
-	CreationArgs *KMSArgs
-	ManifestDir  string
-	Context      context.Context
+type KMSService interface {
+	Init() error
+	Plan(args *KMSArgs) (string, error)
+	Apply(args *KMSArgs) (string, error)
+	Output() (*KMSOutput, error)
+	Destroy() (string, error)
+
+	ReadTFVars() (*KMSArgs, error)
+	DeleteTFVars() error
 }
 
-func (kms *KMSService) Init(manifestDirs ...string) error {
-	kms.ManifestDir = CON.KMSDir
-	if len(manifestDirs) != 0 {
-		kms.ManifestDir = manifestDirs[0]
+type kmsService struct {
+	tfExecutor TerraformExecutor
+}
+
+func NewKMSService(manifestsDirs ...string) (KMSService, error) {
+	manifestsDir := constants.KMSDir
+	if len(manifestsDirs) > 0 {
+		manifestsDir = manifestsDirs[0]
 	}
-	ctx := context.TODO()
-	kms.Context = ctx
-	err := runTerraformInit(ctx, kms.ManifestDir)
+	svc := &kmsService{
+		tfExecutor: NewTerraformExecutor(manifestsDir),
+	}
+	err := svc.Init()
+	return svc, err
+}
+
+func (svc *kmsService) Init() (err error) {
+	_, err = svc.tfExecutor.RunTerraformInit()
+	return
+}
+
+func (svc *kmsService) Plan(args *KMSArgs) (string, error) {
+	return svc.tfExecutor.RunTerraformPlan(args)
+}
+
+func (svc *kmsService) Apply(args *KMSArgs) (string, error) {
+	return svc.tfExecutor.RunTerraformApply(args)
+}
+
+func (svc *kmsService) Output() (*KMSOutput, error) {
+	var output KMSOutput
+	err := svc.tfExecutor.RunTerraformOutputIntoObject(&output)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
-
+	return &output, nil
 }
 
-func (kms *KMSService) Apply(createArgs *KMSArgs, recordtfvars bool, extraArgs ...string) error {
-	kms.CreationArgs = createArgs
-	args, tfvars := combineStructArgs(createArgs, extraArgs...)
-	_, err := runTerraformApply(kms.Context, kms.ManifestDir, args...)
-	if err != nil {
-		return err
-	}
-	if recordtfvars {
-		recordTFvarsFile(kms.ManifestDir, tfvars)
-	}
-
-	return nil
+func (svc *kmsService) Destroy() (string, error) {
+	return svc.tfExecutor.RunTerraformDestroy()
 }
 
-func (kms *KMSService) Output() (KMSOutput, error) {
-	kmsDir := CON.KMSDir
-	if kms.ManifestDir != "" {
-		kmsDir = kms.ManifestDir
-	}
-	var kmsOutput KMSOutput
-	out, err := runTerraformOutput(context.TODO(), kmsDir)
-	if err != nil {
-		return kmsOutput, err
-	}
-	kmsOutput = KMSOutput{
-		KeyARN: h.DigString(out["arn"], "value"),
-	}
-
-	return kmsOutput, nil
+func (svc *kmsService) ReadTFVars() (*KMSArgs, error) {
+	args := &KMSArgs{}
+	err := svc.tfExecutor.ReadTerraformVars(args)
+	return args, err
 }
 
-func (kms *KMSService) Destroy(createArgs ...*KMSArgs) error {
-	if kms.CreationArgs == nil && len(createArgs) == 0 {
-		return fmt.Errorf("got unset destroy args, set it in object or pass as a parameter")
-	}
-	destroyArgs := kms.CreationArgs
-	if len(createArgs) != 0 {
-		destroyArgs = createArgs[0]
-	}
-	args, _ := combineStructArgs(destroyArgs)
-	_, err := runTerraformDestroy(kms.Context, kms.ManifestDir, args...)
-
-	return err
-}
-
-func NewKMSService(manifestDir ...string) (*KMSService, error) {
-	kms := &KMSService{}
-	err := kms.Init(manifestDir...)
-	return kms, err
+func (svc *kmsService) DeleteTFVars() error {
+	return svc.tfExecutor.DeleteTerraformVars()
 }

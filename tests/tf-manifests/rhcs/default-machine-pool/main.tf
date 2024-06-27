@@ -25,4 +25,5 @@ resource "rhcs_machine_pool" "mp" {
   multi_availability_zone           = var.multi_availability_zone
   disk_size                         = var.disk_size
   aws_additional_security_group_ids = var.additional_security_groups
+  aws_tags                          = var.tags
 }

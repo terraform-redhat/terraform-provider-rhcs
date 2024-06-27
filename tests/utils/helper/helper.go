@@ -516,6 +516,14 @@ func StringSlicePointer(f []string) *[]string {
 	return &f
 }
 
+func IntSlicePointer(f []int) *[]int {
+	return &f
+}
+
+func StringMapPointer(f map[string]string) *map[string]string {
+	return &f
+}
+
 func Pointer(f interface{}) *interface{} {
 	return &f
 }

@@ -7,9 +7,9 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	CI "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	H "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
 var ctx context.Context
@@ -22,13 +22,13 @@ func TestRHCSProvider(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	token = os.Getenv(CON.TokenENVName)
+	token = os.Getenv(constants.TokenENVName)
 	var err error
 
-	err = H.AlignRHCSSourceVersion(CON.ManifestsConfigurationDir)
+	err = helper.AlignRHCSSourceVersion(constants.ManifestsConfigurationDir)
 	Expect(err).ToNot(HaveOccurred())
 
-	clusterID, err = CI.PrepareRHCSClusterByProfileENV()
+	clusterID, err = ci.PrepareRHCSClusterByProfileENV()
 	Expect(err).ToNot(HaveOccurred())
 	ctx = context.Background()
 })

@@ -211,3 +211,8 @@ variable "private_hosted_zone" {
   })
   default = null
 }
+
+variable "deactivate_cluster_waiter" {
+  type = bool
+  default = false
+}

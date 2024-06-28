@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -452,6 +453,14 @@ func GenerateRandomString(n int) string {
 
 func GenerateRandomName(prefix string, n int) string {
 	return fmt.Sprintf("%s-%s", prefix, strings.ToLower(GenerateRandomString(n)))
+}
+
+func RandomInt(max int) int {
+	val, err := r.Int(r.Reader, big.NewInt(int64(max)))
+	if err != nil {
+		panic(err)
+	}
+	return int(val.Int64())
 }
 
 func Subfix(length int) string {

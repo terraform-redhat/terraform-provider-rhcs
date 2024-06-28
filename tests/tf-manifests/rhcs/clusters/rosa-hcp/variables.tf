@@ -163,3 +163,8 @@ variable "include_creator_property" {
   type = bool
   default = true
 }
+
+variable "deactivate_cluster_waiter" {
+  type = bool
+  default = false
+}

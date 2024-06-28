@@ -40,6 +40,7 @@ type ClusterArgs struct {
 	UpgradeAcknowledgementsFor           *string            `hcl:"upgrade_acknowledgements_for"`
 	BaseDnsDomain                        *string            `hcl:"base_dns_domain"`
 	PrivateHostedZone                    *PrivateHostedZone `hcl:"private_hosted_zone"`
+	DeactivateClusterWaiter              *bool              `hcl:"deactivate_cluster_waiter"`
 
 	AWSAccountID        *string `hcl:"aws_account_id"`
 	AWSBillingAccountID *string `hcl:"aws_billing_account_id"`

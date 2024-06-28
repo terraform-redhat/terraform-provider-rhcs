@@ -1,8 +1,8 @@
 package helper
 
 import (
+	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"strings"
@@ -22,10 +22,10 @@ type profile struct {
 	Cluster map[string]interface{} `yaml:"cluster,omitempty"`
 }
 
-func ParseProfiles(profilesDir string) map[string]*profile {
+func ParseProfiles(profilesDir string) (map[string]*profile, error) {
 	files, err := os.ReadDir(profilesDir)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	profileMap := make(map[string]*profile)
@@ -33,13 +33,13 @@ func ParseProfiles(profilesDir string) map[string]*profile {
 		if strings.HasSuffix(file.Name(), profilesYamlSuffix) {
 			yfile, err := ioutil.ReadFile(path.Join(profilesDir, file.Name()))
 			if err != nil {
-				log.Fatal(err)
+				return nil, err
 			}
 
 			p := new(profiles)
 			err = yaml.Unmarshal(yfile, &p)
 			if err != nil {
-				log.Fatal(err)
+				return nil, err
 			}
 
 			for _, theProfile := range p.Profiles {
@@ -48,14 +48,17 @@ func ParseProfiles(profilesDir string) map[string]*profile {
 		}
 	}
 
-	return profileMap
+	return profileMap, nil
 }
 
-func GetProfile(profileName string, profilesDir string) *profile {
-	profileMap := ParseProfiles(profilesDir)
+func GetProfile(profileName string, profilesDir string) (*profile, error) {
+	profileMap, err := ParseProfiles(profilesDir)
+	if err != nil {
+		return nil, err
+	}
 	if _, exist := profileMap[profileName]; !exist {
-		log.Fatalf("Can not find the profile %s in %s\n", profileName, profilesDir)
+		return nil, fmt.Errorf("Can not find the profile %s in %s", profileName, profilesDir)
 	}
 
-	return profileMap[profileName]
+	return profileMap[profileName], nil
 }

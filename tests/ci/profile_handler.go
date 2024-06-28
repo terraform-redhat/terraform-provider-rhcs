@@ -606,12 +606,13 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 }
 
 func LoadProfileYamlFile(profileName string) *Profile {
-	p := helper.GetProfile(profileName, GetYAMLProfilesDir())
+	p, err := helper.GetProfile(profileName, GetYAMLProfilesDir())
+	Expect(err).ToNot(HaveOccurred())
 	Logger.Infof("Loaded cluster profile configuration from profile %s : %v", profileName, p.Cluster)
 	profile := Profile{
 		Name: profileName,
 	}
-	err := helper.MapStructure(p.Cluster, &profile)
+	err = helper.MapStructure(p.Cluster, &profile)
 	Expect(err).ToNot(HaveOccurred())
 	return &profile
 }

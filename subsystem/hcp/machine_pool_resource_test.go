@@ -2703,6 +2703,203 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(".attributes.auto_repair", true))
 			Expect(resource).To(MatchJQ(".attributes.kubelet_configs", "my_kubelet_config_1"))
 		})
+
+		It("can delete kubelet configs", func() {
+			// Prepare the server:
+			prepareClusterRead("123")
+			server.AppendHandlers(
+				// Get is for the Read function
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, workerNodePoolUri),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"replicas": 2,
+							"aws_node_pool":{
+								"instance_type":"r5.xlarge",
+								"instance_profile": "bla"
+							},
+							"version": {
+								"raw_id": "4.14.10"
+							},
+							"subnet": "subnet-123",
+							"auto_repair": true
+						}`),
+				),
+			)
+			prepareClusterRead("123")
+			server.AppendHandlers(
+				// Get is for the read during update
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, workerNodePoolUri),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"replicas": 2,
+							"aws_node_pool":{
+								"instance_type":"r5.xlarge",
+								"instance_profile": "bla"
+							},
+							"version": {
+								"raw_id": "4.14.10"
+							},
+							"subnet": "subnet-123",
+							"auto_repair": true
+						}`),
+				),
+				// Patch is for the update
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, workerNodePoolUri),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"labels": {
+								"label_key1": "label_value1"
+							},
+							"replicas": 2,
+							"aws_node_pool":{
+								"instance_type":"r5.xlarge",
+								"instance_profile": "bla"
+							},
+							"version": {
+								"raw_id": "4.14.10"
+							},
+							"subnet": "subnet-123",
+							"auto_repair": true,
+							"kubelet_configs": [
+								"my_kubelet_config"
+							]
+						}`),
+				),
+			)
+			terraform.Source(`
+				resource "rhcs_hcp_machine_pool" "worker" {
+					cluster      = "123"
+					name         = "worker"
+					aws_node_pool = {
+						instance_type = "r5.xlarge"
+					}
+					autoscaling = {
+						enabled = false
+					}
+					replicas     = 2
+					labels = {
+						"label_key1" = "label_value1"
+					}
+					subnet_id = "subnet-123"
+					version = "4.14.10"
+					auto_repair = true
+					kubelet_configs = "my_kubelet_config"
+				}`)
+			Expect(terraform.Apply()).To(BeZero())
+			resource := terraform.Resource("rhcs_hcp_machine_pool", "worker")
+			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+			Expect(resource).To(MatchJQ(".attributes.name", "worker"))
+			Expect(resource).To(MatchJQ(".attributes.id", "worker"))
+			Expect(resource).To(MatchJQ(`.attributes.labels | length`, 1))
+			Expect(resource).To(MatchJQ(".attributes.subnet_id", "subnet-123"))
+			Expect(resource).To(MatchJQ(".attributes.auto_repair", true))
+			Expect(resource).To(MatchJQ(".attributes.kubelet_configs", "my_kubelet_config"))
+
+			// Prepare the server:
+			prepareClusterRead("123")
+			server.AppendHandlers(
+				// Get is for the Read function
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, workerNodePoolUri),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"replicas": 2,
+							"aws_node_pool":{
+								"instance_type":"r5.xlarge",
+								"instance_profile": "bla"
+							},
+							"version": {
+								"raw_id": "4.14.10"
+							},
+							"subnet": "subnet-123",
+							"auto_repair": true,
+							"kubelet_configs": [
+								"my_kubelet_config"
+							]
+						}`),
+				),
+			)
+			prepareClusterRead("123")
+			server.AppendHandlers(
+				// Get is for the read during update
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, workerNodePoolUri),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"replicas": 2,
+							"aws_node_pool":{
+								"instance_type":"r5.xlarge",
+								"instance_profile": "bla"
+							},
+							"version": {
+								"raw_id": "4.14.10"
+							},
+							"subnet": "subnet-123",
+							"auto_repair": true,
+							"kubelet_configs": [
+								"my_kubelet_config"
+							]
+						}`),
+				),
+				// Patch is for the update
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, workerNodePoolUri),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"labels": {
+								"label_key1": "label_value1"
+							},
+							"replicas": 2,
+							"aws_node_pool":{
+								"instance_type":"r5.xlarge",
+								"instance_profile": "bla"
+							},
+							"version": {
+								"raw_id": "4.14.10"
+							},
+							"subnet": "subnet-123",
+							"auto_repair": true
+						}`),
+				),
+			)
+			terraform.Source(`
+				resource "rhcs_hcp_machine_pool" "worker" {
+					cluster      = "123"
+					name         = "worker"
+					aws_node_pool = {
+						instance_type = "r5.xlarge"
+					}
+					autoscaling = {
+						enabled = false
+					}
+					replicas     = 2
+					labels = {
+						"label_key1" = "label_value1"
+					}
+					subnet_id = "subnet-123"
+					version = "4.14.10"
+					auto_repair = true
+					kubelet_configs = ""
+				}`)
+			Expect(terraform.Apply()).To(BeZero())
+			resource = terraform.Resource("rhcs_hcp_machine_pool", "worker")
+			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+			Expect(resource).To(MatchJQ(".attributes.name", "worker"))
+			Expect(resource).To(MatchJQ(".attributes.id", "worker"))
+			Expect(resource).To(MatchJQ(`.attributes.labels | length`, 1))
+			Expect(resource).To(MatchJQ(".attributes.subnet_id", "subnet-123"))
+			Expect(resource).To(MatchJQ(".attributes.auto_repair", true))
+			Expect(resource).To(MatchJQ(".attributes.kubelet_configs", ""))
+		})
 	})
 
 	Context("Machine pool creation for non exist cluster", func() {

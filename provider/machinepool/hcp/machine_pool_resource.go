@@ -753,7 +753,9 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 	}
 
 	patchKubeletConfigs, shouldPatchKubeletConfigs := common.ShouldPatchString(state.KubeletConfigs, plan.KubeletConfigs)
-	if shouldPatchKubeletConfigs {
+	if common.IsStringAttributeUnknownOrEmpty(plan.KubeletConfigs) {
+		npBuilder.KubeletConfigs([]string{}...)
+	} else if shouldPatchKubeletConfigs {
 		npBuilder.KubeletConfigs(patchKubeletConfigs)
 	}
 
@@ -803,6 +805,10 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 
 	if common.HasValue(plan.TuningConfigs) {
 		state.TuningConfigs = plan.TuningConfigs
+	}
+
+	if plan.KubeletConfigs.ValueString() == "" {
+		state.KubeletConfigs = plan.KubeletConfigs
 	}
 
 	// Save the state:
@@ -1218,6 +1224,8 @@ func populateState(ctx context.Context, object *cmv1.NodePool, state *HcpMachine
 
 	if len(object.KubeletConfigs()) > 0 {
 		state.KubeletConfigs = types.StringValue(object.KubeletConfigs()[0])
+	} else if len(state.KubeletConfigs.ValueString()) != 0 {
+		state.KubeletConfigs = types.StringNull()
 	}
 
 	if object.Version() != nil {

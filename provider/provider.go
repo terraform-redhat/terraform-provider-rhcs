@@ -21,6 +21,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	tfprovider "github.com/hashicorp/terraform-plugin-framework/provider"
@@ -28,6 +29,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	sdk "github.com/openshift-online/ocm-sdk-go"
+	"github.com/openshift-online/ocm-sdk-go/authentication"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 	"github.com/terraform-redhat/terraform-provider-rhcs/logging"
@@ -60,6 +62,10 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/versions"
 )
 
+const (
+	oauthClientID = "ocm-cli"
+)
+
 // Provider is the implementation of the Provider.
 type Provider struct{}
 
@@ -70,6 +76,7 @@ type Config struct {
 	URL          types.String `tfsdk:"url"`
 	TokenURL     types.String `tfsdk:"token_url"`
 	Token        types.String `tfsdk:"token"`
+	UseAuthCode  types.String `tfsdk:"use_auth_code"`
 	ClientID     types.String `tfsdk:"client_id"`
 	ClientSecret types.String `tfsdk:"client_secret"`
 	TrustedCAs   types.String `tfsdk:"trusted_cas"`
@@ -127,6 +134,10 @@ func (p *Provider) Schema(ctx context.Context, req tfprovider.SchemaRequest, res
 					"for production environments.",
 				Optional: true,
 			},
+			"use_auth_code": tfpschema.StringAttribute{
+				Description: "Signals to utilize authentication code via SSO and redirects customer to login.",
+				Optional:    true,
+			},
 		},
 	}
 }
@@ -173,10 +184,29 @@ func (p *Provider) Configure(ctx context.Context, req tfprovider.ConfigureReques
 	if token, ok := p.getAttrValueOrConfig(config.Token, "TOKEN"); ok {
 		builder.Tokens(token)
 	}
-	clientID, clientIdExists := p.getAttrValueOrConfig(config.ClientID, "CLIENT_ID")
-	clientSecret, clientSecretExists := p.getAttrValueOrConfig(config.ClientSecret, "CLIENT_SECRET")
-	if clientIdExists && clientSecretExists {
-		builder.Client(clientID, clientSecret)
+	useAuthCode := false
+	if txtUseAuthCode, ok := p.getAttrValueOrConfig(config.UseAuthCode, "USE_AUTH_CODE"); ok {
+		useAuthCode, err := strconv.ParseBool(txtUseAuthCode)
+		if err != nil {
+			resp.Diagnostics.AddError("an error occurred parsing 'RHCS_USE_AUTH_CODE'", err.Error())
+			return
+		}
+		if useAuthCode {
+			refreshToken, err := authentication.InitiateAuthCode(oauthClientID)
+			if err != nil {
+				resp.Diagnostics.AddError("an error occurred while retrieving the token", err.Error())
+				return
+			}
+			builder.Tokens(refreshToken)
+			builder.Client(oauthClientID, "")
+		}
+	}
+	if !useAuthCode {
+		clientID, clientIdExists := p.getAttrValueOrConfig(config.ClientID, "CLIENT_ID")
+		clientSecret, clientSecretExists := p.getAttrValueOrConfig(config.ClientSecret, "CLIENT_SECRET")
+		if clientIdExists && clientSecretExists {
+			builder.Client(clientID, clientSecret)
+		}
 	}
 	if trustedCAs, ok := p.getAttrValueOrConfig(config.TrustedCAs, "TRUSTED_CAS"); ok {
 		pool := x509.NewCertPool()

@@ -9,6 +9,7 @@ import (
 )
 
 type MachinePoolArgs struct {
+	Count                    *int                 `hcl:"mp_count"`
 	Cluster                  *string              `hcl:"cluster"`
 	Name                     *string              `hcl:"name"`
 	MachineType              *string              `hcl:"machine_type"`
@@ -36,6 +37,10 @@ type MachinePoolArgs struct {
 	KubeletConfigs             *string   `hcl:"kubelet_configs"`
 }
 
+type MachinePoolsOutput struct {
+	MachinePools []MachinePoolOutput `json:"machine_pools,omitempty"`
+}
+
 type MachinePoolOutput struct {
 	ID                 string             `json:"machine_pool_id,omitempty"`
 	Name               string             `json:"name,omitempty"`
@@ -46,6 +51,7 @@ type MachinePoolOutput struct {
 	Labels             map[string]string  `json:"labels,omitempty"`
 	Taints             []MachinePoolTaint `json:"taints,omitempty"`
 	TuningConfigs      []string           `json:"tuning_configs,omitempty"`
+	KubeletConfigs     string             `json:"kubelet_configs"`
 }
 
 type MachinePoolTaint struct {
@@ -58,7 +64,7 @@ type MachinePoolService interface {
 	Init() error
 	Plan(args *MachinePoolArgs) (string, error)
 	Apply(args *MachinePoolArgs) (string, error)
-	Output() (*MachinePoolOutput, error)
+	Output() (*MachinePoolsOutput, error)
 	Destroy() (string, error)
 
 	ReadTFVars() (*MachinePoolArgs, error)
@@ -94,8 +100,8 @@ func (svc *machinePoolService) Apply(args *MachinePoolArgs) (string, error) {
 	return svc.tfExecutor.RunTerraformApply(args)
 }
 
-func (svc *machinePoolService) Output() (*MachinePoolOutput, error) {
-	var output MachinePoolOutput
+func (svc *machinePoolService) Output() (*MachinePoolsOutput, error) {
+	var output MachinePoolsOutput
 	err := svc.tfExecutor.RunTerraformOutputIntoObject(&output)
 	if err != nil {
 		return nil, err

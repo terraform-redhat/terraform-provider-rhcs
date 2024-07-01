@@ -102,7 +102,7 @@ var _ = Describe("Kubelet config", func() {
 		kcArgs = &exe.KubeletConfigArgs{
 			PodPidsLimit:        helper.IntPointer(podPidsLimit),
 			Cluster:             helper.StringPointer(clusterID),
-			KubeLetConfigNumber: helper.IntPointer(2),
+			KubeletConfigNumber: helper.IntPointer(2),
 			NamePrefix:          helper.StringPointer("kube-70128"),
 		}
 		_, err = kcService.Apply(kcArgs)
@@ -110,7 +110,7 @@ var _ = Describe("Kubelet config", func() {
 			Expect(err).ToNot(HaveOccurred())
 			kubeletconfigs, err = kcService.Output()
 			Expect(err).ToNot(HaveOccurred())
-			Expect(len(kubeletconfigs)).To(Equal(*kcArgs.KubeLetConfigNumber))
+			Expect(len(kubeletconfigs)).To(Equal(*kcArgs.KubeletConfigNumber))
 		} else {
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).Should(ContainSubstring("classic cluster can only have 1 kubeletconfig"))
@@ -143,11 +143,14 @@ var _ = Describe("Kubelet config", func() {
 		if cluster.Hypershift().Enabled() {
 			By("Create more than 100 kubeletconfig is not allowed")
 			kcArgs.PodPidsLimit = helper.IntPointer(4096)
-			kcArgs.KubeLetConfigNumber = helper.IntPointer(300)
+			kcArgs.KubeletConfigNumber = helper.IntPointer(300)
 			kcArgs.NamePrefix = helper.StringPointer("kc-70129")
 			_, err = kcService.Apply(kcArgs)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).Should(ContainSubstring("Maximum allowed is '100'"))
+
+			// Create the TF vars file to make sure created Kubeletconfigs are deleted
+			kcService.WriteTFVars(kcArgs)
 		}
 
 	})

@@ -5,17 +5,18 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 
 var _ = Describe("RHCS Info", func() {
 	var rhcsInfoService exec.RhcsInfoService
 
 	BeforeEach(func() {
-		var err error
-		rhcsInfoService, err = exec.NewRhcsInfoService(constants.RhcsInfoDir)
+		profileHandler, err := profilehandler.NewProfileHandlerFromYamlFile()
+		Expect(err).ToNot(HaveOccurred())
+		rhcsInfoService, err = profileHandler.Services().GetRHCSInfoService()
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -28,7 +29,7 @@ var _ = Describe("RHCS Info", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			By("Comparing rhcs-info state output to OCM API output")
-			currentAccountInfo, err := cms.RetrieveCurrentAccount(ci.RHCSConnection)
+			currentAccountInfo, err := cms.RetrieveCurrentAccount(cms.RHCSConnection)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Address the resource's kind and name for the state command

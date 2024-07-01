@@ -13,21 +13,27 @@ import (
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 
 var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, func() {
 	defer GinkgoRecover()
 
-	var caService exec.ClusterAutoscalerService
-	var clusterAutoScalerBodyForRecreate *cmsv1.ClusterAutoscaler
-	var clusterAutoscalerStatusBefore int
+	var (
+		profileHandler                   profilehandler.ProfileHandler
+		caService                        exec.ClusterAutoscalerService
+		clusterAutoScalerBodyForRecreate *cmsv1.ClusterAutoscaler
+		clusterAutoscalerStatusBefore    int
+	)
 
 	BeforeEach(func() {
-		caRetrieveBody, _ := cms.RetrieveClusterAutoscaler(ci.RHCSConnection, clusterID)
+		var err error
+		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
+		Expect(err).NotTo(HaveOccurred())
+		caRetrieveBody, _ := cms.RetrieveClusterAutoscaler(cms.RHCSConnection, clusterID)
 		clusterAutoscalerStatusBefore = caRetrieveBody.Status()
 		if clusterAutoscalerStatusBefore == http.StatusOK {
 			clusterAutoScalerBodyForRecreate = caRetrieveBody.Body()
@@ -35,29 +41,29 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 	})
 	AfterEach(func() {
 		By("Recover clusterautoscaler")
-		clusterAutoscalerAfter, _ := cms.RetrieveClusterAutoscaler(ci.RHCSConnection, clusterID)
+		clusterAutoscalerAfter, _ := cms.RetrieveClusterAutoscaler(cms.RHCSConnection, clusterID)
 		if (clusterAutoscalerAfter.Status() == clusterAutoscalerStatusBefore) && clusterAutoscalerStatusBefore != http.StatusNotFound {
-			recreateAutoscaler, err := cms.PatchClusterAutoscaler(ci.RHCSConnection, clusterID, clusterAutoScalerBodyForRecreate)
+			recreateAutoscaler, err := cms.PatchClusterAutoscaler(cms.RHCSConnection, clusterID, clusterAutoScalerBodyForRecreate)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(recreateAutoscaler.Status()).To(Equal(http.StatusOK))
 		} else if clusterAutoscalerAfter.Status() == http.StatusOK && clusterAutoscalerStatusBefore == http.StatusNotFound {
-			deleteAutoscaler, err := cms.DeleteClusterAutoscaler(ci.RHCSConnection, clusterID)
+			deleteAutoscaler, err := cms.DeleteClusterAutoscaler(cms.RHCSConnection, clusterID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(deleteAutoscaler.Status()).To(Equal(http.StatusNoContent))
 		} else if clusterAutoscalerAfter.Status() == http.StatusNotFound && clusterAutoscalerStatusBefore == http.StatusOK {
-			recreateAutoscaler, err := cms.CreateClusterAutoscaler(ci.RHCSConnection, clusterID, clusterAutoScalerBodyForRecreate)
+			recreateAutoscaler, err := cms.CreateClusterAutoscaler(cms.RHCSConnection, clusterID, clusterAutoScalerBodyForRecreate)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(recreateAutoscaler.Status()).To(Equal(http.StatusCreated))
 		}
 	})
 	It("can be added/destroyed to Classic cluster - [id:69137]", ci.High, ci.NonHCPCluster, func() {
 		var err error
-		caService, err = exec.NewClusterAutoscalerService(constants.ClassicClusterAutoscalerDir)
+		caService, err = profileHandler.Services().GetClusterAutoscalerService()
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Delete clusterautoscaler when it exists in cluster")
 		if clusterAutoscalerStatusBefore == http.StatusOK {
-			caDeleteBody, err := cms.DeleteClusterAutoscaler(ci.RHCSConnection, clusterID)
+			caDeleteBody, err := cms.DeleteClusterAutoscaler(cms.RHCSConnection, clusterID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(caDeleteBody.Status()).To(Equal(http.StatusNoContent))
 		}
@@ -118,7 +124,7 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 		By("Verify the parameters of the createdautoscaler")
 		caOut, err := caService.Output()
 		Expect(err).ToNot(HaveOccurred())
-		caResponse, err := cms.RetrieveClusterAutoscaler(ci.RHCSConnection, clusterID)
+		caResponse, err := cms.RetrieveClusterAutoscaler(cms.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(caResponse.Body().BalanceSimilarNodeGroups()).To(Equal(caOut.BalanceSimilarNodeGroups))
 		Expect(caResponse.Body().SkipNodesWithLocalStorage()).To(Equal(caOut.SkipNodesWithLocalStorage))
@@ -142,12 +148,12 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 		ci.NonClassicCluster,
 		func() {
 			var err error
-			caService, err = exec.NewClusterAutoscalerService(constants.HCPClusterAutoscalerDir)
+			caService, err = profileHandler.Services().GetClusterAutoscalerService()
 			Expect(err).NotTo(HaveOccurred())
 
 			if clusterAutoscalerStatusBefore == http.StatusOK {
 				By("Delete current cluster autoscaler")
-				caDeleteBody, err := cms.DeleteClusterAutoscaler(ci.RHCSConnection, clusterID)
+				caDeleteBody, err := cms.DeleteClusterAutoscaler(cms.RHCSConnection, clusterID)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(caDeleteBody.Status()).To(Equal(http.StatusNoContent))
 			}
@@ -211,19 +217,19 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Check autoscaler is gone")
-			caResponse, err := cms.RetrieveClusterAutoscaler(ci.RHCSConnection, clusterID)
+			caResponse, err := cms.RetrieveClusterAutoscaler(cms.RHCSConnection, clusterID)
 			Expect(err).To(HaveOccurred())
 			Expect(caResponse.Status()).To(Equal(http.StatusNotFound))
 		})
 
 	It("can be validated against HCP cluster - [id:72526]", ci.Medium, ci.NonClassicCluster, func() {
 		var err error
-		caService, err = exec.NewClusterAutoscalerService(constants.HCPClusterAutoscalerDir)
+		caService, err = profileHandler.Services().GetClusterAutoscalerService()
 		Expect(err).NotTo(HaveOccurred())
 
 		if clusterAutoscalerStatusBefore == http.StatusOK {
 			By("Delete current cluster autoscaler")
-			caDeleteBody, err := cms.DeleteClusterAutoscaler(ci.RHCSConnection, clusterID)
+			caDeleteBody, err := cms.DeleteClusterAutoscaler(cms.RHCSConnection, clusterID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(caDeleteBody.Status()).To(Equal(http.StatusNoContent))
 		}
@@ -256,7 +262,7 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Try to edit cluster with other cluster ID")
-		clustersResp, err := cms.ListClusters(ci.RHCSConnection)
+		clustersResp, err := cms.ListClusters(cms.RHCSConnection)
 		Expect(err).ToNot(HaveOccurred())
 		var otherClusterID string
 		for _, cluster := range clustersResp.Items().Slice() {

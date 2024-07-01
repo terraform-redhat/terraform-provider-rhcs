@@ -17,6 +17,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/openshift"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 
 // all identity providers - declared for future cases
@@ -100,11 +101,15 @@ func getDefaultGoogleArgs(idpName string) *exec.IDPArgs {
 var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 	defer GinkgoRecover()
 
-	var profile *ci.Profile
-	var idpServices = IDPServices{}
+	var (
+		profileHandler profilehandler.ProfileHandler
+		idpServices    = IDPServices{}
+	)
 
 	BeforeEach(func() {
-		profile = ci.LoadProfileYamlFileByENV()
+		var err error
+		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
+		Expect(err).ToNot(HaveOccurred())
 		idpServices = IDPServices{}
 	})
 
@@ -143,7 +148,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 		Context("Htpasswd", func() {
 			BeforeEach(func() {
 				var err error
-				idpServices.htpasswd, err = exec.NewIDPService(constants.HtpasswdDir) // init new htpasswd service
+				idpServices.htpasswd, err = profileHandler.Services().GetIDPService(constants.IDPHTPassword) // init new htpasswd service
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -156,7 +161,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				By("List existing HtpasswdUsers and compare to the created one")
-				htpasswdUsersList, _ := cms.ListHtpasswdUsers(ci.RHCSConnection, clusterID, idpOutput.ID)
+				htpasswdUsersList, _ := cms.ListHtpasswdUsers(cms.RHCSConnection, clusterID, idpOutput.ID)
 				Expect(htpasswdUsersList.Status()).To(Equal(http.StatusOK))
 				respUserName, _ := htpasswdUsersList.Items().Slice()[0].GetUsername()
 				Expect(respUserName).To(Equal(defaultHTPUsername))
@@ -164,8 +169,8 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				By("Login with created htpasswd idp")
 				// this condition is for cases where the cluster profile
 				// has private_link enabled, then regular login won't work
-				if !profile.IsPrivateLink() {
-					getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+				if !profileHandler.Profile().IsPrivateLink() {
+					getResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 					Expect(err).ToNot(HaveOccurred())
 					server := getResp.Body().API().URL()
 
@@ -197,7 +202,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				By("List existing HtpasswdUsers and compare to the created one")
-				htpasswdUsersList, _ := cms.ListHtpasswdUsers(ci.RHCSConnection, clusterID, idpOutput.ID)
+				htpasswdUsersList, _ := cms.ListHtpasswdUsers(cms.RHCSConnection, clusterID, idpOutput.ID)
 				Expect(htpasswdUsersList.Status()).To(Equal(http.StatusOK))
 				respUserName, _ := htpasswdUsersList.Items().Slice()[0].GetUsername()
 				Expect(respUserName).To(Equal(defaultHTPUsername))
@@ -209,7 +214,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Check resource state file is updated")
-				resource, err := helper.GetResource(constants.HtpasswdDir, "rhcs_identity_provider", "htpasswd_idp")
+				resource, err := idpServices.htpasswd.GetStateResource("rhcs_identity_provider", "htpasswd_idp")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(resource).To(MatchJQ(fmt.Sprintf(`.instances[0].attributes.htpasswd.users[] | select(.username == "%s") .password`, defaultHTPUsername), newPassword))
 
@@ -240,12 +245,12 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Check resource state file is updated")
-				resource, err = helper.GetResource(constants.HtpasswdDir, "rhcs_identity_provider", "htpasswd_idp")
+				resource, err = idpServices.htpasswd.GetStateResource("rhcs_identity_provider", "htpasswd_idp")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(resource).To(MatchJQ(fmt.Sprintf(`.instances[0].attributes.htpasswd.users[] | select(.username == "%s") .password`, userName2), newPassword2))
 
 				By("List existing HtpasswdUsers and compare to the created one")
-				htpasswdUsersList, _ = cms.ListHtpasswdUsers(ci.RHCSConnection, clusterID, idpOutput.ID)
+				htpasswdUsersList, _ = cms.ListHtpasswdUsers(cms.RHCSConnection, clusterID, idpOutput.ID)
 				Expect(htpasswdUsersList.Status()).To(Equal(http.StatusOK))
 				Expect(htpasswdUsersList.Items().Len()).To(Equal(3))
 
@@ -268,7 +273,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				defaultLDAPPassword = "password"
 
 				var err error
-				idpServices.ldap, err = exec.NewIDPService(constants.LdapDir) // init new ldap service
+				idpServices.ldap, err = profileHandler.Services().GetIDPService(constants.IDPLDAP)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -291,8 +296,8 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 					By("Login with created ldap idp")
 					// this condition is for cases where the cluster profile
 					// has private_link enabled, then regular login won't work
-					if !profile.IsPrivateLink() {
-						getResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+					if !profileHandler.Profile().IsPrivateLink() {
+						getResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 						Expect(err).ToNot(HaveOccurred())
 						server := getResp.Body().API().URL()
 
@@ -317,7 +322,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 		Context("GitLab", func() {
 			BeforeEach(func() {
 				var err error
-				idpServices.gitlab, err = exec.NewIDPService(constants.GitlabDir) // init new gitlab service
+				idpServices.gitlab, err = profileHandler.Services().GetIDPService(constants.IDPGitlab)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -338,7 +343,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				idpOutput, err := idpServices.gitlab.Output()
 				Expect(err).ToNot(HaveOccurred())
 
-				resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpOutput.ID)
+				resp, err := cms.RetrieveClusterIDPDetail(cms.RHCSConnection, clusterID, idpOutput.ID)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(resp.Status()).To(Equal(http.StatusOK))
 			})
@@ -346,7 +351,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 		Context("GitHub", func() {
 			BeforeEach(func() {
 				var err error
-				idpServices.github, err = exec.NewIDPService(constants.GithubDir) // init new github service
+				idpServices.github, err = profileHandler.Services().GetIDPService(constants.IDPGithub)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -367,7 +372,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				idpOutput, err := idpServices.github.Output()
 				Expect(err).ToNot(HaveOccurred())
 
-				resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpOutput.ID)
+				resp, err := cms.RetrieveClusterIDPDetail(cms.RHCSConnection, clusterID, idpOutput.ID)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(resp.Status()).To(Equal(http.StatusOK))
 			})
@@ -375,7 +380,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 		Context("Google", func() {
 			BeforeEach(func() {
 				var err error
-				idpServices.google, err = exec.NewIDPService(constants.GoogleDir) // init new google service
+				idpServices.google, err = profileHandler.Services().GetIDPService(constants.IDPGoogle)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -396,14 +401,14 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				idpOutput, err := idpServices.google.Output()
 				Expect(err).ToNot(HaveOccurred())
 
-				resp, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpOutput.ID)
+				resp, err := cms.RetrieveClusterIDPDetail(cms.RHCSConnection, clusterID, idpOutput.ID)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(resp.Status()).To(Equal(http.StatusOK))
 			})
 		})
 		Context("Multi IDPs", func() {
 			BeforeEach(func() {
-				if profile.IsPrivateLink() {
+				if profileHandler.Profile().IsPrivateLink() {
 					Skip("private_link is enabled, skipping test.")
 				}
 
@@ -413,7 +418,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 
 			It("will succeed - [id:64030]", ci.Medium, ci.Exclude, func() {
 				var err error
-				idpServices.multi_idp, err = exec.NewIDPService(constants.MultiIDPDir) // init multi-idp service
+				idpServices.multi_idp, err = profileHandler.Services().GetIDPService(constants.IDPMulti)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Applying google & ldap idps users using terraform")
@@ -435,7 +440,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				By("Login to the ldap user created with terraform")
 				By("& cluster-admin user created on cluster deployment")
 
-				resp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+				resp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 				Expect(err).ToNot(HaveOccurred())
 				server := resp.Body().API().URL()
 
@@ -453,7 +458,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				_, err = openshift.OcLogin(*ocAtter)
 				Expect(err).ToNot(HaveOccurred())
 
-				if !profile.AdminEnabled {
+				if !profileHandler.Profile().IsAdminEnabled() {
 					Skip("The test configured only for cluster admin profile")
 				}
 
@@ -478,7 +483,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 			})
 			It("with multiple users will reconcile a multiuser config - [id:66408]", ci.Medium, ci.Exclude, func() {
 				var err error
-				idpServices.htpasswd, err = exec.NewIDPService(constants.HtpasswdDir) // init new htpasswd service
+				idpServices.htpasswd, err = profileHandler.Services().GetIDPService(constants.IDPHTPassword)
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Create 3 htpasswd users for existing cluster")
@@ -499,7 +504,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Login to the cluster with one of the users created")
-				resp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+				resp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 				Expect(err).ToNot(HaveOccurred())
 				server := resp.Body().API().URL()
 
@@ -520,7 +525,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Delete one of the users using backend api")
-				_, err = cms.DeleteIDP(ci.RHCSConnection, clusterID, idpOutput.ID)
+				_, err = cms.DeleteIDP(cms.RHCSConnection, clusterID, idpOutput.ID)
 				Expect(err).ToNot(HaveOccurred())
 
 				// wait few minutes before trying to create the resource again
@@ -562,15 +567,15 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 
 		It("the mandatory idp's attributes must be set - [id:68939]", ci.Medium, func() {
 			var err error
-			idpServices.htpasswd, err = exec.NewIDPService(constants.HtpasswdDir) // init new htpasswd service
+			idpServices.htpasswd, err = profileHandler.Services().GetIDPService(constants.IDPHTPassword)
 			Expect(err).ToNot(HaveOccurred())
-			idpServices.ldap, err = exec.NewIDPService(constants.LdapDir) // init new ldap service
+			idpServices.ldap, err = profileHandler.Services().GetIDPService(constants.IDPLDAP)
 			Expect(err).ToNot(HaveOccurred())
-			idpServices.github, err = exec.NewIDPService(constants.GithubDir) // init new github service
+			idpServices.github, err = profileHandler.Services().GetIDPService(constants.IDPGithub)
 			Expect(err).ToNot(HaveOccurred())
-			idpServices.gitlab, err = exec.NewIDPService(constants.GitlabDir) // init new gitlab service
+			idpServices.gitlab, err = profileHandler.Services().GetIDPService(constants.IDPGitlab)
 			Expect(err).ToNot(HaveOccurred())
-			idpServices.google, err = exec.NewIDPService(constants.GoogleDir) // init new google service
+			idpServices.google, err = profileHandler.Services().GetIDPService(constants.IDPGoogle)
 			Expect(err).ToNot(HaveOccurred())
 			idpName := "ocp-68939-htp"
 
@@ -677,7 +682,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 
 		It("htpasswd with empty user-password list will fail - [id:66409]", ci.Medium, func() {
 			var err error
-			idpServices.htpasswd, err = exec.NewIDPService(constants.HtpasswdDir) // init new htpasswd service
+			idpServices.htpasswd, err = profileHandler.Services().GetIDPService(constants.IDPHTPassword)
 			Expect(err).ToNot(HaveOccurred())
 			idpName := "ocp-66409"
 
@@ -689,7 +694,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 
 		It("htpasswd password policy - [id:66410]", ci.Medium, func() {
 			var err error
-			idpServices.htpasswd, err = exec.NewIDPService(constants.HtpasswdDir) // init new htpasswd service
+			idpServices.htpasswd, err = profileHandler.Services().GetIDPService(constants.IDPHTPassword)
 			Expect(err).ToNot(HaveOccurred())
 			idpName := "ocp-66410"
 
@@ -716,7 +721,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 
 		It("htpasswd with duplicate usernames will fail - [id:66411]", ci.Medium, func() {
 			var err error
-			idpServices.htpasswd, err = exec.NewIDPService(constants.HtpasswdDir) // init new htpasswd service
+			idpServices.htpasswd, err = profileHandler.Services().GetIDPService(constants.IDPHTPassword)
 			Expect(err).ToNot(HaveOccurred())
 			idpName := "ocp-66411"
 
@@ -734,11 +739,11 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 			ci.Medium, ci.FeatureImport, func() {
 				var err error
 
-				idpServices.gitlab, err = exec.NewIDPService(constants.GitlabDir) // init new gitlab service
+				idpServices.gitlab, err = profileHandler.Services().GetIDPService(constants.IDPGitlab)
 				Expect(err).ToNot(HaveOccurred())
-				idpServices.google, err = exec.NewIDPService(constants.GoogleDir) // init new google service
+				idpServices.google, err = profileHandler.Services().GetIDPService(constants.IDPGoogle)
 				Expect(err).ToNot(HaveOccurred())
-				importService, err := exec.NewImportService(constants.ImportResourceDir)
+				importService, err := profileHandler.Services().GetImportService()
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Create sample idps to test the import functionality")
@@ -807,7 +812,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 		It("verify basic flow - [id:65808]",
 			ci.Medium, ci.Exclude, func() {
 				var err error
-				idpServices.ldap, err = exec.NewIDPService(constants.LdapDir) // init new ldap service
+				idpServices.ldap, err = profileHandler.Services().GetIDPService(constants.IDPLDAP)
 				Expect(err).ToNot(HaveOccurred())
 				idpName := "ocp-65808"
 
@@ -819,7 +824,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Login to the ldap user")
-				resp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+				resp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 				Expect(err).ToNot(HaveOccurred())
 				server := resp.Body().API().URL()
 
@@ -838,8 +843,8 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Delete ldap idp by OCM API")
-				cms.DeleteIDP(ci.RHCSConnection, clusterID, idpOutput.ID)
-				_, err = cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpOutput.ID)
+				cms.DeleteIDP(cms.RHCSConnection, clusterID, idpOutput.ID)
+				_, err = cms.RetrieveClusterIDPDetail(cms.RHCSConnection, clusterID, idpOutput.ID)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).Should(ContainSubstring(
 					"Identity provider ID '%s' for cluster '%s' not found", idpOutput.ID, clusterID),
@@ -858,7 +863,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 		It("try to restore/duplicate an existing IDP - [id:65816]",
 			ci.Medium, func() {
 				var err error
-				idpServices.gitlab, err = exec.NewIDPService(constants.GitlabDir) // init new gitlab service
+				idpServices.gitlab, err = profileHandler.Services().GetIDPService(constants.IDPGitlab)
 				Expect(err).ToNot(HaveOccurred())
 				gitLabIDPName := "OCP-65816-gitlab-idp-reconcil"
 
@@ -870,8 +875,8 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Delete gitlab idp using OCM API")
-				cms.DeleteIDP(ci.RHCSConnection, clusterID, idpOutput.ID)
-				_, err = cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpOutput.ID)
+				cms.DeleteIDP(cms.RHCSConnection, clusterID, idpOutput.ID)
+				_, err = cms.RetrieveClusterIDPDetail(cms.RHCSConnection, clusterID, idpOutput.ID)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).Should(ContainSubstring(
 					"Identity provider ID '%s' for cluster '%s' not found", idpOutput.ID, clusterID),
@@ -886,12 +891,12 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 						URL(constants.GitLabURL)).
 					MappingMethod("claim").
 					Build()
-				res, err := cms.CreateClusterIDP(ci.RHCSConnection, clusterID, requestBody)
+				res, err := cms.CreateClusterIDP(cms.RHCSConnection, clusterID, requestBody)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(res.Status()).To(Equal(http.StatusCreated))
 
 				// Delete gitlab idp from existing cluster after test end
-				defer cms.DeleteIDP(ci.RHCSConnection, clusterID, res.Body().ID())
+				defer cms.DeleteIDP(cms.RHCSConnection, clusterID, res.Body().ID())
 
 				By("Re-apply gitlab idp using tf manifests with same ocm api args")
 				_, err = idpServices.gitlab.Apply(idpParam)
@@ -904,7 +909,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 		It("try to restore to an updated IDP config - [id:65814]",
 			ci.Medium, func() {
 				var err error
-				idpServices.gitlab, err = exec.NewIDPService(constants.GitlabDir) // init new gitlab service
+				idpServices.gitlab, err = profileHandler.Services().GetIDPService(constants.IDPGitlab)
 				Expect(err).ToNot(HaveOccurred())
 				gitLabIDPName := "OCP-65814-gitlab-idp-reconcil"
 
@@ -917,8 +922,8 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 
 				// Delete gitlab idp using OCM API after test end
 				defer func() {
-					cms.DeleteIDP(ci.RHCSConnection, clusterID, idpOutput.ID)
-					_, err := cms.RetrieveClusterIDPDetail(ci.RHCSConnection, clusterID, idpOutput.ID)
+					cms.DeleteIDP(cms.RHCSConnection, clusterID, idpOutput.ID)
+					_, err := cms.RetrieveClusterIDPDetail(cms.RHCSConnection, clusterID, idpOutput.ID)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).Should(ContainSubstring(
 						"Identity provider ID '%s' for cluster '%s' not found", idpOutput.ID, clusterID),
@@ -935,7 +940,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 					MappingMethod("claim").
 					Build()
 
-				resp, err := cms.PatchIDP(ci.RHCSConnection, clusterID, idpOutput.ID, requestBody)
+				resp, err := cms.PatchIDP(cms.RHCSConnection, clusterID, idpOutput.ID, requestBody)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(resp.Status()).To(Equal(http.StatusOK))
 

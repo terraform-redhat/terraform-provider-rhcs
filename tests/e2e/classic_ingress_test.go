@@ -9,27 +9,29 @@ import (
 	cmsv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 
 var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 
 	var (
-		profile        *ci.Profile
+		profileHandler profilehandler.ProfileHandler
 		err            error
 		ingressBefore  *cmsv1.Ingress
 		ingressService exec.IngressService
 	)
 
 	BeforeEach(func() {
-		profile = ci.LoadProfileYamlFileByENV()
-
-		ingressBefore, err = cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
+		var err error
+		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
 		Expect(err).ToNot(HaveOccurred())
 
-		ingressService, err = exec.NewIngressService(constants.ClassicIngressDir)
+		ingressBefore, err = cms.RetrieveClusterIngress(cms.RHCSConnection, clusterID)
+		Expect(err).ToNot(HaveOccurred())
+
+		ingressService, err = profileHandler.Services().GetIngressService()
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -55,7 +57,7 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 				Cluster:          helper.StringPointer(clusterID),
 			}
 			_, err = ingressService.Apply(&args)
-			if profile.GetClusterType().HCP {
+			if profileHandler.Profile().IsHCP() {
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).Should(MatchRegexp(`Can't update load balancer type on[\s\S]?Hosted Control Plane cluster '%s'`, clusterID))
 				return
@@ -63,7 +65,7 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("use API to check if ingress LB type updated")
-			ingress, err := cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
+			ingress, err := cms.RetrieveClusterIngress(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(string(ingress.LoadBalancerType())).To(Equal("classic"))
@@ -75,7 +77,7 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			}
 			_, err = ingressService.Apply(&args)
 			Expect(err).ToNot(HaveOccurred())
-			ingress, err = cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
+			ingress, err = cms.RetrieveClusterIngress(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(ingress.LoadBalancerType())).To(Equal("nlb"))
 		})
@@ -97,7 +99,7 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 				RouteWildcardPolicy:           helper.StringPointer("WildcardsAllowed"),
 			}
 			_, err = ingressService.Apply(&args)
-			if profile.GetClusterType().HCP {
+			if profileHandler.Profile().IsHCP() {
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).Should(MatchRegexp(`Can't update route selectors on[\s\S]?Hosted Control Plane cluster '%s'`, clusterID))
 				return
@@ -105,7 +107,7 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("use ocm API to check if ingress config updated")
-			ingress, err := cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
+			ingress, err := cms.RetrieveClusterIngress(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(ingress.RouteNamespaceOwnershipPolicy())).To(Equal(*args.RouteNamespaceOwnershipPolicy))
 			Expect(string(ingress.RouteWildcardPolicy())).To(Equal(*args.RouteWildcardPolicy))

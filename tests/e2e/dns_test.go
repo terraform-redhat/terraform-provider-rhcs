@@ -4,15 +4,18 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 
 var _ = Describe("DNS Domain", func() {
 	var dnsService exec.DnsDomainService
 	BeforeEach(func() {
 		var err error
-		dnsService, err = exec.NewDnsDomainService(constants.DNSDir)
+		profileHandler, err := profilehandler.NewProfileHandlerFromYamlFile()
+		Expect(err).ToNot(HaveOccurred())
+
+		dnsService, err = profileHandler.Services().GetDnsDomainService()
 		Expect(err).ToNot(HaveOccurred())
 	})
 

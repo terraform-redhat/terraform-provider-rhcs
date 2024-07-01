@@ -1,4 +1,4 @@
-package ci
+package cms
 
 /*
 Copyright (c) 2018 Red Hat, Inc.

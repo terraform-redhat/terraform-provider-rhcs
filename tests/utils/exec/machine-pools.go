@@ -5,6 +5,7 @@ import (
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
@@ -59,7 +60,8 @@ type MachinePoolService interface {
 	Apply(args *MachinePoolArgs) (string, error)
 	Output() (*MachinePoolOutput, error)
 	Destroy() (string, error)
-
+	ShowState(resource string) (string, error)
+	RemoveState(resource string) (string, error)
 	ReadTFVars() (*MachinePoolArgs, error)
 	DeleteTFVars() error
 }
@@ -68,13 +70,9 @@ type machinePoolService struct {
 	tfExecutor TerraformExecutor
 }
 
-func NewMachinePoolService(manifestsDirs ...string) (MachinePoolService, error) {
-	manifestsDir := constants.ClassicMachinePoolDir
-	if len(manifestsDirs) > 0 {
-		manifestsDir = manifestsDirs[0]
-	}
+func NewMachinePoolService(tfWorkspace string, clusterType constants.ClusterType) (MachinePoolService, error) {
 	svc := &machinePoolService{
-		tfExecutor: NewTerraformExecutor(manifestsDir),
+		tfExecutor: NewTerraformExecutor(tfWorkspace, manifests.GetMachinePoolsManifestsDir(clusterType)),
 	}
 	err := svc.Init()
 	return svc, err
@@ -104,6 +102,14 @@ func (svc *machinePoolService) Output() (*MachinePoolOutput, error) {
 
 func (svc *machinePoolService) Destroy() (string, error) {
 	return svc.tfExecutor.RunTerraformDestroy()
+}
+
+func (svc *machinePoolService) ShowState(resource string) (string, error) {
+	return svc.tfExecutor.RunTerraformState("show", resource)
+}
+
+func (svc *machinePoolService) RemoveState(resource string) (string, error) {
+	return svc.tfExecutor.RunTerraformState("rm", resource)
 }
 
 func (svc *machinePoolService) ReadTFVars() (*MachinePoolArgs, error) {

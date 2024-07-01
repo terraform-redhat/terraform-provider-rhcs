@@ -11,10 +11,10 @@ import (
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 
 var internalListeningMethod = "internal"
@@ -23,33 +23,38 @@ var externalListeningMethod = "external"
 var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, ci.Day2, func() {
 
 	var (
-		err            error
+		profileHandler profilehandler.ProfileHandler
 		ingressBefore  *cmsv1.Ingress
 		ingressService exec.IngressService
 		ingressArgs    *exec.IngressArgs
 	)
 
-	initializeIngressArgs := func() {
-		ingressArgs, err = ingressService.ReadTFVars()
+	getOriginalIngressArgs := func() *exec.IngressArgs {
+		args, err := ingressService.ReadTFVars()
 		Expect(err).ToNot(HaveOccurred())
-		if ingressArgs.Cluster == nil {
-			ingressArgs.Cluster = helper.StringPointer(clusterID)
+		if args.Cluster == nil {
+			args.Cluster = helper.StringPointer(clusterID)
 		}
+		return args
 	}
 
 	BeforeEach(func() {
-		ingressBefore, err = cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
+		var err error
+		ingressBefore, err = cms.RetrieveClusterIngress(cms.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
 
-		ingressService, err = exec.NewIngressService(constants.HCPIngressDir)
+		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
 		Expect(err).ToNot(HaveOccurred())
 
-		initializeIngressArgs()
+		ingressService, err = profileHandler.Services().GetIngressService()
+		Expect(err).ToNot(HaveOccurred())
+
+		ingressArgs = getOriginalIngressArgs()
 	})
 
 	AfterEach(func() {
 		ingressArgs.ListeningMethod = helper.StringPointer(string(ingressBefore.Listening()))
-		_, err = ingressService.Apply(ingressArgs)
+		_, err := ingressService.Apply(ingressArgs)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -58,11 +63,11 @@ var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, ci.Day2
 		func() {
 			By("Set Listening method to internal")
 			ingressArgs.ListeningMethod = helper.StringPointer(internalListeningMethod)
-			_, err = ingressService.Apply(ingressArgs)
+			_, err := ingressService.Apply(ingressArgs)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify Cluster Ingress")
-			ingress, err := cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
+			ingress, err := cms.RetrieveClusterIngress(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(ingress.Listening())).To(Equal("internal"))
 
@@ -72,7 +77,7 @@ var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, ci.Day2
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify Cluster Ingress")
-			ingress, err = cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
+			ingress, err = cms.RetrieveClusterIngress(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(ingress.Listening())).To(Equal("external"))
 
@@ -81,27 +86,25 @@ var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, ci.Day2
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify Cluster Ingress is still present")
-			ingress, err = cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
+			ingress, err = cms.RetrieveClusterIngress(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(ingress.Listening())).To(Equal("external"))
 		})
 
 	It("validate edit - [id:72520]", ci.Medium, func() {
 		By("Initialize ingress state")
-		initializeIngressArgs()
 		ingressArgs.ListeningMethod = helper.StringPointer(string(ingressBefore.Listening()))
-		_, err = ingressService.Apply(ingressArgs)
+		_, err := ingressService.Apply(ingressArgs)
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Try to edit with empty cluster")
-		initializeIngressArgs()
 		ingressArgs.Cluster = helper.EmptyStringPointer
 		_, err = ingressService.Apply(ingressArgs)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Attribute cluster cluster ID may not be empty/blank string"))
 
 		By("Try to edit cluster with other cluster ID")
-		clustersResp, err := cms.ListClusters(ci.RHCSConnection)
+		clustersResp, err := cms.ListClusters(cms.RHCSConnection)
 		Expect(err).ToNot(HaveOccurred())
 		var otherClusterID string
 		for _, cluster := range clustersResp.Items().Slice() {
@@ -111,7 +114,7 @@ var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, ci.Day2
 			}
 		}
 		if otherClusterID != "" {
-			initializeIngressArgs()
+			ingressArgs = getOriginalIngressArgs()
 			ingressArgs.Cluster = helper.StringPointer(otherClusterID)
 			_, err = ingressService.Apply(ingressArgs)
 			Expect(err).To(HaveOccurred())
@@ -121,14 +124,14 @@ var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, ci.Day2
 		}
 
 		By("Try to edit cluster field with wrong value")
-		initializeIngressArgs()
+		ingressArgs = getOriginalIngressArgs()
 		ingressArgs.Cluster = helper.StringPointer("wrong")
 		_, err = ingressService.Apply(ingressArgs)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Cluster 'wrong' not"))
 
 		By("Try to edit with empty listening_method")
-		initializeIngressArgs()
+		ingressArgs = getOriginalIngressArgs()
 		ingressArgs.ListeningMethod = helper.EmptyStringPointer
 		_, err = ingressService.Apply(ingressArgs)
 		Expect(err).To(HaveOccurred())
@@ -136,7 +139,7 @@ var _ = Describe("HCP Ingress", ci.NonClassicCluster, ci.FeatureIngress, ci.Day2
 		Expect(err.Error()).To(ContainSubstring("Options are"))
 
 		By("Try to edit with wrong listening_method")
-		initializeIngressArgs()
+		ingressArgs = getOriginalIngressArgs()
 		ingressArgs.ListeningMethod = helper.StringPointer("wrong")
 		_, err = ingressService.Apply(ingressArgs)
 		Expect(err).To(HaveOccurred())

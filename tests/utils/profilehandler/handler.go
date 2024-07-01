@@ -1,0 +1,988 @@
+package profilehandler
+
+import (
+	"fmt"
+	"os"
+	"path"
+	"regexp"
+	"strings"
+	"time"
+
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+
+	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
+)
+
+type ProfileHandler interface {
+	Services() ProfileServices
+	Prepare() ProfilePrepare
+	Profile() ProfileSpec
+
+	CreateRHCSClusterByProfile(token string) (string, error)
+	DestroyRHCSCluster(token string) error
+	GenerateClusterCreationArgs(token string) (*exec.ClusterArgs, error)
+	RetrieveClusterID() (string, error)
+}
+
+type ProfilePrepare interface {
+	PrepareVPC(multiZone bool, azIDs []string, name string, sharedVpcAWSSharedCredentialsFile string) (*exec.VPCOutput, error)
+	PrepareAdditionalSecurityGroups(vpcID string, sgNumbers int) ([]string, error)
+	PrepareAccountRoles(token string, accountRolePrefix string, accountRolesPath string, openshiftVersion string, channelGroup string, sharedVpcRoleArn string) (*exec.AccountRolesOutput, error)
+	PrepareOIDCProviderAndOperatorRoles(token string, oidcConfigType string, operatorRolePrefix string, accountRolePrefix string, accountRolesPath string) (*exec.OIDCProviderOperatorRolesOutput, error)
+	PrepareProxy(VPCID string, subnetPublicID string, keyPairID string) (*exec.ProxyOutput, error)
+	PrepareKMSKey(kmsName string, accountRolePrefix string, accountRolePath string) (string, error)
+	PrepareRoute53() (string, error)
+	PrepareSharedVpcPolicyAndHostedZone(sharedCredentialsFile string, clusterName string, dnsDomainID string, ingressOperatorRoleArn string,
+		installerRoleArn string, clusterAwsAccount string, vpcID string, subnets []string) (*exec.SharedVpcPolicyAndHostedZoneOutput, error)
+	PrepareVersion() string
+}
+
+type ProfileServices interface {
+	GetAccountRolesService() (exec.AccountRoleService, error)
+	GetKMSService() (exec.KMSService, error)
+	GetOIDCProviderOperatorRolesService() (exec.OIDCProviderOperatorRolesService, error)
+	GetProxyService() (exec.ProxyService, error)
+	GetSecurityGroupService() (exec.SecurityGroupService, error)
+	GetSharedVPCPolicyAndHostedZoneService() (exec.SharedVpcPolicyAndHostedZoneService, error)
+	GetVPCService() (exec.VPCService, error)
+	GetVPCTagService() (exec.VPCTagService, error)
+	GetClusterService() (exec.ClusterService, error)
+	GetClusterAutoscalerService() (exec.ClusterAutoscalerService, error)
+	GetDnsDomainService() (exec.DnsDomainService, error)
+	GetIDPService(idpType constants.IDPType) (exec.IDPService, error)
+	GetIngressService() (exec.IngressService, error)
+	GetImportService() (exec.ImportService, error)
+	GetKubeletConfigService() (exec.KubeletConfigService, error)
+	GetMachinePoolsService() (exec.MachinePoolService, error)
+	GetRHCSInfoService() (exec.RhcsInfoService, error)
+	GetTuningConfigService() (exec.TuningConfigService, error)
+}
+
+type ProfileSpec interface {
+	GetClusterType() constants.ClusterType
+	GetRegion() string
+	GetName() string
+	GetChannelGroup() string
+	GetVersionPattern() string
+	GetMajorVersion() string
+	GetComputeMachineType() string
+	GetZones() string
+	GetEc2MetadataHttpTokens() string
+	GetUnifiedAccRolesPath() string
+	GetOIDCConfig() string
+
+	GetAdditionalSGNumber() int
+	GetComputeReplicas() int
+	GetWorkerDiskSize() int
+
+	IsHCP() bool
+	IsPrivateLink() bool
+	IsPrivate() bool
+	IsMultiAZ() bool
+	IsBYOVPC() bool
+	IsProxy() bool
+	IsEtcd() bool
+	IsAutoscale() bool
+	IsAdminEnabled() bool
+	IsFIPS() bool
+	IsLabeling() bool
+	IsTagging() bool
+	IsKMSKey() bool
+}
+
+type profileContext struct {
+	profile *Profile
+}
+
+func NewProfileHandlerFromYamlFile() (handler ProfileHandler, err error) {
+	profile, err := LoadProfileYamlFileByENV()
+	if err != nil {
+		return
+	}
+	handler = NewProfileHandler(profile)
+	return
+}
+
+func NewProfileHandler(profile *Profile) ProfileHandler {
+	if profile.Region == "" {
+		profile.Region = constants.DefaultAWSRegion
+	}
+	return &profileContext{
+		profile: profile,
+	}
+}
+
+func (ctx *profileContext) Services() ProfileServices {
+	return ctx
+}
+
+func (ctx *profileContext) Prepare() ProfilePrepare {
+	return ctx
+}
+
+func (ctx *profileContext) Profile() ProfileSpec {
+	return ctx
+}
+
+func (ctx *profileContext) GetName() string {
+	return ctx.profile.Name
+}
+
+func (ctx *profileContext) GetRegion() string {
+	return ctx.profile.Region
+}
+
+func (ctx *profileContext) GetChannelGroup() string {
+	return ctx.profile.ChannelGroup
+}
+
+func (ctx *profileContext) GetVersionPattern() string {
+	return ctx.profile.VersionPattern
+}
+
+func (ctx *profileContext) GetMajorVersion() string {
+	return ctx.profile.MajorVersion
+}
+
+func (ctx *profileContext) GetComputeMachineType() string {
+	return ctx.profile.ComputeMachineType
+}
+
+func (ctx *profileContext) GetZones() string {
+	return ctx.profile.Zones
+}
+
+func (ctx *profileContext) GetEc2MetadataHttpTokens() string {
+	return ctx.profile.Ec2MetadataHttpTokens
+}
+
+func (ctx *profileContext) GetUnifiedAccRolesPath() string {
+	return ctx.profile.UnifiedAccRolesPath
+}
+
+func (ctx *profileContext) GetOIDCConfig() string {
+	return ctx.profile.OIDCConfig
+}
+
+func (ctx *profileContext) GetAdditionalSGNumber() int {
+	return ctx.profile.AdditionalSGNumber
+}
+
+func (ctx *profileContext) GetComputeReplicas() int {
+	return ctx.profile.ComputeReplicas
+}
+
+func (ctx *profileContext) GetWorkerDiskSize() int {
+	return ctx.profile.WorkerDiskSize
+}
+
+func (ctx *profileContext) GetClusterType() constants.ClusterType {
+	return constants.FindClusterType(ctx.profile.ClusterType)
+}
+
+func (ctx *profileContext) GetTFWorkspace() string {
+	return ctx.profile.Name
+}
+
+func (ctx *profileContext) IsHCP() bool {
+	return ctx.GetClusterType().HCP
+}
+
+func (ctx *profileContext) IsPrivateLink() bool {
+	if ctx.GetClusterType().HCP {
+		return ctx.profile.Private
+	} else {
+		return ctx.profile.PrivateLink
+	}
+}
+
+func (ctx *profileContext) IsPrivate() bool {
+	return ctx.profile.Private
+}
+
+func (ctx *profileContext) IsMultiAZ() bool {
+	return ctx.profile.MultiAZ
+}
+
+func (ctx *profileContext) IsBYOVPC() bool {
+	return ctx.profile.BYOVPC
+}
+
+func (ctx *profileContext) IsProxy() bool {
+	return ctx.profile.Proxy
+}
+
+func (ctx *profileContext) IsEtcd() bool {
+	return ctx.profile.Etcd
+}
+
+func (ctx *profileContext) IsAutoscale() bool {
+	return ctx.profile.Autoscale
+}
+
+func (ctx *profileContext) IsAdminEnabled() bool {
+	return ctx.profile.Autoscale
+}
+
+func (ctx *profileContext) IsFIPS() bool {
+	return ctx.profile.FIPS
+}
+
+func (ctx *profileContext) IsLabeling() bool {
+	return ctx.profile.Labeling
+}
+
+func (ctx *profileContext) IsTagging() bool {
+	return ctx.profile.Tagging
+}
+
+func (ctx *profileContext) IsKMSKey() bool {
+	return ctx.profile.KMSKey
+}
+
+func (ctx *profileContext) PrepareVPC(multiZone bool, azIDs []string, name string, sharedVpcAWSSharedCredentialsFile string) (*exec.VPCOutput, error) {
+	region := ctx.profile.Region
+	vpcService, err := ctx.Services().GetVPCService()
+	if err != nil {
+		return nil, err
+	}
+	vpcArgs := &exec.VPCArgs{
+		AWSRegion: helper.StringPointer(region),
+		MultiAZ:   helper.BoolPointer(multiZone),
+		VPCCIDR:   helper.StringPointer(constants.DefaultVPCCIDR),
+	}
+
+	if len(azIDs) != 0 {
+		turnedZoneIDs := []string{}
+		for _, zone := range azIDs {
+			if strings.Contains(zone, region) {
+				turnedZoneIDs = append(turnedZoneIDs, zone)
+			} else {
+				turnedZoneIDs = append(turnedZoneIDs, region+zone)
+			}
+		}
+		vpcArgs.AZIDs = helper.StringSlicePointer(turnedZoneIDs)
+	}
+	if name != "" {
+		vpcArgs.Name = helper.StringPointer(name)
+	}
+
+	if sharedVpcAWSSharedCredentialsFile != "" {
+		vpcArgs.AWSSharedCredentialsFiles = helper.StringSlicePointer([]string{sharedVpcAWSSharedCredentialsFile})
+	}
+
+	_, err = vpcService.Apply(vpcArgs)
+	if err != nil {
+		vpcService.Destroy()
+		return nil, err
+	}
+	output, err := vpcService.Output()
+	if err != nil {
+		vpcService.Destroy()
+		return nil, err
+	}
+	return output, err
+}
+
+func (ctx *profileContext) PrepareAdditionalSecurityGroups(vpcID string, sgNumbers int) ([]string, error) {
+	sgService, err := ctx.Services().GetSecurityGroupService()
+	if err != nil {
+		return nil, err
+	}
+	sgArgs := &exec.SecurityGroupArgs{
+		AWSRegion:  helper.StringPointer(ctx.profile.Region),
+		VPCID:      helper.StringPointer(vpcID),
+		SGNumber:   helper.IntPointer(sgNumbers),
+		NamePrefix: helper.StringPointer("rhcs-ci"),
+	}
+	_, err = sgService.Apply(sgArgs)
+	if err != nil {
+		sgService.Destroy()
+		return nil, err
+	}
+	output, err := sgService.Output()
+	if err != nil {
+		sgService.Destroy()
+		return nil, err
+	}
+	return output.SGIDs, err
+}
+
+func (ctx *profileContext) PrepareAccountRoles(token string, accountRolePrefix string, accountRolesPath string, openshiftVersion string, channelGroup string, sharedVpcRoleArn string) (
+	*exec.AccountRolesOutput, error) {
+	accService, err := ctx.Services().GetAccountRolesService()
+	if err != nil {
+		return nil, err
+	}
+	args := &exec.AccountRolesArgs{
+		AccountRolePrefix:   helper.StringPointer(accountRolePrefix),
+		OpenshiftVersion:    helper.StringPointer(openshiftVersion),
+		ChannelGroup:        helper.StringPointer(channelGroup),
+		UnifiedAccRolesPath: helper.StringPointer(accountRolesPath),
+	}
+
+	if sharedVpcRoleArn != "" {
+		args.SharedVpcRoleArn = helper.StringPointer(sharedVpcRoleArn)
+	}
+
+	_, err = accService.Apply(args)
+	if err != nil {
+		accService.Destroy()
+		return nil, err
+	}
+	return accService.Output()
+}
+
+func (ctx *profileContext) PrepareOIDCProviderAndOperatorRoles(token string, oidcConfigType string, operatorRolePrefix string, accountRolePrefix string, accountRolesPath string) (
+	*exec.OIDCProviderOperatorRolesOutput, error) {
+	oidcOpService, err := ctx.Services().GetOIDCProviderOperatorRolesService()
+	if err != nil {
+		return nil, err
+	}
+	args := &exec.OIDCProviderOperatorRolesArgs{
+		AccountRolePrefix:   helper.StringPointer(accountRolePrefix),
+		OperatorRolePrefix:  helper.StringPointer(operatorRolePrefix),
+		OIDCConfig:          helper.StringPointer(oidcConfigType),
+		AWSRegion:           helper.StringPointer(ctx.profile.Region),
+		UnifiedAccRolesPath: helper.StringPointer(accountRolesPath),
+	}
+	_, err = oidcOpService.Apply(args)
+	if err != nil {
+		oidcOpService.Destroy()
+		return nil, err
+	}
+	return oidcOpService.Output()
+}
+
+func (ctx *profileContext) PrepareProxy(VPCID string, subnetPublicID string, keyPairID string) (*exec.ProxyOutput, error) {
+	proxyService, err := ctx.Services().GetProxyService()
+	if err != nil {
+		return nil, err
+	}
+	proxyArgs := &exec.ProxyArgs{
+		ProxyCount:          helper.IntPointer(1),
+		Region:              helper.StringPointer(ctx.profile.Region),
+		VPCID:               helper.StringPointer(VPCID),
+		PublicSubnetID:      helper.StringPointer(subnetPublicID),
+		TrustBundleFilePath: helper.StringPointer(path.Join(constants.RHCS.RhcsOutputDir, "ca.cert")),
+		KeyPairID:           helper.StringPointer(keyPairID),
+	}
+
+	_, err = proxyService.Apply(proxyArgs)
+	if err != nil {
+		proxyService.Destroy()
+		return nil, err
+	}
+	proxyOutput, err := proxyService.Output()
+	if err != nil {
+		proxyService.Destroy()
+		return nil, err
+	}
+
+	return proxyOutput.Proxies[0], err
+}
+
+func (ctx *profileContext) PrepareKMSKey(kmsName string, accountRolePrefix string, accountRolePath string) (string, error) {
+	kmsService, err := ctx.Services().GetKMSService()
+	if err != nil {
+		return "", err
+	}
+	kmsArgs := &exec.KMSArgs{
+		KMSName:           helper.StringPointer(kmsName),
+		AWSRegion:         helper.StringPointer(ctx.profile.Region),
+		AccountRolePrefix: helper.StringPointer(accountRolePrefix),
+		AccountRolePath:   helper.StringPointer(accountRolePath),
+		TagKey:            helper.StringPointer("Purpose"),
+		TagValue:          helper.StringPointer("RHCS automation test"),
+		TagDescription:    helper.StringPointer("BYOK Test Key for API automation"),
+		HCP:               helper.BoolPointer(ctx.GetClusterType().HCP),
+	}
+
+	_, err = kmsService.Apply(kmsArgs)
+	if err != nil {
+		kmsService.Destroy()
+		return "", err
+	}
+	kmsOutput, err := kmsService.Output()
+	if err != nil {
+		kmsService.Destroy()
+		return "", err
+	}
+	return kmsOutput.KeyARN, err
+}
+
+func (ctx *profileContext) PrepareRoute53() (string, error) {
+	dnsDomainService, err := ctx.Services().GetDnsDomainService()
+	if err != nil {
+		return "", err
+	}
+	a := &exec.DnsDomainArgs{}
+
+	_, err = dnsDomainService.Apply(a)
+	if err != nil {
+		dnsDomainService.Destroy()
+		return "", err
+	}
+	output, err := dnsDomainService.Output()
+	if err != nil {
+		dnsDomainService.Destroy()
+		return "", err
+	}
+	return output.DnsDomainId, err
+}
+
+func (ctx *profileContext) PrepareSharedVpcPolicyAndHostedZone(sharedCredentialsFile string, clusterName string, dnsDomainID string, ingressOperatorRoleArn string,
+	installerRoleArn string, clusterAwsAccount string, vpcID string, subnets []string) (*exec.SharedVpcPolicyAndHostedZoneOutput, error) {
+
+	sharedVPCService, err := ctx.Services().GetSharedVPCPolicyAndHostedZoneService()
+	if err != nil {
+		return nil, err
+	}
+
+	a := &exec.SharedVpcPolicyAndHostedZoneArgs{
+		SharedVpcAWSSharedCredentialsFiles: helper.StringSlicePointer([]string{sharedCredentialsFile}),
+		Region:                             helper.StringPointer(ctx.profile.Region),
+		ClusterName:                        helper.StringPointer(clusterName),
+		DnsDomainId:                        helper.StringPointer(dnsDomainID),
+		IngressOperatorRoleArn:             helper.StringPointer(ingressOperatorRoleArn),
+		InstallerRoleArn:                   helper.StringPointer(installerRoleArn),
+		ClusterAWSAccount:                  helper.StringPointer(clusterAwsAccount),
+		VpcId:                              helper.StringPointer(vpcID),
+		Subnets:                            helper.StringSlicePointer(subnets),
+	}
+
+	_, err = sharedVPCService.Apply(a)
+	if err != nil {
+		sharedVPCService.Destroy()
+		return nil, err
+	}
+	output, err := sharedVPCService.Output()
+	if err != nil {
+		sharedVPCService.Destroy()
+		return nil, err
+	}
+	return output, err
+}
+
+// PrepareVersion supports below types
+// version with a openshift version like 4.13.12
+// version with latest
+// verion with x-1, it means the version will choose one with x-1 version which can be used for x stream upgrade
+// version with y-1, it means the version will choose one with y-1 version which can be used for y stream upgrade
+func (ctx *profileContext) PrepareVersion() string {
+	versionTag := ctx.profile.VersionPattern
+	channelGroup := ctx.profile.ChannelGroup
+	versionRegex := regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+\-*[\s\S]*$`)
+	// Check that the version is matching openshift version regexp
+	if versionRegex.MatchString(versionTag) {
+		return versionTag
+	}
+	var vResult string
+	switch versionTag {
+	case "", "latest":
+		versions := cms.EnabledVersions(cms.RHCSConnection, channelGroup, ctx.profile.MajorVersion, true)
+		versions = cms.SortVersions(versions)
+		vResult = versions[len(versions)-1].RawID
+	case "y-1":
+		versions, _ := cms.GetVersionsWithUpgrades(cms.RHCSConnection, channelGroup, constants.Y, true, false, 1)
+		vResult = versions[len(versions)-1].RawID
+	case "z-1":
+		versions, _ := cms.GetVersionsWithUpgrades(cms.RHCSConnection, channelGroup, constants.Z, true, false, 1)
+		vResult = versions[len(versions)-1].RawID
+	case "eol":
+		vResult = ""
+	}
+	Logger.Infof("Cluster OCP latest version is set to %s", vResult)
+	return vResult
+}
+
+func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArgs *exec.ClusterArgs, err error) {
+	// For Shared VPC
+	var clusterAwsAccount string
+	var installerRoleArn string
+	var ingressRoleArn string
+
+	version := ctx.profile.Version
+	if version == "" {
+		version = ctx.PrepareVersion()
+	}
+
+	clusterArgs = &exec.ClusterArgs{
+		OpenshiftVersion: helper.StringPointer(version),
+	}
+
+	// Init cluster's args by profile's attributes
+
+	clusterArgs.Fips = helper.BoolPointer(ctx.profile.FIPS)
+	clusterArgs.Etcd = helper.BoolPointer(ctx.profile.Etcd)
+	clusterArgs.MultiAZ = helper.BoolPointer(ctx.profile.MultiAZ)
+
+	if ctx.profile.NetWorkingSet {
+		clusterArgs.MachineCIDR = helper.StringPointer(constants.DefaultVPCCIDR)
+	}
+
+	if ctx.profile.Autoscale {
+		clusterArgs.Autoscaling = &exec.Autoscaling{
+			AutoscalingEnabled: helper.BoolPointer(true),
+			MinReplicas:        helper.IntPointer(3),
+			MaxReplicas:        helper.IntPointer(6),
+		}
+	}
+
+	if ctx.profile.ComputeMachineType != "" {
+		clusterArgs.ComputeMachineType = helper.StringPointer(ctx.profile.ComputeMachineType)
+	}
+
+	if ctx.profile.ComputeReplicas > 0 {
+		clusterArgs.Replicas = helper.IntPointer(ctx.profile.ComputeReplicas)
+	}
+
+	if ctx.profile.ChannelGroup != "" {
+		clusterArgs.ChannelGroup = helper.StringPointer(ctx.profile.ChannelGroup)
+	}
+
+	if ctx.profile.Ec2MetadataHttpTokens != "" {
+		clusterArgs.Ec2MetadataHttpTokens = helper.StringPointer(ctx.profile.Ec2MetadataHttpTokens)
+	}
+
+	if ctx.profile.Labeling {
+		clusterArgs.DefaultMPLabels = helper.StringMapPointer(constants.DefaultMPLabels)
+	}
+
+	if ctx.profile.Tagging {
+		clusterArgs.Tags = helper.StringMapPointer(constants.Tags)
+	}
+
+	if ctx.profile.AdminEnabled {
+		userName := constants.ClusterAdminUser
+		password := helper.GenerateRandomStringWithSymbols(14)
+		adminPasswdMap := map[string]string{"username": userName, "password": password}
+		clusterArgs.AdminCredentials = helper.StringMapPointer(adminPasswdMap)
+		pass := []byte(password)
+		err = os.WriteFile(path.Join(constants.GetRHCSOutputDir(), constants.ClusterAdminUser), pass, 0644)
+		if err != nil {
+			return
+		}
+		Logger.Infof("Admin password is written to the output directory")
+
+	}
+
+	if ctx.profile.AuditLogForward {
+		// ToDo
+	}
+
+	clusterName := ""
+	if constants.RHCS.RHCSClusterName != "" {
+		clusterName = constants.RHCS.RHCSClusterName
+	} else if ctx.profile.ClusterName != "" {
+		clusterName = ctx.profile.ClusterName
+	} else {
+		// Generate random chars later cluster name with profile name
+		clusterName = helper.GenerateClusterName(ctx.profile.Name)
+	}
+	clusterArgs.ClusterName = helper.StringPointer(clusterName)
+
+	if ctx.profile.STS {
+		majorVersion := helper.GetMajorVersion(version)
+		var accountRolesOutput *exec.AccountRolesOutput
+
+		sharedVPCRoleArn := ""
+		if ctx.profile.SharedVpc {
+			// FIXME:
+			//	To create Shared-VPC compatible policies, we need to pass a role arn to create_account_roles module.
+			//  But we got an chicken-egg prolems here:
+			//		* The Shared-VPC compatible policie requries installer role
+			//		* The install role (account roles) require Shared-VPC ARN.
+			//  Use hardcode as a temporary solution.
+			sharedVPCRoleArn = fmt.Sprintf("arn:aws:iam::641733028092:role/%s-shared-vpc-role", clusterName)
+		}
+		accountRolesOutput, err = ctx.PrepareAccountRoles(token, clusterName, ctx.profile.UnifiedAccRolesPath, majorVersion, ctx.profile.ChannelGroup, sharedVPCRoleArn)
+		if err != nil {
+			return
+		}
+		clusterArgs.AccountRolePrefix = helper.StringPointer(accountRolesOutput.AccountRolePrefix)
+		clusterArgs.UnifiedAccRolesPath = helper.StringPointer(ctx.profile.UnifiedAccRolesPath)
+		Logger.Infof("Created account roles with prefix %s", accountRolesOutput.AccountRolePrefix)
+
+		Logger.Infof("Sleep for 10 sec to let aws account role async creation finished")
+		time.Sleep(10 * time.Second)
+
+		var oidcOutput *exec.OIDCProviderOperatorRolesOutput
+		oidcOutput, err = ctx.PrepareOIDCProviderAndOperatorRoles(token, ctx.profile.OIDCConfig, clusterName, accountRolesOutput.AccountRolePrefix, ctx.profile.UnifiedAccRolesPath)
+		if err != nil {
+			return
+		}
+		clusterArgs.OIDCConfigID = &oidcOutput.OIDCConfigID
+		clusterArgs.OperatorRolePrefix = &oidcOutput.OperatorRolePrefix
+
+		clusterAwsAccount = accountRolesOutput.AWSAccountId
+		installerRoleArn = accountRolesOutput.InstallerRoleArn
+		ingressRoleArn = oidcOutput.IngressOperatorRoleArn
+	}
+
+	if ctx.profile.BYOVPC {
+		var zones []string
+		var vpcOutput *exec.VPCOutput
+		var sgIDs []string
+
+		// Supports ENV set passed to make cluster provision more flexy in prow
+		// Export the subnetIDs via env variable if you have existing ones export SubnetIDs=<subnet1>,<subnet2>,<subnet3>
+		// Export the availability zones via env variable export AvailabilitiZones=<az1>,<az2>,<az3>
+		if os.Getenv("SubnetIDs") != "" && os.Getenv("AvailabilitiZones") != "" {
+			subnetIDs := strings.Split(os.Getenv("SubnetIDs"), ",")
+			azs := strings.Split(os.Getenv("AvailabilitiZones"), ",")
+			clusterArgs.AWSAvailabilityZones = &azs
+			clusterArgs.AWSSubnetIDs = &subnetIDs
+		} else {
+			if ctx.profile.Zones != "" {
+				zones = strings.Split(ctx.profile.Zones, ",")
+			}
+
+			sharedVPCAWSSharedCredentialsFile := ""
+
+			if ctx.profile.SharedVpc {
+				if constants.SharedVpcAWSSharedCredentialsFileENV == "" {
+					panic(fmt.Errorf("SHARED_VPC_AWS_SHARED_CREDENTIALS_FILE env is not set or empty, it's requried by Shared-VPC cluster"))
+				}
+
+				sharedVPCAWSSharedCredentialsFile = constants.SharedVpcAWSSharedCredentialsFileENV
+			}
+			vpcOutput, err = ctx.PrepareVPC(ctx.profile.MultiAZ, zones, clusterName, sharedVPCAWSSharedCredentialsFile)
+			if err != nil {
+				return
+			}
+
+			if vpcOutput.ClusterPrivateSubnets == nil {
+				err = fmt.Errorf("error when creating the vpc, check the previous log. The created resources had been destroyed")
+				return
+			}
+			if ctx.profile.Private {
+				clusterArgs.Private = helper.BoolPointer(ctx.profile.Private)
+				clusterArgs.PrivateLink = helper.BoolPointer(ctx.profile.PrivateLink)
+				if ctx.IsPrivateLink() {
+					clusterArgs.AWSSubnetIDs = &vpcOutput.ClusterPrivateSubnets
+				}
+			} else {
+				subnetIDs := vpcOutput.ClusterPrivateSubnets
+				subnetIDs = append(subnetIDs, vpcOutput.ClusterPublicSubnets...)
+				clusterArgs.AWSSubnetIDs = &subnetIDs
+			}
+
+			if ctx.profile.SharedVpc {
+				// Base domain
+				var baseDnsDomain string
+				baseDnsDomain, err = ctx.PrepareRoute53()
+				if err != nil {
+					return
+				}
+
+				// Resources for Shared-VPC
+				var sharedVpcPolicyAndHostedZoneOutput *exec.SharedVpcPolicyAndHostedZoneOutput
+				sharedVpcPolicyAndHostedZoneOutput, err = ctx.PrepareSharedVpcPolicyAndHostedZone(
+					constants.SharedVpcAWSSharedCredentialsFileENV,
+					clusterName,
+					baseDnsDomain,
+					ingressRoleArn,
+					installerRoleArn,
+					clusterAwsAccount,
+					vpcOutput.VPCID,
+					*clusterArgs.AWSSubnetIDs)
+				if err != nil {
+					return
+				}
+
+				clusterArgs.BaseDnsDomain = helper.StringPointer(baseDnsDomain)
+				privateHostedZone := exec.PrivateHostedZone{
+					ID:      sharedVpcPolicyAndHostedZoneOutput.HostedZoneId,
+					RoleArn: sharedVpcPolicyAndHostedZoneOutput.SharedRole,
+				}
+				clusterArgs.PrivateHostedZone = &privateHostedZone
+				/*
+					The AZ us-east-1a for VPC-account might not have the same location as us-east-1a for Cluster-account.
+					For AZs which will be used in cluster configuration, the values should be the ones in Cluster-account.
+				*/
+				clusterArgs.AWSAvailabilityZones = &sharedVpcPolicyAndHostedZoneOutput.AZs
+			} else {
+				clusterArgs.AWSAvailabilityZones = &vpcOutput.AZs
+			}
+
+			clusterArgs.MachineCIDR = helper.StringPointer(vpcOutput.VPCCIDR)
+			if ctx.profile.AdditionalSGNumber != 0 {
+				// Prepare profile.AdditionalSGNumber+5 security groups for negative testing
+				sgIDs, err = ctx.PrepareAdditionalSecurityGroups(vpcOutput.VPCID, ctx.profile.AdditionalSGNumber+5)
+				if err != nil {
+					return
+				}
+				clusterArgs.AdditionalComputeSecurityGroups = helper.StringSlicePointer(sgIDs[0:ctx.profile.AdditionalSGNumber])
+				clusterArgs.AdditionalInfraSecurityGroups = helper.StringSlicePointer(sgIDs[0:ctx.profile.AdditionalSGNumber])
+				clusterArgs.AdditionalControlPlaneSecurityGroups = helper.StringSlicePointer(sgIDs[0:ctx.profile.AdditionalSGNumber])
+			}
+
+			// in case Proxy is enabled
+			if ctx.profile.Proxy {
+				var proxyOutput *exec.ProxyOutput
+				proxyOutput, err = ctx.PrepareProxy(vpcOutput.VPCID, vpcOutput.ClusterPublicSubnets[0], clusterName)
+				if err != nil {
+					return
+				}
+				proxy := exec.Proxy{
+					AdditionalTrustBundle: &proxyOutput.AdditionalTrustBundle,
+					HTTPSProxy:            &proxyOutput.HttpsProxy,
+					HTTPProxy:             &proxyOutput.HttpProxy,
+					NoProxy:               &proxyOutput.NoProxy,
+				}
+				clusterArgs.Proxy = &proxy
+			}
+		}
+	}
+
+	if ctx.profile.KMSKey {
+		var kmskey string
+		kmskey, err = ctx.PrepareKMSKey(clusterName, *clusterArgs.AccountRolePrefix, ctx.profile.UnifiedAccRolesPath)
+		if err != nil {
+			return
+		}
+		clusterArgs.KmsKeyARN = &kmskey
+		if ctx.GetClusterType().HCP {
+			clusterArgs.EtcdKmsKeyARN = &kmskey
+		}
+
+	}
+
+	if ctx.profile.WorkerDiskSize != 0 {
+		clusterArgs.WorkerDiskSize = helper.IntPointer(ctx.profile.WorkerDiskSize)
+	}
+	clusterArgs.UnifiedAccRolesPath = helper.StringPointer(ctx.profile.UnifiedAccRolesPath)
+	clusterArgs.CustomProperties = helper.StringMapPointer(constants.CustomProperties) // id:72450
+
+	return clusterArgs, err
+}
+
+func (ctx *profileContext) CreateRHCSClusterByProfile(token string) (string, error) {
+	creationArgs, err := ctx.GenerateClusterCreationArgs(token)
+	if err != nil {
+		defer ctx.DestroyRHCSCluster(token)
+		return "", err
+	}
+	clusterService, err := ctx.Services().GetClusterService()
+	if err != nil {
+		defer ctx.DestroyRHCSCluster(token)
+		return "", err
+	}
+	_, err = clusterService.Apply(creationArgs)
+	if err != nil {
+		clusterService.WriteTFVars(creationArgs)
+		defer ctx.DestroyRHCSCluster(token)
+		return "", err
+	}
+	clusterOutput, err := clusterService.Output()
+	if err != nil {
+		clusterService.WriteTFVars(creationArgs)
+		defer ctx.DestroyRHCSCluster(token)
+		return "", err
+	}
+	clusterID := clusterOutput.ClusterID
+	return clusterID, err
+}
+
+func (ctx *profileContext) DestroyRHCSCluster(token string) error {
+	// Destroy cluster
+	clusterService, err := ctx.Services().GetClusterService()
+	if err != nil {
+		return err
+	}
+	_, err = clusterService.Destroy()
+	if err != nil {
+		return err
+	}
+
+	// Destroy VPC
+	if ctx.profile.BYOVPC {
+		if ctx.profile.Proxy {
+			proxyService, err := ctx.Services().GetProxyService()
+			if err != nil {
+				return err
+			}
+			_, err = proxyService.Destroy()
+			if err != nil {
+				return err
+			}
+		}
+		if ctx.profile.AdditionalSGNumber != 0 {
+			sgService, err := ctx.Services().GetSecurityGroupService()
+			if err != nil {
+				return err
+			}
+			_, err = sgService.Destroy()
+			if err != nil {
+				return err
+			}
+		}
+
+		if ctx.profile.SharedVpc {
+			if constants.SharedVpcAWSSharedCredentialsFileENV == "" {
+				panic(fmt.Errorf("SHARED_VPC_AWS_SHARED_CREDENTIALS_FILE env is not set or empty, it's requried by Shared-VPC cluster"))
+			}
+
+			sharedVpcPolicyAndHostedZoneService, err := ctx.Services().GetSharedVPCPolicyAndHostedZoneService()
+			if err != nil {
+				return err
+			}
+			_, err = sharedVpcPolicyAndHostedZoneService.Destroy()
+			if err != nil {
+				return err
+			}
+
+			// DNS domain
+			dnsDomainService, err := ctx.Services().GetDnsDomainService()
+			if err != nil {
+				return err
+			}
+			_, err = dnsDomainService.Destroy()
+			if err != nil {
+				return err
+			}
+		}
+
+		vpcService, _ := ctx.Services().GetVPCService()
+		_, err := vpcService.Destroy()
+		if err != nil {
+			return err
+		}
+	}
+	if ctx.profile.STS {
+		// Destroy oidc and operator roles
+		oidcOpService, err := ctx.Services().GetOIDCProviderOperatorRolesService()
+		if err != nil {
+			return err
+		}
+		_, err = oidcOpService.Destroy()
+		if err != nil {
+			return err
+		}
+
+		//  Destroy Account roles
+		accService, err := ctx.Services().GetAccountRolesService()
+		if err != nil {
+			return err
+		}
+		_, err = accService.Destroy()
+		if err != nil {
+			return err
+		}
+
+	}
+	if ctx.profile.KMSKey {
+		//Destroy KMS Key
+		kmsService, err := ctx.Services().GetKMSService()
+		if err != nil {
+			return err
+		}
+		_, err = kmsService.Destroy()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// RetrieveClusterID will be used for all day2 tests. It needs an existing cluster.
+// Two ways:
+//   - If you created a cluster by other way, you can Export CLUSTER_ID=<cluster id>
+//   - If you are using this CI created the cluster, just need to Export CLUSTER_PROFILE=<profile name>
+func (ctx *profileContext) RetrieveClusterID() (string, error) {
+	// Support the cluster ID to set to ENV in case somebody created cluster by other way
+	if os.Getenv(constants.ClusterIDEnv) != "" {
+		return os.Getenv(constants.ClusterIDEnv), nil
+	}
+	if os.Getenv(constants.RhcsClusterProfileENV) == "" {
+		Logger.Warnf("Either env variables %s and %s set. Will return an empty string.", constants.ClusterIDEnv, constants.RhcsClusterProfileENV)
+		return "", nil
+	}
+	clusterService, err := ctx.Services().GetClusterService()
+	if err != nil {
+		return "", err
+	}
+	clusterOutput, err := clusterService.Output()
+	clusterID := clusterOutput.ClusterID
+	return clusterID, err
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// Services Interface for easy retrieval of TF exec services from a profile
+
+func (ctx *profileContext) GetAccountRolesService() (exec.AccountRoleService, error) {
+	return exec.NewAccountRoleService(ctx.GetTFWorkspace(), ctx.GetClusterType())
+}
+
+func (ctx *profileContext) GetKMSService() (exec.KMSService, error) {
+	return exec.NewKMSService(ctx.GetTFWorkspace(), ctx.GetClusterType())
+}
+
+func (ctx *profileContext) GetOIDCProviderOperatorRolesService() (exec.OIDCProviderOperatorRolesService, error) {
+	return exec.NewOIDCProviderOperatorRolesService(ctx.GetTFWorkspace(), ctx.GetClusterType())
+}
+
+func (ctx *profileContext) GetProxyService() (exec.ProxyService, error) {
+	return exec.NewProxyService(ctx.GetTFWorkspace(), ctx.GetClusterType())
+}
+
+func (ctx *profileContext) GetSecurityGroupService() (exec.SecurityGroupService, error) {
+	return exec.NewSecurityGroupService(ctx.GetTFWorkspace(), ctx.GetClusterType())
+}
+
+func (ctx *profileContext) GetSharedVPCPolicyAndHostedZoneService() (exec.SharedVpcPolicyAndHostedZoneService, error) {
+	return exec.NewSharedVpcPolicyAndHostedZoneService(ctx.GetTFWorkspace(), ctx.GetClusterType())
+}
+
+func (ctx *profileContext) GetVPCService() (exec.VPCService, error) {
+	return exec.NewVPCService(ctx.GetTFWorkspace(), ctx.GetClusterType())
+}
+
+func (ctx *profileContext) GetVPCTagService() (exec.VPCTagService, error) {
+	return exec.NewVPCTagService(ctx.GetTFWorkspace(), ctx.GetClusterType())
+}
+
+// RHCS provider dirs
+func (ctx *profileContext) GetClusterService() (exec.ClusterService, error) {
+	return exec.NewClusterService(ctx.GetTFWorkspace(), ctx.GetClusterType())
+}
+
+func (ctx *profileContext) GetClusterAutoscalerService() (exec.ClusterAutoscalerService, error) {
+	return exec.NewClusterAutoscalerService(ctx.GetTFWorkspace(), ctx.GetClusterType())
+}
+
+func (ctx *profileContext) GetDnsDomainService() (exec.DnsDomainService, error) {
+	return exec.NewDnsDomainService(ctx.GetTFWorkspace(), ctx.GetClusterType())
+}
+
+func (ctx *profileContext) GetIDPService(idpType constants.IDPType) (exec.IDPService, error) {
+	return exec.NewIDPService(ctx.GetTFWorkspace(), ctx.GetClusterType(), idpType)
+}
+
+func (ctx *profileContext) GetIngressService() (exec.IngressService, error) {
+	return exec.NewIngressService(ctx.GetTFWorkspace(), ctx.GetClusterType())
+}
+
+func (ctx *profileContext) GetImportService() (exec.ImportService, error) {
+	return exec.NewImportService(ctx.GetTFWorkspace(), ctx.GetClusterType())
+}
+
+func (ctx *profileContext) GetKubeletConfigService() (exec.KubeletConfigService, error) {
+	return exec.NewKubeletConfigService(ctx.GetTFWorkspace(), ctx.GetClusterType())
+}
+
+func (ctx *profileContext) GetMachinePoolsService() (exec.MachinePoolService, error) {
+	return exec.NewMachinePoolService(ctx.GetTFWorkspace(), ctx.GetClusterType())
+}
+
+func (ctx *profileContext) GetRHCSInfoService() (exec.RhcsInfoService, error) {
+	return exec.NewRhcsInfoService(ctx.GetTFWorkspace(), ctx.GetClusterType())
+}
+
+func (ctx *profileContext) GetTuningConfigService() (exec.TuningConfigService, error) {
+	return exec.NewTuningConfigService(ctx.GetTFWorkspace(), ctx.GetClusterType())
+}

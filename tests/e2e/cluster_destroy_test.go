@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 
 var _ = Describe("Delete cluster", func() {
@@ -18,8 +19,9 @@ var _ = Describe("Delete cluster", func() {
 			}
 
 			// Generate/build cluster by profile selected
-			profile := ci.LoadProfileYamlFileByENV()
-			err := ci.DestroyRHCSClusterByProfile(token, profile)
+			profileHandler, err := profilehandler.NewProfileHandlerFromYamlFile()
+			Expect(err).ToNot(HaveOccurred())
+			err = profileHandler.DestroyRHCSCluster(token)
 			Expect(err).ToNot(HaveOccurred())
 		})
 })

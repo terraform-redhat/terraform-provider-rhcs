@@ -2,6 +2,7 @@ package exec
 
 import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
 )
 
 type KubeletConfigArgs struct {
@@ -29,13 +30,9 @@ type kubeletConfigService struct {
 	tfExecutor TerraformExecutor
 }
 
-func NewKubeletConfigService(manifestsDirs ...string) (KubeletConfigService, error) {
-	manifestsDir := constants.KubeletConfigDir
-	if len(manifestsDirs) > 0 {
-		manifestsDir = manifestsDirs[0]
-	}
+func NewKubeletConfigService(tfWorkspace string, clusterType constants.ClusterType) (KubeletConfigService, error) {
 	svc := &kubeletConfigService{
-		tfExecutor: NewTerraformExecutor(manifestsDir),
+		tfExecutor: NewTerraformExecutor(tfWorkspace, manifests.GetKubeletConfigManifestsDir(clusterType)),
 	}
 	err := svc.Init()
 	return svc, err

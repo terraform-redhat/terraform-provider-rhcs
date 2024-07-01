@@ -186,13 +186,17 @@ var _ = Describe("Verify cluster", func() {
 			importService, err := exec.NewImportService(constants.ImportResourceDir) // init new import service
 			Expect(err).ToNot(HaveOccurred())
 
-			By("Run the command to import rosa_classic resource")
+			By("Run the command to import cluster resource")
 			defer func() {
 				importService.Destroy()
 			}()
+			resource := "rhcs_cluster_rosa_classic.rosa_sts_cluster_import"
+			if profile.GetClusterType().HCP {
+				resource = "rhcs_cluster_rosa_hcp.rosa_hcp_cluster_import"
+			}
 			importParam := &exec.ImportArgs{
 				ClusterID: clusterID,
-				Resource:  "rhcs_cluster_rosa_classic.rosa_sts_cluster_import",
+				Resource:  resource,
 			}
 			_, err = importService.Import(importParam)
 			Expect(err).ToNot(HaveOccurred())
@@ -206,11 +210,15 @@ var _ = Describe("Verify cluster", func() {
 			Expect(output).To(ContainSubstring(profile.Region))
 			Expect(output).To(ContainSubstring(profile.ChannelGroup))
 
+			By("Remove state")
+			_, err = importService.RemoveState(resource)
+			Expect(err).ToNot(HaveOccurred())
+
 			By("Validate terraform import with no clusterID returns error")
 			var unknownClusterID = helper.GenerateRandomStringWithSymbols(20)
 			importParam = &exec.ImportArgs{
 				ClusterID: unknownClusterID,
-				Resource:  "rhcs_cluster_rosa_classic.rosa_import_no_cluster_id",
+				Resource:  resource,
 			}
 
 			_, err = importService.Import(importParam)
@@ -360,7 +368,7 @@ var _ = Describe("Verify cluster", func() {
 		podCIDR := profile.PodCIDR
 		hostPrefix := profile.HostPrefix
 
-		if machineCIDR == "" && serviceCIDR == "" && podCIDR == "" && hostPrefix > 0 {
+		if machineCIDR == "" && serviceCIDR == "" && podCIDR == "" && hostPrefix <= 0 {
 			Skip("The test is configured only for the profile containing the cidrs and host prefix")
 		}
 

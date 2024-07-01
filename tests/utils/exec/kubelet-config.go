@@ -7,7 +7,7 @@ import (
 type KubeletConfigArgs struct {
 	Cluster             *string `hcl:"cluster"`
 	PodPidsLimit        *int    `hcl:"pod_pids_limit"`
-	KubeLetConfigNumber *int    `hcl:"kubelet_config_number"`
+	KubeletConfigNumber *int    `hcl:"kubelet_config_number"`
 	NamePrefix          *string `hcl:"name_prefix"`
 }
 
@@ -29,6 +29,7 @@ type KubeletConfigService interface {
 	Destroy() (string, error)
 
 	ReadTFVars() (*KubeletConfigArgs, error)
+	WriteTFVars(args *KubeletConfigArgs) error
 	DeleteTFVars() error
 }
 
@@ -78,6 +79,11 @@ func (svc *kubeletConfigService) ReadTFVars() (*KubeletConfigArgs, error) {
 	args := &KubeletConfigArgs{}
 	err := svc.tfExecutor.ReadTerraformVars(args)
 	return args, err
+}
+
+func (svc *kubeletConfigService) WriteTFVars(args *KubeletConfigArgs) error {
+	err := svc.tfExecutor.WriteTerraformVars(args)
+	return err
 }
 
 func (svc *kubeletConfigService) DeleteTFVars() error {

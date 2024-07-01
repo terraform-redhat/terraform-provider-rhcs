@@ -12,8 +12,8 @@ import (
 	. "github.com/onsi/gomega"
 	client "github.com/openshift-online/ocm-sdk-go"
 	v1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
 // ImageVersion
@@ -171,7 +171,7 @@ func GetOneSpecifiedVersion(versionList []*ImageVersion, index string) *ImageVer
 	case "oldest":
 		version = versionList[0]
 	default:
-		randomIndex := h.NewRand().Intn(length)
+		randomIndex := helper.NewRand().Intn(length)
 		version = versionList[randomIndex]
 	}
 
@@ -187,7 +187,7 @@ func FindAnUpgradeVersion(connection *client.Connection) string {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(resp.Status()).To(Equal(http.StatusOK))
 	versionItems := resp.Items().Slice()
-	randNum := h.NewRand().Intn(len(versionItems))
+	randNum := helper.NewRand().Intn(len(versionItems))
 	return versionItems[randNum].ID()
 }
 
@@ -292,20 +292,20 @@ func GetHcpHigherVersions(connection *client.Connection, throttleVersion string,
 
 // checks if upgradeVersion is a 'stream' upgrade for version
 func IsStreamUpgrade(version string, upgradeVersion string, stream string) (isStreamUpgrade bool, err error) {
-	if stream == CON.Y || stream == CON.Z || stream == CON.X {
+	if stream == constants.Y || stream == constants.Z || stream == constants.X {
 		semVersion, semVersionError := semver.NewVersion(version)
 		fmt.Printf("Testing %s and %s\n", version, upgradeVersion)
 		if semVersionError == nil {
 			semUpgradeVersion, semVersionError := semver.NewVersion(upgradeVersion)
 			fmt.Printf("Testing %s and %s\n", semVersion.String(), semUpgradeVersion.String())
 			if semVersionError == nil {
-				if semVersion.Major() == semUpgradeVersion.Major() && semVersion.Minor() == semUpgradeVersion.Minor() && semVersion.Patch() < semUpgradeVersion.Patch() && stream == CON.Z {
+				if semVersion.Major() == semUpgradeVersion.Major() && semVersion.Minor() == semUpgradeVersion.Minor() && semVersion.Patch() < semUpgradeVersion.Patch() && stream == constants.Z {
 					fmt.Printf("This version is z upgrade: %s\n", semUpgradeVersion.String())
 					return true, nil
-				} else if semVersion.Major() == semUpgradeVersion.Major() && semVersion.Minor() < semUpgradeVersion.Minor() && stream == CON.Y {
+				} else if semVersion.Major() == semUpgradeVersion.Major() && semVersion.Minor() < semUpgradeVersion.Minor() && stream == constants.Y {
 					fmt.Printf("This version is y upgrade: %s\n", semUpgradeVersion.String())
 					return true, nil
-				} else if semVersion.Major() < semUpgradeVersion.Major() && stream == CON.X {
+				} else if semVersion.Major() < semUpgradeVersion.Major() && stream == constants.X {
 					fmt.Printf("This version is x upgrade: %s\n", semUpgradeVersion.String())
 					return true, nil
 				} else {
@@ -350,7 +350,6 @@ func GetVersionsWithUpgrades(connection *client.Connection, channel string, stre
 	Expect(err).ToNot(HaveOccurred())
 
 	for _, ver := range resp.Items().Slice() {
-
 		semVersion, semVersionError := semver.NewVersion(ver.RawID())
 		if semVersionError != nil {
 			continue
@@ -359,7 +358,7 @@ func GetVersionsWithUpgrades(connection *client.Connection, channel string, stre
 			semHigherVersion, _ := semver.NewVersion(avUpgrade)
 			gocha := false
 			switch stream {
-			case CON.Z:
+			case constants.Z:
 				if semVersion.Minor() == semHigherVersion.Minor() {
 					imageVersion := &ImageVersion{
 						ID:           ver.ID(),
@@ -373,7 +372,7 @@ func GetVersionsWithUpgrades(connection *client.Connection, channel string, stre
 					imageVersionList = append(imageVersionList, imageVersion)
 					gocha = true
 				}
-			case CON.Y:
+			case constants.Y:
 				if semVersion.Minor()+1 == semHigherVersion.Minor() {
 					imageVersion := &ImageVersion{
 						ID:           ver.ID(),
@@ -399,6 +398,75 @@ func GetVersionsWithUpgrades(connection *client.Connection, channel string, stre
 	return imageVersionList, err
 }
 
+// It will return a list of versions which have available upgrades in the specified stream (x,y,z)
+// channel mean channel group you are going to test
+// stream means minor or patch upgrade like 4.x.y if you want x upgrade set stream=x, y upgrade set to stream=y
+// step is a placeholder for future implementation. Only 1 supported now
+func GetVersionsWithUpgradesToVersion(connection *client.Connection, targetVersion string, channel string, stream string, rosaEnabled bool, hcpEnableRequired bool, step int) (imageVersionList []*ImageVersion, err error) {
+	if step != 1 {
+		return nil, fmt.Errorf("only 1 step support right now")
+	}
+
+	filters := []string{
+		"enabled='t'",
+		fmt.Sprintf("channel_group='%s'", channel),
+		"available_upgrades != ''",
+	}
+	if rosaEnabled {
+		filters = append(filters, "rosa_enabled='t'")
+	}
+	if hcpEnableRequired {
+		filters = append(filters, "hosted_control_plane_enabled='t'")
+	}
+
+	filterParam := map[string]interface{}{
+		"search": strings.Join(filters, " and "),
+		"size":   "-1",
+	}
+
+	resp, err := ListVersions(connection, filterParam)
+	Expect(err).ToNot(HaveOccurred())
+
+	semTargetVer, err := semver.NewVersion(targetVersion)
+	Expect(err).ToNot(HaveOccurred())
+
+	for _, ver := range resp.Items().Slice() {
+		semVersion, semVersionError := semver.NewVersion(ver.RawID())
+		if semVersionError != nil {
+			continue
+		}
+		switch stream {
+		case constants.Z:
+			if semVersion.Minor() != semTargetVer.Minor() {
+				continue
+			}
+		case constants.Y:
+			if semVersion.Minor()+1 != semTargetVer.Minor() {
+				continue
+			}
+		default:
+			return nil, fmt.Errorf("only y or z is allowed")
+		}
+		for _, avUpgrade := range ver.AvailableUpgrades() {
+			semUpgradeVersion, _ := semver.NewVersion(avUpgrade)
+			if semTargetVer.Equal(semUpgradeVersion) {
+				imageVersion := &ImageVersion{
+					ID:           ver.ID(),
+					RawID:        ver.RawID(),
+					ChannelGroup: ver.ChannelGroup(),
+					Enabled:      ver.Enabled(),
+					Default:      ver.Default(),
+					RosaEnabled:  ver.ROSAEnabled(),
+				}
+
+				imageVersionList = append(imageVersionList, imageVersion)
+			}
+		}
+	}
+	imageVersionList = SortVersions(imageVersionList)
+	return imageVersionList, err
+}
+
 // It will return a list of versions which have available upgrades in both y and z Streams
 func GetVersionUpgradeTarget(orginalVersion string, stream string, availableUpgrades []string) (targetV string, err error) {
 	semVersion, semVersionError := semver.NewVersion(orginalVersion)
@@ -408,12 +476,12 @@ func GetVersionUpgradeTarget(orginalVersion string, stream string, availableUpgr
 	for _, avUpgrade := range availableUpgrades {
 		semHigherVersion, _ := semver.NewVersion(avUpgrade)
 		switch stream {
-		case CON.Z:
+		case constants.Z:
 			if semVersion.Minor() == semHigherVersion.Minor() {
 				targetV = avUpgrade
 				return
 			}
-		case CON.Y:
+		case constants.Y:
 			if semVersion.Minor()+1 == semHigherVersion.Minor() {
 				targetV = avUpgrade
 				return

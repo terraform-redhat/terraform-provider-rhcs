@@ -53,6 +53,21 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		mpService.Destroy()
 	})
 
+	getDefaultMPArgs := func(name string) *exec.MachinePoolArgs {
+		replicas := 2
+		machineType := "m5.2xlarge"
+		subnetId := vpcOutput.ClusterPrivateSubnets[0]
+		return &exec.MachinePoolArgs{
+			Cluster:            helper.StringPointer(clusterID),
+			AutoscalingEnabled: helper.BoolPointer(false),
+			Replicas:           helper.IntPointer(replicas),
+			Name:               helper.StringPointer(name),
+			SubnetID:           helper.StringPointer(subnetId),
+			MachineType:        helper.StringPointer(machineType),
+			AutoRepair:         helper.BoolPointer(true),
+		}
+	}
+
 	It("can be created with only required attributes - [id:72504]",
 		ci.Critical, func() {
 			By("Retrieve current cluster information")
@@ -473,12 +488,12 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 				_, err = mpService.Apply(mpArgs)
 				Expect(err).ToNot(HaveOccurred())
 
-				By("Verify machinepool with z-1")
+				By("Verify machinepool with y-1")
 				mpResponseBody, err := cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(mpResponseBody.Version().ID()).To(Equal(yVersion.ID))
 
-				By("Destroy machinepool with z-1")
+				By("Destroy machinepool with y-1")
 				_, err = mpService.Destroy()
 				Expect(err).ToNot(HaveOccurred())
 			}
@@ -588,12 +603,16 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			Expect(mpResponseBody.TuningConfigs()).To(BeEmpty())
 		})
 
-	Context("can validate", func() {
-		getDefaultMPArgs := func(name string) *exec.MachinePoolArgs {
-			replicas := 2
+	It("can create multiple instances - [id:72954]",
+		ci.Low, func() {
+			By("Create machinepool")
+			mpCount := 2
+			replicas := 3
 			machineType := "m5.2xlarge"
+			name := helper.GenerateRandomName("np-72954", 2)
 			subnetId := vpcOutput.ClusterPrivateSubnets[0]
-			return &exec.MachinePoolArgs{
+			mpArgs := &exec.MachinePoolArgs{
+				Count:              helper.IntPointer(mpCount),
 				Cluster:            helper.StringPointer(clusterID),
 				AutoscalingEnabled: helper.BoolPointer(false),
 				Replicas:           helper.IntPointer(replicas),
@@ -602,7 +621,27 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 				MachineType:        helper.StringPointer(machineType),
 				AutoRepair:         helper.BoolPointer(true),
 			}
-		}
+			_, err := mpService.Apply(mpArgs)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Verify mps have been created")
+			mpsOut, err := mpService.Output()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(mpsOut.MachinePools)).To(Equal(2))
+			var expectedNames []string
+			for i := 0; i < mpCount; i++ {
+				expectedNames = append(expectedNames, fmt.Sprintf("%s-%v", name, i))
+			}
+			for _, mp := range mpsOut.MachinePools {
+				Expect(mp.Name).To(BeElementOf(expectedNames))
+				Expect(mp.ClusterID).To(BeElementOf(clusterID))
+				Expect(mp.Replicas).To(BeElementOf(replicas))
+				Expect(mp.MachineType).To(BeElementOf(machineType))
+			}
+
+		})
+
+	Context("can validate", func() {
 		validateMPArgAgainstErrorSubstrings := func(mpName string, updateFields func(args *exec.MachinePoolArgs), errSubStrings ...string) {
 			mpArgs := getDefaultMPArgs(mpName)
 			updateFields(mpArgs)
@@ -812,6 +851,141 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
 				args.Taints = &taints
 			}, "Attribute taints[0].schedule_type value must be one of")
+		})
+	})
+
+	It("can import - [id:72960]", ci.Day2, ci.Medium, ci.FeatureImport,
+		func() {
+			importService, err := exec.NewImportService(constants.ImportResourceDir) // init new import service
+			Expect(err).ToNot(HaveOccurred())
+			defer func() {
+				By("Destroy import service")
+				importService.Destroy()
+			}()
+
+			By("Create additional machinepool for import")
+			replicas := 2
+			machineType := "m5.2xlarge"
+			name := helper.GenerateRandomName("ocp-72960", 2)
+			subnetId := vpcOutput.ClusterPrivateSubnets[0]
+			tags := map[string]string{"foo1": "bar1"}
+			mpArgs := &exec.MachinePoolArgs{
+				Cluster:            helper.StringPointer(clusterID),
+				AutoscalingEnabled: helper.BoolPointer(false),
+				Replicas:           helper.IntPointer(replicas),
+				Name:               helper.StringPointer(name),
+				SubnetID:           helper.StringPointer(subnetId),
+				MachineType:        helper.StringPointer(machineType),
+				AutoRepair:         helper.BoolPointer(true),
+				Tags:               helper.StringMapPointer(tags),
+			}
+
+			_, err = mpService.Apply(mpArgs)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Run the command to import the machinepool")
+			importParam := &exec.ImportArgs{
+				ClusterID:  clusterID,
+				Resource:   "rhcs_hcp_machine_pool.mp_import",
+				ObjectName: name,
+			}
+			_, err = importService.Import(importParam)
+			Expect(err).To(Succeed())
+
+			By("Check resource state - import command succeeded")
+			output, err := importService.ShowState(importParam.Resource)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(output).To(ContainSubstring(machineType))
+			Expect(output).To(ContainSubstring(name))
+			Expect(output).To(MatchRegexp("foo1"))
+			Expect(output).To(MatchRegexp("bar1"))
+		})
+
+	Context("can upgrade", ci.Day2, ci.FeatureImport, func() {
+
+		It("from z-1 - [id:72513]", ci.High, func() {
+			name := helper.GenerateRandomName("np-72513", 2)
+			mpArgs := getDefaultMPArgs(name)
+
+			By("Retrieve cluster version")
+			clusterService, err := exec.NewClusterService((constants.GetClusterManifestsDir(profile.GetClusterType())))
+			Expect(err).ToNot(HaveOccurred())
+			clusterOut, err := clusterService.Output()
+			Expect(err).ToNot(HaveOccurred())
+			clusterVersion := clusterOut.ClusterVersion
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Get version z-1")
+			zLowerVersions, err := cms.GetVersionsWithUpgradesToVersion(ci.RHCSConnection, clusterVersion, profile.ChannelGroup, constants.Z, true, true, 1)
+			Logger.Infof("Got versions %v", zLowerVersions)
+			Expect(err).ToNot(HaveOccurred())
+			if len(zLowerVersions) <= 0 {
+				Skip("No Available version for upgrading on z-stream")
+			}
+			zversion := zLowerVersions[len(zLowerVersions)-1]
+
+			By("Create machinepool with z-1")
+			mpArgs.OpenshiftVersion = helper.StringPointer(zversion.RawID)
+			_, err = mpService.Apply(mpArgs)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Check created machine pool")
+			mpResponseBody, err := cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(mpResponseBody.Version().ID()).To(Equal(zversion.ID))
+
+			By("Upgrade the machinepool to cluster version")
+			mpArgs.OpenshiftVersion = helper.StringPointer(clusterVersion)
+			_, err = mpService.Apply(mpArgs)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Check upgrade policy")
+			npUpPolicies, err := cms.ListNodePoolUpgradePolicies(ci.RHCSConnection, clusterID, name)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(npUpPolicies.Items().Slice())).To(Equal(1))
+			Expect(npUpPolicies.Items().Get(0).Version()).To(Equal(clusterVersion))
+		})
+
+		It("from y-1 - [id:72512]", ci.High, func() {
+			name := helper.GenerateRandomName("np-72512", 2)
+			mpArgs := getDefaultMPArgs(name)
+
+			By("Retrieve cluster version")
+			clusterService, err := exec.NewClusterService((constants.GetClusterManifestsDir(profile.GetClusterType())))
+			Expect(err).ToNot(HaveOccurred())
+			clusterOut, err := clusterService.Output()
+			Expect(err).ToNot(HaveOccurred())
+			clusterVersion := clusterOut.ClusterVersion
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Get version z-1")
+			yLowerVersions, err := cms.GetVersionsWithUpgradesToVersion(ci.RHCSConnection, clusterVersion, profile.ChannelGroup, constants.Y, true, true, 1)
+			Expect(err).ToNot(HaveOccurred())
+			if len(yLowerVersions) <= 0 {
+				Skip("No Available version for upgrading on y-stream")
+			}
+			yVersion := yLowerVersions[len(yLowerVersions)-1]
+
+			By("Create machinepool with y-1")
+			mpArgs.OpenshiftVersion = helper.StringPointer(yVersion.RawID)
+			_, err = mpService.Apply(mpArgs)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Check created machine pool")
+			mpResponseBody, err := cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(mpResponseBody.Version().ID()).To(Equal(yVersion.ID))
+
+			By("Upgrade the machinepool to cluster version")
+			mpArgs.OpenshiftVersion = helper.StringPointer(clusterVersion)
+			_, err = mpService.Apply(mpArgs)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Check upgrade policy")
+			npUpPolicies, err := cms.ListNodePoolUpgradePolicies(ci.RHCSConnection, clusterID, name)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(npUpPolicies.Items().Slice())).To(Equal(1))
+			Expect(npUpPolicies.Items().Get(0).Version()).To(Equal(clusterVersion))
 		})
 	})
 })

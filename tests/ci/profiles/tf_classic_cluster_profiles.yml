@@ -65,6 +65,7 @@ profiles:
     unified_acc_role_path: "/unified/"
 # rosa-sts-sv :: creating Shared-VPC cluster.
 - as: rosa-sts-sv
+  need_specific_config: true
   cluster:
     cluster_type: rosa-classic
     multi_az: true

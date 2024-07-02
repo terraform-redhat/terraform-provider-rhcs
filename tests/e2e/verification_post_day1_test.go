@@ -90,6 +90,34 @@ var _ = Describe("Verify cluster", func() {
 		Expect(cluster.EtcdEncryption()).To(Equal(profile.Etcd))
 	})
 
+	It("etcd-encryption key is correctly set - [id:72485]", ci.Day1Post, ci.High, func() {
+		if !profile.GetClusterType().HCP {
+			Skip("This test is for Hosted cluster")
+		}
+		if !profile.Etcd {
+			Skip("Etcd is not activated. skipping the test.")
+		}
+
+		By("Retrieve etcd defined key")
+		var kmsService exec.KMSService
+		var err error
+		if profile.DifferentEncryptionKeys {
+			kmsService, err = exec.NewKMSService(constants.KMSSecondDir)
+			Expect(err).ToNot(HaveOccurred())
+		} else {
+			kmsService, err = exec.NewKMSService(constants.KMSDir)
+			Expect(err).ToNot(HaveOccurred())
+		}
+		kmsOutput, err := kmsService.Output()
+		Expect(err).ToNot(HaveOccurred())
+		etcdKey := kmsOutput.KeyARN
+
+		By("Check etcd Encryption key")
+		clusterResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(clusterResp.Body().AWS().EtcdEncryption().KMSKeyARN()).To(Equal(etcdKey))
+	})
+
 	It("compute_machine_type is correctly set - [id:64023]", ci.Day1Post, ci.Medium, func() {
 		if profile.ComputeMachineType == "" {
 			Skip("No compute_machine_type is configured for the cluster. skipping the test.")
@@ -323,5 +351,39 @@ var _ = Describe("Verify cluster", func() {
 		} else {
 			Expect(cluster.AWS().Ec2MetadataHttpTokens()).To(Equal(cmsv1.Ec2MetadataHttpTokensOptional))
 		}
+	})
+
+	It("host prefix and cidrs are set correctly - [id:72466]", ci.Day1Post, ci.Medium, func() {
+		By("Retrieve profile information")
+		machineCIDR := profile.MachineCIDR
+		serviceCIDR := profile.ServiceCIDR
+		podCIDR := profile.PodCIDR
+		hostPrefix := profile.HostPrefix
+
+		if machineCIDR == "" && serviceCIDR == "" && podCIDR == "" && hostPrefix > 0 {
+			Skip("The test is configured only for the profile containing the cidrs and host prefix")
+		}
+
+		By("Retrieve cluster detail")
+		clusterResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+		Expect(err).ToNot(HaveOccurred())
+		networkDetail := clusterResp.Body().Network()
+
+		By("Check cluster information")
+		Expect(networkDetail.MachineCIDR()).To(Equal(machineCIDR))
+		Expect(networkDetail.ServiceCIDR()).To(Equal(serviceCIDR))
+		Expect(networkDetail.PodCIDR()).To(Equal(podCIDR))
+		Expect(networkDetail.HostPrefix()).To(Equal(hostPrefix))
+	})
+
+	It("ingress listening method is set correctly - [id:72516]", ci.Day1Post, ci.Medium, func() {
+		if profile.IngressListeningMethod == "" {
+			Skip("The test is configured only for the profile containing the ingress listening method")
+		}
+
+		By("Verify cluster configuration")
+		ingResp, err := cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(ingResp.Listening()).To(Equal(cmsv1.ListeningMethod(profile.IngressListeningMethod)))
 	})
 })

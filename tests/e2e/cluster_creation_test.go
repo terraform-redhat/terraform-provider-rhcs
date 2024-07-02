@@ -1,16 +1,19 @@
 package e2e
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	v1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/openshift"
-
-	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
 var _ = Describe("Create cluster", func() {
@@ -90,30 +93,88 @@ var _ = Describe("Create cluster", func() {
 	It("Cluster can be created within internal cluster waiter - [id:74473]", ci.Day1Supplemental, ci.Medium,
 		func() {
 			By("Retrieve random profile")
-			profilesMap, err := helper.ParseProfiles(ci.GetYAMLProfilesDir())
+			profile, err := ci.GetRandomProfile()
 			Expect(err).ToNot(HaveOccurred())
-			profilesNames := make([]string, 0, len(profilesMap))
-			for k := range profilesMap {
-				profilesNames = append(profilesNames, k)
-			}
-			Logger.Infof("Got profile names %v", profilesNames)
-			profileName := profilesMap[profilesNames[helper.RandomInt(len(profilesNames))]].Name
-			profile := ci.LoadProfileYamlFile(profileName)
-			Logger.Infof("Loaded profile %s", profile.Name)
 
 			By("Retrieve creation args")
 			defer func() {
 				By("Clean resources")
 				ci.DestroyRHCSClusterResourcesByProfile(token, profile)
 			}()
-			creationArgs, err := ci.GenerateClusterCreationArgsByProfile(token, profile)
+			clusterArgs, err := ci.GenerateClusterCreationArgsByProfile(token, profile)
 			Expect(err).ToNot(HaveOccurred())
-			creationArgs.DeactivateClusterWaiter = helper.BoolPointer(true)
+			clusterArgs.DisableClusterWaiter = helper.BoolPointer(true)
 
 			By("Create cluster")
 			clusterService, err := exec.NewClusterService(profile.GetClusterManifestsDir())
 			Expect(err).ToNot(HaveOccurred())
-			_, err = clusterService.Apply(creationArgs)
+			_, err = clusterService.Apply(clusterArgs)
 			Expect(err).ToNot(HaveOccurred())
+		})
+
+	It("Cluster can be created without cluster waiter - [id:74748]", ci.Day1Supplemental, ci.Medium,
+		func() {
+			By("Retrieve random profile")
+			profile, err := ci.GetRandomProfile()
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Retrieve creation args")
+			defer func() {
+				By("Clean resources")
+				ci.DestroyRHCSClusterResourcesByProfile(token, profile)
+			}()
+			clusterArgs, err := ci.GenerateClusterCreationArgsByProfile(token, profile)
+			Expect(err).ToNot(HaveOccurred())
+			clusterArgs.WaitForCluster = helper.BoolPointer(false)
+
+			By("Create cluster")
+			clusterService, err := exec.NewClusterService(profile.GetClusterManifestsDir())
+			Expect(err).ToNot(HaveOccurred())
+			_, err = clusterService.Apply(clusterArgs)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Verify cluster configuration")
+			clusterOut, err := clusterService.Output()
+			Expect(err).ToNot(HaveOccurred())
+			clusterID := clusterOut.ClusterID
+			clusterResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(clusterResp.Body().State()). // we did not wait for the cluster to be ready
+								To(
+					BeElementOf(
+						[]v1.ClusterState{
+							v1.ClusterStateInstalling,
+							v1.ClusterStateWaiting,
+							v1.ClusterStateValidating,
+						}),
+				)
+		})
+
+	It("HCP Cluster can be destroyed without waiting - [id:72500]", ci.Day3, ci.High,
+		func() {
+			profile := ci.LoadProfileYamlFileByENV()
+
+			By("Retrieve creation args")
+			clusterService, err := exec.NewClusterService(profile.GetClusterManifestsDir())
+			Expect(err).ToNot(HaveOccurred())
+			clusterArgs, err := clusterService.ReadTFVars()
+			Expect(err).ToNot(HaveOccurred())
+			clusterArgs.DisableWaitingInDestroy = helper.BoolPointer(true)
+
+			By("Apply changes")
+			_, err = clusterService.Apply(clusterArgs)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Destroy cluster")
+			_, err = clusterService.Destroy()
+			Expect(err).ToNot(HaveOccurred())
+
+			// Give some time for OCM to update
+			time.Sleep(5 * time.Second)
+
+			By("Verify cluster is in uninstalling state")
+			clusterResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(clusterResp.Body().State()).To(Equal(v1.ClusterStateUninstalling))
 		})
 })

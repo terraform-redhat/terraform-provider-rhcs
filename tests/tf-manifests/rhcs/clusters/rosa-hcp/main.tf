@@ -77,13 +77,19 @@ resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
   lifecycle {
     ignore_changes = [availability_zones]
   }
-  wait_for_create_complete            = true
-  wait_for_std_compute_nodes_complete = true
-  disable_waiting_in_destroy          = false
+  wait_for_create_complete            = var.wait_for_cluster
+  wait_for_std_compute_nodes_complete = var.wait_for_cluster
+  disable_waiting_in_destroy          = var.disable_waiting_in_destroy
 }
 
 resource "rhcs_cluster_wait" "rosa_cluster" { # id: 71869
-  count   = var.deactivate_cluster_waiter ? 0 : 1
+  count   = var.disable_cluster_waiter || !var.wait_for_cluster ? 0 : 1
   cluster = rhcs_cluster_rosa_hcp.rosa_hcp_cluster.id
   timeout = 60 # in minutes
+}
+
+resource "rhcs_hcp_default_ingress" "current" {
+  count            = var.ingress_listening_method != null && var.ingress_listening_method != "" ? 1 : 0
+  cluster          = rhcs_cluster_rosa_hcp.rosa_hcp_cluster.id
+  listening_method = var.ingress_listening_method
 }

@@ -43,6 +43,7 @@ var (
 	AWSSecurityGroupDir                         = path.Join(ManifestsConfigurationDir, AWSProviderDir, "security-groups")
 	ProxyDir                                    = path.Join(ManifestsConfigurationDir, AWSProviderDir, "proxy")
 	KMSDir                                      = path.Join(ManifestsConfigurationDir, AWSProviderDir, "kms")
+	KMSSecondDir                                = path.Join(ManifestsConfigurationDir, AWSProviderDir, "kms-second")
 	SharedVpcPolicyAndHostedZoneDir             = path.Join(ManifestsConfigurationDir, AWSProviderDir, "shared-vpc-policy-and-hosted-zone")
 )
 

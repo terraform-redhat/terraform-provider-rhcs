@@ -58,8 +58,11 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify the parameters of the created machinepool")
-		mpOut, err := mpService.Output()
+		mpsOut, err := mpService.Output()
 		Expect(err).ToNot(HaveOccurred())
+		Expect(len(mpsOut.MachinePools)).To(Equal(1))
+		mpOut := mpsOut.MachinePools[0]
+
 		mpResponseBody, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, name)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(mpResponseBody.Replicas()).To(Equal(mpOut.Replicas))

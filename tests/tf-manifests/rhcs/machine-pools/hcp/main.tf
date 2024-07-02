@@ -23,9 +23,10 @@ locals {
   }
 }
 
-resource "rhcs_hcp_machine_pool" "mp" {
+resource "rhcs_hcp_machine_pool" "mps" {
+  count                        = var.mp_count
   cluster                      = var.cluster
-  name                         = var.name
+  name                         = var.mp_count == 1 ? var.name : "${var.name}-${count.index}"
   subnet_id                    = var.subnet_id
   labels                       = var.labels
   replicas                     = var.replicas

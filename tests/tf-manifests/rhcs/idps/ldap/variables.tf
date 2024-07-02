@@ -1,5 +1,5 @@
 variable "idp_url" {
-  type    = string
+  type = string
 }
 // Shared by all of the IDPs
 variable "cluster_id" {

@@ -29,10 +29,11 @@ type MachinePoolArgs struct {
 	Tags                     *map[string]string   `hcl:"tags"`
 
 	// HCP supported
-	TuningConfigs              *[]string `hcl:"tuning_configs"`
-	UpgradeAcknowledgementsFor *string   `hcl:"upgrade_acknowledgements_for"`
-	OpenshiftVersion           *string   `hcl:"openshift_version"`
-	AutoRepair                 *bool     `hcl:"auto_repair"`
+	TuningConfigs              *[]string `json:"tuning_configs,omitempty"`
+	UpgradeAcknowledgementsFor *string   `json:"upgrade_acknowledgements_for,omitempty"`
+	OpenshiftVersion           *string   `json:"openshift_version,omitempty"`
+	AutoRepair                 *bool     `json:"auto_repair,omitempty"`
+	KubeletConfigs             *string   `json:"kubelet_configs,omitempty"`
 }
 
 type MachinePoolOutput struct {

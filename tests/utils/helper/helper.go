@@ -109,6 +109,9 @@ func DigStringArray(object interface{}, keys ...interface{}) []string {
 // value. If there is no attribute with the given path then the test will be aborted with an error.
 func DigArray(object interface{}, keys ...interface{}) []interface{} {
 	value := Dig(object, keys)
+	if value == nil {
+		return nil
+	}
 	result := value.([]interface{})
 	return result
 }
@@ -125,6 +128,19 @@ func DigArrayToString(object interface{}, keys ...interface{}) []string {
 		strR = append(strR, r.(string))
 	}
 	return strR
+}
+func DigArrayToInt(object interface{}, keys ...interface{}) []int {
+	value := Dig(object, keys)
+	var result []interface{}
+	if value == nil {
+		return nil
+	}
+	result = value.([]interface{})
+	intR := []int{}
+	for _, r := range result {
+		intR = append(intR, r.(int))
+	}
+	return intR
 }
 
 func DigMapToString(object interface{}, keys ...interface{}) map[string]string {

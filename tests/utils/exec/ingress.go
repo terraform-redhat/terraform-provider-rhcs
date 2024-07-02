@@ -8,14 +8,15 @@ type IngressArgs struct {
 	Cluster *string `hcl:"cluster"`
 
 	// Classic
-	ID                            *string            `hcl:"id"`
-	RouteNamespaceOwnershipPolicy *string            `hcl:"route_namespace_ownership_policy"`
-	RouteWildcardPolicy           *string            `hcl:"route_wildcard_policy"`
-	ClusterRoutesHostename        *string            `hcl:"cluster_routes_hostname"`
-	ClusterRoutestlsSecretRef     *string            `hcl:"cluster_routes_tls_secret_ref"`
-	LoadBalancerType              *string            `hcl:"load_balancer_type"`
-	ExcludedNamespaces            *[]string          `hcl:"excluded_namespaces"`
-	RouteSelectors                *map[string]string `hcl:"route_selectors"`
+	ID                            *string                       `hcl:"id"`
+	RouteNamespaceOwnershipPolicy *string                       `hcl:"route_namespace_ownership_policy"`
+	RouteWildcardPolicy           *string                       `hcl:"route_wildcard_policy"`
+	ClusterRoutesHostename        *string                       `hcl:"cluster_routes_hostname"`
+	ClusterRoutestlsSecretRef     *string                       `hcl:"cluster_routes_tls_secret_ref"`
+	LoadBalancerType              *string                       `hcl:"load_balancer_type"`
+	ExcludedNamespaces            *[]string                     `hcl:"excluded_namespaces"`
+	RouteSelectors                *map[string]string            `hcl:"route_selectors"`
+	ComponentRoutes               *map[string]map[string]string `hcl:"component_routes"`
 
 	// HCP
 	ListeningMethod *string `hcl:"listening_method"`

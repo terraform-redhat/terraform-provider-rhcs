@@ -36,3 +36,8 @@ variable "route_wildcard_policy" {
   type    = string
   default = null
 }
+
+variable "component_routes" {
+  type    = map(any)
+  default = null
+}

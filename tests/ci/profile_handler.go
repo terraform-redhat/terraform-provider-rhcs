@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -244,7 +245,7 @@ func PrepareProxy(region string, VPCID string, subnetPublicID string, keyPairID 
 	return proxyOutput.Proxies[0], err
 }
 
-func PrepareKMSKey(profile *Profile, kmsName string, accountRolePrefix string, accountRolePath string, clusterType constants.ClusterType) (string, error) {
+func PrepareKMSKey(manifestDir string, profile *Profile, kmsName string, accountRolePrefix string, accountRolePath string, clusterType constants.ClusterType) (string, error) {
 	kmsService, err := exec.NewKMSService()
 	if err != nil {
 		return "", err
@@ -585,7 +586,7 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 
 	if profile.KMSKey {
 		var kmskey string
-		kmskey, err = PrepareKMSKey(profile, *clusterArgs.ClusterName, *clusterArgs.AccountRolePrefix, profile.UnifiedAccRolesPath, profile.GetClusterType())
+		kmskey, err = PrepareKMSKey(constants.KMSDir, profile, *clusterArgs.ClusterName, *clusterArgs.AccountRolePrefix, profile.UnifiedAccRolesPath, profile.GetClusterType())
 		if err != nil {
 			return
 		}
@@ -805,4 +806,29 @@ func (profile *Profile) IsPrivateLink() bool {
 	} else {
 		return profile.PrivateLink
 	}
+}
+
+func GetRandomProfile(clusterTypes ...constants.ClusterType) (profile *Profile, err error) {
+	if len(clusterTypes) > 0 {
+		Logger.Infof("Get random profile for cluster types: %v", clusterTypes)
+	} else {
+		Logger.Info("Get random profile from all profiles")
+	}
+
+	profilesMap, err := helper.ParseProfiles(GetYAMLProfilesDir())
+	if err != nil {
+		return
+	}
+	profilesNames := make([]string, 0, len(profilesMap))
+	for k, v := range profilesMap {
+		clusterType := constants.FindClusterType(fmt.Sprintf("%v", v.Cluster["cluster_type"]))
+		if len(clusterTypes) <= 0 || slices.Contains(clusterTypes, clusterType) {
+			profilesNames = append(profilesNames, k)
+		}
+	}
+	Logger.Debugf("Got profile names %v", profilesNames)
+	profileName := profilesMap[profilesNames[helper.RandomInt(len(profilesNames))]].Name
+	profile = LoadProfileYamlFile(profileName)
+	Logger.Debugf("Choose profile: %s", profile.Name)
+	return profile, err
 }

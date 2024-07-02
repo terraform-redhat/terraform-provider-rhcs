@@ -40,16 +40,17 @@ type ClusterArgs struct {
 	UpgradeAcknowledgementsFor           *string            `hcl:"upgrade_acknowledgements_for"`
 	BaseDnsDomain                        *string            `hcl:"base_dns_domain"`
 	PrivateHostedZone                    *PrivateHostedZone `hcl:"private_hosted_zone"`
-	DeactivateClusterWaiter              *bool              `hcl:"deactivate_cluster_waiter"`
+	DisableClusterWaiter                 *bool              `hcl:"disable_cluster_waiter"`
 
-	AWSAccountID        *string `hcl:"aws_account_id"`
-	AWSBillingAccountID *string `hcl:"aws_billing_account_id"`
-	HostPrefix          *int    `hcl:"host_prefix"`
-	ServiceCIDR         *string `hcl:"service_cidr"`
-	PodCIDR             *string `hcl:"pod_cidr"`
-	StsInstallerRole    *string `hcl:"installer_role"`
-	StsSupportRole      *string `hcl:"support_role"`
-	StsWorkerRole       *string `hcl:"worker_role"`
+	AWSAccountID         *string `hcl:"aws_account_id"`
+	AWSBillingAccountID  *string `hcl:"aws_billing_account_id"`
+	HostPrefix           *int    `hcl:"host_prefix"`
+	ServiceCIDR          *string `hcl:"service_cidr"`
+	PodCIDR              *string `hcl:"pod_cidr"`
+	StsInstallerRole     *string `hcl:"installer_role"`
+	StsSupportRole       *string `hcl:"support_role"`
+	StsWorkerRole        *string `hcl:"worker_role"`
+	EnableClusterIngress *bool   `hcl:"activate_cluster_ingress"`
 
 	IncludeCreatorProperty *bool `hcl:"include_creator_property"`
 }

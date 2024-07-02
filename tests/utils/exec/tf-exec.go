@@ -146,7 +146,6 @@ func (ctx *terraformExecutorContext) RunTerraformImport(importArgs ...string) (o
 }
 
 func (ctx *terraformExecutorContext) WriteTerraformVars(obj interface{}) error {
-	Logger.Infof("Write tfvars file")
 	return WriteTFvarsFile(obj, ctx.grantTFvarsFile())
 }
 
@@ -156,14 +155,14 @@ func WriteTFvarsFile(obj interface{}, tfvarsFilePath string) error {
 		return err
 	}
 	defer tfVarsFile.Close()
-	Logger.Debugf("Recording tfvars file %s", tfvarsFilePath)
+	Logger.Infof("Recording tfvars file %s", tfvarsFilePath)
 
 	hclFile := hclwrite.NewEmptyFile()
 	gohcl.EncodeIntoBody(obj, hclFile.Body())
 
 	var buff bytes.Buffer
 	hclFile.WriteTo(&buff)
-	Logger.Debugf("Recording tfvars values %v", buff.String())
+	Logger.Infof("Recording tfvars values %v", buff.String())
 
 	_, err = hclFile.WriteTo(tfVarsFile)
 	return err

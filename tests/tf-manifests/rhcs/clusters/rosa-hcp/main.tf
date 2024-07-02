@@ -83,7 +83,13 @@ resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
 }
 
 resource "rhcs_cluster_wait" "rosa_cluster" { # id: 71869
-  count = var.deactivate_cluster_waiter ? 0 : 1
+  count = var.disable_cluster_waiter ? 0 : 1
   cluster = rhcs_cluster_rosa_hcp.rosa_hcp_cluster.id
   timeout = 60 # in minutes
+}
+
+resource "rhcs_hcp_default_ingress" "current" {
+  count = var.activate_cluster_ingress ? 1 : 0
+  cluster = rhcs_cluster_rosa_hcp.rosa_hcp_cluster.id
+  listening_method = "internal"
 }

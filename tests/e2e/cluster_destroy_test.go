@@ -19,7 +19,7 @@ var _ = Describe("Delete cluster", func() {
 
 			// Generate/build cluster by profile selected
 			profile := ci.LoadProfileYamlFileByENV()
-			err := ci.DestroyRHCSClusterByProfile(token, profile)
+			err := ci.DestroyRHCSClusterResourcesByProfile(token, profile)
 			Expect(err).ToNot(HaveOccurred())
 		})
 })

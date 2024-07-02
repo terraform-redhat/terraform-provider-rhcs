@@ -104,7 +104,7 @@ var _ = Describe("Create cluster", func() {
 			By("Retrieve creation args")
 			defer func() {
 				By("Clean resources")
-				ci.DestroyRHCSClusterByProfile(token, profile)
+				ci.DestroyRHCSClusterResourcesByProfile(token, profile)
 			}()
 			creationArgs, err := ci.GenerateClusterCreationArgsByProfile(token, profile)
 			Expect(err).ToNot(HaveOccurred())

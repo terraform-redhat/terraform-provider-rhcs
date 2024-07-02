@@ -1,6 +1,7 @@
 package ci
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -436,6 +437,7 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 	if profile.STS {
 		majorVersion := GetMajorVersion(profile.Version)
 		var accountRolesOutput *exec.AccountRolesOutput
+		var oidcOutput *exec.OIDCProviderOperatorRolesOutput
 
 		shared_vpc_role_arn := ""
 		if profile.SharedVpc {
@@ -447,8 +449,10 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 			//  Use hardcode as a temporary solution.
 			shared_vpc_role_arn = fmt.Sprintf("arn:aws:iam::641733028092:role/%s-shared-vpc-role", *clusterArgs.ClusterName)
 		}
-		accountRolesOutput, err := PrepareAccountRoles(token, *clusterArgs.ClusterName, profile.UnifiedAccRolesPath, *clusterArgs.AWSRegion, majorVersion, profile.ChannelGroup, profile.GetClusterType(), shared_vpc_role_arn)
-		Expect(err).ToNot(HaveOccurred())
+		accountRolesOutput, err = PrepareAccountRoles(token, *clusterArgs.ClusterName, profile.UnifiedAccRolesPath, *clusterArgs.AWSRegion, majorVersion, profile.ChannelGroup, profile.GetClusterType(), shared_vpc_role_arn)
+		if err != nil {
+			return
+		}
 		clusterArgs.AccountRolePrefix = helper.StringPointer(accountRolesOutput.AccountRolePrefix)
 		clusterArgs.UnifiedAccRolesPath = helper.StringPointer(profile.UnifiedAccRolesPath)
 		Logger.Infof("Created account roles with prefix %s", accountRolesOutput.AccountRolePrefix)
@@ -456,8 +460,10 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 		Logger.Infof("Sleep for 10 sec to let aws account role async creation finished")
 		time.Sleep(10 * time.Second)
 
-		oidcOutput, err := PrepareOIDCProviderAndOperatorRoles(token, profile.OIDCConfig, *clusterArgs.ClusterName, accountRolesOutput.AccountRolePrefix, profile.UnifiedAccRolesPath, profile.GetClusterType(), *clusterArgs.AWSRegion)
-		Expect(err).ToNot(HaveOccurred())
+		oidcOutput, err = PrepareOIDCProviderAndOperatorRoles(token, profile.OIDCConfig, *clusterArgs.ClusterName, accountRolesOutput.AccountRolePrefix, profile.UnifiedAccRolesPath, profile.GetClusterType(), *clusterArgs.AWSRegion)
+		if err != nil {
+			return
+		}
 		clusterArgs.OIDCConfigID = &oidcOutput.OIDCConfigID
 		clusterArgs.OperatorRolePrefix = &oidcOutput.OperatorRolePrefix
 
@@ -643,37 +649,41 @@ func LoadProfileYamlFileByENV() *Profile {
 func CreateRHCSClusterByProfile(token string, profile *Profile) (string, error) {
 	creationArgs, err := GenerateClusterCreationArgsByProfile(token, profile)
 	if err != nil {
-		defer DestroyRHCSClusterByProfile(token, profile)
+		defer DestroyRHCSClusterResourcesByProfile(token, profile)
 	}
 	Expect(err).ToNot(HaveOccurred())
 	clusterService, err := exec.NewClusterService(profile.GetClusterManifestsDir())
 	if err != nil {
-		defer DestroyRHCSClusterByProfile(token, profile)
+		defer DestroyRHCSClusterResourcesByProfile(token, profile)
 	}
 	Expect(err).ToNot(HaveOccurred())
 	_, err = clusterService.Apply(creationArgs)
 	if err != nil {
 		clusterService.WriteTFVars(creationArgs)
-		defer DestroyRHCSClusterByProfile(token, profile)
+		defer DestroyRHCSClusterResourcesByProfile(token, profile)
 		return "", err
 	}
 	clusterOutput, err := clusterService.Output()
 	if err != nil {
 		clusterService.WriteTFVars(creationArgs)
-		defer DestroyRHCSClusterByProfile(token, profile)
+		defer DestroyRHCSClusterResourcesByProfile(token, profile)
 		return "", err
 	}
 	clusterID := clusterOutput.ClusterID
 	return clusterID, err
 }
 
-func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
+func DestroyRHCSClusterResourcesByProfile(token string, profile *Profile) error {
 	// Destroy cluster
+	var errs []error
 	clusterService, err := exec.NewClusterService(profile.GetClusterManifestsDir())
-	Expect(err).ToNot(HaveOccurred())
-	_, err = clusterService.Destroy()
 	if err != nil {
-		return err
+		errs = append(errs, err)
+	} else {
+		_, err = clusterService.Destroy()
+		if err != nil {
+			errs = append(errs, err)
+		}
 	}
 
 	// Destroy VPC
@@ -681,74 +691,80 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 		if profile.Proxy {
 			proxyService, err := exec.NewProxyService()
 			if err != nil {
-				return err
-			}
-			_, err = proxyService.Destroy()
-			if err != nil {
-				return err
+				errs = append(errs, err)
+			} else {
+				_, err = proxyService.Destroy()
+				if err != nil {
+					errs = append(errs, err)
+				}
 			}
 		}
 		if profile.AdditionalSGNumber != 0 {
 			sgService, err := exec.NewSecurityGroupService()
 			if err != nil {
-				return err
-			}
-			_, err = sgService.Destroy()
-			if err != nil {
-				return err
+				errs = append(errs, err)
+			} else {
+				_, err = sgService.Destroy()
+				if err != nil {
+					errs = append(errs, err)
+				}
 			}
 		}
 
 		if profile.SharedVpc {
-			if constants.SharedVpcAWSSharedCredentialsFileENV == "" {
-				panic(fmt.Errorf("SHARED_VPC_AWS_SHARED_CREDENTIALS_FILE env is not set or empty, it's requried by Shared-VPC cluster"))
-			}
-
 			sharedVpcPolicyAndHostedZoneService, err := exec.NewSharedVpcPolicyAndHostedZoneService()
 			if err != nil {
-				return err
-			}
-			_, err = sharedVpcPolicyAndHostedZoneService.Destroy()
-			if err != nil {
-				return err
+				errs = append(errs, err)
+			} else {
+				_, err = sharedVpcPolicyAndHostedZoneService.Destroy()
+				if err != nil {
+					errs = append(errs, err)
+				}
 			}
 
 			// DNS domain
 			dnsDomainService, err := exec.NewDnsDomainService()
 			if err != nil {
-				return err
-			}
-			_, err = dnsDomainService.Destroy()
-			if err != nil {
-				return err
+				errs = append(errs, err)
+			} else {
+				_, err = dnsDomainService.Destroy()
+				if err != nil {
+					errs = append(errs, err)
+				}
 			}
 		}
 
 		vpcService, _ := exec.NewVPCService(constants.GetAWSVPCDefaultManifestDir(profile.GetClusterType()))
-		_, err := vpcService.Destroy()
 		if err != nil {
-			return err
+			errs = append(errs, err)
+		} else {
+			_, err = vpcService.Destroy()
+			if err != nil {
+				errs = append(errs, err)
+			}
 		}
 	}
 	if profile.STS {
 		// Destroy oidc and operator roles
 		oidcOpService, err := exec.NewOIDCProviderOperatorRolesService(constants.GetOIDCProviderOperatorRolesDefaultManifestDir(profile.GetClusterType()))
 		if err != nil {
-			return err
-		}
-		_, err = oidcOpService.Destroy()
-		if err != nil {
-			return err
+			errs = append(errs, err)
+		} else {
+			_, err = oidcOpService.Destroy()
+			if err != nil {
+				errs = append(errs, err)
+			}
 		}
 
 		//  Destroy Account roles
 		accService, err := exec.NewAccountRoleService(constants.GetAccountRoleDefaultManifestDir(profile.GetClusterType()))
 		if err != nil {
-			return err
-		}
-		_, err = accService.Destroy()
-		if err != nil {
-			return err
+			errs = append(errs, err)
+		} else {
+			_, err = accService.Destroy()
+			if err != nil {
+				errs = append(errs, err)
+			}
 		}
 
 	}
@@ -756,12 +772,16 @@ func DestroyRHCSClusterByProfile(token string, profile *Profile) error {
 		//Destroy KMS Key
 		kmsService, err := exec.NewKMSService()
 		if err != nil {
-			return err
+			errs = append(errs, err)
+		} else {
+			_, err = kmsService.Destroy()
+			if err != nil {
+				errs = append(errs, err)
+			}
 		}
-		_, err = kmsService.Destroy()
-		if err != nil {
-			return err
-		}
+	}
+	if len(errs) > 0 {
+		return errors.Join(errs...)
 	}
 	return nil
 }

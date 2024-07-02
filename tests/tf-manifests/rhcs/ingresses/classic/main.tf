@@ -20,6 +20,6 @@ resource "rhcs_default_ingress" "default_ingress" {
   cluster_routes_tls_secret_ref    = var.cluster_routes_tls_secret_ref
   id                               = var.id
   load_balancer_type               = var.load_balancer_type
-
+  component_routes                 = var.component_routes
 
 }

@@ -18,8 +18,9 @@ type profiles struct {
 	Profiles []*profile `yaml:"profiles,omitempty"`
 }
 type profile struct {
-	Name    string                 `yaml:"as,omitempty"`
-	Cluster map[string]interface{} `yaml:"cluster,omitempty"`
+	Name               string                 `yaml:"as,omitempty"`
+	NeedSpecificConfig bool                   `yaml:"need_specific_config,omitempty"` // Some profiles need external configuration files
+	Cluster            map[string]interface{} `yaml:"cluster,omitempty"`
 }
 
 func ParseProfiles(profilesDir string) (map[string]*profile, error) {

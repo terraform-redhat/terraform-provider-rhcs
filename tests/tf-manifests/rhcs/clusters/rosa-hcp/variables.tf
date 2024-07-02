@@ -164,7 +164,22 @@ variable "include_creator_property" {
   default = true
 }
 
-variable "deactivate_cluster_waiter" {
+variable "wait_for_cluster" {
+  type    = bool
+  default = true
+}
+
+variable "disable_cluster_waiter" {
+  type    = bool
+  default = false
+}
+
+variable "ingress_listening_method" {
+  type    = string
+  default = null
+}
+
+variable "disable_waiting_in_destroy" {
   type    = bool
   default = false
 }

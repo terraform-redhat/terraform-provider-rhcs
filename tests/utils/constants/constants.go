@@ -132,6 +132,15 @@ func FindClusterType(clusterTypeName string) ClusterType {
 	panic(fmt.Sprintf("Unknown cluster type %s", clusterTypeName))
 }
 
+func GetHCPClusterTypes() (types []ClusterType) {
+	for _, ct := range allClusterTypes {
+		if ct.HCP {
+			types = append(types, ct)
+		}
+	}
+	return
+}
+
 func (ct *ClusterType) String() string {
 	return ct.Name
 }

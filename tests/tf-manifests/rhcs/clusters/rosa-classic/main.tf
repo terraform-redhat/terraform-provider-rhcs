@@ -95,11 +95,12 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   lifecycle {
     ignore_changes = [availability_zones]
   }
-  wait_for_create_complete = true
+  wait_for_create_complete   = var.wait_for_cluster
+  disable_waiting_in_destroy = var.disable_waiting_in_destroy
 }
 
 resource "rhcs_cluster_wait" "rosa_cluster" { # id: 71869
-  count   = var.deactivate_cluster_waiter ? 0 : 1
+  count   = var.disable_cluster_waiter || !var.wait_for_cluster ? 0 : 1
   cluster = rhcs_cluster_rosa_classic.rosa_sts_cluster.id
   timeout = 120
 }

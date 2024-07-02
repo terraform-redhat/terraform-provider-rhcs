@@ -212,7 +212,17 @@ variable "private_hosted_zone" {
   default = null
 }
 
-variable "deactivate_cluster_waiter" {
+variable "wait_for_cluster" {
+  type    = bool
+  default = true
+}
+
+variable "disable_cluster_waiter" {
+  type    = bool
+  default = false
+}
+
+variable "disable_waiting_in_destroy" {
   type    = bool
   default = false
 }

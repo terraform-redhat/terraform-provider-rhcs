@@ -104,7 +104,15 @@ func (ctx *terraformExecutorContext) RunTerraformApply(argObj interface{}) (stri
 }
 
 func (ctx *terraformExecutorContext) RunTerraformDestroy() (output string, err error) {
-	output, err = ctx.runTerraformCommand("destroy", "-auto-approve", "-no-color", "-var-file", ctx.grantTFvarsFile())
+	varsFile := ctx.grantTFvarsFile()
+	if fileExists, err := helper.IsFileExists(varsFile); err != nil {
+		return "", err
+	} else if !fileExists {
+		Logger.Warnf("No tfvars file found for destroying. Ignoring...")
+		return "No tfvars file found for destroying. Ignoring...", nil
+	}
+
+	output, err = ctx.runTerraformCommand("destroy", "-auto-approve", "-no-color", "-var-file", varsFile)
 	if err == nil {
 		ctx.DeleteTerraformVars()
 	}
@@ -184,12 +192,10 @@ func (ctx *terraformExecutorContext) ReadTerraformVars(obj interface{}) error {
 }
 
 func ReadTerraformVarsFile(filePath string, obj interface{}) error {
-	_, err := os.Stat(filePath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
+	if fileExists, err := helper.IsFileExists(filePath); err != nil {
 		return err
+	} else if !fileExists {
+		return nil
 	}
 
 	Logger.Debugf("Reading tfvars file %s", filePath)

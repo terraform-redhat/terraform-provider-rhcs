@@ -346,6 +346,12 @@ func RetrieveKubeletConfig(connection *client.Connection, clusterID string) (*cm
 	return resp.Body(), err
 }
 
+// ListHCPKubeletConfig returns the kubeletconfig
+func ListHCPKubeletConfigs(connection *client.Connection, clusterID string) ([]*cmv1.KubeletConfig, error) {
+	resp, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).KubeletConfigs().List().Send()
+	return resp.Items().Slice(), err
+}
+
 // RetrieveHCPKubeletConfig returns the kubeletconfig
 func RetrieveHCPKubeletConfig(connection *client.Connection, clusterID string, kubeConfigID string) (*cmv1.KubeletConfig, error) {
 	resp, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).KubeletConfigs().KubeletConfig(kubeConfigID).Get().Send()

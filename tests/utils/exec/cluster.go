@@ -44,17 +44,18 @@ type ClusterArgs struct {
 	DisableClusterWaiter                 *bool              `hcl:"disable_cluster_waiter"`
 	DisableWaitingInDestroy              *bool              `hcl:"disable_waiting_in_destroy"`
 
-	AWSAccountID           *string `hcl:"aws_account_id"`
-	AWSBillingAccountID    *string `hcl:"aws_billing_account_id"`
-	HostPrefix             *int    `hcl:"host_prefix"`
-	ServiceCIDR            *string `hcl:"service_cidr"`
-	PodCIDR                *string `hcl:"pod_cidr"`
-	StsInstallerRole       *string `hcl:"installer_role"`
-	StsSupportRole         *string `hcl:"support_role"`
-	StsWorkerRole          *string `hcl:"worker_role"`
-	IngressListeningMethod *string `hcl:"ingress_listening_method"`
+	AWSAccountID        *string `hcl:"aws_account_id"`
+	AWSBillingAccountID *string `hcl:"aws_billing_account_id"`
+	HostPrefix          *int    `hcl:"host_prefix"`
+	ServiceCIDR         *string `hcl:"service_cidr"`
+	PodCIDR             *string `hcl:"pod_cidr"`
+	StsInstallerRole    *string `hcl:"installer_role"`
+	StsSupportRole      *string `hcl:"support_role"`
+	StsWorkerRole       *string `hcl:"worker_role"`
 
 	IncludeCreatorProperty *bool `hcl:"include_creator_property"`
+
+	FullResources *bool `hcl:"full_resources"`
 }
 type Proxy struct {
 	HTTPProxy             *string `cty:"http_proxy"`

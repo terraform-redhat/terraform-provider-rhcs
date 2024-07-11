@@ -89,7 +89,82 @@ resource "rhcs_cluster_wait" "rosa_cluster" { # id: 71869
 }
 
 resource "rhcs_hcp_default_ingress" "current" {
-  count            = var.ingress_listening_method != null && var.ingress_listening_method != "" ? 1 : 0
+  count            = var.full_resources ? 1 : 0
   cluster          = rhcs_cluster_rosa_hcp.rosa_hcp_cluster.id
-  listening_method = var.ingress_listening_method
+  listening_method = "internal"
+}
+locals {
+  default_mp_name = length(rhcs_cluster_rosa_hcp.rosa_hcp_cluster.availability_zones) == 1 ? "workers" : "workers-0"
+}
+data "rhcs_hcp_machine_pool" "default_machine_pool" {
+  cluster = rhcs_cluster_rosa_hcp.rosa_hcp_cluster.id
+  name    = local.default_mp_name
+}
+// machinepool resource should wait for the cluster creation finished
+resource "rhcs_hcp_machine_pool" "mp" {
+  count   = var.full_resources ? 1 : 0
+  cluster = rhcs_cluster_rosa_hcp.rosa_hcp_cluster.id
+  aws_node_pool = {
+    instance_type = rhcs_cluster_rosa_hcp.rosa_hcp_cluster.compute_machine_type,
+  }
+  autoscaling = {
+    enabled = false
+  }
+  name        = "full-resource"
+  replicas    = 0
+  auto_repair = false
+  subnet_id   = data.rhcs_hcp_machine_pool.default_machine_pool.subnet_id
+}
+
+resource "random_password" "password" {
+  length           = 16
+  special          = true
+  override_special = "!#$%&*()-_=+[]{}<>:?"
+}
+
+// idp resource should wait for the cluster creation finished
+resource "rhcs_identity_provider" "htpasswd_idp" {
+  count          = var.full_resources ? 1 : 0
+  cluster        = rhcs_cluster_rosa_hcp.rosa_hcp_cluster.id
+  name           = "full-resource"
+  mapping_method = "claim"
+  htpasswd = {
+    users = [{
+      username = "full-resource"
+      password = random_password.password.result
+    }]
+  }
+}
+
+// kubeletconfig will be created after cluster created
+resource "rhcs_kubeletconfig" "kubeletconfig" {
+  count          = var.full_resources ? 1 : 0
+  cluster        = rhcs_cluster_rosa_hcp.rosa_hcp_cluster.id
+  pod_pids_limit = 4097
+}
+
+locals {
+  defaultSpec = jsonencode(
+    {
+      "profile" : [
+        {
+          "data" : "[main]\nsummary=Custom OpenShift profile\ninclude=openshift-node\n\n[sysctl]\nvm.dirty_ratio=\"65\"\n",
+          "name" : "tuned-profile"
+        }
+      ],
+      "recommend" : [
+        {
+          "priority" : 10,
+          "profile" : "tuned-profile"
+        }
+      ]
+    }
+  )
+}
+
+resource "rhcs_tuning_config" "tcs" {
+  count   = var.full_resources ? 1 : 0
+  cluster = rhcs_cluster_rosa_hcp.rosa_hcp_cluster.id
+  name    = "full-resource"
+  spec    = local.defaultSpec
 }

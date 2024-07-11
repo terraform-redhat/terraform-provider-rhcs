@@ -226,3 +226,8 @@ variable "disable_waiting_in_destroy" {
   type    = bool
   default = false
 }
+
+variable "full_resources" {
+  type    = bool
+  default = false
+}

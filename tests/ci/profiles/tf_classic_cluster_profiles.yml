@@ -160,4 +160,18 @@ profiles:
     oidc_config: "managed"
     admin_enabled: true
     unified_acc_role_path: ""
-
+- as: rosa-classic-full
+  cluster:
+    cluster_type: rosa-classic
+    multi_az: false
+    product_id: "rosa"
+    cloud_provider: "aws"
+    region: "ap-northeast-1"
+    sts: true
+    byovpc: true
+    major_version: "4.15"
+    channel_group: stable
+    compute_machine_type: "m5.xlarge"
+    oidc_config: "managed"
+    full_resources: true
+    no_wait_cluster: true

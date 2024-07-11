@@ -67,7 +67,8 @@ type Profile struct {
 	ServiceCIDR             string `ini:"service_cidr,omitempty" json:"service_cidr,omitempty"`
 	PodCIDR                 string `ini:"pod_cidr,omitempty" json:"pod_cidr,omitempty"`
 	HostPrefix              int    `ini:"host_prefix,omitempty" json:"host_prefix,omitempty"`
-	IngressListeningMethod  string `ini:"ingress_listening_method,omitempty" json:"ingress_listening_method,omitempty"`
+	FullResources           bool   `ini:"full_resources,omitempty" json:"full_resources,omitempty"`
+	DontWaitForCluster      bool   `ini:"no_wait_cluster,omitempty" json:"no_wait_cluster,omitempty"`
 }
 
 func PrepareVPC(region string, multiZone bool, azIDs []string, clusterType constants.ClusterType, name string, sharedVpcAWSSharedCredentialsFile string) (*exec.VPCOutput, error) {
@@ -642,10 +643,12 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 	clusterArgs.UnifiedAccRolesPath = helper.StringPointer(profile.UnifiedAccRolesPath)
 	clusterArgs.CustomProperties = helper.StringMapPointer(constants.CustomProperties) // id:72450
 
-	if profile.IngressListeningMethod != "" {
-		clusterArgs.IngressListeningMethod = helper.StringPointer(profile.IngressListeningMethod)
+	if profile.FullResources {
+		clusterArgs.FullResources = helper.BoolPointer(true)
 	}
-
+	if profile.DontWaitForCluster {
+		clusterArgs.WaitForCluster = helper.BoolPointer(false)
+	}
 	return clusterArgs, err
 }
 

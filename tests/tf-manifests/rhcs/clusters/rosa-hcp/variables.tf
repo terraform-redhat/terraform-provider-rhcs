@@ -174,12 +174,12 @@ variable "disable_cluster_waiter" {
   default = false
 }
 
-variable "ingress_listening_method" {
-  type    = string
-  default = null
+variable "disable_waiting_in_destroy" {
+  type    = bool
+  default = false
 }
 
-variable "disable_waiting_in_destroy" {
+variable "full_resources" {
   type    = bool
   default = false
 }

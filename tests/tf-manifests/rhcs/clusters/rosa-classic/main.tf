@@ -104,3 +104,63 @@ resource "rhcs_cluster_wait" "rosa_cluster" { # id: 71869
   cluster = rhcs_cluster_rosa_classic.rosa_sts_cluster.id
   timeout = 120
 }
+
+// autoscaler resource should wait for cluster creation finished
+resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
+  count                = var.full_resources ? 1 : 0
+  cluster              = rhcs_cluster_rosa_classic.rosa_sts_cluster.id
+  max_pod_grace_period = 1000
+}
+
+// machinepool resource should wait for the cluster creation finished
+resource "rhcs_machine_pool" "mp" {
+  count                   = var.full_resources ? 1 : 0
+  cluster                 = rhcs_cluster_rosa_classic.rosa_sts_cluster.id
+  machine_type            = rhcs_cluster_rosa_classic.rosa_sts_cluster.compute_machine_type
+  name                    = "full-resource"
+  replicas                = 3
+  multi_availability_zone = rhcs_cluster_rosa_classic.rosa_sts_cluster.multi_az
+}
+
+resource "random_password" "password" {
+  length           = 16
+  special          = true
+  override_special = "!#$%&*()-_=+[]{}<>:?"
+}
+
+// idp resource should wait for the cluster creation finished
+resource "rhcs_identity_provider" "htpasswd_idp" {
+  count          = var.full_resources ? 1 : 0
+  cluster        = rhcs_cluster_rosa_classic.rosa_sts_cluster.id
+  name           = "full-resource"
+  mapping_method = "claim"
+  htpasswd = {
+    users = [{
+      username = "full-resource"
+      password = random_password.password.result
+    }]
+  }
+}
+
+// ingress resource should be changed after cluster created
+resource "rhcs_default_ingress" "default_ingress" {
+  count               = var.full_resources ? 1 : 0
+  cluster             = rhcs_cluster_rosa_classic.rosa_sts_cluster.id
+  excluded_namespaces = ["full-resource"]
+}
+
+// kubeletconfig will be created after cluster created
+resource "rhcs_kubeletconfig" "kubeletconfig" {
+  count          = var.full_resources ? 1 : 0
+  cluster        = rhcs_cluster_rosa_classic.rosa_sts_cluster.id
+  pod_pids_limit = 4097
+}
+
+// user will be created after cluster created
+resource "rhcs_group_membership" "group_membership" {
+  count   = var.full_resources ? 1 : 0
+  cluster = rhcs_cluster_rosa_classic.rosa_sts_cluster.id
+  group   = "cluster-admins"
+  user    = "full-resource"
+
+}

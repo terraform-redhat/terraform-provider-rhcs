@@ -88,6 +88,7 @@ profiles:
     oidc_config: "un-managed" # id:72493
     admin_enabled: false # Not yet supported
     unified_acc_role_path: ""
+
 # rosa-up-z :: creating a cluster for z-stream upgrade purpose
 - as: rosa-hcp-up-z # id: 72475
   cluster:
@@ -181,31 +182,16 @@ profiles:
     admin_enabled: false # Not yet supported
     unified_acc_role_path: ""
 
-- as: rosa-hcp-ingress # id:72516
+- as: rosa-hcp-full
   cluster:
     cluster_type: rosa-hcp
-    multi_az: true
-    product_id: "rosa"
-    cloud_provider: "aws"
-    region: "us-west-2"
-    sts: true
+    multi_az: false
     byovpc: true
-    private: false
-    etcd_encryption: false
-    kms_key_arn: false
-    fips: false
-    autoscale: false
-    byok: false
-    version_pattern: "latest" # id:72472
-    version: "" # id:72472
-    major_version: "4.15" # id:72472
-    compute_machine_type: "m5.xlarge" # id:72448
-    proxy: false
-    labeling: false # not yet supported
-    tagging: false
-    channel_group: candidate # id:72473
-    zones: "" # id:72456
-    oidc_config: "managed" # id:72493
-    admin_enabled: false # Not yet supported
-    unified_acc_role_path: ""
-    ingress_listening_method: "internal" # id:72516
+    sts: true
+    region: "us-west-2"
+    major_version: "4.15"
+    channel_group: stable
+    compute_machine_type: "m5.xlarge"
+    oidc_config: "un-managed"
+    full_resources: true
+    no_wait_cluster: true

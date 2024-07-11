@@ -376,14 +376,77 @@ var _ = Describe("Verify cluster", func() {
 		Expect(networkDetail.HostPrefix()).To(Equal(hostPrefix))
 	})
 
-	It("ingress listening method is set correctly - [id:72516]", ci.Day1Post, ci.Medium, func() {
-		if profile.IngressListeningMethod == "" {
-			Skip("The test is configured only for the profile containing the ingress listening method")
-		}
+	It("resources will wait for cluster ready - [id:74096]", ci.Day1Post, ci.Critical,
+		func() {
+			By("Check if cluster is full resources, if not skip")
+			if !profile.FullResources {
+				Skip("This only work for full resources testing")
+			}
 
-		By("Verify cluster configuration")
-		ingResp, err := cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(ingResp.Listening()).To(Equal(cmsv1.ListeningMethod(profile.IngressListeningMethod)))
-	})
+			By("Check the created IDP")
+			resp, err := cms.ListClusterIDPs(ci.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(resp.Items().Len()).To(Equal(1))
+			Expect(resp.Items().Get(0).Name()).To(Equal("full-resource"))
+			idpID := resp.Items().Get(0).ID()
+
+			By("Check the group membership")
+			userResp, err := cms.ListHtpasswdUsers(ci.RHCSConnection, clusterID, idpID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userResp.Items().Len()).To(Equal(1))
+			Expect(userResp.Items().Get(0).Username()).To(Equal("full-resource"))
+
+			By("Check the kubeletconfig")
+			if cluster.Hypershift().Enabled() {
+
+				kubeletConfigs, err := cms.ListHCPKubeletConfigs(ci.RHCSConnection, clusterID)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(kubeletConfigs)).To(Equal(1))
+				Expect(kubeletConfigs[0].PodPidsLimit()).To(Equal(4097))
+
+			} else {
+				kubeConfig, err := cms.RetrieveKubeletConfig(ci.RHCSConnection, clusterID)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(kubeConfig.PodPidsLimit()).To(Equal(4097))
+
+			}
+
+			By("Check the default ingress")
+			ingress, err := cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			if !cluster.Hypershift().Enabled() {
+				Expect(ingress.ExcludedNamespaces()).To(ContainElement("full-resource"))
+			} else {
+				Expect(string(ingress.Listening())).To(Equal("internal"))
+			}
+
+			By("Check the created autoscaler")
+			if !cluster.Hypershift().Enabled() {
+				autoscaler, err := cms.RetrieveClusterAutoscaler(ci.RHCSConnection, clusterID)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(autoscaler.Body().MaxPodGracePeriod()).To(Equal(1000))
+			}
+
+			By("Check the created machinepool")
+			mpName := "full-resource"
+			if !cluster.Hypershift().Enabled() {
+				mp, err := cms.RetrieveClusterMachinePool(ci.RHCSConnection, clusterID, mpName)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(mp).ToNot(BeNil())
+			} else {
+				np, err := cms.RetrieveNodePool(ci.RHCSConnection, clusterID, mpName)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(np).ToNot(BeNil())
+			}
+
+			By("Check the created tuningconfig")
+			tunningConfigName := "full-resource"
+			if cluster.Hypershift().Enabled() {
+				tunnings, err := cms.ListTuningConfigs(ci.RHCSConnection, clusterID)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(tunnings.Total()).To(Equal(1))
+				Expect(tunnings.Items().Get(0).Name()).To(Equal(tunningConfigName))
+			}
+
+		})
 })

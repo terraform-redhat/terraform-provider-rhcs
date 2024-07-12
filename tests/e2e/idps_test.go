@@ -32,7 +32,7 @@ type IDPServices struct {
 
 var (
 	defaultHTPUsername = "my-admin-user"
-	defaultHTPPassword = helper.GenerateRandomStringWithSymbols(15)
+	defaultHTPPassword = helper.GenerateRandomPassword(15)
 
 	defaultLDAPUsername = "newton"
 	defaultLDAPPassword = "password"
@@ -203,7 +203,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				Expect(respUserName).To(Equal(defaultHTPUsername))
 
 				By("Update htpasswd idp password of 'my-admin-user'")
-				newPassword := helper.GenerateRandomStringWithSymbols(15)
+				newPassword := helper.GenerateRandomPassword(15)
 				(*idpParam.HtpasswdUsers)[0].Password = helper.StringPointer(newPassword)
 				_, err = idpServices.htpasswd.Apply(idpParam)
 				Expect(err).ToNot(HaveOccurred())
@@ -215,9 +215,9 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 
 				By("Update htpasswd idp by adding two new users")
 				userName2 := "my-admin-user2"
-				password2 := helper.GenerateRandomStringWithSymbols(15)
+				password2 := helper.GenerateRandomPassword(15)
 				userName3 := "my-admin-user3"
-				password3 := helper.GenerateRandomStringWithSymbols(15)
+				password3 := helper.GenerateRandomPassword(15)
 
 				htpUsers := (*idpParam.HtpasswdUsers)
 				htpUsers = append(htpUsers,
@@ -234,7 +234,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Update htpasswd idp on the second user password")
-				newPassword2 := helper.GenerateRandomStringWithSymbols(15)
+				newPassword2 := helper.GenerateRandomPassword(15)
 				(*idpParam.HtpasswdUsers)[1].Password = helper.StringPointer(newPassword2)
 				_, err = idpServices.htpasswd.Apply(idpParam)
 				Expect(err).ToNot(HaveOccurred())
@@ -488,11 +488,11 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				htpUsers = append(htpUsers,
 					exec.HTPasswordUser{
 						Username: helper.StringPointer("second_user"),
-						Password: helper.StringPointer(helper.GenerateRandomStringWithSymbols(15)),
+						Password: helper.StringPointer(helper.GenerateRandomPassword(15)),
 					},
 					exec.HTPasswordUser{
 						Username: helper.StringPointer("third_user"),
-						Password: helper.StringPointer(helper.GenerateRandomStringWithSymbols(15)),
+						Password: helper.StringPointer(helper.GenerateRandomPassword(15)),
 					},
 				)
 				_, err = idpServices.htpasswd.Apply(idpParam)
@@ -699,7 +699,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 			args := getDefaultHTPasswordArgs(idpName)
 			newHTPwd := append(*args.HtpasswdUsers, exec.HTPasswordUser{
 				Username: helper.StringPointer(usernameInvalid),
-				Password: helper.StringPointer(helper.GenerateRandomStringWithSymbols(3)),
+				Password: helper.StringPointer(helper.GenerateRandomPassword(3)),
 			})
 			args.HtpasswdUsers = &newHTPwd
 			validateIDPArgAgainstErrorSubstrings(idpServices.htpasswd, args, "password string length must be at least 14")

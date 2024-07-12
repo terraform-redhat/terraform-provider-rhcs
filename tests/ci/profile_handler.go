@@ -405,7 +405,7 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 
 	if profile.AdminEnabled {
 		userName := constants.ClusterAdminUser
-		password := helper.GenerateRandomStringWithSymbols(14)
+		password := helper.GenerateRandomPassword(14)
 		adminPasswdMap := map[string]string{"username": userName, "password": password}
 		clusterArgs.AdminCredentials = helper.StringMapPointer(adminPasswdMap)
 		pass := []byte(password)

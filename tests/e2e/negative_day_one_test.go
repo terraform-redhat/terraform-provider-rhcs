@@ -98,7 +98,7 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 		It("validate password policy - [id:65963]", ci.Medium, func() {
 			By("Edit cluster admin password  to the short one")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				(*args.AdminCredentials)["password"] = helper.GenerateRandomStringWithSymbols(13)
+				(*args.AdminCredentials)["password"] = helper.GenerateRandomPassword(13)
 			}, "Attribute admin_credentials.password string length must be at least 14")
 
 			By("Edit cluster admin password to empty")
@@ -108,7 +108,7 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 
 			By("Edit cluster admin password that lacks a capital letter")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				(*args.AdminCredentials)["password"] = strings.ToLower(helper.GenerateRandomStringWithSymbols(14))
+				(*args.AdminCredentials)["password"] = strings.ToLower(helper.GenerateRandomPassword(14))
 			}, "Attribute admin_credentials.password password must contain uppercase characters")
 
 			By("Edit cluster admin password that lacks symbol but has digits")

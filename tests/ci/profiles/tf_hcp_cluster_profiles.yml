@@ -16,7 +16,7 @@ profiles:
     byok: true
     version_pattern: "latest" # id:72472
     version: "" # id:72472
-    major_version: "4.15" # id:72472
+    major_version: "4.16" # id:72472
     compute_replicas: 6 # id:72446
     compute_machine_type: "m5.2xlarge" # id:72448
     proxy: true # id:72488
@@ -45,7 +45,7 @@ profiles:
     byok: false
     version_pattern: "latest" # id:72472
     version: "" # id:72472
-    major_version: "4.15" # id:72472
+    major_version: "4.16" # id:72472
     compute_machine_type: "m5.xlarge" # id:72448
     proxy: false
     labeling: false # not yet supported
@@ -109,7 +109,7 @@ profiles:
     byok: true
     version_pattern: "z-1"
     version: ""
-    major_version: "4.15"
+    major_version: "4.16"
     compute_machine_type: "r5.xlarge" # id:72448
     proxy: false
     labeling: false # not yet supported
@@ -138,7 +138,7 @@ profiles:
     byok: false
     version_pattern: "latest" # id:72472
     version: "" # id:72472
-    major_version: "4.15" # id:72472
+    major_version: "4.16" # id:72472
     compute_machine_type: "m5.xlarge" # id:72448
     proxy: false
     labeling: false # not yet supported
@@ -171,7 +171,7 @@ profiles:
     byok: false
     version_pattern: "latest" # id:72472
     version: "" # id:72472
-    major_version: "4.15" # id:72472
+    major_version: "4.16" # id:72472
     compute_machine_type: "m5.xlarge" # id:72448
     proxy: false
     labeling: false # not yet supported
@@ -189,7 +189,7 @@ profiles:
     byovpc: true
     sts: true
     region: "us-west-2"
-    major_version: "4.15"
+    major_version: "4.16"
     channel_group: stable
     compute_machine_type: "m5.xlarge"
     oidc_config: "un-managed"

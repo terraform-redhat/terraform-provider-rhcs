@@ -379,7 +379,9 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 		}
 	}
 
-	if profile.ComputeMachineType != "" {
+	if constants.RHCS.ComputeMachineType != "" {
+		clusterArgs.ComputeMachineType = helper.StringPointer(constants.RHCS.ComputeMachineType)
+	} else if profile.ComputeMachineType != "" {
 		clusterArgs.ComputeMachineType = helper.StringPointer(profile.ComputeMachineType)
 	}
 

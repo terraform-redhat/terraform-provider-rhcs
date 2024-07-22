@@ -36,6 +36,7 @@ type RHCSconfig struct {
 	RHCSClusterName       string `env:"RHCS_CLUSTER_NAME" yaml:"clusterName,omitempty"`
 	RHCSClusterNamePrefix string `env:"RHCS_CLUSTER_NAME_PREFIX" yaml:"clusterNamePrefix,omitempty"`
 	RHCSClusterNameSuffix string `env:"RHCS_CLUSTER_NAME_SUFFIX" yaml:"clusterNameSuffix,omitempty"`
+	ComputeMachineType    string `env:"COMPUTE_MACHINE_TYPE" yaml:"computeMachineType,omitempty"`
 }
 
 func init() {
@@ -51,6 +52,8 @@ func init() {
 	RHCS.RHCSClusterName = GetEnvWithDefault(RHCS_CLUSTER_NAME, RHCS.RHCSClusterName)
 	RHCS.RHCSClusterNamePrefix = GetEnvWithDefault(RHCS_CLUSTER_NAME_PREFIX, RHCS.RHCSClusterNamePrefix)
 	RHCS.RHCSClusterNameSuffix = GetEnvWithDefault(RHCS_CLUSTER_NAME_SUFFIX, RHCS.RHCSClusterNameSuffix)
+
+	RHCS.ComputeMachineType = GetEnvWithDefault(COMPUTE_MACHINE_TYPE, RHCS.ComputeMachineType)
 
 	if os.Getenv("CLUSTER_PROFILE") != "" {
 		RHCS.ClusterProfile = os.Getenv("CLUSTER_PROFILE")

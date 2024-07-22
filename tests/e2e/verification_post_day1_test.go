@@ -119,10 +119,14 @@ var _ = Describe("Verify cluster", func() {
 	})
 
 	It("compute_machine_type is correctly set - [id:64023]", ci.Day1Post, ci.Medium, func() {
-		if profile.ComputeMachineType == "" {
+		computeMachineType := profile.ComputeMachineType
+		if constants.RHCS.ComputeMachineType != "" {
+			computeMachineType = constants.RHCS.ComputeMachineType
+		}
+		if computeMachineType == "" {
 			Skip("No compute_machine_type is configured for the cluster. skipping the test.")
 		}
-		Expect(cluster.Nodes().ComputeMachineType().ID()).To(Equal(profile.ComputeMachineType))
+		Expect(cluster.Nodes().ComputeMachineType().ID()).To(Equal(computeMachineType))
 	})
 
 	It("compute_replicas is correctly set - [id:73153]", ci.Day1Post, ci.Medium, func() {
@@ -457,4 +461,16 @@ var _ = Describe("Verify cluster", func() {
 			}
 
 		})
+
+	It("multiarch is set correctly - [id:75107]", ci.Day1Post, ci.High, func() {
+		By("Verify cluster configuration")
+		clusterResp, err := cms.RetrieveClusterDetail(ci.RHCSConnection, clusterID)
+		Expect(err).ToNot(HaveOccurred())
+
+		if profile.GetClusterType().HCP {
+			Expect(clusterResp.Body().MultiArchEnabled()).To(BeTrue())
+		} else {
+			Expect(clusterResp.Body().MultiArchEnabled()).To(BeFalse())
+		}
+	})
 })

@@ -496,7 +496,6 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 
 	Context("work for", func() {
 		It("autoscaling change - [id:63147]",
-			ci.Exclude, // Will be re-enabled with OCM-9046
 			ci.Medium,
 			func() {
 				if profile.GetClusterType().HCP {

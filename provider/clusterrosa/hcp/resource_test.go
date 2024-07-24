@@ -67,6 +67,7 @@ const (
 	roleArn             = "arn:aws:iam::123456789012:role/role-name"
 	httpProxy           = "http://proxy.com"
 	httpsProxy          = "https://proxy.com"
+	httpTokens          = "required"
 )
 
 var (
@@ -133,7 +134,8 @@ func generateBasicRosaHcpClusterJson() map[string]interface{} {
 				"oidc_endpoint_url": oidcEndpointUrl,
 				"role_arn":          roleArn,
 			},
-			"subnetIDs": subnetIds,
+			"subnetIDs":                subnetIds,
+			"ec2_metadata_http_tokens": httpTokens,
 		},
 	}
 }
@@ -276,6 +278,7 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 			Expect(clusterState.Private.ValueBool()).To(Equal(privateLink))
 			Expect(clusterState.Sts.OIDCEndpointURL.ValueString()).To(Equal(oidcEndpointUrl))
 			Expect(clusterState.Sts.RoleARN.ValueString()).To(Equal(roleArn))
+			Expect(clusterState.Ec2MetadataHttpTokens.ValueString()).To(Equal(httpTokens))
 		})
 		It("Check trimming of oidc url with https perfix", func() {
 			clusterState := &ClusterRosaHcpState{}

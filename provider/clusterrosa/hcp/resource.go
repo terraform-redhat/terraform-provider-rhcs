@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	semver "github.com/hashicorp/go-version"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
@@ -55,6 +56,7 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	ocm_errors "github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/identityprovider"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 
@@ -351,6 +353,17 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 					objectplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"ec2_metadata_http_tokens": schema.StringAttribute{
+				Description: "This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the cluster." +
+					"This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only)." + common.ValueCannotBeChangedStringDescription,
+				Optional: true,
+				Computed: true,
+				Validators: []validator.String{attrvalidators.EnumValueValidator([]string{string(cmv1.Ec2MetadataHttpTokensOptional),
+					string(cmv1.Ec2MetadataHttpTokensRequired)})},
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
 		},
 	}
 }
@@ -483,6 +496,7 @@ func createHcpClusterObject(ctx context.Context,
 	ccs.Enabled(true)
 	builder.CCS(ccs)
 
+	ec2MetadataHttpTokens := common.OptionalString(state.Ec2MetadataHttpTokens)
 	kmsKeyARN := common.OptionalString(state.KMSKeyArn)
 	etcdKmsKeyArn := common.OptionalString(state.EtcdKmsKeyArn)
 	awsAccountID := common.OptionalString(state.AWSAccountID)
@@ -504,7 +518,7 @@ func createHcpClusterObject(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
-	if err := ocmClusterResource.CreateAWSBuilder(rosaTypes.Hcp, awsTags, nil,
+	if err := ocmClusterResource.CreateAWSBuilder(rosaTypes.Hcp, awsTags, ec2MetadataHttpTokens,
 		kmsKeyARN, etcdKmsKeyArn,
 		isPrivate, awsAccountID, awsBillingAccountId, stsBuilder, awsSubnetIDs, nil, nil,
 		nil, nil, nil); err != nil {
@@ -846,6 +860,7 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaHcpState) diag.Diagnos
 	common.ValidateStateAndPlanEquals(state.Replicas, plan.Replicas, "replicas", &diags)
 	common.ValidateStateAndPlanEquals(state.ComputeMachineType, plan.ComputeMachineType, "compute_machine_type", &diags)
 	common.ValidateStateAndPlanEquals(state.AvailabilityZones, plan.AvailabilityZones, "availability_zones", &diags)
+	common.ValidateStateAndPlanEquals(state.Ec2MetadataHttpTokens, plan.Ec2MetadataHttpTokens, "ec2_metadata_http_tokens", &diags)
 
 	// cluster admin attributes
 	common.ValidateStateAndPlanEquals(state.CreateAdminUser, plan.CreateAdminUser, "create_admin_user", &diags)
@@ -1319,6 +1334,13 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 		if ok {
 			state.EtcdKmsKeyArn = types.StringValue(etcdKmsKeyArn)
 		}
+	}
+
+	httpTokensState, ok := object.AWS().GetEc2MetadataHttpTokens()
+	if ok && httpTokensState != "" {
+		state.Ec2MetadataHttpTokens = types.StringValue(string(httpTokensState))
+	} else {
+		state.Ec2MetadataHttpTokens = types.StringValue(ec2.HttpTokensStateOptional)
 	}
 
 	stsState, ok := object.AWS().GetSTS()

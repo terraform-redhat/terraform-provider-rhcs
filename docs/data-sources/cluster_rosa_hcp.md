@@ -47,6 +47,7 @@ data "rhcs_cluster_rosa_hcp" "cluster" {
 - `destroy_timeout` (Number) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `disable_waiting_in_destroy` (Boolean) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `domain` (String) DNS domain of cluster.
+- `ec2_metadata_http_tokens` (String) This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the cluster.This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). After the creation of the resource, it is not possible to update the attribute value.
 - `etcd_encryption` (Boolean) Encrypt etcd data. Note that all AWS storage is already encrypted. After the creation of the resource, it is not possible to update the attribute value.
 - `etcd_kms_key_arn` (String) Used for etcd encryption. The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID(optional). After the creation of the resource, it is not possible to update the attribute value.
 - `external_id` (String) Unique external identifier of the cluster. After the creation of the resource, it is not possible to update the attribute value.

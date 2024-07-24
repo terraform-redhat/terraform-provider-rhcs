@@ -96,6 +96,7 @@ var (
 	HCPClusterAutoscalerDir     = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "cluster-autoscaler", "hcp")
 	TuningConfigDir             = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "tuning-config")
 	ClusterWaiterDir            = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "cluster-waiter")
+	TrustedIPsDir               = path.Join(ManifestsConfigurationDir, RHCSProviderDir, "trusted-ips")
 )
 
 func GetClusterManifestsDir(clusterType ClusterType) string {

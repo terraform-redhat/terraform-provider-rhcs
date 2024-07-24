@@ -39,9 +39,10 @@ type ClusterRosaHcpState struct {
 	Proxy       *proxy.Proxy `tfsdk:"proxy"`
 
 	// Standard machine pools fields
-	ComputeMachineType types.String `tfsdk:"compute_machine_type"`
-	Replicas           types.Int64  `tfsdk:"replicas"`
-	AvailabilityZones  types.List   `tfsdk:"availability_zones"`
+	ComputeMachineType    types.String `tfsdk:"compute_machine_type"`
+	Replicas              types.Int64  `tfsdk:"replicas"`
+	AvailabilityZones     types.List   `tfsdk:"availability_zones"`
+	Ec2MetadataHttpTokens types.String `tfsdk:"ec2_metadata_http_tokens"`
 
 	// Version/Upgrade fields
 	Version        types.String `tfsdk:"version"`

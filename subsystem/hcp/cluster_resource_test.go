@@ -825,12 +825,78 @@ var _ = Describe("HCP Cluster", func() {
 					VerifyJQ(`.cloud_provider.id`, "aws"),
 					VerifyJQ(`.region.id`, "us-west-1"),
 					VerifyJQ(`.product.id`, "rosa"),
-
+					VerifyJQ(`.aws.ec2_metadata_http_tokens`, "required"),
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+					  	  "ec2_metadata_http_tokens" : "required",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					}]`),
+				),
+			)
+
+			// Run the apply command:
+			terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+				ec2_metadata_http_tokens = "required"
+			}`)
+			Expect(terraform.Apply()).To(BeZero())
+			resource := terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.current_version", "4.14.0"))
+		})
+
+		It("Creates basic cluster without set http tokens", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.aws.ec2_metadata_http_tokens`, "optional"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+					  	  "ec2_metadata_http_tokens" : "optional",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -872,7 +938,7 @@ var _ = Describe("HCP Cluster", func() {
 			}`)
 			Expect(terraform.Apply()).To(BeZero())
 			resource := terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
-			Expect(resource).To(MatchJQ(".attributes.current_version", "4.14.0"))
+			Expect(resource).To(MatchJQ(".attributes.ec2_metadata_http_tokens", "optional"))
 		})
 
 		Context("Creates cluster with etcd encryption", func() {

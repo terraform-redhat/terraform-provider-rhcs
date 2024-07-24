@@ -204,6 +204,11 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				Description: deprecatedMessage,
 				Computed:    true,
 			},
+			"ec2_metadata_http_tokens": schema.StringAttribute{
+				Description: "This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the cluster." +
+					"This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). " + common.ValueCannotBeChangedStringDescription,
+				Computed: true,
+			},
 
 			// Deprecated Attributes:
 			// Those attributes were copied from cluster_rosa_clasic resource in order to use the same state struct.

@@ -80,6 +80,7 @@ Required:
 Optional:
 
 - `additional_security_group_ids` (List of String) Additional security group ids. After the creation of the resource, it is not possible to update the attribute value.
+- `ec2_metadata_http_tokens` (String) This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the nodes.This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). This feature is available from After the creation of the resource, it is not possible to update the attribute value.
 - `tags` (Map of String) Apply user defined tags to all machine pool resources created in AWS.After the creation of the resource, it is not possible to update the attribute value.
 
 Read-Only:

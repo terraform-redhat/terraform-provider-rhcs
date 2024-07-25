@@ -151,6 +151,24 @@ var _ = Describe("Hcp Machine pool", func() {
 			}`)
 			Expect(terraform.Validate()).NotTo(BeZero())
 		})
+
+		It("is invalid to specify unsupported http tokens", func() {
+			terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster = "123"
+				name = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge",
+					ec2_metadata_http_tokens = "bad_string",
+				}
+				autoscaling = {
+					enabled = true,
+				}
+				replicas = 5
+				subnet_id = "subnet-123"
+			}`)
+			Expect(terraform.Validate()).NotTo(BeZero())
+		})
 	})
 
 	Context("create", func() {
@@ -1866,6 +1884,157 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.instance_type", "r5.xlarge"))
 			Expect(resource).To(MatchJQ(`.attributes.kubelet_configs`, "my_kubelet_config"))
+		})
+
+		It("Can create machine pool with http tokens set and cannot edit", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools",
+					),
+					RespondWithJSON(http.StatusCreated, `{
+					"id":"my-pool",
+					"aws_node_pool":{
+					   "instance_type":"r5.xlarge",
+					   "instance_profile": "bla",
+					   "ec2_metadata_http_tokens": "required"
+					},
+					"auto_repair": true,
+					"replicas":2,
+					"subnet":"id-1",
+					"availability_zone":"us-east-1a",
+					"version": {
+						"raw_id": "4.14.10"
+					}
+				}`),
+				),
+			)
+
+			// Run the apply command:
+			terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge",
+					ec2_metadata_http_tokens = "required",
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 2
+				auto_repair = true
+				version = "4.14.10"
+			}`)
+			Expect(terraform.Apply()).To(BeZero())
+
+			// Check the state:
+			resource := terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
+			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
+			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.instance_type", "r5.xlarge"))
+			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.ec2_metadata_http_tokens`, "required"))
+
+			prepareClusterRead("123")
+			server.AppendHandlers(
+				// First get is for the Read function
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
+					RespondWithJSON(http.StatusOK, `
+				{
+				  "id": "my-pool",
+				  "kind": "MachinePool",
+				  "href": "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+	              "replicas": 2,
+				  "availability_zone": "us-east-1a",
+				  "aws_node_pool": {
+					"instance_type": "r5.xlarge",
+					ec2_metadata_http_tokens = "required"
+				  },
+				  "auto_repair": true,
+				  "version": {
+					  "raw_id": "4.14.10"
+				  },
+				  "subnet": "id-1"
+				}`),
+				),
+			)
+			// Run the apply command:
+			terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge",
+					ec2_metadata_http_tokens = "optional",
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 2
+				auto_repair = true
+				version = "4.14.10"
+			}`)
+			Expect(terraform.Apply()).NotTo(BeZero())
+		})
+
+		It("Can create machine pool without http tokens set", func() {
+			// Prepare the server:
+			server.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools",
+					),
+					VerifyJQ(".aws_node_pool.ec2_metadata_http_tokens", "optional"),
+					RespondWithJSON(http.StatusCreated, `{
+					"id":"my-pool",
+					"aws_node_pool":{
+					   "instance_type":"r5.xlarge",
+					   "instance_profile": "bla",
+					   "ec2_metadata_http_tokens": "optional"
+					},
+					"auto_repair": true,
+					"replicas":2,
+					"subnet":"id-1",
+					"availability_zone":"us-east-1a",
+					"version": {
+						"raw_id": "4.14.10"
+					}
+				}`),
+				),
+			)
+
+			// Run the apply command:
+			terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 2
+				auto_repair = true
+				version = "4.14.10"
+			}`)
+			Expect(terraform.Apply()).To(BeZero())
+
+			// Check the state:
+			resource := terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
+			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
+			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.instance_type", "r5.xlarge"))
+			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.ec2_metadata_http_tokens`, "optional"))
 		})
 	})
 

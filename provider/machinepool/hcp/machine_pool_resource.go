@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/ec2"
 	semver "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
@@ -305,6 +306,10 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 			awsNodePoolBuilder.AdditionalSecurityGroupIds(additionalSecurityGroupIds...)
 		}
 
+		if common.IsStringAttributeUnknownOrEmpty(plan.AWSNodePool.Ec2MetadataHttpTokens) {
+			plan.AWSNodePool.Ec2MetadataHttpTokens = types.StringValue(ec2.HttpTokensStateOptional)
+		}
+		awsNodePoolBuilder.Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokens(plan.AWSNodePool.Ec2MetadataHttpTokens.ValueString()))
 		builder.AWSNodePool(awsNodePoolBuilder)
 	}
 
@@ -588,6 +593,8 @@ func validateNoImmutableAttChange(state, plan *HcpMachinePoolState) diag.Diagnos
 			"aws_node_pool.instance_type", &diags)
 		validateStateAndPlanEquals(state.AWSNodePool.AdditionalSecurityGroupIds, plan.AWSNodePool.AdditionalSecurityGroupIds,
 			"aws_node_pool.additional_security_group_ids", &diags)
+		validateStateAndPlanEquals(state.AWSNodePool.Ec2MetadataHttpTokens, plan.AWSNodePool.Ec2MetadataHttpTokens,
+			"aws_node_pool.ec2_metadata_http_tokens", &diags)
 	}
 	return diags
 }
@@ -1149,6 +1156,12 @@ func populateState(ctx context.Context, object *cmv1.NodePool, state *HcpMachine
 			state.AWSNodePool.AdditionalSecurityGroupIds = additionalSecurityGroupsList
 		} else {
 			state.AWSNodePool.AdditionalSecurityGroupIds = types.ListNull(types.StringType)
+		}
+		if httpTokensState, ok := awsNodePool.GetEc2MetadataHttpTokens(); ok {
+			state.AWSNodePool.Ec2MetadataHttpTokens = types.StringValue(ec2.HttpTokensStateOptional)
+			if httpTokensState != "" {
+				state.AWSNodePool.Ec2MetadataHttpTokens = types.StringValue(string(httpTokensState))
+			}
 		}
 	}
 

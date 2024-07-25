@@ -8,7 +8,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
 )
 
 const MaxAdditionalSecurityGroupHcp = 10
@@ -18,6 +20,7 @@ type AWSNodePool struct {
 	InstanceProfile            types.String `tfsdk:"instance_profile"`
 	Tags                       types.Map    `tfsdk:"tags"`
 	AdditionalSecurityGroupIds types.List   `tfsdk:"additional_security_group_ids"`
+	Ec2MetadataHttpTokens      types.String `tfsdk:"ec2_metadata_http_tokens"`
 }
 
 func AwsNodePoolResource() map[string]schema.Attribute {
@@ -49,6 +52,17 @@ func AwsNodePoolResource() map[string]schema.Attribute {
 			},
 			Optional: true,
 		},
+		"ec2_metadata_http_tokens": schema.StringAttribute{
+			Description: "This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the nodes." +
+				"This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). This feature is available from " + common.ValueCannotBeChangedStringDescription,
+			Optional: true,
+			Computed: true,
+			Validators: []validator.String{attrvalidators.EnumValueValidator([]string{string(cmv1.Ec2MetadataHttpTokensOptional),
+				string(cmv1.Ec2MetadataHttpTokensRequired)})},
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
+			},
+		},
 	}
 }
 
@@ -73,6 +87,12 @@ func AwsNodePoolDatasource() map[string]dsschema.Attribute {
 			Description: "Additional security group ids. " + common.ValueCannotBeChangedStringDescription,
 			ElementType: types.StringType,
 			Optional:    true,
+		},
+		"ec2_metadata_http_tokens": schema.StringAttribute{
+			Description: "This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the nodes." +
+				"This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). This feature is available from " + common.ValueCannotBeChangedStringDescription,
+			Optional: true,
+			Computed: true,
 		},
 	}
 }

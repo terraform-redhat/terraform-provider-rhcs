@@ -102,7 +102,7 @@ var _ = Describe("Kubelet config", func() {
 		kcArgs = &exe.KubeletConfigArgs{
 			PodPidsLimit:        helper.IntPointer(podPidsLimit),
 			Cluster:             helper.StringPointer(clusterID),
-			KubeletConfigNumber: helper.IntPointer(2),
+			KubeletConfigNumber: helper.IntPointer(10),
 			NamePrefix:          helper.StringPointer("kube-70128"),
 		}
 		_, err = kcService.Apply(kcArgs)
@@ -113,7 +113,8 @@ var _ = Describe("Kubelet config", func() {
 			Expect(len(kubeletconfigs)).To(Equal(*kcArgs.KubeletConfigNumber))
 		} else {
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(ContainSubstring("classic cluster can only have 1 kubeletconfig"))
+			Expect(err.Error()).Should(
+				MatchRegexp(`KubeletConfig for[\s\n\t]*cluster with ID '[0-9a-z]*' already exists`))
 		}
 	})
 

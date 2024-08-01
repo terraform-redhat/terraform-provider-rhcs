@@ -473,4 +473,37 @@ var _ = Describe("Verify cluster", func() {
 			Expect(clusterResp.Body().MultiArchEnabled()).To(BeFalse())
 		}
 	})
+
+	It("imdsv2 is set correctly - [id:75372]", ci.Day1Post, ci.Critical, func() {
+		if !profile.GetClusterType().HCP {
+			Skip("Test can run only on HCP cluster")
+		}
+
+		By("Check the cluster description value to match cluster profile configuration")
+		if profile.Ec2MetadataHttpTokens != "" {
+			Expect(string(cluster.AWS().Ec2MetadataHttpTokens())).
+				To(Equal(profile.Ec2MetadataHttpTokens))
+		} else {
+			Expect(string(cluster.AWS().Ec2MetadataHttpTokens())).
+				To(Equal(constants.DefaultEc2MetadataHttpTokens))
+		}
+
+		By("Get the default workers machinepool details")
+		npList, err := cms.ListNodePools(ci.RHCSConnection, clusterID)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(npList).ToNot(BeEmpty())
+
+		for _, np := range npList {
+			Expect(np.ID()).ToNot(BeNil())
+			if strings.HasPrefix(np.ID(), constants.DefaultNodePoolName) {
+				By("Get the details of the nodepool")
+				npRespBody, err := cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, np.ID())
+				Expect(err).ToNot(HaveOccurred())
+
+				By("Check the default workers machinepool value to match cluster level spec attribute")
+				Expect(string(npRespBody.AWSNodePool().Ec2MetadataHttpTokens())).
+					To(Equal(string(cluster.AWS().Ec2MetadataHttpTokens())))
+			}
+		}
+	})
 })

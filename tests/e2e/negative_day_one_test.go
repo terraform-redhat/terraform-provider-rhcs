@@ -487,6 +487,13 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 				args.AWSAvailabilityZones = helper.StringSlicePointer(vpcOutput.AZs)
 			}, "The VPC needs to contain a private subnet with the tag 'kubernetes.io/role/internal-elb'")
 		})
+
+		It("validate imdsv2 fields - [id:75392]", ci.Medium, func() {
+			By("Create cluster with invalid imdsv2 value")
+			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+				args.Ec2MetadataHttpTokens = helper.StringPointer("invalid")
+			}, "Expected a valid param. Options are [optional required]. Got invalid.")
+		})
 	})
 
 	Describe("The EOL OCP version validation", ci.Day1Negative, func() {

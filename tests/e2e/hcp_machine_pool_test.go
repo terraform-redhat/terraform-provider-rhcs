@@ -663,6 +663,41 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			Expect(mpResponseBody.KubeletConfigs()).To(BeEmpty())
 		})
 
+	It("can be created with imdsv2 - [id:75373]", ci.Critical,
+		func() {
+			imdsv2Values := []string{constants.OptionalEc2MetadataHttpTokens,
+				constants.RequiredEc2MetadataHttpTokens}
+
+			replicas := 3
+			machineType := "m5.xlarge"
+			subnetId := vpcOutput.ClusterPrivateSubnets[0]
+
+			for _, imdsv2Value := range imdsv2Values {
+				By("Create a machinepool with --ec2-metadata-http-tokens = " + imdsv2Value)
+				name := helper.GenerateRandomName("np-75373", 2)
+				mpArgs := &exec.MachinePoolArgs{
+					Cluster:               helper.StringPointer(clusterID),
+					AutoscalingEnabled:    helper.BoolPointer(false),
+					Replicas:              helper.IntPointer(replicas),
+					Name:                  helper.StringPointer(name),
+					SubnetID:              helper.StringPointer(subnetId),
+					MachineType:           helper.StringPointer(machineType),
+					AutoRepair:            helper.BoolPointer(true),
+					Ec2MetadataHttpTokens: helper.StringPointer(imdsv2Value),
+				}
+				_, err := mpService.Apply(mpArgs)
+				Expect(err).ToNot(HaveOccurred())
+
+				By("Verify imdsv2 value is correctly set")
+				mpResponseBody, err := cms.RetrieveClusterNodePool(ci.RHCSConnection, clusterID, name)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(string(mpResponseBody.AWSNodePool().Ec2MetadataHttpTokens())).
+					To(Equal(imdsv2Value))
+
+				mpService.Destroy()
+			}
+		})
+
 	It("can create multiple instances - [id:72954]",
 		ci.Low, func() {
 			By("Create machinepool")
@@ -928,6 +963,44 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			_, err = mpService.Apply(mpArgs)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(MatchRegexp(`KubeletConfig with name 'notexisting'[\n\t\s]*does not exist for cluster`))
+		})
+
+		It("imdsv2 fields - [id:75393]", ci.Medium, func() {
+			By("Try to create a nodepool with invalid imdsv2")
+			mpName := helper.GenerateRandomName("np-75393", 2)
+			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+				args.Ec2MetadataHttpTokens = helper.StringPointer("invalid")
+			}, "Expected a valid param. Options are [optional required]. Got invalid.")
+
+			reqBody := []map[string]string{
+				{
+					"create_value": "required",
+					"edit_value":   "optional",
+				},
+				{
+					"create_value": "optional",
+					"edit_value":   "required",
+				},
+			}
+
+			for _, imdsv2Value := range reqBody {
+				By("Create a machinepool with --ec2-metadata-http-tokens = " + imdsv2Value["create_value"])
+				mpName := helper.GenerateRandomName("np-75393", 2)
+				mpArgs := getDefaultMPArgs(mpName)
+				mpArgs.Ec2MetadataHttpTokens = helper.StringPointer(imdsv2Value["create_value"])
+				_, err := mpService.Apply(mpArgs)
+				Expect(err).ToNot(HaveOccurred())
+
+				By("Try to edit nodepool with ec2_metadata_http_tokens = " + imdsv2Value["edit_value"])
+				errMsg := fmt.Sprintf(
+					`Attribute aws_node_pool.ec2_metadata_http_tokens, cannot be changed from "%s" to "%s"`,
+					imdsv2Value["create_value"], imdsv2Value["edit_value"])
+				validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
+					args.Ec2MetadataHttpTokens = helper.StringPointer(imdsv2Value["edit_value"])
+				}, errMsg)
+
+				mpService.Destroy()
+			}
 		})
 	})
 

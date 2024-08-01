@@ -781,7 +781,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			if len(versions) > 0 {
 				validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
 					args.OpenshiftVersion = helper.StringPointer(versions[0].RawID)
-				}, "must be greater than the lowest supported version")
+				}, "must be no less than 2 minor versions behind the Control Plane version")
 			} else {
 				Logger.Info("No version < CP version - 2 found to test against")
 			}

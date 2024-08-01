@@ -186,7 +186,7 @@ profiles:
     admin_enabled: false # Not yet supported
     unified_acc_role_path: ""
 
-- as: rosa-hcp-full
+- as: rosa-hcp-full # Day2 resources after cluster waiter creation check
   cluster:
     cluster_type: rosa-hcp
     multi_az: false

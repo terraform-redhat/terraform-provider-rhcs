@@ -11,9 +11,10 @@ provider "rhcs" {
 }
 
 resource "rhcs_machine_pool" "mp" {
+  count                             = var.mp_count
   cluster                           = var.cluster
   machine_type                      = var.machine_type
-  name                              = var.name
+  name                              = var.mp_count == 1 ? var.name : "${var.name}-${count.index}"
   replicas                          = var.replicas
   labels                            = var.labels
   taints                            = var.taints

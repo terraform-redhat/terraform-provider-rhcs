@@ -1,3 +1,8 @@
+variable mp_count {
+  type = number
+  default = 1
+}
+
 variable "cluster" {
   type = string
 }

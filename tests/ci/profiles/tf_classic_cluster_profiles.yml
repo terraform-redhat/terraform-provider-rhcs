@@ -160,7 +160,7 @@ profiles:
     oidc_config: "managed"
     admin_enabled: true
     unified_acc_role_path: ""
-- as: rosa-classic-full
+- as: rosa-classic-full # Day2 resources after cluster waiter creation check
   cluster:
     cluster_type: rosa-classic
     multi_az: false

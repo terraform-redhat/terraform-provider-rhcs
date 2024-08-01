@@ -107,6 +107,14 @@ const (
 // Machine pool
 const (
 	DefaultMachinePoolName = "worker"
+	DefaultNodePoolName    = "workers"
+)
+
+// Ec2MetadataHttpTokens for hcp cluster
+const (
+	DefaultEc2MetadataHttpTokens  = "optional"
+	RequiredEc2MetadataHttpTokens = "required"
+	OptionalEc2MetadataHttpTokens = "optional"
 )
 
 type ClusterType struct {

@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
@@ -327,6 +328,19 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.Private = helper.BoolPointer(!profile.Private)
 			}, "Attribute private, cannot be changed from")
+		})
+
+		It("imdsv2 fields - [id:75414]", ci.Medium, ci.FeatureClusterIMDSv2, func() {
+			By("Try to edit ec2_metadata_http_tokens value")
+			otherHttpToken := profile.Ec2MetadataHttpTokens
+			if otherHttpToken == constants.RequiredEc2MetadataHttpTokens {
+				otherHttpToken = constants.OptionalEc2MetadataHttpTokens
+			} else {
+				otherHttpToken = constants.RequiredEc2MetadataHttpTokens
+			}
+			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+				args.Ec2MetadataHttpTokens = helper.StringPointer(otherHttpToken)
+			})
 		})
 
 		It("encryption fields - [id:72487]", ci.Medium, ci.FeatureClusterEncryption, func() {

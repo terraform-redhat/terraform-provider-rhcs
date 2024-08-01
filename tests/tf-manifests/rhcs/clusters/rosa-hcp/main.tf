@@ -64,6 +64,7 @@ resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
   aws_subnet_ids               = var.aws_subnet_ids
   private                      = var.private
   compute_machine_type         = var.compute_machine_type
+  ec2_metadata_http_tokens     = var.ec2_metadata_http_tokens
   etcd_encryption              = var.etcd_encryption
   etcd_kms_key_arn             = var.etcd_kms_key_arn != null ? var.etcd_kms_key_arn : var.kms_key_arn
   kms_key_arn                  = var.kms_key_arn

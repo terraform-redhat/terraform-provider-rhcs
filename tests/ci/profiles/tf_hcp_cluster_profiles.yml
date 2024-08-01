@@ -24,6 +24,7 @@ profiles:
     tagging: true # id:72624
     channel_group: candidate # id:72473
     zones: "a,b,c"  # id:72457
+    ec2_metadata_http_tokens: "required" # id:75372
     oidc_config: "managed" # id:72492
     admin_enabled: false # Not yet supported
     unified_acc_role_path: "/advanced/" # id:72495
@@ -52,6 +53,7 @@ profiles:
     tagging: false
     channel_group: candidate # id:72473
     zones: "" # id:72456
+    ec2_metadata_http_tokens: "optional" # id:75372
     oidc_config: "un-managed" # id:72493
     admin_enabled: false # Not yet supported
     unified_acc_role_path: ""
@@ -84,7 +86,7 @@ profiles:
     tagging: true # id:72624
     channel_group: stable
     zones: "" # id:72456
-    ec2_metadata_http_tokens: ""
+    ec2_metadata_http_tokens: "" # id:75372
     oidc_config: "un-managed" # id:72493
     admin_enabled: false # Not yet supported
     unified_acc_role_path: ""
@@ -116,7 +118,7 @@ profiles:
     tagging: true # id:72624
     channel_group: stable
     zones: "" # id:72456
-    ec2_metadata_http_tokens: ""
+    ec2_metadata_http_tokens: "" # id:75372
     oidc_config: "managed" # id:72492
     admin_enabled: false # Not yet supported
     unified_acc_role_path: ""
@@ -145,6 +147,7 @@ profiles:
     tagging: false
     channel_group: candidate # id:72473
     zones: "" # id:72456
+    ec2_metadata_http_tokens: "optional" # id:75372
     oidc_config: "managed" # id:72493
     admin_enabled: false # Not yet supported
     unified_acc_role_path: ""
@@ -178,6 +181,7 @@ profiles:
     tagging: false
     channel_group: candidate # id:72473
     zones: "" # id:72456
+    ec2_metadata_http_tokens: "optional" # id:75372
     oidc_config: "managed" # id:72493
     admin_enabled: false # Not yet supported
     unified_acc_role_path: ""

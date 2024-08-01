@@ -13,6 +13,7 @@ type MachinePoolArgs struct {
 	Cluster                  *string              `hcl:"cluster"`
 	Name                     *string              `hcl:"name"`
 	MachineType              *string              `hcl:"machine_type"`
+	Ec2MetadataHttpTokens    *string              `hcl:"ec2_metadata_http_tokens"`
 	Replicas                 *int                 `hcl:"replicas"`
 	AutoscalingEnabled       *bool                `hcl:"autoscaling_enabled"`
 	UseSpotInstances         *bool                `hcl:"use_spot_instances"`
@@ -42,16 +43,17 @@ type MachinePoolsOutput struct {
 }
 
 type MachinePoolOutput struct {
-	ID                 string             `json:"machine_pool_id,omitempty"`
-	Name               string             `json:"name,omitempty"`
-	ClusterID          string             `json:"cluster_id,omitempty"`
-	Replicas           int                `json:"replicas,omitempty"`
-	MachineType        string             `json:"machine_type,omitempty"`
-	AutoscalingEnabled bool               `json:"autoscaling_enabled,omitempty"`
-	Labels             map[string]string  `json:"labels,omitempty"`
-	Taints             []MachinePoolTaint `json:"taints,omitempty"`
-	TuningConfigs      []string           `json:"tuning_configs,omitempty"`
-	KubeletConfigs     string             `json:"kubelet_configs"`
+	ID                    string             `json:"machine_pool_id,omitempty"`
+	Name                  string             `json:"name,omitempty"`
+	ClusterID             string             `json:"cluster_id,omitempty"`
+	Replicas              int                `json:"replicas,omitempty"`
+	Ec2MetadataHttpTokens string             `json:"ec2_metadata_http_tokens"`
+	MachineType           string             `json:"machine_type,omitempty"`
+	AutoscalingEnabled    bool               `json:"autoscaling_enabled,omitempty"`
+	Labels                map[string]string  `json:"labels,omitempty"`
+	Taints                []MachinePoolTaint `json:"taints,omitempty"`
+	TuningConfigs         []string           `json:"tuning_configs,omitempty"`
+	KubeletConfigs        string             `json:"kubelet_configs"`
 }
 
 type MachinePoolTaint struct {

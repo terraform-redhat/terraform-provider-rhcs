@@ -58,6 +58,11 @@ variable "etcd_encryption" {
   default = false
 }
 
+variable "ec2_metadata_http_tokens" {
+  type    = string
+  default = null
+}
+
 variable "host_prefix" {
   type    = number
   default = 24

@@ -57,6 +57,12 @@ variable "additional_security_groups" {
   type    = list(string)
   default = null
 }
+
+variable "ec2_metadata_http_tokens" {
+  type    = string
+  default = null
+}
+
 variable "auto_repair" {
   type    = bool
   default = null

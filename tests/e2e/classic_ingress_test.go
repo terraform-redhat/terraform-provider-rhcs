@@ -189,6 +189,12 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 				Cluster: &clusterID,
 			}
 			_, err := ingressService.Apply(&args)
+			if profile.GetClusterType().HCP {
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).Should(MatchRegexp(`Can't update route selectors on[\s\S]?Hosted Control Plane cluster '%s'`, clusterID))
+				// No need to test other edit after
+				return
+			}
 			Expect(err).To(HaveOccurred())
 			helper.ExpectTFErrorContains(err, "All component route kinds must be specified. Missing [console, downloads]")
 			args = exec.IngressArgs{

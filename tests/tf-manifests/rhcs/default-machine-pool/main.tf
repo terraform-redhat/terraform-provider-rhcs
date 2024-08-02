@@ -10,7 +10,7 @@ terraform {
 provider "rhcs" {
 }
 
-resource "rhcs_machine_pool" "mp" {
+resource "rhcs_machine_pool" "mps" {
   count                             = var.mp_count
   cluster                           = var.cluster
   machine_type                      = var.machine_type

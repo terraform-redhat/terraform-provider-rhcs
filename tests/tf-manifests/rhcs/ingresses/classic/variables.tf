@@ -38,6 +38,9 @@ variable "route_wildcard_policy" {
 }
 
 variable "component_routes" {
-  type    = map(any)
+  type    = map(object({
+    hostname = string
+    tls_secret_ref = string
+  }))
   default = null
 }

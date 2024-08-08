@@ -17,7 +17,7 @@ type ClusterArgs struct {
 	Fips                                 *bool              `hcl:"fips"`
 	Tags                                 *map[string]string `hcl:"tags"`
 	AuditLogForward                      *bool              `hcl:"audit_log_forward"`
-	Autoscaling                          *Autoscaling       `hcl:"autoscaling_enabled"`
+	Autoscaling                          *Autoscaling       `hcl:"autoscaling"`
 	Etcd                                 *bool              `hcl:"etcd_encryption"`
 	EtcdKmsKeyARN                        *string            `hcl:"etcd_kms_key_arn"`
 	KmsKeyARN                            *string            `hcl:"kms_key_arn"`

@@ -17,6 +17,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	"github.com/sethvargo/go-password/password"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
@@ -453,6 +454,14 @@ func GenerateRandomStringWithSymbols(length int) string {
 		randomString = randomString[:len(randomString)-1] + "!"
 	}
 	return randomString
+}
+
+func GenerateRandomPassword(length int) string {
+	randomPassword, err := password.Generate(length, 1, 1, false, true)
+	if err != nil {
+		panic(err)
+	}
+	return randomPassword
 }
 
 // Generate random string

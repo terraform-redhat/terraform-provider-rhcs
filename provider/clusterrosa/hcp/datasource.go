@@ -302,7 +302,7 @@ func (r *ClusterRosaHcpDatasource) Read(ctx context.Context, request datasource.
 	object := get.Body()
 
 	// Save the state:
-	err = populateRosaHcpClusterState(ctx, object, state, common.DefaultHttpClient{})
+	err = populateRosaHcpClusterState(ctx, object, state)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",

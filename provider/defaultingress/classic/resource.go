@@ -441,7 +441,7 @@ func (r *DefaultIngressResource) updateIngress(ctx context.Context, state, plan 
 		}
 
 		if !reflect.DeepEqual(state.ComponentRoutes, plan.ComponentRoutes) {
-			componentRoutes := map[string]*cmv1.ComponentRouteBuilder{}
+			componentRoutes := defaultingress.ResetComponentRoutes()
 			for k, v := range plan.ComponentRoutes.Elements() {
 				componentRouteBuilder := cmv1.NewComponentRoute()
 				hostname, tlsSecretRef := defaultingress.ExpandComponentRoute(ctx, v.(types.Object), diags)

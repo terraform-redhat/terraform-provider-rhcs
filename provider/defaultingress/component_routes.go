@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
 type ComponentRoute struct {
@@ -45,4 +46,12 @@ func ExpandComponentRoute(ctx context.Context,
 	}
 
 	return componentRoute.Hostname.ValueString(), componentRoute.TlsSecretRef.ValueString()
+}
+
+func ResetComponentRoutes() map[string]*cmv1.ComponentRouteBuilder {
+	resetRoutes := map[string]*cmv1.ComponentRouteBuilder{}
+	for _, route := range []string{"oauth", "downloads", "console"} {
+		resetRoutes[route] = cmv1.NewComponentRoute().Hostname("").TlsSecretRef("")
+	}
+	return resetRoutes
 }

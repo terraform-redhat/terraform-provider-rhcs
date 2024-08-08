@@ -21,5 +21,4 @@ resource "rhcs_default_ingress" "default_ingress" {
   id                               = var.id
   load_balancer_type               = var.load_balancer_type
   component_routes                 = var.component_routes
-
 }

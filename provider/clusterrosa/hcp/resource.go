@@ -717,16 +717,16 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 	tflog.Debug(ctx, "begin create()")
 
 	// Get the plan:
-	state := &ClusterRosaHcpState{}
-	diags := request.Plan.Get(ctx, state)
+	plan := &ClusterRosaHcpState{}
+	diags := request.Plan.Get(ctx, plan)
 	response.Diagnostics.Append(diags...)
 	if response.Diagnostics.HasError() {
 		return
 	}
 	summary := "Can't build cluster"
 
-	shouldWaitCreationComplete := common.BoolWithFalseDefault(state.WaitForCreateComplete)
-	shouldWaitComputeNodesComplete := common.BoolWithFalseDefault(state.WaitForStdComputeNodesComplete)
+	shouldWaitCreationComplete := common.BoolWithFalseDefault(plan.WaitForCreateComplete)
+	shouldWaitComputeNodesComplete := common.BoolWithFalseDefault(plan.WaitForStdComputeNodesComplete)
 	if shouldWaitComputeNodesComplete && !shouldWaitCreationComplete {
 		response.Diagnostics.AddError(
 			summary,
@@ -735,8 +735,8 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 		return
 	}
 
-	hasEtcdEncrpytion := common.BoolWithFalseDefault(state.EtcdEncryption)
-	hasEtcdKmsKeyArn := common.HasValue(state.EtcdKmsKeyArn) && state.EtcdKmsKeyArn.ValueString() != ""
+	hasEtcdEncrpytion := common.BoolWithFalseDefault(plan.EtcdEncryption)
+	hasEtcdKmsKeyArn := common.HasValue(plan.EtcdKmsKeyArn) && plan.EtcdKmsKeyArn.ValueString() != ""
 	if (!hasEtcdEncrpytion && hasEtcdKmsKeyArn) || (hasEtcdEncrpytion && !hasEtcdKmsKeyArn) {
 		response.Diagnostics.AddError(
 			summary,
@@ -747,7 +747,7 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 
 	// In case version with "openshift-v" prefix was used here,
 	// Give a meaningful message to inform the user that it not supported any more
-	if common.HasValue(state.Version) && strings.HasPrefix(state.Version.ValueString(), rosa.VersionPrefix) {
+	if common.HasValue(plan.Version) && strings.HasPrefix(plan.Version.ValueString(), rosa.VersionPrefix) {
 		response.Diagnostics.AddError(
 			summary,
 			"Openshift version must be provided without the \"openshift-v\" prefix",
@@ -756,12 +756,12 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 	}
 
 	channelGroup := consts.DefaultChannelGroup
-	if common.HasValue(state.ChannelGroup) {
-		channelGroup = state.ChannelGroup.ValueString()
+	if common.HasValue(plan.ChannelGroup) {
+		channelGroup = plan.ChannelGroup.ValueString()
 	}
 	desiredVersion := ""
-	if common.HasValue(state.Version) {
-		desiredVersion = state.Version.ValueString()
+	if common.HasValue(plan.Version) {
+		desiredVersion = plan.Version.ValueString()
 	}
 	_, err := r.GetAndValidateVersionInChannelGroup(ctx, rosaTypes.Hcp, channelGroup, desiredVersion)
 	if err != nil {
@@ -769,19 +769,19 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 			summary,
 			fmt.Sprintf(
 				"Can't build cluster with name '%s': %v",
-				state.Name.ValueString(), err,
+				plan.Name.ValueString(), err,
 			),
 		)
 		return
 	}
 
-	object, err := createHcpClusterObject(ctx, state, diags)
+	object, err := createHcpClusterObject(ctx, plan, diags)
 	if err != nil {
 		response.Diagnostics.AddError(
 			summary,
 			fmt.Sprintf(
 				"Can't build cluster with name '%s': %v",
-				state.Name.ValueString(), err,
+				plan.Name.ValueString(), err,
 			),
 		)
 		return
@@ -793,7 +793,7 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 			summary,
 			fmt.Sprintf(
 				"Can't create cluster with name '%s': %v",
-				state.Name.ValueString(), err,
+				plan.Name.ValueString(), err,
 			),
 		)
 		return
@@ -801,7 +801,7 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 	object = add.Body()
 
 	// Save initial state:
-	err = populateRosaHcpClusterState(ctx, object, state)
+	err = populateRosaHcpClusterState(ctx, object, plan)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -811,6 +811,7 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 		)
 		return
 	}
+	response.Diagnostics.Append(response.State.Set(ctx, plan)...)
 
 	if shouldWaitCreationComplete {
 		tflog.Info(ctx, "Waiting for cluster to get ready")
@@ -821,8 +822,7 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 				fmt.Sprintf("Waiting for cluster creation finished with the error %v", err),
 			)
 			if object == nil {
-				diags = response.State.Set(ctx, state)
-				response.Diagnostics.Append(diags...)
+				response.Diagnostics.Append(response.State.Set(ctx, plan)...)
 				return
 			}
 		}
@@ -835,8 +835,7 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 					fmt.Sprintf("Waiting for std compute nodes completion finished with the error %v", err),
 				)
 				if object == nil {
-					diags = response.State.Set(ctx, state)
-					response.Diagnostics.Append(diags...)
+					response.Diagnostics.Append(response.State.Set(ctx, plan)...)
 					return
 				}
 			}
@@ -844,7 +843,7 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 	}
 
 	// Save the state post wait completion:
-	err = populateRosaHcpClusterState(ctx, object, state)
+	err = populateRosaHcpClusterState(ctx, object, plan)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -854,9 +853,7 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 		)
 		return
 	}
-
-	diags = response.State.Set(ctx, state)
-	response.Diagnostics.Append(diags...)
+	response.Diagnostics.Append(response.State.Set(ctx, plan)...)
 }
 
 func (r *ClusterRosaHcpResource) Read(ctx context.Context, request resource.ReadRequest,

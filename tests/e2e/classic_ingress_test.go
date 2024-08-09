@@ -28,6 +28,10 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 	BeforeEach(func() {
 		profile = ci.LoadProfileYamlFileByENV()
 
+		if profile.GetClusterType().HCP {
+			Skip("Test can run only on Classic cluster")
+		}
+
 		ingressBefore, err = cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -36,24 +40,31 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 	})
 
 	AfterEach(func() {
-		var componentRoutes map[string]map[string]string
+		var componentRoutes *map[string]*exec.IngressComponentRoute
 		if ingressBefore.ComponentRoutes() == nil {
 			componentRoutes = nil
 		} else {
-			componentRoutes = map[string]map[string]string{
-				"oauth": {
-					"hostname":       ingressBefore.ComponentRoutes()["oauth"].Hostname(),
-					"tls_secret_ref": ingressBefore.ComponentRoutes()["oauth"].TlsSecretRef(),
-				},
-				"console": {
-					"hostname":       ingressBefore.ComponentRoutes()["console"].Hostname(),
-					"tls_secret_ref": ingressBefore.ComponentRoutes()["console"].TlsSecretRef(),
-				},
-				"downloads": {
-					"hostname":       ingressBefore.ComponentRoutes()["downloads"].Hostname(),
-					"tls_secret_ref": ingressBefore.ComponentRoutes()["downloads"].TlsSecretRef(),
-				},
+			crs := map[string]*exec.IngressComponentRoute{}
+
+			if ingressBefore.ComponentRoutes()["oauth"] != nil {
+				crs["oauth"] = exec.NewIngressComponentRoute(
+					helper.StringPointer(ingressBefore.ComponentRoutes()["oauth"].Hostname()),
+					helper.StringPointer(ingressBefore.ComponentRoutes()["oauth"].TlsSecretRef()),
+				)
 			}
+			if ingressBefore.ComponentRoutes()["console"] != nil {
+				crs["console"] = exec.NewIngressComponentRoute(
+					helper.StringPointer(ingressBefore.ComponentRoutes()["console"].Hostname()),
+					helper.StringPointer(ingressBefore.ComponentRoutes()["console"].TlsSecretRef()),
+				)
+			}
+			if ingressBefore.ComponentRoutes()["downloads"] != nil {
+				crs["downloads"] = exec.NewIngressComponentRoute(
+					helper.StringPointer(ingressBefore.ComponentRoutes()["downloads"].Hostname()),
+					helper.StringPointer(ingressBefore.ComponentRoutes()["downloads"].TlsSecretRef()),
+				)
+			}
+			componentRoutes = &crs
 		}
 		args := exec.IngressArgs{
 			Cluster:                       helper.StringPointer(clusterID),
@@ -62,7 +73,7 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			RouteSelectors:                helper.StringMapPointer(ingressBefore.RouteSelectors()),
 			RouteNamespaceOwnershipPolicy: helper.StringPointer(string(ingressBefore.RouteNamespaceOwnershipPolicy())),
 			RouteWildcardPolicy:           helper.StringPointer(string(ingressBefore.RouteWildcardPolicy())),
-			ComponentRoutes:               &componentRoutes,
+			ComponentRoutes:               componentRoutes,
 		}
 		ingressService.Apply(&args)
 	})
@@ -77,11 +88,6 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 				Cluster:          helper.StringPointer(clusterID),
 			}
 			_, err = ingressService.Apply(&args)
-			if profile.GetClusterType().HCP {
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).Should(MatchRegexp(`Can't update load balancer type on[\s\S]?Hosted Control Plane cluster '%s'`, clusterID))
-				return
-			}
 			Expect(err).ToNot(HaveOccurred())
 
 			By("use API to check if ingress LB type updated")
@@ -102,191 +108,131 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			Expect(string(ingress.LoadBalancerType())).To(Equal("nlb"))
 		})
 
-	It("update ingress components - [id:73610]",
+	It("update component routes - [id:73610]",
 		ci.Day2,
 		ci.High,
 		func() {
 			By("set ingress component routes")
+			componentRoutes := map[string]*exec.IngressComponentRoute{
+				"oauth": exec.NewIngressComponentRoute(
+					helper.StringPointer("oauth.example.com"),
+					helper.StringPointer("oauth"),
+				),
+				"console": exec.NewIngressComponentRoute(
+					helper.StringPointer("console.example.com"),
+					helper.StringPointer("console"),
+				),
+				"downloads": exec.NewIngressComponentRoute(
+					helper.StringPointer("downloads.example.com"),
+					helper.StringPointer("downloads"),
+				),
+			}
 			args := exec.IngressArgs{
-				ComponentRoutes: &map[string]map[string]string{
-					"oauth": {
-						"hostname":       "oauth.example.com",
-						"tls_secret_ref": "oauth",
-					},
-					"console": {
-						"hostname":       "console.example.com",
-						"tls_secret_ref": "console",
-					},
-					"downloads": {
-						"hostname":       "downloads.example.com",
-						"tls_secret_ref": "downloads",
-					},
-				},
-				Cluster: &clusterID,
+				ComponentRoutes: &componentRoutes,
+				Cluster:         &clusterID,
 			}
 			_, err = ingressService.Apply(&args)
-			if profile.GetClusterType().HCP {
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).Should(MatchRegexp(`Can't update route selectors on[\s\S]?Hosted Control Plane cluster '%s'`, clusterID))
-				return
-			}
 			Expect(err).ToNot(HaveOccurred())
 
-			By("use ocm API to check if ingress config updated")
+			By("use ocm API to check if component routes updated")
 			ingress, err := cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(ingress.ComponentRoutes()["oauth"].Hostname()).To(Equal((*args.ComponentRoutes)["oauth"]["hostname"]))
-			Expect(ingress.ComponentRoutes()["oauth"].TlsSecretRef()).To(Equal((*args.ComponentRoutes)["oauth"]["tls_secret_ref"]))
-			Expect(ingress.ComponentRoutes()["console"].Hostname()).To(Equal((*args.ComponentRoutes)["console"]["hostname"]))
-			Expect(ingress.ComponentRoutes()["console"].TlsSecretRef()).To(Equal((*args.ComponentRoutes)["console"]["tls_secret_ref"]))
-			Expect(ingress.ComponentRoutes()["downloads"].Hostname()).To(Equal((*args.ComponentRoutes)["downloads"]["hostname"]))
-			Expect(ingress.ComponentRoutes()["downloads"].TlsSecretRef()).To(Equal((*args.ComponentRoutes)["downloads"]["tls_secret_ref"]))
+			Expect(ingress.ComponentRoutes()["oauth"].Hostname()).To(Equal(*componentRoutes["oauth"].Hostname))
+			Expect(ingress.ComponentRoutes()["oauth"].TlsSecretRef()).To(Equal(*componentRoutes["oauth"].TlsSecretRef))
+			Expect(ingress.ComponentRoutes()["console"].Hostname()).To(Equal(*componentRoutes["console"].Hostname))
+			Expect(ingress.ComponentRoutes()["console"].TlsSecretRef()).To(Equal(*componentRoutes["console"].TlsSecretRef))
+			Expect(ingress.ComponentRoutes()["downloads"].Hostname()).To(Equal(*componentRoutes["downloads"].Hostname))
+			Expect(ingress.ComponentRoutes()["downloads"].TlsSecretRef()).To(Equal(*componentRoutes["downloads"].TlsSecretRef))
 
 			By("update ingress component routes")
+			componentRoutes = map[string]*exec.IngressComponentRoute{
+				"oauth": exec.NewIngressComponentRoute(
+					helper.StringPointer("oauth.test.example.com"),
+					helper.StringPointer("test-oauth"),
+				),
+				"console": exec.NewIngressComponentRoute(
+					helper.StringPointer("console.test.example.com"),
+					helper.StringPointer("test-console"),
+				),
+				"downloads": exec.NewIngressComponentRoute(
+					helper.StringPointer("downloads.test.example.com"),
+					helper.StringPointer("test-downloads"),
+				),
+			}
 			args = exec.IngressArgs{
-				ComponentRoutes: &map[string]map[string]string{
-					"oauth": {
-						"hostname":       "oauth.test.example.com",
-						"tls_secret_ref": "test-oauth",
-					},
-					"console": {
-						"hostname":       "console.test.example.com",
-						"tls_secret_ref": "test-console",
-					},
-					"downloads": {
-						"hostname":       "downloads.test.example.com",
-						"tls_secret_ref": "test-downloads",
-					},
-				},
-				Cluster: &clusterID,
+				ComponentRoutes: &componentRoutes,
+				Cluster:         &clusterID,
 			}
 			_, err = ingressService.Apply(&args)
 			Expect(err).ToNot(HaveOccurred())
 
-			By("use ocm API to check if ingress config updated")
+			By("use ocm API to check if component routes updated")
 			ingress, err = cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(ingress.ComponentRoutes()["oauth"].Hostname()).To(Equal((*args.ComponentRoutes)["oauth"]["hostname"]))
-			Expect(ingress.ComponentRoutes()["oauth"].TlsSecretRef()).To(Equal((*args.ComponentRoutes)["oauth"]["tls_secret_ref"]))
-			Expect(ingress.ComponentRoutes()["console"].Hostname()).To(Equal((*args.ComponentRoutes)["console"]["hostname"]))
-			Expect(ingress.ComponentRoutes()["console"].TlsSecretRef()).To(Equal((*args.ComponentRoutes)["console"]["tls_secret_ref"]))
-			Expect(ingress.ComponentRoutes()["downloads"].Hostname()).To(Equal((*args.ComponentRoutes)["downloads"]["hostname"]))
-			Expect(ingress.ComponentRoutes()["downloads"].TlsSecretRef()).To(Equal((*args.ComponentRoutes)["downloads"]["tls_secret_ref"]))
+			Expect(ingress.ComponentRoutes()["oauth"].Hostname()).To(Equal(*componentRoutes["oauth"].Hostname))
+			Expect(ingress.ComponentRoutes()["oauth"].TlsSecretRef()).To(Equal(*componentRoutes["oauth"].TlsSecretRef))
+			Expect(ingress.ComponentRoutes()["console"].Hostname()).To(Equal(*componentRoutes["console"].Hostname))
+			Expect(ingress.ComponentRoutes()["console"].TlsSecretRef()).To(Equal(*componentRoutes["console"].TlsSecretRef))
+			Expect(ingress.ComponentRoutes()["downloads"].Hostname()).To(Equal(*componentRoutes["downloads"].Hostname))
+			Expect(ingress.ComponentRoutes()["downloads"].TlsSecretRef()).To(Equal(*componentRoutes["downloads"].TlsSecretRef))
+
+			By("remove some component routes")
+			componentRoutes = map[string]*exec.IngressComponentRoute{
+				"oauth": exec.NewIngressComponentRoute(
+					helper.StringPointer("oauth.test.example.com"),
+					helper.StringPointer("test-oauth"),
+				),
+			}
+			args = exec.IngressArgs{
+				ComponentRoutes: &componentRoutes,
+				Cluster:         &clusterID,
+			}
+			_, err = ingressService.Apply(&args)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("use ocm API to check if component routes updated")
+			ingress, err = cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ingress.ComponentRoutes()["oauth"].Hostname()).To(Equal(*componentRoutes["oauth"].Hostname))
+			Expect(ingress.ComponentRoutes()["oauth"].TlsSecretRef()).To(Equal(*componentRoutes["oauth"].TlsSecretRef))
+			Expect(ingress.ComponentRoutes()["console"]).To(BeNil())
+			Expect(ingress.ComponentRoutes()["downloads"]).To(BeNil())
+
+			By("Remove component routes")
+			args = exec.IngressArgs{
+				ComponentRoutes: nil,
+				Cluster:         &clusterID,
+			}
+			_, err = ingressService.Apply(&args)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("use ocm API to check if component routes deleted")
+			ingress, err = cms.RetrieveClusterIngress(ci.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(ingress.ComponentRoutes())).To(Equal(0))
 		})
 
 	It("validate ingress components - [id:75067]",
 		ci.Day2,
 		ci.Medium,
 		func() {
-			By("Try to update only some sections")
-			args := exec.IngressArgs{
-				ComponentRoutes: &map[string]map[string]string{
-					"oauth": {
-						"hostname":       "oauth.test.example.com",
-						"tls_secret_ref": "test-oauth",
-					},
-				},
-				Cluster: &clusterID,
-			}
-			_, err := ingressService.Apply(&args)
-			if profile.GetClusterType().HCP {
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).Should(MatchRegexp(`Can't update route selectors on[\s\S]?Hosted Control Plane cluster '%s'`, clusterID))
-				// No need to test other edit after
-				return
-			}
-			Expect(err).To(HaveOccurred())
-			helper.ExpectTFErrorContains(err, "All component route kinds must be specified. Missing [console, downloads]")
-			args = exec.IngressArgs{
-				ComponentRoutes: &map[string]map[string]string{
-					"console": {
-						"hostname":       "console.test.example.com",
-						"tls_secret_ref": "test-console",
-					},
-				},
-				Cluster: &clusterID,
-			}
-			_, err = ingressService.Apply(&args)
-			Expect(err).To(HaveOccurred())
-			helper.ExpectTFErrorContains(err, "All component route kinds must be specified. Missing [oauth, downloads]")
-			args = exec.IngressArgs{
-				ComponentRoutes: &map[string]map[string]string{
-					"downloads": {
-						"hostname":       "downloads.test.example.com",
-						"tls_secret_ref": "test-downloads",
-					},
-				},
-				Cluster: &clusterID,
-			}
-			_, err = ingressService.Apply(&args)
-			Expect(err).To(HaveOccurred())
-			helper.ExpectTFErrorContains(err, "All component route kinds must be specified. Missing [oauth, console]")
-			args = exec.IngressArgs{
-				ComponentRoutes: &map[string]map[string]string{
-					"console": {
-						"hostname":       "console.test.example.com",
-						"tls_secret_ref": "test-console",
-					},
-					"downloads": {
-						"hostname":       "downloads.test.example.com",
-						"tls_secret_ref": "test-downloads",
-					},
-				},
-				Cluster: &clusterID,
-			}
-			_, err = ingressService.Apply(&args)
-			Expect(err).To(HaveOccurred())
-			helper.ExpectTFErrorContains(err, "All component route kinds must be specified. Missing [oauth]")
-			args = exec.IngressArgs{
-				ComponentRoutes: &map[string]map[string]string{
-					"oauth": {
-						"hostname":       "oauth.test.example.com",
-						"tls_secret_ref": "test-oauth",
-					},
-					"downloads": {
-						"hostname":       "downloads.test.example.com",
-						"tls_secret_ref": "test-downloads",
-					},
-				},
-				Cluster: &clusterID,
-			}
-			_, err = ingressService.Apply(&args)
-			Expect(err).To(HaveOccurred())
-			helper.ExpectTFErrorContains(err, "All component route kinds must be specified. Missing [console]")
-			args = exec.IngressArgs{
-				ComponentRoutes: &map[string]map[string]string{
-					"oauth": {
-						"hostname":       "oauth.test.example.com",
-						"tls_secret_ref": "test-oauth",
-					},
-					"console": {
-						"hostname":       "console.test.example.com",
-						"tls_secret_ref": "test-console",
-					},
-				},
-				Cluster: &clusterID,
-			}
-			_, err = ingressService.Apply(&args)
-			Expect(err).To(HaveOccurred())
-			helper.ExpectTFErrorContains(err, "All component route kinds must be specified. Missing [downloads]")
-
 			By("Try to remove only the hostname")
 			out, err := ingressService.Output()
 			Expect(err).ToNot(HaveOccurred())
-			args = exec.IngressArgs{
-				ComponentRoutes: &map[string]map[string]string{
-					"oauth": {
-						"hostname":       "",
-						"tls_secret_ref": "test-oauth",
-					},
-					"console": {
-						"hostname":       "console.test.example.com",
-						"tls_secret_ref": "test-console",
-					},
-					"downloads": {
-						"hostname":       "downloads.test.example.com",
-						"tls_secret_ref": "test-downloads",
-					},
+			args := exec.IngressArgs{
+				ComponentRoutes: &map[string]*exec.IngressComponentRoute{
+					"oauth": exec.NewIngressComponentRoute(
+						helper.StringPointer(""),
+						helper.StringPointer("test-oauth"),
+					),
+					"console": exec.NewIngressComponentRoute(
+						helper.StringPointer("console.test.example.com"),
+						helper.StringPointer("test-console"),
+					),
+					"downloads": exec.NewIngressComponentRoute(
+						helper.StringPointer("downloads.test.example.com"),
+						helper.StringPointer("test-downloads"),
+					),
 				},
 				Cluster: &clusterID,
 			}
@@ -296,19 +242,19 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 
 			By("Try to remove only the tls_secret_ref")
 			args = exec.IngressArgs{
-				ComponentRoutes: &map[string]map[string]string{
-					"oauth": {
-						"hostname":       "oauth.test.example.com",
-						"tls_secret_ref": "",
-					},
-					"console": {
-						"hostname":       "console.test.example.com",
-						"tls_secret_ref": "test-console",
-					},
-					"downloads": {
-						"hostname":       "downloads.test.example.com",
-						"tls_secret_ref": "test-downloads",
-					},
+				ComponentRoutes: &map[string]*exec.IngressComponentRoute{
+					"oauth": exec.NewIngressComponentRoute(
+						helper.StringPointer("oauth.test.example.com"),
+						helper.StringPointer(""),
+					),
+					"console": exec.NewIngressComponentRoute(
+						helper.StringPointer("console.test.example.com"),
+						helper.StringPointer("test-console"),
+					),
+					"downloads": exec.NewIngressComponentRoute(
+						helper.StringPointer("downloads.test.example.com"),
+						helper.StringPointer("test-downloads"),
+					),
 				},
 				Cluster: &clusterID,
 			}
@@ -318,7 +264,7 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 
 			By("Try with blank component routes")
 			args = exec.IngressArgs{
-				ComponentRoutes: &map[string]map[string]string{},
+				ComponentRoutes: &map[string]*exec.IngressComponentRoute{},
 				Cluster:         &clusterID,
 			}
 			_, err = ingressService.Apply(&args)
@@ -328,19 +274,19 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			By("Try with invalid cluster ID")
 			invalidID := "asdf"
 			args = exec.IngressArgs{
-				ComponentRoutes: &map[string]map[string]string{
-					"oauth": {
-						"hostname":       "oauth.test.example.com",
-						"tls_secret_ref": "test-oauth",
-					},
-					"console": {
-						"hostname":       "console.test.example.com",
-						"tls_secret_ref": "test-console",
-					},
-					"downloads": {
-						"hostname":       "downloads.test.example.com",
-						"tls_secret_ref": "test-downloads",
-					},
+				ComponentRoutes: &map[string]*exec.IngressComponentRoute{
+					"oauth": exec.NewIngressComponentRoute(
+						helper.StringPointer("oauth.test.example.com"),
+						helper.StringPointer("test-oauth"),
+					),
+					"console": exec.NewIngressComponentRoute(
+						helper.StringPointer("console.test.example.com"),
+						helper.StringPointer("test-console"),
+					),
+					"downloads": exec.NewIngressComponentRoute(
+						helper.StringPointer("downloads.test.example.com"),
+						helper.StringPointer("test-downloads"),
+					),
 				},
 				Cluster: &invalidID,
 			}
@@ -366,11 +312,6 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 				RouteWildcardPolicy:           helper.StringPointer("WildcardsAllowed"),
 			}
 			_, err = ingressService.Apply(&args)
-			if profile.GetClusterType().HCP {
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).Should(MatchRegexp(`Can't update route selectors on[\s\S]?Hosted Control Plane cluster '%s'`, clusterID))
-				return
-			}
 			Expect(err).ToNot(HaveOccurred())
 
 			By("use ocm API to check if ingress config updated")

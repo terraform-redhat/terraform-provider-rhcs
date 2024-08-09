@@ -21,11 +21,12 @@ data "aws_partition" "current" {
 }
 
 locals {
-  path               = coalesce(var.path, "/")
-  major_version      = "${split(".", var.openshift_version)[0]}.${split(".", var.openshift_version)[1]}"
-  versionfilter      = var.openshift_version == null ? "" : " and raw_id like '%${local.major_version}%'"
-  installer_role_arn = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${var.account_role_prefix}-Installer-Role"
-  aws_account_id     = data.aws_caller_identity.current.account_id
+  path                      = coalesce(var.path, "/")
+  major_version             = "${split(".", var.openshift_version)[0]}.${split(".", var.openshift_version)[1]}"
+  versionfilter             = var.openshift_version == null ? "" : " and raw_id like '%${local.major_version}%'"
+  account_role_prefix_valid = var.account_role_prefix == "" || var.account_role_prefix == null ? "account-role-${random_string.random_suffix[0].result}" : var.account_role_prefix
+  installer_role_arn        = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${local.account_role_prefix_valid}-Installer-Role"
+  aws_account_id            = data.aws_caller_identity.current.account_id
 }
 
 data "rhcs_policies" "all_policies" {}
@@ -39,7 +40,15 @@ module "create_account_roles" {
   source  = "terraform-redhat/rosa-classic/rhcs//modules/account-iam-resources"
   version = ">=1.5.0"
 
-  account_role_prefix = var.account_role_prefix
+  account_role_prefix = local.account_role_prefix_valid
   openshift_version   = var.openshift_version
   path                = local.path
+}
+
+resource "random_string" "random_suffix" {
+  count = var.account_role_prefix == "" || var.account_role_prefix == null ? 1 : 0
+
+  length  = 4
+  special = false
+  upper   = false
 }

@@ -68,7 +68,8 @@ type MachinePoolService interface {
 	Apply(args *MachinePoolArgs) (string, error)
 	Output() (*MachinePoolsOutput, error)
 	Destroy() (string, error)
-
+	ShowState(resource string) (string, error)
+	RemoveState(resource string) (string, error)
 	ReadTFVars() (*MachinePoolArgs, error)
 	DeleteTFVars() error
 }
@@ -113,6 +114,14 @@ func (svc *machinePoolService) Output() (*MachinePoolsOutput, error) {
 
 func (svc *machinePoolService) Destroy() (string, error) {
 	return svc.tfExecutor.RunTerraformDestroy()
+}
+
+func (svc *machinePoolService) ShowState(resource string) (string, error) {
+	return svc.tfExecutor.RunTerraformState("show", resource)
+}
+
+func (svc *machinePoolService) RemoveState(resource string) (string, error) {
+	return svc.tfExecutor.RunTerraformState("rm", resource)
 }
 
 func (svc *machinePoolService) ReadTFVars() (*MachinePoolArgs, error) {

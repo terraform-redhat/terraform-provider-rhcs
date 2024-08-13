@@ -505,9 +505,23 @@ func getDefaultIngressBuilder(ctx context.Context, state, plan *DefaultIngress) 
 
 func validateDefaultIngress(ctx context.Context, state *DefaultIngress) error {
 	if common.IsStringAttributeUnknownOrEmpty(state.ClusterRoutesHostname) != common.IsStringAttributeUnknownOrEmpty(state.ClusterRoutesTlsSecretRef) {
-		msg := fmt.Sprintf("default_ingress params: cluster_routes_hostname and cluster_routes_tls_secret_ref must be set together")
+		msg := fmt.Sprint("default_ingress params: cluster_routes_hostname and cluster_routes_tls_secret_ref must be set together")
 		tflog.Error(ctx, msg)
 		return fmt.Errorf(msg)
+	}
+
+	for _, v := range state.ComponentRoutes.Elements() {
+		object, ok := v.(types.Object)
+		if !ok {
+			msg := fmt.Sprint("Error casting component route as object, please set the component route as an object instead")
+			tflog.Error(ctx, msg)
+			return fmt.Errorf(msg)
+		}
+		if object.IsNull() {
+			msg := fmt.Sprint("Component route shouldn't be null, if you would like to reset a specific component route please remove the key instead")
+			tflog.Error(ctx, msg)
+			return fmt.Errorf(msg)
+		}
 	}
 
 	return nil

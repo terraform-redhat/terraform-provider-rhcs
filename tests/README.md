@@ -132,7 +132,7 @@ This feature allows for running tests through a case filter to simulate CI. Anyo
   * Set up the OCM URL (if different from staging)
     * `export RHCS_URL="https://api.openshift.com"`
   * Run ginkgo run command
-    * `ginkgo run --label-filter day1-prepare tests/e2e`
+    * `ginkgo run --label-filter day1-prepare --timeout 2h tests/e2e`
 * Run day2 day1 post cases with profile
   * Check file terraform-provider-rhcs/tests/ci/profiles/tf_cluster_profile.yml to find the supported profiles and detailed configuration
     * `export CLUSTER_PROFILE=<profile name>` #If it had been run, then you can skip

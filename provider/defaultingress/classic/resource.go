@@ -415,7 +415,7 @@ func (r *DefaultIngressResource) updateIngress(ctx context.Context, state, plan 
 	}
 
 	if !reflect.DeepEqual(state, plan) {
-		err := validateDefaultIngress(ctx, plan)
+		err := validateDefaultIngress(ctx, plan, diags)
 		if err != nil {
 			return err
 		}
@@ -503,7 +503,7 @@ func getDefaultIngressBuilder(ctx context.Context, state, plan *DefaultIngress) 
 	return ingressBuilder
 }
 
-func validateDefaultIngress(ctx context.Context, state *DefaultIngress) error {
+func validateDefaultIngress(ctx context.Context, state *DefaultIngress, diags diag.Diagnostics) error {
 	if common.IsStringAttributeUnknownOrEmpty(state.ClusterRoutesHostname) != common.IsStringAttributeUnknownOrEmpty(state.ClusterRoutesTlsSecretRef) {
 		msg := fmt.Sprint("default_ingress params: cluster_routes_hostname and cluster_routes_tls_secret_ref must be set together")
 		tflog.Error(ctx, msg)
@@ -519,6 +519,12 @@ func validateDefaultIngress(ctx context.Context, state *DefaultIngress) error {
 		}
 		if object.IsNull() {
 			msg := fmt.Sprint("Component route shouldn't be null, if you would like to reset a specific component route please remove the key instead")
+			tflog.Error(ctx, msg)
+			return fmt.Errorf(msg)
+		}
+		hostname, tlsSecretRef := defaultingress.ExpandComponentRoute(ctx, v.(types.Object), diags)
+		if hostname == "" && tlsSecretRef == "" {
+			msg := fmt.Sprint("Component route fields shouldn't both be empty, if you would like to reset a specific component route please remove the key instead")
 			tflog.Error(ctx, msg)
 			return fmt.Errorf(msg)
 		}

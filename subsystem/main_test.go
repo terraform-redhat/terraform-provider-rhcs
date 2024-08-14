@@ -17,6 +17,7 @@ limitations under the License.
 package provider
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -76,11 +77,23 @@ type TerraformRunnerBuilder struct {
 	token string
 }
 
+type RunOutput struct {
+	out string
+	err string
+}
+
+func (ro *RunOutput) VerifyErrorContainsSubstring(sub string) {
+	Expect(ro.err).To(ContainSubstring(sub))
+}
+
 // TerraformRunner contains the data and logic needed to run Terraform.
 type TerraformRunner struct {
 	binary string
 	dir    string
 	env    []string
+
+	// TODO: Adjust so it is more individual to each test
+	LastRunOutput RunOutput
 }
 
 // NewTerraformRunner creates a new Terraform runner.
@@ -213,10 +226,11 @@ func (r *TerraformRunner) Run(args ...string) int {
 
 	// Run the command:
 	cmd := exec.Command(r.binary, args...)
+	var outb, errb bytes.Buffer
 	cmd.Env = r.env
 	cmd.Dir = r.dir
-	cmd.Stdout = GinkgoWriter
-	cmd.Stderr = GinkgoWriter
+	cmd.Stdout = &outb
+	cmd.Stderr = &errb
 	err = cmd.Run()
 	switch err.(type) {
 	case *exec.ExitError:
@@ -224,6 +238,14 @@ func (r *TerraformRunner) Run(args ...string) int {
 		// returned exit code.
 	default:
 		ExpectWithOffset(1, err).ToNot(HaveOccurred())
+	}
+
+	GinkgoWriter.Println(&outb)
+	GinkgoWriter.Println(&errb)
+
+	r.LastRunOutput = RunOutput{
+		out: outb.String(),
+		err: errb.String(),
 	}
 
 	// Return the exit code:

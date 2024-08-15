@@ -238,7 +238,9 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			}
 			_, err = ingressService.Apply(&args)
 			Expect(err).To(HaveOccurred())
-			helper.ExpectTFErrorContains(err, fmt.Sprintf("Can't remove 'oauth' component route hostname for ingress '%s' in cluster '%s' without also removing TLS secret reference", out.ID, clusterID))
+			helper.ExpectTFErrorContains(
+				err, fmt.Sprintf("Can't remove 'oauth' component route hostname for ingress '%s' in cluster '%s' without also removing TLS secret reference",
+					ingressBefore.ID(), clusterID))
 
 			By("Try to remove only the tls_secret_ref")
 			args = exec.IngressArgs{
@@ -260,7 +262,9 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			}
 			_, err = ingressService.Apply(&args)
 			Expect(err).To(HaveOccurred())
-			helper.ExpectTFErrorContains(err, fmt.Sprintf("Can't update 'oauth' component route hostname for ingress '%s' in cluster '%s' without also supplying a new TLS secret reference", out.ID, clusterID))
+			helper.ExpectTFErrorContains(
+				err, fmt.Sprintf("Can't update 'oauth' component route hostname for ingress '%s' in cluster '%s' without also supplying a new TLS secret reference",
+					out.ID, clusterID))
 
 			By("Try with blank component routes")
 			args = exec.IngressArgs{
@@ -269,7 +273,42 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			}
 			_, err = ingressService.Apply(&args)
 			Expect(err).To(HaveOccurred())
-			helper.ExpectTFErrorContains(err, "Error: Provider produced inconsistent result after apply")
+			helper.ExpectTFErrorContains(err, "Component route cannot be empty")
+
+			By("Update component routes by setting nil")
+			componentRoutes := map[string]*exec.IngressComponentRoute{
+				"oauth": nil,
+				"console": exec.NewIngressComponentRoute(
+					helper.StringPointer("console.test.example.com"),
+					helper.StringPointer("test-console")),
+				"downloads": exec.NewIngressComponentRoute(
+					helper.StringPointer("downloads.test.example.com"),
+					helper.StringPointer("test-downloads"),
+				),
+			}
+			args = exec.IngressArgs{
+				ComponentRoutes: &componentRoutes,
+				Cluster:         &clusterID,
+			}
+			output, err := ingressService.Apply(&args)
+			Expect(err).To(HaveOccurred())
+			Expect(output).Should(ContainSubstring("component route please remove the key instead"))
+
+			componentRoutes = map[string]*exec.IngressComponentRoute{
+				"oauth": exec.NewIngressComponentRoute(
+					helper.StringPointer(""),
+					helper.StringPointer("")),
+				"console": exec.NewIngressComponentRoute(
+					helper.StringPointer("console.test.example.com"),
+					helper.StringPointer("test-console")),
+				"downloads": exec.NewIngressComponentRoute(
+					helper.StringPointer("downloads.test.example.com"),
+					helper.StringPointer("test-downloads"),
+				),
+			}
+			output, err = ingressService.Apply(&args)
+			Expect(err).To(HaveOccurred())
+			Expect(output).Should(ContainSubstring("Component route fields shouldn't both be empty"))
 
 			By("Try with invalid cluster ID")
 			invalidID := "asdf"

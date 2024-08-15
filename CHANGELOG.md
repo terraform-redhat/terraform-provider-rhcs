@@ -1,3 +1,39 @@
+## 1.6.3 (Aug 15, 2024)
+FEATURES:
+* Include trusted IP list resource
+* Include imdsv2 option to Hosted Control Plane Cluster resource
+* Include Hosted Control Plane Cluster Machine Pool additional security groups on creation
+* Allow longer cluster names
+* Allow to update htpasswd idp resource
+* Include support of component routes for default ingress on Classic clusters
+* Support cluster admin creation for Hosted Control Plane clusters
+* Support of user defined AWS tags on machine pool resource
+* Support Kubelet Config resource on Hosted Control Plane cluster
+
+ENHANCEMENTS:
+* Bug fixes:
+  * Fix to version ID validation
+  * Validation for cluster admin user name
+  * Validation that cluster id is not empty for subresources
+  * Does not allow to edit tags on machine pool of a hosted control plane
+  * Allow proxy settings to be reset
+  * Allow tuning configs to be reset
+  * Disallow to edit STS fields of a cluster
+  * Validation that name and subnet ID on machine pools are not empty
+  * Validation of AWS account IDs
+  * Allows to set etcd encryption as false if no value is supplied to KMS key ARN
+  * Forwards AWS billing account ID changes
+  * Disables to edit cloud region of cluster resource
+  * Disables to edit machine pool instance and subnet ID of a machine pool resource
+  * Validates ROSA creator ARN property
+  * Disables to edit etcd KMS key ARN
+  * Allows assumed-role into ROSA creator ARN property
+  * Typo on error message for OIDC
+* Documentation:
+  * Adjust replicas description
+  * Includes more example usages of resources
+  * Adjusts Hosted Control Plane autoscaler docs to mention it is not fully available
+
 ## 1.6.2 (May 02, 2024)
 FEATURES:
 * Adjustment to include RH SRE support role into policies data source

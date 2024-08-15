@@ -509,7 +509,11 @@ func validateDefaultIngress(ctx context.Context, state *DefaultIngress, diags di
 		tflog.Error(ctx, msg)
 		return fmt.Errorf(msg)
 	}
-
+	if !state.ComponentRoutes.IsNull() && len(state.ComponentRoutes.Elements()) == 0 {
+		msg := "Component route cannot be empty, if you would like to reset whole component route please remove the key instead"
+		tflog.Error(ctx, msg)
+		return fmt.Errorf(msg)
+	}
 	for _, v := range state.ComponentRoutes.Elements() {
 		object, ok := v.(types.Object)
 		if !ok {

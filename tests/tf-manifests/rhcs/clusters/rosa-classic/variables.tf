@@ -204,6 +204,11 @@ variable "base_dns_domain" {
   default = null
 }
 
+variable "domain_prefix" {
+  type    = string
+  default = null
+}
+
 variable "private_hosted_zone" {
   type = object({
     id       = string

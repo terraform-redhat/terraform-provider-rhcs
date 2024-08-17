@@ -9,12 +9,13 @@ data "aws_partition" "current" {}
 
 locals {
   resource_arn_prefix = "arn:${data.aws_partition.current.partition}:ec2:${var.region}:${data.aws_caller_identity.current.account_id}:subnet/"
+  prefix              = var.domain_prefix == null ? var.cluster_name : var.domain_prefix
 }
 
 # Private Hosted Zone
 resource "aws_route53_zone" "shared_vpc_hosted_zone" {
 
-  name = "${var.cluster_name}.${var.dns_domain_id}"
+  name = "${local.prefix}.${var.dns_domain_id}"
 
   vpc {
     vpc_id = var.vpc_id

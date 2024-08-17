@@ -91,6 +91,7 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   destroy_timeout                                 = 120
   upgrade_acknowledgements_for                    = var.upgrade_acknowledgements_for
   base_dns_domain                                 = var.base_dns_domain
+  domain_prefix                                   = var.domain_prefix
   private_hosted_zone                             = var.private_hosted_zone
   lifecycle {
     ignore_changes = [availability_zones]

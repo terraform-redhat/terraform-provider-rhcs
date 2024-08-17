@@ -8,11 +8,16 @@ variable "region" {
   description = "List of files path to the AWS shared credentials file. This file typically contains AWS access keys and secret keys and is used when authenticating with AWS using profiles (default file located at ~/.aws/credentials)."
 }
 
-variable "cluster_name" {
+variable "domain_prefix" {
   type        = string
-  description = "The cluster's name for which shared resources are created. It's utilized for the Hosted Zone domain."
+  description = "The domain prefix used for hosted zone creation. It's utilized for the Hosted Zone domain."
+  default     = null
 }
 
+variable "cluster_name" {
+  type        = string
+  description = "The cluster's name for which shared resources are created. It's utilized for the Hosted Zone domain when domain_prefix not set."
+}
 variable "dns_domain_id" {
   type        = string
   description = "The Base Domain that should be used for the Hosted Zone creation."

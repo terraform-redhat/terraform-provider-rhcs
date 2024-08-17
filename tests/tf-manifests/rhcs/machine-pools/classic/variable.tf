@@ -1,5 +1,5 @@
-variable mp_count {
-  type = number
+variable "mp_count" {
+  type    = number
   default = 1
 }
 

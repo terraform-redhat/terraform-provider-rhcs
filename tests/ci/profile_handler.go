@@ -24,6 +24,7 @@ import (
 type Profile struct {
 	Name                    string `ini:"name,omitempty" json:"name,omitempty"`
 	ClusterName             string `ini:"cluster_name,omitempty" json:"cluster_name,omitempty"`
+	DomainPrefix            string `ini:"domain_prefix,omitempty" json:"domain_prefix,omitempty"`
 	ClusterType             string `ini:"cluster_type,omitempty" json:"cluster_type,omitempty"`
 	ProductID               string `ini:"product_id,omitempty" json:"product_id,omitempty"`
 	MajorVersion            string `ini:"major_version,omitempty" json:"major_version,omitempty"`
@@ -306,33 +307,37 @@ func PrepareRoute53() (string, error) {
 }
 
 func PrepareSharedVpcPolicyAndHostedZone(region string,
-	shared_vpc_aws_shared_credentials_file string,
-	cluster_name string,
-	dns_domain_id string,
-	ingress_operator_role_arn string,
-	installer_role_arn string,
-	cluster_aws_account string,
-	vpc_id string,
-	subnets []string) (*exec.SharedVpcPolicyAndHostedZoneOutput, error) {
+	sharedVpcAWSSharedCredentialsFile string,
+	clusterName string,
+	dnsDomainID string,
+	ingressOperatorRoleArn string,
+	installerRoleArn string,
+	clusterAwsAccount string,
+	vpcID string,
+	subnets []string,
+	domainPrefix string) (*exec.SharedVpcPolicyAndHostedZoneOutput, error) {
 
 	sharedVPCService, err := exec.NewSharedVpcPolicyAndHostedZoneService()
 	if err != nil {
 		return nil, err
 	}
 
-	a := &exec.SharedVpcPolicyAndHostedZoneArgs{
-		SharedVpcAWSSharedCredentialsFiles: helper.StringSlicePointer([]string{shared_vpc_aws_shared_credentials_file}),
+	hostedZoneArgs := &exec.SharedVpcPolicyAndHostedZoneArgs{
+		SharedVpcAWSSharedCredentialsFiles: helper.StringSlicePointer([]string{sharedVpcAWSSharedCredentialsFile}),
 		Region:                             helper.StringPointer(region),
-		ClusterName:                        helper.StringPointer(cluster_name),
-		DnsDomainId:                        helper.StringPointer(dns_domain_id),
-		IngressOperatorRoleArn:             helper.StringPointer(ingress_operator_role_arn),
-		InstallerRoleArn:                   helper.StringPointer(installer_role_arn),
-		ClusterAWSAccount:                  helper.StringPointer(cluster_aws_account),
-		VpcId:                              helper.StringPointer(vpc_id),
+		ClusterName:                        helper.StringPointer(clusterName),
+		DnsDomainId:                        helper.StringPointer(dnsDomainID),
+		IngressOperatorRoleArn:             helper.StringPointer(ingressOperatorRoleArn),
+		InstallerRoleArn:                   helper.StringPointer(installerRoleArn),
+		ClusterAWSAccount:                  helper.StringPointer(clusterAwsAccount),
+		VpcId:                              helper.StringPointer(vpcID),
 		Subnets:                            helper.StringSlicePointer(subnets),
 	}
+	if domainPrefix != "" {
+		hostedZoneArgs.DomainPrefix = helper.StringPointer(domainPrefix)
+	}
 
-	_, err = sharedVPCService.Apply(a)
+	_, err = sharedVPCService.Apply(hostedZoneArgs)
 	if err != nil {
 		sharedVPCService.Destroy()
 		return nil, err
@@ -436,7 +441,23 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 		name := helper.GenerateClusterName(profile.Name)
 		clusterArgs.ClusterName = &name
 	}
-
+	// Once cluster name is longer than 15 chars for shared-vpc domain prefix will be auto generated
+	// Even it is not defined in profile configuration
+	// When global profile domain_prefix set, it will use global value
+	// ++++ Uncomment this part once the shared vpc with domain prefix issue resolved
+	// if profile.DomainPrefix == "" && profile.SharedVpc && len(*clusterArgs.ClusterName) > 15 {
+	// 	profile.DomainPrefix = helper.GenerateRandomName("shared-vpc", 4)
+	// }
+	// ++++ Uncomment finished
+	// --- Remove this part once shared vpc with domain prefix issue fixed
+	if profile.SharedVpc && len(*clusterArgs.ClusterName) > 15 {
+		*clusterArgs.ClusterName = helper.GenerateRandomName("rhcs-ci-sv", 4)
+	}
+	// --- Remove finished
+	// short and re-generate the clusterName when it is longer than 15 chars
+	if profile.DomainPrefix != "" {
+		clusterArgs.DomainPrefix = &profile.DomainPrefix
+	}
 	if profile.Region != "" {
 		clusterArgs.AWSRegion = &profile.Region
 	} else {
@@ -548,7 +569,8 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 					installer_role_arn,
 					cluster_aws_account,
 					vpcOutput.VPCID,
-					*clusterArgs.AWSSubnetIDs)
+					*clusterArgs.AWSSubnetIDs,
+					profile.DomainPrefix)
 				if err != nil {
 					return
 				}

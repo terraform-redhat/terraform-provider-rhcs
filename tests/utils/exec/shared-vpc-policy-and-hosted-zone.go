@@ -8,6 +8,7 @@ type SharedVpcPolicyAndHostedZoneArgs struct {
 	SharedVpcAWSSharedCredentialsFiles *[]string `hcl:"shared_vpc_aws_shared_credentials_files"`
 	Region                             *string   `hcl:"region"`
 	ClusterName                        *string   `hcl:"cluster_name"`
+	DomainPrefix                       *string   `hcl:"domain_prefix"`
 	DnsDomainId                        *string   `hcl:"dns_domain_id"`
 	IngressOperatorRoleArn             *string   `hcl:"ingress_operator_role_arn"`
 	InstallerRoleArn                   *string   `hcl:"installer_role_arn"`

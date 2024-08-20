@@ -25,11 +25,11 @@ import (
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	"github.com/sirupsen/logrus"
 
-	"github.com/openshift/rosa/pkg/config"
-	"github.com/openshift/rosa/pkg/fedramp"
-	"github.com/openshift/rosa/pkg/info"
-	"github.com/openshift/rosa/pkg/logging"
-	"github.com/openshift/rosa/pkg/reporter"
+	"github.com/openshift-online/ocm-common/pkg/config"
+	"github.com/openshift-online/ocm-common/pkg/fedramp"
+	"github.com/openshift-online/ocm-common/pkg/info"
+	"github.com/openshift-online/ocm-common/pkg/logging"
+	"github.com/openshift-online/ocm-common/pkg/reporter"
 )
 
 //go:generate mockgen -source=client.go -package=ocm -destination=mock_ocmclient.go

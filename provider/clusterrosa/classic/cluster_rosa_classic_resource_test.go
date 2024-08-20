@@ -18,11 +18,8 @@ package classic
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -33,19 +30,13 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
+	"github.com/terraform-redhat/terraform-provider-rhcs/internal/ocm"
 	rosaTypes "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common/types"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
+	"go.uber.org/mock/gomock"
 )
-
-type MockHttpClient struct {
-	response *http.Response
-}
-
-func (c MockHttpClient) Get(url string) (resp *http.Response, err error) {
-	return c.response, nil
-}
 
 const (
 	clusterId         = "1n2j3k4l5m6n7o8p9q0r"
@@ -68,20 +59,6 @@ const (
 	httpProxy         = "http://proxy.com"
 	httpsProxy        = "https://proxy.com"
 	httpTokens        = "required"
-)
-
-var (
-	mockHttpClient = MockHttpClient{
-		response: &http.Response{
-			TLS: &tls.ConnectionState{
-				PeerCertificates: []*x509.Certificate{
-					{
-						Raw: []byte("nonce"),
-					},
-				},
-			},
-		},
-	}
 )
 
 func generateBasicRosaClassicClusterJson() map[string]interface{} {
@@ -166,6 +143,13 @@ func TestResource(t *testing.T) {
 }
 
 var _ = Describe("Rosa Classic Sts cluster", func() {
+	var mockOidcConfigClient *ocm.MockOidcConfigClient
+
+	BeforeEach(func() {
+		ctrl := gomock.NewController(GinkgoT())
+		mockOidcConfigClient = ocm.NewMockOidcConfigClient(ctrl)
+	})
+
 	Context("createClassicClusterObject", func() {
 		It("Creates a cluster with correct field values", func() {
 			clusterState := generateBasicRosaClassicClusterState()
@@ -237,7 +221,12 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 
 			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)).To(Succeed())
+
+			input, err := cmv1.NewOidcThumbprintInput().ClusterId(clusterObject.ID()).Build()
+			Expect(err).ToNot(HaveOccurred())
+			mockOidcConfigClient.EXPECT().FetchOidcThumbprint(input).Return(nil, nil)
+
+			Expect(populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockOidcConfigClient)).To(Succeed())
 
 			Expect(clusterState.ID.ValueString()).To(Equal(clusterId))
 			Expect(clusterState.CloudRegion.ValueString()).To(Equal(regionId))
@@ -281,7 +270,11 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)
+			input, err := cmv1.NewOidcThumbprintInput().ClusterId(clusterObject.ID()).Build()
+			Expect(err).ToNot(HaveOccurred())
+			mockOidcConfigClient.EXPECT().FetchOidcThumbprint(input).Return(nil, nil)
+
+			err = populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockOidcConfigClient)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clusterState.Sts.OIDCEndpointURL.ValueString()).To(Equal("nonce.com"))
 		})
@@ -296,7 +289,11 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)
+			input, err := cmv1.NewOidcThumbprintInput().ClusterId(clusterObject.ID()).Build()
+			Expect(err).ToNot(HaveOccurred())
+			mockOidcConfigClient.EXPECT().FetchOidcThumbprint(input).Return(nil, nil)
+
+			err = populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockOidcConfigClient)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clusterState.Sts.Thumbprint.ValueString()).To(Equal(""))
 		})

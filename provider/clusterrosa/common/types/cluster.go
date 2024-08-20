@@ -9,6 +9,7 @@ import (
 	"github.com/Masterminds/semver"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	"github.com/terraform-redhat/terraform-provider-rhcs/internal/ocm"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 
@@ -39,6 +40,7 @@ type BaseCluster struct {
 	ClusterCollection *cmv1.ClustersClient
 	VersionCollection *cmv1.VersionsClient
 	ClusterWait       common.ClusterWait
+	OcmClient         *ocm.Client
 }
 
 // getAndValidateVersionInChannelGroup ensures that the cluster version is

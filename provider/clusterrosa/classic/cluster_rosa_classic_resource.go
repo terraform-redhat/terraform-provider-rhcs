@@ -50,7 +50,6 @@ import (
 	"github.com/openshift-online/ocm-common/pkg/ocm/consts"
 	ocmConsts "github.com/openshift-online/ocm-common/pkg/ocm/consts"
 	ocmUtils "github.com/openshift-online/ocm-common/pkg/ocm/utils"
-	"github.com/openshift-online/ocm-common/pkg/rosa/oidcconfigs"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	ocm_errors "github.com/openshift-online/ocm-sdk-go/errors"
@@ -58,6 +57,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 
 	commonutils "github.com/openshift-online/ocm-common/pkg/utils"
+	"github.com/terraform-redhat/terraform-provider-rhcs/internal/ocm"
 	ocmr "github.com/terraform-redhat/terraform-provider-rhcs/internal/ocm/resource"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/classic/upgrade"
 	rosa "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common"
@@ -479,6 +479,7 @@ func (r *ClusterRosaClassicResource) Configure(ctx context.Context, req resource
 	r.ClusterCollection = connection.ClustersMgmt().V1().Clusters()
 	r.VersionCollection = connection.ClustersMgmt().V1().Versions()
 	r.ClusterWait = common.NewClusterWait(r.ClusterCollection)
+
 }
 
 const (
@@ -868,7 +869,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 	object = add.Body()
 
 	// Save initial state:
-	err = populateRosaClassicClusterState(ctx, object, state, common.DefaultHttpClient{})
+	err = populateRosaClassicClusterState(ctx, object, state, r.OcmClient)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -895,7 +896,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 	}
 
 	// Save the state post wait completion:
-	err = populateRosaClassicClusterState(ctx, object, state, common.DefaultHttpClient{})
+	err = populateRosaClassicClusterState(ctx, object, state, r.OcmClient)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -944,7 +945,7 @@ func (r *ClusterRosaClassicResource) Read(ctx context.Context, request resource.
 	object := get.Body()
 
 	// Save the state:
-	err = populateRosaClassicClusterState(ctx, object, state, common.DefaultHttpClient{})
+	err = populateRosaClassicClusterState(ctx, object, state, r.OcmClient)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -1137,7 +1138,7 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resourc
 	object := update.Body()
 
 	// Update the state:
-	err = populateRosaClassicClusterState(ctx, object, plan, common.DefaultHttpClient{})
+	err = populateRosaClassicClusterState(ctx, object, plan, r.OcmClient)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -1409,7 +1410,7 @@ func (r *ClusterRosaClassicResource) ImportState(ctx context.Context, request re
 }
 
 // populateRosaClassicClusterState copies the data from the API object to the Terraform state.
-func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, state *ClusterRosaClassicState, httpClient common.HttpClient) error {
+func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, state *ClusterRosaClassicState, oidcConfigClient ocm.OidcConfigClient) error {
 	state.ID = types.StringValue(object.ID())
 	state.ExternalID = types.StringValue(object.ExternalID())
 	object.API()
@@ -1537,12 +1538,16 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 				state.Sts.OperatorRolePrefix = types.StringValue(operatorRolePrefix)
 			}
 		}
-		thumbprint, err := oidcconfigs.FetchThumbprint(stsState.OIDCEndpointURL())
-		if err != nil {
+		input, err := cmv1.NewOidcThumbprintInput().ClusterId(object.ID()).Build()
+		if err != nil || input == nil {
+			return err
+		}
+		thumbprint, err := oidcConfigClient.FetchOidcThumbprint(input)
+		if err != nil || thumbprint == nil {
 			tflog.Error(ctx, fmt.Sprintf("cannot get thumbprint %v", err))
 			state.Sts.Thumbprint = types.StringValue("")
 		} else {
-			state.Sts.Thumbprint = types.StringValue(thumbprint)
+			state.Sts.Thumbprint = types.StringValue(thumbprint.Thumbprint())
 		}
 		oidcConfig, ok := stsState.GetOidcConfig()
 		if ok && oidcConfig != nil {

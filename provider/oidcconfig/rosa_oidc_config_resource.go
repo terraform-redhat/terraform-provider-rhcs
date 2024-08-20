@@ -27,14 +27,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/openshift-online/ocm-common/pkg/rosa/oidcconfigs"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	"github.com/terraform-redhat/terraform-provider-rhcs/internal/ocm"
 )
 
 type RosaOidcConfigResource struct {
 	oidcConfigClient *cmv1.OidcConfigsClient
 	clustersClient   *cmv1.ClustersClient
+	ocmClient        *ocm.Client
 }
 
 var _ resource.ResourceWithConfigure = &RosaOidcConfigResource{}
@@ -103,6 +104,7 @@ func (o *RosaOidcConfigResource) Configure(ctx context.Context, req resource.Con
 
 	o.oidcConfigClient = connection.ClustersMgmt().V1().OidcConfigs()
 	o.clustersClient = connection.ClustersMgmt().V1().Clusters()
+	o.ocmClient = ocm.NewClientWithConnection(connection)
 }
 
 func (o *RosaOidcConfigResource) Create(ctx context.Context, request resource.CreateRequest,
@@ -367,12 +369,16 @@ func (o *RosaOidcConfigResource) populateState(ctx context.Context, object *cmv1
 	}
 	state.OIDCEndpointURL = types.StringValue(oidcEndpointURL)
 
-	thumbprint, err := oidcconfigs.FetchThumbprint(issuerUrl)
-	if err != nil {
+	input, err := cmv1.NewOidcThumbprintInput().OidcConfigId(object.ID()).Build()
+	if err != nil || input == nil {
 		tflog.Error(ctx, fmt.Sprintf("cannot get thumbprint, with error: %v", err))
-		state.Thumbprint = types.StringValue("")
 	} else {
-		state.Thumbprint = types.StringValue(thumbprint)
+		thumbprint, err := o.ocmClient.FetchOidcThumbprint(input)
+		if err != nil || thumbprint == nil {
+			tflog.Error(ctx, fmt.Sprintf("cannot get thumbprint, with error: %v", err))
+			state.Thumbprint = types.StringValue("")
+		} else {
+			state.Thumbprint = types.StringValue(thumbprint.Thumbprint())
+		}
 	}
-
 }

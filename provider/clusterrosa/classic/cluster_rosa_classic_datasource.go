@@ -30,6 +30,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 
+	"github.com/terraform-redhat/terraform-provider-rhcs/internal/ocm"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 
@@ -42,6 +43,7 @@ type ClusterRosaClassicDatasource struct {
 	clusterCollection *cmv1.ClustersClient
 	versionCollection *cmv1.VersionsClient
 	clusterWait       common.ClusterWait
+	ocmClient         *ocm.Client
 }
 
 func NewDataSource() datasource.DataSource {
@@ -341,6 +343,7 @@ func (r *ClusterRosaClassicDatasource) Configure(ctx context.Context, req dataso
 
 	r.clusterCollection = connection.ClustersMgmt().V1().Clusters()
 	r.versionCollection = connection.ClustersMgmt().V1().Versions()
+	r.ocmClient = ocm.NewClientWithConnection(connection)
 	r.clusterWait = common.NewClusterWait(r.clusterCollection)
 }
 
@@ -378,7 +381,7 @@ func (r *ClusterRosaClassicDatasource) Read(ctx context.Context, request datasou
 	object := get.Body()
 
 	// Save the state:
-	err = populateRosaClassicClusterState(ctx, object, state, common.DefaultHttpClient{})
+	err = populateRosaClassicClusterState(ctx, object, state, r.ocmClient)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",

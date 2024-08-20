@@ -17,27 +17,11 @@ limitations under the License.
 package ocm
 
 import (
-	"fmt"
-	"os"
-	"strings"
-	"time"
-
 	sdk "github.com/openshift-online/ocm-sdk-go"
 )
 
 type Client struct {
 	ocm *sdk.Connection
-}
-
-// ClientBuilder contains the information and logic needed to build a connection to OCM. Don't
-// create instances of this type directly; use the NewClient function instead.
-type ClientBuilder struct {
-	cfg *config.Config
-}
-
-// NewClient creates a builder that can then be used to configure and build an OCM connection.
-func NewClient() *ClientBuilder {
-	return &ClientBuilder{}
 }
 
 // NewClientWithConnection creates a client with a preexisting connection for testing purpose

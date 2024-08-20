@@ -25,7 +25,6 @@ import (
 	sdk "github.com/openshift-online/ocm-sdk-go"
 )
 
-//go:generate mockgen -source=client.go -package=ocm -destination=mock_ocmclient.go
 type Client struct {
 	ocm *sdk.Connection
 }

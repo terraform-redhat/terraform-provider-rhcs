@@ -19,6 +19,11 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
+//go:generate mockgen -source=oidc_configs.go -package=ocm -destination=mock_oidcconfigclient.go
+type OidcConfigClient interface {
+	FetchOidcThumbprint(*cmv1.OidcThumbprintInput) (*cmv1.OidcThumbprint, error)
+}
+
 func (c *Client) FetchOidcThumbprint(oidcConfigInput *cmv1.OidcThumbprintInput) (*cmv1.OidcThumbprint, error) {
 	response, err := c.ocm.ClustersMgmt().V1().AWSInquiries().OidcThumbprint().Post().Body(oidcConfigInput).Send()
 	if err != nil {

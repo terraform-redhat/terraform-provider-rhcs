@@ -288,7 +288,6 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 
 			clusterJsonString, err := json.Marshal(clusterJson)
 			Expect(err).ToNot(HaveOccurred())
-			print(string(clusterJsonString))
 
 			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
 			Expect(err).ToNot(HaveOccurred())
@@ -304,7 +303,6 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 			clusterJson["aws"].(map[string]interface{})["sts"].(map[string]interface{})["oidc_endpoint_url"] = "invalid$url"
 			clusterJsonString, err := json.Marshal(clusterJson)
 			Expect(err).ToNot(HaveOccurred())
-			print(string(clusterJsonString))
 
 			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
 			Expect(err).ToNot(HaveOccurred())

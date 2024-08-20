@@ -9,7 +9,7 @@ import (
 
 func TestResource(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Cluster Rosa HCP Resource Suite")
+	RunSpecs(t, "Rosa common Resource Suite")
 }
 
 var _ = Describe("User arn property test", func() {

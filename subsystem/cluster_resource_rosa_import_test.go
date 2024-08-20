@@ -118,6 +118,17 @@ var _ = Describe("rhcs_cluster_rosa_classic - import", func() {
 						  }
 						}]`),
 				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/aws_inquiries/oidc_thumbprint"),
+					RespondWithJSON(http.StatusCreated, `{
+						"href": "/api/clusters_mgmt/v1/aws_inquiries/oidc_thumbprint/",
+						"thumbprint": "",
+						"oidc_config_id": "",
+						"cluster_id": "",
+						"managed": false,
+						"reusable": true
+					}`),
+				),
 			)
 
 			// Run the apply command:

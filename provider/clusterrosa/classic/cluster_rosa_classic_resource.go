@@ -479,7 +479,7 @@ func (r *ClusterRosaClassicResource) Configure(ctx context.Context, req resource
 	r.ClusterCollection = connection.ClustersMgmt().V1().Clusters()
 	r.VersionCollection = connection.ClustersMgmt().V1().Versions()
 	r.ClusterWait = common.NewClusterWait(r.ClusterCollection)
-
+	r.OcmClient = ocm.NewClientWithConnection(connection)
 }
 
 const (

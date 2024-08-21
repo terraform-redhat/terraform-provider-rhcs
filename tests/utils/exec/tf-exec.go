@@ -96,9 +96,12 @@ func (ctx *terraformExecutorContext) RunTerraformApply(argObj interface{}) (stri
 	defer DeleteTFvarsFile(tempFile)
 
 	output, err := ctx.runTerraformCommand("apply", "-auto-approve", "-no-color", "-var-file", tempFile)
+	// mask sensitive info in err
 	if err == nil {
 		// If it works, tf vars are officially recorded
 		err = ctx.WriteTerraformVars(argObj)
+	} else {
+		err = fmt.Errorf(RedactString(err.Error()))
 	}
 	return output, err
 }
@@ -115,6 +118,8 @@ func (ctx *terraformExecutorContext) RunTerraformDestroy() (output string, err e
 	output, err = ctx.runTerraformCommand("destroy", "-auto-approve", "-no-color", "-var-file", varsFile)
 	if err == nil {
 		ctx.DeleteTerraformVars()
+	} else {
+		err = fmt.Errorf(RedactString(err.Error()))
 	}
 	return
 }

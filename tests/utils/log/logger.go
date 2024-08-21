@@ -22,20 +22,23 @@ type Log struct {
 	redActSensitive bool
 }
 
-func (l *Log) NeedRedact(originalString string, regexP *regexp.Regexp) bool {
+func RedactString(fmtedString string) string {
+	for _, regexP := range RedactKeyList {
+		if NeedRedact(fmtedString, regexP) {
+			fmtedString = regexP.ReplaceAllString(fmtedString, fmt.Sprintf(`$1"%s$3`, RedactValue))
+		}
+	}
+	return fmtedString
+}
+
+func NeedRedact(originalString string, regexP *regexp.Regexp) bool {
 	return regexP.MatchString(originalString)
 }
 func (l *Log) Redact(fmtedString string) string {
 	if !l.redActSensitive {
 		return fmtedString
 	}
-	for _, regexP := range RedactKeyList {
-		if l.NeedRedact(fmtedString, regexP) {
-			l.logger.Debugf("Got need redacted string from log match regex %s", regexP.String())
-			fmtedString = regexP.ReplaceAllString(fmtedString, fmt.Sprintf(`$1"%s$3`, RedactValue))
-		}
-	}
-	return fmtedString
+	return RedactString(fmtedString)
 }
 func (l *Log) Infof(fmtString string, args ...interface{}) {
 	if len(args) != 0 {

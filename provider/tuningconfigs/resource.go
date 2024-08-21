@@ -22,6 +22,7 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
+	"sigs.k8s.io/yaml"
 )
 
 type TuningConfigResource struct {
@@ -273,12 +274,26 @@ func (r *TuningConfigResource) populateState(tuningConfig *cmv1.TuningConfig, st
 	}
 	state.Id = types.StringValue(tuningConfig.ID())
 	state.Name = types.StringValue(tuningConfig.Name())
-	// Pretty print the spec
-	tuningConfigSpec, err := json.Marshal(tuningConfig.Spec())
+	// validates spec is the same as api without changing state spec so TF lifecycle will not complain
+	byteResponseSpec, err := json.Marshal(tuningConfig.Spec())
 	if err != nil {
 		return err
 	}
-	state.Spec = types.StringValue(string(tuningConfigSpec[:]))
+	// Importing the resource
+	if state.Spec == types.StringNull() && tuningConfig.Spec() != nil {
+		state.Spec = types.StringValue(string(byteResponseSpec[:]))
+	}
+	responseSpec, err := parseInputString(byteResponseSpec)
+	if err != nil {
+		return err
+	}
+	stateSpec, err := parseInputString([]byte(state.Spec.ValueString()))
+	if err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(responseSpec, stateSpec) {
+		return fmt.Errorf("Provider produced inconsistent result after apply, spec was '%s' but now is '%s'", responseSpec, stateSpec)
+	}
 
 	return nil
 }
@@ -290,7 +305,7 @@ func (r *TuningConfigResource) createTuningConfig(ctx context.Context, plan *Tun
 		plan = &TuningConfig{}
 	}
 
-	tuningConfigBuilder, err := getTuningConfigBuilder(ctx, plan)
+	tuningConfigBuilder, err := getTuningConfigBuilder(plan)
 	if err != nil {
 		return err
 	}
@@ -332,7 +347,7 @@ func (r *TuningConfigResource) updateTuningConfig(ctx context.Context, state, pl
 			plan = &TuningConfig{}
 		}
 
-		tuningConfigBuilder, err := getTuningConfigBuilder(ctx, plan)
+		tuningConfigBuilder, err := getTuningConfigBuilder(plan)
 		if err != nil {
 			return err
 		}
@@ -356,7 +371,7 @@ func (r *TuningConfigResource) updateTuningConfig(ctx context.Context, state, pl
 	return nil
 }
 
-func getTuningConfigBuilder(ctx context.Context, plan *TuningConfig) (*cmv1.TuningConfigBuilder, error) {
+func getTuningConfigBuilder(plan *TuningConfig) (*cmv1.TuningConfigBuilder, error) {
 	tuningConfigBuilder := cmv1.NewTuningConfig()
 	if !common.IsStringAttributeUnknownOrEmpty(plan.Spec) {
 		parsedSpec, err := parseInputString([]byte(plan.Spec.ValueString()))
@@ -369,10 +384,10 @@ func getTuningConfigBuilder(ctx context.Context, plan *TuningConfig) (*cmv1.Tuni
 }
 
 func parseInputString(input []byte) (map[string]interface{}, error) {
-	var validSpecJson map[string]interface{}
-	err := json.Unmarshal(input, &validSpecJson)
+	var validSpec map[string]interface{}
+	err := yaml.Unmarshal(input, &validSpec)
 	if err != nil {
 		return nil, err
 	}
-	return validSpecJson, nil
+	return validSpec, nil
 }

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package classic
 
 import (
 	"net/http"
@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
 var _ = Describe("rhcs_cluster_rosa_classic - import", func() {
@@ -77,7 +78,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - import", func() {
 	Context("rhcs_cluster_rosa_classic - import", func() {
 		It("can import a cluster", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// CombineHandlers(
 				// 	VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 				// 	RespondWithJSON(http.StatusOK, versionListPage1),
@@ -121,11 +122,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - import", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 			  resource "rhcs_cluster_rosa_classic" "my_cluster" { }
 			`)
-			Expect(terraform.Import("rhcs_cluster_rosa_classic.my_cluster", "123")).To(BeZero())
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			runOutput := Terraform.Import("rhcs_cluster_rosa_classic.my_cluster", "123")
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(resource).To(MatchJQ(".attributes.current_version", "4.10.0"))
 		})
 

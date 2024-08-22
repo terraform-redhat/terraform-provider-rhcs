@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
 var _ = Describe("rhcs_cluster_rosa_hcp - default ingress", func() {
@@ -55,18 +56,32 @@ var _ = Describe("rhcs_cluster_rosa_hcp - default ingress", func() {
 						}
 					`
 
-	It("fails if cluster ID is empty", func() {
-		terraform.Source(`
+	It("fails if listening method is not supplied", func() {
+		Terraform.Source(`
 			resource "rhcs_hcp_default_ingress" "default_ingress" {
 				cluster = ""
 			}
 		`)
-		Expect(terraform.Apply()).ToNot(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).ToNot(BeZero())
+		runOutput.VerifyErrorContainsSubstring(`The argument "listening_method" is required`)
+	})
+
+	It("fails if cluster ID is empty", func() {
+		Terraform.Source(`
+			resource "rhcs_hcp_default_ingress" "default_ingress" {
+				listening_method = "internal"
+				cluster = ""
+			}
+		`)
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).ToNot(BeZero())
+		runOutput.VerifyErrorContainsSubstring("Attribute cluster cluster ID may not be empty/blank string")
 	})
 
 	It("Updates ListeningMethod", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, clusterReady),
@@ -91,17 +106,18 @@ var _ = Describe("rhcs_cluster_rosa_hcp - default ingress", func() {
 			),
 		)
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 			resource "rhcs_hcp_default_ingress" "default_ingress" {
 			cluster = "123"
 			listening_method = "internal"
 		}`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 	})
 
 	It("Update default ingress and delete it", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, clusterReady),
@@ -128,14 +144,15 @@ var _ = Describe("rhcs_cluster_rosa_hcp - default ingress", func() {
 		)
 
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_hcp_default_ingress" "default_ingress" {
 			cluster = "123"
 		    listening_method = "internal"
 		}`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
 				RespondWithJSON(http.StatusOK, `
@@ -152,9 +169,10 @@ var _ = Describe("rhcs_cluster_rosa_hcp - default ingress", func() {
 		)
 
 		// remove ingress
-		terraform.Source("")
+		Terraform.Source("")
 		// Last pool, we ignore the error, so this succeeds
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput = Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
 	})
 

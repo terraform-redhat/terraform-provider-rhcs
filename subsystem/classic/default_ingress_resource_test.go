@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package classic
 
 import (
 	"net/http"
@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
 var _ = Describe("default ingress", func() {
@@ -59,17 +60,19 @@ var _ = Describe("default ingress", func() {
 					`
 
 	It("fails if cluster ID is empty", func() {
-		terraform.Source(`
+		Terraform.Source(`
 			resource "rhcs_default_ingress" "default_ingress" {
 				cluster = ""
 			}
 		`)
-		Expect(terraform.Apply()).ToNot(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).ToNot(BeZero())
+		runOutput.VerifyErrorContainsSubstring("Attribute cluster cluster ID may not be empty/blank string")
 	})
 
 	It("Sends updates to attribute individually", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, clusterReady),
@@ -104,16 +107,17 @@ var _ = Describe("default ingress", func() {
 			),
 		)
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 			resource "rhcs_default_ingress" "default_ingress" {
 			id = "d6z2"
 			cluster = "123"
 			excluded_namespaces = ["stage", "int", "aaa"]
 			load_balancer_type = "nlb"
 		}`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
 				RespondWithJSON(http.StatusOK, `
@@ -161,16 +165,17 @@ var _ = Describe("default ingress", func() {
 		)
 
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 			resource "rhcs_default_ingress" "default_ingress" {
 			id = "d6z2"
 			cluster = "123"
 			excluded_namespaces = ["int", "aaa"]
 			load_balancer_type = "nlb"
 		}`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput = Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
 				RespondWithJSON(http.StatusOK, `
@@ -217,19 +222,20 @@ var _ = Describe("default ingress", func() {
 		)
 
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 			resource "rhcs_default_ingress" "default_ingress" {
 			id = "d6z2"
 			cluster = "123"
 			excluded_namespaces = ["int", "aaa"]
 			load_balancer_type = "classic"
 		}`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput = Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 	})
 
 	It("Create cluster with default ingress - excluded_namespaces and load balancer type set", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, clusterReady),
@@ -265,18 +271,19 @@ var _ = Describe("default ingress", func() {
 			),
 		)
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_default_ingress" "default_ingress" {
 			cluster = "123"
 		    excluded_namespaces = ["stage", "int", "aaa"]
 			load_balancer_type = "nlb"
 		}`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 	})
 
 	It("Create cluster with default -  failed if only cluster_routes_tls_secret_ref set", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, clusterReady),
@@ -287,17 +294,17 @@ var _ = Describe("default ingress", func() {
 			),
 		)
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_default_ingress" "default_ingress" {
 			cluster = "123",
 			cluster_routes_tls_secret_ref = "111"
 		}`)
-		Expect(terraform.Apply()).NotTo(BeZero())
+		Expect(Terraform.Apply()).NotTo(BeZero())
 	})
 
 	It("Create cluster with default ingress - routers_selectors set, route_wildcard_policy and InterNamespaceAllowed changed", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, clusterReady),
@@ -330,7 +337,7 @@ var _ = Describe("default ingress", func() {
 			),
 		)
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_default_ingress" "default_ingress" {
 			cluster = "123"
 	        route_wildcard_policy = "WildcardsAllowed"
@@ -339,12 +346,13 @@ var _ = Describe("default ingress", func() {
 			}
 			route_namespace_ownership_policy = "InterNamespaceAllowed"
 		}`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 	})
 
 	It("routers_selectors and external namespaces cleanup", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, clusterReady),
@@ -381,7 +389,7 @@ var _ = Describe("default ingress", func() {
 			),
 		)
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_default_ingress" "default_ingress" {
 			cluster = "123"
 			route_selectors = {
@@ -389,9 +397,10 @@ var _ = Describe("default ingress", func() {
 			}
 			excluded_namespaces = ["stage", "int", "aaa"]
 		}`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
 				RespondWithJSON(http.StatusOK, `
@@ -436,16 +445,17 @@ var _ = Describe("default ingress", func() {
 			),
 		)
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_default_ingress" "default_ingress" {
 			cluster = "123"
 		}`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput = Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 	})
 
 	It("Create cluster with default ingress - cluster_routes_hostname and cluster_routes_tls_secret_ref set to actual value", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, clusterReady),
@@ -478,37 +488,42 @@ var _ = Describe("default ingress", func() {
 			),
 		)
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_default_ingress" "default_ingress" {
 			cluster = "123"
 	        cluster_routes_tls_secret_ref = "111"
 			cluster_routes_hostname =  "aaa"
 			
 		}`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 	})
 
 	It("Create cluster with default ingress - cluster_routes_hostname set to empty value", func() {
 		// Run the apply command:
-		terraform.Source(`resource "rhcs_default_ingress" "default_ingress" {
+		Terraform.Source(`resource "rhcs_default_ingress" "default_ingress" {
 				cluster = "123"
 				cluster_routes_hostname =  ""
 			}`)
-		Expect(terraform.Apply()).To(Equal(1))
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).ToNot(BeZero())
+		runOutput.VerifyErrorContainsSubstring("Attribute cluster_routes_hostname string length must be at least 1")
 	})
 
 	It("Create cluster with default ingress - cluster_routes_tls_secret_ref set to empty value", func() {
 		// Run the apply command:
-		terraform.Source(`resource "rhcs_default_ingress" "default_ingress" {
+		Terraform.Source(`resource "rhcs_default_ingress" "default_ingress" {
 				cluster = "123"
 				cluster_routes_tls_secret_ref = ""
 			}`)
-		Expect(terraform.Apply()).To(Equal(1))
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).ToNot(BeZero())
+		runOutput.VerifyErrorContainsSubstring("Attribute cluster_routes_tls_secret_ref string length must be at least 1")
 	})
 
 	It("Create cluster with default ingress - component_routes set fully", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, clusterReady),
@@ -550,7 +565,7 @@ var _ = Describe("default ingress", func() {
 			),
 		)
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_default_ingress" "default_ingress" {
 			cluster = "123"
 	        component_routes = {
@@ -568,12 +583,13 @@ var _ = Describe("default ingress", func() {
 				}
 			}
 		}`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 	})
 
 	It("Create cluster with default ingress - component_routes set single attribute", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, clusterReady),
@@ -607,7 +623,7 @@ var _ = Describe("default ingress", func() {
 			),
 		)
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_default_ingress" "default_ingress" {
 			cluster = "123"
 	        component_routes = {
@@ -617,12 +633,13 @@ var _ = Describe("default ingress", func() {
 				}
 			}
 		}`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 	})
 
 	It("Create cluster with default ingress - component_routes fails to set single attribute as nil", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, clusterReady),
@@ -660,7 +677,7 @@ var _ = Describe("default ingress", func() {
 			),
 		)
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_default_ingress" "default_ingress" {
 			cluster = "123"
 	        component_routes = {
@@ -675,13 +692,14 @@ var _ = Describe("default ingress", func() {
 				}
 			}
 		}`)
-		Expect(terraform.Apply()).ToNot(BeZero())
-		terraform.LastRunOutput.VerifyErrorContainsSubstring("Component route shouldn't be null, if you would like to reset a specific component route please remove the key instead")
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).ToNot(BeZero())
+		runOutput.VerifyErrorContainsSubstring("Component route shouldn't be null, if you would like to reset a specific component route please remove the key instead")
 	})
 
 	It("Create cluster with default ingress - component_routes fails to set single route as empty", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, clusterReady),
@@ -719,7 +737,7 @@ var _ = Describe("default ingress", func() {
 			),
 		)
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_default_ingress" "default_ingress" {
 			cluster = "123"
 	        component_routes = {
@@ -737,13 +755,13 @@ var _ = Describe("default ingress", func() {
 				}
 			}
 		}`)
-		Expect(terraform.Apply()).ToNot(BeZero())
-		terraform.LastRunOutput.VerifyErrorContainsSubstring("Component route fields shouldn't both be empty, if you would like to reset a specific component route please remove the key instead")
+		runOutput := Terraform.Apply()
+		runOutput.VerifyErrorContainsSubstring("Component route fields shouldn't both be empty, if you would like to reset a specific component route please remove the key instead")
 	})
 
 	It("Create cluster with default ingress - component_routes reset single attribute", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, clusterReady),
@@ -785,7 +803,7 @@ var _ = Describe("default ingress", func() {
 			),
 		)
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_default_ingress" "default_ingress" {
 			cluster = "123"
 	        component_routes = {
@@ -803,10 +821,11 @@ var _ = Describe("default ingress", func() {
 				}
 			}
 		}`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
 				RespondWithJSON(http.StatusOK, defaultDay1Template),
@@ -864,7 +883,7 @@ var _ = Describe("default ingress", func() {
 			),
 		)
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_default_ingress" "default_ingress" {
 			cluster = "123"
 			id = "d6z2"
@@ -879,12 +898,13 @@ var _ = Describe("default ingress", func() {
 				}
 			}
 		}`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput = Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 	})
 
 	It("Create cluster with default ingress - component_routes reset fully", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, clusterReady),
@@ -926,7 +946,7 @@ var _ = Describe("default ingress", func() {
 			),
 		)
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_default_ingress" "default_ingress" {
 			cluster = "123"
 	        component_routes = {
@@ -944,10 +964,11 @@ var _ = Describe("default ingress", func() {
 				}
 			}
 		}`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
 				RespondWithJSON(http.StatusOK, defaultDay1Template),
@@ -994,16 +1015,17 @@ var _ = Describe("default ingress", func() {
 			),
 		)
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_default_ingress" "default_ingress" {
 			cluster = "123"
 		}`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput = Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 	})
 
 	It("Create default ingress and delete it", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, clusterReady),
@@ -1040,15 +1062,16 @@ var _ = Describe("default ingress", func() {
 		)
 
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_default_ingress" "default_ingress" {
 			cluster = "123"
 		    excluded_namespaces = ["stage", "int", "aaa"]
 			load_balancer_type = "nlb"
 		}`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
 				RespondWithJSON(http.StatusOK, `
@@ -1073,9 +1096,10 @@ var _ = Describe("default ingress", func() {
 		)
 
 		// remove ingress
-		terraform.Source("")
+		Terraform.Source("")
 		// Last pool, we ignore the error, so this succeeds
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput = Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
 	})
 

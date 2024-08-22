@@ -277,9 +277,9 @@ func (o *RosaOidcConfigResource) Delete(ctx context.Context, request resource.De
 	}
 	if hasClusterUsingOidcConfig {
 		response.Diagnostics.AddError(
-			"here are clusters using OIDC config, can't delete the configuration",
+			"there are clusters using OIDC config, can't delete the configuration",
 			fmt.Sprintf(
-				"here are clusters using OIDC config '%s', can't delete the configuration",
+				"there are clusters using OIDC config '%s', can't delete the configuration",
 				oidcConfig.IssuerUrl(),
 			),
 		)

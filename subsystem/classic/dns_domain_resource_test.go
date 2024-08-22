@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package classic
 
 import (
 	"net/http"
@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
 	. "github.com/openshift-online/ocm-sdk-go/testing"
+	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
 var _ = Describe("DNS Domain creation", func() {
@@ -31,7 +32,7 @@ var _ = Describe("DNS Domain creation", func() {
 	Context("Verify success", func() {
 		It("Should create a DNS domain", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// first post (create)
 				CombineHandlers(
 					VerifyRequest(
@@ -49,21 +50,22 @@ var _ = Describe("DNS Domain creation", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 	    		resource "rhcs_dns_domain" "dns" {
 	    			# (resource arguments)
 	    		}
 	    	`)
 
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_dns_domain", "dns")
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_dns_domain", "dns")
 			Expect(resource).To(MatchJQ(".attributes.id", domain))
 		})
 
 		It("Should recreate a DNS domain on 404 (reconcile)", func() {
 			newDomain := "new." + domain
 			// Prepare the server for the firs create
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// first post (create)
 				CombineHandlers(
 					VerifyRequest(
@@ -81,19 +83,20 @@ var _ = Describe("DNS Domain creation", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 	    		resource "rhcs_dns_domain" "dns" {
 	    			# (resource arguments)
 	    		}
 	    	`)
 
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_dns_domain", "dns")
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_dns_domain", "dns")
 			Expect(resource).To(MatchJQ(".attributes.id", domain))
 
 			// prepare server for the reconcile
 
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// first is read to update state. lets return 404
 				CombineHandlers(
 					VerifyRequest(
@@ -133,13 +136,14 @@ var _ = Describe("DNS Domain creation", func() {
 
 			// run terraform
 
-			terraform.Source(`
+			Terraform.Source(`
 	    		resource "rhcs_dns_domain" "dns" {
 	    			# (resource arguments)
 	    		}
 	    	`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource = terraform.Resource("rhcs_dns_domain", "dns")
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource = Terraform.Resource("rhcs_dns_domain", "dns")
 			Expect(resource).To(MatchJQ(".attributes.id", newDomain))
 		})
 	})
@@ -149,7 +153,7 @@ var _ = Describe("DNS domain import", func() {
 	domain := "my.domain.openshift.dev"
 	It("should import successfully", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			// first is for the import state callback
 			CombineHandlers(
 				VerifyRequest(
@@ -176,14 +180,14 @@ var _ = Describe("DNS domain import", func() {
 			),
 		)
 
-		terraform.Source(`
+		Terraform.Source(`
 			resource "rhcs_dns_domain" "dns" {
 				# (resource arguments)
 			}
 		`)
-
-		Expect(terraform.Import("rhcs_dns_domain.dns", domain)).To(BeZero())
-		resource := terraform.Resource("rhcs_dns_domain", "dns")
+		runOutput := Terraform.Import("rhcs_dns_domain.dns", domain)
+		Expect(runOutput.ExitCode).To(BeZero())
+		resource := Terraform.Resource("rhcs_dns_domain", "dns")
 		Expect(resource).To(MatchJQ(".attributes.id", domain))
 	})
 })

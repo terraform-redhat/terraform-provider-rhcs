@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package framework
 
 import (
 	"bytes"
@@ -26,7 +26,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2/dsl/core"             // nolint
 	. "github.com/onsi/gomega"                         // nolint
@@ -34,41 +33,12 @@ import (
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
 )
 
-// All tests will use this API server and Terraform runner:
+// All tests will use this API TestServer and Terraform runner:
 var (
-	server    *Server
-	terraform *TerraformRunner
-	testingT  *testing.T
+	TestServer *Server
+	Terraform  *TerraformRunner
+	TestingT   *testing.T
 )
-
-func TestProvider(t *testing.T) {
-	RegisterFailHandler(Fail)
-	testingT = t
-	RunSpecs(t, "Provider")
-}
-
-var _ = BeforeEach(func() {
-	// Create the server:
-	var ca string
-	server, ca = MakeTCPTLSServer()
-	// Create an access token:
-	token := MakeTokenString("Bearer", 10*time.Minute)
-
-	// Create the runner:
-	terraform = NewTerraformRunner().
-		URL(server.URL()).
-		CA(ca).
-		Token(token).
-		Build()
-})
-
-var _ = AfterEach(func() {
-	// Close the server:
-	server.Close()
-
-	// Close the runner:
-	terraform.Close()
-})
 
 // TerraformRunnerBuilder contains the data and logic needed to build a terraform runner.
 type TerraformRunnerBuilder struct {
@@ -78,8 +48,9 @@ type TerraformRunnerBuilder struct {
 }
 
 type RunOutput struct {
-	out string
-	err string
+	out      string
+	err      string
+	ExitCode int
 }
 
 func (ro *RunOutput) VerifyErrorContainsSubstring(sub string) {
@@ -91,9 +62,6 @@ type TerraformRunner struct {
 	binary string
 	dir    string
 	env    []string
-
-	// TODO: Adjust so it is more individual to each test
-	LastRunOutput RunOutput
 }
 
 // NewTerraformRunner creates a new Terraform runner.
@@ -221,7 +189,7 @@ func (r *TerraformRunner) Source(text string) {
 }
 
 // Run runs a command.
-func (r *TerraformRunner) Run(args ...string) int {
+func (r *TerraformRunner) Run(args ...string) RunOutput {
 	var err error
 
 	// Run the command:
@@ -243,32 +211,34 @@ func (r *TerraformRunner) Run(args ...string) int {
 	GinkgoWriter.Println(&outb)
 	GinkgoWriter.Println(&errb)
 
-	r.LastRunOutput = RunOutput{
-		out: outb.String(),
-		err: errb.String(),
+	return RunOutput{
+		out:      outb.String(),
+		err:      errb.String(),
+		ExitCode: cmd.ProcessState.ExitCode(),
 	}
-
-	// Return the exit code:
-	return cmd.ProcessState.ExitCode()
 }
 
 // Validate runs the `validate` command.
-func (r *TerraformRunner) Validate() int {
+func (r *TerraformRunner) Validate() RunOutput {
 	return r.Run("validate")
 }
 
 // Apply runs the `apply` command.
-func (r *TerraformRunner) Apply() int {
+func (r *TerraformRunner) Apply() RunOutput {
 	return r.Run("apply", "-auto-approve")
 }
 
 // Destroy runs the `destroy` command.
-func (r *TerraformRunner) Destroy() int {
+func (r *TerraformRunner) Destroy() RunOutput {
 	return r.Run("destroy", "-auto-approve")
 }
 
+func (r *TerraformRunner) Output() RunOutput {
+	return r.Run("output")
+}
+
 // Import runs the `import` command.
-func (r *TerraformRunner) Import(args ...string) int {
+func (r *TerraformRunner) Import(args ...string) RunOutput {
 	return r.Run(append([]string{"import"}, args...)...)
 }
 

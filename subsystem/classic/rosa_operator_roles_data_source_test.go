@@ -1,4 +1,4 @@
-package provider
+package classic
 
 import (
 	"fmt"
@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
 const (
@@ -52,7 +53,7 @@ var _ = Describe("ROSA Operator IAM roles data source", func() {
 
 	It("Can list Operator IAM roles", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/aws_inquiries/sts_credential_requests"),
 				RespondWithJSON(http.StatusOK, getStsCredentialRequests),
@@ -60,16 +61,17 @@ var _ = Describe("ROSA Operator IAM roles data source", func() {
 		)
 
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  data "rhcs_rosa_operator_roles" "operator_roles" {
 			  operator_role_prefix = "terraform-operator"
 			  account_role_prefix = "TerraformAccountPrefix"
 		  }
 		`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_rosa_operator_roles", "operator_roles")
+		resource := Terraform.Resource("rhcs_rosa_operator_roles", "operator_roles")
 		//Expect(resource).To(MatchJQ(`.attributes.items | length`, 1))
 		Expect(resource).To(MatchJQ(`.attributes.operator_role_prefix`, "terraform-operator"))
 		Expect(resource).To(MatchJQ(`.attributes.account_role_prefix`, "TerraformAccountPrefix"))
@@ -77,11 +79,9 @@ var _ = Describe("ROSA Operator IAM roles data source", func() {
 
 		index := 0
 		firstOperatorName := resource.(map[string]interface{})["attributes"].(map[string]interface{})["operator_iam_roles"].([]interface{})[0].(map[string]interface{})["operator_name"].(string)
-		testingT.Log("firstOperatorName = ", firstOperatorName)
 		if firstOperatorName != "ebs-cloud-credentials" {
 			index = 1
 		}
-		testingT.Log("index = ", index)
 
 		compareResultOfRoles(resource, index,
 			"ebs-cloud-credentials",
@@ -107,7 +107,7 @@ var _ = Describe("ROSA Operator IAM roles data source", func() {
 
 	It("Can list Operator IAM roles without account role prefix", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/aws_inquiries/sts_credential_requests"),
 				RespondWithJSON(http.StatusOK, getStsCredentialRequests),
@@ -115,27 +115,25 @@ var _ = Describe("ROSA Operator IAM roles data source", func() {
 		)
 
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  data "rhcs_rosa_operator_roles" "operator_roles" {
 			  operator_role_prefix = "terraform-operator"
 		  }
 		`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_rosa_operator_roles", "operator_roles")
+		resource := Terraform.Resource("rhcs_rosa_operator_roles", "operator_roles")
 		//Expect(resource).To(MatchJQ(`.attributes.items | length`, 1))
 		Expect(resource).To(MatchJQ(`.attributes.operator_role_prefix`, "terraform-operator"))
 		Expect(resource).To(MatchJQ(`.attributes.operator_iam_roles | length`, 2))
 
 		index := 0
 		firstOperatorName := resource.(map[string]interface{})["attributes"].(map[string]interface{})["operator_iam_roles"].([]interface{})[0].(map[string]interface{})["operator_name"].(string)
-		testingT.Log("*firstOperatorName = ", firstOperatorName)
 		if firstOperatorName != "ebs-cloud-credentials" {
 			index = 1
 		}
-
-		testingT.Log("index = ", index)
 
 		compareResultOfRoles(resource, index,
 			"ebs-cloud-credentials",

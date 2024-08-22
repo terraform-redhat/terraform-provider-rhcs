@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/gomega/ghttp" // nolint
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
 var _ = Describe("Tuning Configs", func() {
@@ -72,16 +73,41 @@ var _ = Describe("Tuning Configs", func() {
 	tuningConfigSpecTemplate := b.String()
 
 	Context("tuning configs creation", func() {
-		It("fails if cluster ID is empty", func() {
-			terraform.Source(`
+		It("fails if spec is not supplied", func() {
+			Terraform.Source(`
 			resource "rhcs_tuning_config" "tuning_config" {
 					cluster = ""
 				}
 			`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring(`The argument "spec" is required`)
+		})
+		It("fails if name is not supplied", func() {
+			Terraform.Source(`
+			resource "rhcs_tuning_config" "tuning_config" {
+					spec = ""
+					cluster = ""
+				}
+			`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring(`The argument "name" is required`)
+		})
+		It("fails if cluster ID is empty", func() {
+			Terraform.Source(`
+			resource "rhcs_tuning_config" "tuning_config" {
+					spec = ""
+					name = "my-tuning"
+					cluster = ""
+				}
+			`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute cluster cluster ID may not be empty/blank string")
 		})
 		It("fails to find a matching cluster object", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusNotFound, `
@@ -97,18 +123,20 @@ var _ = Describe("Tuning Configs", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_tuning_config" "tuning_config" {
 					cluster = "123"
 					name = "my_config"
 					spec = "{}"
 				}
 			`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Cluster '123' not found")
 		})
 
 		It("fails if OCM backend fails to create the object", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, clusterTemplate),
@@ -119,22 +147,24 @@ var _ = Describe("Tuning Configs", func() {
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/tuning_configs"),
-					RespondWithJSON(http.StatusInternalServerError, "Internal Server Error"),
+					RespondWithJSON(http.StatusInternalServerError, "{}"),
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_tuning_config" "tuning_config" {
 					cluster = "123"
 					name = "my_config"
 					spec = "{}"
 				}
 	    	`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Failed building tuning config for cluster '123': status is 500")
 		})
 
 		It("successfully creates a tuning_config object", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, clusterTemplate),
@@ -151,20 +181,21 @@ var _ = Describe("Tuning Configs", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_tuning_config" "tuning_config" {
 					cluster = "123"
 					name = "my_config"
 					spec = "{}"
 				}
 	    	`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 	})
 
 	Context("tuning configs importing", func() {
 		It("fails if resource does not exist in OCM", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/tuning_configs/456"),
 					RespondWithJSON(http.StatusNotFound, `
@@ -180,28 +211,31 @@ var _ = Describe("Tuning Configs", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_tuning_config" "tuning_config" {
 				}
 	    	`)
-			Expect(terraform.Import("rhcs_tuning_config.tuning_config", "123,456")).ToNot(BeZero())
+			runOutput := Terraform.Import("rhcs_tuning_config.tuning_config", "123,456")
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("TuningConfig for cluster ID '123' is not found")
 		})
 
 		It("succeeds if resource exists in OCM", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/tuning_configs/456"),
 					RespondWithJSON(http.StatusOK, tuningConfigTemplate),
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_tuning_config" "tuning_config" {
 				}
 	    	`)
-			Expect(terraform.Import("rhcs_tuning_config.tuning_config", "123,456")).To(BeZero())
+			runOutput := Terraform.Import("rhcs_tuning_config.tuning_config", "123,456")
+			Expect(runOutput.ExitCode).To(BeZero())
 
-			actualResource, ok := terraform.Resource("rhcs_tuning_config", "tuning_config").(map[string]interface{})
+			actualResource, ok := Terraform.Resource("rhcs_tuning_config", "tuning_config").(map[string]interface{})
 			Expect(ok).To(BeTrue(), "Type conversion failed for the received resource state")
 
 			Expect(actualResource["attributes"]).To(Equal(
@@ -217,7 +251,7 @@ var _ = Describe("Tuning Configs", func() {
 
 	Context("tuning configs updating", func() {
 		BeforeEach(func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, clusterTemplate),
@@ -234,18 +268,19 @@ var _ = Describe("Tuning Configs", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_tuning_config" "tuning_config" {
 					cluster = "123"
 					name = "my_config"
 					spec = "{}"
 				}
 	    	`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		It("successfully applies the changes in OCM", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/tuning_configs/456"),
 					RespondWithJSON(http.StatusOK, tuningConfigTemplate),
@@ -257,16 +292,17 @@ var _ = Describe("Tuning Configs", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_tuning_config" "tuning_config" {
 					cluster = "123"
 					name = "my_config"
 					spec = "{\"key\":\"value\"}"
 				}
 	    	`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
-			actualResource, ok := terraform.Resource("rhcs_tuning_config", "tuning_config").(map[string]interface{})
+			actualResource, ok := Terraform.Resource("rhcs_tuning_config", "tuning_config").(map[string]interface{})
 			Expect(ok).To(BeTrue(), "Type conversion failed for the received resource state")
 
 			Expect(actualResource["attributes"]).To(Equal(
@@ -282,7 +318,7 @@ var _ = Describe("Tuning Configs", func() {
 
 	Context("tuning configs deletion", func() {
 		BeforeEach(func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, clusterTemplate),
@@ -299,18 +335,19 @@ var _ = Describe("Tuning Configs", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_tuning_config" "tuning_config" {
 					cluster = "123"
 					name = "my_config"
 					spec = "{}"
 				}
 	    	`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		It("successfully applies the deletion in OCM", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/tuning_configs/456"),
 					RespondWithJSON(http.StatusOK, tuningConfigTemplate),
@@ -321,7 +358,7 @@ var _ = Describe("Tuning Configs", func() {
 				),
 			)
 
-			Expect(terraform.Destroy()).To(BeZero())
+			Expect(Terraform.Destroy().ExitCode).To(BeZero())
 		})
 
 	})

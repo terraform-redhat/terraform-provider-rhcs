@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package classic
 
 import (
 	"net/http"
@@ -23,12 +23,13 @@ import (
 	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
 var _ = Describe("Machine types data source", func() {
 	It("Can list machine types", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/machine_types"),
 				RespondWithJSON(http.StatusOK, `{
@@ -80,14 +81,15 @@ var _ = Describe("Machine types data source", func() {
 		)
 
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  data "rhcs_machine_types" "my_machines" {
 		  }
 		`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_machine_types", "my_machines")
+		resource := Terraform.Resource("rhcs_machine_types", "my_machines")
 
 		// Check the GCP machine type:
 		gcpTypes, err := JQ(`.attributes.items[] | select(.cloud_provider == "gcp")`, resource)

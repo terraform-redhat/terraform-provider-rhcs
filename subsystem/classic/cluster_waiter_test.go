@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package classic
 
 import (
 	"net/http"
@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
 var _ = Describe("Cluster creation", func() {
@@ -110,32 +111,35 @@ var _ = Describe("Cluster creation", func() {
 	Context("Create cluster waiter resource", func() {
 
 		It("fails if cluster ID is empty", func() {
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_cluster_wait" "rosa_cluster" {
 				  cluster = ""
 				}
 			`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute cluster cluster ID may not be empty/blank string")
 		})
 		It("Create cluster waiter without a timeout", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, templateReadyState),
 				),
 			)
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_cluster_wait" "rosa_cluster" {
 				  cluster = "123"
 				}
 			`)
 
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		It("Create cluster with a negative timeout", func() {
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_cluster_wait" "rosa_cluster" {
 				  cluster = "123"
 				  timeout = -1
@@ -143,33 +147,36 @@ var _ = Describe("Cluster creation", func() {
 			`)
 
 			// it should throw an error so exit code will not be "0":
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute timeout value must be at least 1, got: -1")
 		})
 
 		It("Create cluster with a positive timeout", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, templateReadyState),
 				),
 			)
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_cluster_wait" "rosa_cluster" {
 				  cluster = "123"
 				  timeout = 1
 				}
 			`)
 
-			Expect(terraform.Apply()).To(BeZero())
-			Expect(terraform.Destroy()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			Expect(Terraform.Destroy().ExitCode).To(BeZero())
 		})
 
 	})
 
 	It("Create cluster with a positive timeout but get cluster not ready", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, templateWaitingState),
@@ -180,36 +187,38 @@ var _ = Describe("Cluster creation", func() {
 			),
 		)
 
-		terraform.Source(`
+		Terraform.Source(`
 				resource "rhcs_cluster_wait" "rosa_cluster" {
 				  cluster = "123"
 				  timeout = 1
 				}
 			`)
 
-		Expect(terraform.Apply()).NotTo(BeZero())
-		resource := terraform.Resource("rhcs_cluster_wait", "rosa_cluster")
+		Expect(Terraform.Apply()).NotTo(BeZero())
+		resource := Terraform.Resource("rhcs_cluster_wait", "rosa_cluster")
 		Expect(resource).To(MatchJQ(`.attributes.ready`, false))
 	})
 
 	It("Create cluster with a positive timeout and failed cause cluster in error state", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, templateErrorState),
 			),
 		)
 
-		terraform.Source(`
+		Terraform.Source(`
 				resource "rhcs_cluster_wait" "rosa_cluster" {
 				  cluster = "123"
 				  timeout = 1
 				}
 			`)
 
-		Expect(terraform.Apply()).ToNot(BeZero())
-		resource := terraform.Resource("rhcs_cluster_wait", "rosa_cluster")
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).ToNot(BeZero())
+		runOutput.VerifyErrorContainsSubstring("Cluster '123' is in state 'error' and will not become ready")
+		resource := Terraform.Resource("rhcs_cluster_wait", "rosa_cluster")
 		Expect(resource).To(MatchJQ(`.attributes.ready`, false))
 	})
 })

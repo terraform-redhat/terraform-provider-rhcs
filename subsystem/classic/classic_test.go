@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package hcp
+package classic
 
 import (
 	"testing"
@@ -30,7 +30,7 @@ import (
 func TestProvider(t *testing.T) {
 	RegisterFailHandler(Fail)
 	TestingT = t
-	RunSpecs(t, "HCP")
+	RunSpecs(t, "Classic Subsystem")
 }
 
 var _ = BeforeEach(func() {

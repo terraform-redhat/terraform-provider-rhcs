@@ -14,11 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package classic
 
 import (
 	. "github.com/onsi/ginkgo/v2/dsl/core" // nolint
 	. "github.com/onsi/gomega"             // nolint
+	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
 var _ = Describe("Cluster creation", func() {
@@ -26,15 +27,17 @@ var _ = Describe("Cluster creation", func() {
 	// a cluster.
 
 	It("Create oidc config input resource", func() {
-		terraform.Source(`
+		Terraform.Source(`
 				resource "rhcs_rosa_oidc_config_input" "oidc_input" {
   					region = "us-east-1"
 				}
 			`)
 
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 		// when calling again to apply it should work
-		Expect(terraform.Apply()).To(BeZero())
-		Expect(terraform.Destroy()).To(BeZero())
+		runOutput = Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+		Expect(Terraform.Destroy().ExitCode).To(BeZero())
 	})
 })

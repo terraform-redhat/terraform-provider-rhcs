@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package classic
 
 import (
 	"net/http"
@@ -23,20 +23,23 @@ import (
 	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
 var _ = Describe("Groups data source", func() {
 	It("fails if cluster ID is empty", func() {
-		terraform.Source(`
+		Terraform.Source(`
 		data "rhcs_groups" "my_groups" {
 				cluster = ""
 			}
 		`)
-		Expect(terraform.Apply()).ToNot(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).ToNot(BeZero())
+		runOutput.VerifyErrorContainsSubstring("Attribute cluster cluster ID may not be empty/blank string")
 	})
 	It("Can list groups", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/groups"),
 				RespondWithJSON(http.StatusOK, `{
@@ -56,15 +59,16 @@ var _ = Describe("Groups data source", func() {
 		)
 
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  data "rhcs_groups" "my_groups" {
 		    cluster = "123"
 		  }
 		`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_groups", "my_groups")
+		resource := Terraform.Resource("rhcs_groups", "my_groups")
 		Expect(resource).To(MatchJQ(`.attributes.items |length`, 2))
 		Expect(resource).To(MatchJQ(`.attributes.items[0].id`, "dedicated-admins"))
 		Expect(resource).To(MatchJQ(`.attributes.items[0].name`, "dedicated-admins"))

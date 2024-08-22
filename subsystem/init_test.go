@@ -19,10 +19,11 @@ package provider
 import (
 	. "github.com/onsi/ginkgo/v2/dsl/core" // nolint
 	. "github.com/onsi/gomega"             // nolint
+	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
 var _ = Describe("Init", func() {
 	It("Downloads and installs the provider", func() {
-		Expect(terraform.Validate()).To(BeZero())
+		Expect(Terraform.Validate()).To(BeZero())
 	})
 })

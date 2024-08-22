@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package classic
 
 import (
 	"net/http"
@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
 const managedOidcConfig = `{
@@ -57,7 +58,7 @@ const clusterListIsNotEmpty = `{
   "total": 1,
   "items": [
 		{
-			"name": "cluster-name",
+			"name": "cluster-name"
 		}
   ]
 }`
@@ -75,7 +76,7 @@ const thumbrprint = "9e99a48a9960b14926bb7f3b02e22da2b0ab7280"
 var _ = Describe("OIDC config creation", func() {
 	It("Can create managed OIDC config", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/oidc_configs"),
 				VerifyJQ(`.managed`, true),
@@ -100,24 +101,25 @@ var _ = Describe("OIDC config creation", func() {
 		)
 
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_rosa_oidc_config" "oidc_config" {
 			  managed = true
 		  }
 		`)
-		Expect(terraform.Apply()).To(BeZero())
-		resource := terraform.Resource("rhcs_rosa_oidc_config", "oidc_config")
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+		resource := Terraform.Resource("rhcs_rosa_oidc_config", "oidc_config")
 		Expect(resource).To(MatchJQ(".attributes.id", ID))
 		Expect(resource).To(MatchJQ(".attributes.issuer_url", managedIssuerURL))
 		Expect(resource).To(MatchJQ(".attributes.managed", true))
 		Expect(resource).To(MatchJQ(".attributes.thumbprint", thumbrprint))
 		Expect(resource).To(MatchJQ(".attributes.oidc_endpoint_url", managedOidcEndpointURL))
-		Expect(terraform.Destroy()).To(BeZero())
+		Expect(Terraform.Destroy().ExitCode).To(BeZero())
 	})
 
 	Context("Create unmanaged OIDC config", func() {
 		BeforeEach(func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/oidc_configs"),
 					VerifyJQ(`.managed`, false),
@@ -138,7 +140,7 @@ var _ = Describe("OIDC config creation", func() {
 		})
 		It("Succeed to destroy it", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters"),
 					RespondWithJSON(http.StatusOK, clusterListIsEmpty),
@@ -150,7 +152,7 @@ var _ = Describe("OIDC config creation", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		resource "rhcs_rosa_oidc_config" "oidc_config" {
 			  managed = false
 			  secret_arn =  "arn:aws:secretsmanager:us-east-1:765374464689:secret:rosa-private-key-oidc-f3y4-fEqj4c"
@@ -158,14 +160,15 @@ var _ = Describe("OIDC config creation", func() {
 			  installer_role_arn = "arn:aws:iam::765374464689:role/terr-account2-Installer-Role"
 		}
 		`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 			validateTerraformResourceState()
-			Expect(terraform.Destroy()).To(BeZero())
+			Expect(Terraform.Destroy().ExitCode).To(BeZero())
 		})
 
 		It("Fail on destroy due to a cluster that using it", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters"),
 					RespondWithJSON(http.StatusOK, clusterListIsNotEmpty),
@@ -177,7 +180,7 @@ var _ = Describe("OIDC config creation", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		resource "rhcs_rosa_oidc_config" "oidc_config" {
 			  managed = false
 			  secret_arn =  "arn:aws:secretsmanager:us-east-1:765374464689:secret:rosa-private-key-oidc-f3y4-fEqj4c"
@@ -185,16 +188,20 @@ var _ = Describe("OIDC config creation", func() {
 			  installer_role_arn = "arn:aws:iam::765374464689:role/terr-account2-Installer-Role"
 		}
 		`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 			validateTerraformResourceState()
 
 			// fail on destroy
-			Expect(terraform.Destroy()).ToNot(BeZero())
+			runOutput = Terraform.Destroy()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("there are clusters using OIDC config")
+
 		})
 
 		It("Fail on destroy because fail to get if there is a cluster that using it", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters"),
 					RespondWithJSON(http.StatusNotFound, clusterListIsNotEmpty),
@@ -206,7 +213,7 @@ var _ = Describe("OIDC config creation", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		resource "rhcs_rosa_oidc_config" "oidc_config" {
 			  managed = false
 			  secret_arn =  "arn:aws:secretsmanager:us-east-1:765374464689:secret:rosa-private-key-oidc-f3y4-fEqj4c"
@@ -214,16 +221,19 @@ var _ = Describe("OIDC config creation", func() {
 			  installer_role_arn = "arn:aws:iam::765374464689:role/terr-account2-Installer-Role"
 		}
 		`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 			validateTerraformResourceState()
 
 			// fail on destroy
-			Expect(terraform.Destroy()).ToNot(BeZero())
+			runOutput = Terraform.Destroy()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("There was a problem checking if any clusters are using OIDC config")
 		})
 
 		It("Fail on destroy because fail to remove the oidc config resource from OCM", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters"),
 					RespondWithJSON(http.StatusOK, clusterListIsEmpty),
@@ -235,7 +245,7 @@ var _ = Describe("OIDC config creation", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		resource "rhcs_rosa_oidc_config" "oidc_config" {
 			  managed = false
 			  secret_arn =  "arn:aws:secretsmanager:us-east-1:765374464689:secret:rosa-private-key-oidc-f3y4-fEqj4c"
@@ -243,17 +253,20 @@ var _ = Describe("OIDC config creation", func() {
 			  installer_role_arn = "arn:aws:iam::765374464689:role/terr-account2-Installer-Role"
 		}
 		`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 			validateTerraformResourceState()
 
 			// fail on destroy
-			Expect(terraform.Destroy()).ToNot(BeZero())
+			runOutput = Terraform.Destroy()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("There was a problem deleting the OIDC config")
 		})
 	})
 
 	It("Try to create managed OIDC config with unsupported attributes and fail", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/oidc_configs"),
 				VerifyJQ(`.managed`, true),
@@ -281,7 +294,7 @@ var _ = Describe("OIDC config creation", func() {
 		)
 
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		resource "rhcs_rosa_oidc_config" "oidc_config" {
 			  managed = true
 			  secret_arn =  "arn:aws:secretsmanager:us-east-1:765374464689:secret:rosa-private-key-oidc-f3y4-fEqj4c"
@@ -290,13 +303,15 @@ var _ = Describe("OIDC config creation", func() {
 		}
 		`)
 		// expect to fail
-		Expect(terraform.Apply()).ToNot(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).ToNot(BeZero())
+		runOutput.VerifyErrorContainsSubstring("In order to create managed OIDC Configuration, the attributes' values of `secret_arn`, `issuer_url` and `installer_role_arn` should be empty")
 	})
 
 })
 
 func validateTerraformResourceState() {
-	resource := terraform.Resource("rhcs_rosa_oidc_config", "oidc_config")
+	resource := Terraform.Resource("rhcs_rosa_oidc_config", "oidc_config")
 	Expect(resource).To(MatchJQ(".attributes.id", ID))
 	Expect(resource).To(MatchJQ(".attributes.installer_role_arn", installerRoleARN))
 	Expect(resource).To(MatchJQ(".attributes.managed", false))

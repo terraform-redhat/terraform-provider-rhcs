@@ -262,7 +262,7 @@ var _ = Describe("Verify cluster", func() {
 			server := getResp.Body().API().URL()
 
 			username := constants.ClusterAdminUser
-			password := helper.GetClusterAdminPassword()
+			password, _ := helper.GetClusterAdminPassword()
 			Expect(password).ToNot(BeEmpty())
 
 			ocAtter := &openshift.OcAttributes{

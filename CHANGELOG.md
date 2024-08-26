@@ -1,14 +1,14 @@
 ## 1.6.3 (Aug 15, 2024)
 FEATURES:
 * Include trusted IP list resource
-* Include imdsv2 option to Hosted Control Plane Cluster resource
-* Include Hosted Control Plane Cluster Machine Pool additional security groups on creation
+* Include IMDSv2 option for ROSA Hosted Control Plane cluster resource
+* Include ROSA Hosted Control Plane cluster machine pool additional security groups on creation
 * Allow longer cluster names
 * Allow to update htpasswd idp resource
-* Include support of component routes for default ingress on Classic clusters
-* Support cluster admin creation for Hosted Control Plane clusters
+* Include support of component routes for default ingress on ROSA classic clusters
+* Support cluster admin creation for ROSA Hosted Control Plane clusters
 * Support of user defined AWS tags on machine pool resource
-* Support Kubelet Config resource on Hosted Control Plane cluster
+* Support Kubelet Config resource on ROSA Hosted Control Plane cluster resource
 
 ENHANCEMENTS:
 * Bug fixes:
@@ -26,13 +26,13 @@ ENHANCEMENTS:
   * Disables to edit cloud region of cluster resource
   * Disables to edit machine pool instance and subnet ID of a machine pool resource
   * Validates ROSA creator ARN property
-  * Disables to edit etcd KMS key ARN
+  * Disables editing the etcd KMS key ARN
   * Allows assumed-role into ROSA creator ARN property
   * Typo on error message for OIDC
 * Documentation:
   * Adjust replicas description
-  * Includes more example usages of resources
-  * Adjusts Hosted Control Plane autoscaler docs to mention it is not fully available
+  * Includes more example cases for resources
+  * Adjusts ROSA Hosted Control Plane autoscaler docs to mention it is not fully available
 
 ## 1.6.2 (May 02, 2024)
 FEATURES:

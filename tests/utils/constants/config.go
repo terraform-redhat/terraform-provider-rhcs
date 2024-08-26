@@ -36,6 +36,7 @@ type RHCSconfig struct {
 	RHCSClusterName       string `env:"RHCS_CLUSTER_NAME" yaml:"clusterName,omitempty"`
 	RHCSClusterNamePrefix string `env:"RHCS_CLUSTER_NAME_PREFIX" yaml:"clusterNamePrefix,omitempty"`
 	RHCSClusterNameSuffix string `env:"RHCS_CLUSTER_NAME_SUFFIX" yaml:"clusterNameSuffix,omitempty"`
+	ClusterNameFile       string
 	ComputeMachineType    string `env:"COMPUTE_MACHINE_TYPE" yaml:"computeMachineType,omitempty"`
 }
 
@@ -65,6 +66,7 @@ func init() {
 	RHCS.RhcsOutputDir = GetRHCSOutputDir()
 	RHCS.KubeConfigDir = GetKubeConfigDir()
 	RHCS.YAMLProfilesDir = path.Join(RHCS.RootDir, "tests", "ci", "profiles")
+	RHCS.ClusterNameFile = path.Join(RHCS.RhcsOutputDir, "cluster-name")
 }
 
 // ocmEnv retrieve the env name based on

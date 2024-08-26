@@ -420,26 +420,27 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 		adminPasswdMap := map[string]string{"username": userName, "password": password}
 		clusterArgs.AdminCredentials = helper.StringMapPointer(adminPasswdMap)
 		pass := []byte(password)
-		err = os.WriteFile(path.Join(constants.GetRHCSOutputDir(), constants.ClusterAdminUser), pass, 0644)
+		err = os.WriteFile(path.Join(cfg.RhcsOutputDir, constants.ClusterAdminUser), pass, 0644)
 		if err != nil {
+			Logger.Error("Error happens when try to record the admin password")
 			return
 		}
-		Logger.Infof("Admin password is written to the output directory")
+		Logger.Info("Admin password is written to the output directory")
 
 	}
 
 	if profile.AuditLogForward {
 		// ToDo
 	}
-
+	var clusterName string
 	if constants.RHCS.RHCSClusterName != "" {
-		clusterArgs.ClusterName = &constants.RHCS.RHCSClusterName
+		clusterName = constants.RHCS.RHCSClusterName
 	} else if profile.ClusterName != "" {
-		clusterArgs.ClusterName = &profile.ClusterName
+		clusterName = profile.ClusterName
 	} else {
 		// Generate random chars later cluster name with profile name
 		name := helper.GenerateClusterName(profile.Name)
-		clusterArgs.ClusterName = &name
+		clusterName = name
 	}
 	// Once cluster name is longer than 15 chars for shared-vpc domain prefix will be auto generated
 	// Even it is not defined in profile configuration
@@ -451,9 +452,18 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 	// ++++ Uncomment finished
 	// --- Remove this part once shared vpc with domain prefix issue fixed
 	if profile.SharedVpc && len(*clusterArgs.ClusterName) > 15 {
-		*clusterArgs.ClusterName = helper.GenerateRandomName("rhcs-ci-sv", 4)
+		clusterName = helper.GenerateRandomName("rhcs-ci-sv", 4)
 	}
 	// --- Remove finished
+	clusterArgs.ClusterName = &clusterName
+	err = os.WriteFile(cfg.ClusterNameFile, []byte(clusterName), 0644)
+	if err != nil {
+		Logger.Errorf("Error happens when try to record the cluster name file: %s ",
+			err.Error())
+		return
+	}
+	Logger.Infof("Recorded cluster name file: %s with name %s",
+		cfg.ClusterNameFile, clusterName)
 	// short and re-generate the clusterName when it is longer than 15 chars
 	if profile.DomainPrefix != "" {
 		clusterArgs.DomainPrefix = &profile.DomainPrefix
@@ -748,6 +758,33 @@ func DestroyRHCSClusterResourcesByProfile(token string, profile *Profile) error 
 		_, err = clusterService.Destroy()
 		if err != nil {
 			errs = append(errs, err)
+		}
+	}
+	// Get the cluster name from backend to double check cluster deleted
+	clusterName, _ := helper.ReadFile(cfg.ClusterNameFile)
+	Logger.Infof("Double checking with the cluster name %s", clusterName)
+	if clusterName != "" {
+		parameter := map[string]interface{}{
+			"search": fmt.Sprintf("name is '%s'", clusterName),
+		}
+		resp, err := cms.ListClusters(RHCSConnection, parameter)
+		if err != nil {
+			errs = append(errs, err)
+		} else {
+			if resp.Size() != 0 {
+				Logger.Infof("Got the matched cluster with name %s, deleting via connection directly",
+					clusterName)
+				_, err = cms.DeleteCluster(RHCSConnection, resp.Items().Get(0).ID())
+				if err != nil {
+					errs = append(errs, err)
+				} else {
+					err = cms.WaitClusterDeleted(RHCSConnection, resp.Items().Get(0).ID())
+					if err != nil {
+						errs = append(errs, err)
+					}
+				}
+
+			}
 		}
 	}
 

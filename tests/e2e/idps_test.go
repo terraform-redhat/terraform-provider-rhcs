@@ -459,7 +459,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 
 				// login to the cluster using cluster-admin creds
 				username := constants.ClusterAdminUser
-				password := helper.GetClusterAdminPassword()
+				password, _ := helper.GetClusterAdminPassword()
 				Expect(password).ToNot(BeEmpty())
 
 				ocAtter = &openshift.OcAttributes{

@@ -510,13 +510,16 @@ func GenerateClusterName(profileName string) string {
 	return strings.Join(clusterNameParts, constants.HyphenConnector)
 }
 
-func GetClusterAdminPassword() string {
-	path := fmt.Sprintf(path.Join(constants.GetRHCSOutputDir(), constants.ClusterAdminUser))
-	b, err := os.ReadFile(path)
+func ReadFile(absPath string) (string, error) {
+	b, err := os.ReadFile(absPath)
 	if err != nil {
-		fmt.Print(err)
+		return "", err
 	}
-	return string(b)
+	return string(b), nil
+}
+func GetClusterAdminPassword() (string, error) {
+	path := fmt.Sprintf(path.Join(constants.GetRHCSOutputDir(), constants.ClusterAdminUser))
+	return ReadFile(path)
 }
 
 var (

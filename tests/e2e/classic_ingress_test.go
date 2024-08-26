@@ -217,7 +217,7 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 		ci.Medium,
 		func() {
 			By("Try to remove only the hostname")
-			out, err := ingressService.Output()
+			_, err := ingressService.Output()
 			Expect(err).ToNot(HaveOccurred())
 			args := exec.IngressArgs{
 				ComponentRoutes: &map[string]*exec.IngressComponentRoute{
@@ -264,7 +264,7 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			Expect(err).To(HaveOccurred())
 			helper.ExpectTFErrorContains(
 				err, fmt.Sprintf("Can't update 'oauth' component route hostname for ingress '%s' in cluster '%s' without also supplying a new TLS secret reference",
-					out.ID, clusterID))
+					ingressBefore.ID(), clusterID))
 
 			By("Try with blank component routes")
 			args = exec.IngressArgs{

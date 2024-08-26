@@ -5,6 +5,7 @@ import (
 	// nolint
 	"fmt"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -692,7 +693,10 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).Should(ContainSubstring("Machine pool with id '%s' not found", mpName))
 
-		By("ReApply the machinepool manifest")
+		By("Sleep 1 min to wait for the MP deletion processed")
+		time.Sleep(time.Minute)
+
+		By("Re-apply the machinepool manifest")
 		_, err = mpService.Apply(mpArgs)
 		Expect(err).ToNot(HaveOccurred())
 

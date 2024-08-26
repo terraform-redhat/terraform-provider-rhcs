@@ -11,4 +11,4 @@ terraform-provider-rhcs
 .vscode/**/*
 **/ginkgo.report
 /temp
-/tests/e2e/e2e.test
+**/*.test

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package classic
 
 import (
 	"net/http"
@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
 var _ = Describe("Cluster creation", func() {
@@ -73,7 +74,7 @@ var _ = Describe("Cluster creation", func() {
 
 	It("Creates basic cluster", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
 				VerifyJQ(`.name`, "my-cluster"),
@@ -84,7 +85,7 @@ var _ = Describe("Cluster creation", func() {
 		)
 
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_cluster" "my_cluster" {
 		    name           = "my-cluster"
 			product		   = "osd"
@@ -92,12 +93,13 @@ var _ = Describe("Cluster creation", func() {
 		    cloud_region   = "us-west-1"
 		  }
 		`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 	})
 
 	It("Saves API and console URLs to the state", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
 				RespondWithJSON(http.StatusCreated, template),
@@ -105,7 +107,7 @@ var _ = Describe("Cluster creation", func() {
 		)
 
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_cluster" "my_cluster" {
 		    name           = "my-cluster"
 			product		   = "osd"
@@ -113,17 +115,18 @@ var _ = Describe("Cluster creation", func() {
 		    cloud_region   = "us-west-1"
 		  }
 		`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_cluster", "my_cluster")
+		resource := Terraform.Resource("rhcs_cluster", "my_cluster")
 		Expect(resource).To(MatchJQ(".attributes.api_url", "https://my-api.example.com"))
 		Expect(resource).To(MatchJQ(".attributes.console_url", "https://my-console.example.com"))
 	})
 
 	It("Sets compute nodes and machine type", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
 				VerifyJQ(`.nodes.compute`, 3.0),
@@ -133,7 +136,7 @@ var _ = Describe("Cluster creation", func() {
 		)
 
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_cluster" "my_cluster" {
 		    name                 = "my-cluster"
 			product		   		 = "osd"
@@ -143,17 +146,18 @@ var _ = Describe("Cluster creation", func() {
 		    compute_machine_type = "r5.xlarge"
 		  }
 		`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_cluster", "my_cluster")
+		resource := Terraform.Resource("rhcs_cluster", "my_cluster")
 		Expect(resource).To(MatchJQ(".attributes.compute_nodes", 3.0))
 		Expect(resource).To(MatchJQ(".attributes.compute_machine_type", "r5.xlarge"))
 	})
 
 	It("Creates CCS cluster", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
 				VerifyJQ(".ccs.enabled", true),
@@ -182,7 +186,7 @@ var _ = Describe("Cluster creation", func() {
 		)
 
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_cluster" "my_cluster" {
 		    name                  = "my-cluster"
 			product		   		  = "osd"
@@ -194,10 +198,11 @@ var _ = Describe("Cluster creation", func() {
 		    aws_secret_access_key = "789"
 		  }
 		`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_cluster", "my_cluster")
+		resource := Terraform.Resource("rhcs_cluster", "my_cluster")
 		Expect(resource).To(MatchJQ(".attributes.ccs_enabled", true))
 		Expect(resource).To(MatchJQ(".attributes.aws_account_id", "123"))
 		Expect(resource).To(MatchJQ(".attributes.aws_access_key_id", "456"))
@@ -206,7 +211,7 @@ var _ = Describe("Cluster creation", func() {
 
 	It("Sets network configuration", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
 				VerifyJQ(".network.machine_cidr", "10.0.0.0/15"),
@@ -229,7 +234,7 @@ var _ = Describe("Cluster creation", func() {
 		)
 
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_cluster" "my_cluster" {
 		    name           = "my-cluster"
 			product		   = "osd"
@@ -241,10 +246,11 @@ var _ = Describe("Cluster creation", func() {
 		    host_prefix    = 22
 		  }
 		`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_cluster", "my_cluster")
+		resource := Terraform.Resource("rhcs_cluster", "my_cluster")
 		Expect(resource).To(MatchJQ(".attributes.machine_cidr", "10.0.0.0/15"))
 		Expect(resource).To(MatchJQ(".attributes.service_cidr", "172.30.0.0/15"))
 		Expect(resource).To(MatchJQ(".attributes.pod_cidr", "10.128.0.0/13"))
@@ -253,7 +259,7 @@ var _ = Describe("Cluster creation", func() {
 
 	It("Sets version", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
 				VerifyJQ(".version.id", "openshift-v4.8.1"),
@@ -270,7 +276,7 @@ var _ = Describe("Cluster creation", func() {
 		)
 
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_cluster" "my_cluster" {
 		    name           = "my-cluster"
 			product		   = "osd"
@@ -279,16 +285,17 @@ var _ = Describe("Cluster creation", func() {
 		    version        = "openshift-v4.8.1"
 		  }
 		`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_cluster", "my_cluster")
+		resource := Terraform.Resource("rhcs_cluster", "my_cluster")
 		Expect(resource).To(MatchJQ(".attributes.version", "openshift-v4.8.1"))
 	})
 
 	It("Fails if the cluster already exists", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
 				RespondWithJSON(http.StatusBadRequest, `{
@@ -300,7 +307,7 @@ var _ = Describe("Cluster creation", func() {
 		)
 
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_cluster" "my_cluster" {
 			product		   = "osd"
 		    name           = "my-cluster"
@@ -308,6 +315,8 @@ var _ = Describe("Cluster creation", func() {
 		    cloud_region   = "us-west-1"
 		  }
 		`)
-		Expect(terraform.Apply()).ToNot(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).ToNot(BeZero())
+		runOutput.VerifyErrorContainsSubstring("Cluster 'my-cluster' already exists")
 	})
 })

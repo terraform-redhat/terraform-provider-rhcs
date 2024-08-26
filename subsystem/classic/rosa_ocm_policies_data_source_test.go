@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package provider
+package classic
 
 import (
 	"fmt"
@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
 const (
@@ -202,7 +203,7 @@ var _ = Describe("OCM policies data source", func() {
 
 	It("Can list OCM policies", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/aws_inquiries/sts_policies"),
 				RespondWithJSON(http.StatusOK, getStsPoliciesRequests),
@@ -210,14 +211,15 @@ var _ = Describe("OCM policies data source", func() {
 		)
 
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  data "rhcs_policies" "my_policies" {
 		  }
 		`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_policies", "my_policies").(map[string]interface{})
+		resource := Terraform.Resource("rhcs_policies", "my_policies").(map[string]interface{})
 		Expect(fmt.Sprint(resource["attributes"])).To(Equal(fmt.Sprint(
 			map[string]interface{}{
 				"operator_role_policies": map[string]interface{}{

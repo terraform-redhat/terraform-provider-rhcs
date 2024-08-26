@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package classic
 
 import (
 	"net/http"
@@ -23,22 +23,25 @@ import (
 	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
 var _ = Describe("Cluster Autoscaler", func() {
 	Context("creation", func() {
 
 		It("fails if cluster ID is empty", func() {
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = ""
 				}
 			`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute cluster cluster ID may not be empty/blank")
 		})
 
 		It("fails if given an out-of-range utilization threshold", func() {
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
 					scale_down = {
@@ -46,11 +49,13 @@ var _ = Describe("Cluster Autoscaler", func() {
 					}
 				}
 			`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Value '1.100000' is out of range 0.000000 - 1.000000")
 		})
 
 		It("fails if given an invalid range", func() {
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
 					resource_limits = {
@@ -61,21 +66,25 @@ var _ = Describe("Cluster Autoscaler", func() {
 					}
 				}
 			`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("In 'resource_limits.cores' attribute, max value must be greater or equal to min value")
 		})
 
 		It("fails if given an invalid duration string", func() {
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
 					max_node_provision_time = "1"
 				}
 			`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring(`Value '1' cannot be parsed to a duration string`)
 		})
 
 		It("fails to find a matching cluster object", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusNotFound, `
@@ -91,16 +100,18 @@ var _ = Describe("Cluster Autoscaler", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
 				}
 			`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Cluster '123' not found")
 		})
 
 		It("fails if OCM backend fails to create the object", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `
@@ -130,20 +141,22 @@ var _ = Describe("Cluster Autoscaler", func() {
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
-					RespondWithJSON(http.StatusInternalServerError, "Internal Server Error"),
+					RespondWithJSON(http.StatusInternalServerError, "{}"),
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
 				}
 	    	`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Failed creating autoscaler for cluster '123': status is 500")
 		})
 
 		It("successfully creates a cluster-autoscaler object", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `
@@ -208,7 +221,7 @@ var _ = Describe("Cluster Autoscaler", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
 					balance_similar_node_groups = true
@@ -256,20 +269,24 @@ var _ = Describe("Cluster Autoscaler", func() {
 					}
 				}
 	    	`)
-			Expect(terraform.Apply()).To(BeZero())
+
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		It("validation failure - negative log_verbosity", func() {
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
 					log_verbosity = -3
 				}
 	    	`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute log_verbosity value must be at least 0, got: -3")
 		})
 		It("validation failure - negative core.min", func() {
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
 					resource_limits = {
@@ -294,10 +311,12 @@ var _ = Describe("Cluster Autoscaler", func() {
 					}
 				}
 	    	`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute 'resource_limits.cores.min' value must be at least 0, got: -2")
 		})
 		It("validation failure - negative memory.min", func() {
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
 					resource_limits = {
@@ -322,10 +341,12 @@ var _ = Describe("Cluster Autoscaler", func() {
 					}
 				}
 	    	`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute 'resource_limits.memory.min' value must be at least 0, got: -3")
 		})
 		It("validation failure - negative gpu.min", func() {
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
 					resource_limits = {
@@ -350,13 +371,15 @@ var _ = Describe("Cluster Autoscaler", func() {
 					}
 				}
 	    	`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute 'resource_limits.gpus.[0].range.min' value must be at least 0, got: -1")
 		})
 	})
 
 	Context("importing", func() {
 		It("fails if resource does not exist in OCM", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
 					RespondWithJSON(http.StatusNotFound, `
@@ -372,16 +395,18 @@ var _ = Describe("Cluster Autoscaler", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
 				}
 	    	`)
-			Expect(terraform.Import("rhcs_cluster_autoscaler.cluster_autoscaler", "123")).ToNot(BeZero())
+			runOutput := Terraform.Import("rhcs_cluster_autoscaler.cluster_autoscaler", "123")
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Cannot import non-existent remote object")
 		})
 
 		It("succeeds if resource exists in OCM", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
 					RespondWithJSON(http.StatusOK, `
@@ -408,14 +433,15 @@ var _ = Describe("Cluster Autoscaler", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
 				}
 	    	`)
-			Expect(terraform.Import("rhcs_cluster_autoscaler.cluster_autoscaler", "123")).To(BeZero())
+			runOutput := Terraform.Import("rhcs_cluster_autoscaler.cluster_autoscaler", "123")
+			Expect(runOutput.ExitCode).To(BeZero())
 
-			actualResource, ok := terraform.Resource("rhcs_cluster_autoscaler", "cluster_autoscaler").(map[string]interface{})
+			actualResource, ok := Terraform.Resource("rhcs_cluster_autoscaler", "cluster_autoscaler").(map[string]interface{})
 			Expect(ok).To(BeTrue(), "Type conversion failed for the received resource state")
 
 			Expect(actualResource["attributes"]).To(Equal(
@@ -445,7 +471,7 @@ var _ = Describe("Cluster Autoscaler", func() {
 
 	Context("updating", func() {
 		BeforeEach(func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `
@@ -486,7 +512,7 @@ var _ = Describe("Cluster Autoscaler", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
 					balance_similar_node_groups = true
@@ -494,10 +520,11 @@ var _ = Describe("Cluster Autoscaler", func() {
 
 				}
 	    	`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 		It("Test setting `skip_nodes_with_local_storage` to null ", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
 					RespondWithJSON(http.StatusOK, `
@@ -533,17 +560,18 @@ var _ = Describe("Cluster Autoscaler", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
 					balance_similar_node_groups = true
 				}
 	    	`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		It("successfully applies the changes in OCM", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
 					RespondWithJSON(http.StatusOK, `
@@ -579,16 +607,17 @@ var _ = Describe("Cluster Autoscaler", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
 					balance_similar_node_groups = true
 					skip_nodes_with_local_storage = true
 				}
 	    	`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
-			actualResource, ok := terraform.Resource("rhcs_cluster_autoscaler", "cluster_autoscaler").(map[string]interface{})
+			actualResource, ok := Terraform.Resource("rhcs_cluster_autoscaler", "cluster_autoscaler").(map[string]interface{})
 			Expect(ok).To(BeTrue(), "Type conversion failed for the received resource state")
 
 			Expect(actualResource["attributes"]).To(Equal(
@@ -611,7 +640,7 @@ var _ = Describe("Cluster Autoscaler", func() {
 
 	Context("deletion", func() {
 		BeforeEach(func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `
@@ -652,17 +681,18 @@ var _ = Describe("Cluster Autoscaler", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
 					cluster = "123"
 					balance_similar_node_groups = true
 				}
 	    	`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		It("trivially succeeds if the autoscaler object does not exist in OCM", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
 					RespondWithJSON(http.StatusNotFound, `
@@ -678,11 +708,11 @@ var _ = Describe("Cluster Autoscaler", func() {
 				),
 			)
 
-			Expect(terraform.Destroy()).To(BeZero())
+			Expect(Terraform.Destroy().ExitCode).To(BeZero())
 		})
 
 		It("successfully applies the deletion in OCM", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
 					RespondWithJSON(http.StatusOK, `
@@ -699,7 +729,7 @@ var _ = Describe("Cluster Autoscaler", func() {
 				),
 			)
 
-			Expect(terraform.Destroy()).To(BeZero())
+			Expect(Terraform.Destroy().ExitCode).To(BeZero())
 		})
 
 	})

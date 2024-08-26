@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package classic
 
 import (
 	"net/http"
@@ -23,40 +23,58 @@ import (
 	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
 var _ = Describe("Cluster KubeletConfig", func() {
 	Context("Create KubeletConfig", func() {
-		It("fails if cluster ID is empty", func() {
-			terraform.Source(`
+		It("fails if pod_pids_limit is empty", func() {
+			Terraform.Source(`
 			resource "rhcs_kubeletconfig" "cluster_kubeletconfig" {
 					cluster = ""
 				}
 			`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring(`The argument "pod_pids_limit" is required`)
+		})
+		It("fails if cluster is empty", func() {
+			Terraform.Source(`
+			resource "rhcs_kubeletconfig" "cluster_kubeletconfig" {
+					pod_pids_limit = 5000
+					cluster = ""
+				}
+			`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring(`Attribute cluster cluster ID may not be empty/blank string`)
 		})
 		It("It fails if the requested podPidsLimit is below the minimum", func() {
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_kubeletconfig" "cluster_kubeletconfig" {
 					cluster = "123"
 					pod_pids_limit = 4000
 				}
 			`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("The requested podPidsLimit of '4000' is below the minimum allowable")
 		})
 
 		It("It fails if the requested podPidsLimit is above the unsafe maximum", func() {
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_kubeletconfig" "cluster_kubeletconfig" {
 					cluster = "123"
 					pod_pids_limit = 4000000
 				}
 			`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("The requested podPidsLimit of '4000000' is above the default maximum")
 		})
 
 		It("It fails if the cluster does not exist", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusNotFound, `
@@ -72,16 +90,19 @@ var _ = Describe("Cluster KubeletConfig", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_kubeletconfig" "cluster_kubeletconfig" {
 					cluster = "123"
+					pod_pids_limit = 5000
 				}
 			`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Cluster '123' not found")
 		})
 
 		It("fails if there is already one kubelet config for classic cluster", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `
@@ -141,16 +162,19 @@ var _ = Describe("Cluster KubeletConfig", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_kubeletconfig" "cluster_kubeletconfig" {
 					cluster = "123"
+					pod_pids_limit = 5000
 				}
 	    	`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("KubeletConfig for cluster '123' already exist")
 		})
 
 		It("Successfully creates two KubeletConfigs for HCP cluster", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `
@@ -268,14 +292,15 @@ var _ = Describe("Cluster KubeletConfig", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_kubeletconfig" "cluster_kubeletconfig" {
 					cluster = "123"
 					pod_pids_limit = 5000
 				}
 	    	`)
-			Expect(terraform.Apply()).To(BeZero())
-			terraform.Source(`
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			Terraform.Source(`
 				resource "rhcs_kubeletconfig" "cluster_kubeletconfig" {
 					cluster = "123"
 					pod_pids_limit = 5000
@@ -287,11 +312,12 @@ var _ = Describe("Cluster KubeletConfig", func() {
 					name = "custom_name"
 				}
 	    	`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		It("fails if OCM backend fails to create the object", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `
@@ -335,20 +361,23 @@ var _ = Describe("Cluster KubeletConfig", func() {
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs"),
-					RespondWithJSON(http.StatusInternalServerError, "Internal Server Error"),
+					RespondWithJSON(http.StatusInternalServerError, "{}"),
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_kubeletconfig" "cluster_kubeletconfig" {
 					cluster = "123"
+					pod_pids_limit = 5000
 				}
 	    	`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Failed to create KubeletConfig on cluster '123': status is 500")
 		})
 
 		It("Successfully creates a KubeletConfig", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `
@@ -406,35 +435,38 @@ var _ = Describe("Cluster KubeletConfig", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_kubeletconfig" "cluster_kubeletconfig" {
 					cluster = "123"
 					pod_pids_limit = 5000
 				}
 	    	`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 	})
 
 	Context("importing", func() {
 		It("fails if resource does not exist in OCM", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs"),
 					RespondWithJSON(http.StatusOK, "{}"),
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_kubeletconfig" "cluster_kubeletconfig" {
 					cluster = "123"
 				}
 	    	`)
-			Expect(terraform.Import("rhcs_kubeletconfig.cluster_kubeletconfig", "123")).ToNot(BeZero())
+			runOutput := Terraform.Import("rhcs_kubeletconfig.cluster_kubeletconfig", "123")
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Cannot find KubeletConfig for cluster '123'")
 		})
 
 		It("succeeds if resource exists in OCM", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs"),
 					RespondWithJSON(http.StatusOK, `
@@ -465,14 +497,15 @@ var _ = Describe("Cluster KubeletConfig", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_kubeletconfig" "cluster_kubelet_config" {
 					cluster = "123"
 				}
 	    	`)
-			Expect(terraform.Import("rhcs_kubeletconfig.cluster_kubelet_config", "123")).To(BeZero())
+			runOutput := Terraform.Import("rhcs_kubeletconfig.cluster_kubelet_config", "123")
+			Expect(runOutput.ExitCode).To(BeZero())
 
-			actualResource, ok := terraform.Resource("rhcs_kubeletconfig", "cluster_kubelet_config").(map[string]interface{})
+			actualResource, ok := Terraform.Resource("rhcs_kubeletconfig", "cluster_kubelet_config").(map[string]interface{})
 			Expect(ok).To(BeTrue(), "Type conversion failed for the received resource state")
 
 			Expect(actualResource["attributes"]).To(Equal(
@@ -488,7 +521,7 @@ var _ = Describe("Cluster KubeletConfig", func() {
 
 	Context("updating", func() {
 		BeforeEach(func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `
@@ -546,17 +579,18 @@ var _ = Describe("Cluster KubeletConfig", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_kubeletconfig" "cluster_kubeletconfig" {
 					cluster = "123"
 					pod_pids_limit = 5000
 				}
 	    	`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		It("successfully applies the changes in OCM", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs/456"),
 					RespondWithJSON(http.StatusOK, `
@@ -596,15 +630,16 @@ var _ = Describe("Cluster KubeletConfig", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_kubeletconfig" "cluster_kubeletconfig" {
 					cluster = "123"
 					pod_pids_limit = 10000
 				}
 	    	`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
-			actualResource, ok := terraform.Resource("rhcs_kubeletconfig", "cluster_kubeletconfig").(map[string]interface{})
+			actualResource, ok := Terraform.Resource("rhcs_kubeletconfig", "cluster_kubeletconfig").(map[string]interface{})
 			Expect(ok).To(BeTrue(), "Type conversion failed for the received resource state")
 
 			Expect(actualResource["attributes"]).To(Equal(
@@ -620,7 +655,7 @@ var _ = Describe("Cluster KubeletConfig", func() {
 
 	Context("deletion", func() {
 		BeforeEach(func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `
@@ -678,17 +713,18 @@ var _ = Describe("Cluster KubeletConfig", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_kubeletconfig" "cluster_kubeletconfig" {
 					cluster = "123"
 					pod_pids_limit = 5000
 				}
 	    	`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		It("trivially succeeds if the kubeletconfig object does not exist in OCM", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs/456"),
 					RespondWithJSON(http.StatusNotFound, `
@@ -704,11 +740,11 @@ var _ = Describe("Cluster KubeletConfig", func() {
 				),
 			)
 
-			Expect(terraform.Destroy()).To(BeZero())
+			Expect(Terraform.Destroy().ExitCode).To(BeZero())
 		})
 
 		It("successfully applies the deletion in OCM", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/kubelet_configs/456"),
 					RespondWithJSON(http.StatusOK, `
@@ -727,7 +763,7 @@ var _ = Describe("Cluster KubeletConfig", func() {
 				),
 			)
 
-			Expect(terraform.Destroy()).To(BeZero())
+			Expect(Terraform.Destroy().ExitCode).To(BeZero())
 		})
 	})
 })

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package classic
 
 import (
 	"net/http"
@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
 const htpasswdValidPass = "123PasS8901234"
@@ -73,17 +74,30 @@ var _ = Describe("Identity provider creation", func() {
 	const template3 = templatePt1 + users3 + templatePt2
 
 	Context("Identity Provider Failure", func() {
-		It("fails if cluster ID is empty", func() {
-			terraform.Source(`
-			data "rhcs_identity_provider" "my_idp" {
+		It("fails if name is empty", func() {
+			Terraform.Source(`
+			resource "rhcs_identity_provider" "my_idp" {
 					cluster = ""
 				}
 			`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring(`The argument "name" is required, but no definition was found`)
+		})
+		It("fails if cluster is empty", func() {
+			Terraform.Source(`
+			resource "rhcs_identity_provider" "my_idp" {
+					name = "my-idp"
+					cluster = ""
+				}
+			`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring(`Attribute cluster cluster ID may not be empty/blank string`)
 		})
 		It("cluster_id not found", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusNotFound, `{
@@ -95,7 +109,7 @@ var _ = Describe("Identity provider creation", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 	    	  resource "rhcs_identity_provider" "my_idp" {
 	    	    cluster = "123"
 	    	    name    = "my-ip"
@@ -107,14 +121,16 @@ var _ = Describe("Identity provider creation", func() {
 	    	    }
 	    	  }
 	    	`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Cluster 123 not found")
 		})
 		Context("Cluster exists, but invalid config", func() {
 			BeforeEach(func() {
 				// The first thing that the provider will do for any operation on identity providers
 				// is check that the cluster is ready, so we always need to prepare the server to
 				// respond to that:
-				server.AppendHandlers(
+				TestServer.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 						RespondWithJSON(http.StatusOK, `{
@@ -136,7 +152,7 @@ var _ = Describe("Identity provider creation", func() {
 
 			It("Can't create a 'htpasswd' identity provider. No users provided", func() {
 				// Run the apply command:
-				terraform.Source(`
+				Terraform.Source(`
 	    	      resource "rhcs_identity_provider" "my_idp" {
 	    	        cluster = "123"
 	    	        name    = "my-ip"
@@ -145,11 +161,13 @@ var _ = Describe("Identity provider creation", func() {
 	    	        }
 	    	      }
 	    	    `)
-				Expect(terraform.Apply()).ToNot(BeZero())
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).ToNot(BeZero())
+				runOutput.VerifyErrorContainsSubstring("Attribute htpasswd.users list must contain at least 1 elements")
 			})
 			It("Can't create a 'htpasswd' identity provider. duplication of username", func() {
 				// Run the apply command:
-				terraform.Source(`
+				Terraform.Source(`
 	    	      resource "rhcs_identity_provider" "my_idp" {
 	    	        cluster = "123"
 	    	        name    = "my-ip"
@@ -167,11 +185,13 @@ var _ = Describe("Identity provider creation", func() {
 	    	        }
 	    	      }
 	    	    `)
-				Expect(terraform.Apply()).ToNot(BeZero())
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).ToNot(BeZero())
+				runOutput.VerifyErrorContainsSubstring("Usernames in HTPasswd user list must be unique")
 			})
 			It("Can't create a 'htpasswd' identity provider. invalid username", func() {
 				// Run the apply command:
-				terraform.Source(`
+				Terraform.Source(`
 	    	      resource "rhcs_identity_provider" "my_idp" {
 	    	        cluster = "123"
 	    	        name    = "my-ip"
@@ -183,11 +203,13 @@ var _ = Describe("Identity provider creation", func() {
 	    	        }
 	    	      }
 	    	    `)
-				Expect(terraform.Apply()).ToNot(BeZero())
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).ToNot(BeZero())
+				runOutput.VerifyErrorContainsSubstring("Attribute htpasswd.users[0].username username may not contain the characters")
 			})
 			It("Can't create a 'htpasswd' identity provider. invalid password", func() {
 				// Run the apply command:
-				terraform.Source(`
+				Terraform.Source(`
 	    	      resource "rhcs_identity_provider" "my_idp" {
 	    	        cluster = "123"
 	    	        name    = "my-ip"
@@ -199,7 +221,9 @@ var _ = Describe("Identity provider creation", func() {
 	    	        }
 	    	      }
 	    	    `)
-				Expect(terraform.Apply()).ToNot(BeZero())
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).ToNot(BeZero())
+				runOutput.VerifyErrorContainsSubstring("Attribute htpasswd.users[0].password password must contain uppercase characters")
 			})
 		})
 	})
@@ -209,7 +233,7 @@ var _ = Describe("Identity provider creation", func() {
 			// The first thing that the provider will do for any operation on identity providers
 			// is check that the cluster is ready, so we always need to prepare the server to
 			// respond to that:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, `{
@@ -231,7 +255,7 @@ var _ = Describe("Identity provider creation", func() {
 
 		It("Can create a 'htpasswd' identity provider", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
@@ -258,7 +282,7 @@ var _ = Describe("Identity provider creation", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 	    	  resource "rhcs_identity_provider" "my_idp" {
 	    	    cluster = "123"
 	    	    name    = "my-ip"
@@ -270,12 +294,13 @@ var _ = Describe("Identity provider creation", func() {
 	    	    }
 	    	  }
 	    	`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		It("Reconcile an 'htpasswd' identity provider, when state exists but 404 from server", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
@@ -302,7 +327,7 @@ var _ = Describe("Identity provider creation", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 	    	  resource "rhcs_identity_provider" "my_idp" {
 	    	    cluster = "123"
 	    	    name    = "my-ip"
@@ -314,10 +339,11 @@ var _ = Describe("Identity provider creation", func() {
 	    	    }
 	    	  }
 	    	`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
 			// Prepare the server for upgrade
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// read from server (404)
 				CombineHandlers(
 					VerifyRequest(
@@ -368,7 +394,7 @@ var _ = Describe("Identity provider creation", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 	    	  resource "rhcs_identity_provider" "my_idp" {
 	    	    cluster = "123"
 	    	    name    = "my-ip"
@@ -380,14 +406,15 @@ var _ = Describe("Identity provider creation", func() {
 	    	    }
 	    	  }
 	    	`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_identity_provider", "my_idp")
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_identity_provider", "my_idp")
 			Expect(resource).To(MatchJQ(".attributes.id", "457"))
 		})
 
 		It("Can create a 'gitlab' identity provider", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
@@ -420,7 +447,7 @@ var _ = Describe("Identity provider creation", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 	    	  resource "rhcs_identity_provider" "my_idp" {
 	    	    cluster = "123"
 	    	    name    = "my-ip"
@@ -432,13 +459,14 @@ var _ = Describe("Identity provider creation", func() {
 	    	    }
 	    	  }
 	    	`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		Context("Can create a 'github' identity provider", func() {
 			Context("Invalid 'github' identity provider config", func() {
 				It("Should fail with both 'teams' and 'organizations'", func() {
-					terraform.Source(`
+					Terraform.Source(`
 	    	          resource "rhcs_identity_provider" "my_idp" {
 	    	            cluster = "123"
 	    	            name    = "my-ip"
@@ -451,11 +479,13 @@ var _ = Describe("Identity provider creation", func() {
 	    	            }
 	    	          }
 	    	        `)
-					Expect(terraform.Apply()).ToNot(BeZero())
+					runOutput := Terraform.Apply()
+					Expect(runOutput.ExitCode).ToNot(BeZero())
+					runOutput.VerifyErrorContainsSubstring("2 attributes specified when one (and only one) of [github.teams.<.teams,github.teams.<.organizations] is required")
 				})
 
 				It("Should fail without 'teams' or 'organizations'", func() {
-					terraform.Source(`
+					Terraform.Source(`
 	    	          resource "rhcs_identity_provider" "my_idp" {
 	    	            cluster = "123"
 	    	            name    = "my-ip"
@@ -466,11 +496,13 @@ var _ = Describe("Identity provider creation", func() {
 	    	            }
 	    	          }
 	    	        `)
-					Expect(terraform.Apply()).ToNot(BeZero())
+					runOutput := Terraform.Apply()
+					Expect(runOutput.ExitCode).ToNot(BeZero())
+					runOutput.VerifyErrorContainsSubstring("No attribute specified when one (and only one) of [github.teams.<.teams,github.teams.<.organizations] is required")
 				})
 
 				It("Should fail if teams contain an invalid format", func() {
-					terraform.Source(`
+					Terraform.Source(`
 	    	          resource "rhcs_identity_provider" "my_idp" {
 	    	            cluster = "123"
 	    	            name    = "my-ip"
@@ -482,8 +514,10 @@ var _ = Describe("Identity provider creation", func() {
 	    	            }
 	    	          }
 	    	        `)
-					Expect(terraform.Apply()).ToNot(BeZero())
-					terraform.Source(`
+					runOutput := Terraform.Apply()
+					Expect(runOutput.ExitCode).ToNot(BeZero())
+					runOutput.VerifyErrorContainsSubstring("Expected a GitHub team to follow the form '<org>/<team>', Got invalidteam")
+					Terraform.Source(`
 	    	          resource "rhcs_identity_provider" "my_idp" {
 	    	            cluster = "123"
 	    	            name    = "my-ip"
@@ -495,11 +529,13 @@ var _ = Describe("Identity provider creation", func() {
 	    	            }
 	    	          }
 	    	        `)
-					Expect(terraform.Apply()).ToNot(BeZero())
+					runOutput = Terraform.Apply()
+					Expect(runOutput.ExitCode).ToNot(BeZero())
+					runOutput.VerifyErrorContainsSubstring("Expected a GitHub team to follow the form '<org>/<team>', Got invalidteam")
 				})
 
 				It("Should fail with an invalid hostname", func() {
-					terraform.Source(`
+					Terraform.Source(`
 	    	          resource "rhcs_identity_provider" "my_idp" {
 	    	            cluster = "123"
 	    	            name    = "my-ip"
@@ -512,12 +548,14 @@ var _ = Describe("Identity provider creation", func() {
 	    	            }
 	    	          }
 	    	        `)
-					Expect(terraform.Apply()).ToNot(BeZero())
+					runOutput := Terraform.Apply()
+					Expect(runOutput.ExitCode).ToNot(BeZero())
+					runOutput.VerifyErrorContainsSubstring("Expected a valid GitHub hostname. Got invalidhostname")
 				})
 			})
 			It("Happy flow with org restriction", func() {
 				// Prepare the server:
-				server.AppendHandlers(
+				TestServer.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(
 							http.MethodPost,
@@ -551,7 +589,7 @@ var _ = Describe("Identity provider creation", func() {
 				)
 
 				// Run the apply command:
-				terraform.Source(`
+				Terraform.Source(`
     		      resource "rhcs_identity_provider" "my_idp" {
     		        cluster = "123"
     		        name    = "my-ip"
@@ -563,12 +601,13 @@ var _ = Describe("Identity provider creation", func() {
     		        }
     		      }
     		    `)
-				Expect(terraform.Apply()).To(BeZero())
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
 			})
 
 			It("Happy flow with team restriction", func() {
 				// Prepare the server:
-				server.AppendHandlers(
+				TestServer.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(
 							http.MethodPost,
@@ -602,7 +641,7 @@ var _ = Describe("Identity provider creation", func() {
 				)
 
 				// Run the apply command:
-				terraform.Source(`
+				Terraform.Source(`
 		          resource "rhcs_identity_provider" "my_idp" {
 		            cluster = "123"
 		            name    = "my-ip"
@@ -614,7 +653,8 @@ var _ = Describe("Identity provider creation", func() {
 		            }
 		          }
 		        `)
-				Expect(terraform.Apply()).To(BeZero())
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
 			})
 		})
 
@@ -622,7 +662,7 @@ var _ = Describe("Identity provider creation", func() {
 			Context("Invalid LDAP config", func() {
 				It("Should fail if not both bind properties are set", func() {
 					// Run the apply command:
-					terraform.Source(`
+					Terraform.Source(`
         		      resource "rhcs_identity_provider" "my_idp" {
         		        cluster    = "123"
         		        name       = "my-ip"
@@ -640,13 +680,15 @@ var _ = Describe("Identity provider creation", func() {
         		        }
         		      }
         		    `)
-					Expect(terraform.Apply()).ToNot(BeZero())
+					runOutput := Terraform.Apply()
+					Expect(runOutput.ExitCode).ToNot(BeZero())
+					runOutput.VerifyErrorContainsSubstring(`Attribute "ldap.bind_password" must be specified`)
 				})
 
 			})
 			It("Happy flow with default attributes", func() {
 				// Prepare the server:
-				server.AppendHandlers(
+				TestServer.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(
 							http.MethodPost,
@@ -689,7 +731,7 @@ var _ = Describe("Identity provider creation", func() {
 				)
 
 				// Run the apply command:
-				terraform.Source(`
+				Terraform.Source(`
         		  resource "rhcs_identity_provider" "my_idp" {
         		    cluster    = "123"
         		    name       = "my-ip"
@@ -701,11 +743,12 @@ var _ = Describe("Identity provider creation", func() {
         		    }
         		  }
         		`)
-				Expect(terraform.Apply()).To(BeZero())
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
 			})
 			It("Happy flow with bind values", func() {
 				// Prepare the server:
-				server.AppendHandlers(
+				TestServer.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(
 							http.MethodPost,
@@ -752,7 +795,7 @@ var _ = Describe("Identity provider creation", func() {
 				)
 
 				// Run the apply command:
-				terraform.Source(`
+				Terraform.Source(`
         		  resource "rhcs_identity_provider" "my_idp" {
         		    cluster    = "123"
         		    name       = "my-ip"
@@ -771,12 +814,13 @@ var _ = Describe("Identity provider creation", func() {
         		    }
         		  }
         		`)
-				Expect(terraform.Apply()).To(BeZero())
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
 			})
 
 			It("Happy flow without bind values", func() {
 				// Prepare the server:
-				server.AppendHandlers(
+				TestServer.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(
 							http.MethodPost,
@@ -819,7 +863,7 @@ var _ = Describe("Identity provider creation", func() {
 				)
 
 				// Run the apply command:
-				terraform.Source(`
+				Terraform.Source(`
         		  resource "rhcs_identity_provider" "my_idp" {
         		    cluster    = "123"
         		    name       = "my-ip"
@@ -836,7 +880,8 @@ var _ = Describe("Identity provider creation", func() {
         		    }
         		  }
         		`)
-				Expect(terraform.Apply()).To(BeZero())
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
 			})
 		})
 
@@ -844,7 +889,7 @@ var _ = Describe("Identity provider creation", func() {
 			Context("Invalid google config", func() {
 				It("Should fail with invalid hosted_domain", func() {
 					// Run the apply command:
-					terraform.Source(`
+					Terraform.Source(`
     		          resource "rhcs_identity_provider" "my_idp" {
     		            cluster = "123"
     		            name    = "my-ip"
@@ -855,12 +900,14 @@ var _ = Describe("Identity provider creation", func() {
     		            }
     		          }
     		        `)
-					Expect(terraform.Apply()).ToNot(BeZero())
+					runOutput := Terraform.Apply()
+					Expect(runOutput.ExitCode).ToNot(BeZero())
+					runOutput.VerifyErrorContainsSubstring("Expected a valid Google hosted_domain. Got examplecom")
 				})
 
 				It("Should fail when mapping_method is not lookup and no hosted_domain", func() {
 					// Run the apply command:
-					terraform.Source(`
+					Terraform.Source(`
     		          resource "rhcs_identity_provider" "my_idp" {
     		            cluster = "123"
     		            name    = "my-ip"
@@ -870,15 +917,16 @@ var _ = Describe("Identity provider creation", func() {
     		            }
     		          }
     		        `)
-					Expect(terraform.Apply()).ToNot(BeZero())
+					runOutput := Terraform.Apply()
+					Expect(runOutput.ExitCode).ToNot(BeZero())
+					runOutput.VerifyErrorContainsSubstring("Expected a valid hosted_domain since mapping_method is set to claim")
 				})
-
 			})
 
 			Context("Happy flow", func() {
 				It("Should create provider", func() {
 					// Prepare the server:
-					server.AppendHandlers(
+					TestServer.AppendHandlers(
 						CombineHandlers(
 							VerifyRequest(
 								http.MethodPost,
@@ -909,7 +957,7 @@ var _ = Describe("Identity provider creation", func() {
 					)
 
 					// Run the apply command:
-					terraform.Source(`
+					Terraform.Source(`
     		          resource "rhcs_identity_provider" "my_idp" {
     		            cluster = "123"
     		            name    = "my-ip"
@@ -920,14 +968,15 @@ var _ = Describe("Identity provider creation", func() {
     		            }
     		          }
     		        `)
-					Expect(terraform.Apply()).To(BeZero())
+					runOutput := Terraform.Apply()
+					Expect(runOutput.ExitCode).To(BeZero())
 				})
 
 				Describe("Htpasswd IDP tests", func() {
 
 					It("Should create htpasswd IDP", func() {
 						// Prepare the server:
-						server.AppendHandlers(
+						TestServer.AppendHandlers(
 							CombineHandlers(
 								VerifyRequest(
 									http.MethodPost,
@@ -965,7 +1014,7 @@ var _ = Describe("Identity provider creation", func() {
 						)
 
 						// Run the apply command:
-						terraform.Source(`
+						Terraform.Source(`
 	    	  				resource "rhcs_identity_provider" "my_idp" {
 	    	    				cluster = "123"
 					    	    name    = "my-ip"
@@ -981,12 +1030,13 @@ var _ = Describe("Identity provider creation", func() {
 								}
 	    		  			}
 	    				`)
-						Expect(terraform.Apply()).To(BeZero())
+						runOutput := Terraform.Apply()
+						Expect(runOutput.ExitCode).To(BeZero())
 					})
 
 					It("Should delete htpasswd provider user (update)", func() {
 						// Prepare the server:
-						server.AppendHandlers(
+						TestServer.AppendHandlers(
 							CombineHandlers(
 								VerifyRequest(
 									http.MethodPost,
@@ -1006,7 +1056,7 @@ var _ = Describe("Identity provider creation", func() {
 						)
 
 						// Run the apply command:
-						terraform.Source(`
+						Terraform.Source(`
 	    	  				resource "rhcs_identity_provider" "my_idp" {
 	    	    				cluster = "123"
 					    	    name    = "my-ip"
@@ -1018,12 +1068,13 @@ var _ = Describe("Identity provider creation", func() {
 								}
 	    		  			}
 	    				`)
-						Expect(terraform.Apply()).To(BeZero())
+						runOutput := Terraform.Apply()
+						Expect(runOutput.ExitCode).To(BeZero())
 					})
 
 					It("Should edit htpasswd provider user's password (update)", func() {
 						// Prepare the server:
-						server.AppendHandlers(
+						TestServer.AppendHandlers(
 							CombineHandlers(
 								VerifyRequest(
 									http.MethodPost,
@@ -1043,7 +1094,7 @@ var _ = Describe("Identity provider creation", func() {
 						)
 
 						// Run the apply command:
-						terraform.Source(`
+						Terraform.Source(`
 	    	  				resource "rhcs_identity_provider" "my_idp" {
 	    	    				cluster = "123"
 					    	    name    = "my-ip"
@@ -1055,12 +1106,13 @@ var _ = Describe("Identity provider creation", func() {
 								}
 	    		  			}
 	    				`)
-						Expect(terraform.Apply()).To(BeZero())
+						runOutput := Terraform.Apply()
+						Expect(runOutput.ExitCode).To(BeZero())
 					})
 
 					It("Should add htpasswd provider user (update)", func() {
 						// Prepare the server:
-						server.AppendHandlers(
+						TestServer.AppendHandlers(
 							CombineHandlers(
 								VerifyRequest(
 									http.MethodPost,
@@ -1086,7 +1138,7 @@ var _ = Describe("Identity provider creation", func() {
 						)
 
 						// Run the apply command:
-						terraform.Source(`
+						Terraform.Source(`
 	    	  				resource "rhcs_identity_provider" "my_idp" {
 	    	    				cluster = "123"
 					    	    name    = "my-ip"
@@ -1103,13 +1155,14 @@ var _ = Describe("Identity provider creation", func() {
 								}
 	    		  			}
 	    				`)
-						Expect(terraform.Apply()).To(BeZero())
+						runOutput := Terraform.Apply()
+						Expect(runOutput.ExitCode).To(BeZero())
 					})
 				})
 
 				It("Should create provider without hosted_domain when mapping_method is set to 'lookup'", func() {
 					// Prepare the server:
-					server.AppendHandlers(
+					TestServer.AppendHandlers(
 						CombineHandlers(
 							VerifyRequest(
 								http.MethodPost,
@@ -1138,7 +1191,7 @@ var _ = Describe("Identity provider creation", func() {
 					)
 
 					// Run the apply command:
-					terraform.Source(`
+					Terraform.Source(`
     		          resource "rhcs_identity_provider" "my_idp" {
     		            cluster = "123"
     		            name    = "my-ip"
@@ -1149,14 +1202,15 @@ var _ = Describe("Identity provider creation", func() {
     		            }
     		          }
     		        `)
-					Expect(terraform.Apply()).To(BeZero())
+					runOutput := Terraform.Apply()
+					Expect(runOutput.ExitCode).To(BeZero())
 				})
 			})
 		})
 
 		It("Can create an OpenID identity provider", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
@@ -1236,7 +1290,7 @@ var _ = Describe("Identity provider creation", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
     		  resource "rhcs_identity_provider" "my_idp" {
     		    cluster    				= "123"
     		    name       				= "my-ip"
@@ -1258,14 +1312,15 @@ var _ = Describe("Identity provider creation", func() {
     		    }
     		  }
     		`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_identity_provider", "my_idp")
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_identity_provider", "my_idp")
 			Expect(resource).To(MatchJQ(`.attributes.openid.extra_authorize_parameters.test_key`, "test_value"))
 		})
 
 		It("Should fail with invalid mapping_method", func() {
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
     		  resource "rhcs_identity_provider" "my_idp" {
     		    cluster = "123"
     		    name    = "my-ip"
@@ -1278,15 +1333,17 @@ var _ = Describe("Identity provider creation", func() {
     		    }
     		  }
     		`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring(`Attribute mapping_method value must be one of:`)
 		})
 		It("Should fail with invalid htpasswd password", func() {
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
     		  resource "rhcs_identity_provider" "my_idp" {
     		    cluster = "123"
     		    name    = "my-ip"
-                mapping_method = "invalid"
+                mapping_method = "claim"
     		    htpasswd = {
                   users = [{
                     username = "my-user"
@@ -1295,7 +1352,10 @@ var _ = Describe("Identity provider creation", func() {
     		    }
     		  }
     		`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute htpasswd.users[0].password password must contain uppercase")
+			runOutput.VerifyErrorContainsSubstring("Attribute htpasswd.users[0].password string length must be at least 14")
 		})
 	})
 })
@@ -1349,7 +1409,7 @@ var _ = Describe("Identity provider import", func() {
 
 	It("Can import an identity provider", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, template),
@@ -1407,21 +1467,21 @@ var _ = Describe("Identity provider import", func() {
 			),
 		)
 
-		terraform.Source(`
+		Terraform.Source(`
 			resource "rhcs_identity_provider" "my-ip" {
 				# (resource arguments)
 			}
 		`)
-
-		Expect(terraform.Import("rhcs_identity_provider.my-ip", "123,my-ip")).To(BeZero())
-		resource := terraform.Resource("rhcs_identity_provider", "my-ip")
+		runOutput := Terraform.Import("rhcs_identity_provider.my-ip", "123,my-ip")
+		Expect(runOutput.ExitCode).To(BeZero())
+		resource := Terraform.Resource("rhcs_identity_provider", "my-ip")
 		Expect(resource).To(MatchJQ(".attributes.name", "my-ip"))
 		Expect(resource).To(MatchJQ(".attributes.github.client_id", "99999"))
 	})
 
 	It("Is an error if the identity provider isn't found", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, template),
@@ -1458,30 +1518,32 @@ var _ = Describe("Identity provider import", func() {
 			),
 		)
 
-		terraform.Source(`
+		Terraform.Source(`
 			resource "rhcs_identity_provider" "my-ip" {
 				# (resource arguments)
 			}
 		`)
-
-		Expect(terraform.Import("rhcs_identity_provider.my-ip", "123,notfound")).NotTo(BeZero())
+		runOutput := Terraform.Import("rhcs_identity_provider.my-ip", "123,notfound")
+		Expect(runOutput.ExitCode).NotTo(BeZero())
+		runOutput.VerifyErrorContainsSubstring("identity provider 'notfound' not found")
 	})
 
 	It("import for non exist cluster - should fail", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusNotFound, template),
 			),
 		)
 
-		terraform.Source(`
+		Terraform.Source(`
 			resource "rhcs_identity_provider" "my-ip" {
 				# (resource arguments)
 			}
 		`)
-
-		Expect(terraform.Import("rhcs_identity_provider.my-ip", "123,notfound")).NotTo(BeZero())
+		runOutput := Terraform.Import("rhcs_identity_provider.my-ip", "123,notfound")
+		Expect(runOutput.ExitCode).NotTo(BeZero())
+		runOutput.VerifyErrorContainsSubstring("Cluster 123 not found, error: status is 404 and identifier is '123'")
 	})
 })

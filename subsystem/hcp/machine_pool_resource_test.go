@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/gomega/ghttp"       // nolint
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
 const (
@@ -34,7 +35,7 @@ const (
 
 var _ = Describe("Hcp Machine pool", func() {
 	prepareClusterRead := func(clusterId string) {
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, clusterUri+clusterId),
 				RespondWithJSONTemplate(http.StatusOK, `{
@@ -63,15 +64,26 @@ var _ = Describe("Hcp Machine pool", func() {
 	}
 	Context("static validation", func() {
 		It("fails if cluster ID is empty", func() {
-			terraform.Source(`
+			Terraform.Source(`
 			resource "rhcs_hcp_machine_pool" "my_pool" {
+					autoscaling = {
+						enabled = false
+					}
+					auto_repair = true
+					name         = "my-pool"
+					aws_node_pool = {
+						instance_type = "r5.xlarge"
+					}
+					subnet_id = "subnet"
 					cluster = ""
 				}
 			`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute cluster cluster ID may not be empty/blank string")
 		})
 		It("is invalid to specify both availability_zone and subnet_id", func() {
-			terraform.Source(`
+			Terraform.Source(`
 			resource "rhcs_hcp_machine_pool" "my_pool" {
 				cluster      = "123"
 				name         = "my-pool"
@@ -81,11 +93,11 @@ var _ = Describe("Hcp Machine pool", func() {
 				replicas     = 12
 				subnet_id = "subnet-123"
 			}`)
-			Expect(terraform.Validate()).NotTo(BeZero())
+			Expect(Terraform.Validate()).NotTo(BeZero())
 		})
 
 		It("is necessary to specify both min and max replicas", func() {
-			terraform.Source(`
+			Terraform.Source(`
 			resource "rhcs_hcp_machine_pool" "my_pool" {
 				cluster      = "123"
 				name         = "my-pool"
@@ -98,9 +110,9 @@ var _ = Describe("Hcp Machine pool", func() {
 				}
 				subnet_id = "subnet-123"
 			}`)
-			Expect(terraform.Validate()).NotTo(BeZero())
+			Expect(Terraform.Validate()).NotTo(BeZero())
 
-			terraform.Source(`
+			Terraform.Source(`
 			resource "rhcs_hcp_machine_pool" "my_pool" {
 				cluster      = "123"
 				name         = "my-pool"
@@ -113,11 +125,11 @@ var _ = Describe("Hcp Machine pool", func() {
 				}
 				subnet_id = "subnet-123"
 			}`)
-			Expect(terraform.Validate()).NotTo(BeZero())
+			Expect(Terraform.Validate()).NotTo(BeZero())
 		})
 
 		It("is invalid to specify min_replicas and replicas", func() {
-			terraform.Source(`
+			Terraform.Source(`
 			resource "rhcs_hcp_machine_pool" "my_pool" {
 				cluster      = "123"
 				name         = "my-pool"
@@ -131,11 +143,11 @@ var _ = Describe("Hcp Machine pool", func() {
 				replicas     = 5
 				subnet_id = "subnet-123"
 			}`)
-			Expect(terraform.Validate()).NotTo(BeZero())
+			Expect(Terraform.Validate()).NotTo(BeZero())
 		})
 
 		It("is invalid to specify max_replicas and replicas", func() {
-			terraform.Source(`
+			Terraform.Source(`
 			resource "rhcs_hcp_machine_pool" "my_pool" {
 				cluster = "123"
 				name = "my-pool"
@@ -149,11 +161,11 @@ var _ = Describe("Hcp Machine pool", func() {
 				replicas = 5
 				subnet_id = "subnet-123"
 			}`)
-			Expect(terraform.Validate()).NotTo(BeZero())
+			Expect(Terraform.Validate()).NotTo(BeZero())
 		})
 
 		It("is invalid to specify unsupported http tokens", func() {
-			terraform.Source(`
+			Terraform.Source(`
 			resource "rhcs_hcp_machine_pool" "my_pool" {
 				cluster = "123"
 				name = "my-pool"
@@ -167,7 +179,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				replicas = 5
 				subnet_id = "subnet-123"
 			}`)
-			Expect(terraform.Validate()).NotTo(BeZero())
+			Expect(Terraform.Validate()).NotTo(BeZero())
 		})
 	})
 
@@ -181,7 +193,7 @@ var _ = Describe("Hcp Machine pool", func() {
 
 		It("Can create machine pool with compute nodes", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
@@ -216,7 +228,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 			resource "rhcs_hcp_machine_pool" "my_pool" {
 				cluster      = "123"
 				name         = "my-pool"
@@ -242,10 +254,11 @@ var _ = Describe("Hcp Machine pool", func() {
 				version = "4.14.10"
 				auto_repair = true
 			}`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
 			// Check the state:
-			resource := terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
@@ -256,7 +269,7 @@ var _ = Describe("Hcp Machine pool", func() {
 
 		It("Can create machine pool with version", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
@@ -280,7 +293,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 			resource "rhcs_hcp_machine_pool" "my_pool" {
 				cluster      = "123"
 				name         = "my-pool"
@@ -295,10 +308,11 @@ var _ = Describe("Hcp Machine pool", func() {
 				version = "4.14.9"
 				auto_repair = true
 			}`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
 			// Check the state:
-			resource := terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
@@ -308,7 +322,7 @@ var _ = Describe("Hcp Machine pool", func() {
 
 		It("Can create machine pool with additional security groups", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
@@ -344,7 +358,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 			resource "rhcs_hcp_machine_pool" "my_pool" {
 				cluster      = "123"
 				name         = "my-pool"
@@ -371,10 +385,11 @@ var _ = Describe("Hcp Machine pool", func() {
 				version = "4.14.10"
 				auto_repair = true
 			}`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
 			// Check the state:
-			resource := terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
@@ -386,7 +401,7 @@ var _ = Describe("Hcp Machine pool", func() {
 
 		It("Rejects machine pool with more than 10 additional security groups", func() {
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 			resource "rhcs_hcp_machine_pool" "my_pool" {
 				cluster      = "123"
 				name         = "my-pool"
@@ -413,12 +428,14 @@ var _ = Describe("Hcp Machine pool", func() {
 				version = "4.14.10"
 				auto_repair = true
 			}`)
-			Expect(terraform.Apply()).To(Equal(1))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute aws_node_pool.additional_security_group_ids list must contain at most 10 elements")
 		})
 
 		It("Can't update additional security groups for machine pool", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
@@ -454,7 +471,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 			resource "rhcs_hcp_machine_pool" "my_pool" {
 				cluster      = "123"
 				name         = "my-pool"
@@ -481,10 +498,11 @@ var _ = Describe("Hcp Machine pool", func() {
 				version = "4.14.10"
 				auto_repair = true
 			}`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
 			// Check the state:
-			resource := terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
@@ -495,7 +513,7 @@ var _ = Describe("Hcp Machine pool", func() {
 
 			// Update - change additional security groups IDs
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodGet,
@@ -530,7 +548,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 			resource "rhcs_hcp_machine_pool" "my_pool" {
 				cluster      = "123"
 				name         = "my-pool"
@@ -557,12 +575,14 @@ var _ = Describe("Hcp Machine pool", func() {
 				version = "4.14.10"
 				auto_repair = true
 			}`)
-			Expect(terraform.Apply()).To(Equal(1))
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute aws_node_pool.additional_security_group_ids, cannot be changed")
 		})
 
 		It("Can create machine pool with compute nodes when 404 (not found)", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
@@ -597,7 +617,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		resource "rhcs_hcp_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-pool"
@@ -623,10 +643,11 @@ var _ = Describe("Hcp Machine pool", func() {
 			version = "4.14.10"
 			auto_repair = true
 		}`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
 			// Check the state:
-			resource := terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
@@ -636,7 +657,7 @@ var _ = Describe("Hcp Machine pool", func() {
 
 			// Prepare the server for update
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodGet,
@@ -646,7 +667,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
@@ -682,7 +703,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		resource "rhcs_hcp_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-pool"
@@ -708,10 +729,11 @@ var _ = Describe("Hcp Machine pool", func() {
 			version = "4.14.10"
 			auto_repair = true
 		}`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
 			// Check the state:
-			resource = terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			resource = Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
@@ -722,7 +744,7 @@ var _ = Describe("Hcp Machine pool", func() {
 
 		It("Can create machine pool with compute nodes and update labels", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
@@ -751,7 +773,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		resource "rhcs_hcp_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-pool"
@@ -770,10 +792,11 @@ var _ = Describe("Hcp Machine pool", func() {
 			subnet_id = "subnet-123"
 			auto_repair = true
 		}`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
 			// Check the state:
-			resource := terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
@@ -783,7 +806,7 @@ var _ = Describe("Hcp Machine pool", func() {
 
 			// Update - change labels
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// First get is for the Read function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
@@ -810,7 +833,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Second get is for the Update function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
@@ -836,7 +859,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					}`),
 				),
 			)
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPatch,
@@ -864,7 +887,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 			resource "rhcs_hcp_machine_pool" "my_pool" {
 			    cluster      = "123"
 			    name         = "my-pool"
@@ -882,10 +905,11 @@ var _ = Describe("Hcp Machine pool", func() {
 				subnet_id = "subnet-123"
 				auto_repair = true
 			}`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
 			// Check the state:
-			resource = terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			resource = Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
@@ -894,7 +918,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(`.attributes.labels | length`, 1))
 
 			// Invalid deletion - labels map can't be empty
-			terraform.Source(`
+			Terraform.Source(`
 			resource "rhcs_hcp_machine_pool" "my_pool" {
 			    cluster      = "123"
 			    name         = "my-pool"
@@ -910,11 +934,13 @@ var _ = Describe("Hcp Machine pool", func() {
 				subnet_id = "subnet-123"
 				auto_repair = true
 			}`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute labels map must contain at least 1 elements")
 
 			// Update - delete labels
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// First get is for the Read function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
@@ -941,7 +967,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Second get is for the Update function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
@@ -967,7 +993,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					}`),
 				),
 			)
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPatch,
@@ -992,7 +1018,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 			// Valid deletion
-			terraform.Source(`
+			Terraform.Source(`
 			resource "rhcs_hcp_machine_pool" "my_pool" {
 			    cluster      = "123"
 			    name         = "my-pool"
@@ -1007,10 +1033,11 @@ var _ = Describe("Hcp Machine pool", func() {
 				subnet_id = "subnet-123"
 				auto_repair = true
 			}`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
 			// Check the state:
-			resource = terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			resource = Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
@@ -1021,7 +1048,7 @@ var _ = Describe("Hcp Machine pool", func() {
 
 		It("Can create machine pool with compute nodes and update taints", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
@@ -1053,7 +1080,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_hcp_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-pool"
@@ -1076,10 +1103,11 @@ var _ = Describe("Hcp Machine pool", func() {
 			auto_repair = true
 		  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
 			// Check the state:
-			resource := terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
@@ -1088,7 +1116,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(`.attributes.taints | length`, 1))
 
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// First get is for the Read function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
@@ -1119,7 +1147,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Second get is for the Update function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
@@ -1185,7 +1213,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_hcp_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-pool"
@@ -1213,10 +1241,11 @@ var _ = Describe("Hcp Machine pool", func() {
 			auto_repair = true
 		  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
 			// Check the state:
-			resource = terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			resource = Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
@@ -1227,7 +1256,7 @@ var _ = Describe("Hcp Machine pool", func() {
 
 		It("Can create machine pool with compute nodes and remove taints", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
@@ -1258,7 +1287,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_hcp_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-pool"
@@ -1281,10 +1310,11 @@ var _ = Describe("Hcp Machine pool", func() {
 			auto_repair = true
 		  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
 			// Check the state:
-			resource := terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
@@ -1293,7 +1323,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(`.attributes.taints | length`, 1))
 
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// First get is for the Read function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
@@ -1324,7 +1354,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Second get is for the Update function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
@@ -1379,7 +1409,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			)
 
 			// invalid removal of taints
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_hcp_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-pool"
@@ -1397,10 +1427,12 @@ var _ = Describe("Hcp Machine pool", func() {
 		  }
 		`)
 
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute taints list must contain at least 1 elements")
 
 			// valid removal of taints
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_hcp_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-pool"
@@ -1416,10 +1448,11 @@ var _ = Describe("Hcp Machine pool", func() {
 			auto_repair = true
 		  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
 			// Check the state:
-			resource = terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			resource = Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
@@ -1430,7 +1463,7 @@ var _ = Describe("Hcp Machine pool", func() {
 
 		It("Can create machine pool with aws tags, but cannot edit", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
@@ -1457,7 +1490,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_hcp_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-pool"
@@ -1476,10 +1509,11 @@ var _ = Describe("Hcp Machine pool", func() {
 			auto_repair = true
 		  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
 			// Check the state:
-			resource := terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
@@ -1488,61 +1522,34 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.tags | length`, 1))
 
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// First get is for the Read function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
-					RespondWithJSON(http.StatusOK, `
-				{
-				  "id": "my-pool",
-				  "kind": "MachinePool",
-				  "href": "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
-	              "replicas": 12,
-				  "availability_zone": "us-east-1a",
-				  "aws_node_pool": {
-					"instance_type": "r5.xlarge",
-					"instance_profile": "bla",
-					"tags": {
-						"test-label":"test-value",
-					}
-				  },
-				  "auto_repair": true,
-				  "version": {
-					  "raw_id": "4.14.10"
-				  },
-				  "subnet": "subnet-123"
-				}`),
-				),
-			)
-			prepareClusterRead("123")
-			server.AppendHandlers(
-				// Second get is for the Update function
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
-					RespondWithJSON(http.StatusOK, `
-				{
-				  "id": "my-pool",
-				  "kind": "MachinePool",
-				  "href": "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
-	              "replicas": 12,
-				  "availability_zone": "us-east-1a",
-				  "aws_node_pool": {
-					"instance_type": "r5.xlarge",
-					"instance_profile": "bla",
-					"tags": {
-						"test-label":"test-value",
-					}
-				  },
-				  "auto_repair": true,
-				  "version": {
-					  "raw_id": "4.14.10"
-				  },
-				  "subnet": "subnet-123"
-				}`),
+					RespondWithJSON(http.StatusOK, `{
+						"id": "my-pool",
+						"kind": "MachinePool",
+						"href": "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+						"replicas": 12,
+						"availability_zone": "us-east-1a",
+						"aws_node_pool": {
+							"instance_type": "r5.xlarge",
+							"instance_profile": "bla",
+							"tags": {
+								"test-label":"test-value"
+							}
+						},
+						"auto_repair": true,
+						"version": {
+							"raw_id": "4.14.10"
+						},
+						"subnet": "subnet-123"
+					}`,
+					),
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_hcp_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-pool"
@@ -1558,15 +1565,18 @@ var _ = Describe("Hcp Machine pool", func() {
 			}
 			version = "4.14.10"
 			subnet_id = "subnet-123"
+			auto_repair = true
 		  }
 		`)
 
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute aws_node_pool.tags, cannot be changed from")
 		})
 
 		It("Can create machine pool without supplying tags even though cluster has tags", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
@@ -1594,7 +1604,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_hcp_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-pool"
@@ -1613,12 +1623,13 @@ var _ = Describe("Hcp Machine pool", func() {
 			auto_repair = true
 		  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		It("Can create machine pool supplying tags even though cluster has tags", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
@@ -1646,7 +1657,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_hcp_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-pool"
@@ -1666,12 +1677,13 @@ var _ = Describe("Hcp Machine pool", func() {
 			auto_repair = true
 		  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		It("Can create machine pool with autoscaling enabled and update to compute nodes", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
@@ -1698,7 +1710,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			)
 
 			// Run the apply command to create the machine pool resource:
-			terraform.Source(`
+			Terraform.Source(`
 		resource "rhcs_hcp_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-pool"
@@ -1714,10 +1726,11 @@ var _ = Describe("Hcp Machine pool", func() {
 			subnet_id = "subnet-123"
 			auto_repair = true
 		}`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
 			// Check the state:
-			resource := terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
@@ -1727,7 +1740,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(".attributes.autoscaling.max_replicas", float64(3)))
 
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// First get is for the Read function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
@@ -1754,7 +1767,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Second get is for the Update function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
@@ -1804,7 +1817,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 			// Run the apply command to update the machine pool:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_hcp_machine_pool" "my_pool" {
 		    cluster      = "123"
 		    name         = "my-pool"
@@ -1819,10 +1832,11 @@ var _ = Describe("Hcp Machine pool", func() {
 			subnet_id = "subnet-123"
 			auto_repair = true
 		}`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
 			// Check the state:
-			resource = terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			resource = Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
@@ -1832,7 +1846,7 @@ var _ = Describe("Hcp Machine pool", func() {
 
 		It("Can create machine pool with kubelet configs", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
@@ -1859,7 +1873,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 			resource "rhcs_hcp_machine_pool" "my_pool" {
 				cluster      = "123"
 				name         = "my-pool"
@@ -1875,10 +1889,11 @@ var _ = Describe("Hcp Machine pool", func() {
 				version = "4.14.10"
 				kubelet_configs = "my_kubelet_config"
 			}`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
 			// Check the state:
-			resource := terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
@@ -1888,7 +1903,7 @@ var _ = Describe("Hcp Machine pool", func() {
 
 		It("Can create machine pool with http tokens set and cannot edit", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
@@ -1913,7 +1928,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 			resource "rhcs_hcp_machine_pool" "my_pool" {
 				cluster      = "123"
 				name         = "my-pool"
@@ -1929,10 +1944,11 @@ var _ = Describe("Hcp Machine pool", func() {
 				auto_repair = true
 				version = "4.14.10"
 			}`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
 			// Check the state:
-			resource := terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
@@ -1940,7 +1956,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.ec2_metadata_http_tokens`, "required"))
 
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// First get is for the Read function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
@@ -1964,7 +1980,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 			resource "rhcs_hcp_machine_pool" "my_pool" {
 				cluster      = "123"
 				name         = "my-pool"
@@ -1980,12 +1996,12 @@ var _ = Describe("Hcp Machine pool", func() {
 				auto_repair = true
 				version = "4.14.10"
 			}`)
-			Expect(terraform.Apply()).NotTo(BeZero())
+			Expect(Terraform.Apply()).NotTo(BeZero())
 		})
 
 		It("Can create machine pool without http tokens set", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
@@ -2011,7 +2027,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 			resource "rhcs_hcp_machine_pool" "my_pool" {
 				cluster      = "123"
 				name         = "my-pool"
@@ -2026,10 +2042,11 @@ var _ = Describe("Hcp Machine pool", func() {
 				auto_repair = true
 				version = "4.14.10"
 			}`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
 			// Check the state:
-			resource := terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
@@ -2046,7 +2063,7 @@ var _ = Describe("Hcp Machine pool", func() {
 		It("cannot be created", func() {
 			// Prepare the server:
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Get is for the Read function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -2061,7 +2078,7 @@ var _ = Describe("Hcp Machine pool", func() {
 						}`),
 				),
 			)
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_hcp_machine_pool" "worker" {
 					cluster      = "123"
 					name         = "worker"
@@ -2076,14 +2093,14 @@ var _ = Describe("Hcp Machine pool", func() {
 					subnet_id = "subnet-123"
 					auto_repair = true
 				}`)
-			Expect(terraform.Apply()).NotTo(BeZero())
+			Expect(Terraform.Apply()).NotTo(BeZero())
 		})
 
 		It("is automatically imported and updates applied", func() {
 			// Import automatically "Create()", and update the # of replicas: 2 -> 4
 			// Prepare the server:
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Get is for the Read function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -2104,7 +2121,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Get is for the read during update
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -2141,7 +2158,7 @@ var _ = Describe("Hcp Machine pool", func() {
 						}`),
 				),
 			)
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_hcp_machine_pool" "worker" {
 					cluster      = "123"
 					name         = "worker"
@@ -2156,8 +2173,9 @@ var _ = Describe("Hcp Machine pool", func() {
 					replicas     = 4
 					auto_repair = true
 				}`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_hcp_machine_pool", "worker")
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "worker")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.name", "worker"))
 			Expect(resource).To(MatchJQ(".attributes.id", "worker"))
@@ -2167,7 +2185,7 @@ var _ = Describe("Hcp Machine pool", func() {
 		It("can update labels", func() {
 			// Prepare the server:
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Get is for the Read function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -2188,7 +2206,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Get is for the read during update
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -2229,7 +2247,7 @@ var _ = Describe("Hcp Machine pool", func() {
 						}`),
 				),
 			)
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_hcp_machine_pool" "worker" {
 					cluster      = "123"
 					name         = "worker"
@@ -2247,8 +2265,9 @@ var _ = Describe("Hcp Machine pool", func() {
 					version = "4.14.10"
 					auto_repair = true
 				}`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_hcp_machine_pool", "worker")
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "worker")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.name", "worker"))
 			Expect(resource).To(MatchJQ(".attributes.id", "worker"))
@@ -2258,7 +2277,7 @@ var _ = Describe("Hcp Machine pool", func() {
 		It("can't update instance type", func() {
 			// Prepare the server:
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Get is for the Read function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -2279,7 +2298,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Get is for the read during update
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -2299,7 +2318,7 @@ var _ = Describe("Hcp Machine pool", func() {
 						}`),
 				),
 			)
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_hcp_machine_pool" "worker" {
 					cluster      = "123"
 					name         = "worker"
@@ -2317,13 +2336,15 @@ var _ = Describe("Hcp Machine pool", func() {
 					version = "4.14.10"
 					auto_repair = true
 				}`)
-			Expect(terraform.Apply()).To(Equal(1))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute aws_node_pool.instance_type, cannot be changed from")
 		})
 
 		It("can't update subnet", func() {
 			// Prepare the server:
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Get is for the Read function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -2344,7 +2365,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Get is for the read during update
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -2364,7 +2385,7 @@ var _ = Describe("Hcp Machine pool", func() {
 						}`),
 				),
 			)
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_hcp_machine_pool" "worker" {
 					cluster      = "123"
 					name         = "worker"
@@ -2382,13 +2403,15 @@ var _ = Describe("Hcp Machine pool", func() {
 					version = "4.14.10"
 					auto_repair = true
 				}`)
-			Expect(terraform.Apply()).To(Equal(1))
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute aws_node_pool.subnet_id, cannot be changed from")
 		})
 
 		It("can update auto repair", func() {
 			// Prepare the server:
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Get is for the Read function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -2409,7 +2432,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Get is for the read during update
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -2450,7 +2473,7 @@ var _ = Describe("Hcp Machine pool", func() {
 						}`),
 				),
 			)
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_hcp_machine_pool" "worker" {
 					cluster      = "123"
 					name         = "worker"
@@ -2468,8 +2491,9 @@ var _ = Describe("Hcp Machine pool", func() {
 					version = "4.14.10"
 					auto_repair = false
 				}`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_hcp_machine_pool", "worker")
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "worker")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.name", "worker"))
 			Expect(resource).To(MatchJQ(".attributes.id", "worker"))
@@ -2481,7 +2505,7 @@ var _ = Describe("Hcp Machine pool", func() {
 		It("can update tuning configs", func() {
 			// Prepare the server:
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Get is for the Read function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -2502,7 +2526,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Get is for the read during update
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -2546,7 +2570,7 @@ var _ = Describe("Hcp Machine pool", func() {
 						}`),
 				),
 			)
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_hcp_machine_pool" "worker" {
 					cluster      = "123"
 					name         = "worker"
@@ -2565,8 +2589,9 @@ var _ = Describe("Hcp Machine pool", func() {
 					auto_repair = true
 					tuning_configs = [ "config" ]
 				}`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_hcp_machine_pool", "worker")
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "worker")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.name", "worker"))
 			Expect(resource).To(MatchJQ(".attributes.id", "worker"))
@@ -2578,7 +2603,7 @@ var _ = Describe("Hcp Machine pool", func() {
 
 			// Prepare the server:
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Get is for the Read function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -2599,7 +2624,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Get is for the read during update
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -2643,7 +2668,7 @@ var _ = Describe("Hcp Machine pool", func() {
 						}`),
 				),
 			)
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_hcp_machine_pool" "worker" {
 					cluster      = "123"
 					name         = "worker"
@@ -2662,8 +2687,9 @@ var _ = Describe("Hcp Machine pool", func() {
 					auto_repair = true
 					tuning_configs = []
 				}`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource = terraform.Resource("rhcs_hcp_machine_pool", "worker")
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource = Terraform.Resource("rhcs_hcp_machine_pool", "worker")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.name", "worker"))
 			Expect(resource).To(MatchJQ(".attributes.id", "worker"))
@@ -2676,7 +2702,7 @@ var _ = Describe("Hcp Machine pool", func() {
 		It("can update kubelet configs", func() {
 			// Prepare the server:
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Get is for the Read function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -2697,7 +2723,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Get is for the read during update
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -2741,7 +2767,7 @@ var _ = Describe("Hcp Machine pool", func() {
 						}`),
 				),
 			)
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_hcp_machine_pool" "worker" {
 					cluster      = "123"
 					name         = "worker"
@@ -2760,8 +2786,9 @@ var _ = Describe("Hcp Machine pool", func() {
 					auto_repair = true
 					kubelet_configs = "my_kubelet_config"
 				}`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_hcp_machine_pool", "worker")
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "worker")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.name", "worker"))
 			Expect(resource).To(MatchJQ(".attributes.id", "worker"))
@@ -2772,7 +2799,7 @@ var _ = Describe("Hcp Machine pool", func() {
 
 			// Prepare the server:
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Get is for the Read function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -2796,7 +2823,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Get is for the read during update
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -2843,7 +2870,7 @@ var _ = Describe("Hcp Machine pool", func() {
 						}`),
 				),
 			)
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_hcp_machine_pool" "worker" {
 					cluster      = "123"
 					name         = "worker"
@@ -2862,8 +2889,9 @@ var _ = Describe("Hcp Machine pool", func() {
 					auto_repair = true
 					kubelet_configs = "my_kubelet_config_1"
 				}`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource = terraform.Resource("rhcs_hcp_machine_pool", "worker")
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource = Terraform.Resource("rhcs_hcp_machine_pool", "worker")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.name", "worker"))
 			Expect(resource).To(MatchJQ(".attributes.id", "worker"))
@@ -2876,7 +2904,7 @@ var _ = Describe("Hcp Machine pool", func() {
 		It("can delete kubelet configs", func() {
 			// Prepare the server:
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Get is for the Read function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -2897,7 +2925,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Get is for the read during update
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -2941,7 +2969,7 @@ var _ = Describe("Hcp Machine pool", func() {
 						}`),
 				),
 			)
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_hcp_machine_pool" "worker" {
 					cluster      = "123"
 					name         = "worker"
@@ -2960,8 +2988,9 @@ var _ = Describe("Hcp Machine pool", func() {
 					auto_repair = true
 					kubelet_configs = "my_kubelet_config"
 				}`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_hcp_machine_pool", "worker")
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "worker")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.name", "worker"))
 			Expect(resource).To(MatchJQ(".attributes.id", "worker"))
@@ -2972,7 +3001,7 @@ var _ = Describe("Hcp Machine pool", func() {
 
 			// Prepare the server:
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Get is for the Read function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -2996,7 +3025,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 			prepareClusterRead("123")
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Get is for the read during update
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, workerNodePoolUri),
@@ -3040,7 +3069,7 @@ var _ = Describe("Hcp Machine pool", func() {
 						}`),
 				),
 			)
-			terraform.Source(`
+			Terraform.Source(`
 				resource "rhcs_hcp_machine_pool" "worker" {
 					cluster      = "123"
 					name         = "worker"
@@ -3059,8 +3088,9 @@ var _ = Describe("Hcp Machine pool", func() {
 					auto_repair = true
 					kubelet_configs = ""
 				}`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource = terraform.Resource("rhcs_hcp_machine_pool", "worker")
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource = Terraform.Resource("rhcs_hcp_machine_pool", "worker")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.name", "worker"))
 			Expect(resource).To(MatchJQ(".attributes.id", "worker"))
@@ -3073,7 +3103,7 @@ var _ = Describe("Hcp Machine pool", func() {
 
 	Context("Machine pool creation for non exist cluster", func() {
 		It("Fail to create machine pool if cluster is not exist", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Get is for the Read function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, clusterUri+"123"),
@@ -3082,7 +3112,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 			  resource "rhcs_hcp_machine_pool" "my_pool" {
 				cluster      = "123"
 				name         = "my-pool"
@@ -3098,7 +3128,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				auto_repair = true
 			  }
 			`)
-			Expect(terraform.Apply()).NotTo(BeZero())
+			Expect(Terraform.Apply()).NotTo(BeZero())
 		})
 	})
 
@@ -3106,7 +3136,7 @@ var _ = Describe("Hcp Machine pool", func() {
 		It("Can import a machine pool", func() {
 			prepareClusterRead("123")
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Get is for the Read function
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
@@ -3133,9 +3163,10 @@ var _ = Describe("Hcp Machine pool", func() {
 			)
 
 			// Run the import command:
-			terraform.Source(`resource "rhcs_hcp_machine_pool" "my_pool" {}`)
-			Expect(terraform.Import("rhcs_hcp_machine_pool.my_pool", "123,my-pool")).To(BeZero())
-			resource := terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Terraform.Source(`resource "rhcs_hcp_machine_pool" "my_pool" {}`)
+			runOutput := Terraform.Import("rhcs_hcp_machine_pool.my_pool", "123,my-pool")
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
@@ -3146,7 +3177,7 @@ var _ = Describe("Hcp Machine pool", func() {
 		clusterId := "123"
 
 		preparePoolRead := func(clusterId string, poolId string) {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/node_pools/"+poolId),
 					RespondWithJSONTemplate(http.StatusOK, `
@@ -3171,7 +3202,7 @@ var _ = Describe("Hcp Machine pool", func() {
 
 		createPool := func(clusterId string, poolId string) {
 			prepareClusterRead(clusterId)
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
@@ -3195,7 +3226,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 
-			terraform.Source(EvaluateTemplate(`
+			Terraform.Source(EvaluateTemplate(`
 			resource "rhcs_hcp_machine_pool" "{{.PoolId}}" {
 				  cluster      = "{{.ClusterId}}"
 				  name         = "{{.PoolId}}"
@@ -3212,8 +3243,9 @@ var _ = Describe("Hcp Machine pool", func() {
 			}`, "PoolId", poolId, "ClusterId", clusterId))
 
 			// Run the apply command:
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_hcp_machine_pool", poolId)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", poolId)
 			Expect(resource).To(MatchJQ(".attributes.cluster", clusterId))
 			Expect(resource).To(MatchJQ(".attributes.id", poolId))
 			Expect(resource).To(MatchJQ(".attributes.name", poolId))
@@ -3228,7 +3260,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			prepareClusterRead(clusterId)
 			preparePoolRead(clusterId, "pool1")
 			// Prepare for the delete of pool1
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/node_pools/pool1"),
 					RespondWithJSON(http.StatusOK, `{}`),
@@ -3236,15 +3268,16 @@ var _ = Describe("Hcp Machine pool", func() {
 			)
 
 			// Re-apply w/ empty source so that pool1 is deleted
-			terraform.Source("")
-			Expect(terraform.Apply()).To(BeZero())
+			Terraform.Source("")
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 		It("will return an error if delete fails and not the last pool", func() {
 			// Prepare for refresh (Read) of the pools prior to changes
 			prepareClusterRead(clusterId)
 			preparePoolRead(clusterId, "pool1")
 			// Prepare for the delete of pool1
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers( // Fail the delete
 					VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/node_pools/pool1"),
 					RespondWithJSON(http.StatusBadRequest, `{}`), // XXX Fix description
@@ -3296,15 +3329,15 @@ var _ = Describe("Hcp Machine pool", func() {
 			)
 
 			// Re-apply w/ empty source so that pool1 is (attempted) deleted
-			terraform.Source("")
-			Expect(terraform.Apply()).NotTo(BeZero())
+			Terraform.Source("")
+			Expect(Terraform.Apply()).NotTo(BeZero())
 		})
 		It("will ignore the error if delete fails and is the last pool", func() {
 			// Prepare for refresh (Read) of the pools prior to changes
 			prepareClusterRead(clusterId)
 			preparePoolRead(clusterId, "pool1")
 			// Prepare for the delete of pool1
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers( // Fail the delete
 					VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/node_pools/pool1"),
 					RespondWithJSON(http.StatusBadRequest, `{}`), // XXX Fix description
@@ -3340,9 +3373,10 @@ var _ = Describe("Hcp Machine pool", func() {
 			)
 
 			// Re-apply w/ empty source so that pool1 is (attempted) deleted
-			terraform.Source("")
+			Terraform.Source("")
 			// Last pool, we ignore the error, so this succeeds
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 	})
 
@@ -3367,7 +3401,7 @@ var _ = Describe("Hcp Machine pool", func() {
 		Expect(err).ToNot(HaveOccurred())
 		v4141Info := b.String()
 		prepareClusterRead := func(clusterId string) {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/"+clusterId),
 					RespondWithJSONTemplate(http.StatusOK, `
@@ -3398,7 +3432,7 @@ var _ = Describe("Hcp Machine pool", func() {
 		}
 
 		preparePoolRead := func(clusterId string, poolId string) {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/node_pools/"+poolId),
 					RespondWithJSONTemplate(http.StatusOK, `
@@ -3429,7 +3463,7 @@ var _ = Describe("Hcp Machine pool", func() {
 
 		createPool := func(clusterId string, poolId string) {
 			prepareClusterRead(clusterId)
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
@@ -3453,7 +3487,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 
-			terraform.Source(EvaluateTemplate(`
+			Terraform.Source(EvaluateTemplate(`
 			resource "rhcs_hcp_machine_pool" "{{.PoolId}}" {
 				  cluster      = "{{.ClusterId}}"
 				  name         = "{{.PoolId}}"
@@ -3470,8 +3504,9 @@ var _ = Describe("Hcp Machine pool", func() {
 			}`, "PoolId", poolId, "ClusterId", clusterId))
 
 			// Run the apply command:
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_hcp_machine_pool", poolId)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", poolId)
 			Expect(resource).To(MatchJQ(".attributes.cluster", clusterId))
 			Expect(resource).To(MatchJQ(".attributes.id", poolId))
 			Expect(resource).To(MatchJQ(".attributes.name", poolId))
@@ -3488,7 +3523,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			preparePoolRead(clusterId, poolId)
 			prepareClusterRead(clusterId)
 			preparePoolRead(clusterId, poolId)
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.14.1"),
 					RespondWithJSON(http.StatusOK, v4141Info),
@@ -3578,7 +3613,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 
-			terraform.Source(EvaluateTemplate(`
+			Terraform.Source(EvaluateTemplate(`
 			resource "rhcs_hcp_machine_pool" "{{.PoolId}}" {
 				cluster      = "{{.ClusterId}}"
 				name         = "{{.PoolId}}"
@@ -3595,7 +3630,8 @@ var _ = Describe("Hcp Machine pool", func() {
 			}`, "PoolId", poolId, "ClusterId", clusterId))
 
 			// Run the apply command:
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		It("Does nothing if upgrade is in progress to a different version than the desired", func() {
@@ -3605,7 +3641,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			preparePoolRead(clusterId, poolId)
 			prepareClusterRead(clusterId)
 			preparePoolRead(clusterId, poolId)
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.14.1"),
 					RespondWithJSON(http.StatusOK, v4141Info),
@@ -3644,7 +3680,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 
-			terraform.Source(EvaluateTemplate(`
+			Terraform.Source(EvaluateTemplate(`
 			resource "rhcs_hcp_machine_pool" "{{.PoolId}}" {
 				cluster      = "{{.ClusterId}}"
 				name         = "{{.PoolId}}"
@@ -3661,7 +3697,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			}`, "PoolId", poolId, "ClusterId", clusterId))
 
 			// Will fail due to upgrade in progress
-			Expect(terraform.Apply()).NotTo(BeZero())
+			Expect(Terraform.Apply()).NotTo(BeZero())
 		})
 
 		It("Cancels and upgrade for the wrong version & schedules new", func() {
@@ -3671,7 +3707,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			preparePoolRead(clusterId, poolId)
 			prepareClusterRead(clusterId)
 			preparePoolRead(clusterId, poolId)
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.14.1"),
 					RespondWithJSON(http.StatusOK, v4141Info),
@@ -3750,7 +3786,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 
-			terraform.Source(EvaluateTemplate(`
+			Terraform.Source(EvaluateTemplate(`
 			resource "rhcs_hcp_machine_pool" "{{.PoolId}}" {
 				cluster      = "{{.ClusterId}}"
 				name         = "{{.PoolId}}"
@@ -3766,7 +3802,8 @@ var _ = Describe("Hcp Machine pool", func() {
 				auto_repair = true
 			}`, "PoolId", poolId, "ClusterId", clusterId))
 
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		It("Cancels upgrade if version=current_version", func() {
@@ -3776,7 +3813,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			preparePoolRead(clusterId, poolId)
 			prepareClusterRead(clusterId)
 			preparePoolRead(clusterId, poolId)
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.14.1"),
 					RespondWithJSON(http.StatusOK, v4141Info),
@@ -3833,7 +3870,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 
-			terraform.Source(EvaluateTemplate(`
+			Terraform.Source(EvaluateTemplate(`
 			resource "rhcs_hcp_machine_pool" "{{.PoolId}}" {
 				cluster      = "{{.ClusterId}}"
 				name         = "{{.PoolId}}"
@@ -3849,12 +3886,13 @@ var _ = Describe("Hcp Machine pool", func() {
 				auto_repair = true
 			}`, "PoolId", poolId, "ClusterId", clusterId))
 
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		It("is an error to request a version older than current", func() {
 			prepareClusterRead(clusterId)
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/node_pools/"+poolId),
 					RespondWithJSONTemplate(http.StatusOK, `
@@ -3881,7 +3919,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 			prepareClusterRead(clusterId)
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/node_pools/"+poolId),
 					RespondWithJSONTemplate(http.StatusOK, `
@@ -3908,7 +3946,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 
-			terraform.Source(EvaluateTemplate(`
+			Terraform.Source(EvaluateTemplate(`
 			resource "rhcs_hcp_machine_pool" "{{.PoolId}}" {
 				cluster      = "{{.ClusterId}}"
 				name         = "{{.PoolId}}"
@@ -3924,12 +3962,12 @@ var _ = Describe("Hcp Machine pool", func() {
 				auto_repair = true
 			}`, "PoolId", poolId, "ClusterId", clusterId))
 
-			Expect(terraform.Apply()).NotTo(BeZero())
+			Expect(Terraform.Apply()).NotTo(BeZero())
 		})
 
 		It("older than current is allowed as long as not changed", func() {
 			prepareClusterRead(clusterId)
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/node_pools/"+poolId),
 					RespondWithJSONTemplate(http.StatusOK, `
@@ -3956,7 +3994,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 			prepareClusterRead(clusterId)
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/"+clusterId+"/node_pools/"+poolId),
 					RespondWithJSONTemplate(http.StatusOK, `
@@ -3983,7 +4021,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				),
 			)
 
-			terraform.Source(EvaluateTemplate(`
+			Terraform.Source(EvaluateTemplate(`
 			resource "rhcs_hcp_machine_pool" "{{.PoolId}}" {
 				cluster      = "{{.ClusterId}}"
 				name         = "{{.PoolId}}"
@@ -3999,7 +4037,8 @@ var _ = Describe("Hcp Machine pool", func() {
 				auto_repair = true
 			}`, "PoolId", poolId, "ClusterId", clusterId))
 
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		Context("Un-acked gates", func() {
@@ -4010,7 +4049,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				preparePoolRead(clusterId, poolId)
 				prepareClusterRead(clusterId)
 				preparePoolRead(clusterId, poolId)
-				server.AppendHandlers(
+				TestServer.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.14.1"),
 						RespondWithJSON(http.StatusOK, v4141Info),
@@ -4049,7 +4088,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				)
 			})
 			It("Fails upgrade for un-acked gates", func() {
-				terraform.Source(EvaluateTemplate(`
+				Terraform.Source(EvaluateTemplate(`
 				resource "rhcs_hcp_machine_pool" "{{.PoolId}}" {
 					cluster      = "{{.ClusterId}}"
 					name         = "{{.PoolId}}"
@@ -4066,10 +4105,10 @@ var _ = Describe("Hcp Machine pool", func() {
 				}`, "PoolId", poolId, "ClusterId", clusterId))
 
 				// Run the apply command:
-				Expect(terraform.Apply()).NotTo(BeZero())
+				Expect(Terraform.Apply()).NotTo(BeZero())
 			})
 			It("Fails upgrade if wrong version is acked", func() {
-				terraform.Source(EvaluateTemplate(`
+				Terraform.Source(EvaluateTemplate(`
 				resource "rhcs_hcp_machine_pool" "{{.PoolId}}" {
 					cluster      = "{{.ClusterId}}"
 					name         = "{{.PoolId}}"
@@ -4087,10 +4126,10 @@ var _ = Describe("Hcp Machine pool", func() {
 				}`, "PoolId", poolId, "ClusterId", clusterId))
 
 				// Run the apply command:
-				Expect(terraform.Apply()).NotTo(BeZero())
+				Expect(Terraform.Apply()).NotTo(BeZero())
 			})
 			It("It acks gates if correct ack is provided", func() {
-				server.AppendHandlers(
+				TestServer.AppendHandlers(
 					// Send acks for all gate agreements
 					CombineHandlers(
 						VerifyRequest(http.MethodPost, cluster123Route+"/gate_agreements"),
@@ -4140,7 +4179,7 @@ var _ = Describe("Hcp Machine pool", func() {
 						}`),
 					),
 				)
-				terraform.Source(EvaluateTemplate(`
+				Terraform.Source(EvaluateTemplate(`
 				resource "rhcs_hcp_machine_pool" "{{.PoolId}}" {
 					cluster      = "{{.ClusterId}}"
 					name         = "{{.PoolId}}"
@@ -4156,7 +4195,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					upgrade_acknowledgements_for = "4.14"
 					auto_repair = true
 				}`, "PoolId", poolId, "ClusterId", clusterId))
-				Expect(terraform.Apply()).To(BeZero())
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
 			})
 		})
 	})

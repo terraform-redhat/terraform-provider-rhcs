@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package classic
 
 import (
 	"fmt"
@@ -27,6 +27,7 @@ import (
 	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
 const versionListPage1 = `{
@@ -190,7 +191,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 
 	Context("rhcs_cluster_rosa_classic - create", func() {
 		It("invalid az for region", func() {
-			terraform.Source(`
+			Terraform.Source(`
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			  name           = "my-cluster"
 			  cloud_region   = "us-west-1"
@@ -207,11 +208,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			  }
 			  version = "4.11.1"
 			}`)
-			Expect(terraform.Apply()).NotTo(BeZero())
+			Expect(Terraform.Apply()).NotTo(BeZero())
 		})
 
 		It("version with unsupported prefix error", func() {
-			terraform.Source(`
+			Terraform.Source(`
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			  name           = "my-cluster"
 			  cloud_region   = "us-west-1"
@@ -227,12 +228,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			  }
 			  version = "openshift-v4.11.1"
 			}`)
-			Expect(terraform.Apply()).NotTo(BeZero())
+			Expect(Terraform.Apply()).NotTo(BeZero())
 		})
 
 		Context("Test channel groups", func() {
 			It("doesn't append the channel group when on the default channel", func() {
-				server.AppendHandlers(
+				TestServer.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 						RespondWithJSON(http.StatusOK, versionListPage1),
@@ -268,7 +269,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						]`),
 					),
 				)
-				terraform.Source(`
+				Terraform.Source(`
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			  name           = "my-cluster"
 			  cloud_region   = "us-west-1"
@@ -285,10 +286,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			  version = "4.11.1"
 			}
 		  `)
-				Expect(terraform.Apply()).To(BeZero())
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
 			})
 			It("appends the channel group when on a non-default channel", func() {
-				server.AppendHandlers(
+				TestServer.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 						RespondWithPatchedJSON(http.StatusOK, versionListPage1, `[
@@ -342,7 +344,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						]`),
 					),
 				)
-				terraform.Source(`
+				Terraform.Source(`
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			  name           = "my-cluster"
 			  cloud_region   = "us-west-1"
@@ -360,10 +362,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			  version = "4.50.0"
 			}
 		  `)
-				Expect(terraform.Apply()).To(BeZero())
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
 			})
 			It("returns an error when the version is not found in the channel group", func() {
-				server.AppendHandlers(
+				TestServer.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 						RespondWithPatchedJSON(http.StatusOK, versionListPage1, `[
@@ -381,7 +384,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					]`),
 					),
 				)
-				terraform.Source(`
+				Terraform.Source(`
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			  name           = "my-cluster"
 			  cloud_region   = "us-west-1"
@@ -399,14 +402,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			  version = "4.99.99"
 			}
 		  `)
-				Expect(terraform.Apply()).NotTo(BeZero())
+				Expect(Terraform.Apply()).NotTo(BeZero())
 			})
 		})
 
 		Context("Test wait attribute", func() {
 			It("Create cluster and wait till it will be in error state", func() {
 				// Prepare the server:
-				server.AppendHandlers(
+				TestServer.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 						RespondWithJSON(http.StatusOK, versionListPage1),
@@ -463,7 +466,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				)
 
 				// Run the apply command:
-				terraform.Source(`
+				Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -480,14 +483,16 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			wait_for_create_complete = true
 		  }
 		`)
-				Expect(terraform.Apply()).ToNot(BeZero())
-				resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).ToNot(BeZero())
+				runOutput.VerifyErrorContainsSubstring("Cluster '123' is in state 'error' and will not become ready")
+				resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 				Expect(resource).To(MatchJQ(".attributes.state", "error"))
 			})
 
 			It("Create cluster and wait till it will be in ready state", func() {
 				// Prepare the server:
-				server.AppendHandlers(
+				TestServer.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 						RespondWithJSON(http.StatusOK, versionListPage1),
@@ -544,7 +549,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				)
 
 				// Run the apply command:
-				terraform.Source(`
+				Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -561,14 +566,15 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			wait_for_create_complete = true
 		  }
 		`)
-				Expect(terraform.Apply()).To(BeZero())
-				resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 				Expect(resource).To(MatchJQ(".attributes.state", "ready"))
 			})
 		})
 		It("Creates basic cluster", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -605,7 +611,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 			domain_prefix  = "mydomainprefix"
@@ -622,15 +628,16 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
 			Expect(resource).To(MatchJQ(".attributes.infra_id", "my-cluster-123"))
 		})
 
 		It("Creates basic cluster returned empty az list", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -677,7 +684,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -693,14 +700,15 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
 		})
 
 		It("Creates basic cluster with admin user - default username", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -737,7 +745,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -754,15 +762,16 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(resource).To(MatchJQ(".attributes.admin_credentials.username", "cluster-admin"))
 			Expect(strings.Contains(fmt.Sprintf("%v", resource), "password")).Should(BeTrue())
 		})
 
 		It("Creates basic cluster with admin user - customized username/password", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -800,7 +809,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -820,15 +829,16 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(resource).To(MatchJQ(".attributes.admin_credentials.username", "test-admin"))
 			Expect(resource).To(MatchJQ(".attributes.admin_credentials.password", "1234AbB2341234"))
 		})
 
 		It("Creates basic cluster with empty admincredentials and update the clustrer w/o updates on it", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -865,7 +875,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -882,13 +892,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(resource).To(MatchJQ(".attributes.admin_credentials.username", "cluster-admin"))
 			Expect(strings.Contains(fmt.Sprintf("%v", resource), "password")).Should(BeTrue())
 
 			// Prepare server for update
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
@@ -955,7 +966,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
@@ -972,12 +983,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				}
 			  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		It("Should fail to update create_admin_user if no admin user created in cluster creation", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -1013,7 +1025,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -1029,13 +1041,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(strings.Contains(fmt.Sprintf("%v", resource), "username")).Should(BeFalse())
 			Expect(strings.Contains(fmt.Sprintf("%v", resource), "password")).Should(BeFalse())
 
 			// Prepare server for update
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
@@ -1102,7 +1115,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
@@ -1120,12 +1133,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				create_admin_user = true
 			  }
 		`)
-			Expect(terraform.Apply()).NotTo(BeZero())
+			Expect(Terraform.Apply()).NotTo(BeZero())
 		})
 
 		It("Creates basic cluster - and reconcile on a 404", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -1161,7 +1174,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -1177,13 +1190,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
 			Expect(resource).To(MatchJQ(".attributes.id", "123")) // cluster has id 123
 
 			// Prepare the server for reconcile
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusNotFound, "{}"),
@@ -1228,7 +1242,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -1244,15 +1258,16 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource = terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource = Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
 			Expect(resource).To(MatchJQ(".attributes.id", "1234")) // reconciled cluster has id of 1234
 		})
 
 		It("Creates basic cluster with custom worker disk size", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -1305,7 +1320,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 			  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
@@ -1322,8 +1337,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				worker_disk_size = 400
 			  }
 			`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
 			Expect(resource).To(MatchJQ(".attributes.worker_disk_size", 400.0))
 		})
@@ -1332,7 +1348,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			prop_key := "my_prop_key"
 			prop_val := "my_prop_val"
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -1377,7 +1393,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(fmt.Sprintf(`
+			Terraform.Source(fmt.Sprintf(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -1397,14 +1413,15 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`, prop_key, prop_val))
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		It("Creates basic cluster with properties and update them", func() {
 			prop_key := "my_prop_key"
 			prop_val := "my_prop_val"
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -1451,7 +1468,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(fmt.Sprintf(`
+			Terraform.Source(fmt.Sprintf(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -1471,15 +1488,16 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`, prop_key, prop_val))
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_commit`, build.Commit))
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_version`, build.Version))
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.`+prop_key, prop_val))
 			Expect(resource).To(MatchJQ(`.attributes.properties.`+prop_key, prop_val))
 
 			// Prepare server for update
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
@@ -1551,7 +1569,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(fmt.Sprintf(`
+			Terraform.Source(fmt.Sprintf(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -1571,8 +1589,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`, prop_key, prop_val+"_1"))
-			Expect(terraform.Apply()).To(BeZero())
-			resource = terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource = Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_commit`, build.Commit))
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_version`, build.Version))
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.`+prop_key, prop_val+"_1"))
@@ -1583,7 +1602,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			prop_key := "my_prop_key"
 			prop_val := "my_prop_val"
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -1630,7 +1649,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(fmt.Sprintf(`
+			Terraform.Source(fmt.Sprintf(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -1650,8 +1669,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`, prop_key, prop_val))
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_commit`, build.Commit))
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_version`, build.Version))
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.`+prop_key, prop_val))
@@ -1660,7 +1680,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties| keys | length`, 4))
 
 			// Prepare server for update
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
@@ -1730,7 +1750,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -1749,8 +1769,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource = terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource = Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_commit`, build.Commit))
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_version`, build.Version))
 			Expect(resource).To(MatchJQ(`.attributes.properties | keys | length`, 1))
@@ -1759,7 +1780,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 
 		It("Should fail cluster creation when trying to override reserved properties", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -1794,7 +1815,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				),
 			)
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -1814,12 +1835,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`)
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Can not override reserved properties keys. rosa_tf_version is a reserved property key")
 		})
 
 		It("Should fail cluster creation when cluster name length is more than 54", func() {
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster-234567-foobarfoobar-foobar-fooobaaar-fooo-baaaar"
 		    cloud_region   = "us-west-1"
@@ -1839,13 +1862,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`)
-			Expect(terraform.Apply()).ToNot(BeZero())
-
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute name string length must be at most 54, got: 59")
 		})
 
 		Context("Test destroy cluster", func() {
 			BeforeEach(func() {
-				server.AppendHandlers(
+				TestServer.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 						RespondWithJSON(http.StatusOK, versionListPage1),
@@ -1894,7 +1918,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			})
 
 			It("Disable waiting in destroy resource", func() {
-				terraform.Source(`
+				Terraform.Source(`
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
@@ -1913,19 +1937,20 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			`)
 
 				// it should return a warning so exit code will be "0":
-				Expect(terraform.Apply()).To(BeZero())
-				Expect(terraform.Destroy()).To(BeZero())
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				Expect(Terraform.Destroy().ExitCode).To(BeZero())
 
 			})
 
 			It("Wait in destroy resource but use the default timeout", func() {
-				server.AppendHandlers(
+				TestServer.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 						RespondWithJSON(http.StatusNotFound, template),
 					),
 				)
-				terraform.Source(`
+				Terraform.Source(`
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
@@ -1943,18 +1968,19 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			`)
 
 				// it should return a warning so exit code will be "0":
-				Expect(terraform.Apply()).To(BeZero())
-				Expect(terraform.Destroy()).To(BeZero())
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				Expect(Terraform.Destroy().ExitCode).To(BeZero())
 			})
 
 			It("Wait in destroy resource and set timeout to a negative value", func() {
-				server.AppendHandlers(
+				TestServer.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 						RespondWithJSON(http.StatusNotFound, template),
 					),
 				)
-				terraform.Source(`
+				Terraform.Source(`
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
@@ -1973,18 +1999,19 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			`)
 
 				// it should return a warning so exit code will be "0":
-				Expect(terraform.Apply()).To(BeZero())
-				Expect(terraform.Destroy()).To(BeZero())
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				Expect(Terraform.Destroy().ExitCode).To(BeZero())
 			})
 
 			It("Wait in destroy resource and set timeout to a positive value", func() {
-				server.AppendHandlers(
+				TestServer.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 						RespondWithJSON(http.StatusNotFound, template),
 					),
 				)
-				terraform.Source(`
+				Terraform.Source(`
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
@@ -2003,14 +2030,15 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			`)
 
 				// it should return a warning so exit code will be "0":
-				Expect(terraform.Apply()).To(BeZero())
-				Expect(terraform.Destroy()).To(BeZero())
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				Expect(Terraform.Destroy().ExitCode).To(BeZero())
 			})
 		})
 
 		It("Disable workload monitor and update it", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -2050,7 +2078,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					}]`),
 				),
 			)
-			terraform.Source(`
+			Terraform.Source(`
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
@@ -2069,11 +2097,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			`)
 
 			// it should return a warning so exit code will be "0":
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
 			// apply for update the workload monitor to be enabled
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
@@ -2145,7 +2174,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
@@ -2163,8 +2192,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				  }
 			`)
 
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(resource).To(MatchJQ(`.attributes.disable_workload_monitoring`, false))
 
 		})
@@ -2172,7 +2202,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		Context("Test Proxy", func() {
 			It("Creates cluster with http proxy and update it", func() {
 				// Prepare the server:
-				server.AppendHandlers(
+				TestServer.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 						RespondWithJSON(http.StatusOK, versionListPage1),
@@ -2217,7 +2247,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				)
 
 				// Run the apply command:
-				terraform.Source(`
+				Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -2239,11 +2269,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  }
 		`)
 
-				Expect(terraform.Apply()).To(BeZero())
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
 
 				// apply for update the proxy's attributes
 				// Prepare the server:
-				server.AppendHandlers(
+				TestServer.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 						RespondWithPatchedJSON(http.StatusOK, template, `[
@@ -2324,7 +2355,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				)
 
 				// update the attribute "proxy"
-				terraform.Source(`
+				Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -2345,8 +2376,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`)
-				Expect(terraform.Apply()).To(BeZero())
-				resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+				runOutput = Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 				Expect(resource).To(MatchJQ(`.attributes.proxy.https_proxy`, "https://proxy2.com"))
 				Expect(resource).To(MatchJQ(`.attributes.proxy.no_proxy`, "test"))
 				Expect(resource).To(MatchJQ(`.attributes.proxy.additional_trust_bundle`, "123"))
@@ -2354,7 +2386,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 
 			It("Creates cluster without http proxy and update trust bundle - should successes", func() {
 				// Prepare the server:
-				server.AppendHandlers(
+				TestServer.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 						RespondWithJSON(http.StatusOK, versionListPage1),
@@ -2388,7 +2420,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				)
 
 				// Run the apply command:
-				terraform.Source(`
+				Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -2405,11 +2437,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  }
 		`)
 
-				Expect(terraform.Apply()).To(BeZero())
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
 
 				// apply for update the proxy's attributes
 				// Prepare the server:
-				server.AppendHandlers(
+				TestServer.AppendHandlers(
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 						RespondWithPatchedJSON(http.StatusOK, template, `[
@@ -2457,7 +2490,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					),
 				)
 				// update the attribute "proxy"
-				terraform.Source(`
+				Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -2476,12 +2509,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`)
-				Expect(terraform.Apply()).To(BeZero())
+				runOutput = Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
 			})
 		})
 		It("Creates cluster with default_mp_labels", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -2531,7 +2565,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -2551,14 +2585,15 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  }
 		`)
 
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(resource).To(MatchJQ(`.attributes.default_mp_labels.label_key1`, "label_value1"))
 		})
 
 		It("Accepts to reset proxy values", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -2590,7 +2625,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -2609,9 +2644,10 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusOK, templateWithTrustBundle, `[
@@ -2654,7 +2690,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				),
 			)
 
-			terraform.Source(`
+			Terraform.Source(`
 			 resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			   name           = "my-cluster"
 			   cloud_region   = "us-west-1"
@@ -2673,12 +2709,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				}
 			 }
 			`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
 		})
 		It("Creates private cluster with aws subnet ids without private link", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -2743,7 +2780,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -2765,11 +2802,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 		It("Creates private cluster with aws subnet ids & private link", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -2829,7 +2867,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -2851,12 +2889,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		It("Creates cluster when private link is false", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -2893,7 +2932,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -2910,12 +2949,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		It("Creates cluster with shared VPC", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -2978,7 +3018,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -3003,12 +3043,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
             base_dns_domain = "mydomain.openshift.dev"
 		  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		It("Creates rosa sts cluster with autoscaling", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -3073,7 +3114,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
@@ -3096,8 +3137,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(resource).To(MatchJQ(`.attributes.autoscaling_enabled`, true))
 			Expect(resource).To(MatchJQ(`.attributes.min_replicas`, 2.0))
 			Expect(resource).To(MatchJQ(`.attributes.max_replicas`, 4.0))
@@ -3105,7 +3147,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 
 		It("Creates rosa sts cluster with OIDC Configuration ID", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -3151,7 +3193,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				),
 			)
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
@@ -3168,12 +3210,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
-		It("Fails to create cluster with incompatible account role's version and fail", func() {
+		It("Fails to create cluster with 'openshift-v' prefix in version", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -3207,12 +3250,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123456789012"
-			version = "openshift-v4.12"
+			version = "openshift-v4.14.0"
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "arn:aws:iam::765374464689:role/terr-account-Installer-Role",
@@ -3225,12 +3268,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  }
 		`)
 			// expect to get an error
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring(`Openshift version must be provided without the "openshift-v" prefix`)
 		})
 
 		It("Create cluster with http token", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -3261,7 +3306,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -3278,12 +3323,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		It("Fails to create cluster with http tokens and not supported version", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -3314,13 +3360,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123456789012"
 			ec2_metadata_http_tokens = "required"
-			version = "openshift-v4.10"
+			version = "4.10.1"
 			sts = {
 				operator_role_prefix = "test"
 				role_arn = "",
@@ -3333,12 +3379,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  }
 		`)
 			// expect to get an error
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring(`Can't build cluster with name 'my-cluster': version '4.10.1' is not supported with ec2_metadata_http_tokens, minimum supported version is 4.11.0`)
 		})
 
 		It("Fails to create cluster with http tokens with not supported value", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -3369,7 +3417,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -3388,12 +3436,14 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		  }
 		`)
 			// expect to get an error
-			Expect(terraform.Apply()).ToNot(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Expected a valid param. Options are [optional required]. Got bad_string.")
 		})
 
 		It("Creates cluster with aws additional compute security group ids", func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -3464,7 +3514,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 
 			// Run the apply command:
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
@@ -3495,9 +3545,10 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  }
 		`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 			// Verify initial cluster version
-			resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(resource).To(MatchJQ(".attributes.aws_additional_compute_security_group_ids.[0]", "id1"))
 			Expect(resource).To(MatchJQ(".attributes.aws_additional_infra_security_group_ids.[0]", "id2"))
 			Expect(resource).To(MatchJQ(".attributes.aws_additional_control_plane_security_group_ids.[0]", "id3"))
@@ -3506,7 +3557,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 	Context("rhcs_cluster_rosa_classic - update attributes", func() {
 		BeforeEach(func() {
 			// Prepare the server:
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 					RespondWithJSON(http.StatusOK, versionListPage1),
@@ -3564,7 +3615,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					}]`),
 				),
 			)
-			terraform.Source(`
+			Terraform.Source(`
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
@@ -3592,9 +3643,10 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			`)
 
 			// it should return a warning so exit code will be "0":
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithPatchedJSON(http.StatusOK, template, `[
@@ -3645,7 +3697,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			)
 		})
 		It("update admin_credentials, tags, availability_zones and name, and fail", func() {
-			terraform.Source(`
+			Terraform.Source(`
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					# >>>> update cluster name from "my-cluster" to "my-luster"
 					name           = "my-luster"
@@ -3682,11 +3734,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				  }
 			`)
 
-			Expect(terraform.Apply()).ToNot(BeZero())
-
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute admin_credentials, cannot be changed")
 		})
 		It("update default machine-pool's attributes: autoscaling_enabled", func() {
-			terraform.Source(`
+			Terraform.Source(`
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
@@ -3716,11 +3769,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				  }
 			`)
 
-			Expect(terraform.Apply()).ToNot(BeZero())
-
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute autoscaling_enabled, cannot be changed from <null> to true")
 		})
 		It("update default machine-pool's attributes: replicas", func() {
-			terraform.Source(`
+			Terraform.Source(`
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
@@ -3750,11 +3804,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				  }
 			`)
 
-			Expect(terraform.Apply()).ToNot(BeZero())
-
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute replicas, cannot be changed from 3 to 4")
 		})
 		It("update default machine-pool's attributes: default_mp_labels", func() {
-			terraform.Source(`
+			Terraform.Source(`
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
@@ -3788,11 +3843,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				  }
 			`)
 
-			Expect(terraform.Apply()).ToNot(BeZero())
-
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute default_mp_labels, cannot be changed")
 		})
 		It("update default machine-pool's attributes: worker_disk_size", func() {
-			terraform.Source(`
+			Terraform.Source(`
 				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
@@ -3822,8 +3878,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				  }
 			`)
 
-			Expect(terraform.Apply()).ToNot(BeZero())
-
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute worker_disk_size, cannot be changed")
 		})
 	})
 })

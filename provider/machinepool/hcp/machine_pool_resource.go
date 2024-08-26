@@ -560,8 +560,8 @@ func readState(ctx context.Context, state *HcpMachinePoolState, collection *cmv1
 		diags.AddError(
 			"Failed to fetch machine pool",
 			fmt.Sprintf(
-				"Failed to fetch machine pool with identifier %s for cluster %s. Response code: %v",
-				state.ID.ValueString(), state.Cluster.ValueString(), getNp.Status(),
+				"Failed to fetch machine pool with identifier %s for cluster %s. Response code: %v, err: %v",
+				state.ID.ValueString(), state.Cluster.ValueString(), getNp.Status(), err,
 			),
 		)
 		return

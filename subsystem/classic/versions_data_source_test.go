@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package classic
 
 import (
 	"net/http"
@@ -23,12 +23,13 @@ import (
 	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
 var _ = Describe("Versions data source", func() {
 	It("Can list versions", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 				VerifyFormKV("search", "enabled = 't'"),
@@ -51,14 +52,15 @@ var _ = Describe("Versions data source", func() {
 		)
 
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  data "rhcs_versions" "my_versions" {
 		  }
 		`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_versions", "my_versions")
+		resource := Terraform.Resource("rhcs_versions", "my_versions")
 		Expect(resource).To(MatchJQ(`.attributes.items | length`, 2))
 		Expect(resource).To(MatchJQ(`.attributes.items[0].id`, "openshift-v4.8.1"))
 		Expect(resource).To(MatchJQ(`.attributes.items[0].name`, "4.8.1"))
@@ -68,7 +70,7 @@ var _ = Describe("Versions data source", func() {
 
 	It("Can search versions", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 				VerifyFormKV("search", "enabled = 't' and channel_group = 'fast'"),
@@ -92,16 +94,17 @@ var _ = Describe("Versions data source", func() {
 		)
 
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  data "rhcs_versions" "my_versions" {
 		    search = "enabled = 't' and channel_group = 'fast'"
 		    order  = "raw_id desc"
 		  }
 		`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_versions", "my_versions")
+		resource := Terraform.Resource("rhcs_versions", "my_versions")
 		Expect(resource).To(MatchJQ(`.attributes.items | length`, 2))
 		Expect(resource).To(MatchJQ(`.attributes.items[0].id`, "openshift-v4.8.1-fast"))
 		Expect(resource).To(MatchJQ(`.attributes.items[0].name`, "4.8.1"))
@@ -111,7 +114,7 @@ var _ = Describe("Versions data source", func() {
 
 	It("Populates `item` if there is exactly one result", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 				RespondWithJSON(http.StatusOK, `{
@@ -129,21 +132,22 @@ var _ = Describe("Versions data source", func() {
 		)
 
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  data "rhcs_versions" "my_versions" {
 		  }
 		`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_versions", "my_versions")
+		resource := Terraform.Resource("rhcs_versions", "my_versions")
 		Expect(resource).To(MatchJQ(`.attributes.item.id`, "openshift-v4.8.1"))
 		Expect(resource).To(MatchJQ(`.attributes.item.name`, "4.8.1"))
 	})
 
 	It("Doesn't populate `item` if there are zero results", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 				RespondWithJSON(http.StatusOK, `{
@@ -156,20 +160,21 @@ var _ = Describe("Versions data source", func() {
 		)
 
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  data "rhcs_versions" "my_versions" {
 		  }
 		`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_versions", "my_versions")
+		resource := Terraform.Resource("rhcs_versions", "my_versions")
 		Expect(resource).To(MatchJQ(`.attributes.item`, nil))
 	})
 
 	It("Doesn't populate `item` if there are multiple results", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 				RespondWithJSON(http.StatusOK, `{
@@ -191,14 +196,15 @@ var _ = Describe("Versions data source", func() {
 		)
 
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  data "rhcs_versions" "my_versions" {
 		  }
 		`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_versions", "my_versions")
+		resource := Terraform.Resource("rhcs_versions", "my_versions")
 		Expect(resource).To(MatchJQ(`.attributes.item`, nil))
 	})
 })

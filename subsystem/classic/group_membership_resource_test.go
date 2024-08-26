@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package classic
 
 import (
 	"net/http"
@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
 var _ = Describe("Group membership creation", func() {
@@ -30,7 +31,7 @@ var _ = Describe("Group membership creation", func() {
 		// The first thing that the provider will do for any operation on groups is check
 		// that the cluster is ready, so we always need to prepare the server to respond to
 		// that:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 				RespondWithJSON(http.StatusOK, `{
@@ -42,18 +43,45 @@ var _ = Describe("Group membership creation", func() {
 		)
 	})
 
-	It("fails if cluster ID is empty", func() {
-		terraform.Source(`
+	It("fails if group is empty", func() {
+		Terraform.Source(`
 		resource "rhcs_group_membership" "my_membership" {
 				cluster = ""
 			}
 		`)
-		Expect(terraform.Apply()).ToNot(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).ToNot(BeZero())
+		runOutput.VerifyErrorContainsSubstring(`The argument "group" is required, but no definition was found`)
+	})
+
+	It("fails if user is empty", func() {
+		Terraform.Source(`
+		resource "rhcs_group_membership" "my_membership" {
+				group = "my-group"
+				cluster = ""
+			}
+		`)
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).ToNot(BeZero())
+		runOutput.VerifyErrorContainsSubstring(`The argument "user" is required, but no definition was found`)
+	})
+
+	It("fails if cluster is empty", func() {
+		Terraform.Source(`
+		resource "rhcs_group_membership" "my_membership" {
+				group = "my-group"
+				user = "my-user"
+				cluster = ""
+			}
+		`)
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).ToNot(BeZero())
+		runOutput.VerifyErrorContainsSubstring(`Attribute cluster cluster ID may not be empty/blank string`)
 	})
 
 	It("Can create a group membership", func() {
 		// Prepare the server:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(
 					http.MethodPost,
@@ -70,17 +98,18 @@ var _ = Describe("Group membership creation", func() {
 		)
 
 		// Run the apply command:
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_group_membership" "my_membership" {
 		    cluster   = "123"
 		    group     = "dedicated-admins"
 		    user      = "my-admin"
 		  }
 		`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
 		// Check the state:
-		resource := terraform.Resource("rhcs_group_membership", "my_membership")
+		resource := Terraform.Resource("rhcs_group_membership", "my_membership")
 		Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 		Expect(resource).To(MatchJQ(".attributes.group", "dedicated-admins"))
 		Expect(resource).To(MatchJQ(".attributes.id", "my-admin"))

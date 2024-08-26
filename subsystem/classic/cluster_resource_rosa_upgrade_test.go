@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package provider
+package classic
 
 import (
 	"encoding/json"
@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
 var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
@@ -131,7 +132,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 		Expect(json.Valid([]byte(v4_10_0Info))).To(BeTrue())
 
 		// Create a cluster for us to upgrade:
-		server.AppendHandlers(
+		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
 				RespondWithJSON(http.StatusOK, versionList),
@@ -150,7 +151,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 				]`),
 			),
 		)
-		terraform.Source(`
+		Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
@@ -211,15 +212,16 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			version = "4.10.0"
 		}
 		`)
-		Expect(terraform.Apply()).To(BeZero())
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
 
 		// Verify initial cluster version
-		resource := terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+		resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 		Expect(resource).To(MatchJQ(".attributes.current_version", "4.10.0"))
 	})
 	Context("rhcs_cluster_rosa_classic - upgrade", func() {
 		It("Upgrades cluster", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Refresh cluster state
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
@@ -324,7 +326,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 					)),
 			)
 			// Perform upgrade w/ auto-ack of sts-only gate agreements
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
@@ -340,11 +342,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			}
 			version = "4.10.1"
 		}`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		It("Upgrades cluster support old version format", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Refresh cluster state
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
@@ -448,7 +451,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 				]`),
 				))
 			// Perform upgrade w/ auto-ack of sts-only gate agreements
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
@@ -464,11 +467,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			}
 			version = "openshift-v4.10.1"
 		}`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		It("Does nothing if upgrade is in progress", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Refresh cluster state
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
@@ -519,7 +523,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 				),
 			)
 			// Perform try the upgrade
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
@@ -536,11 +540,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			version = "4.10.1"
 		}`)
 			// Will fail due to upgrade in progress
-			Expect(terraform.Apply()).NotTo(BeZero())
+			Expect(Terraform.Apply()).NotTo(BeZero())
 		})
 
 		It("Cancels and upgrade for the wrong version & schedules new", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Refresh cluster state
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
@@ -633,7 +637,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 				),
 			)
 			// Perform try the upgrade
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
@@ -649,11 +653,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			}
 			version = "4.10.1"
 		}`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		It("Cancels upgrade if version=current_version", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Refresh cluster state
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
@@ -704,7 +709,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 				),
 			)
 			// Set version to match current cluster version
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
@@ -720,11 +725,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			}
 			version = "4.10.0"
 		}`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		It("is an error to request a version older than current", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Refresh cluster state
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
@@ -738,7 +744,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 				),
 			)
 			// Set version to before current cluster version, but after version from create
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
@@ -754,11 +760,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			}
 			version = "4.10.1"
 		}`)
-			Expect(terraform.Apply()).NotTo(BeZero())
+			Expect(Terraform.Apply()).NotTo(BeZero())
 		})
 
 		It("older than current is allowed as long as not changed", func() {
-			server.AppendHandlers(
+			TestServer.AppendHandlers(
 				// Refresh cluster state
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
@@ -778,7 +784,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			)
 			// Set version to before current cluster version, but matching what was
 			// used during creation (i.e. in state file)
-			terraform.Source(`
+			Terraform.Source(`
 		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
 			name           = "my-cluster"
 			cloud_region   = "us-west-1"
@@ -794,12 +800,13 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			}
 			version = "4.10.0"
 		}`)
-			Expect(terraform.Apply()).To(BeZero())
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
 		Context("Un-acked gates", func() {
 			BeforeEach(func() {
-				server.AppendHandlers(
+				TestServer.AppendHandlers(
 					// Refresh cluster state
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
@@ -850,7 +857,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 				)
 			})
 			It("Fails upgrade for un-acked gates", func() {
-				terraform.Source(`
+				Terraform.Source(`
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
@@ -866,10 +873,10 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 				}
 				version = "openshift-v4.10.1"
 			}`)
-				Expect(terraform.Apply()).NotTo(BeZero())
+				Expect(Terraform.Apply()).NotTo(BeZero())
 			})
 			It("Fails upgrade if wrong version is acked", func() {
-				terraform.Source(`
+				Terraform.Source(`
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
@@ -886,10 +893,10 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 				version = "openshift-v4.10.1"
 				upgrade_acknowledgements_for = "1.1"
 			}`)
-				Expect(terraform.Apply()).NotTo(BeZero())
+				Expect(Terraform.Apply()).NotTo(BeZero())
 			})
 			It("It acks gates if correct ack is provided", func() {
-				server.AppendHandlers(
+				TestServer.AppendHandlers(
 					// Send acks for all gate agreements
 					CombineHandlers(
 						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/gate_agreements"),
@@ -946,7 +953,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 				]`),
 					),
 				)
-				terraform.Source(`
+				Terraform.Source(`
 			resource "rhcs_cluster_rosa_classic" "my_cluster" {
 				name           = "my-cluster"
 				cloud_region   = "us-west-1"
@@ -963,7 +970,8 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 				version = "4.10.1"
 				upgrade_acknowledgements_for = "4.10"
 			}`)
-				Expect(terraform.Apply()).To(BeZero())
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
 			})
 		})
 	})

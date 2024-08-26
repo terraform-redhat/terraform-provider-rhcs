@@ -18,6 +18,8 @@ import (
 	"github.com/hashicorp/hcl/v2/hclwrite"
 )
 
+const tfVarsFilenameTemplate = "terraform.%s.tfvars"
+
 type TerraformExecutor interface {
 	RunTerraformInit() (string, error)
 	RunTerraformPlan(argObj interface{}) (string, error)
@@ -79,26 +81,26 @@ func (ctx *terraformExecutorContext) RunTerraformInit() (string, error) {
 }
 
 func (ctx *terraformExecutorContext) RunTerraformPlan(argObj interface{}) (output string, err error) {
-	tempFile, err := WriteTemporaryTFVarsFile(argObj)
+	tempFile, err := ctx.writeTemporaryTFVarsFile(argObj)
 	if err != nil {
 		return "", err
 	}
-	defer DeleteTFvarsFile(tempFile)
+	defer DeleteTFvarsFile(tempFile) // Always delete the temp file
 	planArgs := append([]string{"-no-color"}, "-var-file", tempFile)
 	return ctx.runTerraformCommand("plan", planArgs...)
 }
 
 func (ctx *terraformExecutorContext) RunTerraformApply(argObj interface{}) (string, error) {
-	tempFile, err := WriteTemporaryTFVarsFile(argObj)
+	tempFile, err := ctx.writeTemporaryTFVarsFile(argObj)
 	if err != nil {
 		return "", err
 	}
-	defer DeleteTFvarsFile(tempFile)
 
 	output, err := ctx.runTerraformCommand("apply", "-auto-approve", "-no-color", "-var-file", tempFile)
 	// mask sensitive info in err
 	if err == nil {
-		// If it works, tf vars are officially recorded
+		// If it works, tf vars are officially recorded and temp file is deleted
+		DeleteTFvarsFile(tempFile)
 		err = ctx.WriteTerraformVars(argObj)
 	} else {
 		err = fmt.Errorf(RedactString(err.Error()))
@@ -111,8 +113,14 @@ func (ctx *terraformExecutorContext) RunTerraformDestroy() (output string, err e
 	if fileExists, err := helper.IsFileExists(varsFile); err != nil {
 		return "", err
 	} else if !fileExists {
-		Logger.Warnf("No tfvars file found for destroying. Ignoring...")
-		return "No tfvars file found for destroying. Ignoring...", nil
+		// TF vars file is not existing, trying the temp one
+		varsFile = ctx.grantTFvarsTempFile()
+		if fileExists, err := helper.IsFileExists(varsFile); err != nil {
+			return "", err
+		} else if !fileExists {
+			Logger.Warnf("No tfvars file found for destroying. Ignoring...")
+			return "No tfvars file found for destroying. Ignoring...", nil
+		}
 	}
 
 	output, err = ctx.runTerraformCommand("destroy", "-auto-approve", "-no-color", "-var-file", varsFile)
@@ -181,12 +189,8 @@ func WriteTFvarsFile(obj interface{}, tfvarsFilePath string) error {
 	return err
 }
 
-func WriteTemporaryTFVarsFile(obj interface{}) (string, error) {
-	file, err := createVarsTempFile()
-	if err != nil {
-		return "", err
-	}
-	return file, WriteTFvarsFile(obj, file)
+func (ctx *terraformExecutorContext) writeTemporaryTFVarsFile(obj interface{}) (string, error) {
+	return ctx.grantTFvarsTempFile(), WriteTFvarsFile(obj, ctx.grantTFvarsTempFile())
 }
 
 // Function to read parse tf vars in an object
@@ -229,17 +233,13 @@ func DeleteTFvarsFile(tfVarsFile string) error {
 	return helper.DeleteFile(tfVarsFile)
 }
 
-func createVarsTempFile() (string, error) {
-	f, err := os.CreateTemp("", "tfvars-")
-	if err != nil {
-		return "", err
-	}
-	return f.Name(), nil
-}
-
 func (ctx *terraformExecutorContext) grantTFvarsFile() string {
 	// We don't name it `terraform.tfvars` as that one is load automatically
 	// See https://developer.hashicorp.com/terraform/language/values/variables#variable-definition-precedence
 	// And we don't want to load them when applying new values
-	return path.Join(ctx.manifestsDir, "terraform.e2e.tfvars")
+	return path.Join(ctx.manifestsDir, fmt.Sprintf(tfVarsFilenameTemplate, "e2e"))
+}
+
+func (ctx *terraformExecutorContext) grantTFvarsTempFile() string {
+	return path.Join(ctx.manifestsDir, fmt.Sprintf(tfVarsFilenameTemplate, "e2e.tmp"))
 }

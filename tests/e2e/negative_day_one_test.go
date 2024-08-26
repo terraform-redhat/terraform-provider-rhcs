@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -60,7 +61,11 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 		}
 		Expect(err).ToNot(HaveOccurred())
 
-		originalClusterVarsFile, err = exec.WriteTemporaryTFVarsFile(originalClusterArgs)
+		// Save original cluster values before any update
+		f, err := os.CreateTemp("", "tfvars-")
+		Expect(err).ToNot(HaveOccurred())
+		originalClusterVarsFile = f.Name()
+		err = exec.WriteTFvarsFile(originalClusterArgs, originalClusterVarsFile)
 		Expect(err).ToNot(HaveOccurred())
 	})
 

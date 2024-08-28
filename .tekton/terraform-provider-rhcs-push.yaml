@@ -223,7 +223,7 @@ spec:
         - name: name
           value: buildah
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-buildah:0.2@sha256:af2e50358be6263397c0aa0d8ce78177e4a89b6253d7b9982af115d9f4cdac2e
+          value: quay.io/redhat-appstudio-tekton-catalog/task-buildah:0.2@sha256:589a444c176d0e74f27173f7004f26bdff9d2c2f016678e562902710bfd1aee7
         - name: kind
           value: task
         resolver: bundles
@@ -366,7 +366,7 @@ spec:
         - name: name
           value: sbom-json-check
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-sbom-json-check:0.1@sha256:1726e5553530c16de7c060437b1fa52e6d5bbd50d2acf42ac7d45680aa75afb9
+          value: quay.io/redhat-appstudio-tekton-catalog/task-sbom-json-check:0.2@sha256:94af54db1f8aeef7dddaf410e4584e505ea71ab06ae7cc6ae9d0a2d6ddcb3d1b
         - name: kind
           value: task
         resolver: bundles

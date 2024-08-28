@@ -27,14 +27,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/openshift-online/ocm-common/pkg/rosa/oidcconfigs"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
 type RosaOidcConfigResource struct {
-	oidcConfigClient *cmv1.OidcConfigsClient
-	clustersClient   *cmv1.ClustersClient
+	oidcConfigClient   *cmv1.OidcConfigsClient
+	clustersClient     *cmv1.ClustersClient
+	awsInquiriesClient *cmv1.AWSInquiriesClient
 }
 
 var _ resource.ResourceWithConfigure = &RosaOidcConfigResource{}
@@ -103,6 +103,7 @@ func (o *RosaOidcConfigResource) Configure(ctx context.Context, req resource.Con
 
 	o.oidcConfigClient = connection.ClustersMgmt().V1().OidcConfigs()
 	o.clustersClient = connection.ClustersMgmt().V1().Clusters()
+	o.awsInquiriesClient = connection.ClustersMgmt().V1().AWSInquiries()
 }
 
 func (o *RosaOidcConfigResource) Create(ctx context.Context, request resource.CreateRequest,
@@ -367,12 +368,19 @@ func (o *RosaOidcConfigResource) populateState(ctx context.Context, object *cmv1
 	}
 	state.OIDCEndpointURL = types.StringValue(oidcEndpointURL)
 
-	thumbprint, err := oidcconfigs.FetchThumbprint(issuerUrl)
+	input, err := cmv1.NewOidcThumbprintInput().OidcConfigId(state.ID.String()).Build()
 	if err != nil {
-		tflog.Error(ctx, fmt.Sprintf("cannot get thumbprint, with error: %v", err))
+		tflog.Error(ctx, fmt.Sprintf("cannot create oidc thumbprint input: %v", err))
+		state.Thumbprint = types.StringValue("")
+	}
+	thumbprint, err := o.awsInquiriesClient.OidcThumbprint().Post().Body(input).SendContext(ctx)
+	if err != nil {
+		tflog.Error(ctx, fmt.Sprintf("cannot get thumbprint: %v", err))
+		state.Thumbprint = types.StringValue("")
+	} else if thumbprint.Body() == nil {
+		tflog.Error(ctx, fmt.Sprintf("thumbprint body is empty, thumbprint not retrieved"))
 		state.Thumbprint = types.StringValue("")
 	} else {
-		state.Thumbprint = types.StringValue(thumbprint)
+		state.Thumbprint = types.StringValue(thumbprint.Body().Thumbprint())
 	}
-
 }

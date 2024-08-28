@@ -113,7 +113,8 @@ func AlignRHCSSourceVersion(dir string) error {
 	if moduleVersion != "" {
 		Logger.Warnf("Got a global ENV variable %s set to %s. Going to replace all of the manifests files", CON.ModuleVersion, moduleVersion)
 	}
-	Logger.Warnf("Source: %s, Version: %s", moduleSource, moduleVersion)
+	Logger.Warnf("RHCS Source: %s, RHCS Version: %s", rhcsSource, rhcsVersion)
+	Logger.Warnf("Module Source: %s, Module Version: %s", moduleSource, moduleVersion)
 	files, err := ScanManifestsDir(dir)
 	if err != nil {
 		return err

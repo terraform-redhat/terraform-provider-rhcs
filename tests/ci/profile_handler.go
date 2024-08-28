@@ -451,7 +451,7 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 	// }
 	// ++++ Uncomment finished
 	// --- Remove this part once shared vpc with domain prefix issue fixed
-	if profile.SharedVpc && len(*clusterArgs.ClusterName) > 15 {
+	if profile.SharedVpc && len(clusterName) > 15 {
 		clusterName = helper.GenerateRandomName("rhcs-ci-sv", 4)
 	}
 	// --- Remove finished

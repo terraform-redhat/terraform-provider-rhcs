@@ -442,19 +442,13 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 		name := helper.GenerateClusterName(profile.Name)
 		clusterName = name
 	}
-	// Once cluster name is longer than 15 chars for shared-vpc domain prefix will be auto generated
-	// Even it is not defined in profile configuration
-	// When global profile domain_prefix set, it will use global value
-	// ++++ Uncomment this part once the shared vpc with domain prefix issue resolved
-	// if profile.DomainPrefix == "" && profile.SharedVpc && len(*clusterArgs.ClusterName) > 15 {
-	// 	profile.DomainPrefix = helper.GenerateRandomName("shared-vpc", 4)
-	// }
-	// ++++ Uncomment finished
-	// --- Remove this part once shared vpc with domain prefix issue fixed
-	if profile.SharedVpc && len(clusterName) > 15 {
-		clusterName = helper.GenerateRandomName("rhcs-ci-sv", 4)
+
+	// There are some problem for cluster created with name length
+	// longer than 15 chars with auto generated domain prefix
+	if profile.DomainPrefix == "" && profile.SharedVpc && len(clusterName) > 15 {
+		profile.DomainPrefix = helper.GenerateRandomName("shared-vpc", 4)
 	}
-	// --- Remove finished
+
 	clusterArgs.ClusterName = &clusterName
 	err = os.WriteFile(cfg.ClusterNameFile, []byte(clusterName), 0644)
 	if err != nil {

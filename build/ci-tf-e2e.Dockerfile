@@ -20,8 +20,7 @@ COPY . ./terraform-provider-rhcs
 
 RUN yum install -y yum-utils && \
     yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo &&\
-    #yum -y install terraform python3 python3-pip make jq httpd-tools git &&\
-    yum -y install terraform python3 python3-pip make jq httpd-tools git unzip &&\
+    yum -y install terraform python3 python3-pip make jq httpd-tools git &&\
     pip3 install PyYAML jinja2 &&\
     go env -w GO111MODULE=on &&\
     go install github.com/onsi/ginkgo/v2/ginkgo@v2.13.2 &&\
@@ -29,11 +28,3 @@ RUN yum install -y yum-utils && \
     cd terraform-provider-rhcs && go mod tidy && go mod vendor && make install &&\
     chmod -R 777 $GOPATH &&\
     echo 'RUN done'
-
-# [WORKAROUND]install terraform version v1.8.5 due to latest version v1.9.5 cannot fetch registry with multiple provider versions
-RUN wget https://releases.hashicorp.com/terraform/1.8.5/terraform_1.8.5_linux_amd64.zip &&\
-    unzip terraform_1.8.5_linux_amd64.zip &&\
-    ls &&\
-    mv ./terraform /usr/local/bin &&\
-    echo 'Install terraform finished' &&\
-    terraform version

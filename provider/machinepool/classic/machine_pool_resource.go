@@ -1083,6 +1083,9 @@ func populateState(ctx context.Context, object *cmv1.MachinePool, state *Machine
 		}
 	}
 
+	if state.AwsTags.IsUnknown() || state.AwsTags.IsNull() {
+		state.AwsTags = types.MapNull(types.StringType)
+	}
 	if awsTags, ok := object.AWS().GetTags(); ok {
 		filteredAwsTags, err := filterClusterTagsNotPresentInNpInput(ctx, state, cluster, awsTags)
 		if err != nil {
@@ -1096,8 +1099,6 @@ func populateState(ctx context.Context, object *cmv1.MachinePool, state *Machine
 		} else {
 			state.AwsTags = types.MapNull(types.StringType)
 		}
-	} else {
-		state.AwsTags = types.MapNull(types.StringType)
 	}
 
 	return nil

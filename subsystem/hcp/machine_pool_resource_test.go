@@ -1461,6 +1461,53 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(`.attributes.taints | length`, 0))
 		})
 
+		It("Can create machine pool with empty aws tags", func() {
+			// Prepare the server:
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools",
+					),
+					RespondWithJSON(http.StatusOK, `{
+				  "id": "my-pool",
+				  "availability_zone": "us-east-1a",
+				  "replicas": 12,
+				  "aws_node_pool": {
+					"instance_type": "r5.xlarge",
+					"instance_profile": "bla"
+				  },
+				  "auto_repair": true,
+				  "version": {
+					  "raw_id": "4.14.10"
+				  },
+				  "subnet": "subnet-123"
+				}`),
+				),
+			)
+
+			// Run the apply command:
+			Terraform.Source(`
+		  resource "rhcs_hcp_machine_pool" "my_pool" {
+		    cluster      = "123"
+		    name         = "my-pool"
+		    aws_node_pool = {
+				instance_type = "r5.xlarge"
+				tags = {}
+			}
+			autoscaling = {
+				enabled = false
+			}
+		    replicas     = 12
+			version = "4.14.10"
+			subnet_id = "subnet-123"
+			auto_repair = true
+		  }
+		`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+		})
+
 		It("Can create machine pool with aws tags, but cannot edit", func() {
 			// Prepare the server:
 			TestServer.AppendHandlers(

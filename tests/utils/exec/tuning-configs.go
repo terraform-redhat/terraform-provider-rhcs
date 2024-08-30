@@ -2,16 +2,21 @@ package exec
 
 import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
 type TuningConfigArgs struct {
-	Cluster           *string `hcl:"cluster"`
-	Name              *string `hcl:"name"`
-	Count             *int    `hcl:"tc_count"`
-	Spec              *string `hcl:"spec"`
-	SpecVMDirtyRatios *[]int  `hcl:"spec_vm_dirty_ratios"`
-	SpecPriorities    *[]int  `hcl:"spec_priorities"`
+	Cluster *string             `hcl:"cluster"`
+	Name    *string             `hcl:"name"`
+	Count   *int                `hcl:"tc_count"`
+	Specs   *[]TuningConfigSpec `hcl:"specs"`
 }
+
+type TuningConfigSpec struct {
+	Type  *string `cty:"spec_type"`
+	Value *string `cty:"spec_value"`
+}
+
 type TuningConfigOutput struct {
 	Names []string `json:"names,omitempty"`
 	Specs []string `json:"specs,omitempty"`
@@ -78,4 +83,18 @@ func (svc *tuningConfigService) ReadTFVars() (*TuningConfigArgs, error) {
 
 func (svc *tuningConfigService) DeleteTFVars() error {
 	return svc.tfExecutor.DeleteTerraformVars()
+}
+
+func NewTuningConfigSpecFromString(specValue string) TuningConfigSpec {
+	return TuningConfigSpec{
+		Type:  helper.StringPointer("string"),
+		Value: &specValue,
+	}
+}
+
+func NewTuningConfigSpecFromFile(specFile string) TuningConfigSpec {
+	return TuningConfigSpec{
+		Type:  helper.StringPointer("file"),
+		Value: &specFile,
+	}
 }

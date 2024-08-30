@@ -14,21 +14,10 @@ variable "tc_count" {
   default = 1
 }
 
-variable "spec" {
-  type        = string
-  default     = null
-  description = "To use if tc_count == 1"
+variable "specs" {
+  type = list(object({
+    spec_type  = string
+    spec_value = string
+  }))
+  description = "List of spec objects (spec_type = [\"file\" or \"string\"] and spec_value) to use. Length of that list should be the same as tc_count"
 }
-
-variable "spec_vm_dirty_ratios" {
-  type        = list(number)
-  default     = null
-  description = "To use if tc_count != 1"
-}
-
-variable "spec_priorities" {
-  type        = list(number)
-  default     = null
-  description = "To use if tc_count != 1"
-}
-

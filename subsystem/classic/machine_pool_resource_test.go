@@ -1692,6 +1692,48 @@ var _ = Describe("Classic Machine Pool", func() {
 			Expect(resource).To(MatchJQ(".attributes.disk_size", 400.0))
 		})
 
+		It("Can create pool with empty aws tags", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/machine_pools",
+					),
+					VerifyJSON(`{
+					  "kind": "MachinePool",
+					  "id": "my-pool",
+					  "instance_type": "r5.xlarge",
+					  "replicas": 3,
+					  "aws": {
+						"kind": "AWSMachinePool",
+						"tags": {}
+					  }
+					}`),
+					RespondWithJSON(http.StatusOK, `{
+					  "id": "my-pool",
+					  "instance_type": "r5.xlarge",
+					  "replicas": 3,
+					  "availability_zones": [
+						"us-east-1a"
+					  ]
+					}`),
+				),
+			)
+
+			// Run the apply command:
+			Terraform.Source(`
+			  resource "rhcs_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				machine_type = "r5.xlarge"
+				replicas     = 3
+				aws_tags 	 = {}
+			  }
+			`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+		})
+
 		It("Can create pool replacing cluster aws tags", func() {
 			TestServer.AppendHandlers(
 				CombineHandlers(

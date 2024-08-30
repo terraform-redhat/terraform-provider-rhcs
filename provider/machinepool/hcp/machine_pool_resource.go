@@ -1132,6 +1132,9 @@ func populateState(ctx context.Context, object *cmv1.NodePool, state *HcpMachine
 		if instanceProfile, ok := awsNodePool.GetInstanceProfile(); ok {
 			state.AWSNodePool.InstanceProfile = types.StringValue(instanceProfile)
 		}
+		if state.AWSNodePool.Tags.IsUnknown() || state.AWSNodePool.Tags.IsNull() {
+			state.AWSNodePool.Tags = types.MapNull(types.StringType)
+		}
 		if awsTags, ok := awsNodePool.GetTags(); ok {
 			filteredAwsTags, err := filterClusterTagsNotPresentInNpInput(ctx, state, cluster, awsTags)
 			if err != nil {
@@ -1145,8 +1148,6 @@ func populateState(ctx context.Context, object *cmv1.NodePool, state *HcpMachine
 				}
 				state.AWSNodePool.Tags = mapValue
 			}
-		} else {
-			state.AWSNodePool.Tags = types.MapNull(types.StringType)
 		}
 		if additionalSecurityGroupIds, ok := awsNodePool.GetAdditionalSecurityGroupIds(); ok {
 			additionalSecurityGroupsList, err := common.StringArrayToList(additionalSecurityGroupIds)

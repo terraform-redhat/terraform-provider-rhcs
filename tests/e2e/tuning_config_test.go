@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"encoding/json"
 	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -11,6 +12,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
+	"gopkg.in/yaml.v2"
 )
 
 var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
@@ -20,10 +22,12 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 		profile   *ci.Profile
 	)
 
-	verifyTuningConfigSpec := func(spec interface{}, specVmDirtyRatio, specPriority int) {
+	verifyTuningConfigSpec := func(spec interface{}, profileName string, specVmDirtyRatio, specPriority int) {
+		Expect(spec).ToNot(BeEmpty())
 		tcSpec := spec.(map[string]interface{})
 		tcProfileSpec := (tcSpec["profile"].([]interface{}))[0].(map[string]interface{})
 		tcRecommendSpec := (tcSpec["recommend"].([]interface{}))[0].(map[string]interface{})
+		Expect(tcProfileSpec["name"]).To(ContainSubstring(profileName))
 		Expect(tcProfileSpec["data"]).To(ContainSubstring(fmt.Sprintf("vm.dirty_ratio=\"%d\"", specVmDirtyRatio)))
 		Expect(tcRecommendSpec["priority"]).To(BeEquivalentTo(specPriority))
 	}
@@ -50,13 +54,26 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 	It("can create/edit/delete - [id:72521]", ci.High, func() {
 		name := "tc-72521"
 		tcCount := 1
+		tc1Name := helper.GenerateRandomName("tuned01", 2)
+		firstPriority := 10
+		firstVMDirtyRatio := 25
+		tc2Name := helper.GenerateRandomName("tuned02", 2)
+		secondPriority := 20
+		secondVMDirtyRatio := 65
+
 		By("Create one tuning config")
+		tc1Spec := helper.NewTuningConfigSpecRootStub(tc1Name, firstVMDirtyRatio, firstPriority)
+		tc1JSON, err := json.Marshal(tc1Spec)
+		Expect(err).ToNot(HaveOccurred())
 		tcArgs := &exec.TuningConfigArgs{
 			Cluster: helper.StringPointer(clusterID),
 			Name:    helper.StringPointer(name),
 			Count:   helper.IntPointer(tcCount),
+			Specs: &[]exec.TuningConfigSpec{
+				exec.NewTuningConfigSpecFromString(string(tc1JSON)),
+			},
 		}
-		_, err := tcService.Apply(tcArgs)
+		_, err = tcService.Apply(tcArgs)
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Verify tuning config")
@@ -65,7 +82,7 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 		Expect(tcsResp.Size()).To(Equal(tcCount))
 		tc := tcsResp.Items().Get(0)
 		Expect(tc.Name()).To(Equal(name))
-		Expect(tc.Spec()).ToNot(BeEmpty())
+		verifyTuningConfigSpec(tc.Spec(), tc1Name, firstVMDirtyRatio, firstPriority)
 
 		By("Delete created tuning config")
 		_, err = tcService.Destroy()
@@ -73,11 +90,14 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 
 		By("Create many tuning configs")
 		tcCount = 2
-		specVMDirtyRatios := []int{65, 45}
-		specPriorities := []int{20, 10}
+		tc2Spec := helper.NewTuningConfigSpecRootStub(tc2Name, firstVMDirtyRatio, firstPriority)
+		tc2YAML, err := yaml.Marshal(tc2Spec)
+		Expect(err).ToNot(HaveOccurred())
 		tcArgs.Count = helper.IntPointer(tcCount)
-		tcArgs.SpecVMDirtyRatios = helper.IntSlicePointer(specVMDirtyRatios)
-		tcArgs.SpecPriorities = helper.IntSlicePointer(specPriorities)
+		tcArgs.Specs = &[]exec.TuningConfigSpec{
+			exec.NewTuningConfigSpecFromString(string(tc1JSON)),
+			exec.NewTuningConfigSpecFromString(string(tc2YAML)),
+		}
 		_, err = tcService.Apply(tcArgs)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -89,6 +109,9 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 		for i := 0; i < tcCount; i++ {
 			expectedNames = append(expectedNames, fmt.Sprintf("%s-%v", name, i))
 		}
+		expectedProfileNames := []string{tc1Name, tc2Name}
+		expectedSpecVMDirtyRatios := []int{firstVMDirtyRatio, firstVMDirtyRatio}
+		expectedSpecPriorities := []int{firstPriority, firstPriority}
 		for _, tc := range tcsResp.Items().Slice() {
 			Expect(tc.Name()).To(BeElementOf(expectedNames))
 			index := 0
@@ -98,14 +121,22 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 				}
 				index++
 			}
-			verifyTuningConfigSpec(tc.Spec(), specVMDirtyRatios[index], specPriorities[index])
+			verifyTuningConfigSpec(tc.Spec(), expectedProfileNames[index], expectedSpecVMDirtyRatios[index], expectedSpecPriorities[index])
 		}
 
-		By("Update first tuning config")
-		specVMDirtyRatios[0] = 55
-		specPriorities[0] = 1
-		tcArgs.SpecVMDirtyRatios = helper.IntSlicePointer(specVMDirtyRatios)
-		tcArgs.SpecPriorities = helper.IntSlicePointer(specPriorities)
+		By("Update second tuning config")
+		tc2Spec.Profile[0].Data = helper.NewTuningConfigSpecProfileData(secondVMDirtyRatio)
+		tc2Spec.Recommend[0].Priority = secondPriority
+		tc2YAML, err = yaml.Marshal(tc2Spec)
+		Expect(err).ToNot(HaveOccurred())
+		specFile1, err := helper.CreateTempFileWithContent(string(tc1JSON))
+		Expect(err).ToNot(HaveOccurred())
+		specFile2, err := helper.CreateTempFileWithContent(string(tc2YAML))
+		Expect(err).ToNot(HaveOccurred())
+		tcArgs.Specs = &[]exec.TuningConfigSpec{
+			exec.NewTuningConfigSpecFromFile(string(specFile1)),
+			exec.NewTuningConfigSpecFromFile(string(specFile2)),
+		}
 		_, err = tcService.Apply(tcArgs)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -117,6 +148,9 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 		for i := 0; i < tcCount; i++ {
 			expectedNames = append(expectedNames, fmt.Sprintf("%s-%v", name, i))
 		}
+		expectedProfileNames = []string{tc1Name, tc2Name}
+		expectedSpecVMDirtyRatios = []int{firstVMDirtyRatio, secondVMDirtyRatio}
+		expectedSpecPriorities = []int{firstPriority, secondPriority}
 		for _, tc := range tcsResp.Items().Slice() {
 			Expect(tc.Name()).To(BeElementOf(expectedNames))
 			index := 0
@@ -126,7 +160,7 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 				}
 				index++
 			}
-			verifyTuningConfigSpec(tc.Spec(), specVMDirtyRatios[index], specPriorities[index])
+			verifyTuningConfigSpec(tc.Spec(), expectedProfileNames[index], expectedSpecVMDirtyRatios[index], expectedSpecPriorities[index])
 		}
 
 		By("Delete all")
@@ -137,9 +171,15 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 	It("can validate - [id:72522]", ci.Medium, func() {
 		tcName := helper.GenerateRandomName("tc-72522", 3)
 		getDefaultTCArgs := func() *exec.TuningConfigArgs {
+			tc1Spec := helper.NewTuningConfigSpecRootStub("default-profile", 65, 10)
+			tc1JSON, err := json.Marshal(tc1Spec)
+			Expect(err).ToNot(HaveOccurred())
 			return &exec.TuningConfigArgs{
 				Cluster: helper.StringPointer(clusterID),
 				Name:    helper.StringPointer(tcName),
+				Specs: &[]exec.TuningConfigSpec{
+					exec.NewTuningConfigSpecFromString(string(tc1JSON)),
+				},
 			}
 		}
 
@@ -165,7 +205,9 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 
 		By("Try to create tuning config with empty spec")
 		validateTCArgAgainstErrorSubstrings(func(args *exec.TuningConfigArgs) {
-			args.Spec = helper.EmptyStringPointer
+			args.Specs = &[]exec.TuningConfigSpec{
+				exec.NewTuningConfigSpecFromString(""),
+			}
 		}, "Attribute 'spec' must be set")
 
 		By("Create tuning config for edit")
@@ -202,7 +244,16 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 
 		By("Try to edit spec field with non json value")
 		validateTCArgAgainstErrorSubstrings(func(args *exec.TuningConfigArgs) {
-			args.Spec = helper.StringPointer("wrong")
+			args.Specs = &[]exec.TuningConfigSpec{
+				exec.NewTuningConfigSpecFromString("wrong"),
+			}
+		}, "cannot unmarshal string")
+
+		By("Try to edit spec field with non yaml value")
+		validateTCArgAgainstErrorSubstrings(func(args *exec.TuningConfigArgs) {
+			args.Specs = &[]exec.TuningConfigSpec{
+				exec.NewTuningConfigSpecFromString("wrong"),
+			}
 		}, "cannot unmarshal string")
 
 		By("Get vpc output")

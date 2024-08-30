@@ -5,6 +5,7 @@ import (
 	// nolint
 
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -538,12 +539,18 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			By("Create tuning configs")
 			tcCount := 3
 			tcName := "tc"
+			var specs []exec.TuningConfigSpec
+			for i := 0; i < tcCount; i++ {
+				spec := helper.NewTuningConfigSpecRootStub(fmt.Sprintf("%s-%d", tcName, i), 65, 10)
+				tc, err := json.Marshal(spec)
+				Expect(err).ToNot(HaveOccurred())
+				specs = append(specs, exec.NewTuningConfigSpecFromString(string(tc)))
+			}
 			tcArgs = &exec.TuningConfigArgs{
-				Cluster:           helper.StringPointer(clusterID),
-				Name:              helper.StringPointer(tcName),
-				Count:             helper.IntPointer(tcCount),
-				SpecVMDirtyRatios: helper.IntSlicePointer([]int{65, 65, 65}),
-				SpecPriorities:    helper.IntSlicePointer([]int{10, 10, 10}),
+				Cluster: helper.StringPointer(clusterID),
+				Name:    helper.StringPointer(tcName),
+				Count:   helper.IntPointer(tcCount),
+				Specs:   &specs,
 			}
 			_, err = tcService.Apply(tcArgs)
 			Expect(err).ToNot(HaveOccurred())

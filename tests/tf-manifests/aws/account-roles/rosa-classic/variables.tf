@@ -10,7 +10,7 @@ variable "openshift_version" {
 
 variable "account_role_prefix" {
   type    = string
-  default = ""
+  default = null
 }
 
 variable "channel_group" {

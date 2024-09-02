@@ -34,6 +34,7 @@ var _ = Describe("Edit Account roles", func() {
 	})
 
 	It("can create account roles with default prefix - [id:65380]", ci.Day2, ci.Medium, func() {
+		By("Create account roles with empty prefix")
 		args := &exec.AccountRolesArgs{
 			AccountRolePrefix: helper.EmptyStringPointer,
 			OpenshiftVersion:  helper.StringPointer(profile.MajorVersion),
@@ -43,9 +44,19 @@ var _ = Describe("Edit Account roles", func() {
 		Expect(err).ToNot(HaveOccurred())
 		accRoleOutput, err := accService.Output()
 		Expect(err).ToNot(HaveOccurred())
-		// comment this line, it's module issue not provider issue.
-		// Expect(accRoleOutput.AccountRolePrefix).Should(ContainSubstring(constants.DefaultAccountRolesPrefix))
-		Expect(accRoleOutput.AccountRolePrefix).Should(BeEmpty())
+		Expect(accRoleOutput.AccountRolePrefix).ToNot(BeEmpty())
+
+		By("Create account roles with no prefix defined")
+		args = &exec.AccountRolesArgs{
+			AccountRolePrefix: nil,
+			OpenshiftVersion:  helper.StringPointer(profile.MajorVersion),
+			ChannelGroup:      helper.StringPointer(profile.ChannelGroup),
+		}
+		_, err = accService.Apply(args)
+		Expect(err).ToNot(HaveOccurred())
+		accRoleOutput, err = accService.Output()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(accRoleOutput.AccountRolePrefix).ToNot(BeEmpty())
 
 	})
 

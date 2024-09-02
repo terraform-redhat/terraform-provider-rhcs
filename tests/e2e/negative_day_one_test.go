@@ -92,7 +92,7 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 				By("Edit cluster admin user name to not valid")
 				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 					(*args.AdminCredentials)["username"] = "one:two"
-				}, "Attribute admin_credentials.username username may not contain the characters: '/:%'")
+				}, "Attribute admin_credentials.username username may not contain the characters: '/:%!'")
 
 				By("Edit cluster admin user name to empty")
 				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
@@ -509,7 +509,7 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 			By("create cluster with an EOL OCP version")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.OpenshiftVersion = helper.StringPointer("4.9.59")
-			}, "version 4.9.59 is not in", "list of supported versions")
+			}, "version 4.9.59 is not supported")
 		})
 	})
 })

@@ -290,9 +290,9 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 				ComponentRoutes: &componentRoutes,
 				Cluster:         &clusterID,
 			}
-			output, err := ingressService.Apply(&args)
+			_, err = ingressService.Apply(&args)
 			Expect(err).To(HaveOccurred())
-			Expect(output).Should(ContainSubstring("component route please remove the key instead"))
+			helper.ExpectTFErrorContains(err, "component route please remove the key instead")
 
 			componentRoutes = map[string]*exec.IngressComponentRoute{
 				"oauth": exec.NewIngressComponentRoute(
@@ -306,9 +306,9 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 					helper.StringPointer("test-downloads"),
 				),
 			}
-			output, err = ingressService.Apply(&args)
+			_, err = ingressService.Apply(&args)
 			Expect(err).To(HaveOccurred())
-			Expect(output).Should(ContainSubstring("Component route fields shouldn't both be empty"))
+			helper.ExpectTFErrorContains(err, "Component route fields shouldn't both be empty")
 
 			By("Try with invalid cluster ID")
 			invalidID := "asdf"
@@ -368,7 +368,6 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			}
 			_, err = ingressService.Apply(&args)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(ContainSubstring("must be set together"))
-
+			helper.ExpectTFErrorContains(err, "must be set together")
 		})
 })

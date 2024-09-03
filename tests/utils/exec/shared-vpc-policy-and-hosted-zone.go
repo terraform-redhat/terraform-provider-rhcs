@@ -21,7 +21,6 @@ type SharedVpcPolicyAndHostedZoneOutput struct {
 	SharedRole    string   `json:"shared_role,omitempty"`
 	HostedZoneId  string   `json:"hosted_zone_id,omitempty"`
 	SharedSubnets []string `json:"shared_subnets,omitempty"`
-	AZs           []string `json:"azs,omitempty"`
 }
 
 type SharedVpcPolicyAndHostedZoneService interface {

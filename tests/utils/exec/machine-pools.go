@@ -54,6 +54,7 @@ type MachinePoolOutput struct {
 	Taints                []MachinePoolTaint `json:"taints,omitempty"`
 	TuningConfigs         []string           `json:"tuning_configs,omitempty"`
 	KubeletConfigs        string             `json:"kubelet_configs"`
+	Tags                  map[string]string  `json:"tags,omitempty"`
 }
 
 type MachinePoolTaint struct {

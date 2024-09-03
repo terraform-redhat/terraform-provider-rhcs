@@ -526,6 +526,23 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mpResponseBody.AWSNodePool().Tags()).To(HaveKeyWithValue("aaa", "bbb"))
 			Expect(mpResponseBody.AWSNodePool().Tags()).To(HaveKeyWithValue("ccc", "ddd"))
+
+			By("Remove machinepool")
+			_, err = mpService.Destroy()
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Create machinepool with empty tags")
+			name = helper.GenerateRandomName("np-72510", 2)
+			tags = map[string]string{}
+			mpArgs.Name = helper.StringPointer(name)
+			mpArgs.Tags = helper.StringMapPointer(tags)
+			_, err = mpService.Apply(mpArgs)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Verify tags are correctly set")
+			output, err := mpService.Output()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(output.MachinePools[0].Tags)).To(Equal(0))
 		})
 
 	It("can be created with tuning configs - [id:72508]",

@@ -11,5 +11,6 @@ output "machine_pools" {
     tuning_configs : mp.tuning_configs
     kubelet_configs : mp.kubelet_configs
     ec2_metadata_http_tokens : mp.aws_node_pool.ec2_metadata_http_tokens
+    tags : mp.aws_node_pool.tags
   }]
 }

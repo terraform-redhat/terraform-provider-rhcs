@@ -38,7 +38,6 @@ var _ = Describe("Edit Account roles", func() {
 		args := &exec.AccountRolesArgs{
 			AccountRolePrefix: helper.EmptyStringPointer,
 			OpenshiftVersion:  helper.StringPointer(profile.MajorVersion),
-			ChannelGroup:      helper.StringPointer(profile.ChannelGroup),
 		}
 		_, err := accService.Apply(args)
 		Expect(err).ToNot(HaveOccurred())
@@ -50,7 +49,6 @@ var _ = Describe("Edit Account roles", func() {
 		args = &exec.AccountRolesArgs{
 			AccountRolePrefix: nil,
 			OpenshiftVersion:  helper.StringPointer(profile.MajorVersion),
-			ChannelGroup:      helper.StringPointer(profile.ChannelGroup),
 		}
 		_, err = accService.Apply(args)
 		Expect(err).ToNot(HaveOccurred())
@@ -64,7 +62,6 @@ var _ = Describe("Edit Account roles", func() {
 		args := &exec.AccountRolesArgs{
 			AccountRolePrefix: helper.StringPointer("OCP-63316"),
 			OpenshiftVersion:  helper.StringPointer(profile.MajorVersion),
-			ChannelGroup:      helper.StringPointer(profile.ChannelGroup),
 		}
 		_, err := accService.Apply(args)
 		Expect(err).ToNot(HaveOccurred())
@@ -120,7 +117,6 @@ var _ = Describe("Create Account roles with shared vpc role", ci.Exclude, func()
 		accArgs := &exec.AccountRolesArgs{
 			AccountRolePrefix: helper.StringPointer("OCP-67574"),
 			OpenshiftVersion:  helper.StringPointer(profile.MajorVersion),
-			ChannelGroup:      helper.StringPointer(profile.ChannelGroup),
 		}
 		_, err := accService.Apply(accArgs)
 		Expect(err).ToNot(HaveOccurred())
@@ -133,7 +129,6 @@ var _ = Describe("Create Account roles with shared vpc role", ci.Exclude, func()
 			AccountRolePrefix:  helper.StringPointer(accRoleOutput.AccountRolePrefix),
 			OperatorRolePrefix: helper.StringPointer(accRoleOutput.AccountRolePrefix),
 			OIDCConfig:         helper.StringPointer(profile.OIDCConfig),
-			AWSRegion:          helper.StringPointer(profile.Region),
 		}
 		_, err = oidcOpService.Apply(oidcOpArgs)
 		Expect(err).ToNot(HaveOccurred())
@@ -186,7 +181,6 @@ var _ = Describe("Create Account roles with shared vpc role", ci.Exclude, func()
 		accArgs = &exec.AccountRolesArgs{
 			AccountRolePrefix: helper.StringPointer(accRoleOutput.AccountRolePrefix),
 			OpenshiftVersion:  helper.StringPointer(profile.MajorVersion),
-			ChannelGroup:      helper.StringPointer(profile.ChannelGroup),
 			SharedVpcRoleArn:  helper.StringPointer(sharedVPCOutput.SharedRole),
 		}
 		_, err = accService.Apply(accArgs)

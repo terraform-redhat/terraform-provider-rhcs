@@ -5,12 +5,11 @@ import (
 )
 
 type OIDCProviderOperatorRolesArgs struct {
-	AccountRolePrefix   *string `hcl:"account_role_prefix"`
-	OperatorRolePrefix  *string `hcl:"operator_role_prefix"`
-	OIDCConfig          *string `hcl:"oidc_config"`
-	AWSRegion           *string `hcl:"aws_region"`
-	OCMENV              *string `hcl:"rhcs_environment"`
-	UnifiedAccRolesPath *string `hcl:"path"`
+	AccountRolePrefix   *string            `hcl:"account_role_prefix"`
+	OperatorRolePrefix  *string            `hcl:"operator_role_prefix"`
+	OIDCConfig          *string            `hcl:"oidc_config"`
+	UnifiedAccRolesPath *string            `hcl:"path"`
+	Tags                *map[string]string `hcl:"tags"`
 }
 
 type OIDCProviderOperatorRolesOutput struct {
@@ -53,12 +52,10 @@ func (svc *oidcProviderOperatorRolesService) Init() (err error) {
 }
 
 func (svc *oidcProviderOperatorRolesService) Plan(args *OIDCProviderOperatorRolesArgs) (string, error) {
-	args.OCMENV = &constants.RHCS.OCMEnv
 	return svc.tfExecutor.RunTerraformPlan(args)
 }
 
 func (svc *oidcProviderOperatorRolesService) Apply(args *OIDCProviderOperatorRolesArgs) (string, error) {
-	args.OCMENV = &constants.RHCS.OCMEnv
 	return svc.tfExecutor.RunTerraformApply(args)
 }
 

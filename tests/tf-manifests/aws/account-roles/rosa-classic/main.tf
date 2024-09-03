@@ -5,7 +5,7 @@ terraform {
       version = ">= 4.20.0"
     }
     rhcs = {
-      version = ">= 1.1.0"
+      version = ">= 1.6.3"
       source  = "terraform.local/local/rhcs"
     }
   }
@@ -21,38 +21,30 @@ data "aws_partition" "current" {
 }
 
 locals {
-  path                      = coalesce(var.path, "/")
-  major_version             = "${split(".", var.openshift_version)[0]}.${split(".", var.openshift_version)[1]}"
-  versionfilter             = var.openshift_version == null ? "" : " and raw_id like '%${local.major_version}%'"
-  account_role_prefix_valid = var.account_role_prefix == "" || var.account_role_prefix == null ? "account-role-${random_string.random_suffix[0].result}" : var.account_role_prefix
-  installer_role_arn        = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${local.account_role_prefix_valid}-Installer-Role"
-  aws_account_id            = data.aws_caller_identity.current.account_id
-}
-
-data "rhcs_policies" "all_policies" {}
-
-data "rhcs_versions" "all" {
-  search = "enabled='t' and rosa_enabled='t' and channel_group='${var.channel_group}'${local.versionfilter}"
-  order  = "id"
+  path           = coalesce(var.path, "/")
+  aws_account_id = data.aws_caller_identity.current.account_id
 }
 
 module "create_account_roles" {
   source  = "terraform-redhat/rosa-classic/rhcs//modules/account-iam-resources"
-  version = ">=1.5.0"
+  version = ">=1.6.3"
 
-  account_role_prefix = local.account_role_prefix_valid
-  openshift_version   = var.openshift_version
-  path                = local.path
+  account_role_prefix  = var.account_role_prefix
+  openshift_version    = var.openshift_version
+  path                 = local.path
+  permissions_boundary = var.permissions_boundary
+  tags                 = var.tags
 }
 
 module "rosa-classic_operator-policies" {
   source  = "terraform-redhat/rosa-classic/rhcs//modules/operator-policies"
-  version = ">=1.5.0"
+  version = ">=1.6.3"
 
-  account_role_prefix = local.account_role_prefix_valid
+  account_role_prefix = module.create_account_roles.account_role_prefix
   openshift_version   = var.openshift_version
   path                = local.path
   shared_vpc_role_arn = var.shared_vpc_role_arn
+  tags                = var.tags
 }
 
 resource "random_string" "random_suffix" {

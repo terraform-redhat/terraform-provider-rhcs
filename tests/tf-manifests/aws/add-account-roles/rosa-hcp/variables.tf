@@ -1,6 +1,6 @@
-variable "rhcs_environment" {
+variable "openshift_version" {
   type    = string
-  default = "staging"
+  default = "4.13.13"
 }
 
 variable "account_role_prefix" {
@@ -11,7 +11,7 @@ variable "account_role_prefix" {
 variable "path" {
   description = "(Optional) The arn path for the account/operator roles as well as their policies."
   type        = string
-  default     = "/"
+  default     = null
 }
 
 variable "permissions_boundary" {
@@ -20,18 +20,14 @@ variable "permissions_boundary" {
   default     = ""
 }
 
+variable "shared_vpc_role_arn" {
+  description = "(Optional) Create Shared-VPC policies."
+  type        = string
+  default     = ""
+}
+
 variable "tags" {
-  description = "List of AWS resource tags to apply."
+  description = "Map of AWS resource tags to apply."
   type        = map(string)
   default     = null
-}
-
-variable "openshift_version" {
-  type    = string
-  default = "4.13.13"
-}
-
-variable "channel_group" {
-  type    = string
-  default = "stable"
 }

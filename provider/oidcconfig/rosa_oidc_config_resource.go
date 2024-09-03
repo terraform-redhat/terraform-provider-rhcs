@@ -187,7 +187,20 @@ func (o *RosaOidcConfigResource) Create(ctx context.Context, request resource.Cr
 	oidcConfig = object.Body()
 
 	// Save the state:
-	o.populateState(ctx, oidcConfig, state)
+	err = o.populateState(ctx, oidcConfig, state)
+	if err != nil {
+		diags.AddError(
+			"Failed to update OIDC Config",
+			fmt.Sprintf(
+				"Cannot update "+
+					"OIDC Config '%s': %v", state.ID.ValueString(), err,
+			),
+		)
+	}
+	response.Diagnostics.Append(diags...)
+	if response.Diagnostics.HasError() {
+		return
+	}
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
 }
@@ -224,7 +237,20 @@ func (o *RosaOidcConfigResource) Read(ctx context.Context, request resource.Read
 	object := get.Body()
 
 	// Save the state:
-	o.populateState(ctx, object, state)
+	err = o.populateState(ctx, object, state)
+	if err != nil {
+		diags.AddError(
+			"Failed to update OIDC Config",
+			fmt.Sprintf(
+				"Cannot update "+
+					"OIDC Config '%s': %v", state.ID.ValueString(), err,
+			),
+		)
+	}
+	response.Diagnostics.Append(diags...)
+	if response.Diagnostics.HasError() {
+		return
+	}
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
 }
@@ -338,7 +364,7 @@ func (o *RosaOidcConfigResource) ImportState(ctx context.Context, request resour
 }
 
 // populateState copies the data from the API object to the Terraform state.
-func (o *RosaOidcConfigResource) populateState(ctx context.Context, object *cmv1.OidcConfig, state *RosaOidcConfigState) {
+func (o *RosaOidcConfigResource) populateState(ctx context.Context, object *cmv1.OidcConfig, state *RosaOidcConfigState) error {
 	if id, ok := object.GetID(); ok {
 		state.ID = types.StringValue(id)
 	}
@@ -368,7 +394,7 @@ func (o *RosaOidcConfigResource) populateState(ctx context.Context, object *cmv1
 	}
 	state.OIDCEndpointURL = types.StringValue(oidcEndpointURL)
 
-	input, err := cmv1.NewOidcThumbprintInput().OidcConfigId(state.ID.String()).Build()
+	input, err := cmv1.NewOidcThumbprintInput().OidcConfigId(object.ID()).Build()
 	if err != nil {
 		tflog.Error(ctx, fmt.Sprintf("cannot create oidc thumbprint input: %v", err))
 		state.Thumbprint = types.StringValue("")
@@ -377,10 +403,14 @@ func (o *RosaOidcConfigResource) populateState(ctx context.Context, object *cmv1
 	if err != nil {
 		tflog.Error(ctx, fmt.Sprintf("cannot get thumbprint: %v", err))
 		state.Thumbprint = types.StringValue("")
+		return err
 	} else if thumbprint.Body() == nil {
-		tflog.Error(ctx, fmt.Sprintf("thumbprint body is empty, thumbprint not retrieved"))
+		strErr := fmt.Sprintf("thumbprint body is empty, thumbprint not retrieved")
+		tflog.Error(ctx, strErr)
 		state.Thumbprint = types.StringValue("")
+		return fmt.Errorf(strErr)
 	} else {
 		state.Thumbprint = types.StringValue(thumbprint.Body().Thumbprint())
 	}
+	return nil
 }

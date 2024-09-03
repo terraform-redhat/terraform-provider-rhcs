@@ -148,7 +148,6 @@ func PrepareAccountRoles(token string, accountRolePrefix string, accountRolesPat
 	args := &exec.AccountRolesArgs{
 		AccountRolePrefix:   helper.StringPointer(accountRolePrefix),
 		OpenshiftVersion:    helper.StringPointer(openshiftVersion),
-		ChannelGroup:        helper.StringPointer(channelGroup),
 		UnifiedAccRolesPath: helper.StringPointer(accountRolesPath),
 	}
 
@@ -174,7 +173,6 @@ func PrepareOIDCProviderAndOperatorRoles(token string, oidcConfigType string, op
 		AccountRolePrefix:   helper.StringPointer(accountRolePrefix),
 		OperatorRolePrefix:  helper.StringPointer(operatorRolePrefix),
 		OIDCConfig:          helper.StringPointer(oidcConfigType),
-		AWSRegion:           helper.StringPointer(awsRegion),
 		UnifiedAccRolesPath: helper.StringPointer(accountRolesPath),
 	}
 	_, err = oidcOpService.Apply(args)
@@ -743,6 +741,11 @@ func CreateRHCSClusterByProfile(token string, profile *Profile) (string, error) 
 }
 
 func DestroyRHCSClusterResourcesByProfile(token string, profile *Profile) error {
+	if os.Getenv("NO_CLUSTER_DESTROY") == "true" {
+		Logger.Warn("`NO_CLUSTER_DESTROY` is configured, thus no destroy of resources will happen")
+		return nil
+	}
+
 	// Destroy cluster
 	var errs []error
 	clusterService, err := exec.NewClusterService(profile.GetClusterManifestsDir())

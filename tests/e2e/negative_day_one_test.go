@@ -13,6 +13,8 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
+
+	"github.com/openshift-online/ocm-common/pkg/aws/aws_client"
 )
 
 var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
@@ -418,46 +420,46 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 			}, "network address '11.19.1.0' isn't consistent with network prefix 15")
 
 			By("Create cluster with AZ and subnets not matching")
-			if len(vpcOutput.AZs) > 1 {
+			if len(vpcOutput.AvailabilityZones) > 1 {
 				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-					args.AWSAvailabilityZones = helper.StringSlicePointer([]string{vpcOutput.AZs[0]})
-					subnetIDs := []string{vpcOutput.ClusterPrivateSubnets[1]}
+					args.AWSAvailabilityZones = helper.StringSlicePointer([]string{vpcOutput.AvailabilityZones[0]})
+					subnetIDs := []string{vpcOutput.PrivateSubnets[1]}
 					if !*args.Private {
-						subnetIDs = append(subnetIDs, vpcOutput.ClusterPublicSubnets[1])
+						subnetIDs = append(subnetIDs, vpcOutput.PublicSubnets[1])
 					}
 					args.AWSSubnetIDs = helper.StringSlicePointer(subnetIDs)
 				}, "does not belong to any of the provided zones. Provide a new subnet ID and try again.")
 			} else {
-				Logger.Infof("Not enough AZ to test this. Need at least 2 but found only %v", len(vpcOutput.AZs))
+				Logger.Infof("Not enough AZ to test this. Need at least 2 but found only %v", len(vpcOutput.AvailabilityZones))
 			}
 
 			By("Create cluster with more AZ than corresponding subnets")
-			if len(vpcOutput.AZs) > 1 {
+			if len(vpcOutput.AvailabilityZones) > 1 {
 				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-					args.AWSAvailabilityZones = helper.StringSlicePointer([]string{vpcOutput.AZs[0], vpcOutput.AZs[1]})
-					subnetIDs := []string{vpcOutput.ClusterPrivateSubnets[1]}
+					args.AWSAvailabilityZones = helper.StringSlicePointer([]string{vpcOutput.AvailabilityZones[0], vpcOutput.AvailabilityZones[1]})
+					subnetIDs := []string{vpcOutput.PrivateSubnets[1]}
 					if !*args.Private {
-						subnetIDs = append(subnetIDs, vpcOutput.ClusterPublicSubnets[1])
+						subnetIDs = append(subnetIDs, vpcOutput.PublicSubnets[1])
 					}
 					args.AWSSubnetIDs = helper.StringSlicePointer(subnetIDs)
 				}, "1 private subnet is required per zone")
 			} else {
-				Logger.Infof("Not enough AZ to test this. Need at least 2 but found only %v", len(vpcOutput.AZs))
+				Logger.Infof("Not enough AZ to test this. Need at least 2 but found only %v", len(vpcOutput.AvailabilityZones))
 			}
 
 			By("Create cluster multiAZ with 3 private subnets and no replicas defined")
-			if len(vpcOutput.AZs) > 2 {
+			if len(vpcOutput.AvailabilityZones) > 2 {
 				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 					args.Replicas = helper.IntPointer(2)
-					args.AWSAvailabilityZones = helper.StringSlicePointer([]string{vpcOutput.AZs[0], vpcOutput.AZs[1], vpcOutput.AZs[2]})
-					subnetIDs := []string{vpcOutput.ClusterPrivateSubnets[0], vpcOutput.ClusterPrivateSubnets[1], vpcOutput.ClusterPrivateSubnets[2]}
+					args.AWSAvailabilityZones = helper.StringSlicePointer([]string{vpcOutput.AvailabilityZones[0], vpcOutput.AvailabilityZones[1], vpcOutput.AvailabilityZones[2]})
+					subnetIDs := []string{vpcOutput.PrivateSubnets[0], vpcOutput.PrivateSubnets[1], vpcOutput.PrivateSubnets[2]}
 					if !*args.Private {
-						subnetIDs = append(subnetIDs, vpcOutput.ClusterPublicSubnets[1])
+						subnetIDs = append(subnetIDs, vpcOutput.PublicSubnets[1])
 					}
 					args.AWSSubnetIDs = helper.StringSlicePointer(subnetIDs)
 				}, "Hosted clusters require that the compute nodes be a multiple of the private subnets 3")
 			} else {
-				Logger.Infof("Not enough AZ to test this. Need at least 3 but found only %v", len(vpcOutput.AZs))
+				Logger.Infof("Not enough AZ to test this. Need at least 3 but found only %v", len(vpcOutput.AvailabilityZones))
 			}
 
 			By("Create service with unsupported host prefix")
@@ -465,31 +467,66 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 				args.HostPrefix = helper.IntPointer(22)
 			}, "Invalid Network Host Prefix '22': Subnet length should be between '23' and '26")
 
-			By("Remove Subnet tagging")
-			vpcArgs, err := vpcService.ReadTFVars()
-			Expect(err).ToNot(HaveOccurred())
+			By("Remove Subnets tagging")
+			privateSubnetMandatoryTag := "kubernetes.io/role/internal-elb"
+			publicSubnetMandatoryTag := "kubernetes.io/role/elb"
+			awsClient, err := aws_client.CreateAWSClient("", "")
+			Expect(err).To(BeNil())
+			originalPublicSubnetsDetails, err := awsClient.ListSubnetDetail(vpcOutput.PublicSubnets...)
+			Expect(err).To(BeNil())
+			originalPrivateSubnetsDetails, err := awsClient.ListSubnetDetail(vpcOutput.PrivateSubnets...)
+			Expect(err).To(BeNil())
 			defer func() {
-				By("Restore Subnet tagging")
-				vpcArgs.DisableSubnetTagging = helper.BoolPointer(false)
-				_, err = vpcService.Apply(vpcArgs)
-				Expect(err).ToNot(HaveOccurred())
+				for _, subnet := range originalPrivateSubnetsDetails {
+					for _, tag := range subnet.Tags {
+						if tag.Key == &privateSubnetMandatoryTag {
+							tagMap := map[string]string{}
+							tagMap[*tag.Key] = *tag.Value
+							_, err = awsClient.TagResource(*subnet.SubnetId, tagMap)
+							Expect(err).ToNot(HaveOccurred())
+						}
+					}
+				}
+				for _, subnet := range originalPublicSubnetsDetails {
+					for _, tag := range subnet.Tags {
+						if tag.Key == &publicSubnetMandatoryTag {
+							tagMap := map[string]string{}
+							tagMap[*tag.Key] = *tag.Value
+							_, err = awsClient.TagResource(*subnet.SubnetId, tagMap)
+							Expect(err).ToNot(HaveOccurred())
+						}
+					}
+				}
 			}()
-			vpcArgs.DisableSubnetTagging = helper.BoolPointer(true)
-			_, err = vpcService.Apply(vpcArgs)
-			Expect(err).ToNot(HaveOccurred())
+			for _, subnet := range originalPrivateSubnetsDetails {
+				for _, tag := range subnet.Tags {
+					if tag.Key == &privateSubnetMandatoryTag {
+						_, err = awsClient.RemoveResourceTag(*subnet.SubnetId, *tag.Key, *tag.Value)
+						Expect(err).ToNot(HaveOccurred())
+					}
+				}
+			}
+			for _, subnet := range originalPublicSubnetsDetails {
+				for _, tag := range subnet.Tags {
+					if tag.Key == &publicSubnetMandatoryTag {
+						_, err = awsClient.RemoveResourceTag(*subnet.SubnetId, *tag.Key, *tag.Value)
+						Expect(err).ToNot(HaveOccurred())
+					}
+				}
+			}
 
 			By("Create public cluster with public subnets without elb tag")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.Private = helper.BoolPointer(false)
-				subnetIDs := append(*args.AWSSubnetIDs, vpcOutput.ClusterPublicSubnets[0])
+				subnetIDs := append(*args.AWSSubnetIDs, vpcOutput.PublicSubnets[0])
 				args.AWSSubnetIDs = helper.StringSlicePointer(subnetIDs)
 			}, "The VPC needs to contain a public subnet with the tag 'kubernetes.io/role/elb'")
 
 			By("Create private cluster with private subnets without internal-elb tag")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.Private = helper.BoolPointer(true)
-				args.AWSSubnetIDs = helper.StringSlicePointer(vpcOutput.ClusterPrivateSubnets)
-				args.AWSAvailabilityZones = helper.StringSlicePointer(vpcOutput.AZs)
+				args.AWSSubnetIDs = helper.StringSlicePointer(vpcOutput.PrivateSubnets)
+				args.AWSAvailabilityZones = helper.StringSlicePointer(vpcOutput.AvailabilityZones)
 			}, "The VPC needs to contain a private subnet with the tag 'kubernetes.io/role/internal-elb'")
 		})
 

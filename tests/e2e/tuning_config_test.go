@@ -266,7 +266,7 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 		replicas := 3
 		machineType := "m5.2xlarge"
 		name := helper.GenerateRandomName("np-72522", 2)
-		subnetId := vpcOutput.ClusterPrivateSubnets[0]
+		subnetId := vpcOutput.PrivateSubnets[0]
 		tuningConfigs := []string{tcName}
 		mpArgs := &exec.MachinePoolArgs{
 			Cluster:            helper.StringPointer(clusterID),

@@ -151,9 +151,8 @@ var _ = Describe("Create Account roles with shared vpc role", ci.Exclude, func()
 		By("Create shared vpc role")
 		clusterName := "OCP-67574"
 		vpcArgs := &exec.VPCArgs{
-			Name:                      helper.StringPointer(clusterName),
+			NamePrefix:                helper.StringPointer(clusterName),
 			AWSRegion:                 helper.StringPointer(profile.Region),
-			MultiAZ:                   helper.BoolPointer(profile.MultiAZ),
 			VPCCIDR:                   helper.StringPointer(constants.DefaultVPCCIDR),
 			AWSSharedCredentialsFiles: helper.StringSlicePointer([]string{constants.SharedVpcAWSSharedCredentialsFileENV}),
 		}
@@ -170,7 +169,7 @@ var _ = Describe("Create Account roles with shared vpc role", ci.Exclude, func()
 			InstallerRoleArn:                   helper.StringPointer(accRoleOutput.InstallerRoleArn),
 			ClusterAWSAccount:                  helper.StringPointer(accRoleOutput.AWSAccountId),
 			VpcId:                              helper.StringPointer(vpcOutput.VPCID),
-			Subnets:                            helper.StringSlicePointer(vpcOutput.ClusterPrivateSubnets),
+			Subnets:                            helper.StringSlicePointer(vpcOutput.PrivateSubnets),
 		}
 		_, err = sharedVPCService.Apply(sharedVPCArgs)
 		Expect(err).ToNot(HaveOccurred())

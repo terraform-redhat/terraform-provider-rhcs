@@ -79,7 +79,6 @@ func PrepareVPC(region string, multiZone bool, azIDs []string, clusterType const
 	}
 	vpcArgs := &exec.VPCArgs{
 		AWSRegion: helper.StringPointer(region),
-		MultiAZ:   helper.BoolPointer(multiZone),
 		VPCCIDR:   helper.StringPointer(constants.DefaultVPCCIDR),
 	}
 
@@ -92,10 +91,16 @@ func PrepareVPC(region string, multiZone bool, azIDs []string, clusterType const
 				turnedZoneIDs = append(turnedZoneIDs, region+zone)
 			}
 		}
-		vpcArgs.AZIDs = helper.StringSlicePointer(turnedZoneIDs)
+		vpcArgs.AvailabilityZones = helper.StringSlicePointer(turnedZoneIDs)
+	} else {
+		azCount := 1
+		if multiZone {
+			azCount = 3
+		}
+		vpcArgs.AvailabilityZonesCount = helper.IntPointer(azCount)
 	}
 	if name != "" {
-		vpcArgs.Name = helper.StringPointer(name)
+		vpcArgs.NamePrefix = helper.StringPointer(name)
 	}
 
 	if sharedVpcAWSSharedCredentialsFile != "" {
@@ -536,7 +541,7 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 				return
 			}
 
-			if vpcOutput.ClusterPrivateSubnets == nil {
+			if vpcOutput.PrivateSubnets == nil {
 				err = fmt.Errorf("error when creating the vpc, check the previous log. The created resources had been destroyed")
 				return
 			}
@@ -544,11 +549,11 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 				clusterArgs.Private = helper.BoolPointer(profile.Private)
 				clusterArgs.PrivateLink = helper.BoolPointer(profile.PrivateLink)
 				if profile.IsPrivateLink() {
-					clusterArgs.AWSSubnetIDs = &vpcOutput.ClusterPrivateSubnets
+					clusterArgs.AWSSubnetIDs = &vpcOutput.PrivateSubnets
 				}
 			} else {
-				subnetIDs := vpcOutput.ClusterPrivateSubnets
-				subnetIDs = append(subnetIDs, vpcOutput.ClusterPublicSubnets...)
+				subnetIDs := vpcOutput.PrivateSubnets
+				subnetIDs = append(subnetIDs, vpcOutput.PublicSubnets...)
 				clusterArgs.AWSSubnetIDs = &subnetIDs
 			}
 
@@ -584,7 +589,7 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 				}
 				clusterArgs.PrivateHostedZone = &private_hosted_zone
 			}
-			clusterArgs.AWSAvailabilityZones = &vpcOutput.AZs
+			clusterArgs.AWSAvailabilityZones = &vpcOutput.AvailabilityZones
 
 			clusterArgs.MachineCIDR = helper.StringPointer(vpcOutput.VPCCIDR)
 			if profile.AdditionalSGNumber != 0 {
@@ -601,7 +606,7 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 			// in case Proxy is enabled
 			if profile.Proxy {
 				var proxyOutput *exec.ProxyOutput
-				proxyOutput, err = PrepareProxy(profile.Region, vpcOutput.VPCID, vpcOutput.ClusterPublicSubnets[0], *clusterArgs.ClusterName)
+				proxyOutput, err = PrepareProxy(profile.Region, vpcOutput.VPCID, vpcOutput.PublicSubnets[0], *clusterArgs.ClusterName)
 				if err != nil {
 					return
 				}

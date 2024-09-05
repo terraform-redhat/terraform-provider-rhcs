@@ -54,7 +54,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 	getDefaultMPArgs := func(name string) *exec.MachinePoolArgs {
 		replicas := 2
 		machineType := "m5.2xlarge"
-		subnetId := vpcOutput.ClusterPrivateSubnets[0]
+		subnetId := vpcOutput.PrivateSubnets[0]
 		return &exec.MachinePoolArgs{
 			Cluster:            helper.StringPointer(clusterID),
 			AutoscalingEnabled: helper.BoolPointer(false),
@@ -86,7 +86,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			replicas := 3
 			machineType := "m5.2xlarge"
 			name := helper.GenerateRandomName("np-72504", 2)
-			subnetId := vpcOutput.ClusterPrivateSubnets[0]
+			subnetId := vpcOutput.PrivateSubnets[0]
 			mpArgs := &exec.MachinePoolArgs{
 				Cluster:            helper.StringPointer(clusterID),
 				AutoscalingEnabled: helper.BoolPointer(false),
@@ -138,7 +138,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			replicas := 3
 			machineType := "m5.xlarge"
 			name := helper.GenerateRandomName("np-72505", 2)
-			subnetId := vpcOutput.ClusterPrivateSubnets[0]
+			subnetId := vpcOutput.PrivateSubnets[0]
 
 			By("Create machinepool")
 			mpArgs := &exec.MachinePoolArgs{
@@ -264,7 +264,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 				AdditionalSecurityGroups: helper.StringSlicePointer(output.SGIDs),
 				AutoscalingEnabled:       helper.BoolPointer(false),
 				AutoRepair:               helper.BoolPointer(false),
-				SubnetID:                 helper.StringPointer(vpcOutput.ClusterPrivateSubnets[0]),
+				SubnetID:                 helper.StringPointer(vpcOutput.PrivateSubnets[0]),
 			}
 			_, err = mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())
@@ -325,7 +325,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 				AdditionalSecurityGroups: helper.StringSlicePointer(fakeSgIDs),
 				AutoscalingEnabled:       helper.BoolPointer(false),
 				AutoRepair:               helper.BoolPointer(false),
-				SubnetID:                 helper.StringPointer(vpcOutput.ClusterPrivateSubnets[0]),
+				SubnetID:                 helper.StringPointer(vpcOutput.PrivateSubnets[0]),
 			}
 			output, err := mpService.Apply(mpArgs)
 			Expect(err).To(HaveOccurred())
@@ -351,7 +351,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			replicas := 3
 			machineType := "m5.xlarge"
 			name := helper.GenerateRandomName("np-72507", 2)
-			subnetId := vpcOutput.ClusterPrivateSubnets[0]
+			subnetId := vpcOutput.PrivateSubnets[0]
 			labels := map[string]string{
 				"l1": "v1",
 				"l2": "v2",
@@ -422,7 +422,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		ci.High, func() {
 			replicas := 3
 			machineType := "m5.2xlarge"
-			subnetId := vpcOutput.ClusterPrivateSubnets[0]
+			subnetId := vpcOutput.PrivateSubnets[0]
 			mpArgs := &exec.MachinePoolArgs{
 				Cluster:            helper.StringPointer(clusterID),
 				AutoscalingEnabled: helper.BoolPointer(false),
@@ -503,7 +503,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			replicas := 3
 			machineType := "m5.2xlarge"
 			name := helper.GenerateRandomName("np-72510", 2)
-			subnetId := vpcOutput.ClusterPrivateSubnets[0]
+			subnetId := vpcOutput.PrivateSubnets[0]
 			tags := map[string]string{
 				"aaa": "bbb",
 				"ccc": "ddd",
@@ -581,7 +581,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			replicas := 3
 			machineType := "m5.2xlarge"
 			name := helper.GenerateRandomName("np-72508", 2)
-			subnetId := vpcOutput.ClusterPrivateSubnets[0]
+			subnetId := vpcOutput.PrivateSubnets[0]
 			tuningconfigs = append(tuningconfigs, createdTuningConfigs...)
 			mpArgs := &exec.MachinePoolArgs{
 				Cluster:            helper.StringPointer(clusterID),
@@ -646,7 +646,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			replicas := 1
 			machineType := "m5.2xlarge"
 			name := helper.GenerateRandomName("np-72504", 2)
-			subnetId := vpcOutput.ClusterPrivateSubnets[0]
+			subnetId := vpcOutput.PrivateSubnets[0]
 			mpArgs := &exec.MachinePoolArgs{
 				Cluster:            &clusterID,
 				AutoscalingEnabled: helper.BoolPointer(false),
@@ -694,7 +694,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 			replicas := 3
 			machineType := "m5.xlarge"
-			subnetId := vpcOutput.ClusterPrivateSubnets[0]
+			subnetId := vpcOutput.PrivateSubnets[0]
 
 			for _, imdsv2Value := range imdsv2Values {
 				By("Create a machinepool with --ec2-metadata-http-tokens = " + imdsv2Value)
@@ -729,7 +729,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			replicas := 3
 			machineType := "m5.2xlarge"
 			name := helper.GenerateRandomName("np-72954", 2)
-			subnetId := vpcOutput.ClusterPrivateSubnets[0]
+			subnetId := vpcOutput.PrivateSubnets[0]
 			mpArgs := &exec.MachinePoolArgs{
 				Count:              helper.IntPointer(mpCount),
 				Cluster:            helper.StringPointer(clusterID),
@@ -1041,7 +1041,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			replicas := 2
 			machineType := "m5.2xlarge"
 			name := helper.GenerateRandomName("ocp-72960", 2)
-			subnetId := vpcOutput.ClusterPrivateSubnets[0]
+			subnetId := vpcOutput.PrivateSubnets[0]
 			tags := map[string]string{"foo1": "bar1"}
 			mpArgs := &exec.MachinePoolArgs{
 				Cluster:            helper.StringPointer(clusterID),

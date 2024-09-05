@@ -435,7 +435,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		tagValue := "shared"
 		VPCTagArgs := &exec.VPCTagArgs{
 			AWSRegion: helper.StringPointer(clusterResp.Body().Region().ID()),
-			IDs:       helper.StringSlicePointer(vpcOutput.ClusterPrivateSubnets),
+			IDs:       helper.StringSlicePointer(vpcOutput.PrivateSubnets),
 			TagKey:    helper.StringPointer(tagKey),
 			TagValue:  helper.StringPointer(tagValue),
 		}
@@ -446,7 +446,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		replicas := 1
 		machineType := "r5.xlarge"
 		name := "ocp-65071"
-		newZonePrivateSubnet := vpcOutput.ClusterPrivateSubnets[2]
+		newZonePrivateSubnet := vpcOutput.PrivateSubnets[2]
 		mpArgs := &exec.MachinePoolArgs{
 			Cluster:     helper.StringPointer(clusterID),
 			Replicas:    helper.IntPointer(replicas),

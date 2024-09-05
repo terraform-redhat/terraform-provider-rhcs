@@ -5,22 +5,21 @@ import (
 )
 
 type VPCArgs struct {
-	Name                      *string   `hcl:"name"`
-	AWSRegion                 *string   `hcl:"aws_region"`
-	VPCCIDR                   *string   `hcl:"vpc_cidr"`
-	EnableNatGateway          *bool     `hcl:"enable_nat_gateway"`
-	MultiAZ                   *bool     `hcl:"multi_az"`
-	AZIDs                     *[]string `hcl:"az_ids"`
-	AWSSharedCredentialsFiles *[]string `hcl:"aws_shared_credentials_files"`
-	DisableSubnetTagging      *bool     `hcl:"disable_subnet_tagging"`
+	AWSRegion                 *string            `hcl:"aws_region"`
+	AWSSharedCredentialsFiles *[]string          `hcl:"aws_shared_credentials_files"`
+	NamePrefix                *string            `hcl:"name_prefix"`
+	VPCCIDR                   *string            `hcl:"vpc_cidr"`
+	AvailabilityZones         *[]string          `hcl:"availability_zones"`
+	AvailabilityZonesCount    *int               `hcl:"availability_zones_count"`
+	Tags                      *map[string]string `hcl:"tags"`
 }
 
 type VPCOutput struct {
-	ClusterPublicSubnets  []string `json:"cluster_public_subnet,omitempty"`
-	ClusterPrivateSubnets []string `json:"cluster_private_subnet,omitempty"`
-	VPCCIDR               string   `json:"vpc_cidr,omitempty"`
-	AZs                   []string `json:"azs,omitempty"`
-	VPCID                 string   `json:"vpc_id,omitempty"`
+	PrivateSubnets    []string `json:"private_subnets,omitempty"`
+	PublicSubnets     []string `json:"public_subnets,omitempty"`
+	AvailabilityZones []string `json:"availability_zones,omitempty"`
+	VPCID             string   `json:"vpc_id,omitempty"`
+	VPCCIDR           string   `json:"vpc_cidr,omitempty"`
 }
 type VPCService interface {
 	Init() error

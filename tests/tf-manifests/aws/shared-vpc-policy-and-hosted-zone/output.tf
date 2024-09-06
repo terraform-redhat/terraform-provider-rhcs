@@ -12,3 +12,7 @@ output "shared_subnets" {
   description = "The Amazon Resource Names (ARN) of the resource share"
   value       = module.shared_vpc_policy_and_hosted_zone.shared_subnets
 }
+
+output "azs" {
+  value = distinct(values(data.aws_subnet.shared_subnets)[*].availability_zone)
+}

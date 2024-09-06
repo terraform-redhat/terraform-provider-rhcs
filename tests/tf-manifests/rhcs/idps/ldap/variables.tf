@@ -18,8 +18,8 @@ variable "bind_dn" {
 }
 
 variable "bind_password" {
-  type    = string
-  default = null
+  type      = string
+  default   = null
   sensitive = true
 }
 

@@ -588,8 +588,14 @@ func GenerateClusterCreationArgsByProfile(token string, profile *Profile) (clust
 					RoleArn: sharedVpcPolicyAndHostedZoneOutput.SharedRole,
 				}
 				clusterArgs.PrivateHostedZone = &private_hosted_zone
+				/*
+					The AZ us-east-1a for VPC-account might not have the same location as us-east-1a for Cluster-account.
+					For AZs which will be used in cluster configuration, the values should be the ones in Cluster-account.
+				*/
+				clusterArgs.AWSAvailabilityZones = &sharedVpcPolicyAndHostedZoneOutput.AvailabilityZones
+			} else {
+				clusterArgs.AWSAvailabilityZones = &vpcOutput.AvailabilityZones
 			}
-			clusterArgs.AWSAvailabilityZones = &vpcOutput.AvailabilityZones
 
 			clusterArgs.MachineCIDR = helper.StringPointer(vpcOutput.VPCCIDR)
 			if profile.AdditionalSGNumber != 0 {

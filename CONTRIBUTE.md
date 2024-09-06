@@ -21,12 +21,13 @@ Code contributions are done by opening a pull request (PR). Please be sure that 
 * [golang](https://go.dev/) - version 1.21.x (to build the provider plugin)
   - You also need to correctly setup a `GOPATH`, as well as adding `$GOPATH/bin` to your `$PATH`.
   - Fork and clone the repository to `$GOPATH/src/github.com/hashicorp/terraform-provider-rhcs` by the `git clone` command
-  - Create a new branch `git switch -c <brnach-name>`
+  - Create a new branch `git switch -c <branch-name>`
   - Run `go mod download` to download all the modules in the dependency graph.
   - Try building the project by running `make build`
 
 ### 3. Make your changes with a Coding Style
-Use `gofmt` in order to format your code.
+Use `gofmt` in order to format your code. You can invoke the formatting before committing with `make fmt`.
+
 Keep the code clean and readable. Functions should be concise, exit the function as early as possible.
 Best coding standards for golang can be found [here](https://go.dev/doc/effective_go).
 
@@ -38,7 +39,7 @@ We are holding three types of tests that must pass for a PR to finally be accept
 Both `unit-tests` and `subsystem`, can be run locally before submitting a PR, by running `make tests`.
 
 ### 5. Manual testing and debugging using the locally compiled RHCS Provider binary
-Manual testing should be performed before opening a PR in order to make sure there isn't any regression behavior in the provider. You can find [here an example for that](https://github.com/terraform-redhat/terraform-rhcs-rosa/tree/main/examples/rosa-classic-with-unmanaged-oidc)  
+Manual testing should be performed before opening a PR in order to make sure there isn't any regression behavior in the provider. You can find [here an example for that](https://github.com/terraform-redhat/terraform-rhcs-rosa/tree/main/examples/rosa-classic-public-with-unmanaged-oidc) 
 After compiling the RHCS provider, debugging terraform provider can be difficult. But here are a some tips to make your life easier.
 
 First, Make sure you are using your local build of the provider. `make install` will compile the project and place the binary in the local `~/.terraform/` folder.
@@ -91,8 +92,9 @@ Types other than `fix:` and `feat:` are allowed:
 
 ## Related Documentation Links
 * [RHCS rosa module](https://github.com/terraform-redhat/terraform-rhcs-rosa) - for creating ROSA clusters much more easily.
+* [RHCS rosa HCP module](https://github.com/terraform-redhat/terraform-rhcs-rosa-hcp/) -  for creating ROSA HCP clusters much more easily.
 * [ROSA project](https://docs.openshift.com/rosa/welcome/index.html) - RedHat Openshift Service on AWS (ROSA)
-* [OpenShift Cluster Management API](https://api.openshift.com/) - Since the RHCS provider uses OpenShift API's.
+* [OpenShift Cluster Management API](https://api.openshift.com/) - Since the RHCS provider uses OpenShift APIs.
 * [Terraform Plugin Framework](https://developer.hashicorp.com/terraform/plugin/framework) documentation. RHCS provider is leveraging this framework heavily.
-* [Debugging Terraform](https://developer.hashicorp.com/terraform/internals/debugging) - More info aboout Terraform Logging and Debugging
+* [Debugging Terraform](https://developer.hashicorp.com/terraform/internals/debugging) - More info about Terraform Logging and Debugging
 * [Terraform Language Documentation](https://developer.hashicorp.com/terraform/language) - Information about Terraform (resources and data sources for example) can be found in the

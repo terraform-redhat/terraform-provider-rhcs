@@ -79,7 +79,7 @@ func (r *ClusterAutoscalerResource) Schema(ctx context.Context, req resource.Sch
 			"max_node_provision_time": schema.StringAttribute{
 				Description: "Maximum time cluster-autoscaler waits for node to be provisioned.",
 				Optional:    true,
-				Validators:  []validator.String{autoscaler.DurationStringValidator("max node provision time validation")},
+				Validators:  []validator.String{autoscaler.PositiveDurationStringValidator("max node provision time validation")},
 			},
 			"resource_limits": schema.SingleNestedAttribute{
 				Description: "Constraints of autoscaling resources.",

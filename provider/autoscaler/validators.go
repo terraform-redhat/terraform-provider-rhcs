@@ -95,7 +95,7 @@ func RangeValidator(desc string) validator.Object {
 		})
 }
 
-func DurationStringValidator(desc string) validator.String {
+func PositiveDurationStringValidator(desc string) validator.String {
 	return attrvalidators.NewStringValidator(desc, func(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
 		attribute := &types.String{}
 		diag := req.Config.GetAttribute(ctx, req.Path, attribute)
@@ -110,13 +110,24 @@ func DurationStringValidator(desc string) validator.String {
 			return
 		}
 
-		if _, err := time.ParseDuration(attribute.ValueString()); err != nil {
+		duration, err := time.ParseDuration(attribute.ValueString())
+		if err != nil {
 			resp.Diagnostics.AddAttributeError(
 				req.Path,
 				"Value cannot be parsed to a duration string",
 				fmt.Sprintf("Value '%s' cannot be parsed to a duration string. A duration "+
 					"string is a sequence of decimal numbers and a time unit suffix such as \"300m\", "+
 					"\"1.5h\" or \"2h45m\"",
+					attribute.ValueString()),
+			)
+			return
+		}
+
+		if duration < 0 {
+			resp.Diagnostics.AddAttributeError(
+				req.Path,
+				"Invalid positive duration",
+				fmt.Sprintf("Only positive durations are allowed, got '%v'",
 					attribute.ValueString()),
 			)
 			return

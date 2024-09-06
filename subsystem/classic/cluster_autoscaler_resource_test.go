@@ -83,6 +83,18 @@ var _ = Describe("Cluster Autoscaler", func() {
 			runOutput.VerifyErrorContainsSubstring(`Value '1' cannot be parsed to a duration string`)
 		})
 
+		It("fails if given a negative duration string", func() {
+			Terraform.Source(`
+				resource "rhcs_cluster_autoscaler" "cluster_autoscaler" {
+					cluster = "123"
+					max_node_provision_time = "-1h"
+				}
+			`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring(`Only positive durations are allowed, got '-1h'`)
+		})
+
 		It("fails to find a matching cluster object", func() {
 			TestServer.AppendHandlers(
 				CombineHandlers(

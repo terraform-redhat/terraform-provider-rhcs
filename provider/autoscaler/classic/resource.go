@@ -107,7 +107,7 @@ func (r *ClusterAutoscalerResource) Schema(ctx context.Context, req resource.Sch
 			"max_node_provision_time": schema.StringAttribute{
 				Description: "Maximum time cluster-autoscaler waits for node to be provisioned.",
 				Optional:    true,
-				Validators:  []validator.String{autoscaler.DurationStringValidator("max node provision time validation")},
+				Validators:  []validator.String{autoscaler.PositiveDurationStringValidator("max node provision time validation")},
 			},
 			"balancing_ignored_labels": schema.ListAttribute{
 				Description: "This option specifies labels that cluster autoscaler should ignore when " +
@@ -174,17 +174,17 @@ func (r *ClusterAutoscalerResource) Schema(ctx context.Context, req resource.Sch
 					"delay_after_add": schema.StringAttribute{
 						Description: "How long after scale up that scale down evaluation resumes.",
 						Optional:    true,
-						Validators:  []validator.String{autoscaler.DurationStringValidator("delay after add validation")},
+						Validators:  []validator.String{autoscaler.PositiveDurationStringValidator("delay after add validation")},
 					},
 					"delay_after_delete": schema.StringAttribute{
 						Description: "How long after node deletion that scale down evaluation resumes.",
 						Optional:    true,
-						Validators:  []validator.String{autoscaler.DurationStringValidator("delay after delete validation")},
+						Validators:  []validator.String{autoscaler.PositiveDurationStringValidator("delay after delete validation")},
 					},
 					"delay_after_failure": schema.StringAttribute{
 						Description: "How long after scale down failure that scale down evaluation resumes.",
 						Optional:    true,
-						Validators:  []validator.String{autoscaler.DurationStringValidator("delay after failure validation")},
+						Validators:  []validator.String{autoscaler.PositiveDurationStringValidator("delay after failure validation")},
 					},
 				},
 			},

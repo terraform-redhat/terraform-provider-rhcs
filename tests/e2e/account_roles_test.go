@@ -43,7 +43,7 @@ var _ = Describe("Edit Account roles", func() {
 		Expect(err).ToNot(HaveOccurred())
 		accRoleOutput, err := accService.Output()
 		Expect(err).ToNot(HaveOccurred())
-		Expect(accRoleOutput.AccountRolePrefix).ToNot(BeEmpty())
+		Expect(accRoleOutput.AccountRolePrefix).To(BeEmpty())
 
 		By("Create account roles with no prefix defined")
 		args = &exec.AccountRolesArgs{

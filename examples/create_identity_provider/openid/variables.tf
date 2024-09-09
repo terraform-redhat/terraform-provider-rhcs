@@ -23,6 +23,7 @@ variable "openid_client_id" {
 variable "openid_client_secret" {
   type        = string
   description = "Client Secret from the registered application."
+  sensitive   = true
 }
 variable "openid_issuer" {
   type        = string

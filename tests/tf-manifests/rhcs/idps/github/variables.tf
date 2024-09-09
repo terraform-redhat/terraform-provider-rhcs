@@ -11,6 +11,7 @@ variable "client_id" {
 variable "client_secret" {
   type        = string
   description = "GitHub client secret"
+  sensitive   = true
 }
 variable "mapping_method" {
   type    = string

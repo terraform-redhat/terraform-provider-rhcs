@@ -23,6 +23,7 @@ variable "github_client_id" {
 variable "github_client_secret" {
   type        = string
   description = "GitHub client secret"
+  sensitive   = true
 }
 variable "github_org" {
   type        = string

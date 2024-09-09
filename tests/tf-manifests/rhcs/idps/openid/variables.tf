@@ -42,6 +42,7 @@ variable "client_id" {
 }
 
 variable "client_secret" {
-  type    = string
-  default = null
+  type      = string
+  default   = null
+  sensitive = true
 }

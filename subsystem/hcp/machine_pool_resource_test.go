@@ -1475,7 +1475,10 @@ var _ = Describe("Hcp Machine pool", func() {
 				  "replicas": 12,
 				  "aws_node_pool": {
 					"instance_type": "r5.xlarge",
-					"instance_profile": "bla"
+					"instance_profile": "bla",
+					"tags": {
+						"cluster-tag": "cluster-value"
+					}
 				  },
 				  "auto_repair": true,
 				  "version": {

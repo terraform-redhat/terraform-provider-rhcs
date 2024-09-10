@@ -1140,7 +1140,6 @@ func populateState(ctx context.Context, object *cmv1.NodePool, state *HcpMachine
 			if err != nil {
 				return err
 			}
-			state.AWSNodePool.Tags = types.MapNull(types.StringType)
 			if len(filteredAwsTags) > 0 {
 				mapValue, err := common.ConvertStringMapToMapType(filteredAwsTags)
 				if err != nil {

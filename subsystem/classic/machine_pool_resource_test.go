@@ -1715,7 +1715,12 @@ var _ = Describe("Classic Machine Pool", func() {
 					  "replicas": 3,
 					  "availability_zones": [
 						"us-east-1a"
-					  ]
+					  ],
+					  "aws": {
+					     "tags": {
+							"cluster-tag": "cluster-value"
+						}
+					  }
 					}`),
 				),
 			)

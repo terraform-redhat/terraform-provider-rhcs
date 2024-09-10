@@ -1096,8 +1096,6 @@ func populateState(ctx context.Context, object *cmv1.MachinePool, state *Machine
 			if err != nil {
 				return err
 			}
-		} else {
-			state.AwsTags = types.MapNull(types.StringType)
 		}
 	}
 

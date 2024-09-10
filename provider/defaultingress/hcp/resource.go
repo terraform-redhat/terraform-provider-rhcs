@@ -211,7 +211,7 @@ func (r *DefaultIngressResource) Delete(ctx context.Context, req resource.Delete
 		"Cannot delete default ingress",
 		fmt.Sprintf(
 			"Cannot delete default ingress for cluster '%s'. "+
-				"ROSA Classic clusters must have default ingress. "+
+				"ROSA HCP clusters must have default ingress. "+
 				"It is being removed from the Terraform state only. "+
 				"To resume managing default ingress, import it again. "+
 				"It will be automatically deleted when the cluster is deleted.",

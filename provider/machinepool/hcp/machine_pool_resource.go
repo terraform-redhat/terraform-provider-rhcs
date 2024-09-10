@@ -1065,7 +1065,7 @@ func (r *HcpMachinePoolResource) Delete(ctx context.Context, req resource.Delete
 				"Cannot delete machine pool",
 				fmt.Sprintf(
 					"Cannot delete the last machine pool for cluster '%s'. "+
-						"ROSA Classic clusters must have at least one machine pool. "+
+						"ROSA HCP clusters must have at least one machine pool. "+
 						"It is being removed from the Terraform state only. "+
 						"To resume managing this machine pool, import it again. "+
 						"It will be automatically deleted when the cluster is deleted.",

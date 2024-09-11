@@ -23,6 +23,7 @@ variable "gitlab_client_id" {
 variable "gitlab_client_secret" {
   type        = string
   description = "GitLab client secret"
+  sensitive   = true
 }
 variable "gitlab_url" {
   type        = string

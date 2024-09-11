@@ -23,6 +23,7 @@ variable "google_client_id" {
 variable "google_client_secret" {
   type        = string
   description = "Google client secret"
+  sensitive   = true
 }
 variable "google_hosted_domain" {
   type        = string

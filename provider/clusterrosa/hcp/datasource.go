@@ -32,6 +32,7 @@ import (
 	rosaTypes "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common/types"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/registry_config"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
@@ -208,6 +209,11 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				Description: "This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the cluster." +
 					"This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). " + common.ValueCannotBeChangedStringDescription,
 				Computed: true,
+			},
+			"registry_config": schema.SingleNestedAttribute{
+				Description: "Registry configuration for this cluster.",
+				Attributes:  registry_config.RegistryConfigDatasource(),
+				Optional:    true,
 			},
 
 			// Deprecated Attributes:

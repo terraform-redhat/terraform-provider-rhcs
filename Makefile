@@ -78,6 +78,16 @@ unit-test:
 		-ldflags="$(ldflags)" \
 		-r provider internal/...
 
+.PHONY: unit-test-coverage
+unit-test-coverage:
+	ginkgo run \
+		--succinct \
+		--cover \
+		--coverprofile coverage.out \
+		-ldflags="$(ldflags)" \
+		-r provider internal/...
+
+
 .PHONY: test tests
 test tests: unit-test subsystem-test
 

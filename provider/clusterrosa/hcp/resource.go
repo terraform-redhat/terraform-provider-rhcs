@@ -29,6 +29,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	semver "github.com/hashicorp/go-version"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/registry_config"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -364,6 +365,11 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"registry_config": schema.SingleNestedAttribute{
+				Description: "Registry configuration for this cluster.",
+				Attributes:  registry_config.RegistryConfigResource(),
+				Optional:    true,
+			},
 		},
 	}
 }
@@ -544,6 +550,14 @@ func createHcpClusterObject(ctx context.Context,
 	}
 	if !network.Empty() {
 		builder.Network(network)
+	}
+
+	registryConfigBuilder, err := registry_config.CreateRegistryConfigBuilder(ctx, state.RegistryConfig)
+	if err != nil {
+		return nil, err
+	}
+	if !registryConfigBuilder.Empty() {
+		builder.RegistryConfig(registryConfigBuilder)
 	}
 
 	channelGroup := ocmConsts.DefaultChannelGroup
@@ -962,6 +976,19 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 
 	if toPatch, shouldPatch := common.ShouldPatchString(state.AWSBillingAccountID, plan.AWSBillingAccountID); shouldPatch {
 		clusterBuilder.AWS(cmv1.NewAWS().BillingAccountID(toPatch))
+	}
+
+	registryConfigBuilder, err := registry_config.UpdateRegistryConfigBuilder(ctx,
+		state.RegistryConfig, plan.RegistryConfig)
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't patch cluster",
+			fmt.Sprintf("Can't patch registry config for cluster with identifier: '%s', %v", state.ID.ValueString(), err),
+		)
+		return
+	}
+	if !registryConfigBuilder.Empty() {
+		clusterBuilder.RegistryConfig(registryConfigBuilder)
 	}
 
 	clusterSpec, err := clusterBuilder.Build()
@@ -1484,6 +1511,11 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 	state.CloudRegion = types.StringValue(object.Region().ID())
 	if state.AdminCredentials.IsUnknown() {
 		state.AdminCredentials = rosaTypes.AdminCredentialsNull()
+	}
+
+	err := registry_config.PopulateRegistryConfigState(object, state.RegistryConfig)
+	if err != nil {
+		return err
 	}
 
 	return nil

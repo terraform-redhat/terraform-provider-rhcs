@@ -12,3 +12,4 @@ terraform-provider-rhcs
 **/ginkgo.report
 /temp
 **/*.test
+coverage.out

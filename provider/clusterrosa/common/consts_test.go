@@ -26,6 +26,6 @@ var _ = Describe("User arn property test", func() {
 	})
 
 	It("user with path", func() {
-		Expect(UserArnRE.MatchString("arn:aws:iam::123456789012:user/path/dummy")).To(BeFalse())
+		Expect(UserArnRE.MatchString("arn:aws:iam::123456789012:user/path/dummy")).To(BeTrue())
 	})
 })

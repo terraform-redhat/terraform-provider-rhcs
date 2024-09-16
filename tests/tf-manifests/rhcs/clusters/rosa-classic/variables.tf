@@ -162,7 +162,7 @@ variable "admin_credentials" {
   description = "Admin user and password"
   type        = map(string)
   default     = null
-
+  sensitive = true
 }
 
 variable "worker_disk_size" {

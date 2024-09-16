@@ -15,4 +15,5 @@ variable "htpasswd_users" {
     password = string
   }))
   description = "htpasswd user list"
+  sensitive = true
 }

@@ -2103,6 +2103,106 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.instance_type", "r5.xlarge"))
 			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.ec2_metadata_http_tokens`, "optional"))
 		})
+
+		It("Can create machine pool with custom disk size set and cannot edit", func() {
+			// Prepare the server:
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools",
+					),
+					RespondWithJSON(http.StatusCreated, `{
+					"id":"my-pool",
+					"aws_node_pool":{
+					   "instance_type":"r5.xlarge",
+					   "instance_profile": "bla",
+					   "root_volume": {
+							"size": 400
+					   }
+					},
+					"auto_repair": true,
+					"replicas":2,
+					"subnet":"id-1",
+					"availability_zone":"us-east-1a",
+					"version": {
+						"raw_id": "4.14.10"
+					}
+				}`),
+				),
+			)
+
+			// Run the apply command:
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge",
+					disk_size = 400,
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 2
+				auto_repair = true
+				version = "4.14.10"
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// Check the state:
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
+			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
+			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.instance_type", "r5.xlarge"))
+			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.disk_size`, 400.0))
+
+			prepareClusterRead("123")
+			TestServer.AppendHandlers(
+				// First get is for the Read function
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
+					RespondWithJSON(http.StatusOK, `
+				{
+				  "id": "my-pool",
+				  "kind": "MachinePool",
+				  "href": "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+	              "replicas": 2,
+				  "availability_zone": "us-east-1a",
+				  "aws_node_pool": {
+					"instance_type": "r5.xlarge",
+					disk_size = 256
+				  },
+				  "auto_repair": true,
+				  "version": {
+					  "raw_id": "4.14.10"
+				  },
+				  "subnet": "id-1"
+				}`),
+				),
+			)
+			// Run the apply command:
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge",
+					disk_size = 128,
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 2
+				auto_repair = true
+				version = "4.14.10"
+			}`)
+			Expect(Terraform.Apply()).NotTo(BeZero())
+		})
 	})
 
 	Context("Standard workers machine pool", func() {

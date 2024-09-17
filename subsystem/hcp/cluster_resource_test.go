@@ -1878,6 +1878,95 @@ var _ = Describe("HCP Cluster", func() {
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties | keys | length`, 3))
 		})
 
+		It("Creates basic cluster with custom worker disk size", func() {
+			// Prepare the server:
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.aws.ec2_metadata_http_tokens`, "required"),
+					VerifyJQ(`.nodes.compute_root_volume.aws.size`, 400.0),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+					  	  "ec2_metadata_http_tokens" : "required",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					{
+						"op": "add",
+						"path": "/nodes",
+						"value": {
+							"compute": 3,
+							"availability_zones": [
+								"us-west-1a",
+								"us-west-1b",
+								"us-west-1c"
+    						],
+							"compute_machine_type": {
+								"id": "r5.xlarge"
+							},
+							"compute_root_volume": {
+								"aws": {
+									"size": 400
+								}
+							}
+						}
+					}]`),
+				),
+			)
+
+			// Run the apply command:
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+				ec2_metadata_http_tokens = "required"
+				worker_disk_size = 400
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.current_version", "4.14.0"))
+			Expect(resource).To(MatchJQ(".attributes.worker_disk_size", 400.0))
+		})
+
 		It("Should fail cluster creation when trying to override reserved properties", func() {
 			// Prepare the server:
 			TestServer.AppendHandlers(

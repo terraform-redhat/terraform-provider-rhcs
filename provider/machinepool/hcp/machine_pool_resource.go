@@ -310,6 +310,11 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 			plan.AWSNodePool.Ec2MetadataHttpTokens = types.StringValue(ec2.HttpTokensStateOptional)
 		}
 		awsNodePoolBuilder.Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokens(plan.AWSNodePool.Ec2MetadataHttpTokens.ValueString()))
+
+		if workerDiskSize := common.OptionalInt64(plan.AWSNodePool.DiskSize); workerDiskSize != nil {
+			awsNodePoolBuilder.RootVolume(cmv1.NewAWSVolume().Size(int(*workerDiskSize)))
+		}
+
 		builder.AWSNodePool(awsNodePoolBuilder)
 	}
 
@@ -595,6 +600,7 @@ func validateNoImmutableAttChange(state, plan *HcpMachinePoolState) diag.Diagnos
 			"aws_node_pool.additional_security_group_ids", &diags)
 		validateStateAndPlanEquals(state.AWSNodePool.Ec2MetadataHttpTokens, plan.AWSNodePool.Ec2MetadataHttpTokens,
 			"aws_node_pool.ec2_metadata_http_tokens", &diags)
+		validateStateAndPlanEquals(state.AWSNodePool.DiskSize, plan.AWSNodePool.DiskSize, "aws_node_pool.disk_size", &diags)
 	}
 	return diags
 }
@@ -1161,6 +1167,13 @@ func populateState(ctx context.Context, object *cmv1.NodePool, state *HcpMachine
 			state.AWSNodePool.Ec2MetadataHttpTokens = types.StringValue(ec2.HttpTokensStateOptional)
 			if httpTokensState != "" {
 				state.AWSNodePool.Ec2MetadataHttpTokens = types.StringValue(string(httpTokensState))
+			}
+		}
+
+		state.AWSNodePool.DiskSize = types.Int64Null()
+		if rootVolume, ok := awsNodePool.GetRootVolume(); ok {
+			if size, ok := rootVolume.GetSize(); ok {
+				state.AWSNodePool.DiskSize = types.Int64Value(int64(size))
 			}
 		}
 	}

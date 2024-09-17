@@ -69,6 +69,7 @@ data "rhcs_cluster_rosa_hcp" "cluster" {
 - `version` (String) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `wait_for_create_complete` (Boolean) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `wait_for_std_compute_nodes_complete` (Boolean) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
+- `worker_disk_size` (Number) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 
 <a id="nestedatt--registry_config"></a>
 ### Nested Schema for `registry_config`

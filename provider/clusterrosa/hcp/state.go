@@ -44,6 +44,7 @@ type ClusterRosaHcpState struct {
 	Replicas              types.Int64  `tfsdk:"replicas"`
 	AvailabilityZones     types.List   `tfsdk:"availability_zones"`
 	Ec2MetadataHttpTokens types.String `tfsdk:"ec2_metadata_http_tokens"`
+	WorkerDiskSize        types.Int64  `tfsdk:"worker_disk_size"`
 
 	// Version/Upgrade fields
 	Version        types.String `tfsdk:"version"`

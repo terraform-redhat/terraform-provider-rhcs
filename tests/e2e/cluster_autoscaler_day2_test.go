@@ -289,5 +289,123 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 		} else {
 			Logger.Info("No other cluster accessible for testing this change")
 		}
+
+		By("Try to edit autoscaler `max_node_provision_time` with negative value")
+		args = &exec.ClusterAutoscalerArgs{
+			Cluster:              helper.StringPointer(clusterID),
+			MaxNodeProvisionTime: helper.StringPointer("-1h"),
+			ResourceLimits:       &exec.ResourceLimits{},
+		}
+		_, err = caService.Apply(args)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Only positive durations are allowed"))
+	})
+
+	It("can be validated against Classic cluster - [id:76199]", ci.Medium, func() {
+		if profile.GetClusterType().HCP {
+			Skip("Test can run only on Classic cluster")
+		}
+
+		defaultClusterAutoscalerArgs := func() *exec.ClusterAutoscalerArgs {
+			max := 1
+			min := 0
+			resourceRange := &exec.ResourceRange{
+				Max: helper.IntPointer(max),
+				Min: helper.IntPointer(min),
+			}
+			return &exec.ClusterAutoscalerArgs{
+				Cluster: helper.StringPointer(clusterID),
+				ResourceLimits: &exec.ResourceLimits{
+					Cores:  resourceRange,
+					Memory: resourceRange,
+				},
+				ScaleDown: &exec.ScaleDown{},
+			}
+		}
+
+		var err error
+		caService, err = exec.NewClusterAutoscalerService(constants.ClassicClusterAutoscalerDir)
+		Expect(err).NotTo(HaveOccurred())
+
+		if clusterAutoscalerStatusBefore == http.StatusOK {
+			By("Delete current cluster autoscaler")
+			caDeleteBody, err := cms.DeleteClusterAutoscaler(ci.RHCSConnection, clusterID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(caDeleteBody.Status()).To(Equal(http.StatusNoContent))
+		}
+
+		By("Try to create autoscaler with empty cluster ID")
+		args := defaultClusterAutoscalerArgs()
+		args.Cluster = helper.EmptyStringPointer
+		_, err = caService.Apply(args)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Attribute cluster cluster ID may not be empty/blank string, got:"))
+
+		By("Try to create autoscaler with wrong cluster ID")
+		args = defaultClusterAutoscalerArgs()
+		args.Cluster = helper.StringPointer("wrong")
+		_, err = caService.Apply(args)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Cluster 'wrong' not found"))
+
+		By("Create Autoscaler")
+		args = defaultClusterAutoscalerArgs()
+		_, err = caService.Apply(args)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("Try to edit autoscaler with other cluster ID")
+		clustersResp, err := cms.ListClusters(ci.RHCSConnection)
+		Expect(err).ToNot(HaveOccurred())
+		var otherClusterID string
+		for _, cluster := range clustersResp.Items().Slice() {
+			if cluster.ID() != clusterID {
+				otherClusterID = cluster.ID()
+				break
+			}
+		}
+		if otherClusterID != "" {
+			args = defaultClusterAutoscalerArgs()
+			args.Cluster = helper.StringPointer(otherClusterID)
+			_, err = caService.Apply(args)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Attribute cluster, cannot be changed from"))
+		} else {
+			Logger.Info("No other cluster accessible for testing this change")
+		}
+
+		By("Try to edit autoscaler `max_node_provision_time` with negative value")
+		args = defaultClusterAutoscalerArgs()
+		args.MaxNodeProvisionTime = helper.StringPointer("-1h")
+		_, err = caService.Apply(args)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Only positive durations are allowed"))
+
+		By("Try to edit autoscaler `unneeded_time` with negative value")
+		args = defaultClusterAutoscalerArgs()
+		args.ScaleDown.UnneededTime = helper.StringPointer("-1h")
+		_, err = caService.Apply(args)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Only positive durations are allowed"))
+
+		By("Try to edit autoscaler `delay_after_add` with negative value")
+		args = defaultClusterAutoscalerArgs()
+		args.ScaleDown.DelayAfterAdd = helper.StringPointer("-3h")
+		_, err = caService.Apply(args)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Only positive durations are allowed"))
+
+		By("Try to edit autoscaler `delay_after_delete` with negative value")
+		args = defaultClusterAutoscalerArgs()
+		args.ScaleDown.DelayAfterDelete = helper.StringPointer("-3h")
+		_, err = caService.Apply(args)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Only positive durations are allowed"))
+
+		By("Try to edit autoscaler `delay_after_failure` with negative value")
+		args = defaultClusterAutoscalerArgs()
+		args.ScaleDown.DelayAfterFailure = helper.StringPointer("-3h")
+		_, err = caService.Apply(args)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Only positive durations are allowed"))
 	})
 })

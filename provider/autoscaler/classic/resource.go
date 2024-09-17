@@ -162,6 +162,7 @@ func (r *ClusterAutoscalerResource) Schema(ctx context.Context, req resource.Sch
 					"unneeded_time": schema.StringAttribute{
 						Description: "How long a node should be unneeded before it is eligible for scale down.",
 						Optional:    true,
+						Validators:  []validator.String{autoscaler.PositiveDurationStringValidator("unneeded time to scale down")},
 					},
 					"utilization_threshold": schema.StringAttribute{
 						Description: "Node utilization level, defined as sum of requested resources divided " +

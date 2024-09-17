@@ -4,6 +4,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	dsschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -21,6 +22,7 @@ type AWSNodePool struct {
 	Tags                       types.Map    `tfsdk:"tags"`
 	AdditionalSecurityGroupIds types.List   `tfsdk:"additional_security_group_ids"`
 	Ec2MetadataHttpTokens      types.String `tfsdk:"ec2_metadata_http_tokens"`
+	DiskSize                   types.Int64  `tfsdk:"disk_size"`
 }
 
 func AwsNodePoolResource() map[string]schema.Attribute {
@@ -63,6 +65,14 @@ func AwsNodePoolResource() map[string]schema.Attribute {
 				stringplanmodifier.UseStateForUnknown(),
 			},
 		},
+		"disk_size": schema.Int64Attribute{
+			Description: "Root disk size, in GiB. " + common.ValueCannotBeChangedStringDescription,
+			Optional:    true,
+			Computed:    true,
+			PlanModifiers: []planmodifier.Int64{
+				int64planmodifier.UseStateForUnknown(),
+			},
+		},
 	}
 }
 
@@ -93,6 +103,11 @@ func AwsNodePoolDatasource() map[string]dsschema.Attribute {
 				"This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). This feature is available from " + common.ValueCannotBeChangedStringDescription,
 			Optional: true,
 			Computed: true,
+		},
+		"disk_size": schema.Int64Attribute{
+			Description: "The root disk size, in GiB.",
+			Optional:    true,
+			Computed:    true,
 		},
 	}
 }

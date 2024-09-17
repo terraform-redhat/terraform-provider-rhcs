@@ -370,6 +370,10 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				Attributes:  registry_config.RegistryConfigResource(),
 				Optional:    true,
 			},
+			"worker_disk_size": schema.Int64Attribute{
+				Description: "Compute node root disk size, in GiB. " + rosaTypes.PoolMessage,
+				Optional:    true,
+			},
 		},
 	}
 }
@@ -492,8 +496,10 @@ func createHcpClusterObject(ctx context.Context,
 		return nil, err
 	}
 
+	workerDiskSize := common.OptionalInt64(state.WorkerDiskSize)
+
 	if err := ocmClusterResource.CreateNodes(rosaTypes.Hcp, false, replicas, nil, nil,
-		computeMachineType, nil, availabilityZones, true, nil); err != nil {
+		computeMachineType, nil, availabilityZones, true, workerDiskSize); err != nil {
 		return nil, err
 	}
 
@@ -875,6 +881,7 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaHcpState) diag.Diagnos
 	common.ValidateStateAndPlanEquals(state.ComputeMachineType, plan.ComputeMachineType, "compute_machine_type", &diags)
 	common.ValidateStateAndPlanEquals(state.AvailabilityZones, plan.AvailabilityZones, "availability_zones", &diags)
 	common.ValidateStateAndPlanEquals(state.Ec2MetadataHttpTokens, plan.Ec2MetadataHttpTokens, "ec2_metadata_http_tokens", &diags)
+	common.ValidateStateAndPlanEquals(state.WorkerDiskSize, plan.WorkerDiskSize, "worker_disk_size", &diags)
 
 	// cluster admin attributes
 	common.ValidateStateAndPlanEquals(state.CreateAdminUser, plan.CreateAdminUser, "create_admin_user", &diags)

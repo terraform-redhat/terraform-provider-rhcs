@@ -723,6 +723,18 @@ func (r *MachinePoolResource) doUpdate(ctx context.Context, state *MachinePoolSt
 		return diags
 	}
 
+	_, ok = common.ShouldPatchInt(state.DiskSize, plan.DiskSize)
+	if ok {
+		diags.AddError(
+			"Cannot update machine pool",
+			fmt.Sprintf(
+				"Cannot update machine pool for cluster '%s', disk size cannot be updated",
+				state.Cluster.ValueString(),
+			),
+		)
+		return diags
+	}
+
 	patchLabels, shouldPatchLabels := common.ShouldPatchMap(state.Labels, plan.Labels)
 	if shouldPatchLabels {
 		labels := map[string]string{}

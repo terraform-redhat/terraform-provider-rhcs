@@ -84,6 +84,7 @@ resource "rhcs_cluster_rosa_hcp" "rosa_sts_cluster" {
 - `version` (String) Desired version of OpenShift for the cluster, for example '4.11.0'. If version is greater than the currently running version, an upgrade will be scheduled.
 - `wait_for_create_complete` (Boolean) Wait until the cluster is either in a ready state or in an error state. The waiter has a timeout of 20 minutes, with the default value set to false
 - `wait_for_std_compute_nodes_complete` (Boolean) Wait until the cluster standard compute pools are created. The waiter has a timeout of 60 minutes, with the default value set to false. This can only be provided when also waiting for create completion.
+- `worker_disk_size` (Number) Compute node root disk size, in GiB. This attribute specifically applies to the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the initial Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)
 
 ### Read-Only
 

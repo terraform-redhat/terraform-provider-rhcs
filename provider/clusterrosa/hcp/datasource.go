@@ -256,6 +256,10 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				},
 				Computed: true,
 			},
+			"worker_disk_size": schema.Int64Attribute{
+				Description: deprecatedMessage,
+				Computed:    true,
+			},
 		},
 	}
 }

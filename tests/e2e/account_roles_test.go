@@ -89,13 +89,13 @@ var _ = Describe("Create Account roles with shared vpc role", ci.Exclude, func()
 	)
 
 	BeforeEach(func() {
-		tempWorkspace := helper.GenerateRandomName("ocp-67574"+profileHandler.Profile().GetName(), 2)
-		Logger.Infof("Using temp workspace '%s' for creating resources", tempWorkspace)
-
 		var err error
 		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
 		Expect(err).ToNot(HaveOccurred())
 		clusterType := profileHandler.Profile().GetClusterType()
+
+		tempWorkspace := helper.GenerateRandomName("ocp-67574"+profileHandler.Profile().GetName(), 2)
+		Logger.Infof("Using temp workspace '%s' for creating resources", tempWorkspace)
 
 		accService, err = exec.NewAccountRoleService(tempWorkspace, clusterType)
 		Expect(err).ToNot(HaveOccurred())

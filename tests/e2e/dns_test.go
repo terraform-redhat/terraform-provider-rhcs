@@ -15,7 +15,7 @@ var _ = Describe("DNS Domain", func() {
 	)
 	BeforeEach(func() {
 		var err error
-		profileHandler, err := profilehandler.NewProfileHandlerFromYamlFile()
+		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
 		Expect(err).ToNot(HaveOccurred())
 
 		dnsService, err = profileHandler.Services().GetDnsDomainService()

@@ -39,14 +39,16 @@ var _ = Describe("HCP Ingress", ci.FeatureIngress, ci.Day2, func() {
 	}
 
 	BeforeEach(func() {
+		var err error
+
+		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
+		Expect(err).ToNot(HaveOccurred())
+
 		if !profileHandler.Profile().IsHCP() {
 			Skip("Test can run only on Hosted cluster")
 		}
-		var err error
-		ingressBefore, err = cms.RetrieveClusterIngress(cms.RHCSConnection, clusterID)
-		Expect(err).ToNot(HaveOccurred())
 
-		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
+		ingressBefore, err = cms.RetrieveClusterIngress(cms.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
 
 		ingressService, err = profileHandler.Services().GetIngressService()

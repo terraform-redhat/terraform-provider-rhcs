@@ -36,7 +36,7 @@ var _ = Describe("Verify cluster", func() {
 		var err error
 		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
 		Expect(err).ToNot(HaveOccurred())
-		profile = profile
+		profile = profileHandler.Profile()
 
 		getResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
@@ -217,7 +217,7 @@ var _ = Describe("Verify cluster", func() {
 			// validate import was successful by checking samples fields
 			Expect(output).To(ContainSubstring(cluster.Name()))
 			Expect(output).To(ContainSubstring(profile.GetRegion()))
-			Expect(output).To(ContainSubstring(cluster.Version().GetChannelGroup()))
+			Expect(output).To(ContainSubstring(cluster.Version().ChannelGroup()))
 
 			By("Remove state")
 			_, err = importService.RemoveState(resource)

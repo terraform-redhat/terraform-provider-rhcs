@@ -541,6 +541,27 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 		})
 	})
 
+	Describe("Create Classic or HCP cluster", ci.Day1Negative, func() {
+		It("validate worker disk size - [id:76344]", ci.Low, func() {
+			maxDiskSize := constants.MaxDiskSize
+			minDiskSize := constants.MinClassicDiskSize
+			if profileHandler.Profile().IsHCP() {
+				minDiskSize = constants.MinHCPDiskSize
+			}
+
+			By("Create cluster with invalid worker disk size")
+			errMsg := fmt.Sprintf("Must be between %d GiB and %d GiB", minDiskSize, maxDiskSize)
+			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+				args.WorkerDiskSize = helper.IntPointer(minDiskSize - 1)
+			}, errMsg)
+			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+				args.WorkerDiskSize = helper.IntPointer(maxDiskSize + 1)
+			}, errMsg)
+
+			// TODO OCM-11521 terraform plan doesn't have validation
+		})
+	})
+
 	Describe("The EOL OCP version validation", ci.Day1Negative, func() {
 		It("version validation - [id:64095]", ci.Medium, func() {
 			if profileHandler.Profile().GetAdditionalSGNumber() > 0 {

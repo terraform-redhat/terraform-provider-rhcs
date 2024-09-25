@@ -318,10 +318,6 @@ var _ = Describe("Verify cluster", func() {
 	It("worker disk size is set correctly - [id:69143]",
 		ci.Day1Post, ci.Critical,
 		func() {
-
-			if profile.IsHCP() {
-				Skip("Test can run only on Classic cluster")
-			}
 			switch profile.GetWorkerDiskSize() {
 			case 0:
 				Expect(cluster.Nodes().ComputeRootVolume().AWS().Size()).To(Equal(300))

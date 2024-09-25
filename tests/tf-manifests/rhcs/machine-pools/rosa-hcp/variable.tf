@@ -91,3 +91,8 @@ variable "kubelet_configs" {
   type    = string
   default = null
 }
+
+variable "disk_size" {
+  type    = number
+  default = null
+}

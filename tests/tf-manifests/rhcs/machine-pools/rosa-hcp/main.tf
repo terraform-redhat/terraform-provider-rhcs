@@ -21,6 +21,7 @@ locals {
     additional_security_group_ids = var.additional_security_groups,
     ec2_metadata_http_tokens      = var.ec2_metadata_http_tokens,
     tags                          = var.tags
+    disk_size                     = var.disk_size
   }
 }
 

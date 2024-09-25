@@ -2,9 +2,11 @@ package registry_config
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"path"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
@@ -188,13 +190,14 @@ func PopulateRegistryConfigState(inputCluster *cmv1.Cluster, state *RegistryConf
 		}
 
 		if additionalTrustedCa, ok := registryConfig.GetAdditionalTrustedCa(); ok {
-			mapValue, err := common.ConvertStringMapToMapType(additionalTrustedCa)
-			if err != nil {
-				return err
-			}
 			if state == nil {
 				state = &RegistryConfig{}
 			}
+			mapValue, err := ConvertCaMapToMapType(additionalTrustedCa, state.AdditionalTrustedCa)
+			if err != nil {
+				return err
+			}
+
 			state.AdditionalTrustedCa = mapValue
 		}
 
@@ -216,4 +219,22 @@ func PopulateRegistryConfigState(inputCluster *cmv1.Cluster, state *RegistryConf
 		}
 	}
 	return nil
+}
+
+func ConvertCaMapToMapType(stringMap map[string]string, originalState types.Map) (types.Map, error) {
+	elements := map[string]attr.Value{}
+	for k, v := range stringMap {
+		if _, ok := originalState.Elements()[k]; ok {
+			// as the backend sends back REDACTED instead of the real value, we keep the original state in case it
+			// exists already to avoid drifts
+			elements[k] = originalState.Elements()[k]
+		} else {
+			elements[k] = types.StringValue(v)
+		}
+	}
+	mapValue, diags := types.MapValue(types.StringType, elements)
+	if diags != nil && diags.HasError() {
+		return mapValue, fmt.Errorf("failed to convert to MapType %v", diags.Errors()[0].Detail())
+	}
+	return mapValue, nil
 }

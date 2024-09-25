@@ -7,8 +7,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/planmodifiers"
 )
 
 func RegistryConfigResource() map[string]schema.Attribute {
@@ -32,11 +34,17 @@ func RegistryConfigResource() map[string]schema.Attribute {
 			Description: "additional_trusted_ca is a map containing the registry hostname as the key, and the PEM-encoded certificate as the value, for each additional registry CA to trust.",
 			ElementType: types.StringType,
 			Optional:    true,
+			PlanModifiers: []planmodifier.Map{
+				planmodifiers.Redacted(),
+			},
 		},
 		"platform_allowlist_id": schema.StringAttribute{
 			Description: "platform_allowlist_id contains a reference to a RegistryAllowlist which is a list of internal registries which needs to be whitelisted for the platform to work. It can be omitted at creation and updating and its lifecycle can be managed separately if needed.",
 			Optional:    true,
 			Computed:    true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
+			},
 		},
 	}
 }

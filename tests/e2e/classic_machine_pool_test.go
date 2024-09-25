@@ -273,7 +273,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		}
 		_, err = mpService.Apply(mpArgs)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).Should(ContainSubstring("Attribute 'replicas'\nmust be a non-negative integer"))
+		helper.ExpectTFErrorContains(err, "Attribute 'replicas' must be a non-negative integer")
 
 		By("Create machinepool with invalid instance type")
 		mpArgs = &exec.MachinePoolArgs{
@@ -284,7 +284,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		}
 		_, err = mpService.Apply(mpArgs)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).Should(ContainSubstring("Machine type\n'%s' is not supported for cloud provider", InvalidInstanceType))
+		helper.ExpectTFErrorContains(err, "Machine type '"+InvalidInstanceType+"' is not supported for cloud provider")
 
 		By("Create machinepool with setting replicas and enable-autoscaling at the same time")
 		mpArgs = &exec.MachinePoolArgs{
@@ -296,7 +296,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		}
 		_, err = mpService.Apply(mpArgs)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).Should(ContainSubstring("when\nenabling autoscaling, should set value for maxReplicas"))
+		helper.ExpectTFErrorContains(err, "when enabling autoscaling, should set value for maxReplicas")
 
 		By("Create machinepool with setting min-replicas large than max-replicas")
 		mpArgs = &exec.MachinePoolArgs{
@@ -321,7 +321,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		}
 		_, err = mpService.Apply(mpArgs)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).Should(ContainSubstring("when\ndisabling autoscaling, cannot set min_replicas and/or max_replicas"))
+		helper.ExpectTFErrorContains(err, "when disabling autoscaling, cannot set min_replicas and/or max_replicas")
 
 		By("Create machinepool with setting min-replicas large than max-replicas")
 		if profileHandler.Profile().IsMultiAZ() {
@@ -336,7 +336,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			}
 			_, err = mpService.Apply(mpArgs)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(ContainSubstring("Multi AZ clusters require that the number of replicas be a\nmultiple of 3"))
+			helper.ExpectTFErrorContains(err, "Multi AZ clusters require that the number of replicas be a multiple of 3")
 
 			mpArgs = &exec.MachinePoolArgs{
 				Cluster:            helper.StringPointer(clusterID),
@@ -348,7 +348,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			}
 			_, err = mpService.Apply(mpArgs)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(ContainSubstring("Multi AZ clusters require that the number of replicas be a\nmultiple of 3"))
+			helper.ExpectTFErrorContains(err, "Multi AZ clusters require that the number of replicas be a multiple of 3")
 
 		}
 	})
@@ -492,68 +492,6 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		mpResponseBody, err = cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(mpResponseBody.Replicas()).To(Equal(4))
-	})
-
-	It("can create machinepool with disk size - [id:69144]", ci.High, func() {
-		By("Create additional machinepool with disk size specified")
-		replicas := 3
-		machineType := "r5.xlarge"
-		name := helper.GenerateRandomName("ocp-69144", 2)
-		diskSize := 249
-		mpArgs := &exec.MachinePoolArgs{
-			Cluster:     helper.StringPointer(clusterID),
-			Replicas:    helper.IntPointer(replicas),
-			MachineType: helper.StringPointer(machineType),
-			Name:        helper.StringPointer(name),
-			DiskSize:    helper.IntPointer(diskSize),
-		}
-
-		_, err := mpService.Apply(mpArgs)
-		Expect(err).ToNot(HaveOccurred())
-		defer func() {
-			_, err = mpService.Destroy()
-			Expect(err).ToNot(HaveOccurred())
-		}()
-
-		By("Verify the parameters of the created machinepool")
-		mpResponseBody, err := cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(mpResponseBody.RootVolume().AWS().Size()).To(Equal(diskSize))
-		Expect(mpResponseBody.InstanceType()).To(Equal(machineType))
-
-		By("Update disksize is not allowed ")
-		mpArgs = &exec.MachinePoolArgs{
-			Cluster:     helper.StringPointer(clusterID),
-			Replicas:    helper.IntPointer(replicas),
-			MachineType: helper.StringPointer(machineType),
-			Name:        helper.StringPointer(name),
-			DiskSize:    helper.IntPointer(320),
-		}
-		output, err := mpService.Apply(mpArgs)
-		Expect(err).To(HaveOccurred())
-		Expect(output).Should(ContainSubstring("Attribute disk_size, cannot be changed from 249 to 320"))
-
-		By("Destroy machinepool")
-		_, err = mpService.Destroy()
-		Expect(err).ToNot(HaveOccurred())
-
-		By("Create another machinepool without disksize will create another machinepool with default value")
-		name = helper.GenerateRandomName("ocp-69144", 2)
-		mpArgs = &exec.MachinePoolArgs{
-			Cluster:     helper.StringPointer(clusterID),
-			Replicas:    helper.IntPointer(replicas),
-			MachineType: helper.StringPointer("m5.2xlarge"),
-			Name:        helper.StringPointer(name),
-		}
-
-		_, err = mpService.Apply(mpArgs)
-		Expect(err).ToNot(HaveOccurred())
-
-		By("Verify the parameters of the created machinepool")
-		mpResponseBody, err = cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(mpResponseBody.RootVolume().AWS().Size()).To(Equal(300))
-		Expect(mpResponseBody.InstanceType()).To(Equal("m5.2xlarge"))
 	})
 
 	It("can create machinepool with additional security group - [id:69146]", ci.High, func() {
@@ -852,7 +790,7 @@ var _ = Describe("Edit MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		profileHandler                 profilehandler.ProfileHandler
 		dmpService                     exec.MachinePoolService
 		mpService                      exec.MachinePoolService
-		defaultMachinePoolNmae         = "worker"
+		defaultMachinePoolName         = "worker"
 		defaultMachinepoolResponse     *cmsv1.MachinePool
 		originalDefaultMachinepoolArgs *exec.MachinePoolArgs
 	)
@@ -872,8 +810,8 @@ var _ = Describe("Edit MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		mpService, err = profileHandler.Services().GetMachinePoolsService()
 		Expect(err).ToNot(HaveOccurred())
 
-		defaultMachinepoolResponse, err = cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, defaultMachinePoolNmae)
-		if err != nil && strings.Contains(err.Error(), fmt.Sprintf("Machine pool with id '%s' not found", defaultMachinePoolNmae)) {
+		defaultMachinepoolResponse, err = cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, defaultMachinePoolName)
+		if err != nil && strings.Contains(err.Error(), fmt.Sprintf("Machine pool with id '%s' not found", defaultMachinePoolName)) {
 			Skip("The default machinepool does not exist")
 		}
 

@@ -215,3 +215,8 @@ variable "registry_config" {
   })
   default = null
 }
+
+variable "worker_disk_size" {
+  type    = number
+  default = null
+}

@@ -171,3 +171,10 @@ const (
 	VersionNightlyChannel   = "nightly"
 	VersionCandidateChannel = "candidate"
 )
+
+// disk size
+const (
+	MinClassicDiskSize = 128
+	MinHCPDiskSize     = 75
+	MaxDiskSize        = 16384
+)

@@ -12,5 +12,6 @@ output "machine_pools" {
     kubelet_configs : mp.kubelet_configs
     ec2_metadata_http_tokens : mp.aws_node_pool.ec2_metadata_http_tokens
     tags : mp.aws_node_pool.tags
+    disk_size: mp.aws_node_pool.disk_size
   }]
 }

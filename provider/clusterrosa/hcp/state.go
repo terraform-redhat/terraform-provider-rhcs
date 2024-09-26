@@ -4,6 +4,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/registry_config"
 )
 
 type ClusterRosaHcpState struct {
@@ -58,4 +59,7 @@ type ClusterRosaHcpState struct {
 	// Admin user fields
 	CreateAdminUser  types.Bool   `tfsdk:"create_admin_user"`
 	AdminCredentials types.Object `tfsdk:"admin_credentials"`
+
+	// Registry config fields
+	RegistryConfig *registry_config.RegistryConfig `tfsdk:"registry_config"`
 }

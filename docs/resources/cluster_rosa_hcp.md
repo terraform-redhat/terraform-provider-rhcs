@@ -76,6 +76,7 @@ resource "rhcs_cluster_rosa_hcp" "rosa_sts_cluster" {
 - `private` (Boolean) Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet. After the creation of the resource, it is not possible to update the attribute value.
 - `properties` (Map of String) User defined properties. It is essential to include property 'role_creator_arn' with the value of the user creating the cluster. Example: properties = {rosa_creator_arn = data.aws_caller_identity.current.arn}
 - `proxy` (Attributes) proxy (see [below for nested schema](#nestedatt--proxy))
+- `registry_config` (Attributes) Registry configuration for this cluster. (see [below for nested schema](#nestedatt--registry_config))
 - `replicas` (Number) Number of worker/compute nodes to provision. Requires that the number supplied be a multiple of the number of private subnets. This attribute specifically applies to the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the initial Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)
 - `service_cidr` (String) Block of IP addresses for the cluster service network. After the creation of the resource, it is not possible to update the attribute value.
 - `tags` (Map of String) Apply user defined tags to all cluster resources created in AWS. After the creation of the resource, it is not possible to update the attribute value.
@@ -141,3 +142,32 @@ Optional:
 - `http_proxy` (String) HTTP proxy. To reset please provide '' (empty string)
 - `https_proxy` (String) HTTPS proxy. To reset please provide '' (empty string)
 - `no_proxy` (String) No proxy. To reset please provide '' (empty string)
+
+
+<a id="nestedatt--registry_config"></a>
+### Nested Schema for `registry_config`
+
+Optional:
+
+- `additional_trusted_ca` (Map of String) additional_trusted_ca is a map containing the registry hostname as the key, and the PEM-encoded certificate as the value, for each additional registry CA to trust.
+- `allowed_registries_for_import` (Attributes List) allowed_registries_for_import limits the container image registries that normal users may import images from. Set this list to the registries that you trust to contain valid Docker images and that you want applications to be able to import from. (see [below for nested schema](#nestedatt--registry_config--allowed_registries_for_import))
+- `platform_allowlist_id` (String) platform_allowlist_id contains a reference to a RegistryAllowlist which is a list of internal registries which needs to be whitelisted for the platform to work. It can be omitted at creation and updating and its lifecycle can be managed separately if needed.
+- `registry_sources` (Attributes) registry_sources contains configuration that determines how the container runtime should treat individual registries when accessing images for builds+pods. (e.g. whether or not to allow insecure access).  It does not contain configuration for the internal cluster registry. (see [below for nested schema](#nestedatt--registry_config--registry_sources))
+
+<a id="nestedatt--registry_config--allowed_registries_for_import"></a>
+### Nested Schema for `registry_config.allowed_registries_for_import`
+
+Optional:
+
+- `domain_name` (String) domain_name specifies a domain name for the registry
+- `insecure` (Boolean) insecure indicates whether the registry is secure (https) or insecure (http). By default (if not specified) the registry is assumed as secure.
+
+
+<a id="nestedatt--registry_config--registry_sources"></a>
+### Nested Schema for `registry_config.registry_sources`
+
+Optional:
+
+- `allowed_registries` (List of String) allowed_registries: registries for which image pull and push actions are allowed. To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name. For example, *.example.com. You can specify an individual repository within a registry. For example: reg1.io/myrepo/myapp:latest. All other registries are blocked. Mutually exclusive with `BlockedRegistries`
+- `blocked_registries` (List of String) blocked_registries: registries for which image pull and push actions are denied. To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name. For example, *.example.com. You can specify an individual repository within a registry. For example: reg1.io/myrepo/myapp:latest. All other registries are allowed. Mutually exclusive with `AllowedRegistries`
+- `insecure_registries` (List of String) insecure_registries are registries which do not have a valid TLS certificate or only support HTTP connections. To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name. For example, *.example.com. You can specify an individual repository within a registry. For example: reg1.io/myrepo/myapp:latest.

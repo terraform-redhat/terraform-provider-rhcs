@@ -126,16 +126,8 @@ var _ = Describe("Upgrade", func() {
 				By("Upgrade account-roles")
 				majorVersion := helper.GetMajorVersion(targetV)
 				Expect(majorVersion).ToNot(Equal(""))
-				dupProfileHandler := profileHandler.DuplicateRandom()
-				_, err = dupProfileHandler.Prepare().PrepareAccountRoles(token, clusterResp.Body().Name(), profile.GetUnifiedAccRolesPath(), majorVersion, profile.GetChannelGroup(), "")
+				_, err = profileHandler.Prepare().PrepareAccountRoles(token, clusterResp.Body().Name(), profile.GetUnifiedAccRolesPath(), majorVersion, profile.GetChannelGroup(), "")
 				Expect(err).ToNot(HaveOccurred())
-				defer func() {
-					svc, err := dupProfileHandler.Services().GetAccountRolesService()
-					if err != nil {
-						return
-					}
-					svc.Destroy()
-				}()
 
 				By("Validate invalid OCP version field - downgrade")
 				currentVersion := string(clusterResp.Body().Version().RawID())

@@ -41,7 +41,6 @@ var _ = Describe("Verify cluster", func() {
 		getResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
 		cluster = getResp.Body()
-
 	})
 
 	It("proxy is correctly set - [id:67607]", ci.Day1Post, ci.High, func() {
@@ -513,4 +512,56 @@ var _ = Describe("Verify cluster", func() {
 			}
 		}
 	})
+
+	It("registry config is set correctly - [id:76499]",
+		ci.Day1Post, ci.Critical, ci.FeatureClusterRegistryConfig,
+		func() {
+			if !profile.IsHCP() {
+				Skip("Test can run only on Hosted cluster")
+			}
+
+			if !profile.IsUseRegistryConfig() {
+				Skip("Registry Config is not configured on this clusters")
+			}
+
+			clusterRegistryConfig := cluster.RegistryConfig()
+			dftRegistryConfig := exec.GetDefaultRegistryConfig()
+
+			By("Check registry sources")
+			Expect(clusterRegistryConfig.RegistrySources()).ToNot(BeNil())
+			registries := profile.GetAllowedRegistries()
+			if registries == nil {
+				registries = []string{}
+			}
+			Expect(clusterRegistryConfig.RegistrySources().AllowedRegistries()).To(Equal(registries))
+			registries = profile.GetBlockedRegistries()
+			if registries == nil {
+				registries = []string{}
+			}
+			Expect(clusterRegistryConfig.RegistrySources().BlockedRegistries()).To(Equal(registries))
+			registries = *dftRegistryConfig.RegistrySources.InsecureRegistries
+			if registries == nil {
+				registries = []string{}
+			}
+			Expect(clusterRegistryConfig.RegistrySources().InsecureRegistries()).To(Equal(registries))
+
+			By("Check allowed registries for import")
+			var resultAllowedRegistriesForImport []exec.AllowedRegistryForImport
+			for _, registry := range clusterRegistryConfig.AllowedRegistriesForImport() {
+				resultAllowedRegistriesForImport = append(resultAllowedRegistriesForImport, exec.GetAllowedRegistryForImport(registry.DomainName(), registry.Insecure()))
+			}
+			Expect(resultAllowedRegistriesForImport).To(Equal(*dftRegistryConfig.AllowedRegistriesForImport))
+
+			By("Check additional trusted CA")
+			var ca map[string]string
+			if dftRegistryConfig.AdditionalTrustedCA != nil {
+				ca = *dftRegistryConfig.AdditionalTrustedCA
+			}
+			Expect(clusterRegistryConfig.AdditionalTrustedCa()).To(Equal(ca))
+
+			if dftRegistryConfig.PlatformAllowlistID != nil {
+				By("Check Platform Allowlist")
+				Expect(clusterRegistryConfig.PlatformAllowlist().Registries()).To(Equal(dftRegistryConfig.PlatformAllowlistID))
+			}
+		})
 })

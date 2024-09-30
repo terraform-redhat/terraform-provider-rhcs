@@ -81,6 +81,7 @@ resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
   wait_for_create_complete            = var.wait_for_cluster
   wait_for_std_compute_nodes_complete = var.wait_for_cluster
   disable_waiting_in_destroy          = var.disable_waiting_in_destroy
+  registry_config                     = var.registry_config
 }
 
 resource "rhcs_cluster_wait" "rosa_cluster" { # id: 71869

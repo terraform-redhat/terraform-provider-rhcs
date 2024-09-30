@@ -190,11 +190,6 @@ func DeleteMachinePool(connection *client.Connection, clusterID string, mpID str
 	return connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).MachinePools().MachinePool(mpID).Delete().Send()
 }
 
-// RetrieveMachineTypeDetail will return the retrieve result of machine type detailed information
-func RetrieveMachineTypeDetail(connection *client.Connection, machineTypeID string) (*client.Response, error) {
-	return connection.Get().Path(fmt.Sprintf(machineTypeIDURL, machineTypeID)).Send()
-}
-
 func RetrieveIDP(connection *client.Connection, clusterID string, idpID string) (*cmv1.IdentityProviderGetResponse, error) {
 	return connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).IdentityProviders().IdentityProvider(idpID).Get().Send()
 }
@@ -444,4 +439,12 @@ func RetrieveTuningConfig(connection *client.Connection, clusterID string, tcNam
 
 func ListTuningConfigs(connection *client.Connection, clusterID string) (*cmv1.TuningConfigsListResponse, error) {
 	return connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).TuningConfigs().List().Send()
+}
+
+func ListRegistryAllowlists(connection *client.Connection) (*cmv1.RegistryAllowlistsListResponse, error) {
+	return connection.ClustersMgmt().V1().RegistryAllowlists().List().Send()
+}
+
+func RetrieveRegistryAllowlist(connection *client.Connection, allowlistID string) (*cmv1.RegistryAllowlistGetResponse, error) {
+	return connection.ClustersMgmt().V1().RegistryAllowlists().RegistryAllowlist(allowlistID).Get().Send()
 }

@@ -28,6 +28,10 @@ profiles:
     oidc_config: "managed" # id:72492
     admin_enabled: false # Not yet supported
     unified_acc_role_path: "/advanced/" # id:72495
+    use_registry_config: true
+    allowed_registries: #id:76499
+    - "10.0.0.0:8088"
+    - "*.registry.com"
 
 - as: rosa-hcp-pl
   cluster:
@@ -57,6 +61,10 @@ profiles:
     oidc_config: "un-managed" # id:72493
     admin_enabled: false # Not yet supported
     unified_acc_role_path: ""
+    use_registry_config: true
+    blocked_registries: #id:76499
+    - "blocked.io"
+    - "blocked2.io"
 
 # Upgrade profiles
 # rosa-up-y :: creating a cluster for y-stream upgrade purpose

@@ -3,6 +3,7 @@ package exec
 import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
 type ClusterArgs struct {
@@ -55,6 +56,7 @@ type ClusterArgs struct {
 	StsInstallerRole                     *string            `hcl:"installer_role"`
 	StsSupportRole                       *string            `hcl:"support_role"`
 	StsWorkerRole                        *string            `hcl:"worker_role"`
+	RegistryConfig                       *RegistryConfig    `hcl:"registry_config"`
 
 	IncludeCreatorProperty *bool `hcl:"include_creator_property"`
 
@@ -76,6 +78,24 @@ type Autoscaling struct {
 	AutoscalingEnabled *bool `cty:"autoscaling_enabled"`
 	MinReplicas        *int  `cty:"min_replicas"`
 	MaxReplicas        *int  `cty:"max_replicas"`
+}
+
+type RegistryConfig struct {
+	AdditionalTrustedCA        *map[string]string          `cty:"additional_trusted_ca"`
+	AllowedRegistriesForImport *[]AllowedRegistryForImport `cty:"allowed_registries_for_import"`
+	PlatformAllowlistID        *string                     `cty:"platform_allowlist_id"`
+	RegistrySources            *RegistrySources            `cty:"registry_sources"`
+}
+
+type AllowedRegistryForImport struct {
+	DomainName *string `cty:"domain_name"`
+	Insecure   *bool   `cty:"insecure"`
+}
+
+type RegistrySources struct {
+	AllowedRegistries  *[]string `cty:"allowed_registries"`
+	BlockedRegistries  *[]string `cty:"blocked_registries"`
+	InsecureRegistries *[]string `cty:"insecure_registries"`
 }
 
 // Just a placeholder, not research what to output yet.
@@ -159,4 +179,26 @@ func (svc *clusterService) WriteTFVars(args *ClusterArgs) error {
 
 func (svc *clusterService) DeleteTFVars() error {
 	return svc.tfExecutor.DeleteTerraformVars()
+}
+
+func GetDefaultRegistryConfig() *RegistryConfig {
+	return &RegistryConfig{
+		AllowedRegistriesForImport: &[]AllowedRegistryForImport{
+			GetAllowedRegistryForImport("registry.io", true),
+			GetAllowedRegistryForImport("registry.com", false),
+		},
+		RegistrySources: &RegistrySources{
+			InsecureRegistries: helper.StringSlicePointer([]string{
+				"*.io",
+				"test.io",
+			}),
+		},
+	}
+}
+
+func GetAllowedRegistryForImport(domainName string, insecure bool) AllowedRegistryForImport {
+	return AllowedRegistryForImport{
+		DomainName: helper.StringPointer(domainName),
+		Insecure:   helper.BoolPointer(insecure),
+	}
 }

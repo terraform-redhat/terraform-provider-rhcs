@@ -10,7 +10,11 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+
+	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
+
+	cmsv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
 var _ = Describe("Edit cluster", ci.Day2, func() {
@@ -38,6 +42,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 		clusterService, err = profileHandler.Services().GetClusterService()
 		Expect(err).ShouldNot(HaveOccurred())
 
+		By("Retrieve current cluster args")
 		clusterArgs = retrieveClusterArgs()
 		originalClusterArgs = retrieveClusterArgs()
 	})
@@ -112,6 +117,94 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			Expect(clusterProxy.HTTPProxy()).To(BeEmpty())
 			Expect(clusterProxy.HTTPSProxy()).To(BeEmpty())
 			Expect(clusterProxy.NoProxy()).To(BeEmpty())
+		})
+
+		It("registry config - [id:76500]", ci.High, ci.FeatureClusterRegistryConfig, func() {
+			if !profileHandler.Profile().IsHCP() {
+				Skip("Test can run only on Hosted cluster")
+			}
+
+			getCMSClusterRegistryConfig := func() *cmsv1.ClusterRegistryConfig {
+				resp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
+				Expect(err).ToNot(HaveOccurred())
+				return resp.Body().RegistryConfig()
+			}
+
+			By("Edit the cluster with allowed_registries and blocked_registries is empty")
+			registries := helper.GetRegistries(8088)
+			clusterArgs.RegistryConfig.RegistrySources.AllowedRegistries = helper.StringSlicePointer(registries)
+			clusterArgs.RegistryConfig.RegistrySources.BlockedRegistries = nil
+			_, err := clusterService.Apply(clusterArgs)
+			Expect(err).ToNot(HaveOccurred())
+			registryConfig := getCMSClusterRegistryConfig()
+			Expect(registryConfig.RegistrySources().AllowedRegistries()).To(Equal(registries))
+			Expect(len(registryConfig.RegistrySources().BlockedRegistries())).To(Equal(0))
+
+			By("Edit the cluster with blocked_registries and allowed_registries is empty")
+			registries = helper.GetRegistries(8089)
+			clusterArgs.RegistryConfig.RegistrySources.AllowedRegistries = nil
+			clusterArgs.RegistryConfig.RegistrySources.BlockedRegistries = helper.StringSlicePointer(registries)
+			_, err = clusterService.Apply(clusterArgs)
+			Expect(err).ToNot(HaveOccurred())
+			registryConfig = getCMSClusterRegistryConfig()
+			Expect(registryConfig.RegistrySources().BlockedRegistries()).To(Equal(registries))
+			Expect(len(registryConfig.RegistrySources().AllowedRegistries())).To(Equal(0))
+
+			By("Edit insecure registries")
+			registries = helper.GetRegistries(8090)
+			clusterArgs.RegistryConfig.RegistrySources.InsecureRegistries = helper.StringSlicePointer(registries)
+			_, err = clusterService.Apply(clusterArgs)
+			Expect(err).ToNot(HaveOccurred())
+			registryConfig = getCMSClusterRegistryConfig()
+			Expect(registryConfig.RegistrySources().InsecureRegistries()).To(Equal(registries))
+
+			By("Edit platform allowlist id")
+			alResp, err := cms.ListRegistryAllowlists(cms.RHCSConnection)
+			Expect(err).ToNot(HaveOccurred())
+			if alResp.Size() > 0 {
+				allowListID := alResp.Items().Slice()[0].ID()
+				clusterArgs.RegistryConfig.PlatformAllowlistID = helper.StringPointer(allowListID)
+				_, err = clusterService.Apply(clusterArgs)
+				Expect(err).ToNot(HaveOccurred())
+				registryConfig = getCMSClusterRegistryConfig()
+				Expect(registryConfig.PlatformAllowlist().ID()).To(Equal(allowListID))
+			} else {
+				Logger.Info("No allowlist platform ID available for testing")
+			}
+
+			By("Edit platform additional trust ca")
+			registry := helper.GetRegistry(8091)
+			trustCAs := map[string]string{}
+			trustCAs[registry], err = helper.CreatePEMCertificate()
+			Expect(err).ToNot(HaveOccurred())
+			clusterArgs.RegistryConfig.AdditionalTrustedCA = &trustCAs
+			_, err = clusterService.Apply(clusterArgs)
+			Expect(err).ToNot(HaveOccurred())
+			registryConfig = getCMSClusterRegistryConfig()
+			Expect(registryConfig.AdditionalTrustedCa()[registry]).ToNot(BeEmpty())
+
+			By("Edit allowed registries for import")
+			registry = helper.GetRegistry(8092)
+			allowedRegistriesForImport := []exec.AllowedRegistryForImport{
+				exec.GetAllowedRegistryForImport(registry, true),
+			}
+			clusterArgs.RegistryConfig.AllowedRegistriesForImport = &allowedRegistriesForImport
+			_, err = clusterService.Apply(clusterArgs)
+			Expect(err).ToNot(HaveOccurred())
+			registryConfig = getCMSClusterRegistryConfig()
+			var resultAllowedRegistriesForImport []exec.AllowedRegistryForImport
+			for _, registry := range registryConfig.AllowedRegistriesForImport() {
+				resultAllowedRegistriesForImport = append(resultAllowedRegistriesForImport, exec.GetAllowedRegistryForImport(registry.DomainName(), registry.Insecure()))
+			}
+			Expect(resultAllowedRegistriesForImport).To(Equal(allowedRegistriesForImport))
+
+			By("Remove all")
+			clusterArgs.RegistryConfig.RegistrySources.AllowedRegistries = nil
+			clusterArgs.RegistryConfig.RegistrySources.BlockedRegistries = nil
+			clusterArgs.RegistryConfig.RegistrySources.InsecureRegistries = nil
+			clusterArgs.RegistryConfig.AllowedRegistriesForImport = nil
+			clusterArgs.RegistryConfig.AdditionalTrustedCA = nil
+			clusterArgs.RegistryConfig.PlatformAllowlistID = nil
 		})
 	})
 
@@ -508,6 +601,70 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 					Expect(err.Error()).Should(ContainSubstring(`Attribute value cannot be changed`))
 				}
 			})
+
+		It("registry config - [id:76501]", ci.Medium, ci.FeatureClusterRegistryConfig, func() {
+			if !profileHandler.Profile().IsHCP() {
+				Skip("Test can run only on Hosted cluster")
+			}
+			registry := helper.GetRegistry(8090)
+			registries := helper.GetRegistries(8090, 8091)
+			duplicatedRegistries := []string{
+				registry,
+				registry,
+			}
+			duplicatedRegistriesErrMsg := fmt.Sprintf("duplicated registry '%s'", registry)
+
+			By("Allowed and blocked registries set at the same time")
+			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+				registries := helper.GetRegistries(8090, 8091)
+				args.RegistryConfig.RegistrySources.AllowedRegistries = &registries
+				args.RegistryConfig.RegistrySources.BlockedRegistries = &registries
+			}, "Attribute \"registry_config.registry_sources.allowed_registries\" cannot be specified and be not empty "+
+				"when \"registry_config.registry_sources.blocked_registries\" is specified")
+
+			By("Blocked registries and insecure registries have same value")
+			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+				args.RegistryConfig.RegistrySources.BlockedRegistries = &registries
+				args.RegistryConfig.RegistrySources.InsecureRegistries = &registries
+			}, "Insecure registries should not include registries already present in blocked registries, found duplicated")
+
+			By("Allowed registries have duplicate value")
+			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+				args.RegistryConfig.RegistrySources.AllowedRegistries = &duplicatedRegistries
+				args.RegistryConfig.RegistrySources.BlockedRegistries = nil
+			}, duplicatedRegistriesErrMsg)
+
+			By("Blocked registries have duplicate value")
+			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+				args.RegistryConfig.RegistrySources.AllowedRegistries = nil
+				args.RegistryConfig.RegistrySources.BlockedRegistries = &duplicatedRegistries
+			}, duplicatedRegistriesErrMsg)
+
+			By("Insecure registries have duplicate value")
+			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+				args.RegistryConfig.RegistrySources.InsecureRegistries = &duplicatedRegistries
+			}, duplicatedRegistriesErrMsg)
+
+			By("Allowed Registries For Import have duplicate value")
+			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+				args.RegistryConfig.AllowedRegistriesForImport = &[]exec.AllowedRegistryForImport{
+					exec.GetAllowedRegistryForImport(registry, true),
+					exec.GetAllowedRegistryForImport(registry, false),
+				}
+			}, fmt.Sprintf("Duplicate domain '%s' in AllowedRegistriesForImport", registry))
+
+			By("Platform allowlist does not exist")
+			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+				args.RegistryConfig.PlatformAllowlistID = helper.StringPointer("anything")
+			}, "Allowlist with id 'anything' not found")
+
+			By("Additional Trust CA is invalid")
+			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+				trustedCA := map[string]string{}
+				trustedCA[registry] = "invalid"
+				args.RegistryConfig.AdditionalTrustedCA = &trustedCA
+			}, fmt.Sprintf("failed to parse CA bundle for registry '%s'", registry))
+		})
 	})
 
 	Context("work for", func() {

@@ -55,6 +55,11 @@ func LoadProfileYamlFileByENV() (profile *Profile, err error) {
 		Logger.Infof("Got global env settings for REGION, overwritten the profile setting with value %s", os.Getenv("REGION"))
 		profile.Region = os.Getenv("REGION")
 	}
+
+	if len(profile.AllowedRegistries) > 0 || len(profile.BlockedRegistries) > 0 {
+		profile.UseRegistryConfig = true
+	}
+
 	return
 }
 

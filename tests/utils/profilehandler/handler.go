@@ -80,7 +80,6 @@ type ProfileSpec interface {
 	GetEc2MetadataHttpTokens() string
 	GetUnifiedAccRolesPath() string
 	GetOIDCConfig() string
-
 	GetAdditionalSGNumber() int
 	GetComputeReplicas() int
 	GetWorkerDiskSize() int
@@ -89,6 +88,8 @@ type ProfileSpec interface {
 	GetServiceCIDR() string
 	GetPodCIDR() string
 	GetHostPrefix() int
+	GetAllowedRegistries() []string
+	GetBlockedRegistries() []string
 
 	IsHCP() bool
 	IsPrivateLink() bool
@@ -105,6 +106,7 @@ type ProfileSpec interface {
 	IsTagging() bool
 	IsKMSKey() bool
 	IsFullResources() bool
+	IsUseRegistryConfig() bool
 }
 
 type profileContext struct {
@@ -284,6 +286,10 @@ func (ctx *profileContext) IsFullResources() bool {
 	return ctx.profile.FullResources
 }
 
+func (ctx *profileContext) IsUseRegistryConfig() bool {
+	return ctx.profile.UseRegistryConfig
+}
+
 func (ctx *profileContext) GetImdsv2() string {
 	return ctx.profile.Ec2MetadataHttpTokens
 }
@@ -302,6 +308,14 @@ func (ctx *profileContext) GetPodCIDR() string {
 
 func (ctx *profileContext) GetHostPrefix() int {
 	return ctx.profile.HostPrefix
+}
+
+func (ctx *profileContext) GetAllowedRegistries() []string {
+	return ctx.profile.AllowedRegistries
+}
+
+func (ctx *profileContext) GetBlockedRegistries() []string {
+	return ctx.profile.BlockedRegistries
 }
 
 func (ctx *profileContext) PrepareVPC(multiZone bool, azIDs []string, name string, sharedVpcAWSSharedCredentialsFile string) (*exec.VPCOutput, error) {
@@ -896,6 +910,15 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 	}
 	if ctx.profile.DontWaitForCluster {
 		clusterArgs.WaitForCluster = helper.BoolPointer(false)
+	}
+
+	if ctx.profile.UseRegistryConfig {
+		clusterArgs.RegistryConfig = exec.GetDefaultRegistryConfig()
+		if len(ctx.profile.AllowedRegistries) > 0 {
+			clusterArgs.RegistryConfig.RegistrySources.AllowedRegistries = helper.StringSlicePointer(ctx.profile.AllowedRegistries)
+		} else if len(ctx.profile.BlockedRegistries) > 0 { // allowed and blocked are mutually exclusive
+			clusterArgs.RegistryConfig.RegistrySources.BlockedRegistries = helper.StringSlicePointer(ctx.profile.BlockedRegistries)
+		}
 	}
 
 	return clusterArgs, err

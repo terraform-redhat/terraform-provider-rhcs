@@ -188,3 +188,30 @@ variable "full_resources" {
   type    = bool
   default = false
 }
+
+variable "registry_config" {
+  type = object({
+    additional_trusted_ca = optional(map(string))
+    allowed_registries_for_import = optional(
+      list(
+        object(
+          {
+            domain_name = optional(string)
+            insecure    = optional(bool)
+          }
+        )
+      )
+    )
+    platform_allowlist_id = optional(string)
+    registry_sources = optional(
+      object(
+        {
+          allowed_registries  = optional(list(string))
+          blocked_registries  = optional(list(string))
+          insecure_registries = optional(list(string))
+        }
+      )
+    )
+  })
+  default = null
+}

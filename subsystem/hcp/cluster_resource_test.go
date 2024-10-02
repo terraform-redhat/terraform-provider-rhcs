@@ -2246,7 +2246,8 @@ var _ = Describe("HCP Cluster", func() {
 					  "value": {
 						  "platform_allowlist": {
 								"id": "id1"
-							}
+							},
+							"allowed_registries_for_import": []
 					  }
 					},
                     {
@@ -2364,7 +2365,8 @@ var _ = Describe("HCP Cluster", func() {
 					  "value": {
 						  "platform_allowlist": {
 								"id": "id1"
-							}
+							},
+						  "allowed_registries_for_import": []
 					  }
 					},
 					{
@@ -2767,7 +2769,8 @@ var _ = Describe("HCP Cluster", func() {
 							"additional_trusted_ca": {
 							  "registry7.io": "REDACTED"
 							},
-							"registry_sources": {}
+							"registry_sources": {},
+							"allowed_registries_for_import": []
 					  	}
 					},
 					{

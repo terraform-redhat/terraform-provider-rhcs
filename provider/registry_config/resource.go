@@ -1,15 +1,18 @@
 package registry_config
 
 import (
-	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	dsschemadsschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/planmodifiers"
 )
 
@@ -26,6 +29,10 @@ func RegistryConfigResource() map[string]schema.Attribute {
 			NestedObject: schema.NestedAttributeObject{
 				Attributes: RegistryLocationResource(),
 			},
+			Default: listdefault.StaticValue(types.ListValueMust(types.ObjectType{
+				AttrTypes: RegistryLocationResourceType(),
+			}, []attr.Value{})),
+			Computed: true,
 			PlanModifiers: []planmodifier.List{
 				listplanmodifier.UseStateForUnknown(),
 			},
@@ -34,6 +41,8 @@ func RegistryConfigResource() map[string]schema.Attribute {
 			Description: "additional_trusted_ca is a map containing the registry hostname as the key, and the PEM-encoded certificate as the value, for each additional registry CA to trust.",
 			ElementType: types.StringType,
 			Optional:    true,
+			Default:     mapdefault.StaticValue(types.MapValueMust(types.StringType, map[string]attr.Value{})),
+			Computed:    true,
 			PlanModifiers: []planmodifier.Map{
 				planmodifiers.Redacted(),
 			},
@@ -85,28 +94,34 @@ func RegistrySourcesResource() map[string]schema.Attribute {
 			Description: "allowed_registries: registries for which image pull and push actions are allowed. To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name. For example, *.example.com. You can specify an individual repository within a registry. For example: reg1.io/myrepo/myapp:latest. All other registries are blocked. Mutually exclusive with `BlockedRegistries`",
 			Optional:    true,
 			ElementType: types.StringType,
+			Default:     listdefault.StaticValue(types.ListValueMust(types.StringType, []attr.Value{})),
+			Computed:    true,
 			PlanModifiers: []planmodifier.List{
 				listplanmodifier.UseStateForUnknown(),
 			},
 			Validators: []validator.List{
-				listvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("blocked_registries")),
+				attrvalidators.ConflictsWithNotEmpty(path.MatchRelative().AtParent().AtName("allowed_registries")),
 			},
 		},
 		"blocked_registries": schema.ListAttribute{
 			Description: "blocked_registries: registries for which image pull and push actions are denied. To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name. For example, *.example.com. You can specify an individual repository within a registry. For example: reg1.io/myrepo/myapp:latest. All other registries are allowed. Mutually exclusive with `AllowedRegistries`",
 			Optional:    true,
 			ElementType: types.StringType,
+			Default:     listdefault.StaticValue(types.ListValueMust(types.StringType, []attr.Value{})),
+			Computed:    true,
 			PlanModifiers: []planmodifier.List{
 				listplanmodifier.UseStateForUnknown(),
 			},
 			Validators: []validator.List{
-				listvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("allowed_registries")),
+				attrvalidators.ConflictsWithNotEmpty(path.MatchRelative().AtParent().AtName("allowed_registries")),
 			},
 		},
 		"insecure_registries": schema.ListAttribute{
 			Description: "insecure_registries are registries which do not have a valid TLS certificate or only support HTTP connections. To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name. For example, *.example.com. You can specify an individual repository within a registry. For example: reg1.io/myrepo/myapp:latest.",
 			Optional:    true,
 			ElementType: types.StringType,
+			Default:     listdefault.StaticValue(types.ListValueMust(types.StringType, []attr.Value{})),
+			Computed:    true,
 			PlanModifiers: []planmodifier.List{
 				listplanmodifier.UseStateForUnknown(),
 			},
@@ -124,5 +139,12 @@ func RegistryLocationResource() map[string]schema.Attribute {
 			Description: "insecure indicates whether the registry is secure (https) or insecure (http). By default (if not specified) the registry is assumed as secure.",
 			Optional:    true,
 		},
+	}
+}
+
+func RegistryLocationResourceType() map[string]attr.Type {
+	return map[string]attr.Type{
+		"domain_name": types.StringType,
+		"insecure":    types.BoolType,
 	}
 }

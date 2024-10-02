@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Registry Config resource", func() {
+var _ = Describe("Redacted Modifier", func() {
 	testSchema := schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"testattr": schema.MapAttribute{

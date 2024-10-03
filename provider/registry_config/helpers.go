@@ -123,8 +123,7 @@ func fillAdditionalCa(ctx context.Context, stateInput types.Map,
 }
 
 func checkAllowedRegistriesForImportValue(state *RegistryConfig) bool {
-	return state.AllowedRegistriesForImport != nil &&
-		len(state.AllowedRegistriesForImport) > 0
+	return state.AllowedRegistriesForImport != nil
 }
 
 func shouldPatchRegistryAllowedForImport(state, plan *RegistryConfig) bool {

@@ -31,6 +31,13 @@ provider "rhcs" {
   url   = var.url
 }
 
+provider "aws" {
+  region = var.cloud_region
+  ignore_tags {
+    key_prefixes = ["kubernetes.io/"]
+  }
+}
+
 # Create managed OIDC config
 module "oidc_config" {
   token                = var.token

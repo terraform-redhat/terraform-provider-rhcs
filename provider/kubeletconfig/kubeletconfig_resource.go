@@ -44,6 +44,8 @@ const (
 	failedToReadSummary   = "Failed to read KubeletConfig"
 )
 
+var createMutexKV = common.NewMutexKV()
+
 type KubeletConfigResource struct {
 	clusterClient common.ClusterClient
 	configsClient client.KubeletConfigsClient
@@ -109,6 +111,10 @@ func (k *KubeletConfigResource) Create(ctx context.Context, req resource.CreateR
 	}
 
 	clusterId := plan.Cluster.ValueString()
+
+	createMutexKV.Lock(clusterId)
+	defer createMutexKV.Unlock(clusterId)
+
 	isHCP, err := isHCP(ctx, clusterId, k.clusterClient)
 	if err != nil {
 		resp.Diagnostics.AddError(
@@ -134,7 +140,7 @@ func (k *KubeletConfigResource) Create(ctx context.Context, req resource.CreateR
 		}
 		if len(configs) > 0 {
 			resp.Diagnostics.AddError(failedToCreateSummary,
-				fmt.Sprintf("KubeletConfig for cluster '%s' already exist: %v", clusterId, err))
+				fmt.Sprintf("KubeletConfig for cluster '%s' already exist", clusterId))
 			return
 		}
 	}

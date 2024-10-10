@@ -17,3 +17,7 @@ output "properties" {
 output "tags" {
   value = rhcs_cluster_rosa_hcp.rosa_hcp_cluster.tags
 }
+
+output "additional_compute_security_groups" {
+  value = rhcs_cluster_rosa_hcp.rosa_hcp_cluster.aws_additional_compute_security_group_ids
+}

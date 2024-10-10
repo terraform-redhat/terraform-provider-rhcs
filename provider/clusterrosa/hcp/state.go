@@ -22,14 +22,15 @@ type ClusterRosaHcpState struct {
 	State          types.String `tfsdk:"state"`
 
 	// AWS fields
-	AWSAccountID        types.String `tfsdk:"aws_account_id"`
-	AWSBillingAccountID types.String `tfsdk:"aws_billing_account_id"`
-	AWSSubnetIDs        types.List   `tfsdk:"aws_subnet_ids"`
-	Sts                 *sts.HcpSts  `tfsdk:"sts"`
-	CloudRegion         types.String `tfsdk:"cloud_region"`
-	KMSKeyArn           types.String `tfsdk:"kms_key_arn"`
-	EtcdKmsKeyArn       types.String `tfsdk:"etcd_kms_key_arn"`
-	Tags                types.Map    `tfsdk:"tags"`
+	AWSAccountID                         types.String `tfsdk:"aws_account_id"`
+	AWSBillingAccountID                  types.String `tfsdk:"aws_billing_account_id"`
+	AWSSubnetIDs                         types.List   `tfsdk:"aws_subnet_ids"`
+	Sts                                  *sts.HcpSts  `tfsdk:"sts"`
+	CloudRegion                          types.String `tfsdk:"cloud_region"`
+	KMSKeyArn                            types.String `tfsdk:"kms_key_arn"`
+	EtcdKmsKeyArn                        types.String `tfsdk:"etcd_kms_key_arn"`
+	Tags                                 types.Map    `tfsdk:"tags"`
+	AWSAdditionalComputeSecurityGroupIds types.List   `tfsdk:"aws_additional_compute_security_group_ids"`
 
 	// Network fields
 	Domain      types.String `tfsdk:"domain"`

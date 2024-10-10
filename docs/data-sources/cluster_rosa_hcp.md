@@ -37,6 +37,7 @@ data "rhcs_cluster_rosa_hcp" "cluster" {
 - `api_url` (String) URL of the API server.
 - `availability_zones` (List of String) Availability zones. This attribute specifically applies to the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the initial Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)
 - `aws_account_id` (String) Identifier of the AWS account. After the creation of the resource, it is not possible to update the attribute value.
+- `aws_additional_compute_security_group_ids` (List of String) AWS additional compute security group ids. After the creation of the resource, it is not possible to update the attribute value.
 - `aws_billing_account_id` (String) Identifier of the AWS account for billing. After the creation of the resource, it is not possible to update the attribute value.
 - `aws_subnet_ids` (List of String) AWS subnet IDs. After the creation of the resource, it is not possible to update the attribute value.
 - `channel_group` (String) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource

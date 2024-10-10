@@ -60,6 +60,7 @@ resource "rhcs_cluster_rosa_hcp" "rosa_sts_cluster" {
 ### Optional
 
 - `admin_credentials` (Attributes) Admin user credentials. After the creation of the resource, it is not possible to update the attribute value. (see [below for nested schema](#nestedatt--admin_credentials))
+- `aws_additional_compute_security_group_ids` (List of String) AWS additional compute security group ids.
 - `channel_group` (String) Name of the channel group where you select the OpenShift cluster version, for example 'stable'. For ROSA, only 'stable' is supported. After the creation of the resource, it is not possible to update the attribute value.
 - `compute_machine_type` (String) Identifies the machine type used by the initial worker nodes, for example `m5.xlarge`. Use the `rhcs_machine_types` data source to find the possible values. This attribute specifically applies to the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the initial Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)
 - `create_admin_user` (Boolean) Indicates if create cluster admin user. Set it true to create cluster admin user with default username `cluster-admin` and generated password. It will be ignored if `admin_credentials` is set.After the creation of the resource, it is not possible to update the attribute value.

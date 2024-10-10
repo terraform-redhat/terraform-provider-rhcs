@@ -32,6 +32,7 @@ profiles:
     allowed_registries: #id:76499
     - "10.0.0.0:8088"
     - "*.registry.com"
+    worker_disk_size: 75
 
 - as: rosa-hcp-pl
   cluster:

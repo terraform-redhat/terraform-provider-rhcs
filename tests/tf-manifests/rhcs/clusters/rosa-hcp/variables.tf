@@ -220,3 +220,8 @@ variable "worker_disk_size" {
   type    = number
   default = null
 }
+
+variable "additional_compute_security_groups" {
+  type    = list(string)
+  default = null
+}

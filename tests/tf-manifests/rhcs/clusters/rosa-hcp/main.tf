@@ -63,6 +63,7 @@ resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
   proxy                        = var.proxy
   aws_subnet_ids               = var.aws_subnet_ids
   private                      = var.private
+  aws_additional_compute_security_group_ids       = var.additional_compute_security_groups
   compute_machine_type         = var.compute_machine_type
   ec2_metadata_http_tokens     = var.ec2_metadata_http_tokens
   etcd_encryption              = var.etcd_encryption

@@ -260,6 +260,11 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				Description: deprecatedMessage,
 				Computed:    true,
 			},
+			"aws_additional_compute_security_group_ids": schema.ListAttribute{
+				Description: "AWS additional compute security group ids. " + common.ValueCannotBeChangedStringDescription,
+				ElementType: types.StringType,
+				Computed:    true,
+			},
 		},
 	}
 }

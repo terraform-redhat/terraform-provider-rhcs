@@ -374,6 +374,11 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				Description: "Compute node root disk size, in GiB. " + rosaTypes.PoolMessage,
 				Optional:    true,
 			},
+			"aws_additional_compute_security_group_ids": schema.ListAttribute{
+				Description: "AWS additional compute security group ids.",
+				ElementType: types.StringType,
+				Optional:    true,
+			},
 		},
 	}
 }
@@ -519,6 +524,10 @@ func createHcpClusterObject(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
+	awsAdditionalComputeSecurityGroupIds, err := common.StringListToArray(ctx, state.AWSAdditionalComputeSecurityGroupIds)
+	if err != nil {
+		return nil, err
+	}
 	var stsBuilder *cmv1.STSBuilder
 	if state.Sts != nil {
 		stsBuilder = ocmr.CreateSTS(state.Sts.RoleARN.ValueString(), state.Sts.SupportRoleArn.ValueString(),
@@ -533,7 +542,7 @@ func createHcpClusterObject(ctx context.Context,
 	if err := ocmClusterResource.CreateAWSBuilder(rosaTypes.Hcp, awsTags, ec2MetadataHttpTokens,
 		kmsKeyARN, etcdKmsKeyArn,
 		isPrivate, awsAccountID, awsBillingAccountId, stsBuilder, awsSubnetIDs, nil, nil,
-		nil, nil, nil); err != nil {
+		awsAdditionalComputeSecurityGroupIds, nil, nil); err != nil {
 		return nil, err
 	}
 
@@ -874,6 +883,7 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaHcpState) diag.Diagnos
 	common.ValidateStateAndPlanEquals(state.Sts.InstanceIAMRoles.WorkerRoleARN, plan.Sts.InstanceIAMRoles.WorkerRoleARN, "sts.instance_iam_roles.worker_role_arn", &diags)
 	common.ValidateStateAndPlanEquals(state.Sts.OIDCConfigID, plan.Sts.OIDCConfigID, "sts.oidc_config_id", &diags)
 	common.ValidateStateAndPlanEquals(state.Sts.OperatorRolePrefix, plan.Sts.OperatorRolePrefix, "sts.operator_role_prefix", &diags)
+	common.ValidateStateAndPlanEquals(state.AWSAdditionalComputeSecurityGroupIds, plan.AWSAdditionalComputeSecurityGroupIds, "aws_additional_compute_security_group_ids", &diags)
 
 	// default node pool's attributes
 	//common.ValidateStateAndPlanEquals(state.AutoScalingEnabled, plan.AutoScalingEnabled, "autoscaling_enabled", &diags)

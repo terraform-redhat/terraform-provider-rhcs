@@ -624,6 +624,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 
 			By("Blocked registries and insecure registries have same value")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+				args.RegistryConfig.RegistrySources.AllowedRegistries = nil
 				args.RegistryConfig.RegistrySources.BlockedRegistries = &registries
 				args.RegistryConfig.RegistrySources.InsecureRegistries = &registries
 			}, "Insecure registries should not include registries already present in blocked registries, found duplicated")

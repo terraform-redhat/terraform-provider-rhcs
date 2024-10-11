@@ -41,6 +41,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	diskValidator "github.com/openshift-online/ocm-common/pkg/machinepool/validations"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
@@ -293,6 +294,31 @@ func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateReq
 	builder.ID(plan.Name.ValueString())
 
 	if workerDiskSize := common.OptionalInt64(plan.DiskSize); workerDiskSize != nil {
+		// Get cluster version to pass to disk size validator
+		getCluster, err := resource.Get().SendContext(ctx)
+		if err != nil {
+			diags.AddError(
+				"Can't find cluster",
+				fmt.Sprintf(
+					"Can't find cluster with identifier '%s': %v",
+					plan.Cluster.ValueString(), err,
+				),
+			)
+			return
+		}
+
+		err = diskValidator.ValidateMachinePoolRootDiskSize(
+			getCluster.Body().Version().RawID(),
+			int(*workerDiskSize),
+		)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Cannot build machine pool",
+				err.Error(),
+			)
+			return
+		}
+
 		builder.RootVolume(
 			cmv1.NewRootVolume().AWS(
 				cmv1.NewAWSVolume().Size(int(*workerDiskSize)),

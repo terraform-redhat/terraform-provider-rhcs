@@ -499,7 +499,7 @@ func createHcpClusterObject(ctx context.Context,
 	workerDiskSize := common.OptionalInt64(state.WorkerDiskSize)
 
 	if err := ocmClusterResource.CreateNodes(rosaTypes.Hcp, false, replicas, nil, nil,
-		computeMachineType, nil, availabilityZones, true, workerDiskSize); err != nil {
+		computeMachineType, nil, availabilityZones, true, workerDiskSize, nil); err != nil {
 		return nil, err
 	}
 

@@ -1636,6 +1636,23 @@ var _ = Describe("Classic Machine Pool", func() {
 			// Prepare the server:
 			TestServer.AppendHandlers(
 				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, `{
+					  "id": "123",
+					  "name": "my-cluster",
+					  "multi_az": false,
+					  "nodes": {
+						"availability_zones": [
+						  "us-east-1a"
+						]
+					  },
+					  "version": {
+						"raw_id": "4.14.0"
+					  },
+					  "state": "ready"
+					}`),
+				),
+				CombineHandlers(
 					VerifyRequest(
 						http.MethodPost,
 						"/api/clusters_mgmt/v1/clusters/123/machine_pools",

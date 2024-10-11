@@ -4,6 +4,8 @@ import (
 
 	// nolint
 
+	"fmt"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -114,8 +116,7 @@ var _ = Describe("Kubelet config", func() {
 			Expect(len(kubeletconfigs)).To(Equal(*kcArgs.KubeletConfigNumber))
 		} else {
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).Should(
-				MatchRegexp(`KubeletConfig for[\s\n\t]*cluster with ID '[0-9a-z]*' already exists`))
+			Expect(err.Error()).Should(ContainSubstring(fmt.Sprintf("KubeletConfig for cluster '%s' already exist", clusterID)))
 		}
 	})
 

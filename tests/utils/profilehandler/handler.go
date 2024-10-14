@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
@@ -42,7 +44,7 @@ type ProfilePrepare interface {
 	PrepareRoute53() (string, error)
 	PrepareSharedVpcPolicyAndHostedZone(sharedCredentialsFile string, clusterName string, dnsDomainID string, ingressOperatorRoleArn string,
 		installerRoleArn string, clusterAwsAccount string, vpcID string, subnets []string, domainPrefix string) (*exec.SharedVpcPolicyAndHostedZoneOutput, error)
-	PrepareVersion() string
+	PrepareVersionAndChannelGroup() (string, string, error)
 }
 
 type ProfileServices interface {
@@ -73,7 +75,7 @@ type ProfileSpec interface {
 	GetRegion() string
 	GetName() string
 	GetChannelGroup() string
-	GetVersionPattern() string
+	GetVersion() string
 	GetMajorVersion() string
 	GetComputeMachineType() string
 	GetZones() string
@@ -174,8 +176,8 @@ func (ctx *profileContext) GetChannelGroup() string {
 	return ctx.profile.ChannelGroup
 }
 
-func (ctx *profileContext) GetVersionPattern() string {
-	return ctx.profile.VersionPattern
+func (ctx *profileContext) GetVersion() string {
+	return ctx.profile.Version
 }
 
 func (ctx *profileContext) GetMajorVersion() string {
@@ -556,38 +558,48 @@ func (ctx *profileContext) PrepareSharedVpcPolicyAndHostedZone(sharedCredentials
 // version with latest
 // verion with x-1, it means the version will choose one with x-1 version which can be used for x stream upgrade
 // version with y-1, it means the version will choose one with y-1 version which can be used for y stream upgrade
-func (ctx *profileContext) PrepareVersion() string {
-	version := ctx.profile.Version
-	versionPattern := ctx.profile.VersionPattern
-	channelGroup := ctx.profile.ChannelGroup
+func (ctx *profileContext) PrepareVersionAndChannelGroup() (version string, channelGroup string, err error) {
+	version = ctx.GetVersion()
+	channelGroup = ctx.GetChannelGroup()
+
 	versionRegex := regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+\-*[\s\S]*$`)
-	if version != "" {
-		if versionRegex.MatchString(version) {
-			return version
+	if versionRegex.MatchString(version) { // OCP version given
+		return
+	}
+	if strings.HasPrefix(version, "openshift-v") { // Version ID given
+		var vsResp *cmv1.VersionGetResponse
+		vsResp, err = cms.RetrieveVersionDetail(cms.RHCSConnection, version)
+		if err != nil {
+			return
 		}
-		versionPattern = version // Version has precedence over version pattern
+		if vsResp.Body().ChannelGroup() != channelGroup {
+			err = fmt.Errorf("Given version ID '%s' channel group does not correspond to the given channel group '%s'", version, channelGroup)
+			return
+		}
+		version = vsResp.Body().RawID()
+		return
 	}
-	// Check that the version is matching openshift version regexp
-	if versionRegex.MatchString(versionPattern) {
-		return versionPattern
-	}
-	var vResult string
-	switch versionPattern {
-	case "", "latest":
-		versions := cms.EnabledVersions(cms.RHCSConnection, channelGroup, ctx.profile.MajorVersion, true)
+
+	// Handle other cases
+	switch version {
+	case constants.VersionLatest:
+		versions := cms.EnabledVersions(cms.RHCSConnection, channelGroup, ctx.GetMajorVersion(), true)
 		versions = cms.SortVersions(versions)
-		vResult = versions[len(versions)-1].RawID
-	case "y-1":
+		version = versions[len(versions)-1].RawID
+	case constants.VersionYStream:
 		versions, _ := cms.GetVersionsWithUpgrades(cms.RHCSConnection, channelGroup, constants.Y, true, false, 1)
-		vResult = versions[len(versions)-1].RawID
-	case "z-1":
+		version = versions[len(versions)-1].RawID
+	case constants.VersionZStream:
 		versions, _ := cms.GetVersionsWithUpgrades(cms.RHCSConnection, channelGroup, constants.Z, true, false, 1)
-		vResult = versions[len(versions)-1].RawID
-	case "eol":
-		vResult = ""
+		version = versions[len(versions)-1].RawID
+	case constants.VersionEOL:
+		version = ""
+	default:
+		err = fmt.Errorf("Unknown version defined: '%s'", version)
+		return
 	}
-	Logger.Infof("Cluster OCP latest version is set to %s", vResult)
-	return vResult
+	Logger.Infof("Cluster OCP latest version is set to %s", version)
+	return
 }
 
 func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArgs *exec.ClusterArgs, err error) {
@@ -596,10 +608,11 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 	var installerRoleArn string
 	var ingressRoleArn string
 
-	version := ctx.PrepareVersion()
+	version, channelGroup, err := ctx.PrepareVersionAndChannelGroup()
 
 	clusterArgs = &exec.ClusterArgs{
 		OpenshiftVersion: helper.StringPointer(version),
+		ChannelGroup:     helper.StringPointer(channelGroup),
 	}
 
 	// Init cluster's args by profile's attributes
@@ -627,10 +640,6 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 
 	if ctx.profile.ComputeReplicas > 0 {
 		clusterArgs.Replicas = helper.IntPointer(ctx.profile.ComputeReplicas)
-	}
-
-	if ctx.profile.ChannelGroup != "" {
-		clusterArgs.ChannelGroup = helper.StringPointer(ctx.profile.ChannelGroup)
 	}
 
 	if ctx.profile.Ec2MetadataHttpTokens != "" {

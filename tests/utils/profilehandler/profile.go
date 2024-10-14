@@ -6,9 +6,8 @@ type Profile struct {
 	DomainPrefix            string   `ini:"domain_prefix,omitempty" json:"domain_prefix,omitempty"`
 	ClusterType             string   `ini:"cluster_type,omitempty" json:"cluster_type,omitempty"`
 	ProductID               string   `ini:"product_id,omitempty" json:"product_id,omitempty"`
-	MajorVersion            string   `ini:"major_version,omitempty" json:"major_version,omitempty"`
-	Version                 string   `ini:"version,omitempty" json:"version,omitempty"`                 //Specific OCP version to be specified
-	VersionPattern          string   `ini:"version_pattern,omitempty" json:"version_pattern,omitempty"` //Version supports indicated version started with openshift-v or major-1 (y-1) or minor-1 (z-1)
+	MajorVersion            string   `ini:"major_version,omitempty" json:"major_version,omitempty"` // Specify the Major or Major.minor version to use. Default will use latest
+	Version                 string   `ini:"version,omitempty" json:"version,omitempty"`             // Version supports specific OCP version or indicated version starting with openshift-v or latest or major-1 (y-1) or minor-1 (z-1). Default is latest.
 	ChannelGroup            string   `ini:"channel_group,omitempty" json:"channel_group,omitempty"`
 	CloudProvider           string   `ini:"cloud_provider,omitempty" json:"cloud_provider,omitempty"`
 	Region                  string   `ini:"region,omitempty" json:"region,omitempty"`

@@ -14,15 +14,11 @@ profiles:
     fips: false
     autoscale: true # id:72523
     byok: true
-    version_pattern: "latest" # id:72472
-    version: "" # id:72472
-    major_version: "4.16" # id:72472
     compute_replicas: 6 # id:72446
     compute_machine_type: "m5.2xlarge" # id:72448
     proxy: true # id:72488
     labeling: false # not yet supported
     tagging: true # id:72624
-    channel_group: candidate # id:72473
     zones: "a,b,c"  # id:72457
     ec2_metadata_http_tokens: "required" # id:75372
     oidc_config: "managed" # id:72492
@@ -49,14 +45,10 @@ profiles:
     fips: false
     autoscale: false
     byok: false
-    version_pattern: "latest" # id:72472
-    version: "" # id:72472
-    major_version: "4.16" # id:72472
     compute_machine_type: "m5.xlarge" # id:72448
     proxy: false
     labeling: false # not yet supported
     tagging: false
-    channel_group: candidate # id:72473
     zones: "" # id:72456
     ec2_metadata_http_tokens: "optional" # id:75372
     oidc_config: "un-managed" # id:72493
@@ -86,14 +78,11 @@ profiles:
     fips: false
     autoscale: false
     byok: true
-    version_pattern: "y-1"
-    version: ""
-    major_version: "4.15"
+    version: "y-1"
     compute_machine_type: "m5.xlarge" # id:72448
     proxy: false
     labeling: false # not yet supported
     tagging: true # id:72624
-    channel_group: stable
     zones: "" # id:72456
     ec2_metadata_http_tokens: "" # id:75372
     oidc_config: "un-managed" # id:72493
@@ -118,14 +107,11 @@ profiles:
     fips: false
     autoscale: false
     byok: true
-    version_pattern: "z-1"
-    version: ""
-    major_version: "4.16"
+    version: "z-1"
     compute_machine_type: "r5.xlarge" # id:72448
     proxy: false
     labeling: false # not yet supported
     tagging: true # id:72624
-    channel_group: stable
     zones: "" # id:72456
     ec2_metadata_http_tokens: "" # id:75372
     oidc_config: "managed" # id:72492
@@ -147,14 +133,10 @@ profiles:
     fips: false
     autoscale: false
     byok: false
-    version_pattern: "latest" # id:72472
-    version: "" # id:72472
-    major_version: "4.16" # id:72472
     compute_machine_type: "m5.xlarge" # id:72448
     proxy: false
     labeling: false # not yet supported
     tagging: false
-    channel_group: candidate # id:72473
     zones: "" # id:72456
     ec2_metadata_http_tokens: "optional" # id:75372
     oidc_config: "managed" # id:72493
@@ -181,14 +163,10 @@ profiles:
     fips: false
     autoscale: false
     byok: false
-    version_pattern: "latest" # id:72472
-    version: "" # id:72472
-    major_version: "4.16" # id:72472
     compute_machine_type: "m5.xlarge" # id:72448
     proxy: false
     labeling: false # not yet supported
     tagging: false
-    channel_group: candidate # id:72473
     zones: "" # id:72456
     ec2_metadata_http_tokens: "optional" # id:75372
     oidc_config: "managed" # id:72493
@@ -202,8 +180,6 @@ profiles:
     byovpc: true
     sts: true
     region: "us-west-2"
-    major_version: "4.16"
-    channel_group: stable
     compute_machine_type: "m5.xlarge"
     oidc_config: "un-managed"
     full_resources: true

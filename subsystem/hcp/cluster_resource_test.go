@@ -3564,6 +3564,102 @@ var _ = Describe("HCP Cluster", func() {
 			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
+		It("Creates private cluster with aws subnet ids & additional security groups", func() {
+			// Prepare the server:
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.aws.subnet_ids.[0]`, "id1"),
+					VerifyJQ(`.aws.private_link`, true),
+					VerifyJQ(`.nodes.availability_zones.[0]`, "us-west-1a"),
+					VerifyJQ(`.api.listening`, "internal"),
+					VerifyJQ(`.aws.additional_compute_security_group_ids.[0]`, "id1"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "private_link": true,
+						  "subnet_ids": ["id1", "id2", "id3"],
+						  "additional_compute_security_group_ids": ["id1"],
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/api",
+					  "value": {
+					  	"listening": "internal"
+					  }
+					},
+					{
+					  "op": "replace",
+					  "path": "/nodes",
+					  "value": {
+						"availability_zones": [
+      						"us-west-1a",
+							"us-west-1b",
+							"us-west-1c"
+    					],
+						"compute_machine_type": {
+						   "id": "r5.xlarge"
+	    				}
+					  }
+					}]`),
+				),
+			)
+
+			// Run the apply command:
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				private = true
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				aws_additional_compute_security_group_ids = [
+					"id1"
+				]
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.aws_additional_compute_security_group_ids.[0]", "id1"))
+		})
+
 		It("Creates cluster when private link is false", func() {
 			// Prepare the server:
 			TestServer.AppendHandlers(

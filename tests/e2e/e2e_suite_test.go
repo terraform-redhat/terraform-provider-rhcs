@@ -2,12 +2,11 @@ package e2e
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
@@ -23,7 +22,7 @@ func TestRHCSProvider(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	token = os.Getenv(constants.TokenENVName)
+	token = cms.RHCSOCMToken
 	var err error
 
 	err = helper.AlignRHCSSourceVersion(manifests.ManifestsConfigurationDir)

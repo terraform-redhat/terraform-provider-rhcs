@@ -164,14 +164,6 @@ const (
 	ClusterMaxIngressNumber = 2
 )
 
-// version channel_groups
-const (
-	VersionFastChannel      = "fast"
-	VersionStableChannel    = "stable"
-	VersionNightlyChannel   = "nightly"
-	VersionCandidateChannel = "candidate"
-)
-
 // disk size
 const (
 	MinClassicDiskSize = 128

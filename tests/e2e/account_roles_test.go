@@ -18,12 +18,12 @@ import (
 )
 
 var _ = Describe("Edit Account roles", func() {
-	// To improve with OCM-8602
 	defer GinkgoRecover()
 
 	var (
 		accService     exec.AccountRoleService
 		profileHandler profilehandler.ProfileHandler
+		majorVersion   string
 	)
 
 	BeforeEach(func() {
@@ -34,6 +34,14 @@ var _ = Describe("Edit Account roles", func() {
 		accTFWorkspace := helper.GenerateRandomName("add-"+profileHandler.Profile().GetName(), 2)
 		accService, err = exec.NewAccountRoleService(accTFWorkspace, profileHandler.Profile().GetClusterType())
 		Expect(err).ToNot(HaveOccurred())
+
+		By("Retrieve cluster version")
+		clusterService, err := profileHandler.Services().GetClusterService()
+		Expect(err).ToNot(HaveOccurred())
+		cOut, err := clusterService.Output()
+		Expect(err).ToNot(HaveOccurred())
+		majorVersion = helper.GetMajorVersion(cOut.ClusterVersion)
+
 	})
 	AfterEach(func() {
 		accService.Destroy()
@@ -43,7 +51,7 @@ var _ = Describe("Edit Account roles", func() {
 		By("Create account roles with empty prefix")
 		args := &exec.AccountRolesArgs{
 			AccountRolePrefix: helper.EmptyStringPointer,
-			OpenshiftVersion:  helper.StringPointer(profileHandler.Profile().GetMajorVersion()),
+			OpenshiftVersion:  helper.StringPointer(majorVersion),
 		}
 		_, err := accService.Apply(args)
 		Expect(err).ToNot(HaveOccurred())
@@ -54,7 +62,7 @@ var _ = Describe("Edit Account roles", func() {
 		By("Create account roles with no prefix defined")
 		args = &exec.AccountRolesArgs{
 			AccountRolePrefix: nil,
-			OpenshiftVersion:  helper.StringPointer(profileHandler.Profile().GetMajorVersion()),
+			OpenshiftVersion:  helper.StringPointer(majorVersion),
 		}
 		_, err = accService.Apply(args)
 		Expect(err).ToNot(HaveOccurred())
@@ -67,7 +75,7 @@ var _ = Describe("Edit Account roles", func() {
 	It("can delete account roles via account-role module - [id:63316]", ci.Day2, ci.Critical, func() {
 		args := &exec.AccountRolesArgs{
 			AccountRolePrefix: helper.StringPointer("OCP-63316"),
-			OpenshiftVersion:  helper.StringPointer(profileHandler.Profile().GetMajorVersion()),
+			OpenshiftVersion:  helper.StringPointer(majorVersion),
 		}
 		_, err := accService.Apply(args)
 		Expect(err).ToNot(HaveOccurred())
@@ -86,6 +94,7 @@ var _ = Describe("Create Account roles with shared vpc role", ci.Exclude, func()
 		dnsService       exec.DnsDomainService
 		vpcService       exec.VPCService
 		sharedVPCService exec.SharedVpcPolicyAndHostedZoneService
+		majorVersion     string
 	)
 
 	BeforeEach(func() {
@@ -111,6 +120,13 @@ var _ = Describe("Create Account roles with shared vpc role", ci.Exclude, func()
 
 		sharedVPCService, err = exec.NewSharedVpcPolicyAndHostedZoneService(tempWorkspace, clusterType)
 		Expect(err).ToNot(HaveOccurred())
+
+		By("Retrieve cluster version")
+		clusterService, err := profileHandler.Services().GetClusterService()
+		Expect(err).ToNot(HaveOccurred())
+		cOut, err := clusterService.Output()
+		Expect(err).ToNot(HaveOccurred())
+		majorVersion = helper.GetMajorVersion(cOut.ClusterVersion)
 	})
 	AfterEach(func() {
 		sharedVPCService.Destroy()
@@ -127,7 +143,7 @@ var _ = Describe("Create Account roles with shared vpc role", ci.Exclude, func()
 		By("Create account role without shared vpc role arn")
 		accArgs := &exec.AccountRolesArgs{
 			AccountRolePrefix: helper.StringPointer(helper.GenerateRandomName("OCP-67574", 2)),
-			OpenshiftVersion:  helper.StringPointer(profileHandler.Profile().GetMajorVersion()),
+			OpenshiftVersion:  helper.StringPointer(majorVersion),
 		}
 		_, err := accService.Apply(accArgs)
 		Expect(err).ToNot(HaveOccurred())
@@ -190,7 +206,7 @@ var _ = Describe("Create Account roles with shared vpc role", ci.Exclude, func()
 		By("Add shared vpc role arn to account role")
 		accArgs = &exec.AccountRolesArgs{
 			AccountRolePrefix: helper.StringPointer(accRoleOutput.AccountRolePrefix),
-			OpenshiftVersion:  helper.StringPointer(profileHandler.Profile().GetMajorVersion()),
+			OpenshiftVersion:  helper.StringPointer(majorVersion),
 			SharedVpcRoleArn:  helper.StringPointer(sharedVPCOutput.SharedRole),
 		}
 		_, err = accService.Apply(accArgs)

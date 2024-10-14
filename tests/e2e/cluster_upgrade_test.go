@@ -56,7 +56,7 @@ var _ = Describe("Upgrade", func() {
 
 		It("on Z-stream - [id:63153]", ci.Upgrade,
 			func() {
-				if profile.GetVersionPattern() != "z-1" {
+				if profile.GetVersion() != constants.VersionZStream {
 					Skip("The test is configured only for Z-stream upgrade")
 				}
 				clusterResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
@@ -112,7 +112,7 @@ var _ = Describe("Upgrade", func() {
 
 		It("on Y-stream - [id:63152]", ci.Upgrade,
 			func() {
-				if profile.GetVersionPattern() != "y-1" {
+				if profile.GetVersion() != constants.VersionYStream {
 					Skip("The test is configured only for Y-stream upgrade")
 				}
 
@@ -189,7 +189,7 @@ var _ = Describe("Upgrade", func() {
 
 		It("ROSA HCP cluster on Z-stream - [id:72474]", ci.Upgrade,
 			func() {
-				if profile.GetVersionPattern() != "z-1" {
+				if profile.GetVersion() != constants.VersionZStream {
 					Skip("The test is configured only for Z-stream upgrade")
 				}
 
@@ -228,7 +228,7 @@ var _ = Describe("Upgrade", func() {
 
 		It("ROSA HCP cluster on Y-stream - [id:72475]", ci.Upgrade,
 			func() {
-				if profile.GetVersionPattern() != "y-1" {
+				if profile.GetVersion() != constants.VersionYStream {
 					Skip("The test is configured only for Y-stream upgrade")
 				}
 

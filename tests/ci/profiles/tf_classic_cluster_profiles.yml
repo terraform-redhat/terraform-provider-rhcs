@@ -17,14 +17,10 @@ profiles:
     fips: false
     autoscale: false
     byok: false
-    version_pattern: "latest"
-    version: ""
-    major_version: "4.16"
     compute_machine_type: "m5.xlarge"
     proxy: false
     labeling: false
     tagging: false
-    channel_group: stable
     zones: ""
     ec2_metadata_http_tokens: "optional"
     oidc_config: "managed"
@@ -48,14 +44,10 @@ profiles:
     fips: false
     autoscale: true
     byok: true
-    version_pattern: "latest"
-    version: ""
-    major_version: "4.16"
     compute_machine_type: "m5.2xlarge"
     proxy: true
     labeling: true
     tagging: true
-    channel_group: stable
     zones: ""
     ec2_metadata_http_tokens: "required"
     oidc_config: "un-managed"
@@ -82,14 +74,10 @@ profiles:
     fips: false
     autoscale: true
     byok: false
-    version_pattern: "latest"
-    version: ""
-    major_version: "4.16"
     compute_machine_type: "m5.2xlarge"
     proxy: false
     labeling: true
     tagging: true
-    channel_group: stable
     zones: ""
     imdsv2: "required"
     oidc_config: "managed"
@@ -116,14 +104,11 @@ profiles:
     fips: false
     autoscale: false
     byok: true
-    version_pattern: "y-1"
-    version: ""
-    major_version: "4.15"
+    version: "y-1"
     compute_machine_type: "m5.xlarge"
     proxy: false
     labeling: false
     tagging: true
-    channel_group: stable
     zones: ""
     ec2_metadata_http_tokens: ""
     oidc_config: "managed"
@@ -147,14 +132,11 @@ profiles:
     fips: false
     autoscale: false
     byok: true
-    version_pattern: "z-1"
-    version: ""
-    major_version: "4.15"
+    version: "z-1"
     compute_machine_type: "m5.xlarge"
     proxy: false
     labeling: true
     tagging: false
-    channel_group: stable
     zones: ""
     ec2_metadata_http_tokens: ""
     oidc_config: "managed"
@@ -169,8 +151,6 @@ profiles:
     region: "ap-northeast-1"
     sts: true
     byovpc: true
-    major_version: "4.16"
-    channel_group: stable
     compute_machine_type: "m5.xlarge"
     oidc_config: "managed"
     full_resources: true

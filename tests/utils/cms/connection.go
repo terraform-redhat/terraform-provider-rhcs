@@ -18,21 +18,17 @@ limitations under the License.
 
 import (
 	"fmt"
-	"os"
 
 	. "github.com/onsi/ginkgo/v2"
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 
 	client "github.com/openshift-online/ocm-sdk-go"
 )
 
-var (
-	RHCSOCMToken = os.Getenv(CON.TokenENVName)
-)
-
 // Regular users in the organization 'Red Hat-Service Delivery-tester'
 var (
-	RHCSConnection = createConnectionWithToken(RHCSOCMToken)
+	RHCSConnection = createConnectionWithToken(config.GetRHCSOCMToken())
 )
 
 var (
@@ -45,9 +41,9 @@ func createConnectionWithToken(token string) *client.Connection {
 	connection, err := client.NewConnectionBuilder().
 		Logger(logger).
 		Insecure(true).
-		TokenURL(CON.TokenURL).
-		URL(CON.RHCS.RHCSURL).
-		Client(CON.ClientID, CON.ClientSecret).
+		TokenURL(constants.TokenURL).
+		URL(config.GetRHCSURL()).
+		Client(constants.ClientID, constants.ClientSecret).
 		Tokens(token).
 		Build()
 	if err != nil {

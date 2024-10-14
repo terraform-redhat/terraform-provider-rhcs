@@ -20,7 +20,7 @@ type OcAttributes struct {
 	Username        string
 	Password        string
 	ClusterID       string
-	AdditioanlFlags []string
+	AdditionalFlags []string
 	Timeout         time.Duration
 }
 
@@ -65,7 +65,7 @@ func OcLogin(ocLoginAtter OcAttributes) (string, error) {
 		ocLoginAtter.Username,
 		ocLoginAtter.Password,
 		ocLoginAtter.ClusterID,
-		ocLoginAtter.AdditioanlFlags...)
+		ocLoginAtter.AdditionalFlags...)
 
 	output, err := RetryCMDRun(cmd, ocLoginAtter.Timeout)
 	return output, err

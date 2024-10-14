@@ -1,27 +1,11 @@
 package manifests
 
 import (
-	"fmt"
-	"os"
 	"path"
-	"strings"
 
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 )
-
-func initManifestsDir() string {
-	if constants.ManifestsDirENV != "" {
-		return constants.ManifestsDirENV
-	}
-	currentDir, _ := os.Getwd()
-	manifestsDir := path.Join(strings.SplitAfter(currentDir, "tests")[0], "tf-manifests")
-	if _, err := os.Stat(manifestsDir); err != nil {
-		panic(fmt.Sprintf("Manifests dir %s doesn't exist. Make sure you have the manifests dir in testing repo or set the correct env MANIFESTS_DIR value", manifestsDir))
-	}
-	return manifestsDir
-}
-
-var ManifestsConfigurationDir = initManifestsDir()
 
 // Provider dirs' name definition
 const (
@@ -32,82 +16,82 @@ const (
 
 // AWS dirs
 func GetAWSAccountRolesManifestDir(clusterType constants.ClusterType) string {
-	return path.Join(ManifestsConfigurationDir, awsProviderDir, "account-roles", clusterType.String())
+	return path.Join(config.GetManifestsDir(), awsProviderDir, "account-roles", clusterType.String())
 }
 
 func GetAWSKMSManifestDir(clusterType constants.ClusterType) string {
-	return path.Join(ManifestsConfigurationDir, awsProviderDir, "kms")
+	return path.Join(config.GetManifestsDir(), awsProviderDir, "kms")
 }
 
 func GetAWSOIDCProviderOperatorRolesManifestDir(clusterType constants.ClusterType) string {
-	return path.Join(ManifestsConfigurationDir, awsProviderDir, "oidc-provider-operator-roles", clusterType.String())
+	return path.Join(config.GetManifestsDir(), awsProviderDir, "oidc-provider-operator-roles", clusterType.String())
 }
 
 func GetAWSProxyManifestDir(clusterType constants.ClusterType) string {
-	return path.Join(ManifestsConfigurationDir, awsProviderDir, "proxy")
+	return path.Join(config.GetManifestsDir(), awsProviderDir, "proxy")
 }
 
 func GetAWSSecurityGroupManifestDir(clusterType constants.ClusterType) string {
-	return path.Join(ManifestsConfigurationDir, awsProviderDir, "security-groups")
+	return path.Join(config.GetManifestsDir(), awsProviderDir, "security-groups")
 }
 
 func GetAWSSharedVPCPolicyAndHostedZoneManifestDir(clusterType constants.ClusterType) string {
-	return path.Join(ManifestsConfigurationDir, awsProviderDir, "shared-vpc-policy-and-hosted-zone")
+	return path.Join(config.GetManifestsDir(), awsProviderDir, "shared-vpc-policy-and-hosted-zone")
 }
 
 func GetAWSVPCManifestDir(clusterType constants.ClusterType) string {
-	return path.Join(ManifestsConfigurationDir, awsProviderDir, "vpc", clusterType.String())
+	return path.Join(config.GetManifestsDir(), awsProviderDir, "vpc", clusterType.String())
 }
 
 func GetAWSVPCTagManifestDir(clusterType constants.ClusterType) string {
-	return path.Join(ManifestsConfigurationDir, awsProviderDir, "vpc-tags")
+	return path.Join(config.GetManifestsDir(), awsProviderDir, "vpc-tags")
 }
 
 // RHCS provider dirs
 func GetClusterManifestsDir(clusterType constants.ClusterType) string {
-	return path.Join(ManifestsConfigurationDir, rhcsProviderDir, "clusters", clusterType.String())
+	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "clusters", clusterType.String())
 }
 
 func GetClusterWaiterManifestsDir(clusterType constants.ClusterType) string {
-	return path.Join(ManifestsConfigurationDir, rhcsProviderDir, "cluster-waiter")
+	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "cluster-waiter")
 }
 
 func GetClusterAutoscalerManifestsDir(clusterType constants.ClusterType) string {
-	return path.Join(ManifestsConfigurationDir, rhcsProviderDir, "cluster-autoscaler", clusterType.String())
+	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "cluster-autoscaler", clusterType.String())
 }
 
 func GetDnsDomainManifestsDir(clusterType constants.ClusterType) string {
-	return path.Join(ManifestsConfigurationDir, rhcsProviderDir, "dns")
+	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "dns")
 }
 
 func GetIDPManifestsDir(clusterType constants.ClusterType, idpType constants.IDPType) string {
-	return path.Join(ManifestsConfigurationDir, rhcsProviderDir, idpsDir, string(idpType))
+	return path.Join(config.GetManifestsDir(), rhcsProviderDir, idpsDir, string(idpType))
 }
 
 func GetIngressManifestsDir(clusterType constants.ClusterType) string {
-	return path.Join(ManifestsConfigurationDir, rhcsProviderDir, "ingresses", clusterType.String())
+	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "ingresses", clusterType.String())
 }
 
 func GetImportManifestsDir(clusterType constants.ClusterType) string {
-	return path.Join(ManifestsConfigurationDir, rhcsProviderDir, "resource-import")
+	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "resource-import")
 }
 
 func GetKubeletConfigManifestsDir(clusterType constants.ClusterType) string {
-	return path.Join(ManifestsConfigurationDir, rhcsProviderDir, "kubelet-config")
+	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "kubelet-config")
 }
 
 func GetMachinePoolsManifestsDir(clusterType constants.ClusterType) string {
-	return path.Join(ManifestsConfigurationDir, rhcsProviderDir, "machine-pools", clusterType.String())
+	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "machine-pools", clusterType.String())
 }
 
 func GetRHCSInfoManifestsDir(clusterType constants.ClusterType) string {
-	return path.Join(ManifestsConfigurationDir, rhcsProviderDir, "rhcs-info")
+	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "rhcs-info")
 }
 
 func GetTuningConfigManifestsDir(clusterType constants.ClusterType) string {
-	return path.Join(ManifestsConfigurationDir, rhcsProviderDir, "tuning-config")
+	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "tuning-config")
 }
 
 func GetTrustedIPsManifestsDir(clusterType constants.ClusterType) string {
-	return path.Join(ManifestsConfigurationDir, rhcsProviderDir, "trusted-ips")
+	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "trusted-ips")
 }

@@ -2,9 +2,9 @@ package profilehandler
 
 import (
 	"fmt"
-	"os"
 	"slices"
 
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 
@@ -12,10 +12,8 @@ import (
 )
 
 // The cfg will be used to define the testing environment
-var cfg = constants.RHCS
-
 func loadProfileYamlFile(profileName string) (*Profile, error) {
-	p, err := helper.GetProfile(profileName, GetYAMLProfilesDir())
+	p, err := helper.GetProfile(profileName, config.GetClusterProfilesDir())
 	if err != nil {
 		return nil, err
 	}
@@ -34,18 +32,32 @@ func loadProfileYamlFile(profileName string) (*Profile, error) {
 
 func setDefaultOrEnvProfileValues(profile *Profile) {
 	// Supporting global env setting to overrite profile settings
-	if os.Getenv("CHANNEL_GROUP") != "" {
-		Logger.Infof("Got global env settings for CHANNEL_GROUP, overwritten the profile setting with value %s", os.Getenv("CHANNEL_GROUP"))
-		profile.ChannelGroup = os.Getenv("CHANNEL_GROUP")
+	setProfileFromEnv := func(name string, envRetriever func() string, profileSetter func(profile *Profile, value string)) {
+		value := envRetriever()
+		if value != "" {
+			profileSetter(profile, value)
+			Logger.Infof("Got global env settings for %s, overwritten the profile setting with value %s", name, value)
+		}
 	}
-	if os.Getenv("VERSION") != "" {
-		Logger.Infof("Got global env settings for VERSION, overwritten the profile setting with value %s", os.Getenv("VERSION"))
-		profile.Version = os.Getenv("VERSION")
-	}
-	if os.Getenv("REGION") != "" {
-		Logger.Infof("Got global env settings for REGION, overwritten the profile setting with value %s", os.Getenv("REGION"))
-		profile.Region = os.Getenv("REGION")
-	}
+
+	setProfileFromEnv("Channel Group", config.GetChannelGroup, func(profile *Profile, value string) {
+		profile.ChannelGroup = value
+	})
+	setProfileFromEnv("Version", config.GetVersion, func(profile *Profile, value string) {
+		profile.Version = value
+	})
+	setProfileFromEnv("Major Version", config.GetMajorVersion, func(profile *Profile, value string) {
+		profile.MajorVersion = value
+	})
+	setProfileFromEnv("Region", config.GetRegion, func(profile *Profile, value string) {
+		profile.Region = value
+	})
+	setProfileFromEnv("Compute Machine Type", config.GetComputeMachineType, func(profile *Profile, value string) {
+		profile.ComputeMachineType = value
+	})
+	setProfileFromEnv("Cluster Name", config.GetRHCSClusterName, func(profile *Profile, value string) {
+		profile.ClusterName = value
+	})
 
 	if len(profile.AllowedRegistries) > 0 || len(profile.BlockedRegistries) > 0 {
 		profile.UseRegistryConfig = true
@@ -59,16 +71,13 @@ func setDefaultOrEnvProfileValues(profile *Profile) {
 	}
 }
 
-func LoadProfileYamlFileByENV() (profile *Profile, err error) {
-	profileEnv := os.Getenv(constants.RhcsClusterProfileENV)
+func LoadProfileYamlFileByENV() (*Profile, error) {
+	profileEnv := config.GetClusterProfile()
 	if profileEnv == "" {
 		panic(fmt.Errorf("ENV Variable CLUSTER_PROFILE is empty, please make sure you set the env value"))
 	}
 	return loadProfileYamlFile(profileEnv)
-}
 
-func GetYAMLProfilesDir() string {
-	return cfg.YAMLProfilesDir
 }
 
 func getRandomProfile(clusterTypes ...constants.ClusterType) (profile *Profile, err error) {
@@ -78,7 +87,7 @@ func getRandomProfile(clusterTypes ...constants.ClusterType) (profile *Profile, 
 		Logger.Info("Get random profile from all profiles")
 	}
 
-	profilesMap, err := helper.ParseProfiles(GetYAMLProfilesDir())
+	profilesMap, err := helper.ParseProfiles(config.GetClusterProfilesDir())
 	if err != nil {
 		return
 	}

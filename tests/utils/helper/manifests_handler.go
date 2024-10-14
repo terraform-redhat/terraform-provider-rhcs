@@ -7,7 +7,7 @@ import (
 
 	"path/filepath"
 
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
@@ -90,31 +90,27 @@ func ScanManifestsDir(dir string) ([]string, error) {
 }
 
 func AlignRHCSSourceVersion(dir string) error {
-	rhcsSource := os.Getenv(CON.RHCSSource)
-	rhcsVersion := os.Getenv(CON.RHCSVersion)
-	moduleSource := os.Getenv(CON.ModuleSource)
-	moduleSourceLocal := os.Getenv(CON.ModuleSourceLocal)
-	moduleVersion := os.Getenv(CON.ModuleVersion)
-	if rhcsSource == "" && rhcsVersion == "" && moduleSource == "" && moduleVersion == "" && moduleSourceLocal == "" {
+	var foundEnv bool
+	retrieveRHCSEnvVar := func(name string, retriever func() string) string {
+		value := retriever()
+		if value != "" {
+			foundEnv = true
+			Logger.Warnf("Got a global ENV variable for %s set to %s. Going to replace all of the manifests files", name, value)
+		}
+		return value
+	}
+
+	rhcsSource := retrieveRHCSEnvVar("RHCS Source", config.GetRHCSSource)
+	rhcsVersion := retrieveRHCSEnvVar("RHCS Version", config.GetRHCSVersion)
+	rhcsModuleSource := retrieveRHCSEnvVar("RHCS Module Source", config.GetRHCSModuleSource)
+	rhcsModuleSourceLocal := retrieveRHCSEnvVar("RHCS Module Source Local", config.GetRHCSSource)
+	rhcsModuleVersion := retrieveRHCSEnvVar("RHCS Module Version", config.GetRHCSModuleVersion)
+	if !foundEnv {
 		return nil
 	}
-	if rhcsSource != "" {
-		Logger.Warnf("Got a global ENV variable %s set to %s. Going to replace all of the manifests files", CON.RHCSSource, rhcsSource)
-	}
-	if rhcsVersion != "" {
-		Logger.Warnf("Got a global ENV variable %s set to %s. Going to replace all of the manifests files", CON.RHCSVersion, rhcsVersion)
-	}
-	if moduleSource != "" {
-		Logger.Warnf("Got a global ENV variable %s set to %s. Going to replace all of the manifests files", CON.ModuleSource, moduleSource)
-	}
-	if moduleSourceLocal != "" {
-		Logger.Warnf("Got a global ENV variable %s set. Going to replace all of the manifests files", CON.ModuleVersion, moduleVersion)
-	}
-	if moduleVersion != "" {
-		Logger.Warnf("Got a global ENV variable %s set to %s. Going to replace all of the manifests files", CON.ModuleVersion, moduleVersion)
-	}
+
 	Logger.Warnf("RHCS Source: %s, RHCS Version: %s", rhcsSource, rhcsVersion)
-	Logger.Warnf("Module Source: %s, Module Version: %s", moduleSource, moduleVersion)
+	Logger.Warnf("Module Source: %s, Module Version: %s", rhcsModuleSource, rhcsModuleVersion)
 	files, err := ScanManifestsDir(dir)
 	if err != nil {
 		return err
@@ -124,7 +120,7 @@ func AlignRHCSSourceVersion(dir string) error {
 		if err != nil {
 			return err
 		}
-		err = ModuleSourceAlignment(file, moduleSource, moduleSourceLocal, moduleVersion)
+		err = ModuleSourceAlignment(file, rhcsModuleSource, rhcsModuleSourceLocal, rhcsModuleVersion)
 		if err != nil {
 			return err
 		}

@@ -10,6 +10,7 @@ import (
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
@@ -27,7 +28,7 @@ var _ = Describe("Create cluster", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clusterID).ToNot(BeEmpty())
 			//TODO: implement waiter for  the private cluster once bastion is implemented
-			if constants.GetEnvWithDefault(constants.WaitOperators, "false") == "true" && !profileHandler.Profile().IsPrivate() {
+			if config.IsWaitForOperators() && !profileHandler.Profile().IsPrivate() {
 				// WaitClusterOperatorsToReadyStatus will wait for cluster operators ready
 				timeout := 60
 				err = openshift.WaitForOperatorsToBeReady(cms.RHCSConnection, clusterID, timeout)

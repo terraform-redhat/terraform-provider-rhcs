@@ -7,11 +7,11 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
@@ -180,15 +180,15 @@ var _ = Describe("Create Account roles with shared vpc role", ci.Exclude, func()
 		vpcArgs := &exec.VPCArgs{
 			NamePrefix:                helper.StringPointer(clusterName),
 			AWSRegion:                 helper.StringPointer(profileHandler.Profile().GetRegion()),
-			VPCCIDR:                   helper.StringPointer(constants.DefaultVPCCIDR),
-			AWSSharedCredentialsFiles: helper.StringSlicePointer([]string{constants.SharedVpcAWSSharedCredentialsFileENV}),
+			VPCCIDR:                   helper.StringPointer(profilehandler.DefaultVPCCIDR),
+			AWSSharedCredentialsFiles: helper.StringSlicePointer([]string{config.GetSharedVpcAWSSharedCredentialsFile()}),
 		}
 		_, err = vpcService.Apply(vpcArgs)
 		Expect(err).ToNot(HaveOccurred())
 		vpcOutput, err := vpcService.Output()
 		Expect(err).ToNot(HaveOccurred())
 		sharedVPCArgs := &exec.SharedVpcPolicyAndHostedZoneArgs{
-			SharedVpcAWSSharedCredentialsFiles: helper.StringSlicePointer([]string{constants.SharedVpcAWSSharedCredentialsFileENV}),
+			SharedVpcAWSSharedCredentialsFiles: helper.StringSlicePointer([]string{config.GetSharedVpcAWSSharedCredentialsFile()}),
 			Region:                             helper.StringPointer(profileHandler.Profile().GetRegion()),
 			ClusterName:                        helper.StringPointer(clusterName),
 			DnsDomainId:                        helper.StringPointer(dnsDomainOutput.DnsDomainId),

@@ -16,6 +16,7 @@ import (
 	cmsv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
@@ -125,9 +126,6 @@ var _ = Describe("Verify cluster", func() {
 
 	It("compute_machine_type is correctly set - [id:64023]", ci.Day1Post, ci.Medium, func() {
 		computeMachineType := profile.GetComputeMachineType()
-		if constants.RHCS.ComputeMachineType != "" {
-			computeMachineType = constants.RHCS.ComputeMachineType
-		}
 		if computeMachineType == "" {
 			Skip("No compute_machine_type is configured for the cluster. skipping the test.")
 		}
@@ -158,9 +156,9 @@ var _ = Describe("Verify cluster", func() {
 
 	It("compute_labels are correctly set - [id:68423]", ci.Day1Post, ci.High, func() {
 		if profile.IsLabeling() {
-			Expect(cluster.Nodes().ComputeLabels()).To(Equal(constants.DefaultMPLabels))
+			Expect(cluster.Nodes().ComputeLabels()).To(Equal(profilehandler.DefaultMPLabels))
 		} else {
-			Expect(cluster.Nodes().ComputeLabels()).To(Equal(constants.NilMap))
+			Expect(cluster.Nodes().ComputeLabels()).To(Equal(helper.NilMap))
 		}
 	})
 
@@ -174,7 +172,7 @@ var _ = Describe("Verify cluster", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		if profile.IsTagging() {
-			allClusterTags := helper.MergeMaps(buildInTags, constants.Tags)
+			allClusterTags := helper.MergeMaps(buildInTags, profilehandler.Tags)
 			Expect(len(getResp.Body().AWS().Tags())).To(Equal(len(allClusterTags)))
 
 			// compare cluster tags to the expected tags to appear
@@ -267,7 +265,7 @@ var _ = Describe("Verify cluster", func() {
 			Expect(err).ToNot(HaveOccurred())
 			server := getResp.Body().API().URL()
 
-			username := constants.ClusterAdminUser
+			username := profilehandler.ClusterAdminUser
 			password, _ := helper.GetClusterAdminPassword()
 			Expect(password).ToNot(BeEmpty())
 
@@ -276,9 +274,9 @@ var _ = Describe("Verify cluster", func() {
 				Username:  username,
 				Password:  password,
 				ClusterID: clusterID,
-				AdditioanlFlags: []string{
+				AdditionalFlags: []string{
 					"--insecure-skip-tls-verify",
-					fmt.Sprintf("--kubeconfig %s", path.Join(constants.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, username))),
+					fmt.Sprintf("--kubeconfig %s", path.Join(config.GetKubeConfigDir(), fmt.Sprintf("%s.%s", clusterID, username))),
 				},
 				Timeout: 10,
 			}

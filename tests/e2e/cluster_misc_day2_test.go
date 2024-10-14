@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
@@ -59,7 +58,7 @@ var _ = Describe("Cluster miscellaneous", func() {
 			}
 
 			By("Adding additional custom property to the existing cluster")
-			updatedCustomProperties := constants.CustomProperties
+			updatedCustomProperties := profilehandler.CustomProperties
 			updatedCustomProperties["second_custom_property"] = "test2"
 
 			// Apply updated custom properties to the cluster

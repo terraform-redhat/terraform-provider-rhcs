@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
 	"regexp"
 	"strings"
 	"time"
@@ -12,6 +11,7 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
@@ -328,7 +328,7 @@ func (ctx *profileContext) PrepareVPC(multiZone bool, azIDs []string, name strin
 	}
 	vpcArgs := &exec.VPCArgs{
 		AWSRegion: helper.StringPointer(region),
-		VPCCIDR:   helper.StringPointer(constants.DefaultVPCCIDR),
+		VPCCIDR:   helper.StringPointer(DefaultVPCCIDR),
 	}
 
 	if len(azIDs) != 0 {
@@ -450,7 +450,7 @@ func (ctx *profileContext) PrepareProxy(VPCID string, subnetPublicID string, key
 		Region:              helper.StringPointer(ctx.profile.Region),
 		VPCID:               helper.StringPointer(VPCID),
 		PublicSubnetID:      helper.StringPointer(subnetPublicID),
-		TrustBundleFilePath: helper.StringPointer(path.Join(constants.RHCS.RhcsOutputDir, "ca.cert")),
+		TrustBundleFilePath: helper.StringPointer(config.GetClusterTrustBundleFilename()),
 		KeyPairID:           helper.StringPointer(keyPairID),
 	}
 
@@ -621,7 +621,7 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 	clusterArgs.MultiAZ = helper.BoolPointer(ctx.profile.MultiAZ)
 
 	if ctx.profile.NetWorkingSet {
-		clusterArgs.MachineCIDR = helper.StringPointer(constants.DefaultVPCCIDR)
+		clusterArgs.MachineCIDR = helper.StringPointer(DefaultVPCCIDR)
 	}
 
 	if ctx.profile.Autoscale {
@@ -632,9 +632,7 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 		}
 	}
 
-	if constants.RHCS.ComputeMachineType != "" {
-		clusterArgs.ComputeMachineType = helper.StringPointer(constants.RHCS.ComputeMachineType)
-	} else if ctx.profile.ComputeMachineType != "" {
+	if ctx.profile.ComputeMachineType != "" {
 		clusterArgs.ComputeMachineType = helper.StringPointer(ctx.profile.ComputeMachineType)
 	}
 
@@ -647,20 +645,20 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 	}
 
 	if ctx.profile.Labeling {
-		clusterArgs.DefaultMPLabels = helper.StringMapPointer(constants.DefaultMPLabels)
+		clusterArgs.DefaultMPLabels = helper.StringMapPointer(DefaultMPLabels)
 	}
 
 	if ctx.profile.Tagging {
-		clusterArgs.Tags = helper.StringMapPointer(constants.Tags)
+		clusterArgs.Tags = helper.StringMapPointer(Tags)
 	}
 
 	if ctx.profile.AdminEnabled {
-		userName := constants.ClusterAdminUser
+		userName := ClusterAdminUser
 		password := helper.GenerateRandomPassword(14)
 		adminPasswdMap := map[string]string{"username": userName, "password": password}
 		clusterArgs.AdminCredentials = helper.StringMapPointer(adminPasswdMap)
 		pass := []byte(password)
-		err = os.WriteFile(path.Join(cfg.RhcsOutputDir, constants.ClusterAdminUser), pass, 0644)
+		err = os.WriteFile(config.GetClusterAdminUserFilename(), pass, 0644)
 		if err != nil {
 			Logger.Error("Error happens when try to record the admin password")
 			return
@@ -674,9 +672,7 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 	}
 
 	var clusterName string
-	if constants.RHCS.RHCSClusterName != "" {
-		clusterName = constants.RHCS.RHCSClusterName
-	} else if ctx.profile.ClusterName != "" {
+	if ctx.profile.ClusterName != "" {
 		clusterName = ctx.profile.ClusterName
 	} else {
 		// Generate random chars later cluster name with profile name
@@ -692,14 +688,14 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 	}
 
 	clusterArgs.ClusterName = &clusterName
-	err = os.WriteFile(cfg.ClusterNameFile, []byte(clusterName), 0644)
+	err = os.WriteFile(config.GetClusterNameFilename(), []byte(clusterName), 0644)
 	if err != nil {
 		Logger.Errorf("Error happens when try to record the cluster name file: %s ",
 			err.Error())
 		return
 	}
 	Logger.Infof("Recorded cluster name file: %s with name %s",
-		cfg.ClusterNameFile, clusterName)
+		config.GetClusterNameFilename(), clusterName)
 	// short and re-generate the clusterName when it is longer than 15 chars
 	if ctx.profile.DomainPrefix != "" {
 		clusterArgs.DomainPrefix = &ctx.profile.DomainPrefix
@@ -756,9 +752,11 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 		// Supports ENV set passed to make cluster provision more flexy in prow
 		// Export the subnetIDs via env variable if you have existing ones export SubnetIDs=<subnet1>,<subnet2>,<subnet3>
 		// Export the availability zones via env variable export AvailabilitiZones=<az1>,<az2>,<az3>
-		if os.Getenv("SubnetIDs") != "" && os.Getenv("AvailabilitiZones") != "" {
-			subnetIDs := strings.Split(os.Getenv("SubnetIDs"), ",")
-			azs := strings.Split(os.Getenv("AvailabilitiZones"), ",")
+		subnetIDs := config.GetSubnetIDs()
+		availabilityZones := config.GetAvailabilityZones()
+		if subnetIDs != "" && availabilityZones != "" {
+			subnetIDs := strings.Split(subnetIDs, ",")
+			azs := strings.Split(availabilityZones, ",")
 			clusterArgs.AWSAvailabilityZones = &azs
 			clusterArgs.AWSSubnetIDs = &subnetIDs
 		} else {
@@ -769,11 +767,10 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 			sharedVPCAWSSharedCredentialsFile := ""
 
 			if ctx.profile.SharedVpc {
-				if constants.SharedVpcAWSSharedCredentialsFileENV == "" {
-					panic(fmt.Errorf("SHARED_VPC_AWS_SHARED_CREDENTIALS_FILE env is not set or empty, it's requried by Shared-VPC cluster"))
+				sharedVPCAWSSharedCredentialsFile = config.GetSharedVpcAWSSharedCredentialsFile()
+				if sharedVPCAWSSharedCredentialsFile == "" {
+					panic(fmt.Errorf("Shared VPC Credentials File environment is not set, it's requried by Shared-VPC cluster"))
 				}
-
-				sharedVPCAWSSharedCredentialsFile = constants.SharedVpcAWSSharedCredentialsFileENV
 			}
 			vpcOutput, err = ctx.PrepareVPC(ctx.profile.MultiAZ, zones, clusterName, sharedVPCAWSSharedCredentialsFile)
 			if err != nil {
@@ -807,7 +804,7 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 				// Resources for Shared-VPC
 				var sharedVpcPolicyAndHostedZoneOutput *exec.SharedVpcPolicyAndHostedZoneOutput
 				sharedVpcPolicyAndHostedZoneOutput, err = ctx.PrepareSharedVpcPolicyAndHostedZone(
-					constants.SharedVpcAWSSharedCredentialsFileENV,
+					config.GetSharedVpcAWSSharedCredentialsFile(),
 					clusterName,
 					baseDnsDomain,
 					ingressRoleArn,
@@ -912,7 +909,7 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 		clusterArgs.WorkerDiskSize = helper.IntPointer(ctx.profile.WorkerDiskSize)
 	}
 	clusterArgs.UnifiedAccRolesPath = helper.StringPointer(ctx.profile.UnifiedAccRolesPath)
-	clusterArgs.CustomProperties = helper.StringMapPointer(constants.CustomProperties) // id:72450
+	clusterArgs.CustomProperties = helper.StringMapPointer(CustomProperties) // id:72450
 
 	if ctx.profile.FullResources {
 		clusterArgs.FullResources = helper.BoolPointer(true)
@@ -961,8 +958,8 @@ func (ctx *profileContext) CreateRHCSClusterByProfile(token string) (string, err
 }
 
 func (ctx *profileContext) DestroyRHCSClusterResources(token string) error {
-	if os.Getenv("NO_CLUSTER_DESTROY") == "true" {
-		Logger.Warn("`NO_CLUSTER_DESTROY` is configured, thus no destroy of resources will happen")
+	if config.IsNoClusterDestroy() {
+		Logger.Warn("No Cluster Destroy is configured, thus no destroy of resources will happen")
 		return nil
 	}
 
@@ -978,7 +975,7 @@ func (ctx *profileContext) DestroyRHCSClusterResources(token string) error {
 		}
 	}
 	// Get the cluster name from backend to double check cluster deleted
-	clusterName, _ := helper.ReadFile(cfg.ClusterNameFile)
+	clusterName, _ := helper.ReadFile(config.GetClusterNameFilename())
 	Logger.Infof("Double checking with the cluster name %s", clusterName)
 	if clusterName != "" {
 		parameter := map[string]interface{}{
@@ -1118,18 +1115,7 @@ func (ctx *profileContext) DestroyRHCSClusterResources(token string) error {
 }
 
 // RetrieveClusterID will be used for all day2 tests. It needs an existing cluster.
-// Two ways:
-//   - If you created a cluster by other way, you can Export CLUSTER_ID=<cluster id>
-//   - If you are using this CI created the cluster, just need to Export CLUSTER_PROFILE=<profile name>
 func (ctx *profileContext) RetrieveClusterID() (string, error) {
-	// Support the cluster ID to set to ENV in case somebody created cluster by other way
-	if os.Getenv(constants.ClusterIDEnv) != "" {
-		return os.Getenv(constants.ClusterIDEnv), nil
-	}
-	if os.Getenv(constants.RhcsClusterProfileENV) == "" {
-		Logger.Warnf("Either env variables %s and %s set. Will return an empty string.", constants.ClusterIDEnv, constants.RhcsClusterProfileENV)
-		return "", nil
-	}
 	clusterService, err := ctx.Services().GetClusterService()
 	if err != nil {
 		return "", err

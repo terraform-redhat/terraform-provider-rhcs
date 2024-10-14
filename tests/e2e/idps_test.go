@@ -12,6 +12,7 @@ import (
 	. "github.com/openshift-online/ocm-sdk-go/testing"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
@@ -65,7 +66,7 @@ func getDefaultLDAPArgs(idpName string) *exec.IDPArgs {
 		ClusterID:      helper.StringPointer(clusterID),
 		Name:           helper.StringPointer(idpName),
 		CA:             helper.EmptyStringPointer,
-		URL:            helper.StringPointer(constants.LdapURL),
+		URL:            helper.StringPointer(profilehandler.LdapURL),
 		LDAPAttributes: &exec.LDAPAttributes{},
 		Insecure:       helper.BoolPointer(true),
 	}
@@ -76,7 +77,7 @@ func getDefaultGitHubArgs(idpName string) *exec.IDPArgs {
 		Name:          helper.StringPointer(idpName),
 		ClientID:      helper.StringPointer(defaultGithubIDPClientId),
 		ClientSecret:  helper.StringPointer(defaultGithubIDPClientSecret),
-		Organizations: helper.StringSlicePointer(constants.Organizations),
+		Organizations: helper.StringSlicePointer(profilehandler.Organizations),
 	}
 }
 func getDefaultGitlabArgs(idpName string) *exec.IDPArgs {
@@ -85,7 +86,7 @@ func getDefaultGitlabArgs(idpName string) *exec.IDPArgs {
 		Name:         helper.StringPointer(idpName),
 		ClientID:     helper.StringPointer(defaultGitlabIDPClientId),
 		ClientSecret: helper.StringPointer(defaultGitlabIDPClientSecret),
-		URL:          helper.StringPointer(constants.GitLabURL),
+		URL:          helper.StringPointer(profilehandler.GitLabURL),
 	}
 }
 func getDefaultGoogleArgs(idpName string) *exec.IDPArgs {
@@ -94,7 +95,7 @@ func getDefaultGoogleArgs(idpName string) *exec.IDPArgs {
 		Name:         helper.StringPointer(idpName),
 		ClientID:     helper.StringPointer(defaultGoogleIDPClientId),
 		ClientSecret: helper.StringPointer(defaultGoogleIDPClientSecret),
-		HostedDomain: helper.StringPointer(constants.HostedDomain),
+		HostedDomain: helper.StringPointer(profilehandler.HostedDomain),
 	}
 }
 
@@ -179,9 +180,9 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 						Username:  defaultHTPUsername,
 						Password:  defaultHTPPassword,
 						ClusterID: clusterID,
-						AdditioanlFlags: []string{
+						AdditionalFlags: []string{
 							"--insecure-skip-tls-verify",
-							fmt.Sprintf("--kubeconfig %s", path.Join(constants.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, defaultHTPUsername))),
+							fmt.Sprintf("--kubeconfig %s", path.Join(config.GetKubeConfigDir(), fmt.Sprintf("%s.%s", clusterID, defaultHTPUsername))),
 						},
 						Timeout: 7,
 					}
@@ -286,7 +287,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 						ClusterID:      helper.StringPointer(clusterID),
 						Name:           helper.StringPointer("OCP-63332-ldap-idp-test"),
 						CA:             helper.EmptyStringPointer,
-						URL:            helper.StringPointer(constants.LdapURL),
+						URL:            helper.StringPointer(profilehandler.LdapURL),
 						LDAPAttributes: &exec.LDAPAttributes{},
 						Insecure:       helper.BoolPointer(true),
 					}
@@ -306,9 +307,9 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 							Username:  defaultLDAPUsername,
 							Password:  defaultLDAPPassword,
 							ClusterID: clusterID,
-							AdditioanlFlags: []string{
+							AdditionalFlags: []string{
 								"--insecure-skip-tls-verify",
-								fmt.Sprintf("--kubeconfig %s", path.Join(constants.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, defaultLDAPUsername))),
+								fmt.Sprintf("--kubeconfig %s", path.Join(config.GetKubeConfigDir(), fmt.Sprintf("%s.%s", clusterID, defaultLDAPUsername))),
 							},
 							Timeout: 7,
 						}
@@ -334,7 +335,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 					Name:         helper.StringPointer("OCP-64028-gitlab-idp-test"),
 					ClientID:     helper.StringPointer(defaultGitlabIDPClientId),
 					ClientSecret: helper.StringPointer(defaultGitlabIDPClientSecret),
-					URL:          helper.StringPointer(constants.GitLabURL),
+					URL:          helper.StringPointer(profilehandler.GitLabURL),
 				}
 				_, err := idpServices.gitlab.Apply(idpParam)
 				Expect(err).ToNot(HaveOccurred())
@@ -363,7 +364,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 					Name:          helper.StringPointer("OCP-64027-github-idp-test"),
 					ClientID:      helper.StringPointer(defaultGithubIDPClientId),
 					ClientSecret:  helper.StringPointer(defaultGithubIDPClientSecret),
-					Organizations: helper.StringSlicePointer(constants.Organizations),
+					Organizations: helper.StringSlicePointer(profilehandler.Organizations),
 				}
 				_, err := idpServices.github.Apply(idpParam)
 				Expect(err).ToNot(HaveOccurred())
@@ -392,7 +393,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 					Name:         helper.StringPointer("OCP-64029-google-idp-test"),
 					ClientID:     helper.StringPointer(defaultGoogleIDPClientId),
 					ClientSecret: helper.StringPointer(defaultGoogleIDPClientSecret),
-					HostedDomain: helper.StringPointer(constants.HostedDomain),
+					HostedDomain: helper.StringPointer(profilehandler.HostedDomain),
 				}
 				_, err := idpServices.google.Apply(idpParam)
 				Expect(err).ToNot(HaveOccurred())
@@ -427,9 +428,9 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 					Name:           helper.StringPointer("OCP-64030"),
 					ClientID:       helper.StringPointer(defaultGoogleIDPClientId),
 					ClientSecret:   helper.StringPointer(defaultGoogleIDPClientSecret),
-					HostedDomain:   helper.StringPointer(constants.HostedDomain),
+					HostedDomain:   helper.StringPointer(profilehandler.HostedDomain),
 					CA:             helper.EmptyStringPointer,
-					URL:            helper.StringPointer(constants.LdapURL),
+					URL:            helper.StringPointer(profilehandler.LdapURL),
 					LDAPAttributes: &exec.LDAPAttributes{},
 					Insecure:       helper.BoolPointer(true),
 				}
@@ -449,9 +450,9 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 					Username:  defaultLDAPUsername,
 					Password:  defaultLDAPPassword,
 					ClusterID: clusterID,
-					AdditioanlFlags: []string{
+					AdditionalFlags: []string{
 						"--insecure-skip-tls-verify",
-						fmt.Sprintf("--kubeconfig %s", path.Join(constants.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, defaultLDAPUsername))),
+						fmt.Sprintf("--kubeconfig %s", path.Join(config.GetKubeConfigDir(), fmt.Sprintf("%s.%s", clusterID, defaultLDAPUsername))),
 					},
 					Timeout: 7,
 				}
@@ -463,7 +464,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				}
 
 				// login to the cluster using cluster-admin creds
-				username := constants.ClusterAdminUser
+				username := profilehandler.ClusterAdminUser
 				password, _ := helper.GetClusterAdminPassword()
 				Expect(password).ToNot(BeEmpty())
 
@@ -472,9 +473,9 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 					Username:  username,
 					Password:  password,
 					ClusterID: clusterID,
-					AdditioanlFlags: []string{
+					AdditionalFlags: []string{
 						"--insecure-skip-tls-verify",
-						fmt.Sprintf("--kubeconfig %s", path.Join(constants.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, username))),
+						fmt.Sprintf("--kubeconfig %s", path.Join(config.GetKubeConfigDir(), fmt.Sprintf("%s.%s", clusterID, username))),
 					},
 					Timeout: 10,
 				}
@@ -513,9 +514,9 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 					Username:  defaultHTPUsername,
 					Password:  defaultHTPPassword,
 					ClusterID: clusterID,
-					AdditioanlFlags: []string{
+					AdditionalFlags: []string{
 						"--insecure-skip-tls-verify",
-						fmt.Sprintf("--kubeconfig %s", path.Join(constants.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, defaultHTPUsername))),
+						fmt.Sprintf("--kubeconfig %s", path.Join(config.GetKubeConfigDir(), fmt.Sprintf("%s.%s", clusterID, defaultHTPUsername))),
 					},
 					Timeout: 10,
 				}
@@ -544,9 +545,9 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 					Username:  defaultHTPUsername,
 					Password:  defaultHTPPassword,
 					ClusterID: clusterID,
-					AdditioanlFlags: []string{
+					AdditionalFlags: []string{
 						"--insecure-skip-tls-verify",
-						fmt.Sprintf("--kubeconfig %s", path.Join(constants.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, defaultHTPUsername))),
+						fmt.Sprintf("--kubeconfig %s", path.Join(config.GetKubeConfigDir(), fmt.Sprintf("%s.%s", clusterID, defaultHTPUsername))),
 					},
 					Timeout: 10,
 				}
@@ -774,7 +775,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				output, err := importService.ShowState(importParam.Resource)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(output).To(ContainSubstring(defaultGoogleIDPClientId))
-				Expect(output).To(ContainSubstring(constants.HostedDomain))
+				Expect(output).To(ContainSubstring(profilehandler.HostedDomain))
 
 				By("Validate terraform import with no idp object name returns error")
 				var unknownIdpName = "unknown_idp_name"
@@ -833,9 +834,9 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 					Username:  defaultLDAPUsername,
 					Password:  defaultLDAPPassword,
 					ClusterID: clusterID,
-					AdditioanlFlags: []string{
+					AdditionalFlags: []string{
 						"--insecure-skip-tls-verify",
-						fmt.Sprintf("--kubeconfig %s", path.Join(constants.RHCS.KubeConfigDir, fmt.Sprintf("%s.%s", clusterID, defaultLDAPUsername))),
+						fmt.Sprintf("--kubeconfig %s", path.Join(config.GetKubeConfigDir(), fmt.Sprintf("%s.%s", clusterID, defaultLDAPUsername))),
 					},
 					Timeout: 7,
 				}
@@ -888,7 +889,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 					Gitlab(cmsv1.NewGitlabIdentityProvider().
 						ClientID(defaultGitlabIDPClientId).
 						ClientSecret(defaultGitlabIDPClientSecret).
-						URL(constants.GitLabURL)).
+						URL(profilehandler.GitLabURL)).
 					MappingMethod("claim").
 					Build()
 				res, err := cms.CreateClusterIDP(cms.RHCSConnection, clusterID, requestBody)
@@ -936,7 +937,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 					Gitlab(cmsv1.NewGitlabIdentityProvider().
 						ClientID(defaultGitlabIDPClientSecret).
 						ClientSecret(newClientSecret).
-						URL(constants.GitLabURL)).
+						URL(profilehandler.GitLabURL)).
 					MappingMethod("claim").
 					Build()
 

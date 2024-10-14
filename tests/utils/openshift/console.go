@@ -10,9 +10,10 @@ import (
 	"github.com/goinggo/mapstructure"
 
 	client "github.com/openshift-online/ocm-sdk-go"
-	CMS "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
-	CON "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-	h "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
 // Console is openshift webconsole struct
@@ -27,14 +28,14 @@ type Console struct {
 func NewConsole(clusterID string, connection *client.Connection) (console *Console, err error) {
 	console = &Console{ClusterID: clusterID}
 
-	// detailResp, err := CMS.RetrieveClusterDetail(connection, clusterID)
+	// detailResp, err := cms.RetrieveClusterDetail(connection, clusterID)
 	if err != nil {
 		return
 	}
 	if console.IsConfiged() {
 		return console, nil
 	}
-	resp, err := CMS.RetrieveClusterCredentials(connection, clusterID)
+	resp, err := cms.RetrieveClusterCredentials(connection, clusterID)
 	if err != nil {
 		return
 	}
@@ -52,7 +53,7 @@ func NewConsole(clusterID string, connection *client.Connection) (console *Conso
 
 // IsConfiged will return whether the config file of the console is existed
 func (c *Console) IsConfiged() bool {
-	configFile := filepath.Join(CON.GetRHCSOutputDir(), h.Join(c.ClusterID, CON.ConfigSuffix))
+	configFile := filepath.Join(config.GetRHCSOutputDir(), helper.Join(c.ClusterID, constants.ConfigSuffix))
 	_, err := os.Stat(configFile)
 	if err != nil {
 		return false
@@ -63,7 +64,7 @@ func (c *Console) IsConfiged() bool {
 
 // Config will return the console which had been configured
 func (c *Console) Config(kubeConfig string) (*Console, error) {
-	configFile := filepath.Join(CON.GetRHCSOutputDir(), h.Join(c.ClusterID, CON.ConfigSuffix))
+	configFile := filepath.Join(config.GetRHCSOutputDir(), helper.Join(c.ClusterID, constants.ConfigSuffix))
 	wf, err := os.OpenFile(configFile, os.O_RDWR|os.O_CREATE, 0766)
 	if err == nil {
 		_, err = wf.Write([]byte(kubeConfig))
@@ -75,12 +76,12 @@ func (c *Console) Config(kubeConfig string) (*Console, error) {
 
 // GetClusterVersion will return the Cluster version
 func (c *Console) GetClusterVersion() (version string, err error) {
-	stdout, _, err := h.RunCMD("oc version -o json")
+	stdout, _, err := helper.RunCMD("oc version -o json")
 	fmt.Println(stdout)
 	if err != nil {
 		return
 	}
-	version = h.DigString(h.Parse([]byte(stdout)), "openshiftVersion")
+	version = helper.DigString(helper.Parse([]byte(stdout)), "openshiftVersion")
 	return
 
 }
@@ -99,7 +100,7 @@ func (c *Console) GetPods(namespace ...string) ([]*Pod, error) {
 	if len(namespace) == 1 {
 		CMD = fmt.Sprintf("oc get pod -n %s -o json  --kubeconfig %s", namespace[0], c.KubePath)
 	}
-	stdout, _, err := h.RunCMD(CMD)
+	stdout, _, err := helper.RunCMD(CMD)
 	if err != nil {
 		return pods, err
 	}

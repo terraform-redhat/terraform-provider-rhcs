@@ -10,7 +10,6 @@ import (
 	"math/rand"
 	"os"
 	"os/exec"
-	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -18,6 +17,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/sethvargo/go-password/password"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
@@ -500,12 +500,12 @@ func Subfix(length int) string {
 
 func GenerateClusterName(profileName string) string {
 	var clusterNameParts []string
-	if constants.RHCS.RHCSClusterNamePrefix != "" {
-		clusterNameParts = append(clusterNameParts, constants.RHCS.RHCSClusterNamePrefix)
+	if config.GetRHCSClusterNamePrefix() != "" {
+		clusterNameParts = append(clusterNameParts, config.GetRHCSClusterNamePrefix())
 	}
 	clusterNameParts = append(clusterNameParts, constants.RHCSPrefix, profileName[5:], Subfix(3))
-	if constants.RHCS.RHCSClusterNameSuffix != "" {
-		clusterNameParts = append(clusterNameParts, constants.RHCS.RHCSClusterNameSuffix)
+	if config.GetRHCSClusterNameSuffix() != "" {
+		clusterNameParts = append(clusterNameParts, config.GetRHCSClusterNameSuffix())
 	}
 	return strings.Join(clusterNameParts, constants.HyphenConnector)
 }
@@ -517,14 +517,15 @@ func ReadFile(absPath string) (string, error) {
 	}
 	return string(b), nil
 }
+
 func GetClusterAdminPassword() (string, error) {
-	path := fmt.Sprintf(path.Join(constants.GetRHCSOutputDir(), constants.ClusterAdminUser))
-	return ReadFile(path)
+	return ReadFile(config.GetClusterAdminUserFilename())
 }
 
 var (
 	emptyStringValue      = ""
 	emptyStringSliceValue = []string{}
+	NilMap                map[string]string
 )
 
 var EmptyStringPointer = StringPointer(emptyStringValue)

@@ -594,7 +594,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 				MachineType:        helper.StringPointer(machineType),
 				AutoRepair:         helper.BoolPointer(true),
 				TuningConfigs:      helper.StringSlicePointer(tuningconfigs),
-				Tags:               helper.StringMapPointer(constants.Tags),
+				Tags:               helper.StringMapPointer(profilehandler.Tags),
 			}
 			_, err = mpService.Apply(mpArgs)
 			Expect(err).ToNot(HaveOccurred())

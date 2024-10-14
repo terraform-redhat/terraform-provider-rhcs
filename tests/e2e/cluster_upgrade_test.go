@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
@@ -102,7 +103,7 @@ var _ = Describe("Upgrade", func() {
 				Expect(string(clusterResp.Body().State())).To(Equal(constants.Ready))
 				Expect(string(clusterResp.Body().Version().RawID())).To(Equal(targetV))
 
-				if constants.GetEnvWithDefault(constants.WaitOperators, "false") == "true" && !profile.IsPrivate() {
+				if config.IsWaitForOperators() && !profile.IsPrivate() {
 					// WaitClusterOperatorsToReadyStatus will wait for cluster operators ready
 					timeout := 60
 					err = openshift.WaitForOperatorsToBeReady(cms.RHCSConnection, clusterID, timeout)
@@ -171,7 +172,7 @@ var _ = Describe("Upgrade", func() {
 				Expect(string(clusterResp.Body().State())).To(Equal(constants.Ready))
 				Expect(string(clusterResp.Body().Version().RawID())).To(Equal(targetV))
 
-				if constants.GetEnvWithDefault(constants.WaitOperators, "false") == "true" && !profile.IsPrivate() {
+				if config.IsWaitForOperators() && !profile.IsPrivate() {
 					// WaitClusterOperatorsToReadyStatus will wait for cluster operators ready
 					timeout := 60
 					err = openshift.WaitForOperatorsToBeReady(cms.RHCSConnection, clusterID, timeout)
@@ -218,7 +219,7 @@ var _ = Describe("Upgrade", func() {
 				Expect(string(clusterResp.Body().State())).To(Equal(constants.Ready))
 				Expect(string(clusterResp.Body().Version().RawID())).To(Equal(targetV))
 
-				if constants.GetEnvWithDefault(constants.WaitOperators, "false") == "true" && !profile.IsPrivate() {
+				if config.IsWaitForOperators() && !profile.IsPrivate() {
 					// WaitClusterOperatorsToReadyStatus will wait for cluster operators ready
 					timeout := 60
 					err = openshift.WaitForOperatorsToBeReady(cms.RHCSConnection, clusterID, timeout)
@@ -266,7 +267,7 @@ var _ = Describe("Upgrade", func() {
 				Expect(string(clusterResp.Body().State())).To(Equal(constants.Ready))
 				Expect(string(clusterResp.Body().Version().RawID())).To(Equal(targetV))
 
-				if constants.GetEnvWithDefault(constants.WaitOperators, "false") == "true" && !profile.IsPrivate() {
+				if config.IsWaitForOperators() && !profile.IsPrivate() {
 					// WaitClusterOperatorsToReadyStatus will wait for cluster operators ready
 					timeout := 60
 					err = openshift.WaitForOperatorsToBeReady(cms.RHCSConnection, clusterID, timeout)

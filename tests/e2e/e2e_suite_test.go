@@ -6,8 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
@@ -22,10 +21,10 @@ func TestRHCSProvider(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	token = cms.RHCSOCMToken
+	token = config.GetRHCSOCMToken()
 	var err error
 
-	err = helper.AlignRHCSSourceVersion(manifests.ManifestsConfigurationDir)
+	err = helper.AlignRHCSSourceVersion(config.GetManifestsDir())
 	Expect(err).ToNot(HaveOccurred())
 
 	profileHandler, err := profilehandler.NewProfileHandlerFromYamlFile()

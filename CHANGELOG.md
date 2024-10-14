@@ -1,3 +1,8 @@
+## 1.6.5 (Oct 14, 2024)
+FEATURES:
+ * Support for Registry Config
+ * Support for Hosted Control Plane Root Disk Size
+
 ## 1.6.4 (Sept 17, 2024)
 FEATURES:
  * Allow yaml for tuning configs

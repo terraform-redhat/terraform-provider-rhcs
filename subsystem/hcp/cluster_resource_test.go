@@ -1967,6 +1967,46 @@ var _ = Describe("HCP Cluster", func() {
 			Expect(resource).To(MatchJQ(".attributes.worker_disk_size", 400.0))
 		})
 
+		It("Fails to apply invalid worker disk size", func() {
+			// Prepare the server:
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+			)
+
+			// Run the apply command:
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+				ec2_metadata_http_tokens = "required"
+				worker_disk_size = 20
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Invalid root disk size")
+		})
+
 		It("Should fail cluster creation when trying to override reserved properties", func() {
 			// Prepare the server:
 			TestServer.AppendHandlers(

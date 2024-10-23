@@ -42,6 +42,7 @@ resource "rhcs_hcp_machine_pool" "machine_pool" {
 
 ### Optional
 
+- `ignore_deletion_error` (Boolean) Indicates to the provider to disregard API errors when deleting the machine pool. This will remove the resource from the management file, but not necessirely delete the underlying pool in case it errors. Setting this to true can bypass issues when destroying the cluster resource alongside the pool resource in the same management file. This is not recommended to be set in other use cases
 - `kubelet_configs` (String) Name of the kubelet config applied to the machine pool. A single kubelet config is allowed. Kubelet config must already exist.
 - `labels` (Map of String) Labels for the machine pool. Format should be a comma-separated list of 'key = value'. This list will overwrite any modifications made to node labels on an ongoing basis.
 - `replicas` (Number) The number of machines of the pool

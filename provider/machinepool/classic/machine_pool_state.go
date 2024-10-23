@@ -41,6 +41,7 @@ type MachinePoolState struct {
 	DiskSize                   types.Int64   `tfsdk:"disk_size"`
 	AdditionalSecurityGroupIds types.List    `tfsdk:"aws_additional_security_group_ids"`
 	AwsTags                    types.Map     `tfsdk:"aws_tags"`
+	IgnoreDeletionError        types.Bool    `tfsdk:"ignore_deletion_error"`
 }
 
 type Taints struct {

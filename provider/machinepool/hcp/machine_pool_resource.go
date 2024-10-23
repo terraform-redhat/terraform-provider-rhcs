@@ -464,6 +464,7 @@ func (r *HcpMachinePoolResource) magicImport(ctx context.Context, plan *HcpMachi
 		Name:    types.StringValue(nodePoolName),
 	}
 	plan.ID = types.StringValue(nodePoolName)
+	adjustInitialStateToPlan(state, plan)
 
 	notFound, diags := readState(ctx, state, r.clusterCollection)
 	if notFound {
@@ -799,6 +800,23 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 
 	object := update.Body()
 
+	adjustInitialStateToPlan(state, plan)
+
+	// Save the state:
+	err = populateState(ctx, object, state, clusterObject)
+	if err != nil {
+		diags.AddError(
+			"Can't populate machine pool state",
+			fmt.Sprintf(
+				"Received error %v", err,
+			),
+		)
+		return diags
+	}
+	return diags
+}
+
+func adjustInitialStateToPlan(state, plan *HcpMachinePoolState) {
 	// update some values the plan value (important for nil and false cases)
 	if state.AutoScaling == nil {
 		state.AutoScaling = new(AutoScaling)
@@ -823,19 +841,6 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 	if plan.KubeletConfigs.ValueString() == "" {
 		state.KubeletConfigs = plan.KubeletConfigs
 	}
-
-	// Save the state:
-	err = populateState(ctx, object, state, clusterObject)
-	if err != nil {
-		diags.AddError(
-			"Can't populate machine pool state",
-			fmt.Sprintf(
-				"Received error %v", err,
-			),
-		)
-		return diags
-	}
-	return diags
 }
 
 // Upgrades the cluster if the desired (plan) version is greater than the

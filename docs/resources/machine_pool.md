@@ -38,6 +38,7 @@ resource "rhcs_machine_pool" "machine_pool" {
 - `aws_additional_security_group_ids` (List of String) AWS additional security group ids. After the creation of the resource, it is not possible to update the attribute value.
 - `aws_tags` (Map of String) Apply user defined tags to all machine pool resources created in AWS. After the creation of the resource, it is not possible to update the attribute value.
 - `disk_size` (Number) Root disk size, in GiB. After the creation of the resource, it is not possible to update the attribute value.
+- `ignore_deletion_error` (Boolean) Indicates to the provider to disregard API errors when deleting the machine pool. This will remove the resource from the management file, but not necessirely delete the underlying pool in case it errors. Setting this to true can bypass issues when destroying the cluster resource alongside the pool resource in the same management file. This is not recommended to be set in other use cases
 - `labels` (Map of String) Labels for the machine pool. Format should be a comma-separated list of 'key = value'. This list will overwrite any modifications made to node labels on an ongoing basis.
 - `max_replicas` (Number) The maximum number of replicas for autoscaling functionality.
 - `max_spot_price` (Number) Max Spot price. After the creation of the resource, it is not possible to update the attribute value.

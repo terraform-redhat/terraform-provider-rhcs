@@ -35,6 +35,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -205,6 +206,15 @@ func (r *HcpMachinePoolResource) Schema(ctx context.Context, req resource.Schema
 					" minor versions (e.g. a value of \"4.12\" indicates acknowledgement of any agreements required to " +
 					"upgrade to OpenShift 4.12.z from 4.11 or before).",
 				Optional: true,
+			},
+			"ignore_deletion_error": schema.BoolAttribute{
+				Description: "Indicates to the provider to disregard API errors when deleting the machine pool." +
+					" This will remove the resource from the management file, but not necessirely delete the underlying pool in case it errors." +
+					" Setting this to true can bypass issues when destroying the cluster resource alongside the pool resource in the same management file." +
+					" This is not recommended to be set in other use cases",
+				Optional: true,
+				Computed: true,
+				Default:  booldefault.StaticBool(false),
 			},
 		},
 	}
@@ -826,6 +836,7 @@ func adjustInitialStateToPlan(state, plan *HcpMachinePoolState) {
 	state.Replicas = plan.Replicas
 	state.NodePoolStatus = plan.NodePoolStatus
 	state.Version = plan.Version
+	state.IgnoreDeletionError = plan.IgnoreDeletionError
 
 	if state.AWSNodePool == nil {
 		state.AWSNodePool = new(AWSNodePool)
@@ -1068,6 +1079,19 @@ func (r *HcpMachinePoolResource) Delete(ctx context.Context, req resource.Delete
 		NodePool(state.ID.ValueString())
 	_, err := resource.Delete().SendContext(ctx)
 	if err != nil {
+		if common.BoolWithFalseDefault(state.IgnoreDeletionError) {
+			resp.Diagnostics.AddWarning(
+				"Cannot delete machine pool",
+				fmt.Sprintf(
+					"An error occurred deleting the pool,"+
+						" because ignore deletion error is set it will still be removed from the terraform state. Reason: %v",
+					err,
+				),
+			)
+			// Remove the state:
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		// We can't delete the pool, see if it's the last one:
 		numPools, err2 := r.countPools(ctx, state.Cluster.ValueString())
 		if numPools == 1 && err2 == nil {
@@ -1083,7 +1107,9 @@ func (r *HcpMachinePoolResource) Delete(ctx context.Context, req resource.Delete
 					state.Cluster.ValueString(),
 				),
 			)
-			// No return, we want to remove the state
+			// Remove the state:
+			resp.State.RemoveResource(ctx)
+			return
 		} else {
 			// Wasn't the last one, return error
 			resp.Diagnostics.AddError(
@@ -1098,6 +1124,7 @@ func (r *HcpMachinePoolResource) Delete(ctx context.Context, req resource.Delete
 		}
 	}
 
+	// Everything went fine deleting the resource in OCM
 	// Remove the state:
 	resp.State.RemoveResource(ctx)
 }

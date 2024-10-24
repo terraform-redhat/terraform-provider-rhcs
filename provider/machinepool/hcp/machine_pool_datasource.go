@@ -172,6 +172,13 @@ func (r *HcpMachinePoolDatasource) Schema(ctx context.Context, req datasource.Sc
 					"upgrade to OpenShift 4.12.z from 4.11 or before).",
 				Computed: true,
 			},
+			"ignore_deletion_error": schema.BoolAttribute{
+				Description: "Indicates to the provider to disregard API errors when deleting the machine pool." +
+					" This will remove the resource from the management file, but not necessirely delete the underlying pool in case it errors." +
+					" Setting this to true can bypass issues when destroying the cluster resource alongside the pool resource in the same management file." +
+					" This is not recommended to be set in other use cases",
+				Computed: true,
+			},
 		},
 	}
 }
@@ -204,6 +211,7 @@ func (r *HcpMachinePoolDatasource) Read(ctx context.Context, req datasource.Read
 
 	state.UpgradeAcksFor = types.StringNull()
 	state.Version = types.StringNull()
+	state.IgnoreDeletionError = types.BoolNull()
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }

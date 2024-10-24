@@ -34,6 +34,7 @@ data "rhcs_machine_pool" "machine_pool" {
 - `availability_zones` (List of String) A list of Availability Zones. Relevant only for multiple availability zones machine pool. For single availability zone check "availability_zone" attribute.
 - `aws_additional_security_group_ids` (List of String) AWS additional security group ids.
 - `disk_size` (Number) The root disk size, in GiB.
+- `ignore_deletion_error` (Boolean) Indicates to the provider to disregard API errors when deleting the machine pool. This will remove the resource from the management file, but not necessirely delete the underlying pool in case it errors. Setting this to true can bypass issues when destroying the cluster resource alongside the pool resource in the same management file. This is not recommended to be set in other use cases
 - `labels` (Map of String) The list of the Labels of this machine pool.
 - `machine_type` (String) Identifier of the machine type used by the nodes, for example `m5.xlarge`.
 - `max_replicas` (Number) The maximum number of replicas for auto-scaling functionality. relevant only in case of 'autoscaling_enabled = true'

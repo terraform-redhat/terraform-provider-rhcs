@@ -34,6 +34,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -214,6 +215,15 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				Description: "Apply user defined tags to all machine pool resources created in AWS. " + common.ValueCannotBeChangedStringDescription,
 				ElementType: types.StringType,
 				Optional:    true,
+			},
+			"ignore_deletion_error": schema.BoolAttribute{
+				Description: "Indicates to the provider to disregard API errors when deleting the machine pool." +
+					" This will remove the resource from the management file, but not necessirely delete the underlying pool in case it errors." +
+					" Setting this to true can bypass issues when destroying the cluster resource alongside the pool resource in the same management file." +
+					" This is not recommended to be set in other use cases",
+				Optional: true,
+				Computed: true,
+				Default:  booldefault.StaticBool(false),
 			},
 		},
 	}
@@ -803,6 +813,8 @@ func adjustInitialStateToPlan(state, plan *MachinePoolState) {
 	// update the Replicas with the plan value (important for nil and zero value cases)
 	state.Replicas = plan.Replicas
 
+	state.IgnoreDeletionError = plan.IgnoreDeletionError
+
 	if common.HasValue(plan.AwsTags) {
 		state.AwsTags = plan.AwsTags
 	}
@@ -926,6 +938,19 @@ func (r *MachinePoolResource) Delete(ctx context.Context, req resource.DeleteReq
 		MachinePool(state.ID.ValueString())
 	_, err := resource.Delete().SendContext(ctx)
 	if err != nil {
+		if common.BoolWithFalseDefault(state.IgnoreDeletionError) {
+			resp.Diagnostics.AddWarning(
+				"Cannot delete machine pool",
+				fmt.Sprintf(
+					"An error occurred deleting the pool,"+
+						" because ignore deletion error is set it will still be removed from the terraform state. Reason: %v",
+					err,
+				),
+			)
+			// Remove the state:
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		// We can't delete the pool, see if it's the last one:
 		numPools, err2 := r.countPools(ctx, state.Cluster.ValueString())
 		if numPools == 1 && err2 == nil {
@@ -941,7 +966,9 @@ func (r *MachinePoolResource) Delete(ctx context.Context, req resource.DeleteReq
 					state.Cluster.ValueString(),
 				),
 			)
-			// No return, we want to remove the state
+			// Remove the state:
+			resp.State.RemoveResource(ctx)
+			return
 		} else {
 			// Wasn't the last one, return error
 			resp.Diagnostics.AddError(
@@ -956,6 +983,7 @@ func (r *MachinePoolResource) Delete(ctx context.Context, req resource.DeleteReq
 		}
 	}
 
+	// Everything went fine deleting the resource in OCM
 	// Remove the state:
 	resp.State.RemoveResource(ctx)
 }

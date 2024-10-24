@@ -849,7 +849,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 			By("Try to create a nodepool with not supported version")
 			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
-				args.OpenshiftVersion = helper.StringPointer("4.8.0")
+				args.OpenshiftVersion = helper.StringPointer("4.10.67")
 			}, "must be greater than the lowest supported version")
 
 			By("Try to create a nodepool with wrong version")

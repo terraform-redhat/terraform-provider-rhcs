@@ -20,7 +20,7 @@ func ValidatePatchProperties(ctx context.Context, state, plan types.Map) (map[st
 		}
 		if ogCreatorArn, ogOk := ogProperties[PropertyRosaCreatorArn]; ogOk {
 			if creatorArnValue != ogCreatorArn {
-				return nil, fmt.Errorf("Can't patch property '%s'", PropertyRosaCreatorArn)
+				return nil, fmt.Errorf("Shouldn't patch property '%s'", PropertyRosaCreatorArn)
 			}
 		}
 	}

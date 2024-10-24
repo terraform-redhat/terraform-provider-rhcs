@@ -1094,11 +1094,10 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resourc
 	if patchProperties {
 		propertiesElements, err := rosa.ValidatePatchProperties(ctx, state.Properties, plan.Properties)
 		if err != nil {
-			response.Diagnostics.AddError(
-				"Can't patch cluster",
-				fmt.Sprintf("Can't patch cluster with identifier: '%s', %v", state.ID.ValueString(), err),
+			response.Diagnostics.AddWarning(
+				"Shouldn't patch cluster properties",
+				fmt.Sprintf("Shouldn't patch cluster with identifier: '%s', %v", state.ID.ValueString(), err),
 			)
-			return
 		}
 		if propertiesElements != nil {
 			for k, v := range rosa.OCMProperties {

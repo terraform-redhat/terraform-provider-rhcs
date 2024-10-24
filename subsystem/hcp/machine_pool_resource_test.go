@@ -2203,6 +2203,29 @@ var _ = Describe("Hcp Machine pool", func() {
 			}`)
 			Expect(Terraform.Apply()).NotTo(BeZero())
 		})
+
+		It("Cannot create machine pool with invalid disk size", func() {
+			// Run the apply command:
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge",
+					disk_size = 20,
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 2
+				auto_repair = true
+				version = "4.14.10"
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Invalid root disk size")
+		})
 	})
 
 	Context("Standard workers machine pool", func() {

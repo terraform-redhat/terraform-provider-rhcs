@@ -41,6 +41,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	diskValidator "github.com/openshift-online/ocm-common/pkg/machinepool/validations"
 	ocmUtils "github.com/openshift-online/ocm-common/pkg/ocm/utils"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -322,6 +323,14 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 		awsNodePoolBuilder.Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokens(plan.AWSNodePool.Ec2MetadataHttpTokens.ValueString()))
 
 		if workerDiskSize := common.OptionalInt64(plan.AWSNodePool.DiskSize); workerDiskSize != nil {
+			err := diskValidator.ValidateNodePoolRootDiskSize(int(*workerDiskSize))
+			if err != nil {
+				resp.Diagnostics.AddError(
+					"Cannot build machine pool",
+					err.Error(),
+				)
+				return
+			}
 			awsNodePoolBuilder.RootVolume(cmv1.NewAWSVolume().Size(int(*workerDiskSize)))
 		}
 

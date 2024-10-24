@@ -6,6 +6,7 @@ import (
 	"regexp"
 
 	"github.com/openshift-online/ocm-common/pkg/cluster/validations"
+	diskValidator "github.com/openshift-online/ocm-common/pkg/machinepool/validations"
 	kmsArnRegexpValidator "github.com/openshift-online/ocm-common/pkg/resource/validations"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	rosaTypes "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common/types"
@@ -35,7 +36,7 @@ func (c *Cluster) Build() (object *cmv1.Cluster, err error) {
 
 func (c *Cluster) CreateNodes(clusterTopology rosaTypes.ClusterTopology, autoScalingEnabled bool, replicas *int64, minReplicas *int64,
 	maxReplicas *int64, computeMachineType *string, labels map[string]string,
-	availabilityZones []string, multiAZ bool, workerDiskSize *int64) error {
+	availabilityZones []string, multiAZ bool, workerDiskSize *int64, version *string) error {
 	nodes := cmv1.NewClusterNodes()
 	if computeMachineType != nil {
 		nodes.ComputeMachineType(
@@ -44,6 +45,20 @@ func (c *Cluster) CreateNodes(clusterTopology rosaTypes.ClusterTopology, autoSca
 	}
 
 	if workerDiskSize != nil {
+		if clusterTopology == rosaTypes.Hcp {
+			err := diskValidator.ValidateNodePoolRootDiskSize(int(*workerDiskSize))
+			if err != nil {
+				return err
+			}
+		} else {
+			if version == nil {
+				return errors.New("Version must be set if a custom root disk size is configured")
+			}
+			err := diskValidator.ValidateMachinePoolRootDiskSize(*version, int(*workerDiskSize))
+			if err != nil {
+				return err
+			}
+		}
 		nodes.ComputeRootVolume(
 			cmv1.NewRootVolume().AWS(
 				cmv1.NewAWSVolume().Size(int(*workerDiskSize)),

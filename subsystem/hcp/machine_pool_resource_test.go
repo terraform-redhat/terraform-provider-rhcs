@@ -2314,6 +2314,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					name         = "worker"
 					aws_node_pool = {
 						instance_type = "r5.xlarge"
+						tags = {}
 					}
 					autoscaling = {
 						enabled = false

@@ -2656,6 +2656,7 @@ var _ = Describe("Classic Machine Pool", func() {
 				  name         = "worker"
 				  machine_type = "r5.xlarge"
 				  replicas     = 4
+				  aws_tags = {}
 				}
 			`)
 			runOutput := Terraform.Apply()

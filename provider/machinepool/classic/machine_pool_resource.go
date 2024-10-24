@@ -473,6 +473,7 @@ func (r *MachinePoolResource) magicImport(ctx context.Context, plan *MachinePool
 		Name:    types.StringValue(machinepoolName),
 	}
 	plan.ID = types.StringValue(machinepoolName)
+	adjustInitialStateToPlan(state, plan)
 
 	notFound, diags := readState(ctx, state, r.clusterCollection)
 	if notFound {
@@ -781,11 +782,7 @@ func (r *MachinePoolResource) doUpdate(ctx context.Context, state *MachinePoolSt
 
 	object := update.Body()
 
-	// update the autoscaling enabled with the plan value (important for nil and false cases)
-	state.AutoScalingEnabled = plan.AutoScalingEnabled
-	// update the Replicas with the plan value (important for nil and zero value cases)
-	state.Replicas = plan.Replicas
-
+	adjustInitialStateToPlan(state, plan)
 	// Save the state:
 	err = populateState(ctx, object, state, clusterObject)
 	if err != nil {
@@ -798,6 +795,17 @@ func (r *MachinePoolResource) doUpdate(ctx context.Context, state *MachinePoolSt
 		return diags
 	}
 	return diags
+}
+
+func adjustInitialStateToPlan(state, plan *MachinePoolState) {
+	// update the autoscaling enabled with the plan value (important for nil and false cases)
+	state.AutoScalingEnabled = plan.AutoScalingEnabled
+	// update the Replicas with the plan value (important for nil and zero value cases)
+	state.Replicas = plan.Replicas
+
+	if common.HasValue(plan.AwsTags) {
+		state.AwsTags = plan.AwsTags
+	}
 }
 
 // Validate the machine pool's settings that pertain to availability zones.

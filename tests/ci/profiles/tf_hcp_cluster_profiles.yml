@@ -29,6 +29,7 @@ profiles:
     - "10.0.0.0:8088"
     - "*.registry.com"
     worker_disk_size: 75
+    additional_sg_number: 3
 
 - as: rosa-hcp-pl
   cluster:

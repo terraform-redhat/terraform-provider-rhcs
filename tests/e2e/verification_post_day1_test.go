@@ -310,7 +310,28 @@ var _ = Describe("Verify cluster", func() {
 				}
 
 			}
+		})
+	It("additional security group are correctly set - [id:77065]",
+		ci.Day1Post, ci.Critical,
+		func() {
+			if !profile.IsHCP() {
+				Skip("Test can run only on Hosted-CP cluster")
+			}
+			By("Check the profile settings")
+			if profile.GetAdditionalSGNumber() == 0 {
+				Expect(cluster.AWS().AdditionalComputeSecurityGroupIds()).To(BeEmpty())
+			} else {
+				By("Verify CMS are using the correct configuration")
+				clusterService, err := profileHandler.Services().GetClusterService()
+				Expect(err).ToNot(HaveOccurred())
+				output, err := clusterService.Output()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(len(output.AdditionalComputeSecurityGroups)).To(Equal(len(cluster.AWS().AdditionalComputeSecurityGroupIds())))
+				for _, sg := range output.AdditionalComputeSecurityGroups {
+					Expect(sg).To(BeElementOf(cluster.AWS().AdditionalComputeSecurityGroupIds()))
+				}
 
+			}
 		})
 
 	It("worker disk size is set correctly - [id:69143]",

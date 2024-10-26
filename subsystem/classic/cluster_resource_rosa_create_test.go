@@ -1335,6 +1335,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					}
 				}
 				worker_disk_size = 400
+				version = "4.14.0"
 			  }
 			`)
 			runOutput := Terraform.Apply()
@@ -1342,6 +1343,39 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
 			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
 			Expect(resource).To(MatchJQ(".attributes.worker_disk_size", 400.0))
+		})
+
+		It("Fails to create cluster with invalid custom disk size", func() {
+			// Prepare the server:
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
+			)
+
+			// Run the apply command:
+			Terraform.Source(`
+			  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						master_role_arn = "",
+						worker_role_arn = "",
+					}
+				}
+				worker_disk_size = 20
+				version = "4.14.0"
+			  }
+			`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Invalid root disk size")
 		})
 
 		It("Creates basic cluster with properties", func() {

@@ -594,9 +594,11 @@ func createClassicClusterObject(ctx context.Context,
 		return nil, err
 	}
 	workerDiskSize := common.OptionalInt64(state.WorkerDiskSize)
+	openshiftVersion := common.OptionalString(state.Version)
 
 	if err = ocmClusterResource.CreateNodes(rosaTypes.Classic, autoScalingEnabled, replicas, minReplicas, maxReplicas,
-		computeMachineType, labels, availabilityZones, multiAZ, workerDiskSize); err != nil {
+		computeMachineType, labels, availabilityZones, multiAZ, workerDiskSize,
+		openshiftVersion); err != nil {
 		return nil, err
 	}
 

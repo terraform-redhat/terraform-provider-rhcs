@@ -1,3 +1,16 @@
+## 1.6.6 (Oct 31, 2024)
+FEATURES:
+* Validates machine pool custom disk sizes
+* Support for additional security groups on the initial machine pool through the HCP cluster spec
+* Includes indicator field to ignore machine pool deletion errors (Only to be used when cluster is defined within the same management file as the machine pools as running 'terraform destroy' over all resources)
+
+ENHANCEMENTS:
+* Bug fixes:
+  * Add mutex to guarantee only one kubelet config for classic clusters
+  * Updated to allow IAM `role` for creator arn
+  * Allow initial machine pools to be imported when tags are empty ('{}')
+  * Warn instead of error when patching rosa_creator_arn
+
 ## 1.6.5 (Oct 14, 2024)
 FEATURES:
  * Support for Registry Config

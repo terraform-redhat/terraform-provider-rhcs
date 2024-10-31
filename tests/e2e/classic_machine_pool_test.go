@@ -691,9 +691,10 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			MachineType: helper.StringPointer("invalid"),
 			Name:        helper.StringPointer("invalidinstype"),
 		}
-		output, err = mpService.Apply(mpArgs)
+		_, err = mpService.Apply(mpArgs)
 		Expect(err).To(HaveOccurred())
-		Expect(output).Should(MatchRegexp(`[\s\S]*Machine type 'invalid'[\n\\n\s\t]*is not supported for cloud provider`))
+		// Expect(output).Should(MatchRegexp(`[\s\S]*Machine type 'invalid'[\n\\n\s\t]*is not supported for cloud provider`))
+		helper.ExpectTFErrorContains(err, "Machine type 'invalid' is not supported for cloud provider")
 
 		By("Create machinepool creation plan with invalid tags")
 		invalidTags := map[string]string{

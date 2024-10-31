@@ -326,7 +326,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			props["rosa_creator_arn"] = "anything"
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.CustomProperties = helper.StringMapPointer(props)
-			}, "Can't patch property 'rosa_creator_arn'")
+			}, "Shouldn't patch property 'rosa_creator_arn'")
 
 			By("Try to edit `reserved` property")
 			props = helper.CopyStringMap(currentProperties)

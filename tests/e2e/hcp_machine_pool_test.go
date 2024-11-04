@@ -263,7 +263,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 				Replicas:                 helper.IntPointer(replicas),
 				MachineType:              helper.StringPointer(machineType),
 				Name:                     helper.StringPointer(name),
-				AdditionalSecurityGroups: helper.StringSlicePointer(output.SGIDs),
+				AdditionalSecurityGroups: helper.StringSlicePointer(sgIDs),
 				AutoscalingEnabled:       helper.BoolPointer(false),
 				AutoRepair:               helper.BoolPointer(false),
 				SubnetID:                 helper.StringPointer(vpcOutput.PrivateSubnets[0]),

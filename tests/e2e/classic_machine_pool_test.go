@@ -3,6 +3,7 @@ package e2e
 import (
 
 	// nolint
+
 	"fmt"
 	"strings"
 	"time"
@@ -444,7 +445,21 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		Expect(err).ToNot(HaveOccurred())
 		defer func() {
 			By("Remove added subnet from VPC")
-			awsClient.DeleteSubnet(subnet.ID)
+			// subnet delettion should be all dependency of the subnet is removed
+			// In this cases, the machinepool is the subnet dependency, it needs some time to be deleted from aws
+			var deleteErr error
+			Eventually(func() error {
+				_, err := awsClient.DeleteSubnet(subnet.ID)
+				if err != nil {
+					if strings.Contains(err.Error(), "DependencyViolation") {
+						return err
+					}
+					deleteErr = err
+					return nil
+				}
+				return nil
+			}).WithTimeout(10 * time.Minute).WithPolling(100 * time.Second).Should(Succeed())
+			Expect(deleteErr).ToNot(HaveOccurred())
 		}()
 
 		By("Tag new subnet to be able to apply it to the machinepool")

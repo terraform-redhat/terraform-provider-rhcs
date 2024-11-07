@@ -313,7 +313,7 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				Optional: true,
 			},
 			"wait_for_create_complete": schema.BoolAttribute{
-				Description: "Wait until the cluster is either in a ready state or in an error state. The waiter has a timeout of 20 minutes, with the default value set to false",
+				Description: "Wait until the cluster is either in a ready state or in an error state. The waiter has a timeout of 45 minutes, with the default value set to false",
 				Optional:    true,
 			},
 			"wait_for_std_compute_nodes_complete": schema.BoolAttribute{

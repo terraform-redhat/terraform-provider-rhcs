@@ -215,15 +215,16 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			}
 		})
 
-		validateClusterArg := func(updateFields func(args *exec.ClusterArgs), validateErrFunc func(err error)) {
+		validateClusterArg := func(updateFields func(args *exec.ClusterArgs), validateFunc func(output string, err error)) {
 			updateFields(clusterArgs)
-			_, err := clusterService.Apply(clusterArgs)
-			validateErrFunc(err)
+			applyOutput, err := clusterService.Apply(clusterArgs)
+			validateFunc(applyOutput, err)
 			clusterArgs = retrieveClusterArgs()
 		}
 		validateClusterArgAgainstErrorSubstrings := func(updateFields func(args *exec.ClusterArgs), errSubStrings ...string) {
-			validateClusterArg(updateFields, func(err error) {
+			validateClusterArg(updateFields, func(output string, err error) {
 				Expect(err).To(HaveOccurred())
+				Expect(output).NotTo(BeEmpty())
 				for _, errStr := range errSubStrings {
 					helper.ExpectTFErrorContains(err, errStr)
 				}
@@ -309,24 +310,33 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			Expect(err).ToNot(HaveOccurred())
 			currentProperties := out.Properties
 
-			By("Try to remove `rosa_creator_arn` property")
+			By("Try to edit `rosa_creator_arn` property")
 			props := helper.CopyStringMap(currentProperties)
+			props["rosa_creator_arn"] = "anything"
+			validateClusterArg(func(args *exec.ClusterArgs) {
+				args.CustomProperties = helper.StringMapPointer(props)
+			}, func(output string, err error) {
+				Expect(err).ToNot(HaveOccurred())
+				Expect(output).To(ContainSubstring("Warning: Shouldn't patch cluster properties"))
+				clusterResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(clusterResp.Body().Properties()["rosa_creator_arn"]).To(Equal(props["rosa_creator_arn"]))
+			})
+
+			By("Try to remove `rosa_creator_arn` property")
+			currentProperties = out.Properties
+			props = helper.CopyStringMap(currentProperties)
 			delete(props, "rosa_creator_arn")
 			validateClusterArg(func(args *exec.ClusterArgs) {
 				args.CustomProperties = helper.StringMapPointer(props)
-			}, func(err error) {
+				args.IncludeCreatorProperty = helper.BoolPointer(false)
+			}, func(output string, err error) {
 				Expect(err).ToNot(HaveOccurred())
+				Expect(output).ToNot(BeEmpty())
 				clusterResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(clusterResp.Body().Properties()["rosa_creator_arn"]).To(Equal(currentProperties["rosa_creator_arn"]))
+				Expect(clusterResp.Body().Properties()["rosa_creator_arn"]).To(BeEmpty())
 			})
-
-			By("Try to edit `rosa_creator_arn` property")
-			props = helper.CopyStringMap(currentProperties)
-			props["rosa_creator_arn"] = "anything"
-			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.CustomProperties = helper.StringMapPointer(props)
-			}, "Can't patch property 'rosa_creator_arn'")
 
 			By("Try to edit `reserved` property")
 			props = helper.CopyStringMap(currentProperties)
@@ -350,8 +360,9 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			// }, "Attribute availability_zones, cannot be changed from")
 			validateClusterArg(func(args *exec.ClusterArgs) {
 				args.AWSAvailabilityZones = helper.StringSlicePointer(azs)
-			}, func(err error) {
+			}, func(output string, err error) {
 				Expect(err).ToNot(HaveOccurred())
+				Expect(output).ToNot(BeEmpty())
 				clusterResp, err = cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(clusterResp.Body().Nodes().AvailabilityZones()).To(Equal(originalAZs))

@@ -534,7 +534,7 @@ var _ = Describe("Identity provider creation", func() {
 					runOutput.VerifyErrorContainsSubstring("Expected a GitHub team to follow the form '<org>/<team>', Got invalidteam")
 				})
 
-				It("Should fail with an invalid hostname", func() {
+				It("Should fail with an Invalid hostname", func() {
 					Terraform.Source(`
 	    	          resource "rhcs_identity_provider" "my_idp" {
 	    	            cluster = "123"
@@ -544,13 +544,13 @@ var _ = Describe("Identity provider creation", func() {
 	    	        	  client_id = "test-client"
 	    	        	  client_secret = "test-secret"
                           organizations = ["org"]
-                          hostname = "invalidhostname"
+                          hostname = "Invalidhostname"
 	    	            }
 	    	          }
 	    	        `)
 					runOutput := Terraform.Apply()
 					Expect(runOutput.ExitCode).ToNot(BeZero())
-					runOutput.VerifyErrorContainsSubstring("Expected a valid GitHub hostname. Got invalidhostname")
+					runOutput.VerifyErrorContainsSubstring("'Invalidhostname' hostname must be a valid DNS subdomain or IP address")
 				})
 			})
 			It("Happy flow with org restriction", func() {

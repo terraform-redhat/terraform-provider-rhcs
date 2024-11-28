@@ -26,6 +26,8 @@ spec:
     value: .
   - name: revision
     value: '{{revision}}'
+  - name: cachi2-log-level
+    value: "debug"
   pipelineSpec:
     finally:
     - name: show-sbom

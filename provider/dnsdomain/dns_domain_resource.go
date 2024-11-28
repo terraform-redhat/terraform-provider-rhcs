@@ -54,6 +54,10 @@ func (r *DNSDomainResource) Schema(ctx context.Context, req resource.SchemaReque
 				Description: "Unique identifier of the DNS Domain",
 				Computed:    true,
 			},
+			"cluster_arch": schema.StringAttribute{
+				Description: "Identifies the cluster architecture of the dns domain",
+				Optional:    true,
+			},
 		},
 	}
 }
@@ -107,14 +111,21 @@ func (r *DNSDomainResource) Read(ctx context.Context, req resource.ReadRequest, 
 	}
 
 	object := get.Body()
-
-	if id, ok := object.GetID(); ok {
-		state.ID = types.StringValue(id)
-	}
+	populateState(object, state)
 
 	// Save the state
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
+}
+
+func populateState(object *cmv1.DNSDomain, state *DNSDomainState) {
+	if id, ok := object.GetID(); ok {
+		state.ID = types.StringValue(id)
+	}
+
+	if arch, ok := object.GetClusterArch(); !state.ClusterArch.IsNull() && ok {
+		state.ClusterArch = types.StringValue(string(arch))
+	}
 }
 
 func (r *DNSDomainResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -127,6 +138,9 @@ func (r *DNSDomainResource) Create(ctx context.Context, req resource.CreateReque
 	}
 
 	dnsDomain := ocmr.NewDNSDomain(r.collection)
+	if !plan.ClusterArch.IsNull() {
+		dnsDomain.GetDNSDomainBuilder().ClusterArch(cmv1.ClusterArchitecture(plan.ClusterArch.ValueString()))
+	}
 	createResp, err := dnsDomain.Create()
 
 	if err != nil {
@@ -134,12 +148,7 @@ func (r *DNSDomainResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	if id, ok := createResp.Body().GetID(); ok {
-		plan.ID = types.StringValue(id)
-	} else {
-		resp.Diagnostics.AddError("Failed to create DNS Domain.", "Failed to get an ID")
-		return
-	}
+	populateState(createResp.Body(), plan)
 
 	// Save the state
 	diags = resp.State.Set(ctx, plan)

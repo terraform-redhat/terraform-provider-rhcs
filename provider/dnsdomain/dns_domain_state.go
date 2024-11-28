@@ -21,5 +21,6 @@ import (
 )
 
 type DNSDomainState struct {
-	ID types.String `tfsdk:"id"`
+	ID          types.String `tfsdk:"id"`
+	ClusterArch types.String `tfsdk:"cluster_arch"`
 }

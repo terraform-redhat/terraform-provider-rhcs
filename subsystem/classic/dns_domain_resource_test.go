@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/ginkgo/v2/dsl/core"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
+	v1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	. "github.com/openshift-online/ocm-sdk-go/testing"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
@@ -30,36 +31,77 @@ var _ = Describe("DNS Domain creation", func() {
 	domain := "my.domain.openshift.dev"
 
 	Context("Verify success", func() {
-		It("Should create a DNS domain", func() {
-			// Prepare the server:
-			TestServer.AppendHandlers(
-				// first post (create)
-				CombineHandlers(
-					VerifyRequest(
-						http.MethodPost,
-						"/api/clusters_mgmt/v1/dns_domains",
-					),
-					VerifyJSON(`{
+		When("cluster arch is not specified does not set state", func() {
+			It("Should create a DNS domain", func() {
+				// Prepare the server:
+				TestServer.AppendHandlers(
+					// first post (create)
+					CombineHandlers(
+						VerifyRequest(
+							http.MethodPost,
+							"/api/clusters_mgmt/v1/dns_domains",
+						),
+						VerifyJSON(`{
                         "kind": "DNSDomain"
                     }`),
-					RespondWithJSON(http.StatusOK, `{
+						RespondWithJSON(http.StatusOK, `{
 	    			  "kind": "DNSDomain",
 	    			  "href": "/api/clusters_mgmt/v1/dns_domains/`+domain+`",
-	    			  "id": "`+domain+`"
+	    			  "id": "`+domain+`",
+					  "cluster_arch": "`+string(v1.ClusterArchitectureClassic)+`"
 	    			}`),
-				),
-			)
+					),
+				)
 
-			Terraform.Source(`
+				Terraform.Source(`
 	    		resource "rhcs_dns_domain" "dns" {
 	    			# (resource arguments)
 	    		}
 	    	`)
 
-			runOutput := Terraform.Apply()
-			Expect(runOutput.ExitCode).To(BeZero())
-			resource := Terraform.Resource("rhcs_dns_domain", "dns")
-			Expect(resource).To(MatchJQ(".attributes.id", domain))
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				resource := Terraform.Resource("rhcs_dns_domain", "dns")
+				Expect(resource).To(MatchJQ(".attributes.id", domain))
+				Expect(resource).To(MatchJQ(".attributes.cluster_arch", nil))
+			})
+		})
+
+		When("cluster arch is specified sets state", func() {
+			It("Should create a DNS domain", func() {
+				// Prepare the server:
+				TestServer.AppendHandlers(
+					// first post (create)
+					CombineHandlers(
+						VerifyRequest(
+							http.MethodPost,
+							"/api/clusters_mgmt/v1/dns_domains",
+						),
+						VerifyJSON(`{
+                        "kind": "DNSDomain",
+						"cluster_arch": "classic"
+                    }`),
+						RespondWithJSON(http.StatusOK, `{
+	    			  "kind": "DNSDomain",
+	    			  "href": "/api/clusters_mgmt/v1/dns_domains/`+domain+`",
+	    			  "id": "`+domain+`",
+					  "cluster_arch": "`+string(v1.ClusterArchitectureClassic)+`"
+	    			}`),
+					),
+				)
+
+				Terraform.Source(`
+	    		resource "rhcs_dns_domain" "dns" {
+	    			cluster_arch = "classic"
+	    		}
+	    	`)
+
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				resource := Terraform.Resource("rhcs_dns_domain", "dns")
+				Expect(resource).To(MatchJQ(".attributes.id", domain))
+				Expect(resource).To(MatchJQ(".attributes.cluster_arch", string(v1.ClusterArchitectureClassic)))
+			})
 		})
 
 		It("Should recreate a DNS domain on 404 (reconcile)", func() {

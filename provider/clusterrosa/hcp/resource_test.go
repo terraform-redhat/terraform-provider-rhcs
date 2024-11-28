@@ -248,7 +248,7 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 
 			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(populateRosaHcpClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)).To(Succeed())
+			Expect(populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)).To(Succeed())
 
 			Expect(clusterState.ID.ValueString()).To(Equal(clusterId))
 			Expect(clusterState.CloudRegion.ValueString()).To(Equal(regionId))
@@ -292,7 +292,7 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = populateRosaHcpClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)
+			err = populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clusterState.Sts.OIDCEndpointURL.ValueString()).To(Equal("nonce.com"))
 		})
@@ -307,7 +307,7 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = populateRosaHcpClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)
+			err = populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clusterState.Sts.Thumbprint.ValueString()).To(Equal(""))
 		})

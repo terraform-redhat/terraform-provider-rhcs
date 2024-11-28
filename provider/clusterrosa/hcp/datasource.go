@@ -30,6 +30,7 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	rosa "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common"
 	rosaTypes "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common/types"
+	sharedvpc "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/hcp/shared_vpc"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/registry_config"
@@ -117,6 +118,11 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 			},
 			"domain": schema.StringAttribute{
 				Description: "DNS domain of cluster.",
+				Computed:    true,
+			},
+			"base_dns_domain": schema.StringAttribute{
+				//nolint:lll
+				Description: "Base DNS domain name previously reserved, e.g. '1vo8.p3.openshiftapps.com'. " + common.ValueCannotBeChangedStringDescription,
 				Computed:    true,
 			},
 			"replicas": schema.Int64Attribute{
@@ -265,6 +271,16 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				ElementType: types.StringType,
 				Computed:    true,
 			},
+			"shared_vpc": schema.SingleNestedAttribute{
+				Description: "Shared VPC configuration." + common.ValueCannotBeChangedStringDescription,
+				Attributes:  sharedvpc.HcpStsDatasource(),
+				Computed:    true,
+			},
+			"aws_additional_allowed_principals": schema.ListAttribute{
+				Description: "AWS additional allowed principals.",
+				ElementType: types.StringType,
+				Computed:    true,
+			},
 		},
 	}
 }
@@ -322,7 +338,7 @@ func (r *ClusterRosaHcpDatasource) Read(ctx context.Context, request datasource.
 	object := get.Body()
 
 	// Save the state:
-	err = populateRosaHcpClusterState(ctx, object, state, common.DefaultHttpClient{})
+	err = populateRosaHcpClusterState(ctx, object, state)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",

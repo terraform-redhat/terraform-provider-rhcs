@@ -60,7 +60,9 @@ resource "rhcs_cluster_rosa_hcp" "rosa_sts_cluster" {
 ### Optional
 
 - `admin_credentials` (Attributes) Admin user credentials. After the creation of the resource, it is not possible to update the attribute value. (see [below for nested schema](#nestedatt--admin_credentials))
+- `aws_additional_allowed_principals` (List of String) AWS additional allowed principals.
 - `aws_additional_compute_security_group_ids` (List of String) AWS additional compute security group ids.
+- `base_dns_domain` (String) Base DNS domain name previously reserved, e.g. '1vo8.p3.openshiftapps.com'. After the creation of the resource, it is not possible to update the attribute value.
 - `channel_group` (String) Name of the channel group where you select the OpenShift cluster version, for example 'stable'. For ROSA, only 'stable' is supported. After the creation of the resource, it is not possible to update the attribute value.
 - `compute_machine_type` (String) Identifies the machine type used by the initial worker nodes, for example `m5.xlarge`. Use the `rhcs_machine_types` data source to find the possible values. This attribute specifically applies to the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the initial Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)
 - `create_admin_user` (Boolean) Indicates if create cluster admin user. Set it true to create cluster admin user with default username `cluster-admin` and generated password. It will be ignored if `admin_credentials` is set.After the creation of the resource, it is not possible to update the attribute value.
@@ -80,6 +82,7 @@ resource "rhcs_cluster_rosa_hcp" "rosa_sts_cluster" {
 - `registry_config` (Attributes) Registry configuration for this cluster. (see [below for nested schema](#nestedatt--registry_config))
 - `replicas` (Number) Number of worker/compute nodes to provision. Requires that the number supplied be a multiple of the number of private subnets. This attribute specifically applies to the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the initial Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)
 - `service_cidr` (String) Block of IP addresses for the cluster service network. After the creation of the resource, it is not possible to update the attribute value.
+- `shared_vpc` (Attributes) Shared VPC configuration.After the creation of the resource, it is not possible to update the attribute value. (see [below for nested schema](#nestedatt--shared_vpc))
 - `tags` (Map of String) Apply user defined tags to all cluster resources created in AWS. After the creation of the resource, it is not possible to update the attribute value.
 - `upgrade_acknowledgements_for` (String) Indicates acknowledgement of agreements required to upgrade the cluster version between minor versions (e.g. a value of "4.12" indicates acknowledgement of any agreements required to upgrade to OpenShift 4.12.z from 4.11 or before).
 - `version` (String) Desired version of OpenShift for the cluster, for example '4.11.0'. If version is greater than the currently running version, an upgrade will be scheduled.
@@ -173,3 +176,18 @@ Optional:
 - `allowed_registries` (List of String) allowed_registries: registries for which image pull and push actions are allowed. To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name. For example, *.example.com. You can specify an individual repository within a registry. For example: reg1.io/myrepo/myapp:latest. All other registries are blocked. Mutually exclusive with `BlockedRegistries`
 - `blocked_registries` (List of String) blocked_registries: registries for which image pull and push actions are denied. To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name. For example, *.example.com. You can specify an individual repository within a registry. For example: reg1.io/myrepo/myapp:latest. All other registries are allowed. Mutually exclusive with `AllowedRegistries`
 - `insecure_registries` (List of String) insecure_registries are registries which do not have a valid TLS certificate or only support HTTP connections. To specify all subdomains, add the asterisk (*) wildcard character as a prefix to the domain name. For example, *.example.com. You can specify an individual repository within a registry. For example: reg1.io/myrepo/myapp:latest.
+
+
+
+<a id="nestedatt--shared_vpc"></a>
+### Nested Schema for `shared_vpc`
+
+Required:
+
+- `ingress_private_hosted_zone_id` (String) ID assigned by AWS to private Route 53 hosted zone associated with intended shared VPC, e.g. 'Z05646003S02O1ENCDCSN'.
+- `route53_role_arn` (String) AWS IAM role ARN with a policy attached, granting permissions necessary to create and manage Route 53 DNS records in private Route 53 hosted zone associated with intended shared VPC.
+- `vpce_role_arn` (String) AWS IAM role ARN with a policy attached, granting permissions necessary to create and manage VPC Endpoints associated with intended shared VPC.
+
+Optional:
+
+- `internal_communication_private_hosted_zone_id` (String) ID assigned by AWS to private Route 53 hosted zone associated with intended shared VPC, e.g. 'Z05646003S02O1ENCDCSN'.

@@ -653,9 +653,10 @@ func createClassicClusterObject(ctx context.Context,
 	}
 	if err := ocmClusterResource.CreateAWSBuilder(rosaTypes.Classic, awsTags, ec2MetadataHttpTokens,
 		kmsKeyARN, nil,
-		isPrivateLink, awsAccountID, nil, stsBuilder, awsSubnetIDs, privateHostedZoneID, privateHostedZoneRoleARN,
+		isPrivateLink, awsAccountID, nil, stsBuilder, awsSubnetIDs,
+		privateHostedZoneID, privateHostedZoneRoleARN, nil, nil,
 		awsAdditionalComputeSecurityGroupIds, awsAdditionalInfraSecurityGroupIds,
-		awsAdditionalControlPlaneSecurityGroupIds); err != nil {
+		awsAdditionalControlPlaneSecurityGroupIds, nil); err != nil {
 		return nil, err
 	}
 
@@ -997,7 +998,8 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaClassicState) diag.Dia
 	common.ValidateStateAndPlanEquals(state.AWSAdditionalComputeSecurityGroupIds, plan.AWSAdditionalComputeSecurityGroupIds, "aws_additional_compute_security_group_ids", &diags)
 
 	if !reflect.DeepEqual(state.PrivateHostedZone, plan.PrivateHostedZone) {
-		diags.AddError(common.AssertionErrorSummaryMessage, fmt.Sprintf(common.AssertionErrorDetailsMessage, "private_hosted_zone", *state.PrivateHostedZone, *plan.PrivateHostedZone))
+		diags.AddError(common.AssertionErrorSummaryMessage, fmt.Sprintf(common.AssertionErrorDetailsMessage, "private_hosted_zone",
+			common.GetJsonStringOrNullString(state.PrivateHostedZone), common.GetJsonStringOrNullString(plan.PrivateHostedZone)))
 	}
 
 	// default machine pool's attributes

@@ -37,9 +37,11 @@ data "rhcs_cluster_rosa_hcp" "cluster" {
 - `api_url` (String) URL of the API server.
 - `availability_zones` (List of String) Availability zones. This attribute specifically applies to the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the initial Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)
 - `aws_account_id` (String) Identifier of the AWS account. After the creation of the resource, it is not possible to update the attribute value.
+- `aws_additional_allowed_principals` (List of String) AWS additional allowed principals.
 - `aws_additional_compute_security_group_ids` (List of String) AWS additional compute security group ids. After the creation of the resource, it is not possible to update the attribute value.
 - `aws_billing_account_id` (String) Identifier of the AWS account for billing. After the creation of the resource, it is not possible to update the attribute value.
 - `aws_subnet_ids` (List of String) AWS subnet IDs. After the creation of the resource, it is not possible to update the attribute value.
+- `base_dns_domain` (String) Base DNS domain name previously reserved, e.g. '1vo8.p3.openshiftapps.com'. After the creation of the resource, it is not possible to update the attribute value.
 - `channel_group` (String) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `cloud_region` (String) Cloud region identifier, for example 'us-east-1'.
 - `compute_machine_type` (String) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
@@ -63,6 +65,7 @@ data "rhcs_cluster_rosa_hcp" "cluster" {
 - `proxy` (Attributes) proxy (see [below for nested schema](#nestedatt--proxy))
 - `replicas` (Number) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `service_cidr` (String) Block of IP addresses for the cluster service network. After the creation of the resource, it is not possible to update the attribute value.
+- `shared_vpc` (Attributes) Shared VPC configuration.After the creation of the resource, it is not possible to update the attribute value. (see [below for nested schema](#nestedatt--shared_vpc))
 - `state` (String) State of the cluster.
 - `sts` (Attributes) STS configuration. (see [below for nested schema](#nestedatt--sts))
 - `tags` (Map of String) Apply user defined tags to all cluster resources created in AWS. After the creation of the resource, it is not possible to update the attribute value.
@@ -120,6 +123,17 @@ Read-Only:
 - `http_proxy` (String) HTTP proxy.
 - `https_proxy` (String) HTTPS proxy.
 - `no_proxy` (String) No proxy.
+
+
+<a id="nestedatt--shared_vpc"></a>
+### Nested Schema for `shared_vpc`
+
+Read-Only:
+
+- `ingress_private_hosted_zone_id` (String) ID assigned by AWS to private Route 53 hosted zone associated with intended shared VPC, e.g. 'Z05646003S02O1ENCDCSN'.
+- `internal_communication_private_hosted_zone_id` (String) ID assigned by AWS to private Route 53 hosted zone associated with intended shared VPC, e.g. 'Z05646003S02O1ENCDCSN'.
+- `route53_role_arn` (String) AWS IAM role ARN with a policy attached, granting permissions necessary to create and manage Route 53 DNS records in private Route 53 hosted zone associated with intended shared VPC.
+- `vpce_role_arn` (String) AWS IAM role ARN with a policy attached, granting permissions necessary to create and manage VPC Endpoints associated with intended shared VPC.
 
 
 <a id="nestedatt--sts"></a>

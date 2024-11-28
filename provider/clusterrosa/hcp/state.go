@@ -2,6 +2,7 @@ package hcp
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	sharedvpc "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/hcp/shared_vpc"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/registry_config"
@@ -31,6 +32,7 @@ type ClusterRosaHcpState struct {
 	EtcdKmsKeyArn                        types.String `tfsdk:"etcd_kms_key_arn"`
 	Tags                                 types.Map    `tfsdk:"tags"`
 	AWSAdditionalComputeSecurityGroupIds types.List   `tfsdk:"aws_additional_compute_security_group_ids"`
+	AWSAdditionalAllowedPrincipals       types.List   `tfsdk:"aws_additional_allowed_principals"`
 
 	// Network fields
 	Domain      types.String `tfsdk:"domain"`
@@ -64,4 +66,10 @@ type ClusterRosaHcpState struct {
 
 	// Registry config fields
 	RegistryConfig *registry_config.RegistryConfig `tfsdk:"registry_config"`
+
+	// DNS reservation fields
+	BaseDNSDomain types.String `tfsdk:"base_dns_domain"`
+
+	// Shared VPC fields
+	SharedVpc *sharedvpc.SharedVpc `tfsdk:"shared_vpc"`
 }

@@ -32,6 +32,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/registry_config"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -64,6 +65,7 @@ import (
 	ocmr "github.com/terraform-redhat/terraform-provider-rhcs/internal/ocm/resource"
 	rosa "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common"
 	rosaTypes "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common/types"
+	sharedvpc "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/hcp/shared_vpc"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/hcp/upgrade"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
 )
@@ -176,6 +178,15 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 			"domain": schema.StringAttribute{
 				Description: "DNS domain of cluster.",
 				Computed:    true,
+			},
+			"base_dns_domain": schema.StringAttribute{
+				//nolint:lll
+				Description: "Base DNS domain name previously reserved, e.g. '1vo8.p3.openshiftapps.com'. " + common.ValueCannotBeChangedStringDescription,
+				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"replicas": schema.Int64Attribute{
 				Description: "Number of worker/compute nodes to provision. " +
@@ -379,6 +390,20 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				ElementType: types.StringType,
 				Optional:    true,
 			},
+			"shared_vpc": schema.SingleNestedAttribute{
+				Description: "Shared VPC configuration." + common.ValueCannotBeChangedStringDescription,
+				Attributes:  sharedvpc.SharedVpcResource(),
+				Optional:    true,
+				Validators: []validator.Object{
+					objectvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("base_dns_domain")),
+					sharedvpc.HcpSharedVpcValidator,
+				},
+			},
+			"aws_additional_allowed_principals": schema.ListAttribute{
+				Description: "AWS additional allowed principals.",
+				ElementType: types.StringType,
+				Optional:    true,
+			},
 		},
 	}
 }
@@ -539,11 +564,36 @@ func createHcpClusterObject(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
+
+	var ingressHostedZoneId, route53RoleArn, vpceRoleArn, internalCommunicationHostedZoneId *string
+	if state.SharedVpc != nil &&
+		!common.IsStringAttributeUnknownOrEmpty(state.SharedVpc.IngressPrivateHostedZoneId) &&
+		!common.IsStringAttributeUnknownOrEmpty(state.SharedVpc.Route53RoleArn) &&
+		!common.IsStringAttributeUnknownOrEmpty(state.SharedVpc.InternalCommunicationPrivateHostedZoneId) &&
+		!common.IsStringAttributeUnknownOrEmpty(state.SharedVpc.VpceRoleArn) {
+		route53RoleArn = state.SharedVpc.Route53RoleArn.ValueStringPointer()
+		ingressHostedZoneId = state.SharedVpc.IngressPrivateHostedZoneId.ValueStringPointer()
+		vpceRoleArn = state.SharedVpc.VpceRoleArn.ValueStringPointer()
+		internalCommunicationHostedZoneId = state.SharedVpc.InternalCommunicationPrivateHostedZoneId.ValueStringPointer()
+	}
+
+	awsAdditionalAllowedPrincipals, err := common.StringListToArray(ctx, state.AWSAdditionalAllowedPrincipals)
+	if err != nil {
+		return nil, err
+	}
+
 	if err := ocmClusterResource.CreateAWSBuilder(rosaTypes.Hcp, awsTags, ec2MetadataHttpTokens,
 		kmsKeyARN, etcdKmsKeyArn,
-		isPrivate, awsAccountID, awsBillingAccountId, stsBuilder, awsSubnetIDs, nil, nil,
-		awsAdditionalComputeSecurityGroupIds, nil, nil); err != nil {
+		isPrivate, awsAccountID, awsBillingAccountId, stsBuilder, awsSubnetIDs,
+		ingressHostedZoneId, route53RoleArn, internalCommunicationHostedZoneId, vpceRoleArn,
+		awsAdditionalComputeSecurityGroupIds, nil, nil, awsAdditionalAllowedPrincipals); err != nil {
 		return nil, err
+	}
+
+	if !common.IsStringAttributeUnknownOrEmpty(state.BaseDNSDomain) {
+		dnsBuilder := cmv1.NewDNS()
+		dnsBuilder.BaseDomain(state.BaseDNSDomain.ValueString())
+		builder.DNS(dnsBuilder)
 	}
 
 	if err := ocmClusterResource.SetAPIPrivacy(isPrivate, isPrivate, stsBuilder != nil); err != nil {
@@ -751,7 +801,7 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 	object = add.Body()
 
 	// Save initial state:
-	err = populateRosaHcpClusterState(ctx, object, state, common.DefaultHttpClient{})
+	err = populateRosaHcpClusterState(ctx, object, state)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -794,7 +844,7 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 	}
 
 	// Save the state post wait completion:
-	err = populateRosaHcpClusterState(ctx, object, state, common.DefaultHttpClient{})
+	err = populateRosaHcpClusterState(ctx, object, state)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -843,7 +893,7 @@ func (r *ClusterRosaHcpResource) Read(ctx context.Context, request resource.Read
 	object := get.Body()
 
 	// Save the state:
-	err = populateRosaHcpClusterState(ctx, object, state, common.DefaultHttpClient{})
+	err = populateRosaHcpClusterState(ctx, object, state)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -897,6 +947,12 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaHcpState) diag.Diagnos
 	common.ValidateStateAndPlanEquals(state.CreateAdminUser, plan.CreateAdminUser, "create_admin_user", &diags)
 	if !rosaTypes.AdminCredentialsEqual(state.AdminCredentials, plan.AdminCredentials) {
 		diags.AddError(common.AssertionErrorSummaryMessage, fmt.Sprintf(common.AssertionErrorDetailsMessage, "admin_credentials", state.AdminCredentials, plan.AdminCredentials))
+	}
+
+	common.ValidateStateAndPlanEquals(state.BaseDNSDomain, plan.BaseDNSDomain, "base_dns_domain", &diags)
+	if !reflect.DeepEqual(state.SharedVpc, plan.SharedVpc) {
+		diags.AddError(common.AssertionErrorSummaryMessage, fmt.Sprintf(common.AssertionErrorDetailsMessage, "shared_vpc",
+			common.GetJsonStringOrNullString(state.SharedVpc), common.GetJsonStringOrNullString(plan.SharedVpc)))
 	}
 
 	return diags
@@ -969,10 +1025,6 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 		return
 	}
 
-	if newBillingAcc, ok := common.ShouldPatchString(state.AWSBillingAccountID, plan.AWSBillingAccountID); ok {
-		clusterBuilder.AWS(cmv1.NewAWS().BillingAccountID(newBillingAcc))
-	}
-
 	patchProperties := shouldPatchProperties(state, plan)
 	if patchProperties {
 		propertiesElements, err := rosa.ValidatePatchProperties(ctx, state.Properties, plan.Properties)
@@ -990,10 +1042,6 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 		}
 	}
 
-	if toPatch, shouldPatch := common.ShouldPatchString(state.AWSBillingAccountID, plan.AWSBillingAccountID); shouldPatch {
-		clusterBuilder.AWS(cmv1.NewAWS().BillingAccountID(toPatch))
-	}
-
 	registryConfigBuilder, err := registry_config.UpdateRegistryConfigBuilder(ctx,
 		state.RegistryConfig, plan.RegistryConfig)
 	if err != nil {
@@ -1005,6 +1053,31 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 	}
 	if !registryConfigBuilder.Empty() {
 		clusterBuilder.RegistryConfig(registryConfigBuilder)
+	}
+
+	awsBuilder := cmv1.NewAWS()
+	changesToAws := false
+
+	if toPatch, shouldPatch := common.ShouldPatchList(state.AWSAdditionalAllowedPrincipals, plan.AWSAdditionalAllowedPrincipals); shouldPatch {
+		additionalAllowedPrincipalsPatch, err := common.StringListToArray(ctx, toPatch)
+		if err != nil {
+			response.Diagnostics.AddError(
+				"Can't patch cluster",
+				fmt.Sprintf("Can't patch additional allowed principals for cluster with identifier: '%s', %v", state.ID.ValueString(), err),
+			)
+			return
+		}
+		awsBuilder.AdditionalAllowedPrincipals(additionalAllowedPrincipalsPatch...)
+		changesToAws = shouldPatch
+	}
+
+	if newBillingAcc, shouldPatch := common.ShouldPatchString(state.AWSBillingAccountID, plan.AWSBillingAccountID); shouldPatch {
+		awsBuilder.BillingAccountID(newBillingAcc)
+		changesToAws = shouldPatch
+	}
+
+	if changesToAws {
+		clusterBuilder.AWS(awsBuilder)
 	}
 
 	clusterSpec, err := clusterBuilder.Build()
@@ -1036,7 +1109,7 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 	object := update.Body()
 
 	// Update the state:
-	err = populateRosaHcpClusterState(ctx, object, plan, common.DefaultHttpClient{})
+	err = populateRosaHcpClusterState(ctx, object, plan)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -1300,7 +1373,7 @@ func (r *ClusterRosaHcpResource) ImportState(ctx context.Context, request resour
 }
 
 // populateRosaHcpClusterState copies the data from the API object to the Terraform state.
-func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, state *ClusterRosaHcpState, httpClient common.HttpClient) error {
+func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, state *ClusterRosaHcpState) error {
 	state.ID = types.StringValue(object.ID())
 	state.ExternalID = types.StringValue(object.ExternalID())
 	object.API()
@@ -1333,6 +1406,7 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 	state.APIURL = types.StringValue(object.API().URL())
 	state.ConsoleURL = types.StringValue(object.Console().URL())
 	state.Domain = types.StringValue(fmt.Sprintf("%s.%s", object.DomainPrefix(), object.DNS().BaseDomain()))
+	state.BaseDNSDomain = types.StringValue(object.DNS().BaseDomain())
 
 	if azs, ok := object.Nodes().GetAvailabilityZones(); ok {
 		listValue, err := common.StringArrayToList(azs)
@@ -1532,6 +1606,30 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 	err := registry_config.PopulateRegistryConfigState(object, state.RegistryConfig)
 	if err != nil {
 		return err
+	}
+
+	if awsObj, ok := object.GetAWS(); ok {
+		ingressHostedZoneId := awsObj.PrivateHostedZoneID()
+		route53RoleArn := awsObj.PrivateHostedZoneRoleARN()
+		internalCommunicationHostedZoneId := awsObj.HcpInternalCommunicationHostedZoneId()
+		vpceRoleArn := awsObj.VpcEndpointRoleArn()
+		if len(ingressHostedZoneId) > 0 && len(route53RoleArn) > 0 &&
+			len(internalCommunicationHostedZoneId) > 0 && len(vpceRoleArn) > 0 {
+			state.SharedVpc = &sharedvpc.SharedVpc{
+				IngressPrivateHostedZoneId:               types.StringValue(ingressHostedZoneId),
+				InternalCommunicationPrivateHostedZoneId: types.StringValue(internalCommunicationHostedZoneId),
+				Route53RoleArn:                           types.StringValue(route53RoleArn),
+				VpceRoleArn:                              types.StringValue(vpceRoleArn),
+			}
+		}
+
+		if additionalAllowedPrincipals, ok := awsObj.GetAdditionalAllowedPrincipals(); ok {
+			awsAdditionalAllowedPrincipals, err := common.StringArrayToList(additionalAllowedPrincipals)
+			if err != nil {
+				return err
+			}
+			state.AWSAdditionalAllowedPrincipals = awsAdditionalAllowedPrincipals
+		}
 	}
 
 	return nil

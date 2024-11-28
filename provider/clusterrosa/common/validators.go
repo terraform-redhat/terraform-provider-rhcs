@@ -30,7 +30,7 @@ var AvailabilityZoneValidator = attrvalidators.NewStringValidator("AZ should be 
 	}
 })
 
-var PrivateHZValidator = attrvalidators.NewObjectValidator("proxy map should not include an hard coded OCM proxy",
+var PrivateHZValidator = attrvalidators.NewObjectValidator("Private Hosted Zone attribute must include all attributes",
 	func(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
 		if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
 			return

@@ -1513,6 +1513,181 @@ var _ = Describe("HCP Cluster", func() {
 			Expect(resource).To(MatchJQ(`.attributes.aws_billing_account_id`, "123456799012"))
 		})
 
+		It("Creates basic cluster and update additional allowed principals", func() {
+			// Prepare the server:
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.aws.billing_account_id`, "123456789012"),
+					RespondWithPatchedJSON(http.StatusCreated, template, fmt.Sprintf(`[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts": {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  },
+						  "additional_allowed_principals": ["arn:aws:iam::123456789012:role/dummy"]
+					  }
+					},
+                    {
+                      "op": "add",
+                      "path": "/properties",
+                      "value": {
+						"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+                        "rosa_tf_commit":"%s",
+                        "rosa_tf_version":"%s"
+					}
+                    }]`, build.Commit, build.Version)),
+				),
+			)
+
+			// Run the apply command:
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				properties = { 
+					rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
+				}
+				aws_additional_allowed_principals = ["arn:aws:iam::123456789012:role/dummy"]
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.aws_additional_allowed_principals[0]`, "arn:aws:iam::123456789012:role/dummy"))
+
+			// Prepare server for update
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  },
+						  "additional_allowed_principals": ["arn:aws:iam::123456789012:role/dummy"]
+					  }
+					},
+					{
+						"op": "add",
+						"path": "/properties",
+						"value": {
+							"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+						  	"rosa_tf_commit":"%s",
+						  	"rosa_tf_version":"%s"
+						}
+					}]`, build.Commit, build.Version)),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, fmt.Sprintf(`[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  },
+						  "additional_allowed_principals": ["arn:aws:iam::123456789012:role/dummy2"]
+					  }
+					},
+					{
+						"op": "add",
+						"path": "/properties",
+						"value": {
+							"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+						  	"rosa_tf_commit":"%s",
+						  	"rosa_tf_version":"%s"
+						}
+					}]`, build.Commit, build.Version)),
+				),
+			)
+
+			// Run the apply command:
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				properties = {
+					rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
+				}
+				aws_additional_allowed_principals = ["arn:aws:iam::123456789012:role/dummy2"]
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+			}`)
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource = Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.aws_additional_allowed_principals[0]`, "arn:aws:iam::123456789012:role/dummy2"))
+		})
+
 		It("Creates basic cluster with properties and update them", func() {
 			// Prepare the server:
 			TestServer.AppendHandlers(
@@ -1876,6 +2051,354 @@ var _ = Describe("HCP Cluster", func() {
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties.rosa_tf_version`, build.Version))
 			Expect(resource).To(MatchJQ(`.attributes.properties | keys | length`, 1))
 			Expect(resource).To(MatchJQ(`.attributes.ocm_properties | keys | length`, 3))
+		})
+
+		It("Creates cluster with dns base domain and tries to update it", func() {
+			// Prepare the server:
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.aws.billing_account_id`, "123456789012"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts": {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					{
+						"op": "add",
+						"path": "/dns",
+						"value": {
+							"base_domain": "test.org"
+						}
+					}]`),
+				),
+			)
+
+			// Run the apply command:
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+				base_dns_domain = "test.org"
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.base_dns_domain`, "test.org"))
+
+			// Prepare server for update
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					}]`),
+				),
+			)
+
+			// Run the apply command:
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+				base_dns_domain = "newtest.org"
+			}`)
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).NotTo(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute base_dns_domain, cannot be changed from")
+		})
+
+		It("Creates cluster with shared vpc and without base domain", func() {
+			// Prepare the server:
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.aws.billing_account_id`, "123456789012"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts": {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  },
+						  "private_hosted_zone_id": "1",
+						  "private_hosted_zone_role_arn": "arn:aws:iam::123456789012:role/r53",
+						  "vpc_endpoint_role_arn": "arn:aws:iam::123456789012:role/vpce",
+						  "hcp_internal_communication_hosted_zone_id": "2"
+					  }
+					}]`),
+				),
+			)
+
+			// Run the apply command:
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+				shared_vpc = {
+					ingress_private_hosted_zone_id                = "1"
+    				internal_communication_private_hosted_zone_id = "2"
+					route53_role_arn                              = "arn:aws:iam::123456789012:role/r53"
+    				vpce_role_arn                                 = "arn:aws:iam::123456789012:role/vpce"
+				}
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute \"base_dns_domain\" must be specified when \"shared_vpc\"")
+		})
+
+		It("Creates cluster with shared vpc and tries to update it", func() {
+			// Prepare the server:
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.aws.billing_account_id`, "123456789012"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts": {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  },
+						  "private_hosted_zone_id": "1",
+						  "private_hosted_zone_role_arn": "arn:aws:iam::123456789012:role/route53",
+						  "vpc_endpoint_role_arn": "arn:aws:iam::123456789012:role/vpce",
+						  "hcp_internal_communication_hosted_zone_id": "2"
+					  }
+					},
+					{
+						"op": "add",
+						"path": "/dns",
+						"value": {
+							"base_domain": "test.org"
+						}
+					}]`),
+				),
+			)
+
+			// Run the apply command:
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+				shared_vpc = {
+					ingress_private_hosted_zone_id                = "1"
+    				internal_communication_private_hosted_zone_id = "2"
+					route53_role_arn                              = "arn:aws:iam::123456789012:role/route53"
+    				vpce_role_arn                                 = "arn:aws:iam::123456789012:role/vpce"
+				}
+				base_dns_domain = "test.org"
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.base_dns_domain`, "test.org"))
+			Expect(resource).To(MatchJQ(`.attributes.shared_vpc.ingress_private_hosted_zone_id`, "1"))
+			Expect(resource).To(MatchJQ(`.attributes.shared_vpc.internal_communication_private_hosted_zone_id`, "2"))
+			Expect(resource).To(MatchJQ(`.attributes.shared_vpc.route53_role_arn`, "arn:aws:iam::123456789012:role/route53"))
+			Expect(resource).To(MatchJQ(`.attributes.shared_vpc.vpce_role_arn`, "arn:aws:iam::123456789012:role/vpce"))
+
+			// Prepare server for update
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  },
+						  "private_hosted_zone_id": "1",
+						  "private_hosted_zone_role_arn": "arn:aws:iam::123456789012:role/route53",
+						  "vpc_endpoint_role_arn": "arn:aws:iam::123456789012:role/vpce",
+						  "hcp_internal_communication_hosted_zone_id": "2"
+					  }
+					},
+					{
+						"op": "add",
+						"path": "/dns",
+						"value": {
+							"base_domain": "test.org"
+						}
+					}]`),
+				),
+			)
+
+			// Run the apply command:
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+				base_dns_domain = "test.org"
+			}`)
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute shared_vpc, cannot be changed")
 		})
 
 		It("Creates basic cluster with custom worker disk size", func() {

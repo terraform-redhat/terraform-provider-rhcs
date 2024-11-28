@@ -13,7 +13,7 @@ import (
 )
 
 var privateHostedZoneRoleArnRE = regexp.MustCompile(
-	`^arn:aws:iam::\d{12}:role\/[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+$`,
+	`^arn:aws:iam::\d{12}:role(?:(?:\/?.+\/?)?)(?:\/[0-9A-Za-z\\+\\.@_,-]{1,64})$`,
 )
 
 type Cluster struct {
@@ -142,9 +142,11 @@ func (c *Cluster) CreateAWSBuilder(clusterTopology rosaTypes.ClusterTopology,
 	isPrivateLink bool, awsAccountID *string, awsBillingAccountId *string,
 	stsBuilder *cmv1.STSBuilder, awsSubnetIDs []string,
 	privateHostedZoneID *string, privateHostedZoneRoleARN *string,
+	hcpInternalCommunicationPrivateHostedZoneId *string, vpceRoleArn *string,
 	additionalComputeSecurityGroupIds []string,
 	additionalInfraSecurityGroupIds []string,
-	additionalControlPlaneSecurityGroupIds []string) error {
+	additionalControlPlaneSecurityGroupIds []string,
+	additionalAllowedPrincipals []string) error {
 
 	if clusterTopology == rosaTypes.Hcp && awsSubnetIDs == nil {
 		return errors.New("Hosted Control Plane clusters must have a pre-configure VPC. Make sure to specify the subnet ids.")
@@ -209,14 +211,30 @@ func (c *Cluster) CreateAWSBuilder(clusterTopology rosaTypes.ClusterTopology,
 	}
 
 	if privateHostedZoneID != nil && privateHostedZoneRoleARN != nil {
-		if !privateHostedZoneRoleArnRE.MatchString(*privateHostedZoneRoleARN) {
-			return errors.New(fmt.Sprintf("Expected a valid value for PrivateHostedZoneRoleARN matching %s. Got %s", privateHostedZoneRoleArnRE, *privateHostedZoneRoleARN))
-		}
 		if awsSubnetIDs == nil || stsBuilder == nil {
-			return errors.New("PrivateHostedZone parameters require STS and SubnetIDs configurations.")
+			return errors.New("Shared VPC parameters require STS and SubnetIDs configurations.")
+		}
+		privateRoleArnField := "PrivateHostedZoneRoleARN"
+		if clusterTopology == rosaTypes.Hcp {
+			privateRoleArnField = "Route53RoleArn"
+		}
+		if !privateHostedZoneRoleArnRE.MatchString(*privateHostedZoneRoleARN) {
+			return errors.New(fmt.Sprintf("Expected a valid value for %s matching %s. Got %s",
+				privateRoleArnField, privateHostedZoneRoleArnRE, *privateHostedZoneRoleARN))
 		}
 		awsBuilder.PrivateHostedZoneID(*privateHostedZoneID)
 		awsBuilder.PrivateHostedZoneRoleARN(*privateHostedZoneRoleARN)
+		if clusterTopology == rosaTypes.Hcp && hcpInternalCommunicationPrivateHostedZoneId != nil && vpceRoleArn != nil {
+			if !privateHostedZoneRoleArnRE.MatchString(*vpceRoleArn) {
+				return errors.New(fmt.Sprintf("Expected a valid value for VpcEndpointRoleArn matching %s. Got %s", privateHostedZoneRoleArnRE, *vpceRoleArn))
+			}
+			awsBuilder.HcpInternalCommunicationHostedZoneId(*hcpInternalCommunicationPrivateHostedZoneId)
+			awsBuilder.VpcEndpointRoleArn(*vpceRoleArn)
+		}
+	}
+
+	if additionalAllowedPrincipals != nil {
+		awsBuilder.AdditionalAllowedPrincipals(additionalAllowedPrincipals...)
 	}
 
 	c.clusterBuilder.AWS(awsBuilder)

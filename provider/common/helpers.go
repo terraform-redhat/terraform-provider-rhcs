@@ -158,3 +158,10 @@ func ValidateStateAndPlanEquals(stateAttr attr.Value, planAttr attr.Value, attrN
 		diags.AddError(AssertionErrorSummaryMessage, fmt.Sprintf(AssertionErrorDetailsMessage, attrName, stateAttr, planAttr))
 	}
 }
+
+func GetJsonStringOrNullString[T any](value *T) string {
+	if value == nil {
+		return "null"
+	}
+	return fmt.Sprintf("%+v", *value)
+}

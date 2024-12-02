@@ -89,19 +89,19 @@ func githubHostnameValidator() validator.String {
 		hostname := req.ConfigValue
 		hostnameStr := hostname.ValueString()
 		if hostnameStr == "" {
-			return 
+			return
 		}
 		if hostnameStr == "github.com" || strings.HasSuffix(hostnameStr, ".github.com") {
 			resp.Diagnostics.AddAttributeError(req.Path, "invalid hostname",
-					fmt.Sprintf("'%s' hostname cannot be equal to [*.]github.com", hostnameStr),
-				)
-				return
+				fmt.Sprintf("'%s' hostname cannot be equal to [*.]github.com", hostnameStr),
+			)
+			return
 		}
 		if !(len(validation.IsDNS1123Subdomain(hostnameStr)) == 0 || netutils.ParseIPSloppy(hostnameStr) != nil) {
 			resp.Diagnostics.AddAttributeError(req.Path, "invalid hostname",
-					fmt.Sprintf("'%s' hostname must be a valid DNS subdomain or IP address", hostnameStr),
-				)
-				return
+				fmt.Sprintf("'%s' hostname must be a valid DNS subdomain or IP address", hostnameStr),
+			)
+			return
 		}
 	})
 }

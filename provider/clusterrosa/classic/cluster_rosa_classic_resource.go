@@ -457,6 +457,10 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Description: "Wait until the cluster is either in a ready state or in an error state. The waiter has a timeout of 60 minutes, with the default value set to false",
 				Optional:    true,
 			},
+			"max_cluster_wait_timeout_in_minutes": schema.Int64Attribute{
+				Description: "This value sets the maximum duration in minutes to wait for the cluster to be in a ready state.",
+				Optional:    true,
+			},
 		},
 	}
 }
@@ -883,7 +887,15 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 	}
 
 	if common.HasValue(state.WaitForCreateComplete) && state.WaitForCreateComplete.ValueBool() {
-		object, err = r.ClusterWait.WaitForClusterToBeReady(ctx, object.ID(), rosa.DefaultWaitTimeoutInMinutes)
+		timeOut := common.OptionalInt64(state.MaxClusterWaitTimeoutInMinutes)
+		timeOut, err = common.ValidateTimeout(timeOut, rosa.MaxClusterWaitTimeoutInMinutes)
+		if err != nil {
+			response.Diagnostics.AddError(
+				"Waiting for cluster creation finished with error",
+				fmt.Sprintf("Waiting for cluster creation finished with the error %v", err),
+			)
+		}
+		object, err = r.ClusterWait.WaitForClusterToBeReady(ctx, object.ID(), *timeOut)
 		if err != nil {
 			response.Diagnostics.AddError(
 				"Waiting for cluster creation finished with error",
@@ -1372,7 +1384,7 @@ func (r *ClusterRosaClassicResource) Delete(ctx context.Context, request resourc
 	if common.HasValue(state.DisableWaitingInDestroy) && state.DisableWaitingInDestroy.ValueBool() {
 		tflog.Info(ctx, "Waiting for destroy to be completed, is disabled")
 	} else {
-		timeout := rosa.DefaultWaitTimeoutInMinutes
+		timeout := rosa.MaxClusterWaitTimeoutInMinutes
 		if common.HasValue(state.DestroyTimeout) {
 			if state.DestroyTimeout.ValueInt64() <= 0 {
 				response.Diagnostics.AddWarning(rosa.NonPositiveTimeoutSummary, fmt.Sprintf(rosa.NonPositiveTimeoutFormat, state.ID.ValueString()))

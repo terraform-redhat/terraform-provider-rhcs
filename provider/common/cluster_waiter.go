@@ -173,3 +173,13 @@ func pollClusterState(clusterId string, ctx context.Context, timeout int64, clus
 
 	return object, nil
 }
+
+func ValidateTimeout(timeOut *int64, defaultTimeout int64) (*int64, error) {
+	if timeOut == nil {
+		return &defaultTimeout, nil
+	}
+	if *timeOut <= 0 {
+		return nil, fmt.Errorf("timeout must be greater than 0 minutes")
+	}
+	return timeOut, nil
+}

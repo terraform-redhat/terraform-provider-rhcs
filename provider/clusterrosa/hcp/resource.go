@@ -331,6 +331,14 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				Description: "Wait until the cluster standard compute pools are created. The waiter has a timeout of 60 minutes, with the default value set to false. This can only be provided when also waiting for create completion.",
 				Optional:    true,
 			},
+			"max_hcp_cluster_wait_timeout_in_minutes": schema.Int64Attribute{
+				Description: "This value sets the maximum duration in minutes to wait for a HCP cluster to be in a ready state.",
+				Optional:    true,
+			},
+			"max_machinepool_wait_timeout_in_minutes": schema.Int64Attribute{
+				Description: "This value sets the maximum duration in minutes to wait for machine pools to be in a ready state.",
+				Optional:    true,
+			},
 			"create_admin_user": schema.BoolAttribute{
 				Description: "Indicates if create cluster admin user. Set it true to create cluster admin user with default username `cluster-admin` " +
 					"and generated password. It will be ignored if `admin_credentials` is set." + common.ValueCannotBeChangedStringDescription,
@@ -418,7 +426,7 @@ func (r *ClusterRosaHcpResource) Configure(ctx context.Context, req resource.Con
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *sdk.Connaction, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *sdk.Connection, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 		return
 	}
@@ -814,7 +822,15 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 
 	if shouldWaitCreationComplete {
 		tflog.Info(ctx, "Waiting for cluster to get ready")
-		object, err = r.ClusterWait.WaitForClusterToBeReady(ctx, object.ID(), rosa.DefaultWaitTimeoutForHCPControlPlaneInMinutes)
+		timeOut := common.OptionalInt64(state.MaxHCPClusterWaitTimeoutInMinutes)
+		timeOut, err = common.ValidateTimeout(timeOut, rosa.MaxHCPClusterWaitTimeoutInMinutes)
+		if err != nil {
+			response.Diagnostics.AddError(
+				"Waiting for cluster creation finished with error",
+				fmt.Sprintf("Waiting for cluster creation finished with the error %v", err),
+			)
+		}
+		object, err = r.ClusterWait.WaitForClusterToBeReady(ctx, object.ID(), *timeOut)
 		if err != nil {
 			response.Diagnostics.AddError(
 				"Waiting for cluster creation finished with error",
@@ -828,7 +844,15 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 		}
 		if shouldWaitComputeNodesComplete {
 			tflog.Info(ctx, "Waiting for standard compute nodes to get ready")
-			object, err = r.ClusterWait.WaitForStdComputeNodesToBeReady(ctx, object.ID(), rosa.DefaultWaitTimeoutInMinutes)
+			timeOut := common.OptionalInt64(state.MaxMachinePoolWaitTimeoutInMinutes)
+			timeOut, err = common.ValidateTimeout(timeOut, rosa.MaxMachinePoolWaitTimeoutInMinutes)
+			if err != nil {
+				response.Diagnostics.AddError(
+					"Waiting for cluster creation finished with error",
+					fmt.Sprintf("Waiting for cluster creation finished with the error %v", err),
+				)
+			}
+			object, err = r.ClusterWait.WaitForStdComputeNodesToBeReady(ctx, object.ID(), *timeOut)
 			if err != nil {
 				response.Diagnostics.AddError(
 					"Waiting for std compute nodes completion finished with error",
@@ -1333,7 +1357,7 @@ func (r *ClusterRosaHcpResource) Delete(ctx context.Context, request resource.De
 	if common.HasValue(state.DisableWaitingInDestroy) && state.DisableWaitingInDestroy.ValueBool() {
 		tflog.Info(ctx, "Waiting for destroy to be completed, is disabled")
 	} else {
-		timeout := rosa.DefaultWaitTimeoutInMinutes
+		timeout := rosa.MaxMachinePoolWaitTimeoutInMinutes
 		if common.HasValue(state.DestroyTimeout) {
 			if state.DestroyTimeout.ValueInt64() <= 0 {
 				response.Diagnostics.AddWarning(rosa.NonPositiveTimeoutSummary, fmt.Sprintf(rosa.NonPositiveTimeoutFormat, state.ID.ValueString()))

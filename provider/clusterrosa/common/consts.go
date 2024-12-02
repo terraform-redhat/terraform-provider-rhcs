@@ -15,11 +15,12 @@ const (
 	PropertyRosaTfCommit   = tagsPrefix + "tf_commit"
 	PropertyRosaCreatorArn = tagsPrefix + "creator_arn"
 
-	DefaultWaitTimeoutForHCPControlPlaneInMinutes = int64(45)
-	DefaultWaitTimeoutInMinutes                   = int64(60)
-	DefaultPollingIntervalInMinutes               = 2
-	NonPositiveTimeoutSummary                     = "Can't poll cluster state with a non-positive timeout"
-	NonPositiveTimeoutFormat                      = "Can't poll state of cluster with identifier '%s', the timeout that was set is not a positive number"
+	MaxHCPClusterWaitTimeoutInMinutes  = int64(45)
+	MaxClusterWaitTimeoutInMinutes     = int64(60)
+	MaxMachinePoolWaitTimeoutInMinutes = int64(60)
+	DefaultPollingIntervalInMinutes    = 2
+	NonPositiveTimeoutSummary          = "Can't poll cluster state with a non-positive timeout"
+	NonPositiveTimeoutFormat           = "Can't poll state of cluster with identifier '%s', the timeout that was set is not a positive number"
 
 	MaxClusterNameLength         = 54
 	MaxClusterDomainPrefixLength = 15

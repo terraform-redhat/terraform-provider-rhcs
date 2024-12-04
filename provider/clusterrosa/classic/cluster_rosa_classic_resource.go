@@ -795,8 +795,8 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 	tflog.Debug(ctx, "begin create()")
 
 	// Get the plan:
-	state := &ClusterRosaClassicState{}
-	diags := request.Plan.Get(ctx, state)
+	plan := &ClusterRosaClassicState{}
+	diags := request.Plan.Get(ctx, plan)
 	response.Diagnostics.Append(diags...)
 	if response.Diagnostics.HasError() {
 		return
@@ -805,7 +805,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 
 	// In case version with "openshift-v" prefix was used here,
 	// Give a meaningful message to inform the user that it not supported any more
-	if common.HasValue(state.Version) && strings.HasPrefix(state.Version.ValueString(), rosa.VersionPrefix) {
+	if common.HasValue(plan.Version) && strings.HasPrefix(plan.Version.ValueString(), rosa.VersionPrefix) {
 		response.Diagnostics.AddError(
 			summary,
 			"Openshift version must be provided without the \"openshift-v\" prefix",
@@ -814,12 +814,12 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 	}
 
 	channelGroup := consts.DefaultChannelGroup
-	if common.HasValue(state.ChannelGroup) {
-		channelGroup = state.ChannelGroup.ValueString()
+	if common.HasValue(plan.ChannelGroup) {
+		channelGroup = plan.ChannelGroup.ValueString()
 	}
 	desiredVersion := ""
-	if common.HasValue(state.Version) {
-		desiredVersion = state.Version.ValueString()
+	if common.HasValue(plan.Version) {
+		desiredVersion = plan.Version.ValueString()
 	}
 	version, err := r.GetAndValidateVersionInChannelGroup(ctx, rosaTypes.Classic, channelGroup, desiredVersion)
 	if err != nil {
@@ -827,31 +827,31 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 			summary,
 			fmt.Sprintf(
 				"Can't build cluster with name '%s': %v",
-				state.Name.ValueString(), err,
+				plan.Name.ValueString(), err,
 			),
 		)
 		return
 	}
 
-	err = validateHttpTokensVersion(ctx, state, version)
+	err = validateHttpTokensVersion(ctx, plan, version)
 	if err != nil {
 		response.Diagnostics.AddError(
 			summary,
 			fmt.Sprintf(
 				"Can't build cluster with name '%s': %v",
-				state.Name.ValueString(), err,
+				plan.Name.ValueString(), err,
 			),
 		)
 		return
 	}
 
-	object, err := createClassicClusterObject(ctx, state, diags)
+	object, err := createClassicClusterObject(ctx, plan, diags)
 	if err != nil {
 		response.Diagnostics.AddError(
 			summary,
 			fmt.Sprintf(
 				"Can't build cluster with name '%s': %v",
-				state.Name.ValueString(), err,
+				plan.Name.ValueString(), err,
 			),
 		)
 		return
@@ -863,7 +863,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 			summary,
 			fmt.Sprintf(
 				"Can't create cluster with name '%s': %v",
-				state.Name.ValueString(), err,
+				plan.Name.ValueString(), err,
 			),
 		)
 		return
@@ -871,7 +871,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 	object = add.Body()
 
 	// Save initial state:
-	err = populateRosaClassicClusterState(ctx, object, state, common.DefaultHttpClient{})
+	err = populateRosaClassicClusterState(ctx, object, plan)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -881,8 +881,9 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 		)
 		return
 	}
+	response.Diagnostics.Append(response.State.Set(ctx, plan)...)
 
-	if common.HasValue(state.WaitForCreateComplete) && state.WaitForCreateComplete.ValueBool() {
+	if common.HasValue(plan.WaitForCreateComplete) && plan.WaitForCreateComplete.ValueBool() {
 		object, err = r.ClusterWait.WaitForClusterToBeReady(ctx, object.ID(), rosa.DefaultWaitTimeoutInMinutes)
 		if err != nil {
 			response.Diagnostics.AddError(
@@ -890,15 +891,14 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 				fmt.Sprintf("Waiting for cluster creation finished with the error %v", err),
 			)
 			if object == nil {
-				diags = response.State.Set(ctx, state)
-				response.Diagnostics.Append(diags...)
+				response.Diagnostics.Append(response.State.Set(ctx, plan)...)
 				return
 			}
 		}
 	}
 
 	// Save the state post wait completion:
-	err = populateRosaClassicClusterState(ctx, object, state, common.DefaultHttpClient{})
+	err = populateRosaClassicClusterState(ctx, object, plan)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -908,9 +908,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 		)
 		return
 	}
-
-	diags = response.State.Set(ctx, state)
-	response.Diagnostics.Append(diags...)
+	response.Diagnostics.Append(response.State.Set(ctx, plan)...)
 }
 
 func (r *ClusterRosaClassicResource) Read(ctx context.Context, request resource.ReadRequest,
@@ -947,7 +945,7 @@ func (r *ClusterRosaClassicResource) Read(ctx context.Context, request resource.
 	object := get.Body()
 
 	// Save the state:
-	err = populateRosaClassicClusterState(ctx, object, state, common.DefaultHttpClient{})
+	err = populateRosaClassicClusterState(ctx, object, state)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -1140,7 +1138,7 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resourc
 	object := update.Body()
 
 	// Update the state:
-	err = populateRosaClassicClusterState(ctx, object, plan, common.DefaultHttpClient{})
+	err = populateRosaClassicClusterState(ctx, object, plan)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -1412,7 +1410,7 @@ func (r *ClusterRosaClassicResource) ImportState(ctx context.Context, request re
 }
 
 // populateRosaClassicClusterState copies the data from the API object to the Terraform state.
-func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, state *ClusterRosaClassicState, httpClient common.HttpClient) error {
+func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, state *ClusterRosaClassicState) error {
 	state.ID = types.StringValue(object.ID())
 	state.ExternalID = types.StringValue(object.ExternalID())
 	object.API()

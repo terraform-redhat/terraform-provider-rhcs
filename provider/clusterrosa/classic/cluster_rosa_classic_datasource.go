@@ -378,7 +378,7 @@ func (r *ClusterRosaClassicDatasource) Read(ctx context.Context, request datasou
 	object := get.Body()
 
 	// Save the state:
-	err = populateRosaClassicClusterState(ctx, object, state, common.DefaultHttpClient{})
+	err = populateRosaClassicClusterState(ctx, object, state)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",

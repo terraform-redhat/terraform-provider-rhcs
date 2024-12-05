@@ -1,3 +1,9 @@
+## 1.6.7 (5 Dec, 2024)
+ENHANCEMENTS:
+* Bug fixes:
+  * Adjust HCP cluster readiness timeout duration
+  * Warn instead of error for rosa_creator_arn property
+
 ## 1.6.6 (Oct 31, 2024)
 FEATURES:
 * Validates machine pool custom disk sizes

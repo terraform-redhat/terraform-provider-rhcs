@@ -86,8 +86,12 @@ func (r *MachinePoolDatasource) Schema(ctx context.Context, req datasource.Schem
 				Computed:    true,
 			},
 			"replicas": schema.Int64Attribute{
-				Description: "The machines number in the machine pool. relevant only in case of 'autoscaling_enabled = false'",
-				Computed:    true,
+				Description: "The number of machines in the pool. " +
+					"Single zone clusters need at least 2 nodes, " +
+					"multizone clusters need at least 3 nodes. " +
+					"See OpenShift [documentation](https://github.com/openshift/openshift-docs/blob/main/cloud_experts_tutorials/cloud-experts-getting-started/cloud-experts-getting-started-what-is-rosa.adoc) " +
+					"for maximum allowed values. " ,
+				Computed: true,
 			},
 			"use_spot_instances": schema.BoolAttribute{
 				Description: "Indicates if Amazon EC2 Spot Instances used in this machine pool.",
@@ -102,12 +106,15 @@ func (r *MachinePoolDatasource) Schema(ctx context.Context, req datasource.Schem
 				Computed:    true,
 			},
 			"min_replicas": schema.Int64Attribute{
-				Description: "The minimum number of replicas for autos-caling functionality. relevant only in case of 'autoscaling_enabled = true",
-				Computed:    true,
+				Description: "The minimum number of replicas for auto-scaling functionality. relevant only in case of 'autoscaling_enabled = true' " +
+					"Single zone clusters need at least 2 nodes, multizone clusters need at least 3 nodes.",
+				Computed: true,
 			},
 			"max_replicas": schema.Int64Attribute{
-				Description: "The maximum number of replicas for auto-scaling functionality. relevant only in case of 'autoscaling_enabled = true'",
-				Computed:    true,
+				Description: "The maximum number of replicas for auto-scaling functionality. relevant only in case of 'autoscaling_enabled = true'" +
+					"See OpenShift [documentation](https://github.com/openshift/openshift-docs/blob/main/cloud_experts_tutorials/cloud-experts-getting-started/cloud-experts-getting-started-what-is-rosa.adoc) " +
+					"for maximum allowed values. " ,
+				Computed: true,
 			},
 			"taints": schema.ListNestedAttribute{
 				Description: "The list of the Taints of this machine pool.",

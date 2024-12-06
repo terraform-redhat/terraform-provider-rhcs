@@ -56,7 +56,7 @@ Optional:
 
 - `cores` (Attributes) Minimum and maximum number of cores in cluster, in the format <min>:<max>. Cluster autoscaler will not scale the cluster beyond these numbers. (see [below for nested schema](#nestedatt--resource_limits--cores))
 - `gpus` (Attributes List) Minimum and maximum number of different GPUs in cluster, in the format <gpu_type>:<min>:<max>. Cluster autoscaler will not scale the cluster beyond these numbers. Can be passed multiple times. (see [below for nested schema](#nestedatt--resource_limits--gpus))
-- `max_nodes_total` (Number) Maximum number of nodes in all node groups. Cluster autoscaler will not grow the cluster beyond this number.
+- `max_nodes_total` (Number) Maximum number of nodes in all node groups. Cluster autoscaler will not grow the cluster beyond this number.See OpenShift documentation for maximum allowed values: https://github.com/openshift/openshift-docs/blob/main/cloud_experts_tutorials/cloud-experts-getting-started/cloud-experts-getting-started-what-is-rosa.adoc
 - `memory` (Attributes) Minimum and maximum number of gigabytes of memory in cluster, in the format <min>:<max>. Cluster autoscaler will not scale the cluster beyond these numbers. (see [below for nested schema](#nestedatt--resource_limits--memory))
 
 <a id="nestedatt--resource_limits--cores"></a>

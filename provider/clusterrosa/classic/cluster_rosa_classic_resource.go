@@ -191,12 +191,17 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Optional:    true,
 			},
 			"min_replicas": schema.Int64Attribute{
-				Description: "Minimum replicas of worker nodes in a machine pool. " + rosaTypes.PoolMessage,
-				Optional:    true,
+				Description: "Minimum replicas of worker nodes in a machine pool. " +
+					"Single zone clusters need at least 2 nodes, " +
+					"multizone clusters need at least 3 nodes. " + rosaTypes.PoolMessage,
+				Optional: true,
 			},
 			"max_replicas": schema.Int64Attribute{
-				Description: "Maximum replicas of worker nodes in a machine pool. " + rosaTypes.PoolMessage,
-				Optional:    true,
+				Description: "Maximum replicas of worker nodes in a machine pool. " +
+					"See OpenShift [documentation](https://github.com/openshift/openshift-docs/blob/main/cloud_experts_tutorials/cloud-experts-getting-started/cloud-experts-getting-started-what-is-rosa.adoc) " +
+					"for maximum allowed values. " +
+					rosaTypes.PoolMessage,
+				Optional: true,
 			},
 			"api_url": schema.StringAttribute{
 				Description: "URL of the API server.",
@@ -225,8 +230,12 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				},
 			},
 			"replicas": schema.Int64Attribute{
-				Description: "Number of worker/compute nodes to provision. Single zone clusters need at least 2 nodes, " +
-					"multizone clusters need at least 3 nodes. " + rosaTypes.PoolMessage,
+				Description: "Number of worker/compute nodes to provision. " +
+					"Single zone clusters need at least 2 nodes, " +
+					"multizone clusters need at least 3 nodes. " +
+					"See OpenShift [documentation](https://github.com/openshift/openshift-docs/blob/main/cloud_experts_tutorials/cloud-experts-getting-started/cloud-experts-getting-started-what-is-rosa.adoc) " +
+					"for maximum allowed values. " +
+					rosaTypes.PoolMessage,
 				Optional: true,
 			},
 			"compute_machine_type": schema.StringAttribute{

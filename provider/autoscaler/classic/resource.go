@@ -124,7 +124,9 @@ func (r *ClusterAutoscalerResource) Schema(ctx context.Context, req resource.Sch
 				Attributes: map[string]schema.Attribute{
 					"max_nodes_total": schema.Int64Attribute{
 						Description: "Maximum number of nodes in all node groups. Cluster autoscaler will " +
-							"not grow the cluster beyond this number.",
+							"not grow the cluster beyond this number." +
+							"See OpenShift documentation for maximum allowed values: " +
+							"https://github.com/openshift/openshift-docs/blob/main/cloud_experts_tutorials/cloud-experts-getting-started/cloud-experts-getting-started-what-is-rosa.adoc",
 						Optional: true,
 					},
 					"cores": autoscaler.RangeAttribute("Minimum and maximum number of cores in cluster, in the format <min>:<max>. "+

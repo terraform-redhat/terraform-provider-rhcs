@@ -19,12 +19,15 @@ func AutoscalingResource() map[string]schema.Attribute {
 			Required:    true,
 		},
 		"min_replicas": schema.Int64Attribute{
-			Description: "The minimum number of replicas for autoscaling functionality.",
-			Optional:    true,
+			Description: "The minimum number of replicas for autoscaling functionality." +
+				"Single zone clusters need at least 2 nodes, multizone clusters need at least 3 nodes.",
+			Optional: true,
 		},
 		"max_replicas": schema.Int64Attribute{
-			Description: "The maximum number of replicas for autoscaling functionality.",
-			Optional:    true,
+			Description: "The maximum number of replicas for autoscaling functionality." +
+				"The maximum is 250 for cluster versions prior to 4.14.0-0.a, " +
+				"and 500 for cluster versions 4.14.0-0.a and later.",
+			Optional: true,
 		},
 	}
 }
@@ -36,12 +39,15 @@ func AutoscalingDatasource() map[string]dsschema.Attribute {
 			Computed:    true,
 		},
 		"min_replicas": schema.Int64Attribute{
-			Description: "The minimum number of replicas for autoscaling functionality.",
-			Computed:    true,
+			Description: "The minimum number of replicas for autoscaling functionality." +
+				"Single zone clusters need at least 2 nodes, multizone clusters need at least 3 nodes.",
+			Computed: true,
 		},
 		"max_replicas": schema.Int64Attribute{
-			Description: "The maximum number of replicas for autoscaling functionality.",
-			Computed:    true,
+			Description: "The maximum number of replicas for autoscaling functionality." +
+				"The maximum is 250 for cluster versions prior to 4.14.0-0.a, " +
+				"and 500 for cluster versions 4.14.0-0.a and later.",
+			Computed: true,
 		},
 	}
 }

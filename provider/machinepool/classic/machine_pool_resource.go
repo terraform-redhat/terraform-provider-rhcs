@@ -102,8 +102,14 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				Required: true,
 			},
 			"replicas": schema.Int64Attribute{
-				Description: "The number of machines of the pool",
-				Optional:    true,
+				Description: "The number of machines in the pool. " +
+					"Single zone clusters need at least 2 nodes, " +
+					"multizone clusters need at least 3 nodes. " +
+					"The maximum is 185 for single zone clusters and 186 for multizone clusters, " +
+					"for cluster versions prior to 4.14.14. " +
+					"For cluster versions 4.14.14 and later, the maximum is 254 " +
+					"for single-AZ clusters and 255 for MultiAZ clusters.",
+				Optional: true,
 			},
 			"use_spot_instances": schema.BoolAttribute{
 				Description: "Use Amazon EC2 Spot Instances. " + common.ValueCannotBeChangedStringDescription,
@@ -121,12 +127,15 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				Optional:    true,
 			},
 			"min_replicas": schema.Int64Attribute{
-				Description: "The minimum number of replicas for autoscaling functionality.",
-				Optional:    true,
+				Description: "The minimum number of replicas for autoscaling functionality. Single zone clusters need at least 2 nodes, " +
+					"multizone clusters need at least 3 nodes. ",
+				Optional: true,
 			},
 			"max_replicas": schema.Int64Attribute{
-				Description: "The maximum number of replicas for autoscaling functionality.",
-				Optional:    true,
+				Description: "The maximum number of replicas for autoscaling functionality." +
+					"The maximum is 185 for single zone clusters and 186 for multizone clusters, for cluster versions prior to 4.14.14. " +
+					"For cluster versions 4.14.14 and later, the maximum is 254 for single-AZ clusters and 255 for MultiAZ clusters. ",
+				Optional: true,
 			},
 			"taints": schema.ListNestedAttribute{
 				Description: "Taints for a machine pool. Format should be a comma-separated " +

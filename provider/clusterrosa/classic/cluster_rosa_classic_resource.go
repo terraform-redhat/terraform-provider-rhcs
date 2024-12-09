@@ -191,12 +191,19 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Optional:    true,
 			},
 			"min_replicas": schema.Int64Attribute{
-				Description: "Minimum replicas of worker nodes in a machine pool. " + rosaTypes.PoolMessage,
-				Optional:    true,
+				Description: "Minimum replicas of worker nodes in a machine pool. " +
+					"Single zone clusters need at least 2 nodes, " +
+					"multizone clusters need at least 3 nodes. " + rosaTypes.PoolMessage,
+				Optional: true,
 			},
 			"max_replicas": schema.Int64Attribute{
-				Description: "Maximum replicas of worker nodes in a machine pool. " + rosaTypes.PoolMessage,
-				Optional:    true,
+				Description: "Maximum replicas of worker nodes in a machine pool. " +
+					"The maximum is 185 for single zone clusters and 186 for multizone clusters, " +
+					"for cluster versions prior to 4.14.14. " +
+					"For cluster versions 4.14.14 and later, " +
+					"the maximum is 254 for single-AZ clusters and 255 for MultiAZ clusters. " +
+					rosaTypes.PoolMessage,
+				Optional: true,
 			},
 			"api_url": schema.StringAttribute{
 				Description: "URL of the API server.",
@@ -225,8 +232,13 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				},
 			},
 			"replicas": schema.Int64Attribute{
-				Description: "Number of worker/compute nodes to provision. Single zone clusters need at least 2 nodes, " +
-					"multizone clusters need at least 3 nodes. " + rosaTypes.PoolMessage,
+				Description: "Number of worker/compute nodes to provision. " +
+					"Single zone clusters need at least 2 nodes, " +
+					"multizone clusters need at least 3 nodes. " +
+					"The maximum is 185 for single zone clusters and 186 for multizone clusters, " +
+					"for cluster versions prior to 4.14.14. For cluster versions 4.14.14 and later, " +
+					"the maximum is 254 for single-AZ clusters and 255 for MultiAZ clusters." +
+					rosaTypes.PoolMessage,
 				Optional: true,
 			},
 			"compute_machine_type": schema.StringAttribute{

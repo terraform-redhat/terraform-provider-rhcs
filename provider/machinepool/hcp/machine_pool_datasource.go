@@ -84,8 +84,12 @@ func (r *HcpMachinePoolDatasource) Schema(ctx context.Context, req datasource.Sc
 				},
 			},
 			"replicas": schema.Int64Attribute{
-				Description: "The number of machines of the pool",
-				Computed:    true,
+				Description: "The number of machines in the pool. " +
+					"Single zone clusters need at least 2 nodes, " +
+					"multizone clusters need at least 3 nodes. " +
+					"The maximum is 250 for cluster versions prior to 4.14.0-0.a, " +
+					"and 500 for cluster versions 4.14.0-0.a and later.",
+				Computed: true,
 			},
 			"autoscaling": schema.SingleNestedAttribute{
 				Description: "Basic autoscaling options",

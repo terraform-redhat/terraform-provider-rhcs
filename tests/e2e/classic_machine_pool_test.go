@@ -706,9 +706,9 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			MachineType: helper.StringPointer("invalid"),
 			Name:        helper.StringPointer("invalidinstype"),
 		}
-		output, err = mpService.Apply(mpArgs)
+		_, err = mpService.Apply(mpArgs)
 		Expect(err).To(HaveOccurred())
-		Expect(output).Should(ContainSubstring("Machine type 'invalid' is not supported"))
+		Expect(helper.GetTFErrorMessage(err)).Should(ContainSubstring("Machine type 'invalid' is not supported"))
 
 		By("Create machinepool creation plan with invalid tags")
 		invalidTags := map[string]string{
@@ -725,9 +725,9 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			Name:        helper.StringPointer(name),
 			Tags:        helper.StringMapPointer(invalidTags),
 		}
-		output, err = mpService.Apply(mpArgs)
+		_, err = mpService.Apply(mpArgs)
 		Expect(err).To(HaveOccurred())
-		Expect(output).Should(ContainSubstring("Tags that begin with 'aws:' are reserved"))
+		Expect(helper.GetTFErrorMessage(err)).Should(ContainSubstring("Tags that begin with 'aws:' are reserved"))
 
 	})
 })

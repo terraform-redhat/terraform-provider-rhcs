@@ -148,13 +148,15 @@ var _ = Describe("Upgrade", func() {
 
 				}
 
-				By("Validate  the cluster Upgrade upgrade_acknowledge field")
-				clusterArgs.OpenshiftVersion = helper.StringPointer(targetV)
-				_, err = clusterService.Apply(clusterArgs)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("Missing required acknowledgements to schedule upgrade"))
+				// Blocked by OCM-7641
+				// By("Validate  the cluster Upgrade upgrade_acknowledge field")
+				// clusterArgs.OpenshiftVersion = helper.StringPointer(targetV)
+				// _, err = clusterService.Apply(clusterArgs)
+				// Expect(err).To(HaveOccurred())
+				// Expect(err.Error()).To(ContainSubstring("Missing required acknowledgements to schedule upgrade"))
 
 				By("Apply the cluster Upgrade")
+				clusterArgs.OpenshiftVersion = helper.StringPointer(targetV)
 				clusterArgs.UpgradeAcknowledgementsFor = helper.StringPointer(majorVersion)
 				_, err = clusterService.Apply(clusterArgs)
 				Expect(err).ToNot(HaveOccurred())

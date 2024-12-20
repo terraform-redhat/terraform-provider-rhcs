@@ -63,6 +63,7 @@ data "rhcs_cluster_rosa_classic" "cluster" {
 - `host_prefix` (Number) Length of the prefix of the subnet assigned to each node. After the creation of the resource, it is not possible to update the attribute value.
 - `infra_id` (String) The ROSA cluster infrastructure ID.
 - `machine_cidr` (String) Block of IP addresses for nodes. After the creation of the resource, it is not possible to update the attribute value.
+- `max_cluster_wait_timeout_in_minutes` (Number) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `max_replicas` (Number) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `min_replicas` (Number) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `multi_az` (Boolean) Indicates if the cluster should be deployed to multiple availability zones. Default value is 'false'. This attribute specifically applies to the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the initial Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)

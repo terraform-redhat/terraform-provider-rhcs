@@ -243,6 +243,14 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				Description: deprecatedMessage,
 				Computed:    true,
 			},
+			"max_hcp_cluster_wait_timeout_in_minutes": schema.Int64Attribute{
+				Description: deprecatedMessage,
+				Computed:    true,
+			},
+			"max_machinepool_wait_timeout_in_minutes": schema.Int64Attribute{
+				Description: deprecatedMessage,
+				Computed:    true,
+			},
 			"create_admin_user": schema.BoolAttribute{
 				Description: deprecatedMessage,
 				Computed:    true,

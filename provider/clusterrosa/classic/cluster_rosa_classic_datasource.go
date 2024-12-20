@@ -320,6 +320,10 @@ func (r *ClusterRosaClassicDatasource) Schema(ctx context.Context, req datasourc
 				ElementType: types.StringType,
 				Computed:    true,
 			},
+			"max_cluster_wait_timeout_in_minutes": schema.Int64Attribute{
+				Description: deprecatedMessage,
+				Computed:    true,
+			},
 		},
 	}
 }

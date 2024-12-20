@@ -57,6 +57,8 @@ data "rhcs_cluster_rosa_hcp" "cluster" {
 - `external_id` (String) Unique external identifier of the cluster. After the creation of the resource, it is not possible to update the attribute value.
 - `host_prefix` (Number) Length of the prefix of the subnet assigned to each node. After the creation of the resource, it is not possible to update the attribute value.
 - `machine_cidr` (String) Block of IP addresses for nodes. After the creation of the resource, it is not possible to update the attribute value.
+- `max_hcp_cluster_wait_timeout_in_minutes` (Number) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
+- `max_machinepool_wait_timeout_in_minutes` (Number) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `name` (String) Name of the cluster. Cannot exceed 54 characters in length. After the creation of the resource, it is not possible to update the attribute value.
 - `ocm_properties` (Map of String) Merged properties defined by OCM and the user defined 'properties'.
 - `pod_cidr` (String) Block of IP addresses for pods. After the creation of the resource, it is not possible to update the attribute value.

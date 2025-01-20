@@ -80,7 +80,7 @@ func (r *TuningConfigResource) Configure(ctx context.Context, req resource.Confi
 		return
 	}
 
-	collection, ok := req.ProviderData.(*sdk.Connection)
+	connection, ok := req.ProviderData.(*sdk.Connection)
 	if !ok {
 		resp.Diagnostics.AddError("Unexpected Resource Configure Type",
 			fmt.Sprintf("Expected *sdk.Connaction, got: %T. Please report this issue to the provider developers.", req.ProviderData),
@@ -88,8 +88,8 @@ func (r *TuningConfigResource) Configure(ctx context.Context, req resource.Confi
 		return
 	}
 
-	r.collection = collection.ClustersMgmt().V1().Clusters()
-	r.clusterWait = common.NewClusterWait(r.collection)
+	r.collection = connection.ClustersMgmt().V1().Clusters()
+	r.clusterWait = common.NewClusterWait(r.collection, connection)
 }
 
 func (r *TuningConfigResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

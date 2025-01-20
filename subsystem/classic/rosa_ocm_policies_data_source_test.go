@@ -230,6 +230,7 @@ var _ = Describe("OCM policies data source", func() {
 					"openshift_ingress_operator_cloud_credentials_policy":                               "{}",
 					"shared_vpc_openshift_ingress_operator_cloud_credentials_policy":                    "{}",
 					"openshift_machine_api_aws_cloud_credentials_policy":                                "{}",
+					"openshift_aws_vpce_operator_avo_aws_creds_policy":                                  nil,
 				},
 				"account_role_policies": map[string]interface{}{
 					"sts_installer_permission_policy":             "{}",

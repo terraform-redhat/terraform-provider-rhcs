@@ -101,7 +101,7 @@ func (r *ClusterAutoscalerResource) Configure(ctx context.Context, req resource.
 		return
 	}
 
-	collection, ok := req.ProviderData.(*sdk.Connection)
+	connection, ok := req.ProviderData.(*sdk.Connection)
 	if !ok {
 		resp.Diagnostics.AddError("Unexpected Resource Configure Type",
 			fmt.Sprintf("Expected *sdk.Connaction, got: %T. Please report this issue to the provider developers.", req.ProviderData),
@@ -109,8 +109,8 @@ func (r *ClusterAutoscalerResource) Configure(ctx context.Context, req resource.
 		return
 	}
 
-	r.collection = collection.ClustersMgmt().V1().Clusters()
-	r.clusterWait = common.NewClusterWait(r.collection)
+	r.collection = connection.ClustersMgmt().V1().Clusters()
+	r.clusterWait = common.NewClusterWait(r.collection, connection)
 }
 
 func (r *ClusterAutoscalerResource) Create(ctx context.Context, request resource.CreateRequest, response *resource.CreateResponse) {

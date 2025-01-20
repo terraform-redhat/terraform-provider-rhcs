@@ -18,13 +18,19 @@ package info
 type ocmEnv string
 
 const (
-	ocmEnvProd  ocmEnv = "production"
-	ocmEnvStage ocmEnv = "stage"
-	ocmEnvInt   ocmEnv = "integration"
+	ocmEnvProd         ocmEnv = "production"
+	ocmEnvStage        ocmEnv = "stage"
+	ocmEnvInt          ocmEnv = "integration"
+	ocmEnvFedRAMPProd  ocmEnv = "fedramp-production"
+	ocmEnvFedRAMPStage ocmEnv = "fedramp-stage"
+	ocmEnvFedRAMPInt   ocmEnv = "fedramp-int"
 )
 
 var ocmAWSAccounts = map[ocmEnv]string{
-	ocmEnvProd:  "710019948333",
-	ocmEnvStage: "644306948063",
-	ocmEnvInt:   "896164604406",
+	ocmEnvProd:         "710019948333",
+	ocmEnvStage:        "644306948063",
+	ocmEnvInt:          "896164604406",
+	ocmEnvFedRAMPProd:  "448648337690",
+	ocmEnvFedRAMPStage: "448870092490",
+	ocmEnvFedRAMPInt:   "449053620653",
 }

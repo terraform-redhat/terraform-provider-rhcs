@@ -31,6 +31,7 @@ type OperatorRolePolicies struct {
 	IngressOperator          types.String `tfsdk:"openshift_ingress_operator_cloud_credentials_policy"`
 	SharedVpcIngressOperator types.String `tfsdk:"shared_vpc_openshift_ingress_operator_cloud_credentials_policy"`
 	MachineAPI               types.String `tfsdk:"openshift_machine_api_aws_cloud_credentials_policy"`
+	AvoCredentials           types.String `tfsdk:"openshift_aws_vpce_operator_avo_aws_creds_policy"`
 }
 
 type AccountRolePolicies struct {

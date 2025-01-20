@@ -41,6 +41,7 @@ Read-Only:
 
 Read-Only:
 
+- `openshift_aws_vpce_operator_avo_aws_creds_policy` (String)
 - `openshift_cloud_credential_operator_cloud_credential_operator_iam_ro_creds_policy` (String)
 - `openshift_cloud_network_config_controller_cloud_credentials_policy` (String)
 - `openshift_cluster_csi_drivers_ebs_cloud_credentials_policy` (String)

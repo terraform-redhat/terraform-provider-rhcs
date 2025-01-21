@@ -33,5 +33,6 @@ resource "rhcs_identity_provider" "github_idp" {
     client_id     = var.client_id
     client_secret = var.client_secret
     organizations = var.organizations
+    hostname      = var.hosted_domain
   }
 }

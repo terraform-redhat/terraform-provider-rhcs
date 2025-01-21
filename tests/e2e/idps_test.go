@@ -703,17 +703,12 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 			By("Create github idp with hostname myhost.com/aa")
 			args = getDefaultGitHubArgs(idpName)
 			args.HostedDomain = helper.StringPointer("myhost.com/aa")
-			validateIDPArgAgainstNoError(idpServices.github, args)
+			validateIDPArgAgainstErrorSubstrings(idpServices.github, args, "hostname must be a valid DNS subdomain or IP address")
 
 			By("Create github idp with hostname example.com")
 			args = getDefaultGitHubArgs(idpName)
 			args.HostedDomain = helper.StringPointer("example.com")
 			validateIDPArgAgainstNoError(idpServices.github, args)
-
-			By("Create github idp with empty hostname")
-			args = getDefaultGitHubArgs(idpName)
-			args.HostedDomain = helper.EmptyStringPointer
-			validateIDPArgAgainstErrorSubstrings(idpServices.github, args, "Attribute 'hostname' is mandatory")
 		})
 
 		It("htpasswd with empty user-password list will fail - [id:66409]", ci.Medium, func() {

@@ -25,3 +25,8 @@ variable "organizations" {
 variable "name" {
   type = string
 }
+
+variable "hosted_domain" {
+  type    = string
+  default = null
+}

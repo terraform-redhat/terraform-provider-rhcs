@@ -338,7 +338,7 @@ func (k *KubeletConfigResource) Configure(_ context.Context, req resource.Config
 	clusterCollection := connection.ClustersMgmt().V1().Clusters()
 	k.clusterClient = common.NewClusterClient(clusterCollection)
 	k.configsClient = client.NewKubeletConfigsClient(clusterCollection)
-	k.clusterWait = common.NewClusterWait(clusterCollection)
+	k.clusterWait = common.NewClusterWait(clusterCollection, connection)
 }
 
 func isHCP(ctx context.Context, clusterId string, clusterClient common.ClusterClient) (bool, error) {

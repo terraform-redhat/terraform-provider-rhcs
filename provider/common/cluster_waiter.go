@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
@@ -20,10 +21,14 @@ type ClusterWait interface {
 
 type DefaultClusterWait struct {
 	collection *cmv1.ClustersClient
+	connection *sdk.Connection
 }
 
-func NewClusterWait(collection *cmv1.ClustersClient) ClusterWait {
-	return &DefaultClusterWait{collection: collection}
+func NewClusterWait(collection *cmv1.ClustersClient, connection *sdk.Connection) ClusterWait {
+	return &DefaultClusterWait{
+		collection: collection,
+		connection: connection,
+	}
 }
 
 func (dw *DefaultClusterWait) WaitForStdComputeNodesToBeReady(ctx context.Context, clusterId string, waitTimeoutMin int64) (*cmv1.Cluster, error) {
@@ -49,6 +54,8 @@ func (dw *DefaultClusterWait) WaitForStdComputeNodesToBeReady(ctx context.Contex
 	backoffSleep := 30 * time.Second
 	var cluster *cmv1.Cluster
 	for cluster == nil {
+		tflog.Debug(ctx, fmt.Sprintf("Updating tokens for cluster %s", clusterId))
+		dw.connection.Tokens()
 		cluster, err = pollClusterCurrentCompute(clusterId, ctx, waitTimeoutMin, dw.collection)
 		if err != nil {
 			backoffAttempts--
@@ -98,6 +105,8 @@ func (dw *DefaultClusterWait) WaitForClusterToBeReady(ctx context.Context, clust
 	backoffSleep := 30 * time.Second
 	var cluster *cmv1.Cluster
 	for cluster == nil {
+		tflog.Debug(ctx, fmt.Sprintf("Updating tokens for cluster %s", clusterId))
+		dw.connection.Tokens()
 		cluster, err = pollClusterState(clusterId, ctx, waitTimeoutMin, dw.collection)
 		if err != nil {
 			backoffAttempts--

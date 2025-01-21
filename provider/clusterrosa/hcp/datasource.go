@@ -310,7 +310,7 @@ func (r *ClusterRosaHcpDatasource) Configure(ctx context.Context, req datasource
 
 	r.clusterCollection = connection.ClustersMgmt().V1().Clusters()
 	r.versionCollection = connection.ClustersMgmt().V1().Versions()
-	r.clusterWait = common.NewClusterWait(r.clusterCollection)
+	r.clusterWait = common.NewClusterWait(r.clusterCollection, connection)
 }
 
 func (r *ClusterRosaHcpDatasource) Read(ctx context.Context, request datasource.ReadRequest,

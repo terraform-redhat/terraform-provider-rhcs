@@ -79,7 +79,7 @@ func (r *ClusterWaiterResource) Configure(ctx context.Context, req resource.Conf
 	}
 
 	r.collection = connection.ClustersMgmt().V1().Clusters()
-	r.clusterWait = common.NewClusterWait(r.collection)
+	r.clusterWait = common.NewClusterWait(r.collection, connection)
 }
 
 func (r *ClusterWaiterResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

@@ -254,7 +254,7 @@ func (r *MachinePoolResource) Configure(ctx context.Context, req resource.Config
 	}
 
 	r.clusterCollection = connection.ClustersMgmt().V1().Clusters()
-	r.clusterWait = common.NewClusterWait(r.clusterCollection)
+	r.clusterWait = common.NewClusterWait(r.clusterCollection, connection)
 }
 
 func (r *MachinePoolResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

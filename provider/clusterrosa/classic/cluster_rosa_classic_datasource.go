@@ -345,7 +345,7 @@ func (r *ClusterRosaClassicDatasource) Configure(ctx context.Context, req dataso
 
 	r.clusterCollection = connection.ClustersMgmt().V1().Clusters()
 	r.versionCollection = connection.ClustersMgmt().V1().Versions()
-	r.clusterWait = common.NewClusterWait(r.clusterCollection)
+	r.clusterWait = common.NewClusterWait(r.clusterCollection, connection)
 }
 
 func (r *ClusterRosaClassicDatasource) Read(ctx context.Context, request datasource.ReadRequest,

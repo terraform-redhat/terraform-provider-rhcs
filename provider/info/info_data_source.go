@@ -140,12 +140,21 @@ func (d *OCMInfoDataSource) Read(ctx context.Context, req datasource.ReadRequest
 }
 
 func extractOCMAWSAccount(url string) string {
-	env := ocmEnvProd
-	if strings.Contains(url, "stage") {
-		env = ocmEnvStage
-	} else if strings.Contains(url, "integration") {
-		env = ocmEnvInt
+	if strings.Contains(url, "openshiftusgov.com") {
+		if strings.Contains(url, "stage") {
+			return ocmAWSAccounts[ocmEnvFedRAMPStage]
+		} else if strings.Contains(url, "int") {
+			return ocmAWSAccounts[ocmEnvFedRAMPInt]
+		} else {
+			return ocmAWSAccounts[ocmEnvFedRAMPProd]
+		}
+	} else {
+		if strings.Contains(url, "stage") {
+			return ocmAWSAccounts[ocmEnvStage]
+		} else if strings.Contains(url, "integration") {
+			return ocmAWSAccounts[ocmEnvInt]
+		} else {
+			return ocmAWSAccounts[ocmEnvProd]
+		}
 	}
-
-	return ocmAWSAccounts[env]
 }

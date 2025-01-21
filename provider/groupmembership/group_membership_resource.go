@@ -95,7 +95,7 @@ func (g *GroupMembershipResource) Configure(ctx context.Context, req resource.Co
 	}
 
 	g.collection = connection.ClustersMgmt().V1().Clusters()
-	g.clusterWait = common.NewClusterWait(g.collection)
+	g.clusterWait = common.NewClusterWait(g.collection, connection)
 }
 
 func (g *GroupMembershipResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

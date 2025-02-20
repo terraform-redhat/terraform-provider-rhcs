@@ -1546,7 +1546,8 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 
 		noProxy, ok := proxyObj.GetNoProxy()
 		if ok && noProxy != "" {
-			state.Proxy.NoProxy = types.StringValue(noProxy)
+			deDuplicatedNoProxy := proxy.RemoveNoProxyZeroEgressDefaultDomains(noProxy, ",")
+			state.Proxy.NoProxy = types.StringValue(deDuplicatedNoProxy)
 		}
 	} else {
 		// We cannot set the proxy to nil because the attribute state.Proxy.AdditionalTrustBundle might contain a value.

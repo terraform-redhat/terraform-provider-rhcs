@@ -3719,7 +3719,7 @@ var _ = Describe("HCP Cluster", func() {
 						"path": "/proxy",
 						"value": {
 							"https_proxy" : "https://proxy2.com",
-							"no_proxy" : "test"
+							"no_proxy" : "test,s3.dualstack.ap-southeast-4.amazonaws.com,s3.dualstack.ap-southeast-4.amazonaws.com"
 						}
 						},
 						{

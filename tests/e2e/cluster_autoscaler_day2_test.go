@@ -170,7 +170,7 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 			resourceLimits := &exec.ResourceLimits{
 				MaxNodesTotal: helper.IntPointer(maxNodesTotal),
 			}
-			maxPodGracePeriod := 10
+			maxPodGracePeriod := 600
 			podPriorityThreshold := -10
 			maxNodeProvisionTime := "1h"
 			clusterAutoscalerArgs := &exec.ClusterAutoscalerArgs{
@@ -198,7 +198,7 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 			resourceLimits = &exec.ResourceLimits{
 				MaxNodesTotal: helper.IntPointer(maxNodesTotal),
 			}
-			maxPodGracePeriod = 5
+			maxPodGracePeriod = 650
 			podPriorityThreshold = 3
 			maxNodeProvisionTime = "60m"
 

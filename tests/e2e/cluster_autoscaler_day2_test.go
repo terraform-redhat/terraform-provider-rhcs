@@ -148,7 +148,7 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 	})
 
 	It("can be created/edited/deleted to HCP cluster - [id:72524][id:72525]",
-		ci.High,
+		ci.High, ci.Exclude, // Delete and create cluster autoscaler are not currently supported for HCP
 		func() {
 			if !profileHandler.Profile().IsHCP() {
 				Skip("Test can run only on Hosted cluster")

@@ -560,6 +560,31 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 
 			// TODO OCM-11521 terraform plan doesn't have validation
 		})
+		It("validate BYOVPC and deployment region match - [id:63825]", ci.Low, func() {
+			if !profileHandler.Profile().IsBYOVPC() {
+				Skip("Test requires BYOVPC")
+			}
+
+			By("Get the region of the BYOVPC")
+			region := ""
+			if profileHandler.Profile().GetRegion() == "us-east-2" {
+				region = "us-west-2"
+			} else {
+				region = "us-east-2"
+			}
+			Expect(region).ToNot(BeEmpty())
+
+			By("Set the deployment region to something else")
+			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+				var azs []string
+				for _, az := range *args.AWSAvailabilityZones {
+					newAz := strings.ReplaceAll(az, *args.AWSRegion, region)
+					azs = append(azs, newAz)
+				}
+				args.AWSRegion = &region
+				args.AWSAvailabilityZones = &azs
+			}, "Failed to find subnet with ID")
+		})
 	})
 
 	Describe("The EOL OCP version validation", ci.Day1Negative, func() {

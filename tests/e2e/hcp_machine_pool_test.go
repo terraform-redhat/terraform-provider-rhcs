@@ -839,9 +839,10 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			By("Try to create a nodepool with version < CP version-2")
 			throttleVersion := fmt.Sprintf("%v.%v.0", currentSemVer.Major(), currentSemVer.Minor()-2)
 			versions = cms.GetHcpLowerVersions(cms.RHCSConnection, throttleVersion, profileHandler.Profile().GetChannelGroup())
+			versions = cms.SortVersions(versions)
 			if len(versions) > 0 {
 				validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
-					args.OpenshiftVersion = helper.StringPointer(versions[0].RawID)
+					args.OpenshiftVersion = helper.StringPointer(versions[len(versions)-1].RawID)
 				}, "must be no less than 2 minor versions behind the Control Plane version")
 			} else {
 				Logger.Info("No version < CP version - 2 found to test against")
@@ -850,7 +851,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			By("Try to create a nodepool with not supported version")
 			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
 				args.OpenshiftVersion = helper.StringPointer("4.10.67")
-			}, "must be greater than the lowest supported version")
+			}, "must be greater than the minimal supported version")
 
 			By("Try to create a nodepool with wrong version")
 			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {

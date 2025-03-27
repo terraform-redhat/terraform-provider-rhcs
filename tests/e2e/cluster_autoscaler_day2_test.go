@@ -229,7 +229,8 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 			Expect(caResponse.Status()).To(Equal(http.StatusNotFound))
 		})
 
-	It("can be validated against HCP cluster - [id:72526]", ci.Medium, func() {
+	// Delete and create cluster autoscaler are not currently supported for HCP
+	It("can be validated against HCP cluster - [id:72526]", ci.Medium, ci.Exclude, func() {
 		if !profileHandler.Profile().IsHCP() {
 			Skip("Test can run only on Hosted cluster")
 		}

@@ -17,6 +17,7 @@ locals {
 
 data "aws_ami" "proxy_img" {
   most_recent = true
+  owners      = ["amazon"]
 
   filter {
     name   = "name"

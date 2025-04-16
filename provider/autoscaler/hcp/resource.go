@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"reflect"
 	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -81,6 +82,10 @@ func (r *ClusterAutoscalerResource) Schema(ctx context.Context, req resource.Sch
 				Optional:    true,
 				Validators:  []validator.String{autoscaler.PositiveDurationStringValidator("max node provision time validation")},
 			},
+			"max_nodes_total": schema.Int64Attribute{
+				Description: "Maximum number of nodes in the cluster.",
+				Optional:    true,
+			},
 			"resource_limits": schema.SingleNestedAttribute{
 				Description: "Constraints of autoscaling resources.",
 				Optional:    true,
@@ -134,33 +139,12 @@ func (r *ClusterAutoscalerResource) Create(ctx context.Context, request resource
 		return
 	}
 
-	autoscaler, err := r.collection.Cluster(plan.Cluster.ValueString()).Autoscaler().Get().Send()
-	if err != nil && autoscaler.Status() != http.StatusNotFound {
-		response.Diagnostics.AddError("Can't create autoscaler", fmt.Sprintf("Autoscaler for cluster '%s' might already exists. Error: %s",
-			plan.Cluster.ValueString(), err.Error()))
-		return
-	}
-
-	resource := r.collection.Cluster(plan.Cluster.ValueString())
-
-	object, err := clusterAutoscalerStateToObject(plan)
+	err = r.updateAutoscaler(ctx, plan, nil, plan.Cluster.ValueString(), r.collection)
 	if err != nil {
 		response.Diagnostics.AddError(
-			"Failed building cluster autoscaler",
+			"Failed building cluster autoscaler state",
 			fmt.Sprintf(
-				"Failed building autoscaler for cluster '%s': %v",
-				plan.Cluster.ValueString(), err,
-			),
-		)
-		return
-	}
-
-	_, err = resource.Autoscaler().Post().Request(object).SendContext(ctx)
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Failed creating cluster autoscaler",
-			fmt.Sprintf(
-				"Failed creating autoscaler for cluster '%s': %v",
+				"Failed building cluster autoscaler state for cluster '%s': %v",
 				plan.Cluster.ValueString(), err,
 			),
 		)
@@ -298,18 +282,17 @@ func (r *ClusterAutoscalerResource) Delete(ctx context.Context, request resource
 		return
 	}
 
-	resource := r.collection.Cluster(state.Cluster.ValueString()).Autoscaler()
-	_, err := resource.Delete().SendContext(ctx)
-	if err != nil {
-		response.Diagnostics.AddError(
-			"Failed deleting cluster autoscaler",
-			fmt.Sprintf(
-				"Failed deleting autoscaler for cluster '%s': %v",
-				state.Cluster.ValueString(), err,
-			),
-		)
-		return
-	}
+	response.Diagnostics.AddWarning(
+		"Cannot delete Hosted CP cluster autoscaler",
+		fmt.Sprintf(
+			"Cannot delete the cluster autoscaler for cluster '%s'. "+
+				"ROSA HCP clusters must have a cluster autoscaler. "+
+				"It is being removed from the Terraform state only. "+
+				"To resume managing the cluster autoscaler, import it again. "+
+				"It will be automatically deleted when the cluster is deleted.",
+			state.Cluster.ValueString(),
+		),
+	)
 
 	response.State.RemoveResource(ctx)
 }
@@ -378,4 +361,45 @@ func clusterAutoscalerStateToObject(state *ClusterAutoscalerState) (*cmv1.Cluste
 	}
 
 	return builder.Build()
+}
+
+func (r *ClusterAutoscalerResource) updateAutoscaler(ctx context.Context, plan, state *ClusterAutoscalerState,
+	clusterId string, clusterCollection *cmv1.ClustersClient) error {
+
+	if state == nil {
+		state = &ClusterAutoscalerState{Cluster: types.StringValue(clusterId), MaxPodGracePeriod: plan.MaxPodGracePeriod,
+			PodPriorityThreshold: plan.PodPriorityThreshold, MaxNodesTotal: plan.MaxNodesTotal,
+			MaxNodeProvisionTime: plan.MaxNodeProvisionTime}
+	}
+
+	if !reflect.DeepEqual(state, plan) {
+		if plan == nil {
+			plan = &ClusterAutoscalerState{}
+		}
+
+		autoscaler, err := clusterAutoscalerStateToObject(state)
+		if err != nil {
+			return err
+		}
+
+		// Perform the actual update
+		autoscalerResponse, err := clusterCollection.Cluster(clusterId).Autoscaler().Update().Body(autoscaler).
+			SendContext(ctx)
+		if err != nil {
+			return err
+		}
+		state = &ClusterAutoscalerState{}
+
+		err = populateAutoscalerState(autoscalerResponse.Body(), plan.Cluster.ValueString(), state)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func getDefaultAutoscalerBuilder(state, plan *ClusterAutoscalerResource) *cmv1.ClusterAutoscalerBuilder {
+	autoscalerBuilder := cmv1.NewClusterAutoscaler()
+	return autoscalerBuilder
 }

@@ -35,6 +35,7 @@ resource "rhcs_hcp_cluster_autoscaler" "cluster_autoscaler" {
 ### Optional
 
 - `max_node_provision_time` (String) Maximum time cluster-autoscaler waits for node to be provisioned.
+- `max_nodes_total` (Number) Maximum number of nodes in the cluster.
 - `max_pod_grace_period` (Number) Gives pods graceful termination time before scaling down.
 - `pod_priority_threshold` (Number) To allow users to schedule 'best-effort' pods, which shouldn't trigger Cluster Autoscaler actions, but only run when there are spare resources available.
 - `resource_limits` (Attributes) Constraints of autoscaling resources. (see [below for nested schema](#nestedatt--resource_limits))

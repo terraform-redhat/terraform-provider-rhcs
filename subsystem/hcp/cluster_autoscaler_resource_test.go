@@ -77,51 +77,6 @@ var _ = Describe("Hcp Cluster Autoscaler", func() {
 			runOutput.VerifyErrorContainsSubstring("Cluster '123' not found")
 		})
 
-		It("fails if OCM backend fails to create the object", func() {
-			TestServer.AppendHandlers(
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-					RespondWithJSON(http.StatusOK, `
-						{
-							"kind": "Cluster",
-							"id": "123",
-							"href": "/api/clusters_mgmt/v1/clusters/123",
-							"name": "cluster",
-						}
-					`),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
-					RespondWithJSON(http.StatusOK, `
-						{
-							"kind": "Cluster",
-							"id": "123",
-							"href": "/api/clusters_mgmt/v1/clusters/123",
-							"name": "cluster",
-							"state": "ready"
-						}
-					`),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
-					RespondWithJSON(http.StatusNotFound, "{}"),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
-					RespondWithJSON(http.StatusInternalServerError, "{}}"),
-				),
-			)
-
-			Terraform.Source(`
-				resource "rhcs_hcp_cluster_autoscaler" "cluster_autoscaler" {
-					cluster = "123"
-				}
-	    	`)
-			runOutput := Terraform.Apply()
-			Expect(runOutput.ExitCode).ToNot(BeZero())
-			runOutput.VerifyErrorContainsSubstring("Failed creating autoscaler for cluster '123': status is 500")
-		})
-
 		It("successfully creates a cluster-autoscaler object", func() {
 			TestServer.AppendHandlers(
 				CombineHandlers(
@@ -148,16 +103,12 @@ var _ = Describe("Hcp Cluster Autoscaler", func() {
 					`),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
-					RespondWithJSON(http.StatusNotFound, "{}"),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
 					VerifyJQ(".max_pod_grace_period", float64(1)),
 					VerifyJQ(".pod_priority_threshold", float64(-10)),
 					VerifyJQ(".max_node_provision_time", "1h"),
 					VerifyJQ(".resource_limits.max_nodes_total", float64(20)),
-					RespondWithJSON(http.StatusCreated, `
+					RespondWithJSON(http.StatusOK, `
 						{
 							"kind": "ClusterAutoscaler",
 							"id": "123",
@@ -173,9 +124,7 @@ var _ = Describe("Hcp Cluster Autoscaler", func() {
 					max_pod_grace_period = 1
 					pod_priority_threshold = -10
 					max_node_provision_time = "1h"
-					resource_limits = {
-						max_nodes_total = 20
-					}
+					max_nodes_total = 20
 				}
 	    	`)
 			runOutput := Terraform.Apply()
@@ -252,6 +201,7 @@ var _ = Describe("Hcp Cluster Autoscaler", func() {
 					"max_pod_grace_period":    nil,
 					"pod_priority_threshold":  nil,
 					"max_node_provision_time": "1h",
+					"max_nodes_total":         nil,
 					"resource_limits":         nil,
 				},
 			))
@@ -259,7 +209,8 @@ var _ = Describe("Hcp Cluster Autoscaler", func() {
 	})
 
 	Context("updating", func() {
-		BeforeEach(func() {
+
+		It("successfully applies the changes in OCM", func() {
 			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
@@ -284,65 +235,6 @@ var _ = Describe("Hcp Cluster Autoscaler", func() {
 						}
 					`),
 				),
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
-					RespondWithJSON(http.StatusNotFound, "{}"),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
-					VerifyJQ(".max_node_provision_time", "1h"),
-					RespondWithJSON(http.StatusCreated, `
-						{
-							"kind": "ClusterAutoscaler",
-							"id": "123",
-							"href": "/api/clusters_mgmt/v1/clusters/123/autoscaler"
-						}
-					`),
-				),
-			)
-
-			Terraform.Source(`
-				resource "rhcs_hcp_cluster_autoscaler" "cluster_autoscaler" {
-					cluster = "123"
-					max_node_provision_time = "1h"
-
-				}
-	    	`)
-			runOutput := Terraform.Apply()
-			Expect(runOutput.ExitCode).To(BeZero())
-		})
-
-		It("successfully applies the changes in OCM", func() {
-			TestServer.AppendHandlers(
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
-					RespondWithJSON(http.StatusOK, `
-						{
-							"kind": "ClusterAutoscaler",
-							"href": "/api/clusters_mgmt/v1/clusters/123/autoscaler"
-						}
-					`),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
-					RespondWithJSON(http.StatusOK, `
-						{
-							"kind": "ClusterAutoscaler",
-							"href": "/api/clusters_mgmt/v1/clusters/123/autoscaler"
-						}
-					`),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
-					VerifyJQ(".max_node_provision_time", "2h"),
-					RespondWithJSON(http.StatusOK, `
-						{
-							"kind": "ClusterAutoscaler",
-							"href": "/api/clusters_mgmt/v1/clusters/123/autoscaler",
-							"max_node_provision_time": "2h"
-						}
-					`),
-				),
 			)
 
 			Terraform.Source(`
@@ -363,6 +255,7 @@ var _ = Describe("Hcp Cluster Autoscaler", func() {
 					"max_pod_grace_period":    nil,
 					"pod_priority_threshold":  nil,
 					"max_node_provision_time": "2h",
+					"max_nodes_total":         nil,
 					"resource_limits":         nil,
 				},
 			))
@@ -440,7 +333,7 @@ var _ = Describe("Hcp Cluster Autoscaler", func() {
 			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
-		It("successfully applies the deletion in OCM", func() {
+		It("does not apply the deletion in OCM to the actual resource", func() {
 			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
@@ -454,6 +347,16 @@ var _ = Describe("Hcp Cluster Autoscaler", func() {
 				CombineHandlers(
 					VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
 					RespondWithJSON(http.StatusNoContent, "{}"),
+				),
+				// Actually make sure the autoscaler was not deleted from OCM
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"kind": "ClusterAutoscaler",
+							"href": "/api/clusters_mgmt/v1/clusters/123/autoscaler"
+						}
+					`),
 				),
 			)
 

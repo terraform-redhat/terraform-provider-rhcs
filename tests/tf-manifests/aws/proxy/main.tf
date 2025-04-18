@@ -12,7 +12,7 @@ provider "aws" {
 }
 
 locals {
-  proxy_image_name = "al2023-ami-2023.6.20250115.0-kernel-6.1-x86_64"
+  proxy_image_name = "al2023-ami-2023.6.*.0-kernel-6.1-x86_64"
 }
 
 data "aws_ami" "proxy_img" {

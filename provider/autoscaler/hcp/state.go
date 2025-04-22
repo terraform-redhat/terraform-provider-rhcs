@@ -25,6 +25,7 @@ type ClusterAutoscalerState struct {
 	MaxPodGracePeriod    types.Int64               `tfsdk:"max_pod_grace_period"`
 	PodPriorityThreshold types.Int64               `tfsdk:"pod_priority_threshold"`
 	MaxNodeProvisionTime types.String              `tfsdk:"max_node_provision_time"`
+	MaxNodesTotal        types.Int64               `tfsdk:"max_nodes_total"`
 	ResourceLimits       *AutoscalerResourceLimits `tfsdk:"resource_limits"`
 }
 

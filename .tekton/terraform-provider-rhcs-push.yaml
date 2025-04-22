@@ -14,6 +14,7 @@ metadata:
     pipelines.appstudio.openshift.io/type: build
   name: terraform-provider-rhcs-on-push
   namespace: rh-terraform-tenant
+
 spec:
   params:
   - name: dockerfile

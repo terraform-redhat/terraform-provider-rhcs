@@ -382,18 +382,6 @@ spec:
           - name: kind
             value: task
         resolver: bundles
-    - name: sast-snyk-check-oci-ta
-      runAfter:
-        - build-container
-      taskRef:
-        params:
-          - name: name
-            value: sast-snyk-check-oci-ta
-          - name: bundle
-            value: quay.io/redhat-appstudio-tekton-catalog/task-sast-snyk-check-oci-ta@sha256:4e8d30f9135e0fe2b8bdb2ad422a495be4582661bc13de4140d9709fa411d724
-          - name: kind
-            value: task
-        resolver: bundles
     workspaces:
     - name: workspace
     - name: git-auth

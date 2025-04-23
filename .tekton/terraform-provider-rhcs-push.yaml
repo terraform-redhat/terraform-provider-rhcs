@@ -382,10 +382,6 @@ spec:
           - name: kind
             value: task
         resolver: bundles
-    workspaces:
-    - name: workspace
-    - name: git-auth
-      optional: true
   taskRunTemplate: {}
   workspaces:
   - name: workspace

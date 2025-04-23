@@ -366,7 +366,7 @@ spec:
           - name: name
             value: rpms-signature-scan
           - name: bundle
-            value: quay.io/konflux-ci/tekton-catalog/task-rpms-signature-scan:0.2
+            value: quay.io/konflux-ci/tekton-catalog/task-rpms-signature-scan:0.2@sha256:39cd56ffa26ff5edfd5bf9b61e902cae35a345c078cd9dcbc0737d30f3ce5ef1
           - name: kind
             value: task
         resolver: bundles
@@ -378,7 +378,7 @@ spec:
           - name: name
             value: sast-unicode-check
           - name: bundle
-            value: quay.io/redhat-appstudio-tekton-catalog/task-sast-unicode-check:0.2
+            value: quay.io/redhat-appstudio-tekton-catalog/task-sast-unicode-check:0.2@sha256:6e13cc60728344e758c95eb6a53fe509cebf3173da4d4acb868eaa8090a4a5e4
           - name: kind
             value: task
         resolver: bundles

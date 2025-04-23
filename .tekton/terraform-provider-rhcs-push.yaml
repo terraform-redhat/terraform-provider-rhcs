@@ -378,7 +378,7 @@ spec:
           - name: name
             value: sast-unicode-check
           - name: bundle
-            value: quay.io/redhat-appstudio-tekton-catalog/task-sast-unicode-check:0.2@sha256:6e13cc60728344e758c95eb6a53fe509cebf3173da4d4acb868eaa8090a4a5e4
+            value: quay.io/redhat-appstudio-tekton-catalog/task-sast-unicode-check@sha256:21204e07e1ca3ce254c620cd8d217dca511a7ced5d1bce088a65e477a6af4590
           - name: kind
             value: task
         resolver: bundles

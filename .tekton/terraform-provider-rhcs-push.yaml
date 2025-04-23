@@ -382,6 +382,9 @@ spec:
           - name: kind
             value: task
         resolver: bundles
+      workspaces:
+        - name: workspace
+          workspace: workspace
   taskRunTemplate: {}
   workspaces:
   - name: workspace

@@ -368,6 +368,9 @@ spec:
             value: task
         resolver: bundles
     - name: sast-unicode-check
+      params:
+        - name: SOURCE_ARTIFACT
+          value: $(tasks.clone-repository-oci-ta.results.SOURCE_ARTIFACT)
       runAfter:
         - build-container
       taskRef:
@@ -378,6 +381,15 @@ spec:
             value: quay.io/redhat-appstudio-tekton-catalog/task-sast-unicode-check@sha256:21204e07e1ca3ce254c620cd8d217dca511a7ced5d1bce088a65e477a6af4590
           - name: kind
             value: task
+        steps:
+        - name: use-trusted-artifact
+          image: quay.io/redhat-appstudio/build-trusted-artifacts:latest@sha256:8391272c4e5011120e9e7fee2c1f339e9405366110bf239dadcbc21e953ce099
+          args:
+            - use
+            - $(params.SOURCE_ARTIFACT)=/var/workdir/source
+        volumes:
+          - name: workdir
+            emptyDir: { }
         resolver: bundles
       workspaces:
         - name: workspace

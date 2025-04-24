@@ -30,15 +30,10 @@ spec:
     finally:
     - name: show-sbom
       params:
-      - name: SOURCE_ARTIFACT
-        value: $(tasks.clone-repository-oci-ta.results.SOURCE_ARTIFACT)
       - name: IMAGE_URL
         value: $(tasks.build-container.results.IMAGE_URL)
       taskRef:
         params:
-        - description: The Trusted Artifact URI pointing to the artifact with the application source code.
-          name: SOURCE_ARTIFACT
-          type: string
         - name: name
           value: show-sbom
         - name: bundle
@@ -46,15 +41,6 @@ spec:
         - name: kind
           value: task
         resolver: bundles
-        steps:
-          - name: use-trusted-artifact
-            image: quay.io/redhat-appstudio/build-trusted-artifacts:latest@sha256:8391272c4e5011120e9e7fee2c1f339e9405366110bf239dadcbc21e953ce099
-            args:
-              - use
-              - $(params.SOURCE_ARTIFACT)=/var/workdir/source
-        volumes:
-          - name: workdir
-            emptyDir: { }
     - name: show-summary
       params:
       - name: pipelinerun-name

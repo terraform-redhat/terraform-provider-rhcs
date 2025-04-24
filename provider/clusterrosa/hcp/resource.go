@@ -287,6 +287,14 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 					int64planmodifier.UseStateForUnknown(),
 				},
 			},
+			"no_cni": schema.BoolAttribute{
+				Description: "Disable CNI creation to let users bring their own CNI. " + common.ValueCannotBeChangedStringDescription,
+				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"channel_group": schema.StringAttribute{
 				Description: "Name of the channel group where you select the OpenShift cluster version, for example 'stable'. " +
 					"For ROSA, only 'stable' and 'eus' are supported.",
@@ -629,6 +637,9 @@ func createHcpClusterObject(ctx context.Context,
 	if common.HasValue(state.HostPrefix) {
 		network.HostPrefix(int(state.HostPrefix.ValueInt64()))
 	}
+	if common.BoolWithFalseDefault(state.NoCNI) {
+		network.Type("Other")
+	}
 	if !network.Empty() {
 		builder.Network(network)
 	}
@@ -962,6 +973,7 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaHcpState) diag.Diagnos
 	common.ValidateStateAndPlanEquals(state.ServiceCIDR, plan.ServiceCIDR, "service_cidr", &diags)
 	common.ValidateStateAndPlanEquals(state.PodCIDR, plan.PodCIDR, "pod_cidr", &diags)
 	common.ValidateStateAndPlanEquals(state.HostPrefix, plan.HostPrefix, "host_prefix", &diags)
+	common.ValidateStateAndPlanEquals(state.NoCNI, plan.Private, "no_cni", &diags)
 
 	// STS field validations
 	common.ValidateStateAndPlanEquals(state.Sts.RoleARN, plan.Sts.RoleARN, "sts.role_arn", &diags)
@@ -1674,6 +1686,12 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 		state.HostPrefix = types.Int64Value(int64(hostPrefix))
 	} else {
 		state.HostPrefix = types.Int64Null()
+	}
+	networkType, ok := object.Network().GetType()
+	if ok && networkType == "Other" {
+		state.NoCNI = types.BoolValue(true)
+	} else {
+		state.NoCNI = types.BoolNull()
 	}
 	channel_group, ok := object.Version().GetChannelGroup()
 	if ok {

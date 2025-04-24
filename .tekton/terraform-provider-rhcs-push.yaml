@@ -275,7 +275,7 @@ spec:
         - name: name
           value: deprecated-image-check
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-deprecated-image-check:0.4@sha256:0ad98ffb3409f87f94ac7608838a142fed3eace02d7b815c0c63f4232b988e1a
+          value: quay.io/redhat-appstudio-tekton-catalog/task-deprecated-image-check@sha256:47f0cc74cbb70a96af18bce46c31e9599bf16b67771673078b5cc21845179a7f
         - name: kind
           value: task
         resolver: bundles
@@ -366,7 +366,7 @@ spec:
           - name: name
             value: rpms-signature-scan
           - name: bundle
-            value: quay.io/konflux-ci/tekton-catalog/task-rpms-signature-scan:0.2@sha256:39cd56ffa26ff5edfd5bf9b61e902cae35a345c078cd9dcbc0737d30f3ce5ef1
+            value: quay.io/redhat-appstudio-tekton-catalog/task-rpms-signature-scan@sha256:d4353a1d15f36563d80405e9c52bd293f1ca204131c370d5577e400cf3d560eb
           - name: kind
             value: task
         resolver: bundles
@@ -379,36 +379,6 @@ spec:
             value: sast-unicode-check
           - name: bundle
             value: quay.io/redhat-appstudio-tekton-catalog/task-sast-unicode-check@sha256:21204e07e1ca3ce254c620cd8d217dca511a7ced5d1bce088a65e477a6af4590
-          - name: kind
-            value: task
-        resolver: bundles
-      workspaces:
-        - name: workspace
-          workspace: workspace
-    - name: rpms-signature-scan
-      runAfter:
-        - build-container
-      taskRef:
-        params:
-          - name: name
-            value: rpms-signature-scan
-          - name: bundle
-            value: quay.io/redhat-appstudio-tekton-catalog/task-rpms-signature-scan@sha256:d4353a1d15f36563d80405e9c52bd293f1ca204131c370d5577e400cf3d560eb
-          - name: kind
-            value: task
-        resolver: bundles
-      workspaces:
-        - name: workspace
-          workspace: workspace
-    - name: deprecated-image-check
-      runAfter:
-        - build-container
-      taskRef:
-        params:
-          - name: name
-            value: deprecated-image-check
-          - name: bundle
-            value: quay.io/redhat-appstudio-tekton-catalog/task-deprecated-image-check@sha256:47f0cc74cbb70a96af18bce46c31e9599bf16b67771673078b5cc21845179a7f
           - name: kind
             value: task
         resolver: bundles

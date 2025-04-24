@@ -37,7 +37,7 @@ spec:
         - name: name
           value: show-sbom
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-show-sbom:0.1@sha256:8062d5b13b5236030407cbd620a75cb7c091f43be178eeefea58d2e3dddcaa74
+          value: quay.io/redhat-appstudio-tekton-catalog/task-show-sbom@sha256:1c46fdc4331ab68b925d615e9787e67382916c4ef3ec382d05bedf0cb2b2f51b
         - name: kind
           value: task
         resolver: bundles
@@ -379,6 +379,96 @@ spec:
             value: sast-unicode-check
           - name: bundle
             value: quay.io/redhat-appstudio-tekton-catalog/task-sast-unicode-check@sha256:21204e07e1ca3ce254c620cd8d217dca511a7ced5d1bce088a65e477a6af4590
+          - name: kind
+            value: task
+        resolver: bundles
+      workspaces:
+        - name: workspace
+          workspace: workspace
+    - name: rpms-signature-scan
+      runAfter:
+        - build-container
+      taskRef:
+        params:
+          - name: name
+            value: rpms-signature-scan
+          - name: bundle
+            value: quay.io/redhat-appstudio-tekton-catalog/task-rpms-signature-scan@sha256:d4353a1d15f36563d80405e9c52bd293f1ca204131c370d5577e400cf3d560eb
+          - name: kind
+            value: task
+        resolver: bundles
+      workspaces:
+        - name: workspace
+          workspace: workspace
+    - name: init
+      runAfter:
+        - build-container
+      taskRef:
+        params:
+          - name: name
+            value: init
+          - name: bundle
+            value: quay.io/redhat-appstudio-tekton-catalog/task-init@sha256:5a313cb9a8aecb170823404496457b4fa9c1526ba38e3bcfd85bd0fc6c39ffdc
+          - name: kind
+            value: task
+        resolver: bundles
+      workspaces:
+        - name: workspace
+          workspace: workspace
+    - name: deprecated-image-check
+      runAfter:
+        - build-container
+      taskRef:
+        params:
+          - name: name
+            value: deprecated-image-check
+          - name: bundle
+            value: quay.io/redhat-appstudio-tekton-catalog/task-deprecated-image-check@sha256:47f0cc74cbb70a96af18bce46c31e9599bf16b67771673078b5cc21845179a7f
+          - name: kind
+            value: task
+        resolver: bundles
+      workspaces:
+        - name: workspace
+          workspace: workspace
+    - name: clamav-scan
+      runAfter:
+        - build-container
+      taskRef:
+        params:
+          - name: name
+            value: clamav-scan
+          - name: bundle
+            value: quay.io/redhat-appstudio-tekton-catalog/task-clamav-scan@sha256:5121e7f45826559c6d0346c24f0abff0f2a73287b8bada776bcfe6b7a29d12ce
+          - name: kind
+            value: task
+        resolver: bundles
+      workspaces:
+        - name: workspace
+          workspace: workspace
+    - name: clair-scan
+      runAfter:
+        - build-container
+      taskRef:
+        params:
+          - name: name
+            value: clair-scan
+          - name: bundle
+            value: quay.io/redhat-appstudio-tekton-catalog/task-clair-scan@sha256:057472a29127d329f660e5ba5001ea0771507045863d684f96bedc0afc0598d7
+          - name: kind
+            value: task
+        resolver: bundles
+      workspaces:
+        - name: workspace
+          workspace: workspace
+    - name: clair-scan
+      runAfter:
+        - build-container
+      taskRef:
+        params:
+          - name: name
+            value: clair-scan
+          - name: bundle
+            value: quay.io/redhat-appstudio-tekton-catalog/task-clair-scan@sha256:057472a29127d329f660e5ba5001ea0771507045863d684f96bedc0afc0598d7
           - name: kind
             value: task
         resolver: bundles

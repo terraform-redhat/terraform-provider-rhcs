@@ -297,7 +297,7 @@ spec:
         - name: name
           value: clair-scan
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-clair-scan:0.2@sha256:0bf7059322544cec08fae9c159be8c1d4a5d1f2ad145446aa8f169e6cddc0294
+          value: quay.io/redhat-appstudio-tekton-catalog/task-clair-scan@sha256:057472a29127d329f660e5ba5001ea0771507045863d684f96bedc0afc0598d7
         - name: kind
           value: task
         resolver: bundles
@@ -344,7 +344,7 @@ spec:
         - name: name
           value: clamav-scan
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-clamav-scan:0.2@sha256:5ec761447580484540a66dc00ac35a4fd0a0c046a6b33904b46727104b9aed2b
+          value: quay.io/redhat-appstudio-tekton-catalog/task-clamav-scan@sha256:5121e7f45826559c6d0346c24f0abff0f2a73287b8bada776bcfe6b7a29d12ce
         - name: kind
           value: task
         resolver: bundles
@@ -409,51 +409,6 @@ spec:
             value: deprecated-image-check
           - name: bundle
             value: quay.io/redhat-appstudio-tekton-catalog/task-deprecated-image-check@sha256:47f0cc74cbb70a96af18bce46c31e9599bf16b67771673078b5cc21845179a7f
-          - name: kind
-            value: task
-        resolver: bundles
-      workspaces:
-        - name: workspace
-          workspace: workspace
-    - name: clamav-scan
-      runAfter:
-        - build-container
-      taskRef:
-        params:
-          - name: name
-            value: clamav-scan
-          - name: bundle
-            value: quay.io/redhat-appstudio-tekton-catalog/task-clamav-scan@sha256:5121e7f45826559c6d0346c24f0abff0f2a73287b8bada776bcfe6b7a29d12ce
-          - name: kind
-            value: task
-        resolver: bundles
-      workspaces:
-        - name: workspace
-          workspace: workspace
-    - name: clair-scan
-      runAfter:
-        - build-container
-      taskRef:
-        params:
-          - name: name
-            value: clair-scan
-          - name: bundle
-            value: quay.io/redhat-appstudio-tekton-catalog/task-clair-scan@sha256:057472a29127d329f660e5ba5001ea0771507045863d684f96bedc0afc0598d7
-          - name: kind
-            value: task
-        resolver: bundles
-      workspaces:
-        - name: workspace
-          workspace: workspace
-    - name: clair-scan
-      runAfter:
-        - build-container
-      taskRef:
-        params:
-          - name: name
-            value: clair-scan
-          - name: bundle
-            value: quay.io/redhat-appstudio-tekton-catalog/task-clair-scan@sha256:057472a29127d329f660e5ba5001ea0771507045863d684f96bedc0afc0598d7
           - name: kind
             value: task
         resolver: bundles

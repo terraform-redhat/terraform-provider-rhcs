@@ -146,7 +146,7 @@ spec:
         - name: name
           value: init
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-init:0.2@sha256:ad2c6461433b867a5b8c5243048014f71295f4f7b0b684e6289246e37f698204
+          value: quay.io/redhat-appstudio-tekton-catalog/task-init@sha256:5a313cb9a8aecb170823404496457b4fa9c1526ba38e3bcfd85bd0fc6c39ffdc
         - name: kind
           value: task
         resolver: bundles
@@ -394,21 +394,6 @@ spec:
             value: rpms-signature-scan
           - name: bundle
             value: quay.io/redhat-appstudio-tekton-catalog/task-rpms-signature-scan@sha256:d4353a1d15f36563d80405e9c52bd293f1ca204131c370d5577e400cf3d560eb
-          - name: kind
-            value: task
-        resolver: bundles
-      workspaces:
-        - name: workspace
-          workspace: workspace
-    - name: init
-      runAfter:
-        - build-container
-      taskRef:
-        params:
-          - name: name
-            value: init
-          - name: bundle
-            value: quay.io/redhat-appstudio-tekton-catalog/task-init@sha256:5a313cb9a8aecb170823404496457b4fa9c1526ba38e3bcfd85bd0fc6c39ffdc
           - name: kind
             value: task
         resolver: bundles

@@ -185,7 +185,7 @@ spec:
         - name: name
           value: prefetch-dependencies
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-prefetch-dependencies:0.2@sha256:8faf907a05bd2d4e2833134750182f2c584133e80a69f75e9d73588976d2143a
+          value: quay.io/redhat-appstudio-tekton-catalog/task-prefetch-dependencies@sha256:8faf907a05bd2d4e2833134750182f2c584133e80a69f75e9d73588976d2143a
         - name: kind
           value: task
         resolver: bundles
@@ -220,7 +220,7 @@ spec:
         - name: name
           value: buildah
         - name: bundle
-          value: quay.io/redhat-appstudio-tekton-catalog/task-buildah:0.4@sha256:6c98007552a1a45695364bf1510a9bff2e22653907c1681558837e0d88eb783b
+          value: quay.io/redhat-appstudio-tekton-catalog/task-buildah@sha256:c0fc9fa3632f59d8d7df08fd1c291dd338e349d4ae11bf119fab43482a643801
         - name: kind
           value: task
         resolver: bundles
@@ -363,14 +363,11 @@ spec:
           - name: name
             value: rpms-signature-scan
           - name: bundle
-            value: quay.io/konflux-ci/tekton-catalog/task-rpms-signature-scan:0.2@sha256:998b5466417c324aea94d3e8b302c558aeb13f746976d89a4ff85f1b84a42c2b
+            value: quay.io/redhat-appstudio-tekton-catalog/task-rpms-signature-scan@sha256:71fee32535ce583ab3286062c19c60fe8c0769ddceac07ff941b95beb9626ec5
           - name: kind
             value: task
         resolver: bundles
     - name: sast-unicode-check
-      params:
-        - name: SOURCE_ARTIFACT
-          value: $(tasks.clone-repository-oci-ta.results.SOURCE_ARTIFACT)
       runAfter:
         - build-container
       taskRef:
@@ -381,24 +378,6 @@ spec:
             value: quay.io/redhat-appstudio-tekton-catalog/task-sast-unicode-check@sha256:21204e07e1ca3ce254c620cd8d217dca511a7ced5d1bce088a65e477a6af4590
           - name: kind
             value: task
-      taskSpec:
-        params:
-          - description: The Trusted Artifact URI pointing to the artifact with the application source code.
-            name: SOURCE_ARTIFACT
-            type: string
-        stepTemplate:
-          volumeMounts:
-            - mountPath: /var/workdir
-              name: workdir
-        steps:
-          - name: use-trusted-artifact
-            image: quay.io/redhat-appstudio/build-trusted-artifacts:latest@sha256:8391272c4e5011120e9e7fee2c1f339e9405366110bf239dadcbc21e953ce099
-            args:
-              - use
-              - $(params.SOURCE_ARTIFACT)=/var/workdir/source
-        volumes:
-          - name: workdir
-            emptyDir: { }
         resolver: bundles
       workspaces:
         - name: workspace

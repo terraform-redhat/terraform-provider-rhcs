@@ -153,6 +153,8 @@ spec:
         value: $(params.git-url)
       - name: revision
         value: $(params.revision)
+      - name: source_artifact
+        value: $(params.source_artifact)
       runAfter:
       - init
       taskRef:

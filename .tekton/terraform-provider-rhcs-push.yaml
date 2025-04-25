@@ -384,6 +384,21 @@ spec:
       workspaces:
         - name: workspace
           workspace: workspace
+    - name: sast-shell-check
+      runAfter:
+        - build-container
+      taskRef:
+        params:
+          - name: name
+            value: sast-shell-check
+          - name: bundle
+            value: quay.io/konflux-ci/tekton-catalog/task-sast-shell-check@sha256:b4167347d57e189289ebc0df61ed937cfd969bd1220e154b226d4517bfb14cb7
+          - name: kind
+            value: task
+        resolver: bundles
+      workspaces:
+        - name: workspace
+          workspace: workspace
   taskRunTemplate: {}
   workspaces:
   - name: workspace

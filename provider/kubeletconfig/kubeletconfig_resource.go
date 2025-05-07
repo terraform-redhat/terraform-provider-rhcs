@@ -89,7 +89,11 @@ func (k *KubeletConfigResource) Schema(_ context.Context, _ resource.SchemaReque
 			"pod_pids_limit": schema.Int64Attribute{
 				Required: true,
 				Description: "Sets the requested podPidsLimit to be applied as part of the custom " +
-					"KubeletConfig.",
+					"KubeletConfig." +
+					"For versions earlier than 4.11 have a minimum of 1024 pod pids" +
+					"The minimum is 4096 pod pids" +
+					"The maximum is 16384 pod pids" +
+					"The unsafe maximum is 3694303 pod pids",
 				Validators: []validator.Int64{
 					PidsLimitValidator{},
 				},

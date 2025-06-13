@@ -12,7 +12,7 @@ provider "aws" {
 }
 
 locals {
-  proxy_image_name = "al2023-ami-2023.6.*.0-kernel-6.1-x86_64"
+  proxy_image_name = "al2023-ami-2023.*.0-kernel-6.1-x86_64"
 }
 
 data "aws_ami" "proxy_img" {
@@ -106,7 +106,7 @@ resource "aws_instance" "proxies" {
     command = <<-EOT
             echo '${tls_private_key.proxy_ssh_key.private_key_pem}' > /tmp/private_key.pem
             chmod 600 /tmp/private_key.pem
-            scp -i /tmp/private_key.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ec2-user@${self.public_ip}:~/mitm-ca.pem ${var.trust_bundle_path}
+            scp -i /tmp/private_key.pem -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ec2-user@${self.public_ip}:~/mitm-ca.pem ${var.trust_bundle_path}
         EOT
   }
 }

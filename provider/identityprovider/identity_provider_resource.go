@@ -549,6 +549,7 @@ func (r *IdentityProviderResource) Read(ctx context.Context, request resource.Re
 			if ok {
 				state.OpenID.Claims.Groups, err = common.StringArrayToList(groups)
 				if err != nil {
+					response.Diagnostics.AddError("failed to convert OpenID claims Groups to tf list", err.Error())
 				}
 			}
 			name, ok := claims.GetName()

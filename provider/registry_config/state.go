@@ -138,7 +138,12 @@ func UpdateRegistryConfigBuilder(ctx context.Context, state *RegistryConfig,
 // PopulateRegistryConfigState takes a Cluster object from CS in input and fills a Terraform state with the data in it.
 // Returns an error if there is a failure
 func PopulateRegistryConfigState(inputCluster *cmv1.Cluster, state *RegistryConfig) error {
+
 	if registryConfig, ok := inputCluster.GetRegistryConfig(); ok {
+		if state == nil {
+			state = &RegistryConfig{}
+		}
+		
 		if registrySources, ok := registryConfig.GetRegistrySources(); ok {
 			if allowedRegistries, ok := registrySources.GetAllowedRegistries(); ok {
 				listValue, err := common.StringArrayToList(allowedRegistries)
@@ -166,9 +171,6 @@ func PopulateRegistryConfigState(inputCluster *cmv1.Cluster, state *RegistryConf
 		}
 
 		if registryLocations, ok := registryConfig.GetAllowedRegistriesForImport(); ok {
-			if state == nil {
-				state = &RegistryConfig{}
-			}
 			state.AllowedRegistriesForImport = make([]RegistryLocation, len(registryLocations))
 			for i, location := range registryLocations {
 				domainName, ok := location.GetDomainName()

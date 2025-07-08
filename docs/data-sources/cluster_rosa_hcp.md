@@ -60,6 +60,7 @@ data "rhcs_cluster_rosa_hcp" "cluster" {
 - `max_hcp_cluster_wait_timeout_in_minutes` (Number) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `max_machinepool_wait_timeout_in_minutes` (Number) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `name` (String) Name of the cluster. Cannot exceed 54 characters in length. After the creation of the resource, it is not possible to update the attribute value.
+- `no_cni` (Boolean) Disable CNI creation to let users bring their own CNI. After the creation of the resource, it is not possible to update the attribute value.
 - `ocm_properties` (Map of String) Merged properties defined by OCM and the user defined 'properties'.
 - `pod_cidr` (String) Block of IP addresses for pods. After the creation of the resource, it is not possible to update the attribute value.
 - `private` (Boolean) Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet. After the creation of the resource, it is not possible to update the attribute value.

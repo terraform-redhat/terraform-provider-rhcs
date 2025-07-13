@@ -2,7 +2,7 @@ module github.com/terraform-redhat/terraform-provider-rhcs
 
 go 1.23.0
 
-toolchain go1.23.9
+toolchain go1.24.5
 
 require (
 	github.com/Masterminds/semver v1.5.0

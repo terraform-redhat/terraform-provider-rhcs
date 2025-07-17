@@ -3,6 +3,7 @@ package e2e
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -20,6 +21,8 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 		profileHandler profilehandler.ProfileHandler
 		tcService      exec.TuningConfigService
 		mpService      exec.MachinePoolService
+
+		existingTCs []string
 	)
 
 	verifyTuningConfigSpec := func(spec interface{}, profileName string, specVmDirtyRatio, specPriority int) {
@@ -45,6 +48,12 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 		Expect(err).ToNot(HaveOccurred())
 		tcService, err = profileHandler.Services().GetTuningConfigService()
 		Expect(err).ToNot(HaveOccurred())
+
+		tcsResp, err := cms.ListTuningConfigs(cms.RHCSConnection, clusterID)
+		Expect(err).ToNot(HaveOccurred())
+		for _, item := range tcsResp.Items().Slice() {
+			existingTCs = append(existingTCs, item.Name())
+		}
 	})
 
 	AfterEach(func() {
@@ -80,10 +89,16 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 		By("Verify tuning config")
 		tcsResp, err := cms.ListTuningConfigs(cms.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(tcsResp.Size()).To(Equal(tcCount))
-		tc := tcsResp.Items().Get(0)
-		Expect(tc.Name()).To(Equal(name))
-		verifyTuningConfigSpec(tc.Spec(), tc1Name, firstVMDirtyRatio, firstPriority)
+		Expect(tcsResp.Size()).To(Equal(tcCount + len(existingTCs)))
+		for _, tc := range tcsResp.Items().Slice() {
+			if slices.Contains(existingTCs, tc.Name()) {
+				// If the tuning config is one of the ones that existed before starting
+				// Skip verifying it
+				continue
+			}
+			Expect(tc.Name()).To(Equal(name))
+			verifyTuningConfigSpec(tc.Spec(), tc1Name, firstVMDirtyRatio, firstPriority)
+		}
 
 		By("Delete created tuning config")
 		_, err = tcService.Destroy()
@@ -105,7 +120,7 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 		By("Verify tuning configs")
 		tcsResp, err = cms.ListTuningConfigs(cms.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(tcsResp.Size()).To(Equal(tcCount))
+		Expect(tcsResp.Size()).To(Equal(tcCount + len(existingTCs)))
 		var expectedNames []string
 		for i := 0; i < tcCount; i++ {
 			expectedNames = append(expectedNames, fmt.Sprintf("%s-%v", name, i))
@@ -114,6 +129,11 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 		expectedSpecVMDirtyRatios := []int{firstVMDirtyRatio, firstVMDirtyRatio}
 		expectedSpecPriorities := []int{firstPriority, firstPriority}
 		for _, tc := range tcsResp.Items().Slice() {
+			if slices.Contains(existingTCs, tc.Name()) {
+				// If the tuning config is one of the ones that existed before starting
+				// Skip verifying it
+				continue
+			}
 			Expect(tc.Name()).To(BeElementOf(expectedNames))
 			index := 0
 			for index < len(expectedNames) {
@@ -144,7 +164,7 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 		By("Verify tuning configs")
 		tcsResp, err = cms.ListTuningConfigs(cms.RHCSConnection, clusterID)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(tcsResp.Size()).To(Equal(tcCount))
+		Expect(tcsResp.Size()).To(Equal(tcCount + len(existingTCs)))
 		expectedNames = []string{}
 		for i := 0; i < tcCount; i++ {
 			expectedNames = append(expectedNames, fmt.Sprintf("%s-%v", name, i))
@@ -153,6 +173,11 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 		expectedSpecVMDirtyRatios = []int{firstVMDirtyRatio, secondVMDirtyRatio}
 		expectedSpecPriorities = []int{firstPriority, secondPriority}
 		for _, tc := range tcsResp.Items().Slice() {
+			if slices.Contains(existingTCs, tc.Name()) {
+				// If the tuning config is one of the ones that existed before starting
+				// Skip verifying it
+				continue
+			}
 			Expect(tc.Name()).To(BeElementOf(expectedNames))
 			index := 0
 			for index < len(expectedNames) {

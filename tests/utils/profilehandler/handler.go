@@ -329,6 +329,9 @@ func (ctx *profileContext) PrepareVPC(multiZone bool, azIDs []string, name strin
 	vpcArgs := &exec.VPCArgs{
 		AWSRegion: helper.StringPointer(region),
 		VPCCIDR:   helper.StringPointer(DefaultVPCCIDR),
+		Tags: &map[string]string{
+			"kubernetes.io/cluster/unmanaged": "true",
+		},
 	}
 
 	if len(azIDs) != 0 {

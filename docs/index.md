@@ -73,9 +73,9 @@ To use the Red Hat Cloud Services provider inside your Terraform configuration y
 
   You must complete some AWS account and local configurations to create and managed ROSA clusters.
 
-* A client ID and client secret value when using [Red Hat Customer Portal Service Accounts](https://docs.redhat.com/en/documentation/red_hat_customer_portal/1/html/creating_and_managing_service_accounts/con-ciam-svc-acct-intro-creating-service-acct#con-ciam-svc-acct-intro-creating-service-acct).
+* An offline [OCM token](https://console.redhat.com/openshift/token/rosa)
 
-    These values allow the Terraform provider to refresh the token prior to the 15-minute expiry time and avoiding a single, hard-coded access token against the OCM API.  Like the offline OCM token, the purpose of this token is to verify that you have access and permission to create and upgrade clusters.
+  This token is generated through the Red Hat Hybrid Cloud Console. The purpose of this token is to verify that you have access and permission to create and upgrade clusters. This token is unique to your account and should not be shared.
 
 * [GoLang version 1.20 or newer](https://go.dev/doc/install)
 
@@ -170,24 +170,11 @@ Configuration for the RHCS Provider can be derived from several sources, which a
 1. Parameters in the provider configuration
 1. Environment Variables
 
-## Provider Configuration Using Red Hat Customer Portal Service Account
+## Provider Configuration
 
-The Red Hat Cloud Services service account authentication information can be provided by adding a `client_id` and `client_secret` to the `rhcs` provider block as opposed to the `token` above. **This is the recommended method**
-
-Usage:
-
-```terraform
-provider "rhcs" {
-  client_id     = "my-service-account-client-id"
-  client_secret = "my-service-account-client-secret"
-}
-```
-
-## Provider Configuration Using Offline Access Token
-
-**Warning:** Hard-coded credentials are not recommended in any Terraform
+!> **Warning:** Hard-coded credentials are not recommended in any Terraform
 configuration and risks secret leakage should this file ever be committed to a
-public version control system. **This parameter will be soon deprecated.**
+public version control system.
 
 The Red Hat Cloud Services token can be provided by adding a `token` to the `rhcs` provider block.
 
@@ -211,13 +198,6 @@ provider "rhcs" {}
 
 ```console
 % export RHCS_TOKEN="my-token"
-```
-
-When using Red Hat Customer Portal Service Accounts, use the following:
-
-```console
-% export RHCS_CLIENT_ID="my-service-account-client-id"
-% export RHCS_CLIENT_SECRET="my-service-account-client-secret"
 ```
 
 ## Terraform examples

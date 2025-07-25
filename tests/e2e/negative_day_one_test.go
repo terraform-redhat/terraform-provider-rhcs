@@ -595,7 +595,7 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 			By("create cluster with an EOL OCP version")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.OpenshiftVersion = helper.StringPointer("4.9.59")
-			}, "version 4.9.59 is not supported")
+			}, "version 4.9.59 is not in the list of supported versions")
 		})
 	})
 })

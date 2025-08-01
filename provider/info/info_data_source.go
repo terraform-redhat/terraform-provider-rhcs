@@ -114,7 +114,7 @@ func (d *OCMInfoDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	// Get account information
 	accountResp, err := d.collection.Get().Send()
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to connect to OCM", "Please verify your OCM offline token")
+		resp.Diagnostics.AddError("Failed to connect to OCM", fmt.Sprintf("Please verify your OCM offline token. Error: %v", err))
 		return
 	}
 	obj, ok := accountResp.GetBody()

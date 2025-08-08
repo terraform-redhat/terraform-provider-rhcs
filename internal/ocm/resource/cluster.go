@@ -181,7 +181,9 @@ func (c *Cluster) CreateAWSBuilder(clusterTopology rosaTypes.ClusterTopology,
 		if err != nil {
 			return err
 		}
-		awsBuilder.BillingAccountID(*awsBillingAccountId)
+		if awsBillingAccountId != nil {
+			awsBuilder.BillingAccountID(*awsBillingAccountId)
+		}
 	}
 
 	if awsAccountID != nil {

@@ -70,6 +70,7 @@ type Config struct {
 	URL          types.String `tfsdk:"url"`
 	TokenURL     types.String `tfsdk:"token_url"`
 	Token        types.String `tfsdk:"token"`
+	RefreshToken types.String `tfsdk:"refresh_token"`
 	ClientID     types.String `tfsdk:"client_id"`
 	ClientSecret types.String `tfsdk:"client_secret"`
 	TrustedCAs   types.String `tfsdk:"trusted_cas"`
@@ -103,6 +104,11 @@ func (p *Provider) Schema(ctx context.Context, req tfprovider.SchemaRequest, res
 					"generated from https://console.redhat.com/openshift/token/rosa.",
 				Optional:  true,
 				Sensitive: true,
+			},
+			"refresh_token": tfpschema.StringAttribute{
+				Description: "Refresh token that is generated from `rosa login`.",
+				Optional:    true,
+				Sensitive:   true,
 			},
 			"client_id": tfpschema.StringAttribute{
 				Description: fmt.Sprintf("OpenID client identifier. The default value is '%s'.", sdk.DefaultClientID),
@@ -173,9 +179,12 @@ func (p *Provider) Configure(ctx context.Context, req tfprovider.ConfigureReques
 	if token, ok := p.getAttrValueOrConfig(config.Token, "TOKEN"); ok {
 		builder.Tokens(token)
 	}
+	if refreshToken, ok := p.getAttrValueOrConfig(config.RefreshToken, "REFRESH_TOKEN"); ok {
+		builder.Tokens(refreshToken)
+	}
 	clientID, clientIdExists := p.getAttrValueOrConfig(config.ClientID, "CLIENT_ID")
-	clientSecret, clientSecretExists := p.getAttrValueOrConfig(config.ClientSecret, "CLIENT_SECRET")
-	if clientIdExists && clientSecretExists {
+	clientSecret, _ := p.getAttrValueOrConfig(config.ClientSecret, "CLIENT_SECRET")
+	if clientIdExists {
 		builder.Client(clientID, clientSecret)
 	}
 	if trustedCAs, ok := p.getAttrValueOrConfig(config.TrustedCAs, "TRUSTED_CAS"); ok {

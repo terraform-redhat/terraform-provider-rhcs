@@ -209,7 +209,7 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 			},
 			"aws_billing_account_id": schema.StringAttribute{
 				Description: "Identifier of the AWS account for billing. " + common.ValueCannotBeChangedStringDescription,
-				Required:    true,
+				Optional:    true,
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(regexp.MustCompile(`^\d{12}$`), "aws billing account ID must be only digits and exactly 12 in length"),
 				},

@@ -54,7 +54,7 @@ jobs:
         go-version: 1.21
 
     - name: Setup Ginkgo
-      run: go install github.com/onsi/ginkgo/v2/ginkgo@v2.13.2
+      run: go install github.com/onsi/ginkgo/v2/ginkgo@v2.17.1
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v2

@@ -5,7 +5,7 @@ terraform {
       version = ">= 4.20.0"
     }
     rhcs = {
-      version = ">= 1.6.3"
+      version = ">= 1.6.3-0"
       source  = "terraform.local/local/rhcs"
     }
   }
@@ -28,7 +28,7 @@ locals {
 
 module "create_account_roles" {
   source  = "terraform-redhat/rosa-hcp/rhcs//modules/account-iam-resources"
-  version = ">=1.6.3"
+  version = ">=1.6.3-0"
 
   account_role_prefix  = var.account_role_prefix
   path                 = local.path

@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     rhcs = {
-      version = ">= 1.0.1"
+      version = ">= 1.0.1-0"
       source  = "terraform.local/local/rhcs"
     }
   }

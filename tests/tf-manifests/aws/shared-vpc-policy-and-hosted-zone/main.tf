@@ -5,7 +5,7 @@ provider "aws" {
 
 module "shared_vpc_policy_and_hosted_zone" {
   source  = "terraform-redhat/rosa-classic/rhcs//modules/shared-vpc-policy-and-hosted-zone"
-  version = ">=1.6.3"
+  version = ">=1.6.3-0"
 
   cluster_name              = var.domain_prefix == null ? var.cluster_name : var.domain_prefix
   hosted_zone_base_domain   = var.dns_domain_id

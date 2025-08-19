@@ -16,7 +16,7 @@ provider "aws" {
 
 module "vpc" {
   source  = "terraform-redhat/rosa-classic/rhcs//modules/vpc"
-  version = ">=1.6.3"
+  version = ">=1.6.3-0"
 
   vpc_cidr                 = var.vpc_cidr
   name_prefix              = var.name_prefix

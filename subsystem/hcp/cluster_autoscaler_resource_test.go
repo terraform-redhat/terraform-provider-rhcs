@@ -124,7 +124,6 @@ var _ = Describe("Hcp Cluster Autoscaler", func() {
 					max_pod_grace_period = 1
 					pod_priority_threshold = -10
 					max_node_provision_time = "1h"
-					max_nodes_total = 20
 				}
 	    	`)
 			runOutput := Terraform.Apply()
@@ -201,7 +200,6 @@ var _ = Describe("Hcp Cluster Autoscaler", func() {
 					"max_pod_grace_period":    nil,
 					"pod_priority_threshold":  nil,
 					"max_node_provision_time": "1h",
-					"max_nodes_total":         nil,
 					"resource_limits":         nil,
 				},
 			))
@@ -255,7 +253,6 @@ var _ = Describe("Hcp Cluster Autoscaler", func() {
 					"max_pod_grace_period":    nil,
 					"pod_priority_threshold":  nil,
 					"max_node_provision_time": "2h",
-					"max_nodes_total":         nil,
 					"resource_limits":         nil,
 				},
 			))

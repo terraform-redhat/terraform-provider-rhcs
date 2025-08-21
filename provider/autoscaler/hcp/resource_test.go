@@ -17,16 +17,33 @@ limitations under the License.
 package hcp
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	. "github.com/onsi/ginkgo/v2" // nolint
 	. "github.com/onsi/gomega"    // nolint
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
+const (
+	clusterId = "123"
+)
+
+var (
+	updateState = &ClusterAutoscalerState{
+		Cluster:              types.StringValue(clusterId),
+		MaxPodGracePeriod:    types.Int64Value(5),
+		PodPriorityThreshold: types.Int64Value(-5),
+		MaxNodeProvisionTime: types.StringValue("30m"),
+		ResourceLimits: &AutoscalerResourceLimits{
+			MaxNodesTotal: types.Int64Value(50),
+		},
+	}
+)
+
 var _ = Describe("Cluster Autoscaler", func() {
 	Context("conversion to terraform state", func() {
 		It("successfully populates all fields", func() {
-			clusterId := "123"
 			autoscalerSpec, err := cmv1.NewClusterAutoscaler().
 				MaxPodGracePeriod(10).
 				PodPriorityThreshold(-10).
@@ -58,7 +75,6 @@ var _ = Describe("Cluster Autoscaler", func() {
 		})
 
 		It("successfully populates empty fields", func() {
-			clusterId := "123"
 			autoscaler, err := cmv1.NewClusterAutoscaler().Build()
 			Expect(err).ToNot(HaveOccurred())
 
@@ -77,7 +93,6 @@ var _ = Describe("Cluster Autoscaler", func() {
 
 	Context("conversion to an OCM API object", func() {
 		It("successfully converts all fields from a terraform state", func() {
-			clusterId := "123"
 			state := ClusterAutoscalerState{
 				Cluster:              types.StringValue(clusterId),
 				MaxPodGracePeriod:    types.Int64Value(10),
@@ -111,7 +126,6 @@ var _ = Describe("Cluster Autoscaler", func() {
 		})
 
 		It("successfully converts when all state fields are null", func() {
-			clusterId := "123"
 			state := ClusterAutoscalerState{
 				Cluster:              types.StringValue(clusterId),
 				MaxPodGracePeriod:    types.Int64Null(),
@@ -128,4 +142,79 @@ var _ = Describe("Cluster Autoscaler", func() {
 			Expect(autoscaler).To(Equal(expectedAutoscaler))
 		})
 	})
+
+	Context("updateAutoscaler", func() {
+		It("updates all autoscaler fields (OK)", func() {
+			resource := &ClusterAutoscalerResource{}
+
+			plan := &ClusterAutoscalerState{
+				Cluster:              types.StringValue(clusterId),
+				MaxPodGracePeriod:    types.Int64Value(15),
+				PodPriorityThreshold: types.Int64Value(-15),
+				MaxNodeProvisionTime: types.StringValue("2h"),
+				ResourceLimits: &AutoscalerResourceLimits{
+					MaxNodesTotal: types.Int64Value(100),
+				},
+			}
+
+			Expect(updateState).ToNot(Equal(plan))
+
+			err := resource.updateAutoscaler(context.Background(), plan, updateState, clusterId, nil)
+			Expect(err).ToNot(HaveOccurred())
+
+			autoscaler, err := clusterAutoscalerStateToObject(plan)
+			Expect(err).ToNot(HaveOccurred())
+
+			checkOutputAgainstState(autoscaler, updateState)
+		})
+
+		It("all nulls when updating (OK)", func() {
+			resource := &ClusterAutoscalerResource{}
+
+			plan := &ClusterAutoscalerState{
+				Cluster:              types.StringValue(clusterId),
+				MaxPodGracePeriod:    types.Int64Null(),
+				PodPriorityThreshold: types.Int64Null(),
+				MaxNodeProvisionTime: types.StringNull(),
+				ResourceLimits:       nil,
+			}
+
+			err := resource.updateAutoscaler(context.Background(), plan, updateState, clusterId, nil)
+			Expect(err).ToNot(HaveOccurred())
+
+			autoscaler, err := clusterAutoscalerStateToObject(plan)
+			Expect(err).ToNot(HaveOccurred())
+
+			checkOutputAgainstState(autoscaler, plan)
+		})
+
+		It("some null, some populated, in an update (OK)", func() {
+			resource := &ClusterAutoscalerResource{}
+
+			plan := &ClusterAutoscalerState{
+				Cluster:              types.StringValue(clusterId),
+				MaxPodGracePeriod:    types.Int64Value(20),
+				PodPriorityThreshold: types.Int64Null(),
+				MaxNodeProvisionTime: types.StringValue("45m"),
+				ResourceLimits: &AutoscalerResourceLimits{
+					MaxNodesTotal: types.Int64Value(75),
+				},
+			}
+
+			err := resource.updateAutoscaler(context.Background(), plan, updateState, clusterId, nil)
+			Expect(err).ToNot(HaveOccurred())
+
+			autoscaler, err := clusterAutoscalerStateToObject(plan)
+			Expect(err).ToNot(HaveOccurred())
+
+			checkOutputAgainstState(autoscaler, plan)
+		})
+	})
 })
+
+func checkOutputAgainstState(output *cmv1.ClusterAutoscaler, state *ClusterAutoscalerState) {
+	Expect(output.MaxPodGracePeriod()).To(Equal(state.MaxPodGracePeriod))
+	Expect(output.MaxNodeProvisionTime()).To(Equal(state.MaxNodeProvisionTime))
+	Expect(output.ResourceLimits().MaxNodesTotal()).To(Equal(state.ResourceLimits.MaxNodesTotal))
+	Expect(output.ResourceLimits()).To(Equal(state.ResourceLimits))
+}

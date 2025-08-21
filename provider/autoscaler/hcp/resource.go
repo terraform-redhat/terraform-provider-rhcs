@@ -82,10 +82,6 @@ func (r *ClusterAutoscalerResource) Schema(ctx context.Context, req resource.Sch
 				Optional:    true,
 				Validators:  []validator.String{autoscaler.PositiveDurationStringValidator("max node provision time validation")},
 			},
-			"max_nodes_total": schema.Int64Attribute{
-				Description: "Maximum number of nodes in the cluster.",
-				Optional:    true,
-			},
 			"resource_limits": schema.SingleNestedAttribute{
 				Description: "Constraints of autoscaling resources.",
 				Optional:    true,
@@ -368,8 +364,8 @@ func (r *ClusterAutoscalerResource) updateAutoscaler(ctx context.Context, plan, 
 
 	if state == nil {
 		state = &ClusterAutoscalerState{Cluster: types.StringValue(clusterId), MaxPodGracePeriod: plan.MaxPodGracePeriod,
-			PodPriorityThreshold: plan.PodPriorityThreshold, MaxNodesTotal: plan.MaxNodesTotal,
-			MaxNodeProvisionTime: plan.MaxNodeProvisionTime}
+			PodPriorityThreshold: plan.PodPriorityThreshold, MaxNodeProvisionTime: plan.MaxNodeProvisionTime,
+			ResourceLimits: plan.ResourceLimits}
 	}
 
 	if !reflect.DeepEqual(state, plan) {

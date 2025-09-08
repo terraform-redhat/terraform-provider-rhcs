@@ -95,3 +95,7 @@ func GetTuningConfigManifestsDir(clusterType constants.ClusterType) string {
 func GetTrustedIPsManifestsDir(clusterType constants.ClusterType) string {
 	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "trusted-ips")
 }
+
+func GetImageMirrorManifestsDir(clusterType constants.ClusterType) string {
+	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "image-mirrors", clusterType.String())
+}

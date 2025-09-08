@@ -448,3 +448,11 @@ func ListRegistryAllowlists(connection *client.Connection) (*cmv1.RegistryAllowl
 func RetrieveRegistryAllowlist(connection *client.Connection, allowlistID string) (*cmv1.RegistryAllowlistGetResponse, error) {
 	return connection.ClustersMgmt().V1().RegistryAllowlists().RegistryAllowlist(allowlistID).Get().Send()
 }
+
+func RetrieveClusterImageMirror(connection *client.Connection, clusterID string, imageMirrorID string) (*cmv1.ImageMirror, error) {
+	resp, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).ImageMirrors().ImageMirror(imageMirrorID).Get().Send()
+	if err != nil {
+		return nil, err
+	}
+	return resp.Body(), nil
+}

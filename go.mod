@@ -1,8 +1,8 @@
 module github.com/terraform-redhat/terraform-provider-rhcs
 
-go 1.24.0
+go 1.23.0
 
-toolchain go1.24.6
+toolchain go1.23.9
 
 require (
 	github.com/Masterminds/semver v1.5.0
@@ -92,7 +92,7 @@ require (
 	github.com/golang/glog v1.2.5 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/pprof v0.0.0-20250903194437-c28834ac2320 // indirect
+	github.com/google/pprof v0.0.0-20250630185457-6e76a2b096b5 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect

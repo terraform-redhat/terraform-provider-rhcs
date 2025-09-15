@@ -7,6 +7,7 @@ description: |-
 
 # Using machine pools on your cluster
 
+
 ## Prerequisites
 
 1. You created your [account roles using Terraform](https://github.com/terraform-redhat/terraform-provider-rhcs/tree/v1.4.0/examples/create_rosa_cluster/create_rosa_sts_cluster/classic_sts/account_roles/README.md).

@@ -108,7 +108,7 @@ var _ = Describe("Registry Config resource", func() {
 			},
 			Entry("nil input -> empty config",
 				nil, nil,
-				&cmv1.ClusterRegistryConfigBuilder{},
+				cmv1.NewClusterRegistryConfig(),
 				nil,
 			),
 			Entry("no change between state and plan -> empty config",
@@ -117,7 +117,7 @@ var _ = Describe("Registry Config resource", func() {
 				}, &RegistryConfig{
 					RegistrySources: RegistrySources{AllowedRegistries: getListTypeValue(allowed1)},
 				},
-				&cmv1.ClusterRegistryConfigBuilder{},
+				cmv1.NewClusterRegistryConfig(),
 				nil,
 			),
 			Entry("change between nil state and plan -> reflected config",

@@ -68,6 +68,7 @@ type ProfileServices interface {
 	GetRHCSInfoService() (exec.RhcsInfoService, error)
 	GetTrustedIPsService() (exec.TrustedIPsService, error)
 	GetTuningConfigService() (exec.TuningConfigService, error)
+	GetImageMirrorService() (exec.ImageMirrorService, error)
 }
 
 type ProfileSpec interface {
@@ -1210,4 +1211,8 @@ func (ctx *profileContext) GetTrustedIPsService() (exec.TrustedIPsService, error
 
 func (ctx *profileContext) GetTuningConfigService() (exec.TuningConfigService, error) {
 	return exec.NewTuningConfigService(ctx.GetTFWorkspace(), ctx.GetClusterType())
+}
+
+func (ctx *profileContext) GetImageMirrorService() (exec.ImageMirrorService, error) {
+	return exec.NewImageMirrorService(ctx.GetTFWorkspace(), ctx.GetClusterType())
 }

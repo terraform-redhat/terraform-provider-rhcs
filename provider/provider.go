@@ -44,6 +44,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/group"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/groupmembership"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/identityprovider"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/imagemirror"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/info"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/kubeletconfig"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/machine_types"
@@ -220,6 +221,7 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 		clusterwaiter.New,
 		dnsdomain.New,
 		groupmembership.New,
+		imagemirror.New,
 		machinepool.New,
 		oidcconfig.New,
 		oidcconfiginput.New,
@@ -253,5 +255,6 @@ func (p *Provider) DataSources(ctx context.Context) []func() datasource.DataSour
 		hcpOperatorRoles.New,
 		hcpStsPolicies.New,
 		trusted_ip_addresses.New,
+		imagemirror.NewDataSource,
 	}
 }

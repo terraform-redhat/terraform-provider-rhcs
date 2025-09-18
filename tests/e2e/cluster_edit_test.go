@@ -419,14 +419,26 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 				}, errString)
 			}
 
-			By("Try to edit channel_group")
+			By("Edit channel_group")
 			otherChannelGroup = constants.VersionStableChannel
 			if profileHandler.Profile().GetChannelGroup() == constants.VersionStableChannel {
-				otherChannelGroup = constants.VersionCandidateChannel
+				otherChannelGroup = constants.VersionEusChannel
 			}
+			validateClusterArg(func(args *exec.ClusterArgs) {
+				args.ChannelGroup = helper.StringPointer(otherChannelGroup)
+			}, func(output string, err error) {
+				Expect(err).ToNot(HaveOccurred())
+				Expect(output).ToNot(BeEmpty())
+				clusterResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(clusterResp.Body().Version().ChannelGroup()).To(Equal(otherChannelGroup))
+			})
+
+			By("Try to edit channel_group to a non-existing value")
+			otherChannelGroup = "invalidChannelGroup"
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.ChannelGroup = helper.StringPointer(otherChannelGroup)
-			}, "Attribute channel_group, cannot be changed from")
+			}, fmt.Sprintf("Current cluster version %s is not available in channel group %s", currentVersion, otherChannelGroup))
 		})
 
 		It("private fields - [id:72480]", ci.Medium, ci.FeatureClusterPrivate, func() {

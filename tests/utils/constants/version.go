@@ -13,4 +13,5 @@ const (
 	VersionStableChannel    = "stable"
 	VersionNightlyChannel   = "nightly"
 	VersionCandidateChannel = "candidate"
+	VersionEusChannel       = "eus"
 )

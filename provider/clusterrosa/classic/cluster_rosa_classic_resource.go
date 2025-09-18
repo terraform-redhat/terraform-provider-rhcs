@@ -349,7 +349,7 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 			},
 			"channel_group": schema.StringAttribute{
 				Description: "Name of the channel group where you select the OpenShift cluster version, for example 'stable'. " +
-					"For ROSA, only 'stable' is supported. " + common.ValueCannotBeChangedStringDescription,
+					"For ROSA, only 'stable' and 'eus' are supported.",
 				Optional: true,
 				Computed: true,
 				Default:  stringdefault.StaticString(ocmConsts.DefaultChannelGroup),
@@ -994,7 +994,6 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaClassicState) diag.Dia
 	common.ValidateStateAndPlanEquals(state.ServiceCIDR, plan.ServiceCIDR, "service_cidr", &diags)
 	common.ValidateStateAndPlanEquals(state.PodCIDR, plan.PodCIDR, "pod_cidr", &diags)
 	common.ValidateStateAndPlanEquals(state.HostPrefix, plan.HostPrefix, "host_prefix", &diags)
-	common.ValidateStateAndPlanEquals(state.ChannelGroup, plan.ChannelGroup, "channel_group", &diags)
 	common.ValidateStateAndPlanEquals(state.Ec2MetadataHttpTokens, plan.Ec2MetadataHttpTokens, "ec2_metadata_http_tokens", &diags)
 
 	// STS field validations
@@ -1032,7 +1031,36 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaClassicState) diag.Dia
 	}
 
 	return diags
+}
 
+func validateChannelGroupAndVersionChanges(state, plan *ClusterRosaClassicState) diag.Diagnostics {
+	diags := diag.Diagnostics{}
+
+	// Check if channel group is changing
+	channelGroupChanged := false
+	if _, shouldPatch := common.ShouldPatchString(state.ChannelGroup, plan.ChannelGroup); shouldPatch {
+		channelGroupChanged = true
+	}
+
+	// Check if version is changing
+	versionChanged := false
+	if !common.IsStringAttributeUnknownOrEmpty(plan.Version) && !common.IsStringAttributeUnknownOrEmpty(state.Version) {
+		if plan.Version.ValueString() != state.Version.ValueString() {
+			versionChanged = true
+		}
+	} else if !common.IsStringAttributeUnknownOrEmpty(plan.Version) && common.IsStringAttributeUnknownOrEmpty(state.Version) {
+		versionChanged = true
+	}
+
+	// Prevent simultaneous channel group and version changes
+	if channelGroupChanged && versionChanged {
+		diags.AddError(
+			"Cannot change channel group and version simultaneously",
+			"Channel group changes and version upgrades must be performed in separate operations. Please apply one change at a time.",
+		)
+	}
+
+	return diags
 }
 
 func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resource.UpdateRequest,
@@ -1059,6 +1087,13 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resourc
 
 	//assert no changes on specific attributes
 	diags = validateNoImmutableAttChange(state, plan)
+	if diags.HasError() {
+		response.Diagnostics.Append(diags...)
+		return
+	}
+
+	// Validate that channel group and version changes are not done simultaneously
+	diags = validateChannelGroupAndVersionChanges(state, plan)
 	if diags.HasError() {
 		response.Diagnostics.Append(diags...)
 		return
@@ -1099,6 +1134,28 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resourc
 			),
 		)
 		return
+	}
+
+	// Handle channel group changes
+	if newChannelGroup, shouldPatch := common.ShouldPatchString(state.ChannelGroup, plan.ChannelGroup); shouldPatch {
+		// Validate that the current version is available in the new channel group
+		currentVersion := state.CurrentVersion.ValueString()
+
+		_, err := r.GetAndValidateVersionInChannelGroup(ctx, rosaTypes.Classic, newChannelGroup, currentVersion)
+		if err != nil {
+			response.Diagnostics.AddError(
+				"Can't change channel group",
+				fmt.Sprintf("Current cluster version %s is not available in channel group %s: %v", currentVersion, newChannelGroup, err),
+			)
+			return
+		}
+
+		// Build version with new channel group
+		vBuilder := cmv1.NewVersion()
+		vBuilder.ChannelGroup(newChannelGroup)
+		clusterBuilder.Version(vBuilder)
+
+		tflog.Debug(ctx, fmt.Sprintf("Updating channel group from %s to %s", state.ChannelGroup.ValueString(), newChannelGroup))
 	}
 
 	_, shouldPatchDisableWorkloadMonitoring := common.ShouldPatchBool(state.DisableWorkloadMonitoring, plan.DisableWorkloadMonitoring)

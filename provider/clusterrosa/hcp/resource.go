@@ -412,6 +412,14 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				ElementType: types.StringType,
 				Optional:    true,
 			},
+			"external_auth_providers_enabled": schema.BoolAttribute{
+				Description: "Enable external authentication providers on the cluster. " +
+					"This feature is only available for ROSA HCP clusters. " + common.ValueCannotBeChangedStringDescription,
+				Optional: true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
+			},
 		},
 	}
 }
@@ -705,6 +713,11 @@ func createHcpClusterObject(ctx context.Context,
 		return nil, err
 	}
 
+	if common.HasValue(state.ExternalAuthProvidersEnabled) && state.ExternalAuthProvidersEnabled.ValueBool() {
+		externalAuthConfigBuilder := cmv1.NewExternalAuthConfig().Enabled(true)
+		builder.ExternalAuthConfig(externalAuthConfigBuilder)
+	}
+
 	object, err := builder.Build()
 	return object, err
 }
@@ -977,6 +990,8 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaHcpState) diag.Diagnos
 		diags.AddError(common.AssertionErrorSummaryMessage, fmt.Sprintf(common.AssertionErrorDetailsMessage, "shared_vpc",
 			common.GetJsonStringOrNullString(state.SharedVpc), common.GetJsonStringOrNullString(plan.SharedVpc)))
 	}
+
+	common.ValidateStateAndPlanEquals(state.ExternalAuthProvidersEnabled, plan.ExternalAuthProvidersEnabled, "external_auth_providers_enabled", &diags)
 
 	return diags
 }
@@ -1712,6 +1727,10 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 			}
 			state.AWSAdditionalAllowedPrincipals = awsAdditionalAllowedPrincipals
 		}
+	}
+
+	if externalAuthConfig, ok := object.GetExternalAuthConfig(); ok && externalAuthConfig.Enabled() {
+		state.ExternalAuthProvidersEnabled = types.BoolValue(true)
 	}
 
 	return nil

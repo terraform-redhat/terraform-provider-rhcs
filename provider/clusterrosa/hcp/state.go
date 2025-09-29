@@ -74,4 +74,7 @@ type ClusterRosaHcpState struct {
 
 	// Shared VPC fields
 	SharedVpc *sharedvpc.SharedVpc `tfsdk:"shared_vpc"`
+
+	// External authentication fields
+	ExternalAuthProvidersEnabled types.Bool `tfsdk:"external_auth_providers_enabled"`
 }

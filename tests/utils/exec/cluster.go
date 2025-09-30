@@ -57,6 +57,7 @@ type ClusterArgs struct {
 	StsSupportRole                       *string            `hcl:"support_role"`
 	StsWorkerRole                        *string            `hcl:"worker_role"`
 	RegistryConfig                       *RegistryConfig    `hcl:"registry_config"`
+	ExternalAuthProvidersEnabled         *bool              `hcl:"external_auth_providers_enabled"`
 
 	IncludeCreatorProperty *bool `hcl:"include_creator_property"`
 
@@ -108,6 +109,7 @@ type ClusterOutput struct {
 	AdditionalControlPlaneSecurityGroups []string          `json:"additional_control_plane_security_groups,omitempty"`
 	Properties                           map[string]string `json:"properties,omitempty"`
 	UserTags                             map[string]string `json:"tags,omitempty"`
+	ExternalAuthProvidersEnabled         *bool             `json:"external_auth_providers_enabled,omitempty"`
 }
 
 type ClusterService interface {

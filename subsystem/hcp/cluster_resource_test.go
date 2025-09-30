@@ -5419,4 +5419,274 @@ var _ = Describe("HCP Cluster", func() {
 			Expect(resource).To(MatchJQ(".attributes.current_version", "4.14.0"))
 		})
 	})
+
+	Context("External Authentication", func() {
+		It("creates cluster without external auth and field remains unknown", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+			)
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+						"op": "replace",
+						"path": "/id", 
+						"value": "1234"
+					},
+					{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.1",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							}
+						}
+					}]`),
+				),
+			)
+
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				availability_zones = ["us-west-1a", "us-west-1b", "us-west-1c"]
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.external_auth_providers_enabled", nil))
+		})
+
+		It("can enable external auth providers", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+			)
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.external_auth_config.enabled`, true),
+
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+						"op": "replace",
+						"path": "/id", 
+						"value": "1234"
+					},
+					{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.1",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							}
+						}
+					},
+					{
+						"op": "add",
+						"path": "/external_auth_config",
+						"value": {
+							"enabled": true
+						}
+					}]`),
+				),
+			)
+
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				availability_zones = ["us-west-1a", "us-west-1b", "us-west-1c"]
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				external_auth_providers_enabled = true
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.external_auth_providers_enabled", true))
+		})
+
+		It("validates external auth is immutable on update", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+			)
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.external_auth_config.enabled`, true),
+
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+						"op": "replace",
+						"path": "/id",
+						"value": "123"
+					},
+					{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.1",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							}
+						}
+					},
+					{
+						"op": "add", 
+						"path": "/external_auth_config",
+						"value": {
+							"enabled": true
+						}
+					}]`),
+				),
+			)
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+						"op": "replace",
+						"path": "/id",
+						"value": "123"
+					},
+					{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.1",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							}
+						}
+					},
+					{
+						"op": "add",
+						"path": "/external_auth_config", 
+						"value": {
+							"enabled": true
+						}
+					}]`),
+				),
+			)
+
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				availability_zones = ["us-west-1a", "us-west-1b", "us-west-1c"]
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				external_auth_providers_enabled = true
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// Try to update external_auth_providers_enabled - should fail
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				availability_zones = ["us-west-1a", "us-west-1b", "us-west-1c"]
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				external_auth_providers_enabled = false
+			}`)
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).NotTo(BeZero())
+			runOutput.VerifyErrorContainsSubstring("external_auth_providers_enabled")
+			runOutput.VerifyErrorContainsSubstring("cannot be changed")
+		})
+	})
 })

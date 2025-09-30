@@ -110,6 +110,7 @@ type ProfileSpec interface {
 	IsKMSKey() bool
 	IsFullResources() bool
 	IsUseRegistryConfig() bool
+	IsExternalAuthEnabled() bool
 }
 
 type profileContext struct {
@@ -319,6 +320,10 @@ func (ctx *profileContext) GetAllowedRegistries() []string {
 
 func (ctx *profileContext) GetBlockedRegistries() []string {
 	return ctx.profile.BlockedRegistries
+}
+
+func (ctx *profileContext) IsExternalAuthEnabled() bool {
+	return ctx.profile.ExternalAuthEnabled
 }
 
 func (ctx *profileContext) PrepareVPC(multiZone bool, azIDs []string, name string, sharedVpcAWSSharedCredentialsFile string) (*exec.VPCOutput, error) {
@@ -623,6 +628,7 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 
 	clusterArgs.Fips = helper.BoolPointer(ctx.profile.FIPS)
 	clusterArgs.MultiAZ = helper.BoolPointer(ctx.profile.MultiAZ)
+	clusterArgs.ExternalAuthProvidersEnabled = helper.BoolPointer(ctx.profile.ExternalAuthEnabled)
 
 	if ctx.profile.NetWorkingSet {
 		clusterArgs.MachineCIDR = helper.StringPointer(DefaultVPCCIDR)

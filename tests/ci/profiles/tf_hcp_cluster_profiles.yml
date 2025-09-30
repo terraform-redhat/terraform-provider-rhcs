@@ -60,6 +60,32 @@ profiles:
     - "blocked.io"
     - "blocked2.io"
 
+- as: rosa-hcp-ext-auth
+  cluster:
+    cluster_type: rosa-hcp
+    multi_az: true
+    product_id: "rosa"
+    cloud_provider: "aws"
+    region: "us-west-2"
+    sts: true
+    byovpc: true
+    private: false
+    etcd_encryption: false
+    kms_key_arn: false
+    fips: false
+    autoscale: false
+    byok: false
+    compute_machine_type: "m5.xlarge"
+    proxy: false
+    labeling: false
+    tagging: false
+    zones: ""
+    ec2_metadata_http_tokens: "optional"
+    oidc_config: "un-managed"
+    admin_enabled: false
+    unified_acc_role_path: ""
+    external_auth_enabled: true
+
 # Upgrade profiles
 # rosa-up-y :: creating a cluster for y-stream upgrade purpose
 - as: rosa-hcp-up-y # id:72474

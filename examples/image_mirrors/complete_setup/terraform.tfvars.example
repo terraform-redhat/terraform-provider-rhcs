@@ -1,0 +1,52 @@
+# Example terraform.tfvars file for complete ROSA HCP cluster with image mirrors
+# Copy this file to terraform.tfvars and customize the values
+
+# Required: Basic cluster configuration
+cluster_name = "my-hcp-cluster"
+aws_region = "us-east-1"
+aws_account_id = "123456789012"
+aws_billing_account_id = "123456789012"
+
+# Required: Network configuration
+subnet_ids = ["subnet-123abc", "subnet-456def"]
+availability_zones = ["us-east-1a", "us-east-1b"]
+
+# Required: STS Role ARNs (replace with your actual ARNs)
+installer_role_arn = "arn:aws:iam::123456789012:role/my-HCP-ROSA-Installer-Role"
+support_role_arn = "arn:aws:iam::123456789012:role/my-HCP-ROSA-Support-Role"
+worker_role_arn = "arn:aws:iam::123456789012:role/my-HCP-ROSA-Worker-Role"
+operator_role_prefix = "my-operator"
+oidc_config_id = "my-oidc-config-id"
+
+# Optional: Cluster configuration
+# replicas = 3
+# openshift_version = "4.15.9"
+
+# Optional: Cluster properties
+# cluster_properties = {
+#   rosa_creator_arn = "arn:aws:iam::123456789012:user/my-user"
+# }
+
+# Optional: Cluster tags
+# cluster_tags = {
+#   Environment = "production"
+#   Team = "platform"
+#   Project = "rosa-hcp"
+# }
+
+# Optional: Customize image mirrors
+# image_mirrors = {
+#   "docker.io/library/nginx" = [
+#     "registry.corp.example.com/nginx"
+#   ]
+#   "docker.io/library/redis" = [
+#     "registry.corp.example.com/redis",
+#     "quay.io/backup/redis"
+#   ]
+#   "docker.io/library/postgres" = [
+#     "registry.corp.example.com/postgres"
+#   ]
+#   "quay.io/prometheus/prometheus" = [
+#     "registry.corp.example.com/prometheus/prometheus"
+#   ]
+# }

@@ -1,0 +1,25 @@
+# Example terraform.tfvars file for multiple image mirrors configuration
+# Copy this file to terraform.tfvars and customize the values
+
+# Required: Your ROSA HCP cluster ID
+cluster_id = "your-cluster-id-here"
+
+# Optional: Customize the registry mirrors map
+# registry_mirrors = {
+#   "docker.io/library/nginx" = [
+#     "quay.io/my-org/nginx",
+#     "registry.example.com/nginx"
+#   ]
+#   "docker.io/library/redis" = [
+#     "quay.io/my-org/redis",
+#     "registry.example.com/redis",
+#     "docker.io/backup/redis"
+#   ]
+#   "docker.io/library/postgres" = [
+#     "registry.example.com/postgres",
+#     "quay.io/backup/postgres"
+#   ]
+#   "quay.io/prometheus/prometheus" = [
+#     "registry.corp.example.com/prometheus/prometheus"
+#   ]
+# }

@@ -1,0 +1,17 @@
+# Example terraform.tfvars file for basic image mirror configuration
+# Copy this file to terraform.tfvars and customize the values
+
+# Required: Your ROSA HCP cluster ID
+cluster_id = "your-cluster-id-here"
+
+# Optional: Customize the source registry (default: docker.io/library/nginx)
+# source_registry = "docker.io/library/redis"
+
+# Optional: Customize the mirror registries (default: ["quay.io/my-org/nginx"])
+# mirrors = [
+#   "quay.io/my-org/nginx",
+#   "registry.example.com/nginx"
+# ]
+
+# Optional: Mirror type (default: "digest")
+# type = "digest"

@@ -226,6 +226,8 @@ func (r *HcpMachinePoolResource) ConfigValidators(context.Context) []resource.Co
 		resourcevalidator.RequiredTogether(path.MatchRoot("autoscaling").AtName("min_replicas"), path.MatchRoot("autoscaling").AtName("max_replicas")),
 		resourcevalidator.Conflicting(path.MatchRoot("replicas"), path.MatchRoot("autoscaling").AtName("min_replicas")),
 		resourcevalidator.Conflicting(path.MatchRoot("replicas"), path.MatchRoot("autoscaling").AtName("max_replicas")),
+		resourcevalidator.Conflicting(path.MatchRoot("aws_node_pool").AtName("capacity_reservation_id"), path.MatchRoot("autoscaling").AtName("min_replicas")),
+		resourcevalidator.Conflicting(path.MatchRoot("aws_node_pool").AtName("capacity_reservation_id"), path.MatchRoot("autoscaling").AtName("max_replicas")),
 	}
 }
 
@@ -332,6 +334,12 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 				return
 			}
 			awsNodePoolBuilder.RootVolume(cmv1.NewAWSVolume().Size(int(*workerDiskSize)))
+		}
+
+		if !common.IsStringAttributeUnknownOrEmpty(plan.AWSNodePool.CapacityReservationId) {
+			capacityReservationBuilder := cmv1.NewAWSCapacityReservation()
+			capacityReservationBuilder.Id(plan.AWSNodePool.CapacityReservationId.ValueString())
+			awsNodePoolBuilder.CapacityReservation(capacityReservationBuilder)
 		}
 
 		builder.AWSNodePool(awsNodePoolBuilder)
@@ -621,6 +629,7 @@ func validateNoImmutableAttChange(state, plan *HcpMachinePoolState) diag.Diagnos
 		validateStateAndPlanEquals(state.AWSNodePool.Ec2MetadataHttpTokens, plan.AWSNodePool.Ec2MetadataHttpTokens,
 			"aws_node_pool.ec2_metadata_http_tokens", &diags)
 		validateStateAndPlanEquals(state.AWSNodePool.DiskSize, plan.AWSNodePool.DiskSize, "aws_node_pool.disk_size", &diags)
+		validateStateAndPlanEquals(state.AWSNodePool.CapacityReservationId, plan.AWSNodePool.CapacityReservationId, "aws_node_pool.capacity_reservation_id", &diags)
 	}
 	return diags
 }
@@ -1216,6 +1225,14 @@ func populateState(ctx context.Context, object *cmv1.NodePool, state *HcpMachine
 			if size, ok := rootVolume.GetSize(); ok {
 				state.AWSNodePool.DiskSize = types.Int64Value(int64(size))
 			}
+		}
+
+		if capacityReservation, ok := awsNodePool.GetCapacityReservation(); ok {
+			if capacityReservationId, ok := capacityReservation.GetId(); ok {
+				state.AWSNodePool.CapacityReservationId = types.StringValue(capacityReservationId)
+			}
+		} else {
+			state.AWSNodePool.CapacityReservationId = types.StringNull()
 		}
 	}
 

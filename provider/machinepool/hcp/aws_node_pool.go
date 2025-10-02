@@ -23,6 +23,7 @@ type AWSNodePool struct {
 	AdditionalSecurityGroupIds types.List   `tfsdk:"additional_security_group_ids"`
 	Ec2MetadataHttpTokens      types.String `tfsdk:"ec2_metadata_http_tokens"`
 	DiskSize                   types.Int64  `tfsdk:"disk_size"`
+	CapacityReservationId      types.String `tfsdk:"capacity_reservation_id"`
 }
 
 func AwsNodePoolResource() map[string]schema.Attribute {
@@ -73,6 +74,14 @@ func AwsNodePoolResource() map[string]schema.Attribute {
 				int64planmodifier.UseStateForUnknown(),
 			},
 		},
+		"capacity_reservation_id": schema.StringAttribute{
+			Description: "The ID of the AWS Capacity Reservation to use for the node pool. " +
+				"Cannot be set when autoscaling is enabled. " + common.ValueCannotBeChangedStringDescription,
+			Optional: true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
+			},
+		},
 	}
 }
 
@@ -106,6 +115,11 @@ func AwsNodePoolDatasource() map[string]dsschema.Attribute {
 		},
 		"disk_size": schema.Int64Attribute{
 			Description: "The root disk size, in GiB.",
+			Optional:    true,
+			Computed:    true,
+		},
+		"capacity_reservation_id": schema.StringAttribute{
+			Description: "The ID of the AWS Capacity Reservation used for the node pool.",
 			Optional:    true,
 			Computed:    true,
 		},

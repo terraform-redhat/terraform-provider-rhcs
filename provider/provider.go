@@ -41,6 +41,7 @@ import (
 	defaultingress "github.com/terraform-redhat/terraform-provider-rhcs/provider/defaultingress/classic"
 	hcpingress "github.com/terraform-redhat/terraform-provider-rhcs/provider/defaultingress/hcp"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/dnsdomain"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/external_auth_provider"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/group"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/groupmembership"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/identityprovider"
@@ -220,6 +221,7 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		clusterwaiter.New,
 		dnsdomain.New,
+		external_auth_provider.New,
 		groupmembership.New,
 		imagemirror.New,
 		machinepool.New,

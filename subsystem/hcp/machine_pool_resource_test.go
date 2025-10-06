@@ -2226,6 +2226,88 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(runOutput.ExitCode).ToNot(BeZero())
 			runOutput.VerifyErrorContainsSubstring("Invalid root disk size")
 		})
+
+		It("Can create machine pool with capacity reservation ID", func() {
+			// Prepare the server:
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools",
+					),
+					RespondWithJSON(http.StatusCreated, `{
+					"id":"my-pool",
+					"aws_node_pool":{
+					   "instance_type":"r5.xlarge",
+					   "instance_profile": "bla",
+					   "capacity_reservation": {
+					       "id": "cr-1234567890abcdef0"
+					   }
+					},
+					"auto_repair": true,
+					"replicas":2,
+					"subnet":"id-1",
+					"availability_zone":"us-east-1a",
+					"version": {
+						"raw_id": "4.14.10"
+					}
+				}`),
+				),
+			)
+
+			// Run the apply command:
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge",
+					capacity_reservation_id = "cr-1234567890abcdef0"
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 2
+				auto_repair = true
+				version = "4.14.10"
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// Check the state:
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
+			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
+			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.instance_type", "r5.xlarge"))
+			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.capacity_reservation_id", "cr-1234567890abcdef0"))
+			Expect(resource).To(MatchJQ(".attributes.replicas", 2.0))
+		})
+
+		It("Cannot create machine pool with capacity reservation ID when autoscaling is enabled", func() {
+			// Run the apply command:
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge",
+					capacity_reservation_id = "cr-1234567890abcdef0"
+				}
+				autoscaling = {
+					enabled = true,
+					min_replicas = 1,
+					max_replicas = 3
+				}
+				subnet_id = "id-1"
+				auto_repair = true
+				version = "4.14.10"
+			}`)
+			runOutput := Terraform.Validate()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Invalid Attribute Combination")
+		})
 	})
 
 	Context("Standard workers machine pool", func() {

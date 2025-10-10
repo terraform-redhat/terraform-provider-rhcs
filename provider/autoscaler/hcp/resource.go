@@ -373,7 +373,7 @@ func (r *ClusterAutoscalerResource) updateAutoscaler(ctx context.Context, plan, 
 			plan = &ClusterAutoscalerState{}
 		}
 
-		autoscaler, err := clusterAutoscalerStateToObject(state)
+		autoscaler, err := clusterAutoscalerStateToObject(plan)
 		if err != nil {
 			return err
 		}

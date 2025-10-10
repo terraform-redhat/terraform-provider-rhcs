@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -706,6 +707,15 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 		diags.AddError(
 			"Can't upgrade machine pool",
 			fmt.Sprintf("Can't upgrade machine pool version with identifier: `%s`, %v", state.ID.ValueString(), err),
+		)
+		return diags
+	}
+
+	if !state.AWSNodePool.CapacityReservationId.IsNull() && reflect.DeepEqual(state.AWSNodePool.CapacityReservationId, plan.AWSNodePool.CapacityReservationId) {
+		diags.AddError(
+			"Can't update machine pool",
+			fmt.Sprintf("Capacity Reservation ID cannot be modified after it's creation (old value: '%s', "+
+				"new value: '%s')", state.AWSNodePool.CapacityReservationId, plan.AWSNodePool.CapacityReservationId),
 		)
 		return diags
 	}

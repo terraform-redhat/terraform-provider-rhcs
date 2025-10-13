@@ -2308,6 +2308,101 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(runOutput.ExitCode).ToNot(BeZero())
 			runOutput.VerifyErrorContainsSubstring("Invalid Attribute Combination")
 		})
+
+		It("Cannot update capacity reservation ID after creation", func() {
+			// Prepare the server:
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools",
+					),
+					RespondWithJSON(http.StatusCreated, `{
+					"id":"my-pool",
+					"aws_node_pool":{
+					   "instance_type":"r5.xlarge",
+					   "instance_profile": "bla",
+					   "capacity_reservation": {
+					       "id": "cr-1234567890abcdef0"
+					   }
+					},
+					"auto_repair": true,
+					"replicas":2,
+					"subnet":"id-1",
+					"availability_zone":"us-east-1a",
+					"version": {
+						"raw_id": "4.14.10"
+					}
+				}`),
+				),
+			)
+
+			// Run apply command:
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge",
+					capacity_reservation_id = "cr-1234567890abcdef0"
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 2
+				auto_repair = true
+				version = "4.14.10"
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// Prepare server to attempt update:
+			prepareClusterRead("123")
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
+					RespondWithJSON(http.StatusOK, `{
+					"id":"my-pool",
+					"aws_node_pool":{
+					   "instance_type":"r5.xlarge",
+					   "instance_profile": "bla",
+					   "capacity_reservation": {
+					       "id": "cr-1234567890abcdef0"
+					   }
+					},
+					"auto_repair": true,
+					"replicas":2,
+					"subnet":"id-1",
+					"availability_zone":"us-east-1a",
+					"version": {
+						"raw_id": "4.14.10"
+					}
+				}`),
+				),
+			)
+
+			// Attempt to update:
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge",
+					capacity_reservation_id = "cr-12312312312312312"
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 2
+				auto_repair = true
+				version = "4.14.10"
+			}`)
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Attribute aws_node_pool.capacity_reservation_id, cannot be changed from")
+		})
 	})
 
 	Context("Standard workers machine pool", func() {

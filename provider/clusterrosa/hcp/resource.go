@@ -1576,7 +1576,7 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 				state.Sts.OperatorRolePrefix = types.StringValue(operatorRolePrefix)
 			}
 		}
-		thumbprint, err := oidcconfigs.FetchThumbprint(stsState.OIDCEndpointURL())
+		thumbprint, err := oidcconfigs.FetchThumbprint(ctx, stsState.OIDCEndpointURL())
 		if err != nil {
 			tflog.Error(ctx, fmt.Sprintf("cannot get thumbprint %v", err))
 			state.Sts.Thumbprint = types.StringValue("")

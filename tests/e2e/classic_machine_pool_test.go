@@ -364,7 +364,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		By("Create additional machinepool with availability zone specified")
 		replicas := 1
 		machineType := "r5.xlarge"
-		name := "ocp-65063"
+		name := helper.GenerateRandomName("ocp-65063", 10)
 		MachinePoolArgs := &exec.MachinePoolArgs{
 			Cluster:          helper.StringPointer(clusterID),
 			Replicas:         helper.IntPointer(replicas),
@@ -386,6 +386,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 		By("Create additional machinepool with subnet id specified")
 		awsSubnetIds := getResp.Body().AWS().SubnetIDs()
+		name = helper.GenerateRandomName("ocp-65063", 10)
 		MachinePoolArgs = &exec.MachinePoolArgs{
 			Cluster:     helper.StringPointer(clusterID),
 			Replicas:    helper.IntPointer(replicas),
@@ -406,6 +407,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Create additional machinepool with multi_availability_zone=false specified")
+		name = helper.GenerateRandomName("ocp-65063", 10)
 		MachinePoolArgs = &exec.MachinePoolArgs{
 			Cluster:          helper.StringPointer(clusterID),
 			Replicas:         helper.IntPointer(replicas),

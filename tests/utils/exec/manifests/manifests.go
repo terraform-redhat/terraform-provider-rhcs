@@ -99,3 +99,7 @@ func GetTrustedIPsManifestsDir(clusterType constants.ClusterType) string {
 func GetImageMirrorManifestsDir(clusterType constants.ClusterType) string {
 	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "image-mirrors", clusterType.String())
 }
+
+func GetExternalAuthProviderManifestsDir(clusterType constants.ClusterType) string {
+	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "external-auth-provider")
+}

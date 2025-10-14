@@ -22,11 +22,8 @@ import (
 	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
-var _ = Describe("Cluster creation", func() {
-	// This is the cluster that will be returned by the server when asked to create or retrieve
-	// a cluster.
-
-	It("Create oidc config input resource", func() {
+var _ = Describe("OIDC Config Input", func() {
+	It("Create oidc config input resource without prefix", func() {
 		Terraform.Source(`
 				resource "rhcs_rosa_oidc_config_input" "oidc_input" {
   					region = "us-east-1"
@@ -39,5 +36,47 @@ var _ = Describe("Cluster creation", func() {
 		runOutput = Terraform.Apply()
 		Expect(runOutput.ExitCode).To(BeZero())
 		Expect(Terraform.Destroy().ExitCode).To(BeZero())
+	})
+
+	It("Create oidc config input resource with prefix", func() {
+		Terraform.Source(`
+				resource "rhcs_rosa_oidc_config_input" "oidc_input" {
+  					region = "us-east-1"
+					prefix = "test"
+				}
+			`)
+
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+		// when calling again to apply it should work
+		runOutput = Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+		Expect(Terraform.Destroy().ExitCode).To(BeZero())
+	})
+
+	It("Create oidc config input resource with maximum length prefix", func() {
+		Terraform.Source(`
+				resource "rhcs_rosa_oidc_config_input" "oidc_input" {
+  					region = "us-east-1"
+					prefix = "a23456789012345"
+				}
+			`)
+
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+		Expect(Terraform.Destroy().ExitCode).To(BeZero())
+	})
+
+	It("Fail to create oidc config input resource with prefix exceeding 16 characters", func() {
+		Terraform.Source(`
+				resource "rhcs_rosa_oidc_config_input" "oidc_input" {
+  					region = "us-east-1"
+					prefix = "a234567890123456789"
+				}
+			`)
+
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).ToNot(BeZero())
+		runOutput.VerifyErrorContainsSubstring("string length must be at most 16")
 	})
 })

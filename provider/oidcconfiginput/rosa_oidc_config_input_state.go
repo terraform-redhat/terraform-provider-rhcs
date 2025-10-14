@@ -20,6 +20,7 @@ import "github.com/hashicorp/terraform-plugin-framework/types"
 
 type RosaOidcConfigInputState struct {
 	Region               types.String `tfsdk:"region"`
+	Prefix               types.String `tfsdk:"prefix"`
 	BucketName           types.String `tfsdk:"bucket_name"`
 	DiscoveryDoc         types.String `tfsdk:"discovery_doc"`
 	Jwks                 types.String `tfsdk:"jwks"`

@@ -26,6 +26,10 @@ resource "rhcs_rosa_oidc_config_input" "oidc_input" {
 
 - `region` (String) Unique identifier of the cluster.
 
+### Optional
+
+- `prefix` (String) User-defined prefix for OIDC resources.
+
 ### Read-Only
 
 - `bucket_name` (String) The S3 bucket name

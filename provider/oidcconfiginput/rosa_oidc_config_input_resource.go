@@ -18,11 +18,19 @@ package oidcconfiginput
 import (
 	"context"
 	"fmt"
+	"regexp"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	rosaOidcConfig "github.com/openshift-online/ocm-common/pkg/rosa/oidcconfigs"
+)
+
+const (
+	maxPrefixLength = 16
+	prefixPattern   = "^[a-z][a-z0-9\\-]+[a-z0-9]$"
 )
 
 type RosaOidcConfigInputResource struct {
@@ -47,6 +55,14 @@ func (o *RosaOidcConfigInputResource) Schema(ctx context.Context, request resour
 			"region": schema.StringAttribute{
 				Description: "Unique identifier of the cluster.",
 				Required:    true,
+			},
+			"prefix": schema.StringAttribute{
+				Description: "User-defined prefix for OIDC resources.",
+				Optional:    true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtMost(maxPrefixLength),
+					stringvalidator.RegexMatches(regexp.MustCompile(prefixPattern), "must match pattern "+prefixPattern),
+				},
 			},
 			"bucket_name": schema.StringAttribute{
 				Description: "The S3 bucket name",
@@ -97,7 +113,8 @@ func (o *RosaOidcConfigInputResource) Create(ctx context.Context, request resour
 	}
 
 	region := state.Region.ValueString()
-	oidcConfigInput, err := rosaOidcConfig.BuildOidcConfigInput("", region)
+	prefix := state.Prefix.ValueString()
+	oidcConfigInput, err := rosaOidcConfig.BuildOidcConfigInput(prefix, region)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Cannot generate oidc config input object",

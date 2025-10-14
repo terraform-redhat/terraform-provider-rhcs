@@ -583,7 +583,7 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 				}
 				args.AWSRegion = &region
 				args.AWSAvailabilityZones = &azs
-			}, "Failed to find subnet with ID")
+			}, "Failed to find subnets")
 		})
 	})
 

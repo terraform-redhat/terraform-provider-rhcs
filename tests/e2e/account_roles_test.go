@@ -74,7 +74,7 @@ var _ = Describe("Edit Account roles", func() {
 
 	It("can delete account roles via account-role module - [id:63316]", ci.Day2, ci.Critical, func() {
 		args := &exec.AccountRolesArgs{
-			AccountRolePrefix: helper.StringPointer("OCP-63316"),
+			AccountRolePrefix: helper.StringPointer(helper.GenerateRandomName("OCP-63316", 10)),
 			OpenshiftVersion:  helper.StringPointer(majorVersion),
 		}
 		_, err := accService.Apply(args)

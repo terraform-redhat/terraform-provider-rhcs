@@ -21,6 +21,7 @@ var FeatureIDP = Label("feature-idp")
 var FeatureImport = Label("feature-import")
 var FeatureTuningConfig = Label("feature-tuning-config")
 var FeatureExternalAuth = Label("feature-external-auth")
+var FeatureImageMirror = Label("feature-image-mirror")
 
 // day1/day1-post and day2
 var Day1 = Label("day1")

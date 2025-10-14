@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"reflect"
 	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -135,19 +134,36 @@ func (r *ClusterAutoscalerResource) Create(ctx context.Context, request resource
 		return
 	}
 
-	err = r.updateAutoscaler(ctx, plan, nil, plan.Cluster.ValueString(), r.collection)
+	autoscaler, err := clusterAutoscalerStateToObject(plan)
 	if err != nil {
 		response.Diagnostics.AddError(
-			"Failed building cluster autoscaler state",
+			"Failed building cluster autoscaler",
 			fmt.Sprintf(
-				"Failed building cluster autoscaler state for cluster '%s': %v",
+				"Failed building autoscaler for cluster '%s': %v",
 				plan.Cluster.ValueString(), err,
 			),
 		)
 		return
 	}
 
-	diags = response.State.Set(ctx, plan)
+	update, err := r.collection.Cluster(plan.Cluster.ValueString()).
+		Autoscaler().Update().Body(autoscaler).SendContext(ctx)
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Failed creating cluster autoscaler",
+			fmt.Sprintf(
+				"Failed creating autoscaler for cluster '%s': %v",
+				plan.Cluster.ValueString(), err,
+			),
+		)
+		return
+	}
+
+	object := update.Body()
+	state := &ClusterAutoscalerState{}
+	populateAutoscalerState(object, plan.Cluster.ValueString(), state)
+
+	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
 }
 
@@ -357,45 +373,4 @@ func clusterAutoscalerStateToObject(state *ClusterAutoscalerState) (*cmv1.Cluste
 	}
 
 	return builder.Build()
-}
-
-func (r *ClusterAutoscalerResource) updateAutoscaler(ctx context.Context, plan, state *ClusterAutoscalerState,
-	clusterId string, clusterCollection *cmv1.ClustersClient) error {
-
-	if state == nil {
-		state = &ClusterAutoscalerState{Cluster: types.StringValue(clusterId), MaxPodGracePeriod: plan.MaxPodGracePeriod,
-			PodPriorityThreshold: plan.PodPriorityThreshold, MaxNodeProvisionTime: plan.MaxNodeProvisionTime,
-			ResourceLimits: plan.ResourceLimits}
-	}
-
-	if !reflect.DeepEqual(state, plan) {
-		if plan == nil {
-			plan = &ClusterAutoscalerState{}
-		}
-
-		autoscaler, err := clusterAutoscalerStateToObject(plan)
-		if err != nil {
-			return err
-		}
-
-		// Perform the actual update
-		autoscalerResponse, err := clusterCollection.Cluster(clusterId).Autoscaler().Update().Body(autoscaler).
-			SendContext(ctx)
-		if err != nil {
-			return err
-		}
-		state = &ClusterAutoscalerState{}
-
-		err = populateAutoscalerState(autoscalerResponse.Body(), plan.Cluster.ValueString(), state)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func getDefaultAutoscalerBuilder(state, plan *ClusterAutoscalerResource) *cmv1.ClusterAutoscalerBuilder {
-	autoscalerBuilder := cmv1.NewClusterAutoscaler()
-	return autoscalerBuilder
 }

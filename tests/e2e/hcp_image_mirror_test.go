@@ -37,7 +37,7 @@ var _ = Describe("HCP ImageMirror", ci.Day2, func() {
 	})
 
 	It("can be created with required attributes",
-		ci.Critical, func() {
+		ci.Critical, ci.FeatureImageMirror, func() {
 			By("Create image mirror")
 			source := "docker.io/library/nginx"
 			mirrors := []string{"quay.io/my-org/nginx"}
@@ -67,7 +67,7 @@ var _ = Describe("HCP ImageMirror", ci.Day2, func() {
 		})
 
 	It("can be updated to add and remove mirrors",
-		ci.Critical, func() {
+		ci.Critical, ci.FeatureImageMirror, func() {
 			By("Create image mirror with single mirror")
 			source := "docker.io/library/alpine"
 			initialMirrors := []string{"quay.io/my-org/alpine"}
@@ -119,7 +119,7 @@ var _ = Describe("HCP ImageMirror", ci.Day2, func() {
 		})
 
 	It("can validate invalid configurations",
-		ci.Medium, func() {
+		ci.Medium, ci.FeatureImageMirror, func() {
 			By("Try to create image mirror with empty source")
 			source := ""
 			mirrors := []string{"quay.io/my-org/test"}
@@ -148,7 +148,7 @@ var _ = Describe("HCP ImageMirror", ci.Day2, func() {
 		})
 
 	It("enforces immutable fields",
-		ci.Medium, func() {
+		ci.Medium, ci.FeatureImageMirror, func() {
 			By("Create image mirror")
 			source := "docker.io/library/redis"
 			mirrors := []string{"quay.io/my-org/redis"}
@@ -185,7 +185,7 @@ var _ = Describe("HCP ImageMirror", ci.Day2, func() {
 		})
 
 	It("can update type field without replacement",
-		ci.Medium, func() {
+		ci.Medium, ci.FeatureImageMirror, func() {
 			By("Create image mirror")
 			source := "docker.io/library/nginx"
 			mirrors := []string{"quay.io/my-org/nginx"}
@@ -224,7 +224,7 @@ var _ = Describe("HCP ImageMirror", ci.Day2, func() {
 		})
 
 	It("can handle multiple image mirrors",
-		ci.High, func() {
+		ci.High, ci.FeatureImageMirror, func() {
 			By("Create first image mirror")
 			source1 := "docker.io/library/busybox"
 			mirrors1 := []string{"quay.io/my-org/busybox"}

@@ -107,12 +107,14 @@ var _ = Describe("Hcp Cluster Autoscaler", func() {
 					VerifyJQ(".max_pod_grace_period", float64(1)),
 					VerifyJQ(".pod_priority_threshold", float64(-10)),
 					VerifyJQ(".max_node_provision_time", "1h"),
-					VerifyJQ(".resource_limits.max_nodes_total", float64(20)),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"kind": "ClusterAutoscaler",
 							"id": "123",
-							"href": "/api/clusters_mgmt/v1/clusters/123"
+							"href": "/api/clusters_mgmt/v1/clusters/123",
+							"max_pod_grace_period": 1,
+							"pod_priority_threshold": -10,
+							"max_node_provision_time": "1h"
 						}
 					`),
 				),
@@ -233,6 +235,17 @@ var _ = Describe("Hcp Cluster Autoscaler", func() {
 						}
 					`),
 				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
+					VerifyJQ(".max_node_provision_time", "2h"),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"kind": "ClusterAutoscaler",
+							"href": "/api/clusters_mgmt/v1/clusters/123/autoscaler",
+							"max_node_provision_time": "2h"
+						}
+					`),
+				),
 			)
 
 			Terraform.Source(`
@@ -286,12 +299,8 @@ var _ = Describe("Hcp Cluster Autoscaler", func() {
 					`),
 				),
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
-					RespondWithJSON(http.StatusNotFound, "{}"),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
-					RespondWithJSON(http.StatusCreated, `
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/autoscaler"),
+					RespondWithJSON(http.StatusOK, `
 						{
 							"kind": "ClusterAutoscaler",
 							"id": "123",

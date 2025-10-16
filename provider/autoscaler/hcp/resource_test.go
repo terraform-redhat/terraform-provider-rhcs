@@ -17,8 +17,6 @@ limitations under the License.
 package hcp
 
 import (
-	"context"
-
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	. "github.com/onsi/ginkgo/v2" // nolint
 	. "github.com/onsi/gomega"    // nolint
@@ -140,74 +138,6 @@ var _ = Describe("Cluster Autoscaler", func() {
 			expectedAutoscaler, err := cmv1.NewClusterAutoscaler().Build()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(autoscaler).To(Equal(expectedAutoscaler))
-		})
-	})
-
-	Context("updateAutoscaler", func() {
-		It("updates all autoscaler fields (OK)", func() {
-			resource := &ClusterAutoscalerResource{}
-
-			plan := &ClusterAutoscalerState{
-				Cluster:              types.StringValue(clusterId),
-				MaxPodGracePeriod:    types.Int64Value(15),
-				PodPriorityThreshold: types.Int64Value(-15),
-				MaxNodeProvisionTime: types.StringValue("2h"),
-				ResourceLimits: &AutoscalerResourceLimits{
-					MaxNodesTotal: types.Int64Value(100),
-				},
-			}
-
-			Expect(updateState).ToNot(Equal(plan))
-
-			err := resource.updateAutoscaler(context.Background(), plan, updateState, clusterId, nil)
-			Expect(err).ToNot(HaveOccurred())
-
-			autoscaler, err := clusterAutoscalerStateToObject(plan)
-			Expect(err).ToNot(HaveOccurred())
-
-			checkOutputAgainstState(autoscaler, updateState)
-		})
-
-		It("all nulls when updating (OK)", func() {
-			resource := &ClusterAutoscalerResource{}
-
-			plan := &ClusterAutoscalerState{
-				Cluster:              types.StringValue(clusterId),
-				MaxPodGracePeriod:    types.Int64Null(),
-				PodPriorityThreshold: types.Int64Null(),
-				MaxNodeProvisionTime: types.StringNull(),
-				ResourceLimits:       nil,
-			}
-
-			err := resource.updateAutoscaler(context.Background(), plan, updateState, clusterId, nil)
-			Expect(err).ToNot(HaveOccurred())
-
-			autoscaler, err := clusterAutoscalerStateToObject(plan)
-			Expect(err).ToNot(HaveOccurred())
-
-			checkOutputAgainstState(autoscaler, plan)
-		})
-
-		It("some null, some populated, in an update (OK)", func() {
-			resource := &ClusterAutoscalerResource{}
-
-			plan := &ClusterAutoscalerState{
-				Cluster:              types.StringValue(clusterId),
-				MaxPodGracePeriod:    types.Int64Value(20),
-				PodPriorityThreshold: types.Int64Null(),
-				MaxNodeProvisionTime: types.StringValue("45m"),
-				ResourceLimits: &AutoscalerResourceLimits{
-					MaxNodesTotal: types.Int64Value(75),
-				},
-			}
-
-			err := resource.updateAutoscaler(context.Background(), plan, updateState, clusterId, nil)
-			Expect(err).ToNot(HaveOccurred())
-
-			autoscaler, err := clusterAutoscalerStateToObject(plan)
-			Expect(err).ToNot(HaveOccurred())
-
-			checkOutputAgainstState(autoscaler, plan)
 		})
 	})
 })

@@ -7,11 +7,11 @@ description: |-
 
 # Image Mirrors for ROSA HCP Clusters
 
-**Important**: Image mirrors are only supported for IDMS (ImageDigestMirrorSet) through ICSP (ImageContentSourcePolicy). This feature configures registry overrides that work with HyperShift's IDMS/ICSP detection mechanism.
+**Important**: Image mirrors are only supported for IDMS (ImageDigestMirrorSet) through ICSP (ImageContentSourcePolicy). This feature configures registry overrides that work with HyperShift's IDMS/ICSP detection mechanism. Ultimately, this feature brings IDMS configuration to ROSA HCP clusters.
 
-For detailed information on setting up IDMS/ICSP for management clusters, see: [IDMS/ICSP for Management Clusters](https://hypershift-docs.netlify.app/how-to/disconnected/idms-icsp-for-management-clusters/)
+For detailed information on setting up IDMS/ICSP for HyperShift management clusters, see: [IDMS/ICSP for Management Clusters](https://hypershift-docs.netlify.app/how-to/disconnected/idms-icsp-for-management-clusters/)
 
-Image mirrors provide a way to configure alternative registry endpoints for container images in ROSA HCP (Hosted Control Plane) clusters. This feature ensures that your cluster can pull images from mirror registries when the original source registry is unavailable or when you want to use a local registry for performance or security reasons.
+Image mirrors provide a way to configure alternative registry endpoints for container images in ROSA HCP (Hosted Control Plane) clusters. This feature ensures that your cluster can pull images from mirror registries when the original source registry is unavailable or when you want to use a local registry for performance or security (or other) reasons.
 
 ## Overview
 
@@ -22,7 +22,7 @@ The RHCS Terraform provider offers two main resources for managing image mirrors
 
 ## Prerequisites
 
-- A ROSA HCP cluster (image mirrors are not supported on Classic clusters)
+- A ROSA HCP cluster (image mirrors are not supported on ROSA classic clusters)
 - Appropriate IAM permissions to manage cluster configurations
 - Access to the mirror registries you want to configure
 
@@ -171,7 +171,7 @@ resource "rhcs_image_mirror" "redis_mirror" {
 ### Behavior Notes
 
 1. **Order Matters**: Mirrors are tried in the order specified in the `mirrors` list
-2. **HCP Only**: Image mirrors are only supported on ROSA HCP clusters, not Classic clusters
+2. **HCP Only**: Image mirrors are only supported on ROSA HCP clusters, not ROSA classic clusters
 3. **Registry Authentication**: Ensure your cluster has appropriate pull secrets for accessing mirror registries
 4. **Digest Type**: Currently only "digest" type mirrors are supported
 
@@ -237,6 +237,6 @@ output "configured_mirrors" {
 
 ## Additional Resources
 
-- [ROSA Documentation](https://docs.openshift.com/rosa/)
-- [OpenShift Image Registry Configuration](https://docs.openshift.com/container-platform/latest/openshift_images/image-configuration.html)
-- [Container Registry Security Best Practices](https://docs.openshift.com/container-platform/latest/security/container_security/security-container-content.html)
+- [ROSA Documentation]([https://docs.openshift.com/rosa/](https://docs.redhat.com/en/documentation/red_hat_openshift_service_on_aws/4/))
+- [OpenShift Image Registry Configuration](https://docs.redhat.com/en/documentation/red_hat_openshift_service_on_aws/4/html/images/image-configuration-hcp#images-registry-mirroring_image-configuration-hcp)
+- [Container Registry Security Best Practices](https://docs.redhat.com/en/documentation/openshift_container_platform/4.18/html/security_and_compliance/container-security-1#security-container-content)

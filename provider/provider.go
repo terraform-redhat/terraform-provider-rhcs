@@ -33,6 +33,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/logging"
 	classicAutoscaler "github.com/terraform-redhat/terraform-provider-rhcs/provider/autoscaler/classic"
 	hcpAutoscaler "github.com/terraform-redhat/terraform-provider-rhcs/provider/autoscaler/hcp"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/breakglasscredential"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cloudprovider"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cluster"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/classic"
@@ -236,6 +237,7 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 		hcpingress.New,
 		tuningconfigs.New,
 		hcpAutoscaler.New,
+		breakglasscredential.New,
 	}
 }
 

@@ -57,13 +57,15 @@ func (cu *ClusterUpgrade) Delete(ctx context.Context, client *cmv1.ClustersClien
 
 // Get the available upgrade versions that are reachable from a given starting
 // version
-func GetAvailableUpgradeVersions(ctx context.Context, client *cmv1.VersionsClient, fromVersionId string) ([]*cmv1.Version, error) {
+func GetAvailableUpgradeVersions(ctx context.Context, clustersClient *cmv1.ClustersClient,
+	client *cmv1.VersionsClient, clusterId string) ([]*cmv1.Version, error) {
 	// Retrieve info about the current version
-	resp, err := client.Version(fromVersionId).Get().SendContext(ctx)
+	resp, err := clustersClient.Cluster(clusterId).Get().SendContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get version information: %v", err)
 	}
-	version := resp.Body()
+	cluster := resp.Body()
+	version := cluster.Version()
 
 	// Cycle through the available upgrades and find the ones that are ROSA enabled
 	availableUpgradeVersions := []*cmv1.Version{}

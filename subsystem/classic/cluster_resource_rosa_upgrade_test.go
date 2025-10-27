@@ -70,7 +70,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			}
 		},
 		"version": {
-			"id": "4.10.0"
+			"id": "4.10.0",
+			"channel_group": "stable",
+			"available_upgrades": ["4.10.1"]
 		}
 	}`
 	const versionList = `{
@@ -227,11 +229,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, template),
 				),
-				// Validate upgrade versions
+				// Get cluster info for upgrade validation
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.0"),
-					RespondWithJSON(http.StatusOK, v4_10_0Info),
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, template),
 				),
+				// Validate upgrade versions
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
 					RespondWithJSON(http.StatusOK, v4_10_1Info),
@@ -353,11 +356,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, template),
 				),
-				// Validate upgrade versions
+				// Get cluster info for upgrade validation
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.0"),
-					RespondWithJSON(http.StatusOK, v4_10_0Info),
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, template),
 				),
+				// Validate upgrade versions
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
 					RespondWithJSON(http.StatusOK, v4_10_1Info),
@@ -478,11 +482,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, template),
 				),
-				// Validate upgrade versions
+				// Get cluster info for upgrade validation
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.0"),
-					RespondWithJSON(http.StatusOK, v4_10_0Info),
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, template),
 				),
+				// Validate upgrade versions
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
 					RespondWithJSON(http.StatusOK, v4_10_1Info),
@@ -550,11 +555,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 					RespondWithJSON(http.StatusOK, template),
 				),
-				// Validate upgrade versions
+				// Get cluster info for upgrade validation
 				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.0"),
-					RespondWithJSON(http.StatusOK, v4_10_0Info),
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, template),
 				),
+				// Validate upgrade versions
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
 					RespondWithJSON(http.StatusOK, v4_10_1Info),
@@ -812,11 +818,12 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
 						RespondWithJSON(http.StatusOK, template),
 					),
-					// Validate upgrade versions
+					// Get cluster info for upgrade validation
 					CombineHandlers(
-						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.0"),
-						RespondWithJSON(http.StatusOK, v4_10_0Info),
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+						RespondWithJSON(http.StatusOK, template),
 					),
+					// Validate upgrade versions
 					CombineHandlers(
 						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
 						RespondWithJSON(http.StatusOK, v4_10_1Info),

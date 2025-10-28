@@ -1305,12 +1305,8 @@ func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context,
 
 func (r *ClusterRosaClassicResource) validateUpgrade(ctx context.Context, state, plan *ClusterRosaClassicState) error {
 	// Make sure the desired version is available
-	channelGroup := ocmConsts.DefaultChannelGroup
-	if common.HasValue(state.ChannelGroup) {
-		channelGroup = state.ChannelGroup.ValueString()
-	}
-	versionId := ocmUtils.CreateVersionId(state.CurrentVersion.ValueString(), channelGroup)
-	availableVersions, err := upgrade.GetAvailableUpgradeVersions(ctx, r.VersionCollection, versionId)
+	availableVersions, err := upgrade.GetAvailableUpgradeVersions(ctx, r.ClusterCollection,
+		r.VersionCollection, state.ID.ValueString())
 	if err != nil {
 		return fmt.Errorf("failed to get available upgrades: %v", err)
 	}

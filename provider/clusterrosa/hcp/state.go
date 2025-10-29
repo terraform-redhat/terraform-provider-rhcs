@@ -40,6 +40,7 @@ type ClusterRosaHcpState struct {
 	MachineCIDR types.String `tfsdk:"machine_cidr"`
 	ServiceCIDR types.String `tfsdk:"service_cidr"`
 	HostPrefix  types.Int64  `tfsdk:"host_prefix"`
+	NoCNI       types.Bool   `tfsdk:"no_cni"`
 	Proxy       *proxy.Proxy `tfsdk:"proxy"`
 
 	// Standard machine pools fields

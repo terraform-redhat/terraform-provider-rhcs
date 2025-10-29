@@ -724,12 +724,14 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 		sharedVPCRoleArn := ""
 		if ctx.profile.SharedVpc {
 			// FIXME:
-			//	To create Shared-VPC compatible policies, we need to pass a role arn to create_account_roles module.
+			//  Now tracked on OCM-19946
+			//	
+			//  To create Shared-VPC compatible policies, we need to pass a role arn to create_account_roles module.
 			//  But we got an chicken-egg prolems here:
 			//		* The Shared-VPC compatible policie requries installer role
 			//		* The install role (account roles) require Shared-VPC ARN.
 			//  Use hardcode as a temporary solution.
-			sharedVPCRoleArn = fmt.Sprintf("arn:aws:iam::641733028092:role/%s-shared-vpc-role", clusterName)
+			sharedVPCRoleArn = fmt.Sprintf("arn:aws:iam::487962084830:role/%s-shared-vpc-role", clusterName)
 		}
 		accountRolesOutput, err = ctx.PrepareAccountRoles(token, clusterName, ctx.profile.UnifiedAccRolesPath, majorVersion, ctx.profile.ChannelGroup, sharedVPCRoleArn)
 		if err != nil {

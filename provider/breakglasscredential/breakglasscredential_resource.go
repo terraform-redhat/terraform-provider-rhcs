@@ -103,27 +103,22 @@ func (b *BreakGlassCredentialResource) Schema(ctx context.Context, req resource.
 			},
 			"id": schema.StringAttribute{
 				Description: "Identifier of the break glass credential.",
-				Optional:    true,
 				Computed:    true,
 			},
 			"expiration_timestamp": schema.StringAttribute{
 				Description: "Expiration timestamp of the break glass credential.",
-				Optional:    true,
 				Computed:    true,
 			},
 			"revocation_timestamp": schema.StringAttribute{
 				Description: "Revocation timestamp of the break glass credential.",
-				Optional:    true,
 				Computed:    true,
 			},
 			"status": schema.StringAttribute{
 				Description: "Status of the break glass credential.",
-				Optional:    true,
 				Computed:    true,
 			},
 			"kubeconfig": schema.StringAttribute{
 				Description: "Kubeconfig of the break glass credential.",
-				Optional:    true,
 				Computed:    true,
 			},
 		},

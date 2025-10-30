@@ -22,9 +22,12 @@ Edit a cluster break glass credential
 ### Optional
 
 - `expiration_duration` (String) Expire the break glass credential after a relative duration like 2h, 8h.After the creation of the resource, it is not possible to update the attribute value.
+- `username` (String) User name of the break glass credential. After the creation of the resource, it is not possible to update the attribute value.
+
+### Read-Only
+
 - `expiration_timestamp` (String) Expiration timestamp of the break glass credential.
 - `id` (String) Identifier of the break glass credential.
 - `kubeconfig` (String) Kubeconfig of the break glass credential.
 - `revocation_timestamp` (String) Revocation timestamp of the break glass credential.
 - `status` (String) Status of the break glass credential.
-- `username` (String) User name of the break glass credential. After the creation of the resource, it is not possible to update the attribute value.

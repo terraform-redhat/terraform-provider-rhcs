@@ -17,7 +17,6 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk v1.17.2
 	github.com/onsi/ginkgo/v2 v2.17.1
 	github.com/onsi/gomega v1.30.0
-	github.com/openshift-online/ocm-api-model/clientapi v0.0.434
 	github.com/openshift-online/ocm-common v0.0.12
 	github.com/openshift-online/ocm-sdk-go v0.1.479
 	github.com/pkg/errors v0.9.1
@@ -25,7 +24,6 @@ require (
 	github.com/thoas/go-funk v0.9.3
 	github.com/zgalor/weberr v0.8.2
 	go.uber.org/mock v0.4.0
-	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/apimachinery v0.29.2
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
@@ -60,6 +58,7 @@ require (
 	github.com/go-jose/go-jose/v4 v4.0.2 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/openshift-online/ocm-api-model/clientapi v0.0.434 // indirect
 	github.com/openshift-online/ocm-api-model/model v0.0.434 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
@@ -67,6 +66,7 @@ require (
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/klog/v2 v2.110.1 // indirect
 )
 

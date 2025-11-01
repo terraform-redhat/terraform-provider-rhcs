@@ -17,7 +17,6 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk v1.17.2
 	github.com/onsi/ginkgo/v2 v2.17.1
 	github.com/onsi/gomega v1.30.0
-	github.com/openshift-online/ocm-api-model/clientapi v0.0.434
 	github.com/openshift-online/ocm-common v0.0.12
 	github.com/openshift-online/ocm-sdk-go v0.1.479
 	github.com/pkg/errors v0.9.1
@@ -58,8 +57,10 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.5 // indirect
 	github.com/aws/smithy-go v1.20.3 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.2 // indirect
+	github.com/jackc/pgx/v4 v4.18.3 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/openshift-online/ocm-api-model/clientapi v0.0.434 // indirect
 	github.com/openshift-online/ocm-api-model/model v0.0.434 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
@@ -120,7 +121,6 @@ require (
 	github.com/jackc/pgproto3/v2 v2.3.3 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/pgtype v1.14.0 // indirect
-	github.com/jackc/pgx/v4 v4.18.3 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect

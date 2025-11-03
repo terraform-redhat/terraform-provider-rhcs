@@ -55,8 +55,8 @@ func (cu *ClusterUpgrade) Delete(ctx context.Context, client *cmv1.ClustersClien
 	return nil
 }
 
-// Get the available upgrade versions that are reachable from a given starting
-// version
+// Get the available upgrade versions that are recommended based on a cluster's
+// available upgrades
 func GetAvailableUpgradeVersions(ctx context.Context, clustersClient *cmv1.ClustersClient,
 	client *cmv1.VersionsClient, clusterId string) ([]*cmv1.Version, error) {
 	// Retrieve info about the current version
@@ -67,7 +67,7 @@ func GetAvailableUpgradeVersions(ctx context.Context, clustersClient *cmv1.Clust
 	cluster := resp.Body()
 	version := cluster.Version()
 
-	// Cycle through the available upgrades and find the ones that are ROSA enabled
+	// Cycle through the available upgrades and confirm they are ROSA Enabled
 	availableUpgradeVersions := []*cmv1.Version{}
 	for _, v := range version.AvailableUpgrades() {
 		id := ocmUtils.CreateVersionId(v, version.ChannelGroup())

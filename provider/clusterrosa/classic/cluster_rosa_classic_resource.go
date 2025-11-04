@@ -778,7 +778,7 @@ func validateHttpTokensVersion(ctx context.Context, state *ClusterRosaClassicSta
 		msg := fmt.Sprintf("version '%s' is not supported with ec2_metadata_http_tokens, "+
 			"minimum supported version is %s", version, lowestHttpTokensVer)
 		tflog.Error(ctx, msg)
-		return fmt.Errorf(msg)
+		return fmt.Errorf("version '%s' is not supported with ec2_metadata_http_tokens, minimum supported version is %s", version, lowestHttpTokensVer)
 	}
 	return nil
 }

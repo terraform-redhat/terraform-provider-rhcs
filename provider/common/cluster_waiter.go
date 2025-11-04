@@ -37,7 +37,7 @@ func (dw *DefaultClusterWait) WaitForStdComputeNodesToBeReady(ctx context.Contex
 	if err != nil && resp.Status() == http.StatusNotFound {
 		message := fmt.Sprintf("Failed to get Cluster '%s', with error: %v", clusterId, err)
 		tflog.Error(ctx, message)
-		return nil, fmt.Errorf(message)
+		return nil, fmt.Errorf("Failed to get Cluster '%s', with error: %v", clusterId, err)
 	}
 
 	tflog.Info(ctx, fmt.Sprintf("WaitForStdComputeNodesToBeReady: Cluster '%s' is expected to initiate with %d worker replicas."+
@@ -85,13 +85,13 @@ func (dw *DefaultClusterWait) WaitForClusterToBeReady(ctx context.Context, clust
 	if err != nil && resp.Status() == http.StatusNotFound {
 		message := fmt.Sprintf("Failed to get Cluster '%s', with error: %v", clusterId, err)
 		tflog.Error(ctx, message)
-		return nil, fmt.Errorf(message)
+		return nil, fmt.Errorf("Failed to get Cluster '%s', with error: %w", clusterId, err)
 	}
 	currentState := resp.Body().State()
 	if currentState == cmv1.ClusterStateError || currentState == cmv1.ClusterStateUninstalling {
 		message := fmt.Sprintf("Cluster '%s' is in state '%s' and will not become ready", clusterId, currentState)
 		tflog.Error(ctx, message)
-		return resp.Body(), fmt.Errorf(message)
+		return resp.Body(), fmt.Errorf("Cluster '%s' is in state '%s' and will not become ready", clusterId, currentState)
 	}
 	if currentState == cmv1.ClusterStateReady {
 		tflog.Info(ctx, fmt.Sprintf("WaitForClusterToBeReady: Cluster '%s' is with state \"READY\"", clusterId))

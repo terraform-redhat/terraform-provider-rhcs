@@ -37,12 +37,12 @@ data "rhcs_machine_pool" "machine_pool" {
 - `ignore_deletion_error` (Boolean) Indicates to the provider to disregard API errors when deleting the machine pool. This will remove the resource from the management file, but not necessirely delete the underlying pool in case it errors. Setting this to true can bypass issues when destroying the cluster resource alongside the pool resource in the same management file. This is not recommended to be set in other use cases
 - `labels` (Map of String) The list of the Labels of this machine pool.
 - `machine_type` (String) Identifier of the machine type used by the nodes, for example `m5.xlarge`.
-- `max_replicas` (Number) The maximum number of replicas for auto-scaling functionality. relevant only in case of 'autoscaling_enabled = true'
+- `max_replicas` (Number) The maximum number of replicas for auto-scaling functionality. relevant only in case of 'autoscaling_enabled = true'See OpenShift [documentation](https://github.com/openshift/openshift-docs/blob/main/cloud_experts_tutorials/cloud-experts-getting-started/cloud-experts-getting-started-what-is-rosa.adoc) for maximum allowed values.
 - `max_spot_price` (Number) Max Spot price.
-- `min_replicas` (Number) The minimum number of replicas for autos-caling functionality. relevant only in case of 'autoscaling_enabled = true
+- `min_replicas` (Number) The minimum number of replicas for auto-scaling functionality. relevant only in case of 'autoscaling_enabled = true' Single zone clusters need at least 2 nodes, multizone clusters need at least 3 nodes.
 - `multi_availability_zone` (Boolean) Specifies whether this machine pool is a multi-AZ machine pool. Relevant only in case of multi-AZ cluster
 - `name` (String) The name of the machine pool
-- `replicas` (Number) The machines number in the machine pool. relevant only in case of 'autoscaling_enabled = false'
+- `replicas` (Number) The number of machines in the pool. Single zone clusters need at least 2 nodes, multizone clusters need at least 3 nodes. See OpenShift [documentation](https://github.com/openshift/openshift-docs/blob/main/cloud_experts_tutorials/cloud-experts-getting-started/cloud-experts-getting-started-what-is-rosa.adoc) for maximum allowed values.
 - `subnet_id` (String) An ID of single subnet in which the machines of this machine pool are created. Relevant only for a machine pool with single subnet. For machine pool with multiple subnets check "subnet_ids" attribute
 - `subnet_ids` (List of String) A list of IDs of subnets in which the machines of this machine pool are created. Relevant only for a machine pool with multiple subnets. For machine pool with single subnet check "subnet_id" attribute
 - `taints` (Attributes List) The list of the Taints of this machine pool. (see [below for nested schema](#nestedatt--taints))

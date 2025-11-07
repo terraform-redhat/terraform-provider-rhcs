@@ -93,6 +93,11 @@ variable "pod_cidr" {
   default = null
 }
 
+variable "fips" {
+  type    = bool
+  default = false
+}
+
 variable "custom_properties" {
   type    = map(string)
   default = null
@@ -177,6 +182,16 @@ variable "wait_for_cluster" {
 variable "disable_cluster_waiter" {
   type    = bool
   default = false
+}
+
+variable "additional_infra_security_groups" {
+  type    = list(string)
+  default = null
+}
+
+variable "additional_control_plane_security_groups" {
+  type    = list(string)
+  default = null
 }
 
 variable "disable_waiting_in_destroy" {

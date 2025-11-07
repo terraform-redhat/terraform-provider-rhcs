@@ -17,7 +17,6 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk v1.17.2
 	github.com/onsi/ginkgo/v2 v2.17.1
 	github.com/onsi/gomega v1.30.0
-	github.com/openshift-online/ocm-api-model/clientapi v0.0.434
 	github.com/openshift-online/ocm-common v0.0.12
 	github.com/openshift-online/ocm-sdk-go v0.1.479
 	github.com/pkg/errors v0.9.1
@@ -60,6 +59,7 @@ require (
 	github.com/go-jose/go-jose/v4 v4.0.2 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/openshift-online/ocm-api-model/clientapi v0.0.434 // indirect
 	github.com/openshift-online/ocm-api-model/model v0.0.434 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect

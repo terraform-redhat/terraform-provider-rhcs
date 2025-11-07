@@ -66,6 +66,7 @@ resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
   compute_machine_type         = var.compute_machine_type
   ec2_metadata_http_tokens     = var.ec2_metadata_http_tokens
   etcd_encryption              = var.etcd_encryption
+  fips                         = var.fips
   etcd_kms_key_arn             = var.etcd_kms_key_arn != null ? var.etcd_kms_key_arn : var.kms_key_arn
   kms_key_arn                  = var.kms_key_arn
   host_prefix                  = var.host_prefix
@@ -79,6 +80,8 @@ resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
     ignore_changes = [availability_zones]
   }
   aws_additional_compute_security_group_ids       = var.additional_compute_security_groups
+  aws_additional_infra_security_group_ids         = var.additional_infra_security_groups
+  aws_additional_control_plane_security_group_ids = var.additional_control_plane_security_groups
   wait_for_create_complete                        = var.wait_for_cluster
   wait_for_std_compute_nodes_complete             = var.wait_for_cluster
   disable_waiting_in_destroy                      = var.disable_waiting_in_destroy

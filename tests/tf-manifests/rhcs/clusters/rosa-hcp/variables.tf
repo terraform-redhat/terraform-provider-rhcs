@@ -225,3 +225,10 @@ variable "additional_compute_security_groups" {
   type    = list(string)
   default = null
 }
+
+variable "external_auth_providers_enabled" {
+  type    = bool
+  default = false
+}
+
+

@@ -64,6 +64,7 @@ type ProfileServices interface {
 	GetIngressService() (exec.IngressService, error)
 	GetImportService() (exec.ImportService, error)
 	GetKubeletConfigService() (exec.KubeletConfigService, error)
+	GetBreakGlassCredentialService() (exec.BreakGlassCredentialService, error)
 	GetMachinePoolsService() (exec.MachinePoolService, error)
 	GetRHCSInfoService() (exec.RhcsInfoService, error)
 	GetTrustedIPsService() (exec.TrustedIPsService, error)
@@ -1223,4 +1224,8 @@ func (ctx *profileContext) GetTuningConfigService() (exec.TuningConfigService, e
 
 func (ctx *profileContext) GetImageMirrorService() (exec.ImageMirrorService, error) {
 	return exec.NewImageMirrorService(ctx.GetTFWorkspace(), ctx.GetClusterType())
+}
+
+func (ctx *profileContext) GetBreakGlassCredentialService() (exec.BreakGlassCredentialService, error) {
+	return exec.NewBreakGlassCredentialService(ctx.GetTFWorkspace(), ctx.GetClusterType())
 }

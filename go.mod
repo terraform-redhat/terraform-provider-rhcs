@@ -1,8 +1,6 @@
 module github.com/terraform-redhat/terraform-provider-rhcs
 
-go 1.23.0
-
-toolchain go1.23.9
+go 1.24.0
 
 require (
 	github.com/Masterminds/semver v1.5.0
@@ -20,6 +18,7 @@ require (
 	github.com/openshift-online/ocm-common v0.0.33
 	github.com/openshift-online/ocm-sdk-go v0.1.479
 	github.com/pkg/errors v0.9.1
+	github.com/segmentio/ksuid v1.0.4
 	github.com/sirupsen/logrus v1.9.3
 	github.com/thoas/go-funk v0.9.3
 	github.com/zgalor/weberr v0.8.2
@@ -61,13 +60,12 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/openshift-online/ocm-api-model/clientapi v0.0.434 // indirect
 	github.com/openshift-online/ocm-api-model/model v0.0.434 // indirect
-	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
-	golang.org/x/sys v0.35.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
 	k8s.io/klog/v2 v2.110.1 // indirect
 )
 
@@ -112,8 +110,8 @@ require (
 	github.com/hashicorp/yamux v0.1.1 // indirect
 	github.com/huandu/xstrings v1.3.3 // indirect
 	github.com/imdario/mergo v0.3.15 // indirect
-	github.com/itchyny/gojq v0.12.9 // indirect
-	github.com/itchyny/timefmt-go v0.1.4 // indirect
+	github.com/itchyny/gojq v0.12.18 // indirect
+	github.com/itchyny/timefmt-go v0.1.7 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgconn v1.14.3 // indirect
 	github.com/jackc/pgio v1.0.0 // indirect

@@ -31,6 +31,13 @@ provider "rhcs" {
   url   = var.url
 }
 
+provider "aws" {
+  region = var.cloud_region
+  ignore_tags {
+    key_prefixes = ["kubernetes.io/"]
+  }
+}
+
 locals {
   installer_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${var.account_role_prefix}-Installer-Role"
 }

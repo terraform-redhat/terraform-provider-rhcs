@@ -146,7 +146,8 @@ func (c *Cluster) CreateAWSBuilder(clusterTopology rosaTypes.ClusterTopology,
 	additionalComputeSecurityGroupIds []string,
 	additionalInfraSecurityGroupIds []string,
 	additionalControlPlaneSecurityGroupIds []string,
-	additionalAllowedPrincipals []string) error {
+	additionalAllowedPrincipals []string,
+	auditLogArn *string) error {
 
 	if clusterTopology == rosaTypes.Hcp && awsSubnetIDs == nil {
 		return errors.New("Hosted Control Plane clusters must have a pre-configure VPC. Make sure to specify the subnet ids.")
@@ -237,6 +238,15 @@ func (c *Cluster) CreateAWSBuilder(clusterTopology rosaTypes.ClusterTopology,
 
 	if additionalAllowedPrincipals != nil {
 		awsBuilder.AdditionalAllowedPrincipals(additionalAllowedPrincipals...)
+	}
+
+	// CloudWatch audit log forwarding
+	// audit_log is nested under AWS configuration (aws.audit_log.role_arn)
+	// Reference: OCM API spec - AWS.audit_log.role_arn
+	if auditLogArn != nil && *auditLogArn != "" {
+		auditLogBuilder := cmv1.NewAuditLog()
+		auditLogBuilder.RoleArn(*auditLogArn)
+		awsBuilder.AuditLog(auditLogBuilder)
 	}
 
 	c.clusterBuilder.AWS(awsBuilder)

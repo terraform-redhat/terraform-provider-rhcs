@@ -778,7 +778,7 @@ func validateHttpTokensVersion(ctx context.Context, state *ClusterRosaClassicSta
 		msg := fmt.Sprintf("version '%s' is not supported with ec2_metadata_http_tokens, "+
 			"minimum supported version is %s", version, lowestHttpTokensVer)
 		tflog.Error(ctx, msg)
-		return fmt.Errorf(msg)
+		return fmt.Errorf("%s", msg)
 	}
 	return nil
 }
@@ -1605,12 +1605,15 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 				state.Sts.OperatorRolePrefix = types.StringValue(operatorRolePrefix)
 			}
 		}
-		thumbprint, err := oidcconfigs.FetchThumbprint(ctx, stsState.OIDCEndpointURL())
-		if err != nil {
-			tflog.Error(ctx, fmt.Sprintf("cannot get thumbprint %v", err))
-			state.Sts.Thumbprint = types.StringValue("")
-		} else {
-			state.Sts.Thumbprint = types.StringValue(thumbprint)
+		// Only fetch thumbprint if not already present in state to avoid inconsistencies
+		if common.IsStringAttributeUnknownOrEmpty(state.Sts.Thumbprint) {
+			thumbprint, err := oidcconfigs.FetchThumbprint(ctx, stsState.OIDCEndpointURL())
+			if err != nil {
+				tflog.Error(ctx, fmt.Sprintf("cannot get thumbprint %v", err))
+				state.Sts.Thumbprint = types.StringValue("")
+			} else {
+				state.Sts.Thumbprint = types.StringValue(thumbprint)
+			}
 		}
 		oidcConfig, ok := stsState.GetOidcConfig()
 		if ok && oidcConfig != nil {

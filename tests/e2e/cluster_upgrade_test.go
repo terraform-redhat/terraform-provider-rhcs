@@ -155,9 +155,14 @@ var _ = Describe("Upgrade", func() {
 				// Expect(err).To(HaveOccurred())
 				// Expect(err.Error()).To(ContainSubstring("Missing required acknowledgements to schedule upgrade"))
 
+				By("Acknowledge and wait for clusterdeployment to sync, takes ~60 seconds")
+				clusterArgs.UpgradeAcknowledgementsFor = helper.StringPointer(majorVersion)
+				_, err = clusterService.Apply(clusterArgs)
+				Expect(err).ToNot(HaveOccurred())
+				time.Sleep(2 * time.Minute)
+
 				By("Apply the cluster Upgrade")
 				clusterArgs.OpenshiftVersion = helper.StringPointer(targetV)
-				clusterArgs.UpgradeAcknowledgementsFor = helper.StringPointer(majorVersion)
 				_, err = clusterService.Apply(clusterArgs)
 				Expect(err).ToNot(HaveOccurred())
 

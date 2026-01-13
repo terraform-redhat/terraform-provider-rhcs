@@ -94,7 +94,7 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   domain_prefix                                   = var.domain_prefix
   private_hosted_zone                             = var.private_hosted_zone
   lifecycle {
-    ignore_changes = [availability_zones]
+    ignore_changes = [availability_zones, sts]
   }
   wait_for_create_complete   = var.wait_for_cluster
   disable_waiting_in_destroy = var.disable_waiting_in_destroy

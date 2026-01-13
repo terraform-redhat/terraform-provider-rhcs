@@ -76,7 +76,7 @@ resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
   destroy_timeout              = 60
   upgrade_acknowledgements_for = var.upgrade_acknowledgements_for
   lifecycle {
-    ignore_changes = [availability_zones]
+    ignore_changes = [availability_zones, sts]
   }
   aws_additional_compute_security_group_ids       = var.additional_compute_security_groups
   wait_for_create_complete                        = var.wait_for_cluster

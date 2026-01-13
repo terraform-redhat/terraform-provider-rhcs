@@ -10,7 +10,7 @@ RUN yum install -y wget &&\
     chmod +x /usr/local/bin/ocm
 
 # go
-RUN curl -Ls https://go.dev/dl/go1.23.9.linux-amd64.tar.gz |tar -C /usr/local -xzf -
+RUN curl -Ls https://go.dev/dl/go1.24.0.linux-amd64.tar.gz |tar -C /usr/local -xzf -
 ENV PATH="/usr/local/go/bin:${PATH}"
 ENV GOPATH=/usr/local/go
 ENV TEST_OFFLINE_TOKEN=""

@@ -1576,12 +1576,15 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 				state.Sts.OperatorRolePrefix = types.StringValue(operatorRolePrefix)
 			}
 		}
-		thumbprint, err := oidcconfigs.FetchThumbprint(ctx, stsState.OIDCEndpointURL())
-		if err != nil {
-			tflog.Error(ctx, fmt.Sprintf("cannot get thumbprint %v", err))
-			state.Sts.Thumbprint = types.StringValue("")
-		} else {
-			state.Sts.Thumbprint = types.StringValue(thumbprint)
+		// Only fetch thumbprint if not already present in state to avoid inconsistencies
+		if common.IsStringAttributeUnknownOrEmpty(state.Sts.Thumbprint) {
+			thumbprint, err := oidcconfigs.FetchThumbprint(ctx, stsState.OIDCEndpointURL())
+			if err != nil {
+				tflog.Error(ctx, fmt.Sprintf("cannot get thumbprint %v", err))
+				state.Sts.Thumbprint = types.StringValue("")
+			} else {
+				state.Sts.Thumbprint = types.StringValue(thumbprint)
+			}
 		}
 		oidcConfig, ok := stsState.GetOidcConfig()
 		if ok && oidcConfig != nil {

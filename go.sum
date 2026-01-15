@@ -605,8 +605,8 @@ github.com/zclconf/go-cty-debug v0.0.0-20240509010212-0d6042c53940 h1:4r45xpDWB6
 github.com/zclconf/go-cty-debug v0.0.0-20240509010212-0d6042c53940/go.mod h1:CmBdvvj3nqzfzJ6nTCIwDTPZ56aVGvDrmztiO5g3qrM=
 github.com/zclconf/go-cty-yaml v1.0.2/go.mod h1:IP3Ylp0wQpYm50IHK8OZWKMu6sPJIUgKa8XhiVHura0=
 github.com/zenazn/goji v0.9.0/go.mod h1:7S9M489iMyHBNxwZnk9/EHS098H4/F6TATF2mIxtB1Q=
-github.com/zgalor/weberr v0.8.2 h1:rzGP0jQVt8hGSNnzjDAQNHMxNNrf3gUrYhpSgY76+mk=
-github.com/zgalor/weberr v0.8.2/go.mod h1:cqK89mj84q3PRgqQXQFWJDzCorOd8xOtov/ulOnqDwc=
+github.com/zgalor/weberr v0.9.0 h1:ps/W5wlzv6aruKF/e6cN+/t79Dmp23e8qpFUyCFvgg0=
+github.com/zgalor/weberr v0.9.0/go.mod h1:cqK89mj84q3PRgqQXQFWJDzCorOd8xOtov/ulOnqDwc=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 go.opencensus.io v0.22.0/go.mod h1:+kGneAE2xo2IficOXnaByMWTGM9T73dGwxeWcUqIpI8=
 go.opencensus.io v0.22.2/go.mod h1:yxeiOL68Rb0Xd1ddK5vPZ/oVn4vY4Ynel7k9FzqtOIw=

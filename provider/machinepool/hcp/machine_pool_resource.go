@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -630,7 +629,6 @@ func validateNoImmutableAttChange(state, plan *HcpMachinePoolState) diag.Diagnos
 		validateStateAndPlanEquals(state.AWSNodePool.Ec2MetadataHttpTokens, plan.AWSNodePool.Ec2MetadataHttpTokens,
 			"aws_node_pool.ec2_metadata_http_tokens", &diags)
 		validateStateAndPlanEquals(state.AWSNodePool.DiskSize, plan.AWSNodePool.DiskSize, "aws_node_pool.disk_size", &diags)
-		validateStateAndPlanEquals(state.AWSNodePool.CapacityReservationId, plan.AWSNodePool.CapacityReservationId, "aws_node_pool.capacity_reservation_id", &diags)
 	}
 	return diags
 }
@@ -711,11 +709,27 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 		return diags
 	}
 
-	if !state.AWSNodePool.CapacityReservationId.IsNull() && reflect.DeepEqual(state.AWSNodePool.CapacityReservationId, plan.AWSNodePool.CapacityReservationId) {
+	stateCapRes := state.AWSNodePool.CapacityReservationId
+	planCapRes := plan.AWSNodePool.CapacityReservationId
+
+	// Detect any change in capacity reservation ID, and error if so
+	if (!stateCapRes.IsNull() && planCapRes.IsNull()) ||
+		(stateCapRes.IsNull() && !planCapRes.IsNull()) ||
+		(!stateCapRes.IsNull() && !planCapRes.IsNull() && !stateCapRes.Equal(planCapRes)) {
+
+		stateValue := "null"
+		planValue := "null"
+		if !stateCapRes.IsNull() {
+			stateValue = stateCapRes.ValueString()
+		}
+		if !planCapRes.IsNull() {
+			planValue = planCapRes.ValueString()
+		}
+
 		diags.AddError(
-			"Can't update machine pool",
+			"Can't update machinepool",
 			fmt.Sprintf("Capacity Reservation ID cannot be modified after it's creation (old value: '%s', "+
-				"new value: '%s')", state.AWSNodePool.CapacityReservationId, plan.AWSNodePool.CapacityReservationId),
+				"new value: '%s')", stateValue, planValue),
 		)
 		return diags
 	}

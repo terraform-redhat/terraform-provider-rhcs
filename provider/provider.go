@@ -48,6 +48,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/imagemirror"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/info"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/kubeletconfig"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/logforwarder"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/machine_types"
 	machinepool "github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool/classic"
 	nodepool "github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool/hcp"
@@ -238,6 +239,7 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 		tuningconfigs.New,
 		hcpAutoscaler.New,
 		breakglasscredential.New,
+		logforwarder.New,
 	}
 }
 

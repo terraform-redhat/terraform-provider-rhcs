@@ -63,6 +63,9 @@ var _ = Describe("Hcp Machine pool", func() {
 		)
 	}
 	Context("static validation", func() {
+		BeforeEach(func() {
+			prepareClusterRead("123")
+		})
 		It("fails if cluster ID is empty", func() {
 			Terraform.Source(`
 			resource "rhcs_hcp_machine_pool" "my_pool" {
@@ -2358,7 +2361,80 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(runOutput.ExitCode).To(BeZero())
 
 			// Prepare server to attempt update:
-			prepareClusterRead("123")
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, `{
+					  "id": "123",
+					  "name": "my-cluster",
+					  "multi_az": true,
+					  "nodes": {
+						"availability_zones": [
+						  "us-east-1a",
+						  "us-east-1b",
+						  "us-east-1c"
+						]
+					  },
+					  "state": "ready",
+					  "version": {
+						"channel_group": "stable"
+					  },
+					  "aws": {
+						"tags": {
+							"cluster-tag": "cluster-value"
+						}
+					  }
+					}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
+					RespondWithJSON(http.StatusOK, `{
+					"id":"my-pool",
+					"aws_node_pool":{
+					   "instance_type":"r5.xlarge",
+					   "instance_profile": "bla",
+					   "capacity_reservation": {
+					       "id": "cr-1234567890abcdef0"
+					   }
+					},
+					"auto_repair": true,
+					"replicas":2,
+					"subnet":"id-1",
+					"availability_zone":"us-east-1a",
+					"version": {
+						"raw_id": "4.14.10"
+					}
+				}`),
+				),
+			)
+
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, `{
+					  "id": "123",
+					  "name": "my-cluster",
+					  "multi_az": true,
+					  "nodes": {
+						"availability_zones": [
+						  "us-east-1a",
+						  "us-east-1b",
+						  "us-east-1c"
+						]
+					  },
+					  "state": "ready",
+					  "version": {
+						"channel_group": "stable"
+					  },
+					  "aws": {
+						"tags": {
+							"cluster-tag": "cluster-value"
+						}
+					  }
+					}`),
+				),
+			)
+			
 			TestServer.AppendHandlers(
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
@@ -2401,7 +2477,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			}`)
 			runOutput = Terraform.Apply()
 			Expect(runOutput.ExitCode).ToNot(BeZero())
-			runOutput.VerifyErrorContainsSubstring("Attribute aws_node_pool.capacity_reservation_id, cannot be changed from")
+			runOutput.VerifyErrorContainsSubstring("Capacity Reservation ID cannot be modified after it's creation")
 		})
 	})
 

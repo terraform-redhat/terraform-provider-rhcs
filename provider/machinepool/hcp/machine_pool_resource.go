@@ -1340,6 +1340,8 @@ func populateState(ctx context.Context, object *cmv1.NodePool, state *HcpMachine
 		version, ok := object.Version().GetID()
 		// If we're using a non-default channel group, it will have been appended to
 		// the version ID. Remove it before saving state.
+		channelGroup, _ := cluster.Version().GetChannelGroup()
+		version = strings.TrimSuffix(version, fmt.Sprintf("-%s", channelGroup))
 		version = strings.TrimPrefix(version, rosa.VersionPrefix)
 		if ok {
 			state.CurrentVersion = types.StringValue(version)

@@ -17,13 +17,14 @@ import (
 const MaxAdditionalSecurityGroupHcp = 10
 
 type AWSNodePool struct {
-	InstanceType               types.String `tfsdk:"instance_type"`
-	InstanceProfile            types.String `tfsdk:"instance_profile"`
-	Tags                       types.Map    `tfsdk:"tags"`
-	AdditionalSecurityGroupIds types.List   `tfsdk:"additional_security_group_ids"`
-	Ec2MetadataHttpTokens      types.String `tfsdk:"ec2_metadata_http_tokens"`
-	DiskSize                   types.Int64  `tfsdk:"disk_size"`
-	CapacityReservationId      types.String `tfsdk:"capacity_reservation_id"`
+	InstanceType                  types.String `tfsdk:"instance_type"`
+	InstanceProfile               types.String `tfsdk:"instance_profile"`
+	Tags                          types.Map    `tfsdk:"tags"`
+	AdditionalSecurityGroupIds    types.List   `tfsdk:"additional_security_group_ids"`
+	Ec2MetadataHttpTokens         types.String `tfsdk:"ec2_metadata_http_tokens"`
+	DiskSize                      types.Int64  `tfsdk:"disk_size"`
+	CapacityReservationId         types.String `tfsdk:"capacity_reservation_id"`
+	CapacityReservationPreference types.String `tfsdk:"capacity_reservation_preference"`
 }
 
 func AwsNodePoolResource() map[string]schema.Attribute {
@@ -75,9 +76,23 @@ func AwsNodePoolResource() map[string]schema.Attribute {
 			},
 		},
 		"capacity_reservation_id": schema.StringAttribute{
-			Description: "The ID of the AWS Capacity Reservation to use for the node pool. " +
-				"Cannot be set when autoscaling is enabled. " + common.ValueCannotBeChangedStringDescription,
+			Description: "The ID of the AWS Capacity Reservation to use for the node pool. " + common.ValueCannotBeChangedStringDescription,
+			Optional:    true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
+			},
+		},
+		"capacity_reservation_preference": schema.StringAttribute{
+			Description: "The preference for using AWS Capacity Reservations. Valid values are 'none', 'open', or" +
+				" 'capacity-reservations-only'. The preference controls how the node pool utilizes available " +
+				"capacity reservations. " + common.ValueCannotBeChangedStringDescription,
 			Optional: true,
+			Computed: true,
+			Validators: []validator.String{attrvalidators.EnumValueValidator([]string{
+				"none",
+				"open",
+				"capacity-reservations-only",
+			})},
 			PlanModifiers: []planmodifier.String{
 				stringplanmodifier.UseStateForUnknown(),
 			},
@@ -122,6 +137,13 @@ func AwsNodePoolDatasource() map[string]dsschema.Attribute {
 			Description: "The ID of the AWS Capacity Reservation used for the node pool.",
 			Optional:    true,
 			Computed:    true,
+			Default:     nil,
+		},
+		"capacity_reservation_preference": schema.StringAttribute{
+			Description: "The preference for using AWS Capacity Reservations. Valid values are 'none', 'open', or 'capacity-reservations-only'.",
+			Optional:    true,
+			Computed:    true,
+			Default:     nil,
 		},
 	}
 }

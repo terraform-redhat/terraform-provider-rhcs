@@ -226,8 +226,6 @@ func (r *HcpMachinePoolResource) ConfigValidators(context.Context) []resource.Co
 		resourcevalidator.RequiredTogether(path.MatchRoot("autoscaling").AtName("min_replicas"), path.MatchRoot("autoscaling").AtName("max_replicas")),
 		resourcevalidator.Conflicting(path.MatchRoot("replicas"), path.MatchRoot("autoscaling").AtName("min_replicas")),
 		resourcevalidator.Conflicting(path.MatchRoot("replicas"), path.MatchRoot("autoscaling").AtName("max_replicas")),
-		resourcevalidator.Conflicting(path.MatchRoot("aws_node_pool").AtName("capacity_reservation_id"), path.MatchRoot("autoscaling").AtName("min_replicas")),
-		resourcevalidator.Conflicting(path.MatchRoot("aws_node_pool").AtName("capacity_reservation_id"), path.MatchRoot("autoscaling").AtName("max_replicas")),
 	}
 }
 
@@ -336,9 +334,33 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 			awsNodePoolBuilder.RootVolume(cmv1.NewAWSVolume().Size(int(*workerDiskSize)))
 		}
 
+		// Validate capacity reservation preference + ID combination
+		capResId := ""
+		capResPref := ""
+		if !common.IsStringAttributeUnknownOrEmpty(plan.AWSNodePool.CapacityReservationId) {
+			capResId = plan.AWSNodePool.CapacityReservationId.ValueString()
+		}
+		if !common.IsStringAttributeUnknownOrEmpty(plan.AWSNodePool.CapacityReservationPreference) {
+			capResPref = plan.AWSNodePool.CapacityReservationPreference.ValueString()
+		}
+
+		if err := validateCapacityReservationPreferenceWithId(capResId, capResPref); err != nil {
+			resp.Diagnostics.AddError(
+				"Invalid capacity reservation configuration",
+				err.Error(),
+			)
+			return
+		}
+
 		if !common.IsStringAttributeUnknownOrEmpty(plan.AWSNodePool.CapacityReservationId) {
 			capacityReservationBuilder := cmv1.NewAWSCapacityReservation()
 			capacityReservationBuilder.Id(plan.AWSNodePool.CapacityReservationId.ValueString())
+
+			if !common.IsStringAttributeUnknownOrEmpty(plan.AWSNodePool.CapacityReservationPreference) {
+				capacityReservationBuilder.Preference(
+					cmv1.CapacityReservationPreference(plan.AWSNodePool.CapacityReservationPreference.ValueString()))
+			}
+
 			awsNodePoolBuilder.CapacityReservation(capacityReservationBuilder)
 		}
 
@@ -712,7 +734,6 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 	stateCapRes := state.AWSNodePool.CapacityReservationId
 	planCapRes := plan.AWSNodePool.CapacityReservationId
 
-	// Detect any change in capacity reservation ID, and error if so
 	if (!stateCapRes.IsNull() && planCapRes.IsNull()) ||
 		(stateCapRes.IsNull() && !planCapRes.IsNull()) ||
 		(!stateCapRes.IsNull() && !planCapRes.IsNull() && !stateCapRes.Equal(planCapRes)) {
@@ -729,6 +750,37 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 		diags.AddError(
 			"Can't update machinepool",
 			fmt.Sprintf("Capacity Reservation ID cannot be modified after it's creation (old value: '%s', "+
+				"new value: '%s')", stateValue, planValue),
+		)
+		return diags
+	}
+
+	stateCapResPref := state.AWSNodePool.CapacityReservationPreference
+	planCapResPref := plan.AWSNodePool.CapacityReservationPreference
+
+	stateNormalized := ""
+	if !stateCapResPref.IsNull() && stateCapResPref.ValueString() != "" {
+		stateNormalized = stateCapResPref.ValueString()
+	}
+
+	planNormalized := ""
+	if !planCapResPref.IsNull() && planCapResPref.ValueString() != "" {
+		planNormalized = planCapResPref.ValueString()
+	}
+
+	if stateNormalized != planNormalized {
+		stateValue := "null"
+		planValue := "null"
+		if !stateCapResPref.IsNull() && stateCapResPref.ValueString() != "" {
+			stateValue = stateCapResPref.ValueString()
+		}
+		if !planCapResPref.IsNull() && planCapResPref.ValueString() != "" {
+			planValue = planCapResPref.ValueString()
+		}
+
+		diags.AddError(
+			"Can't update machinepool",
+			fmt.Sprintf("Capacity Reservation Preference cannot be modified after it's creation (old value: '%s', "+
 				"new value: '%s')", stateValue, planValue),
 		)
 		return diags
@@ -1254,9 +1306,17 @@ func populateState(ctx context.Context, object *cmv1.NodePool, state *HcpMachine
 		if capacityReservation, ok := awsNodePool.GetCapacityReservation(); ok {
 			if capacityReservationId, ok := capacityReservation.GetId(); ok {
 				state.AWSNodePool.CapacityReservationId = types.StringValue(capacityReservationId)
+			} else {
+				state.AWSNodePool.CapacityReservationId = types.StringNull()
+			}
+			if preference, ok := capacityReservation.GetPreference(); ok {
+				state.AWSNodePool.CapacityReservationPreference = types.StringValue(string(preference))
+			} else {
+				state.AWSNodePool.CapacityReservationPreference = types.StringNull()
 			}
 		} else {
 			state.AWSNodePool.CapacityReservationId = types.StringNull()
+			state.AWSNodePool.CapacityReservationPreference = types.StringNull()
 		}
 	}
 
@@ -1389,4 +1449,14 @@ func shouldPatchTaints(a, b []Taints) bool {
 		}
 	}
 	return false
+}
+
+func validateCapacityReservationPreferenceWithId(capResId, preference string) error {
+	// If capacity reservation ID is provided, only "capacity-reservations-only" preference is allowed
+	if capResId != "" && preference != "" && preference != "capacity-reservations-only" {
+		return fmt.Errorf("invalid capacity reservation preference '%s'. "+
+			"When specifying a capacity reservation ID ('%s'), you may only provide the "+
+			"'capacity-reservations-only' preference", preference, capResId)
+	}
+	return nil
 }

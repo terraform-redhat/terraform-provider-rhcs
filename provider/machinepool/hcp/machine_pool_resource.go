@@ -364,6 +364,10 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 			awsNodePoolBuilder.CapacityReservation(capacityReservationBuilder)
 		}
 
+		if !common.IsStringAttributeUnknownOrEmpty(plan.AWSNodePool.ImageType) {
+			builder.ImageType(cmv1.ImageType(plan.AWSNodePool.ImageType.ValueString()))
+		}
+
 		builder.AWSNodePool(awsNodePoolBuilder)
 	}
 
@@ -651,6 +655,7 @@ func validateNoImmutableAttChange(state, plan *HcpMachinePoolState) diag.Diagnos
 		validateStateAndPlanEquals(state.AWSNodePool.Ec2MetadataHttpTokens, plan.AWSNodePool.Ec2MetadataHttpTokens,
 			"aws_node_pool.ec2_metadata_http_tokens", &diags)
 		validateStateAndPlanEquals(state.AWSNodePool.DiskSize, plan.AWSNodePool.DiskSize, "aws_node_pool.disk_size", &diags)
+		validateStateAndPlanEquals(state.AWSNodePool.ImageType, plan.AWSNodePool.ImageType, "aws_node_pool.image_type", &diags)
 	}
 	return diags
 }
@@ -1317,6 +1322,17 @@ func populateState(ctx context.Context, object *cmv1.NodePool, state *HcpMachine
 		} else {
 			state.AWSNodePool.CapacityReservationId = types.StringNull()
 			state.AWSNodePool.CapacityReservationPreference = types.StringNull()
+		}
+	}
+
+	if imageType, ok := object.GetImageType(); ok {
+		if state.AWSNodePool == nil {
+			state.AWSNodePool = new(AWSNodePool)
+		}
+		state.AWSNodePool.ImageType = types.StringValue(string(imageType))
+	} else {
+		if state.AWSNodePool != nil {
+			state.AWSNodePool.ImageType = types.StringNull()
 		}
 	}
 

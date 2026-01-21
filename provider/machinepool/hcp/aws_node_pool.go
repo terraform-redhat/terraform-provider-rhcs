@@ -25,6 +25,7 @@ type AWSNodePool struct {
 	DiskSize                      types.Int64  `tfsdk:"disk_size"`
 	CapacityReservationId         types.String `tfsdk:"capacity_reservation_id"`
 	CapacityReservationPreference types.String `tfsdk:"capacity_reservation_preference"`
+	ImageType                     types.String `tfsdk:"image_type"`
 }
 
 func AwsNodePoolResource() map[string]schema.Attribute {
@@ -97,6 +98,19 @@ func AwsNodePoolResource() map[string]schema.Attribute {
 				stringplanmodifier.UseStateForUnknown(),
 			},
 		},
+		"image_type": schema.StringAttribute{
+			Description: "The image type to use for the node pool. Valid values are 'Default' or 'Windows'. " +
+				common.ValueCannotBeChangedStringDescription,
+			Optional: true,
+			Computed: true,
+			Validators: []validator.String{attrvalidators.EnumValueValidator([]string{
+				string(cmv1.ImageTypeDefault),
+				string(cmv1.ImageTypeWindows),
+			})},
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
+			},
+		},
 	}
 }
 
@@ -144,6 +158,11 @@ func AwsNodePoolDatasource() map[string]dsschema.Attribute {
 			Optional:    true,
 			Computed:    true,
 			Default:     nil,
+		},
+		"image_type": schema.StringAttribute{
+			Description: "The image type used for the node pool. Valid values are 'Default' or 'Windows'.",
+			Optional:    true,
+			Computed:    true,
 		},
 	}
 }

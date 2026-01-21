@@ -66,6 +66,7 @@ Optional:
 
 - `additional_security_group_ids` (List of String) Additional security group ids. After the creation of the resource, it is not possible to update the attribute value.
 - `capacity_reservation_id` (String) The ID of the AWS Capacity Reservation used for the node pool.
+- `capacity_reservation_preference` (String) The preference for using AWS Capacity Reservations. Valid values are 'none', 'open', or 'capacity-reservations-only'.
 - `disk_size` (Number) The root disk size, in GiB.
 - `ec2_metadata_http_tokens` (String) This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the nodes.This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). This feature is available from After the creation of the resource, it is not possible to update the attribute value.
 - `tags` (Map of String) Apply user defined tags to all machine pool resources created in AWS. After the creation of the resource, it is not possible to update the attribute value.

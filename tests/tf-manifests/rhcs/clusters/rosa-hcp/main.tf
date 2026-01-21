@@ -78,13 +78,13 @@ resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
   lifecycle {
     ignore_changes = [availability_zones]
   }
-  aws_additional_compute_security_group_ids       = var.additional_compute_security_groups
-  wait_for_create_complete                        = var.wait_for_cluster
-  wait_for_std_compute_nodes_complete             = var.wait_for_cluster
-  disable_waiting_in_destroy                      = var.disable_waiting_in_destroy
-  registry_config                                 = var.registry_config
-  worker_disk_size                                = var.worker_disk_size
-  external_auth_providers_enabled                 = var.external_auth_providers_enabled
+  aws_additional_compute_security_group_ids = var.additional_compute_security_groups
+  wait_for_create_complete                  = var.wait_for_cluster
+  wait_for_std_compute_nodes_complete       = var.wait_for_cluster
+  disable_waiting_in_destroy                = var.disable_waiting_in_destroy
+  registry_config                           = var.registry_config
+  worker_disk_size                          = var.worker_disk_size
+  external_auth_providers_enabled           = var.external_auth_providers_enabled
 }
 
 resource "rhcs_cluster_wait" "rosa_cluster" { # id: 71869

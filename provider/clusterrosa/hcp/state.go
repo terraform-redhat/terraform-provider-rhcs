@@ -77,4 +77,7 @@ type ClusterRosaHcpState struct {
 
 	// External authentication fields
 	ExternalAuthProvidersEnabled types.Bool `tfsdk:"external_auth_providers_enabled"`
+
+	// Delete protection fields
+	DeleteProtection types.Bool `tfsdk:"delete_protection"`
 }

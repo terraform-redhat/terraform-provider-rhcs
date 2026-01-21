@@ -34,12 +34,12 @@ output "configured_image_mirrors" {
   description = "Details of all configured image mirrors"
   value = {
     for source, mirror in rhcs_image_mirror.cluster_mirrors : source => {
-      id                     = mirror.id
-      source                 = mirror.source
-      mirrors                = mirror.mirrors
-      type                   = mirror.type
-      creation_timestamp     = mirror.creation_timestamp
-      last_update_timestamp  = mirror.last_update_timestamp
+      id                    = mirror.id
+      source                = mirror.source
+      mirrors               = mirror.mirrors
+      type                  = mirror.type
+      creation_timestamp    = mirror.creation_timestamp
+      last_update_timestamp = mirror.last_update_timestamp
     }
   }
 }
@@ -70,7 +70,7 @@ output "deployment_summary" {
       region = rhcs_cluster_rosa_hcp.cluster.cloud_region
     }
     image_mirrors = {
-      count = length(rhcs_image_mirror.cluster_mirrors)
+      count   = length(rhcs_image_mirror.cluster_mirrors)
       sources = keys(rhcs_image_mirror.cluster_mirrors)
     }
   }

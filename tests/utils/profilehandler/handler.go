@@ -726,7 +726,7 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 		if ctx.profile.SharedVpc {
 			// FIXME:
 			//  Now tracked on OCM-19946
-			//	
+			//
 			//  To create Shared-VPC compatible policies, we need to pass a role arn to create_account_roles module.
 			//  But we got an chicken-egg prolems here:
 			//		* The Shared-VPC compatible policie requries installer role

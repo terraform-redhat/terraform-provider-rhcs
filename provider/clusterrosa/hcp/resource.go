@@ -38,6 +38,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
@@ -419,6 +420,13 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
 				},
+			},
+			"delete_protection": schema.BoolAttribute{
+				Description: "Enable delete protection to prevent accidental cluster deletion. " +
+					"When enabled, the cluster cannot be deleted until this is set to false.",
+				Optional: true,
+				Computed: true,
+				Default:  booldefault.StaticBool(false),
 			},
 		},
 	}
@@ -892,6 +900,57 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 		return
 	}
 
+	// Set delete protection if specified
+	deleteProtectionEnabled := false
+	if common.HasValue(state.DeleteProtection) && state.DeleteProtection.ValueBool() {
+		deleteProtectionBuilder := cmv1.NewDeleteProtection().Enabled(true)
+		deleteProtection, err := deleteProtectionBuilder.Build()
+		if err != nil {
+			response.Diagnostics.AddWarning(
+				"Failed to build delete protection",
+				fmt.Sprintf("Failed to build delete protection object: %v", err),
+			)
+			// Keep state as requested (true) to avoid Terraform inconsistency
+			// Will be corrected on next Read
+		} else {
+			_, err = r.ClusterCollection.Cluster(state.ID.ValueString()).
+				DeleteProtection().
+				Update().
+				Body(deleteProtection).
+				SendContext(ctx)
+			if err != nil {
+				// Log warning but don't fail cluster creation
+				tflog.Warn(ctx, fmt.Sprintf("Failed to enable delete protection for cluster %s: %v",
+					state.ID.ValueString(), err))
+				response.Diagnostics.AddWarning(
+					"Failed to enable delete protection",
+					fmt.Sprintf("Cluster created successfully but failed to enable delete protection: %v", err),
+				)
+				// Keep state as requested (true) to avoid Terraform inconsistency
+				// Will be corrected on next Read
+			} else {
+				tflog.Debug(ctx, fmt.Sprintf("Enabled delete protection for cluster %s", state.ID.ValueString()))
+				deleteProtectionEnabled = true
+			}
+		}
+	}
+
+	// Read actual delete protection status only if we successfully enabled it
+	// This ensures state matches reality when the operation succeeded
+	// If it failed, we keep the state as requested to avoid Terraform inconsistency
+	if deleteProtectionEnabled {
+		deleteProtectionResp, err := r.ClusterCollection.Cluster(state.ID.ValueString()).
+			DeleteProtection().
+			Get().
+			SendContext(ctx)
+		if err == nil && deleteProtectionResp.Body() != nil {
+			state.DeleteProtection = types.BoolValue(deleteProtectionResp.Body().Enabled())
+		}
+	} else if !common.HasValue(state.DeleteProtection) {
+		// Default to false if not specified
+		state.DeleteProtection = types.BoolValue(false)
+	}
+
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
 }
@@ -928,6 +987,21 @@ func (r *ClusterRosaHcpResource) Read(ctx context.Context, request resource.Read
 	}
 
 	object := get.Body()
+
+	// Read delete protection status
+	deleteProtectionResp, err := r.ClusterCollection.Cluster(state.ID.ValueString()).
+		DeleteProtection().
+		Get().
+		SendContext(ctx)
+	if err == nil && deleteProtectionResp.Body() != nil {
+		state.DeleteProtection = types.BoolValue(deleteProtectionResp.Body().Enabled())
+	} else {
+		// Default to false if we can't read it (may not be supported or permission issue)
+		state.DeleteProtection = types.BoolValue(false)
+		if err != nil {
+			tflog.Debug(ctx, fmt.Sprintf("Could not read delete protection status: %v", err))
+		}
+	}
 
 	// Save the state:
 	err = populateRosaHcpClusterState(ctx, object, state)
@@ -1107,6 +1181,41 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 		clusterBuilder.Version(vBuilder)
 
 		tflog.Debug(ctx, fmt.Sprintf("Updating channel group from %s to %s", state.ChannelGroup.ValueString(), newChannelGroup))
+	}
+
+	// Handle delete protection changes
+	if !state.DeleteProtection.Equal(plan.DeleteProtection) {
+		deleteProtectionBuilder := cmv1.NewDeleteProtection().
+			Enabled(plan.DeleteProtection.ValueBool())
+		deleteProtection, err := deleteProtectionBuilder.Build()
+		if err != nil {
+			response.Diagnostics.AddError(
+				"Can't build delete protection",
+				fmt.Sprintf(
+					"Can't build delete protection object for cluster with identifier: `%s`, %v",
+					state.ID.ValueString(), err,
+				),
+			)
+			return
+		}
+
+		_, err = r.ClusterCollection.Cluster(state.ID.ValueString()).
+			DeleteProtection().
+			Update().
+			Body(deleteProtection).
+			SendContext(ctx)
+		if err != nil {
+			response.Diagnostics.AddError(
+				"Can't update delete protection",
+				fmt.Sprintf(
+					"Can't update delete protection for cluster with identifier: `%s`, %v",
+					state.ID.ValueString(), err,
+				),
+			)
+			return
+		}
+		tflog.Debug(ctx, fmt.Sprintf("Updated delete protection from %v to %v",
+			state.DeleteProtection.ValueBool(), plan.DeleteProtection.ValueBool()))
 	}
 
 	clusterBuilder, err := updateProxy(state, plan, clusterBuilder)
@@ -1412,9 +1521,50 @@ func (r *ClusterRosaHcpResource) Delete(ctx context.Context, request resource.De
 		return
 	}
 
+	// Check and disable delete protection if enabled
+	deleteProtectionResp, err := r.ClusterCollection.Cluster(state.ID.ValueString()).
+		DeleteProtection().
+		Get().
+		SendContext(ctx)
+	if err == nil && deleteProtectionResp.Body() != nil && deleteProtectionResp.Body().Enabled() {
+		tflog.Debug(ctx, fmt.Sprintf("Delete protection is enabled for cluster %s, disabling it first",
+			state.ID.ValueString()))
+
+		// Disable delete protection first
+		deleteProtectionBuilder := cmv1.NewDeleteProtection().Enabled(false)
+		deleteProtection, err := deleteProtectionBuilder.Build()
+		if err != nil {
+			response.Diagnostics.AddError(
+				"Can't build delete protection",
+				fmt.Sprintf(
+					"Can't build delete protection object for cluster '%s': %v",
+					state.ID.ValueString(), err,
+				),
+			)
+			return
+		}
+		_, err = r.ClusterCollection.Cluster(state.ID.ValueString()).
+			DeleteProtection().
+			Update().
+			Body(deleteProtection).
+			SendContext(ctx)
+		if err != nil {
+			response.Diagnostics.AddError(
+				"Can't disable delete protection",
+				fmt.Sprintf(
+					"Delete protection is enabled. Failed to disable it for cluster '%s': %v. "+
+						"Please disable delete protection manually before destroying the cluster.",
+					state.ID.ValueString(), err,
+				),
+			)
+			return
+		}
+		tflog.Debug(ctx, "Delete protection disabled successfully")
+	}
+
 	// Send the request to delete the cluster:
 	resource := r.ClusterCollection.Cluster(state.ID.ValueString())
-	_, err := resource.Delete().SendContext(ctx)
+	_, err = resource.Delete().SendContext(ctx)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't delete cluster",

@@ -88,17 +88,17 @@ func (d *ImageMirrorDataSource) Configure(ctx context.Context, req datasource.Co
 }
 
 type ImageMirrorDataSourceModel struct {
-	ClusterID    types.String        `tfsdk:"cluster_id"`
-	ImageMirrors []ImageMirrorModel  `tfsdk:"image_mirrors"`
+	ClusterID    types.String       `tfsdk:"cluster_id"`
+	ImageMirrors []ImageMirrorModel `tfsdk:"image_mirrors"`
 }
 
 type ImageMirrorModel struct {
-	ID                   types.String `tfsdk:"id"`
-	Type                 types.String `tfsdk:"type"`
-	Source               types.String `tfsdk:"source"`
-	Mirrors              types.List   `tfsdk:"mirrors"`
-	CreationTimestamp    types.String `tfsdk:"creation_timestamp"`
-	LastUpdateTimestamp  types.String `tfsdk:"last_update_timestamp"`
+	ID                  types.String `tfsdk:"id"`
+	Type                types.String `tfsdk:"type"`
+	Source              types.String `tfsdk:"source"`
+	Mirrors             types.List   `tfsdk:"mirrors"`
+	CreationTimestamp   types.String `tfsdk:"creation_timestamp"`
+	LastUpdateTimestamp types.String `tfsdk:"last_update_timestamp"`
 }
 
 func (d *ImageMirrorDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {

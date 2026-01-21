@@ -15,7 +15,7 @@ import (
 
 var _ = Describe("Image Mirror Resource", func() {
 	Context("Image Mirror CRUD operations", func() {
-		
+
 		// Create a simple cluster template for testing
 		var template string
 		BeforeEach(func() {
@@ -26,13 +26,13 @@ var _ = Describe("Image Mirror Resource", func() {
 				Hypershift(cmv1.NewHypershift().Enabled(true)).
 				Build()
 			Expect(err).ToNot(HaveOccurred())
-			
+
 			var b strings.Builder
 			err = cmv1.MarshalCluster(cluster, &b)
 			Expect(err).ToNot(HaveOccurred())
 			template = b.String()
 		})
-		
+
 		It("Creates and manages image mirror for HCP cluster", func() {
 			// Prepare the server for cluster validation:
 			TestServer.AppendHandlers(
@@ -67,16 +67,15 @@ var _ = Describe("Image Mirror Resource", func() {
 					"backup.corp.com/team"
 				]
 			}`)
-			
+
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
-			
+
 			resource := Terraform.Resource("rhcs_image_mirror", "corp_registry")
 			Expect(resource).To(MatchJQ(`.attributes.id`, "12345"))
 			Expect(resource).To(MatchJQ(`.attributes.source`, "registry.example.com/team"))
 			Expect(resource).To(MatchJQ(`.attributes.mirrors[0]`, "mirror.corp.com/team"))
 		})
-
 
 		It("Validates cluster is HCP enabled", func() {
 			// Create non-HCP cluster template
@@ -87,7 +86,7 @@ var _ = Describe("Image Mirror Resource", func() {
 				Hypershift(cmv1.NewHypershift().Enabled(false)).
 				Build()
 			Expect(err).ToNot(HaveOccurred())
-			
+
 			var b strings.Builder
 			err = cmv1.MarshalCluster(nonHcpCluster, &b)
 			Expect(err).ToNot(HaveOccurred())
@@ -106,7 +105,7 @@ var _ = Describe("Image Mirror Resource", func() {
 				source     = "registry.example.com/team"
 				mirrors    = ["mirror.corp.com/team"]
 			}`)
-			
+
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).ToNot(BeZero())
 			runOutput.VerifyErrorContainsSubstring("Image mirrors are only supported on Hosted Control Plane clusters")
@@ -121,7 +120,7 @@ var _ = Describe("Image Mirror Resource", func() {
 				Hypershift(cmv1.NewHypershift().Enabled(true)).
 				Build()
 			Expect(err).ToNot(HaveOccurred())
-			
+
 			var b strings.Builder
 			err = cmv1.MarshalCluster(installingCluster, &b)
 			Expect(err).ToNot(HaveOccurred())
@@ -140,7 +139,7 @@ var _ = Describe("Image Mirror Resource", func() {
 				source     = "registry.example.com/team"
 				mirrors    = ["mirror.corp.com/team"]
 			}`)
-			
+
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).ToNot(BeZero())
 			runOutput.VerifyErrorContainsSubstring("is not ready")

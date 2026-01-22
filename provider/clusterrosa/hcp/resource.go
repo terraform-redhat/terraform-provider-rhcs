@@ -231,6 +231,11 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 					"(optional). " + common.ValueCannotBeChangedStringDescription,
 				Optional: true,
 			},
+			"audit_log_arn": schema.StringAttribute{
+				Description: "Used for audit log forwarding. The ARN is the Amazon Resource Name (ARN) of an IAM role that has permissions " +
+					"to send audit logs to a CloudWatch Logs log group. " + common.ValueCannotBeChangedStringDescription,
+				Optional: true,
+			},
 			"private": schema.BoolAttribute{
 				Description: "Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
@@ -557,6 +562,7 @@ func createHcpClusterObject(ctx context.Context,
 	ec2MetadataHttpTokens := common.OptionalString(state.Ec2MetadataHttpTokens)
 	kmsKeyARN := common.OptionalString(state.KMSKeyArn)
 	etcdKmsKeyArn := common.OptionalString(state.EtcdKmsKeyArn)
+	auditLogArn := common.OptionalString(state.AuditLogArn)
 	awsAccountID := common.OptionalString(state.AWSAccountID)
 	awsBillingAccountId := common.OptionalString(state.AWSBillingAccountID)
 
@@ -599,7 +605,7 @@ func createHcpClusterObject(ctx context.Context,
 	}
 
 	if err := ocmClusterResource.CreateAWSBuilder(rosaTypes.Hcp, awsTags, ec2MetadataHttpTokens,
-		kmsKeyARN, etcdKmsKeyArn,
+		kmsKeyARN, etcdKmsKeyArn, auditLogArn,
 		isPrivate, awsAccountID, awsBillingAccountId, stsBuilder, awsSubnetIDs,
 		ingressHostedZoneId, route53RoleArn, internalCommunicationHostedZoneId, vpceRoleArn,
 		awsAdditionalComputeSecurityGroupIds, nil, nil, awsAdditionalAllowedPrincipals); err != nil {
@@ -957,6 +963,7 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaHcpState) diag.Diagnos
 	common.ValidateStateAndPlanEquals(state.EtcdEncryption, plan.EtcdEncryption, "etcd_encryption", &diags)
 	common.ValidateStateAndPlanEquals(state.KMSKeyArn, plan.KMSKeyArn, "kms_key_arn", &diags)
 	common.ValidateStateAndPlanEquals(state.EtcdKmsKeyArn, plan.EtcdKmsKeyArn, "etcd_kms_key_arn", &diags)
+	common.ValidateStateAndPlanEquals(state.AuditLogArn, plan.AuditLogArn, "audit_log_arn", &diags)
 	common.ValidateStateAndPlanEquals(state.Private, plan.Private, "private", &diags)
 	common.ValidateStateAndPlanEquals(state.MachineCIDR, plan.MachineCIDR, "machine_cidr", &diags)
 	common.ValidateStateAndPlanEquals(state.ServiceCIDR, plan.ServiceCIDR, "service_cidr", &diags)
@@ -1546,6 +1553,13 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 		etcdKmsKeyArn, ok := object.AWS().EtcdEncryption().GetKMSKeyARN()
 		if ok {
 			state.EtcdKmsKeyArn = types.StringValue(etcdKmsKeyArn)
+		}
+	}
+	auditLog, ok := object.AWS().GetAuditLog()
+	if ok {
+		auditLogArn, ok := auditLog.GetRoleArn()
+		if ok && auditLogArn != "" {
+			state.AuditLogArn = types.StringValue(auditLogArn)
 		}
 	}
 

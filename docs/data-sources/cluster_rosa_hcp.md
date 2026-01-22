@@ -35,6 +35,7 @@ data "rhcs_cluster_rosa_hcp" "cluster" {
 
 - `admin_credentials` (Attributes) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource (see [below for nested schema](#nestedatt--admin_credentials))
 - `api_url` (String) URL of the API server.
+- `audit_log_arn` (String) Used for audit log forwarding. The ARN is the Amazon Resource Name (ARN) of an IAM role that has permissions to send audit logs to a CloudWatch Logs log group. After the creation of the resource, it is not possible to update the attribute value.
 - `availability_zones` (List of String) Availability zones. This attribute specifically applies to the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the initial Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)
 - `aws_account_id` (String) Identifier of the AWS account. After the creation of the resource, it is not possible to update the attribute value.
 - `aws_additional_allowed_principals` (List of String) AWS additional allowed principals.

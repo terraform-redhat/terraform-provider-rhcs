@@ -138,7 +138,7 @@ func (c *Cluster) CreateNodes(clusterTopology rosaTypes.ClusterTopology, autoSca
 
 func (c *Cluster) CreateAWSBuilder(clusterTopology rosaTypes.ClusterTopology,
 	awsTags map[string]string, ec2MetadataHttpTokens *string,
-	rootVolumeKmsKeyArn *string, etcdKmsKeyArn *string,
+	rootVolumeKmsKeyArn *string, etcdKmsKeyArn *string, auditLogRoleArn *string,
 	isPrivateLink bool, awsAccountID *string, awsBillingAccountId *string,
 	stsBuilder *cmv1.STSBuilder, awsSubnetIDs []string,
 	privateHostedZoneID *string, privateHostedZoneRoleARN *string,
@@ -184,6 +184,10 @@ func (c *Cluster) CreateAWSBuilder(clusterTopology rosaTypes.ClusterTopology,
 		if awsBillingAccountId != nil {
 			awsBuilder.BillingAccountID(*awsBillingAccountId)
 		}
+	}
+
+	if auditLogRoleArn != nil {
+		awsBuilder.AuditLog(cmv1.NewAuditLog().RoleArn(*auditLogRoleArn))
 	}
 
 	if awsAccountID != nil {

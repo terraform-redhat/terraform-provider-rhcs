@@ -30,6 +30,7 @@ type ClusterRosaHcpState struct {
 	CloudRegion                          types.String `tfsdk:"cloud_region"`
 	KMSKeyArn                            types.String `tfsdk:"kms_key_arn"`
 	EtcdKmsKeyArn                        types.String `tfsdk:"etcd_kms_key_arn"`
+	AuditLogArn                          types.String `tfsdk:"audit_log_arn"`
 	Tags                                 types.Map    `tfsdk:"tags"`
 	AWSAdditionalComputeSecurityGroupIds types.List   `tfsdk:"aws_additional_compute_security_group_ids"`
 	AWSAdditionalAllowedPrincipals       types.List   `tfsdk:"aws_additional_allowed_principals"`

@@ -158,6 +158,11 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 					"(optional). " + common.ValueCannotBeChangedStringDescription,
 				Computed: true,
 			},
+			"audit_log_arn": schema.StringAttribute{
+				Description: "Used for audit log forwarding. The ARN is the Amazon Resource Name (ARN) of an IAM role that has permissions " +
+					"to send audit logs to a CloudWatch Logs log group. " + common.ValueCannotBeChangedStringDescription,
+				Computed: true,
+			},
 			"private": schema.BoolAttribute{
 				Description: "Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet. " + common.ValueCannotBeChangedStringDescription,
 				Computed:    true,

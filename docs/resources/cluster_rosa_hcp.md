@@ -59,6 +59,7 @@ resource "rhcs_cluster_rosa_hcp" "rosa_sts_cluster" {
 ### Optional
 
 - `admin_credentials` (Attributes) Admin user credentials. After the creation of the resource, it is not possible to update the attribute value. (see [below for nested schema](#nestedatt--admin_credentials))
+- `audit_log_arn` (String) Used for audit log forwarding. The ARN is the Amazon Resource Name (ARN) of an IAM role that has permissions to send audit logs to a CloudWatch Logs log group. After the creation of the resource, it is not possible to update the attribute value.
 - `aws_additional_allowed_principals` (List of String) AWS additional allowed principals.
 - `aws_additional_compute_security_group_ids` (List of String) AWS additional compute security group ids.
 - `aws_billing_account_id` (String) Identifier of the AWS account for billing. After the creation of the resource, it is not possible to update the attribute value.

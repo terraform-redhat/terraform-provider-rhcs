@@ -656,7 +656,7 @@ func createClassicClusterObject(ctx context.Context,
 		return nil, err
 	}
 	if err := ocmClusterResource.CreateAWSBuilder(rosaTypes.Classic, awsTags, ec2MetadataHttpTokens,
-		kmsKeyARN, nil,
+		kmsKeyARN, nil, nil,
 		isPrivateLink, awsAccountID, nil, stsBuilder, awsSubnetIDs,
 		privateHostedZoneID, privateHostedZoneRoleARN, nil, nil,
 		awsAdditionalComputeSecurityGroupIds, awsAdditionalInfraSecurityGroupIds,

@@ -1003,6 +1003,7 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaClassicState) diag.Dia
 	common.ValidateStateAndPlanEquals(state.Sts.InstanceIAMRoles.WorkerRoleARN, plan.Sts.InstanceIAMRoles.WorkerRoleARN, "sts.instance_iam_roles.worker_role_arn", &diags)
 	common.ValidateStateAndPlanEquals(state.Sts.OIDCConfigID, plan.Sts.OIDCConfigID, "sts.oidc_config_id", &diags)
 	common.ValidateStateAndPlanEquals(state.Sts.OperatorRolePrefix, plan.Sts.OperatorRolePrefix, "sts.operator_role_prefix", &diags)
+	common.ValidateStateAndPlanEquals(state.Sts.TrustPolicyExternalID, plan.Sts.TrustPolicyExternalID, "sts.trust_policy_external_id", &diags)
 
 	// security group's attributes
 	common.ValidateStateAndPlanEquals(state.AWSAdditionalControlPlaneSecurityGroupIds, plan.AWSAdditionalControlPlaneSecurityGroupIds, "aws_additional_control_plane_security_group_ids", &diags)
@@ -1619,16 +1620,6 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		oidcConfig, ok := stsState.GetOidcConfig()
 		if ok && oidcConfig != nil {
 			state.Sts.OIDCConfigID = types.StringValue(oidcConfig.ID())
-		}
-		externalID, ok := stsState.GetExternalID()
-		if ok && externalID != "" {
-			state.Sts.TrustPolicyExternalID = types.StringValue(externalID)
-		} else {
-			state.Sts.TrustPolicyExternalID = types.StringNull()
-		}
-	} else {
-		if state.Sts != nil {
-			state.Sts.TrustPolicyExternalID = types.StringNull()
 		}
 	}
 

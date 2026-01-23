@@ -141,6 +141,10 @@ Read-Only:
 <a id="nestedatt--sts"></a>
 ### Nested Schema for `sts`
 
+Optional:
+
+- `trust_policy_external_id` (String) External ID for trust policy condition in account roles
+
 Read-Only:
 
 - `instance_iam_roles` (Attributes) Instance IAM Roles (see [below for nested schema](#nestedatt--sts--instance_iam_roles))

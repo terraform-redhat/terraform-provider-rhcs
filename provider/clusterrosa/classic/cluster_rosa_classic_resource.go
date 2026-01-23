@@ -648,7 +648,8 @@ func createClassicClusterObject(ctx context.Context,
 	if state.Sts != nil {
 		stsBuilder = ocmr.CreateSTS(state.Sts.RoleARN.ValueString(), state.Sts.SupportRoleArn.ValueString(),
 			state.Sts.InstanceIAMRoles.MasterRoleARN.ValueStringPointer(), state.Sts.InstanceIAMRoles.WorkerRoleARN.ValueString(),
-			state.Sts.OperatorRolePrefix.ValueString(), common.OptionalString(state.Sts.OIDCConfigID))
+			state.Sts.OperatorRolePrefix.ValueString(), common.OptionalString(state.Sts.OIDCConfigID),
+			common.OptionalString(state.Sts.TrustPolicyExternalID))
 	}
 
 	awsTags, err := common.OptionalMap(ctx, state.Tags)
@@ -1618,6 +1619,16 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		oidcConfig, ok := stsState.GetOidcConfig()
 		if ok && oidcConfig != nil {
 			state.Sts.OIDCConfigID = types.StringValue(oidcConfig.ID())
+		}
+		externalID, ok := stsState.GetExternalID()
+		if ok && externalID != "" {
+			state.Sts.TrustPolicyExternalID = types.StringValue(externalID)
+		} else {
+			state.Sts.TrustPolicyExternalID = types.StringNull()
+		}
+	} else {
+		if state.Sts != nil {
+			state.Sts.TrustPolicyExternalID = types.StringNull()
 		}
 	}
 

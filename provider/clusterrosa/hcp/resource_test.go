@@ -351,4 +351,39 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 			Expect(user.HashedPassword()).NotTo(Equal(password))
 		})
 	})
+
+	Context("STS Trust Policy External ID", func() {
+		It("Should support trust_policy_external_id in HcpSts struct", func() {
+			stsConfig := sts.HcpSts{
+				TrustPolicyExternalID: types.StringValue("external-id-67890"),
+			}
+			
+			Expect(stsConfig.TrustPolicyExternalID.ValueString()).To(Equal("external-id-67890"))
+			Expect(stsConfig.TrustPolicyExternalID.IsNull()).To(BeFalse())
+		})
+
+		It("Should handle null trust_policy_external_id values", func() {
+			stsConfig := sts.HcpSts{
+				TrustPolicyExternalID: types.StringNull(),
+			}
+			
+			Expect(stsConfig.TrustPolicyExternalID.IsNull()).To(BeTrue())
+		})
+
+		It("Should include trust_policy_external_id in HcpStsResource schema", func() {
+			schema := sts.HcpStsResource()
+			
+			trustPolicyAttr, exists := schema["trust_policy_external_id"]
+			Expect(exists).To(BeTrue())
+			Expect(trustPolicyAttr).NotTo(BeNil())
+		})
+
+		It("Should include trust_policy_external_id in HcpStsDatasource schema", func() {
+			schema := sts.HcpStsDatasource()
+			
+			trustPolicyAttr, exists := schema["trust_policy_external_id"]
+			Expect(exists).To(BeTrue())
+			Expect(trustPolicyAttr).NotTo(BeNil())
+		})
+	})
 })

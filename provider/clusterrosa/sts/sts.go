@@ -8,33 +8,38 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+const externalIdDescription = "External ID for trust policy condition in account roles"
+
 type baseSts struct {
-	OIDCEndpointURL    types.String `tfsdk:"oidc_endpoint_url"`
-	OIDCConfigID       types.String `tfsdk:"oidc_config_id"`
-	Thumbprint         types.String `tfsdk:"thumbprint"`
-	RoleARN            types.String `tfsdk:"role_arn"`
-	SupportRoleArn     types.String `tfsdk:"support_role_arn"`
-	OperatorRolePrefix types.String `tfsdk:"operator_role_prefix"`
+	OIDCEndpointURL       types.String `tfsdk:"oidc_endpoint_url"`
+	OIDCConfigID          types.String `tfsdk:"oidc_config_id"`
+	Thumbprint            types.String `tfsdk:"thumbprint"`
+	RoleARN               types.String `tfsdk:"role_arn"`
+	SupportRoleArn        types.String `tfsdk:"support_role_arn"`
+	OperatorRolePrefix    types.String `tfsdk:"operator_role_prefix"`
+	TrustPolicyExternalID types.String `tfsdk:"trust_policy_external_id"`
 }
 
 type ClassicSts struct {
-	OIDCEndpointURL    types.String           `tfsdk:"oidc_endpoint_url"`
-	OIDCConfigID       types.String           `tfsdk:"oidc_config_id"`
-	Thumbprint         types.String           `tfsdk:"thumbprint"`
-	RoleARN            types.String           `tfsdk:"role_arn"`
-	SupportRoleArn     types.String           `tfsdk:"support_role_arn"`
-	OperatorRolePrefix types.String           `tfsdk:"operator_role_prefix"`
-	InstanceIAMRoles   classicInstanceIAMRole `tfsdk:"instance_iam_roles"`
+	OIDCEndpointURL       types.String           `tfsdk:"oidc_endpoint_url"`
+	OIDCConfigID          types.String           `tfsdk:"oidc_config_id"`
+	Thumbprint            types.String           `tfsdk:"thumbprint"`
+	RoleARN               types.String           `tfsdk:"role_arn"`
+	SupportRoleArn        types.String           `tfsdk:"support_role_arn"`
+	OperatorRolePrefix    types.String           `tfsdk:"operator_role_prefix"`
+	TrustPolicyExternalID types.String           `tfsdk:"trust_policy_external_id"`
+	InstanceIAMRoles      classicInstanceIAMRole `tfsdk:"instance_iam_roles"`
 }
 
 type HcpSts struct {
-	OIDCEndpointURL    types.String       `tfsdk:"oidc_endpoint_url"`
-	OIDCConfigID       types.String       `tfsdk:"oidc_config_id"`
-	Thumbprint         types.String       `tfsdk:"thumbprint"`
-	RoleARN            types.String       `tfsdk:"role_arn"`
-	SupportRoleArn     types.String       `tfsdk:"support_role_arn"`
-	OperatorRolePrefix types.String       `tfsdk:"operator_role_prefix"`
-	InstanceIAMRoles   hcpInstanceIAMRole `tfsdk:"instance_iam_roles"`
+	OIDCEndpointURL       types.String       `tfsdk:"oidc_endpoint_url"`
+	OIDCConfigID          types.String       `tfsdk:"oidc_config_id"`
+	Thumbprint            types.String       `tfsdk:"thumbprint"`
+	RoleARN               types.String       `tfsdk:"role_arn"`
+	SupportRoleArn        types.String       `tfsdk:"support_role_arn"`
+	OperatorRolePrefix    types.String       `tfsdk:"operator_role_prefix"`
+	TrustPolicyExternalID types.String       `tfsdk:"trust_policy_external_id"`
+	InstanceIAMRoles      hcpInstanceIAMRole `tfsdk:"instance_iam_roles"`
 }
 
 type classicInstanceIAMRole struct {
@@ -101,6 +106,14 @@ func ClassicStsResource() map[string]schema.Attribute {
 			Description: "Operator IAM Role prefix",
 			Required:    true,
 		},
+		"trust_policy_external_id": schema.StringAttribute{
+			Description: externalIdDescription,
+			Optional:    true,
+			Computed:    true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
+			},
+		},
 	}
 }
 
@@ -143,6 +156,14 @@ func ClassicStsDatasource() map[string]dsschema.Attribute {
 		"operator_role_prefix": schema.StringAttribute{
 			Description: "Operator IAM Role prefix",
 			Computed:    true,
+		},
+		"trust_policy_external_id": schema.StringAttribute{
+			Description: externalIdDescription,
+			Optional:    true,
+			Computed:    true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
+			},
 		},
 	}
 }
@@ -198,6 +219,14 @@ func HcpStsResource() map[string]schema.Attribute {
 			Description: "Operator IAM Role prefix",
 			Required:    true,
 		},
+		"trust_policy_external_id": schema.StringAttribute{
+			Description: externalIdDescription,
+			Optional:    true,
+			Computed:    true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
+			},
+		},
 	}
 }
 
@@ -236,6 +265,14 @@ func HcpStsDatasource() map[string]dsschema.Attribute {
 		"operator_role_prefix": schema.StringAttribute{
 			Description: "Operator IAM Role prefix",
 			Computed:    true,
+		},
+		"trust_policy_external_id": schema.StringAttribute{
+			Description: externalIdDescription,
+			Optional:    true,
+			Computed:    true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
+			},
 		},
 	}
 }

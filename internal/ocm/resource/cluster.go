@@ -277,7 +277,7 @@ func (c *Cluster) SetAPIPrivacy(isPrivate bool, isPrivateLink bool, isSTS bool) 
 }
 
 func CreateSTS(installerRoleARN, supportRoleARN string, masterRoleARN *string, workerRoleARN,
-	operatorRolePrefix string, oidcConfigID *string) *cmv1.STSBuilder {
+	operatorRolePrefix string, oidcConfigID *string, trustPolicyExternalID *string) *cmv1.STSBuilder {
 	sts := cmv1.NewSTS()
 	sts.RoleARN(installerRoleARN)
 	sts.SupportRoleARN(supportRoleARN)
@@ -288,9 +288,12 @@ func CreateSTS(installerRoleARN, supportRoleARN string, masterRoleARN *string, w
 	instanceIamRoles.WorkerRoleARN(workerRoleARN)
 	sts.InstanceIAMRoles(instanceIamRoles)
 
-	// set OIDC config ID
 	if oidcConfigID != nil {
 		sts.OidcConfig(cmv1.NewOidcConfig().ID(*oidcConfigID))
+	}
+
+	if trustPolicyExternalID != nil {
+		sts.ExternalID(*trustPolicyExternalID)
 	}
 
 	sts.OperatorRolePrefix(operatorRolePrefix)

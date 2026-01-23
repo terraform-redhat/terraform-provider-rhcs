@@ -118,6 +118,7 @@ Optional:
 
 - `oidc_config_id` (String) OIDC Configuration ID
 - `oidc_endpoint_url` (String) OIDC Endpoint URL
+- `trust_policy_external_id` (String) External ID for trust policy condition in account roles
 
 Read-Only:
 

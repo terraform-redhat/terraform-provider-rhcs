@@ -77,4 +77,7 @@ type ClusterRosaHcpState struct {
 
 	// External authentication fields
 	ExternalAuthProvidersEnabled types.Bool `tfsdk:"external_auth_providers_enabled"`
+
+	// CloudWatch audit logging fields
+	AuditLogArn types.String `tfsdk:"audit_log_arn"`
 }

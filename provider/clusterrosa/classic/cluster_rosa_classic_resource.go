@@ -660,7 +660,7 @@ func createClassicClusterObject(ctx context.Context,
 		isPrivateLink, awsAccountID, nil, stsBuilder, awsSubnetIDs,
 		privateHostedZoneID, privateHostedZoneRoleARN, nil, nil,
 		awsAdditionalComputeSecurityGroupIds, awsAdditionalInfraSecurityGroupIds,
-		awsAdditionalControlPlaneSecurityGroupIds, nil); err != nil {
+		awsAdditionalControlPlaneSecurityGroupIds, nil, nil); err != nil {
 		return nil, err
 	}
 

@@ -420,6 +420,18 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"audit_log_arn": schema.StringAttribute{
+				Description: "ARN of the IAM role for CloudWatch audit log forwarding. " +
+					"The role must have a trust policy allowing the OpenShift logging service account " +
+					"(system:serviceaccount:openshift-logging:cluster-logging) to assume it via OIDC.",
+				Optional: true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(
+						regexp.MustCompile(`^arn:aws:iam::\d{12}:role/[\w+=,.@-]+$`),
+						"audit_log_arn must be a valid IAM role ARN",
+					),
+				},
+			},
 		},
 	}
 }
@@ -598,11 +610,14 @@ func createHcpClusterObject(ctx context.Context,
 		return nil, err
 	}
 
+	auditLogArn := common.OptionalString(state.AuditLogArn)
+
 	if err := ocmClusterResource.CreateAWSBuilder(rosaTypes.Hcp, awsTags, ec2MetadataHttpTokens,
 		kmsKeyARN, etcdKmsKeyArn,
 		isPrivate, awsAccountID, awsBillingAccountId, stsBuilder, awsSubnetIDs,
 		ingressHostedZoneId, route53RoleArn, internalCommunicationHostedZoneId, vpceRoleArn,
-		awsAdditionalComputeSecurityGroupIds, nil, nil, awsAdditionalAllowedPrincipals); err != nil {
+		awsAdditionalComputeSecurityGroupIds, nil, nil, awsAdditionalAllowedPrincipals,
+		auditLogArn); err != nil {
 		return nil, err
 	}
 
@@ -717,6 +732,8 @@ func createHcpClusterObject(ctx context.Context,
 		externalAuthConfigBuilder := cmv1.NewExternalAuthConfig().Enabled(true)
 		builder.ExternalAuthConfig(externalAuthConfigBuilder)
 	}
+
+	// CloudWatch audit log forwarding is now handled in CreateAWSBuilder
 
 	object, err := builder.Build()
 	return object, err
@@ -1176,6 +1193,24 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 		clusterBuilder.AWS(awsBuilder)
 	}
 
+	// CloudWatch audit log forwarding
+	// audit_log is nested under AWS configuration (aws.audit_log.role_arn)
+	// Reference: OCM API spec - AWS.audit_log.role_arn
+	if newAuditLogArn, shouldPatch := common.ShouldPatchString(state.AuditLogArn, plan.AuditLogArn); shouldPatch {
+		auditLogAwsBuilder := cmv1.NewAWS()
+		if newAuditLogArn != "" {
+			auditLogBuilder := cmv1.NewAuditLog()
+			auditLogBuilder.RoleArn(newAuditLogArn)
+			auditLogAwsBuilder.AuditLog(auditLogBuilder)
+		} else {
+			// To remove audit log, set it to empty
+			auditLogBuilder := cmv1.NewAuditLog()
+			auditLogBuilder.RoleArn("")
+			auditLogAwsBuilder.AuditLog(auditLogBuilder)
+		}
+		clusterBuilder.AWS(auditLogAwsBuilder)
+	}
+
 	clusterSpec, err := clusterBuilder.Build()
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -1599,6 +1634,24 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 			return err
 		}
 		state.AWSSubnetIDs = awsSubnetIds
+	}
+
+	// CloudWatch audit log ARN
+	// audit_log is nested under AWS configuration (aws.audit_log.role_arn)
+	// Reference: OCM API spec - AWS.audit_log.role_arn
+	if awsObj, ok := object.GetAWS(); ok {
+		if auditLog, ok := awsObj.GetAuditLog(); ok {
+			auditLogArn, ok := auditLog.GetRoleArn()
+			if ok && auditLogArn != "" {
+				state.AuditLogArn = types.StringValue(auditLogArn)
+			} else {
+				state.AuditLogArn = types.StringNull()
+			}
+		} else {
+			state.AuditLogArn = types.StringNull()
+		}
+	} else {
+		state.AuditLogArn = types.StringNull()
 	}
 
 	hasProxy := true

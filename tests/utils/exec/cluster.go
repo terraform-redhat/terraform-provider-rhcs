@@ -56,6 +56,7 @@ type ClusterArgs struct {
 	StsInstallerRole                     *string            `hcl:"installer_role"`
 	StsSupportRole                       *string            `hcl:"support_role"`
 	StsWorkerRole                        *string            `hcl:"worker_role"`
+	StsTrustPolicyExternalID             *string            `hcl:"sts_trust_policy_external_id"`
 	RegistryConfig                       *RegistryConfig    `hcl:"registry_config"`
 	ExternalAuthProvidersEnabled         *bool              `hcl:"external_auth_providers_enabled"`
 

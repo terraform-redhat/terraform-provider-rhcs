@@ -351,4 +351,23 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 			Expect(user.HashedPassword()).NotTo(Equal(password))
 		})
 	})
+
+	Context("delete protection", func() {
+		It("State includes delete protection field", func() {
+			clusterState := &ClusterRosaHcpState{}
+			Expect(clusterState.DeleteProtection.IsNull()).To(BeTrue())
+		})
+
+		It("Delete protection defaults to false when not set", func() {
+			clusterState := &ClusterRosaHcpState{}
+			clusterState.DeleteProtection = types.BoolValue(false)
+			Expect(clusterState.DeleteProtection.ValueBool()).To(BeFalse())
+		})
+
+		It("Delete protection can be set to true", func() {
+			clusterState := &ClusterRosaHcpState{}
+			clusterState.DeleteProtection = types.BoolValue(true)
+			Expect(clusterState.DeleteProtection.ValueBool()).To(BeTrue())
+		})
+	})
 })

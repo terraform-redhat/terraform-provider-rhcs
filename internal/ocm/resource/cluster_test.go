@@ -253,7 +253,7 @@ var _ = Describe("Cluster", func() {
 			operatorRolePrefix := "bbb"
 			oidcConfigID := "1234567dgsdfgh"
 			sts := CreateSTS(installerRole, supportRole, &masterRole, workerRole,
-				operatorRolePrefix, pointer(oidcConfigID))
+				operatorRolePrefix, pointer(oidcConfigID), nil)
 			err := cluster.CreateAWSBuilder(rosaTypes.Classic, map[string]string{"key1": "val1"},
 				pointer(string(cmv1.Ec2MetadataHttpTokensRequired)),
 				pointer(validKmsKey), nil, true, pointer(accountID), nil,
@@ -295,7 +295,7 @@ var _ = Describe("Cluster", func() {
 			operatorRolePrefix := "bbb"
 			oidcConfigID := "1234567dgsdfgh"
 			sts := CreateSTS(installerRole, supportRole, &masterRole, workerRole,
-				operatorRolePrefix, pointer(oidcConfigID))
+				operatorRolePrefix, pointer(oidcConfigID), nil)
 			err := cluster.CreateAWSBuilder(rosaTypes.Classic, map[string]string{"key1": "val1"},
 				pointer(string(cmv1.Ec2MetadataHttpTokensRequired)),
 				pointer(validKmsKey), nil, true, pointer(accountID), nil,
@@ -320,7 +320,7 @@ var _ = Describe("Cluster", func() {
 			operatorRolePrefix := "bbb"
 			oidcConfigID := "1234567dgsdfgh"
 			sts := CreateSTS(installerRole, supportRole, &masterRole, workerRole,
-				operatorRolePrefix, pointer(oidcConfigID))
+				operatorRolePrefix, pointer(oidcConfigID), nil)
 			err := cluster.CreateAWSBuilder(rosaTypes.Classic, map[string]string{"key1": "val1"},
 				pointer(string(cmv1.Ec2MetadataHttpTokensRequired)),
 				pointer(validKmsKey), nil, true, pointer(accountID), nil,
@@ -351,12 +351,42 @@ var _ = Describe("Cluster", func() {
 			operatorRolePrefix := "bbb"
 			oidcConfigID := "1234567dgsdfgh"
 			sts := CreateSTS(installerRole, supportRole, &masterRole, workerRole,
-				operatorRolePrefix, pointer(oidcConfigID))
+				operatorRolePrefix, pointer(oidcConfigID), nil)
 			err := cluster.CreateAWSBuilder(rosaTypes.Classic, map[string]string{"key1": "val1"},
 				pointer(string(cmv1.Ec2MetadataHttpTokensRequired)),
 				pointer(validKmsKey), nil, true, pointer(accountID), nil,
 				sts, nil, &privateHZId, &privateHZRoleArn, nil, nil, nil, nil, nil, nil)
 			Expect(err).To(HaveOccurred())
+		})
+		It("STS with trust policy external ID - success", func() {
+			validKmsKey := "arn:aws:kms:us-east-1:111111111111:key/mrk-0123456789abcdef0123456789abcdef"
+			accountID := "111111111111"
+			subnets := []string{"subnet-1a1a1a1a1a1a1a1a1", "subnet-2b2b2b2b2b2b2b2b2", "subnet-3c3c3c3c3c3c3c3c3"}
+			installerRole := "arn:aws:iam::111111111111:role/aaa-Installer-Role"
+			supportRole := "arn:aws:iam::111111111111:role/aaa-Support-Role"
+			masterRole := "arn:aws:iam::111111111111:role/aaa-ControlPlane-Role"
+			workerRole := "arn:aws:iam::111111111111:role/aaa-Worker-Role"
+			operatorRolePrefix := "bbb"
+			oidcConfigID := "1234567dgsdfgh"
+			externalID := "test-external-id-67890"
+			sts := CreateSTS(installerRole, supportRole, &masterRole, workerRole,
+				operatorRolePrefix, pointer(oidcConfigID), pointer(externalID))
+			err := cluster.CreateAWSBuilder(rosaTypes.Classic, map[string]string{"key1": "val1"},
+				pointer(string(cmv1.Ec2MetadataHttpTokensRequired)),
+				pointer(validKmsKey), nil, true, pointer(accountID), nil,
+				sts, subnets, nil, nil, nil, nil, nil, nil, nil, nil)
+			Expect(err).NotTo(HaveOccurred())
+			ocmCluster, err := cluster.Build()
+			Expect(err).NotTo(HaveOccurred())
+			aws := ocmCluster.AWS()
+			stsResult := aws.STS()
+			Expect(stsResult).NotTo(BeNil())
+			Expect(stsResult.RoleARN()).To(Equal(installerRole))
+			Expect(stsResult.SupportRoleARN()).To(Equal(supportRole))
+			Expect(stsResult.InstanceIAMRoles().MasterRoleARN()).To(Equal(masterRole))
+			Expect(stsResult.InstanceIAMRoles().WorkerRoleARN()).To(Equal(workerRole))
+			Expect(stsResult.OidcConfig().ID()).To(Equal(oidcConfigID))
+			Expect(stsResult.ExternalID()).To(Equal(externalID))
 		})
 	})
 	Context("SetAPIPrivacy validation", func() {

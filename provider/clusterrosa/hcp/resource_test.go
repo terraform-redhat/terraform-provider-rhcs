@@ -68,6 +68,7 @@ const (
 	httpProxy           = "http://proxy.com"
 	httpsProxy          = "https://proxy.com"
 	httpTokens          = "required"
+	auditLogRoleArn     = "arn:aws:iam::123456789012:role/audit-log-role"
 )
 
 var (
@@ -210,6 +211,16 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 			Expect(ok).To(BeTrue())
 			Expect(channel).To(Equal("stable"))
 		})
+		It("Sets audit log ARN on AWS builder when provided", func() {
+			clusterState := generateBasicRosaHcpClusterState()
+			clusterState.AuditLogArn = types.StringValue(auditLogRoleArn)
+			rosaClusterObject, err := createHcpClusterObject(context.Background(), clusterState, diag.Diagnostics{})
+			Expect(err).ToNot(HaveOccurred())
+
+			auditLog, ok := rosaClusterObject.AWS().GetAuditLog()
+			Expect(ok).To(BeTrue())
+			Expect(auditLog.RoleArn()).To(Equal(auditLogRoleArn))
+		})
 	})
 	It("Throws an error when version format is invalid", func() {
 		clusterState := generateBasicRosaHcpClusterState()
@@ -310,6 +321,48 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 			err = populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clusterState.Sts.Thumbprint.ValueString()).To(Equal(""))
+		})
+		It("Reads audit log ARN from API response", func() {
+			clusterState := &ClusterRosaHcpState{}
+			clusterJson := generateBasicRosaHcpClusterJson()
+			clusterJson["aws"].(map[string]interface{})["audit_log"] = map[string]interface{}{
+				"role_arn": auditLogRoleArn,
+			}
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(clusterState.AuditLogArn.ValueString()).To(Equal(auditLogRoleArn))
+		})
+	})
+
+	Context("audit_log_arn update", func() {
+		It("Detects audit_log_arn change for patching", func() {
+			state := types.StringValue("arn:aws:iam::123456789012:role/old-role")
+			plan := types.StringValue("arn:aws:iam::123456789012:role/new-role")
+
+			newValue, shouldPatch := common.ShouldPatchString(state, plan)
+			Expect(shouldPatch).To(BeTrue())
+			Expect(newValue).To(Equal("arn:aws:iam::123456789012:role/new-role"))
+		})
+		It("Detects audit_log_arn reset to empty string", func() {
+			state := types.StringValue(auditLogRoleArn)
+			plan := types.StringValue("")
+
+			newValue, shouldPatch := common.ShouldPatchString(state, plan)
+			Expect(shouldPatch).To(BeTrue())
+			Expect(newValue).To(Equal(""))
+		})
+		It("Does not patch when audit_log_arn is unchanged", func() {
+			state := types.StringValue(auditLogRoleArn)
+			plan := types.StringValue(auditLogRoleArn)
+
+			_, shouldPatch := common.ShouldPatchString(state, plan)
+			Expect(shouldPatch).To(BeFalse())
 		})
 	})
 

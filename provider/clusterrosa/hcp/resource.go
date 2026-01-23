@@ -231,6 +231,11 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 					"(optional). " + common.ValueCannotBeChangedStringDescription,
 				Optional: true,
 			},
+			"audit_log_arn": schema.StringAttribute{
+				Description: "Used for audit log forwarding. The ARN is the Amazon Resource Name (ARN) of an IAM role that has permissions " +
+					"to send audit logs to a CloudWatch Logs log group. To disable audit log forwarding, provide an empty string.",
+				Optional: true,
+			},
 			"private": schema.BoolAttribute{
 				Description: "Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
@@ -557,6 +562,7 @@ func createHcpClusterObject(ctx context.Context,
 	ec2MetadataHttpTokens := common.OptionalString(state.Ec2MetadataHttpTokens)
 	kmsKeyARN := common.OptionalString(state.KMSKeyArn)
 	etcdKmsKeyArn := common.OptionalString(state.EtcdKmsKeyArn)
+	auditLogArn := common.OptionalString(state.AuditLogArn)
 	awsAccountID := common.OptionalString(state.AWSAccountID)
 	awsBillingAccountId := common.OptionalString(state.AWSBillingAccountID)
 
@@ -600,7 +606,7 @@ func createHcpClusterObject(ctx context.Context,
 	}
 
 	if err := ocmClusterResource.CreateAWSBuilder(rosaTypes.Hcp, awsTags, ec2MetadataHttpTokens,
-		kmsKeyARN, etcdKmsKeyArn,
+		kmsKeyARN, etcdKmsKeyArn, auditLogArn,
 		isPrivate, awsAccountID, awsBillingAccountId, stsBuilder, awsSubnetIDs,
 		ingressHostedZoneId, route53RoleArn, internalCommunicationHostedZoneId, vpceRoleArn,
 		awsAdditionalComputeSecurityGroupIds, nil, nil, awsAdditionalAllowedPrincipals); err != nil {
@@ -1174,6 +1180,11 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 		changesToAws = shouldPatch
 	}
 
+	if newAuditLogArn, shouldPatch := common.ShouldPatchString(state.AuditLogArn, plan.AuditLogArn); shouldPatch {
+		awsBuilder.AuditLog(cmv1.NewAuditLog().RoleArn(newAuditLogArn))
+		changesToAws = true
+	}
+
 	if changesToAws {
 		clusterBuilder.AWS(awsBuilder)
 	}
@@ -1548,6 +1559,13 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 		etcdKmsKeyArn, ok := object.AWS().EtcdEncryption().GetKMSKeyARN()
 		if ok {
 			state.EtcdKmsKeyArn = types.StringValue(etcdKmsKeyArn)
+		}
+	}
+	auditLog, ok := object.AWS().GetAuditLog()
+	if ok {
+		auditLogArn, ok := auditLog.GetRoleArn()
+		if ok && auditLogArn != "" {
+			state.AuditLogArn = types.StringValue(auditLogArn)
 		}
 	}
 

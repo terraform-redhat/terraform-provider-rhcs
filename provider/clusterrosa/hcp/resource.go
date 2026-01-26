@@ -34,6 +34,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -420,6 +421,66 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"log_forwarders": schema.ListNestedAttribute{
+				Description: "List of log forwarders to configure during cluster creation. " +
+					"Log forwarders are only supported on Hosted Control Plane clusters. " +
+					common.ValueCannotBeChangedStringDescription,
+				Optional: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"s3": schema.SingleNestedAttribute{
+							Description: "S3 configuration for log forwarding destination.",
+							Optional:    true,
+							Attributes: map[string]schema.Attribute{
+								"bucket_name": schema.StringAttribute{
+									Description: "The name of the S3 bucket.",
+									Required:    true,
+								},
+								"bucket_prefix": schema.StringAttribute{
+									Description: "The prefix to use for objects stored in the S3 bucket.",
+									Optional:    true,
+									Computed:    true,
+								},
+							},
+						},
+						"cloudwatch": schema.SingleNestedAttribute{
+							Description: "CloudWatch configuration for log forwarding destination.",
+							Optional:    true,
+							Attributes: map[string]schema.Attribute{
+								"log_group_name": schema.StringAttribute{
+									Description: "The name of the CloudWatch log group.",
+									Required:    true,
+								},
+								"log_distribution_role_arn": schema.StringAttribute{
+									Description: "The ARN of the IAM role for log distribution.",
+									Required:    true,
+								},
+							},
+						},
+						"applications": schema.ListAttribute{
+							Description: "List of additional applications to forward logs for.",
+							ElementType: types.StringType,
+							Optional:    true,
+						},
+						"groups": schema.ListNestedAttribute{
+							Description: "List of log forwarder groups.",
+							Optional:    true,
+							NestedObject: schema.NestedAttributeObject{
+								Attributes: map[string]schema.Attribute{
+									"id": schema.StringAttribute{
+										Description: "The identifier of the log forwarder group.",
+										Required:    true,
+									},
+									"version": schema.StringAttribute{
+										Description: "The version of the log forwarder group.",
+										Required:    true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -719,6 +780,16 @@ func createHcpClusterObject(ctx context.Context,
 		builder.ExternalAuthConfig(externalAuthConfigBuilder)
 	}
 
+	if !state.LogForwarders.IsNull() && !state.LogForwarders.IsUnknown() && len(state.LogForwarders.Elements()) > 0 {
+		logForwardersBuilder, err := buildLogForwarders(ctx, state.LogForwarders)
+		if err != nil {
+			tflog.Error(ctx, "Failed to build log forwarders")
+			return nil, err
+		}
+		controlPlaneBuilder := cmv1.NewControlPlane().LogForwarders(logForwardersBuilder)
+		builder.ControlPlane(controlPlaneBuilder)
+	}
+
 	object, err := builder.Build()
 	return object, err
 }
@@ -823,7 +894,7 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 	object = add.Body()
 
 	// Save initial state:
-	err = populateRosaHcpClusterState(ctx, object, state)
+	err = populateRosaHcpClusterState(ctx, object, state, r.ClusterCollection)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -882,7 +953,7 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 	}
 
 	// Save the state post wait completion:
-	err = populateRosaHcpClusterState(ctx, object, state)
+	err = populateRosaHcpClusterState(ctx, object, state, r.ClusterCollection)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -931,7 +1002,7 @@ func (r *ClusterRosaHcpResource) Read(ctx context.Context, request resource.Read
 	object := get.Body()
 
 	// Save the state:
-	err = populateRosaHcpClusterState(ctx, object, state)
+	err = populateRosaHcpClusterState(ctx, object, state, r.ClusterCollection)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -994,6 +1065,7 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaHcpState) diag.Diagnos
 	}
 
 	common.ValidateStateAndPlanEquals(state.ExternalAuthProvidersEnabled, plan.ExternalAuthProvidersEnabled, "external_auth_providers_enabled", &diags)
+	common.ValidateStateAndPlanEquals(state.LogForwarders, plan.LogForwarders, "log_forwarders", &diags)
 
 	return diags
 }
@@ -1207,7 +1279,7 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 	object := update.Body()
 
 	// Update the state:
-	err = populateRosaHcpClusterState(ctx, object, plan)
+	err = populateRosaHcpClusterState(ctx, object, plan, r.ClusterCollection)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't populate cluster state",
@@ -1470,8 +1542,72 @@ func (r *ClusterRosaHcpResource) ImportState(ctx context.Context, request resour
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), request, response)
 }
 
+// fetchLogForwarders fetches log forwarders for a cluster by following the link
+func fetchLogForwarders(ctx context.Context, clusterCollection *cmv1.ClustersClient, clusterId string) (types.List, error) {
+	logForwardersClient := clusterCollection.Cluster(clusterId).ControlPlane().LogForwarders()
+	listResponse, err := logForwardersClient.List().SendContext(ctx)
+	if err != nil {
+		return types.ListNull(types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"s3": types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"bucket_name":   types.StringType,
+						"bucket_prefix": types.StringType,
+					},
+				},
+				"cloudwatch": types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"log_group_name":            types.StringType,
+						"log_distribution_role_arn": types.StringType,
+					},
+				},
+				"applications": types.ListType{ElemType: types.StringType},
+				"groups": types.ListType{
+					ElemType: types.ObjectType{
+						AttrTypes: map[string]attr.Type{
+							"id":      types.StringType,
+							"version": types.StringType,
+						},
+					},
+				},
+			},
+		}), nil
+	}
+
+	logForwardersList := listResponse.Items()
+	if logForwardersList == nil || logForwardersList.Len() == 0 {
+		return types.ListNull(types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"s3": types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"bucket_name":   types.StringType,
+						"bucket_prefix": types.StringType,
+					},
+				},
+				"cloudwatch": types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"log_group_name":            types.StringType,
+						"log_distribution_role_arn": types.StringType,
+					},
+				},
+				"applications": types.ListType{ElemType: types.StringType},
+				"groups": types.ListType{
+					ElemType: types.ObjectType{
+						AttrTypes: map[string]attr.Type{
+							"id":      types.StringType,
+							"version": types.StringType,
+						},
+					},
+				},
+			},
+		}), nil
+	}
+
+	return flattenLogForwarders(ctx, logForwardersList)
+}
+
 // populateRosaHcpClusterState copies the data from the API object to the Terraform state.
-func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, state *ClusterRosaHcpState) error {
+func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, state *ClusterRosaHcpState, clusterCollection *cmv1.ClustersClient) error {
 	state.ID = types.StringValue(object.ID())
 	state.ExternalID = types.StringValue(object.ExternalID())
 	object.API()
@@ -1736,6 +1872,14 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 
 	if externalAuthConfig, ok := object.GetExternalAuthConfig(); ok && externalAuthConfig.Enabled() {
 		state.ExternalAuthProvidersEnabled = types.BoolValue(true)
+	}
+
+	if clusterCollection != nil {
+		logForwardersListValue, err := fetchLogForwarders(ctx, clusterCollection, object.ID())
+		if err != nil {
+			return err
+		}
+		state.LogForwarders = logForwardersListValue
 	}
 
 	return nil

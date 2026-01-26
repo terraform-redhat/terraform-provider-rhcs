@@ -78,6 +78,7 @@ resource "rhcs_cluster_rosa_hcp" "rosa_sts_cluster" {
 - `machine_cidr` (String) Block of IP addresses for nodes. After the creation of the resource, it is not possible to update the attribute value.
 - `max_hcp_cluster_wait_timeout_in_minutes` (Number) This value sets the maximum duration in minutes to wait for a HCP cluster to be in a ready state.
 - `max_machinepool_wait_timeout_in_minutes` (Number) This value sets the maximum duration in minutes to wait for machine pools to be in a ready state.
+- `no_cni` (Boolean) Disable CNI creation to let users bring their own CNI. After the creation of the resource, it is not possible to update the attribute value.
 - `pod_cidr` (String) Block of IP addresses for pods. After the creation of the resource, it is not possible to update the attribute value.
 - `private` (Boolean) Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet. After the creation of the resource, it is not possible to update the attribute value.
 - `properties` (Map of String) User defined properties. It is essential to include property 'role_creator_arn' with the value of the user creating the cluster. Example: properties = {rosa_creator_arn = data.aws_caller_identity.current.arn}

@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	. "github.com/onsi/ginkgo/v2/dsl/core" // nolint
@@ -405,12 +406,99 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 		})
 	})
 
+	Context("Day 1 Log Forwarding", func() {
+		It("Creates cluster object with log forwarders", func() {
+			clusterState := generateBasicRosaHcpClusterState()
+
+			s3Obj, _ := types.ObjectValue(
+				map[string]attr.Type{
+					"bucket_name":   types.StringType,
+					"bucket_prefix": types.StringType,
+				},
+				map[string]attr.Value{
+					"bucket_name":   types.StringValue("test-bucket"),
+					"bucket_prefix": types.StringValue("logs/"),
+				},
+			)
+
+			appsList, _ := types.ListValueFrom(context.Background(), types.StringType, []string{"audit"})
+
+			lfObj, _ := types.ObjectValue(
+				map[string]attr.Type{
+					"s3":           types.ObjectType{AttrTypes: map[string]attr.Type{"bucket_name": types.StringType, "bucket_prefix": types.StringType}},
+					"cloudwatch":   types.ObjectType{AttrTypes: map[string]attr.Type{"log_group_name": types.StringType, "log_distribution_role_arn": types.StringType}},
+					"applications": types.ListType{ElemType: types.StringType},
+					"groups":       types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{"id": types.StringType, "version": types.StringType}}},
+				},
+				map[string]attr.Value{
+					"s3":           s3Obj,
+					"cloudwatch":   types.ObjectNull(map[string]attr.Type{"log_group_name": types.StringType, "log_distribution_role_arn": types.StringType}),
+					"applications": appsList,
+					"groups":       types.ListNull(types.ObjectType{AttrTypes: map[string]attr.Type{"id": types.StringType, "version": types.StringType}}),
+				},
+			)
+
+			logForwarders, _ := types.ListValue(types.ObjectType{
+				AttrTypes: map[string]attr.Type{
+					"s3":           types.ObjectType{AttrTypes: map[string]attr.Type{"bucket_name": types.StringType, "bucket_prefix": types.StringType}},
+					"cloudwatch":   types.ObjectType{AttrTypes: map[string]attr.Type{"log_group_name": types.StringType, "log_distribution_role_arn": types.StringType}},
+					"applications": types.ListType{ElemType: types.StringType},
+					"groups":       types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{"id": types.StringType, "version": types.StringType}}},
+				},
+			}, []attr.Value{lfObj})
+
+			clusterState.LogForwardersAtClusterCreation = logForwarders
+
+			rosaClusterObject, err := createHcpClusterObject(context.Background(), clusterState, diag.Diagnostics{})
+			Expect(err).ToNot(HaveOccurred())
+
+			controlPlane, ok := rosaClusterObject.GetControlPlane()
+			Expect(ok).To(BeTrue())
+			logForwardersList, ok := controlPlane.GetLogForwarders()
+			Expect(ok).To(BeTrue())
+			Expect(logForwardersList.Len()).To(Equal(1))
+
+			lf := logForwardersList.Get(0)
+			s3, ok := lf.GetS3()
+			Expect(ok).To(BeTrue())
+			Expect(s3.BucketName()).To(Equal("test-bucket"))
+			Expect(s3.BucketPrefix()).To(Equal("logs/"))
+
+			apps, ok := lf.GetApplications()
+			Expect(ok).To(BeTrue())
+			Expect(apps).To(Equal([]string{"audit"}))
+		})
+
+		It("Creates cluster object without log forwarders when not configured", func() {
+			clusterState := generateBasicRosaHcpClusterState()
+			clusterState.LogForwardersAtClusterCreation = types.ListNull(types.ObjectType{
+				AttrTypes: map[string]attr.Type{
+					"s3":           types.ObjectType{},
+					"cloudwatch":   types.ObjectType{},
+					"applications": types.ListType{},
+					"groups":       types.ListType{},
+				},
+			})
+
+			rosaClusterObject, err := createHcpClusterObject(context.Background(), clusterState, diag.Diagnostics{})
+			Expect(err).ToNot(HaveOccurred())
+
+			controlPlane, ok := rosaClusterObject.GetControlPlane()
+			if ok {
+				logForwardersList, ok := controlPlane.GetLogForwarders()
+				if ok {
+					Expect(logForwardersList.Len()).To(Equal(0))
+				}
+			}
+		})
+	})
+
 	Context("STS Trust Policy External ID", func() {
 		It("Should support trust_policy_external_id in HcpSts struct", func() {
 			stsConfig := sts.HcpSts{
 				TrustPolicyExternalID: types.StringValue("external-id-67890"),
 			}
-			
+
 			Expect(stsConfig.TrustPolicyExternalID.ValueString()).To(Equal("external-id-67890"))
 			Expect(stsConfig.TrustPolicyExternalID.IsNull()).To(BeFalse())
 		})
@@ -419,13 +507,13 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 			stsConfig := sts.HcpSts{
 				TrustPolicyExternalID: types.StringNull(),
 			}
-			
+
 			Expect(stsConfig.TrustPolicyExternalID.IsNull()).To(BeTrue())
 		})
 
 		It("Should include trust_policy_external_id in HcpStsResource schema", func() {
 			schema := sts.HcpStsResource()
-			
+
 			trustPolicyAttr, exists := schema["trust_policy_external_id"]
 			Expect(exists).To(BeTrue())
 			Expect(trustPolicyAttr).NotTo(BeNil())
@@ -433,7 +521,7 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 
 		It("Should include trust_policy_external_id in HcpStsDatasource schema", func() {
 			schema := sts.HcpStsDatasource()
-			
+
 			trustPolicyAttr, exists := schema["trust_policy_external_id"]
 			Expect(exists).To(BeTrue())
 			Expect(trustPolicyAttr).NotTo(BeNil())

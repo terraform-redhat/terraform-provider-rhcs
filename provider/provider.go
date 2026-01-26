@@ -260,5 +260,6 @@ func (p *Provider) DataSources(ctx context.Context) []func() datasource.DataSour
 		hcpStsPolicies.New,
 		trusted_ip_addresses.New,
 		imagemirror.NewDataSource,
+		logforwarder.NewDataSource,
 	}
 }

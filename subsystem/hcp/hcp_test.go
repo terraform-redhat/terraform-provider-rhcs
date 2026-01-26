@@ -17,6 +17,7 @@ limitations under the License.
 package hcp
 
 import (
+	"net/http"
 	"testing"
 	"time"
 
@@ -38,6 +39,16 @@ var _ = BeforeEach(func() {
 	// Create the server:
 	var ca string
 	TestServer, ca = MakeTCPTLSServer()
+
+	// Register a handler for log forwarders endpoint that returns empty list by default
+	logForwardersHandler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"kind":"LogForwarderList","page":1,"size":0,"total":0,"items":[]}`))
+	}
+	TestServer.RouteToHandler("GET", "/api/clusters_mgmt/v1/clusters/123/control_plane/log_forwarders", logForwardersHandler)
+	TestServer.RouteToHandler("GET", "/api/clusters_mgmt/v1/clusters/1234/control_plane/log_forwarders", logForwardersHandler)
+
 	// Create an access token:
 	token := MakeTokenString("Bearer", 10*time.Minute)
 

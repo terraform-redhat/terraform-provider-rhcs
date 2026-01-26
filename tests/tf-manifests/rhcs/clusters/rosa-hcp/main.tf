@@ -85,6 +85,7 @@ resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
   registry_config                                 = var.registry_config
   worker_disk_size                                = var.worker_disk_size
   external_auth_providers_enabled                 = var.external_auth_providers_enabled
+  log_forwarders                                  = var.log_forwarders
 }
 
 resource "rhcs_cluster_wait" "rosa_cluster" { # id: 71869

@@ -425,6 +425,74 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"log_forwarders_at_cluster_creation": schema.ListNestedAttribute{
+				Description: "List of log forwarders to configure during cluster creation (Day 1 only). " +
+					"This field is immutable after cluster creation and cannot be modified. " +
+					"After cluster creation, this field will not appear in terraform output. " +
+					"To manage log forwarders after cluster creation, use the rhcs_log_forwarder resource. " +
+					"Use the log_forwarder_ids field to see all log forwarder IDs for import.",
+				Optional: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"s3": schema.SingleNestedAttribute{
+							Description: "S3 configuration for log forwarding destination.",
+							Optional:    true,
+							Attributes: map[string]schema.Attribute{
+								"bucket_name": schema.StringAttribute{
+									Description: "The name of the S3 bucket.",
+									Required:    true,
+								},
+								"bucket_prefix": schema.StringAttribute{
+									Description: "The prefix to use for objects stored in the S3 bucket.",
+									Optional:    true,
+								},
+							},
+						},
+						"cloudwatch": schema.SingleNestedAttribute{
+							Description: "CloudWatch configuration for log forwarding destination.",
+							Optional:    true,
+							Attributes: map[string]schema.Attribute{
+								"log_group_name": schema.StringAttribute{
+									Description: "The name of the CloudWatch log group.",
+									Required:    true,
+								},
+								"log_distribution_role_arn": schema.StringAttribute{
+									Description: "The ARN of the IAM role for log distribution.",
+									Required:    true,
+								},
+							},
+						},
+						"applications": schema.ListAttribute{
+							Description: "List of additional applications to forward logs for.",
+							ElementType: types.StringType,
+							Optional:    true,
+						},
+						"groups": schema.ListNestedAttribute{
+							Description: "List of log forwarder groups.",
+							Optional:    true,
+							NestedObject: schema.NestedAttributeObject{
+								Attributes: map[string]schema.Attribute{
+									"id": schema.StringAttribute{
+										Description: "The identifier of the log forwarder group.",
+										Required:    true,
+									},
+									"version": schema.StringAttribute{
+										Description: "The version of the log forwarder group.",
+										Required:    true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"log_forwarder_ids": schema.ListAttribute{
+				Description: "List of log forwarder IDs associated with this cluster. " +
+					"These IDs can be used to import existing log forwarders with: " +
+					"terraform import rhcs_log_forwarder.<name> <cluster_id>,<log_forwarder_id>",
+				ElementType: types.StringType,
+				Computed:    true,
+			},
 		},
 	}
 }
@@ -725,6 +793,16 @@ func createHcpClusterObject(ctx context.Context,
 		builder.ExternalAuthConfig(externalAuthConfigBuilder)
 	}
 
+	if !state.LogForwardersAtClusterCreation.IsNull() && !state.LogForwardersAtClusterCreation.IsUnknown() && len(state.LogForwardersAtClusterCreation.Elements()) > 0 {
+		logForwardersBuilder, err := buildLogForwarders(ctx, state.LogForwardersAtClusterCreation)
+		if err != nil {
+			tflog.Error(ctx, "Failed to build log forwarders")
+			return nil, err
+		}
+		controlPlaneBuilder := cmv1.NewControlPlane().LogForwarders(logForwardersBuilder)
+		builder.ControlPlane(controlPlaneBuilder)
+	}
+
 	object, err := builder.Build()
 	return object, err
 }
@@ -899,6 +977,16 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 		return
 	}
 
+	// Fetch log forwarder IDs
+	state.LogForwarderIds, err = r.fetchLogForwarderIds(ctx, state.ID.ValueString())
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't fetch log forwarder IDs",
+			fmt.Sprintf("Received error %v", err),
+		)
+		return
+	}
+
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
 }
@@ -944,6 +1032,16 @@ func (r *ClusterRosaHcpResource) Read(ctx context.Context, request resource.Read
 			fmt.Sprintf(
 				"Received error %v", err,
 			),
+		)
+		return
+	}
+
+	// Fetch log forwarder IDs
+	state.LogForwarderIds, err = r.fetchLogForwarderIds(ctx, state.ID.ValueString())
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't fetch log forwarder IDs",
+			fmt.Sprintf("Received error %v", err),
 		)
 		return
 	}
@@ -1000,6 +1098,7 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaHcpState) diag.Diagnos
 	}
 
 	common.ValidateStateAndPlanEquals(state.ExternalAuthProvidersEnabled, plan.ExternalAuthProvidersEnabled, "external_auth_providers_enabled", &diags)
+	common.ValidateStateAndPlanEquals(state.LogForwardersAtClusterCreation, plan.LogForwardersAtClusterCreation, "log_forwarders_at_cluster_creation", &diags)
 
 	return diags
 }
@@ -1225,6 +1324,16 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 			fmt.Sprintf(
 				"Received error %v", err,
 			),
+		)
+		return
+	}
+
+	// Fetch log forwarder IDs
+	plan.LogForwarderIds, err = r.fetchLogForwarderIds(ctx, plan.ID.ValueString())
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't fetch log forwarder IDs",
+			fmt.Sprintf("Received error %v", err),
 		)
 		return
 	}
@@ -1757,6 +1866,32 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 	}
 
 	return nil
+}
+
+// fetchLogForwarderIds is a shared helper that fetches all log forwarder IDs for a cluster from the API
+func fetchLogForwarderIds(ctx context.Context, clusterCollection *cmv1.ClustersClient, clusterId string) (types.List, error) {
+	resp, err := clusterCollection.Cluster(clusterId).ControlPlane().LogForwarders().List().SendContext(ctx)
+	if err != nil {
+		tflog.Warn(ctx, fmt.Sprintf("Unable to fetch log forwarders: %v", err))
+		return types.ListNull(types.StringType), nil
+	}
+
+	ids := []string{}
+	resp.Items().Each(func(lf *cmv1.LogForwarder) bool {
+		ids = append(ids, lf.ID())
+		return true
+	})
+
+	if len(ids) == 0 {
+		return types.ListNull(types.StringType), nil
+	}
+
+	return common.StringArrayToList(ids)
+}
+
+// fetchLogForwarderIds fetches all log forwarder IDs for a cluster from the API
+func (r *ClusterRosaHcpResource) fetchLogForwarderIds(ctx context.Context, clusterId string) (types.List, error) {
+	return fetchLogForwarderIds(ctx, r.ClusterCollection, clusterId)
 }
 
 func (r *ClusterRosaHcpResource) retryClusterNotFoundWithTimeout(attempts int, sleep time.Duration, ctx context.Context, timeout int64,

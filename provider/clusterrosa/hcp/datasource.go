@@ -21,6 +21,7 @@ import (
 	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -226,6 +227,42 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				Attributes:  registry_config.RegistryConfigDatasource(),
 				Optional:    true,
 			},
+			"log_forwarders_at_cluster_creation": schema.ListAttribute{
+				Description: deprecatedMessage,
+				ElementType: types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"s3": types.ObjectType{
+							AttrTypes: map[string]attr.Type{
+								"bucket_name":   types.StringType,
+								"bucket_prefix": types.StringType,
+							},
+						},
+						"cloudwatch": types.ObjectType{
+							AttrTypes: map[string]attr.Type{
+								"log_group_name":            types.StringType,
+								"log_distribution_role_arn": types.StringType,
+							},
+						},
+						"applications": types.ListType{ElemType: types.StringType},
+						"groups": types.ListType{
+							ElemType: types.ObjectType{
+								AttrTypes: map[string]attr.Type{
+									"id":      types.StringType,
+									"version": types.StringType,
+								},
+							},
+						},
+					},
+				},
+				Computed: true,
+			},
+			"log_forwarder_ids": schema.ListAttribute{
+				Description: "List of log forwarder IDs associated with this cluster. " +
+					"These IDs can be used to import existing log forwarders with: " +
+					"terraform import rhcs_log_forwarder.<name> <cluster_id>,<log_forwarder_id>",
+				ElementType: types.StringType,
+				Computed:    true,
+			},
 
 			// Deprecated Attributes:
 			// Those attributes were copied from cluster_rosa_clasic resource in order to use the same state struct.
@@ -366,6 +403,16 @@ func (r *ClusterRosaHcpDatasource) Read(ctx context.Context, request datasource.
 		return
 	}
 
+	// Fetch log forwarder IDs
+	state.LogForwarderIds, err = r.fetchLogForwarderIds(ctx, state.ID.ValueString())
+	if err != nil {
+		response.Diagnostics.AddError(
+			"Can't fetch log forwarder IDs",
+			fmt.Sprintf("Received error %v", err),
+		)
+		return
+	}
+
 	// set deprecated attributes to null:
 	state.DisableWaitingInDestroy = types.BoolNull()
 	state.ChannelGroup = types.StringNull()
@@ -378,7 +425,37 @@ func (r *ClusterRosaHcpDatasource) Read(ctx context.Context, request datasource.
 	state.ComputeMachineType = types.StringNull()
 	state.CreateAdminUser = types.BoolNull()
 	state.AdminCredentials = rosaTypes.AdminCredentialsNull()
+	state.LogForwardersAtClusterCreation = types.ListNull(types.ObjectType{
+		AttrTypes: map[string]attr.Type{
+			"s3": types.ObjectType{
+				AttrTypes: map[string]attr.Type{
+					"bucket_name":   types.StringType,
+					"bucket_prefix": types.StringType,
+				},
+			},
+			"cloudwatch": types.ObjectType{
+				AttrTypes: map[string]attr.Type{
+					"log_group_name":            types.StringType,
+					"log_distribution_role_arn": types.StringType,
+				},
+			},
+			"applications": types.ListType{ElemType: types.StringType},
+			"groups": types.ListType{
+				ElemType: types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"id":      types.StringType,
+						"version": types.StringType,
+					},
+				},
+			},
+		},
+	})
 
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
+}
+
+// fetchLogForwarderIds fetches all log forwarder IDs for a cluster from the API
+func (r *ClusterRosaHcpDatasource) fetchLogForwarderIds(ctx context.Context, clusterId string) (types.List, error) {
+	return fetchLogForwarderIds(ctx, r.clusterCollection, clusterId)
 }

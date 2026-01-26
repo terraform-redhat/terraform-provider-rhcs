@@ -85,12 +85,24 @@ resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
   registry_config                                 = var.registry_config
   worker_disk_size                                = var.worker_disk_size
   external_auth_providers_enabled                 = var.external_auth_providers_enabled
+  log_forwarders_at_cluster_creation                     = var.log_forwarders_at_cluster_creation
 }
 
 resource "rhcs_cluster_wait" "rosa_cluster" { # id: 71869
   count   = var.disable_cluster_waiter || !var.wait_for_cluster ? 0 : 1
   cluster = rhcs_cluster_rosa_hcp.rosa_hcp_cluster.id
   timeout = 60 # in minutes
+}
+
+// Data source to query all log forwarders (both Day 1 and Day 2)
+data "rhcs_log_forwarders" "all" {
+  cluster = rhcs_cluster_rosa_hcp.rosa_hcp_cluster.id
+}
+
+// Output full details of all log forwarders (from data source)
+output "log_forwarders" {
+  description = "Full details of all log forwarders"
+  value       = data.rhcs_log_forwarders.all.items
 }
 
 resource "rhcs_hcp_default_ingress" "current" {

@@ -109,10 +109,6 @@ func ClassicStsResource() map[string]schema.Attribute {
 		"trust_policy_external_id": schema.StringAttribute{
 			Description: externalIdDescription,
 			Optional:    true,
-			Computed:    true,
-			PlanModifiers: []planmodifier.String{
-				stringplanmodifier.UseStateForUnknown(),
-			},
 		},
 	}
 }
@@ -160,10 +156,6 @@ func ClassicStsDatasource() map[string]dsschema.Attribute {
 		"trust_policy_external_id": schema.StringAttribute{
 			Description: externalIdDescription,
 			Optional:    true,
-			Computed:    true,
-			PlanModifiers: []planmodifier.String{
-				stringplanmodifier.UseStateForUnknown(),
-			},
 		},
 	}
 }
@@ -222,10 +214,6 @@ func HcpStsResource() map[string]schema.Attribute {
 		"trust_policy_external_id": schema.StringAttribute{
 			Description: externalIdDescription,
 			Optional:    true,
-			Computed:    true,
-			PlanModifiers: []planmodifier.String{
-				stringplanmodifier.UseStateForUnknown(),
-			},
 		},
 	}
 }
@@ -269,10 +257,6 @@ func HcpStsDatasource() map[string]dsschema.Attribute {
 		"trust_policy_external_id": schema.StringAttribute{
 			Description: externalIdDescription,
 			Optional:    true,
-			Computed:    true,
-			PlanModifiers: []planmodifier.String{
-				stringplanmodifier.UseStateForUnknown(),
-			},
 		},
 	}
 }

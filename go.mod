@@ -19,7 +19,7 @@ require (
 	github.com/openshift-online/ocm-sdk-go v0.1.486
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.4
-	github.com/sirupsen/logrus v1.9.3
+	github.com/sirupsen/logrus v1.9.4
 	github.com/thoas/go-funk v0.9.3
 	github.com/zgalor/weberr v0.8.2
 	go.uber.org/mock v0.4.0

@@ -23,7 +23,6 @@ require (
 	github.com/thoas/go-funk v0.9.3
 	github.com/zgalor/weberr v0.8.2
 	go.uber.org/mock v0.4.0
-	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/apimachinery v0.29.2
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
@@ -66,6 +65,7 @@ require (
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/klog/v2 v2.110.1 // indirect
 )
 

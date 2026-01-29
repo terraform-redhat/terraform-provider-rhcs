@@ -22,6 +22,7 @@ locals {
     ec2_metadata_http_tokens      = var.ec2_metadata_http_tokens,
     tags                          = var.tags
     disk_size                     = var.disk_size
+    image_type                    = var.image_type
   }
 }
 

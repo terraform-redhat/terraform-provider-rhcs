@@ -352,9 +352,13 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 			return
 		}
 
-		if !common.IsStringAttributeUnknownOrEmpty(plan.AWSNodePool.CapacityReservationId) {
+		if !common.IsStringAttributeUnknownOrEmpty(plan.AWSNodePool.CapacityReservationId) ||
+			!common.IsStringAttributeUnknownOrEmpty(plan.AWSNodePool.CapacityReservationPreference) {
 			capacityReservationBuilder := cmv1.NewAWSCapacityReservation()
-			capacityReservationBuilder.Id(plan.AWSNodePool.CapacityReservationId.ValueString())
+			
+			if !common.IsStringAttributeUnknownOrEmpty(plan.AWSNodePool.CapacityReservationId) {
+				capacityReservationBuilder.Id(plan.AWSNodePool.CapacityReservationId.ValueString())
+			}
 
 			if !common.IsStringAttributeUnknownOrEmpty(plan.AWSNodePool.CapacityReservationPreference) {
 				capacityReservationBuilder.Preference(

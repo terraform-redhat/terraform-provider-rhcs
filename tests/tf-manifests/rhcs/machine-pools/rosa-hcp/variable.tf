@@ -96,3 +96,8 @@ variable "disk_size" {
   type    = number
   default = null
 }
+
+variable "image_type" {
+  type    = string
+  default = null
+}

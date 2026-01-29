@@ -12,6 +12,7 @@ import (
 	"github.com/Masterminds/semver"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
@@ -760,6 +761,152 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 				Expect(mp.MachineType).To(BeElementOf(machineType))
 			}
 
+		})
+
+	It("can create with image type set - [id:87302]",
+		ci.Critical, ci.FeatureMachinepoolImageType, func() {
+			By("Create machinepool without an image type set")
+			replicas := 3
+			machineType := "m5.xlarge"
+			name := helper.GenerateRandomName("np-87302", 2)
+			subnetId := vpcOutput.PrivateSubnets[0]
+			mpArgs := &exec.MachinePoolArgs{
+				Cluster:            helper.StringPointer(clusterID),
+				AutoscalingEnabled: helper.BoolPointer(false),
+				Replicas:           helper.IntPointer(replicas),
+				Name:               helper.StringPointer(name),
+				SubnetID:           helper.StringPointer(subnetId),
+				MachineType:        helper.StringPointer(machineType),
+				AutoRepair:         helper.BoolPointer(true),
+			}
+			_, err := mpService.Apply(mpArgs)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Get the terraform output")
+			mpsOut, err := mpService.Output()
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Verify the terraform output is correct")
+			Expect(mpsOut.MachinePools).ToNot(BeEmpty())
+			Expect(len(mpsOut.MachinePools)).To(Equal(1))
+			mpOut := mpsOut.MachinePools[0]
+			Expect(mpOut.Name).To(Equal(name))
+			Expect(mpOut.ImageType).To(Equal(""))
+
+			By("Verify image type is correctly set")
+			mpResponseBody, err := cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(mpResponseBody.ImageType()).To(Equal(cmv1.ImageType("")))
+
+			By("Validate that you can't add an image type after creation")
+			mpArgs.ImageType = helper.StringPointer("Default")
+			_, err = mpService.Apply(mpArgs)
+			Expect(err).To(HaveOccurred())
+			helper.ExpectTFErrorContains(err, "cannot be changed from <null> to \"Default\"")
+
+			By("Remove machinepool")
+			_, err = mpService.Destroy()
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Create machinepool with image type set to Default")
+			name = helper.GenerateRandomName("np-87302", 2)
+			mpArgs = &exec.MachinePoolArgs{
+				Cluster:            helper.StringPointer(clusterID),
+				AutoscalingEnabled: helper.BoolPointer(false),
+				Replicas:           helper.IntPointer(replicas),
+				Name:               helper.StringPointer(name),
+				SubnetID:           helper.StringPointer(subnetId),
+				MachineType:        helper.StringPointer(machineType),
+				AutoRepair:         helper.BoolPointer(true),
+				ImageType:          helper.StringPointer("Default"),
+			}
+			_, err = mpService.Apply(mpArgs)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Get the terraform output")
+			mpsOut, err = mpService.Output()
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Verify the terraform output is correct")
+			Expect(mpsOut.MachinePools).ToNot(BeEmpty())
+			Expect(len(mpsOut.MachinePools)).To(Equal(1))
+			mpOut = mpsOut.MachinePools[0]
+			Expect(mpOut.Name).To(Equal(name))
+			Expect(mpOut.ImageType).To(Equal("Default"))
+
+			By("Verify image type is correctly set")
+			mpResponseBody, err = cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(mpResponseBody.ImageType()).To(Equal(cmv1.ImageTypeDefault))
+
+			By("Validate that you can't edit the image type")
+			mpArgs.ImageType = helper.StringPointer("Windows")
+			_, err = mpService.Apply(mpArgs)
+			Expect(err).To(HaveOccurred())
+			helper.ExpectTFErrorContains(err, "cannot be changed from \"Default\" to \"Windows\"")
+
+			By("Remove machinepool")
+			_, err = mpService.Destroy()
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Create machinepool with image type set to Windows")
+			name = helper.GenerateRandomName("np-87302", 2)
+			machineType = "m5.metal"
+			mpArgs = &exec.MachinePoolArgs{
+				Cluster:            helper.StringPointer(clusterID),
+				AutoscalingEnabled: helper.BoolPointer(false),
+				Replicas:           helper.IntPointer(replicas),
+				Name:               helper.StringPointer(name),
+				SubnetID:           helper.StringPointer(subnetId),
+				MachineType:        helper.StringPointer(machineType),
+				AutoRepair:         helper.BoolPointer(true),
+				ImageType:          helper.StringPointer("Windows"),
+			}
+			_, err = mpService.Apply(mpArgs)
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Get the terraform output")
+			mpsOut, err = mpService.Output()
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Verify the terraform output is correct")
+			Expect(mpsOut.MachinePools).ToNot(BeEmpty())
+			Expect(len(mpsOut.MachinePools)).To(Equal(1))
+			mpOut = mpsOut.MachinePools[0]
+			Expect(mpOut.Name).To(Equal(name))
+			Expect(mpOut.ImageType).To(Equal("Windows"))
+
+			By("Verify image type is correctly set")
+			mpResponseBody, err = cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(mpResponseBody.ImageType()).To(Equal(cmv1.ImageTypeWindows))
+
+			By("Validate that you can't edit the image type")
+			mpArgs.ImageType = helper.StringPointer("Default")
+			_, err = mpService.Apply(mpArgs)
+			Expect(err).To(HaveOccurred())
+			helper.ExpectTFErrorContains(err, "cannot be changed from \"Windows\" to \"Default\"")
+
+			By("Remove machinepool")
+			_, err = mpService.Destroy()
+			Expect(err).ToNot(HaveOccurred())
+
+			By("Validate that you can't set an invalid image type")
+			name = helper.GenerateRandomName("np-87302", 2)
+			machineType = "m5.xlarge"
+			mpArgs = &exec.MachinePoolArgs{
+				Cluster:            helper.StringPointer(clusterID),
+				AutoscalingEnabled: helper.BoolPointer(false),
+				Replicas:           helper.IntPointer(replicas),
+				Name:               helper.StringPointer(name),
+				SubnetID:           helper.StringPointer(subnetId),
+				MachineType:        helper.StringPointer(machineType),
+				AutoRepair:         helper.BoolPointer(true),
+				ImageType:          helper.StringPointer("Invalid"),
+			}
+			_, err = mpService.Plan(mpArgs)
+			Expect(err).To(HaveOccurred())
+			helper.ExpectTFErrorContains(err, "Options are [Default Windows]. Got Invalid")
 		})
 
 	Context("can validate", func() {

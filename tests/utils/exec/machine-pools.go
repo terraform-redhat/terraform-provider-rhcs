@@ -28,6 +28,7 @@ type MachinePoolArgs struct {
 	SubnetID                 *string              `hcl:"subnet_id"`
 	MultiAZ                  *bool                `hcl:"multi_availability_zone"`
 	DiskSize                 *int                 `hcl:"disk_size"`
+	ImageType                *string              `hcl:"image_type"`
 	AdditionalSecurityGroups *[]string            `hcl:"additional_security_groups"`
 	Tags                     *map[string]string   `hcl:"tags"`
 
@@ -56,6 +57,8 @@ type MachinePoolOutput struct {
 	TuningConfigs         []string           `json:"tuning_configs,omitempty"`
 	KubeletConfigs        string             `json:"kubelet_configs"`
 	Tags                  map[string]string  `json:"tags,omitempty"`
+	DiskSize              int                `json:"disk_size,omitempty"`
+	ImageType             string             `json:"image_type,omitempty"`
 }
 
 type MachinePoolTaint struct {

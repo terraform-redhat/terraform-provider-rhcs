@@ -78,4 +78,7 @@ type ClusterRosaHcpState struct {
 
 	// External authentication fields
 	ExternalAuthProvidersEnabled types.Bool `tfsdk:"external_auth_providers_enabled"`
+
+	// Log forwarders fields
+	LogForwarders types.List `tfsdk:"log_forwarders"`
 }

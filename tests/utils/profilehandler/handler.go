@@ -437,6 +437,7 @@ func (ctx *profileContext) PrepareOIDCProviderAndOperatorRoles(token string, oid
 		AccountRolePrefix:   helper.StringPointer(accountRolePrefix),
 		OperatorRolePrefix:  helper.StringPointer(operatorRolePrefix),
 		OIDCConfig:          helper.StringPointer(oidcConfigType),
+		OIDCPrefix:          helper.StringPointer(helper.TruncateString(operatorRolePrefix, 16)),
 		UnifiedAccRolesPath: helper.StringPointer(accountRolesPath),
 	}
 	_, err = oidcOpService.Apply(args)

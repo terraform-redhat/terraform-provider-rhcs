@@ -9,6 +9,7 @@ type OIDCProviderOperatorRolesArgs struct {
 	AccountRolePrefix   *string            `hcl:"account_role_prefix"`
 	OperatorRolePrefix  *string            `hcl:"operator_role_prefix"`
 	OIDCConfig          *string            `hcl:"oidc_config"`
+	OIDCPrefix          *string            `hcl:"oidc_prefix"`
 	UnifiedAccRolesPath *string            `hcl:"path"`
 	Tags                *map[string]string `hcl:"tags"`
 }

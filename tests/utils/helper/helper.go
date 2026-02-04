@@ -498,6 +498,22 @@ func Subfix(length int) string {
 	return string(subfix)
 }
 
+func TruncateString(text string, length int) string {
+	if length <= 0 {
+		return ""
+	}
+	// Convert the string to a list of runes
+	r := []rune(text)
+	if len(r) <= length {
+		return text
+	}
+	// Convert the list of runes back to a string with the correct length
+	output := string(r[:length])
+	// Remove any trailing hyphens
+	output = strings.TrimRight(output, "-")
+	return output
+}
+
 func GenerateClusterName(profileName string) string {
 	var clusterNameParts []string
 	if config.GetRHCSClusterNamePrefix() != "" {

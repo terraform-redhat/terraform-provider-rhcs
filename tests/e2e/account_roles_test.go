@@ -155,6 +155,7 @@ var _ = Describe("Create Account roles with shared vpc role", ci.Exclude, func()
 		oidcOpArgs := &exec.OIDCProviderOperatorRolesArgs{
 			AccountRolePrefix:  helper.StringPointer(accRoleOutput.AccountRolePrefix),
 			OperatorRolePrefix: helper.StringPointer(accRoleOutput.AccountRolePrefix),
+			OIDCPrefix:         helper.StringPointer(helper.TruncateString(accRoleOutput.AccountRolePrefix, 16)),
 			OIDCConfig:         helper.StringPointer(profileHandler.Profile().GetOIDCConfig()),
 		}
 		_, err = oidcOpService.Apply(oidcOpArgs)

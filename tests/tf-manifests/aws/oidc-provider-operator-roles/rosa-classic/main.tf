@@ -27,18 +27,17 @@ locals {
 
 # Create OIDC config and provider in OCM
 module "oidc_config_and_provider" {
-  source  = "terraform-redhat/rosa-classic/rhcs//modules/oidc-config-and-provider"
-  version = ">=1.6.3"
+  source = "git::https://github.com/terraform-redhat/terraform-rhcs-rosa-classic//modules/oidc-config-and-provider"
 
   installer_role_arn = local.managed ? null : "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${var.account_role_prefix}-Installer-Role"
   managed            = local.managed
   tags               = var.tags
+  oidc_prefix        = var.oidc_prefix
 }
 
 # Create operator roles on AWS
 module "operator_roles" {
-  source  = "terraform-redhat/rosa-classic/rhcs//modules/operator-roles"
-  version = ">=1.6.3"
+  source = "git::https://github.com/terraform-redhat/terraform-rhcs-rosa-classic//modules/operator-roles"
 
   account_role_prefix  = var.account_role_prefix
   oidc_endpoint_url    = module.oidc_config_and_provider.oidc_endpoint_url

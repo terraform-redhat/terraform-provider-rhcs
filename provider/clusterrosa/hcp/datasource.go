@@ -294,6 +294,10 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				ElementType: types.StringType,
 				Computed:    true,
 			},
+			"external_auth_providers_enabled": schema.BoolAttribute{
+				Description: "Enable external authentication providers on the cluster.",
+				Computed:    true,
+			},
 		},
 	}
 }

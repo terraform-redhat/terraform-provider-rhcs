@@ -421,6 +421,7 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				Description: "Enable external authentication providers on the cluster. " +
 					"This feature is only available for ROSA HCP clusters. " + common.ValueCannotBeChangedStringDescription,
 				Optional: true,
+				Computed: true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
 				},

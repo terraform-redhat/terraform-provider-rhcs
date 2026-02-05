@@ -1554,15 +1554,11 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 	kmsKeyArn, ok := object.AWS().GetKMSKeyArn()
 	if ok {
 		state.KMSKeyArn = types.StringValue(kmsKeyArn)
-	} else {
-		state.KMSKeyArn = types.StringNull()
 	}
 	if object.EtcdEncryption() {
 		etcdKmsKeyArn, ok := object.AWS().EtcdEncryption().GetKMSKeyARN()
 		if ok {
 			state.EtcdKmsKeyArn = types.StringValue(etcdKmsKeyArn)
-		} else {
-			state.EtcdKmsKeyArn = types.StringNull()
 		}
 	}
 	auditLog, ok := object.AWS().GetAuditLog()
@@ -1570,11 +1566,7 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 		auditLogArn, ok := auditLog.GetRoleArn()
 		if ok && auditLogArn != "" {
 			state.AuditLogArn = types.StringValue(auditLogArn)
-		} else {
-			state.AuditLogArn = types.StringNull()
 		}
-	} else {
-		state.AuditLogArn = types.StringNull()
 	}
 
 	httpTokensState, ok := object.AWS().GetEc2MetadataHttpTokens()
@@ -1760,14 +1752,8 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 		}
 	}
 
-	if externalAuthConfig, ok := object.GetExternalAuthConfig(); ok {
-		if externalAuthConfig.Enabled() {
-			state.ExternalAuthProvidersEnabled = types.BoolValue(true)
-		} else {
-			state.ExternalAuthProvidersEnabled = types.BoolValue(false)
-		}
-	} else {
-		state.ExternalAuthProvidersEnabled = types.BoolNull()
+	if externalAuthConfig, ok := object.GetExternalAuthConfig(); ok && externalAuthConfig.Enabled() {
+		state.ExternalAuthProvidersEnabled = types.BoolValue(true)
 	}
 
 	return nil

@@ -1,42 +1,29 @@
-variable "cluster" {
+variable "cluster_id" {
   type        = string
-  description = "The cluster ID to attach the log forwarder to"
+  description = "The ID of the cluster to create the log forwarder on"
 }
 
 variable "s3_bucket_name" {
   type        = string
-  description = "S3 bucket name for log forwarding"
-  default     = null
+  description = "The name of the S3 bucket for log forwarding"
 }
 
 variable "s3_bucket_prefix" {
   type        = string
-  description = "S3 bucket prefix for log forwarding"
-  default     = null
-}
-
-variable "cloudwatch_log_group_name" {
-  type        = string
-  description = "CloudWatch log group name"
-  default     = null
-}
-
-variable "cloudwatch_log_distribution_role_arn" {
-  type        = string
-  description = "CloudWatch log distribution role ARN"
-  default     = null
+  description = "The prefix to use for objects stored in the S3 bucket"
+  default     = ""
 }
 
 variable "applications" {
   type        = list(string)
-  description = "List of additional applications to forward logs for"
+  description = "List of applications to forward logs for"
   default     = []
 }
 
 variable "groups" {
   type = list(object({
     id      = string
-    version = string
+    version = optional(string)
   }))
   description = "List of log forwarder groups"
   default     = []

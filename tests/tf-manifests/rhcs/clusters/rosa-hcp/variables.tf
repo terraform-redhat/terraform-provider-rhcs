@@ -231,4 +231,22 @@ variable "external_auth_providers_enabled" {
   default = false
 }
 
+variable "log_forwarders_at_cluster_creation" {
+  type = list(object({
+    s3 = optional(object({
+      bucket_name   = string
+      bucket_prefix = optional(string)
+    }))
+    cloudwatch = optional(object({
+      log_group_name            = string
+      log_distribution_role_arn = string
+    }))
+    applications = optional(list(string))
+    groups = optional(list(object({
+      id      = string
+      version = string
+    })))
+  }))
+  default = null
+}
 

@@ -188,7 +188,8 @@ func (r *LogForwarderResource) Schema(ctx context.Context, req resource.SchemaRe
 						},
 						"version": schema.StringAttribute{
 							Description: "The version of the log forwarder group.",
-							Required:    true,
+							Optional:    true,
+							Computed:    true,
 						},
 					},
 				},
@@ -481,9 +482,7 @@ func (r *LogForwarderResource) buildLogForwarderFromState(ctx context.Context, s
 
 	if !state.Applications.IsNull() && !state.Applications.IsUnknown() {
 		applications := common.OptionalList(state.Applications)
-		if len(applications) > 0 {
-			builder.Applications(applications...)
-		}
+		builder.Applications(applications...)
 	}
 
 	if !state.Groups.IsNull() && !state.Groups.IsUnknown() {
@@ -494,16 +493,16 @@ func (r *LogForwarderResource) buildLogForwarderFromState(ctx context.Context, s
 			return nil, fmt.Errorf("failed to parse groups")
 		}
 
-		if len(groupsList) > 0 {
-			groupBuilders := make([]*cmv1.LogForwarderGroupBuilder, 0, len(groupsList))
-			for _, group := range groupsList {
-				groupBuilder := cmv1.NewLogForwarderGroup()
-				groupBuilder.ID(group.ID.ValueString())
+		groupBuilders := make([]*cmv1.LogForwarderGroupBuilder, 0, len(groupsList))
+		for _, group := range groupsList {
+			groupBuilder := cmv1.NewLogForwarderGroup()
+			groupBuilder.ID(group.ID.ValueString())
+			if !group.Version.IsNull() && !group.Version.IsUnknown() {
 				groupBuilder.Version(group.Version.ValueString())
-				groupBuilders = append(groupBuilders, groupBuilder)
 			}
-			builder.Groups(groupBuilders...)
+			groupBuilders = append(groupBuilders, groupBuilder)
 		}
+		builder.Groups(groupBuilders...)
 	}
 
 	logForwarder, err := builder.Build()
@@ -579,10 +578,15 @@ func (r *LogForwarderResource) populateState(ctx context.Context, logForwarder *
 	if groups, ok := logForwarder.GetGroups(); ok && len(groups) > 0 {
 		groupsList := make([]LogForwarderGroup, 0, len(groups))
 		for _, group := range groups {
-			groupsList = append(groupsList, LogForwarderGroup{
-				ID:      types.StringValue(group.ID()),
-				Version: types.StringValue(group.Version()),
-			})
+			groupState := LogForwarderGroup{
+				ID: types.StringValue(group.ID()),
+			}
+			if version, ok := group.GetVersion(); ok {
+				groupState.Version = types.StringValue(version)
+			} else {
+				groupState.Version = types.StringNull()
+			}
+			groupsList = append(groupsList, groupState)
 		}
 
 		groupsListValue, d := types.ListValueFrom(ctx, types.ObjectType{

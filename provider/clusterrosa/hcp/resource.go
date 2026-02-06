@@ -1279,7 +1279,10 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 		changesToAws = shouldPatch
 	}
 
-	if newAuditLogArn, shouldPatch := common.ShouldPatchString(state.AuditLogArn, plan.AuditLogArn); shouldPatch {
+	if plan.AuditLogArn.IsNull() && !state.AuditLogArn.IsNull() && state.AuditLogArn.ValueString() != "" {
+		awsBuilder.AuditLog(cmv1.NewAuditLog().RoleArn(""))
+		changesToAws = true
+	} else if newAuditLogArn, shouldPatch := common.ShouldPatchString(state.AuditLogArn, plan.AuditLogArn); shouldPatch {
 		awsBuilder.AuditLog(cmv1.NewAuditLog().RoleArn(newAuditLogArn))
 		changesToAws = true
 	}
@@ -1675,7 +1678,11 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 		auditLogArn, ok := auditLog.GetRoleArn()
 		if ok && auditLogArn != "" {
 			state.AuditLogArn = types.StringValue(auditLogArn)
+		} else {
+			state.AuditLogArn = types.StringNull()
 		}
+	} else {
+		state.AuditLogArn = types.StringNull()
 	}
 
 	httpTokensState, ok := object.AWS().GetEc2MetadataHttpTokens()

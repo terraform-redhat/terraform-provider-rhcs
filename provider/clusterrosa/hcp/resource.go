@@ -477,8 +477,8 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 										Required:    true,
 									},
 									"version": schema.StringAttribute{
-										Description: "The version of the log forwarder group.",
-										Required:    true,
+										Description: "The version of the log forwarder group. If not specified, will use the latest version.",
+										Optional:    true,
 									},
 								},
 							},

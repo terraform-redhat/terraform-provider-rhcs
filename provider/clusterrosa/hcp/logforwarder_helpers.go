@@ -111,8 +111,10 @@ func buildLogForwarders(ctx context.Context, logForwardersList types.List) (*cmv
 			groupBuilders := make([]*cmv1.LogForwarderGroupBuilder, 0, len(groups))
 			for _, group := range groups {
 				groupBuilder := cmv1.NewLogForwarderGroup().
-					ID(group.ID.ValueString()).
-					Version(group.Version.ValueString())
+					ID(group.ID.ValueString())
+				if !group.Version.IsNull() && !group.Version.IsUnknown() {
+					groupBuilder.Version(group.Version.ValueString())
+				}
 				groupBuilders = append(groupBuilders, groupBuilder)
 			}
 			if len(groupBuilders) > 0 {

@@ -5689,4 +5689,41 @@ var _ = Describe("HCP Cluster", func() {
 			runOutput.VerifyErrorContainsSubstring("cannot be changed")
 		})
 	})
+
+	Context("Day 1 Log Forwarders", func() {
+		It("allows log forwarder groups without version field", func() {
+			// Verify that the version field is optional in log_forwarders_at_cluster_creation groups
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				availability_zones = ["us-west-1a", "us-west-1b", "us-west-1c"]
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = ""
+					support_role_arn = ""
+					instance_iam_roles = {
+						worker_role_arn = ""
+					}
+				}
+				aws_subnet_ids = ["id1", "id2", "id3"]
+				log_forwarders_at_cluster_creation = [
+					{
+						s3 = {
+							bucket_name = "my-logs"
+						}
+						groups = [
+							{
+								id = "api"
+							}
+						]
+					}
+				]
+			}`)
+			runOutput := Terraform.Validate()
+			Expect(runOutput.ExitCode).To(BeZero())
+		})
+	})
 })

@@ -15,7 +15,7 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk v1.17.2
 	github.com/onsi/ginkgo/v2 v2.17.1
 	github.com/onsi/gomega v1.30.0
-	github.com/openshift-online/ocm-common v0.0.33
+	github.com/openshift-online/ocm-common v0.0.37
 	github.com/openshift-online/ocm-sdk-go v0.1.486
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.4

@@ -61,7 +61,7 @@ require (
 	github.com/openshift-online/ocm-api-model/clientapi v0.0.440 // indirect
 	github.com/openshift-online/ocm-api-model/model v0.0.440 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
-	go.yaml.in/yaml/v2 v2.4.2 // indirect
+	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect

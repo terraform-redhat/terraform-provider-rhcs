@@ -11,7 +11,9 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 
-var _ = Describe("HCP ImageMirror", ci.Day2, func() {
+// This whole test suite seems very flakey, disabling it for now
+// OCM-22745 is to track the work to re-enable these tests
+var _ = Describe("HCP ImageMirror", ci.Day2, ci.Exclude, func() {
 	defer GinkgoRecover()
 	var (
 		imageMirrorService exec.ImageMirrorService

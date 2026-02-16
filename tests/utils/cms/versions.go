@@ -467,6 +467,33 @@ func GetVersionsWithUpgradesToVersion(connection *client.Connection, targetVersi
 	return imageVersionList, err
 }
 
+// It will return a list of versions which have an upgrade path from the current version
+func GetVersionUpgrades(client *client.Connection, originalVersion string) (upgrades []string, err error) {
+	res, err := client.ClustersMgmt().V1().Versions().Version(originalVersion).Get().Send()
+	if err != nil {
+		return nil, err
+	}
+	return res.Body().AvailableUpgrades(), nil
+}
+
+// ChangeClusterChannel updates the channel of a cluster. The newChannel should follow the
+// Y-stream format: "<channel_group>-<major>.<minor>" (e.g. "stable-4.19", "eus-4.16").
+// Returns an error if the cluster update fails or the API returns a non-200 status.
+func ChangeClusterChannel(client *client.Connection, clusterID string, newChannel string) (err error) {
+	cluster, err := v1.NewCluster().Channel(newChannel).Build()
+	if err != nil {
+		return err
+	}
+	res, err := client.ClustersMgmt().V1().Clusters().Cluster(clusterID).Update().Body(cluster).Send()
+	if err != nil {
+		return err
+	}
+	if res.Status() != 200 {
+		return res.Error()
+	}
+	return nil
+}
+
 // It will return a list of versions which have available upgrades in both y and z Streams
 func GetVersionUpgradeTarget(orginalVersion string, stream string, availableUpgrades []string) (targetV string, err error) {
 	semVersion, semVersionError := semver.NewVersion(orginalVersion)

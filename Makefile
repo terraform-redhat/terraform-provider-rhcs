@@ -126,7 +126,7 @@ unit-test-coverage: $(GINKGO)
 
 
 .PHONY: test tests
-test tests: unit-test subsystem-test
+test tests: unit-test subsystem-test e2e-unit-test
 
 .PHONY: fmt_go
 fmt_go: $(GCI)
@@ -187,6 +187,13 @@ docs:
 .PHONY: tools
 tools:
 	@$(MAKE) --no-print-directory $(GCI) $(GINKGO) $(MOCKGEN) $(GOLANGCI_LINT)
+
+.PHONY: e2e-unit-test
+e2e-unit-test: $(GINKGO)
+	$(GINKGO) run \
+		--succinct \
+		-ldflags="$(ldflags)" \
+		-r tests/utils/...
 
 .PHONY: e2e_sanity_test
 e2e_sanity_test: $(GINKGO) install

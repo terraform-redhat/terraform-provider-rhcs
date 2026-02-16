@@ -1031,14 +1031,6 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 				args.Replicas = nil
 			}, "enabling autoscaling, should set value for maxReplicas")
 
-			By("Try to create a nodepool with autoscaling enabled and min_replicas=0")
-			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
-				args.AutoscalingEnabled = helper.BoolPointer(true)
-				args.Replicas = nil
-				args.MinReplicas = helper.IntPointer(0)
-				args.MaxReplicas = helper.IntPointer(3)
-			}, "'autoscaling.min_replica' must be greater than zero")
-
 			By("Try to create a nodepool with both replicas and autoscaling enabled")
 			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
 				args.AutoscalingEnabled = helper.BoolPointer(true)

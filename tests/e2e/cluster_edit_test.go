@@ -402,8 +402,8 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			currentVersion := clusterResp.Body().Version().RawID()
 
 			By("Get new channel group")
-			otherChannelGroup := constants.VersionNightlyChannel
-			if profileHandler.Profile().GetChannelGroup() == constants.VersionNightlyChannel {
+			otherChannelGroup := constants.VersionFastChannel
+			if profileHandler.Profile().GetChannelGroup() == constants.VersionFastChannel {
 				otherChannelGroup = constants.VersionCandidateChannel
 			}
 
@@ -420,10 +420,6 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			}
 
 			By("Edit channel_group")
-			otherChannelGroup = constants.VersionStableChannel
-			if profileHandler.Profile().GetChannelGroup() == constants.VersionStableChannel {
-				otherChannelGroup = constants.VersionEusChannel
-			}
 			validateClusterArg(func(args *exec.ClusterArgs) {
 				args.ChannelGroup = helper.StringPointer(otherChannelGroup)
 			}, func(output string, err error) {

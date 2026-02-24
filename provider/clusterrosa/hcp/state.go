@@ -44,6 +44,9 @@ type ClusterRosaHcpState struct {
 	Proxy       *proxy.Proxy `tfsdk:"proxy"`
 
 	// Standard machine pools fields
+	AutoScalingEnabled    types.Bool   `tfsdk:"autoscaling_enabled"`
+	MinReplicas           types.Int64  `tfsdk:"min_replicas"`
+	MaxReplicas           types.Int64  `tfsdk:"max_replicas"`
 	ComputeMachineType    types.String `tfsdk:"compute_machine_type"`
 	Replicas              types.Int64  `tfsdk:"replicas"`
 	AvailabilityZones     types.List   `tfsdk:"availability_zones"`

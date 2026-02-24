@@ -31,6 +31,7 @@ import (
 	semver "github.com/hashicorp/go-version"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/registry_config"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -188,11 +189,29 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"autoscaling_enabled": schema.BoolAttribute{
+				Description: "Enable autoscaling for the initial worker pool. " + rosaTypes.PoolMessage,
+				Optional:    true,
+			},
+			"min_replicas": schema.Int64Attribute{
+				Description: "Minimum replicas of worker nodes in a machine pool. " + rosaTypes.PoolMessage,
+				Optional:    true,
+				Validators: []validator.Int64{
+					int64validator.AtLeast(0),
+				},
+			},
+			"max_replicas": schema.Int64Attribute{
+				Description: "Maximum replicas of worker nodes in a machine pool. " + rosaTypes.PoolMessage,
+				Optional:    true,
+			},
 			"replicas": schema.Int64Attribute{
 				Description: "Number of worker/compute nodes to provision. " +
 					"Requires that the number supplied be a multiple of the number of private subnets. " +
 					rosaTypes.PoolMessage,
 				Optional: true,
+				Validators: []validator.Int64{
+					int64validator.AtLeast(2),
+				},
 			},
 			"compute_machine_type": schema.StringAttribute{
 				Description: "Identifies the machine type used by the initial worker nodes, " +
@@ -605,9 +624,11 @@ func createHcpClusterObject(ctx context.Context,
 		builder.ExternalID(state.ExternalID.ValueString())
 	}
 
-	//autoScalingEnabled := common.BoolWithFalseDefault(state.AutoScalingEnabled)
+	autoScalingEnabled := common.BoolWithFalseDefault(state.AutoScalingEnabled)
 
 	replicas := common.OptionalInt64(state.Replicas)
+	minReplicas := common.OptionalInt64(state.MinReplicas)
+	maxReplicas := common.OptionalInt64(state.MaxReplicas)
 	computeMachineType := common.OptionalString(state.ComputeMachineType)
 
 	availabilityZones, err := common.StringListToArray(ctx, state.AvailabilityZones)
@@ -617,7 +638,7 @@ func createHcpClusterObject(ctx context.Context,
 
 	workerDiskSize := common.OptionalInt64(state.WorkerDiskSize)
 
-	if err := ocmClusterResource.CreateNodes(rosaTypes.Hcp, false, replicas, nil, nil,
+	if err := ocmClusterResource.CreateNodes(rosaTypes.Hcp, autoScalingEnabled, replicas, minReplicas, maxReplicas,
 		computeMachineType, nil, availabilityZones, true, workerDiskSize, nil); err != nil {
 		return nil, err
 	}
@@ -1078,8 +1099,10 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaHcpState) diag.Diagnos
 	common.ValidateStateAndPlanEquals(state.AWSAdditionalComputeSecurityGroupIds, plan.AWSAdditionalComputeSecurityGroupIds, "aws_additional_compute_security_group_ids", &diags)
 
 	// default node pool's attributes
-	//common.ValidateStateAndPlanEquals(state.AutoScalingEnabled, plan.AutoScalingEnabled, "autoscaling_enabled", &diags)
+	common.ValidateStateAndPlanEquals(state.AutoScalingEnabled, plan.AutoScalingEnabled, "autoscaling_enabled", &diags)
 	common.ValidateStateAndPlanEquals(state.Replicas, plan.Replicas, "replicas", &diags)
+	common.ValidateStateAndPlanEquals(state.MinReplicas, plan.MinReplicas, "min_replicas", &diags)
+	common.ValidateStateAndPlanEquals(state.MaxReplicas, plan.MaxReplicas, "max_replicas", &diags)
 	common.ValidateStateAndPlanEquals(state.ComputeMachineType, plan.ComputeMachineType, "compute_machine_type", &diags)
 	common.ValidateStateAndPlanEquals(state.AvailabilityZones, plan.AvailabilityZones, "availability_zones", &diags)
 	common.ValidateStateAndPlanEquals(state.Ec2MetadataHttpTokens, plan.Ec2MetadataHttpTokens, "ec2_metadata_http_tokens", &diags)

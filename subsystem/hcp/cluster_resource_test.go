@@ -5726,4 +5726,658 @@ var _ = Describe("HCP Cluster", func() {
 			Expect(runOutput.ExitCode).To(BeZero())
 		})
 	})
+
+	Context("Autoscaling", func() {
+		Context("Validation", func() {
+			It("Fails when replicas is less than 2", func() {
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					replicas = 1
+				}`)
+				Expect(Terraform.Validate()).NotTo(BeZero())
+			})
+
+			It("Fails when min_replicas is negative", func() {
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					autoscaling_enabled = true
+					min_replicas = -1
+					max_replicas = 5
+				}`)
+				Expect(Terraform.Validate()).NotTo(BeZero())
+			})
+
+		})
+
+		Context("Create cluster with autoscaling", func() {
+			It("Creates cluster with autoscaling enabled", func() {
+				// Prepare the server:
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						VerifyJQ(`.name`, "my-cluster"),
+						VerifyJQ(`.cloud_provider.id`, "aws"),
+						VerifyJQ(`.region.id`, "us-west-1"),
+						VerifyJQ(`.product.id`, "rosa"),
+						VerifyJQ(`.nodes.autoscale_compute.min_replicas`, float64(2)),
+						VerifyJQ(`.nodes.autoscale_compute.max_replicas`, float64(6)),
+						RespondWithPatchedJSON(http.StatusCreated, template, `[
+						{
+						  "op": "add",
+						  "path": "/aws",
+						  "value": {
+							  "sts" : {
+								  "oidc_endpoint_url": "https://127.0.0.1",
+								  "thumbprint": "111111",
+								  "role_arn": "",
+								  "support_role_arn": "",
+								  "instance_iam_roles" : {
+									"worker_role_arn" : ""
+								  },
+								  "operator_role_prefix" : "test"
+							  }
+						  }
+						},
+						{
+						  "op": "replace",
+						  "path": "/nodes",
+						  "value": {
+							  "autoscale_compute": {
+								  "min_replicas": 2,
+								  "max_replicas": 6
+							  },
+							  "availability_zones": ["us-west-1a", "us-west-1b", "us-west-1c"],
+							  "compute_machine_type": {
+								  "id": "r5.xlarge"
+							  }
+						  }
+						}]`),
+					),
+				)
+
+				// Run the apply command:
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					autoscaling_enabled = true
+					min_replicas = 2
+					max_replicas = 6
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.autoscaling_enabled", true))
+				Expect(resource).To(MatchJQ(".attributes.min_replicas", float64(2)))
+				Expect(resource).To(MatchJQ(".attributes.max_replicas", float64(6)))
+			})
+
+			It("Creates cluster with fixed replicas", func() {
+				// Prepare the server:
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						VerifyJQ(`.name`, "my-cluster"),
+						VerifyJQ(`.cloud_provider.id`, "aws"),
+						VerifyJQ(`.region.id`, "us-west-1"),
+						VerifyJQ(`.product.id`, "rosa"),
+						VerifyJQ(`.nodes.compute`, float64(3)),
+						RespondWithPatchedJSON(http.StatusCreated, template, `[
+						{
+						  "op": "add",
+						  "path": "/aws",
+						  "value": {
+							  "sts" : {
+								  "oidc_endpoint_url": "https://127.0.0.1",
+								  "thumbprint": "111111",
+								  "role_arn": "",
+								  "support_role_arn": "",
+								  "instance_iam_roles" : {
+									"worker_role_arn" : ""
+								  },
+								  "operator_role_prefix" : "test"
+							  }
+						  }
+						}]`),
+					),
+				)
+
+				// Run the apply command:
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					replicas = 3
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.replicas", float64(3)))
+			})
+		})
+
+		Context("Immutability tests", func() {
+			It("Fails when trying to change autoscaling_enabled", func() {
+				// Prepare the server for initial creation:
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						RespondWithPatchedJSON(http.StatusCreated, template, `[
+						{
+						  "op": "add",
+						  "path": "/aws",
+						  "value": {
+							  "sts" : {
+								  "oidc_endpoint_url": "https://127.0.0.1",
+								  "thumbprint": "111111",
+								  "role_arn": "",
+								  "support_role_arn": "",
+								  "instance_iam_roles" : {
+									"worker_role_arn" : ""
+								  },
+								  "operator_role_prefix" : "test"
+							  }
+						  }
+						}]`),
+					),
+				)
+
+				// Create cluster initially
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					replicas = 3
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+
+				// Prepare server for update attempt:
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route),
+						RespondWithJSON(http.StatusOK, template),
+					),
+				)
+
+				// Try to change to autoscaling
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					autoscaling_enabled = true
+					min_replicas = 2
+					max_replicas = 6
+				}`)
+				runOutput = Terraform.Apply()
+				Expect(runOutput.ExitCode).NotTo(BeZero())
+				runOutput.VerifyErrorContainsSubstring("autoscaling_enabled")
+				runOutput.VerifyErrorContainsSubstring("cannot be changed")
+			})
+
+			It("Fails when trying to change min_replicas", func() {
+				// Prepare the server for initial creation:
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						RespondWithPatchedJSON(http.StatusCreated, template, `[
+						{
+						  "op": "add",
+						  "path": "/aws",
+						  "value": {
+							  "sts" : {
+								  "oidc_endpoint_url": "https://127.0.0.1",
+								  "thumbprint": "111111",
+								  "role_arn": "",
+								  "support_role_arn": "",
+								  "instance_iam_roles" : {
+									"worker_role_arn" : ""
+								  },
+								  "operator_role_prefix" : "test"
+							  }
+						  }
+						},
+						{
+						  "op": "replace",
+						  "path": "/nodes",
+						  "value": {
+							  "autoscale_compute": {
+								  "min_replicas": 2,
+								  "max_replicas": 6
+							  },
+							  "availability_zones": ["us-west-1a", "us-west-1b", "us-west-1c"],
+							  "compute_machine_type": {
+								  "id": "r5.xlarge"
+							  }
+						  }
+						}]`),
+					),
+				)
+
+				// Create cluster with autoscaling
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					autoscaling_enabled = true
+					min_replicas = 2
+					max_replicas = 6
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+
+				// Prepare server for update attempt:
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+						  "op": "replace",
+						  "path": "/nodes",
+						  "value": {
+							  "autoscale_compute": {
+								  "min_replicas": 2,
+								  "max_replicas": 6
+							  },
+							  "availability_zones": ["us-west-1a", "us-west-1b", "us-west-1c"],
+							  "compute_machine_type": {
+								  "id": "r5.xlarge"
+							  }
+						  }
+						}]`),
+					),
+				)
+
+				// Try to change min_replicas
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					autoscaling_enabled = true
+					min_replicas = 3
+					max_replicas = 6
+				}`)
+				runOutput = Terraform.Apply()
+				Expect(runOutput.ExitCode).NotTo(BeZero())
+				runOutput.VerifyErrorContainsSubstring("min_replicas")
+				runOutput.VerifyErrorContainsSubstring("cannot be changed")
+			})
+
+			It("Fails when trying to change max_replicas", func() {
+				// Prepare the server for initial creation:
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						RespondWithPatchedJSON(http.StatusCreated, template, `[
+						{
+						  "op": "add",
+						  "path": "/aws",
+						  "value": {
+							  "sts" : {
+								  "oidc_endpoint_url": "https://127.0.0.1",
+								  "thumbprint": "111111",
+								  "role_arn": "",
+								  "support_role_arn": "",
+								  "instance_iam_roles" : {
+									"worker_role_arn" : ""
+								  },
+								  "operator_role_prefix" : "test"
+							  }
+						  }
+						},
+						{
+						  "op": "replace",
+						  "path": "/nodes",
+						  "value": {
+							  "autoscale_compute": {
+								  "min_replicas": 2,
+								  "max_replicas": 6
+							  },
+							  "availability_zones": ["us-west-1a", "us-west-1b", "us-west-1c"],
+							  "compute_machine_type": {
+								  "id": "r5.xlarge"
+							  }
+						  }
+						}]`),
+					),
+				)
+
+				// Create cluster with autoscaling
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					autoscaling_enabled = true
+					min_replicas = 2
+					max_replicas = 6
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+
+				// Prepare server for update attempt:
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+						  "op": "replace",
+						  "path": "/nodes",
+						  "value": {
+							  "autoscale_compute": {
+								  "min_replicas": 2,
+								  "max_replicas": 6
+							  },
+							  "availability_zones": ["us-west-1a", "us-west-1b", "us-west-1c"],
+							  "compute_machine_type": {
+								  "id": "r5.xlarge"
+							  }
+						  }
+						}]`),
+					),
+				)
+
+				// Try to change max_replicas
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					autoscaling_enabled = true
+					min_replicas = 2
+					max_replicas = 10
+				}`)
+				runOutput = Terraform.Apply()
+				Expect(runOutput.ExitCode).NotTo(BeZero())
+				runOutput.VerifyErrorContainsSubstring("max_replicas")
+				runOutput.VerifyErrorContainsSubstring("cannot be changed")
+			})
+		})
+
+		Context("Conflict tests", func() {
+			It("Fails when autoscaling is enabled but replicas is also set", func() {
+				// Prepare the server:
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage),
+					),
+				)
+
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					autoscaling_enabled = true
+					min_replicas = 2
+					max_replicas = 6
+					replicas = 3
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).NotTo(BeZero())
+				runOutput.VerifyErrorContainsSubstring("autoscaling is enabled")
+				runOutput.VerifyErrorContainsSubstring("replicas should not be configured")
+			})
+
+			It("Fails when autoscaling is disabled but min/max replicas are set", func() {
+				// Prepare the server:
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage),
+					),
+				)
+
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					replicas = 3
+					min_replicas = 2
+					max_replicas = 6
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).NotTo(BeZero())
+				runOutput.VerifyErrorContainsSubstring("Autoscaling must be enabled")
+			})
+		})
+	})
 })

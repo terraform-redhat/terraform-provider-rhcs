@@ -1,11 +1,19 @@
+reviewers:
+- olucasfreitas
+- jerichokeyne
+- yuwang-RH
 approvers:
 - vkareh
 - gdbranco
-- ciaranRoche 
+- ciaranRoche
 - xueli181114
 - yasun1
+- robpblake
 - yuwang-RH
 - jerichokeyne
-- hunterkepley
 - davidleerh
 - philipwu08
+- BraeTroutman
+- marcolan018
+- olucasfreitas
+- red-hat-konflux[bot]

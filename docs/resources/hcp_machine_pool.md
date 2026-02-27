@@ -45,7 +45,7 @@ resource "rhcs_hcp_machine_pool" "machine_pool" {
 - `ignore_deletion_error` (Boolean) Indicates to the provider to disregard API errors when deleting the machine pool. This will remove the resource from the management file, but not necessirely delete the underlying pool in case it errors. Setting this to true can bypass issues when destroying the cluster resource alongside the pool resource in the same management file. This is not recommended to be set in other use cases
 - `kubelet_configs` (String) Name of the kubelet config applied to the machine pool. A single kubelet config is allowed. Kubelet config must already exist.
 - `labels` (Map of String) Labels for the machine pool. Format should be a comma-separated list of 'key = value'. This list will overwrite any modifications made to node labels on an ongoing basis.
-- `replicas` (Number) The number of machines of the pool
+- `replicas` (Number) The number of machines in the pool. Single zone clusters need at least 2 nodes, multizone clusters need at least 3 nodes. The maximum is 250 for cluster versions prior to 4.14.0-0.a, and 500 for cluster versions 4.14.0-0.a and later.
 - `taints` (Attributes List) Taints for a machine pool. Format should be a comma-separated list of 'key=value'. This list will overwrite any modifications made to node taints on an ongoing basis. (see [below for nested schema](#nestedatt--taints))
 - `tuning_configs` (List of String) A list of tuning configs attached to the pool.
 - `upgrade_acknowledgements_for` (String) Indicates acknowledgement of agreements required to upgrade the cluster version between minor versions (e.g. a value of "4.12" indicates acknowledgement of any agreements required to upgrade to OpenShift 4.12.z from 4.11 or before).
@@ -67,8 +67,8 @@ Required:
 
 Optional:
 
-- `max_replicas` (Number) The maximum number of replicas for autoscaling functionality.
-- `min_replicas` (Number) The minimum number of replicas for autoscaling functionality.
+- `max_replicas` (Number) The maximum number of replicas for autoscaling functionality.The maximum is 250 for cluster versions prior to 4.14.0-0.a, and 500 for cluster versions 4.14.0-0.a and later.
+- `min_replicas` (Number) The minimum number of replicas for autoscaling functionality.Single zone clusters need at least 2 nodes, multizone clusters need at least 3 nodes.
 
 
 <a id="nestedatt--aws_node_pool"></a>

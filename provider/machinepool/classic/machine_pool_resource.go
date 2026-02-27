@@ -102,8 +102,12 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				Required: true,
 			},
 			"replicas": schema.Int64Attribute{
-				Description: "The number of machines of the pool",
-				Optional:    true,
+				Description: "The number of machines in the pool. " +
+					"Single zone clusters need at least 2 nodes, " +
+					"multizone clusters need at least 3 nodes. " +
+					"See OpenShift [documentation](https://github.com/openshift/openshift-docs/blob/main/cloud_experts_tutorials/cloud-experts-getting-started/cloud-experts-getting-started-what-is-rosa.adoc) " +
+					"for maximum allowed values. " ,
+				Optional: true,
 			},
 			"use_spot_instances": schema.BoolAttribute{
 				Description: "Use Amazon EC2 Spot Instances. " + common.ValueCannotBeChangedStringDescription,
@@ -121,12 +125,15 @@ func (r *MachinePoolResource) Schema(ctx context.Context, req resource.SchemaReq
 				Optional:    true,
 			},
 			"min_replicas": schema.Int64Attribute{
-				Description: "The minimum number of replicas for autoscaling functionality.",
-				Optional:    true,
+				Description: "The minimum number of replicas for autoscaling functionality. Single zone clusters need at least 2 nodes, " +
+					"multizone clusters need at least 3 nodes. ",
+				Optional: true,
 			},
 			"max_replicas": schema.Int64Attribute{
-				Description: "The maximum number of replicas for autoscaling functionality.",
-				Optional:    true,
+				Description: "The maximum number of replicas for autoscaling functionality." +
+					"See OpenShift [documentation](https://github.com/openshift/openshift-docs/blob/main/cloud_experts_tutorials/cloud-experts-getting-started/cloud-experts-getting-started-what-is-rosa.adoc) " +
+					"for maximum allowed values. " ,
+				Optional: true,
 			},
 			"taints": schema.ListNestedAttribute{
 				Description: "Taints for a machine pool. Format should be a comma-separated " +

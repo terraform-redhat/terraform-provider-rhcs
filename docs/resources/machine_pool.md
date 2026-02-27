@@ -40,11 +40,11 @@ resource "rhcs_machine_pool" "machine_pool" {
 - `disk_size` (Number) Root disk size, in GiB. After the creation of the resource, it is not possible to update the attribute value.
 - `ignore_deletion_error` (Boolean) Indicates to the provider to disregard API errors when deleting the machine pool. This will remove the resource from the management file, but not necessirely delete the underlying pool in case it errors. Setting this to true can bypass issues when destroying the cluster resource alongside the pool resource in the same management file. This is not recommended to be set in other use cases
 - `labels` (Map of String) Labels for the machine pool. Format should be a comma-separated list of 'key = value'. This list will overwrite any modifications made to node labels on an ongoing basis.
-- `max_replicas` (Number) The maximum number of replicas for autoscaling functionality.
+- `max_replicas` (Number) The maximum number of replicas for autoscaling functionality.See OpenShift [documentation](https://github.com/openshift/openshift-docs/blob/main/cloud_experts_tutorials/cloud-experts-getting-started/cloud-experts-getting-started-what-is-rosa.adoc) for maximum allowed values.
 - `max_spot_price` (Number) Max Spot price. After the creation of the resource, it is not possible to update the attribute value.
-- `min_replicas` (Number) The minimum number of replicas for autoscaling functionality.
+- `min_replicas` (Number) The minimum number of replicas for autoscaling functionality. Single zone clusters need at least 2 nodes, multizone clusters need at least 3 nodes.
 - `multi_availability_zone` (Boolean) Create a multi-AZ machine pool for a multi-AZ cluster (default is `true`). After the creation of the resource, it is not possible to update the attribute value.
-- `replicas` (Number) The number of machines of the pool
+- `replicas` (Number) The number of machines in the pool. Single zone clusters need at least 2 nodes, multizone clusters need at least 3 nodes. See OpenShift [documentation](https://github.com/openshift/openshift-docs/blob/main/cloud_experts_tutorials/cloud-experts-getting-started/cloud-experts-getting-started-what-is-rosa.adoc) for maximum allowed values.
 - `subnet_id` (String) Select the subnet in which to create a single AZ machine pool for BYO-VPC cluster. After the creation of the resource, it is not possible to update the attribute value.
 - `taints` (Attributes List) Taints for a machine pool. Format should be a comma-separated list of 'key=value'. This list will overwrite any modifications made to node taints on an ongoing basis. (see [below for nested schema](#nestedatt--taints))
 - `use_spot_instances` (Boolean) Use Amazon EC2 Spot Instances. After the creation of the resource, it is not possible to update the attribute value.

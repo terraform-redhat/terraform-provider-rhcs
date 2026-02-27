@@ -1,34 +1,86 @@
 <!--
-- Please ensure code changes are split into a series of logically independent commits.
-- Every commit should have a subject/title (What) and a description/body (Why).
-  The commit subject needs to conform to the following format:
-  [JIRA-TICKET] | [TYPE]: <MESSAGE>
-  Where:
-     JIRA_TICKET is jira ticket ID (for example OCM-xxx)
-     TYPE must be one of the options (case sensitive):
-          feat, fix, docs, style, refactor, test, chore, build, ci, perf
-  For more info see [Commit Messages Format Guide](../CONTRIBUTE.md)
-- Every PR must have a description.
-- As an example you can use git commit -m"What" -m"Why" to achieve the requirements above. GitHub automatically recognises the commit description (-m"Why") in single commit PRs and adds it as the PR description.
+Please provide enough context so reviewers can understand:
+1) the problem,
+2) why this change is needed,
+3) what changed,
+4) how you validated it.
+
+Use N/A when the option is not applicable to your case.
+
+Commit format requirement:
+[JIRA-TICKET] | [TYPE]: <MESSAGE>
+TYPE must be one of:
+feat, fix, docs, style, refactor, test, chore, build, ci, perf
+For details, see: ./CONTRIBUTE.md
 -->
 
-**What this PR does / why we need it**:
+## PR Summary
+<!-- brief text of 1 or 2 lines with the most important changes and outcomes -->
 
-**Which issue(s) this PR fixes** *(optional, use `fixes #<issue_number>(, fixes #<issue_number>, ...)` format, where issue_number might be a GitHub issue, or a Jira story (OCM-xxxx)*:
-Fixes #
+## Detailed Description of the Issue
+<!-- Describe the root problem, scope, impact, and user/business context -->
 
-**Change type**
-- [ ] New feature
-- [ ] Bug fix
-- [ ] Build
-- [ ] CI
-- [ ] Documentation
-- [ ] Performance
-- [ ] Refactor
-- [ ] Style
-- [ ] Unit tests
-- [ ] Subsystem tests
+## Related Issues and PRs
+<!-- Link all tracking items and related code changes -->
+- Jira: [OCM-XXXXX](https://jira.url/OCM-XXXXX)
+- Fixes: `#`
+- Related PR(s):
+- Related design/docs:
 
-**Checklist**
-- [ ] Subject and description added to both, commit and PR.
-- [ ] Relevant issues have been referenced.
+## Type of Change
+<!-- Check the primary type this PR represents -->
+- [ ] feat - adds a new user-facing capability.
+- [ ] fix - resolves an incorrect behavior or bug.
+- [ ] docs - updates documentation only.
+- [ ] style - formatting or naming changes with no logic impact.
+- [ ] refactor - code restructuring with no behavior change.
+- [ ] test - adds or updates tests only.
+- [ ] chore - maintenance work (tooling, housekeeping, non-product code).
+- [ ] build - changes build system, packaging, or dependencies for build output.
+- [ ] ci - changes CI pipelines, jobs, or automation workflows.
+- [ ] perf - improves performance without changing intended behavior.
+
+## Previous Behavior
+<!-- What users or systems experienced before this change -->
+
+## Behavior After This Change
+<!-- What changes now, including user-visible and non-user-visible behavior -->
+
+## How to Test (Step-by-Step)
+<!-- Provide reproducible validation instructions -->
+### Preconditions
+<!-- Required setup, environment, credentials, flags, cluster state, etc. -->
+
+### Test Steps
+1.
+2.
+3.
+
+### Expected Results
+<!-- What should happen after running the steps above -->
+
+## Proof of the Fix
+<!-- Attach evidence that demonstrates the changed behavior -->
+- Screenshots:
+- Videos:
+- Logs/CLI output:
+- Other artifacts:
+
+## Breaking Changes
+- [ ] No breaking changes
+- [ ] Yes, this PR introduces a breaking change (describe impact and migration plan below)
+
+### Breaking Change Details / Migration Plan
+<!-- Required only when breaking changes are introduced -->
+
+## Developer Verification Checklist
+- [ ] Commit subject/title follows `[JIRA-TICKET] | [TYPE]: <MESSAGE>`.
+- [ ] PR description clearly explains both **what** changed and **why**.
+- [ ] Relevant Jira/GitHub issues and related PRs are linked.
+- [ ] Tests were added/updated where appropriate.
+- [ ] I manually tested the change.
+- [ ] `make test` passes.
+- [ ] `make fmt` passes.
+- [ ] `make build` passes.
+- [ ] Documentation was added/updated where appropriate.
+- [ ] Any risk, limitation, or follow-up work is documented.

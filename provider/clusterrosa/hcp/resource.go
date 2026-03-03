@@ -38,6 +38,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
@@ -291,6 +292,7 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				Description: "Disable CNI creation to let users bring their own CNI. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
 				Computed:    true,
+				Default:     booldefault.StaticBool(false),
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
 				},
@@ -1691,7 +1693,9 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 	if ok && networkType == "Other" {
 		state.NoCNI = types.BoolValue(true)
 	} else {
-		state.NoCNI = types.BoolNull()
+		// Explicitly set false for clusters with default CNI to avoid plan/state
+		// drift (null vs false) that triggers "Attribute value cannot be changed"
+		state.NoCNI = types.BoolValue(false)
 	}
 	channel_group, ok := object.Version().GetChannelGroup()
 	if ok {

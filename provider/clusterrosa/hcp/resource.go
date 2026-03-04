@@ -207,6 +207,10 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 			"replicas": schema.Int64Attribute{
 				Description: "Number of worker/compute nodes to provision. " +
 					"Requires that the number supplied be a multiple of the number of private subnets. " +
+					"Single zone clusters need at least 2 nodes, " +
+					"multizone clusters need at least 3 nodes. " +
+					"The maximum is 250 for cluster versions prior to 4.14.0-0.a, " +
+					"and 500 for cluster versions 4.14.0-0.a and later." +
 					rosaTypes.PoolMessage,
 				Optional: true,
 				Validators: []validator.Int64{

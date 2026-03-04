@@ -62,7 +62,7 @@ This provider is currently under development, and new releases are regularly mad
 
 There are two distinct types of releases:
 
-* Stable releases: Any release identified by a version number without any preffix, such as 1.2.0. These versions are officially supported by RedHat.
+* Stable releases: Any release identified by a version number without any suffix, such as 1.2.0. These versions are officially supported by RedHat.
 * Pre-release versions: These are beta versions of the provider, identified by a version number with a suffix introduced by a dash, such as 1.2.0-beta. While users can utilize these pre-release versions, it's important to note that doing so comes with the responsibility of the user, as they may not be as stable or fully supported as official releases.
 
 ## Prerequisites

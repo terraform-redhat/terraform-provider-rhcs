@@ -177,6 +177,20 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			Expect(mpResponseBody.Autoscaling().MaxReplica()).To(Equal(maxReplicas))
 			Expect(mpResponseBody.Autoscaling().MinReplica()).To(Equal(minReplicas))
 
+			By("Update autoscaling with min_replicas=0")
+			minReplicas = 0
+			maxReplicas = 3
+			mpArgs.MinReplicas = helper.IntPointer(minReplicas)
+			mpArgs.MaxReplicas = helper.IntPointer(maxReplicas)
+			_, err = mpService.Apply(mpArgs)
+			Expect(err).ToNot(HaveOccurred())
+			// Verify
+			mpResponseBody, err = cms.RetrieveClusterNodePool(cms.RHCSConnection, clusterID, name)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(mpResponseBody.Autoscaling()).ToNot(BeNil())
+			Expect(mpResponseBody.Autoscaling().MaxReplica()).To(Equal(maxReplicas))
+			Expect(mpResponseBody.Autoscaling().MinReplica()).To(Equal(minReplicas))
+
 			By("Disable autoscaling")
 			mpArgs.AutoscalingEnabled = helper.BoolPointer(false)
 			mpArgs.MinReplicas = nil
@@ -1030,14 +1044,6 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 				args.AutoscalingEnabled = helper.BoolPointer(true)
 				args.Replicas = nil
 			}, "enabling autoscaling, should set value for maxReplicas")
-
-			By("Try to create a nodepool with autoscaling enabled and min_replicas=0")
-			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
-				args.AutoscalingEnabled = helper.BoolPointer(true)
-				args.Replicas = nil
-				args.MinReplicas = helper.IntPointer(0)
-				args.MaxReplicas = helper.IntPointer(3)
-			}, "'autoscaling.min_replica' must be greater than zero")
 
 			By("Try to create a nodepool with both replicas and autoscaling enabled")
 			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {

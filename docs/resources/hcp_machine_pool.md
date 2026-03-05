@@ -110,3 +110,6 @@ Read-Only:
 
 - `current_replicas` (Number) The current number of replicas.
 - `message` (String) Message regarding status of the replica
+
+
+

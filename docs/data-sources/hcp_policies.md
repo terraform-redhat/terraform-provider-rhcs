@@ -48,3 +48,6 @@ Read-Only:
 - `openshift_hcp_ingress_operator_cloud_credentials_policy` (String)
 - `openshift_hcp_kms_provider_credentials_policy` (String)
 - `openshift_hcp_kube_controller_manager_credentials_policy` (String)
+
+
+

@@ -244,6 +244,10 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 					"(optional). " + common.ValueCannotBeChangedStringDescription,
 				Optional: true,
 			},
+			"fips": schema.BoolAttribute{
+				Description: "Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries. " + common.ValueCannotBeChangedStringDescription,
+				Optional:    true,
+			},
 			"etcd_kms_key_arn": schema.StringAttribute{
 				Description: "Used for etcd encryption. The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, " +
 					"fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID" +
@@ -712,6 +716,10 @@ func createHcpClusterObject(ctx context.Context,
 		return nil, err
 	}
 
+	if common.HasValue(state.FIPS) {
+		builder.FIPS(state.FIPS.ValueBool())
+	}
+
 	network := cmv1.NewNetwork()
 	if common.HasValue(state.MachineCIDR) {
 		network.MachineCIDR(state.MachineCIDR.ValueString())
@@ -1081,6 +1089,7 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaHcpState) diag.Diagnos
 	common.ValidateStateAndPlanEquals(state.AWSAccountID, plan.AWSAccountID, "aws_account_id", &diags)
 	common.ValidateStateAndPlanEquals(state.AWSSubnetIDs, plan.AWSSubnetIDs, "aws_subnet_ids", &diags)
 	common.ValidateStateAndPlanEquals(state.EtcdEncryption, plan.EtcdEncryption, "etcd_encryption", &diags)
+	common.ValidateStateAndPlanEquals(state.FIPS, plan.FIPS, "fips", &diags)
 	common.ValidateStateAndPlanEquals(state.KMSKeyArn, plan.KMSKeyArn, "kms_key_arn", &diags)
 	common.ValidateStateAndPlanEquals(state.EtcdKmsKeyArn, plan.EtcdKmsKeyArn, "etcd_kms_key_arn", &diags)
 	common.ValidateStateAndPlanEquals(state.Private, plan.Private, "private", &diags)
@@ -1663,6 +1672,9 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 	}
 
 	state.EtcdEncryption = types.BoolValue(object.EtcdEncryption())
+	if fipsEnabled, ok := object.GetFIPS(); ok && fipsEnabled {
+		state.FIPS = types.BoolValue(true)
+	}
 
 	// Note: The API does not currently return account id, but we try to get it
 	// anyway. Failing that, we fetch the creator ARN from the properties like

@@ -70,6 +70,7 @@ const (
 	httpsProxy          = "https://proxy.com"
 	httpTokens          = "required"
 	auditLogRoleArn     = "arn:aws:iam::123456789012:role/audit-log-role"
+	fipsEnabled         = true
 )
 
 var (
@@ -128,6 +129,7 @@ func generateBasicRosaHcpClusterJson() map[string]interface{} {
 		"ccs": map[string]interface{}{
 			"enabled": ccsEnabled,
 		},
+		"fips": false,
 		"aws": map[string]interface{}{
 			"account_id":       awsAccountID,
 			"billingAccountID": awsBillingAccountId,
@@ -222,6 +224,14 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 			Expect(ok).To(BeTrue())
 			Expect(auditLog.RoleArn()).To(Equal(auditLogRoleArn))
 		})
+		It("Sets FIPS on cluster builder when provided", func() {
+			clusterState := generateBasicRosaHcpClusterState()
+			clusterState.FIPS = types.BoolValue(fipsEnabled)
+			rosaClusterObject, err := createHcpClusterObject(context.Background(), clusterState, diag.Diagnostics{})
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(rosaClusterObject.FIPS()).To(BeTrue())
+		})
 	})
 	It("Throws an error when version format is invalid", func() {
 		clusterState := generateBasicRosaHcpClusterState()
@@ -288,6 +298,7 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 			//Expect(clusterState.CCSEnabled.ValueBool()).To(Equal(ccsEnabled))
 			Expect(clusterState.AWSAccountID.ValueString()).To(Equal(awsAccountID))
 			Expect(clusterState.Private.ValueBool()).To(Equal(privateLink))
+			Expect(clusterState.FIPS.IsNull()).To(BeTrue())
 			Expect(clusterState.Sts.OIDCEndpointURL.ValueString()).To(Equal(oidcEndpointUrl))
 			Expect(clusterState.Sts.RoleARN.ValueString()).To(Equal(roleArn))
 			Expect(clusterState.Ec2MetadataHttpTokens.ValueString()).To(Equal(httpTokens))
@@ -338,6 +349,20 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 			err = populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clusterState.AuditLogArn.ValueString()).To(Equal(auditLogRoleArn))
+		})
+		It("Reads fips from API response", func() {
+			clusterState := &ClusterRosaHcpState{}
+			clusterJson := generateBasicRosaHcpClusterJson()
+			clusterJson["fips"] = true
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(clusterState.FIPS.ValueBool()).To(BeTrue())
 		})
 	})
 

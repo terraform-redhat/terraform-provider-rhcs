@@ -56,6 +56,7 @@ data "rhcs_cluster_rosa_hcp" "cluster" {
 - `etcd_encryption` (Boolean) Encrypt etcd data. Note that all AWS storage is already encrypted. After the creation of the resource, it is not possible to update the attribute value.
 - `etcd_kms_key_arn` (String) Used for etcd encryption. The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID(optional). After the creation of the resource, it is not possible to update the attribute value.
 - `external_id` (String) Unique external identifier of the cluster. After the creation of the resource, it is not possible to update the attribute value.
+- `fips` (Boolean) Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries. After the creation of the resource, it is not possible to update the attribute value.
 - `host_prefix` (Number) Length of the prefix of the subnet assigned to each node. After the creation of the resource, it is not possible to update the attribute value.
 - `machine_cidr` (String) Block of IP addresses for nodes. After the creation of the resource, it is not possible to update the attribute value.
 - `max_hcp_cluster_wait_timeout_in_minutes` (Number) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource

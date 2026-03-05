@@ -5690,6 +5690,202 @@ var _ = Describe("HCP Cluster", func() {
 		})
 	})
 
+	Context("FIPS", func() {
+		It("creates cluster with fips enabled", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+			)
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.fips`, true),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+						"op": "replace",
+						"path": "/id",
+						"value": "123"
+					},
+					{
+						"op": "add",
+						"path": "/fips",
+						"value": true
+					},
+					{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.1",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							}
+						}
+					}]`),
+				),
+			)
+
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				availability_zones = ["us-west-1a", "us-west-1b", "us-west-1c"]
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				fips = true
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.fips", true))
+		})
+
+		It("validates fips is immutable on update", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+			)
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.fips`, true),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+						"op": "replace",
+						"path": "/id",
+						"value": "123"
+					},
+					{
+						"op": "add",
+						"path": "/fips",
+						"value": true
+					},
+					{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.1",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							}
+						}
+					}]`),
+				),
+			)
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+						"op": "replace",
+						"path": "/id",
+						"value": "123"
+					},
+					{
+						"op": "add",
+						"path": "/fips",
+						"value": true
+					},
+					{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.1",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							}
+						}
+					}]`),
+				),
+			)
+
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				availability_zones = ["us-west-1a", "us-west-1b", "us-west-1c"]
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				fips = true
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				availability_zones = ["us-west-1a", "us-west-1b", "us-west-1c"]
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				fips = false
+			}`)
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).NotTo(BeZero())
+			runOutput.VerifyErrorContainsSubstring("fips")
+			runOutput.VerifyErrorContainsSubstring("cannot be changed")
+		})
+	})
+
 	Context("Day 1 Log Forwarders", func() {
 		It("allows log forwarder groups without version field", func() {
 			// Verify that the version field is optional in log_forwarders_at_cluster_creation groups

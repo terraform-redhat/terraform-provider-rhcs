@@ -58,6 +58,11 @@ variable "etcd_encryption" {
   default = false
 }
 
+variable "fips" {
+  type    = bool
+  default = false
+}
+
 variable "ec2_metadata_http_tokens" {
   type    = string
   default = null

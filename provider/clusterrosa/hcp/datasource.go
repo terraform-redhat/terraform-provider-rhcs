@@ -109,6 +109,10 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				Description: "Encrypt etcd data. Note that all AWS storage is already encrypted. " + common.ValueCannotBeChangedStringDescription,
 				Computed:    true,
 			},
+			"fips": schema.BoolAttribute{
+				Description: "Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries. " + common.ValueCannotBeChangedStringDescription,
+				Computed:    true,
+			},
 			"api_url": schema.StringAttribute{
 				Description: "URL of the API server.",
 				Computed:    true,
@@ -411,6 +415,9 @@ func (r *ClusterRosaHcpDatasource) Read(ctx context.Context, request datasource.
 			fmt.Sprintf("Received error %v", err),
 		)
 		return
+	}
+	if state.FIPS.IsNull() {
+		state.FIPS = types.BoolValue(false)
 	}
 
 	// set deprecated attributes to null:

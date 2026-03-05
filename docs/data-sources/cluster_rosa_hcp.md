@@ -57,6 +57,7 @@ data "rhcs_cluster_rosa_hcp" "cluster" {
 - `etcd_kms_key_arn` (String) Used for etcd encryption. The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID(optional). After the creation of the resource, it is not possible to update the attribute value.
 - `external_auth_providers_enabled` (Boolean) Enable external authentication providers on the cluster.
 - `external_id` (String) Unique external identifier of the cluster. After the creation of the resource, it is not possible to update the attribute value.
+- `fips` (Boolean) Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries. After the creation of the resource, it is not possible to update the attribute value.
 - `host_prefix` (Number) Length of the prefix of the subnet assigned to each node. After the creation of the resource, it is not possible to update the attribute value.
 - `log_forwarder_ids` (List of String) List of log forwarder IDs associated with this cluster. These IDs can be used to import existing log forwarders with: terraform import rhcs_log_forwarder.<name> <cluster_id>,<log_forwarder_id>
 - `log_forwarders_at_cluster_creation` (List of Object) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource (see [below for nested schema](#nestedatt--log_forwarders_at_cluster_creation))

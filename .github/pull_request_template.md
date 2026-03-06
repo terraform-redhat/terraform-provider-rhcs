@@ -75,6 +75,7 @@ For details, see: ./CONTRIBUTE.md
 
 ## Developer Verification Checklist
 - [ ] Commit subject/title follows `[JIRA-TICKET] | [TYPE]: <MESSAGE>`.
+- [ ] Changelog entry added in `.changes/unreleased/` for user-facing changes (see CONTRIBUTE.md).
 - [ ] PR description clearly explains both **what** changed and **why**.
 - [ ] Relevant Jira/GitHub issues and related PRs are linked.
 - [ ] Tests were added/updated where appropriate.

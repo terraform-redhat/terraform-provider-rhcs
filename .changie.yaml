@@ -1,0 +1,23 @@
+# Changie configuration for CHANGELOG automation.
+# See CONTRIBUTE.md for how to add changelog entries.
+# https://changie.dev/config/
+
+changesDir: .changes
+unreleasedDir: unreleased
+changelogPath: CHANGELOG.md
+versionExt: md
+versionFormat: '## {{.Version}} ({{.Time.Format "2 Jan, 2006"}})'
+kindFormat: "### {{.Kind}}"
+changeFormat: "- {{.Body}}"
+newlines:
+  afterChangelogVersion: 2
+
+kinds:
+  - key: feature
+    label: FEATURES
+  - key: enhancement
+    label: ENHANCEMENTS
+  - key: bug
+    label: BUG FIXES
+  - key: breaking-change
+    label: BREAKING CHANGES

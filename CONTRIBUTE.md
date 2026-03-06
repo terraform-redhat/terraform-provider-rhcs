@@ -90,6 +90,79 @@ Types other than `fix:` and `feat:` are allowed:
 - `style`: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
 - `test`: Adding missing tests or correcting existing tests
 
+### 7. Changelog
+
+We maintain a user-friendly CHANGELOG so users can see at a glance whether a release affects them and gauge the risk of an upgrade.
+
+We follow the Terraform Plugin [changelog specifications](https://developer.hashicorp.com/terraform/plugin/best-practices/versioning#changelog-specification).
+
+#### Changie automation tool
+
+This project uses [Changie](https://changie.dev/) for changelog automation.
+
+To add a new entry to the CHANGELOG:
+
+1. Install Changie using the [installation instructions](https://changie.dev/guide/installation/).
+2. Run `changie new` and choose a **kind** of change (see categories below).
+3. Fill out the body following the entry format. Changie will then prompt for a GitHub issue or pull request number.
+4. Commit the generated file(s) under `.changes/unreleased/` along with your code changes.
+
+#### Pull request types to CHANGELOG
+
+The CHANGELOG is for operator- and user-impacting changes. Not every change needs an entry.
+
+##### Changes that should not have a CHANGELOG entry
+
+- Documentation updates
+- Testing updates
+- Code refactoring
+
+##### Changes that may have a CHANGELOG entry
+
+- Dependency updates: if the update includes relevant bug fixes or enhancements that affect users, mention them.
+
+##### Changes that should have a CHANGELOG entry
+
+The following kinds are available in Changie (see `.changie.yaml`): **FEATURES**, **ENHANCEMENTS**, **BUG FIXES**, **BREAKING CHANGES**. Choose the kind that best matches your change.
+
+###### Features (new resources and data sources)
+
+Use the **FEATURES** kind for new resources and new data sources. For a new resource or data source, the entry is typically the name of the resource or data source, or a short one-line description.
+
+```markdown
+rhcs_log_forwarder
+```
+
+```markdown
+data source: rhcs_log_forwarders
+```
+
+For other new capabilities (e.g. new arguments or behavior on existing resources), use **ENHANCEMENTS** instead.
+
+###### Enhancements
+
+Use the **ENHANCEMENTS** kind for improvements and new options. Use a prefix for the resource or data source when relevant, then a colon and a brief summary. Use a `provider` prefix for provider-level changes.
+
+```markdown
+resource/rhcs_cluster_rosa_hcp: Add audit_log_arn parameter
+```
+
+###### Bug fixes
+
+Use the **BUG FIXES** kind. Same prefix convention as enhancements (resource/data source/provider).
+
+```markdown
+resource/rhcs_cluster_rosa_classic: Fix autoscaler requiring two applies
+```
+
+###### Breaking changes and removals
+
+Use the **BREAKING CHANGES** kind for removals or behavior changes that require user action. Include a short summary and migration guidance if applicable.
+
+```markdown
+resource/rhcs_example: Removed `deprecated_field`; use `replacement_field` instead
+```
+
 ## Related Documentation Links
 * [RHCS rosa module](https://github.com/terraform-redhat/terraform-rhcs-rosa) - for creating ROSA clusters much more easily.
 * [RHCS rosa HCP module](https://github.com/terraform-redhat/terraform-rhcs-rosa-hcp/) -  for creating ROSA HCP clusters much more easily.

@@ -26,8 +26,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/service/ec2"
+	awsarn "github.com/aws/aws-sdk-go-v2/aws/arn"
 	semver "github.com/hashicorp/go-version"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/registry_config"
 
@@ -1673,8 +1672,8 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 	} else {
 		// rosa cli gets it from the properties, so we do the same
 		if creatorARN, ok := object.Properties()[rosa.PropertyRosaCreatorArn]; ok {
-			if arn, err := arn.Parse(creatorARN); err == nil {
-				state.AWSAccountID = types.StringValue(arn.AccountID)
+			if parsedARN, err := awsarn.Parse(creatorARN); err == nil {
+				state.AWSAccountID = types.StringValue(parsedARN.AccountID)
 			}
 		}
 
@@ -1712,7 +1711,7 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 	if ok && httpTokensState != "" {
 		state.Ec2MetadataHttpTokens = types.StringValue(string(httpTokensState))
 	} else {
-		state.Ec2MetadataHttpTokens = types.StringValue(ec2.HttpTokensStateOptional)
+		state.Ec2MetadataHttpTokens = types.StringValue(string(cmv1.Ec2MetadataHttpTokensOptional))
 	}
 
 	stsState, ok := object.AWS().GetSTS()

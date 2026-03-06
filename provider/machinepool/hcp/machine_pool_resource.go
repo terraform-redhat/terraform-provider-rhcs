@@ -24,7 +24,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/service/ec2"
 	semver "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
@@ -318,7 +317,7 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 		}
 
 		if common.IsStringAttributeUnknownOrEmpty(plan.AWSNodePool.Ec2MetadataHttpTokens) {
-			plan.AWSNodePool.Ec2MetadataHttpTokens = types.StringValue(ec2.HttpTokensStateOptional)
+			plan.AWSNodePool.Ec2MetadataHttpTokens = types.StringValue(string(cmv1.Ec2MetadataHttpTokensOptional))
 		}
 		awsNodePoolBuilder.Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokens(plan.AWSNodePool.Ec2MetadataHttpTokens.ValueString()))
 
@@ -1299,7 +1298,7 @@ func populateState(ctx context.Context, object *cmv1.NodePool, state *HcpMachine
 			state.AWSNodePool.AdditionalSecurityGroupIds = types.ListNull(types.StringType)
 		}
 		if httpTokensState, ok := awsNodePool.GetEc2MetadataHttpTokens(); ok {
-			state.AWSNodePool.Ec2MetadataHttpTokens = types.StringValue(ec2.HttpTokensStateOptional)
+			state.AWSNodePool.Ec2MetadataHttpTokens = types.StringValue(string(cmv1.Ec2MetadataHttpTokensOptional))
 			if httpTokensState != "" {
 				state.AWSNodePool.Ec2MetadataHttpTokens = types.StringValue(string(httpTokensState))
 			}

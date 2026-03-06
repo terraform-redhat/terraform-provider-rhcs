@@ -26,8 +26,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/service/ec2"
+	awsarn "github.com/aws/aws-sdk-go-v2/aws/arn"
 	semver "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
@@ -1553,8 +1552,8 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	} else {
 		// rosa cli gets it from the properties, so we do the same
 		if creatorARN, ok := object.Properties()[rosa.PropertyRosaCreatorArn]; ok {
-			if arn, err := arn.Parse(creatorARN); err == nil {
-				state.AWSAccountID = types.StringValue(arn.AccountID)
+			if parsedARN, err := awsarn.Parse(creatorARN); err == nil {
+				state.AWSAccountID = types.StringValue(parsedARN.AccountID)
 			}
 		}
 
@@ -1582,7 +1581,7 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		state.Ec2MetadataHttpTokens = types.StringValue(string(httpTokensState))
 	} else {
 		// Need to add default as future ocm versions will have this flag as default and not empty string
-		state.Ec2MetadataHttpTokens = types.StringValue(ec2.HttpTokensStateOptional)
+		state.Ec2MetadataHttpTokens = types.StringValue(string(cmv1.Ec2MetadataHttpTokensOptional))
 	}
 
 	stsState, ok := object.AWS().GetSTS()

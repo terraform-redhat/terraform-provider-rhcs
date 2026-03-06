@@ -18,6 +18,7 @@ type ClusterRosaHcpState struct {
 	ConsoleURL     types.String `tfsdk:"console_url"`
 	ChannelGroup   types.String `tfsdk:"channel_group"`
 	EtcdEncryption types.Bool   `tfsdk:"etcd_encryption"`
+	FIPS           types.Bool   `tfsdk:"fips"`
 	Properties     types.Map    `tfsdk:"properties"`
 	OCMProperties  types.Map    `tfsdk:"ocm_properties"`
 	State          types.String `tfsdk:"state"`

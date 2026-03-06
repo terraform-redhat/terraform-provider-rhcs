@@ -66,6 +66,7 @@ resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
   compute_machine_type         = var.compute_machine_type
   ec2_metadata_http_tokens     = var.ec2_metadata_http_tokens
   etcd_encryption              = var.etcd_encryption
+  fips                         = var.fips
   etcd_kms_key_arn             = var.etcd_kms_key_arn != null ? var.etcd_kms_key_arn : var.kms_key_arn
   kms_key_arn                  = var.kms_key_arn
   host_prefix                  = var.host_prefix

@@ -12,6 +12,7 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
+	commonplanmodifiers "github.com/terraform-redhat/terraform-provider-rhcs/provider/common/planmodifiers"
 )
 
 const MaxAdditionalSecurityGroupHcp = 10
@@ -81,6 +82,7 @@ func AwsNodePoolResource() map[string]schema.Attribute {
 			Optional:    true,
 			PlanModifiers: []planmodifier.String{
 				stringplanmodifier.UseStateForUnknown(),
+				commonplanmodifiers.ImmutableString(),
 			},
 		},
 		"capacity_reservation_preference": schema.StringAttribute{

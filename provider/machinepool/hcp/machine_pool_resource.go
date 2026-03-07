@@ -354,7 +354,7 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 		if !common.IsStringAttributeUnknownOrEmpty(plan.AWSNodePool.CapacityReservationId) ||
 			!common.IsStringAttributeUnknownOrEmpty(plan.AWSNodePool.CapacityReservationPreference) {
 			capacityReservationBuilder := cmv1.NewAWSCapacityReservation()
-			
+
 			if !common.IsStringAttributeUnknownOrEmpty(plan.AWSNodePool.CapacityReservationId) {
 				capacityReservationBuilder.Id(plan.AWSNodePool.CapacityReservationId.ValueString())
 			}

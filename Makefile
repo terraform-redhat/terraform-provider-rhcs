@@ -113,6 +113,11 @@ clean:
 generate: tools
 	go generate ./...
 
+.PHONY: docs
+docs:
+	go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate
+	go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs validate
+
 .PHONY: tools
 tools:
 	go install github.com/onsi/ginkgo/v2/ginkgo@v2.13.2

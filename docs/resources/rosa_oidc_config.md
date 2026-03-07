@@ -23,7 +23,7 @@ resource "rhcs_rosa_oidc_config" "oidc_config" {
 
 # example for managed oidc
 resource "rhcs_rosa_oidc_config" "oidc_config" {
-  managed            = true
+  managed = true
 }
 ```
 
@@ -45,3 +45,5 @@ resource "rhcs_rosa_oidc_config" "oidc_config" {
 - `id` (String) The OIDC config ID
 - `oidc_endpoint_url` (String) OIDC Endpoint URL
 - `thumbprint` (String) SHA1-hash value of the root CA of the issuer URL
+
+

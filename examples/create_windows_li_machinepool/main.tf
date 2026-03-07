@@ -29,15 +29,15 @@ provider "rhcs" {
 }
 
 resource "rhcs_hcp_machine_pool" "machine_pool" {
-  cluster             = var.cluster_id
-  name                = var.name
-  replicas            = var.replicas
-  labels              = var.labels
-  auto_repair         = true
-  subnet_id           = var.subnet_id
-  aws_node_pool       = {
-    instance_type     = var.machine_type
-    image_type        = "Windows"
+  cluster     = var.cluster_id
+  name        = var.name
+  replicas    = var.replicas
+  labels      = var.labels
+  auto_repair = true
+  subnet_id   = var.subnet_id
+  aws_node_pool = {
+    instance_type = var.machine_type
+    image_type    = "Windows"
   }
   autoscaling = {
     enabled = var.autoscaling_enabled

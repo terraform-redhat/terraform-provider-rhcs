@@ -14,11 +14,11 @@ Machine pool.
 
 ```terraform
 resource "rhcs_machine_pool" "machine_pool" {
-  cluster             = "cluster-id-123"
-  name                = "mpname"
-  machine_type        = "r5.xlarge"
-  replicas            = 3
-  labels = {one="bar1bari", two ="baz2il"}
+  cluster      = "cluster-id-123"
+  name         = "mpname"
+  machine_type = "r5.xlarge"
+  replicas     = 3
+  labels       = { one = "bar1bari", two = "baz2il" }
 }
 ```
 
@@ -63,3 +63,6 @@ Required:
 - `key` (String) Taints key
 - `schedule_type` (String) Taints schedule type
 - `value` (String) Taints value
+
+
+

@@ -45,3 +45,6 @@ resource "rhcs_hcp_cluster_autoscaler" "cluster_autoscaler" {
 Optional:
 
 - `max_nodes_total` (Number) Maximum number of nodes in all node groups. Cluster autoscaler will not grow the cluster beyond this number.
+
+
+

@@ -39,3 +39,5 @@ resource "rhcs_rosa_oidc_config_input" "oidc_input" {
 - `private_key` (String, Sensitive) RSA private key
 - `private_key_file_name` (String) The private key file name
 - `private_key_secret_name` (String) The secret name that stores the private key
+
+

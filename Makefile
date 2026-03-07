@@ -117,6 +117,7 @@ generate: tools
 tools:
 	go install github.com/onsi/ginkgo/v2/ginkgo@v2.13.2
 	go install go.uber.org/mock/mockgen@v0.3.0
+	go install github.com/miniscruff/changie@v1.24.0
 
 .PHONY: e2e_sanity_test
 e2e_sanity_test: tools install
@@ -170,6 +171,18 @@ e2e_test: tools install
 .PHONY: check-gen
 check-gen: generate
 	scripts/assert_no_diff.sh "generate"
+
+# Changelog (Changie): run before tagging. Requires VERSION (e.g. make changelog-release VERSION=1.7.5).
+CHANGIE ?= changie
+.PHONY: changelog-release
+changelog-release:
+	@if [ -z "$(VERSION)" ]; then \
+		echo "VERSION is required. Example: make changelog-release VERSION=1.7.5"; \
+		exit 1; \
+	fi
+	$(CHANGIE) batch $(VERSION)
+	$(CHANGIE) merge
+	@echo "Changelog updated. Commit CHANGELOG.md (and .changes/$(VERSION).md if present), then tag: git tag v$(VERSION)"
 
 .PHONY: prepare_release
 prepare_release:

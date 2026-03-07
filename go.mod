@@ -4,7 +4,9 @@ go 1.24.0
 
 require (
 	github.com/Masterminds/semver v1.5.0
-	github.com/aws/aws-sdk-go v1.45.26
+	github.com/aws/aws-sdk-go-v2/config v1.27.9
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.152.0
+	github.com/aws/aws-sdk-go-v2/service/iam v1.27.1
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/hcl/v2 v2.21.0
 	github.com/hashicorp/terraform-plugin-docs v0.16.0
@@ -35,7 +37,6 @@ require (
 	github.com/apparentlymart/go-cidr v1.1.0 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.2 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.27.9 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.9 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.0 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.15 // indirect
@@ -43,9 +44,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.48.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.35.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.152.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.34.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/iam v1.27.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.11.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.6 // indirect
 	github.com/aws/aws-sdk-go-v2/service/kms v1.30.0 // indirect
@@ -61,7 +60,7 @@ require (
 	github.com/openshift-online/ocm-api-model/clientapi v0.0.440 // indirect
 	github.com/openshift-online/ocm-api-model/model v0.0.440 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
-	go.yaml.in/yaml/v2 v2.4.2 // indirect
+	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
@@ -75,7 +74,7 @@ require (
 	github.com/Masterminds/sprig/v3 v3.2.3 // indirect
 	github.com/ProtonMail/go-crypto v1.1.0-alpha.2 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.30.3 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.30.3
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/speakeasy v0.1.0 // indirect

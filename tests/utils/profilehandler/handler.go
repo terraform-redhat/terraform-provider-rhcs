@@ -1068,19 +1068,51 @@ func (ctx *profileContext) DestroyRHCSClusterResources(token string) error {
 		if err != nil {
 			errs = append(errs, err)
 		} else {
+			var vpcID string
+			var preDestroyCleanupErr error
+
 			// TODO: Remove this once this bug is fixed (https://issues.redhat.com/browse/OCPBUGS-74960)
 			out, err := vpcService.Output()
 			if err != nil {
 				errs = append(errs, err)
-			}
-			err = helper.DeleteExtraSecurityGroups(ctx.profile.Region, out.VPCID)
-			if err != nil {
-				errs = append(errs, err)
+			} else if out != nil && out.VPCID != "" {
+				vpcID = out.VPCID
+				preDestroyCleanupErr = helper.DeleteExtraSecurityGroups(ctx.profile.Region, vpcID)
+				if preDestroyCleanupErr != nil {
+					Logger.Warnf("Extra security groups cleanup before VPC destroy failed for VPC %s: %v", vpcID, preDestroyCleanupErr)
+				}
+			} else {
+				Logger.Warn("Skipping extra security groups cleanup because VPC ID could not be retrieved from Terraform output")
 			}
 
-			_, err = vpcService.Destroy()
-			if err != nil {
-				errs = append(errs, err)
+			var destroyErr error
+			_, destroyErr = vpcService.Destroy()
+			if destroyErr != nil && vpcID != "" && isVPCCleanupDependencyError(destroyErr) {
+				Logger.Warnf("VPC destroy hit dependency violation for VPC %s. Retrying extra security groups cleanup and destroy once", vpcID)
+
+				retryCleanupErr := helper.DeleteExtraSecurityGroups(ctx.profile.Region, vpcID)
+				if retryCleanupErr != nil {
+					Logger.Warnf("Extra security groups cleanup retry failed for VPC %s: %v", vpcID, retryCleanupErr)
+				}
+
+				_, retryDestroyErr := vpcService.Destroy()
+				if retryDestroyErr == nil {
+					Logger.Infof("VPC %s destroy succeeded after cleanup retry", vpcID)
+					destroyErr = nil
+				} else {
+					destroyErr = retryDestroyErr
+				}
+
+				if destroyErr != nil && retryCleanupErr != nil {
+					errs = append(errs, retryCleanupErr)
+				}
+			}
+
+			if destroyErr != nil {
+				if preDestroyCleanupErr != nil {
+					errs = append(errs, preDestroyCleanupErr)
+				}
+				errs = append(errs, destroyErr)
 			}
 		}
 	}
@@ -1136,6 +1168,15 @@ func (ctx *profileContext) DestroyRHCSClusterResources(token string) error {
 		return errors.Join(errs...)
 	}
 	return nil
+}
+
+func isVPCCleanupDependencyError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errString := strings.ToLower(err.Error())
+	return strings.Contains(errString, "dependencyviolation") ||
+		strings.Contains(errString, "has dependencies and cannot be deleted")
 }
 
 // RetrieveClusterID will be used for all day2 tests. It needs an existing cluster.

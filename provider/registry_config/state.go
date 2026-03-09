@@ -143,7 +143,7 @@ func PopulateRegistryConfigState(inputCluster *cmv1.Cluster, state *RegistryConf
 		if state == nil {
 			state = &RegistryConfig{}
 		}
-		
+
 		if registrySources, ok := registryConfig.GetRegistrySources(); ok {
 			if allowedRegistries, ok := registrySources.GetAllowedRegistries(); ok {
 				listValue, err := common.StringArrayToList(allowedRegistries)

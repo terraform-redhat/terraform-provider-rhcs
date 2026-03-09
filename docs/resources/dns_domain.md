@@ -26,3 +26,5 @@ resource "rhcs_dns_domain" "dns_domain" {}
 ### Read-Only
 
 - `id` (String) Unique identifier of the DNS Domain
+
+

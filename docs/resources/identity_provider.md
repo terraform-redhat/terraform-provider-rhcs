@@ -21,7 +21,7 @@ resource "rhcs_identity_provider" "htpasswd_idp" {
     users = [{
       username = "<user-name>"
       password = "<user-password>"
-    },
+      },
     ]
   }
 }
@@ -51,9 +51,9 @@ resource "ocm_identity_provider" "gitlab_idp" {
 # google
 resource "ocm_identity_provider" "google_idp" {
   cluster = "cluster-id-123"
-  name = "google"
+  name    = "google"
   google = {
-    client_id = "<id>"
+    client_id     = "<id>"
     client_secret = "<secret>"
     hosted_domain = "<hosted-domain>"
   }
@@ -75,13 +75,13 @@ resource "rhcs_identity_provider" "ldap_idp" {
 # openid
 resource "rhcs_identity_provider" "openid_idp" {
   cluster = "cluster-id-123"
-  name = "OpenID"
+  name    = "OpenID"
   openid = {
-     client_id = "<client_id>"
-     client_secret = "<client_secret>"
-     issuer = "<issuer>"
-     ca = "<openid-ca>"
-     claims = "<claims>"
+    client_id     = "<client_id>"
+    client_secret = "<client_secret>"
+    issuer        = "<issuer>"
+    ca            = "<openid-ca>"
+    claims        = "<claims>"
   }
 }
 ```
@@ -220,3 +220,7 @@ Optional:
 - `groups` (List of String) List of claims to use as the groups names.
 - `name` (List of String) List of claims to use as the display name.
 - `preferred_username` (List of String) List of claims to use as the preferred username when provisioning a user.
+
+
+
+

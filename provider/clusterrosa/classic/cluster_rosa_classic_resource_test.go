@@ -361,7 +361,7 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 			stsConfig := sts.ClassicSts{
 				TrustPolicyExternalID: types.StringValue("external-id-12345"),
 			}
-			
+
 			Expect(stsConfig.TrustPolicyExternalID.ValueString()).To(Equal("external-id-12345"))
 			Expect(stsConfig.TrustPolicyExternalID.IsNull()).To(BeFalse())
 		})
@@ -370,13 +370,13 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 			stsConfig := sts.ClassicSts{
 				TrustPolicyExternalID: types.StringNull(),
 			}
-			
+
 			Expect(stsConfig.TrustPolicyExternalID.IsNull()).To(BeTrue())
 		})
 
 		It("Should include trust_policy_external_id in ClassicStsResource schema", func() {
 			schema := sts.ClassicStsResource()
-			
+
 			trustPolicyAttr, exists := schema["trust_policy_external_id"]
 			Expect(exists).To(BeTrue())
 			Expect(trustPolicyAttr).NotTo(BeNil())
@@ -384,7 +384,7 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 
 		It("Should include trust_policy_external_id in ClassicStsDatasource schema", func() {
 			schema := sts.ClassicStsDatasource()
-			
+
 			trustPolicyAttr, exists := schema["trust_policy_external_id"]
 			Expect(exists).To(BeTrue())
 			Expect(trustPolicyAttr).NotTo(BeNil())

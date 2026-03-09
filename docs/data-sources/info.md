@@ -8,8 +8,6 @@ description: |-
 
 # rhcs_info (Data Source)
 
-
-
 ## Example Usage
 
 ```terraform
@@ -30,3 +28,5 @@ data "rhcs_info" "info" {}
 - `organization_external_id` (String) OCM account organization external id
 - `organization_id` (String) OCM account organization id
 - `organization_name` (String) OCM account organization name
+
+

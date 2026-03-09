@@ -15,7 +15,7 @@ variable "cluster_id" {
 
 variable "subnet_id" {
   description = "The ID of the private subnet in which to provision the machinepool"
-  type = string
+  type        = string
 }
 
 variable "name" {

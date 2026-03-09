@@ -14,13 +14,13 @@ type ImageMirrorArgs struct {
 }
 
 type ImageMirrorOutput struct {
-	ID                   string   `json:"id,omitempty"`
-	ClusterID            string   `json:"cluster_id,omitempty"`
-	Type                 string   `json:"type,omitempty"`
-	Source               string   `json:"source,omitempty"`
-	Mirrors              []string `json:"mirrors,omitempty"`
-	CreationTimestamp    string   `json:"creation_timestamp,omitempty"`
-	LastUpdateTimestamp  string   `json:"last_update_timestamp,omitempty"`
+	ID                  string   `json:"id,omitempty"`
+	ClusterID           string   `json:"cluster_id,omitempty"`
+	Type                string   `json:"type,omitempty"`
+	Source              string   `json:"source,omitempty"`
+	Mirrors             []string `json:"mirrors,omitempty"`
+	CreationTimestamp   string   `json:"creation_timestamp,omitempty"`
+	LastUpdateTimestamp string   `json:"last_update_timestamp,omitempty"`
 }
 
 type ImageMirrorService interface {

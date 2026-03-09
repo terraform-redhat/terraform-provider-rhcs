@@ -137,3 +137,7 @@ Read-Only:
 
 - `master_role_arn` (String) Master/Control Plane Node Role ARN
 - `worker_role_arn` (String) Worker/Compute Node Role ARN
+
+
+
+

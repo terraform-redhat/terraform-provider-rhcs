@@ -60,6 +60,7 @@ resource "rhcs_cluster_rosa_hcp" "rosa_sts_cluster" {
 
 - `admin_credentials` (Attributes) Admin user credentials. After the creation of the resource, it is not possible to update the attribute value. (see [below for nested schema](#nestedatt--admin_credentials))
 - `audit_log_arn` (String) Used for audit log forwarding. The ARN is the Amazon Resource Name (ARN) of an IAM role that has permissions to send audit logs to a CloudWatch Logs log group. To disable audit log forwarding, provide an empty string.
+- `autoscaling_enabled` (Boolean) Enable autoscaling for the initial worker pool. This attribute specifically applies to the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the initial Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)
 - `aws_additional_allowed_principals` (List of String) AWS additional allowed principals.
 - `aws_additional_compute_security_group_ids` (List of String) AWS additional compute security group ids.
 - `aws_billing_account_id` (String) Identifier of the AWS account for billing. After the creation of the resource, it is not possible to update the attribute value.
@@ -76,9 +77,12 @@ resource "rhcs_cluster_rosa_hcp" "rosa_sts_cluster" {
 - `external_auth_providers_enabled` (Boolean) Enable external authentication providers on the cluster. This feature is only available for ROSA HCP clusters. After the creation of the resource, it is not possible to update the attribute value.
 - `host_prefix` (Number) Length of the prefix of the subnet assigned to each node. After the creation of the resource, it is not possible to update the attribute value.
 - `kms_key_arn` (String) Used to encrypt root volume of compute node pools. The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID(optional). After the creation of the resource, it is not possible to update the attribute value.
+- `log_forwarders_at_cluster_creation` (Attributes List) List of log forwarders to configure during cluster creation (Day 1 only). This field is immutable after cluster creation and cannot be modified. After cluster creation, this field will not appear in terraform output. To manage log forwarders after cluster creation, use the rhcs_log_forwarder resource. Use the log_forwarder_ids field to see all log forwarder IDs for import. (see [below for nested schema](#nestedatt--log_forwarders_at_cluster_creation))
 - `machine_cidr` (String) Block of IP addresses for nodes. After the creation of the resource, it is not possible to update the attribute value.
 - `max_hcp_cluster_wait_timeout_in_minutes` (Number) This value sets the maximum duration in minutes to wait for a HCP cluster to be in a ready state.
 - `max_machinepool_wait_timeout_in_minutes` (Number) This value sets the maximum duration in minutes to wait for machine pools to be in a ready state.
+- `max_replicas` (Number) Maximum replicas of worker nodes in a machine pool. This attribute specifically applies to the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the initial Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)
+- `min_replicas` (Number) Minimum replicas of worker nodes in a machine pool. This attribute specifically applies to the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the initial Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)
 - `pod_cidr` (String) Block of IP addresses for pods. After the creation of the resource, it is not possible to update the attribute value.
 - `private` (Boolean) Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet. After the creation of the resource, it is not possible to update the attribute value.
 - `properties` (Map of String) User defined properties. It is essential to include property 'role_creator_arn' with the value of the user creating the cluster. Example: properties = {rosa_creator_arn = data.aws_caller_identity.current.arn}
@@ -102,6 +106,7 @@ resource "rhcs_cluster_rosa_hcp" "rosa_sts_cluster" {
 - `domain` (String) DNS domain of cluster.
 - `external_id` (String) Unique external identifier of the cluster. After the creation of the resource, it is not possible to update the attribute value.
 - `id` (String) Unique identifier of the cluster.
+- `log_forwarder_ids` (List of String) List of log forwarder IDs associated with this cluster. These IDs can be used to import existing log forwarders with: terraform import rhcs_log_forwarder.<name> <cluster_id>,<log_forwarder_id>
 - `ocm_properties` (Map of String) Merged properties defined by OCM and the user defined 'properties'.
 - `state` (String) State of the cluster.
 
@@ -141,6 +146,50 @@ Optional:
 
 - `password` (String, Sensitive) Admin password that will be created with the cluster.
 - `username` (String) Admin username that will be created with the cluster.
+
+
+<a id="nestedatt--log_forwarders_at_cluster_creation"></a>
+### Nested Schema for `log_forwarders_at_cluster_creation`
+
+Optional:
+
+- `applications` (List of String) List of additional applications to forward logs for.
+- `cloudwatch` (Attributes) CloudWatch configuration for log forwarding destination. (see [below for nested schema](#nestedatt--log_forwarders_at_cluster_creation--cloudwatch))
+- `groups` (Attributes List) List of log forwarder groups. (see [below for nested schema](#nestedatt--log_forwarders_at_cluster_creation--groups))
+- `s3` (Attributes) S3 configuration for log forwarding destination. (see [below for nested schema](#nestedatt--log_forwarders_at_cluster_creation--s3))
+
+<a id="nestedatt--log_forwarders_at_cluster_creation--cloudwatch"></a>
+### Nested Schema for `log_forwarders_at_cluster_creation.cloudwatch`
+
+Required:
+
+- `log_distribution_role_arn` (String) The ARN of the IAM role for log distribution.
+- `log_group_name` (String) The name of the CloudWatch log group.
+
+
+<a id="nestedatt--log_forwarders_at_cluster_creation--groups"></a>
+### Nested Schema for `log_forwarders_at_cluster_creation.groups`
+
+Required:
+
+- `id` (String) The identifier of the log forwarder group.
+
+Optional:
+
+- `version` (String) The version of the log forwarder group. If not specified, will use the latest version.
+
+
+<a id="nestedatt--log_forwarders_at_cluster_creation--s3"></a>
+### Nested Schema for `log_forwarders_at_cluster_creation.s3`
+
+Required:
+
+- `bucket_name` (String) The name of the S3 bucket.
+
+Optional:
+
+- `bucket_prefix` (String) The prefix to use for objects stored in the S3 bucket.
+
 
 
 <a id="nestedatt--proxy"></a>
@@ -196,3 +245,6 @@ Required:
 Optional:
 
 - `internal_communication_private_hosted_zone_id` (String) ID assigned by AWS to private Route 53 hosted zone associated with intended shared VPC, e.g. 'Z05646003S02O1ENCDCSN'.
+
+
+

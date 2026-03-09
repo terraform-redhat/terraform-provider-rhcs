@@ -15,7 +15,7 @@ Machine pool.
 ```terraform
 data "rhcs_hcp_machine_pool" "machine_pool" {
   cluster = "cluster-id-123"
-  name = "my-pool"
+  name    = "my-pool"
 }
 ```
 
@@ -95,3 +95,6 @@ Required:
 - `key` (String) Taints key
 - `schedule_type` (String) Taints schedule type
 - `value` (String) Taints value
+
+
+

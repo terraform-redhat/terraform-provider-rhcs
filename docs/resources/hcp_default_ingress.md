@@ -30,3 +30,5 @@ resource "rhcs_hcp_default_ingress" "default_ingress" {
 ### Read-Only
 
 - `id` (String) Unique identifier of the ingress.
+
+

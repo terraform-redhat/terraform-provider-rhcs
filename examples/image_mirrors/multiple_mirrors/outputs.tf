@@ -2,12 +2,12 @@ output "created_mirrors" {
   description = "Details of all created image mirrors"
   value = {
     for source, mirror in rhcs_image_mirror.mirrors : source => {
-      id                     = mirror.id
-      source                 = mirror.source
-      mirrors                = mirror.mirrors
-      type                   = mirror.type
-      creation_timestamp     = mirror.creation_timestamp
-      last_update_timestamp  = mirror.last_update_timestamp
+      id                    = mirror.id
+      source                = mirror.source
+      mirrors               = mirror.mirrors
+      type                  = mirror.type
+      creation_timestamp    = mirror.creation_timestamp
+      last_update_timestamp = mirror.last_update_timestamp
     }
   }
 }
@@ -31,7 +31,7 @@ output "mirror_summary" {
   description = "Summary of mirror configurations"
   value = {
     for source, mirror in rhcs_image_mirror.mirrors : source => {
-      mirror_count = length(mirror.mirrors)
+      mirror_count   = length(mirror.mirrors)
       primary_mirror = mirror.mirrors[0]
     }
   }

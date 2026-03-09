@@ -14,7 +14,7 @@ List of groups.
 
 ```terraform
 data "rhcs_groups" "groups" {
-    cluster = "cluster-id-123"
+  cluster = "cluster-id-123"
 }
 ```
 
@@ -36,3 +36,6 @@ Read-Only:
 
 - `id` (String) Unique identifier of the group. This is what should be used when referencing the group from other places, for example in the 'group' attribute of the user resource.
 - `name` (String) Short name of the group for example 'dedicated-admins'.
+
+
+

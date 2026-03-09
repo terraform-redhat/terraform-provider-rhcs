@@ -45,3 +45,5 @@ resource "rhcs_tuning_config" "hcp_tuning_config" {
 ### Read-Only
 
 - `id` (String) Unique identifier of the tuning config.
+
+

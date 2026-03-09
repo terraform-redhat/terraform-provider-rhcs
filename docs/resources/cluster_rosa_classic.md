@@ -28,16 +28,16 @@ locals {
 
 
 resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
-  name                = "my-cluster"
-  cloud_region        = "us-east-2"
-  aws_account_id      = "account-id-123"
-  availability_zones  = ["us-east-2a"]
-  replicas            = 3
-  version             = "4.13.12"
+  name               = "my-cluster"
+  cloud_region       = "us-east-2"
+  aws_account_id     = "account-id-123"
+  availability_zones = ["us-east-2a"]
+  replicas           = 3
+  version            = "4.13.12"
   properties = {
     rosa_creator_arn = "aws_caller_identity-current-arn"
   }
-  sts = local.sts_roles
+  sts                      = local.sts_roles
   wait_for_create_complete = true
 }
 ```
@@ -164,3 +164,7 @@ Required:
 
 - `master_role_arn` (String) Master/Control Plane Node Role ARN
 - `worker_role_arn` (String) Worker/Compute Node Role ARN
+
+
+
+

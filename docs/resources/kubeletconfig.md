@@ -14,8 +14,8 @@ KubeletConfig allows setting a customized Kubelet configuration
 
 ```terraform
 # Example KubeletConfig
-resource rhcs_kubeletconfig "example_kubeletconfig" {
-  cluster = "cluster-id-123"
+resource "rhcs_kubeletconfig" "example_kubeletconfig" {
+  cluster        = "cluster-id-123"
   pod_pids_limit = 10000
 }
 ```
@@ -32,3 +32,5 @@ resource rhcs_kubeletconfig "example_kubeletconfig" {
 
 - `id` (String) ID of the KubeletConfig.After the creation of the resource, it is not possible to update the attribute value.
 - `name` (String) Name of the KubeletConfig.After the creation of the resource, it is not possible to update the attribute value.
+
+

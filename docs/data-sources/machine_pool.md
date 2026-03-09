@@ -15,7 +15,7 @@ Machine pool.
 ```terraform
 data "rhcs_machine_pool" "machine_pool" {
   cluster = "cluster-id-123"
-  id = "my-pool"
+  id      = "my-pool"
 }
 ```
 
@@ -56,3 +56,6 @@ Read-Only:
 - `key` (String) Taints key
 - `schedule_type` (String) Taints schedule type
 - `value` (String) Taints value
+
+
+

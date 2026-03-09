@@ -55,8 +55,11 @@ data "rhcs_cluster_rosa_hcp" "cluster" {
 - `ec2_metadata_http_tokens` (String) This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the cluster.This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). After the creation of the resource, it is not possible to update the attribute value.
 - `etcd_encryption` (Boolean) Encrypt etcd data. Note that all AWS storage is already encrypted. After the creation of the resource, it is not possible to update the attribute value.
 - `etcd_kms_key_arn` (String) Used for etcd encryption. The key ARN is the Amazon Resource Name (ARN) of a AWS Key Management Service (KMS) Key. It is a unique, fully qualified identifier for the AWS KMS Key. A key ARN includes the AWS account, Region, and the key ID(optional). After the creation of the resource, it is not possible to update the attribute value.
+- `external_auth_providers_enabled` (Boolean) Enable external authentication providers on the cluster.
 - `external_id` (String) Unique external identifier of the cluster. After the creation of the resource, it is not possible to update the attribute value.
 - `host_prefix` (Number) Length of the prefix of the subnet assigned to each node. After the creation of the resource, it is not possible to update the attribute value.
+- `log_forwarder_ids` (List of String) List of log forwarder IDs associated with this cluster. These IDs can be used to import existing log forwarders with: terraform import rhcs_log_forwarder.<name> <cluster_id>,<log_forwarder_id>
+- `log_forwarders_at_cluster_creation` (List of Object) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource (see [below for nested schema](#nestedatt--log_forwarders_at_cluster_creation))
 - `machine_cidr` (String) Block of IP addresses for nodes. After the creation of the resource, it is not possible to update the attribute value.
 - `max_hcp_cluster_wait_timeout_in_minutes` (Number) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `max_machinepool_wait_timeout_in_minutes` (Number) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
@@ -117,6 +120,44 @@ Read-Only:
 - `username` (String) Admin username that will be created with the cluster.
 
 
+<a id="nestedatt--log_forwarders_at_cluster_creation"></a>
+### Nested Schema for `log_forwarders_at_cluster_creation`
+
+Read-Only:
+
+- `applications` (List of String)
+- `cloudwatch` (Object) (see [below for nested schema](#nestedobjatt--log_forwarders_at_cluster_creation--cloudwatch))
+- `groups` (List of Object) (see [below for nested schema](#nestedobjatt--log_forwarders_at_cluster_creation--groups))
+- `s3` (Object) (see [below for nested schema](#nestedobjatt--log_forwarders_at_cluster_creation--s3))
+
+<a id="nestedobjatt--log_forwarders_at_cluster_creation--cloudwatch"></a>
+### Nested Schema for `log_forwarders_at_cluster_creation.cloudwatch`
+
+Read-Only:
+
+- `log_distribution_role_arn` (String)
+- `log_group_name` (String)
+
+
+<a id="nestedobjatt--log_forwarders_at_cluster_creation--groups"></a>
+### Nested Schema for `log_forwarders_at_cluster_creation.groups`
+
+Read-Only:
+
+- `id` (String)
+- `version` (String)
+
+
+<a id="nestedobjatt--log_forwarders_at_cluster_creation--s3"></a>
+### Nested Schema for `log_forwarders_at_cluster_creation.s3`
+
+Read-Only:
+
+- `bucket_name` (String)
+- `bucket_prefix` (String)
+
+
+
 <a id="nestedatt--proxy"></a>
 ### Nested Schema for `proxy`
 
@@ -162,3 +203,7 @@ Read-Only:
 Read-Only:
 
 - `worker_role_arn` (String) Worker/Compute Node Role ARN
+
+
+
+

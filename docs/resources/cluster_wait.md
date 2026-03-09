@@ -34,3 +34,5 @@ resource "rhcs_cluster_wait" "waiter" {
 ### Read-Only
 
 - `ready` (Boolean) Whether the cluster is ready.Note: this does not account for cluster operators still progressing to completion.
+
+

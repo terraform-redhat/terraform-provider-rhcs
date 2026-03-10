@@ -14,7 +14,7 @@ require (
 	github.com/hashicorp/terraform-plugin-framework v1.11.0
 	github.com/hashicorp/terraform-plugin-framework-validators v0.12.0
 	github.com/hashicorp/terraform-plugin-go v0.23.0
-	github.com/hashicorp/terraform-plugin-log v0.9.0
+	github.com/hashicorp/terraform-plugin-log v0.10.0
 	github.com/hashicorp/terraform-plugin-sdk v1.17.2
 	github.com/onsi/ginkgo/v2 v2.17.1
 	github.com/onsi/gomega v1.30.0

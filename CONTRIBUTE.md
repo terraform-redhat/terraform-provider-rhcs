@@ -127,6 +127,26 @@ Types other than `fix:` and `feat:` are allowed:
 - `style`: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
 - `test`: Adding missing tests or correcting existing tests
 
+### 7. Release Process and Changelog Automation
+
+The changelog is automatically generated using [git-cliff](https://git-cliff.org/) configured via `cliff.toml`. Only the `CHANGELOG.md` in the `main` branch contains the complete changelog history.
+
+**Workflow:**
+1. Push a release tag (`v1.7.3`) to trigger the automation
+2. GitHub Actions automatically generates the changelog from the previous release tag
+3. A PR is created to `main` with the new changelog entry, labeled `changelog` to be reviewed.
+
+The changelog follows the existing format with sections for FEATURES, ENHANCEMENTS (with Bug fixes and Documentation subsections), and other categories. Commits are automatically grouped based on their conventional commit type.
+
+**Manual Changelog Generation:**
+```bash
+# Generate changelog for a specific release range
+git-cliff <previous-tag>..<current-tag> --prepend CHANGELOG.md
+
+# Example:
+git-cliff v1.7.2..v1.7.3 --prepend CHANGELOG.md
+```
+
 ## Related Documentation Links
 * [RHCS rosa module](https://github.com/terraform-redhat/terraform-rhcs-rosa) - for creating ROSA clusters much more easily.
 * [RHCS rosa HCP module](https://github.com/terraform-redhat/terraform-rhcs-rosa-hcp/) -  for creating ROSA HCP clusters much more easily.

@@ -1,5 +1,5 @@
 # following the contribution guide this check enforces the commit format
-# [JIRA-TICKET] | [TYPE]: <MESSAGE>
+# [JIRA-TICKET] | [TYPE][(scope)][!]: <MESSAGE>
 name: 'Validate Commit Messages'
 on:
   pull_request:

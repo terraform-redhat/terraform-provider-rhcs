@@ -11,7 +11,7 @@ profiles:
     private: false
     etcd_encryption: true # id:72483 # id:72807
     kms_key_arn: true # id:72483 # id:72484 # id:72807
-    fips: false
+    fips: true
     autoscale: true # id:72523
     byok: true
     compute_replicas: 6 # id:72446

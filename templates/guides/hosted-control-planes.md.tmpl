@@ -45,6 +45,19 @@ resource "rhcs_cluster_rosa_hcp" "rosa_sts_cluster" {
 }
 ```
 
+## FIPS guidance for HCP clusters
+
+If your compliance requirements need FIPS-enabled cryptography, set `fips = true` when creating `rhcs_cluster_rosa_hcp`:
+
+```terraform
+resource "rhcs_cluster_rosa_hcp" "rosa_sts_cluster" {
+  # ... required cluster configuration ...
+  fips = true
+}
+```
+
+After cluster creation, `fips` cannot be updated by this provider. This aligns with Red Hat guidance that FIPS must be enabled before first boot and cannot be enabled on an existing deployment. See [Support for FIPS cryptography](https://docs.redhat.com/en/documentation/openshift_container_platform/4.10/html/installing/installing-fips).
+
 It requires some other cloud resources, such as a VPC so that the subnets and availability zones can be forwarded to the cluster network infrastructure. As well as STS credentials for each of the account and operator roles. And last but not least an OIDC configuration/provider to authenticate the operator roles access to the AWS account it belongs to.
 These resources require some interaction with AWS Provider as well, for a basic VPC it will be needed to
 

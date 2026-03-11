@@ -18,4 +18,12 @@ OpenShift managed cluster using ROSA HCP.
 
 {{tffile "examples/resources/cluster_rosa_hcp/example_1.tf"}}
 
+## FIPS usage and lifecycle
+
+Set `fips = true` during cluster creation to request FIPS-enabled cryptographic modules for the cluster.
+
+Lifecycle caveats:
+- `fips` is immutable in this resource. Changing it after creation is rejected and requires creating a new cluster.
+- Red Hat documents that FIPS must be enabled before first boot and cannot be enabled on an existing deployment. See [Support for FIPS cryptography](https://docs.redhat.com/en/documentation/openshift_container_platform/4.10/html/installing/installing-fips).
+
 {{ .SchemaMarkdown }}

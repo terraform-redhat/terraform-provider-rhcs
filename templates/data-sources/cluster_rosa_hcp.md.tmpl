@@ -18,4 +18,10 @@ OpenShift managed cluster using rosa sts.
 
 {{tffile "examples/data-sources/cluster_rosa_hcp/example_1.tf"}}
 
+## FIPS status verification
+
+Use the `fips` attribute from this data source to confirm whether FIPS was enabled when the HCP cluster was created.
+
+`fips` is read-only here and reflects the cluster state returned by OCM.
+
 {{ .SchemaMarkdown }}

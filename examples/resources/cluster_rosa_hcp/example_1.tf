@@ -20,6 +20,7 @@ resource "rhcs_cluster_rosa_hcp" "rosa_sts_cluster" {
   availability_zones     = ["us-west-2a", "us-west-2b"]
   replicas               = 2
   version                = "4.15.9"
+  fips                   = true
   properties = {
     rosa_creator_arn = "aws_caller_identity-current-arn"
   }

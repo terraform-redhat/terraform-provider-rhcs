@@ -8,6 +8,11 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/registry_config"
 )
 
+type AutoNode struct {
+	Mode    types.String `tfsdk:"mode"`
+	RoleARN types.String `tfsdk:"role_arn"`
+}
+
 type ClusterRosaHcpState struct {
 	ID             types.String `tfsdk:"id"`
 	Name           types.String `tfsdk:"name"`
@@ -35,6 +40,7 @@ type ClusterRosaHcpState struct {
 	Tags                                 types.Map    `tfsdk:"tags"`
 	AWSAdditionalComputeSecurityGroupIds types.List   `tfsdk:"aws_additional_compute_security_group_ids"`
 	AWSAdditionalAllowedPrincipals       types.List   `tfsdk:"aws_additional_allowed_principals"`
+	AutoNode                             *AutoNode    `tfsdk:"auto_node"`
 
 	// Network fields
 	Domain      types.String `tfsdk:"domain"`

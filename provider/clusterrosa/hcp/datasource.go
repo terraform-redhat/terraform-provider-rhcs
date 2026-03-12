@@ -335,6 +335,20 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				ElementType: types.StringType,
 				Computed:    true,
 			},
+			"auto_node": schema.SingleNestedAttribute{
+				Description: "AutoNode configuration for ROSA HCP clusters.",
+				Computed:    true,
+				Attributes: map[string]schema.Attribute{
+					"mode": schema.StringAttribute{
+						Description: "AutoNode mode.",
+						Computed:    true,
+					},
+					"role_arn": schema.StringAttribute{
+						Description: "AWS IAM role ARN used by the Karpenter controller when AutoNode is enabled.",
+						Computed:    true,
+					},
+				},
+			},
 			"external_auth_providers_enabled": schema.BoolAttribute{
 				Description: "Enable external authentication providers on the cluster.",
 				Computed:    true,

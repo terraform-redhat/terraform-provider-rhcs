@@ -72,7 +72,8 @@ import (
 
 const (
 	// FIXME: This should be coming from the API or only validate at the API level
-	MinVersion = "4.12.0"
+	MinVersion          = "4.12.0"
+	autoNodeModeEnabled = "enabled"
 )
 
 type ClusterRosaHcpResource struct {
@@ -439,6 +440,26 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				ElementType: types.StringType,
 				Optional:    true,
 			},
+			"auto_node": schema.SingleNestedAttribute{
+				Description: "AutoNode configuration for ROSA HCP clusters. Currently only `enabled` mode is supported.",
+				Optional:    true,
+				Attributes: map[string]schema.Attribute{
+					"mode": schema.StringAttribute{
+						Description: "AutoNode mode. Currently only `enabled` is supported.",
+						Required:    true,
+						Validators: []validator.String{
+							attrvalidators.EnumValueValidator([]string{autoNodeModeEnabled}),
+						},
+					},
+					"role_arn": schema.StringAttribute{
+						Description: "AWS IAM role ARN used by the Karpenter controller when AutoNode is enabled.",
+						Required:    true,
+						Validators: []validator.String{
+							validateAutoNodeRoleARN(),
+						},
+					},
+				},
+			},
 			"external_auth_providers_enabled": schema.BoolAttribute{
 				Description: "Enable external authentication providers on the cluster. " +
 					"This feature is only available for ROSA HCP clusters. " + common.ValueCannotBeChangedStringDescription,
@@ -697,12 +718,18 @@ func createHcpClusterObject(ctx context.Context,
 		return nil, err
 	}
 
+	autoNodeRoleArn := optionalAutoNodeRoleARN(state.AutoNode)
+
 	if err := ocmClusterResource.CreateAWSBuilder(rosaTypes.Hcp, awsTags, ec2MetadataHttpTokens,
 		kmsKeyARN, etcdKmsKeyArn, auditLogArn,
 		isPrivate, awsAccountID, awsBillingAccountId, stsBuilder, awsSubnetIDs,
 		ingressHostedZoneId, route53RoleArn, internalCommunicationHostedZoneId, vpceRoleArn,
-		awsAdditionalComputeSecurityGroupIds, nil, nil, awsAdditionalAllowedPrincipals); err != nil {
+		awsAdditionalComputeSecurityGroupIds, nil, nil, awsAdditionalAllowedPrincipals, autoNodeRoleArn); err != nil {
 		return nil, err
+	}
+
+	if autoNodeMode := optionalAutoNodeMode(state.AutoNode); autoNodeMode != nil {
+		builder.AutoNode(cmv1.NewClusterAutoNode().Mode(*autoNodeMode))
 	}
 
 	if !common.IsStringAttributeUnknownOrEmpty(state.BaseDNSDomain) {
@@ -1186,6 +1213,14 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 		return
 	}
 
+	if plan.AutoNode == nil && state.AutoNode != nil {
+		response.Diagnostics.AddError(
+			"Can't update cluster",
+			"Disabling AutoNode is currently not supported. Keep the `auto_node` block configured once it is enabled.",
+		)
+		return
+	}
+
 	//assert no changes on specific attributes
 	diags = validateNoImmutableAttChange(state, plan)
 	if diags.HasError() {
@@ -1245,6 +1280,10 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 		clusterBuilder.Version(vBuilder)
 
 		tflog.Debug(ctx, fmt.Sprintf("Updating channel group from %s to %s", state.ChannelGroup.ValueString(), newChannelGroup))
+	}
+
+	if newAutoNodeMode, shouldPatch := common.ShouldPatchString(getAutoNodeMode(state.AutoNode), getAutoNodeMode(plan.AutoNode)); shouldPatch {
+		clusterBuilder.AutoNode(cmv1.NewClusterAutoNode().Mode(newAutoNodeMode))
 	}
 
 	clusterBuilder, err := updateProxy(state, plan, clusterBuilder)
@@ -1315,6 +1354,11 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 		changesToAws = true
 	} else if newAuditLogArn, shouldPatch := common.ShouldPatchString(state.AuditLogArn, plan.AuditLogArn); shouldPatch {
 		awsBuilder.AuditLog(cmv1.NewAuditLog().RoleArn(newAuditLogArn))
+		changesToAws = true
+	}
+
+	if newAutoNodeRoleArn, shouldPatch := common.ShouldPatchString(getAutoNodeRoleARN(state.AutoNode), getAutoNodeRoleARN(plan.AutoNode)); shouldPatch {
+		awsBuilder.AutoNode(cmv1.NewAwsAutoNode().RoleArn(newAutoNodeRoleArn))
 		changesToAws = true
 	}
 
@@ -1719,6 +1763,26 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 		state.AuditLogArn = types.StringNull()
 	}
 
+	autoNodeState := &AutoNode{
+		Mode:    types.StringNull(),
+		RoleARN: types.StringNull(),
+	}
+	if autoNode, ok := object.GetAutoNode(); ok {
+		if mode, ok := autoNode.GetMode(); ok && mode == autoNodeModeEnabled {
+			autoNodeState.Mode = types.StringValue(mode)
+		}
+	}
+	if awsAutoNode, ok := object.AWS().GetAutoNode(); ok {
+		if roleArn, ok := awsAutoNode.GetRoleArn(); ok && roleArn != "" {
+			autoNodeState.RoleARN = types.StringValue(roleArn)
+		}
+	}
+	if !autoNodeState.Mode.IsNull() && !autoNodeState.RoleARN.IsNull() {
+		state.AutoNode = autoNodeState
+	} else {
+		state.AutoNode = nil
+	}
+
 	httpTokensState, ok := object.AWS().GetEc2MetadataHttpTokens()
 	if ok && httpTokensState != "" {
 		state.Ec2MetadataHttpTokens = types.StringValue(string(httpTokensState))
@@ -1969,6 +2033,80 @@ func (r *ClusterRosaHcpResource) waitTillClusterIsNotFoundWithTimeout(ctx contex
 	}
 
 	return false, nil
+}
+
+func validateAutoNodeRoleARN() validator.String {
+	return attrvalidators.NewStringValidator(
+		"must be a valid AWS IAM role ARN (arn:aws:iam::<account_id>:role/<role_name>)",
+		func(_ context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+			if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+				return
+			}
+
+			roleARN := strings.TrimSpace(req.ConfigValue.ValueString())
+			if roleARN == "" {
+				resp.Diagnostics.AddError(
+					"Invalid auto_node.role_arn value",
+					"The value must not be empty.",
+				)
+				return
+			}
+			if strings.Contains(roleARN, "'") {
+				resp.Diagnostics.AddError(
+					"Invalid auto_node.role_arn value",
+					"The value must not contain single quotes.",
+				)
+				return
+			}
+
+			parsedARN, err := awsarn.Parse(roleARN)
+			if err != nil {
+				resp.Diagnostics.AddError(
+					"Invalid auto_node.role_arn value",
+					fmt.Sprintf("Failed to parse AWS ARN: %v", err),
+				)
+				return
+			}
+			if parsedARN.Service != "iam" || !strings.HasPrefix(parsedARN.Resource, "role/") {
+				resp.Diagnostics.AddError(
+					"Invalid auto_node.role_arn value",
+					fmt.Sprintf("Expected an IAM role ARN, got service '%s' and resource '%s'.", parsedARN.Service, parsedARN.Resource),
+				)
+			}
+		},
+	)
+}
+
+func optionalAutoNodeMode(autoNode *AutoNode) *string {
+	if autoNode == nil || common.IsStringAttributeUnknownOrEmpty(autoNode.Mode) {
+		return nil
+	}
+
+	return autoNode.Mode.ValueStringPointer()
+}
+
+func optionalAutoNodeRoleARN(autoNode *AutoNode) *string {
+	if autoNode == nil || common.IsStringAttributeUnknownOrEmpty(autoNode.RoleARN) {
+		return nil
+	}
+
+	return autoNode.RoleARN.ValueStringPointer()
+}
+
+func getAutoNodeMode(autoNode *AutoNode) types.String {
+	if autoNode == nil {
+		return types.StringNull()
+	}
+
+	return autoNode.Mode
+}
+
+func getAutoNodeRoleARN(autoNode *AutoNode) types.String {
+	if autoNode == nil {
+		return types.StringNull()
+	}
+
+	return autoNode.RoleARN
 }
 
 func shouldPatchProperties(state, plan *ClusterRosaHcpState) bool {

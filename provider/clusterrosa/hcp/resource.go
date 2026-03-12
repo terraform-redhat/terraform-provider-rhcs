@@ -447,6 +447,33 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"auto_node": schema.SingleNestedAttribute{
+				Description: "AutoNode settings for this ROSA HCP cluster.",
+				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
+				Attributes: map[string]schema.Attribute{
+					"mode": schema.StringAttribute{
+						Description: "Mode indicates the current state of AutoNode on this cluster. Currently only `enabled` is supported.",
+						Optional:    true,
+						Computed:    true,
+						Validators: []validator.String{
+							stringvalidator.OneOf(autoNodeModeEnabled),
+							stringvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("role_arn")),
+						},
+					},
+					"role_arn": schema.StringAttribute{
+						Description: "The AWS ARN of the IAM Role that has the permissions required for the AutoNode controller.",
+						Optional:    true,
+						Computed:    true,
+						Validators: []validator.String{
+							stringvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("mode")),
+						},
+					},
+				},
+			},
 			"log_forwarders_at_cluster_creation": schema.ListNestedAttribute{
 				Description: "List of log forwarders to configure during cluster creation (Day 1 only). " +
 					"This field is immutable after cluster creation and cannot be modified. " +
@@ -697,11 +724,17 @@ func createHcpClusterObject(ctx context.Context,
 		return nil, err
 	}
 
+	desiredAutoNodeMode := common.OptionalString(autoNodeMode(state.AutoNode))
+	if desiredAutoNodeMode != nil {
+		builder.AutoNode(cmv1.NewClusterAutoNode().Mode(*desiredAutoNodeMode))
+	}
+	autoNodeRoleArn := common.OptionalString(autoNodeRoleARN(state.AutoNode))
+
 	if err := ocmClusterResource.CreateAWSBuilder(rosaTypes.Hcp, awsTags, ec2MetadataHttpTokens,
 		kmsKeyARN, etcdKmsKeyArn, auditLogArn,
 		isPrivate, awsAccountID, awsBillingAccountId, stsBuilder, awsSubnetIDs,
 		ingressHostedZoneId, route53RoleArn, internalCommunicationHostedZoneId, vpceRoleArn,
-		awsAdditionalComputeSecurityGroupIds, nil, nil, awsAdditionalAllowedPrincipals); err != nil {
+		awsAdditionalComputeSecurityGroupIds, nil, nil, awsAdditionalAllowedPrincipals, autoNodeRoleArn); err != nil {
 		return nil, err
 	}
 
@@ -1318,6 +1351,15 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 		changesToAws = true
 	}
 
+	if newAutoNodeMode, shouldPatch := common.ShouldPatchString(autoNodeMode(state.AutoNode), autoNodeMode(plan.AutoNode)); shouldPatch {
+		clusterBuilder.AutoNode(cmv1.NewClusterAutoNode().Mode(newAutoNodeMode))
+	}
+
+	if newAutoNodeRoleArn, shouldPatch := common.ShouldPatchString(autoNodeRoleARN(state.AutoNode), autoNodeRoleARN(plan.AutoNode)); shouldPatch {
+		awsBuilder.AutoNode(cmv1.NewAwsAutoNode().RoleArn(newAutoNodeRoleArn))
+		changesToAws = true
+	}
+
 	if changesToAws {
 		clusterBuilder.AWS(awsBuilder)
 	}
@@ -1904,6 +1946,28 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 
 	if externalAuthConfig, ok := object.GetExternalAuthConfig(); ok && externalAuthConfig.Enabled() {
 		state.ExternalAuthProvidersEnabled = types.BoolValue(true)
+	}
+
+	state.AutoNode = nil
+	autoNodeModeState := types.StringNull()
+	autoNodeRoleArnState := types.StringNull()
+	if autoNode, ok := object.GetAutoNode(); ok {
+		if mode, ok := autoNode.GetMode(); ok && mode == autoNodeModeEnabled {
+			autoNodeModeState = types.StringValue(mode)
+		}
+	}
+	if awsObj, ok := object.GetAWS(); ok {
+		if awsAutoNode, ok := awsObj.GetAutoNode(); ok {
+			if roleArn, ok := awsAutoNode.GetRoleArn(); ok && roleArn != "" {
+				autoNodeRoleArnState = types.StringValue(roleArn)
+			}
+		}
+	}
+	if !autoNodeModeState.IsNull() || !autoNodeRoleArnState.IsNull() {
+		state.AutoNode = &AutoNode{
+			Mode:    autoNodeModeState,
+			RoleARN: autoNodeRoleArnState,
+		}
 	}
 
 	return nil

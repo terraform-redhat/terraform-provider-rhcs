@@ -146,7 +146,8 @@ func (c *Cluster) CreateAWSBuilder(clusterTopology rosaTypes.ClusterTopology,
 	additionalComputeSecurityGroupIds []string,
 	additionalInfraSecurityGroupIds []string,
 	additionalControlPlaneSecurityGroupIds []string,
-	additionalAllowedPrincipals []string) error {
+	additionalAllowedPrincipals []string,
+	autoNodeRoleArn *string) error {
 
 	if clusterTopology == rosaTypes.Hcp && awsSubnetIDs == nil {
 		return errors.New("Hosted Control Plane clusters must have a pre-configure VPC. Make sure to specify the subnet ids.")
@@ -241,6 +242,10 @@ func (c *Cluster) CreateAWSBuilder(clusterTopology rosaTypes.ClusterTopology,
 
 	if additionalAllowedPrincipals != nil {
 		awsBuilder.AdditionalAllowedPrincipals(additionalAllowedPrincipals...)
+	}
+
+	if clusterTopology == rosaTypes.Hcp && autoNodeRoleArn != nil {
+		awsBuilder.AutoNode(cmv1.NewAwsAutoNode().RoleArn(*autoNodeRoleArn))
 	}
 
 	c.clusterBuilder.AWS(awsBuilder)

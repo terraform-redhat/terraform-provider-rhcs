@@ -70,6 +70,7 @@ const (
 	httpsProxy          = "https://proxy.com"
 	httpTokens          = "required"
 	auditLogRoleArn     = "arn:aws:iam::123456789012:role/audit-log-role"
+	autoNodeRoleArn     = "arn:aws:iam::123456789012:role/autonode-role"
 	fipsEnabled         = true
 )
 
@@ -232,6 +233,23 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 
 			Expect(rosaClusterObject.FIPS()).To(BeTrue())
 		})
+		It("Sets AutoNode mode and role ARN when provided", func() {
+			clusterState := generateBasicRosaHcpClusterState()
+			clusterState.AutoNode = &AutoNode{
+				Mode:    types.StringValue(autoNodeModeEnabled),
+				RoleARN: types.StringValue(autoNodeRoleArn),
+			}
+			rosaClusterObject, err := createHcpClusterObject(context.Background(), clusterState, diag.Diagnostics{})
+			Expect(err).ToNot(HaveOccurred())
+
+			autoNode, ok := rosaClusterObject.GetAutoNode()
+			Expect(ok).To(BeTrue())
+			Expect(autoNode.Mode()).To(Equal(autoNodeModeEnabled))
+
+			awsAutoNode, ok := rosaClusterObject.AWS().GetAutoNode()
+			Expect(ok).To(BeTrue())
+			Expect(awsAutoNode.RoleArn()).To(Equal(autoNodeRoleArn))
+		})
 	})
 	It("Throws an error when version format is invalid", func() {
 		clusterState := generateBasicRosaHcpClusterState()
@@ -363,6 +381,27 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 			err = populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clusterState.FIPS.ValueBool()).To(BeTrue())
+		})
+		It("Reads auto node from API response", func() {
+			clusterState := &ClusterRosaHcpState{}
+			clusterJson := generateBasicRosaHcpClusterJson()
+			clusterJson["auto_node"] = map[string]interface{}{
+				"mode": autoNodeModeEnabled,
+			}
+			clusterJson["aws"].(map[string]interface{})["auto_node"] = map[string]interface{}{
+				"role_arn": autoNodeRoleArn,
+			}
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(clusterState.AutoNode).ToNot(BeNil())
+			Expect(clusterState.AutoNode.Mode.ValueString()).To(Equal(autoNodeModeEnabled))
+			Expect(clusterState.AutoNode.RoleARN.ValueString()).To(Equal(autoNodeRoleArn))
 		})
 	})
 

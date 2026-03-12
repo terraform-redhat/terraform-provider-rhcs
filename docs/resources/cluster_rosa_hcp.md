@@ -69,6 +69,7 @@ Lifecycle caveats:
 
 - `admin_credentials` (Attributes) Admin user credentials. After the creation of the resource, it is not possible to update the attribute value. (see [below for nested schema](#nestedatt--admin_credentials))
 - `audit_log_arn` (String) Used for audit log forwarding. The ARN is the Amazon Resource Name (ARN) of an IAM role that has permissions to send audit logs to a CloudWatch Logs log group. To disable audit log forwarding, provide an empty string.
+- `auto_node` (Attributes) AutoNode settings for this ROSA HCP cluster. (see [below for nested schema](#nestedatt--auto_node))
 - `autoscaling_enabled` (Boolean) Enable autoscaling for the initial worker pool. This attribute specifically applies to the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the initial Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)
 - `aws_additional_allowed_principals` (List of String) AWS additional allowed principals.
 - `aws_additional_compute_security_group_ids` (List of String) AWS additional compute security group ids.
@@ -156,6 +157,15 @@ Optional:
 
 - `password` (String, Sensitive) Admin password that will be created with the cluster.
 - `username` (String) Admin username that will be created with the cluster.
+
+
+<a id="nestedatt--auto_node"></a>
+### Nested Schema for `auto_node`
+
+Optional:
+
+- `mode` (String) Mode indicates the current state of AutoNode on this cluster. Currently only `enabled` is supported.
+- `role_arn` (String) The AWS ARN of the IAM Role that has the permissions required for the AutoNode controller.
 
 
 <a id="nestedatt--log_forwarders_at_cluster_creation"></a>

@@ -339,6 +339,20 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				Description: "Enable external authentication providers on the cluster.",
 				Computed:    true,
 			},
+			"auto_node": schema.SingleNestedAttribute{
+				Description: "AutoNode settings for this ROSA HCP cluster.",
+				Computed:    true,
+				Attributes: map[string]schema.Attribute{
+					"mode": schema.StringAttribute{
+						Description: "Mode indicates the current state of AutoNode on this cluster.",
+						Computed:    true,
+					},
+					"role_arn": schema.StringAttribute{
+						Description: "The AWS ARN of the IAM Role that has the permissions required for the AutoNode controller.",
+						Computed:    true,
+					},
+				},
+			},
 		},
 	}
 }

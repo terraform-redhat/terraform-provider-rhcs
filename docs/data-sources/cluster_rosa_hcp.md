@@ -42,6 +42,7 @@ Use the `fips` attribute from this data source to confirm whether FIPS was enabl
 - `admin_credentials` (Attributes) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource (see [below for nested schema](#nestedatt--admin_credentials))
 - `api_url` (String) URL of the API server.
 - `audit_log_arn` (String) Used for audit log forwarding. The ARN is the Amazon Resource Name (ARN) of an IAM role that has permissions to send audit logs to a CloudWatch Logs log group.
+- `auto_node` (Attributes) AutoNode settings for this ROSA HCP cluster. (see [below for nested schema](#nestedatt--auto_node))
 - `availability_zones` (List of String) Availability zones. This attribute specifically applies to the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the initial Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)
 - `aws_account_id` (String) Identifier of the AWS account. After the creation of the resource, it is not possible to update the attribute value.
 - `aws_additional_allowed_principals` (List of String) AWS additional allowed principals.
@@ -125,6 +126,15 @@ Read-Only:
 
 - `password` (String, Sensitive) Admin password that will be created with the cluster.
 - `username` (String) Admin username that will be created with the cluster.
+
+
+<a id="nestedatt--auto_node"></a>
+### Nested Schema for `auto_node`
+
+Read-Only:
+
+- `mode` (String) Mode indicates the current state of AutoNode on this cluster.
+- `role_arn` (String) The AWS ARN of the IAM Role that has the permissions required for the AutoNode controller.
 
 
 <a id="nestedatt--log_forwarders_at_cluster_creation"></a>

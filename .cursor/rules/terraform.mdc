@@ -1,0 +1,169 @@
+---
+description: Terraform Plugin Framework provider review checklist — provider, resources, data sources, validation, diagnostics.
+globs: "**/*.go"
+alwaysApply: false
+---
+
+# Terraform Provider Plugin Framework — Review Checklist
+
+Use the Terraform Plugin Framework only (not the deprecated SDK). Apply this checklist to avoid unexpected behavior for provider users.
+
+---
+
+## File layout (project convention)
+
+- Use **`*_resource.go`** for the resource implementation (Schema, Create, Read, Update, Delete, Configure).
+- Use **`*_state.go`** for the state/model struct(s) with `tfsdk` struct tags used by the resource (and optionally by a data source in the same package).
+- For data sources use **`*_datasource.go`**; they may share the same `*_state.go` or define their own state types in that file.
+- Keep the resource and its state in the same package (directory); one resource (or resource + data source) per package.
+- Add a runnable example for each new resource or data source: `examples/resources/<resource_name>/example_1.tf` or `examples/data-sources/<data_source_name>/example_1.tf`, so usage is documented and manual testing is possible.
+
+---
+
+### RHCS Provider Conventions
+
+- [ ] **Logging:** Uses `tflog` (Debug/Info/Warn/Error) for provider logging; no `fmt.Print*` for debugging.
+- [ ] **Cluster waiter:** Resources that modify clusters use `clusterWait.WaitForClusterToBeReady` (or equivalent) before/after operations where applicable.
+- [ ] **Classic vs HCP:** Changes maintain separation between `classic/` and `hcp/` implementations.
+- [ ] **OCM SDK:** Uses `github.com/openshift-online/ocm-sdk-go` types correctly (e.g. `cmv1` package).
+- [ ] **Import:** Resources that support `terraform import` implement `ResourceWithImportState` and validate ID format.
+
+---
+
+## Naming Conventions
+
+### Resources and Data Sources
+
+- Name resources as **nouns**; each resource block represents a single managed object.
+- Prefix resource and data source type names with the **provider name and underscore** (provider is `rhcs`): e.g. `rhcs_cluster_rosa_hcp`, `rhcs_hcp_machine_pool`, `rhcs_identity_provider`, `rhcs_rosa_oidc_config`, `rhcs_tuning_config`, `rhcs_dns_domain`.
+- Prefer names that match OCM/ROSA terminology (e.g. cluster, machine pool, STS, OIDC config) for familiarity with the API and docs.
+- Name data sources as **nouns**; use **plural** when the data source returns a list: e.g. `rhcs_versions`, `rhcs_machine_types`, `rhcs_groups`, `rhcs_log_forwarders`, `rhcs_trusted_ip_addresses`, `rhcs_image_mirrors`. Use singular when it returns a single object (e.g. `rhcs_cluster_rosa_hcp`, `rhcs_info`).
+
+### Attributes and Schema
+
+- Use **all lowercase with underscores** for attribute and block names: e.g. `external_id`, `domain_prefix`, `aws_account_id`, `aws_subnet_ids`, `kms_key_arn`, `current_version`.
+- Use **singular nouns** for single-value attributes: e.g. `name`, `cluster`, `cloud_region`, `compute_machine_type`.
+- Use **plural nouns** for list, set, or map attributes: e.g. `aws_subnet_ids`, `tags`, `properties`, `availability_zones`.
+- Name **boolean** attributes as nouns for “what is enabled” or as verbs for “whether to do an action”: e.g. `fips`, `private`, `etcd_encryption`, `autoscaling_enabled`, `create_admin_user`, `wait_for_create_complete`. Orient so **true** = do something, **false** = do not (avoid double-negative semantics).
+- Name **sub-blocks** with a **singular noun** even when multiple instances are allowed (each block is one object): e.g. `sts`, `auto_node`, `proxy`, `admin_credentials`, `registry_config` (see `cluster_rosa_hcp` resource schema).
+- Use a **`_wo` suffix** for write-only arguments (e.g. `password_wo`) to distinguish from read/write attributes (e.g. `admin_credentials.password` in create-only blocks); match existing patterns in the provider where applicable.
+
+---
+
+## Change the Provider
+
+### ConfigValidators vs ValidateConfig
+
+- Use **ConfigValidators** for declarative, reusable validation across multiple attributes (e.g. `providervalidator.Conflicting`); runs during `ValidateProviderConfig` RPC.
+- Use **ValidateConfig** for imperative, provider-specific validation across multiple attributes that applies to a single provider.
+- Do not rely on provider `Configure` in validation: configuration validation runs without provider configuration (offline). Use logic in `Configure` only for validation that needs a configured API client (runs during plan/apply).
+
+---
+
+## Add, Change, or Remove a Resource
+
+### Create
+
+- Read input from `CreateRequest.Plan`, not config, so plan modifiers are reflected.
+- Write only known or null values to `CreateResponse.State`; never return unknown values in state.
+- Do not call `RemoveResource()` in Create.
+- Save every null or known value from the plan into the response state exactly as-is; only unknown plan values may be changed.
+- Return an error when creation would duplicate an existing remote resource so users import instead of creating twice.
+- Any error diagnostic causes Terraform to mark the resource tainted for recreation on next plan.
+
+### Read
+
+- Read from `ReadRequest.State`; refresh all refreshable values into `ReadResponse.State`.
+- Do not return unknown values in the response state.
+- When the resource no longer exists remotely: call `resp.State.RemoveResource(ctx)` and return early; do not return an error.
+- Preserve prior state value when the refreshed value is semantically equal (e.g. JSON property order, whitespace) to avoid spurious drift.
+- When populating nested blocks from the API, set a block only when all its required attributes are present; otherwise leave the block unset.
+- Any error diagnostic causes Terraform to keep the prior state.
+
+### Update
+
+- Read input from `UpdateRequest.Plan`, not config.
+- Do not return unknown values in the response state.
+- Do not call `RemoveResource()` in Update; return an error if the resource no longer exists.
+- Save every null or known value from the plan into the response state exactly as-is; only unknown plan values may be modified.
+- Set response state; leaving it unset causes an error unless the resource is replace-only (then use `RequiresReplace()` and leave Update empty).
+- Use `UseStateForUnknown()` for computed attributes that do not change on update to avoid `(known after apply)` in plans.
+- For APIs that require only changed attributes or per-attribute updates, compare plan to prior state to detect changes.
+
+### Delete
+
+- Do not set response state; the framework removes the resource from state when there are no error diagnostics.
+- Treat "resource already deleted" as success (e.g. ignore 404); do not return an error.
+- Any error diagnostic causes Terraform to keep the resource in state.
+
+### Default Attributes
+
+- Add Default only to resource schema attributes (not provider or data source).
+- Defaults run during planning, before computed nulls are marked unknown.
+- Use typed default packages (e.g. `stringdefault`, `setdefault`) for static defaults; implement the appropriate `defaults` interface for custom defaults.
+- Ensure custom default logic does not return an error for valid null configuration; a default error blocks that attribute’s and nested defaults.
+
+### Timeouts
+
+- Use `terraform-plugin-framework-timeouts` for configurable resource timeouts.
+- Prefer nested attributes for timeouts in new providers; use blocks only when migrating existing block-based timeouts.
+- Add `timeouts.Value` (or equivalent) to the resource model and use the module’s helpers (e.g. `Create`, `Update`, `Delete`) to get duration and apply `context.WithTimeout` in CRUD.
+
+### Common Use Case Plan Modifiers
+
+- Use **RequiresReplace()** when an attribute change forces replacement.
+- Use **RequiresReplaceIf()** or **RequiresReplaceIfConfigured()** when replacement is conditional.
+- Use **UseStateForUnknown()** for computed attributes that do not change after creation.
+- Do not rely on prior state in attribute plan modifiers under list/set nested attributes or blocks when elements can be reordered or removed; Terraform does not re-align prior state by index.
+- In custom plan modifiers, check `req.State.Raw.IsNull()` for create and `req.Plan.Raw.IsNull()` for destroy; keep response plan null when request plan is null on destroy.
+- Ensure plan modifier logic obeys Terraform data consistency rules (e.g. do not change a configured value in the plan except to null on destroy).
+
+---
+
+## Handling Data (Resources and Data Sources)
+
+### Computed, Optional, Required, Default
+
+- Use **Required** when the value must be set by the user and is not computed.
+- Use **Optional** when the value may be omitted; combine with **Computed** when the provider can set it.
+- Use **Computed** for values only set by the provider (e.g. IDs, server-side defaults).
+- Add **Default** only on resource attributes; apply when the attribute is null in configuration.
+- Do not add a default that conflicts with the API default unless documented; adding an incompatible default is a breaking change.
+
+### Validation
+
+- Prefer attribute **Validators** for single-attribute rules; use **ConfigValidators** / **ValidateConfig** for cross-attribute rules.
+- In validators, return early when the value is unknown or null unless the rule explicitly applies to null/unknown.
+- Use **path expressions** and **PathMatches** / **GetAttribute** for validators that depend on other attributes; handle null/unknown at matched paths.
+- Prefer **Value** validation (e.g. `xattr.ValidateableAttribute`) over deprecated **Type** validation (`xattr.TypeWithValidate`) for custom types.
+
+### Blocks and Types
+
+- Use list/set nested attributes or blocks per schema needs; list preserves order, set does not.
+- In list/set nested structures, do not assume prior state element alignment when configuration elements are reordered or removed; plan modifiers see raw indexing.
+- Use framework types (`types.String`, `types.List`, etc.) for schema and state; handle null and unknown before reading elements or converting.
+- Model dates/times in RFC 3339 when possible.
+- Mark sensitive fields with the schema **Sensitive** flag; do not encrypt state in the provider (use remote backends / HCP Terraform for encryption).
+- **Nested blocks and state:** When populating state from the API (Read, or after Create/Update), only set a nested block when every **Required** attribute of that block can be set from the API. If the API omits one or more required fields, leave the block unset (e.g. `state.SomeBlock = nil`) so the schema is never violated (no partial block with null required attributes).
+
+---
+
+## Add, Change, or Remove a Data Source
+
+### Configure Clients
+
+- Set **ConfigureResponse.DataSourceData** in the provider `Configure` method with the client or type data sources need.
+- Implement **DataSourceWithConfigure** on the data source; in `Configure`, always check `req.ProviderData == nil` because `ValidateDataResourceConfig` can run before `ConfigureProvider`.
+- Assert provider data type and return a clear diagnostic on type mismatch.
+- In `Read`, guard on nil client (or equivalent) and return a diagnostic if the data source was not configured.
+
+### Validate Configuration
+
+- Use **ConfigValidators** for declarative, multi-attribute validation (e.g. `datasourcevalidator.Conflicting`).
+- Use **ValidateConfig** for imperative, data-source-specific validation across multiple attributes.
+- Do not rely on data source `Configure` in ConfigValidators or ValidateConfig; validation runs offline. Use `Read` for checks that need a configured client.
+
+### Timeouts
+
+- Use `terraform-plugin-framework-timeouts` (datasource/timeouts) for configurable read timeouts.
+- Prefer nested attributes for timeouts; add `timeouts.Value` to the data source model and use `timeouts.Read()` in `Read` with `context.WithTimeout`.

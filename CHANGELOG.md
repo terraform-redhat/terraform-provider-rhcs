@@ -1,3 +1,112 @@
+## 1.7.4 (11 Feb, 2026)
+ENHANCEMENTS:
+* Bug fixes:
+  * Konflux clamav-scan hotfix
+
+## 1.7.3 (11 Feb, 2026)
+FEATURES:
+* Support for log forwarders in terraform
+* Enable day 1 log forwarding
+* Support day1 ImageType field for HCP MachinePool
+* CapRez Preference day 1 support
+* Add BreakGlassCredential resource support
+* Use CVO for Cluster upgrade versions
+* Add trust policy external id field
+* Add audit_log_arn parameter for HCP clusters
+
+ENHANCEMENTS:
+* Bug fixes:
+  * Removal and re-enablement of audit_log_arn
+  * Make log_forwarders_at_cluster_creation group version optional
+  * Remove null initialization
+  * Audit-log-arn parameter into docs
+  * Initialize unused hcp cluster fields to null
+  * Creating caprez pref without id errs
+  * Trim channel group suffix from machine pool version to enable EC version upgrades
+  * Support external auth in cluster template
+  * Change some arguments to read-only
+* Chores:
+  * Bump OCM SDK version to v0.1.486
+  * Bump Go version to 1.24
+  * Fix konflux tests
+  * Fetch git tags and increase clone depth
+  * Update tf provider docs
+* Documentation:
+  * Add docs for log forwarders
+  * Add guide for external-id + update docs
+* Testing:
+  * Use git versions of modules, and use new oidc_prefix option
+  * External-id plan validation + E2E tests
+  * Add e2e test for break glass credential resource
+
+## 1.7.2 (29 Oct, 2025)
+FEATURES:
+* Add prefix field to OIDC config input resource with validation
+* Cap res support for day 1 nodepools
+* Add external auth providers enablement for ROSA HCP clusters
+* Add channel group switch in day2
+* Support for image registry mirrors
+
+ENHANCEMENTS:
+* Bug fixes:
+  * Autoscaler requires 2 applies
+  * Introduce RequiresReplace for capres
+  * Cluster Autoscaler plan not being sent
+  * Include more detail from OCM API auth errors
+* Documentation:
+  * Update the autoscaler examples
+  * Examples for idms usage
+  * Add guide for deleting clusters with removed worker pools
+* Chores:
+  * Update sdk to support image mirrors
+
+## 1.7.1 (19 Sep, 2025)
+FEATURES:
+* Enable refresh token support in OCM API auth flow
+
+ENHANCEMENTS:
+* Bug fixes:
+  * Pass in ResourceLimits to autoscaler resource
+  * Make billing account ID optional to enable GovCloud HCP cluster creation
+* Testing:
+  * Update Go + Ginkgo version in TF provider E2E tests
+* Documentation:
+  * Add documentation for using portal service accounts
+
+## 1.7.0 (2 Jul, 2025)
+ENHANCEMENTS:
+* Bug fixes:
+  * Populate empty state earlier for reg configs
+  * Remove no proxy zero egress default domains
+  * Change validateUpgrade versionId to CurrentVersion
+  * Added return error to groups check
+* Chores:
+  * Bump SDK version to v0.1.465
+
+## 1.6.9 (8 May, 2025)
+FEATURES:
+* Allow edit for HCP global autoscaler
+* ROSA GovCloud Support
+
+ENHANCEMENTS:
+* Bug fixes:
+  * Include wait knobs to cluster datasource
+* Testing:
+  * Fixing multiple test IDs
+  * Update proxy AMI image
+
+## 1.6.8 (9 Dec, 2024)
+FEATURES:
+* Added adjustable custom wait times
+* Support shared vpc attributes in cluster resource
+* Added github hostname validation
+* Support arch attribute in dns domain
+
+ENHANCEMENTS:
+* Chores:
+  * Bump OCM SDK
+  * Bump changelogs to v1.6.7
+
 ## 1.6.7 (5 Dec, 2024)
 ENHANCEMENTS:
 * Bug fixes:

@@ -1,0 +1,77 @@
+---
+description: Go coding standards — Effective Go, Code Review Comments, CONTRIBUTE.md.
+globs: "**/*.go"
+alwaysApply: false
+---
+
+# Go — Review Checklist
+
+Follow [Effective Go](https://go.dev/doc/effective_go), [Code Review Comments](https://go.dev/wiki/CodeReviewComments), and [CONTRIBUTE.md](../CONTRIBUTE.md). 
+
+---
+
+## Formatting
+
+- **gofmt** (run `make fmt`). Tabs for indent. Opening brace of `if`/`for`/`switch` on same line as statement.
+- Short functions; guard clauses and early returns over nesting.
+
+---
+
+## Names
+
+- **Exported:** MixedCaps. **Unexported:** mixedCaps. Short names in small scope (`ctx`, `err`, `id`).
+- **Acronyms** in exported names: all caps — `ID`, `ARN`, `URL`, `OIDC`, `IAM`, `AWS`, `KMS`. Project: `RoleARN`, `APIURL`, `AWSAccountID`, `OIDCEndpointURL` (see `provider/clusterrosa/sts/sts.go`). Type names in this repo often use one-cap in middle: `ClusterRosaHcpState`, `HcpSts`; stay consistent per package.
+- **Package:** lowercase, single word; base name of dir (e.g. `encoding/base64` → name `base64`).
+- **Getters:** `Owner()` not `GetOwner()`; setter `SetOwner()`.
+- **Interfaces:** one method → name by method + `-er` (`Reader`, `Writer`). Same name/signature as well-known type if same meaning (`String` not `ToString`).
+- **Doc comments** for exported symbols: full sentences, start with the name, end with a period. `// CreateRegistryConfigBuilder creates ...` (see [Code Review Comments](https://go.dev/wiki/CodeReviewComments#comment-sentences)).
+
+---
+
+## Control flow
+
+- **Indent error flow:** keep normal path at minimal indentation; handle errors first, then return/continue so no `else` needed ([Code Review Comments](https://go.dev/wiki/CodeReviewComments#indent-error-flow)).
+- `if err := ...; err != nil { return err }`; omit `else` when body ends in `return`/`break`/`continue`.
+- `for` with `range` for slices/maps; use `_` to discard index or key when needed.
+- `switch`: no fallthrough; use as if-else chain when appropriate. Type switch: `switch x := x.(type) { ... }`.
+
+---
+
+## Functions and methods
+
+- Multiple return values; named results when they clarify (avoid repetitive godoc). Naked returns OK in short functions. **defer** for cleanup next to resource acquisition.
+- **Receivers:** value methods on `T` and `*T`; pointer methods only on `*T`. Use pointer when method mutates or struct is large. Don’t use pointer for slice/map/func/chan unless reslicing or reallocating ([Code Review Comments](https://go.dev/wiki/CodeReviewComments#receiver-type)).
+- **Context:** accept `context.Context` as first parameter; don’t store in structs (exception: methods that must match stdlib/third-party interfaces).
+
+---
+
+## Data
+
+- **make** for slices, maps, channels (returns initialized value). **new** for other types (returns pointer to zero value). Prefer zero value usable without init where possible.
+- **Empty slices:** prefer `var t []string` (nil slice) over `t := []string{}`; functionally equivalent but nil is preferred. Use non-nil empty slice when JSON must encode as `[]` not `null`. Don’t design APIs that depend on nil vs non-nil zero-length ([Code Review Comments](https://go.dev/wiki/CodeReviewComments#declaring-empty-slices)).
+- Composite literals: `&File{fd: fd, name: name}`; field:value order optional.
+- **Copying:** don’t copy `T` if its methods are on `*T` (aliasing and surprising effects).
+
+---
+
+## Interfaces
+
+- **Consumer defines interface:** put the interface in the package that uses it, not the implementor. Return concrete types; let the consumer mock if needed. Don’t define interfaces before they’re used ([Code Review Comments](https://go.dev/wiki/CodeReviewComments#interfaces)).
+- Accept interfaces, return concrete types. Small interfaces (one/few methods). No explicit “implements”; type satisfies interface by having the methods.
+- Project: provider returns `resource.Resource`, `datasource.DataSource`; accept `*sdk.Connection` or interfaces for test mocks.
+
+---
+
+## Errors and init
+
+- Handle every error; no silent discard. In helpers wrap with `fmt.Errorf("...: %w", err)`. Error strings identify origin (e.g. `"package: message"`).
+- **Error strings:** don’t capitalize (unless proper noun/acronym) or end with punctuation; they’re often printed after other context ([Code Review Comments](https://go.dev/wiki/CodeReviewComments#error-strings)).
+- **Avoid `init()`** except for registration (e.g. provider/resource with framework). Prefer constructors or provider `Configure`. Don’t use panic for normal error handling.
+- Blank identifier `_`: only for unused returns in WIP; never to ignore errors. Interface check: `var _ SomeInterface = (*T)(nil)`.
+- **Crypto:** use `crypto/rand` (not `math/rand`) for keys or any secret; `math/rand` has weak entropy.
+
+---
+
+## Project (CONTRIBUTE.md)
+
+- Go 1.21.x. `make build`; `go mod download` after dependency changes.

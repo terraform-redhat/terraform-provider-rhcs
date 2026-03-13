@@ -1,0 +1,29 @@
+---
+description: Terraform Plugin Framework provider tests checklist.
+globs: "**/*.go"
+alwaysApply: false
+---
+
+## Tests
+
+### Unit tests
+
+- Add or update unit tests in `provider/*_test.go` for resource or data source logic (schema, validation, state mapping, CRUD behavior). Use the project’s Ginkgo BDD style (Describe/Context/It).
+
+### Subsystem tests
+
+- **New resource or data source:** Add at least one subsystem test under `subsystem/classic/` or `subsystem/hcp/` that exercises the main flow (e.g. apply/plan/read/destroy) using the shared framework (`TestServer`, `Terraform` runner). Optionally add a test for a key error path.
+- **Behavior-changing changes:** When changing CRUD behavior, validation, or state shape, add or update subsystem tests that cover the changed behavior. Not required for docs-only or refactor-only changes.
+- Use the existing pattern: stub the API with `TestServer.AppendHandlers`, set HCL with `Terraform.Source`, run `Terraform.Apply()` (or Plan/Destroy), assert on exit code and state with `Terraform.Resource()` and Gomega matchers. See CONTRIBUTE.md and existing tests in `subsystem/` for the test layout.
+
+---
+
+## Returning Errors and Warnings
+
+- Append to response **Diagnostics** only; never replace or remove existing diagnostics.
+- Use **AddError** / **AddWarning** for whole resource, data source, or provider; use **AddAttributeError** / **AddAttributeWarning** with **path.Path** for attribute-level diagnostics.
+- Use **Summary** for a short, general description; use **Detail** for specific, actionable text and context.
+- Errors halt execution; warnings do not. Use errors for unrecoverable cases, warnings for deprecations or suboptimal but valid cases.
+- Returning an error does not prevent state from being updated; when returning errors, reset response state to prior state when multiple API calls or partial success is possible.
+- In validators and plan modifiers, use **Append()** to merge diagnostics into the response and check **HasError()** on the response diagnostics before continuing.
+- Prefer **AddError**/ **AddWarning** (and attribute variants) on response types when available; use **diag.NewErrorDiagnostic**, **NewAttributeErrorDiagnostic**, etc. for custom code. Create helper functions for consistent API error formatting.

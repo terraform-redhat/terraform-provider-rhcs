@@ -40,11 +40,13 @@ var _ = Describe("Versions data source", func() {
 				  "items": [
 				    {
 				      "id": "openshift-v4.8.1",
-				      "raw_id": "4.8.1"
+				      "raw_id": "4.8.1",
+				      "available_channels": ["stable-4.8", "eus-4.8", "fast-4.8"]
 				    },
 				    {
 				      "id": "openshift-v4.8.2",
-				      "raw_id": "4.8.2"
+				      "raw_id": "4.8.2",
+				      "available_channels": ["stable-4.8", "eus-4.8", "fast-4.8"]
 				    }
 				  ]
 				}`),
@@ -64,59 +66,18 @@ var _ = Describe("Versions data source", func() {
 		Expect(resource).To(MatchJQ(`.attributes.items | length`, 2))
 		Expect(resource).To(MatchJQ(`.attributes.items[0].id`, "openshift-v4.8.1"))
 		Expect(resource).To(MatchJQ(`.attributes.items[0].name`, "4.8.1"))
+		Expect(resource).To(MatchJQ(`.attributes.items[0].available_channels`, []any{"stable-4.8", "eus-4.8", "fast-4.8"}))
 		Expect(resource).To(MatchJQ(`.attributes.items[1].id`, "openshift-v4.8.2"))
 		Expect(resource).To(MatchJQ(`.attributes.items[1].name`, "4.8.2"))
+		Expect(resource).To(MatchJQ(`.attributes.items[1].available_channels`, []any{"stable-4.8", "eus-4.8", "fast-4.8"}))
 	})
 
-	It("Can search versions", func() {
+	It("Can handle missing available_channels field", func() {
 		// Prepare the server:
 		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
-				VerifyFormKV("search", "enabled = 't' and channel_group = 'fast'"),
-				VerifyFormKV("order", "raw_id desc"),
-				RespondWithJSON(http.StatusOK, `{
-				  "page": 1,
-				  "size": 2,
-				  "total": 2,
-				  "items": [
-				    {
-				      "id": "openshift-v4.8.1-fast",
-				      "raw_id": "4.8.1"
-				    },
-				    {
-				      "id": "openshift-v4.8.2-fast",
-				      "raw_id": "4.8.2"
-				    }
-				  ]
-				}`),
-			),
-		)
-
-		// Run the apply command:
-		Terraform.Source(`
-		  data "rhcs_versions" "my_versions" {
-		    search = "enabled = 't' and channel_group = 'fast'"
-		    order  = "raw_id desc"
-		  }
-		`)
-		runOutput := Terraform.Apply()
-		Expect(runOutput.ExitCode).To(BeZero())
-
-		// Check the state:
-		resource := Terraform.Resource("rhcs_versions", "my_versions")
-		Expect(resource).To(MatchJQ(`.attributes.items | length`, 2))
-		Expect(resource).To(MatchJQ(`.attributes.items[0].id`, "openshift-v4.8.1-fast"))
-		Expect(resource).To(MatchJQ(`.attributes.items[0].name`, "4.8.1"))
-		Expect(resource).To(MatchJQ(`.attributes.items[1].id`, "openshift-v4.8.2-fast"))
-		Expect(resource).To(MatchJQ(`.attributes.items[1].name`, "4.8.2"))
-	})
-
-	It("Populates `item` if there is exactly one result", func() {
-		// Prepare the server:
-		TestServer.AppendHandlers(
-			CombineHandlers(
-				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+				VerifyFormKV("search", "enabled = 't'"),
 				RespondWithJSON(http.StatusOK, `{
 				  "page": 1,
 				  "size": 1,
@@ -143,6 +104,126 @@ var _ = Describe("Versions data source", func() {
 		resource := Terraform.Resource("rhcs_versions", "my_versions")
 		Expect(resource).To(MatchJQ(`.attributes.item.id`, "openshift-v4.8.1"))
 		Expect(resource).To(MatchJQ(`.attributes.item.name`, "4.8.1"))
+		Expect(resource).To(MatchJQ(`.attributes.item.available_channels`, []any{}))
+	})
+
+	It("Can handle empty available_channels field", func() {
+		// Prepare the server:
+		TestServer.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+				VerifyFormKV("search", "enabled = 't'"),
+				RespondWithJSON(http.StatusOK, `{
+				  "page": 1,
+				  "size": 1,
+				  "total": 1,
+				  "items": [
+				    {
+				      "id": "openshift-v4.8.1",
+				      "raw_id": "4.8.1",
+				      "available_channels": []
+				    }
+				  ]
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		Terraform.Source(`
+		  data "rhcs_versions" "my_versions" {
+		  }
+		`)
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+
+		// Check the state:
+		resource := Terraform.Resource("rhcs_versions", "my_versions")
+		Expect(resource).To(MatchJQ(`.attributes.item.id`, "openshift-v4.8.1"))
+		Expect(resource).To(MatchJQ(`.attributes.item.name`, "4.8.1"))
+		Expect(resource).To(MatchJQ(`.attributes.item.available_channels`, []any{}))
+	})
+
+	It("Can search versions", func() {
+		// Prepare the server:
+		TestServer.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+				VerifyFormKV("search", "enabled = 't' and channel_group = 'fast'"),
+				VerifyFormKV("order", "raw_id desc"),
+				RespondWithJSON(http.StatusOK, `{
+				  "page": 1,
+				  "size": 2,
+				  "total": 2,
+				  "items": [
+				    {
+				      "id": "openshift-v4.8.1-fast",
+				      "raw_id": "4.8.1",
+				      "available_channels": ["stable-4.8", "eus-4.8", "fast-4.8"]
+				    },
+				    {
+				      "id": "openshift-v4.8.2-fast",
+				      "raw_id": "4.8.2",
+				      "available_channels": ["stable-4.8", "eus-4.8", "fast-4.8"]
+				    }
+				  ]
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		Terraform.Source(`
+		  data "rhcs_versions" "my_versions" {
+		    search = "enabled = 't' and channel_group = 'fast'"
+		    order  = "raw_id desc"
+		  }
+		`)
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+
+		// Check the state:
+		resource := Terraform.Resource("rhcs_versions", "my_versions")
+		Expect(resource).To(MatchJQ(`.attributes.items | length`, 2))
+		Expect(resource).To(MatchJQ(`.attributes.items[0].id`, "openshift-v4.8.1-fast"))
+		Expect(resource).To(MatchJQ(`.attributes.items[0].name`, "4.8.1"))
+		Expect(resource).To(MatchJQ(`.attributes.items[0].available_channels`, []any{"stable-4.8", "eus-4.8", "fast-4.8"}))
+		Expect(resource).To(MatchJQ(`.attributes.items[1].id`, "openshift-v4.8.2-fast"))
+		Expect(resource).To(MatchJQ(`.attributes.items[1].name`, "4.8.2"))
+		Expect(resource).To(MatchJQ(`.attributes.items[1].available_channels`, []any{"stable-4.8", "eus-4.8", "fast-4.8"}))
+	})
+
+	It("Populates `item` if there is exactly one result", func() {
+		// Prepare the server:
+		TestServer.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+				RespondWithJSON(http.StatusOK, `{
+				  "page": 1,
+				  "size": 1,
+				  "total": 1,
+				  "items": [
+				    {
+				      "id": "openshift-v4.8.1",
+				      "raw_id": "4.8.1",
+				      "available_channels": ["stable-4.8", "eus-4.8", "fast-4.8"]
+				    }
+				  ]
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		Terraform.Source(`
+		  data "rhcs_versions" "my_versions" {
+		  }
+		`)
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+
+		// Check the state:
+		resource := Terraform.Resource("rhcs_versions", "my_versions")
+		Expect(resource).To(MatchJQ(`.attributes.item.id`, "openshift-v4.8.1"))
+		Expect(resource).To(MatchJQ(`.attributes.item.name`, "4.8.1"))
+		Expect(resource).To(MatchJQ(`.attributes.item.available_channels`, []any{"stable-4.8", "eus-4.8", "fast-4.8"}))
 	})
 
 	It("Doesn't populate `item` if there are zero results", func() {
@@ -184,11 +265,13 @@ var _ = Describe("Versions data source", func() {
 				  "items": [
 				    {
 				      "id": "openshift-v4.8.1",
-				      "raw_id": "4.8.1"
+				      "raw_id": "4.8.1",
+				      "available_channels": ["stable-4.8", "eus-4.8", "fast-4.8"]
 				    },
 				    {
 				      "id": "openshift-v4.8.2",
-				      "raw_id": "4.8.2"
+				      "raw_id": "4.8.2",
+				      "available_channels": ["stable-4.8", "eus-4.8", "fast-4.8"]
 				    }
 				  ]
 				}`),

@@ -26,6 +26,7 @@ type VersionsState struct {
 }
 
 type VersionState struct {
-	ID   types.String `tfsdk:"id"`
-	Name types.String `tfsdk:"name"`
+	ID                types.String `tfsdk:"id"`
+	Name              types.String `tfsdk:"name"`
+	AvailableChannels types.List   `tfsdk:"available_channels"`
 }

@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 
 type VersionsDataSource struct {
@@ -79,6 +80,11 @@ func (s *VersionsDataSource) itemAttributes() map[string]schema.Attribute {
 		},
 		"name": schema.StringAttribute{
 			Description: "Short name of the version, for example '4.1.0'.",
+			Computed:    true,
+		},
+		"available_channels": schema.ListAttribute{
+			ElementType: types.StringType,
+			Description: "Update channels in which this version is present, for example 'stable-4.20'",
 			Computed:    true,
 		},
 	}
@@ -145,9 +151,18 @@ func (s *VersionsDataSource) Read(ctx context.Context, req datasource.ReadReques
 	// Populate the state:
 	state.Items = make([]*VersionState, len(listItems))
 	for i, listItem := range listItems {
+		availableChannels, err := common.StringArrayToList(listItem.AvailableChannels())
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Can't extract available channels from version object",
+				err.Error(),
+			)
+			return
+		}
 		state.Items[i] = &VersionState{
-			ID:   types.StringValue(listItem.ID()),
-			Name: types.StringValue(listItem.RawID()),
+			ID:                types.StringValue(listItem.ID()),
+			Name:              types.StringValue(listItem.RawID()),
+			AvailableChannels: availableChannels,
 		}
 	}
 	if len(state.Items) == 1 {

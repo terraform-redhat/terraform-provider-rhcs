@@ -34,6 +34,7 @@ data "rhcs_versions" "all" {}
 
 Read-Only:
 
+- `available_channels` (List of String) Update channels in which this version is present, for example 'stable-4.20'
 - `id` (String) Unique identifier of the version. This is what should be used when referencing the versions from other places, for example in the 'version' attribute of the cluster resource.
 - `name` (String) Short name of the version, for example '4.1.0'.
 
@@ -43,6 +44,7 @@ Read-Only:
 
 Read-Only:
 
+- `available_channels` (List of String) Update channels in which this version is present, for example 'stable-4.20'
 - `id` (String) Unique identifier of the version. This is what should be used when referencing the versions from other places, for example in the 'version' attribute of the cluster resource.
 - `name` (String) Short name of the version, for example '4.1.0'.
 

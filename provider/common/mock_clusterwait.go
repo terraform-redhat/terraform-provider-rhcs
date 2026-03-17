@@ -5,6 +5,7 @@
 //
 //	mockgen -source=cluster_waiter.go -package=common -destination=mock_clusterwait.go
 //
+
 // Package common is a generated GoMock package.
 package common
 

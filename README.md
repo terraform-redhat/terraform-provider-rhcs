@@ -21,13 +21,40 @@ The Red Hat Cloud Services Terraform provider allows Terraform to manage Red Hat
 For more information about ROSA, see the Red Hat documentation [here](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/introduction_to_rosa/rosa-understanding).
 
 ## Prerequisites 
-* [GoLang version 1.20 or newer](https://go.dev/doc/install)
+* [GoLang version 1.24 or newer](https://go.dev/doc/install)
 * [Terraform version 1.4.6 or newer](https://developer.hashicorp.com/terraform/downloads)
 * An offline [OCM token](https://console.redhat.com/openshift/token/rosa)
 * [AWS account](https://aws.amazon.com/console/)
 * Completed [the ROSA getting started](https://console.redhat.com/openshift/create/rosa/getstarted) requirements
 * [ROSA CLI](https://console.redhat.com/openshift/downloads#tool-rosa)
 * **Optional**: A [configured `*.tfvars` file](docs/guides/terraform-vars.md).
+
+## Contributor setup
+
+BEFORE MAKING YOUR FIRST COMMIT IN A CLONE, YOU MUST INSTALL LOCAL GIT HOOKS:
+
+```shell
+make install-hooks
+```
+
+YOU MUST LET THESE HOOKS RUN ON EVERY COMMIT AND PUSH. DO NOT BYPASS LOCAL HOOKS.
+Installed hooks run staged-file formatting at commit time, commit-message validation during commit, and full verification checks before push.
+
+Formatting commands:
+
+- `make fmt` formats Go import order and syntax plus Terraform files under `examples/` and `tests/`, then fails if rewrites were needed so you can review and stage the updates
+- `make fmt-staged` formats staged Go import order and syntax plus staged Terraform files under `examples/` and `tests/`, then fails if rewrites were needed so you can review and stage the updates
+- `make fmt-check` validates Go import order/formatting plus Terraform formatting without changing files
+- `make lint` runs the pinned `golangci-lint` v2 configuration used by CI
+
+Recommended local commands before pushing:
+
+```shell
+make basic-checks      # convenience flow: starts with make fmt and may stop after rewrites so you can review/stage
+make pre-push-checks   # exact non-mutating verification used by the pre-push hook
+```
+
+Changed-files coverage is enforced through `make coverage-changed-files` using `gocovdiff` with an 80% threshold for changed Go files under `provider/` and `internal/`.
 
 ## Provider documentation
 

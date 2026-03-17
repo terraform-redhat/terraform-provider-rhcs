@@ -8,7 +8,7 @@ Please provide enough context so reviewers can understand:
 Use N/A when the option is not applicable to your case.
 
 Commit format requirement:
-[JIRA-TICKET] | [TYPE]: <MESSAGE>
+[JIRA-TICKET] | [TYPE][(scope)][!]: <MESSAGE>
 TYPE must be one of:
 feat, fix, docs, style, refactor, test, chore, build, ci, perf
 For details, see: ./CONTRIBUTE.md
@@ -74,13 +74,14 @@ For details, see: ./CONTRIBUTE.md
 <!-- Required only when breaking changes are introduced -->
 
 ## Developer Verification Checklist
-- [ ] Commit subject/title follows `[JIRA-TICKET] | [TYPE]: <MESSAGE>`.
+- [ ] Commit subject/title follows `[JIRA-TICKET] | [TYPE][(scope)][!]: <MESSAGE>`.
 - [ ] PR description clearly explains both **what** changed and **why**.
 - [ ] Relevant Jira/GitHub issues and related PRs are linked.
+- [ ] `make install-hooks` has been run in this clone.
 - [ ] Tests were added/updated where appropriate.
 - [ ] I manually tested the change.
-- [ ] `make test` passes.
-- [ ] `make fmt` passes.
+- [ ] `make pre-push-checks` passes.
+- [ ] `make fmt-check` passes.
 - [ ] `make build` passes.
 - [ ] Documentation was added/updated where appropriate.
 - [ ] Any risk, limitation, or follow-up work is documented.

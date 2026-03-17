@@ -5,6 +5,7 @@
 //
 //	mockgen -source=cluster_client.go -package=common -destination=mock_clusterclient.go
 //
+
 // Package common is a generated GoMock package.
 package common
 

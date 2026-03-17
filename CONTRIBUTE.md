@@ -20,27 +20,60 @@ Code contributions are done by opening a pull request (PR). Please be sure that 
 * [terraform](https://www.terraform.io/) - We are using the latest version of terraform (1.6.x)  
 * [golang](https://go.dev/) - use the version declared in `go.mod` (currently 1.24.x) to build the provider plugin
   - You also need to correctly setup a `GOPATH`, as well as adding `$GOPATH/bin` to your `$PATH`.
-  - Fork and clone the repository to `$GOPATH/src/github.com/hashicorp/terraform-provider-rhcs` by the `git clone` command
+  - Fork and clone the repository to `$GOPATH/src/github.com/terraform-redhat/terraform-provider-rhcs` by the `git clone` command
   - Create a new branch `git switch -c <branch-name>`
   - Run `go mod download` to download all the modules in the dependency graph.
+  - BEFORE YOUR FIRST COMMIT IN A NEW CLONE, YOU MUST RUN `make install-hooks`.
   - Try building the project by running `make build`
 
 ### 3. Make your changes with a Coding Style
-Use `gofmt` in order to format your code. You can invoke the formatting before committing with `make fmt`.
-Use `make fmt-check` to validate Go formatting and import ordering without rewriting files.
-Run `make lint` to check your changes with the pinned `golangci-lint` v2 configuration used by CI.
-In this provider repo, `make lint` focuses on the implementation packages, while `make fmt-check` enforces import ordering and formatting across the broader Go tree.
+Use the repository formatting helpers before committing:
+
+```shell
+make fmt         # formats Go import order and syntax plus Terraform files under examples/ and tests/, then fails if rewrites were needed
+make fmt-staged  # formats staged Go import order and syntax plus staged Terraform files under examples/ and tests/, then fails if rewrites were needed
+make fmt-check   # verifies Go import order/formatting plus Terraform formatting without rewriting files
+make lint        # runs the pinned golangci-lint v2 configuration used by CI
+```
 
 Keep the code clean and readable. Functions should be concise, exit the function as early as possible.
 Best coding standards for golang can be found [here](https://go.dev/doc/effective_go).
+
+### Required local hooks
+
+BEFORE YOUR FIRST COMMIT IN A CLONE, YOU MUST RUN:
+
+```shell
+make install-hooks
+```
+
+YOU MUST LET THE LOCAL HOOKS RUN ON EVERY COMMIT AND PUSH. DO NOT BYPASS LOCAL HOOKS.
+
+The hooks perform:
+
+- `pre-commit`: formats staged Go files with `gci` + `gofmt` plus staged Terraform files under `examples/` and `tests/`, and blocks the commit if files were rewritten so you can review and stage the updates
+- `commit-msg`: validates the commit message format
+- `pre-push`: runs format-check, build, generated-files check, lint, changed-files coverage for changed Go files under `provider/` and `internal/`, and unit/subsystem tests
+- `pre-push` runs against committed content and blocks when staged or unstaged tracked changes are present
+- check runs are fail-fast: execution stops at the first failing step
 
 ### 4. Test your changes and use the CI (Pre Merge)
 We are holding three types of tests that must pass for a PR to finally be accepted and merged: 
 * `unit-tests` - for testing a small unit of resource or data source functionality [here is an example of cluster_rosa_classic unit-tests](provider/clusterrosa/classic/cluster_rosa_classic_resource_test.go)
 * `subsystem test` - write a test that describing what you will fix and locate it in the [subsystem test directory](subsystem).
 * `end-to-end tests` - those tests simulate a real resources and run in official OpenShift CI platform.
-Both `unit-tests` and `subsystem`, can be run locally before submitting a PR, by running `make tests`.
-Lint checks can be run locally before submitting a PR with `make lint`.
+Both `unit-tests` and `subsystem`, can be run locally before submitting a PR by running `make test`.
+
+Use these commands before pushing:
+
+```shell
+make basic-checks      # convenience flow: starts with make fmt and may stop after rewrites so you can review/stage
+make pre-push-checks   # exact non-mutating verification used by the pre-push hook
+```
+
+`make basic-checks` runs format, format-check, build, generated-files verification, lint, changed-files coverage, and unit/subsystem tests.
+`make lint` uses the repo's pinned `golangci-lint` v2 configuration.
+Changed-files coverage is enforced through `make coverage-changed-files` using `gocovdiff` with an 80% threshold for changed Go files under `provider/` and `internal/`.
 
 ### 5. Manual testing and debugging using the locally compiled RHCS Provider binary
 Manual testing should be performed before opening a PR in order to make sure there isn't any regression behavior in the provider. You can find [here an example for that](https://github.com/terraform-redhat/terraform-rhcs-rosa/tree/main/examples/rosa-classic-public-with-unmanaged-oidc) 
@@ -72,7 +105,7 @@ to follow [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/#
 
 The commit message should follow this template:
 ```shell
-[JIRA-TICKET] | [TYPE]: <MESSAGE>
+[JIRA-TICKET] | [TYPE][(scope)][!]: <MESSAGE>
 
 [optional BODY]
 

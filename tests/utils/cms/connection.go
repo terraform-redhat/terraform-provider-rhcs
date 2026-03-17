@@ -20,10 +20,10 @@ import (
 	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
+	client "github.com/openshift-online/ocm-sdk-go"
+
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
-
-	client "github.com/openshift-online/ocm-sdk-go"
 )
 
 // Regular users in the organization 'Red Hat-Service Delivery-tester'

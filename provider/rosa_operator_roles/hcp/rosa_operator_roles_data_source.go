@@ -23,12 +23,12 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
-
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 
 type RosaOperatorRolesDataSource struct {

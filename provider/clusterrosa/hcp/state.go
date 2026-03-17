@@ -2,6 +2,7 @@ package hcp
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
 	sharedvpc "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/hcp/shared_vpc"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"

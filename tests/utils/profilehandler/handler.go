@@ -15,7 +15,6 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
-
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 

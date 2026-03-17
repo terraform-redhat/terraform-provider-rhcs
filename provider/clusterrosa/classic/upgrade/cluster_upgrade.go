@@ -25,8 +25,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	ocmUtils "github.com/openshift-online/ocm-common/pkg/ocm/utils"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"github.com/zgalor/weberr"
+
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 
 // ClusterUpgrade bundles the description of the upgrade with its current state
@@ -238,7 +239,7 @@ func getMissingGateAgreements(
 		// return original error if invaild version gate detected
 		if len(gates) > 0 && gates[0].ID() == "" {
 			errType := weberr.ErrorType(response.Error().Status())
-			return []*cmv1.VersionGate{}, errType.Set(weberr.Errorf(response.Error().Reason()))
+			return []*cmv1.VersionGate{}, errType.Set(weberr.Errorf("%s", response.Error().Reason()))
 		}
 		return gates, nil
 	}

@@ -5,16 +5,15 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	cmsv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
-
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
-
-	cmsv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
 var _ = Describe("Edit cluster", ci.Day2, func() {

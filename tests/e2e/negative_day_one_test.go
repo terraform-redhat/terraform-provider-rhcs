@@ -7,14 +7,14 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/openshift-online/ocm-common/pkg/aws/aws_client"
+
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
-
-	"github.com/openshift-online/ocm-common/pkg/aws/aws_client"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 

@@ -14,10 +14,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	idputils "github.com/openshift-online/ocm-common/pkg/idp/utils"
+	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/identityprovider/htpasswd"
-
-	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
 const (

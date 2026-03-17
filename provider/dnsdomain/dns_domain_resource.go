@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+
 	ocmr "github.com/terraform-redhat/terraform-provider-rhcs/internal/ocm/resource"
 )
 

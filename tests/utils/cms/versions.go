@@ -2,16 +2,16 @@ package cms
 
 import (
 	"fmt"
+	"net/http"
 	"sort"
 	"strings"
 	"time"
-
-	"net/http"
 
 	"github.com/Masterminds/semver"
 	. "github.com/onsi/gomega"
 	client "github.com/openshift-online/ocm-sdk-go"
 	v1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )

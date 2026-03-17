@@ -18,6 +18,7 @@ package classic
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/autoscaler"
 )
 

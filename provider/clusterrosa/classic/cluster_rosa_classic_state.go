@@ -18,6 +18,7 @@ package classic
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
 	rosaTypes "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common/types"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"

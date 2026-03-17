@@ -44,6 +44,7 @@ import (
 	ocmUtils "github.com/openshift-online/ocm-common/pkg/ocm/utils"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+
 	rosa "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool/hcp/upgrade"

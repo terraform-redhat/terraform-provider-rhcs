@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"strings"
 
+	"sigs.k8s.io/yaml"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -22,7 +24,6 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
-	"sigs.k8s.io/yaml"
 )
 
 type TuningConfigResource struct {

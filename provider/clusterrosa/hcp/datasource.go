@@ -29,14 +29,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+
 	rosa "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common"
 	rosaTypes "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common/types"
 	sharedvpc "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/hcp/shared_vpc"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/registry_config"
-
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 
 type ClusterRosaHcpDatasource struct {

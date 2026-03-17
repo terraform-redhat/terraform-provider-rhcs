@@ -1,14 +1,10 @@
 package e2e
 
 import (
-
-	// nolint
-
 	"net/http"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
 	cmsv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"

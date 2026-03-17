@@ -1,16 +1,16 @@
 package e2e
 
 import (
-
-	// nolint
-
 	"fmt"
 	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/openshift-online/ocm-common/pkg/aws/aws_client"
+	"github.com/openshift-online/ocm-common/pkg/test/vpc_client"
 	cmsv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
@@ -18,9 +18,6 @@ import (
 	exe "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
-
-	"github.com/openshift-online/ocm-common/pkg/aws/aws_client"
-	"github.com/openshift-online/ocm-common/pkg/test/vpc_client"
 )
 
 var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {

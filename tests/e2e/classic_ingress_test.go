@@ -1,14 +1,12 @@
 package e2e
 
 import (
-
-	// nolint
-
 	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	cmsv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
@@ -275,7 +273,7 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			}
 			_, err = ingressService.Apply(&args)
 			Expect(err).To(HaveOccurred())
-			helper.ExpectTFErrorContains(err, "Component route cannot be empty")
+			helper.ExpectTFErrorContains(err, "component route cannot be empty")
 
 			By("Update component routes by setting nil")
 			componentRoutes := map[string]*exec.IngressComponentRoute{
@@ -310,7 +308,7 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			}
 			_, err = ingressService.Apply(&args)
 			Expect(err).To(HaveOccurred())
-			helper.ExpectTFErrorContains(err, "Component route fields shouldn't both be empty")
+			helper.ExpectTFErrorContains(err, "component route fields shouldn't both be empty")
 
 			By("Try with invalid cluster ID")
 			invalidID := "asdf"

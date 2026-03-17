@@ -22,10 +22,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	ocmerrors "github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/pkg/errors"

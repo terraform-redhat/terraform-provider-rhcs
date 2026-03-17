@@ -20,6 +20,8 @@ import (
 	"context"
 	"fmt"
 
+	"go.uber.org/mock/gomock"
+
 	tfResources "github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -29,8 +31,8 @@ import (
 	"github.com/openshift-online/ocm-common/pkg/ocm/client/test"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	v1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
-	"go.uber.org/mock/gomock"
 )
 
 const (

@@ -3,9 +3,9 @@ package attrvalidators
 import (
 	"context"
 	"fmt"
-	"github.com/thoas/go-funk"
 
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/thoas/go-funk"
 )
 
 // atLeastValidator validates that an integer Attribute's value is at least a certain value.

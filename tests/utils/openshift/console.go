@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 
 	"github.com/goinggo/mapstructure"
-
 	client "github.com/openshift-online/ocm-sdk-go"
+
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"

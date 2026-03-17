@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 

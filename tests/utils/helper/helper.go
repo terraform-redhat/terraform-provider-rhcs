@@ -17,6 +17,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/sethvargo/go-password/password"
+
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"

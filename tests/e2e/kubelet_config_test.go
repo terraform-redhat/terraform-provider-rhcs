@@ -1,14 +1,12 @@
 package e2e
 
 import (
-
-	// nolint
-
 	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+
 	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	cms "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	exe "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"

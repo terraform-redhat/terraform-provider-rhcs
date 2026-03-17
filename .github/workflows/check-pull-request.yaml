@@ -33,6 +33,30 @@ jobs:
       - name: Check that 'make generate' has being call
         run: make check-gen
 
+  fmt-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+      - name: Check Go formatting
+        run: make fmt-check
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Install Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+      - name: Run golangci-lint
+        run: make lint
+
   test:
     name: Test
     strategy:

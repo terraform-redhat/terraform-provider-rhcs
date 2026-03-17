@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 	kmsArnRegexpValidator "github.com/openshift-online/ocm-common/pkg/resource/validations"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+
 	rosaTypes "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common/types"
 )
 

@@ -17,9 +17,10 @@ limitations under the License.
 package kubeletconfig
 
 import (
+	"testing"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"testing"
 )
 
 func TestResource(t *testing.T) {

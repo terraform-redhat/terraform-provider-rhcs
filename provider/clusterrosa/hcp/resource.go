@@ -28,8 +28,6 @@ import (
 
 	awsarn "github.com/aws/aws-sdk-go-v2/aws/arn"
 	semver "github.com/hashicorp/go-version"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/registry_config"
-
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
@@ -57,10 +55,6 @@ import (
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	ocm_errors "github.com/openshift-online/ocm-sdk-go/errors"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/identityprovider"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 
 	ocmr "github.com/terraform-redhat/terraform-provider-rhcs/internal/ocm/resource"
 	rosa "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common"
@@ -68,6 +62,11 @@ import (
 	sharedvpc "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/hcp/shared_vpc"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/hcp/upgrade"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/identityprovider"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/registry_config"
 )
 
 const (

@@ -1,18 +1,18 @@
 package e2e
 
 import (
-
-	// nolint
-
 	"context"
 	"encoding/json"
 	"fmt"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/wait"
+
 	"github.com/Masterminds/semver"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
@@ -20,7 +20,6 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {

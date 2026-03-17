@@ -3,9 +3,8 @@ package helper
 import (
 	"fmt"
 	"os"
-	"regexp"
-
 	"path/filepath"
+	"regexp"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"

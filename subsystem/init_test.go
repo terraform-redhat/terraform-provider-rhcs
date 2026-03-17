@@ -19,6 +19,7 @@ package provider
 import (
 	. "github.com/onsi/ginkgo/v2/dsl/core" // nolint
 	. "github.com/onsi/gomega"             // nolint
+
 	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 

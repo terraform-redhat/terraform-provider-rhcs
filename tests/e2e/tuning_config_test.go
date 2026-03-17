@@ -5,15 +5,17 @@ import (
 	"fmt"
 	"slices"
 
+	"gopkg.in/yaml.v2"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
-	"gopkg.in/yaml.v2"
 )
 
 var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {

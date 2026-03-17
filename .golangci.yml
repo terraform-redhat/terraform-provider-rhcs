@@ -1,0 +1,62 @@
+#
+# Copyright (c) 2021 Red Hat, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+version: "2"
+run:
+  go: "1.24"
+  issues-exit-code: 1
+  modules-download-mode: readonly
+  allow-parallel-runners: true
+  tests: false
+linters:
+  default: none
+  enable:
+    - goconst
+    - govet
+    - ineffassign
+    - lll
+    - misspell
+    - staticcheck
+    - unconvert
+    - unused
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - '(.+)_test\.go'
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  new: true
+  new-from-rev: fb743afa7bf98792d5962f62ee7d853fbd024f18
+formatters:
+  enable:
+    - gci
+    - gofmt
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(k8s)
+        - prefix(sigs.k8s)
+        - prefix(github.com)
+        - prefix(gitlab)
+        - prefix(github.com/terraform-redhat/terraform-provider-rhcs)
+      custom-order: true

@@ -21,14 +21,14 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/terraform-redhat/terraform-provider-rhcs/build"
-	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
-
 	. "github.com/onsi/ginkgo/v2/dsl/core" // nolint
 	. "github.com/onsi/gomega"             // nolint
 	. "github.com/onsi/gomega/ghttp"       // nolint
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+
+	"github.com/terraform-redhat/terraform-provider-rhcs/build"
+	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
 const (

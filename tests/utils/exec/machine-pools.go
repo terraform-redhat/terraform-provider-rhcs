@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"

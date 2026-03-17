@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"                         // nolint
 	. "github.com/onsi/gomega/ghttp"                   // nolint
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+
 	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
 )
 
@@ -694,7 +695,7 @@ var _ = Describe("default ingress", func() {
 		}`)
 		runOutput := Terraform.Apply()
 		Expect(runOutput.ExitCode).ToNot(BeZero())
-		runOutput.VerifyErrorContainsSubstring("Component route shouldn't be null, if you would like to reset a specific component route please remove the key instead")
+		runOutput.VerifyErrorContainsSubstring("component route shouldn't be null, if you would like to reset a specific component route please remove the key instead")
 	})
 
 	It("Create cluster with default ingress - component_routes fails to set single route as empty", func() {
@@ -756,7 +757,7 @@ var _ = Describe("default ingress", func() {
 			}
 		}`)
 		runOutput := Terraform.Apply()
-		runOutput.VerifyErrorContainsSubstring("Component route fields shouldn't both be empty, if you would like to reset a specific component route please remove the key instead")
+		runOutput.VerifyErrorContainsSubstring("component route fields shouldn't both be empty, if you would like to reset a specific component route please remove the key instead")
 	})
 
 	It("Create cluster with default ingress - component_routes reset single attribute", func() {

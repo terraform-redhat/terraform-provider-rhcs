@@ -22,8 +22,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
-
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -38,6 +36,7 @@ import (
 	"github.com/openshift-online/ocm-sdk-go/errors"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 )
 
 type ClusterResource struct {

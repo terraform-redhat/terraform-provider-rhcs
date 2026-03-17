@@ -9,6 +9,7 @@ import (
 	"github.com/Masterminds/semver"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 

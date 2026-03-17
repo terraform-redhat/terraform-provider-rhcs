@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
 

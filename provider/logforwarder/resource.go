@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"

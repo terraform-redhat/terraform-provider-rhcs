@@ -29,9 +29,18 @@ RHCS_LOCAL_DIR=$(DESTINATION_PREFIX)/terraform.local/local/rhcs
 
 GO_ARCH=$(shell go env GOARCH)
 TARGET_ARCH=$(shell go env GOOS)_${GO_ARCH}
+GOBIN ?= $(or $(shell go env GOBIN),$(shell go env GOPATH)/bin)
+GCI_VERSION ?= v0.13.4
+GCI ?= $(GOBIN)/gci
+GOLANGCI_LINT_VERSION ?= v2.6.1
+GOLANGCI_LINT ?= $(GOBIN)/golangci-lint
+LINT_OUTPUT_FLAGS ?=
+GO_SOURCE_TARGETS := main.go build internal logging provider subsystem tests tools
+LINT_TARGETS := ./ ./build/... ./internal/... ./logging/... ./provider/...
 
 # Import path of the project:
 import_path:=github.com/terraform-redhat/terraform-provider-rhcs
+GCI_FLAGS := -s standard -s default -s "prefix(k8s)" -s "prefix(sigs.k8s)" -s "prefix(github.com)" -s "prefix(gitlab)" -s "prefix($(import_path))" --custom-order --skip-generated --skip-vendor
 
 # Version of the project:
 version=$(shell git describe --abbrev=0 | sed 's/^v//' | sed 's/-prerelease\.[0-9]*//')
@@ -92,8 +101,26 @@ unit-test-coverage:
 test tests: unit-test subsystem-test
 
 .PHONY: fmt_go
-fmt_go:
-	gofmt -s -l -w $$(find . -name '*.go')
+fmt_go: gci
+	"$(GCI)" write $(GCI_FLAGS) $(GO_SOURCE_TARGETS)
+	gofmt -s -w $(GO_SOURCE_TARGETS)
+
+.PHONY: fmt_go_check
+fmt_go_check: gci
+	@files="$$(gofmt -s -l $(GO_SOURCE_TARGETS))"; \
+	imports="$$("$(GCI)" list $(GCI_FLAGS) $(GO_SOURCE_TARGETS))"; \
+	if [ -z "$$files" ] && [ -z "$$imports" ]; then \
+		exit 0; \
+	fi; \
+	if [ -n "$$files" ]; then \
+		echo "Files that need gofmt:"; \
+		echo "$$files"; \
+	fi; \
+	if [ -n "$$imports" ]; then \
+		echo "Files that need import formatting (gci):"; \
+		echo "$$imports"; \
+	fi; \
+	exit 1
 
 .PHONY: fmt_tf
 fmt_tf:
@@ -105,6 +132,21 @@ fmt_tests:
 
 .PHONY: fmt
 fmt: fmt_go fmt_tf fmt_tests
+
+.PHONY: fmt-check
+fmt-check: fmt_go_check
+
+.PHONY: gci
+gci:
+	GOBIN="$(GOBIN)" go install github.com/daixiang0/gci@$(GCI_VERSION)
+
+.PHONY: golangci-lint
+golangci-lint:
+	GOBIN="$(GOBIN)" go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+
+.PHONY: lint
+lint: golangci-lint
+	"$(GOLANGCI_LINT)" run --timeout 5m0s $(LINT_OUTPUT_FLAGS) $(LINT_TARGETS)
 
 .PHONY: clean
 clean:
@@ -119,7 +161,7 @@ docs:
 	go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs validate
 
 .PHONY: tools
-tools:
+tools: gci golangci-lint
 	go install github.com/onsi/ginkgo/v2/ginkgo@v2.13.2
 	go install go.uber.org/mock/mockgen@v0.3.0
 

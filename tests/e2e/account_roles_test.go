@@ -1,20 +1,17 @@
 package e2e
 
 import (
-	// nolint
-
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
-
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 
 var _ = Describe("Edit Account roles", func() {

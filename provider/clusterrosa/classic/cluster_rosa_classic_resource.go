@@ -50,20 +50,20 @@ import (
 	ocmConsts "github.com/openshift-online/ocm-common/pkg/ocm/consts"
 	ocmUtils "github.com/openshift-online/ocm-common/pkg/ocm/utils"
 	"github.com/openshift-online/ocm-common/pkg/rosa/oidcconfigs"
+	commonutils "github.com/openshift-online/ocm-common/pkg/utils"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	ocm_errors "github.com/openshift-online/ocm-sdk-go/errors"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 
-	commonutils "github.com/openshift-online/ocm-common/pkg/utils"
 	ocmr "github.com/terraform-redhat/terraform-provider-rhcs/internal/ocm/resource"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/classic/upgrade"
 	rosa "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common"
 	rosaTypes "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common/types"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/identityprovider"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 )
 
 const (

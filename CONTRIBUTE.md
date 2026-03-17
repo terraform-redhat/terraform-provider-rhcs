@@ -18,7 +18,7 @@ Code contributions are done by opening a pull request (PR). Please be sure that 
 
 ### 2. Development Environment
 * [terraform](https://www.terraform.io/) - We are using the latest version of terraform (1.6.x)  
-* [golang](https://go.dev/) - version 1.21.x (to build the provider plugin)
+* [golang](https://go.dev/) - use the version declared in `go.mod` (currently 1.24.x) to build the provider plugin
   - You also need to correctly setup a `GOPATH`, as well as adding `$GOPATH/bin` to your `$PATH`.
   - Fork and clone the repository to `$GOPATH/src/github.com/hashicorp/terraform-provider-rhcs` by the `git clone` command
   - Create a new branch `git switch -c <branch-name>`
@@ -27,6 +27,9 @@ Code contributions are done by opening a pull request (PR). Please be sure that 
 
 ### 3. Make your changes with a Coding Style
 Use `gofmt` in order to format your code. You can invoke the formatting before committing with `make fmt`.
+Use `make fmt-check` to validate Go formatting and import ordering without rewriting files.
+Run `make lint` to check your changes with the pinned `golangci-lint` v2 configuration used by CI.
+In this provider repo, `make lint` focuses on the implementation packages, while `make fmt-check` enforces import ordering and formatting across the broader Go tree.
 
 Keep the code clean and readable. Functions should be concise, exit the function as early as possible.
 Best coding standards for golang can be found [here](https://go.dev/doc/effective_go).
@@ -37,6 +40,7 @@ We are holding three types of tests that must pass for a PR to finally be accept
 * `subsystem test` - write a test that describing what you will fix and locate it in the [subsystem test directory](subsystem).
 * `end-to-end tests` - those tests simulate a real resources and run in official OpenShift CI platform.
 Both `unit-tests` and `subsystem`, can be run locally before submitting a PR, by running `make tests`.
+Lint checks can be run locally before submitting a PR with `make lint`.
 
 ### 5. Manual testing and debugging using the locally compiled RHCS Provider binary
 Manual testing should be performed before opening a PR in order to make sure there isn't any regression behavior in the provider. You can find [here an example for that](https://github.com/terraform-redhat/terraform-rhcs-rosa/tree/main/examples/rosa-classic-public-with-unmanaged-oidc) 

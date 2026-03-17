@@ -10,12 +10,12 @@ import (
 	"path"
 	"strings"
 
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
-	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
-
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclwrite"
+
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
 const tfVarsFilenameTemplate = "terraform.%s.tfvars"

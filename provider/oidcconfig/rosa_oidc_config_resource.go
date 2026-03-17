@@ -18,6 +18,7 @@ package oidcconfig
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -405,10 +406,10 @@ func (o *RosaOidcConfigResource) populateState(ctx context.Context, object *cmv1
 		state.Thumbprint = types.StringValue("")
 		return err
 	} else if thumbprint.Body() == nil {
-		strErr := fmt.Sprintf("thumbprint body is empty, thumbprint not retrieved")
+		strErr := "thumbprint body is empty, thumbprint not retrieved"
 		tflog.Error(ctx, strErr)
 		state.Thumbprint = types.StringValue("")
-		return fmt.Errorf(strErr)
+		return errors.New(strErr)
 	} else {
 		state.Thumbprint = types.StringValue(thumbprint.Body().Thumbprint())
 	}

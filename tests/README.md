@@ -2,6 +2,8 @@
 
 This package is the automation package for Function Verification Testing on the terraform rhcs provider.
 
+BEFORE CREATING COMMITS FROM THIS CLONE, YOU MUST RUN `make install-hooks` ONCE. YOU MUST LET LOCAL HOOKS RUN ON EVERY COMMIT AND PUSH.
+
 ## Structure of tests
 
 ```bash

@@ -8,6 +8,7 @@ terraform.tfvars.d*
 /vendor
 /tests/rhcs_output
 terraform-provider-rhcs
+/bin/
 .vscode/**/*
 **/ginkgo.report
 /temp

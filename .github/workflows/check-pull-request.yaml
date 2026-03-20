@@ -19,71 +19,49 @@ name: Check pull request
 on:
   pull_request:
     branches:
-    - main
+      - main
 
 jobs:
-  check-gen:
+  pre-push-checks:
+    name: Pre-push checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Install Go
-        uses: actions/setup-go@v4
-        with:
-          go-version-file: go.mod
-      - name: Check that 'make generate' has being call
-        run: make check-gen
-
-  fmt-check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Install Go
-        uses: actions/setup-go@v4
-        with:
-          go-version-file: go.mod
-      - name: Check Go formatting
-        run: make fmt-check
-
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
+      - name: Checkout the source
+        uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
-      - name: Install Go
-        uses: actions/setup-go@v4
+      - name: Setup Go
+        uses: actions/setup-go@v6.3.0
         with:
           go-version-file: go.mod
-      - name: Run golangci-lint
-        run: make lint
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4.0.0
+        with:
+          terraform_wrapper: false
+      - name: Run pre-push checks
+        run: make pre-push-checks
 
   test:
     name: Test
     strategy:
       matrix:
         platform:
-        - ubuntu-latest
-        - macos-latest
-        - windows-latest
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
     runs-on: ${{ matrix.platform }}
     steps:
-    - name: Checkout the source
-      uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-
-    - name: Setup Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.21
-
-    - name: Setup Ginkgo
-      run: go install github.com/onsi/ginkgo/v2/ginkgo@v2.17.1
-
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v2
-      with:
-        terraform_wrapper: false
-
-    - name: Run the tests
-      run: make tests
+      - name: Checkout the source
+        uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+      - name: Setup Go
+        uses: actions/setup-go@v6.3.0
+        with:
+          go-version-file: go.mod
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4.0.0
+        with:
+          terraform_wrapper: false
+      - name: Run the tests
+        run: make test

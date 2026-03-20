@@ -98,7 +98,7 @@ unit-test-coverage:
 
 
 .PHONY: test tests
-test tests: unit-test subsystem-test
+test tests: unit-test subsystem-test e2e-unit-test
 
 .PHONY: fmt_go
 fmt_go: gci
@@ -164,6 +164,13 @@ docs:
 tools: gci golangci-lint
 	go install github.com/onsi/ginkgo/v2/ginkgo@v2.13.2
 	go install go.uber.org/mock/mockgen@v0.3.0
+
+.PHONY: e2e-unit-test
+e2e-unit-test:
+	ginkgo run \
+		--succinct \
+		-ldflags="$(ldflags)" \
+		-r tests/utils/...
 
 .PHONY: e2e_sanity_test
 e2e_sanity_test: tools install

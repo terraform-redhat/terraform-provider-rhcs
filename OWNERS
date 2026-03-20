@@ -2,6 +2,7 @@ reviewers:
 - olucasfreitas
 - jerichokeyne
 - yuwang-RH
+- amandahla
 approvers:
 - vkareh
 - gdbranco
@@ -17,3 +18,4 @@ approvers:
 - marcolan018
 - olucasfreitas
 - red-hat-konflux[bot]
+- amandahla

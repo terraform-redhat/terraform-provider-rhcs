@@ -15,7 +15,7 @@
 #
 version: "2"
 run:
-  go: "1.24"
+  # go: omitted — golangci-lint uses the `go` directive from go.mod (see docs: run.go precedence)
   issues-exit-code: 1
   modules-download-mode: readonly
   allow-parallel-runners: true

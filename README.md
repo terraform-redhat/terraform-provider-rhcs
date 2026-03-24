@@ -21,7 +21,7 @@ The Red Hat Cloud Services Terraform provider allows Terraform to manage Red Hat
 For more information about ROSA, see the Red Hat documentation [here](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/introduction_to_rosa/rosa-understanding).
 
 ## Prerequisites 
-* [GoLang version 1.24 or newer](https://go.dev/doc/install)
+* [Go](https://go.dev/doc/install) — same major.minor as the `go` directive in [`go.mod`](go.mod)
 * [Terraform version 1.4.6 or newer](https://developer.hashicorp.com/terraform/downloads)
 * An offline [OCM token](https://console.redhat.com/openshift/token/rosa)
 * [AWS account](https://aws.amazon.com/console/)

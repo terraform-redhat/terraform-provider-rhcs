@@ -47,7 +47,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	idputils "github.com/openshift-online/ocm-common/pkg/idp/utils"
-	"github.com/openshift-online/ocm-common/pkg/ocm/consts"
 	ocmConsts "github.com/openshift-online/ocm-common/pkg/ocm/consts"
 	ocmUtils "github.com/openshift-online/ocm-common/pkg/ocm/utils"
 	"github.com/openshift-online/ocm-common/pkg/rosa/oidcconfigs"
@@ -915,7 +914,7 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 		return
 	}
 
-	channelGroup := consts.DefaultChannelGroup
+	channelGroup := ocmConsts.DefaultChannelGroup
 	if common.HasValue(state.ChannelGroup) {
 		channelGroup = state.ChannelGroup.ValueString()
 	}

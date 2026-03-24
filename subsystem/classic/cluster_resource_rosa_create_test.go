@@ -33,9 +33,15 @@ import (
 const versionListPage1 = `{
 	"kind": "VersionList",
 	"page": 1,
-	"size": 2,
-	"total": 2,
+	"size": 4,
+	"total": 4,
 	"items": [{
+			"kind": "Version",
+			"id": "openshift-v4.10.0",
+			"href": "/api/clusters_mgmt/v1/versions/openshift-v4.10.0",
+			"raw_id": "4.10.0"
+		},
+		{
 			"kind": "Version",
 			"id": "openshift-v4.10.1",
 			"href": "/api/clusters_mgmt/v1/versions/openshift-v4.10.1",
@@ -54,6 +60,38 @@ const versionListPage1 = `{
 			"raw_id": "4.11.1"
 		}
 	]
+}`
+
+const v4_10_0Info = `{
+	"kind": "Version",
+	"id": "openshift-v4.10.0",
+	"href": "/api/clusters_mgmt/v1/versions/openshift-v4.10.0",
+	"raw_id": "4.10.0",
+	"enabled": true,
+	"default": false,
+	"channel_group": "stable",
+	"available_upgrades": ["4.10.1"],
+	"rosa_enabled": true
+}`
+
+const v4_10_1Info = `{
+	"kind": "Version",
+	"id": "openshift-v4.10.1",
+	"href": "/api/clusters_mgmt/v1/versions/openshift-v4.10.1",
+	"raw_id": "4.10.1",
+	"enabled": true,
+	"default": false,
+	"channel_group": "stable",
+	"available_upgrades": [],
+	"rosa_enabled": true
+}`
+
+const upgradePoliciesEmpty = `{
+	"kind": "UpgradePolicyList",
+	"page": 1,
+	"size": 0,
+	"total": 0,
+	"items": []
 }`
 
 var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
@@ -97,9 +135,10 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 	    "pod_cidr": "10.128.0.0/14",
 	    "host_prefix": 23
 	  },
-	  
+
 	  "version": {
-		  "id": "openshift-4.8.0"
+		  "id": "openshift-4.8.0",
+		  "raw_id": "4.8.0"
 	  },
       "dns" : {
           "base_domain": "mycluster-api.example.com"
@@ -144,9 +183,10 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 	    "pod_cidr": "10.128.0.0/14",
 	    "host_prefix": 23
 	  },
-	  
+
 	  "version": {
-		  "id": "openshift-4.8.0"
+		  "id": "openshift-4.8.0",
+		  "raw_id": "4.8.0"
 	  },
       "dns" : {
           "base_domain": "mycluster-api.example.com"
@@ -175,7 +215,8 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 	    "host_prefix": 23
 	  },
 	  "version": {
-		  "id": "openshift-4.8.0"
+		  "id": "openshift-4.8.0",
+		  "raw_id": "4.8.0"
 	  },
       "nodes": {
 	    "compute": 3,
@@ -260,7 +301,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							  }
 						  }
 						},
-						 
+
 						{
 							"op": "replace",
 							"path": "/version/id",
@@ -330,7 +371,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 							  }
 						  }
 						},
-						 
+
 						{
 							"op": "replace",
 							"path": "/version/id",
@@ -403,6 +444,578 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			}
 		  `)
 				Expect(Terraform.Apply()).NotTo(BeZero())
+			})
+		})
+
+		Context("Test channel parameter", func() {
+			It("creates cluster with channel parameter", func() {
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage1),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						VerifyJQ(`.channel`, "stable-4.15"),
+						RespondWithPatchedJSON(http.StatusCreated, template, `[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"ec2_metadata_http_tokens": "optional",
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.1",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"master_role_arn" : "",
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/channel",
+							"value": "stable-4.15"
+						}]`),
+					),
+				)
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_classic" "my_cluster" {
+				  name           = "my-cluster"
+				  cloud_region   = "us-west-1"
+				  aws_account_id = "123456789012"
+				  sts = {
+					  operator_role_prefix = "test"
+					  role_arn = "",
+					  support_role_arn = "",
+					  instance_iam_roles = {
+						  master_role_arn = "",
+						  worker_role_arn = "",
+					  }
+				  }
+				  channel = "stable-4.15"
+				  wait_for_create_complete = false
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.channel", "stable-4.15"))
+			})
+
+			It("creates cluster with both channel and version specified", func() {
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage1),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						VerifyFormKV("search", "enabled = 'true' AND rosa_enabled = 'true' AND raw_id = '4.14.0'"),
+						RespondWithJSON(http.StatusOK, `{
+							"kind": "VersionList",
+							"page": 1,
+							"size": 1,
+							"total": 1,
+							"items": [{
+								"kind": "Version",
+								"id": "openshift-v4.14.0",
+								"href": "/api/clusters_mgmt/v1/versions/openshift-v4.14.0",
+								"raw_id": "4.14.0",
+								"enabled": true,
+								"channel_group": "fast",
+								"available_channels": ["stable-4.14", "fast-4.14", "candidate-4.14"],
+								"rosa_enabled": true
+							}]
+						}`),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						VerifyJQ(`.channel`, "fast-4.14"),
+						VerifyJQ(`.version.id`, "openshift-v4.14.0-fast"),
+						RespondWithPatchedJSON(http.StatusCreated, template, `[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"ec2_metadata_http_tokens": "optional",
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.1",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"master_role_arn" : "",
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/channel",
+							"value": "fast-4.14"
+						},
+						{
+							"op": "add",
+							"path": "/version",
+							"value": {
+								"id": "openshift-v4.14.0-fast",
+								"raw_id": "4.14.0"
+							}
+						}]`),
+					),
+				)
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_classic" "my_cluster" {
+				  name           = "my-cluster"
+				  cloud_region   = "us-west-1"
+				  aws_account_id = "123456789012"
+				  sts = {
+					  operator_role_prefix = "test"
+					  role_arn = "",
+					  support_role_arn = "",
+					  instance_iam_roles = {
+						  master_role_arn = "",
+						  worker_role_arn = "",
+					  }
+				  }
+				  channel = "fast-4.14"
+				  version = "4.14.0"
+				  wait_for_create_complete = false
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.channel", "fast-4.14"))
+				Expect(resource).To(MatchJQ(".attributes.current_version", "4.14.0"))
+			})
+
+			It("fails when channel and channel_group are both specified", func() {
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_classic" "my_cluster" {
+				  name           = "my-cluster"
+				  cloud_region   = "us-west-1"
+				  aws_account_id = "123456789012"
+				  sts = {
+					  operator_role_prefix = "test"
+					  role_arn = "",
+					  support_role_arn = "",
+					  instance_iam_roles = {
+						  master_role_arn = "",
+						  worker_role_arn = "",
+					  }
+				  }
+				  channel = "stable-4.15"
+				  channel_group = "stable"
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).NotTo(BeZero())
+				runOutput.VerifyErrorContainsSubstring("Invalid Attribute Combination")
+				runOutput.VerifyErrorContainsSubstring("These attributes cannot be configured together")
+				runOutput.VerifyErrorContainsSubstring("[channel,channel_group]")
+			})
+
+			It("fails when channel is incompatible with version", func() {
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage1),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						VerifyFormKV("search", "enabled = 'true' AND rosa_enabled = 'true' AND raw_id = '4.14.0'"),
+						RespondWithJSON(http.StatusOK, `{
+							"kind": "VersionList",
+							"page": 1,
+							"size": 1,
+							"total": 1,
+							"items": [{
+								"kind": "Version",
+								"id": "openshift-v4.14.0",
+								"href": "/api/clusters_mgmt/v1/versions/openshift-v4.14.0",
+								"raw_id": "4.14.0",
+								"enabled": true,
+								"channel_group": "stable",
+								"available_channels": ["stable-4.14", "fast-4.14", "candidate-4.14"],
+								"rosa_enabled": true
+							}]
+						}`),
+					),
+				)
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_classic" "my_cluster" {
+				  name           = "my-cluster"
+				  cloud_region   = "us-west-1"
+				  aws_account_id = "123456789012"
+				  sts = {
+					  operator_role_prefix = "test"
+					  role_arn = "",
+					  support_role_arn = "",
+					  instance_iam_roles = {
+						  master_role_arn = "",
+						  worker_role_arn = "",
+					  }
+				  }
+				  channel = "stable-4.16"
+				  version = "4.14.0"
+				  wait_for_create_complete = false
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).NotTo(BeZero())
+				runOutput.VerifyErrorContainsSubstring("channel 'stable-4.16' is not available for version '4.14.0'")
+			})
+		})
+
+		Context("Update channel parameter", func() {
+			BeforeEach(func() {
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage1),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						RespondWithPatchedJSON(http.StatusCreated, template, `[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"ec2_metadata_http_tokens": "optional",
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.1",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"master_role_arn" : "",
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/version",
+							"value": {
+								"id": "openshift-v4.10.0",
+								"raw_id": "4.10.0",
+								"channel_group": "stable"
+							}
+						},
+						{
+							"op": "add",
+							"path": "/channel",
+							"value": "stable-4.10"
+						}]`),
+					),
+				)
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_classic" "my_cluster" {
+				  name           = "my-cluster"
+				  cloud_region   = "us-west-1"
+				  aws_account_id = "123456789012"
+				  sts = {
+					  operator_role_prefix = "test"
+					  role_arn = "",
+					  support_role_arn = "",
+					  instance_iam_roles = {
+						  master_role_arn = "",
+						  worker_role_arn = "",
+					  }
+				  }
+				  wait_for_create_complete = false
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.channel", "stable-4.10"))
+				Expect(resource).To(MatchJQ(".attributes.current_version", "4.10.0"))
+				Expect(resource).To(MatchJQ(".attributes.channel_group", "stable"))
+				Expect(resource).To(MatchJQ(".attributes.version", nil))
+			})
+
+			It("successfully updates to a specific version", func() {
+				TestServer.AppendHandlers(
+					// Refresh cluster state
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+							"op": "add",
+							"path": "/version",
+							"value": {
+								"id": "openshift-v4.10.0",
+								"raw_id": "4.10.0",
+								"channel_group": "stable",
+								"available_upgrades": ["4.10.1"]
+							}
+						},
+						{
+							"op": "add",
+							"path": "/channel",
+							"value": "stable-4.10"
+						}]`),
+					),
+					// Get cluster info for upgrade validation
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+							"op": "add",
+							"path": "/version",
+							"value": {
+								"id": "openshift-v4.10.0",
+								"raw_id": "4.10.0",
+								"channel_group": "stable",
+								"available_upgrades": ["4.10.1"]
+							}
+						},
+						{
+							"op": "add",
+							"path": "/channel",
+							"value": "stable-4.10"
+						}]`),
+					),
+					// Validate upgrade versions
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
+						RespondWithJSON(http.StatusOK, v4_10_1Info),
+					),
+					// Look for existing upgrade policies
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
+						RespondWithJSON(http.StatusOK, upgradePoliciesEmpty),
+					),
+					// Look for gate agreements by posting an upgrade policy w/ dryRun
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies", "dryRun=true"),
+						VerifyJQ(".version", "4.10.1"),
+						RespondWithJSON(http.StatusBadRequest, `{
+							"kind": "Error",
+							"id": "400",
+							"href": "/api/clusters_mgmt/v1/errors/400",
+							"code": "CLUSTERS-MGMT-400",
+							"reason": "There are missing version gate agreements for this cluster. See details.",
+							"details": [
+							{
+								"kind": "VersionGate",
+								"id": "999",
+								"href": "/api/clusters_mgmt/v1/version_gates/596326fb-d1ea-11ed-9f29-0a580a8312f9",
+								"version_raw_id_prefix": "4.10",
+								"label": "api.openshift.com/gate-sts",
+								"value": "4.10",
+								"warning_message": "STS roles must be updated blah blah blah",
+								"description": "OpenShift STS clusters include new required cloud provider permissions in OpenShift 4.YY.",
+								"documentation_url": "https://access.redhat.com/solutions/0000000",
+								"sts_only": true,
+								"creation_timestamp": "2023-04-03T06:39:57.057613Z"
+							}
+							],
+							"operation_id": "8f2d2946-c4ef-4c2f-877b-c19eb17dc918"
+						}`),
+					),
+					// Send acks for all gate agreements
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/gate_agreements"),
+						VerifyJQ(".version_gate.id", "999"),
+						RespondWithJSON(http.StatusCreated, `{
+							"kind": "VersionGateAgreement",
+							"id": "888",
+							"href": "/api/clusters_mgmt/v1/clusters/24g9q8jhdhv66fi41jfiuup5lsvu61fi/gate_agreements/d2e8d371-1033-11ee-9f05-0a580a820bdb",
+							"version_gate": {
+							"kind": "VersionGate",
+							"id": "999",
+							"href": "/api/clusters_mgmt/v1/version_gates/596326fb-d1ea-11ed-9f29-0a580a8312f9",
+							"version_raw_id_prefix": "4.10",
+							"label": "api.openshift.com/gate-sts",
+							"value": "4.10",
+							"warning_message": "STS blah blah blah",
+							"description": "OpenShift STS clusters include new required cloud provider permissions in OpenShift 4.YY.",
+							"documentation_url": "https://access.redhat.com/solutions/0000000",
+							"sts_only": true,
+							"creation_timestamp": "2023-04-03T06:39:57.057613Z"
+							},
+							"creation_timestamp": "2023-06-21T13:02:06.291443Z"
+						}`),
+					),
+					// Create an upgrade policy
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
+						VerifyJQ(".version", "4.10.1"),
+						RespondWithJSON(http.StatusCreated, `{
+							"id": "123",
+							"schedule_type": "manual",
+							"upgrade_type": "OSD",
+							"version": "4.10.1",
+							"next_run": "2023-06-09T20:59:00Z",
+							"cluster_id": "123",
+							"enable_minor_version_upgrades": true
+						}`),
+					),
+					// Patch the cluster (w/ no changes)
+					CombineHandlers(
+						VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+						RespondWithJSON(http.StatusOK, template),
+					),
+				)
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_classic" "my_cluster" {
+				  name           = "my-cluster"
+				  cloud_region   = "us-west-1"
+				  aws_account_id = "123456789012"
+				  sts = {
+					  operator_role_prefix = "test"
+					  role_arn = "",
+					  support_role_arn = "",
+					  instance_iam_roles = {
+						  master_role_arn = "",
+						  worker_role_arn = "",
+					  }
+				  }
+				  version = "4.10.1"
+				  wait_for_create_complete = false
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.version", "4.10.1"))
+			})
+
+			It("successfully updates channel", func() {
+				TestServer.AppendHandlers(
+					// Refresh cluster state
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+							"op": "add",
+							"path": "/version",
+							"value": {
+								"id": "openshift-v4.10.0",
+								"raw_id": "4.10.0",
+								"channel_group": "stable"
+							}
+						},
+						{
+							"op": "add",
+							"path": "/channel",
+							"value": "stable-4.10"
+						}]`),
+					),
+					// Validate channel compatibility with version
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						VerifyFormKV("search", "enabled = 'true' AND rosa_enabled = 'true' AND raw_id = '4.10.0'"),
+						RespondWithJSON(http.StatusOK, `{
+							"kind": "VersionList",
+							"page": 1,
+							"size": 1,
+							"total": 1,
+							"items": [{
+								"kind": "Version",
+								"id": "openshift-v4.10.0",
+								"href": "/api/clusters_mgmt/v1/versions/openshift-v4.10.0",
+								"raw_id": "4.10.0",
+								"enabled": true,
+								"channel_group": "fast",
+								"available_channels": ["stable-4.10", "fast-4.10", "candidate-4.10"],
+								"rosa_enabled": true
+							}]
+						}`),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+						VerifyJQ(`.channel`, "fast-4.10"),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+							"op": "add",
+							"path": "/version",
+							"value": {
+								"id": "openshift-v4.10.0",
+								"raw_id": "4.10.0",
+								"channel_group": "fast"
+							}
+						},
+						{
+							"op": "add",
+							"path": "/channel",
+							"value": "fast-4.10"
+						}]`),
+					),
+				)
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_classic" "my_cluster" {
+				  name           = "my-cluster"
+				  cloud_region   = "us-west-1"
+				  aws_account_id = "123456789012"
+				  sts = {
+					  operator_role_prefix = "test"
+					  role_arn = "",
+					  support_role_arn = "",
+					  instance_iam_roles = {
+						  master_role_arn = "",
+						  worker_role_arn = "",
+					  }
+				  }
+				  channel = "fast-4.10"
+				  wait_for_create_complete = false
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.channel", "fast-4.10"))
+				Expect(resource).To(MatchJQ(".attributes.channel_group", "fast"))
+			})
+
+			It("fails when trying to change both channel and version simultaneously", func() {
+				TestServer.AppendHandlers(
+					// Refresh cluster state
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+							"op": "add",
+							"path": "/version",
+							"value": {
+								"id": "openshift-v4.14.0",
+								"raw_id": "4.14.0",
+								"channel_group": "stable"
+							}
+						},
+						{
+							"op": "add",
+							"path": "/channel",
+							"value": "stable-4.14"
+						}]`),
+					),
+				)
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_classic" "my_cluster" {
+				  name           = "my-cluster"
+				  cloud_region   = "us-west-1"
+				  aws_account_id = "123456789012"
+				  sts = {
+					  operator_role_prefix = "test"
+					  role_arn = "",
+					  support_role_arn = "",
+					  instance_iam_roles = {
+						  master_role_arn = "",
+						  worker_role_arn = "",
+					  }
+				  }
+				  version = "4.14.1"
+				  channel = "fast-4.14"
+				  wait_for_create_complete = false
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).NotTo(BeZero())
+				runOutput.VerifyErrorContainsSubstring("Cannot change channel and version simultaneously")
 			})
 		})
 
@@ -631,7 +1244,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
 			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
-			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
+			Expect(resource).To(MatchJQ(".attributes.current_version", "4.8.0"))
 			Expect(resource).To(MatchJQ(".attributes.infra_id", "my-cluster-123"))
 		})
 
@@ -703,7 +1316,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
 			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
-			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
+			Expect(resource).To(MatchJQ(".attributes.current_version", "4.8.0"))
 		})
 
 		It("Creates basic cluster with admin user - default username", func() {
@@ -921,7 +1534,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						}
 					}
 					},
-					
+
 					{
 					"op": "add",
 					"path": "/properties",
@@ -1070,7 +1683,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						  }
 					  }
 					},
-					 
+
                     {
                       "op": "add",
                       "path": "/properties",
@@ -1129,7 +1742,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						worker_role_arn = "",
 					}
 				}
-				# >>>> inject create_admin_user 
+				# >>>> inject create_admin_user
 				create_admin_user = true
 			  }
 		`)
@@ -1193,7 +1806,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
 			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
-			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
+			Expect(resource).To(MatchJQ(".attributes.current_version", "4.8.0"))
 			Expect(resource).To(MatchJQ(".attributes.id", "123")) // cluster has id 123
 
 			// Prepare the server for reconcile
@@ -1261,7 +1874,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			runOutput = Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
 			resource = Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
-			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
+			Expect(resource).To(MatchJQ(".attributes.current_version", "4.8.0"))
 			Expect(resource).To(MatchJQ(".attributes.id", "1234")) // reconciled cluster has id of 1234
 		})
 
@@ -1341,7 +1954,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
 			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
-			Expect(resource).To(MatchJQ(".attributes.current_version", "openshift-4.8.0"))
+			Expect(resource).To(MatchJQ(".attributes.current_version", "4.8.0"))
 			Expect(resource).To(MatchJQ(".attributes.worker_disk_size", 400.0))
 		})
 
@@ -1432,7 +2045,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 		    name           = "my-cluster"
 		    cloud_region   = "us-west-1"
 			aws_account_id = "123456789012"
-            properties = { 
+            properties = {
 				rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
 				%s = "%s"
 			}
@@ -1553,7 +2166,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 						  }
 					  }
 					},
-					 
+
                     {
                       "op": "add",
                       "path": "/properties",
@@ -3742,7 +4355,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					aws_account_id = "123456789012"
 					disable_workload_monitoring = false
 
-					# >>>> update username 
+					# >>>> update username
 					admin_credentials = {
 						username = "cluter_admin"
 						password = "1234AbB2341234"
@@ -3848,7 +4461,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 					name           = "my-cluster"
 					cloud_region   = "us-west-1"
 
-					# >>>> change default machine pool labels 
+					# >>>> change default machine pool labels
 					default_mp_labels = {
 						"label_key1" = "label_value1",
 						"label_key2" = "label_value2"

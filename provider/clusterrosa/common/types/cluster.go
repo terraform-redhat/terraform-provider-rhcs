@@ -3,6 +3,7 @@ package types
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -131,4 +132,80 @@ func (b *BaseCluster) getVersions(ctx context.Context, topology ClusterTopology,
 	})
 
 	return
+}
+
+// getAvailableChannelsForVersion fetches all available channels for a version
+// by querying all variants (stable, fast, candidate, etc.) and combining their
+// available_channels into a unique list.
+func (b *BaseCluster) getAvailableChannelsForVersion(ctx context.Context,
+	topology ClusterTopology, versionID string) ([]string, error) {
+	searchParams := []string{
+		"enabled = 'true'",
+		"rosa_enabled = 'true'",
+		fmt.Sprintf("raw_id = '%s'", versionID),
+	}
+	if topology == Hcp {
+		searchParams = append(searchParams, "hosted_control_plane_enabled = 'true'")
+	}
+	filter := strings.Join(searchParams, " AND ")
+
+	response, err := b.VersionCollection.List().
+		Search(filter).
+		Order("default desc, id desc").
+		Page(1).
+		Size(10).
+		Send()
+	if err != nil {
+		tflog.Debug(ctx, err.Error())
+		return nil, err
+	}
+
+	if response.Total() == 0 {
+		return nil, fmt.Errorf("version %s not found", versionID)
+	}
+
+	// Collect all available_channels from all variants and deduplicate
+	channelSet := make(map[string]struct{})
+	for _, version := range response.Items().Slice() {
+		for _, channel := range version.AvailableChannels() {
+			channelSet[channel] = struct{}{}
+		}
+	}
+
+	// Convert map to slice
+	var availableChannels []string
+	for channel := range channelSet {
+		availableChannels = append(availableChannels, channel)
+	}
+
+	return availableChannels, nil
+}
+
+// ValidateChannelVersionCompatibility validates that the specified channel
+// is available for the given version.
+// This prevents invalid configurations where a channel like "stable-4.16"
+// is used with a version "4.17.x" that may exist in the "stable" channel group
+// but not in the specific "stable-4.16" channel.
+func (b *BaseCluster) ValidateChannelVersionCompatibility(ctx context.Context,
+	topology ClusterTopology, channel string, version string) error {
+	if channel == "" || version == "" {
+		return nil
+	}
+
+	// Fetch all available channels for this version across all variants
+	availableChannels, err := b.getAvailableChannelsForVersion(ctx, topology, version)
+	if err != nil {
+		return fmt.Errorf("failed to fetch version %s: %w", version, err)
+	}
+
+	// Check if the specified channel is in the combined available channels
+	if !slices.Contains(availableChannels, channel) {
+		return fmt.Errorf(
+			"channel '%s' is not available for version '%s'. Available channels: %v",
+			channel, version, availableChannels,
+		)
+	}
+
+	tflog.Debug(ctx, fmt.Sprintf("Channel %s is available for version %s", channel, version))
+	return nil
 }

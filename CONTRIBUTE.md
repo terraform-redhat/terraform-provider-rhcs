@@ -18,7 +18,7 @@ Code contributions are done by opening a pull request (PR). Please be sure that 
 
 ### 2. Development Environment
 * [terraform](https://www.terraform.io/) - We are using the latest version of terraform (1.6.x)  
-* [golang](https://go.dev/) - use the version declared in `go.mod` (currently 1.24.x) to build the provider plugin
+* [golang](https://go.dev/) - use the version declared in `go.mod` (currently 1.25.x) to build the provider plugin
   - You also need to correctly setup a `GOPATH`, as well as adding `$GOPATH/bin` to your `$PATH`.
   - Fork and clone the repository to `$GOPATH/src/github.com/terraform-redhat/terraform-provider-rhcs` by the `git clone` command
   - Create a new branch `git switch -c <branch-name>`

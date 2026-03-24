@@ -52,8 +52,10 @@ func RegistryConfigResource() map[string]schema.Attribute {
 			Description: "platform_allowlist_id contains a reference to a RegistryAllowlist which is a list of internal registries which needs to be whitelisted for the platform to work. It can be omitted at creation and updating and its lifecycle can be managed separately if needed.",
 			Optional:    true,
 			Computed:    true,
+			// UseNonNullStateForUnknown: child of nested registry_config; UseStateForUnknown (framework ≥1.15.1)
+			// preserves null from state and can cause "inconsistent result after apply" when the API sets an id.
 			PlanModifiers: []planmodifier.String{
-				stringplanmodifier.UseStateForUnknown(),
+				stringplanmodifier.UseNonNullStateForUnknown(),
 			},
 		},
 	}

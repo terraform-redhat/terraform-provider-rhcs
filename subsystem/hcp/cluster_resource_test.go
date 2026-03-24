@@ -45,7 +45,7 @@ var _ = Describe("HCP Cluster", func() {
 		"page": 1,
 		"size": 2,
 		"total": 2,
-		"items": [	
+		"items": [
 			{
 				"kind": "Version",
 				"id": "openshift-v4.14.0",
@@ -65,14 +65,14 @@ var _ = Describe("HCP Cluster", func() {
 		ROSAEnabled(true).
 		HostedControlPlaneEnabled(true).
 		ID("openshift-v4.14.0").
-		RawID("v4.14.0").
+		RawID("4.14.0").
 		AvailableUpgrades("4.14.1")
 	v4141Spec, err := cmv1.NewVersion().ChannelGroup("stable").
 		Enabled(true).
 		ROSAEnabled(true).
 		HostedControlPlaneEnabled(true).
 		ID("openshift-v4.14.1").
-		RawID("v4.14.1").Build()
+		RawID("4.14.1").Build()
 	Expect(err).ToNot(HaveOccurred())
 	b := new(strings.Builder)
 	err = cmv1.MarshalVersion(v4141Spec, b)
@@ -359,6 +359,635 @@ var _ = Describe("HCP Cluster", func() {
 					version = "4.99.99"
 				}`)
 				Expect(Terraform.Apply()).NotTo(BeZero())
+			})
+		})
+
+		Context("Test channel parameter", func() {
+			It("creates cluster with channel parameter", func() {
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						VerifyJQ(`.channel`, "stable-4.15"),
+						RespondWithPatchedJSON(http.StatusCreated, template, `[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.1",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/channel",
+							"value": "stable-4.15"
+						}]`),
+					),
+				)
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					channel = "stable-4.15"
+					wait_for_create_complete = false
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.channel", "stable-4.15"))
+			})
+
+			It("creates cluster with both channel and version specified", func() {
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						VerifyJQ(`.channel`, "fast-4.14"),
+						VerifyJQ(`.version.id`, "openshift-v4.14.1-fast"),
+						RespondWithPatchedJSON(http.StatusCreated, template, `[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.1",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/channel",
+							"value": "fast-4.14"
+						},
+						{
+							"op": "add",
+							"path": "/version",
+							"value": {
+								"id": "openshift-v4.14.1-fast",
+								"raw_id": "4.14.1"
+							}
+						}]`),
+					),
+				)
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					channel = "fast-4.14"
+					version = "4.14.1"
+					wait_for_create_complete = false
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.channel", "fast-4.14"))
+				Expect(resource).To(MatchJQ(".attributes.current_version", "4.14.1"))
+			})
+
+			It("fails when channel and channel_group are both specified", func() {
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					channel = "stable-4.15"
+					channel_group = "stable"
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).NotTo(BeZero())
+				runOutput.VerifyErrorContainsSubstring("Invalid Attribute Combination")
+				runOutput.VerifyErrorContainsSubstring("These attributes cannot be configured together")
+				runOutput.VerifyErrorContainsSubstring("[channel,channel_group]")
+			})
+
+			It("provider upgrade does not break for users relying on channel_group default", func() {
+				// This test verifies backward compatibility when upgrading from old provider version
+				TestServer.AppendHandlers(
+					// Initial version fetch
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage),
+					),
+					// Create cluster - returns channel_group="stable" in version
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						RespondWithPatchedJSON(http.StatusCreated, template, `[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.1",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						}]`),
+					),
+					// Refresh cluster state on re-apply (simulating provider upgrade)
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.1",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/channel",
+							"value": "stable-4.14"
+						}]`),
+					),
+					// Verify no PATCH is sent (no drift detected)
+				)
+
+				// Config omits both channel and channel_group
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					wait_for_create_complete = false
+				}`)
+
+				// Initial apply - creates cluster
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.channel_group", "stable"))
+
+				// Re-apply with same config (simulates provider upgrade)
+				// Should not detect drift or send PATCH to nullify channel_group
+				runOutput = Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+
+				// Verify state still has channel_group="stable"
+				resource = Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.channel_group", "stable"))
+			})
+		})
+
+		Context("Update channel parameter", func() {
+			BeforeEach(func() {
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						RespondWithPatchedJSON(http.StatusCreated, template, `[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.1",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/version",
+							"value": {
+								"id": "openshift-v4.14.0",
+								"raw_id": "4.14.0",
+								"channel_group": "stable"
+							}
+						},
+						{
+							"op": "add",
+							"path": "/channel",
+							"value": "stable-4.14"
+						}]`),
+					),
+				)
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.channel", "stable-4.14"))
+				Expect(resource).To(MatchJQ(".attributes.current_version", "4.14.0"))
+				Expect(resource).To(MatchJQ(".attributes.channel_group", "stable"))
+				Expect(resource).To(MatchJQ(".attributes.version", nil))
+			})
+
+			It("successfully updates to a specific version", func() {
+				TestServer.AppendHandlers(
+					// Refresh cluster state
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+							"op": "add",
+							"path": "/version",
+							"value": {
+								"id": "openshift-v4.14.0",
+								"raw_id": "4.14.0",
+								"channel_group": "stable",
+								"available_upgrades": ["4.14.1"]
+							}
+						},
+						{
+							"op": "add",
+							"path": "/channel",
+							"value": "stable-4.14"
+						}]`),
+					),
+					// Get cluster info for upgrade validation
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+							"op": "add",
+							"path": "/version",
+							"value": {
+								"id": "openshift-v4.14.0",
+								"raw_id": "4.14.0",
+								"channel_group": "stable",
+								"available_upgrades": ["4.14.1"]
+							}
+						},
+						{
+							"op": "add",
+							"path": "/channel",
+							"value": "stable-4.14"
+						}]`),
+					),
+					// Validate upgrade versions
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.14.1"),
+						RespondWithJSON(http.StatusOK, v4141Info),
+					),
+					// Look for existing upgrade policies
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route+"/control_plane/upgrade_policies"),
+						RespondWithJSON(http.StatusOK, emptyControlPlaneUpgradePolicies),
+					),
+					// Look for gate agreements by posting an upgrade policy w/ dryRun
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, cluster123Route+"/control_plane/upgrade_policies", "dryRun=true"),
+						VerifyJQ(".version", "4.14.1"),
+						RespondWithJSON(http.StatusBadRequest, `{
+							"kind": "Error",
+							"id": "400",
+							"href": "/api/clusters_mgmt/v1/errors/400",
+							"code": "CLUSTERS-MGMT-400",
+							"reason": "There are missing version gate agreements for this cluster. See details.",
+							"details": [
+							{
+								"kind": "VersionGate",
+								"id": "999",
+								"href": "/api/clusters_mgmt/v1/version_gates/596326fb-d1ea-11ed-9f29-0a580a8312f9",
+								"version_raw_id_prefix": "4.14",
+								"label": "api.openshift.com/gate-sts",
+								"value": "4.14",
+								"warning_message": "STS roles must be updated blah blah blah",
+								"description": "OpenShift STS clusters include new required cloud provider permissions in OpenShift 4.YY.",
+								"documentation_url": "https://access.redhat.com/solutions/0000000",
+								"sts_only": true,
+								"creation_timestamp": "2023-04-03T06:39:57.057613Z"
+							}
+							],
+							"operation_id": "8f2d2946-c4ef-4c2f-877b-c19eb17dc918"
+						}`),
+					),
+					// Send acks for all gate agreements
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, cluster123Route+"/gate_agreements"),
+						VerifyJQ(".version_gate.id", "999"),
+						RespondWithJSON(http.StatusCreated, `{
+							"kind": "VersionGateAgreement",
+							"id": "888",
+							"href": "/api/clusters_mgmt/v1/clusters/24g9q8jhdhv66fi41jfiuup5lsvu61fi/gate_agreements/d2e8d371-1033-11ee-9f05-0a580a820bdb",
+							"version_gate": {
+							"kind": "VersionGate",
+							"id": "999",
+							"href": "/api/clusters_mgmt/v1/version_gates/596326fb-d1ea-11ed-9f29-0a580a8312f9",
+							"version_raw_id_prefix": "4.14",
+							"label": "api.openshift.com/gate-sts",
+							"value": "4.14",
+							"warning_message": "STS blah blah blah",
+							"description": "OpenShift STS clusters include new required cloud provider permissions in OpenShift 4.YY.",
+							"documentation_url": "https://access.redhat.com/solutions/0000000",
+							"sts_only": true,
+							"creation_timestamp": "2023-04-03T06:39:57.057613Z"
+							},
+							"creation_timestamp": "2023-06-21T13:02:06.291443Z"
+						}`),
+					),
+					// Create an upgrade policy
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, cluster123Route+"/control_plane/upgrade_policies"),
+						VerifyJQ(".version", "4.14.1"),
+						RespondWithJSON(http.StatusCreated, `
+						{
+							"id": "123",
+							"schedule_type": "manual",
+							"upgrade_type": "OSD",
+							"version": "4.14.1",
+							"next_run": "2023-06-09T20:59:00Z",
+							"cluster_id": "123",
+							"enable_minor_version_upgrades": true
+						}`),
+					),
+
+					// Patch the cluster (w/ no changes)
+					CombineHandlers(
+						VerifyRequest(http.MethodPatch, cluster123Route),
+						RespondWithJSON(http.StatusOK, template),
+					),
+				)
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					version = "4.14.1"
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.version", "4.14.1"))
+			})
+
+			It("successfully updates channel", func() {
+				TestServer.AppendHandlers(
+					// Refresh cluster state
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+							"op": "add",
+							"path": "/version",
+							"value": {
+								"id": "openshift-v4.14.0",
+								"raw_id": "4.14.0",
+								"channel_group": "stable"
+							}
+						},
+						{
+							"op": "add",
+							"path": "/channel",
+							"value": "stable-4.14"
+						}]`),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPatch, cluster123Route),
+						VerifyJQ(`.channel`, "fast-4.14"),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+							"op": "add",
+							"path": "/version",
+							"value": {
+								"id": "openshift-v4.14.0",
+								"raw_id": "4.14.0",
+								"channel_group": "fast"
+							}
+						},
+						{
+							"op": "add",
+							"path": "/channel",
+							"value": "fast-4.14"
+						}]`),
+					),
+				)
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					channel = "fast-4.14"
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.channel", "fast-4.14"))
+				Expect(resource).To(MatchJQ(".attributes.channel_group", "fast"))
+			})
+
+			It("fails when trying to change both channel and version simultaneously", func() {
+				TestServer.AppendHandlers(
+					// Refresh cluster state
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+							"op": "add",
+							"path": "/version",
+							"value": {
+								"id": "openshift-v4.14.0",
+								"raw_id": "4.14.0",
+								"channel_group": "stable"
+							}
+						},
+						{
+							"op": "add",
+							"path": "/channel",
+							"value": "stable-4.14"
+						}]`),
+					),
+				)
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+					version = "4.14.1"
+					channel = "fast-4.14"
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).NotTo(BeZero())
+				runOutput.VerifyErrorContainsSubstring("Cannot change channel and version simultaneously")
 			})
 		})
 		Context("Test wait attribute", func() {
@@ -1385,7 +2014,7 @@ var _ = Describe("HCP Cluster", func() {
 				cloud_region   = "us-west-1"
 				aws_account_id = "123456789012"
 				aws_billing_account_id = "123456789012"
-				properties = { 
+				properties = {
 					rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
 				}
 				sts = {
@@ -1564,7 +2193,7 @@ var _ = Describe("HCP Cluster", func() {
 				cloud_region   = "us-west-1"
 				aws_account_id = "123456789012"
 				aws_billing_account_id = "123456789012"
-				properties = { 
+				properties = {
 					rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
 				}
 				aws_additional_allowed_principals = ["arn:aws:iam::123456789012:role/dummy"]
@@ -1740,7 +2369,7 @@ var _ = Describe("HCP Cluster", func() {
 				cloud_region   = "us-west-1"
 				aws_account_id = "123456789012"
 				aws_billing_account_id = "123456789012"
-				properties = { 
+				properties = {
 					rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
 					%s = "%s"
 				}
@@ -2548,7 +3177,7 @@ var _ = Describe("HCP Cluster", func() {
 					{
 					  "op": "add",
 					  "path": "/aws",
-					  "value": {						  
+					  "value": {
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -2832,7 +3461,7 @@ var _ = Describe("HCP Cluster", func() {
 				cloud_region   = "us-west-1"
 				aws_account_id = "123456789012"
 				aws_billing_account_id = "123456789012"
-				properties = { 
+				properties = {
 					rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
 				}
 				sts = {
@@ -3034,7 +3663,7 @@ var _ = Describe("HCP Cluster", func() {
 				cloud_region   = "us-west-1"
 				aws_account_id = "123456789012"
 				aws_billing_account_id = "123456789012"
-				properties = { 
+				properties = {
 					rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
 				}
 				sts = {
@@ -3240,7 +3869,7 @@ var _ = Describe("HCP Cluster", func() {
 				cloud_region   = "us-west-1"
 				aws_account_id = "123456789012"
 				aws_billing_account_id = "123456789012"
-				properties = { 
+				properties = {
 					rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
 				}
 				sts = {
@@ -5055,6 +5684,11 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "replace",
 						"path": "/version/id",
 						"value": "openshift-v4.14.2"
+					},
+					{
+						"op": "replace",
+						"path": "/version/raw_id",
+						"value": "4.14.2"
 					}]`),
 				),
 			)
@@ -5097,6 +5731,11 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "replace",
 							"path": "/version/id",
 							"value": "openshift-v4.14.1"
+						},
+						{
+							"op": "replace",
+							"path": "/version/raw_id",
+							"value": "4.14.1"
 						}]`),
 				),
 				// Patch the cluster (w/ no changes)
@@ -5439,7 +6078,7 @@ var _ = Describe("HCP Cluster", func() {
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 						"op": "replace",
-						"path": "/id", 
+						"path": "/id",
 						"value": "1234"
 					},
 					{
@@ -5505,7 +6144,7 @@ var _ = Describe("HCP Cluster", func() {
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 						"op": "replace",
-						"path": "/id", 
+						"path": "/id",
 						"value": "1234"
 					},
 					{
@@ -5596,7 +6235,7 @@ var _ = Describe("HCP Cluster", func() {
 						}
 					},
 					{
-						"op": "add", 
+						"op": "add",
 						"path": "/external_auth_config",
 						"value": {
 							"enabled": true
@@ -5631,7 +6270,7 @@ var _ = Describe("HCP Cluster", func() {
 					},
 					{
 						"op": "add",
-						"path": "/external_auth_config", 
+						"path": "/external_auth_config",
 						"value": {
 							"enabled": true
 						}

@@ -451,6 +451,45 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clusterState.AutoNode).To(BeNil())
 		})
+
+		It("Populates Channel and nulls ChannelGroup when cluster has channel", func() {
+			clusterState := &ClusterRosaHcpState{}
+			clusterJson := generateBasicRosaHcpClusterJson()
+			clusterJson["channel"] = "stable-4.15"
+
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(clusterState.Channel.ValueString()).To(Equal("stable-4.15"))
+			Expect(clusterState.ChannelGroup.IsNull()).To(BeTrue())
+		})
+
+		It("Nulls Channel and populates ChannelGroup when cluster has no channel", func() {
+			clusterState := &ClusterRosaHcpState{}
+			clusterJson := generateBasicRosaHcpClusterJson()
+			clusterJson["version"] = map[string]interface{}{
+				"id":            "openshift-v4.14.0",
+				"channel_group": "stable",
+			}
+
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(clusterState.Channel.IsNull()).To(BeTrue())
+			Expect(clusterState.ChannelGroup.ValueString()).To(Equal("stable"))
+		})
 	})
 
 	Context("audit_log_arn update", func() {
@@ -637,6 +676,52 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 			trustPolicyAttr, exists := schema["trust_policy_external_id"]
 			Expect(exists).To(BeTrue())
 			Expect(trustPolicyAttr).NotTo(BeNil())
+		})
+	})
+
+	Context("Channel parameter creation", func() {
+		It("Creates a cluster with channel parameter", func() {
+			clusterState := generateBasicRosaHcpClusterState()
+			clusterState.Channel = types.StringValue("stable-4.14")
+			clusterState.ChannelGroup = types.StringNull()
+			clusterState.Version = types.StringNull()
+
+			rosaClusterObject, err := createHcpClusterObject(context.Background(), clusterState, diag.Diagnostics{})
+			Expect(err).ToNot(HaveOccurred())
+
+			channel, ok := rosaClusterObject.GetChannel()
+			Expect(ok).To(BeTrue())
+			Expect(channel).To(Equal("stable-4.14"))
+		})
+
+		It("Creates a cluster with both channel and version specified", func() {
+			clusterState := generateBasicRosaHcpClusterState()
+			clusterState.Channel = types.StringValue("fast-4.14")
+			clusterState.ChannelGroup = types.StringNull()
+			clusterState.Version = types.StringValue("4.14.5")
+
+			rosaClusterObject, err := createHcpClusterObject(context.Background(), clusterState, diag.Diagnostics{})
+			Expect(err).ToNot(HaveOccurred())
+
+			channel, ok := rosaClusterObject.GetChannel()
+			Expect(ok).To(BeTrue())
+			Expect(channel).To(Equal("fast-4.14"))
+
+			version, ok := rosaClusterObject.Version().GetID()
+			Expect(ok).To(BeTrue())
+			Expect(version).To(Equal("openshift-v4.14.5-fast"))
+		})
+
+		It("Fails when channel is below MinVersion", func() {
+			clusterState := generateBasicRosaHcpClusterState()
+			clusterState.Channel = types.StringValue("stable-4.10")
+			clusterState.ChannelGroup = types.StringNull()
+			clusterState.Version = types.StringNull()
+
+			_, err := createHcpClusterObject(context.Background(), clusterState, diag.Diagnostics{})
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Channel stable-4.10 is not supported"))
+			Expect(err.Error()).To(ContainSubstring("minimal supported version is 4.12.0"))
 		})
 	})
 })

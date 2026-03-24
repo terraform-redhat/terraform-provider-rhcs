@@ -73,7 +73,8 @@ var _ = Describe("rhcs_cluster_rosa_classic - import", func() {
 			}
 		},
 		"version": {
-			"id": "4.10.0"
+			"id": "4.10.0",
+			"raw_id": "4.10.0"
 		}
 	}`
 	Context("rhcs_cluster_rosa_classic - import", func() {

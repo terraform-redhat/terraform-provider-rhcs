@@ -269,6 +269,46 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 			Expect(clusterState.Sts.RoleARN.ValueString()).To(Equal(roleArn))
 			Expect(clusterState.Ec2MetadataHttpTokens.ValueString()).To(Equal(httpTokens))
 		})
+
+		It("Populates Channel and nulls ChannelGroup when cluster has channel", func() {
+			clusterState := &ClusterRosaClassicState{}
+			clusterJson := generateBasicRosaClassicClusterJson()
+			clusterJson["channel"] = "stable-4.15"
+
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(clusterState.Channel.ValueString()).To(Equal("stable-4.15"))
+			Expect(clusterState.ChannelGroup.IsNull()).To(BeTrue())
+		})
+
+		It("Nulls Channel and populates ChannelGroup when cluster has no channel", func() {
+			clusterState := &ClusterRosaClassicState{}
+			clusterJson := generateBasicRosaClassicClusterJson()
+			clusterJson["version"] = map[string]interface{}{
+				"id":            "openshift-v4.14.0",
+				"channel_group": "stable",
+			}
+
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(clusterState.Channel.IsNull()).To(BeTrue())
+			Expect(clusterState.ChannelGroup.ValueString()).To(Equal("stable"))
+		})
+
 		It("Check trimming of oidc url with https perfix", func() {
 			clusterState := &ClusterRosaClassicState{}
 			clusterJson := generateBasicRosaClassicClusterJson()
@@ -391,4 +431,49 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 		})
 	})
 
+	Context("Channel parameter creation", func() {
+		It("Creates a cluster with channel parameter", func() {
+			clusterState := generateBasicRosaClassicClusterState()
+			clusterState.Channel = types.StringValue("stable-4.14")
+			clusterState.ChannelGroup = types.StringNull()
+			clusterState.Version = types.StringNull()
+
+			rosaClusterObject, err := createClassicClusterObject(context.Background(), clusterState, diag.Diagnostics{})
+			Expect(err).ToNot(HaveOccurred())
+
+			channel, ok := rosaClusterObject.GetChannel()
+			Expect(ok).To(BeTrue())
+			Expect(channel).To(Equal("stable-4.14"))
+		})
+
+		It("Creates a cluster with both channel and version specified", func() {
+			clusterState := generateBasicRosaClassicClusterState()
+			clusterState.Channel = types.StringValue("fast-4.14")
+			clusterState.ChannelGroup = types.StringNull()
+			clusterState.Version = types.StringValue("4.14.5")
+
+			rosaClusterObject, err := createClassicClusterObject(context.Background(), clusterState, diag.Diagnostics{})
+			Expect(err).ToNot(HaveOccurred())
+
+			channel, ok := rosaClusterObject.GetChannel()
+			Expect(ok).To(BeTrue())
+			Expect(channel).To(Equal("fast-4.14"))
+
+			version, ok := rosaClusterObject.Version().GetID()
+			Expect(ok).To(BeTrue())
+			Expect(version).To(Equal("openshift-v4.14.5-fast"))
+		})
+
+		It("Fails when channel is below MinVersion", func() {
+			clusterState := generateBasicRosaClassicClusterState()
+			clusterState.Channel = types.StringValue("stable-4.9")
+			clusterState.ChannelGroup = types.StringNull()
+			clusterState.Version = types.StringNull()
+
+			_, err := createClassicClusterObject(context.Background(), clusterState, diag.Diagnostics{})
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Channel stable-4.9 is not supported"))
+			Expect(err.Error()).To(ContainSubstring("minimal supported version is 4.10.0"))
+		})
+	})
 })

@@ -74,4 +74,4 @@ Follow [Effective Go](https://go.dev/doc/effective_go), [Code Review Comments](h
 
 ## Project (CONTRIBUTE.md)
 
-- Go 1.21.x. `make build`; `go mod download` after dependency changes.
+- Use the Go version from `go.mod`. Run `make build`; `go mod download` after dependency changes.

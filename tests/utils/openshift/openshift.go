@@ -54,7 +54,7 @@ func RetryCMDRun(cmd string, timeout time.Duration) (string, error) {
 			Logger.Debugf("Run command %s successffly", cmd)
 			return stdout, nil
 		}
-		err = fmt.Errorf(stdout + stderr)
+		err = fmt.Errorf("%s", stdout+stderr)
 		time.Sleep(time.Minute)
 	}
 	return "", fmt.Errorf("timeout %d mins for command run %s with error: %s", timeout, cmd, err.Error())

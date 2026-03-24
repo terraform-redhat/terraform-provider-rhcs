@@ -30,7 +30,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift-online/ocm-common/pkg/ocm/client/test"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
-	v1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 )
@@ -50,7 +49,7 @@ var _ = Describe("KubeletConfig Resource", func() {
 	var configsClient *test.MockKubeletConfigsClient
 	var clusterWait *common.MockClusterWait
 	var clusterClient *common.MockClusterClient
-	var kubeletConfig, returnedKubeletConfig *v1.KubeletConfig
+	var kubeletConfig, returnedKubeletConfig *cmv1.KubeletConfig
 	var err error
 
 	BeforeEach(func() {
@@ -136,7 +135,7 @@ var _ = Describe("KubeletConfig Resource", func() {
 		It("Creates KubeletConfig", func() {
 			clusterWait.EXPECT().WaitForClusterToBeReady(gomock.Eq(ctx), gomock.Eq(clusterId), waitTimeoutInMinutes).Return(&cmv1.Cluster{}, nil)
 			clusterClient.EXPECT().FetchCluster(gomock.Any(), gomock.Eq(clusterId)).Return(classicCluster, nil)
-			configsClient.EXPECT().List(gomock.Eq(ctx), gomock.Eq(clusterId), gomock.Any()).Return([]*v1.KubeletConfig{}, false, nil)
+			configsClient.EXPECT().List(gomock.Eq(ctx), gomock.Eq(clusterId), gomock.Any()).Return([]*cmv1.KubeletConfig{}, false, nil)
 			configsClient.EXPECT().Create(
 				gomock.Eq(ctx), gomock.Eq(clusterId), test.MatchKubeletConfig(kubeletConfig)).Return(returnedKubeletConfig, nil)
 
@@ -157,7 +156,7 @@ var _ = Describe("KubeletConfig Resource", func() {
 			clusterWait.EXPECT().WaitForClusterToBeReady(gomock.Eq(ctx), gomock.Eq(clusterId), waitTimeoutInMinutes).Return(&cmv1.Cluster{}, nil)
 			clusterClient.EXPECT().FetchCluster(gomock.Any(), gomock.Eq(clusterId)).Return(classicCluster, nil)
 			configsClient.EXPECT().List(gomock.Eq(ctx), gomock.Eq(clusterId), gomock.Any()).
-				Return([]*v1.KubeletConfig{returnedKubeletConfig}, true, nil)
+				Return([]*cmv1.KubeletConfig{returnedKubeletConfig}, true, nil)
 
 			resource.Create(ctx, request, response)
 			Expect(response.Diagnostics.ErrorsCount()).To(Equal(1))
@@ -177,7 +176,7 @@ var _ = Describe("KubeletConfig Resource", func() {
 			clusterWait.EXPECT().WaitForClusterToBeReady(gomock.Eq(ctx), gomock.Eq(clusterId), waitTimeoutInMinutes).Return(&cmv1.Cluster{}, nil)
 			clusterClient.EXPECT().FetchCluster(gomock.Any(), gomock.Eq(clusterId)).Return(classicCluster, nil)
 			configsClient.EXPECT().List(gomock.Eq(ctx), gomock.Eq(clusterId), gomock.Any()).
-				Return([]*v1.KubeletConfig{returnedKubeletConfig}, true, nil)
+				Return([]*cmv1.KubeletConfig{returnedKubeletConfig}, true, nil)
 
 			resource.Create(ctx, request, response)
 			Expect(response.Diagnostics.ErrorsCount()).To(Equal(1))
@@ -189,7 +188,7 @@ var _ = Describe("KubeletConfig Resource", func() {
 		var request tfResources.ReadRequest
 		var response *tfResources.ReadResponse
 		var state tfsdk.State
-		var kubeletConfig *v1.KubeletConfig
+		var kubeletConfig *cmv1.KubeletConfig
 		var err error
 
 		BeforeEach(func() {
@@ -209,7 +208,7 @@ var _ = Describe("KubeletConfig Resource", func() {
 
 		It("Reads the existing KubeletConfig", func() {
 			configsClient.EXPECT().List(gomock.Eq(ctx), gomock.Eq(clusterId), gomock.Any()).
-				Return([]*v1.KubeletConfig{returnedKubeletConfig}, true, nil)
+				Return([]*cmv1.KubeletConfig{returnedKubeletConfig}, true, nil)
 			configsClient.EXPECT().Exists(ctx, clusterId, id).Return(true, kubeletConfig, nil)
 
 			resource.Read(ctx, request, response)
@@ -217,7 +216,7 @@ var _ = Describe("KubeletConfig Resource", func() {
 		})
 
 		It("Fails to read the KubeletConfig if it does not exist", func() {
-			configsClient.EXPECT().List(gomock.Eq(ctx), gomock.Eq(clusterId), gomock.Any()).Return([]*v1.KubeletConfig{}, true, nil)
+			configsClient.EXPECT().List(gomock.Eq(ctx), gomock.Eq(clusterId), gomock.Any()).Return([]*cmv1.KubeletConfig{}, true, nil)
 
 			resource.Read(ctx, request, response)
 			Expect(response.Diagnostics.ErrorsCount()).To(Equal(1))
@@ -230,7 +229,7 @@ var _ = Describe("KubeletConfig Resource", func() {
 		var response *tfResources.UpdateResponse
 		var plan tfsdk.Plan
 		var state tfsdk.State
-		var kubeletConfig *v1.KubeletConfig
+		var kubeletConfig *cmv1.KubeletConfig
 		var err error
 
 		BeforeEach(func() {
@@ -249,7 +248,7 @@ var _ = Describe("KubeletConfig Resource", func() {
 
 		It("Successfully updates KubeletConfig", func() {
 			configsClient.EXPECT().List(gomock.Eq(ctx), gomock.Eq(clusterId), gomock.Any()).
-				Return([]*v1.KubeletConfig{returnedKubeletConfig}, true, nil)
+				Return([]*cmv1.KubeletConfig{returnedKubeletConfig}, true, nil)
 			configsClient.EXPECT().Get(gomock.Eq(ctx), gomock.Eq(clusterId), gomock.Eq(id)).Return(
 				kubeletConfig, nil)
 			configsClient.EXPECT().Update(
@@ -260,7 +259,7 @@ var _ = Describe("KubeletConfig Resource", func() {
 		})
 
 		It("Fails to update a KubeletConfig that does not exist", func() {
-			configsClient.EXPECT().List(gomock.Eq(ctx), gomock.Eq(clusterId), gomock.Any()).Return([]*v1.KubeletConfig{}, true, nil)
+			configsClient.EXPECT().List(gomock.Eq(ctx), gomock.Eq(clusterId), gomock.Any()).Return([]*cmv1.KubeletConfig{}, true, nil)
 
 			resource.Update(ctx, request, response)
 			Expect(response.Diagnostics.ErrorsCount()).To(Equal(1))
@@ -268,7 +267,7 @@ var _ = Describe("KubeletConfig Resource", func() {
 
 		It("Fails to update a KubeletConfig", func() {
 			configsClient.EXPECT().List(gomock.Eq(ctx), gomock.Eq(clusterId), gomock.Any()).
-				Return([]*v1.KubeletConfig{returnedKubeletConfig}, true, nil)
+				Return([]*cmv1.KubeletConfig{returnedKubeletConfig}, true, nil)
 			configsClient.EXPECT().Get(gomock.Eq(ctx), gomock.Eq(clusterId), gomock.Eq(id)).Return(
 				kubeletConfig, nil)
 			configsClient.EXPECT().Update(
@@ -299,7 +298,7 @@ var _ = Describe("KubeletConfig Resource", func() {
 
 		It("Deletes the existing KubeletConfig", func() {
 			configsClient.EXPECT().List(gomock.Eq(ctx), gomock.Eq(clusterId), gomock.Any()).
-				Return([]*v1.KubeletConfig{returnedKubeletConfig}, true, nil)
+				Return([]*cmv1.KubeletConfig{returnedKubeletConfig}, true, nil)
 			configsClient.EXPECT().Delete(gomock.Eq(ctx), gomock.Eq(clusterId), gomock.Eq(id)).Return(nil)
 
 			resource.Delete(ctx, request, response)
@@ -308,7 +307,7 @@ var _ = Describe("KubeletConfig Resource", func() {
 
 		It("Fails to delete a KubeletConfig", func() {
 			configsClient.EXPECT().List(gomock.Eq(ctx), gomock.Eq(clusterId), gomock.Any()).
-				Return([]*v1.KubeletConfig{returnedKubeletConfig}, true, nil)
+				Return([]*cmv1.KubeletConfig{returnedKubeletConfig}, true, nil)
 			configsClient.EXPECT().Delete(gomock.Eq(ctx), gomock.Eq(clusterId), gomock.Eq(id)).Return(
 				fmt.Errorf("failed to delete KubeletConfig"))
 
@@ -318,13 +317,13 @@ var _ = Describe("KubeletConfig Resource", func() {
 	})
 })
 
-func createKubeletConfig(requiredPidsLimit int64) (*v1.KubeletConfig, error) {
-	builder := v1.KubeletConfigBuilder{}
+func createKubeletConfig(requiredPidsLimit int64) (*cmv1.KubeletConfig, error) {
+	builder := cmv1.KubeletConfigBuilder{}
 	return builder.PodPidsLimit(int(requiredPidsLimit)).Build()
 }
 
-func createReturnedKubeletConfig(requiredPidsLimit int64, name string, id string) (*v1.KubeletConfig, error) {
-	builder := v1.KubeletConfigBuilder{}
+func createReturnedKubeletConfig(requiredPidsLimit int64, name string, id string) (*cmv1.KubeletConfig, error) {
+	builder := cmv1.KubeletConfigBuilder{}
 	return builder.PodPidsLimit(int(requiredPidsLimit)).ID(id).Name(name).Build()
 }
 

@@ -15,9 +15,10 @@ profiles:
     etcd_encryption: false
     kms_key_arn: false
     fips: false
-    autoscale: false
+    autoscaler_enabled: false
     byok: false
     compute_machine_type: "m5.xlarge"
+    compute_replicas: 3
     proxy: false
     labeling: false
     tagging: false
@@ -42,9 +43,10 @@ profiles:
     etcd_encryption: true
     kms_key_arn: true
     fips: true
-    autoscale: true
+    autoscaler_enabled: true
     byok: true
     compute_machine_type: "m5.2xlarge"
+    compute_replicas: 3
     proxy: true
     labeling: true
     tagging: true
@@ -72,9 +74,10 @@ profiles:
     etcd_encryption: false
     kms_key_arn: false
     fips: false
-    autoscale: true
+    autoscaler_enabled: true
     byok: false
     compute_machine_type: "m5.2xlarge"
+    compute_replicas: 3
     proxy: false
     labeling: true
     tagging: true
@@ -102,10 +105,11 @@ profiles:
     etcd_encryption: true
     kms_key_arn: false
     fips: false
-    autoscale: false
+    autoscaler_enabled: false
     byok: true
     version: "y-1"
     compute_machine_type: "m5.xlarge"
+    compute_replicas: 3
     proxy: false
     labeling: false
     tagging: true
@@ -130,10 +134,11 @@ profiles:
     etcd_encryption: true
     kms_key_arn: false
     fips: false
-    autoscale: false
+    autoscaler_enabled: false
     byok: true
     version: "z-1"
     compute_machine_type: "m5.xlarge"
+    compute_replicas: 3
     proxy: false
     labeling: true
     tagging: false
@@ -152,6 +157,7 @@ profiles:
     sts: true
     byovpc: true
     compute_machine_type: "m5.xlarge"
+    compute_replicas: 3
     oidc_config: "managed"
     full_resources: true
     no_wait_cluster: true

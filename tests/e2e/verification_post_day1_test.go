@@ -41,6 +41,15 @@ var _ = Describe("Verify cluster", func() {
 		Expect(err).ToNot(HaveOccurred())
 		cluster = getResp.Body()
 	})
+	It("autoscaling is correctly set - [id:88408]", ci.Day1Post, ci.High, func() {
+		if !profile.IsAutoscaling() {
+			Skip("Autoscaling is not configured for the cluster. skipping the test.")
+		}
+		getResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(getResp.Body().Nodes().AutoscaleCompute().MinReplicas()).To(Equal(profile.GetMinReplicas()))
+		Expect(getResp.Body().Nodes().AutoscaleCompute().MaxReplicas()).To(Equal(profile.GetMaxReplicas()))
+	})
 
 	It("proxy is correctly set - [id:67607]", ci.Day1Post, ci.High, func() {
 		if !profile.IsProxy() {

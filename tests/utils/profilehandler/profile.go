@@ -20,7 +20,10 @@ type Profile struct {
 	FIPS                    bool     `ini:"fips,omitempty" json:"fips,omitempty"`
 	CCS                     bool     `ini:"ccs,omitempty" json:"ccs,omitempty"`
 	STS                     bool     `ini:"sts,omitempty" json:"sts,omitempty"`
-	Autoscale               bool     `ini:"autoscaling_enabled,omitempty" json:"autoscaling_enabled,omitempty"`
+	Autoscaler              bool     `ini:"autoscaler_enabled,omitempty" json:"autoscaler_enabled,omitempty"`
+	Autoscaling             bool     `ini:"autoscaling_enabled,omitempty" json:"autoscaling_enabled,omitempty"`
+	MaxReplicas             int      `ini:"max_replicas,omitempty" json:"max_replicas,omitempty"`
+	MinReplicas             int      `ini:"min_replicas,omitempty" json:"min_replicas,omitempty"`
 	MultiAZ                 bool     `ini:"multi_az,omitempty" json:"multi_az,omitempty"`
 	BYOVPC                  bool     `ini:"byovpc,omitempty" json:"byovpc,omitempty"`
 	PrivateLink             bool     `ini:"private_link,omitempty" json:"private_link,omitempty"`

@@ -93,6 +93,8 @@ type ProfileSpec interface {
 	GetHostPrefix() int
 	GetAllowedRegistries() []string
 	GetBlockedRegistries() []string
+	GetMinReplicas() int
+	GetMaxReplicas() int
 
 	IsHCP() bool
 	IsPrivateLink() bool
@@ -102,7 +104,7 @@ type ProfileSpec interface {
 	IsProxy() bool
 	IsEtcd() bool
 	IsDifferentEncryptionKeys() bool
-	IsAutoscale() bool
+	IsAutoscaling() bool
 	IsAdminEnabled() bool
 	IsFIPS() bool
 	IsLabeling() bool
@@ -262,12 +264,12 @@ func (ctx *profileContext) IsDifferentEncryptionKeys() bool {
 	return ctx.profile.DifferentEncryptionKeys
 }
 
-func (ctx *profileContext) IsAutoscale() bool {
-	return ctx.profile.Autoscale
+func (ctx *profileContext) IsAutoscaling() bool {
+	return ctx.profile.Autoscaling
 }
 
 func (ctx *profileContext) IsAdminEnabled() bool {
-	return ctx.profile.Autoscale
+	return ctx.profile.AdminEnabled
 }
 
 func (ctx *profileContext) IsFIPS() bool {
@@ -320,6 +322,14 @@ func (ctx *profileContext) GetAllowedRegistries() []string {
 
 func (ctx *profileContext) GetBlockedRegistries() []string {
 	return ctx.profile.BlockedRegistries
+}
+
+func (ctx *profileContext) GetMinReplicas() int {
+	return ctx.profile.MinReplicas
+}
+
+func (ctx *profileContext) GetMaxReplicas() int {
+	return ctx.profile.MaxReplicas
 }
 
 func (ctx *profileContext) IsExternalAuthEnabled() bool {
@@ -635,20 +645,18 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 		clusterArgs.MachineCIDR = helper.StringPointer(DefaultVPCCIDR)
 	}
 
-	if ctx.profile.Autoscale {
-		clusterArgs.Autoscaling = &exec.Autoscaling{
-			AutoscalingEnabled: helper.BoolPointer(true),
-			MinReplicas:        helper.IntPointer(3),
-			MaxReplicas:        helper.IntPointer(6),
+	if ctx.profile.Autoscaling {
+		clusterArgs.Autoscaling = helper.BoolPointer(ctx.profile.Autoscaling)
+		clusterArgs.MinReplicas = helper.IntPointer(ctx.profile.MinReplicas)
+		clusterArgs.MaxReplicas = helper.IntPointer(ctx.profile.MaxReplicas)
+	} else {
+		if ctx.profile.ComputeReplicas > 0 {
+			clusterArgs.Replicas = helper.IntPointer(ctx.profile.ComputeReplicas)
 		}
 	}
 
 	if ctx.profile.ComputeMachineType != "" {
 		clusterArgs.ComputeMachineType = helper.StringPointer(ctx.profile.ComputeMachineType)
-	}
-
-	if ctx.profile.ComputeReplicas > 0 {
-		clusterArgs.Replicas = helper.IntPointer(ctx.profile.ComputeReplicas)
 	}
 
 	if ctx.profile.Ec2MetadataHttpTokens != "" {

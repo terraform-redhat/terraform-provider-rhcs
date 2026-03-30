@@ -694,27 +694,42 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 		It("autoscaling change - [id:63147]",
 			ci.Medium,
 			func() {
-				if profileHandler.Profile().IsHCP() {
-					Skip("This case only works for classic now")
-				}
+				By("Update the cluster autoscaling")
+				if profileHandler.Profile().IsAutoscaling() {
+					By("Change autoscaling_enabled from true to false")
+					clusterArgs.Autoscaling = helper.BoolPointer(false)
+					_, err := clusterService.Apply(clusterArgs)
+					Expect(err).To(HaveOccurred())
+					helper.ExpectTFErrorContains(err, "Attribute autoscaling_enabled, cannot be changed")
 
-				By("Update the cluster to autoscaling")
-				clusterArgs.Autoscaling = &exec.Autoscaling{
-					AutoscalingEnabled: helper.BoolPointer(true),
-					MinReplicas:        helper.IntPointer(3),
-					MaxReplicas:        helper.IntPointer(6),
-				}
+					By("Change max_replicas")
+					clusterArgs.Autoscaling = helper.BoolPointer(true)
+					clusterArgs.MaxReplicas = helper.IntPointer(9)
+					_, err = clusterService.Apply(clusterArgs)
+					Expect(err).To(HaveOccurred())
+					helper.ExpectTFErrorContains(err, " Attribute max_replicas, cannot be changed")
 
-				if profileHandler.Profile().IsAutoscale() {
-					clusterArgs.Autoscaling = &exec.Autoscaling{
-						AutoscalingEnabled: helper.BoolPointer(false),
-					}
-					clusterArgs.Replicas = helper.IntPointer(3)
-				}
+					By("Change min_replicas")
+					clusterArgs.Autoscaling = helper.BoolPointer(true)
+					clusterArgs.MaxReplicas = originalClusterArgs.MaxReplicas
+					clusterArgs.MinReplicas = helper.IntPointer(3)
+					_, err = clusterService.Apply(clusterArgs)
+					Expect(err).To(HaveOccurred())
+					helper.ExpectTFErrorContains(err, " Attribute min_replicas, cannot be changed")
+				} else {
+					By("Change autoscaling_enabled from failse to true")
+					clusterArgs.Autoscaling = helper.BoolPointer(true)
+					_, err := clusterService.Apply(clusterArgs)
+					Expect(err).To(HaveOccurred())
+					helper.ExpectTFErrorContains(err, "Attribute autoscaling_enabled, cannot be changed")
 
-				_, err := clusterService.Apply(clusterArgs)
-				Expect(err).To(HaveOccurred())
-				helper.ExpectTFErrorContains(err, "Attribute max_replicas, cannot be changed from")
+					By("Change replicas")
+					clusterArgs.Autoscaling = helper.BoolPointer(false)
+					clusterArgs.Replicas = helper.IntPointer(9)
+					_, err = clusterService.Apply(clusterArgs)
+					Expect(err).To(HaveOccurred())
+					helper.ExpectTFErrorContains(err, "Attribute replicas, cannot be changed from")
+				}
 			})
 	})
 

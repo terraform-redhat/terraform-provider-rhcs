@@ -20,7 +20,7 @@ variable "aws_availability_zones" {
 
 variable "replicas" {
   type    = number
-  default = 3
+  default = null
 }
 
 variable "openshift_version" {
@@ -255,3 +255,17 @@ variable "log_forwarders_at_cluster_creation" {
   default = null
 }
 
+variable "autoscaling_enabled" {
+  type    = bool
+  default = null
+}
+
+variable "min_replicas" {
+  type    = number
+  default = null
+}
+
+variable "max_replicas" {
+  type    = number
+  default = null
+}

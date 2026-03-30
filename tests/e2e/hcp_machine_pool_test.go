@@ -77,7 +77,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			var initialMinReplicas int
 			var initialMaxReplicas int
 			var initialReplicas int
-			if profileHandler.Profile().IsAutoscale() {
+			if profileHandler.Profile().IsAutoscaling() {
 				initialMinReplicas = clusterRespBody.Body().Nodes().AutoscaleCompute().MinReplicas()
 				initialMaxReplicas = clusterRespBody.Body().Nodes().AutoscaleCompute().MaxReplicas()
 			} else {
@@ -117,7 +117,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 				if err != nil {
 					return false, err
 				}
-				if profileHandler.Profile().IsAutoscale() {
+				if profileHandler.Profile().IsAutoscaling() {
 					return clusterRespBody.Body().Nodes().AutoscaleCompute().MaxReplicas() == (initialMaxReplicas+replicas) &&
 						clusterRespBody.Body().Nodes().AutoscaleCompute().MinReplicas() == (initialMinReplicas+replicas), nil
 				} else {

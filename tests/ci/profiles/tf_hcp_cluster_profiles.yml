@@ -12,9 +12,11 @@ profiles:
     etcd_encryption: true # id:72483 # id:72807
     kms_key_arn: true # id:72483 # id:72484 # id:72807
     fips: true
-    autoscale: true # id:72523
+    autoscaler_enabled: true # id:72523
+    autoscaling_enabled: true
     byok: true
-    compute_replicas: 6 # id:72446
+    min_replicas: 0
+    max_replicas: 6
     compute_machine_type: "m5.2xlarge" # id:72448
     proxy: true # id:72488
     labeling: false # not yet supported
@@ -44,9 +46,10 @@ profiles:
     etcd_encryption: false
     kms_key_arn: false
     fips: false
-    autoscale: false
+    autoscaler_enabled: false
     byok: false
     compute_machine_type: "m5.xlarge" # id:72448
+    compute_replicas: 3
     proxy: false
     labeling: false # not yet supported
     tagging: false
@@ -73,9 +76,10 @@ profiles:
     etcd_encryption: false
     kms_key_arn: false
     fips: false
-    autoscale: false
+    autoscaler_enabled: false
     byok: false
     compute_machine_type: "m5.xlarge"
+    compute_replicas: 3
     proxy: false
     labeling: false
     tagging: false
@@ -103,10 +107,11 @@ profiles:
     etcd_encryption: true # id:72483 # id:72807
     kms_key_arn: true # id:72483 # id:72484 # id:72807
     fips: false
-    autoscale: false
+    autoscaler_enabled: false
     byok: true
     version: "y-1"
     compute_machine_type: "m5.xlarge" # id:72448
+    compute_replicas: 3
     proxy: false
     labeling: false # not yet supported
     tagging: true # id:72624
@@ -132,10 +137,11 @@ profiles:
     etcd_encryption: true # id:72483 # id:72807
     kms_key_arn: true # id:72483 # id:72484 # id:72807
     fips: false
-    autoscale: false
+    autoscaler_enabled: false
     byok: true
     version: "z-1"
     compute_machine_type: "r5.xlarge" # id:72448
+    compute_replicas: 3
     proxy: false
     labeling: false # not yet supported
     tagging: true # id:72624
@@ -158,9 +164,10 @@ profiles:
     etcd_encryption: false
     kms_key_arn: false
     fips: false
-    autoscale: false
+    autoscaler_enabled: false
     byok: false
     compute_machine_type: "m5.xlarge" # id:72448
+    compute_replicas: 3
     proxy: false
     labeling: false # not yet supported
     tagging: false
@@ -188,9 +195,10 @@ profiles:
     kms_key_arn: true
     different_encryption_keys: true # id:72485
     fips: false
-    autoscale: false
+    autoscaler_enabled: false
     byok: false
     compute_machine_type: "m5.xlarge" # id:72448
+    compute_replicas: 3
     proxy: false
     labeling: false # not yet supported
     tagging: false
@@ -208,6 +216,7 @@ profiles:
     sts: true
     region: "us-west-2"
     compute_machine_type: "m5.xlarge"
+    compute_replicas: 3
     oidc_config: "un-managed"
     full_resources: true
     no_wait_cluster: true

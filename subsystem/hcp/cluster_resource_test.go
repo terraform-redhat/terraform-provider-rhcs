@@ -6070,6 +6070,61 @@ var _ = Describe("HCP Cluster", func() {
 				Expect(resource).To(MatchJQ(".attributes.max_replicas", float64(6)))
 			})
 
+			It("Reads cluster with autoscaling via data source", func() {
+				// Prepare the server to return a cluster with autoscaling:
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+						  "op": "add",
+						  "path": "/aws",
+						  "value": {
+							  "sts" : {
+								  "oidc_endpoint_url": "https://127.0.0.1",
+								  "thumbprint": "111111",
+								  "role_arn": "",
+								  "support_role_arn": "",
+								  "instance_iam_roles" : {
+									"worker_role_arn" : ""
+								  },
+								  "operator_role_prefix" : "test"
+							  }
+						  }
+						},
+						{
+						  "op": "replace",
+						  "path": "/nodes",
+						  "value": {
+							  "autoscale_compute": {
+								  "min_replicas": 2,
+								  "max_replicas": 6
+							  },
+							  "availability_zones": ["us-west-1a", "us-west-1b", "us-west-1c"],
+							  "compute_machine_type": {
+								  "id": "r5.xlarge"
+							  }
+						  }
+						}]`),
+					),
+				)
+
+				// Read cluster via data source:
+				Terraform.Source(`
+				data "rhcs_cluster_rosa_hcp" "my_cluster" {
+					id = "123"
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+
+				// Verify autoscaling fields are accessible from data source:
+				resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.id", "123"))
+				Expect(resource).To(MatchJQ(".attributes.autoscaling_enabled", true))
+				Expect(resource).To(MatchJQ(".attributes.min_replicas", float64(2)))
+				Expect(resource).To(MatchJQ(".attributes.max_replicas", float64(6)))
+			})
+
 			It("Creates cluster with fixed replicas", func() {
 				// Prepare the server:
 				TestServer.AppendHandlers(
@@ -6132,6 +6187,56 @@ var _ = Describe("HCP Cluster", func() {
 				runOutput := Terraform.Apply()
 				Expect(runOutput.ExitCode).To(BeZero())
 				resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.replicas", float64(3)))
+			})
+
+			It("Reads cluster with fixed replicas via data source", func() {
+				// Prepare the server to return a cluster with fixed replicas:
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+						  "op": "add",
+						  "path": "/aws",
+						  "value": {
+							  "sts" : {
+								  "oidc_endpoint_url": "https://127.0.0.1",
+								  "thumbprint": "111111",
+								  "role_arn": "",
+								  "support_role_arn": "",
+								  "instance_iam_roles" : {
+									"worker_role_arn" : ""
+								  },
+								  "operator_role_prefix" : "test"
+							  }
+						  }
+						},
+						{
+						  "op": "replace",
+						  "path": "/nodes",
+						  "value": {
+							  "compute": 3,
+							  "availability_zones": ["us-west-1a", "us-west-1b", "us-west-1c"],
+							  "compute_machine_type": {
+								  "id": "r5.xlarge"
+							  }
+						  }
+						}]`),
+					),
+				)
+
+				// Read cluster via data source:
+				Terraform.Source(`
+				data "rhcs_cluster_rosa_hcp" "my_cluster" {
+					id = "123"
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+
+				// Verify fixed replicas fields are accessible from data source:
+				resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+				Expect(resource).To(MatchJQ(".attributes.id", "123"))
 				Expect(resource).To(MatchJQ(".attributes.replicas", float64(3)))
 			})
 		})

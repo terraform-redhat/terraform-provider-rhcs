@@ -130,6 +130,18 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				Description: "Base DNS domain name previously reserved, e.g. '1vo8.p3.openshiftapps.com'. " + common.ValueCannotBeChangedStringDescription,
 				Computed:    true,
 			},
+			"autoscaling_enabled": schema.BoolAttribute{
+				Description: deprecatedMessage,
+				Computed:    true,
+			},
+			"min_replicas": schema.Int64Attribute{
+				Description: deprecatedMessage,
+				Computed:    true,
+			},
+			"max_replicas": schema.Int64Attribute{
+				Description: deprecatedMessage,
+				Computed:    true,
+			},
 			"replicas": schema.Int64Attribute{
 				Description: deprecatedMessage,
 				Computed:    true,

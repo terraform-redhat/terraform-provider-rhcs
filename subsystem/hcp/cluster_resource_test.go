@@ -6117,12 +6117,12 @@ var _ = Describe("HCP Cluster", func() {
 				runOutput := Terraform.Apply()
 				Expect(runOutput.ExitCode).To(BeZero())
 
-				// Verify autoscaling fields are accessible from data source:
+				// Verify autoscaling fields are null (deprecated for data source):
 				resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
 				Expect(resource).To(MatchJQ(".attributes.id", "123"))
-				Expect(resource).To(MatchJQ(".attributes.autoscaling_enabled", true))
-				Expect(resource).To(MatchJQ(".attributes.min_replicas", float64(2)))
-				Expect(resource).To(MatchJQ(".attributes.max_replicas", float64(6)))
+				Expect(resource).To(MatchJQ(".attributes.autoscaling_enabled", nil))
+				Expect(resource).To(MatchJQ(".attributes.min_replicas", nil))
+				Expect(resource).To(MatchJQ(".attributes.max_replicas", nil))
 			})
 
 			It("Creates cluster with fixed replicas", func() {
@@ -6234,10 +6234,10 @@ var _ = Describe("HCP Cluster", func() {
 				runOutput := Terraform.Apply()
 				Expect(runOutput.ExitCode).To(BeZero())
 
-				// Verify fixed replicas fields are accessible from data source:
+				// Verify replicas field is null (deprecated for data source):
 				resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
 				Expect(resource).To(MatchJQ(".attributes.id", "123"))
-				Expect(resource).To(MatchJQ(".attributes.replicas", float64(3)))
+				Expect(resource).To(MatchJQ(".attributes.replicas", nil))
 			})
 		})
 

@@ -1,3 +1,30 @@
+## 1.7.5 (01 Apr, 2026)
+
+FEATURES:
+   * Return available_channels in the rhcs_version
+   * Add AutoNode day-2 support for ROSA HCP clusters
+   * Enhance documentation for FIPS in ROSA HCP
+   * Add FIPS support to ROSA HCP cluster resource and datasource
+   * Support autoscaling for day-1 hcp cluster creation
+
+ENHANCEMENTS:
+ * Bug fixes
+   * Added some more validations to vpc cleanup issues
+   * Capacity reservation validation
+   * Fixed tfplugindocs generation and added new command
+   * Migrated e2e AWS helper utilities to aws sdk v2
+   * Migrated Classic/HCP and machine pool off AWS SDK v1
+   * Bump task to v0.2
+ * Chores
+   * Remove when from task to make it compatible with init 0.4
+   * Add amandahla to owners
+   * Add cursor rules
+   * Update to use the v2 for golangci
+   * Bump ocm-sdk-go to v0.1.497
+   * Removed AWS SDK v1 dependency
+   * Updated template for PR's
+   * Updated owners file
+
 ## 1.7.4 (11 Feb, 2026)
 ENHANCEMENTS:
 * Bug fixes

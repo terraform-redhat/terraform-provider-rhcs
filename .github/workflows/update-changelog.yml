@@ -52,13 +52,16 @@ jobs:
           echo "commit_count=$COUNT" >> $GITHUB_OUTPUT
           echo "Found $COUNT commit(s) between ${{ steps.prev-tag.outputs.prev_tag }} and ${{ github.ref_name }}"
 
+      - name: Version without leading v
+        run: echo "RELEASE_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
       - name: Generate changelog
         if: steps.check-commits.outputs.commit_count != '0'
         uses: orhun/git-cliff-action@v4.7.1
         id: git-cliff
         with:
           config: cliff.toml
-          args: --verbose ${{ steps.prev-tag.outputs.prev_tag }}..${{ github.ref_name }} --prepend CHANGELOG.md
+          args: --verbose ${{ steps.prev-tag.outputs.prev_tag }}..${{ github.ref_name }} --tag ${{ env.RELEASE_VERSION }} --prepend CHANGELOG.md
 
       - name: Create PR with changelog
         if: steps.check-commits.outputs.commit_count != '0'

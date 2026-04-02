@@ -72,6 +72,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 		},
 		"version": {
 			"id": "4.10.0",
+			"raw_id": "4.10.0",
 			"channel_group": "stable",
 			"available_upgrades": ["4.10.1"]
 		}
@@ -747,6 +748,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 						"op": "replace",
 						"path": "/version/id",
 						"value": "openshift-v4.11.0"
+					},
+					{
+						"op": "replace",
+						"path": "/version/raw_id",
+						"value": "4.11.0"
 					}]`),
 				),
 			)
@@ -781,6 +787,11 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 							"op": "replace",
 							"path": "/version/id",
 							"value": "openshift-v4.11.0"
+						},
+						{
+							"op": "replace",
+							"path": "/version/raw_id",
+							"value": "4.11.0"
 						}]`),
 				),
 				// Patch the cluster (w/ no changes)

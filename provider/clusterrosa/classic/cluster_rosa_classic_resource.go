@@ -30,6 +30,7 @@ import (
 	semver "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -40,7 +41,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -346,15 +346,25 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 					int64planmodifier.UseStateForUnknown(),
 				},
 			},
-			"channel_group": schema.StringAttribute{
-				Description: "Name of the channel group where you select the OpenShift cluster version, for example 'stable'. " +
-					"For ROSA, only 'stable' and 'eus' are supported.",
+			"channel": schema.StringAttribute{
+				Description: "Y-stream specific channel for the cluster version (e.g., 'stable-4.16'). " +
+					"This parameter specifies the upgrade path for the cluster. " +
+					"Cannot be used together with 'channel_group'.",
 				Optional: true,
 				Computed: true,
-				Default:  stringdefault.StaticString(ocmConsts.DefaultChannelGroup),
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(
+						regexp.MustCompile(`^(stable|fast|candidate|eus)-\d+\.\d+$`),
+						"channel must be in format '<channel_group>-<version>' (e.g., 'stable-4.16')",
+					),
 				},
+			},
+			"channel_group": schema.StringAttribute{
+				Description: "Name of the channel group where you select the OpenShift cluster version, for example 'stable'. " +
+					"For ROSA, only 'stable' and 'eus' are supported. " +
+					"Cannot be used together with 'channel'.",
+				Optional: true,
+				Computed: true,
 			},
 			"version": schema.StringAttribute{
 				Description: "Desired version of OpenShift for the cluster, for example '4.11.0'. If version is greater than the currently running version, an upgrade will be scheduled.",
@@ -461,6 +471,15 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Optional:    true,
 			},
 		},
+	}
+}
+
+func (r *ClusterRosaClassicResource) ConfigValidators(context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.Conflicting(
+			path.MatchRoot("channel"),
+			path.MatchRoot("channel_group"),
+		),
 	}
 }
 
@@ -690,6 +709,15 @@ func createClassicClusterObject(ctx context.Context,
 	}
 
 	channelGroup := ocmConsts.DefaultChannelGroup
+	if common.HasValue(state.Channel) {
+		channel := state.Channel.ValueString()
+		builder.Channel(channel)
+		cg, _, found := strings.Cut(channel, "-")
+		if found {
+			channelGroup = cg
+		}
+	}
+
 	if common.HasValue(state.ChannelGroup) {
 		channelGroup = state.ChannelGroup.ValueString()
 	}
@@ -718,9 +746,12 @@ func createClassicClusterObject(ctx context.Context,
 			)
 			return nil, errors.New(errHeadline + "\n" + description)
 		}
+
 		vBuilder := cmv1.NewVersion()
 		vBuilder.ID(ocmUtils.CreateVersionId(state.Version.ValueString(), channelGroup))
-		vBuilder.ChannelGroup(channelGroup)
+		if common.HasValue(state.ChannelGroup) {
+			vBuilder.ChannelGroup(channelGroup)
+		}
 		builder.Version(vBuilder)
 	}
 
@@ -818,6 +849,14 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 	}
 
 	channelGroup := consts.DefaultChannelGroup
+	if common.HasValue(state.Channel) {
+		channel := state.Channel.ValueString()
+		cg, _, found := strings.Cut(channel, "-")
+		if found {
+			channelGroup = cg
+		}
+	}
+
 	if common.HasValue(state.ChannelGroup) {
 		channelGroup = state.ChannelGroup.ValueString()
 	}
@@ -835,6 +874,22 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 			),
 		)
 		return
+	}
+
+	// Validate channel is compatible with the version
+	if common.HasValue(state.Channel) && common.HasValue(state.Version) {
+		err = r.ValidateChannelVersionCompatibility(ctx, rosaTypes.Classic,
+			state.Channel.ValueString(), state.Version.ValueString())
+		if err != nil {
+			response.Diagnostics.AddError(
+				summary,
+				fmt.Sprintf(
+					"Can't build cluster with name '%s': %v",
+					state.Name.ValueString(), err,
+				),
+			)
+			return
+		}
 	}
 
 	err = validateHttpTokensVersion(ctx, state, version)
@@ -1034,14 +1089,32 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaClassicState) diag.Dia
 	return diags
 }
 
+func validateChannelAndChannelGroupChanges(state, plan *ClusterRosaClassicState) diag.Diagnostics {
+	diags := diag.Diagnostics{}
+
+	// Check if channel is changing
+	_, channelChanged := common.ShouldPatchString(state.Channel, plan.Channel)
+
+	// Check if channel_group is changing
+	_, channelGroupChanged := common.ShouldPatchString(state.ChannelGroup, plan.ChannelGroup)
+
+	// Prevent simultaneous channel and channel_group changes
+	if channelChanged && channelGroupChanged {
+		diags.AddError(
+			"Invalid Configuration",
+			"Cannot update 'channel' and 'channel_group' together. "+
+				"Use either 'channel' or 'channel_group' for version management, but not both in the same update.",
+		)
+	}
+
+	return diags
+}
+
 func validateChannelGroupAndVersionChanges(state, plan *ClusterRosaClassicState) diag.Diagnostics {
 	diags := diag.Diagnostics{}
 
 	// Check if channel group is changing
-	channelGroupChanged := false
-	if _, shouldPatch := common.ShouldPatchString(state.ChannelGroup, plan.ChannelGroup); shouldPatch {
-		channelGroupChanged = true
-	}
+	_, channelGroupChanged := common.ShouldPatchString(state.ChannelGroup, plan.ChannelGroup)
 
 	// Check if version is changing
 	versionChanged := false
@@ -1049,15 +1122,44 @@ func validateChannelGroupAndVersionChanges(state, plan *ClusterRosaClassicState)
 		if plan.Version.ValueString() != state.Version.ValueString() {
 			versionChanged = true
 		}
-	} else if !common.IsStringAttributeUnknownOrEmpty(plan.Version) && common.IsStringAttributeUnknownOrEmpty(state.Version) {
+	} else if !common.IsStringAttributeUnknownOrEmpty(plan.Version) &&
+		common.IsStringAttributeUnknownOrEmpty(state.Version) {
 		versionChanged = true
 	}
 
 	// Prevent simultaneous channel group and version changes
 	if channelGroupChanged && versionChanged {
 		diags.AddError(
-			"Cannot change channel group and version simultaneously",
+			"Cannot change channel_group and version simultaneously",
 			"Channel group changes and version upgrades must be performed in separate operations. Please apply one change at a time.",
+		)
+	}
+
+	return diags
+}
+
+func validateChannelAndVersionChanges(state, plan *ClusterRosaClassicState) diag.Diagnostics {
+	diags := diag.Diagnostics{}
+
+	// Check if channel is changing
+	_, channelChanged := common.ShouldPatchString(state.Channel, plan.Channel)
+
+	// Check if version is changing
+	versionChanged := false
+	if !common.IsStringAttributeUnknownOrEmpty(plan.Version) && !common.IsStringAttributeUnknownOrEmpty(state.Version) {
+		if plan.Version.ValueString() != state.Version.ValueString() {
+			versionChanged = true
+		}
+	} else if !common.IsStringAttributeUnknownOrEmpty(plan.Version) &&
+		common.IsStringAttributeUnknownOrEmpty(state.Version) {
+		versionChanged = true
+	}
+
+	// Prevent simultaneous channel and version changes
+	if channelChanged && versionChanged {
+		diags.AddError(
+			"Cannot change channel and version simultaneously",
+			"Channel changes and version upgrades must be performed in separate operations. Please apply one change at a time.",
 		)
 	}
 
@@ -1086,6 +1188,13 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resourc
 		return
 	}
 
+	// Validate that user is not trying to change BOTH channel and channel_group simultaneously
+	diags = validateChannelAndChannelGroupChanges(state, plan)
+	if diags.HasError() {
+		response.Diagnostics.Append(diags...)
+		return
+	}
+
 	//assert no changes on specific attributes
 	diags = validateNoImmutableAttChange(state, plan)
 	if diags.HasError() {
@@ -1095,6 +1204,13 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resourc
 
 	// Validate that channel group and version changes are not done simultaneously
 	diags = validateChannelGroupAndVersionChanges(state, plan)
+	if diags.HasError() {
+		response.Diagnostics.Append(diags...)
+		return
+	}
+
+	// Validate that channel and version changes are not done simultaneously
+	diags = validateChannelAndVersionChanges(state, plan)
 	if diags.HasError() {
 		response.Diagnostics.Append(diags...)
 		return
@@ -1135,6 +1251,27 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resourc
 			),
 		)
 		return
+	}
+
+	// Handle channel changes
+	if newChannel, shouldPatch := common.ShouldPatchString(state.Channel, plan.Channel); shouldPatch {
+		// Validate the new channel is compatible with the current running version
+		currentVersion := state.CurrentVersion.ValueString()
+		err := r.ValidateChannelVersionCompatibility(ctx, rosaTypes.Classic,
+			newChannel, currentVersion)
+		if err != nil {
+			response.Diagnostics.AddError(
+				"Can't change channel",
+				fmt.Sprintf(
+					"Channel '%s' is not compatible with current version %s: %v",
+					newChannel, currentVersion, err,
+				),
+			)
+			return
+		}
+
+		clusterBuilder.Channel(newChannel)
+		tflog.Debug(ctx, fmt.Sprintf("Updating channel from %s to %s", state.Channel.ValueString(), newChannel))
 	}
 
 	// Handle channel group changes
@@ -1725,9 +1862,16 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	} else {
 		state.HostPrefix = types.Int64Null()
 	}
+	if channel, ok := object.GetChannel(); ok {
+		state.Channel = types.StringValue(channel)
+	} else {
+		state.Channel = types.StringNull()
+	}
 	channel_group, ok := object.Version().GetChannelGroup()
 	if ok {
 		state.ChannelGroup = types.StringValue(channel_group)
+	} else {
+		state.ChannelGroup = types.StringNull()
 	}
 
 	if awsObj, ok := object.GetAWS(); ok {
@@ -1742,18 +1886,12 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		}
 	}
 
-	version, ok := object.Version().GetID()
-	// If we're using a non-default channel group, it will have been appended to
-	// the version ID. Remove it before saving state.
-	version = strings.TrimSuffix(version, fmt.Sprintf("-%s", channel_group))
-	version = strings.TrimPrefix(version, rosa.VersionPrefix)
-	if ok {
+	if version, ok := object.Version().GetRawID(); ok {
 		tflog.Debug(ctx, fmt.Sprintf("actual cluster version: %v", version))
 		state.CurrentVersion = types.StringValue(version)
 	} else {
 		tflog.Debug(ctx, "Unknown cluster version")
 		state.CurrentVersion = types.StringNull()
-
 	}
 	state.State = types.StringValue(string(object.State()))
 	state.Name = types.StringValue(object.Name())

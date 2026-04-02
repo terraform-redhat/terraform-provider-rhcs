@@ -201,6 +201,11 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				Description: "Length of the prefix of the subnet assigned to each node. " + common.ValueCannotBeChangedStringDescription,
 				Computed:    true,
 			},
+			"channel": schema.StringAttribute{
+				Description: "Y-stream specific channel for the cluster version (e.g., 'stable-4.16'). " +
+					"Indicates which channel the cluster version is currently using.",
+				Computed: true,
+			},
 			"channel_group": schema.StringAttribute{
 				Description: deprecatedMessage,
 				Computed:    true,

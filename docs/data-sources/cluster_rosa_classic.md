@@ -44,6 +44,7 @@ data "rhcs_cluster_rosa_classic" "cluster" {
 - `aws_subnet_ids` (List of String) AWS subnet IDs. After the creation of the resource, it is not possible to update the attribute value.
 - `base_dns_domain` (String) Base DNS domain name previously reserved and matching the hosted zone name of the private Route 53 hosted zone associated with intended shared VPC, e.g., '1vo8.p1.openshiftapps.com'. After the creation of the resource, it is not possible to update the attribute value.
 - `ccs_enabled` (Boolean) Enables customer cloud subscription (Immutable with ROSA)
+- `channel` (String) Y-stream specific channel for the cluster version (e.g., 'stable-4.16'). Indicates which channel the cluster version is currently using.
 - `channel_group` (String) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `cloud_region` (String) Cloud region identifier, for example 'us-east-1'.
 - `compute_machine_type` (String) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource

@@ -36,6 +36,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
@@ -312,6 +313,15 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				Computed:    true,
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.UseStateForUnknown(),
+				},
+			},
+			"no_cni": schema.BoolAttribute{
+				Description: "Disable CNI creation to let users bring their own CNI. " + common.ValueCannotBeChangedStringDescription,
+				Optional:    true,
+				Computed:    true,
+				Default:     booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"channel_group": schema.StringAttribute{
@@ -758,6 +768,9 @@ func createHcpClusterObject(ctx context.Context,
 	if common.HasValue(state.HostPrefix) {
 		network.HostPrefix(int(state.HostPrefix.ValueInt64()))
 	}
+	if common.BoolWithFalseDefault(state.NoCNI) {
+		network.Type("Other")
+	}
 	if !network.Empty() {
 		builder.Network(network)
 	}
@@ -1122,6 +1135,7 @@ func validateNoImmutableAttChange(state, plan *ClusterRosaHcpState) diag.Diagnos
 	common.ValidateStateAndPlanEquals(state.ServiceCIDR, plan.ServiceCIDR, "service_cidr", &diags)
 	common.ValidateStateAndPlanEquals(state.PodCIDR, plan.PodCIDR, "pod_cidr", &diags)
 	common.ValidateStateAndPlanEquals(state.HostPrefix, plan.HostPrefix, "host_prefix", &diags)
+	common.ValidateStateAndPlanEquals(state.NoCNI, plan.NoCNI, "no_cni", &diags)
 
 	// STS field validations
 	common.ValidateStateAndPlanEquals(state.Sts.RoleARN, plan.Sts.RoleARN, "sts.role_arn", &diags)
@@ -1910,6 +1924,14 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 		state.HostPrefix = types.Int64Value(int64(hostPrefix))
 	} else {
 		state.HostPrefix = types.Int64Null()
+	}
+	networkType, ok := object.Network().GetType()
+	if ok && networkType == "Other" {
+		state.NoCNI = types.BoolValue(true)
+	} else {
+		// Explicitly set false for clusters with default CNI to avoid plan/state
+		// drift (null vs false) that triggers "Attribute value cannot be changed"
+		state.NoCNI = types.BoolValue(false)
 	}
 	channel_group, ok := object.Version().GetChannelGroup()
 	if ok {

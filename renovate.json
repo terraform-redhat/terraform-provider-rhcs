@@ -1,0 +1,43 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Schedule: routine PRs only on weekends. Schedule is ignored for GitHub Dependabot vulnerability PRs.",
+  "extends": ["config:recommended"],
+  "commitMessagePrefix": "OCM-00000 | ",
+  "schedule": ["* * * * 0,6"],
+  "vulnerabilityAlerts": {
+    "enabled": true
+  },
+  "labels": ["ok-to-test"],
+  "packageRules": [
+    {
+      "description": "HashiCorp Terraform plugin stack",
+      "groupName": "hashicorp-terraform",
+      "matchManagers": ["gomod"],
+      "matchPackagePrefixes": ["github.com/hashicorp/"]
+    },
+    {
+      "description": "AWS SDK v2 and smithy",
+      "groupName": "aws-sdk",
+      "matchManagers": ["gomod"],
+      "matchPackagePrefixes": ["github.com/aws/"]
+    },
+    {
+      "description": "OpenShift OCM libraries",
+      "groupName": "openshift-ocm",
+      "matchManagers": ["gomod"],
+      "matchPackagePrefixes": ["github.com/openshift-online/"]
+    },
+    {
+      "description": "Kubernetes client libraries",
+      "groupName": "kubernetes",
+      "matchManagers": ["gomod"],
+      "matchPackagePrefixes": ["k8s.io/", "sigs.k8s.io/"]
+    },
+    {
+      "description": "Test stack",
+      "groupName": "testing",
+      "matchManagers": ["gomod"],
+      "matchPackagePrefixes": ["github.com/onsi/", "go.uber.org/"]
+    }
+  ]
+}

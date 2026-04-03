@@ -10,9 +10,13 @@ import (
 var awsRegionRegexFmt = "(?:af|ap|ca|eu|me|sa|us)(?:-gov)?-(?:central|north|(?:north(?:east|west))|south|south(?:east|west)|east|west)-\\d+(?:[a-z]{1})?"
 var awsAccountIdRegexFmt = "\\d{12}"
 var zeroEgressDefaultDomainFmts = []*regexp.Regexp{
-	regexp.MustCompile(fmt.Sprintf("s3.dualstack.%s.amazonaws.com", awsRegionRegexFmt)),
-	regexp.MustCompile(fmt.Sprintf("sts.%s.amazonaws.com", awsRegionRegexFmt)),
-	regexp.MustCompile(fmt.Sprintf("%s.dkr.ecr.%s.amazonaws.com", awsAccountIdRegexFmt, awsRegionRegexFmt)),
+	regexp.MustCompile(fmt.Sprintf("^s3\\.dualstack\\.%s\\.amazonaws\\.com$", awsRegionRegexFmt)),
+	regexp.MustCompile(fmt.Sprintf("^\\.s3\\.%s\\.amazonaws\\.com$", awsRegionRegexFmt)),
+	regexp.MustCompile(fmt.Sprintf("^sts\\.%s\\.amazonaws\\.com$", awsRegionRegexFmt)),
+	regexp.MustCompile(fmt.Sprintf("^api\\.ecr\\.%s\\.amazonaws\\.com$", awsRegionRegexFmt)),
+	//nolint:lll
+	regexp.MustCompile(fmt.Sprintf("^\\.?%s\\.dkr\\.ecr\\.%s\\.amazonaws\\.com$", awsAccountIdRegexFmt, awsRegionRegexFmt)),
+	regexp.MustCompile(fmt.Sprintf("^\\.dkr\\.ecr\\.%s\\.amazonaws\\.com$", awsRegionRegexFmt)),
 }
 
 func RemoveNoProxyZeroEgressDefaultDomains(input string, separator string) string {

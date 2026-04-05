@@ -1,6 +1,6 @@
 module github.com/terraform-redhat/terraform-provider-rhcs
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/Masterminds/semver v1.5.0
@@ -75,7 +75,7 @@ require (
 	golang.org/x/net v0.44.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
-	golang.org/x/sys v0.36.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
 	k8s.io/klog/v2 v2.110.1 // indirect
 )
 
@@ -92,7 +92,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.6.1 // indirect
 	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
-	github.com/fatih/color v1.16.0 // indirect
+	github.com/fatih/color v1.19.0 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/goinggo/mapstructure v0.0.0-20140717182941-194205d9b4a9

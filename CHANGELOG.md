@@ -1,3 +1,9 @@
+## 1.7.6 (07 Apr, 2026)
+
+ENHANCEMENTS:
+ * Bug fixes
+   * Update no_proxy filter to match all zero egress default domains
+
 ## 1.7.5 (01 Apr, 2026)
 
 FEATURES:

@@ -12,7 +12,7 @@ print_commit_message_error() {
 $message
 Expected format: JIRA-12345 | <conventional-commit>
 Example: OCM-12345 | feat(scope): add support for foo
-Please check CONTRIBUTE.md for more details
+Please check CONTRIBUTING.md for more details
 EOF
 }
 

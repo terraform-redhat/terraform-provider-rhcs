@@ -1,0 +1,88 @@
+inheritance: true
+reviews:
+  path_instructions:
+    - path: "**/*.go"
+      instructions: |
+        - Follow Effective Go and Go Code Review Comments conventions.
+        - Verify imports and formatting are consistent with gofmt and repository rules.
+        - Check all errors are handled and wrapped with actionable context where needed.
+        - Flag variable shadowing, unnecessary nesting, and unclear naming.
+        - Prefer existing repository patterns over introducing new architecture.
+        - Ensure no secrets/tokens/credentials are hardcoded or logged.
+    - path: "provider/**/*.go"
+      instructions: |
+        - Review as Terraform Plugin Framework code (not legacy SDK patterns).
+        - Validate schema semantics for Required/Optional/Computed/Default and Sensitive flags.
+        - In Create/Update, ensure input comes from Plan; in Read, from State.
+        - Ensure response state never returns unknown values and RemoveResource is used only in Read for not-found.
+        - For nested blocks, verify required attributes are not partially populated.
+        - Prefer tflog for provider logging; avoid fmt.Print* debugging.
+        - Check import support consistency (ResourceWithImportState, ID validation) where applicable.
+    - path: "provider/clusterrosa/classic/**/*.go"
+      instructions: |
+        - Maintain classic implementation behavior and separation from HCP-specific logic.
+        - Call out parity risks where behavior should match HCP resources/data sources.
+    - path: "provider/clusterrosa/hcp/**/*.go"
+      instructions: |
+        - Maintain HCP implementation behavior and separation from classic-specific logic.
+        - Call out parity risks where behavior should match classic resources/data sources.
+    - path: "subsystem/**/*.go"
+      instructions: |
+        - Check subsystem tests follow existing patterns with TestServer handlers and Terraform runner flow.
+        - Verify behavior-changing code updates have corresponding subsystem coverage.
+    - path: "**/*_test.go"
+      instructions: |
+        - Prefer deterministic tests; avoid flaky timing/order dependencies.
+        - Match repository BDD style (Ginkgo/Gomega) and existing helper usage patterns.
+        - Ensure assertions cover behavior changes, not only happy paths.
+    - path: "Makefile"
+      instructions: |
+        - Keep targets aligned with CONTRIBUTING/README workflows (fmt, lint, build, pre-push-checks).
+        - Watch for tool version drift and duplicated version sources across go.mod, Dockerfiles, and Make variables.
+        - Confirm commands are reproducible and do not silently mutate module state in CI-critical paths.
+    - path: "**/Dockerfile"
+      instructions: |
+        - Prefer reproducible image builds; avoid mutating go.mod/go.sum during build unless that is an explicit, documented pattern.
+        - Keep Go/toolchain and install steps aligned with go.mod and Makefile (single source of truth).
+        - Flag hardcoded tool or base-image versions that will drift from the rest of the repo.
+        - No secrets, tokens, or credentials in layers, build args, or comments.
+    - path: "examples/**/*.tf"
+      instructions: |
+        - Match HashiCorp Terraform style for examples (formatting, naming, structure).
+        - Use provider/resource naming consistent with this repo (rhcs_*, realistic ROSA/OCM scenarios).
+        - No real secrets, tokens, ARNs of customer accounts, or kubeconfigs; use variables and placeholders.
+        - Call out when an example should be paired with updates under templates/ or registry docs if behavior or schema changed.
+    - path: "tests/**/*.tf"
+      instructions: |
+        - Match HashiCorp Terraform style; these files are formatted with terraform fmt like examples.
+        - No hardcoded credentials; keep test fixtures obviously non-production.
+        - Align resource blocks with provider schema and subsystem/e2e expectations.
+    - path: ".github/workflows/**/*.{yml,yaml}"
+      instructions: |
+        - Ensure workflow steps match repository make targets and verification gates (see CONTRIBUTING.md).
+        - Check pinned action versions and least-privilege permissions where possible.
+        - Flag CI changes that diverge from local pre-push checks or skip hooks unintentionally.
+        - Do not embed secrets in workflow YAML; use GitHub Actions secrets and OIDC patterns where applicable.
+        - For Go/Terraform jobs, ensure toolchain versions align with go.mod and documented prerequisites.
+    - path: "*.md"
+      instructions: |
+        - Verify documentation reflects current commands and version requirements from go.mod and Makefile.
+        - Keep wording actionable and consistent with provider terminology (ROSA, OCM, classic/HCP).
+    - path: "**/*.md"
+      instructions: |
+        - Do not duplicate checklists or command lists in AGENTS.md; refer to README.md, docs/, CONTRIBUTING.md, and .github/pull_request_template.md as the single sources of truth.
+  tools:
+    checkov:
+      enabled: true
+    golangci-lint:
+      enabled: true
+    hadolint:
+      enabled: true
+    markdownlint:
+      enabled: false
+    shellcheck:
+      enabled: true
+    tflint:
+      enabled: true
+    yamllint:
+      enabled: true

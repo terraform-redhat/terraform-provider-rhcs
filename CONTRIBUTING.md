@@ -6,7 +6,7 @@ It was targeted to developers who wish to help improve the provider, and does no
 Please read this document and follow this guide to ensure your contribution will be accepted as fast as possible.
 
 ## Contributing Code Guidelines
-To begin with, we appreciate your enthusiasm for contributing to RHCS Provider. 
+To begin with, we appreciate your enthusiasm for contributing to RHCS Provider.
 If you have any questions or uncertainties, feel free to reach out for help.
 
 ### 1. Report an issue
@@ -17,7 +17,7 @@ issue. If you find an open issue you have encountered and can provide additional
 Code contributions are done by opening a pull request (PR). Please be sure that your PR is linked to an open issue/feature-request.
 
 ### 2. Development Environment
-* [terraform](https://www.terraform.io/) - We are using the latest version of terraform (1.6.x)  
+* [terraform](https://www.terraform.io/) - We are using the latest version of terraform (1.6.x)
 * [golang](https://go.dev/) - use the version declared in `go.mod` (currently 1.24.x) to build the provider plugin
   - You also need to correctly setup a `GOPATH`, as well as adding `$GOPATH/bin` to your `$PATH`.
   - Fork and clone the repository to `$GOPATH/src/github.com/terraform-redhat/terraform-provider-rhcs` by the `git clone` command
@@ -58,7 +58,7 @@ The hooks perform:
 - check runs are fail-fast: execution stops at the first failing step
 
 ### 4. Test your changes and use the CI (Pre Merge)
-We are holding three types of tests that must pass for a PR to finally be accepted and merged: 
+We are holding three types of tests that must pass for a PR to finally be accepted and merged:
 * `unit-tests` - for testing a small unit of resource or data source functionality [here is an example of cluster_rosa_classic unit-tests](provider/clusterrosa/classic/cluster_rosa_classic_resource_test.go)
 * `subsystem test` - write a test that describing what you will fix and locate it in the [subsystem test directory](subsystem).
 * `end-to-end tests` - those tests simulate a real resources and run in official OpenShift CI platform.
@@ -76,7 +76,7 @@ make pre-push-checks   # exact non-mutating verification used by the pre-push ho
 Changed-files coverage is enforced through `make coverage-changed-files` using `gocovdiff` with an 80% threshold for changed Go files under `provider/` and `internal/`.
 
 ### 5. Manual testing and debugging using the locally compiled RHCS Provider binary
-Manual testing should be performed before opening a PR in order to make sure there isn't any regression behavior in the provider. You can find [here an example for that](https://github.com/terraform-redhat/terraform-rhcs-rosa/tree/main/examples/rosa-classic-public-with-unmanaged-oidc) 
+Manual testing should be performed before opening a PR in order to make sure there isn't any regression behavior in the provider. You can find [here an example for that](https://github.com/terraform-redhat/terraform-rhcs-rosa/tree/main/examples/rosa-classic-public-with-unmanaged-oidc)
 After compiling the RHCS provider, debugging terraform provider can be difficult. But here are a some tips to make your life easier.
 
 First, Make sure you are using your local build of the provider. `make install` will compile the project and place the binary in the local `~/.terraform/` folder.
@@ -91,11 +91,11 @@ terraform {
   }
 }
 ```
-Use the `tflog` for println debugging: 
+Use the `tflog` for println debugging:
 ```go
     tflog.Debug(ctx, msg)
 ```
-Set environment variable `TF_LOG` to one of the log levels (`TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`). This will result in a more verbose output that can help you identify issues. 
+Set environment variable `TF_LOG` to one of the log levels (`TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`). This will result in a more verbose output that can help you identify issues.
 
 ### 6. Commit Messages
 
@@ -154,4 +154,4 @@ git-cliff v1.7.2..v1.7.3 --prepend CHANGELOG.md
 * [OpenShift Cluster Management API](https://api.openshift.com/) - Since the RHCS provider uses OpenShift APIs.
 * [Terraform Plugin Framework](https://developer.hashicorp.com/terraform/plugin/framework) documentation. RHCS provider is leveraging this framework heavily.
 * [Debugging Terraform](https://developer.hashicorp.com/terraform/internals/debugging) - More info about Terraform Logging and Debugging
-* [Terraform Language Documentation](https://developer.hashicorp.com/terraform/language) - Information about Terraform (resources and data sources for example) can be found in the
+* [Terraform Language Documentation](https://developer.hashicorp.com/terraform/language) - Information about Terraform resources and data sources.

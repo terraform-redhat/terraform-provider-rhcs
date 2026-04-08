@@ -1,12 +1,12 @@
 ---
-description: Go coding standards — Effective Go, Code Review Comments, CONTRIBUTE.md.
+description: Go coding standards — Effective Go, Code Review Comments, CONTRIBUTING.md.
 globs: "**/*.go"
 alwaysApply: false
 ---
 
 # Go — Review Checklist
 
-Follow [Effective Go](https://go.dev/doc/effective_go), [Code Review Comments](https://go.dev/wiki/CodeReviewComments), and [CONTRIBUTE.md](../CONTRIBUTE.md). 
+Follow [Effective Go](https://go.dev/doc/effective_go), [Code Review Comments](https://go.dev/wiki/CodeReviewComments), and [CONTRIBUTING.md](../CONTRIBUTING.md). 
 
 ---
 
@@ -72,6 +72,6 @@ Follow [Effective Go](https://go.dev/doc/effective_go), [Code Review Comments](h
 
 ---
 
-## Project (CONTRIBUTE.md)
+## Project (CONTRIBUTING.md)
 
 - Go 1.21.x. `make build`; `go mod download` after dependency changes.

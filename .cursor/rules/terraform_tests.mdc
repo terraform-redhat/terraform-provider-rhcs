@@ -14,7 +14,7 @@ alwaysApply: false
 
 - **New resource or data source:** Add at least one subsystem test under `subsystem/classic/` or `subsystem/hcp/` that exercises the main flow (e.g. apply/plan/read/destroy) using the shared framework (`TestServer`, `Terraform` runner). Optionally add a test for a key error path.
 - **Behavior-changing changes:** When changing CRUD behavior, validation, or state shape, add or update subsystem tests that cover the changed behavior. Not required for docs-only or refactor-only changes.
-- Use the existing pattern: stub the API with `TestServer.AppendHandlers`, set HCL with `Terraform.Source`, run `Terraform.Apply()` (or Plan/Destroy), assert on exit code and state with `Terraform.Resource()` and Gomega matchers. See CONTRIBUTE.md and existing tests in `subsystem/` for the test layout.
+- Use the existing pattern: stub the API with `TestServer.AppendHandlers`, set HCL with `Terraform.Source`, run `Terraform.Apply()` (or Plan/Destroy), assert on exit code and state with `Terraform.Resource()` and Gomega matchers. See CONTRIBUTING.md and existing tests in `subsystem/` for the test layout.
 
 ---
 

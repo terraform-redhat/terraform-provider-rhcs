@@ -605,6 +605,58 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 		})
 	})
 
+	Context("no_cni / network type", func() {
+		It("Sets network type to Other when no_cni is true", func() {
+			clusterState := generateBasicRosaHcpClusterState()
+			clusterState.NoCNI = types.BoolValue(true)
+			rosaClusterObject, err := createHcpClusterObject(context.Background(), clusterState, diag.Diagnostics{})
+			Expect(err).ToNot(HaveOccurred())
+
+			networkType, ok := rosaClusterObject.Network().GetType()
+			Expect(ok).To(BeTrue())
+			Expect(networkType).To(Equal("Other"))
+		})
+		It("Does not set network type when no_cni is false", func() {
+			clusterState := generateBasicRosaHcpClusterState()
+			clusterState.NoCNI = types.BoolValue(false)
+			rosaClusterObject, err := createHcpClusterObject(context.Background(), clusterState, diag.Diagnostics{})
+			Expect(err).ToNot(HaveOccurred())
+
+			_, ok := rosaClusterObject.Network().GetType()
+			Expect(ok).To(BeFalse())
+		})
+		It("Populates NoCNI as false when network type is not Other", func() {
+			clusterState := &ClusterRosaHcpState{}
+			clusterJson := generateBasicRosaHcpClusterJson()
+			clusterJson["network"] = map[string]interface{}{
+				"type": "OVNKubernetes",
+			}
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)).To(Succeed())
+
+			Expect(clusterState.NoCNI.ValueBool()).To(BeFalse())
+		})
+		It("Populates NoCNI as true when network type is Other", func() {
+			clusterState := &ClusterRosaHcpState{}
+			clusterJson := generateBasicRosaHcpClusterJson()
+			clusterJson["network"] = map[string]interface{}{
+				"type": "Other",
+			}
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)).To(Succeed())
+
+			Expect(clusterState.NoCNI.ValueBool()).To(BeTrue())
+		})
+	})
+
 	Context("STS Trust Policy External ID", func() {
 		It("Should support trust_policy_external_id in HcpSts struct", func() {
 			stsConfig := sts.HcpSts{

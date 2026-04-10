@@ -15,7 +15,6 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
-	exe "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
@@ -615,7 +614,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		validTags := map[string]string{
 			"tagsKey": "tagValue",
 		}
-		mpArgs := &exe.MachinePoolArgs{
+		mpArgs := &exec.MachinePoolArgs{
 			Cluster:     helper.StringPointer(clusterID),
 			Replicas:    helper.IntPointer(replicas),
 			MachineType: helper.StringPointer(machineType),
@@ -687,7 +686,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 	It("will validate well - [id:63139]", ci.Medium, func() {
 		By("Will validate the subnet")
-		mpArgs := &exe.MachinePoolArgs{
+		mpArgs := &exec.MachinePoolArgs{
 			Cluster:     helper.StringPointer(clusterID),
 			Replicas:    helper.IntPointer(0),
 			MachineType: helper.StringPointer("m5.xlarge"),
@@ -699,7 +698,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		Expect(output).Should(ContainSubstring("Failed to find subnet"))
 
 		By("Will validate the instance type")
-		mpArgs = &exe.MachinePoolArgs{
+		mpArgs = &exec.MachinePoolArgs{
 			Cluster:     helper.StringPointer(clusterID),
 			Replicas:    helper.IntPointer(0),
 			MachineType: helper.StringPointer("invalid"),
@@ -717,7 +716,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		machineType := "r5.xlarge"
 		name := "mp-73942"
 
-		mpArgs = &exe.MachinePoolArgs{
+		mpArgs = &exec.MachinePoolArgs{
 			Cluster:     helper.StringPointer(clusterID),
 			Replicas:    helper.IntPointer(replicas),
 			MachineType: helper.StringPointer(machineType),

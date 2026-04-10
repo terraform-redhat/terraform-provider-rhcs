@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclwrite"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
-	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
+	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log" //nolint:staticcheck
 )
 
 const tfVarsFilenameTemplate = "terraform.%s.tfvars"
@@ -109,7 +109,7 @@ func (ctx *terraformExecutorContext) RunTerraformApply(argObj interface{}) (stri
 		DeleteTFvarsFile(tempFile)
 		err = ctx.WriteTerraformVars(argObj)
 	} else {
-		err = fmt.Errorf(RedactString(err.Error()))
+		err = fmt.Errorf("%s", RedactString(err.Error()))
 	}
 	return output, err
 }
@@ -133,7 +133,7 @@ func (ctx *terraformExecutorContext) RunTerraformDestroy() (output string, err e
 	if err == nil {
 		ctx.DeleteTerraformVars()
 	} else {
-		err = fmt.Errorf(RedactString(err.Error()))
+		err = fmt.Errorf("%s", RedactString(err.Error()))
 	}
 	return
 }

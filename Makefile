@@ -38,8 +38,6 @@ LOCALBIN_ABS := $(abspath $(LOCALBIN))
 RUN_CHECKS_SCRIPT := ./hack/run-checks.sh
 
 GCI_VERSION ?= v0.13.4
-GINKGO_VERSION ?= v2.17.1
-MOCKGEN_VERSION ?= v0.4.0
 GOLANGCI_LINT_VERSION ?= v2.6.1
 
 GCI := $(LOCALBIN)/gci$(BIN_EXT)
@@ -49,7 +47,7 @@ GOLANGCI_LINT := $(LOCALBIN)/golangci-lint$(BIN_EXT)
 
 LINT_OUTPUT_FLAGS ?=
 GO_SOURCE_TARGETS := main.go build internal logging provider subsystem tests tools
-LINT_TARGETS := ./ ./build/... ./internal/... ./logging/... ./provider/...
+LINT_TARGETS := ./ ./build/... ./internal/... ./logging/... ./provider/... ./tests/...
 
 # Import path of the project:
 import_path:=github.com/terraform-redhat/terraform-provider-rhcs
@@ -74,10 +72,12 @@ $(GCI): | $(LOCALBIN)
 	GOBIN="$(LOCALBIN_ABS)" go install github.com/daixiang0/gci@$(GCI_VERSION)
 
 $(GINKGO): | $(LOCALBIN)
-	GOBIN="$(LOCALBIN_ABS)" go install github.com/onsi/ginkgo/v2/ginkgo@$(GINKGO_VERSION)
+	# resolve tool version from go.mod
+	GOBIN="$(LOCALBIN_ABS)" go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo
 
 $(MOCKGEN): | $(LOCALBIN)
-	GOBIN="$(LOCALBIN_ABS)" go install go.uber.org/mock/mockgen@$(MOCKGEN_VERSION)
+	# resolve tool version from go.mod
+	GOBIN="$(LOCALBIN_ABS)" go install -mod=mod go.uber.org/mock/mockgen
 
 $(GOLANGCI_LINT): | $(LOCALBIN)
 	GOBIN="$(LOCALBIN_ABS)" go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)

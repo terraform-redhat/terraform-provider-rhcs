@@ -114,6 +114,7 @@ Use the Terraform Plugin Framework only (not the deprecated SDK). Apply this che
 - Use **RequiresReplace()** when an attribute change forces replacement.
 - Use **RequiresReplaceIf()** or **RequiresReplaceIfConfigured()** when replacement is conditional.
 - Use **UseStateForUnknown()** for computed attributes that do not change after creation.
+- For **child attributes inside nested blocks** where Optional+Computed may stay unset while the API still returns a value, prefer **UseNonNullStateForUnknown()** (terraform-plugin-framework ≥1.17): **UseStateForUnknown()** from v1.15.1 onward also preserves `null` from prior state and can produce plan/apply inconsistency in that pattern (see framework release notes / #1197).
 - Do not rely on prior state in attribute plan modifiers under list/set nested attributes or blocks when elements can be reordered or removed; Terraform does not re-align prior state by index.
 - In custom plan modifiers, check `req.State.Raw.IsNull()` for create and `req.Plan.Raw.IsNull()` for destroy; keep response plan null when request plan is null on destroy.
 - Ensure plan modifier logic obeys Terraform data consistency rules (e.g. do not change a configured value in the plan except to null on destroy).

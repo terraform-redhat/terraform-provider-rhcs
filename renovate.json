@@ -3,7 +3,12 @@
   "description": "Schedule: routine PRs only on weekends. Schedule is ignored for GitHub Dependabot vulnerability PRs.",
   "extends": ["config:recommended"],
   "commitMessagePrefix": "OCM-00000 | ",
-  "schedule": ["* * * * 0,6"],
+  "prConcurrentLimit": 10,
+  "prHourlyLimit": 0,
+  "reviewersFromCodeOwners": true,
+  "tekton": {
+    "schedule": ["at any time"]
+  },
   "dependencyDashboard": true,
   "minimumReleaseAge": "3 days",
   "vulnerabilityAlerts": {

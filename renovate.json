@@ -4,7 +4,7 @@
   "extends": [
     "config:recommended"
   ],
-  "commitMessagePrefix": "OCM-00000 | ",
+  "commitMessagePrefix": "OCM-00000 | ci: ",
   "prConcurrentLimit": 10,
   "prHourlyLimit": 0,
   "reviewersFromCodeOwners": true,

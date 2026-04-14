@@ -1,6 +1,5 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "description": "Schedule: routine PRs only on weekends. Schedule is ignored for GitHub Dependabot vulnerability PRs.",
   "extends": [
     "config:recommended"
   ],
@@ -12,6 +11,11 @@
     "schedule": [
       "at any time"
     ]
+  },
+  "gomod": {
+        "postUpdateOptions": [
+            "gomodTidy"
+        ]
   },
   "dependencyDashboard": true,
   "minimumReleaseAge": "3 days",
@@ -72,6 +76,23 @@
       "matchPackageNames": [
         "github.com/onsi/{/,}**",
         "go.uber.org/{/,}**"
+      ]
+    },
+    {
+      "description": "Helpers libraries",
+      "groupName": "helpers",
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchPackageNames": [
+        "github.com/Masterminds/semver",
+        "github.com/pkg/errors",
+        "github.com/segmentio/ksuid",
+        "github.com/sirupsen/logrus",
+        "github.com/thoas/go-funk",
+        "github.com/zgalor/weberr",
+        "gopkg.in/yaml.v2",
+        "gopkg.in/yaml.v3"
       ]
     }
   ]

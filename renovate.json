@@ -14,9 +14,21 @@
   },
   "gomod": {
         "postUpdateOptions": [
+            "gomodUpdateImportPaths",
             "gomodTidy"
+        ],
+        "packageRules": [
+            {
+                "matchManagers": [
+                    "gomod"
+                ],
+                "matchDepTypes": [
+                    "indirect"
+                ],
+                "enabled": false
+            }
         ]
-  },
+    },
   "dependencyDashboard": true,
   "minimumReleaseAge": "3 days",
   "vulnerabilityAlerts": {

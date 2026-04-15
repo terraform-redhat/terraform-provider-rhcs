@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"slices"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

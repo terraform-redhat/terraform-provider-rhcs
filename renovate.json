@@ -40,6 +40,13 @@
   ],
   "packageRules": [
     {
+      "description": "Enable automerge Konflux tekton task updates",
+      "matchManagers": [
+        "tekton"
+       ],
+      "automerge": true
+    },
+    {
       "description": "HashiCorp Terraform plugin stack",
       "groupName": "hashicorp-terraform",
       "matchManagers": [

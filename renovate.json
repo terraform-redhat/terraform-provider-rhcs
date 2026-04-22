@@ -1,50 +1,119 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "description": "Schedule: routine PRs only on weekends. Schedule is ignored for GitHub Dependabot vulnerability PRs.",
-  "extends": ["config:recommended"],
-  "commitMessagePrefix": "OCM-00000 | ",
+  "extends": [
+    "config:recommended",
+    ":gitSignOff"
+  ],
+  "commitMessagePrefix": "OCM-00000 | ci: ",
   "prConcurrentLimit": 10,
   "prHourlyLimit": 0,
   "reviewersFromCodeOwners": true,
   "tekton": {
-    "schedule": ["at any time"]
+    "schedule": [
+      "at any time"
+    ]
   },
+  "gomod": {
+        "postUpdateOptions": [
+            "gomodUpdateImportPaths",
+            "gomodTidy"
+        ],
+        "packageRules": [
+            {
+                "matchManagers": [
+                    "gomod"
+                ],
+                "matchDepTypes": [
+                    "indirect"
+                ],
+                "enabled": false
+            }
+        ]
+    },
   "dependencyDashboard": true,
   "minimumReleaseAge": "3 days",
   "vulnerabilityAlerts": {
     "enabled": true
   },
-  "labels": ["ok-to-test"],
+  "labels": [
+    "ok-to-test"
+  ],
   "packageRules": [
+    {
+      "description": "Enable automerge Konflux tekton task updates",
+      "matchManagers": [
+        "tekton"
+       ],
+      "automerge": true
+    },
     {
       "description": "HashiCorp Terraform plugin stack",
       "groupName": "hashicorp-terraform",
-      "matchManagers": ["gomod"],
-      "matchPackagePrefixes": ["github.com/hashicorp/"]
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchPackageNames": [
+        "github.com/hashicorp/{/,}**"
+      ]
     },
     {
       "description": "AWS SDK v2 and smithy",
       "groupName": "aws-sdk",
-      "matchManagers": ["gomod"],
-      "matchPackagePrefixes": ["github.com/aws/"]
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchPackageNames": [
+        "github.com/aws/{/,}**"
+      ]
     },
     {
       "description": "OpenShift OCM libraries",
       "groupName": "openshift-ocm",
-      "matchManagers": ["gomod"],
-      "matchPackagePrefixes": ["github.com/openshift-online/"]
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchPackageNames": [
+        "github.com/openshift-online/{/,}**"
+      ]
     },
     {
       "description": "Kubernetes client libraries",
       "groupName": "kubernetes",
-      "matchManagers": ["gomod"],
-      "matchPackagePrefixes": ["k8s.io/", "sigs.k8s.io/"]
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchPackageNames": [
+        "k8s.io/{/,}**",
+        "sigs.k8s.io/{/,}**"
+      ]
     },
     {
       "description": "Test stack",
       "groupName": "testing",
-      "matchManagers": ["gomod"],
-      "matchPackagePrefixes": ["github.com/onsi/", "go.uber.org/"]
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchPackageNames": [
+        "github.com/onsi/{/,}**",
+        "go.uber.org/{/,}**"
+      ]
+    },
+    {
+      "description": "Helpers libraries",
+      "groupName": "helpers",
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchPackageNames": [
+        "github.com/Masterminds/semver",
+        "github.com/pkg/errors",
+        "github.com/segmentio/ksuid",
+        "github.com/sirupsen/logrus",
+        "github.com/thoas/go-funk",
+        "github.com/zgalor/weberr",
+        "gopkg.in/yaml.v2",
+        "gopkg.in/yaml.v3"
+      ]
     }
   ]
 }

@@ -3,6 +3,7 @@ package types
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -43,11 +44,12 @@ type BaseCluster struct {
 }
 
 // getAndValidateVersionInChannelGroup ensures that the cluster version is
-// available in the channel group
+// available in the channel group or optionally filtered by a specific channel stream.
+// Pass the channel as the last optional parameter to filter by a specific channel (e.g., "stable-4.10").
 func (b *BaseCluster) GetAndValidateVersionInChannelGroup(ctx context.Context,
 	topology ClusterTopology,
-	stateChannelGroup string, stateVersion string) (string, error) {
-	versionList, err := b.getVersionList(ctx, topology, stateChannelGroup)
+	stateChannelGroup string, stateVersion string, optionalChannel ...string) (string, error) {
+	versionList, err := b.getVersionList(ctx, topology, stateChannelGroup, optionalChannel...)
 	if err != nil {
 		return "", err
 	}
@@ -58,28 +60,52 @@ func (b *BaseCluster) GetAndValidateVersionInChannelGroup(ctx context.Context,
 	}
 
 	tflog.Debug(ctx, fmt.Sprintf("Validating if cluster version %s is in the list of supported versions: %v", version, versionList))
-	for _, v := range versionList {
-		if v == version {
-			return version, nil
-		}
+	if slices.Contains(versionList, version) {
+		return version, nil
 	}
 
 	return "", fmt.Errorf("version %s is not in the list of supported versions: %v", version, versionList)
 }
 
+// filterByAvailableChannel filters versions to only those that support the specified channel
+func filterByAvailableChannel(versions []*cmv1.Version, channel string) (filtered []*cmv1.Version) {
+	for _, v := range versions {
+		if slices.Contains(v.AvailableChannels(), channel) {
+			filtered = append(filtered, v)
+		}
+	}
+	return filtered
+}
+
+// convertVersionsToList converts Version objects to a list of version strings
+func convertVersionsToList(versions []*cmv1.Version) (versionList []string) {
+	for _, v := range versions {
+		versionList = append(versionList, v.RawID())
+	}
+	return versionList
+}
+
 // getVersionList returns a list of versions for the given channel group, sorted by
-// descending semver
+// descending semver. Optionally filters by a specific channel if provided.
 func (b *BaseCluster) getVersionList(ctx context.Context,
-	topology ClusterTopology, channelGroup string) (versionList []string, err error) {
+	topology ClusterTopology, channelGroup string, optionalChannel ...string) (versionList []string, err error) {
 	vs, err := b.getVersions(ctx, topology, channelGroup)
 	if err != nil {
 		err = fmt.Errorf("Failed to retrieve versions: %s", err)
 		return
 	}
 
-	for _, v := range vs {
-		versionList = append(versionList, v.RawID())
+	// Filter by specific channel if provided (e.g., "stable-4.10")
+	if len(optionalChannel) > 0 && optionalChannel[0] != "" {
+		stateChannel := optionalChannel[0]
+		vs = filterByAvailableChannel(vs, stateChannel)
+		if len(vs) == 0 {
+			err = fmt.Errorf("no versions found for channel %s", stateChannel)
+			return
+		}
 	}
+
+	versionList = convertVersionsToList(vs)
 
 	if len(versionList) == 0 {
 		err = fmt.Errorf("Could not find versions")

@@ -237,6 +237,14 @@ e2e_test: $(GINKGO) install
         --focus-file tests/e2e/.* \
 		$(NULL)
 
+.PHONY: non_cluster_e2e_test
+non_cluster_e2e_test: $(GINKGO) install
+	$(GINKGO) run \
+        --timeout 1h \
+        -r \
+        --focus-file tests/non_cluster_e2e/.* \
+		$(NULL)
+
 .PHONY: coverage-changed-files
 coverage-changed-files:
 	./hack/coverage-changed-files.sh

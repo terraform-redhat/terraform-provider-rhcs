@@ -21,11 +21,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2/dsl/core"             // nolint
 	. "github.com/onsi/gomega"                         // nolint
@@ -33,12 +35,88 @@ import (
 	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
 )
 
-// All tests will use this API TestServer and Terraform runner:
+// Legacy global variables - deprecated, use TestContext instead
 var (
 	TestServer *Server
 	Terraform  *TerraformRunner
 	TestingT   *testing.T
 )
+
+// TestContext holds the test fixtures for a single test run
+type TestContext struct {
+	Server               *Server
+	Terraform            *TerraformRunner
+	expectedHandlerCount int
+}
+
+// NewTestContext creates a new test context with server and Terraform runner
+func NewTestContext() *TestContext {
+	// Create the server
+	server, ca := MakeTCPTLSServer()
+
+	// Create an access token
+	token := MakeTokenString("Bearer", 10*time.Minute)
+
+	// Create the runner
+	terraform := NewTerraformRunner().
+		URL(server.URL()).
+		CA(ca).
+		Token(token).
+		Build()
+
+	return &TestContext{
+		Server:               server,
+		Terraform:            terraform,
+		expectedHandlerCount: 0,
+	}
+}
+
+// AppendHandlers appends handlers to the test server and tracks the count
+// so we can verify all handlers were consumed during test cleanup
+func (tc *TestContext) AppendHandlers(handlers ...http.HandlerFunc) {
+	tc.Server.AppendHandlers(handlers...)
+	tc.expectedHandlerCount += len(handlers)
+}
+
+// VerifyAllHandlersConsumed checks that all appended handlers were called
+// This should be called in AfterEach
+func (tc *TestContext) VerifyAllHandlersConsumed() {
+	if tc.expectedHandlerCount > 0 {
+		actualCount := len(tc.Server.ReceivedRequests())
+		ExpectWithOffset(1, actualCount).To(Equal(tc.expectedHandlerCount),
+			"Expected all %d appended handlers to be consumed, but only %d requests were received",
+			tc.expectedHandlerCount, actualCount)
+		tc.expectedHandlerCount = 0 // Reset for next test
+	}
+}
+
+// Close releases all resources used by the test context
+func (tc *TestContext) Close() {
+	tc.Server.Close()
+	tc.Terraform.Close()
+}
+
+// Legacy functions for backward compatibility - deprecated
+var expectedHandlerCount int
+
+func AppendHandlersWithVerification(handlers ...http.HandlerFunc) {
+	TestServer.AppendHandlers(handlers...)
+	expectedHandlerCount += len(handlers)
+}
+
+func VerifyAllHandlersConsumed() {
+	if expectedHandlerCount > 0 {
+		actualCount := len(TestServer.ReceivedRequests())
+		ExpectWithOffset(1, actualCount).To(Equal(expectedHandlerCount),
+			"Expected all %d appended handlers to be consumed, but only %d requests were received",
+			expectedHandlerCount, actualCount)
+		expectedHandlerCount = 0
+	}
+}
+
+func ResetHandlerCount() {
+	expectedHandlerCount = 0
+}
 
 // TerraformRunnerBuilder contains the data and logic needed to build a terraform runner.
 type TerraformRunnerBuilder struct {

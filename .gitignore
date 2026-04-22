@@ -1,3 +1,6 @@
+# macOS
+**/.DS_Store
+
 *.log
 .idea/*
 .terraform*
@@ -14,3 +17,6 @@ terraform-provider-rhcs
 /temp
 **/*.test
 coverage.out
+
+# For envs with direnv allowing to separate env vars from global
+.envrc

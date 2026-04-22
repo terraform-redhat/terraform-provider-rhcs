@@ -6,7 +6,7 @@ require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/aws/aws-sdk-go-v2 v1.41.5
 	github.com/aws/aws-sdk-go-v2/config v1.32.14
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.296.2
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.297.0
 	github.com/aws/aws-sdk-go-v2/service/iam v1.53.7
 	github.com/aws/smithy-go v1.24.3
 	github.com/hashicorp/go-version v1.9.0
@@ -19,7 +19,7 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk v1.17.2
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
-	github.com/openshift-online/ocm-common v0.0.38
+	github.com/openshift-online/ocm-common v0.0.39
 	github.com/openshift-online/ocm-sdk-go v0.1.499
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.4

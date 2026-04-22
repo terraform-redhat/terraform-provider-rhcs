@@ -51,6 +51,7 @@ Use the `fips` attribute from this data source to confirm whether FIPS was enabl
 - `aws_billing_account_id` (String) Identifier of the AWS account for billing. After the creation of the resource, it is not possible to update the attribute value.
 - `aws_subnet_ids` (List of String) AWS subnet IDs. After the creation of the resource, it is not possible to update the attribute value.
 - `base_dns_domain` (String) Base DNS domain name previously reserved, e.g. '1vo8.p3.openshiftapps.com'. After the creation of the resource, it is not possible to update the attribute value.
+- `channel` (String) Y-stream specific channel for the cluster version (e.g., 'stable-4.16'). Indicates which channel the cluster version is currently using.
 - `channel_group` (String) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `cloud_region` (String) Cloud region identifier, for example 'us-east-1'.
 - `compute_machine_type` (String) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource

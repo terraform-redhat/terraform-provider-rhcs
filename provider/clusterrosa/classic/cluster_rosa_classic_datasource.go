@@ -212,6 +212,11 @@ func (r *ClusterRosaClassicDatasource) Schema(ctx context.Context, req datasourc
 				Description: "Length of the prefix of the subnet assigned to each node. " + common.ValueCannotBeChangedStringDescription,
 				Computed:    true,
 			},
+			"channel": schema.StringAttribute{
+				Description: "Y-stream specific channel for the cluster version (e.g., 'stable-4.16'). " +
+					"Indicates which channel the cluster version is currently using.",
+				Computed: true,
+			},
 			"current_version": schema.StringAttribute{
 				Description: "The currently running version of OpenShift on the cluster, for example '4.11.0'.",
 				Computed:    true,

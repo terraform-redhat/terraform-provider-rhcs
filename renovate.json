@@ -1,7 +1,8 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    ":gitSignOff"
   ],
   "commitMessagePrefix": "OCM-00000 | ci: ",
   "prConcurrentLimit": 10,
@@ -38,6 +39,13 @@
     "ok-to-test"
   ],
   "packageRules": [
+    {
+      "description": "Enable automerge Konflux tekton task updates",
+      "matchManagers": [
+        "tekton"
+       ],
+      "automerge": true
+    },
     {
       "description": "HashiCorp Terraform plugin stack",
       "groupName": "hashicorp-terraform",

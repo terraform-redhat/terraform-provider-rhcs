@@ -1,0 +1,5 @@
+# Misconfiguration IDs to skip — see https://trivy.dev/latest/docs/configuration/filtering/
+# Prefer `#trivy:ignore:<ID>` on Terraform resources; use this file when required (e.g. Dockerfile).
+
+# Release image: ubi-micro stage has no non-root USER by design (static provider binaries in /releases).
+DS-0002

@@ -74,6 +74,8 @@ reviews:
   tools:
     checkov:
       enabled: true
+    gitleaks:
+      enabled: true
     golangci-lint:
       enabled: true
     hadolint:
@@ -83,6 +85,8 @@ reviews:
     shellcheck:
       enabled: true
     tflint:
+      enabled: true
+    trivy:
       enabled: true
     yamllint:
       enabled: true

@@ -97,6 +97,16 @@ Stop and request explicit human review before merge when any of the following oc
 - Security-sensitive behavior changes (auth, token handling, trust bundles, proxy behavior, logging of request/response data).
 - CI failures suggest cross-repo or infrastructure issues rather than isolated code defects.
 
+## Trivy (IaC misconfiguration)
+
+Repo config: root **`trivy.yaml`** (severity, scanners, skips; Terraform under **`examples/`**, **`tests/`**, **`generate_example_usages/`**, and root **`Dockerfile`**). CodeRabbit may run Trivy when enabled in **`.coderabbit.yaml`**. References: [Trivy config file](https://trivy.dev/latest/docs/references/configuration/config-file/), [filtering / ignores](https://trivy.dev/latest/docs/configuration/filtering/).
+
+When **`trivy config`** reports a **misconfiguration** (check IDs like **`AWS-0104`**, **`DS-0002`** — not CVE vulnerability rows from **`trivy fs`** vuln scans):
+
+1. **Prefer fixing** the HCL/Dockerfile (least privilege, encryption, IMDSv2, non-root user, etc.).
+2. If an ignore is required, add **`#trivy:ignore:<id>`** on the line **immediately above** the Terraform resource or Dockerfile instruction, with a **short `#` comment** on the same line or the line above explaining why (narrow scope).
+3. Use **`.trivyignore`** only when inline suppression is not possible — one ID per line with a **`#` justification** above each.
+
 ## Use existing patterns first
 
 Before introducing new structure, identify and reuse:

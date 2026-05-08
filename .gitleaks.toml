@@ -1,0 +1,16 @@
+# Gitleaks — https://github.com/gitleaks/gitleaks/blob/master/README.md
+# Used by CodeRabbit when gitleaks is enabled (.coderabbit.yaml) and by CI/local
+# `gitleaks detect`. Extends upstream default rules.
+#
+# **/*.tftest.hcl harnesses may use mocks/placeholders — not live credentials.
+
+title = "terraform-provider-rhcs"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Terraform CLI test configs may contain mock tokens/placeholders."
+paths = [
+  '''\.tftest''',
+]

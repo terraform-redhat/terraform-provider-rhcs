@@ -1,0 +1,32 @@
+---
+# Trivy — static IaC misconfiguration for this RHCS Terraform provider repo.
+# Used with `trivy config --config trivy.yaml .` and by CodeRabbit when Trivy
+# is enabled (see .coderabbit.yaml). Scans Terraform under **examples/**,
+# **tests/**, **generate_example_usages/**, plus the root **Dockerfile**.
+# Prefer inline `#trivy:ignore:<ID>` on the flagged resource (see AGENTS.md);
+# repo-wide `.trivyignore` only as a last resort.
+#
+# https://trivy.dev/latest/docs/references/configuration/config-file/
+# https://trivy.dev/latest/docs/configuration/filtering/
+# Parser WARNs about missing var values are normal for partial fixtures.
+
+# Match ROSA module repos’ signal level; suppress MEDIUM/LOW/UNKNOWN noise.
+severity:
+  - CRITICAL
+  - HIGH
+
+scan:
+  skip-dirs:
+    - "**/.terraform"
+  skip-files:
+    - "**/*.tfvars"
+    - "**/*.tfvars.json"
+    - "**/*.auto.tfvars"
+    - "**/*.auto.tfvars.json"
+  scanners:
+    - misconfig
+
+misconfiguration:
+  scanners:
+    - terraform
+    - dockerfile

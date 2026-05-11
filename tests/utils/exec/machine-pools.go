@@ -39,6 +39,7 @@ type MachinePoolArgs struct {
 	OpenshiftVersion           *string   `hcl:"openshift_version"`
 	AutoRepair                 *bool     `hcl:"auto_repair"`
 	KubeletConfigs             *string   `hcl:"kubelet_configs"`
+	NodeDrainGracePeriod       *int      `hcl:"node_drain_grace_period"`
 }
 
 type MachinePoolsOutput struct {

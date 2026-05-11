@@ -101,3 +101,8 @@ variable "image_type" {
   type    = string
   default = null
 }
+
+variable "node_drain_grace_period" {
+  type    = number
+  default = null
+}

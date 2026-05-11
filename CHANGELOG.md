@@ -296,7 +296,7 @@ ENHANCEMENTS:
 ## 1.4.1 (Nov 20, 2023)
 ENHANCEMENTS:
 * Fix the error message of `private_hosted_zone` validator in `cluster_rosa_classic` resource  
-* Fix a bug in `identity_provider` resource from type openid - `cannot reflect tftypes.List[tftypes.String] into a map, must be a map` 
+* Fix a bug in `identity_provider` resource from type openid - `cannot reflect tftypes.List[tftypes.String] into a map, must be a map`
 
 ## 1.4.0 (Oct 19, 2023)
 FEATURES:
@@ -385,7 +385,7 @@ FEATURES:
 * Add update/remove taints from machine pool
 * Support edit/delete labels of secondary machine pool
 * Create new topics on Terraform vars and modifying machine pools.
-* Support upgrade cluster 
+* Support upgrade cluster
 
 ENHANCEMENTS:
 * Rename all resources prefix to start with `rhcs` (instead of `ocm`)
@@ -413,7 +413,7 @@ ENHANCEMENTS:
 
 ## 1.0.0 (April 4, 2023)
 ENHANCEMENTS:
-* Bug fixes - Validate that the cluster version is compatible to the selected account roles' version in `cluster_rosa_classic` resource 
+* Bug fixes - Validate that the cluster version is compatible to the selected account roles' version in `cluster_rosa_classic` resource
 
 ## 0.0.3 (Mar 28, 2023)
 FEATURES:
@@ -445,7 +445,7 @@ RESOURCES:
 * ocm_identity_provider
 * ocm_machine_pool
 
-DATA SOURCES: 
+DATA SOURCES:
 * ocm_cloud_providers
 * ocm_rosa_operator_roles
 * ocm_groups

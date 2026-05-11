@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-
-set -euo pipefail
-
-repo_root=$(git rev-parse --show-toplevel)
-bash "$repo_root/hack/pre-commit-hook.sh" "$@"

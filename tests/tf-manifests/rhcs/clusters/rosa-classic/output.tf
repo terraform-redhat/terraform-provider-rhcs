@@ -1,3 +1,6 @@
+# Copyright Red Hat
+# SPDX-License-Identifier: Apache-2.0
+
 output "cluster_id" {
   value = rhcs_cluster_rosa_classic.rosa_sts_cluster.id
 }

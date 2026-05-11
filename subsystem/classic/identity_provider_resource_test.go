@@ -1398,7 +1398,7 @@ var _ = Describe("Identity provider import", func() {
 	    "pod_cidr": "10.128.0.0/14",
 	    "host_prefix": 23
 	  },
-	  
+
 	  "version": {
 		  "id": "openshift-4.8.0"
 	  },

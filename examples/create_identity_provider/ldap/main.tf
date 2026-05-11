@@ -39,4 +39,3 @@ resource "rhcs_identity_provider" "ldap_idp" {
     insecure = var.ldap_insecure
   }
 }
-

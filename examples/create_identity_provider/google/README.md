@@ -25,7 +25,7 @@ For example:
           ```
           export TF_VAR_google_client_secret=<google_client_secret>
           ```
-      1.  This value is your Google client ID. It can be found in the settings of your Google account.   
+      1.  This value is your Google client ID. It can be found in the settings of your Google account.  
           ```
           export TF_VAR_google_client_id=<client_id>
           ```
@@ -35,13 +35,13 @@ For example:
           ```
       1.  This variable is your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token) that you generated in the prerequisites.  
           ```
-          export TF_VAR_token=<ocm_offline_token> 
+          export TF_VAR_token=<ocm_offline_token>
           ```
       1.  This value should always point to `https://api.openshift.com`.
           ```
           export TF_VAR_url=<ocm_url>
           ```
-      1.  The ID of the cluster for which you are creating the identity provider. This ID can be found in the `rosa` command-line interface (CLI) with the command `rosa list cluster`. 
+      1.  The ID of the cluster for which you are creating the identity provider. This ID can be found in the `rosa` command-line interface (CLI) with the command `rosa list cluster`.
           ```
           export TF_VAR_cluster_id=<cluster_id>
           ```
@@ -54,7 +54,7 @@ For example:
    ````
    terraform plan -out google.tfplan
    ````
-1. Run the apply command to create your Google identity provider. 
+1. Run the apply command to create your Google identity provider.
 
    > **Note**: If you did not run the `plan` command, you can simply `apply` without specifying a file.
 
@@ -66,7 +66,7 @@ For example:
 ## Resource clean up
 
 After you are done with the resources you created, you should not delete them manually, but instead, use the `destroy` command. Run the following to delete all of your created resources:
-  
+
 ```
 terraform destroy
 ```

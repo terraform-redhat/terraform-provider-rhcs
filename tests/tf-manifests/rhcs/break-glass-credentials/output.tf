@@ -1,3 +1,6 @@
+# Copyright Red Hat
+# SPDX-License-Identifier: Apache-2.0
+
 output "kubeconfig" {
   value     = rhcs_break_glass_credential.rosa_break_glass_credential.kubeconfig
   sensitive = true

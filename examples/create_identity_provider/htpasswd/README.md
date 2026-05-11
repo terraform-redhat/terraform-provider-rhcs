@@ -19,7 +19,7 @@ Using htpasswd authentication in OpenShift Container Platform allows you to iden
           ```
       1.  This variable should be your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token) that you generated in the prerequisites.  
           ```
-          export TF_VAR_token=<ocm_offline_token> 
+          export TF_VAR_token=<ocm_offline_token>
           ```
       1.  This value should always point to `https://api.openshift.com`.  
           ```
@@ -38,7 +38,7 @@ Using htpasswd authentication in OpenShift Container Platform allows you to iden
    ````
    terraform plan -out htpasswd.tfplan
    ````
-1. Run the apply command to create your htpasswd identity provider. 
+1. Run the apply command to create your htpasswd identity provider.
 
    > **Note**: If you did not run the `plan` command, you can simply `apply` without specifying a file.
 
@@ -50,7 +50,7 @@ Using htpasswd authentication in OpenShift Container Platform allows you to iden
 ## Resource clean up
 
 After you are done with the resources you created, you should not delete them manually, but instead, use the `destroy` command. Run the following to delete all of your created resources:
-  
+
 ```
 terraform destroy
 ```

@@ -284,7 +284,7 @@ resource "aws_route_table_association" "private_route_table_association" {
   route_table_id = aws_route_table.private_route_table[count.index].id
 }
 
-# This resource is used in order to add dependencies on all resources 
+# This resource is used in order to add dependencies on all resources
 # Any resource uses this VPC ID, must wait to all resources creation completion
 resource "time_sleep" "vpc_resources_wait" {
   create_duration = "20s"

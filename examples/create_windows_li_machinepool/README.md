@@ -22,10 +22,10 @@ This Terraform example creates a Windows License-Included **machine pool** for a
 
          This variable should be your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token) that you generated in the prerequisites.  
         ```
-        export TF_VAR_token=<ocm_offline_token> 
+        export TF_VAR_token=<ocm_offline_token>
         ```
     *  OpenShift Cluster Manager URL:
-    
+
        This value should always point to `https://api.openshift.com`.  
         ```
         export TF_VAR_url=<ocm_url>
@@ -40,7 +40,7 @@ This Terraform example creates a Windows License-Included **machine pool** for a
     * Machine pool subnet ID:
 
       This is the ID of the private subnet in which you would like your MachinePool to be provisioned
-    
+
     * Machine pool name:
         ```
         export TF_VAR_name=<name>
@@ -62,7 +62,7 @@ This Terraform example creates a Windows License-Included **machine pool** for a
    ````
    terraform plan -out machine-pool.tfplan
    ````
-1. Run the apply command to create the machine pool. 
+1. Run the apply command to create the machine pool.
 
    > **Note**: If you did not run the `plan` command, you can simply just `apply` without specifying a file.
 

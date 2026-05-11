@@ -8,7 +8,7 @@ BEFORE CREATING COMMITS FROM THIS CLONE, YOU MUST RUN `make install-hooks` ONCE.
 
 ```bash
 tests
-|____e2e      
+|____e2e  
     |____cluster_creation_test.go                 ---- handles cluster creation by profile
     |____cluster_destroy_test.go
     |____e2e_suite_test.go                        ---- test suite for all the e2e tests
@@ -28,11 +28,11 @@ tests
 |    |____openshift                               ---- openshift will support e2e check in cluster
 |    |____constants                               ---- all of the constants will be defined in constants
 |         |____constants.go
-|       
+|  
 |____prow_ci.sh
 |
 |____tf-manifests                                 ---- tf-manifests folder will contain all of the tf configuration files, separated by provider
-      |__aws                                      ---- Prepare user data prepared on AWS for cluster creation 
+      |__aws                                      ---- Prepare user data prepared on AWS for cluster creation
       |     |__vpc                                ---- vpc created on AWS for cluster creation
       |     |__account-roles
       |     |__proxy

@@ -483,7 +483,7 @@ var _ = Describe("default ingress", func() {
 						"cluster_routes_tls_secret_ref": "111",
 						"cluster_routes_hostname": "aaa",
 						"route_namespace_ownership_policy": "Strict"
-						
+
 					}
 				`),
 			),
@@ -494,7 +494,7 @@ var _ = Describe("default ingress", func() {
 			cluster = "123"
 	        cluster_routes_tls_secret_ref = "111"
 			cluster_routes_hostname =  "aaa"
-			
+
 		}`)
 		runOutput := Terraform.Apply()
 		Expect(runOutput.ExitCode).To(BeZero())

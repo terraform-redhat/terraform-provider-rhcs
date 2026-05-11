@@ -12,7 +12,7 @@ If you use GitLab version 7.7.0 to 11.0, you can connect using the [OAuth integr
 
 ## Setting up your application in GitLab
 
-You will need a client ID/secret of a [registered GitLab OAuth application](https://docs.gitlab.com/ce/api/oauth2.html). 
+You will need a client ID/secret of a [registered GitLab OAuth application](https://docs.gitlab.com/ce/api/oauth2.html).
 The application must be configured with a callback URL of `https://oauth-openshift.apps.<cluster-name>.<cluster-domain>/oauth2callback/<idp-provider-name>`
 For example:
 `https://oauth-openshift.apps.openshift-cluster.example.com/oauth2callback/Gitlab`.
@@ -26,7 +26,7 @@ For example:
           ```
           export TF_VAR_gitlab_client_secret=<gitlab_client_secret>
           ```
-      1.  This value is your GitLab client ID. It can be found in the settings of your GitLab account.   
+      1.  This value is your GitLab client ID. It can be found in the settings of your GitLab account.  
           ```
           export TF_VAR_gitlab_client_id=<client_id>
           ```
@@ -36,13 +36,13 @@ For example:
           ```
       1.  This variable is your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token) that you generated in the prerequisites.  
           ```
-          export TF_VAR_token=<ocm_offline_token> 
+          export TF_VAR_token=<ocm_offline_token>
           ```
       1.  This value should always point to `https://api.openshift.com`.
           ```
           export TF_VAR_url=<ocm_url>
           ```
-      1.  The ID of the cluster for which you are creating the identity provider. This ID can be found in the `rosa` command-line interface (CLI) with the command `rosa list cluster`. 
+      1.  The ID of the cluster for which you are creating the identity provider. This ID can be found in the `rosa` command-line interface (CLI) with the command `rosa list cluster`.
           ```
           export TF_VAR_cluster_id=<cluster_id>
           ```
@@ -55,7 +55,7 @@ For example:
    ````
    terraform plan -out gitlab.tfplan
    ````
-1. Run the apply command to create your GitLab identity provider. 
+1. Run the apply command to create your GitLab identity provider.
 
    > **Note**: If you did not run the `plan` command, you can simply just `apply` without specifying a file.
 
@@ -67,7 +67,7 @@ For example:
 ## Resource clean up
 
 After you are done with the resources you created, you should not delete them manually, but instead, use the `destroy` command. Run the following to delete all of your created resources:
-  
+
 ```
 terraform destroy
 ```

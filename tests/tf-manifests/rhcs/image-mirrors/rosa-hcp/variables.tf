@@ -1,3 +1,6 @@
+# Copyright Red Hat
+# SPDX-License-Identifier: Apache-2.0
+
 variable "cluster" {
   type        = string
   description = "The cluster ID where the image mirror will be created"

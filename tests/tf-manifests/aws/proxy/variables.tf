@@ -1,3 +1,6 @@
+# Copyright Red Hat
+# SPDX-License-Identifier: Apache-2.0
+
 variable "proxy_count" {
   type        = number
   description = "Number of proxies to create"

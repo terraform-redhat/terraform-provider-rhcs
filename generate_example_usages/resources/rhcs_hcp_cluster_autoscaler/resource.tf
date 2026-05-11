@@ -1,3 +1,6 @@
+# Copyright Red Hat
+# SPDX-License-Identifier: Apache-2.0
+
 resource "rhcs_hcp_cluster_autoscaler" "cluster_autoscaler" {
   cluster                 = "cluster-id-123"
   max_pod_grace_period    = 600

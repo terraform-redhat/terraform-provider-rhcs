@@ -1,3 +1,6 @@
+# Copyright Red Hat
+# SPDX-License-Identifier: Apache-2.0
+
 resource "rhcs_default_ingress" "default_ingress" {
   cluster          = "cluster-id-123"
   excluded_namespaces = ["example_ns"]

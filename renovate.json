@@ -35,6 +35,32 @@
   "vulnerabilityAlerts": {
     "enabled": true
   },
+  "customManagers": [
+    {
+      "description": "Update gci in Makefile",
+      "customType": "regex",
+      "fileMatch": ["^Makefile$"],
+      "matchStrings": ["GCI_VERSION \\?= (?<currentValue>\\S+)"],
+      "datasourceTemplate": "go",
+      "depNameTemplate": "github.com/daixiang0/gci"
+    },
+    {
+      "description": "Update golangci-lint in Makefile",
+      "customType": "regex",
+      "fileMatch": ["^Makefile$"],
+      "matchStrings": ["GOLANGCI_LINT_VERSION \\?= (?<currentValue>\\S+)"],
+      "datasourceTemplate": "go",
+      "depNameTemplate": "github.com/golangci/golangci-lint/v2"
+    },
+    {
+      "description": "Update addlicense in Makefile",
+      "customType": "regex",
+      "fileMatch": ["^Makefile$"],
+      "matchStrings": ["ADDLICENSE_VERSION \\?= (?<currentValue>\\S+)"],
+      "datasourceTemplate": "go",
+      "depNameTemplate": "github.com/google/addlicense"
+    }
+  ],
   "labels": [
     "ok-to-test"
   ],

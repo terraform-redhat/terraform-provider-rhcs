@@ -1,3 +1,6 @@
+# Copyright Red Hat
+# SPDX-License-Identifier: Apache-2.0
+
 // Shared by all of the IDPs
 variable "cluster_id" {
   type = string

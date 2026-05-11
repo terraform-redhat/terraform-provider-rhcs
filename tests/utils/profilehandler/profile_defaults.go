@@ -1,3 +1,6 @@
+// Copyright Red Hat
+// SPDX-License-Identifier: Apache-2.0
+
 package profilehandler
 
 import "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"

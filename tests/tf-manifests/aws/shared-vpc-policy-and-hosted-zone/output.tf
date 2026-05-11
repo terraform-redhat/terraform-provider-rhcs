@@ -1,3 +1,6 @@
+# Copyright Red Hat
+# SPDX-License-Identifier: Apache-2.0
+
 output "shared_role" {
   description = "Shared VPC Role ARN"
   value       = module.shared_vpc_policy_and_hosted_zone.shared_role

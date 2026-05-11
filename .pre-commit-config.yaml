@@ -1,0 +1,32 @@
+repos:
+  - repo: https://github.com/google/addlicense
+    rev: v1.2.0
+    hooks:
+      - id: addlicense
+        name: Add license headers
+        args:
+          - -c
+          - Red Hat
+          - -l
+          - apache
+          - -y
+          - ""
+          - -s=only
+          - -ignore
+          - "**/*.md"
+          - -ignore
+          - "**/*.yaml"
+          - -ignore
+          - "**/*.yml"
+          - -ignore
+          - "**/*.toml"
+          - -ignore
+          - "**/Dockerfile"
+          - -ignore
+          - "**/*.Dockerfile"
+          - -ignore
+          - "**/vendor/**"
+          - -ignore
+          - "**/mock_*.go"
+          - -ignore
+          - "examples/**"

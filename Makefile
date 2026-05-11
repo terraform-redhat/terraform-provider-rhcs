@@ -39,11 +39,13 @@ RUN_CHECKS_SCRIPT := ./hack/run-checks.sh
 
 GCI_VERSION ?= v0.13.4
 GOLANGCI_LINT_VERSION ?= v2.6.1
+ADDLICENSE_VERSION ?= v1.2.0
 
 GCI := $(LOCALBIN)/gci$(BIN_EXT)
 GINKGO := $(LOCALBIN)/ginkgo$(BIN_EXT)
 MOCKGEN := $(LOCALBIN)/mockgen$(BIN_EXT)
 GOLANGCI_LINT := $(LOCALBIN)/golangci-lint$(BIN_EXT)
+ADDLICENSE := $(LOCALBIN)/addlicense$(BIN_EXT)
 
 LINT_OUTPUT_FLAGS ?=
 GO_SOURCE_TARGETS := main.go build internal logging provider subsystem tests tools
@@ -81,6 +83,9 @@ $(MOCKGEN): | $(LOCALBIN)
 
 $(GOLANGCI_LINT): | $(LOCALBIN)
 	GOBIN="$(LOCALBIN_ABS)" go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+
+$(ADDLICENSE): | $(LOCALBIN)
+	GOBIN="$(LOCALBIN_ABS)" go install github.com/google/addlicense@$(ADDLICENSE_VERSION)
 
 .PHONY: build
 build:
@@ -186,7 +191,7 @@ docs:
 
 .PHONY: tools
 tools:
-	@$(MAKE) --no-print-directory $(GCI) $(GINKGO) $(MOCKGEN) $(GOLANGCI_LINT)
+	@$(MAKE) --no-print-directory $(GCI) $(GINKGO) $(MOCKGEN) $(GOLANGCI_LINT) $(ADDLICENSE)
 
 .PHONY: e2e-unit-test
 e2e-unit-test: $(GINKGO)
@@ -264,6 +269,20 @@ check-gen:
 install-hooks:
 	@./hack/install-git-hooks.sh
 
+.PHONY: license-check
+license-check: $(ADDLICENSE)
+	@echo "Checking for missing license headers..."
+	@ADDLICENSE="$(ADDLICENSE)" bash scripts/add-license-header.sh -check
+
+.PHONY: license-add
+license-add: $(ADDLICENSE)
+	@echo "Adding license headers to files..."
+	@ADDLICENSE="$(ADDLICENSE)" bash scripts/add-license-header.sh
+
+.PHONY: license-add-staged
+license-add-staged: $(ADDLICENSE)
+	@ADDLICENSE="$(ADDLICENSE)" ./hack/license-add-staged.sh
+
 .PHONY: basic-checks
 basic-checks:
 	@$(RUN_CHECKS_SCRIPT) basic
@@ -271,6 +290,7 @@ basic-checks:
 .PHONY: pre-commit-checks
 pre-commit-checks:
 	@$(MAKE) --no-print-directory fmt-staged
+	@$(MAKE) --no-print-directory license-add-staged
 
 .PHONY: pre-push-checks
 pre-push-checks:

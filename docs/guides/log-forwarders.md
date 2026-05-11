@@ -118,7 +118,7 @@ resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
   compute_machine_type         = "m5.xlarge"
   aws_subnet_ids               = ["subnet-1a2b3c4d5e6f7g8h9", "subnet-9h8g7f6e5d4c3b2a1"]
   wait_for_create_complete     = true
-  
+
   sts = {
     operator_role_prefix = "my-cluster-operator"
     role_arn             = "arn:aws:iam::123456789012:role/HCP-ROSA-Installer-Role"

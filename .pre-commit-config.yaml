@@ -1,0 +1,58 @@
+# Copyright Red Hat
+# SPDX-License-Identifier: Apache-2.0
+
+default_stages: [pre-commit, commit-msg, pre-push]
+default_install_hook_types: [pre-commit, commit-msg, pre-push]
+
+repos:
+  # Standard pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-merge-conflict
+        name: Check for merge conflict strings
+        stages: [pre-commit]
+      - id: check-yaml
+        name: Check YAML syntax
+        stages: [pre-commit]
+        exclude: '^tests/tf-manifests/'
+
+  # Local repository-specific hooks
+  - repo: local
+    hooks:
+      # Pre-commit stage: formatting and licensing
+      - id: fmt-staged
+        name: Format staged files (Go + Terraform)
+        description: Runs gci + gofmt on staged Go files and terraform fmt on staged .tf files
+        entry: make fmt-staged
+        language: system
+        stages: [pre-commit]
+        pass_filenames: false
+
+      - id: license-add-staged
+        name: Add license headers to staged files
+        description: Adds Apache 2.0 license headers to staged files missing them
+        entry: make license-add-staged
+        language: system
+        stages: [pre-commit]
+        pass_filenames: false
+
+      # Commit-msg stage: validate commit message format
+      - id: commit-msg-verify
+        name: Validate commit message format
+        description: "Ensures commit messages follow the JIRA-123 | type(scope): message format"
+        entry: ./hack/commit-msg-verify.sh
+        language: script
+        stages: [commit-msg]
+
+      # Pre-push stage: comprehensive checks before push
+      - id: pre-push-checks
+        name: Run pre-push checks
+        description: Runs format-check, build, lint, docs-lint, coverage, and tests
+        entry: ./hack/pre-push-hook.sh
+        language: script
+        stages: [pre-push]
+        pass_filenames: false
+
+exclude: '^vendor/|^hack/tools/vendor/'
+fail_fast: true

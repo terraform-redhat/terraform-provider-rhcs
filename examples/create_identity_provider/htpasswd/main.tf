@@ -35,4 +35,3 @@ resource "rhcs_identity_provider" "htpasswd_idp" {
     users = var.htpasswd_users
   }
 }
-

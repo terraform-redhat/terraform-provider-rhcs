@@ -23,6 +23,7 @@ Code contributions are done by opening a pull request (PR). Please be sure that 
   - Fork and clone the repository to `$GOPATH/src/github.com/terraform-redhat/terraform-provider-rhcs` by the `git clone` command
   - Create a new branch `git switch -c <branch-name>`
   - Run `go mod download` to download all the modules in the dependency graph.
+  - Install [pre-commit](https://pre-commit.com/#install)
   - BEFORE YOUR FIRST COMMIT IN A NEW CLONE, YOU MUST RUN `make install-hooks`.
   - Try building the project by running `make build`
 
@@ -42,21 +43,39 @@ Best coding standards for golang can be found [here](https://go.dev/doc/effectiv
 
 ### Required local hooks
 
-BEFORE YOUR FIRST COMMIT IN A CLONE, YOU MUST RUN:
+This repository uses [pre-commit](https://pre-commit.com/) to manage git hooks. BEFORE YOUR FIRST COMMIT IN A CLONE, YOU MUST:
 
-```shell
-make install-hooks
-```
+1. Install `pre-commit` following the [official installation guide](https://pre-commit.com/#install)
+2. Run `make install-hooks` to configure the hooks
 
 YOU MUST LET THE LOCAL HOOKS RUN ON EVERY COMMIT AND PUSH. DO NOT BYPASS LOCAL HOOKS.
 
-The hooks perform:
+The hooks are configured in `.pre-commit-config.yaml` and perform:
 
-- `pre-commit`: formats staged Go files with `gci` + `gofmt` plus staged Terraform files under `examples/` and `tests/`, and blocks the commit if files were rewritten so you can review and stage the updates
-- `commit-msg`: validates the commit message format
+- `pre-commit`: formats staged Go files with `gci` + `gofmt` plus staged Terraform files under `examples/` and `tests/`, adds Apache 2.0 license headers to staged files missing them, and blocks the commit if files were rewritten so you can review and stage the updates
+- `commit-msg`: validates the commit message format (JIRA-123 | type(scope): message)
 - `pre-push`: runs format-check, build, generated-files check, lint, docs-lint (Vale), changed-files coverage for changed Go files under `provider/` and `internal/`, and unit/subsystem tests
 - `pre-push` runs against committed content and blocks when staged or unstaged tracked changes are present
 - check runs are fail-fast: execution stops at the first failing step
+
+To manually run all hooks on all files:
+```shell
+pre-commit run --all-files
+```
+
+This covers only the `pre-commit` stage. The `commit-msg` hook cannot be exercised manually because it requires a commit message file that git creates during `git commit` — without it the script exits 0 unconditionally. The `pre-push` stage can be run explicitly:
+```shell
+pre-commit run --all-files --hook-stage push
+```
+
+To update hook versions:
+```shell
+pre-commit autoupdate
+```
+
+#### Migrating from the legacy `.githooks` system
+
+If you previously set `core.hooksPath=.githooks` in a local clone, run `make install-hooks` — it will automatically unset that configuration and install the pre-commit hooks in its place. No manual cleanup is needed.
 
 ### 4. Test your changes and use the CI (Pre Merge)
 We are holding three types of tests that must pass for a PR to finally be accepted and merged:

@@ -27,7 +27,7 @@ resource "rhcs_cluster_rosa_hcp" "example" {
     support_role_arn         = "arn:aws:iam::123456789012:role/my-support-role"
     operator_role_prefix     = "my-operator-prefix"
     trust_policy_external_id = "unique-external-id-123"
-    
+
     instance_iam_roles = {
       worker_role_arn = "arn:aws:iam::123456789012:role/my-worker-role"
     }
@@ -49,7 +49,7 @@ resource "rhcs_cluster_rosa_classic" "example" {
     support_role_arn         = "arn:aws:iam::123456789012:role/my-support-role"
     operator_role_prefix     = "my-operator-prefix"
     trust_policy_external_id = "unique-external-id-123"
-    
+
     instance_iam_roles = {
       master_role_arn = "arn:aws:iam::123456789012:role/my-master-role"
       worker_role_arn = "arn:aws:iam::123456789012:role/my-worker-role"

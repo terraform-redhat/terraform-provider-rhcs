@@ -18,14 +18,14 @@ To use GitHub or GitHub Enterprise as an identity provider, you must register an
     - For GitHub Enterprise, go to your GitHub Enterprise home page and then click **Settings → Developer settings → Register a new application**.
 2. Enter an application name, for example `My OpenShift Install`.
 3. Enter a homepage URL, such as `https://oauth-openshift.apps.<cluster-name>.<cluster-domain>`.
-4. **Optional**: Enter an application description.    
+4. **Optional**: Enter an application description.  
 5. Enter the authorization callback URL, where the end of the URL contains the identity provider `name`:
 
     `https://oauth-openshift.apps.<cluster-name>.<cluster-domain>/oauth2callback/<idp-provider-name>`
-    
+
     For example:
     `https://oauth-openshift.apps.openshift-cluster.example.com/oauth2callback/Github`.
-	
+
 	> **Note**: `<idp-provider-name>` is case-sensitive. Name is defined [here](./main.tf#L37).
 
 6. Click **Register application**. GitHub provides a client ID and a client secret. You need these values to complete the identity provider configuration.
@@ -37,23 +37,23 @@ To use GitHub or GitHub Enterprise as an identity provider, you must register an
           ```
           export TF_VAR_github_client_secret=<github_client_secret>
           ```
-      1.  This value is your GitHub client ID. It can be found in the settings of your GitHub account.   
+      1.  This value is your GitHub client ID. It can be found in the settings of your GitHub account.  
           ```
           export TF_VAR_github_client_id=<client_id>
           ```
-      1.  This value is your GitHub organization. 
+      1.  This value is your GitHub organization.
           ```
           export TF_VAR_github_orgs='["<github_org>"]'
           ```
       1.  This variable is your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token) that you generated in the prerequisites.  
           ```
-          export TF_VAR_token=<ocm_offline_token> 
+          export TF_VAR_token=<ocm_offline_token>
           ```
       1.  This value should always point to `https://api.openshift.com`.
           ```
           export TF_VAR_url=<ocm_url>
           ```
-      1.  The ID of the cluster for which you are creating the identity provider. This ID can be found in the `rosa` command-line interface (CLI) with the command `rosa list cluster`. 
+      1.  The ID of the cluster for which you are creating the identity provider. This ID can be found in the `rosa` command-line interface (CLI) with the command `rosa list cluster`.
           ```
           export TF_VAR_cluster_id=<cluster_id>
           ```
@@ -66,7 +66,7 @@ To use GitHub or GitHub Enterprise as an identity provider, you must register an
    ````
    terraform plan -out github.tfplan
    ````
-1. Run the apply command to create your GitHub identity provider. 
+1. Run the apply command to create your GitHub identity provider.
 
    > **Note**: If you did not run the `plan` command, you can simply just `apply` without specifying a file.
 
@@ -78,7 +78,7 @@ To use GitHub or GitHub Enterprise as an identity provider, you must register an
 ## Resource clean up
 
 After you are done with the resources you created, you should not delete them manually, but instead, use the `destroy` command. Run the following to delete all of your created resources:
-  
+
 ```
 terraform destroy
 ```
@@ -92,4 +92,3 @@ After the command is complete, your resources are deleted.
  - [GitHub Identity Provider](https://docs.openshift.com/container-platform/4.12/authentication/identity_providers/configuring-github-identity-provider.html)
  - [Understanding identity provider configuration](https://docs.openshift.com/container-platform/4.12/authentication/understanding-identity-provider.html)
  - [Mapping Methods](https://docs.openshift.com/container-platform/4.12/authentication/understanding-identity-provider.html#identity-provider-parameters_understanding-identity-provider)
-

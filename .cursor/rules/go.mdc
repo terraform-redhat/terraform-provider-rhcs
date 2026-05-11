@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Go — Review Checklist
 
-Follow [Effective Go](https://go.dev/doc/effective_go), [Code Review Comments](https://go.dev/wiki/CodeReviewComments), and [CONTRIBUTING.md](../CONTRIBUTING.md). 
+Follow [Effective Go](https://go.dev/doc/effective_go), [Code Review Comments](https://go.dev/wiki/CodeReviewComments), and [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ---
 

@@ -3,7 +3,7 @@
 page_title: "Red Hat Cloud Services Terraform Provider"
 subcategory: ""
 description: |-
-  
+
 ---
 <a href="https://redhat.com">
     <img src=".github/Logo_Red_Hat.png" alt="Red Hat logo" title="Red Hat" align="right" max-width="60px" />
@@ -20,7 +20,7 @@ The Red Hat Cloud Services Terraform provider allows Terraform to manage Red Hat
 
 For more information about ROSA, see the Red Hat documentation [here](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/introduction_to_rosa/rosa-understanding).
 
-## Prerequisites 
+## Prerequisites
 * [Go](https://go.dev/doc/install) — same major.minor as the `go` directive in [`go.mod`](go.mod)
 * [Terraform version 1.4.6 or newer](https://developer.hashicorp.com/terraform/downloads)
 * An offline [OCM token](https://console.redhat.com/openshift/token/rosa)
@@ -31,9 +31,13 @@ For more information about ROSA, see the Red Hat documentation [here](https://ac
 
 ## Contributor setup
 
-BEFORE MAKING YOUR FIRST COMMIT IN A CLONE, YOU MUST INSTALL LOCAL GIT HOOKS:
+This repository uses [pre-commit](https://pre-commit.com/) for git hooks. BEFORE MAKING YOUR FIRST COMMIT IN A CLONE, YOU MUST:
 
 ```shell
+# Install pre-commit if not already installed
+# See https://pre-commit.com/#install for installation methods
+
+# Install the git hooks
 make install-hooks
 ```
 
@@ -68,8 +72,8 @@ The following items are limitations with the current release of the OCM Terrafor
 * The latest version is not compatible with earlier versions such as version 1.0.1.
 * When creating a cluster, the cluster uses AWS credentials configured on your local machine. These credentials provide access to the AWS API for validating your account.
 * When creating a machine pool, you need to specify your replica count. You must define either the `replicas= "<count>"` variable or provide values for the following variables to build the machine pool:  
-   * `min_replicas = "<count>"` 
-   * `max_replicas="<count>"` 
+   * `min_replicas = "<count>"`
+   * `max_replicas="<count>"`
    * `autoscaling_enabled=true`
 * The htpasswd identity provider does not support creating the identity provider with multiple users or adding additional users to the existing identity provider.
 * The S3 bucket that is created as part of the OIDC configuration must be created in the same region as your OIDC provider.
@@ -101,8 +105,8 @@ If you want to build a local Red Hat Cloud Services provider to develop improvem
     <HOME>/.terraform.d/plugins/terraform.local/local/rhcs/<VERSION>/<TARGET_ARCH>
     ```
 
-    For example, the following location would contain the `terraform-rhcs-provider` binary file: 
-    ```    
+    For example, the following location would contain the `terraform-rhcs-provider` binary file:
+    ```  
     ~/.terraform.d/plugins/terraform.local/local/rhcs/0.0.1/linux_amd64
 2. You now need to update your `main.tf` to the location of the local provider by pointing the required_providers rhcs to the local terraform directory.
 
@@ -131,4 +135,3 @@ Binary image only runs on AMD64 architectures up to now.
 
 ### Developing the Provider
 Detailed documentation for developing and contributing to RHCS provider can be found in our [contribution guide](CONTRIBUTING.md).
- 

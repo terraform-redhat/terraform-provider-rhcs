@@ -40,12 +40,14 @@ RUN_CHECKS_SCRIPT := ./hack/run-checks.sh
 GCI_VERSION ?= v0.13.4
 GOLANGCI_LINT_VERSION ?= v2.6.1
 VALE_VERSION ?= v3.14.1
+ADDLICENSE_VERSION ?= v1.2.0
 
 GCI := $(LOCALBIN)/gci$(BIN_EXT)
 GINKGO := $(LOCALBIN)/ginkgo$(BIN_EXT)
 MOCKGEN := $(LOCALBIN)/mockgen$(BIN_EXT)
 GOLANGCI_LINT := $(LOCALBIN)/golangci-lint$(BIN_EXT)
 VALE := $(LOCALBIN)/vale$(BIN_EXT)
+ADDLICENSE := $(LOCALBIN)/addlicense$(BIN_EXT)
 
 LINT_OUTPUT_FLAGS ?=
 GO_SOURCE_TARGETS := main.go build internal logging provider subsystem tests tools
@@ -86,6 +88,9 @@ $(GOLANGCI_LINT): | $(LOCALBIN)
 
 $(VALE): | $(LOCALBIN)
 	CGO_ENABLED=1 GOBIN="$(LOCALBIN_ABS)" go install github.com/errata-ai/vale/v3/cmd/vale@$(VALE_VERSION)
+
+$(ADDLICENSE): | $(LOCALBIN)
+	GOBIN="$(LOCALBIN_ABS)" go install github.com/google/addlicense@$(ADDLICENSE_VERSION)
 
 .PHONY: build
 build:
@@ -200,7 +205,7 @@ docs:
 
 .PHONY: tools
 tools:
-	@$(MAKE) --no-print-directory $(GCI) $(GINKGO) $(MOCKGEN) $(GOLANGCI_LINT) $(VALE)
+	@$(MAKE) --no-print-directory $(GCI) $(GINKGO) $(MOCKGEN) $(GOLANGCI_LINT) $(VALE) $(ADDLICENSE)
 
 .PHONY: e2e-unit-test
 e2e-unit-test: $(GINKGO)
@@ -276,7 +281,33 @@ check-gen:
 
 .PHONY: install-hooks
 install-hooks:
-	@./hack/install-git-hooks.sh
+	@if ! command -v pre-commit &> /dev/null; then \
+		echo "Error: pre-commit is not installed."; \
+		echo "See https://pre-commit.com/#install for installation instructions"; \
+		exit 1; \
+	fi
+	@hooks_path=$$(git config --local core.hooksPath 2>/dev/null || true); \
+	if [ "$$hooks_path" = ".githooks" ]; then \
+		echo "Detected legacy core.hooksPath=.githooks (from the old hook system)."; \
+		echo "Unsetting it so pre-commit hooks are picked up correctly..."; \
+		git config --unset core.hooksPath; \
+	fi
+	@pre-commit install --install-hooks --hook-type pre-commit --hook-type commit-msg --hook-type pre-push
+	@echo "Installed pre-commit hooks (pre-commit, commit-msg, pre-push). YOU MUST RUN THESE HOOKS ON EVERY COMMIT AND PUSH."
+
+.PHONY: license-check
+license-check: $(ADDLICENSE)
+	@echo "Checking for missing license headers..."
+	@ADDLICENSE="$(ADDLICENSE)" bash scripts/add-license-header.sh -check
+
+.PHONY: license-add
+license-add: $(ADDLICENSE)
+	@echo "Adding license headers to files..."
+	@ADDLICENSE="$(ADDLICENSE)" bash scripts/add-license-header.sh
+
+.PHONY: license-add-staged
+license-add-staged: $(ADDLICENSE)
+	@ADDLICENSE="$(ADDLICENSE)" ./hack/license-add-staged.sh
 
 .PHONY: basic-checks
 basic-checks:
@@ -285,6 +316,7 @@ basic-checks:
 .PHONY: pre-commit-checks
 pre-commit-checks:
 	@$(MAKE) --no-print-directory fmt-staged
+	@$(MAKE) --no-print-directory license-add-staged
 
 .PHONY: pre-push-checks
 pre-push-checks:

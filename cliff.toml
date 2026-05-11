@@ -112,7 +112,7 @@ commit_parsers = [
     { message = "(?i)(^|.*\\s)fix(\\s|:)", group = "<!-- 2 -->ENHANCEMENTS:", default_scope="Bug fixes"},
     # if no match, will be added as Other
     { message = ".*", group = "<!-- 2 -->ENHANCEMENTS:", default_scope = "Other"},
-    
+
 ]
 
 # Protect breaking changes from being skipped

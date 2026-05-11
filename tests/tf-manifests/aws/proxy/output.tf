@@ -1,3 +1,6 @@
+# Copyright Red Hat
+# SPDX-License-Identifier: Apache-2.0
+
 output "https_proxies" {
   value = [for proxy in aws_instance.proxies : "https://${proxy.private_ip}:8080"]
 }

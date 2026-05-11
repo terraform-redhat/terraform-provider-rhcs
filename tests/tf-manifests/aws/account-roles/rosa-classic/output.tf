@@ -1,3 +1,6 @@
+# Copyright Red Hat
+# SPDX-License-Identifier: Apache-2.0
+
 output "account_role_prefix" {
   value = module.create_account_roles.account_role_prefix
 }

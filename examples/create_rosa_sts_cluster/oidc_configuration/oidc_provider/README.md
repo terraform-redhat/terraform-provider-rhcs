@@ -2,7 +2,7 @@
 
 This example shows how to create an OIDC config, an operator IAM roles and an OIDC provider.
 
-In order to create unmanaged OIDC config you'll need to create those resources: 
+In order to create unmanaged OIDC config you'll need to create those resources:
 1. OIDC config input - using the resource called `rhcs_rosa_oidc_config_input`
 2. AWS resources - using the module that celled `oidc_config_input_resources` in the main.tf file
 3. OIDC config = using the resource `rhcs_rosa_oidc_config`
@@ -29,7 +29,7 @@ To run it:
     ```
     export TF_VAR_managed=[true/false]
     ```
-* For unmanaged provider config, provide Installer Role ARN by setting a value 
+* For unmanaged provider config, provide Installer Role ARN by setting a value
 
     ```
     export TF_VAR_installer_role_arn=...

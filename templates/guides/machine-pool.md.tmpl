@@ -59,7 +59,7 @@ To change the replica count within your default machine pool, run these commands
     terraform apply
     ```
 1. Your machine pools should be updated.
-### Autoscaling 
+### Autoscaling
 
 You may enable or disable autoscaling on your machine pools. You must set either the minimum or maximum replica count variable for Terraform. The autoscaling will not exceed whichever value you set. For more information, see [About autoscaling nodes on a cluster](https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/cluster_administration/nodes#rosa-nodes-about-autoscaling-nodes) in the Red Hat Customer Portal.
 

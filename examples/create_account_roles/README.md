@@ -20,7 +20,7 @@ it also updated in the operator role policies.
 1. To run `terraform apply` you need to set up some variables. This guide uses environmental variables. For more on Terraform variables, see [Managing Variables](https://developer.hashicorp.com/terraform/enterprise/workspaces/variables/managing-variables) in the Terraform documentation.
 
    Run the following commands to export your variables. Provide your values in lieu of the brackets. Note that any values declared in the `variables.tf` are the default values if you do not export a superseding value.
-        
+
     1.  This variable should be your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token) that you generated in the prerequisites.  
         ```
         export TF_VAR_token=<ocm_offline_token>
@@ -34,17 +34,17 @@ it also updated in the operator role policies.
         export TF_VAR_url=https://api.openshift.com
         ```
     1.  **Optional**: You can set the account-role prefix with this variable. This value cannot end with a hyphen (-). If the value is empty, the module generates a string that starts with `account-role-` and combines it with a string of four random characters.
-         ```    
+         ```  
          export TF_VAR_account_role_prefix=<account_role_prefix>
          ```
     1.  **Optional**: You can set the desired OpenShift version with this variable. The default is available from the ROSA CLI with `rosa list version |grep yes`. This should be in the format of x.y, such as 4.13
-        ```    
+        ```  
         export TF_VAR_openshift_version=<choose_openshift_version>
         ```
-    1.  **Optional**: If you want to set any specific AWS tags for your account roles, you can use this variable to declare those tags.   
-        ```    
-        export TF_VAR_tags=<aws_resource_tags> (Optional) 
-        ```   
+    1.  **Optional**: If you want to set any specific AWS tags for your account roles, you can use this variable to declare those tags.  
+        ```  
+        export TF_VAR_tags=<aws_resource_tags> (Optional)
+        ```  
 1. In your local copy of the `account-roles` folder, run the following command:
    ````
    terraform init
@@ -54,7 +54,7 @@ it also updated in the operator role policies.
    ````
    terraform plan -out account-roles.tfplan
    ````
-1. Run the apply command to create your account roles. 
+1. Run the apply command to create your account roles.
 
    > **Note**: If you did not run the `plan` command, you can simply just `apply` without specifying a file.
 
@@ -69,7 +69,7 @@ it also updated in the operator role policies.
     ````
     rosa list account-roles
     ````
-1. You see your roles when the command finishes. 
+1. You see your roles when the command finishes.
     ````
     I: Fetching account roles
     ROLE NAME                           ROLE TYPE      ROLE ARN                                                    OPENSHIFT VERSION  AWS Managed
@@ -81,7 +81,7 @@ it also updated in the operator role policies.
 ## Resource clean up
 
 After you are done with the resources you created, you should not delete them manually, but instead, use the `destroy` command. Run the following to delete all of your created resources:
-  
+
     terraform destroy
 
 After the command is complete, your resources are deleted.

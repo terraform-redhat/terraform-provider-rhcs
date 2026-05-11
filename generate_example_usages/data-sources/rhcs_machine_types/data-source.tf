@@ -1,1 +1,0 @@
-data "rhcs_machine_types" "machines" {}

@@ -20,30 +20,30 @@ variable "" {
   type        = string
   description = "An RFC 2255 URL which specifies the LDAP search parameters to use."
 }
-      1.  This variable is a Boolean expression that allows you to decide if TLS connections to the server are allowed. The default value is **false**.   
+      1.  This variable is a Boolean expression that allows you to decide if TLS connections to the server are allowed. The default value is **false**.  
           ```
           export TF_VAR_ldap_insecure=<true_or_false>
           ```
-      1.  This variable points to an RFC 2255 URL for your LDAP search parameters. 
+      1.  This variable points to an RFC 2255 URL for your LDAP search parameters.
           ```
           export TF_VAR_ldap_url=<URL_for_parameters>
           ```
       1.  This variable should be your full [OpenShift Cluster Manager offline token](https://console.redhat.com/openshift/token) that you generated in the prerequisites.  
           ```
-          export TF_VAR_token=<ocm_offline_token> 
+          export TF_VAR_token=<ocm_offline_token>
           ```
       1.  This value should point to your OpenShift instance.  
           ```
           export TF_VAR_url=<ocm_url>
           ```
-      1.  The ID of the cluster for which you are creating the identity provider. This ID can be found in the `rosa` command-line interface (CLI) with the command `rosa list cluster`. 
+      1.  The ID of the cluster for which you are creating the identity provider. This ID can be found in the `rosa` command-line interface (CLI) with the command `rosa list cluster`.
           ```
           export TF_VAR_cluster_id=<cluster_id>
           ```
       1.  **Optional**: This variable includes any additional trust certificate authority bundles.
           ```
           export TF_VAR_ldap_ca=<trust-certificate-authority-bundle>
-          ```    
+          ```  
 1. In your local copy of the `github` folder, run the following command:
    ````
    terraform init
@@ -53,7 +53,7 @@ variable "" {
    ````
    terraform plan -out github.tfplan
    ````
-1. Run the apply command to create your GitHub identity provider. 
+1. Run the apply command to create your GitHub identity provider.
 
    > **Note**: If you did not run the `plan` command, you can simply just `apply` without specifying a file.
 
@@ -65,7 +65,7 @@ variable "" {
 ## Resource clean up
 
 After you are done with the resources you created, you should not delete them manually, but instead, use the `destroy` command. Run the following to delete all of your created resources:
-  
+
 ```
 terraform destroy
 ```

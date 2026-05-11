@@ -37,4 +37,3 @@ resource "rhcs_identity_provider" "gitlab_idp" {
     url           = var.gitlab_url
   }
 }
-

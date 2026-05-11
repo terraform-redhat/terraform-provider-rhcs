@@ -1,1 +1,0 @@
-data "rhcs_cloud_providers" "cloud_provider" {}

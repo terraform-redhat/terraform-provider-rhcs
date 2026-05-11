@@ -2100,6 +2100,8 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 		state.ExternalAuthProvidersEnabled = types.BoolValue(true)
 	}
 
+	state.LogForwarderIds = types.ListNull(types.StringType)
+
 	return nil
 }
 

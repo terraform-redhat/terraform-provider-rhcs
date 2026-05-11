@@ -171,7 +171,7 @@ FEATURES:
  * Include sensitive to password/secret attributes
 ENHANCEMENTS:
 * Bug fixes
-  * Check if tags are unknown prior to internally consider null
+  * Check if tags are unknown before internally consider null
   * Validate negative durations for autoscaler settings
   * Adjust some warning messages for HCP clusters
   * Adjust regex for rosa creator arn property
@@ -208,7 +208,7 @@ ENHANCEMENTS:
   * Validates ROSA creator ARN property
   * Disables editing the etcd KMS key ARN
   * Allows assumed-role into ROSA creator ARN property
-  * Typo on error message for OIDC
+  * Typing error on error message for OIDC
 * Documentation
   * Adjust replicas description
   * Includes more example cases for resources

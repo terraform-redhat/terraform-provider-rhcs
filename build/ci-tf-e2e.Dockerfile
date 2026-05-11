@@ -25,7 +25,7 @@ COPY . ./terraform-provider-rhcs
 
 RUN yum install -y yum-utils && \
     yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo &&\
-    yum -y install terraform python3 python3-pip make jq httpd-tools git &&\
+    yum -y install terraform python3 python3-pip make jq httpd-tools git gcc-c++ &&\
     yum clean all && \
     pip3 install PyYAML jinja2 &&\
     cd terraform-provider-rhcs && \

@@ -1,7 +1,7 @@
 # Contributing to RHCS Terraform Provider
 The RHCS (Red Hat Cloud Services) provider is maintained by a team within Red Hat.
 This document contains instructions about how to contribute and how the RHCS provider works.
-It was targeted to developers who wish to help improve the provider, and does not intended for users of the provider.
+It was targeted to developers who want to help improve the provider, and does not intended for users of the provider.
 
 Please read this document and follow this guide to ensure your contribution will be accepted as fast as possible.
 
@@ -34,6 +34,7 @@ make fmt         # formats Go import order and syntax plus Terraform files under
 make fmt-staged  # formats staged Go import order and syntax plus staged Terraform files under examples/ and tests/, then fails if rewrites were needed
 make fmt-check   # verifies Go import order/formatting plus Terraform formatting without rewriting files
 make lint        # runs the pinned golangci-lint v2 configuration used by CI
+make docs-lint  # runs Vale with the repo's custom style only (inclusive terminology); see .vale.ini
 ```
 
 Keep the code clean and readable. Functions should be concise, exit the function as early as possible.
@@ -53,7 +54,7 @@ The hooks perform:
 
 - `pre-commit`: formats staged Go files with `gci` + `gofmt` plus staged Terraform files under `examples/` and `tests/`, and blocks the commit if files were rewritten so you can review and stage the updates
 - `commit-msg`: validates the commit message format
-- `pre-push`: runs format-check, build, generated-files check, lint, changed-files coverage for changed Go files under `provider/` and `internal/`, and unit/subsystem tests
+- `pre-push`: runs format-check, build, generated-files check, lint, docs-lint (Vale), changed-files coverage for changed Go files under `provider/` and `internal/`, and unit/subsystem tests
 - `pre-push` runs against committed content and blocks when staged or unstaged tracked changes are present
 - check runs are fail-fast: execution stops at the first failing step
 
@@ -71,8 +72,9 @@ make basic-checks      # convenience flow: starts with make fmt and may stop aft
 make pre-push-checks   # exact non-mutating verification used by the pre-push hook
 ```
 
-`make basic-checks` runs format, format-check, build, generated-files verification, lint, changed-files coverage, and unit/subsystem tests.
+`make basic-checks` runs format, format-check, build, generated-files verification, lint, docs-lint (Vale), changed-files coverage, and unit/subsystem tests.
 `make lint` uses the repo's pinned `golangci-lint` v2 configuration.
+`make docs-lint` runs the pinned [Vale](https://docs.vale.sh/) CLI with only the custom inclusive-language rules under `styles/InclusiveLanguage/` (general Vale styles and packages are not used). Building Vale uses `CGO_ENABLED=1` and requires a C compiler toolchain on the first install.
 Changed-files coverage is enforced through `make coverage-changed-files` using `gocovdiff` with an 80% threshold for changed Go files under `provider/` and `internal/`.
 
 ### 5. Manual testing and debugging using the locally compiled RHCS Provider binary

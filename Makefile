@@ -39,11 +39,13 @@ RUN_CHECKS_SCRIPT := ./hack/run-checks.sh
 
 GCI_VERSION ?= v0.13.4
 GOLANGCI_LINT_VERSION ?= v2.6.1
+VALE_VERSION ?= v3.14.1
 
 GCI := $(LOCALBIN)/gci$(BIN_EXT)
 GINKGO := $(LOCALBIN)/ginkgo$(BIN_EXT)
 MOCKGEN := $(LOCALBIN)/mockgen$(BIN_EXT)
 GOLANGCI_LINT := $(LOCALBIN)/golangci-lint$(BIN_EXT)
+VALE := $(LOCALBIN)/vale$(BIN_EXT)
 
 LINT_OUTPUT_FLAGS ?=
 GO_SOURCE_TARGETS := main.go build internal logging provider subsystem tests tools
@@ -81,6 +83,9 @@ $(MOCKGEN): | $(LOCALBIN)
 
 $(GOLANGCI_LINT): | $(LOCALBIN)
 	GOBIN="$(LOCALBIN_ABS)" go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+
+$(VALE): | $(LOCALBIN)
+	CGO_ENABLED=1 GOBIN="$(LOCALBIN_ABS)" go install github.com/errata-ai/vale/v3/cmd/vale@$(VALE_VERSION)
 
 .PHONY: build
 build:
@@ -168,9 +173,18 @@ gci: $(GCI)
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI_LINT)
 
+.PHONY: vale
+vale: $(VALE)
+
 .PHONY: lint
 lint: $(GOLANGCI_LINT)
 	"$(GOLANGCI_LINT)" run $(LINT_OUTPUT_FLAGS) $(LINT_TARGETS)
+
+.PHONY: docs-lint
+docs-lint: $(VALE)
+	@echo "Note: Errors in docs/ must be fixed in schema descriptions (provider/ Go files), then regenerate with 'make docs'"
+	@echo "Note: RedHat.Spacing errors are ignored in docs/ - fix them incrementally in schema descriptions"
+	"$(VALE)" --minAlertLevel=error --glob='!.vale.ini' .
 
 .PHONY: clean
 clean:
@@ -186,7 +200,7 @@ docs:
 
 .PHONY: tools
 tools:
-	@$(MAKE) --no-print-directory $(GCI) $(GINKGO) $(MOCKGEN) $(GOLANGCI_LINT)
+	@$(MAKE) --no-print-directory $(GCI) $(GINKGO) $(MOCKGEN) $(GOLANGCI_LINT) $(VALE)
 
 .PHONY: e2e-unit-test
 e2e-unit-test: $(GINKGO)

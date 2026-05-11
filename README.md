@@ -46,6 +46,7 @@ Formatting commands:
 - `make fmt-staged` formats staged Go import order and syntax plus staged Terraform files under `examples/` and `tests/`, then fails if rewrites were needed so you can review and stage the updates
 - `make fmt-check` validates Go import order/formatting plus Terraform formatting without changing files
 - `make lint` runs the pinned `golangci-lint` v2 configuration used by CI
+- `make docs-lint` runs Vale for inclusive-language rules only (see `.vale.ini`); requires a C toolchain the first time Vale is built via `go install`
 
 Recommended local commands before pushing:
 
@@ -64,7 +65,7 @@ See [the Terraform Registry documentation](https://registry.terraform.io/provide
 
 The following items are limitations with the current release of the OCM Terraform provider:
 
-* The latest version is not backward compatible with version 1.0.1.
+* The latest version is not compatible with earlier versions such as version 1.0.1.
 * When creating a cluster, the cluster uses AWS credentials configured on your local machine. These credentials provide access to the AWS API for validating your account.
 * When creating a machine pool, you need to specify your replica count. You must define either the `replicas= "<count>"` variable or provide values for the following variables to build the machine pool:  
    * `min_replicas = "<count>"` 
@@ -77,7 +78,7 @@ The following items are limitations with the current release of the OCM Terrafor
 ## Examples
 
 The example Terraform files are all considered in development:
-### Prior to creating clusters
+### Before creating clusters
 * [Account Roles Terraform](examples/create_account_roles/)
 ### Cluster creation examples
 * [Create a ROSA cluster that uses STS and has a managed OIDC configuration](examples/create_rosa_sts_cluster/oidc_configuration/cluster_with_managed_oidc_config/)

@@ -47,7 +47,7 @@ data "rhcs_hcp_machine_pool" "machine_pool" {
 - `subnet_id` (String) Select the subnet in which to create a single AZ machine pool for BYO-VPC cluster. After the creation of the resource, it is not possible to update the attribute value.
 - `taints` (Attributes List) Taints for a machine pool. Format should be a comma-separated list of 'key=value'. This list will overwrite any modifications made to node taints on an ongoing basis. (see [below for nested schema](#nestedatt--taints))
 - `tuning_configs` (List of String) A list of tuning configs attached to the replica.
-- `upgrade_acknowledgements_for` (String) Indicates acknowledgement of agreements required to upgrade the cluster version between minor versions (e.g. a value of "4.12" indicates acknowledgement of any agreements required to upgrade to OpenShift 4.12.z from 4.11 or before).
+- `upgrade_acknowledgements_for` (String) Indicates acknowledgment of agreements required to upgrade the cluster version between minor versions (e.g. a value of "4.12" indicates acknowledgment of any agreements required to upgrade to OpenShift 4.12.z from 4.11 or before).
 
 <a id="nestedatt--autoscaling"></a>
 ### Nested Schema for `autoscaling`

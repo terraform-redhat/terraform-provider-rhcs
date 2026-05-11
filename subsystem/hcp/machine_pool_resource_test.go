@@ -204,6 +204,43 @@ var _ = Describe("Hcp Machine pool", func() {
 			}`)
 			Expect(Terraform.Validate()).NotTo(BeZero())
 		})
+
+		It("is invalid to specify node_drain_grace_period above maximum", func() {
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster = "123"
+				name = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge",
+					node_drain_grace_period = 10081,
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				replicas = 5
+				subnet_id = "subnet-123"
+				auto_repair = true
+			}`)
+			Expect(Terraform.Validate()).NotTo(BeZero())
+		})
+		It("is invalid to specify negative node_drain_grace_period", func() {
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster = "123"
+				name = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge",
+					node_drain_grace_period = -1,
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				replicas = 5
+				subnet_id = "subnet-123"
+				auto_repair = true
+			}`)
+			Expect(Terraform.Validate()).NotTo(BeZero())
+		})
 	})
 
 	Context("create", func() {
@@ -2125,6 +2162,149 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.instance_type", "r5.xlarge"))
 			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.ec2_metadata_http_tokens`, "optional"))
+		})
+
+		It("Can create machine pool with node_drain_grace_period", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools",
+					),
+					VerifyJQ(".node_drain_grace_period.value", 45.0),
+					RespondWithJSON(http.StatusCreated, `{
+					"id":"my-pool",
+					"aws_node_pool":{
+					   "instance_type":"r5.xlarge",
+					   "instance_profile": "bla"
+					},
+					"node_drain_grace_period": { "value": 45 },
+					"auto_repair": true,
+					"replicas":2,
+					"subnet":"id-1",
+					"availability_zone":"us-east-1a",
+					"version": {
+						"raw_id": "4.14.10"
+					}
+				}`),
+				),
+			)
+
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+					node_drain_grace_period = 45
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 2
+				auto_repair = true
+				version = "4.14.10"
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.node_drain_grace_period", 45.0))
+		})
+
+		It("Can update machine pool node_drain_grace_period", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/node_pools"),
+					VerifyJQ(".node_drain_grace_period.value", 30.0),
+					RespondWithJSON(http.StatusOK, `{
+					"id":"drain-pool",
+					"aws_node_pool":{ "instance_type":"r5.xlarge", "instance_profile": "bla" },
+					"node_drain_grace_period": { "value": 30 },
+					"auto_repair": true,
+					"replicas":2,
+					"subnet":"id-1",
+					"availability_zone":"us-east-1a",
+					"version": { "raw_id": "4.14.10" }
+				}`),
+				),
+			)
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "drain-pool"
+				aws_node_pool = { instance_type = "r5.xlarge", node_drain_grace_period = 30 }
+				autoscaling = { enabled = false }
+				subnet_id = "id-1"
+				replicas     = 2
+				auto_repair = true
+				version = "4.14.10"
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			prepareClusterRead("123")
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/drain-pool"),
+					RespondWithJSON(http.StatusOK, `{
+					  "id": "drain-pool",
+					  "replicas": 2,
+					  "subnet": "id-1",
+					  "aws_node_pool": { "instance_type": "r5.xlarge", "instance_profile": "bla" },
+					  "node_drain_grace_period": { "value": 30 },
+					  "auto_repair": true,
+					  "version": { "raw_id": "4.14.10" }
+					}`),
+				),
+			)
+			prepareClusterRead("123")
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/drain-pool"),
+					RespondWithJSON(http.StatusOK, `{
+					  "id": "drain-pool",
+					  "replicas": 2,
+					  "subnet": "id-1",
+					  "aws_node_pool": { "instance_type": "r5.xlarge", "instance_profile": "bla" },
+					  "node_drain_grace_period": { "value": 30 },
+					  "auto_repair": true,
+					  "version": { "raw_id": "4.14.10" }
+					}`),
+				),
+			)
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/node_pools/drain-pool"),
+					VerifyJQ(".node_drain_grace_period.value", 90.0),
+					RespondWithJSON(http.StatusOK, `{
+					  "id": "drain-pool",
+					  "replicas": 2,
+					  "subnet": "id-1",
+					  "aws_node_pool": { "instance_type": "r5.xlarge", "instance_profile": "bla" },
+					  "node_drain_grace_period": { "value": 90 },
+					  "auto_repair": true,
+					  "version": { "raw_id": "4.14.10" }
+					}`),
+				),
+			)
+
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "drain-pool"
+				aws_node_pool = { instance_type = "r5.xlarge", node_drain_grace_period = 90 }
+				autoscaling = { enabled = false }
+				subnet_id = "id-1"
+				replicas     = 2
+				auto_repair = true
+				version = "4.14.10"
+			}`)
+			runOutput2 := Terraform.Apply()
+			Expect(runOutput2.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.node_drain_grace_period", 90.0))
 		})
 
 		It("Can create machine pool with custom disk size set and cannot edit", func() {

@@ -20,9 +20,10 @@ locals {
     instance_type                 = var.machine_type,
     additional_security_group_ids = var.additional_security_groups,
     ec2_metadata_http_tokens      = var.ec2_metadata_http_tokens,
-    tags                          = var.tags
-    disk_size                     = var.disk_size
-    image_type                    = var.image_type
+    tags                          = var.tags,
+    disk_size                     = var.disk_size,
+    image_type                    = var.image_type,
+    node_drain_grace_period       = var.node_drain_grace_period,
   }
 }
 

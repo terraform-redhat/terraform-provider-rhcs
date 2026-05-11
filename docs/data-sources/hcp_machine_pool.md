@@ -70,6 +70,7 @@ Optional:
 - `disk_size` (Number) The root disk size, in GiB.
 - `ec2_metadata_http_tokens` (String) This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the nodes.This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). This feature is available from After the creation of the resource, it is not possible to update the attribute value.
 - `image_type` (String) The image type used for the node pool. Valid values are 'Default' or 'Windows'.
+- `node_drain_grace_period` (Number) Grace period in whole minutes before nodes are forcibly drained during upgrade or replacement.
 - `tags` (Map of String) Apply user defined tags to all machine pool resources created in AWS. After the creation of the resource, it is not possible to update the attribute value.
 
 Read-Only:

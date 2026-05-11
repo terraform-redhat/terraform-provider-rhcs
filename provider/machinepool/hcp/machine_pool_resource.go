@@ -19,6 +19,7 @@ package hcp
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/http"
 	"regexp"
 	"strings"
@@ -373,6 +374,10 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 		}
 
 		builder.AWSNodePool(awsNodePoolBuilder)
+
+		if common.HasValue(plan.AWSNodePool.NodeDrainGracePeriod) {
+			builder.NodeDrainGracePeriod(cmv1.NewValue().Value(float64(plan.AWSNodePool.NodeDrainGracePeriod.ValueInt64())))
+		}
 	}
 
 	if !common.IsStringAttributeUnknownOrEmpty(plan.SubnetID) {
@@ -886,6 +891,12 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 		npBuilder.KubeletConfigs(patchKubeletConfigs)
 	}
 
+	if plan.AWSNodePool != nil && state.AWSNodePool != nil {
+		if v, ok := common.ShouldPatchInt(state.AWSNodePool.NodeDrainGracePeriod, plan.AWSNodePool.NodeDrainGracePeriod); ok {
+			npBuilder.NodeDrainGracePeriod(cmv1.NewValue().Value(float64(v)))
+		}
+	}
+
 	nodePool, err := npBuilder.Build()
 	if err != nil {
 		diags.AddError(
@@ -1327,6 +1338,25 @@ func populateState(ctx context.Context, object *cmv1.NodePool, state *HcpMachine
 			state.AWSNodePool.CapacityReservationId = types.StringNull()
 			state.AWSNodePool.CapacityReservationPreference = types.StringNull()
 		}
+	}
+
+	if nd, ok := object.GetNodeDrainGracePeriod(); ok {
+		if state.AWSNodePool == nil {
+			state.AWSNodePool = new(AWSNodePool)
+		}
+		if v, vok := nd.GetValue(); vok {
+			if v != math.Trunc(v) {
+				return fmt.Errorf("OCM returned non-integer node_drain_grace_period value: %v", v)
+			}
+			if v < math.MinInt64 || v > math.MaxInt64 {
+				return fmt.Errorf("OCM returned out-of-range node_drain_grace_period value: %v", v)
+			}
+			state.AWSNodePool.NodeDrainGracePeriod = types.Int64Value(int64(v))
+		} else {
+			state.AWSNodePool.NodeDrainGracePeriod = types.Int64Null()
+		}
+	} else if state.AWSNodePool != nil {
+		state.AWSNodePool.NodeDrainGracePeriod = types.Int64Null()
 	}
 
 	if imageType, ok := object.GetImageType(); ok {

@@ -1,6 +1,7 @@
 package hcp
 
 import (
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	dsschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -18,6 +19,9 @@ import (
 
 const MaxAdditionalSecurityGroupHcp = 10
 
+// MaxNodeDrainGracePeriodMinutes is the maximum node drain grace period in whole minutes (ROSA CLI limit).
+const MaxNodeDrainGracePeriodMinutes = 10080
+
 type AWSNodePool struct {
 	InstanceType                  types.String `tfsdk:"instance_type"`
 	InstanceProfile               types.String `tfsdk:"instance_profile"`
@@ -28,6 +32,7 @@ type AWSNodePool struct {
 	CapacityReservationId         types.String `tfsdk:"capacity_reservation_id"`
 	CapacityReservationPreference types.String `tfsdk:"capacity_reservation_preference"`
 	ImageType                     types.String `tfsdk:"image_type"`
+	NodeDrainGracePeriod          types.Int64  `tfsdk:"node_drain_grace_period"`
 }
 
 func AwsNodePoolResource() map[string]schema.Attribute {
@@ -114,6 +119,20 @@ func AwsNodePoolResource() map[string]schema.Attribute {
 				stringplanmodifier.UseStateForUnknown(),
 			},
 		},
+		"node_drain_grace_period": schema.Int64Attribute{
+			Description: "Grace period in whole minutes before nodes are forcibly drained during upgrade or replacement. " +
+				"This value is stored on the NodePool in OpenShift Cluster Manager but is grouped under `aws_node_pool` for " +
+				"consistency with other pool settings. Valid range is 0–10080 minutes (one week).",
+			Optional: true,
+			Computed: true,
+			Validators: []validator.Int64{
+				int64validator.AtLeast(0),
+				int64validator.AtMost(MaxNodeDrainGracePeriodMinutes),
+			},
+			PlanModifiers: []planmodifier.Int64{
+				int64planmodifier.UseStateForUnknown(),
+			},
+		},
 	}
 }
 
@@ -164,6 +183,11 @@ func AwsNodePoolDatasource() map[string]dsschema.Attribute {
 		},
 		"image_type": schema.StringAttribute{
 			Description: "The image type used for the node pool. Valid values are 'Default' or 'Windows'.",
+			Optional:    true,
+			Computed:    true,
+		},
+		"node_drain_grace_period": schema.Int64Attribute{
+			Description: "Grace period in whole minutes before nodes are forcibly drained during upgrade or replacement.",
 			Optional:    true,
 			Computed:    true,
 		},

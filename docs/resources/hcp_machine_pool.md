@@ -48,7 +48,7 @@ resource "rhcs_hcp_machine_pool" "machine_pool" {
 - `replicas` (Number) The number of machines of the pool
 - `taints` (Attributes List) Taints for a machine pool. Format should be a comma-separated list of 'key=value'. This list will overwrite any modifications made to node taints on an ongoing basis. (see [below for nested schema](#nestedatt--taints))
 - `tuning_configs` (List of String) A list of tuning configs attached to the pool.
-- `upgrade_acknowledgements_for` (String) Indicates acknowledgement of agreements required to upgrade the cluster version between minor versions (e.g. a value of "4.12" indicates acknowledgement of any agreements required to upgrade to OpenShift 4.12.z from 4.11 or before).
+- `upgrade_acknowledgements_for` (String) Indicates acknowledgment of agreements required to upgrade the cluster version between minor versions (e.g. a value of "4.12" indicates acknowledgment of any agreements required to upgrade to OpenShift 4.12.z from 4.11 or before).
 - `version` (String) Desired version of OpenShift for the machine pool, for example '4.11.0'. If version is greater than the currently running version, an upgrade will be scheduled.
 
 ### Read-Only

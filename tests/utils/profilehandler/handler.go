@@ -69,6 +69,7 @@ type ProfileServices interface {
 	GetTrustedIPsService() (exec.TrustedIPsService, error)
 	GetTuningConfigService() (exec.TuningConfigService, error)
 	GetImageMirrorService() (exec.ImageMirrorService, error)
+	GetOCMRoleLinkService() (exec.OCMRoleLinkService, error)
 }
 
 type ProfileSpec interface {
@@ -135,6 +136,20 @@ func NewRandomProfileHandler(clusterTypes ...constants.ClusterType) (handler Pro
 		return
 	}
 	handler = newProfileHandler(profile, helper.GenerateRandomName(profile.Name, 3))
+	return
+}
+
+// NewStandaloneProfileHandler creates a ProfileHandler for tests that don't require a cluster profile
+// This is useful for resources like link_ocm_role that operate independently of clusters
+func NewStandaloneProfileHandler(testName string) (handler ProfileHandler, err error) {
+	// Create a minimal profile with just the workspace name
+	// This allows tests to use the ProfileServices infrastructure without requiring a cluster
+	profile := &Profile{
+		Name:   testName,
+		Region: constants.DefaultAWSRegion,
+	}
+	workspaceName := helper.GenerateRandomName(testName, 3)
+	handler = newProfileHandler(profile, workspaceName)
 	return
 }
 
@@ -1287,4 +1302,8 @@ func (ctx *profileContext) GetImageMirrorService() (exec.ImageMirrorService, err
 
 func (ctx *profileContext) GetBreakGlassCredentialService() (exec.BreakGlassCredentialService, error) {
 	return exec.NewBreakGlassCredentialService(ctx.GetTFWorkspace(), ctx.GetClusterType())
+}
+
+func (ctx *profileContext) GetOCMRoleLinkService() (exec.OCMRoleLinkService, error) {
+	return exec.NewOCMRoleLinkService(ctx.GetTFWorkspace())
 }

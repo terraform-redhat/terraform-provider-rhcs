@@ -103,3 +103,7 @@ func GetImageMirrorManifestsDir(clusterType constants.ClusterType) string {
 func GetBreakGlassCredentialManifestsDir(clusterType constants.ClusterType) string {
 	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "break-glass-credentials")
 }
+
+func GetOCMRoleLinkManifestsDir() string {
+	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "ocm-role-link")
+}

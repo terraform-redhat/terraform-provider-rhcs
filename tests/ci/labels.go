@@ -49,3 +49,7 @@ var Low = Label("Low")
 
 // exclude
 var Exclude = Label("Exclude")
+
+// NonClusterTest indicates tests that don't require a cluster profile
+// These tests can run without CLUSTER_PROFILE environment variable set
+var NonClusterTest = Label("non-cluster-test")

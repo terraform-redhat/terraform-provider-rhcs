@@ -54,6 +54,7 @@ import (
 	nodepool "github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool/hcp"
 	classicStsPolicies "github.com/terraform-redhat/terraform-provider-rhcs/provider/ocm_policies/classic"
 	hcpStsPolicies "github.com/terraform-redhat/terraform-provider-rhcs/provider/ocm_policies/hcp"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/ocmrolelink"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfig"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfiginput"
 	classicOperatorRoles "github.com/terraform-redhat/terraform-provider-rhcs/provider/rosa_operator_roles/classic"
@@ -233,6 +234,7 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 		classicAutoscaler.New,
 		defaultingress.New,
 		kubeletconfig.New,
+		ocmrolelink.New,
 		hcp.New,
 		nodepool.New,
 		hcpingress.New,
@@ -261,5 +263,6 @@ func (p *Provider) DataSources(ctx context.Context) []func() datasource.DataSour
 		trusted_ip_addresses.New,
 		imagemirror.NewDataSource,
 		logforwarder.NewDataSource,
+		ocmrolelink.NewDataSource,
 	}
 }

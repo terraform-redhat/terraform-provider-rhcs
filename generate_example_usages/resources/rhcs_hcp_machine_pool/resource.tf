@@ -7,7 +7,8 @@ resource "rhcs_hcp_machine_pool" "machine_pool" {
   }
   subnet_id = "subnet-id-1"
   aws_node_pool = {
-    instance_type = "m5.xlarge"
+    instance_type           = "m5.xlarge"
+    node_drain_grace_period = 45
   }
   auto_repair = true
 }

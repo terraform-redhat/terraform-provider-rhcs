@@ -1,3 +1,6 @@
+// Copyright Red Hat
+// SPDX-License-Identifier: Apache-2.0
+
 package tuningconfigs
 
 import "github.com/hashicorp/terraform-plugin-framework/types"

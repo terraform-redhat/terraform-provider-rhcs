@@ -1,3 +1,6 @@
+# Copyright Red Hat
+# SPDX-License-Identifier: Apache-2.0
+
 output "private_subnets" {
   value = module.vpc.private_subnets
 }

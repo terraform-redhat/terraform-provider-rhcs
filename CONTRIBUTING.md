@@ -51,7 +51,7 @@ YOU MUST LET THE LOCAL HOOKS RUN ON EVERY COMMIT AND PUSH. DO NOT BYPASS LOCAL H
 
 The hooks perform:
 
-- `pre-commit`: formats staged Go files with `gci` + `gofmt` plus staged Terraform files under `examples/` and `tests/`, and blocks the commit if files were rewritten so you can review and stage the updates
+- `pre-commit`: formats staged Go files with `gci` + `gofmt` plus staged Terraform files under `examples/` and `tests/`, adds Apache 2.0 license headers to staged files missing them, and blocks the commit if files were rewritten so you can review and stage the updates
 - `commit-msg`: validates the commit message format
 - `pre-push`: runs format-check, build, generated-files check, lint, changed-files coverage for changed Go files under `provider/` and `internal/`, and unit/subsystem tests
 - `pre-push` runs against committed content and blocks when staged or unstaged tracked changes are present

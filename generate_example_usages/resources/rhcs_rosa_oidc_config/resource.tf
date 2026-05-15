@@ -1,3 +1,6 @@
+# Copyright Red Hat
+# SPDX-License-Identifier: Apache-2.0
+
 # example for unmanaged oidc
 resource "rhcs_rosa_oidc_config" "oidc_config" {
   managed            = false

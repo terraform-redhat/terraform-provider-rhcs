@@ -1,3 +1,6 @@
+# Copyright Red Hat
+# SPDX-License-Identifier: Apache-2.0
+
 # htpasswd
 resource "rhcs_identity_provider" "htpasswd_idp" {
   cluster = "cluster-id-123"

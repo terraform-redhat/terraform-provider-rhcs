@@ -1,3 +1,6 @@
+# Copyright Red Hat
+# SPDX-License-Identifier: Apache-2.0
+
 output "machine_pools" {
   value = [for mp in rhcs_machine_pool.mps : {
     machine_pool_id : mp.id

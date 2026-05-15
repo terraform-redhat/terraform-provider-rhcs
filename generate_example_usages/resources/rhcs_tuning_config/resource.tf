@@ -1,3 +1,6 @@
+# Copyright Red Hat
+# SPDX-License-Identifier: Apache-2.0
+
 resource "rhcs_tuning_config" "hcp_tuning_config" {
   cluster = "cluster-id-123"
   name    = "my-config"

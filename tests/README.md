@@ -62,36 +62,36 @@ Please read the structure and contribte code to the correct place
 #### Day1 cases only do creation step, we have to define a day1 case to verify the day1 works well
 
 * Create the case in terraform-provider-rhcs/tests/e2e/\<feature name\>_test.go
-* Label the case with ***CI.Day1Post***
-* Label the case with importance ***CI.Critical***
+* Label the case with `CI.Day1Post`
+* Label the case with importance `CI.Critical`
 * Don't need to run creation step, just in BeforeEach step call function  ***PrepareRHCSClusterByProfileENV()*** it will load the clusterID prepared
 * Code for checking steps  only in the case
 
 ### Contribute to day2
 
 * Create the case in terraform-provider-rhcs/tests/e2e/\<feature name\>_test.go
-* Label the case with ***CI.Day2***
-* Label the case with importance ***CI.Critical*** or ***CI.High***
+* Label the case with `CI.Day2`
+* Label the case with importance `CI.Critical` or `CI.High`
 * Don't need to run creation step, just in BeforeEach step call function  ***PrepareRHCSClusterByProfileENV()*** it will load the clusterID prepared
 * Code for day2 actions and check step
 * Every case need to recover the cluster after the case run finished unless it's un-recoverable
 
 ### Contribute to day3
 
-* day3 cases means the cases is destructive and cannot recover anymore. The actions will affect other cases like default worker pool deletion, it will affect a lot of day1 post verification
+* day3 cases means the cases is destructive and cannot recover anymore. The actions will affect other cases like default worker pool deletion, it will affect many day1 post verification
 * Create the case in terraform-provider-rhcs/tests/e2e/\<feature name\>_test.go
-* Label the case with ***CI.Day3***
-* Label the case with importance ***CI.Critical*** or ***CI.High***
+* Label the case with `CI.Day3`
+* Label the case with importance `CI.Critical` or `CI.High`
 * Don't need to run creation step, just in BeforeEach step call function  ***PrepareRHCSClusterByProfileENV()*** it will load the clusterID prepared
 * Code for day3 actions and check step
 * Every case need to recover the cluster after the case run finished unless it's un-recoverable
 
 ### Labels
 
-* Label your case with the ***CI.Feature\<feature name\>*** defined in terraform-provider-rhcs/tests/ci/labels.go
+* Label your case with the `CI.Feature<feature name>` defined in terraform-provider-rhcs/tests/ci/labels.go
 * Label your case with importance defined in terraform-provider-rhcs/tests/ci/labels.go
-* Label your case with ***CI.Day1Post/CI.Day2/CI.Day3*** according to the case runtime
-* Label your case with ***CI.Exclude*** if it fails CI all  the time and you can't fix it in time
+* Label your case with `CI.Day1Post/CI.Day2/CI.Day3` according to the case runtime
+* Label your case with `CI.Exclude` if it fails CI all  the time and you can't fix it in time
 
 ## Running
 

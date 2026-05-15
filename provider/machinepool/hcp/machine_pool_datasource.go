@@ -168,8 +168,8 @@ func (r *HcpMachinePoolDatasource) Schema(ctx context.Context, req datasource.Sc
 				Computed:    true,
 			},
 			"upgrade_acknowledgements_for": schema.StringAttribute{
-				Description: "Indicates acknowledgement of agreements required to upgrade the cluster version between" +
-					" minor versions (e.g. a value of \"4.12\" indicates acknowledgement of any agreements required to " +
+				Description: "Indicates acknowledgment of agreements required to upgrade the cluster version between" +
+					" minor versions (e.g. a value of \"4.12\" indicates acknowledgment of any agreements required to " +
 					"upgrade to OpenShift 4.12.z from 4.11 or before).",
 				Computed: true,
 			},

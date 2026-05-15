@@ -14,7 +14,7 @@ Do **not** duplicate checklists or command lists here. Use one source per concer
 | `docs/` | Published provider documentation (often **generated** from `templates/` and schema); do not edit generated pages by hand when the workflow requires regeneration — follow `CONTRIBUTING.md`. |
 | `examples/` | Runnable Terraform under `examples/` (resources, data sources, guides paths); use for manual checks and as references for HCL style — align with provider schema and HashiCorp Terraform style. |
 | `CONTRIBUTING.md` | Commands, hooks, tests, formatting, release — **procedural authority**. |
-| `.github/pull_request_template.md` | What to fill in on a PR and the **Developer Verification Checklist** — **submission checklist**. |
+| `.github/pull_request_template.md` | What to complete on a PR and the **Developer Verification Checklist** — **submission checklist**. |
 | `.cursor/rules/` | Code style and Terraform Plugin Framework guardrails. |
 | **`AGENTS.md` (this file)** | ROSA/OCM boundaries, escalation triggers, and **high-level** implementation flow — not step-by-step commands. |
 
@@ -34,7 +34,7 @@ Recommended for this provider: `terraform-provider-development`, `terraform-test
 
 - Do not implement provider support for capabilities that are not available in ROSA.
 - Validate feature availability against ROSA documentation and the official OCM API behavior before implementing resource or data source code.
-- When unsure whether support is ROSA HCP vs Classic (or both), stop and verify before implementation.
+- When unsure whether support is ROSA HCP versus Classic (or both), stop and verify before implementation.
 
 Reference sources:
 
@@ -45,7 +45,7 @@ Reference sources:
 
 These are **review and design expectations**. They are not all enforced by automation; contributors and reviewers still apply them. Concrete commands and gates are in `CONTRIBUTING.md` (for example hooks, `make pre-push-checks`, coverage rules).
 
-- Do not hardcode secrets, API keys, tokens, kubeconfigs, AWS credentials, or customer identifiers in code, tests, docs, examples, or logs.
+- Do not hard code secrets, API keys, tokens, kubeconfigs, AWS credentials, or customer identifiers in code, tests, docs, examples, or logs.
 - Do not document bypassing local hooks or verification gates.
 - Do not ship silent breaking changes: call out impact and migration in the PR (see **Breaking Changes** in the PR template).
 - Do not edit generated provider docs by hand when the workflow requires regeneration; edit sources and regenerate per `CONTRIBUTING.md`.
@@ -77,7 +77,7 @@ These are **review and design expectations**. They are not all enforced by autom
 Treat any change below as potentially breaking unless proven otherwise:
 
 - Attribute rename/removal/type change.
-- Required vs optional/computed contract changes.
+- Required versus optional/computed contract changes.
 - Behavioral changes in plan/apply that alter existing successful configurations.
 - Import/state format changes.
 - Provider-wide dependency changes that can impact runtime, generated docs, authentication, or API compatibility.

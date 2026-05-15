@@ -7,7 +7,7 @@ description: |-
 
 # Create a new cluster
 
-Hosted Control Plane clusters differ from Classic managed OpenShift clusters, the main difference relates a decoupled management plane that enables consolidated control and management of core control plane components. Having the control plane hosted and managed in a ROSA service AWS account rather than in the customer’s individual account offers advantages to aid your business. Reduces complications and cost from scaling the control plane and facilitates workload scheduling to worker nodes. Meaning developers can spend more time developing and testing applications, instead of configuring or waiting for cluster infrastructure to be ready.
+Hosted Control Plane clusters differ from Classic managed OpenShift clusters, the main difference relates a decoupled management plane that enables consolidated control and management of core control plane components. Having the control plane hosted and managed in a ROSA service AWS account rather than in the customer’s individual account offers advantages to aid your business. Reduces complications and cost from scaling the control plane and facilitates workload scheduling to worker nodes. Meaning developers can use more time developing and testing applications, instead of configuring or waiting for cluster infrastructure to be ready.
 
 Red Hat (RH) provides the access to the management of HCP clusters as well as it's resources through Terraform. Which allows infrastructure to be managed as code, making it much more reliable and reproducible.
 

@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	tflogging "github.com/hashicorp/terraform-plugin-sdk/helper/logging"
+	tflogging "github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	ocmlogging "github.com/openshift-online/ocm-sdk-go/logging"
 )
 

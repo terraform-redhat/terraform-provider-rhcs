@@ -47,6 +47,23 @@
       "automerge": true
     },
     {
+            "description": "Do not bump Go toolchain minor/major versions",
+            "matchManagers": [
+                "gomod"
+            ],
+            "matchDatasources": [
+                "golang-version"
+            ],
+            "matchDepTypes": [
+                "toolchain"
+            ],
+            "matchUpdateTypes": [
+                "minor",
+                "major"
+            ],
+            "enabled": false
+    },
+    {
       "description": "HashiCorp Terraform plugin stack",
       "groupName": "hashicorp-terraform",
       "matchManagers": [

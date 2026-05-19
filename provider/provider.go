@@ -54,6 +54,7 @@ import (
 	nodepool "github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool/hcp"
 	classicStsPolicies "github.com/terraform-redhat/terraform-provider-rhcs/provider/ocm_policies/classic"
 	hcpStsPolicies "github.com/terraform-redhat/terraform-provider-rhcs/provider/ocm_policies/hcp"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/ocmrole"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfig"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/oidcconfiginput"
 	classicOperatorRoles "github.com/terraform-redhat/terraform-provider-rhcs/provider/rosa_operator_roles/classic"
@@ -240,6 +241,7 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 		hcpAutoscaler.New,
 		breakglasscredential.New,
 		logforwarder.New,
+		ocmrole.New,
 	}
 }
 

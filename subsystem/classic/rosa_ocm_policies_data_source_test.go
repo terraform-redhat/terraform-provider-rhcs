@@ -191,12 +191,40 @@ const (
 			"details":"{\"Version\": \"2012-10-17\", \"Statement\": [{\"Action\": [\"sts:AssumeRole\"], \"Effect\": \"Allow\", \"Principal\": {\"AWS\": [\"arn:aws:iam::12345678912:role/RH-Technical-Support-12345678\"]}}]}",
 			"arn":"",
 			"type":"AccountRole"
-		  }	  
+		  },
+		  {
+			"kind":"STSPolicy",
+			"id":"sts_ocm_trust_policy",
+			"details":"{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": \"sts:AssumeRole\", \"Principal\": {\"AWS\": \"arn:aws:iam::710019948333:root\"}}]}",
+			"arn":"",
+			"type":"OCMRole"
+		  },
+		  {
+			"kind":"STSPolicy",
+			"id":"sts_ocm_permission_policy",
+			"details":"{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": [\"iam:GetRole\"], \"Resource\": \"*\"}]}",
+			"arn":"",
+			"type":"OCMRole"
+		  },
+		  {
+			"kind":"STSPolicy",
+			"id":"sts_ocm_admin_permission_policy",
+			"details":"{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": [\"iam:*\"], \"Resource\": \"*\"}]}",
+			"arn":"",
+			"type":"OCMRole"
+		  },
+		  {
+			"kind":"STSPolicy",
+			"id":"sts_ocm_no_console_permission_policy",
+			"details":"{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": \"iam:GetRole\", \"Resource\": \"*\", \"Condition\": {\"StringEquals\": {\"iam:ResourceTag/red-hat-managed\": \"true\"}}}]}",
+			"arn":"",
+			"type":"OCMRole"
+		  }
 		],
 		"kind": "STSPoliciesList",
 		"page": 1,
-		"size": 23,
-		"total": 23
+		"size": 27,
+		"total": 27
 	  }`
 )
 
@@ -239,6 +267,12 @@ var _ = Describe("OCM policies data source", func() {
 					"sts_instance_worker_permission_policy":       "{}",
 					"sts_instance_controlplane_permission_policy": "{}",
 					"sts_support_rh_sre_role":                     "arn:aws:iam::12345678912:role/RH-Technical-Support-12345678",
+				},
+				"ocm_role_policies": map[string]interface{}{
+					"sts_ocm_trust_policy":                 "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": \"sts:AssumeRole\", \"Principal\": {\"AWS\": \"arn:aws:iam::710019948333:root\"}}]}",
+					"sts_ocm_permission_policy":            "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": [\"iam:GetRole\"], \"Resource\": \"*\"}]}",
+					"sts_ocm_admin_permission_policy":      "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": [\"iam:*\"], \"Resource\": \"*\"}]}",
+					"sts_ocm_no_console_permission_policy": "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": \"iam:GetRole\", \"Resource\": \"*\", \"Condition\": {\"StringEquals\": {\"iam:ResourceTag/red-hat-managed\": \"true\"}}}]}",
 				},
 			},
 		)))

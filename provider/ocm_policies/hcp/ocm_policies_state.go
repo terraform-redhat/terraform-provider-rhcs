@@ -21,6 +21,7 @@ import "github.com/hashicorp/terraform-plugin-framework/types"
 type OcmPoliciesState struct {
 	OperatorRolePolicies *OperatorRolePolicies `tfsdk:"operator_role_policies"`
 	AccountRolePolicies  *AccountRolePolicies  `tfsdk:"account_role_policies"`
+	OCMRolePolicies      *OCMRolePolicies      `tfsdk:"ocm_role_policies"`
 }
 
 type OperatorRolePolicies struct {
@@ -39,4 +40,11 @@ type AccountRolePolicies struct {
 	Support          types.String `tfsdk:"sts_hcp_support_permission_policy"`
 	SupportRhSreRole types.String `tfsdk:"sts_support_rh_sre_role"`
 	InstanceWorker   types.String `tfsdk:"sts_hcp_instance_worker_permission_policy"`
+}
+
+type OCMRolePolicies struct {
+	TrustPolicy               types.String `tfsdk:"sts_ocm_trust_policy"`
+	PermissionPolicy          types.String `tfsdk:"sts_ocm_permission_policy"`
+	AdminPermissionPolicy     types.String `tfsdk:"sts_ocm_admin_permission_policy"`
+	NoConsolePermissionPolicy types.String `tfsdk:"sts_ocm_no_console_permission_policy"`
 }

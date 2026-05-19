@@ -27,7 +27,7 @@ import (
 )
 
 // Generate the Terraform provider documentation using `tfplugindocs`:
-//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate
+//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate --provider-name rhcs --rendered-provider-name rhcs
 
 const rhcsProviderAddress = "registry.terraform.io/terraform-redhat/rhcs"
 

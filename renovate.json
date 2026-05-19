@@ -14,22 +14,25 @@
     ]
   },
   "gomod": {
-        "postUpdateOptions": [
-            "gomodUpdateImportPaths",
-            "gomodTidy"
-        ],
-        "packageRules": [
-            {
-                "matchManagers": [
-                    "gomod"
-                ],
-                "matchDepTypes": [
-                    "indirect"
-                ],
-                "enabled": false
-            }
-        ]
+    "constraints": {
+      "go": "1.25.8"
     },
+    "postUpdateOptions": [
+      "gomodUpdateImportPaths",
+      "gomodTidy"
+    ],
+    "packageRules": [
+      {
+        "matchManagers": [
+          "gomod"
+        ],
+        "matchDepTypes": [
+          "indirect"
+        ],
+        "enabled": false
+      }
+    ]
+  },
   "dependencyDashboard": true,
   "minimumReleaseAge": "3 days",
   "vulnerabilityAlerts": {
@@ -43,25 +46,25 @@
       "description": "Enable automerge Konflux tekton task updates",
       "matchManagers": [
         "tekton"
-       ],
+      ],
       "automerge": true
     },
     {
-            "description": "Do not bump Go toolchain minor/major versions",
-            "matchManagers": [
-                "gomod"
-            ],
-            "matchDatasources": [
-                "golang-version"
-            ],
-            "matchDepTypes": [
-                "toolchain"
-            ],
-            "matchUpdateTypes": [
-                "minor",
-                "major"
-            ],
-            "enabled": false
+      "description": "Do not bump Go toolchain minor/major versions",
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchDatasources": [
+        "golang-version"
+      ],
+      "matchDepTypes": [
+        "toolchain"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "major"
+      ],
+      "enabled": false
     },
     {
       "description": "HashiCorp Terraform plugin stack",
@@ -103,6 +106,16 @@
         "k8s.io/{/,}**",
         "sigs.k8s.io/{/,}**"
       ]
+    },
+    {
+      "description": "Pin k8s.io/apimachinery to v0.35.x (requires Go 1.26+ for v0.36+)",
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchPackageNames": [
+        "k8s.io/apimachinery"
+      ],
+      "allowedVersions": "< 0.36.0"
     },
     {
       "description": "Test stack",

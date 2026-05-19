@@ -47,6 +47,12 @@ const (
 	SupportRhSreRole     = "sts_support_rh_sre_role"
 	InstanceWorker       = "sts_instance_worker_permission_policy"
 	InstanceControlPlane = "sts_instance_controlplane_permission_policy"
+
+	// Policy IDs from type OCM role
+	OCMTrustPolicy               = "sts_ocm_trust_policy"
+	OCMPermissionPolicy          = "sts_ocm_permission_policy"
+	OCMAdminPermissionPolicy     = "sts_ocm_admin_permission_policy"
+	OCMNoConsolePermissionPolicy = "sts_ocm_no_console_permission_policy"
 )
 
 type OcmPoliciesDataSource struct {
@@ -119,6 +125,28 @@ func (s *OcmPoliciesDataSource) Schema(ctx context.Context, req datasource.Schem
 				},
 				Computed: true,
 			},
+			"ocm_role_policies": schema.SingleNestedAttribute{
+				Description: "OCM role permission policies and trust policy.",
+				Attributes: map[string]schema.Attribute{
+					OCMTrustPolicy: schema.StringAttribute{
+						Description: "Trust policy for the OCM role.",
+						Computed:    true,
+					},
+					OCMPermissionPolicy: schema.StringAttribute{
+						Description: "Permission policy for the standard OCM role.",
+						Computed:    true,
+					},
+					OCMAdminPermissionPolicy: schema.StringAttribute{
+						Description: "Permission policy for the admin OCM role.",
+						Computed:    true,
+					},
+					OCMNoConsolePermissionPolicy: schema.StringAttribute{
+						Description: "Permission policy for the no-console OCM role.",
+						Computed:    true,
+					},
+				},
+				Computed: true,
+			},
 		},
 	}
 }
@@ -153,6 +181,7 @@ func (s *OcmPoliciesDataSource) Read(ctx context.Context, req datasource.ReadReq
 
 	operatorRolePolicies := OperatorRolePolicies{}
 	accountRolePolicies := AccountRolePolicies{}
+	ocmRolePolicies := OCMRolePolicies{}
 	policiesResponse.Items().Each(func(awsPolicy *cmv1.AWSSTSPolicy) bool {
 		tflog.Debug(ctx, fmt.Sprintf("policy id: %s ", awsPolicy.ID()))
 		switch awsPolicy.ID() {
@@ -188,8 +217,17 @@ func (s *OcmPoliciesDataSource) Read(ctx context.Context, req datasource.ReadReq
 			accountRolePolicies.InstanceWorker = types.StringValue(awsPolicy.Details())
 		case InstanceControlPlane:
 			accountRolePolicies.InstanceControlPlane = types.StringValue(awsPolicy.Details())
+		// OCM role policies
+		case OCMTrustPolicy:
+			ocmRolePolicies.TrustPolicy = types.StringValue(awsPolicy.Details())
+		case OCMPermissionPolicy:
+			ocmRolePolicies.PermissionPolicy = types.StringValue(awsPolicy.Details())
+		case OCMAdminPermissionPolicy:
+			ocmRolePolicies.AdminPermissionPolicy = types.StringValue(awsPolicy.Details())
+		case OCMNoConsolePermissionPolicy:
+			ocmRolePolicies.NoConsolePermissionPolicy = types.StringValue(awsPolicy.Details())
 		default:
-			tflog.Debug(ctx, "This is neither operator role policy nor account role policy")
+			tflog.Debug(ctx, fmt.Sprintf("Unknown policy ID: %s", awsPolicy.ID()))
 		}
 		return true
 	})
@@ -198,6 +236,7 @@ func (s *OcmPoliciesDataSource) Read(ctx context.Context, req datasource.ReadReq
 	}
 	state.OperatorRolePolicies = &operatorRolePolicies
 	state.AccountRolePolicies = &accountRolePolicies
+	state.OCMRolePolicies = &ocmRolePolicies
 
 	// Save the state:
 	diags = resp.State.Set(ctx, state)

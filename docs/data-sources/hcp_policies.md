@@ -22,6 +22,7 @@ data "rhcs_hcp_policies" "all_policies" {}
 ### Read-Only
 
 - `account_role_policies` (Attributes) Account role policies. (see [below for nested schema](#nestedatt--account_role_policies))
+- `ocm_role_policies` (Attributes) OCM role permission policies and trust policy. (see [below for nested schema](#nestedatt--ocm_role_policies))
 - `operator_role_policies` (Attributes) Operator role policies. (see [below for nested schema](#nestedatt--operator_role_policies))
 
 <a id="nestedatt--account_role_policies"></a>
@@ -33,6 +34,17 @@ Read-Only:
 - `sts_hcp_instance_worker_permission_policy` (String)
 - `sts_hcp_support_permission_policy` (String)
 - `sts_support_rh_sre_role` (String)
+
+
+<a id="nestedatt--ocm_role_policies"></a>
+### Nested Schema for `ocm_role_policies`
+
+Read-Only:
+
+- `sts_ocm_admin_permission_policy` (String) Permission policy for the admin OCM role.
+- `sts_ocm_no_console_permission_policy` (String) Permission policy for the no-console OCM role.
+- `sts_ocm_permission_policy` (String) Permission policy for the standard OCM role.
+- `sts_ocm_trust_policy` (String) Trust policy for the OCM role.
 
 
 <a id="nestedatt--operator_role_policies"></a>

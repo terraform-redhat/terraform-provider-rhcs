@@ -57,6 +57,10 @@ func (ro *RunOutput) VerifyErrorContainsSubstring(sub string) {
 	Expect(ro.err).To(ContainSubstring(sub))
 }
 
+func (ro *RunOutput) VerifyOutputContainsSubstring(sub string) {
+	Expect(ro.out).To(ContainSubstring(sub))
+}
+
 // TerraformRunner contains the data and logic needed to run Terraform.
 type TerraformRunner struct {
 	binary string

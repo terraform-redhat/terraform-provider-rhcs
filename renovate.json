@@ -33,7 +33,7 @@
   "dependencyDashboard": true,
   "minimumReleaseAge": "3 days",
   "vulnerabilityAlerts": {
-    "enabled": true
+    "enabled": false
   },
   "labels": [
     "ok-to-test"

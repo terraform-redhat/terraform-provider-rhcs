@@ -233,7 +233,7 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 
 			Expect(rosaClusterObject.FIPS()).To(BeTrue())
 		})
-		It("Sets AutoNode mode and AWS role ARN when provided", func() {
+		It("Does not set AutoNode mode or role ARN on create (Day-2 operation)", func() {
 			clusterState := generateBasicRosaHcpClusterState()
 			clusterState.AutoNode = &AutoNode{
 				Mode:    types.StringValue(autoNodeModeEnabled),
@@ -242,13 +242,13 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 			rosaClusterObject, err := createHcpClusterObject(context.Background(), clusterState, diag.Diagnostics{})
 			Expect(err).ToNot(HaveOccurred())
 
-			autoNode, ok := rosaClusterObject.GetAutoNode()
-			Expect(ok).To(BeTrue())
-			Expect(autoNode.Mode()).To(Equal(autoNodeModeEnabled))
+			// AutoNode mode and role_arn are not set in the create payload
+			// They are set via post-create PATCH after cluster is ready
+			_, ok := rosaClusterObject.GetAutoNode()
+			Expect(ok).To(BeFalse())
 
-			awsAutoNode, ok := rosaClusterObject.AWS().GetAutoNode()
-			Expect(ok).To(BeTrue())
-			Expect(awsAutoNode.RoleArn()).To(Equal(autoNodeRoleArn))
+			_, ok = rosaClusterObject.AWS().GetAutoNode()
+			Expect(ok).To(BeFalse())
 		})
 	})
 	It("Throws an error when version format is invalid", func() {
@@ -435,7 +435,7 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clusterState.AutoNode).To(BeNil())
 		})
-		It("Ignores auto_node when mode is missing", func() {
+		It("Populates role_arn without mode when only role_arn is present in API response", func() {
 			clusterState := &ClusterRosaHcpState{}
 			clusterJson := generateBasicRosaHcpClusterJson()
 			clusterJson["aws"].(map[string]interface{})["auto_node"] = map[string]interface{}{
@@ -449,7 +449,9 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 
 			err = populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(clusterState.AutoNode).To(BeNil())
+			Expect(clusterState.AutoNode).NotTo(BeNil())
+			Expect(clusterState.AutoNode.RoleARN.ValueString()).To(Equal(autoNodeRoleArn))
+			Expect(clusterState.AutoNode.Mode.IsNull()).To(BeTrue())
 		})
 
 		It("Populates Channel and nulls ChannelGroup when cluster has channel", func() {

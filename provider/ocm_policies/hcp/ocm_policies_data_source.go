@@ -171,7 +171,12 @@ func (s *OcmPoliciesDataSource) Read(ctx context.Context, req datasource.ReadReq
 
 	policiesResponse, err := s.awsInquiries.STSPolicies().List().Send()
 	if err != nil {
-		tflog.Error(ctx, "Failed to get policies")
+		description := fmt.Sprintf("Failed to get policies: %v", err)
+		tflog.Error(ctx, description)
+		resp.Diagnostics.AddError(
+			description,
+			"Verify your OCM credentials and connectivity to the OCM API",
+		)
 		return
 	}
 

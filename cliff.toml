@@ -3,10 +3,12 @@
 #
 # Configuration for terraform-provider-rhcs
 # Commit format: [JIRA-TICKET] | [TYPE][(scope)][!]: <MESSAGE>
+# Supported tickets: OCM-XXXXX, ROSAENG-XXXX
 # Examples:
 #   OCM-12345 | feat: add new feature
 #   OCM-12345 | feat(cluster): add new feature
 #   OCM-12345 | feat!: breaking change
+#   ROSAENG-1234 | fix: resolve authentication issue
 
 [changelog]
 # Changelog header
@@ -54,6 +56,7 @@ split_commits = false
 
 # Preprocessors to transform commit messages from our format to parseable format
 # Transform: "OCM-12345 | feat(scope)!: add feature" -> "feat(scope)!: add feature"
+# Transform: "ROSAENG-1234 | feat(scope)!: add feature" -> "feat(scope)!: add feature"
 # (Must match hack/commit-msg-verify.sh: optional (scope) and ! before the colon.)
 # This allows commit_parsers to match on type while preserving the message
 commit_preprocessors = [
@@ -61,7 +64,9 @@ commit_preprocessors = [
     { pattern = '^[A-Z]+-\d+\s*\|\s*(feat|fix|docs|style|refactor|perf|test|build|ci|chore)(\([a-z0-9._-]+\))?(!)?:\s*(.+)$', replace = "$1$2$3: $4" },
     # Placeholder OCM-0… ticket (same shape)
     { pattern = '^OCM-0+\s*\|\s*(feat|fix|docs|style|refactor|perf|test|build|ci|chore)(\([a-z0-9._-]+\))?(!)?:\s*(.+)$', replace = "$1$2$3: $4" },
-    # Strip "OCM-NNNN: " prefix (e.g. "OCM-3102: Fixing a bug" -> "Fixing a bug")
+    # Placeholder ROSAENG-0… ticket (same shape)
+    { pattern = '^ROSAENG-0+\s*\|\s*(feat|fix|docs|style|refactor|perf|test|build|ci|chore)(\([a-z0-9._-]+\))?(!)?:\s*(.+)$', replace = "$1$2$3: $4" },
+    # Strip "OCM-NNNN: " or "ROSAENG-NNNN: " prefix (e.g. "OCM-3102: Fixing a bug" -> "Fixing a bug")
     { pattern = '^[A-Z]+-\d+:\s*', replace = "" },
     { pattern = '^[A-Z]+-\d+ \| \s*', replace = "" },
     # Remove Signed-off-by lines (e.g. "Signed-off-by: abc <abc@abc.com>")
@@ -118,8 +123,9 @@ filter_commits = true
 fail_on_unmatched_commit = false
 # Link parsers for external references
 link_parsers = [
-    # Parse JIRA ticket references
+    # Parse JIRA ticket references (OCM and ROSAENG)
     { pattern = "OCM-(\\d+)", href = "https://issues.redhat.com/browse/OCM-$1" },
+    { pattern = "ROSAENG-(\\d+)", href = "https://issues.redhat.com/browse/ROSAENG-$1" },
 ]
 # Use tags from current branch only
 use_branch_tags = false

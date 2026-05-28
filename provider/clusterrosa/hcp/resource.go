@@ -1031,6 +1031,7 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 	// Capture the planned AutoNode values before populateRosaHcpClusterState overwrites them
 	var plannedAutoNodeMode string
 	var plannedAutoNodeRoleARN string
+	autoNodePatchFailed := false
 	if state.AutoNode != nil {
 		plannedAutoNodeMode = state.AutoNode.Mode.ValueString()
 		plannedAutoNodeRoleARN = state.AutoNode.RoleARN.ValueString()
@@ -1108,6 +1109,7 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 						"Can't build AutoNode patch",
 						fmt.Sprintf("Can't build AutoNode patch for cluster '%s': %v", state.ID.ValueString(), err),
 					)
+					autoNodePatchFailed = true
 				} else {
 					update, err := r.ClusterCollection.Cluster(state.ID.ValueString()).Update().
 						Body(autoNodePatch).
@@ -1117,6 +1119,7 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 							"Can't activate AutoNode mode",
 							fmt.Sprintf("Can't activate AutoNode mode for cluster '%s': %v", state.ID.ValueString(), err),
 						)
+						autoNodePatchFailed = true
 					} else {
 						object = update.Body()
 					}
@@ -1135,6 +1138,16 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 			),
 		)
 		return
+	}
+
+	// If the AutoNode PATCH failed, the OCM API won't return mode in its response, which would
+	// cause Terraform to see a diff between plan (mode=enabled) and state (mode=null). Restore
+	// the planned values so the user sees the warning but state stays consistent with the plan.
+	if autoNodePatchFailed && plannedAutoNodeMode != "" {
+		state.AutoNode = &AutoNode{
+			Mode:    types.StringValue(plannedAutoNodeMode),
+			RoleARN: types.StringValue(plannedAutoNodeRoleARN),
+		}
 	}
 
 	// Fetch log forwarder IDs

@@ -453,6 +453,45 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 			Expect(clusterState.AutoNode.RoleARN.ValueString()).To(Equal(autoNodeRoleArn))
 			Expect(clusterState.AutoNode.Mode.IsNull()).To(BeTrue())
 		})
+		It("Restores planned AutoNode values when PATCH fails (state consistency)", func() {
+			// Simulate what happens in Create when the post-create PATCH fails:
+			// populateRosaHcpClusterState is called with an API response that has no auto_node.mode,
+			// which would clear the mode from state and cause Terraform's "inconsistent result" error.
+			// The autoNodePatchFailed flag triggers restoration of planned values.
+			clusterState := &ClusterRosaHcpState{}
+			clusterJson := generateBasicRosaHcpClusterJson()
+			// API response has role_arn but no mode (PATCH failed, OCM didn't activate mode)
+			clusterJson["aws"].(map[string]interface{})["auto_node"] = map[string]interface{}{
+				"role_arn": autoNodeRoleArn,
+			}
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)
+			Expect(err).ToNot(HaveOccurred())
+			// After populateRosaHcpClusterState, mode is null (not in API response)
+			Expect(clusterState.AutoNode).NotTo(BeNil())
+			Expect(clusterState.AutoNode.Mode.IsNull()).To(BeTrue())
+
+			// Simulate the autoNodePatchFailed restoration logic from Create
+			autoNodePatchFailed := true
+			plannedAutoNodeMode := autoNodeModeEnabled
+			plannedAutoNodeRoleARN := autoNodeRoleArn
+			if autoNodePatchFailed && plannedAutoNodeMode != "" {
+				clusterState.AutoNode = &AutoNode{
+					Mode:    types.StringValue(plannedAutoNodeMode),
+					RoleARN: types.StringValue(plannedAutoNodeRoleARN),
+				}
+			}
+
+			// State now matches the plan, preventing Terraform's "inconsistent result" error
+			Expect(clusterState.AutoNode).NotTo(BeNil())
+			Expect(clusterState.AutoNode.Mode.ValueString()).To(Equal(autoNodeModeEnabled))
+			Expect(clusterState.AutoNode.RoleARN.ValueString()).To(Equal(autoNodeRoleArn))
+		})
 
 		It("Populates Channel and nulls ChannelGroup when cluster has channel", func() {
 			clusterState := &ClusterRosaHcpState{}

@@ -943,12 +943,12 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 		return
 	}
 
-	hasAutoNodeMode := state.AutoNode != nil && !common.IsStringAttributeUnknownOrEmpty(state.AutoNode.Mode)
+	hasAutoNode := state.AutoNode != nil
 
-	if hasAutoNodeMode && !shouldWaitCreationComplete {
+	if hasAutoNode && !shouldWaitCreationComplete {
 		response.Diagnostics.AddError(
 			summary,
-			"When configuring auto_node.mode, wait_for_create_complete = true is required "+
+			"When configuring auto_node, wait_for_create_complete = true is required "+
 				"(AutoNode activation is a post-create operation)",
 		)
 		return
@@ -1028,13 +1028,8 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 	}
 	object = add.Body()
 
-	// Capture the planned AutoNode values before populateRosaHcpClusterState overwrites them
-	var plannedAutoNodeMode string
-	var plannedAutoNodeRoleARN string
-	if state.AutoNode != nil {
-		plannedAutoNodeMode = state.AutoNode.Mode.ValueString()
-		plannedAutoNodeRoleARN = state.AutoNode.RoleARN.ValueString()
-	}
+	plannedAutoNode := state.AutoNode
+	clusterReady := false
 
 	// Save initial state:
 	err = populateRosaHcpClusterState(ctx, object, state)
@@ -1059,6 +1054,7 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 			)
 		}
 		object, err = r.ClusterWait.WaitForClusterToBeReady(ctx, object.ID(), *timeOut)
+		clusterReady = err == nil
 		if err != nil {
 			response.Diagnostics.AddError(
 				"Waiting for cluster creation finished with error",
@@ -1069,60 +1065,31 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 				response.Diagnostics.Append(diags...)
 				return
 			}
-		} else {
-			if shouldWaitComputeNodesComplete {
-				tflog.Info(ctx, "Waiting for standard compute nodes to get ready")
-				timeOut := common.OptionalInt64(state.MaxMachinePoolWaitTimeoutInMinutes)
-				timeOut, err = common.ValidateTimeout(timeOut, rosa.MaxMachinePoolWaitTimeoutInMinutes)
-				if err != nil {
-					response.Diagnostics.AddError(
-						"Waiting for cluster creation finished with error",
-						fmt.Sprintf("Waiting for cluster creation finished with the error %v", err),
-					)
-				}
-				object, err = r.ClusterWait.WaitForStdComputeNodesToBeReady(ctx, object.ID(), *timeOut)
-				if err != nil {
-					response.Diagnostics.AddError(
-						"Waiting for std compute nodes completion finished with error",
-						fmt.Sprintf("Waiting for std compute nodes completion finished with the error %v", err),
-					)
-					if object == nil {
-						diags = response.State.Set(ctx, state)
-						response.Diagnostics.Append(diags...)
-						return
-					}
-				}
+		}
+		if shouldWaitComputeNodesComplete {
+			tflog.Info(ctx, "Waiting for standard compute nodes to get ready")
+			timeOut := common.OptionalInt64(state.MaxMachinePoolWaitTimeoutInMinutes)
+			timeOut, err = common.ValidateTimeout(timeOut, rosa.MaxMachinePoolWaitTimeoutInMinutes)
+			if err != nil {
+				response.Diagnostics.AddError(
+					"Waiting for cluster creation finished with error",
+					fmt.Sprintf("Waiting for cluster creation finished with the error %v", err),
+				)
 			}
-
-			// AutoNode (auto_node.mode) is a Day-2 operation in the OCM API: the create request
-			// silently ignores auto_node.mode. A follow-up PATCH is required to activate mode
-			// after the cluster is ready, mirroring what `rosa edit cluster --autonode enabled` does.
-			if plannedAutoNodeMode != "" {
-				tflog.Info(ctx, "Activating AutoNode mode via post-create PATCH (OCM Day-2 requirement)")
-				autoNodePatch, err := cmv1.NewCluster().
-					AutoNode(cmv1.NewClusterAutoNode().Mode(plannedAutoNodeMode)).
-					AWS(cmv1.NewAWS().AutoNode(cmv1.NewAwsAutoNode().RoleArn(plannedAutoNodeRoleARN))).
-					Build()
-				if err != nil {
-					response.Diagnostics.AddWarning(
-						"Can't build AutoNode patch",
-						fmt.Sprintf("Can't build AutoNode patch for cluster '%s': %v", state.ID.ValueString(), err),
-					)
-				} else {
-					update, err := r.ClusterCollection.Cluster(state.ID.ValueString()).Update().
-						Body(autoNodePatch).
-						SendContext(ctx)
-					if err != nil {
-						response.Diagnostics.AddWarning(
-							"Can't activate AutoNode mode",
-							fmt.Sprintf("Can't activate AutoNode mode for cluster '%s': %v", state.ID.ValueString(), err),
-						)
-					} else {
-						object = update.Body()
-					}
+			object, err = r.ClusterWait.WaitForStdComputeNodesToBeReady(ctx, object.ID(), *timeOut)
+			if err != nil {
+				response.Diagnostics.AddError(
+					"Waiting for std compute nodes completion finished with error",
+					fmt.Sprintf("Waiting for std compute nodes completion finished with the error %v", err),
+				)
+				if object == nil {
+					diags = response.State.Set(ctx, state)
+					response.Diagnostics.Append(diags...)
+					return
 				}
 			}
 		}
+
 	}
 
 	// Save the state post wait completion:
@@ -1135,6 +1102,41 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 			),
 		)
 		return
+	}
+
+	// AutoNode mode activation requires a Day-2 PATCH after the cluster is ready.
+	if plannedAutoNode != nil && clusterReady {
+		tflog.Info(ctx, "Enabling AutoNode via post-create PATCH")
+		autoNodePatch, err := cmv1.NewCluster().
+			AutoNode(cmv1.NewClusterAutoNode().Mode(autoNodeModeEnabled)).
+			AWS(cmv1.NewAWS().AutoNode(
+				cmv1.NewAwsAutoNode().RoleArn(plannedAutoNode.RoleARN.ValueString()),
+			)).
+			Build()
+		if err != nil {
+			response.Diagnostics.AddWarning(
+				"Can't enable AutoNode",
+				fmt.Sprintf(
+					"Can't build AutoNode patch for cluster '%s': %v. "+
+						"AutoNode will be re-applied on the next terraform apply.",
+					state.ID.ValueString(), err),
+			)
+		} else {
+			_, err := r.ClusterCollection.Cluster(state.ID.ValueString()).Update().
+				Body(autoNodePatch).
+				SendContext(ctx)
+			if err != nil {
+				response.Diagnostics.AddWarning(
+					"Can't enable AutoNode",
+					fmt.Sprintf(
+						"Can't enable AutoNode for cluster '%s': %v. "+
+							"AutoNode will be re-applied on the next terraform apply.",
+						state.ID.ValueString(), err),
+				)
+			}
+		}
+		// Ensure state matches the plan regardless of PATCH outcome.
+		state.AutoNode = plannedAutoNode
 	}
 
 	// Fetch log forwarder IDs
@@ -1935,39 +1937,14 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 		state.AuditLogArn = types.StringNull()
 	}
 
-	autoNodeState := &AutoNode{
-		RoleARN: types.StringNull(),
-	}
-	hasMode := false
-	hasRoleARN := false
-
-	if autoNode, ok := object.GetAutoNode(); ok {
-		if mode, ok := autoNode.GetMode(); ok && mode == autoNodeModeEnabled {
-			autoNodeState.Mode = types.StringValue(mode)
-			hasMode = true
-		}
-	}
+	state.AutoNode = nil
 	if awsAutoNode, ok := object.AWS().GetAutoNode(); ok {
 		if roleArn, ok := awsAutoNode.GetRoleArn(); ok && roleArn != "" {
-			autoNodeState.RoleARN = types.StringValue(roleArn)
-			hasRoleARN = true
+			state.AutoNode = &AutoNode{
+				Mode:    types.StringValue(autoNodeModeEnabled),
+				RoleARN: types.StringValue(roleArn),
+			}
 		}
-	}
-
-	// Only populate state.AutoNode if at least one of the fields is present
-	// Mode requires RoleARN to be meaningful, but RoleARN can exist alone
-	if hasMode {
-		// Mode must have RoleARN
-		if hasRoleARN {
-			state.AutoNode = autoNodeState
-		} else {
-			state.AutoNode = nil
-		}
-	} else if hasRoleARN {
-		// RoleARN alone is OK (mode can be added later)
-		state.AutoNode = autoNodeState
-	} else {
-		state.AutoNode = nil
 	}
 
 	httpTokensState, ok := object.AWS().GetEc2MetadataHttpTokens()
@@ -2265,22 +2242,6 @@ func validateAutoNodeRoleARN() validator.String {
 			}
 		},
 	)
-}
-
-func optionalAutoNodeMode(autoNode *AutoNode) *string {
-	if autoNode == nil || common.IsStringAttributeUnknownOrEmpty(autoNode.Mode) {
-		return nil
-	}
-
-	return autoNode.Mode.ValueStringPointer()
-}
-
-func optionalAutoNodeRoleARN(autoNode *AutoNode) *string {
-	if autoNode == nil || common.IsStringAttributeUnknownOrEmpty(autoNode.RoleARN) {
-		return nil
-	}
-
-	return autoNode.RoleARN.ValueStringPointer()
 }
 
 func getAutoNodeMode(autoNode *AutoNode) types.String {

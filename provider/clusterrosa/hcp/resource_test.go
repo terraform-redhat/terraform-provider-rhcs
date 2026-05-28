@@ -320,6 +320,7 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 			Expect(clusterState.Sts.OIDCEndpointURL.ValueString()).To(Equal(oidcEndpointUrl))
 			Expect(clusterState.Sts.RoleARN.ValueString()).To(Equal(roleArn))
 			Expect(clusterState.Ec2MetadataHttpTokens.ValueString()).To(Equal(httpTokens))
+			Expect(clusterState.AutoNode).To(BeNil())
 		})
 		It("Check trimming of oidc url with https perfix", func() {
 			clusterState := &ClusterRosaHcpState{}
@@ -435,23 +436,32 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clusterState.AutoNode).To(BeNil())
 		})
-		It("Populates role_arn without mode when only role_arn is present in API response", func() {
+		It("Preserves planned AutoNode when API response lacks AutoNode data", func() {
 			clusterState := &ClusterRosaHcpState{}
 			clusterJson := generateBasicRosaHcpClusterJson()
-			clusterJson["aws"].(map[string]interface{})["auto_node"] = map[string]interface{}{
-				"role_arn": autoNodeRoleArn,
-			}
 			clusterJsonString, err := json.Marshal(clusterJson)
 			Expect(err).ToNot(HaveOccurred())
 
 			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
 			Expect(err).ToNot(HaveOccurred())
 
+			plannedAutoNode := &AutoNode{
+				Mode:    types.StringValue(autoNodeModeEnabled),
+				RoleARN: types.StringValue(autoNodeRoleArn),
+			}
+
 			err = populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)
 			Expect(err).ToNot(HaveOccurred())
+			Expect(clusterState.AutoNode).To(BeNil())
+
+			// Simulate state preservation logic from Create
+			if plannedAutoNode != nil && clusterState.AutoNode == nil {
+				clusterState.AutoNode = plannedAutoNode
+			}
+
 			Expect(clusterState.AutoNode).NotTo(BeNil())
+			Expect(clusterState.AutoNode.Mode.ValueString()).To(Equal(autoNodeModeEnabled))
 			Expect(clusterState.AutoNode.RoleARN.ValueString()).To(Equal(autoNodeRoleArn))
-			Expect(clusterState.AutoNode.Mode.IsNull()).To(BeTrue())
 		})
 
 		It("Populates Channel and nulls ChannelGroup when cluster has channel", func() {

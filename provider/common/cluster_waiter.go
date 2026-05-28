@@ -147,7 +147,7 @@ func pollClusterCurrentCompute(clusterId string, ctx context.Context, timeout in
 		}).
 		StartContext(pollCtx)
 	if err != nil {
-		tflog.Error(ctx, "Failed polling cluster compute")
+		tflog.Error(ctx, fmt.Sprintf("Failed polling cluster compute: %v", err))
 		return nil, err
 	}
 
@@ -176,7 +176,7 @@ func pollClusterState(clusterId string, ctx context.Context, timeout int64, clus
 		}).
 		StartContext(pollCtx)
 	if err != nil {
-		tflog.Error(ctx, "Failed polling cluster state")
+		tflog.Error(ctx, fmt.Sprintf("Failed polling cluster state: %v", err))
 		return nil, err
 	}
 

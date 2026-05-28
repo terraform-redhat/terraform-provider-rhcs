@@ -12,6 +12,7 @@ print_commit_message_error() {
 $message
 Expected format: JIRA-12345 | <conventional-commit>
 Example: OCM-12345 | feat(scope): add support for foo
+Example: ROSAENG-1234 | fix: resolve authentication issue
 Please check CONTRIBUTING.md for more details
 EOF
 }

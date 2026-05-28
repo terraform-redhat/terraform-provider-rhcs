@@ -114,6 +114,8 @@ The commit message should follow this template:
 [optional FOOTER(s)]
 ```
 
+Supported JIRA ticket formats: `OCM-XXXXX` or `ROSAENG-XXXX`
+
 The commit contains the following structural types, to communicate your intent:
 
 - `fix:` a commit of the type fix patches a bug in your codebase (this correlates with PATCH in Semantic Versioning).

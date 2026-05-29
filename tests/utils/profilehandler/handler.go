@@ -113,6 +113,7 @@ type ProfileSpec interface {
 	IsFullResources() bool
 	IsUseRegistryConfig() bool
 	IsExternalAuthEnabled() bool
+	IsUseChannel() bool
 }
 
 type profileContext struct {
@@ -334,6 +335,10 @@ func (ctx *profileContext) GetMaxReplicas() int {
 
 func (ctx *profileContext) IsExternalAuthEnabled() bool {
 	return ctx.profile.ExternalAuthEnabled
+}
+
+func (ctx *profileContext) IsUseChannel() bool {
+	return ctx.profile.UseChannel
 }
 
 func (ctx *profileContext) PrepareVPC(multiZone bool, azIDs []string, name string, sharedVpcAWSSharedCredentialsFile string) (*exec.VPCOutput, error) {
@@ -632,7 +637,13 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 
 	clusterArgs = &exec.ClusterArgs{
 		OpenshiftVersion: helper.StringPointer(version),
-		ChannelGroup:     helper.StringPointer(channelGroup),
+	}
+
+	if ctx.profile.UseChannel {
+		channel := fmt.Sprintf("%s-%s", channelGroup, helper.GetMajorVersion(version))
+		clusterArgs.Channel = helper.StringPointer(channel)
+	} else {
+		clusterArgs.ChannelGroup = helper.StringPointer(channelGroup)
 	}
 
 	// Init cluster's args by profile's attributes

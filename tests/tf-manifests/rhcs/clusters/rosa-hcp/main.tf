@@ -19,7 +19,7 @@ provider "aws" {
 }
 
 data "rhcs_versions" "version" {
-  search = "enabled='t' and rosa_enabled='t' and channel_group='${var.channel_group}'"
+  search = var.channel != null ? "enabled='t' and rosa_enabled='t'" : "enabled='t' and rosa_enabled='t' and channel_group='${var.channel_group}'"
   order  = "id"
 }
 
@@ -52,7 +52,8 @@ data "aws_caller_identity" "current" {
 resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
   name                         = var.cluster_name
   version                      = local.version
-  channel_group                = var.channel_group
+  channel                      = var.channel
+  channel_group                = var.channel == null ? var.channel_group : null
   cloud_region                 = var.aws_region
   aws_account_id               = var.aws_account_id != null ? var.aws_account_id : data.aws_caller_identity.current.account_id
   aws_billing_account_id       = var.aws_billing_account_id != null ? var.aws_billing_account_id : data.aws_caller_identity.current.account_id

@@ -14,6 +14,7 @@ type ClusterArgs struct {
 	AWSRegion                            *string            `hcl:"aws_region"`
 	AWSAvailabilityZones                 *[]string          `hcl:"aws_availability_zones"`
 	Replicas                             *int               `hcl:"replicas"`
+	Channel                              *string            `hcl:"channel"`
 	ChannelGroup                         *string            `hcl:"channel_group"`
 	Ec2MetadataHttpTokens                *string            `hcl:"ec2_metadata_http_tokens"`
 	PrivateLink                          *bool              `hcl:"private_link"`

@@ -9,6 +9,7 @@ type Profile struct {
 	MajorVersion            string   `ini:"major_version,omitempty" json:"major_version,omitempty"` // Specify the Major or Major.minor version to use. Default will use latest
 	Version                 string   `ini:"version,omitempty" json:"version,omitempty"`             // Version supports specific OCP version or indicated version starting with openshift-v or latest or major-1 (y-1) or minor-1 (z-1). Default is latest.
 	ChannelGroup            string   `ini:"channel_group,omitempty" json:"channel_group,omitempty"`
+	UseChannel              bool     `ini:"use_channel,omitempty" json:"use_channel,omitempty"`
 	CloudProvider           string   `ini:"cloud_provider,omitempty" json:"cloud_provider,omitempty"`
 	Region                  string   `ini:"region,omitempty" json:"region,omitempty"`
 	InstanceType            string   `ini:"instance_type,omitempty" json:"instance_type,omitempty"`

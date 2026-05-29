@@ -28,6 +28,11 @@ variable "openshift_version" {
   default = null
 }
 
+variable "channel" {
+  type    = string
+  default = null
+}
+
 variable "channel_group" {
   type    = string
   default = "stable"

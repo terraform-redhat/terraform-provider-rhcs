@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"regexp"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -502,13 +503,21 @@ func versionToTemplateID(version string) string {
 func (r *WifConfigResource) populateState(obj *cmv1.WifConfig, state *WifConfigState) {
 	state.ID = types.StringValue(obj.ID())
 	state.DisplayName = types.StringValue(obj.DisplayName())
-	// OpenshiftVersion is deliberately not assigned here. OCM does not echo
-	// it back; only WifTemplates (e.g. ["v4.21"]) is returned, and the
-	// templates value is lossy relative to the user input (4.21.15 -> v4.21
-	// strips the patch). Since openshift_version is an Optional (not
-	// Computed) attribute, writing a derived value would surface as a
-	// Terraform diff against the plan on every refresh. On import the
-	// attribute lands null; the user can re-add it to their HCL if needed.
+	// OCM does not echo openshift_version back; only WifTemplates (e.g.
+	// ["v4.21"]) is returned, and the conversion is lossy relative to the
+	// user input ("4.21.15" -> "v4.21" strips the patch). When state
+	// already holds the user's value (normal Read after Create) we leave
+	// it alone to avoid a permanent plan diff. When state is null (import
+	// path) we surface a best-effort value derived from WifTemplates so
+	// the imported resource is non-empty; users who care about the full
+	// patch version can re-add it to their HCL on the next plan.
+	if state.OpenshiftVersion.IsNull() || state.OpenshiftVersion.IsUnknown() {
+		if templates := obj.WifTemplates(); len(templates) > 0 {
+			if v := strings.TrimPrefix(templates[0], "v"); v != "" {
+				state.OpenshiftVersion = types.StringValue(v)
+			}
+		}
+	}
 	if obj.Organization() != nil {
 		state.Organization = types.StringValue(obj.Organization().ID())
 	} else {

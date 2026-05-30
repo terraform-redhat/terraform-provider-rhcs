@@ -502,6 +502,13 @@ func versionToTemplateID(version string) string {
 func (r *WifConfigResource) populateState(obj *cmv1.WifConfig, state *WifConfigState) {
 	state.ID = types.StringValue(obj.ID())
 	state.DisplayName = types.StringValue(obj.DisplayName())
+	// OpenshiftVersion is deliberately not assigned here. OCM does not echo
+	// it back; only WifTemplates (e.g. ["v4.21"]) is returned, and the
+	// templates value is lossy relative to the user input (4.21.15 -> v4.21
+	// strips the patch). Since openshift_version is an Optional (not
+	// Computed) attribute, writing a derived value would surface as a
+	// Terraform diff against the plan on every refresh. On import the
+	// attribute lands null; the user can re-add it to their HCL if needed.
 	if obj.Organization() != nil {
 		state.Organization = types.StringValue(obj.Organization().ID())
 	} else {

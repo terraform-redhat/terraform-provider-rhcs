@@ -9,9 +9,10 @@ You may obtain a copy of the License at
 */
 
 // Internal tests cover unexported helpers (buildClusterObject, populateState)
-// and exist in the same package so we can call them directly. Each test is
-// pinned to a bug from /home/anaeem/rhcs-osd-gcp/ISSUES.md so future
-// regressions are caught.
+// and exist in the same package so we can call them directly. Each test
+// pins a regression for a bug found during the live OSD-GCP smoke test
+// described in the PR cover letter; the bug numbers below reference that
+// list (e.g. "smoke-test bug #1").
 
 package clusterosdgcp
 
@@ -61,7 +62,7 @@ func minimalPlan() *ClusterOsdGcpState {
 // Test that buildClusterObject does NOT set BillingModel on the OCM cluster
 // body when the user did not provide a value.
 //
-// Issue: ISSUES.md #1 — billing_model default broke OSD Trial clusters.
+// Smoke-test bug #1 — billing_model default broke OSD Trial clusters.
 // The first live apply against OCM was rejected with
 //
 //	CLUSTERS-MGMT-400: 'marketplace-gcp' billing_model is not allowed for OSD Trial clusters
@@ -136,7 +137,7 @@ func TestBuildClusterObject_BillingModelPassthrough(t *testing.T) {
 //	Provider produced inconsistent result after apply
 //	.gcp_encryption_key: was cty.ObjectVal(...), but now null
 //
-// Issue: ISSUES.md #4 — populateState wiped input-only fields when OCM
+// Smoke-test bug #4 — populateState wiped input-only fields when OCM
 // omitted them. Fix in RFC-8 / RFC-10: only overwrite the state attribute
 // when OCM actually returned a value.
 func TestPopulateState_PreservesInputOnlyFields(t *testing.T) {

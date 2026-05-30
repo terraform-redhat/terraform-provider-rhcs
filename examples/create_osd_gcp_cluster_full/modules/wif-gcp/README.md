@@ -54,7 +54,7 @@ resource "rhcs_wif_config" "wif" {
 }
 
 module "wif_gcp" {
-  source = "../../modules/osd-wif-gcp"
+  source = "./modules/wif-gcp"
 
   project_id               = var.gcp_project_id
   display_name             = rhcs_wif_config.wif.display_name
@@ -72,7 +72,7 @@ module "wif_gcp" {
   federated_project_number = tostring(coalesce(rhcs_wif_config.wif.gcp.federated_project_number, data.google_project.project.number))
 }
 
-resource "osdgoogle_cluster" "cluster" {
+resource "rhcs_cluster_osd_gcp" "cluster" {
   depends_on     = [module.wif_gcp]
   name           = var.cluster_name
   wif_config_id  = rhcs_wif_config.wif.id

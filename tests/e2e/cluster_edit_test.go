@@ -55,6 +55,9 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			if !profileHandler.Profile().IsProxy() {
 				Skip("No proxy configured")
 			}
+			if profileHandler.Profile().IsFakeCluster() {
+				Skip("Fake cluster: no real proxy infrastructure to edit")
+			}
 
 			By("Retrieve Proxy service")
 			proxyService, err := profileHandler.Services().GetProxyService()

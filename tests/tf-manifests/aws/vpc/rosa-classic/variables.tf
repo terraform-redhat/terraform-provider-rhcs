@@ -42,3 +42,9 @@ variable "tags" {
   default     = null
   description = "AWS tags to be applied to generated AWS resources of this VPC."
 }
+
+variable "no_nat_gateway" {
+  type        = bool
+  default     = false
+  description = "When true, create a VPC with private subnets only and no NAT Gateways. Useful for fake clusters where NAT Gateway quota must be avoided."
+}

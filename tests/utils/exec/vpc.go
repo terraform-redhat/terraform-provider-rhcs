@@ -13,6 +13,7 @@ type VPCArgs struct {
 	AvailabilityZones         *[]string          `hcl:"availability_zones"`
 	AvailabilityZonesCount    *int               `hcl:"availability_zones_count"`
 	Tags                      *map[string]string `hcl:"tags"`
+	NoNatGateway              *bool              `hcl:"no_nat_gateway"`
 }
 
 type VPCOutput struct {

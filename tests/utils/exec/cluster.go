@@ -21,6 +21,7 @@ type ClusterArgs struct {
 	Fips                                 *bool              `hcl:"fips"`
 	Tags                                 *map[string]string `hcl:"tags"`
 	AuditLogForward                      *bool              `hcl:"audit_log_forward"`
+	AutoscalingConfig                    *Autoscaling       `hcl:"autoscaling"`
 	Autoscaling                          *bool              `hcl:"autoscaling_enabled"`
 	MaxReplicas                          *int               `hcl:"max_replicas"`
 	MinReplicas                          *int               `hcl:"min_replicas"`

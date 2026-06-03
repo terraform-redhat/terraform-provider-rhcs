@@ -34,7 +34,8 @@ type ProfileHandler interface {
 }
 
 type ProfilePrepare interface {
-	PrepareVPC(multiZone bool, azIDs []string, name string, sharedVpcAWSSharedCredentialsFile string) (*exec.VPCOutput, error)
+	PrepareVPC(multiZone bool, azIDs []string, name string,
+		sharedVpcAWSSharedCredentialsFile string, noNatGateway bool) (*exec.VPCOutput, error)
 	PrepareAdditionalSecurityGroups(vpcID string, sgNumbers int) ([]string, error)
 	PrepareAccountRoles(token string, accountRolePrefix string, accountRolesPath string, openshiftVersion string, channelGroup string, sharedVpcRoleArn string) (*exec.AccountRolesOutput, error)
 	PrepareOIDCProviderAndOperatorRoles(token string, oidcConfigType string, operatorRolePrefix string, accountRolePrefix string, accountRolesPath string) (*exec.OIDCProviderOperatorRolesOutput, error)
@@ -97,6 +98,7 @@ type ProfileSpec interface {
 	GetMaxReplicas() int
 
 	IsHCP() bool
+	IsFakeCluster() bool
 	IsPrivateLink() bool
 	IsPrivate() bool
 	IsMultiAZ() bool
@@ -232,6 +234,14 @@ func (ctx *profileContext) IsHCP() bool {
 	return ctx.GetClusterType().HCP
 }
 
+func (ctx *profileContext) isFakeCluster() bool {
+	return ctx.profile.CustomProperties["fake_cluster"] == "true"
+}
+
+func (ctx *profileContext) IsFakeCluster() bool {
+	return ctx.isFakeCluster()
+}
+
 func (ctx *profileContext) IsPrivateLink() bool {
 	if ctx.GetClusterType().HCP {
 		return ctx.profile.Private
@@ -336,7 +346,9 @@ func (ctx *profileContext) IsExternalAuthEnabled() bool {
 	return ctx.profile.ExternalAuthEnabled
 }
 
-func (ctx *profileContext) PrepareVPC(multiZone bool, azIDs []string, name string, sharedVpcAWSSharedCredentialsFile string) (*exec.VPCOutput, error) {
+func (ctx *profileContext) PrepareVPC(
+	multiZone bool, azIDs []string, name string,
+	sharedVpcAWSSharedCredentialsFile string, noNatGateway bool) (*exec.VPCOutput, error) {
 	region := ctx.profile.Region
 	vpcService, err := ctx.Services().GetVPCService()
 	if err != nil {
@@ -348,6 +360,10 @@ func (ctx *profileContext) PrepareVPC(multiZone bool, azIDs []string, name strin
 		Tags: &map[string]string{
 			"kubernetes.io/cluster/unmanaged": "true",
 		},
+	}
+
+	if noNatGateway {
+		vpcArgs.NoNatGateway = helper.BoolPointer(true)
 	}
 
 	if len(azIDs) != 0 {
@@ -646,9 +662,11 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 	}
 
 	if ctx.profile.Autoscaling {
-		clusterArgs.Autoscaling = helper.BoolPointer(ctx.profile.Autoscaling)
-		clusterArgs.MinReplicas = helper.IntPointer(ctx.profile.MinReplicas)
-		clusterArgs.MaxReplicas = helper.IntPointer(ctx.profile.MaxReplicas)
+		clusterArgs.AutoscalingConfig = &exec.Autoscaling{
+			AutoscalingEnabled: helper.BoolPointer(true),
+			MinReplicas:        helper.IntPointer(ctx.profile.MinReplicas),
+			MaxReplicas:        helper.IntPointer(ctx.profile.MaxReplicas),
+		}
 	} else {
 		if ctx.profile.ComputeReplicas > 0 {
 			clusterArgs.Replicas = helper.IntPointer(ctx.profile.ComputeReplicas)
@@ -793,7 +811,9 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 					panic(fmt.Errorf("Shared VPC Credentials File environment is not set, it's requried by Shared-VPC cluster"))
 				}
 			}
-			vpcOutput, err = ctx.PrepareVPC(ctx.profile.MultiAZ, zones, clusterName, sharedVPCAWSSharedCredentialsFile)
+			vpcOutput, err = ctx.PrepareVPC(
+				ctx.profile.MultiAZ, zones, clusterName,
+				sharedVPCAWSSharedCredentialsFile, ctx.isFakeCluster())
 			if err != nil {
 				return
 			}
@@ -802,7 +822,19 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 				err = fmt.Errorf("error when creating the vpc, check the previous log. The created resources had been destroyed")
 				return
 			}
-			if ctx.profile.Private {
+			// Fake clusters: subnet selection depends on cluster visibility.
+			// Private/PrivateLink clusters need only private subnets; others pass all subnets
+			// to satisfy OCM's Multi-AZ 6-subnet requirement.
+			if ctx.isFakeCluster() {
+				if ctx.profile.Private {
+					clusterArgs.Private = helper.BoolPointer(ctx.profile.Private)
+					clusterArgs.PrivateLink = helper.BoolPointer(ctx.profile.PrivateLink)
+					clusterArgs.AWSSubnetIDs = &vpcOutput.PrivateSubnets
+				} else {
+					subnetIDs := append(vpcOutput.PrivateSubnets, vpcOutput.PublicSubnets...)
+					clusterArgs.AWSSubnetIDs = &subnetIDs
+				}
+			} else if ctx.profile.Private {
 				clusterArgs.Private = helper.BoolPointer(ctx.profile.Private)
 				clusterArgs.PrivateLink = helper.BoolPointer(ctx.profile.PrivateLink)
 				if ctx.IsPrivateLink() {
@@ -866,7 +898,17 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 			}
 
 			// in case Proxy is enabled
-			if ctx.profile.Proxy {
+			if ctx.isFakeCluster() && ctx.profile.Proxy {
+				// Fake clusters: inject dummy proxy values so OCM stores them.
+				// Test [id:67607] only reads OCM-stored values — no real proxy EC2 instance needed.
+				proxy := exec.Proxy{
+					AdditionalTrustBundle: helper.StringPointer(FakeClusterTrustBundle),
+					HTTPSProxy:            helper.StringPointer(FakeClusterHTTPSProxy),
+					HTTPProxy:             helper.StringPointer(FakeClusterHTTPProxy),
+					NoProxy:               helper.StringPointer(FakeClusterNoProxy),
+				}
+				clusterArgs.Proxy = &proxy
+			} else if !ctx.isFakeCluster() && ctx.profile.Proxy {
 				var proxyOutput *exec.ProxyOutput
 				proxyOutput, err = ctx.PrepareProxy(vpcOutput.VPCID, vpcOutput.PublicSubnets[0], clusterName)
 				if err != nil {
@@ -883,8 +925,13 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 		}
 	}
 
-	// Prepare KMS key if needed
-	if ctx.profile.Etcd || ctx.profile.KMSKey {
+	if ctx.profile.Etcd {
+		clusterArgs.Etcd = &ctx.profile.Etcd
+	}
+
+	// Prepare KMS key if needed — skipped for fake clusters (OCM accepts etcd flag without a real key)
+	// Also requires AccountRolePrefix to be set (only available when STS is enabled).
+	if (ctx.profile.Etcd || ctx.profile.KMSKey) && !ctx.isFakeCluster() && clusterArgs.AccountRolePrefix != nil {
 		var kmskey string
 		kmskey, err = ctx.PrepareKMSKey(*clusterArgs.ClusterName, *clusterArgs.AccountRolePrefix, ctx.profile.UnifiedAccRolesPath)
 		if err != nil {
@@ -892,7 +939,6 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 		}
 
 		if ctx.profile.Etcd {
-			clusterArgs.Etcd = &ctx.profile.Etcd
 			clusterArgs.EtcdKmsKeyARN = helper.StringPointer(kmskey)
 		}
 		if ctx.profile.KMSKey {
@@ -930,7 +976,9 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 		clusterArgs.WorkerDiskSize = helper.IntPointer(ctx.profile.WorkerDiskSize)
 	}
 	clusterArgs.UnifiedAccRolesPath = helper.StringPointer(ctx.profile.UnifiedAccRolesPath)
-	clusterArgs.CustomProperties = helper.StringMapPointer(CustomProperties) // id:72450
+	// id:72450 - merge global defaults with profile-level custom properties
+	merged := helper.MergeMaps(helper.CopyStringMap(CustomProperties), ctx.profile.CustomProperties)
+	clusterArgs.CustomProperties = helper.StringMapPointer(merged)
 
 	if ctx.profile.FullResources {
 		clusterArgs.FullResources = helper.BoolPointer(true)
@@ -1025,7 +1073,7 @@ func (ctx *profileContext) DestroyRHCSClusterResources(token string) error {
 
 	// Destroy VPC
 	if ctx.profile.BYOVPC {
-		if ctx.profile.Proxy {
+		if ctx.profile.Proxy && !ctx.isFakeCluster() {
 			proxyService, err := ctx.GetProxyService()
 			if err != nil {
 				errs = append(errs, err)

@@ -27,8 +27,43 @@ profiles:
     oidc_config: "managed"
     admin_enabled: false
     unified_acc_role_path: ""
-# rosa-sts-ad :: creating unmanaged oidc config cluster 
-- as: rosa-sts-ad
+    custom_properties:
+      fake_cluster: "true"
+# rosa-sts-pl-real :: full real private-link cluster — identical to rosa-sts-pl without fake_cluster.
+# Creates real AWS infrastructure (VPC with private subnets, private-link config).
+# Use when full end-to-end validation against real AWS is needed.
+- as: rosa-sts-pl-real
+  cluster:
+    cluster_type: rosa-classic
+    multi_az: false
+    product_id: "rosa"
+    cloud_provider: "aws"
+    region: "us-east-1"
+    ccs: true
+    sts: true
+    byovpc: true
+    private_link: true
+    private: true
+    etcd_encryption: false
+    kms_key_arn: false
+    fips: false
+    autoscaler_enabled: false
+    byok: false
+    compute_machine_type: "m5.xlarge"
+    compute_replicas: 3
+    proxy: false
+    labeling: false
+    tagging: false
+    zones: ""
+    ec2_metadata_http_tokens: "optional"
+    oidc_config: "managed"
+    admin_enabled: false
+    unified_acc_role_path: ""
+
+# rosa-sts-ad-real :: full real cluster identical to rosa-sts-ad before fake_cluster was introduced.
+# Creates all AWS infrastructure (VPC, NAT Gateways, proxy, KMS, security groups).
+# Use when full end-to-end validation against real AWS is needed.
+- as: rosa-sts-ad-real
   cluster:
     cluster_type: rosa-classic
     multi_az: true
@@ -57,6 +92,41 @@ profiles:
     additional_sg_number: 4
     worker_disk_size: 200
     unified_acc_role_path: "/unified/"
+
+# rosa-sts-ad :: creating unmanaged oidc config cluster
+- as: rosa-sts-ad
+  cluster:
+    cluster_type: rosa-classic
+    multi_az: true
+    product_id: "rosa"
+    cloud_provider: "aws"
+    region: "ap-northeast-1"
+    ccs: true
+    sts: true
+    byovpc: true
+    private_link: false
+    private: false
+    etcd_encryption: true
+    kms_key_arn: true
+    fips: true
+    autoscaler_enabled: true
+    autoscaling_enabled: true
+    min_replicas: 2
+    max_replicas: 6
+    byok: true
+    compute_machine_type: "m5.2xlarge"
+    proxy: true
+    labeling: true
+    tagging: true
+    zones: ""
+    ec2_metadata_http_tokens: "required"
+    oidc_config: "un-managed"
+    admin_enabled: true
+    additional_sg_number: 4
+    worker_disk_size: 200
+    unified_acc_role_path: "/unified/"
+    custom_properties:
+      fake_cluster: "true"
 # rosa-sts-sv :: creating Shared-VPC cluster.
 - as: rosa-sts-sv
   need_specific_config: true

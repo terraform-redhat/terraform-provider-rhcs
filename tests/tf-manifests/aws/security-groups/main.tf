@@ -14,8 +14,9 @@ provider "aws" {
 
 
 module "web_server_sg" {
-  count  = var.sg_number
-  source = "terraform-aws-modules/security-group/aws//modules/http-80"
+  count   = var.sg_number
+  source  = "terraform-aws-modules/security-group/aws//modules/http-80"
+  version = "~> 5.0"
 
   name        = "${var.name_prefix}-${count.index}"
   description = var.description

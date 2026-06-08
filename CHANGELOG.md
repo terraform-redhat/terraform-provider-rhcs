@@ -24,6 +24,34 @@ ENHANCEMENTS:
    * Update module github.com/openshift-online/ocm-common to v0.0.39
  * Hcp
    * Auto_node causes inconsistent result after apply
+   * Auto_node causes inconsistent result after apply
+
+## 1.7.7 (08 Jun, 2026)
+
+FEATURES:
+   * Add Terraform OCM role link resource
+   * Add node_drain_grace_period
+   * Add channel parameter support for ROSA clusters
+
+ENHANCEMENTS:
+ * Bug fixes
+   * Initialize log_forwarder_ids in populateRosaHcpClusterState
+   * Update no_proxy filter to match all zero egress default domains
+   * OCM-NA | docs: fix mixup re. versioning
+   * Add autoscalling fields into hcp datasource
+ * Chores
+   * Add Vale inclusive-language check
+   * Replace version by sha in github actions
+   * Bump Go to 1.25 (+ deps) and configure Renovate
+   * Update git hooks and add local verification scripts
+   * Remove when from task to make it compatible with init 0.4
+ * Documentation
+   * Add agents.md and related ai agents documentation
+   * Update OWNERS approvers
+ * Other
+   * Update module github.com/openshift-online/ocm-common to v0.0.39
+ * Hcp
+   * Auto_node causes inconsistent result after apply
 
 ## 1.7.6 (07 Apr, 2026)
 

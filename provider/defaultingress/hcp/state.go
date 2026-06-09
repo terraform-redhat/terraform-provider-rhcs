@@ -6,4 +6,5 @@ type DefaultIngress struct {
 	Id              types.String `tfsdk:"id"`
 	Cluster         types.String `tfsdk:"cluster"`
 	ListeningMethod types.String `tfsdk:"listening_method"`
+	ComponentRoutes types.Map    `tfsdk:"component_routes"`
 }

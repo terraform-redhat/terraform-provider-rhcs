@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -15,12 +17,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/defaultingress"
 )
 
 var validListeningMethods = []string{string(cmv1.ListeningMethodExternal), string(cmv1.ListeningMethodInternal)}
@@ -68,6 +72,13 @@ func (r *DefaultIngressResource) Schema(ctx context.Context, req resource.Schema
 				Required:   true,
 				Validators: []validator.String{attrvalidators.EnumValueValidator(validListeningMethods)},
 			},
+			"component_routes": schema.MapAttribute{
+				Description: "Component route parameters for console and downloads. OAuth is not supported on HCP clusters.",
+				ElementType: basetypes.ObjectType{
+					AttrTypes: defaultingress.ComponentRouteAttributeTypes,
+				},
+				Optional: true,
+			},
 		},
 	}
 	return
@@ -110,7 +121,7 @@ func (r *DefaultIngressResource) Create(ctx context.Context, req resource.Create
 		)
 		return
 	}
-	err = r.updateIngress(ctx, nil, plan, plan.Cluster.ValueString(), r.collection)
+	err = r.updateIngress(ctx, nil, plan, plan.Cluster.ValueString(), r.collection, resp.Diagnostics)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Failed building cluster default ingress",
@@ -177,7 +188,7 @@ func (r *DefaultIngressResource) Update(ctx context.Context, req resource.Update
 		return
 	}
 
-	err := r.updateIngress(ctx, state, plan, plan.Cluster.ValueString(), r.collection)
+	err := r.updateIngress(ctx, state, plan, plan.Cluster.ValueString(), r.collection, diags)
 	if err != nil {
 		diags.AddError(
 			"Failed to update default ingress",
@@ -273,11 +284,30 @@ func (r *DefaultIngressResource) populateState(ingress *cmv1.Ingress, state *Def
 	state.Id = types.StringValue(ingress.ID())
 	state.ListeningMethod = types.StringValue(string(ingress.Listening()))
 
+	componentRoutes, ok := ingress.GetComponentRoutes()
+	if ok {
+		elements := map[string]attr.Value{}
+		for k, v := range componentRoutes {
+			elements[k] = defaultingress.FlattenComponentRoute(v.Hostname(), v.TlsSecretRef())
+		}
+		mapValue, diags := types.MapValue(types.ObjectType{
+			AttrTypes: defaultingress.ComponentRouteAttributeTypes,
+		}, elements)
+		if diags != nil && diags.HasError() {
+			return fmt.Errorf("failed to convert component routes to MapType: %v", diags.Errors()[0].Detail())
+		}
+		state.ComponentRoutes = mapValue
+	} else {
+		state.ComponentRoutes = types.MapNull(types.ObjectType{
+			AttrTypes: defaultingress.ComponentRouteAttributeTypes,
+		})
+	}
+
 	return nil
 }
 
 func (r *DefaultIngressResource) updateIngress(ctx context.Context, state, plan *DefaultIngress,
-	clusterId string, clusterCollection *cmv1.ClustersClient) error {
+	clusterId string, clusterCollection *cmv1.ClustersClient, diags diag.Diagnostics) error {
 
 	if state == nil {
 		state = &DefaultIngress{Cluster: plan.Cluster}
@@ -296,7 +326,7 @@ func (r *DefaultIngressResource) updateIngress(ctx context.Context, state, plan 
 			plan = &DefaultIngress{}
 		}
 
-		ingressBuilder := getDefaultIngressBuilder(ctx, state, plan)
+		ingressBuilder := getDefaultIngressBuilder(ctx, state, plan, diags)
 
 		ingress, err := ingressBuilder.Build()
 		if err != nil {
@@ -317,10 +347,23 @@ func (r *DefaultIngressResource) updateIngress(ctx context.Context, state, plan 
 	return nil
 }
 
-func getDefaultIngressBuilder(ctx context.Context, state, plan *DefaultIngress) *cmv1.IngressBuilder {
+func getDefaultIngressBuilder(
+	ctx context.Context, state, plan *DefaultIngress, diags diag.Diagnostics,
+) *cmv1.IngressBuilder {
 	ingressBuilder := cmv1.NewIngress()
 	if !common.IsStringAttributeUnknownOrEmpty(plan.ListeningMethod) && state.ListeningMethod != plan.ListeningMethod {
 		ingressBuilder.Listening(cmv1.ListeningMethod(plan.ListeningMethod.ValueString()))
+	}
+	if !reflect.DeepEqual(state.ComponentRoutes, plan.ComponentRoutes) && !plan.ComponentRoutes.IsNull() {
+		componentRoutes := defaultingress.ResetComponentRoutes()
+		for k, v := range plan.ComponentRoutes.Elements() {
+			componentRouteBuilder := cmv1.NewComponentRoute()
+			hostname, tlsSecretRef := defaultingress.ExpandComponentRoute(ctx, v.(types.Object), diags)
+			componentRouteBuilder.Hostname(hostname)
+			componentRouteBuilder.TlsSecretRef(tlsSecretRef)
+			componentRoutes[k] = componentRouteBuilder
+		}
+		ingressBuilder.ComponentRoutes(componentRoutes)
 	}
 	return ingressBuilder
 }

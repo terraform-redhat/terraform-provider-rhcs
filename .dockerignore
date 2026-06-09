@@ -1,0 +1,4 @@
+# Keep .git in the build context: ci-tf-e2e and make install use git describe for provider version paths.
+bin/
+**/.terraform/
+.terraform-docs-cache/

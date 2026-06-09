@@ -27,8 +27,21 @@ resource "rhcs_hcp_default_ingress" "default_ingress" {
 - `cluster` (String) Identifier of the cluster. After the creation of the resource, it is not possible to update the attribute value.
 - `listening_method` (String) Listening Method for apps ingress. Options are external,internal.
 
+### Optional
+
+- `component_routes` (Map of Object) Component route parameters for console and downloads. OAuth is not supported on HCP clusters. (see [below for nested schema](#nestedatt--component_routes))
+
 ### Read-Only
 
 - `id` (String) Unique identifier of the ingress.
+
+<a id="nestedatt--component_routes"></a>
+### Nested Schema for `component_routes`
+
+Optional:
+
+- `hostname` (String)
+- `tls_secret_ref` (String)
+
 
 

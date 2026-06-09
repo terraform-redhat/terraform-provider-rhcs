@@ -37,7 +37,7 @@ func FlattenComponentRoute(hostname, tlsSecretRef string) types.Object {
 }
 
 func ExpandComponentRoute(ctx context.Context,
-	object types.Object, diags diag.Diagnostics) (string, string) {
+	object types.Object, diags *diag.Diagnostics) (string, string) {
 	if object.IsNull() {
 		return "", ""
 	}

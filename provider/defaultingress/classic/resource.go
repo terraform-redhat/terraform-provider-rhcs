@@ -448,7 +448,7 @@ func (r *DefaultIngressResource) updateIngress(ctx context.Context, state, plan 
 			componentRoutes := defaultingress.ResetComponentRoutes()
 			for k, v := range plan.ComponentRoutes.Elements() {
 				componentRouteBuilder := cmv1.NewComponentRoute()
-				hostname, tlsSecretRef := defaultingress.ExpandComponentRoute(ctx, v.(types.Object), diags)
+				hostname, tlsSecretRef := defaultingress.ExpandComponentRoute(ctx, v.(types.Object), &diags)
 				componentRouteBuilder.Hostname(hostname)
 				componentRouteBuilder.TlsSecretRef(tlsSecretRef)
 				componentRoutes[k] = componentRouteBuilder
@@ -533,7 +533,7 @@ func validateDefaultIngress(ctx context.Context, state *DefaultIngress, diags di
 			tflog.Error(ctx, msg)
 			return errors.New(msg)
 		}
-		hostname, tlsSecretRef := defaultingress.ExpandComponentRoute(ctx, v.(types.Object), diags)
+		hostname, tlsSecretRef := defaultingress.ExpandComponentRoute(ctx, v.(types.Object), &diags)
 		if hostname == "" && tlsSecretRef == "" {
 			msg := "component route fields shouldn't both be empty, " +
 				"if you would like to reset a specific component route please remove the key instead"

@@ -4,6 +4,13 @@
     "config:recommended",
     ":gitSignOff"
   ],
+  "dockerfile": {
+    "fileMatch": [
+      "^Dockerfile$",
+      "^Dockerfile\\.clients$",
+      "^build/ci-tf-e2e\\.Dockerfile$"
+    ]
+  },
   "commitMessagePrefix": "OCM-00000 | ci: ",
   "prConcurrentLimit": 2,
   "prHourlyLimit": 0,
@@ -62,6 +69,14 @@
       "matchStrings": ["ADDLICENSE_VERSION \\?= (?<currentValue>\\S+)"],
       "datasourceTemplate": "go",
       "depNameTemplate": "github.com/google/addlicense"
+    },
+    {
+      "description": "Update vale in Makefile",
+      "customType": "regex",
+      "managerFilePatterns": ["/^Makefile$/"],
+      "matchStrings": ["VALE_VERSION \\?= (?<currentValue>\\S+)"],
+      "datasourceTemplate": "go",
+      "depNameTemplate": "github.com/errata-ai/vale/v3"
     }
   ],
   "labels": [
@@ -91,6 +106,18 @@
         "major"
       ],
       "enabled": false
+    },
+    {
+      "description": "CI client Dockerfile (UBI base, Terraform)",
+      "matchManagers": [
+        "dockerfile"
+      ],
+      "matchFileNames": [
+        "Dockerfile.clients"
+      ],
+      "groupName": "CI client image",
+      "groupSlug": "ci-client-image",
+      "automerge": false
     },
     {
       "description": "HashiCorp Terraform plugin stack",

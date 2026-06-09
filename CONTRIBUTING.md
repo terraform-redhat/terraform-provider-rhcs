@@ -54,8 +54,7 @@ The hooks are configured in `.pre-commit-config.yaml` and perform:
 
 - `pre-commit`: formats staged Go files with `gci` + `gofmt` plus staged Terraform files under `examples/` and `tests/`, adds Apache 2.0 license headers to staged files missing them, and blocks the commit if files were rewritten so you can review and stage the updates
 - `commit-msg`: validates the commit message format (JIRA-123 | type(scope): message)
-- `pre-push`: runs format-check, build, generated-files check, lint, docs-lint (Vale), changed-files coverage for changed Go files under `provider/` and `internal/`, and unit/subsystem tests
-- `pre-push` runs against committed content and blocks when staged or unstaged tracked changes are present
+- `pre-push`: runs the same steps as `make pre-push-checks` (format-check, build, generated-files check, lint, docs-lint, license-check, changed-files coverage, and `make test`)
 - check runs are fail-fast: execution stops at the first failing step
 
 To manually run all hooks on all files:

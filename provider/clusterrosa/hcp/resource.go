@@ -1031,6 +1031,13 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 	plannedAutoNode := state.AutoNode
 	clusterReady := false
 
+	var plannedNoProxy types.String
+	if state.Proxy != nil {
+		plannedNoProxy = state.Proxy.NoProxy
+	} else {
+		plannedNoProxy = types.StringValue("")
+	}
+
 	// Save initial state:
 	err = populateRosaHcpClusterState(ctx, object, state)
 	if err != nil {
@@ -1149,6 +1156,16 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 		return
 	}
 
+	// Revise zero egress no proxy if needed
+	err = r.reviseZeroEgressNoProxy(ctx, object, state)
+	if err != nil {
+		response.Diagnostics.AddWarning(
+			"Can't revise zero egress no proxy",
+			fmt.Sprintf("Received error %v", err),
+		)
+		state.Proxy.NoProxy = plannedNoProxy
+	}
+
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
 }
@@ -1162,6 +1179,13 @@ func (r *ClusterRosaHcpResource) Read(ctx context.Context, request resource.Read
 	response.Diagnostics.Append(diags...)
 	if response.Diagnostics.HasError() {
 		return
+	}
+
+	var priorNoProxy types.String
+	if state.Proxy != nil {
+		priorNoProxy = state.Proxy.NoProxy
+	} else {
+		priorNoProxy = types.StringValue("")
 	}
 
 	// Find the cluster:
@@ -1206,6 +1230,16 @@ func (r *ClusterRosaHcpResource) Read(ctx context.Context, request resource.Read
 			fmt.Sprintf("Received error %v", err),
 		)
 		return
+	}
+
+	// Revise zero egress no proxy if needed
+	err = r.reviseZeroEgressNoProxy(ctx, object, state)
+	if err != nil {
+		response.Diagnostics.AddWarning(
+			"Can't revise zero egress no proxy",
+			fmt.Sprintf("Received error %v", err),
+		)
+		state.Proxy.NoProxy = priorNoProxy
 	}
 
 	diags = response.State.Set(ctx, state)
@@ -1568,6 +1602,13 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 
 	object := update.Body()
 
+	var plannedNoProxy types.String
+	if plan.Proxy != nil {
+		plannedNoProxy = plan.Proxy.NoProxy
+	} else {
+		plannedNoProxy = types.StringValue("")
+	}
+
 	// Update the state:
 	err = populateRosaHcpClusterState(ctx, object, plan)
 	if err != nil {
@@ -1588,6 +1629,16 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 			fmt.Sprintf("Received error %v", err),
 		)
 		return
+	}
+
+	// Revise zero egress no proxy if needed
+	err = r.reviseZeroEgressNoProxy(ctx, object, plan)
+	if err != nil {
+		response.Diagnostics.AddWarning(
+			"Can't revise zero egress no proxy",
+			fmt.Sprintf("Received error %v", err),
+		)
+		plan.Proxy.NoProxy = plannedNoProxy
 	}
 
 	diags = response.State.Set(ctx, plan)
@@ -2019,8 +2070,7 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 
 		noProxy, ok := proxyObj.GetNoProxy()
 		if ok && noProxy != "" {
-			deDuplicatedNoProxy := proxy.RemoveNoProxyZeroEgressDefaultDomains(noProxy, ",")
-			state.Proxy.NoProxy = types.StringValue(deDuplicatedNoProxy)
+			state.Proxy.NoProxy = types.StringValue(noProxy)
 		}
 	} else {
 		// We cannot set the proxy to nil because the attribute state.Proxy.AdditionalTrustBundle might contain a value.
@@ -2200,6 +2250,47 @@ func (r *ClusterRosaHcpResource) waitTillClusterIsNotFoundWithTimeout(ctx contex
 	}
 
 	return false, nil
+}
+
+func (r *ClusterRosaHcpResource) reviseZeroEgressNoProxy(ctx context.Context,
+	object *cmv1.Cluster, state *ClusterRosaHcpState) error {
+	properties, ok := object.GetProperties()
+	if !ok {
+		return nil
+	}
+	zeroEgress, ok := properties["zero_egress"]
+	if !ok || zeroEgress != "true" {
+		return nil
+	}
+	proxyObj, ok := object.GetProxy()
+	if !ok {
+		return nil
+	}
+	noProxy, ok := proxyObj.GetNoProxy()
+	if !ok || noProxy == "" {
+		return nil
+	}
+	get, err := r.ClusterCollection.Cluster(object.ID()).Get().Parameter("fetch_service_inquiries", true).SendContext(ctx)
+	if err != nil {
+		return err
+	}
+	aws, ok := get.Body().GetAWS()
+	if !ok {
+		return fmt.Errorf("AWS configuration not found in cluster response")
+	}
+	zeroEgressConfig, ok := aws.GetZeroEgress()
+	if !ok {
+		return fmt.Errorf("zero egress configuration not found in cluster response")
+	}
+	defaultDomains := zeroEgressConfig.NoProxyDefaultDomains()
+	if len(defaultDomains) == 0 {
+		return nil
+	}
+	deDuplicatedNoProxy := proxy.RemoveNoProxyZeroEgressDefaultDomains(
+		noProxy, ",", defaultDomains, state.AWSAccountID.ValueString(),
+	)
+	state.Proxy.NoProxy = types.StringValue(deDuplicatedNoProxy)
+	return nil
 }
 
 func validateAutoNodeRoleARN() validator.String {

@@ -7,37 +7,42 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"slices"
 	"strings"
 )
 
 var awsRegionRegexFmt = "(?:af|ap|ca|eu|me|sa|us)(?:-gov)?-(?:central|north|(?:north(?:east|west))|south|south(?:east|west)|east|west)-\\d+(?:[a-z]{1})?"
-var awsAccountIdRegexFmt = "\\d{12}"
-var zeroEgressDefaultDomainFmts = []*regexp.Regexp{
-	regexp.MustCompile(fmt.Sprintf("^s3\\.dualstack\\.%s\\.amazonaws\\.com$", awsRegionRegexFmt)),
-	regexp.MustCompile(fmt.Sprintf("^\\.s3\\.%s\\.amazonaws\\.com$", awsRegionRegexFmt)),
-	regexp.MustCompile(fmt.Sprintf("^sts\\.%s\\.amazonaws\\.com$", awsRegionRegexFmt)),
-	regexp.MustCompile(fmt.Sprintf("^api\\.ecr\\.%s\\.amazonaws\\.com$", awsRegionRegexFmt)),
-	//nolint:lll
-	regexp.MustCompile(fmt.Sprintf("^\\.?%s\\.dkr\\.ecr\\.%s\\.amazonaws\\.com$", awsAccountIdRegexFmt, awsRegionRegexFmt)),
-	regexp.MustCompile(fmt.Sprintf("^\\.dkr\\.ecr\\.%s\\.amazonaws\\.com$", awsRegionRegexFmt)),
-}
 
-func RemoveNoProxyZeroEgressDefaultDomains(input string, separator string) string {
-	splits := strings.Split(input, separator)
-	result := []string{}
-	for _, split := range splits {
-		var matched bool
-		for _, format := range zeroEgressDefaultDomainFmts {
-			matched = format.Match([]byte(split))
-			if matched {
-				break
-			}
-		}
-		if !matched {
-			result = append(result, split)
-		}
+func RemoveNoProxyZeroEgressDefaultDomains(
+	input string, separator string, defaultDomains []string, awsAccountID string,
+) string {
+	domains := strings.Split(input, separator)
+	defaultDomainsMap := make(map[string]string)
+	for _, item := range defaultDomains {
+		defaultDomainsMap[item] = ""
 	}
-	return strings.Join(result, ",")
+
+	var deprecatedEcrRegex *regexp.Regexp
+	if awsAccountID != "" {
+		deprecatedEcrRegex = regexp.MustCompile(fmt.Sprintf(
+			"^\\.?%s\\.dkr\\.ecr\\.%s\\.amazonaws\\.com$",
+			regexp.QuoteMeta(awsAccountID),
+			awsRegionRegexFmt,
+		))
+	}
+
+	domains = slices.DeleteFunc(domains, func(item string) bool {
+		// Check exact match first
+		if _, exists := defaultDomainsMap[item]; exists {
+			return true
+		}
+		// Check deprecated zero egress default domains for backward compatibility
+		if deprecatedEcrRegex != nil && deprecatedEcrRegex.MatchString(item) {
+			return true
+		}
+		return false
+	})
+	return strings.Join(domains, separator)
 }
 
 func Contains[T comparable](slice []T, element T) bool {

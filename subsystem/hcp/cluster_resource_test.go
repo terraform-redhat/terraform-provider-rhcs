@@ -4350,7 +4350,7 @@ var _ = Describe("HCP Cluster", func() {
 						"path": "/proxy",
 						"value": {
 							"https_proxy" : "https://proxy2.com",
-							"no_proxy" : "test,s3.dualstack.ap-southeast-4.amazonaws.com,s3.dualstack.ap-southeast-4.amazonaws.com"
+							"no_proxy" : "test"
 						}
 						},
 						{
@@ -4534,6 +4534,677 @@ var _ = Describe("HCP Cluster", func() {
 				}`)
 				runOutput = Terraform.Apply()
 				Expect(runOutput.ExitCode).To(BeZero())
+			})
+
+			It("Filters zero-egress default domains from no_proxy during create", func() {
+				// Prepare the server:
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						VerifyJQ(`.name`, "my-cluster"),
+						VerifyJQ(`.cloud_provider.id`, "aws"),
+						VerifyJQ(`.region.id`, "us-west-1"),
+						VerifyJQ(`.product.id`, "rosa"),
+						VerifyJQ(`.properties.zero_egress`, "true"),
+						VerifyJQ(`.proxy.no_proxy`, "test.example.com"),
+						RespondWithPatchedJSON(http.StatusCreated, template, `[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.1",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/properties",
+							"value": {
+								"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+								"zero_egress": "true"
+							}
+						},
+						{
+							"op": "add",
+							"path": "/proxy",
+							"value": {
+								"no_proxy" : "test.example.com"
+							}
+						}]`),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route, "fetch_service_inquiries=true"),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.1",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								},
+								"zero_egress": {
+									"no_proxy_default_domains": [
+										"s3.dualstack.us-east-1.amazonaws.com",
+										".s3.us-east-1.amazonaws.com",
+										"sts.us-east-1.amazonaws.com",
+										"api.ecr.us-east-1.amazonaws.com",
+										".dkr.ecr.us-east-1.amazonaws.com"
+									]
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/properties",
+							"value": {
+								"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+								"zero_egress": "true"
+							}
+						},
+						{
+							"op": "add",
+							"path": "/proxy",
+							"value": {
+								"no_proxy" : "test.example.com,s3.dualstack.us-east-1.amazonaws.com,.s3.us-east-1.amazonaws.com,sts.us-east-1.amazonaws.com,api.ecr.us-east-1.amazonaws.com,.dkr.ecr.us-east-1.amazonaws.com"
+							}
+						}]`),
+					),
+				)
+
+				// Run the apply command - user only specifies their custom domain
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					properties = {
+						rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
+						zero_egress = "true"
+					}
+					proxy = {
+						no_proxy = "test.example.com"
+					}
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+				// Verify that the state correctly filters out default domains
+				// even when the API returns them appended
+				Expect(resource).To(MatchJQ(`.attributes.proxy.no_proxy`, "test.example.com"))
+			})
+
+			It("Filters zero-egress default domains from no_proxy during read (refresh)", func() {
+				// Prepare the server for initial creation:
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						RespondWithPatchedJSON(http.StatusCreated, template, `[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.1",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/properties",
+							"value": {
+								"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+								"zero_egress": "true"
+							}
+						},
+						{
+							"op": "add",
+							"path": "/proxy",
+							"value": {
+								"no_proxy" : "custom.domain,s3.dualstack.us-east-1.amazonaws.com,.s3.us-east-1.amazonaws.com,sts.us-east-1.amazonaws.com,api.ecr.us-east-1.amazonaws.com,.dkr.ecr.us-east-1.amazonaws.com"
+							}
+						}]`),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route, "fetch_service_inquiries=true"),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.1",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								},
+								"zero_egress": {
+									"no_proxy_default_domains": [
+										"s3.dualstack.us-east-1.amazonaws.com",
+										".s3.us-east-1.amazonaws.com",
+										"sts.us-east-1.amazonaws.com",
+										"api.ecr.us-east-1.amazonaws.com",
+										".dkr.ecr.us-east-1.amazonaws.com"
+									]
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/properties",
+							"value": {
+								"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+								"zero_egress": "true"
+							}
+						},
+						{
+							"op": "add",
+							"path": "/proxy",
+							"value": {
+								"no_proxy" : "custom.domain,s3.dualstack.us-east-1.amazonaws.com,.s3.us-east-1.amazonaws.com,sts.us-east-1.amazonaws.com,api.ecr.us-east-1.amazonaws.com,.dkr.ecr.us-east-1.amazonaws.com"
+							}
+						}]`),
+					),
+				)
+
+				// Initial creation
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					properties = {
+						rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
+						zero_egress = "true"
+					}
+					proxy = {
+						no_proxy = "custom.domain"
+					}
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+
+				// Now test the Read path (refresh) - mock the GET with fetch_service_inquiries
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.1",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/properties",
+							"value": {
+								"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+								"zero_egress": "true"
+							}
+						},
+						{
+							"op": "add",
+							"path": "/proxy",
+							"value": {
+								"no_proxy" : "custom.domain,s3.dualstack.us-east-1.amazonaws.com,.s3.us-east-1.amazonaws.com,sts.us-east-1.amazonaws.com,api.ecr.us-east-1.amazonaws.com,.dkr.ecr.us-east-1.amazonaws.com"
+							}
+						}]`),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route, "fetch_service_inquiries=true"),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.1",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								},
+								"zero_egress": {
+									"no_proxy_default_domains": [
+										"s3.dualstack.us-east-1.amazonaws.com",
+										".s3.us-east-1.amazonaws.com",
+										"sts.us-east-1.amazonaws.com",
+										"api.ecr.us-east-1.amazonaws.com",
+										".dkr.ecr.us-east-1.amazonaws.com"
+									]
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/properties",
+							"value": {
+								"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+								"zero_egress": "true"
+							}
+						},
+						{
+							"op": "add",
+							"path": "/proxy",
+							"value": {
+								"no_proxy" : "custom.domain,s3.dualstack.us-east-1.amazonaws.com,.s3.us-east-1.amazonaws.com,sts.us-east-1.amazonaws.com,api.ecr.us-east-1.amazonaws.com,.dkr.ecr.us-east-1.amazonaws.com"
+							}
+						}]`),
+					),
+				)
+
+				// Trigger refresh by running apply again (no changes expected)
+				runOutput = Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+
+				resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+				// Verify Read path also filters default domains correctly
+				Expect(resource).To(MatchJQ(`.attributes.proxy.no_proxy`, "custom.domain"))
+			})
+
+			It("Filters zero-egress default domains from no_proxy during update", func() {
+				// Prepare the server for initial creation:
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+						VerifyJQ(`.name`, "my-cluster"),
+						VerifyJQ(`.cloud_provider.id`, "aws"),
+						VerifyJQ(`.region.id`, "us-west-1"),
+						VerifyJQ(`.product.id`, "rosa"),
+						VerifyJQ(`.properties.zero_egress`, "true"),
+						VerifyJQ(`.proxy.no_proxy`, "test.example.com"),
+						RespondWithPatchedJSON(http.StatusCreated, template, `[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.1",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/properties",
+							"value": {
+								"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+								"zero_egress": "true"
+							}
+						},
+						{
+							"op": "add",
+							"path": "/proxy",
+							"value": {
+								"no_proxy" : "test.example.com"
+							}
+						}]`),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route, "fetch_service_inquiries=true"),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.1",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								},
+								"zero_egress": {
+									"no_proxy_default_domains": [
+										"s3.dualstack.us-east-1.amazonaws.com",
+										".s3.us-east-1.amazonaws.com",
+										"sts.us-east-1.amazonaws.com",
+										"api.ecr.us-east-1.amazonaws.com",
+										".dkr.ecr.us-east-1.amazonaws.com"
+									]
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/properties",
+							"value": {
+								"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+								"zero_egress": "true"
+							}
+						},
+						{
+							"op": "add",
+							"path": "/proxy",
+							"value": {
+								"no_proxy" : "test.example.com,s3.dualstack.us-east-1.amazonaws.com,.s3.us-east-1.amazonaws.com,sts.us-east-1.amazonaws.com,api.ecr.us-east-1.amazonaws.com,.dkr.ecr.us-east-1.amazonaws.com"
+							}
+						}]`),
+					),
+				)
+
+				// Initial creation
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					properties = {
+						rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
+						zero_egress = "true"
+					}
+					proxy = {
+						no_proxy = "test.example.com"
+					}
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+
+				// Prepare server for update - user updates no_proxy to add another custom domain
+				TestServer.AppendHandlers(
+					// First GET to refresh state before update
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.1",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/properties",
+							"value": {
+								"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+								"zero_egress": "true"
+							}
+						},
+						{
+							"op": "add",
+							"path": "/proxy",
+							"value": {
+								"no_proxy" : "test.example.com,s3.dualstack.us-east-1.amazonaws.com,.s3.us-east-1.amazonaws.com,sts.us-east-1.amazonaws.com,api.ecr.us-east-1.amazonaws.com,.dkr.ecr.us-east-1.amazonaws.com"
+							}
+						}]`),
+					),
+					// Second GET to read state for comparison with plan
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.1",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/properties",
+							"value": {
+								"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+								"zero_egress": "true"
+							}
+						},
+						{
+							"op": "add",
+							"path": "/proxy",
+							"value": {
+								"no_proxy" : "test.example.com,s3.dualstack.us-east-1.amazonaws.com,.s3.us-east-1.amazonaws.com,sts.us-east-1.amazonaws.com,api.ecr.us-east-1.amazonaws.com,.dkr.ecr.us-east-1.amazonaws.com"
+							}
+						}]`),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodPatch, cluster123Route),
+						// Verify PATCH sends only user-specified domains (default domains filtered out)
+						VerifyJQ(`.proxy.no_proxy`, "test.example.com,another.custom.com"),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.1",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/properties",
+							"value": {
+								"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+								"zero_egress": "true"
+							}
+						},
+						{
+							"op": "add",
+							"path": "/proxy",
+							"value": {
+								"no_proxy" : "test.example.com,another.custom.com"
+							}
+						}]`),
+					),
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route, "fetch_service_inquiries=true"),
+						RespondWithPatchedJSON(http.StatusOK, template, `[
+						{
+							"op": "add",
+							"path": "/aws",
+							"value": {
+								"sts" : {
+									"oidc_endpoint_url": "https://127.0.0.1",
+									"thumbprint": "111111",
+									"role_arn": "",
+									"support_role_arn": "",
+									"instance_iam_roles" : {
+										"worker_role_arn" : ""
+									},
+									"operator_role_prefix" : "test"
+								},
+								"zero_egress": {
+									"no_proxy_default_domains": [
+										"s3.dualstack.us-east-1.amazonaws.com",
+										".s3.us-east-1.amazonaws.com",
+										"sts.us-east-1.amazonaws.com",
+										"api.ecr.us-east-1.amazonaws.com",
+										".dkr.ecr.us-east-1.amazonaws.com"
+									]
+								}
+							}
+						},
+						{
+							"op": "add",
+							"path": "/properties",
+							"value": {
+								"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
+								"zero_egress": "true"
+							}
+						},
+						{
+							"op": "add",
+							"path": "/proxy",
+							"value": {
+								"no_proxy" : "test.example.com,another.custom.com,s3.dualstack.us-east-1.amazonaws.com,.s3.us-east-1.amazonaws.com,sts.us-east-1.amazonaws.com,api.ecr.us-east-1.amazonaws.com,.dkr.ecr.us-east-1.amazonaws.com"
+							}
+						}]`),
+					),
+				)
+
+				// Update no_proxy to add another custom domain
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					properties = {
+						rosa_creator_arn = "arn:aws:iam::123456789012:user/dummy",
+						zero_egress = "true"
+					}
+					proxy = {
+						no_proxy = "test.example.com,another.custom.com"
+					}
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+				}`)
+				runOutput = Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+
+				resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+				// Verify Update path filters default domains and state reflects only user domains
+				Expect(resource).To(MatchJQ(`.attributes.proxy.no_proxy`, "test.example.com,another.custom.com"))
 			})
 		})
 

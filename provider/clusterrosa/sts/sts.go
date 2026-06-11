@@ -4,11 +4,17 @@
 package sts
 
 import (
+	"context"
+
 	dsschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/openshift-online/ocm-common/pkg/aws/ststrust"
+
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
 )
 
 const externalIdDescription = "External ID for trust policy condition in account roles"
@@ -112,6 +118,7 @@ func ClassicStsResource() map[string]schema.Attribute {
 		"trust_policy_external_id": schema.StringAttribute{
 			Description: externalIdDescription,
 			Optional:    true,
+			Validators:  trustPolicyExternalIDValidators(),
 		},
 	}
 }
@@ -156,9 +163,10 @@ func ClassicStsDatasource() map[string]dsschema.Attribute {
 			Description: "Operator IAM Role prefix",
 			Computed:    true,
 		},
-		"trust_policy_external_id": schema.StringAttribute{
+		"trust_policy_external_id": dsschema.StringAttribute{
 			Description: externalIdDescription,
 			Optional:    true,
+			Computed:    true,
 		},
 	}
 }
@@ -217,6 +225,7 @@ func HcpStsResource() map[string]schema.Attribute {
 		"trust_policy_external_id": schema.StringAttribute{
 			Description: externalIdDescription,
 			Optional:    true,
+			Validators:  trustPolicyExternalIDValidators(),
 		},
 	}
 }
@@ -257,9 +266,41 @@ func HcpStsDatasource() map[string]dsschema.Attribute {
 			Description: "Operator IAM Role prefix",
 			Computed:    true,
 		},
-		"trust_policy_external_id": schema.StringAttribute{
+		"trust_policy_external_id": dsschema.StringAttribute{
 			Description: externalIdDescription,
 			Optional:    true,
+			Computed:    true,
 		},
 	}
+}
+
+// trustPolicyExternalIDValidators returns plan-time validators for sts.trust_policy_external_id format.
+func trustPolicyExternalIDValidators() []validator.String {
+	return []validator.String{
+		attrvalidators.NewStringValidator(
+			"Must be a valid STS external ID for trust policy conditions.",
+			func(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+				if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+					return
+				}
+				if err := ststrust.ValidateSTSExternalIDFormat(req.ConfigValue.ValueString()); err != nil {
+					resp.Diagnostics.AddAttributeError(req.Path, "Invalid trust_policy_external_id", err.Error())
+				}
+			},
+		),
+	}
+}
+
+// stsExternalIDSource reads the STS external ID from an OCM cluster STS object.
+type stsExternalIDSource interface {
+	GetExternalID() (string, bool)
+}
+
+// PopulateTrustPolicyExternalIDFromSTS sets trust_policy_external_id from the OCM STS object.
+func PopulateTrustPolicyExternalIDFromSTS(stsState stsExternalIDSource, target *types.String) {
+	if externalID, ok := stsState.GetExternalID(); ok && externalID != "" {
+		*target = types.StringValue(externalID)
+		return
+	}
+	*target = types.StringNull()
 }

@@ -239,3 +239,9 @@ variable "full_resources" {
   type    = bool
   default = false
 }
+
+variable "sts_trust_policy_external_id" {
+  description = "Optional external ID for installer and support account role trust policies."
+  type        = string
+  default     = null
+}

@@ -914,6 +914,40 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 		return
 	}
 
+	if state.Sts != nil {
+		region := ""
+		if common.HasValue(state.CloudRegion) {
+			region = state.CloudRegion.ValueString()
+		}
+		trustPolicyExternalID := ""
+		if common.HasValue(state.Sts.TrustPolicyExternalID) {
+			trustPolicyExternalID = state.Sts.TrustPolicyExternalID.ValueString()
+		}
+		trustPolicyExternalIDWarning, err := sts.ValidateTrustPolicyExternalID(
+			ctx,
+			trustPolicyExternalID,
+			state.Sts.RoleARN.ValueString(),
+			state.Sts.SupportRoleArn.ValueString(),
+			region,
+		)
+		if trustPolicyExternalIDWarning != nil {
+			response.Diagnostics.AddWarning(
+				"Ambiguous STS external ID",
+				trustPolicyExternalIDWarning.Error(),
+			)
+		}
+		if err != nil {
+			response.Diagnostics.AddError(
+				summary,
+				fmt.Sprintf(
+					"Invalid sts.trust_policy_external_id for cluster '%s': %v",
+					state.Name.ValueString(), err,
+				),
+			)
+			return
+		}
+	}
+
 	object, err := createClassicClusterObject(ctx, state, diags)
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -1752,6 +1786,7 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 		if ok && oidcConfig != nil {
 			state.Sts.OIDCConfigID = types.StringValue(oidcConfig.ID())
 		}
+		sts.PopulateTrustPolicyExternalIDFromSTS(stsState, &state.Sts.TrustPolicyExternalID)
 	}
 
 	subnetIds, ok := object.AWS().GetSubnetIDs()

@@ -14,3 +14,4 @@ terraform-provider-rhcs
 /temp
 **/*.test
 coverage.out
+tests/tf-manifests/**/manual.auto.tfvars.json

@@ -42,8 +42,9 @@ locals {
       master_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${var.account_role_prefix}-ControlPlane-Role",
       worker_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.path}${var.account_role_prefix}-Worker-Role"
     },
-    operator_role_prefix = var.operator_role_prefix
-    oidc_config_id       = var.oidc_config_id
+    operator_role_prefix     = var.operator_role_prefix
+    oidc_config_id           = var.oidc_config_id
+    trust_policy_external_id = var.sts_trust_policy_external_id
   }
 }
 

@@ -375,12 +375,19 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Computed:    true,
 			},
 			"disable_waiting_in_destroy": schema.BoolAttribute{
-				Description: "Disable addressing cluster state in the destroy resource. Default value is false, and so a `destroy` will wait for the cluster to be deleted.",
-				Optional:    true,
+				Description: "Disable addressing cluster state in the destroy resource. " +
+					"Default value is false, and so a `destroy` will wait for the cluster to be deleted from OCM " +
+					"before removing it from Terraform state.",
+				Optional: true,
 			},
 			"destroy_timeout": schema.Int64Attribute{
-				Description: "This value sets the maximum duration in minutes to allow for destroying resources. Default value is 60 minutes.",
-				Optional:    true,
+				Description: "Maximum duration in minutes to wait for OpenShift Cluster Manager (OCM) " +
+					"to delete the cluster during destroy. " +
+					"Default value is 60 minutes. If the cluster still exists when the timeout expires, destroy fails " +
+					"and the resource remains in Terraform state so dependent STS resources (IAM roles, OIDC provider) " +
+					"are not removed while OCM uninstall may still be in progress. " +
+					"Set `disable_waiting_in_destroy = true` to skip this wait entirely.",
+				Optional: true,
 			},
 			"state": schema.StringAttribute{
 				Description: "State of the cluster.",
@@ -1591,10 +1598,11 @@ func (r *ClusterRosaClassicResource) Delete(ctx context.Context, request resourc
 		}
 
 		if !isNotFound {
-			response.Diagnostics.AddWarning(
-				"Cluster wasn't deleted yet",
-				fmt.Sprintf("The cluster with identifier '%s' is not deleted yet, but the polling finished due to a timeout", state.ID.ValueString()),
+			response.Diagnostics.AddError(
+				rosa.DestroyTimeoutNotCompleteSummary,
+				fmt.Sprintf(rosa.DestroyTimeoutNotCompleteFormat, state.ID.ValueString(), timeout),
 			)
+			return
 		}
 
 	}

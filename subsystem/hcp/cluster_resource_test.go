@@ -4206,6 +4206,43 @@ var _ = Describe("HCP Cluster", func() {
 				Expect(runOutput.ExitCode).To(BeZero())
 				Expect(Terraform.Destroy().ExitCode).To(BeZero())
 			})
+
+			It("Fails destroy when timeout expires and cluster still exists", func() {
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route),
+						RespondWithJSON(http.StatusOK, template),
+					),
+				)
+				Terraform.Source(`
+				resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					aws_billing_account_id = "123456789012"
+					destroy_timeout = 1
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							worker_role_arn = "",
+						}
+					}
+					aws_subnet_ids = [
+						"id1", "id2", "id3"
+					]
+					availability_zones = [
+						"us-west-1a",
+						"us-west-1b",
+						"us-west-1c",
+					]
+				}`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				runOutput = Terraform.Destroy()
+				Expect(runOutput.ExitCode).NotTo(BeZero())
+			})
 		})
 
 		Context("Test Proxy", func() {

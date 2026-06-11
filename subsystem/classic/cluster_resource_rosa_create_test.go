@@ -2729,6 +2729,36 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				Expect(runOutput.ExitCode).To(BeZero())
 				Expect(Terraform.Destroy().ExitCode).To(BeZero())
 			})
+
+			It("Fails destroy when timeout expires and cluster still exists", func() {
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+						RespondWithJSON(http.StatusOK, templateReadyState),
+					),
+				)
+				Terraform.Source(`
+				  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+					name           = "my-cluster"
+					cloud_region   = "us-west-1"
+					aws_account_id = "123456789012"
+					destroy_timeout = 1
+					sts = {
+						operator_role_prefix = "test"
+						role_arn = "",
+						support_role_arn = "",
+						instance_iam_roles = {
+							master_role_arn = "",
+							worker_role_arn = "",
+						}
+					}
+				  }
+			`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).To(BeZero())
+				runOutput = Terraform.Destroy()
+				Expect(runOutput.ExitCode).NotTo(BeZero())
+			})
 		})
 
 		It("Disable workload monitor and update it", func() {

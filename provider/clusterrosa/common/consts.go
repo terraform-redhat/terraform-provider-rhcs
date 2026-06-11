@@ -24,6 +24,12 @@ const (
 	DefaultPollingIntervalInMinutes    = 2
 	NonPositiveTimeoutSummary          = "Can't poll cluster state with a non-positive timeout"
 	NonPositiveTimeoutFormat           = "Can't poll state of cluster with identifier '%s', the timeout that was set is not a positive number"
+	DestroyTimeoutNotCompleteSummary   = "Cluster wasn't deleted yet"
+	DestroyTimeoutNotCompleteFormat    = "The cluster with identifier '%s' is not deleted yet, " +
+		"but the polling finished due to a timeout (%d minutes). " +
+		"The resource was kept in Terraform state so dependent STS resources (IAM roles, OIDC provider) " +
+		"are not destroyed while OpenShift Cluster Manager (OCM) uninstall may still be in progress. " +
+		"Resolve the OCM uninstall issue or increase destroy_timeout, then retry terraform destroy."
 
 	MaxClusterNameLength         = 54
 	MaxClusterDomainPrefixLength = 15

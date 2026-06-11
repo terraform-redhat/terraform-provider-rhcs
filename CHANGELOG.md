@@ -1,3 +1,9 @@
+## 1.7.8 (Unreleased)
+
+ENHANCEMENTS:
+ * Bug fixes
+   * Fail cluster destroy when OCM delete wait times out instead of removing the resource from Terraform state with a warning only. Keeps `rhcs_cluster_rosa_hcp` and `rhcs_cluster_rosa_classic` in state so dependent STS resources (IAM roles, OIDC provider) are not destroyed while OCM uninstall may still be in progress ([#1191](https://github.com/terraform-redhat/terraform-provider-rhcs/issues/1191))
+
 ## 1.7.7 (08 Jun, 2026)
 
 FEATURES:

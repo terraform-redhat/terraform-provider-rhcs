@@ -33,8 +33,9 @@ module "create_account_roles" {
   source  = "terraform-redhat/rosa-hcp/rhcs//modules/account-iam-resources"
   version = ">=1.6.3"
 
-  account_role_prefix  = var.account_role_prefix
-  path                 = local.path
-  permissions_boundary = var.permissions_boundary
-  tags                 = var.tags
+  account_role_prefix      = var.account_role_prefix
+  path                     = local.path
+  permissions_boundary     = var.permissions_boundary
+  tags                     = var.tags
+  trust_policy_external_id = var.trust_policy_external_id
 }

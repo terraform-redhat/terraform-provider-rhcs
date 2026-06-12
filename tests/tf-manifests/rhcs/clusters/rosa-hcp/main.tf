@@ -44,8 +44,9 @@ locals {
     instance_iam_roles = {
       worker_role_arn = var.worker_role != null ? var.worker_role : "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role${local.account_role_path}${var.account_role_prefix}-HCP-ROSA-Worker-Role"
     }
-    operator_role_prefix = var.operator_role_prefix
-    oidc_config_id       = var.oidc_config_id
+    operator_role_prefix     = var.operator_role_prefix
+    oidc_config_id           = var.oidc_config_id
+    trust_policy_external_id = var.sts_trust_policy_external_id
   }
 }
 

@@ -55,8 +55,8 @@ var _ = Describe("Classic trust policy external ID", func() {
 			MultiAZ(true).
 			Properties(map[string]string{
 				"rosa_creator_arn": "arn:aws:iam::123456789012:user/dummy",
-				"rosa_tf_version":   build.Version,
-				"rosa_tf_commit":    build.Commit,
+				"rosa_tf_version":  build.Version,
+				"rosa_tf_commit":   build.Commit,
 			}).
 			Nodes(cmv1.NewClusterNodes().
 				Compute(3).

@@ -9,13 +9,13 @@ import (
 )
 
 type AccountRolesArgs struct {
-	AccountRolePrefix        *string            `hcl:"account_role_prefix"`
-	OpenshiftVersion         *string            `hcl:"openshift_version"`
-	UnifiedAccRolesPath      *string            `hcl:"path"`
-	SharedVpcRoleArn         *string            `hcl:"shared_vpc_role_arn"`
-	PermissionsBoundary      *string            `hcl:"permissions_boundary"`
-	Tags                     *map[string]string `hcl:"tags"`
-	TrustPolicyExternalID    *string            `hcl:"trust_policy_external_id"`
+	AccountRolePrefix     *string            `hcl:"account_role_prefix"`
+	OpenshiftVersion      *string            `hcl:"openshift_version"`
+	UnifiedAccRolesPath   *string            `hcl:"path"`
+	SharedVpcRoleArn      *string            `hcl:"shared_vpc_role_arn"`
+	PermissionsBoundary   *string            `hcl:"permissions_boundary"`
+	Tags                  *map[string]string `hcl:"tags"`
+	TrustPolicyExternalID *string            `hcl:"trust_policy_external_id"`
 }
 
 type AccountRolesOutput struct {

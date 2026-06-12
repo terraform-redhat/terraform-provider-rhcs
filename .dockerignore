@@ -1,0 +1,4 @@
+.git
+bin/
+**/.terraform/
+.terraform-docs-cache/

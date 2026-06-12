@@ -1,6 +1,4 @@
-# Build from repository root (so go.mod is in context):
-#   docker build -f build/ci-tf-e2e.Dockerfile .
-FROM registry.access.redhat.com/ubi9/ubi:latest
+FROM registry.access.redhat.com/ubi9/ubi:9.8-1780900431
 WORKDIR /root
 
 # oc
@@ -14,8 +12,13 @@ RUN yum install -y wget &&\
 # go — toolchain version follows the `go` line in go.mod (no separate pin to drift)
 COPY go.mod /tmp/go.mod
 RUN GO_VER=$(awk '/^go / { print $2; exit }' /tmp/go.mod) && \
-    curl -fsSL "https://go.dev/dl/go${GO_VER}.linux-amd64.tar.gz" | tar -C /usr/local -xzf - && \
-    rm -f /tmp/go.mod
+    GO_TAR="go${GO_VER}.linux-amd64.tar.gz" && \
+    curl -fsSL "https://dl.google.com/go/${GO_TAR}" -o "/tmp/${GO_TAR}" && \
+    curl -fsSL "https://dl.google.com/go/${GO_TAR}.sha256" -o /tmp/go.sha256 && \
+    printf '%s  %s\n' "$(tr -d '\n' < /tmp/go.sha256)" "${GO_TAR}" | (cd /tmp && sha256sum -c -) && \
+    tar -C /usr/local -xzf "/tmp/${GO_TAR}" && \
+    rm -f "/tmp/${GO_TAR}" /tmp/go.sha256 /tmp/go.mod && \
+    /usr/local/go/bin/go version
 ENV PATH="/usr/local/go/bin:${PATH}"
 ENV GOPATH=/usr/local/go
 ENV TEST_OFFLINE_TOKEN=""

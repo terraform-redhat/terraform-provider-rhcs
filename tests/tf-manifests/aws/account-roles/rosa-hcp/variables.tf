@@ -34,3 +34,9 @@ variable "tags" {
   type        = map(string)
   default     = null
 }
+
+variable "trust_policy_external_id" {
+  description = "Optional external ID injected into installer and support account role trust policies."
+  type        = string
+  default     = null
+}

@@ -31,11 +31,12 @@ locals {
 module "create_account_roles" {
   source = "git::https://github.com/terraform-redhat/terraform-rhcs-rosa-classic//modules/account-iam-resources?ref=main"
 
-  account_role_prefix  = var.account_role_prefix
-  openshift_version    = var.openshift_version
-  path                 = local.path
-  permissions_boundary = var.permissions_boundary
-  tags                 = var.tags
+  account_role_prefix      = var.account_role_prefix
+  openshift_version        = var.openshift_version
+  path                     = local.path
+  permissions_boundary     = var.permissions_boundary
+  tags                     = var.tags
+  trust_policy_external_id = var.trust_policy_external_id
 }
 
 module "rosa-classic_operator-policies" {

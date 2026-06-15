@@ -204,10 +204,6 @@ Read-Only:
 <a id="nestedatt--sts"></a>
 ### Nested Schema for `sts`
 
-Optional:
-
-- `trust_policy_external_id` (String) External ID for trust policy condition in account roles
-
 Read-Only:
 
 - `instance_iam_roles` (Attributes) Instance IAM Roles (see [below for nested schema](#nestedatt--sts--instance_iam_roles))
@@ -217,6 +213,7 @@ Read-Only:
 - `role_arn` (String) Installer Role
 - `support_role_arn` (String) Support Role
 - `thumbprint` (String) SHA1-hash value of the root CA of the issuer URL
+- `trust_policy_external_id` (String) External ID for trust policy condition in account roles
 
 <a id="nestedatt--sts--instance_iam_roles"></a>
 ### Nested Schema for `sts.instance_iam_roles`

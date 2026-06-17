@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/ubi:9.8-1780900431
+FROM registry.access.redhat.com/ubi9/ubi:9.8-1781496985
 WORKDIR /app
 COPY . /app
 RUN yum install -y yum-utils shadow-utils unzip tar make git gcc gcc-c++ jq diffutils && \

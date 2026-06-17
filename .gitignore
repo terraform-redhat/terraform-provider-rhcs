@@ -9,6 +9,9 @@ terraform.tfvars.d*
 /tests/rhcs_output
 terraform-provider-rhcs
 /bin/
+/.cache/
+/go/
+/.config/
 .vscode/**/*
 **/ginkgo.report
 /temp

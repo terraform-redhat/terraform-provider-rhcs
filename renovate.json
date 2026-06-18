@@ -130,6 +130,8 @@
       ],
       "matchFileNames": [
         "Dockerfile.clients"
+        "Dockerfile",
+        "build/ci-tf-e2e.Dockerfile"
       ],
       "groupName": "CI client image",
       "groupSlug": "ci-client-image",

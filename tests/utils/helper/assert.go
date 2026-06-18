@@ -22,6 +22,7 @@ import (
 // if e is not "timed out waiting for the condition", it print e and then case fails.
 
 func AssertWaitPollNoErr(e error, msg string) {
+	GinkgoHelper()
 	if e == nil {
 		return
 	}
@@ -42,6 +43,7 @@ func AssertWaitPollNoErr(e error, msg string) {
 // if e is  Nil, will print expected error info and then case fails.
 
 func AssertWaitPollWithErr(e error, msg string) {
+	GinkgoHelper()
 	if e != nil {
 		Logger.Infof("the error: %v", e)
 		return
@@ -52,5 +54,6 @@ func AssertWaitPollWithErr(e error, msg string) {
 }
 
 func ExpectTFErrorContains(err error, substring string) {
+	GinkgoHelper()
 	Expect(GetTFErrorMessage(err)).To(ContainSubstring(substring))
 }

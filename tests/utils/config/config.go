@@ -31,9 +31,7 @@ const (
 	EnvChannelGroup          = "CHANNEL_GROUP"
 	EnvRHCSVersion           = "RHCS_VERSION"
 	EnvRHCSSource            = "RHCS_SOURCE"
-	EnvRHCSModuleVersion     = "RHCS_MODULE_VERSION"      // Set this to update the version for the terraform-redhat/rosa-classic/rhcs module
-	EnvRHCSModuleSource      = "RHCS_MODULE_SOURCE"       // Set this to update the source for the terraform-redhat/rosa-classic/rhcs module
-	EnvRHCSModuleSourceLocal = "RHCS_MODULE_SOURCE_LOCAL" // Set this to any value if `RHCS_MODULE_SOURCE` refers to a local path, in which case `RHCS_MODULE_VERSION` will be ignored
+	EnvRHCSModuleRef         = "RHCS_MODULE_REF" // Set this to update the git ref for the RHCS modules
 	EnvWaitOperators         = "WAIT_OPERATORS"
 	EnvRHCSClusterName       = "RHCS_CLUSTER_NAME"
 	EnvRHCSClusterNamePrefix = "RHCS_CLUSTER_NAME_PREFIX"
@@ -143,16 +141,8 @@ func GetRHCSVersion() string {
 	return GetEnvWithDefault(EnvRHCSVersion, "")
 }
 
-func GetRHCSModuleVersion() string {
-	return GetEnvWithDefault(EnvRHCSModuleVersion, "")
-}
-
-func GetRHCSModuleSource() string {
-	return GetEnvWithDefault(EnvRHCSModuleSource, "")
-}
-
-func GetRHCSModuleSourceLocal() string {
-	return GetEnvWithDefault(EnvRHCSModuleSourceLocal, "")
+func GetRHCSModuleRef() string {
+	return GetEnvWithDefault(EnvRHCSModuleRef, "")
 }
 
 func IsWaitForOperators() bool {

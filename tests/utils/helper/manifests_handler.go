@@ -13,25 +13,13 @@ import (
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
-func ModuleSourceAlignment(manifestsFilePath string, source string, sourceLocal string, version string) error {
-	regexpP := regexp.MustCompile(`(source\s*=\s*")(terraform-redhat/rosa-classic/rhcs/)(.*"\s*\n)(\s*version\s*=\s*")(.*)"`)
+func ModuleSourceAlignment(manifestsFilePath string, ref string) error {
+	regexpP := regexp.MustCompile(
+		`"(git::https:\/\/github\.com\/terraform-redhat\/terraform-rhcs-rosa-(classic|hcp)\/\/modules\/[^?]+\?ref=)[^"]+"`,
+	)
 	var err error
-	if source != "" {
-		// err = ReplaceRegex(manifestsFilePath, *regexpP, fmt.Sprintf(`$1%s$3$4$5"`, source))
-		if sourceLocal != "" {
-			err = ReplaceRegex(manifestsFilePath, *regexpP, fmt.Sprintf(`source = "%s"`, source))
-		} else {
-			err = ReplaceRegex(manifestsFilePath, *regexpP, fmt.Sprintf(`source = "%s$3$4$5`, source))
-		}
-		if err != nil {
-			return err
-		}
-	}
-	if version != "" && sourceLocal == "" {
-		err = ReplaceRegex(manifestsFilePath, *regexpP, fmt.Sprintf(`source = "$2$3  version = "%s"`, version))
-		if err != nil {
-			return err
-		}
+	if ref != "" {
+		err = ReplaceRegex(manifestsFilePath, *regexpP, fmt.Sprintf(`"$1%s"`, ref))
 	}
 	return err
 }
@@ -104,15 +92,13 @@ func AlignRHCSSourceVersion(dir string) error {
 
 	rhcsSource := retrieveRHCSEnvVar("RHCS Source", config.GetRHCSSource)
 	rhcsVersion := retrieveRHCSEnvVar("RHCS Version", config.GetRHCSVersion)
-	rhcsModuleSource := retrieveRHCSEnvVar("RHCS Module Source", config.GetRHCSModuleSource)
-	rhcsModuleSourceLocal := retrieveRHCSEnvVar("RHCS Module Source Local", config.GetRHCSSource)
-	rhcsModuleVersion := retrieveRHCSEnvVar("RHCS Module Version", config.GetRHCSModuleVersion)
+	rhcsModuleRef := retrieveRHCSEnvVar("RHCS Module Ref", config.GetRHCSModuleRef)
 	if !foundEnv {
 		return nil
 	}
 
 	Logger.Warnf("RHCS Source: %s, RHCS Version: %s", rhcsSource, rhcsVersion)
-	Logger.Warnf("Module Source: %s, Module Version: %s", rhcsModuleSource, rhcsModuleVersion)
+	Logger.Warnf("Module ref: %s", rhcsModuleRef)
 	files, err := ScanManifestsDir(dir)
 	if err != nil {
 		return err
@@ -122,7 +108,7 @@ func AlignRHCSSourceVersion(dir string) error {
 		if err != nil {
 			return err
 		}
-		err = ModuleSourceAlignment(file, rhcsModuleSource, rhcsModuleSourceLocal, rhcsModuleVersion)
+		err = ModuleSourceAlignment(file, rhcsModuleRef)
 		if err != nil {
 			return err
 		}

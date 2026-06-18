@@ -29,8 +29,7 @@ locals {
 }
 
 module "create_account_roles" {
-  source  = "terraform-redhat/rosa-classic/rhcs//modules/account-iam-resources"
-  version = ">=1.6.3"
+  source = "git::https://github.com/terraform-redhat/terraform-rhcs-rosa-classic//modules/account-iam-resources?ref=main"
 
   account_role_prefix  = var.account_role_prefix
   openshift_version    = var.openshift_version
@@ -40,8 +39,7 @@ module "create_account_roles" {
 }
 
 module "rosa-classic_operator-policies" {
-  source  = "terraform-redhat/rosa-classic/rhcs//modules/operator-policies"
-  version = ">=1.6.3"
+  source = "git::https://github.com/terraform-redhat/terraform-rhcs-rosa-classic//modules/operator-policies?ref=main"
 
   account_role_prefix = module.create_account_roles.account_role_prefix
   openshift_version   = var.openshift_version

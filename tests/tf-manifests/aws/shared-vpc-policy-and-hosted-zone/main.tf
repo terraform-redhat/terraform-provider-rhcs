@@ -1,14 +1,22 @@
 # Copyright Red Hat
 # SPDX-License-Identifier: Apache-2.0
 
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 4.20.0"
+    }
+  }
+}
+
 provider "aws" {
   region                   = var.region
   shared_credentials_files = var.shared_vpc_aws_shared_credentials_files
 }
 
 module "shared_vpc_policy_and_hosted_zone" {
-  source  = "terraform-redhat/rosa-classic/rhcs//modules/shared-vpc-policy-and-hosted-zone"
-  version = ">=1.6.3"
+  source = "git::https://github.com/terraform-redhat/terraform-rhcs-rosa-classic//modules/shared-vpc-policy-and-hosted-zone?ref=main"
 
   cluster_name              = var.domain_prefix == null ? var.cluster_name : var.domain_prefix
   hosted_zone_base_domain   = var.dns_domain_id

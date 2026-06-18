@@ -23,15 +23,13 @@ data "aws_caller_identity" "current" {
 data "aws_partition" "current" {
 }
 
-
 locals {
   path           = coalesce(var.path, "/")
   aws_account_id = data.aws_caller_identity.current.account_id
 }
 
 module "create_account_roles" {
-  source  = "terraform-redhat/rosa-hcp/rhcs//modules/account-iam-resources"
-  version = ">=1.6.3"
+  source = "git::https://github.com/terraform-redhat/terraform-rhcs-rosa-hcp//modules/account-iam-resources?ref=main"
 
   account_role_prefix  = var.account_role_prefix
   path                 = local.path

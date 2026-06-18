@@ -16,12 +16,11 @@ provider "aws" {
 }
 
 module "vpc" {
-  source  = "terraform-redhat/rosa-hcp/rhcs//modules/vpc"
-  version = ">=1.6.3"
+  source = "git::https://github.com/terraform-redhat/terraform-rhcs-rosa-hcp//modules/vpc?ref=main"
 
   vpc_cidr                 = var.vpc_cidr
   name_prefix              = var.name_prefix
+  availability_zones       = var.availability_zones
+  availability_zones_count = var.availability_zones_count
   tags                     = var.tags
-  availability_zones_count = var.availability_zones != null ? length(var.availability_zones) : var.availability_zones_count # Temp fix before OCM-10932 is implemented
-  # availability_zones = var.availability_zones
 }

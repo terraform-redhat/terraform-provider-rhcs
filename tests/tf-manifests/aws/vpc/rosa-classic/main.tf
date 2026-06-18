@@ -10,16 +10,13 @@ terraform {
   }
 }
 
-
-
 provider "aws" {
   region                   = var.aws_region
   shared_credentials_files = var.aws_shared_credentials_files
 }
 
 module "vpc" {
-  source  = "terraform-redhat/rosa-classic/rhcs//modules/vpc"
-  version = ">=1.6.3"
+  source = "git::https://github.com/terraform-redhat/terraform-rhcs-rosa-classic//modules/vpc?ref=main"
 
   vpc_cidr                 = var.vpc_cidr
   name_prefix              = var.name_prefix

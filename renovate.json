@@ -129,7 +129,7 @@
         "dockerfile"
       ],
       "matchFileNames": [
-        "Dockerfile.clients"
+        "Dockerfile.clients",
         "Dockerfile",
         "build/ci-tf-e2e.Dockerfile"
       ],

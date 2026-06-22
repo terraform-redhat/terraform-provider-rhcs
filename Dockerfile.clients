@@ -1,9 +1,12 @@
 FROM registry.access.redhat.com/ubi9/ubi:9.8-1780900431
 WORKDIR /app
 COPY . /app
-RUN yum install -y yum-utils shadow-utils unzip tar make git gcc gcc-c++ jq diffutils && \
+RUN curl -fsSL -o /tmp/epel-release.rpm https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm && \
+    yum install -y /tmp/epel-release.rpm && \
+    yum install -y yum-utils shadow-utils unzip tar make git gcc gcc-c++ jq diffutils rubygem-asciidoctor && \
+    asciidoctor --version && \
     yum clean all && \
-    rm -rf /var/cache/yum
+    rm -rf /var/cache/yum /tmp/epel-release.rpm
 # Prow / integration client image: Go toolchain follows go.mod; Terraform pinned below for fmt-check on examples/ and tests/.
 RUN GO_VER=$(awk '/^go / { print $2; exit }' go.mod) && \
     GO_TAR="go${GO_VER}.linux-amd64.tar.gz" && \
@@ -25,4 +28,5 @@ RUN mkdir -p /app/bin && \
     chgrp -R 0 /app && \
     chmod -R g+rwX /app
 ENV PATH="/usr/local/go/bin:/usr/local/bin:${PATH}" \
-    HOME="/app"
+    HOME="/app" \
+    GOMODCACHE="/tmp/gomodcache"

@@ -315,10 +315,11 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				},
 			},
 			"no_cni": schema.BoolAttribute{
-				Description: "Disable CNI creation to let users bring their own CNI. " + common.ValueCannotBeChangedStringDescription,
-				Optional:    true,
-				Computed:    true,
-				Default:     booldefault.StaticBool(false),
+				Description: "Disable CNI creation to let users bring their own CNI. " +
+					common.ValueCannotBeChangedStringDescription,
+				Optional: true,
+				Computed: true,
+				Default:  booldefault.StaticBool(false),
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
 				},

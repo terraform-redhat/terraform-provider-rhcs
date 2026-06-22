@@ -219,8 +219,9 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				Computed: true,
 			},
 			"no_cni": schema.BoolAttribute{
-				Description: "Disable CNI creation to let users bring their own CNI. " + common.ValueCannotBeChangedStringDescription,
-				Computed:    true,
+				Description: "Disable CNI creation to let users bring their own CNI. " +
+					common.ValueCannotBeChangedStringDescription,
+				Computed: true,
 			},
 			"channel_group": schema.StringAttribute{
 				Description: deprecatedMessage,

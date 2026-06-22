@@ -5,25 +5,54 @@
 
 set -euo pipefail
 
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=lib/git.sh
+source "${script_dir}/lib/git.sh"
+
 repo_root=$(git rev-parse --show-toplevel)
 cd "$repo_root"
 
 required_coverage_percent="80"
 gocovdiff_module="github.com/vearutop/gocovdiff"
 gocovdiff_version="v1.4.2"
-
-diff_base_args=(--cached)
-mapfile -t candidate_files < <(git diff "${diff_base_args[@]}" --name-only --diff-filter=ACMR -- '*.go')
-if [ "${#candidate_files[@]}" -eq 0 ]; then
-  diff_base_args=()
-  mapfile -t candidate_files < <(git diff --name-only --diff-filter=ACMR -- '*.go')
-fi
+coverage_base_ref="${COVERAGE_BASE_REF:-}"
 
 tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/rhcs-changed-coverage-XXXXXX")
 coverage_profile="$tmp_dir/cover.out"
 diff_file="$tmp_dir/changes.diff"
 delta_file="$tmp_dir/delta-cov.txt"
 trap 'rm -rf "$tmp_dir"' EXIT
+
+resolve_diff_args() {
+  local -a base_refs=()
+  local diff_range
+
+  if [ -n "$coverage_base_ref" ]; then
+    base_refs=("$coverage_base_ref")
+  else
+    base_refs=(origin/main upstream/main main)
+  fi
+
+  diff_range=$(merge_base_range HEAD "${base_refs[@]}")
+  if [ -n "$diff_range" ]; then
+    mapfile -t merge_range_go_files < <(git diff "$diff_range" --name-only --diff-filter=ACMR -- '*.go')
+    if [ "${#merge_range_go_files[@]}" -gt 0 ]; then
+      diff_base_args=("$diff_range")
+      return
+    fi
+  fi
+
+  diff_base_args=(--cached)
+  mapfile -t candidate_files < <(git diff "${diff_base_args[@]}" --name-only --diff-filter=ACMR -- '*.go')
+  if [ "${#candidate_files[@]}" -eq 0 ]; then
+    diff_base_args=()
+  fi
+}
+
+declare -a diff_base_args=()
+resolve_diff_args
+
+mapfile -t candidate_files < <(git diff "${diff_base_args[@]}" --name-only --diff-filter=ACMR -- '*.go')
 
 declare -A package_seen=()
 declare -a changed_packages=()

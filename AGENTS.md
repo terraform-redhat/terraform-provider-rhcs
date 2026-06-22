@@ -72,6 +72,18 @@ These are **review and design expectations**. They are not all enforced by autom
 4. Add/update unit tests and subsystem tests for the primary query flow.
 5. Regenerate and validate docs for the new/changed data source.
 
+## Subsystem registry check
+
+`make check-subsystem-registry` (script: `hack/check-subsystem-registry.sh`) verifies that every Terraform type registered in `provider/` is referenced in at least one subsystem test (`resource "rhcs_…"` or `data "rhcs_…"` under `subsystem/`). It runs as part of `make pre-push-checks` and fails the push/CI when the check fails.
+
+**When adding a resource or data source:** add or update a subsystem test that references the type. Do **not** add an allowlist entry for new types.
+
+**When to use `hack/subsystem-registry-allowlist.yaml`:** only for **temporary, documented exceptions** — for example a known gap being fixed in a follow-up PR. Each entry must include `type`, `ticket`, and `reason`. Remove the entry in the same PR that adds subsystem coverage. Allowlist is not a substitute for subsystem tests on new provider types.
+
+**New types on the branch** (compared to the merge base with `main`) without a subsystem reference always fail the check, even if allowlisted elsewhere.
+
+Run locally: `make check-subsystem-registry`.
+
 ## Breaking change policy
 
 Treat any change below as potentially breaking unless proven otherwise:

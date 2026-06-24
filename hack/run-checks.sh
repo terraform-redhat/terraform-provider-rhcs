@@ -18,8 +18,8 @@ Usage:
   make run-checks -- <mode> [--dry-run] [--list-steps]
 
 Modes:
-  pre-push                 Steps: format-check, build, generated-files, lint, docs-lint, license-check, coverage, tests
-  basic                    Steps: format, format-check, build, generated-files, lint, docs-lint, license-check, coverage, tests
+  pre-push                 Steps: format-check, build, generated-files, lint, docs-lint, license-check, coverage, subsystem-registry, tests
+  basic                    Steps: format, format-check, build, generated-files, lint, docs-lint, license-check, coverage, subsystem-registry, tests
 
 Flags:
   --dry-run                Print planned steps and commands without executing
@@ -84,6 +84,7 @@ case "$mode" in
     append_step "Documentation lint (Vale)" "make --no-print-directory docs-lint"
     append_step "License header check" "make --no-print-directory license-check"
     append_step "Coverage (changed files)" "make --no-print-directory coverage-changed-files"
+    append_step "Subsystem registry" "make --no-print-directory check-subsystem-registry"
     append_step "Unit and subsystem tests" "make --no-print-directory test"
     ;;
   basic)
@@ -95,6 +96,7 @@ case "$mode" in
     append_step "Documentation lint (Vale)" "make --no-print-directory docs-lint"
     append_step "License header check" "make --no-print-directory license-check"
     append_step "Coverage (changed files)" "make --no-print-directory coverage-changed-files"
+    append_step "Subsystem registry" "make --no-print-directory check-subsystem-registry"
     append_step "Unit and subsystem tests" "make --no-print-directory test"
     ;;
 esac

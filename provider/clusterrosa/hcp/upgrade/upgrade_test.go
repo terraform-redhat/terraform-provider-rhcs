@@ -25,6 +25,7 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
+// TestUpgrade is the entry point for the Cluster Rosa HCP Upgrade Ginkgo suite.
 func TestUpgrade(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Cluster Rosa HCP Upgrade Suite")

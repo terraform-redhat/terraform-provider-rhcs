@@ -100,7 +100,7 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 				By("Edit cluster admin user name to not valid")
 				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 					(*args.AdminCredentials)["username"] = "one:two"
-				}, "Attribute admin_credentials.username username may not contain the characters: '/:%!'")
+				}, "Attribute admin_credentials.username username may not contain the characters: '/:%'")
 
 				By("Edit cluster admin user name to empty")
 				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {

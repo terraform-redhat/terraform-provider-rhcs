@@ -41,15 +41,19 @@ variable "product" {
   default = "rosa"
 }
 
-variable "autoscaling" {
-  type = object({
-    autoscaling_enabled = bool
-    min_replicas        = optional(number)
-    max_replicas        = optional(number)
-  })
-  default = {
-    autoscaling_enabled = false
-  }
+variable "autoscaling_enabled" {
+  type    = bool
+  default = null
+}
+
+variable "min_replicas" {
+  type    = number
+  default = null
+}
+
+variable "max_replicas" {
+  type    = number
+  default = null
 }
 
 variable "ec2_metadata_http_tokens" {

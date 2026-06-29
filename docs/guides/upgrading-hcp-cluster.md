@@ -33,6 +33,10 @@ To upgrade your ROSA cluster to another version, export the following variables,
         ```
 3. Run `terraform apply` to upgrade your cluster or machine pool.
 
+## Coexistence with OCM automatic upgrade schedules
+
+You can configure recurring automatic control-plane upgrades in OCM (no pinned target version). The provider does not manage those policies. When you change `version` in Terraform, the provider schedules a manual upgrade to that version. Automatic schedules remain active and do not block `terraform apply`. Pending manual upgrade policies that do not match the Terraform `version` may be removed during apply.
+
 ## OpenShift documentation
 
  - [Upgrading ROSA HCP clusters](https://docs.openshift.com/rosa/upgrading/rosa-hcp-upgrading.html)

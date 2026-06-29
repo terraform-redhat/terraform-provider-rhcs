@@ -17,3 +17,4 @@ terraform-provider-rhcs
 /temp
 **/*.test
 coverage.out
+test

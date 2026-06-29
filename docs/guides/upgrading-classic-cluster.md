@@ -31,6 +31,10 @@ To upgrade your ROSA cluster to another version, upgrade your account roles and 
         ```
 4. Run `terraform apply` to upgrade your cluster.
 
+## Coexistence with OCM automatic upgrade schedules
+
+You can configure recurring automatic cluster upgrade schedules in OCM (no pinned target version). On Classic, cluster upgrade policies upgrade the control plane and machine pools together. The provider does not manage those automatic OCM upgrade policies. When you change `version` in Terraform, the provider schedules a manual cluster upgrade to that version. Automatic schedules remain active and do not block `terraform apply`. Pending manual upgrade policies that do not match the Terraform `version` may be removed during apply.
+
 ## OpenShift documentation
 
  - [Upgrading ROSA Classic clusters with STS](https://docs.openshift.com/rosa/upgrading/rosa-upgrading-sts.html)

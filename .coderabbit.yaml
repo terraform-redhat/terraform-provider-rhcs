@@ -4,7 +4,7 @@ reviews:
     - path: "**/*.go"
       instructions: |
         - Follow Effective Go and Go Code Review Comments conventions.
-        - Verify imports and formatting are consistent with gofmt and repository rules.
+        - Verify imports and formatting are consistent with gofmt and all repository rules.
         - Check all errors are handled and wrapped with actionable context where needed.
         - Flag variable shadowing, unnecessary nesting, and unclear naming.
         - Prefer existing repository patterns over introducing new architecture.

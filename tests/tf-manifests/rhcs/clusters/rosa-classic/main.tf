@@ -64,9 +64,9 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   sts                                             = local.sts_roles
   replicas                                        = var.replicas
   proxy                                           = var.proxy
-  autoscaling_enabled                             = var.autoscaling.autoscaling_enabled
-  min_replicas                                    = var.autoscaling.min_replicas
-  max_replicas                                    = var.autoscaling.max_replicas
+  autoscaling_enabled                             = var.autoscaling_enabled
+  min_replicas                                    = var.min_replicas
+  max_replicas                                    = var.max_replicas
   ec2_metadata_http_tokens                        = var.ec2_metadata_http_tokens
   aws_private_link                                = var.private_link
   private                                         = var.private

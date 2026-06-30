@@ -303,7 +303,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			By("Try to edit with replicas < 2")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.Replicas = helper.IntPointer(1)
-			}, "Attribute replicas, cannot be changed from")
+			}, "Attribute replicas value must be at least 2")
 		})
 
 		It("properties - [id:72455]", ci.Medium, ci.FeatureClusterMisc, func() {

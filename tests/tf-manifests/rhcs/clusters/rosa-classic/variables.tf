@@ -23,7 +23,7 @@ variable "aws_availability_zones" {
 
 variable "replicas" {
   type    = number
-  default = 3
+  default = null
 }
 
 variable "openshift_version" {

@@ -2039,6 +2039,106 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			runOutput.VerifyErrorContainsSubstring("Invalid root disk size")
 		})
 
+		Context("Autoscaling conflict tests", func() {
+			It("Fails when autoscaling is enabled but replicas is also set", func() {
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage1),
+					),
+				)
+
+				Terraform.Source(`
+			  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						master_role_arn = "",
+						worker_role_arn = "",
+					}
+				}
+				autoscaling_enabled = true
+				min_replicas        = 2
+				max_replicas        = 6
+				replicas            = 3
+			  }
+			`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).ToNot(BeZero())
+				runOutput.VerifyErrorContainsSubstring("autoscaling is enabled")
+				runOutput.VerifyErrorContainsSubstring("replicas should not be configured")
+			})
+
+			It("Fails when autoscaling is disabled but min/max replicas are set", func() {
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage1),
+					),
+				)
+
+				Terraform.Source(`
+			  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						master_role_arn = "",
+						worker_role_arn = "",
+					}
+				}
+				replicas     = 3
+				min_replicas = 2
+				max_replicas = 6
+			  }
+			`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).ToNot(BeZero())
+				runOutput.VerifyErrorContainsSubstring("Autoscaling must be enabled")
+			})
+
+			It("Fails when min_replicas is greater than max_replicas", func() {
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+						RespondWithJSON(http.StatusOK, versionListPage1),
+					),
+				)
+
+				Terraform.Source(`
+			  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						master_role_arn = "",
+						worker_role_arn = "",
+					}
+				}
+				autoscaling_enabled = true
+				min_replicas        = 6
+				max_replicas        = 3
+			  }
+			`)
+				runOutput := Terraform.Apply()
+				Expect(runOutput.ExitCode).ToNot(BeZero())
+				runOutput.VerifyErrorContainsSubstring("greater or equal to min-replicas")
+			})
+		})
+
 		It("Creates basic cluster with properties", func() {
 			prop_key := "my_prop_key"
 			prop_val := "my_prop_val"

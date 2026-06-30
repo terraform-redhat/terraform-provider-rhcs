@@ -562,24 +562,28 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 				By("autoscaling_enable=true and set min_replicas greater than max_replicas")
 				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 					args.Autoscaling = helper.BoolPointer(true)
+					args.Replicas = nil
 					args.MinReplicas = helper.IntPointer(6)
 					args.MaxReplicas = helper.IntPointer(3)
-				}, "must be less than or equal to")
+				}, "greater or equal to min-replicas")
 				By("min_relicas with negative value")
 				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 					args.Autoscaling = helper.BoolPointer(true)
+					args.Replicas = nil
 					args.MinReplicas = helper.IntPointer(-3)
 					args.MaxReplicas = helper.IntPointer(3)
 				}, "value must be at least 0")
 				By("setting max_replicas to 0")
 				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 					args.Autoscaling = helper.BoolPointer(true)
+					args.Replicas = nil
 					args.MinReplicas = helper.IntPointer(0)
 					args.MaxReplicas = helper.IntPointer(0)
 				}, "must be a integer greater than 0")
 				By("with a number not a multiple of 3")
 				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 					args.Autoscaling = helper.BoolPointer(true)
+					args.Replicas = nil
 					args.MinReplicas = helper.IntPointer(3)
 					args.MaxReplicas = helper.IntPointer(7)
 				}, "require that the compute nodes be a multiple of the private subnets 3")

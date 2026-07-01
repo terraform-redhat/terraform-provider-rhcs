@@ -142,6 +142,14 @@ func CheckAndCancelUpgrades(ctx context.Context, client *cmv1.ClustersClient, up
 
 	for _, upgrade := range upgrades {
 		tflog.Debug(ctx, fmt.Sprintf("Found existing upgrade policy to %s in state %s", upgrade.Version(), upgrade.State()))
+		// Recurring (automatic) upgrade policies have no pinned version - OCM
+		// selects the target version at runtime - so Version() is empty. Skip
+		// them rather than failing semver parsing (issue #1186); they are not a
+		// pending pinned upgrade that needs reconciling against desiredVersion.
+		if upgrade.Version() == "" {
+			tflog.Debug(ctx, "Skipping recurring upgrade policy with no pinned version")
+			continue
+		}
 		toVersion, err := semver.NewVersion(upgrade.Version())
 		if err != nil {
 			return false, fmt.Errorf("failed to parse upgrade version: %v", err)

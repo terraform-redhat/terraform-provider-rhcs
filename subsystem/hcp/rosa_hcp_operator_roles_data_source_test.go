@@ -1,0 +1,122 @@
+// Copyright Red Hat
+// SPDX-License-Identifier: Apache-2.0
+
+package hcp
+
+import (
+	"fmt"
+	"net/http"
+
+	. "github.com/onsi/ginkgo/v2/dsl/core"             // nolint
+	. "github.com/onsi/gomega"                         // nolint
+	. "github.com/onsi/gomega/ghttp"                   // nolint
+	. "github.com/openshift-online/ocm-sdk-go/testing" // nolint
+
+	. "github.com/terraform-redhat/terraform-provider-rhcs/subsystem/framework"
+)
+
+const getStsCredentialRequests = `{
+	"page": 1,
+	"size": 2,
+	"total": 2,
+	"items": [
+		{
+			"kind": "STSOperator",
+			"name": "cluster_csi_drivers_ebs_cloud_credentials",
+			"operator": {
+				"name": "ebs-cloud-credentials",
+				"namespace": "openshift-cluster-csi-drivers",
+				"service_accounts": [
+					"aws-ebs-csi-driver-operator",
+					"aws-ebs-csi-driver-controller-sa"
+				],
+				"min_version": "",
+				"max_version": ""
+			}
+		},
+		{
+			"kind": "STSOperator",
+			"name": "cloud_network_config_controller_cloud_credentials",
+			"operator": {
+				"name": "cloud-credentials",
+				"namespace": "openshift-cloud-network-config-controller",
+				"service_accounts": [
+					"cloud-network-config-controller"
+				],
+				"min_version": "4.10",
+				"max_version": ""
+			}
+		}
+	]
+}`
+
+var _ = Describe("ROSA HCP operator roles data source", func() {
+	It("Can list HCP operator IAM roles", func() {
+		TestServer.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/aws_inquiries/sts_credential_requests"),
+				VerifyFormKV("is_hypershift", "true"),
+				RespondWithJSON(http.StatusOK, getStsCredentialRequests),
+			),
+		)
+
+		Terraform.Source(`
+		  data "rhcs_rosa_hcp_operator_roles" "operator_roles" {
+		    operator_role_prefix = "terraform-operator"
+		    account_role_prefix  = "TerraformAccountPrefix"
+		  }
+		`)
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+
+		resource := Terraform.Resource("rhcs_rosa_hcp_operator_roles", "operator_roles")
+		Expect(resource).To(MatchJQ(`.attributes.operator_role_prefix`, "terraform-operator"))
+		Expect(resource).To(MatchJQ(`.attributes.account_role_prefix`, "TerraformAccountPrefix"))
+		Expect(resource).To(MatchJQ(`.attributes.operator_iam_roles | length`, 2))
+
+		index := 0
+		firstOperatorName := resource.(map[string]interface{})["attributes"].(map[string]interface{})["operator_iam_roles"].([]interface{})[0].(map[string]interface{})["operator_name"].(string)
+		if firstOperatorName != "ebs-cloud-credentials" {
+			index = 1
+		}
+
+		compareHCPResultOfRoles(resource, index,
+			"ebs-cloud-credentials",
+			"openshift-cluster-csi-drivers",
+			"TerraformAccountPrefix-openshift-cluster-csi-drivers-ebs-cloud-c",
+			"terraform-operator-openshift-cluster-csi-drivers-ebs-cloud-crede",
+			2,
+			[]string{
+				"system:serviceaccount:openshift-cluster-csi-drivers:aws-ebs-csi-driver-operator",
+				"system:serviceaccount:openshift-cluster-csi-drivers:aws-ebs-csi-driver-controller-sa",
+			},
+		)
+
+		compareHCPResultOfRoles(resource, 1-index,
+			"cloud-credentials",
+			"openshift-cloud-network-config-controller",
+			"TerraformAccountPrefix-openshift-cloud-network-config-controller",
+			"terraform-operator-openshift-cloud-network-config-controller-clo",
+			1,
+			[]string{"system:serviceaccount:openshift-cloud-network-config-controller:cloud-network-config-controller"},
+		)
+	})
+})
+
+func compareHCPResultOfRoles(resource interface{}, index int, name, namespace, policyName, roleName string, serviceAccountLen int, serviceAccounts []string) {
+	operatorNameFmt := ".attributes.operator_iam_roles[%v].operator_name"
+	operatorNamespaceFmt := ".attributes.operator_iam_roles[%v].operator_namespace"
+	policyNameFmt := ".attributes.operator_iam_roles[%v].policy_name"
+	roleNameFmt := ".attributes.operator_iam_roles[%v].role_name"
+	serviceAccountLenFmt := ".attributes.operator_iam_roles[%v].service_accounts | length"
+	serviceAccountFmt := ".attributes.operator_iam_roles[%v].service_accounts[%v]"
+
+	Expect(resource).To(MatchJQ(fmt.Sprintf(operatorNameFmt, index), name))
+	Expect(resource).To(MatchJQ(fmt.Sprintf(operatorNamespaceFmt, index), namespace))
+	Expect(resource).To(MatchJQ(fmt.Sprintf(policyNameFmt, index), policyName))
+	Expect(resource).To(MatchJQ(fmt.Sprintf(roleNameFmt, index), roleName))
+	Expect(resource).To(MatchJQ(fmt.Sprintf(serviceAccountLenFmt, index), serviceAccountLen))
+	for k, v := range serviceAccounts {
+		Expect(resource).To(MatchJQ(fmt.Sprintf(serviceAccountFmt, index, k), v))
+	}
+}

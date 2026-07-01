@@ -267,6 +267,10 @@ e2e_test: $(GINKGO) install
 coverage-changed-files:
 	./hack/coverage-changed-files.sh
 
+.PHONY: check-subsystem-registry
+check-subsystem-registry:
+	./hack/check-subsystem-registry.sh
+
 .PHONY: check-gen
 check-gen:
 	@before_unstaged=$$(mktemp); \

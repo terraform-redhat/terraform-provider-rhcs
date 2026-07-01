@@ -78,10 +78,14 @@ For details, see: ./CONTRIBUTING.md
 - [ ] PR description clearly explains both **what** changed and **why**.
 - [ ] Relevant Jira/GitHub issues and related PRs are linked.
 - [ ] `make install-hooks` has been run in this clone.
-- [ ] Tests were added/updated where appropriate.
-- [ ] I manually tested the change.
 - [ ] `make pre-push-checks` passes.
-- [ ] `make fmt-check` passes.
-- [ ] `make build` passes.
 - [ ] Documentation was added/updated where appropriate.
 - [ ] Any risk, limitation, or follow-up work is documented.
+
+### Testing (check all that apply; use N/A when not relevant)
+- [ ] **N/A** — no provider resource/data source or `provider/` / `internal/` logic changes.
+- [ ] **New or changed resource / data source** — subsystem test added or updated under `subsystem/classic/` or `subsystem/hcp/`.
+- [ ] **New or changed validation, plan modifiers, or helpers** — unit tests in the same package (`*_test.go`), or a subsystem negative test when integration-only (not both for the same cases unless a wiring smoke test is needed).
+- [ ] **Schema / config validation** — unit test and/or subsystem test expecting plan/apply failure (one primary layer per rule; see [CONTRIBUTING.md](CONTRIBUTING.md)).
+- [ ] `make check-subsystem-registry` passes.
+- [ ] I manually tested the change when behavior is user-visible.

@@ -59,7 +59,9 @@ make basic-checks      # convenience flow: starts with make fmt and may stop aft
 make pre-push-checks   # exact non-mutating verification used by the pre-push hook
 ```
 
-Changed-files coverage is enforced through `make coverage-changed-files` using `gocovdiff` with an 80% threshold for changed Go files under `provider/` and `internal/`.
+Changed-files coverage is enforced through `make coverage-changed-files` using `gocovdiff` with an 80% threshold for changed Go files under `provider/` and `internal/`, compared to the merge base with `main`.
+
+Subsystem coverage is checked with `make check-subsystem-registry`. See `CONTRIBUTING.md` and `AGENTS.md`.
 
 ## Provider documentation
 

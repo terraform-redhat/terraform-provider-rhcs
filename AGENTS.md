@@ -72,6 +72,36 @@ These are **review and design expectations**. They are not all enforced by autom
 4. Add/update unit tests and subsystem tests for the primary query flow.
 5. Regenerate and validate docs for the new/changed data source.
 
+## Review tests when behavior changes
+
+When provider behavior, validation, error messages, schema, or test harness wiring changes, review **all layers** that can exercise it — not only the package you edited. Concrete test commands are in `CONTRIBUTING.md`.
+
+| Layer | Where to look |
+|-------|----------------|
+| Unit | `provider/.../*_test.go`, `internal/.../*_test.go` — validators, state mapping, diagnostics text |
+| Subsystem | `subsystem/classic/`, `subsystem/hcp/` — plan/apply and negative cases against stubbed OCM |
+| E2E | `tests/e2e/` — full Terraform apply against CI profiles; error substring and side-effect assertions |
+| Harness | `tests/utils/exec/`, `tests/utils/profilehandler/`, `tests/tf-manifests/`, `tests/ci/profiles/` — how args and profiles map to Terraform variables and provider attributes |
+
+Apply these checks when the change fits:
+
+- **Config wiring** — If how values reach Terraform changes (flat versus nested variables, renamed tfvars keys, or `ClusterArgs` HCL tags), verify **Classic and HCP manifests** under `tests/tf-manifests/` stay aligned unless divergence is intentional.
+- **Validation and errors** — If rules or error messages change, update matching subsystem and e2e assertions; do not assume stale substring checks still pass.
+- **Profile gating** — If profile fields or skip conditions change (for example `IsAdminEnabled()`), confirm newly enabled e2e cases have correct fixtures and expectations.
+- **Subsystem is not enough** — Adding subsystem coverage does not replace reviewing e2e harness wiring when the change touches `tests/utils/exec` or tf-manifests.
+
+## Subsystem registry check
+
+`make check-subsystem-registry` (script: `hack/check-subsystem-registry.sh`) verifies that every Terraform type registered in `provider/` is referenced in at least one subsystem test (`resource "rhcs_…"` or `data "rhcs_…"` under `subsystem/`). It runs as part of `make pre-push-checks` and fails the push/CI when the check fails.
+
+**When adding a resource or data source:** add or update a subsystem test that references the type. Do **not** add an allowlist entry for new types.
+
+**When to use `hack/subsystem-registry-allowlist.yaml`:** only for **temporary, documented exceptions** — for example a known gap being fixed in a follow-up PR. Each entry must include `type`, `ticket`, and `reason`. Remove the entry in the same PR that adds subsystem coverage. Allowlist is not a substitute for subsystem tests on new provider types.
+
+**New types on the branch** (compared to the merge base with `main`) without a subsystem reference always fail the check, even if allowlisted elsewhere.
+
+Run locally: `make check-subsystem-registry`.
+
 ## Breaking change policy
 
 Treat any change below as potentially breaking unless proven otherwise:

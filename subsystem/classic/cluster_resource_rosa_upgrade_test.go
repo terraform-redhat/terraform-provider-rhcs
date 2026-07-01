@@ -19,6 +19,7 @@ package classic
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2/dsl/core"             // nolint
 	. "github.com/onsi/gomega"                         // nolint
@@ -663,6 +664,320 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 		}`)
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
+		})
+
+		It("Ignores recurring automatic upgrade policy with no pinned version", func() {
+			// Subsystem coverage for #1215 / #1186 (mirrored in hcp/cluster_resource_test.go):
+			// OCM recurring automatic policies may have an empty version; apply must succeed without
+			// semver-parsing or cancelling policy 789.
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, template),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
+					RespondWithJSON(http.StatusOK, `{
+					"kind": "UpgradePolicyList",
+					"page": 1,
+					"size": 1,
+					"total": 1,
+					"items": [
+						{
+							"kind": "UpgradePolicy",
+							"id": "789",
+							"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/789",
+							"schedule_type": "automatic",
+							"upgrade_type": "OSD",
+							"version": "",
+							"next_run": "2023-06-09T20:59:00Z",
+							"cluster_id": "123",
+							"enable_minor_version_upgrades": true
+						}
+					]
+				}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/789/state"),
+					RespondWithJSON(http.StatusOK, `{
+					"kind": "UpgradePolicyState",
+					"id": "789",
+					"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/789/state",
+					"description": "",
+					"value": "scheduled"
+				}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, template),
+				),
+			)
+			Terraform.Source(`
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+			name           = "my-cluster"
+			cloud_region   = "us-west-1"
+			aws_account_id = "123456789012"
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+				}
+			}
+			version = "4.10.0"
+		}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			for _, req := range TestServer.ReceivedRequests() {
+				Expect(req.Method == http.MethodDelete && strings.Contains(req.URL.Path, "upgrade_policies/789")).To(BeFalse(),
+					"automatic recurring upgrade policy must not be cancelled")
+			}
+		})
+
+		It("Schedules manual upgrade while ignoring recurring automatic policy with no pinned version", func() {
+			// When Terraform requests a new version, the provider schedules a manual upgrade while
+			// leaving the empty-version automatic policy (789) untouched.
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, template),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, template),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
+					RespondWithJSON(http.StatusOK, v4_10_1Info),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
+					RespondWithJSON(http.StatusOK, `{
+					"kind": "UpgradePolicyList",
+					"page": 1,
+					"size": 1,
+					"total": 1,
+					"items": [
+						{
+							"kind": "UpgradePolicy",
+							"id": "789",
+							"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/789",
+							"schedule_type": "automatic",
+							"upgrade_type": "OSD",
+							"version": "",
+							"next_run": "2023-06-09T20:59:00Z",
+							"cluster_id": "123",
+							"enable_minor_version_upgrades": true
+						}
+					]
+				}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/789/state"),
+					RespondWithJSON(http.StatusOK, `{
+					"kind": "UpgradePolicyState",
+					"id": "789",
+					"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/789/state",
+					"description": "",
+					"value": "scheduled"
+				}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies", "dryRun=true"),
+					VerifyJQ(".version", "4.10.1"),
+					RespondWithJSON(http.StatusNoContent, ""),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
+					VerifyJQ(".version", "4.10.1"),
+					RespondWithJSON(http.StatusCreated, `
+				{
+					"kind": "UpgradePolicy",
+					"id": "123",
+					"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/123",
+					"schedule_type": "manual",
+					"upgrade_type": "OSD",
+					"version": "4.10.1",
+					"next_run": "2023-06-09T20:59:00Z",
+					"cluster_id": "123",
+					"enable_minor_version_upgrades": true
+				}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/properties",
+					  "value": {
+						"rosa_tf_commit": "123",
+						"rosa_tf_version": "123"
+					  }
+					}
+				]`),
+				),
+			)
+			Terraform.Source(`
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+			name           = "my-cluster"
+			cloud_region   = "us-west-1"
+			aws_account_id = "123456789012"
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+				}
+			}
+			version = "4.10.1"
+		}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			for _, req := range TestServer.ReceivedRequests() {
+				Expect(req.Method == http.MethodDelete && strings.Contains(req.URL.Path, "upgrade_policies/789")).To(BeFalse(),
+					"automatic recurring upgrade policy must not be cancelled")
+			}
+		})
+
+		It("Deletes stale manual upgrade policy but leaves automatic empty-version policy", func() {
+			// Combined scenario: OCM returns both an automatic empty-version policy and a stale
+			// manual pinned policy; only the manual one should be deleted during apply.
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, template),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, template),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
+					RespondWithJSON(http.StatusOK, v4_10_1Info),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
+					RespondWithJSON(http.StatusOK, `{
+					"kind": "UpgradePolicyList",
+					"page": 1,
+					"size": 2,
+					"total": 2,
+					"items": [
+						{
+							"kind": "UpgradePolicy",
+							"id": "789",
+							"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/789",
+							"schedule_type": "automatic",
+							"upgrade_type": "OSD",
+							"version": "",
+							"next_run": "2023-06-09T20:59:00Z",
+							"cluster_id": "123",
+							"enable_minor_version_upgrades": true
+						},
+						{
+							"kind": "UpgradePolicy",
+							"id": "456",
+							"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456",
+							"schedule_type": "manual",
+							"upgrade_type": "OSD",
+							"version": "4.10.0",
+							"next_run": "2023-06-09T20:59:00Z",
+							"cluster_id": "123",
+							"enable_minor_version_upgrades": true
+						}
+					]
+				}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/789/state"),
+					RespondWithJSON(http.StatusOK, `{
+					"kind": "UpgradePolicyState",
+					"id": "789",
+					"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/789/state",
+					"description": "",
+					"value": "scheduled"
+				}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456/state"),
+					RespondWithJSON(http.StatusOK, `{
+					"kind": "UpgradePolicyState",
+					"id": "456",
+					"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456/state",
+					"description": "",
+					"value": "scheduled"
+				}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/456"),
+					RespondWithJSON(http.StatusOK, "{}"),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies", "dryRun=true"),
+					VerifyJQ(".version", "4.10.1"),
+					RespondWithJSON(http.StatusNoContent, ""),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
+					VerifyJQ(".version", "4.10.1"),
+					RespondWithJSON(http.StatusCreated, `
+				{
+					"kind": "UpgradePolicy",
+					"id": "123",
+					"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/123",
+					"schedule_type": "manual",
+					"upgrade_type": "OSD",
+					"version": "4.10.1",
+					"next_run": "2023-06-09T20:59:00Z",
+					"cluster_id": "123",
+					"enable_minor_version_upgrades": true
+				}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/properties",
+					  "value": {
+						"rosa_tf_commit": "123",
+						"rosa_tf_version": "123"
+					  }
+					}
+				]`),
+				),
+			)
+			Terraform.Source(`
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+			name           = "my-cluster"
+			cloud_region   = "us-west-1"
+			aws_account_id = "123456789012"
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+				}
+			}
+			version = "4.10.1"
+		}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			deletedManual := false
+			for _, req := range TestServer.ReceivedRequests() {
+				if req.Method == http.MethodDelete && strings.Contains(req.URL.Path, "upgrade_policies/456") {
+					deletedManual = true
+				}
+				Expect(req.Method == http.MethodDelete && strings.Contains(req.URL.Path, "upgrade_policies/789")).To(BeFalse(),
+					"automatic recurring upgrade policy must not be cancelled")
+			}
+			Expect(deletedManual).To(BeTrue(), "stale manual upgrade policy must be cancelled")
 		})
 
 		It("Cancels upgrade if version=current_version", func() {

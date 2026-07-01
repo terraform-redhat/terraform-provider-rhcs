@@ -24,16 +24,9 @@ delta_file="$tmp_dir/delta-cov.txt"
 trap 'rm -rf "$tmp_dir"' EXIT
 
 resolve_diff_args() {
-  local -a base_refs=()
   local diff_range
 
-  if [ -n "$coverage_base_ref" ]; then
-    base_refs=("$coverage_base_ref")
-  else
-    base_refs=(origin/main upstream/main main)
-  fi
-
-  diff_range=$(merge_base_range HEAD "${base_refs[@]}")
+  diff_range=$(resolve_changed_go_diff_range "$coverage_base_ref" || true)
   if [ -n "$diff_range" ]; then
     mapfile -t merge_range_go_files < <(git diff "$diff_range" --name-only --diff-filter=ACMR -- '*.go')
     if [ "${#merge_range_go_files[@]}" -gt 0 ]; then
@@ -46,6 +39,28 @@ resolve_diff_args() {
   mapfile -t candidate_files < <(git diff "${diff_base_args[@]}" --name-only --diff-filter=ACMR -- '*.go')
   if [ "${#candidate_files[@]}" -eq 0 ]; then
     diff_base_args=()
+  fi
+}
+
+fail_if_ci_skipped_required_coverage() {
+  local diff_range provider_changes
+
+  if ! ci_pr_context; then
+    return 0
+  fi
+
+  diff_range=$(resolve_changed_go_diff_range "$coverage_base_ref" || true)
+  if [ -z "$diff_range" ]; then
+    echo "ERROR: changed-files coverage could not resolve a diff range in CI" >&2
+    echo "Set PULL_BASE_SHA/PULL_PULL_SHA or fetch origin/main before running checks." >&2
+    exit 1
+  fi
+
+  provider_changes=$(count_provider_internal_go_changes "$diff_range")
+  if [ "$provider_changes" -gt 0 ]; then
+    echo "ERROR: changed-files coverage did not run for ${provider_changes} provider/internal Go file(s) in CI" >&2
+    echo "Diff range: ${diff_range}" >&2
+    exit 1
   fi
 }
 
@@ -83,15 +98,18 @@ for file_path in "${candidate_files[@]}"; do
 done
 
 if [ "${#coverage_candidate_files[@]}" -eq 0 ]; then
+  fail_if_ci_skipped_required_coverage
   exit 0
 fi
 
 git diff "${diff_base_args[@]}" -U0 -- "${coverage_candidate_files[@]}" > "$diff_file"
 if [ ! -s "$diff_file" ]; then
+  fail_if_ci_skipped_required_coverage
   exit 0
 fi
 
 if [ "${#changed_packages[@]}" -eq 0 ]; then
+  fail_if_ci_skipped_required_coverage
   exit 0
 fi
 

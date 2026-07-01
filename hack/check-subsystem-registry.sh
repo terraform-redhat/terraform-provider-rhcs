@@ -72,15 +72,7 @@ collect_allowlist_types() {
 }
 
 resolve_merge_base_range() {
-  local -a base_refs=()
-
-  if [ -n "$base_ref" ]; then
-    base_refs=("$base_ref")
-  else
-    base_refs=(origin/main upstream/main main)
-  fi
-
-  merge_base_range HEAD "${base_refs[@]}"
+  resolve_changed_go_diff_range "$base_ref" || true
 }
 
 collect_new_types() {

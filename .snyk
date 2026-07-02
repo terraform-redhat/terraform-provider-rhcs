@@ -24,3 +24,25 @@ ignore:
           msgpack/v5 v5.4.1 is latest; transitive via HashiCorp plugin stack with
           no upstream fix. Revisit when msgpack or plugins release a fix.
         expires: 2026-09-30T00:00:00.000Z
+
+  # Temporary stdlib ignores (ROSAENG-61054): remove when CI image ships Go 1.26.4.
+  SNYK-GOLANG-STDNETTEXTPROTO-17135843:
+    - "*":
+        reason: >-
+          Go stdlib fix requires 1.26.4; CI builder is still 1.26.3.
+          Remove when CI runs Go >= 1.26.4.
+        expires: 2026-08-01T00:00:00.000Z
+
+  SNYK-GOLANG-STDMIME-17135844:
+    - "*":
+        reason: >-
+          Go stdlib fix requires 1.26.4; CI builder is still 1.26.3.
+          Remove when CI runs Go >= 1.26.4.
+        expires: 2026-08-01T00:00:00.000Z
+
+  SNYK-GOLANG-STDCRYPTOX509-17135840:
+    - "*":
+        reason: >-
+          Go stdlib fix requires 1.26.4; CI builder is still 1.26.3.
+          Remove when CI runs Go >= 1.26.4.
+        expires: 2026-08-01T00:00:00.000Z

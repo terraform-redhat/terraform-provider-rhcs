@@ -66,7 +66,7 @@ func (l *TfLogger) ErrorEnabled() bool {
 
 // Debug sends to the log a debug message formatted using the fmt.Sprintf function and the given
 // format and arguments.
-func (l *TfLogger) Debug(ctx context.Context, format string, args ...interface{}) {
+func (l *TfLogger) Debug(ctx context.Context, format string, args ...any) {
 	if l.debugEnabled {
 		msg := fmt.Sprintf(format, args...)
 		tflog.Debug(ctx, msg)
@@ -75,7 +75,7 @@ func (l *TfLogger) Debug(ctx context.Context, format string, args ...interface{}
 
 // Info sends to the log an information message formatted using the fmt.Sprintf function and the
 // given format and arguments.
-func (l *TfLogger) Info(ctx context.Context, format string, args ...interface{}) {
+func (l *TfLogger) Info(ctx context.Context, format string, args ...any) {
 	if l.infoEnabled {
 		msg := fmt.Sprintf(format, args...)
 		tflog.Info(ctx, msg)
@@ -84,7 +84,7 @@ func (l *TfLogger) Info(ctx context.Context, format string, args ...interface{})
 
 // Warn sends to the log a warning message formatted using the fmt.Sprintf function and the given
 // format and arguments.
-func (l *TfLogger) Warn(ctx context.Context, format string, args ...interface{}) {
+func (l *TfLogger) Warn(ctx context.Context, format string, args ...any) {
 	if l.warnEnabled {
 		msg := fmt.Sprintf(format, args...)
 		tflog.Warn(ctx, msg)
@@ -93,7 +93,7 @@ func (l *TfLogger) Warn(ctx context.Context, format string, args ...interface{})
 
 // Error sends to the log an error message formatted using the fmt.Sprintf function and the given
 // format and arguments.
-func (l *TfLogger) Error(ctx context.Context, format string, args ...interface{}) {
+func (l *TfLogger) Error(ctx context.Context, format string, args ...any) {
 	if l.errorEnabled {
 		msg := fmt.Sprintf(format, args...)
 		tflog.Error(ctx, msg)
@@ -103,7 +103,7 @@ func (l *TfLogger) Error(ctx context.Context, format string, args ...interface{}
 // Fatal sends to the log an error message formatted using the fmt.Sprintf function and the given
 // format and arguments. After that it will os.Exit(1)
 // This level is always enabled
-func (l *TfLogger) Fatal(ctx context.Context, format string, args ...interface{}) {
+func (l *TfLogger) Fatal(ctx context.Context, format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	tflog.Error(ctx, msg)
 	os.Exit(1)

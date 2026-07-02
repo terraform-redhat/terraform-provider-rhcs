@@ -192,7 +192,7 @@ func (r *ImageMirrorResource) Create(ctx context.Context, req resource.CreateReq
 		plan.LastUpdateTimestamp = types.StringValue(response.Body().LastUpdateTimestamp().Format("2006-01-02T15:04:05Z"))
 	}
 
-	tflog.Debug(ctx, "Created image mirror", map[string]interface{}{
+	tflog.Debug(ctx, "Created image mirror", map[string]any{
 		"cluster_id": clusterId,
 		"id":         plan.ID.ValueString(),
 	})
@@ -303,7 +303,7 @@ func (r *ImageMirrorResource) Update(ctx context.Context, req resource.UpdateReq
 		plan.LastUpdateTimestamp = types.StringValue(response.Body().LastUpdateTimestamp().Format("2006-01-02T15:04:05Z"))
 	}
 
-	tflog.Debug(ctx, "Updated image mirror", map[string]interface{}{
+	tflog.Debug(ctx, "Updated image mirror", map[string]any{
 		"cluster_id": clusterId,
 		"id":         plan.ID.ValueString(),
 	})
@@ -337,7 +337,7 @@ func (r *ImageMirrorResource) Delete(ctx context.Context, req resource.DeleteReq
 		return
 	}
 
-	tflog.Debug(ctx, "Deleted image mirror", map[string]interface{}{
+	tflog.Debug(ctx, "Deleted image mirror", map[string]any{
 		"cluster_id": clusterId,
 		"id":         imageMirrorId,
 	})

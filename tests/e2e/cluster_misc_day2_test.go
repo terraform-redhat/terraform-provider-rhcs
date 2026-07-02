@@ -45,7 +45,7 @@ var _ = Describe("Cluster miscellaneous", func() {
 
 	AfterEach(func() {
 		By("Recover cluster properties")
-		clusterArgs.CustomProperties = helper.StringMapPointer(originalCustomProperties)
+		clusterArgs.CustomProperties = new(originalCustomProperties)
 
 		// Restore cluster state
 		_, err := clusterService.Apply(clusterArgs)
@@ -63,7 +63,7 @@ var _ = Describe("Cluster miscellaneous", func() {
 			updatedCustomProperties["second_custom_property"] = "test2"
 
 			// Apply updated custom properties to the cluster
-			clusterArgs.CustomProperties = helper.StringMapPointer(updatedCustomProperties)
+			clusterArgs.CustomProperties = new(updatedCustomProperties)
 			_, err := clusterService.Apply(clusterArgs)
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -76,7 +76,7 @@ var _ = Describe("Cluster miscellaneous", func() {
 			updatedCustomProperties = map[string]string{
 				"rosa_tf_version": "true",
 			}
-			clusterArgs.CustomProperties = helper.StringMapPointer(updatedCustomProperties)
+			clusterArgs.CustomProperties = new(updatedCustomProperties)
 			_, err = clusterService.Apply(clusterArgs)
 			Expect(err).Should(HaveOccurred())
 			Expect(err.Error()).Should(ContainSubstring("Can not override reserved properties keys"))
@@ -92,7 +92,7 @@ var _ = Describe("Cluster miscellaneous", func() {
 		By("Add properties to cluster")
 		updatedCustomProperties["some"] = "thing"
 		updatedCustomProperties["nothing"] = ""
-		clusterArgs.CustomProperties = helper.StringMapPointer(updatedCustomProperties)
+		clusterArgs.CustomProperties = new(updatedCustomProperties)
 		_, err := clusterService.Apply(clusterArgs)
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -104,7 +104,7 @@ var _ = Describe("Cluster miscellaneous", func() {
 
 		By("Update properties to cluster")
 		updatedCustomProperties["some"] = "thing2"
-		clusterArgs.CustomProperties = helper.StringMapPointer(updatedCustomProperties)
+		clusterArgs.CustomProperties = new(updatedCustomProperties)
 		_, err = clusterService.Apply(clusterArgs)
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -115,7 +115,7 @@ var _ = Describe("Cluster miscellaneous", func() {
 		Expect(clusterDetails.Body().Properties()["nothing"]).To(Equal(updatedCustomProperties["nothing"]))
 
 		By("Remove properties from cluster")
-		clusterArgs.CustomProperties = helper.StringMapPointer(originalCustomProperties)
+		clusterArgs.CustomProperties = new(originalCustomProperties)
 		_, err = clusterService.Apply(clusterArgs)
 		Expect(err).ShouldNot(HaveOccurred())
 

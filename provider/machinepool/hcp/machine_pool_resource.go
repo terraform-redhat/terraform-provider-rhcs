@@ -19,6 +19,7 @@ package hcp
 import (
 	"context"
 	"fmt"
+	"maps"
 	"math"
 	"net/http"
 	"regexp"
@@ -978,7 +979,7 @@ func (r *HcpMachinePoolResource) upgradeMachinePoolIfNeeded(ctx context.Context,
 	}
 
 	tflog.Debug(ctx, "HCP Machine Pool versions",
-		map[string]interface{}{
+		map[string]any{
 			"current_version": state.CurrentVersion.ValueString(),
 			"plan-version":    plan.Version.ValueString(),
 			"state-version":   state.Version.ValueString(),
@@ -1107,7 +1108,7 @@ func scheduleUpgrade(ctx context.Context, client *cmv1.ClustersClient,
 	// Ack all gates to OCM
 	for _, gate := range gates {
 		gateID := gate.ID()
-		tflog.Debug(ctx, "Acknowledging version gate", map[string]interface{}{"gateID": gateID})
+		tflog.Debug(ctx, "Acknowledging version gate", map[string]any{"gateID": gateID})
 		gateAgreementsClient := clusterClient.GateAgreements()
 		err := upgrade.AckVersionGate(gateAgreementsClient, gateID)
 		if err != nil {
@@ -1472,9 +1473,7 @@ func filterClusterTagsNotPresentInNpInput(ctx context.Context, state *HcpMachine
 		return awsTags, nil
 	}
 	filteredTags := make(map[string]string, len(awsTags))
-	for k, v := range awsTags {
-		filteredTags[k] = v
-	}
+	maps.Copy(filteredTags, awsTags)
 	currentNpTfTags, err := common.OptionalMap(ctx, state.AWSNodePool.Tags)
 	if err != nil {
 		return filteredTags, err

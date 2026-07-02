@@ -581,7 +581,7 @@ func (r *RosaOCMRoleLinkResource) findOCMRoleLabelWithStatus(
 func findSameAccountARN(
 	commaSeparated, accountID, excludeARN string,
 ) string {
-	for _, a := range strings.Split(commaSeparated, ",") {
+	for a := range strings.SplitSeq(commaSeparated, ",") {
 		trimmed := strings.TrimSpace(a)
 		if trimmed == "" || trimmed == excludeARN {
 			continue
@@ -595,7 +595,7 @@ func findSameAccountARN(
 }
 
 func containsARN(commaSeparated, roleARN string) bool {
-	for _, a := range strings.Split(commaSeparated, ",") {
+	for a := range strings.SplitSeq(commaSeparated, ",") {
 		if strings.TrimSpace(a) == roleARN {
 			return true
 		}
@@ -612,7 +612,7 @@ func appendARN(commaSeparated, roleARN string) string {
 
 func removeARN(commaSeparated, roleARN string) string {
 	var remaining []string
-	for _, a := range strings.Split(commaSeparated, ",") {
+	for a := range strings.SplitSeq(commaSeparated, ",") {
 		trimmed := strings.TrimSpace(a)
 		if trimmed != "" && trimmed != roleARN {
 			remaining = append(remaining, trimmed)

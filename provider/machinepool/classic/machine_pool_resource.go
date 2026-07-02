@@ -20,8 +20,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
@@ -880,13 +882,7 @@ func (r *MachinePoolResource) validateAZConfig(cluster *cmv1.Cluster, state *Mac
 
 	// If AZ is set, we make sure it's valid for the cluster. If not set and neither is subnet, we default it to the 1st AZ in the cluster
 	if !common.IsStringAttributeUnknownOrEmpty(state.AvailabilityZone) {
-		inClusterAZ := false
-		for _, az := range clusterAZs {
-			if az == state.AvailabilityZone.ValueString() {
-				inClusterAZ = true
-				break
-			}
-		}
+		inClusterAZ := slices.Contains(clusterAZs, state.AvailabilityZone.ValueString())
 		if !inClusterAZ {
 			return false, fmt.Errorf("availability_zone %s is not valid for cluster %s", state.AvailabilityZone.ValueString(), state.Cluster.ValueString())
 		}
@@ -1185,9 +1181,7 @@ func filterClusterTagsNotPresentInNpInput(ctx context.Context, state *MachinePoo
 		return awsTags, nil
 	}
 	filteredTags := make(map[string]string, len(awsTags))
-	for k, v := range awsTags {
-		filteredTags[k] = v
-	}
+	maps.Copy(filteredTags, awsTags)
 	currentNpTfTags, err := common.OptionalMap(ctx, state.AwsTags)
 	if err != nil {
 		return filteredTags, err

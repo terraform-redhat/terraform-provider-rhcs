@@ -506,11 +506,11 @@ var _ = Describe("Cluster KubeletConfig", func() {
 			runOutput := Terraform.Import("rhcs_kubeletconfig.cluster_kubelet_config", "123")
 			Expect(runOutput.ExitCode).To(BeZero())
 
-			actualResource, ok := Terraform.Resource("rhcs_kubeletconfig", "cluster_kubelet_config").(map[string]interface{})
+			actualResource, ok := Terraform.Resource("rhcs_kubeletconfig", "cluster_kubelet_config").(map[string]any)
 			Expect(ok).To(BeTrue(), "Type conversion failed for the received resource state")
 
 			Expect(actualResource["attributes"]).To(Equal(
-				map[string]interface{}{
+				map[string]any{
 					"cluster":        "123",
 					"id":             "456",
 					"name":           "my_name",
@@ -640,11 +640,11 @@ var _ = Describe("Cluster KubeletConfig", func() {
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
 
-			actualResource, ok := Terraform.Resource("rhcs_kubeletconfig", "cluster_kubeletconfig").(map[string]interface{})
+			actualResource, ok := Terraform.Resource("rhcs_kubeletconfig", "cluster_kubeletconfig").(map[string]any)
 			Expect(ok).To(BeTrue(), "Type conversion failed for the received resource state")
 
 			Expect(actualResource["attributes"]).To(Equal(
-				map[string]interface{}{
+				map[string]any{
 					"cluster":        "123",
 					"pod_pids_limit": float64(10000),
 					"id":             "456",

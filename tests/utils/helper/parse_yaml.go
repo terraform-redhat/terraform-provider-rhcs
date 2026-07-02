@@ -5,7 +5,6 @@ package helper
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -21,9 +20,10 @@ type profiles struct {
 	Profiles []*profile `yaml:"profiles,omitempty"`
 }
 type profile struct {
-	Name               string                 `yaml:"as,omitempty"`
-	NeedSpecificConfig bool                   `yaml:"need_specific_config,omitempty"` // Some profiles need external configuration files
-	Cluster            map[string]interface{} `yaml:"cluster,omitempty"`
+	Name string `yaml:"as,omitempty"`
+	// Some profiles need external configuration files
+	NeedSpecificConfig bool           `yaml:"need_specific_config,omitempty"`
+	Cluster            map[string]any `yaml:"cluster,omitempty"`
 }
 
 func ParseProfiles(profilesDir string) (map[string]*profile, error) {
@@ -35,7 +35,7 @@ func ParseProfiles(profilesDir string) (map[string]*profile, error) {
 	profileMap := make(map[string]*profile)
 	for _, file := range files {
 		if strings.HasSuffix(file.Name(), profilesYamlSuffix) {
-			yfile, err := ioutil.ReadFile(path.Join(profilesDir, file.Name()))
+			yfile, err := os.ReadFile(path.Join(profilesDir, file.Name()))
 			if err != nil {
 				return nil, err
 			}

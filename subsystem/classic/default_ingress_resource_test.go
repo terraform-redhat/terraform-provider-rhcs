@@ -85,8 +85,8 @@ var _ = Describe("default ingress", func() {
 
 			CombineHandlers(
 				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
-				VerifyJQ(`.route_selectors`, map[string]interface{}{}),
-				VerifyJQ(`.excluded_namespaces`, []interface{}{"stage", "int", "aaa"}),
+				VerifyJQ(`.route_selectors`, map[string]any{}),
+				VerifyJQ(`.excluded_namespaces`, []any{"stage", "int", "aaa"}),
 				VerifyJQ(`.load_balancer_type`, "nlb"),
 				RespondWithJSON(http.StatusOK, `
 				{
@@ -145,7 +145,7 @@ var _ = Describe("default ingress", func() {
 				VerifyJQ(`.route_selectors`, nil),
 				VerifyJQ(`.route_wildcard_policy`, nil),
 				VerifyJQ(`.route_namespace_ownership_policy`, nil),
-				VerifyJQ(`.excluded_namespaces`, []interface{}{"int", "aaa"}),
+				VerifyJQ(`.excluded_namespaces`, []any{"int", "aaa"}),
 				RespondWithJSON(http.StatusOK, `
 				{
 					"kind": "Ingress",
@@ -248,8 +248,8 @@ var _ = Describe("default ingress", func() {
 
 			CombineHandlers(
 				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
-				VerifyJQ(`.route_selectors`, map[string]interface{}{}),
-				VerifyJQ(`.excluded_namespaces`, []interface{}{"stage", "int", "aaa"}),
+				VerifyJQ(`.route_selectors`, map[string]any{}),
+				VerifyJQ(`.excluded_namespaces`, []any{"stage", "int", "aaa"}),
 				VerifyJQ(`.load_balancer_type`, "nlb"),
 				RespondWithJSON(http.StatusOK, `
 						 {
@@ -317,8 +317,8 @@ var _ = Describe("default ingress", func() {
 
 			CombineHandlers(
 				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
-				VerifyJQ(`.route_selectors`, map[string]interface{}{"foo": "bar"}),
-				VerifyJQ(`.excluded_namespaces`, []interface{}{}),
+				VerifyJQ(`.route_selectors`, map[string]any{"foo": "bar"}),
+				VerifyJQ(`.excluded_namespaces`, []any{}),
 				RespondWithJSON(http.StatusOK, `
 					{
 						"kind": "Ingress",
@@ -364,8 +364,8 @@ var _ = Describe("default ingress", func() {
 			),
 			CombineHandlers(
 				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
-				VerifyJQ(`.route_selectors`, map[string]interface{}{"foo": "bar"}),
-				VerifyJQ(`.excluded_namespaces`, []interface{}{"stage", "int", "aaa"}),
+				VerifyJQ(`.route_selectors`, map[string]any{"foo": "bar"}),
+				VerifyJQ(`.excluded_namespaces`, []any{"stage", "int", "aaa"}),
 				RespondWithJSON(http.StatusOK, `
 					{
 						"kind": "Ingress",
@@ -428,8 +428,8 @@ var _ = Describe("default ingress", func() {
 			),
 			CombineHandlers(
 				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
-				VerifyJQ(`.route_selectors`, map[string]interface{}{}),
-				VerifyJQ(`.excluded_namespaces`, []interface{}{}),
+				VerifyJQ(`.route_selectors`, map[string]any{}),
+				VerifyJQ(`.excluded_namespaces`, []any{}),
 				RespondWithJSON(http.StatusOK, `
 					{
 						"kind": "Ingress",
@@ -1038,8 +1038,8 @@ var _ = Describe("default ingress", func() {
 
 			CombineHandlers(
 				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
-				VerifyJQ(`.route_selectors`, map[string]interface{}{}),
-				VerifyJQ(`.excluded_namespaces`, []interface{}{"stage", "int", "aaa"}),
+				VerifyJQ(`.route_selectors`, map[string]any{}),
+				VerifyJQ(`.excluded_namespaces`, []any{"stage", "int", "aaa"}),
 				VerifyJQ(`.load_balancer_type`, "nlb"),
 				RespondWithJSON(http.StatusOK, `
 						 {

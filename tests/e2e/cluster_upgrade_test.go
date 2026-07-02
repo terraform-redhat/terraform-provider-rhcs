@@ -83,7 +83,7 @@ var _ = Describe("Upgrade", func() {
 			imageVersionsList := cms.EnabledVersions(cms.RHCSConnection, channelGroup, profile.GetMajorVersion(), true)
 			versionsList := cms.GetRawVersionList(imageVersionsList)
 			if slices.Contains(versionsList, downgradedVersion) {
-				clusterArgs.OpenshiftVersion = helper.StringPointer(downgradedVersion)
+				clusterArgs.OpenshiftVersion = new(downgradedVersion)
 				_, err = clusterService.Apply(clusterArgs)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("cluster version is already above the\nrequested version"))
@@ -91,7 +91,7 @@ var _ = Describe("Upgrade", func() {
 			}
 
 			By("Run the cluster update")
-			clusterArgs.OpenshiftVersion = helper.StringPointer(targetV)
+			clusterArgs.OpenshiftVersion = new(targetV)
 			_, err = clusterService.Apply(clusterArgs)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -151,7 +151,7 @@ var _ = Describe("Upgrade", func() {
 			imageVersionsList := cms.EnabledVersions(cms.RHCSConnection, channelGroup, profile.GetMajorVersion(), true)
 			versionsList := cms.GetRawVersionList(imageVersionsList)
 			if slices.Contains(versionsList, downgradedVersion) {
-				clusterArgs.OpenshiftVersion = helper.StringPointer(downgradedVersion)
+				clusterArgs.OpenshiftVersion = new(downgradedVersion)
 				_, err = clusterService.Apply(clusterArgs)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("cluster version is already above the\nrequested version"))
@@ -182,8 +182,8 @@ var _ = Describe("Upgrade", func() {
 			Logger.Infof("Starting cluster upgrade to version '%s' on channel '%s'", targetV, targetChannel)
 
 			By("Apply the cluster Upgrade")
-			clusterArgs.OpenshiftVersion = helper.StringPointer(targetV)
-			clusterArgs.UpgradeAcknowledgementsFor = helper.StringPointer(majorVersion)
+			clusterArgs.OpenshiftVersion = new(targetV)
+			clusterArgs.UpgradeAcknowledgementsFor = new(majorVersion)
 			_, err = clusterService.Apply(clusterArgs)
 			Expect(err).ToNot(HaveOccurred())
 

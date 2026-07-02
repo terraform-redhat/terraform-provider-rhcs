@@ -22,7 +22,7 @@ type TrustedIPList struct {
 
 type TrustedIPsOutput struct {
 	// TrustedIPs map[string][]TrustedIP `json:"trusted_ips,omitempty"`
-	TrustedIPs TrustedIPList `json:"trusted_ips,omitempty"`
+	TrustedIPs TrustedIPList `json:"trusted_ips"`
 }
 
 type TrustedIPsService interface {

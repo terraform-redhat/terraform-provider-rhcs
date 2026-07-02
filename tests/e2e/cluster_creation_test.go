@@ -15,7 +15,6 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/openshift"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
@@ -73,7 +72,7 @@ var _ = Describe("Create cluster", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Retrieve cluster with error/uninstalling status")
-			params := map[string]interface{}{
+			params := map[string]any{
 				"search": "status.state='error' or status.state='uninstalling'",
 				"size":   -1,
 			}
@@ -90,8 +89,8 @@ var _ = Describe("Create cluster", func() {
 			cwService, err := profileHandler.Services().GetClusterWaiterService()
 			Expect(err).ToNot(HaveOccurred())
 			clusterWaiterArgs := exec.ClusterWaiterArgs{
-				Cluster:      helper.StringPointer(cluster.ID()),
-				TimeoutInMin: helper.IntPointer(60),
+				Cluster:      new(cluster.ID()),
+				TimeoutInMin: new(60),
 			}
 			_, err = cwService.Apply(&clusterWaiterArgs)
 			Expect(err).To(HaveOccurred())
@@ -111,7 +110,7 @@ var _ = Describe("Create cluster", func() {
 			}()
 			clusterArgs, err := profileHandler.GenerateClusterCreationArgs(token)
 			Expect(err).ToNot(HaveOccurred())
-			clusterArgs.DisableClusterWaiter = helper.BoolPointer(true)
+			clusterArgs.DisableClusterWaiter = new(true)
 
 			By("Create cluster")
 			clusterService, err := profileHandler.Services().GetClusterService()
@@ -133,7 +132,7 @@ var _ = Describe("Create cluster", func() {
 			}()
 			clusterArgs, err := profileHandler.GenerateClusterCreationArgs(token)
 			Expect(err).ToNot(HaveOccurred())
-			clusterArgs.WaitForCluster = helper.BoolPointer(false)
+			clusterArgs.WaitForCluster = new(false)
 
 			By("Create cluster")
 			clusterService, err := profileHandler.Services().GetClusterService()
@@ -168,7 +167,7 @@ var _ = Describe("Create cluster", func() {
 			Expect(err).ToNot(HaveOccurred())
 			clusterArgs, err := clusterService.ReadTFVars()
 			Expect(err).ToNot(HaveOccurred())
-			clusterArgs.DisableWaitingInDestroy = helper.BoolPointer(true)
+			clusterArgs.DisableWaitingInDestroy = new(true)
 
 			By("Apply changes")
 			_, err = clusterService.Apply(clusterArgs)

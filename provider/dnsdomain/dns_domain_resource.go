@@ -95,7 +95,7 @@ func (r *DNSDomainResource) Read(ctx context.Context, req resource.ReadRequest, 
 	get, err := dnsDomain.Get(state.ID.ValueString())
 	if err != nil {
 		if get.Status() == http.StatusNotFound {
-			tflog.Warn(ctx, "DNS domain not found, removing from state", map[string]interface{}{
+			tflog.Warn(ctx, "DNS domain not found, removing from state", map[string]any{
 				"id": state.ID.ValueString(),
 			})
 			resp.State.RemoveResource(ctx)

@@ -55,51 +55,51 @@ var (
 
 func getDefaultHTPasswordArgs(idpName string) *exec.IDPArgs {
 	return &exec.IDPArgs{
-		ClusterID: helper.StringPointer(clusterID),
-		Name:      helper.StringPointer(idpName),
+		ClusterID: new(clusterID),
+		Name:      new(idpName),
 		HtpasswdUsers: &[]exec.HTPasswordUser{
 			{
-				Username: helper.StringPointer(defaultHTPUsername),
-				Password: helper.StringPointer(defaultHTPPassword),
+				Username: new(defaultHTPUsername),
+				Password: new(defaultHTPPassword),
 			},
 		},
 	}
 }
 func getDefaultLDAPArgs(idpName string) *exec.IDPArgs {
 	return &exec.IDPArgs{
-		ClusterID:      helper.StringPointer(clusterID),
-		Name:           helper.StringPointer(idpName),
+		ClusterID:      new(clusterID),
+		Name:           new(idpName),
 		CA:             helper.EmptyStringPointer,
-		URL:            helper.StringPointer(profilehandler.LdapURL),
+		URL:            new(profilehandler.LdapURL),
 		LDAPAttributes: &exec.LDAPAttributes{},
-		Insecure:       helper.BoolPointer(true),
+		Insecure:       new(true),
 	}
 }
 func getDefaultGitHubArgs(idpName string) *exec.IDPArgs {
 	return &exec.IDPArgs{
-		ClusterID:     helper.StringPointer(clusterID),
-		Name:          helper.StringPointer(idpName),
-		ClientID:      helper.StringPointer(defaultGithubIDPClientId),
-		ClientSecret:  helper.StringPointer(defaultGithubIDPClientSecret),
-		Organizations: helper.StringSlicePointer(profilehandler.Organizations),
+		ClusterID:     new(clusterID),
+		Name:          new(idpName),
+		ClientID:      new(defaultGithubIDPClientId),
+		ClientSecret:  new(defaultGithubIDPClientSecret),
+		Organizations: new(profilehandler.Organizations),
 	}
 }
 func getDefaultGitlabArgs(idpName string) *exec.IDPArgs {
 	return &exec.IDPArgs{
-		ClusterID:    helper.StringPointer(clusterID),
-		Name:         helper.StringPointer(idpName),
-		ClientID:     helper.StringPointer(defaultGitlabIDPClientId),
-		ClientSecret: helper.StringPointer(defaultGitlabIDPClientSecret),
-		URL:          helper.StringPointer(profilehandler.GitLabURL),
+		ClusterID:    new(clusterID),
+		Name:         new(idpName),
+		ClientID:     new(defaultGitlabIDPClientId),
+		ClientSecret: new(defaultGitlabIDPClientSecret),
+		URL:          new(profilehandler.GitLabURL),
 	}
 }
 func getDefaultGoogleArgs(idpName string) *exec.IDPArgs {
 	return &exec.IDPArgs{
-		ClusterID:    helper.StringPointer(clusterID),
-		Name:         helper.StringPointer(idpName),
-		ClientID:     helper.StringPointer(defaultGoogleIDPClientId),
-		ClientSecret: helper.StringPointer(defaultGoogleIDPClientSecret),
-		HostedDomain: helper.StringPointer(profilehandler.HostedDomain),
+		ClusterID:    new(clusterID),
+		Name:         new(idpName),
+		ClientID:     new(defaultGoogleIDPClientId),
+		ClientSecret: new(defaultGoogleIDPClientSecret),
+		HostedDomain: new(profilehandler.HostedDomain),
 	}
 }
 
@@ -214,7 +214,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 
 				By("Update htpasswd idp password of 'my-admin-user'")
 				newPassword := helper.GenerateRandomPassword(15)
-				(*idpParam.HtpasswdUsers)[0].Password = helper.StringPointer(newPassword)
+				(*idpParam.HtpasswdUsers)[0].Password = new(newPassword)
 				_, err = idpServices.htpasswd.Apply(idpParam)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -232,12 +232,12 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				htpUsers := (*idpParam.HtpasswdUsers)
 				htpUsers = append(htpUsers,
 					exec.HTPasswordUser{
-						Username: helper.StringPointer(userName2),
-						Password: helper.StringPointer(password2),
+						Username: new(userName2),
+						Password: new(password2),
 					},
 					exec.HTPasswordUser{
-						Username: helper.StringPointer(userName3),
-						Password: helper.StringPointer(password3),
+						Username: new(userName3),
+						Password: new(password3),
 					})
 				idpParam.HtpasswdUsers = &htpUsers
 				_, err = idpServices.htpasswd.Apply(idpParam)
@@ -245,7 +245,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 
 				By("Update htpasswd idp on the second user password")
 				newPassword2 := helper.GenerateRandomPassword(15)
-				(*idpParam.HtpasswdUsers)[1].Password = helper.StringPointer(newPassword2)
+				(*idpParam.HtpasswdUsers)[1].Password = new(newPassword2)
 				_, err = idpServices.htpasswd.Apply(idpParam)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -288,12 +288,12 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 					By("Create LDAP idp for an existing cluster")
 
 					idpParam := &exec.IDPArgs{
-						ClusterID:      helper.StringPointer(clusterID),
-						Name:           helper.StringPointer("OCP-63332-ldap-idp-test"),
+						ClusterID:      new(clusterID),
+						Name:           new("OCP-63332-ldap-idp-test"),
 						CA:             helper.EmptyStringPointer,
-						URL:            helper.StringPointer(profilehandler.LdapURL),
+						URL:            new(profilehandler.LdapURL),
 						LDAPAttributes: &exec.LDAPAttributes{},
-						Insecure:       helper.BoolPointer(true),
+						Insecure:       new(true),
 					}
 					_, err := idpServices.ldap.Apply(idpParam)
 					Expect(err).ToNot(HaveOccurred())
@@ -335,11 +335,11 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				By("Create GitLab idp for an existing cluster")
 
 				idpParam := &exec.IDPArgs{
-					ClusterID:    helper.StringPointer(clusterID),
-					Name:         helper.StringPointer("OCP-64028-gitlab-idp-test"),
-					ClientID:     helper.StringPointer(defaultGitlabIDPClientId),
-					ClientSecret: helper.StringPointer(defaultGitlabIDPClientSecret),
-					URL:          helper.StringPointer(profilehandler.GitLabURL),
+					ClusterID:    new(clusterID),
+					Name:         new("OCP-64028-gitlab-idp-test"),
+					ClientID:     new(defaultGitlabIDPClientId),
+					ClientSecret: new(defaultGitlabIDPClientSecret),
+					URL:          new(profilehandler.GitLabURL),
 				}
 				_, err := idpServices.gitlab.Apply(idpParam)
 				Expect(err).ToNot(HaveOccurred())
@@ -364,11 +364,11 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				By("Create GitHub idp for an existing cluster")
 
 				idpParam := &exec.IDPArgs{
-					ClusterID:     helper.StringPointer(clusterID),
-					Name:          helper.StringPointer("OCP-64027-github-idp-test"),
-					ClientID:      helper.StringPointer(defaultGithubIDPClientId),
-					ClientSecret:  helper.StringPointer(defaultGithubIDPClientSecret),
-					Organizations: helper.StringSlicePointer(profilehandler.Organizations),
+					ClusterID:     new(clusterID),
+					Name:          new("OCP-64027-github-idp-test"),
+					ClientID:      new(defaultGithubIDPClientId),
+					ClientSecret:  new(defaultGithubIDPClientSecret),
+					Organizations: new(profilehandler.Organizations),
 				}
 				_, err := idpServices.github.Apply(idpParam)
 				Expect(err).ToNot(HaveOccurred())
@@ -393,11 +393,11 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				By("Create Google idp for an existing cluster")
 
 				idpParam := &exec.IDPArgs{
-					ClusterID:    helper.StringPointer(clusterID),
-					Name:         helper.StringPointer("OCP-64029-google-idp-test"),
-					ClientID:     helper.StringPointer(defaultGoogleIDPClientId),
-					ClientSecret: helper.StringPointer(defaultGoogleIDPClientSecret),
-					HostedDomain: helper.StringPointer(profilehandler.HostedDomain),
+					ClusterID:    new(clusterID),
+					Name:         new("OCP-64029-google-idp-test"),
+					ClientID:     new(defaultGoogleIDPClientId),
+					ClientSecret: new(defaultGoogleIDPClientSecret),
+					HostedDomain: new(profilehandler.HostedDomain),
 				}
 				_, err := idpServices.google.Apply(idpParam)
 				Expect(err).ToNot(HaveOccurred())
@@ -428,15 +428,15 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 
 				By("Applying google & ldap idps users using terraform")
 				idpParam := &exec.IDPArgs{
-					ClusterID:      helper.StringPointer(clusterID),
-					Name:           helper.StringPointer("OCP-64030"),
-					ClientID:       helper.StringPointer(defaultGoogleIDPClientId),
-					ClientSecret:   helper.StringPointer(defaultGoogleIDPClientSecret),
-					HostedDomain:   helper.StringPointer(profilehandler.HostedDomain),
+					ClusterID:      new(clusterID),
+					Name:           new("OCP-64030"),
+					ClientID:       new(defaultGoogleIDPClientId),
+					ClientSecret:   new(defaultGoogleIDPClientSecret),
+					HostedDomain:   new(profilehandler.HostedDomain),
 					CA:             helper.EmptyStringPointer,
-					URL:            helper.StringPointer(profilehandler.LdapURL),
+					URL:            new(profilehandler.LdapURL),
 					LDAPAttributes: &exec.LDAPAttributes{},
-					Insecure:       helper.BoolPointer(true),
+					Insecure:       new(true),
 				}
 
 				_, err = idpServices.multi_idp.Apply(idpParam)
@@ -497,12 +497,12 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				htpUsers := (*idpParam.HtpasswdUsers)
 				htpUsers = append(htpUsers,
 					exec.HTPasswordUser{
-						Username: helper.StringPointer("second_user"),
-						Password: helper.StringPointer(helper.GenerateRandomPassword(15)),
+						Username: new("second_user"),
+						Password: new(helper.GenerateRandomPassword(15)),
 					},
 					exec.HTPasswordUser{
-						Username: helper.StringPointer("third_user"),
-						Password: helper.StringPointer(helper.GenerateRandomPassword(15)),
+						Username: new("third_user"),
+						Password: new(helper.GenerateRandomPassword(15)),
 					},
 				)
 				_, err = idpServices.htpasswd.Apply(idpParam)
@@ -691,27 +691,27 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 
 			By("Create github idp with invalid hostname")
 			args = getDefaultGitHubArgs(idpName)
-			args.HostedDomain = helper.StringPointer("github.com")
+			args.HostedDomain = new("github.com")
 			validateIDPArgAgainstErrorSubstrings(idpServices.github, args, "hostname cannot be equal to [*.]github.com")
 
 			By("Create github idp with invalid hostname suffix")
 			args = getDefaultGitHubArgs(idpName)
-			args.HostedDomain = helper.StringPointer("example.github.com")
+			args.HostedDomain = new("example.github.com")
 			validateIDPArgAgainstErrorSubstrings(idpServices.github, args, "hostname cannot be equal to [*.]github.com")
 
 			By("Create github idp with invalid hostname (not a DNS subdomain or IP address)")
 			args = getDefaultGitHubArgs(idpName)
-			args.HostedDomain = helper.StringPointer(" invalid hostname ")
+			args.HostedDomain = new(" invalid hostname ")
 			validateIDPArgAgainstErrorSubstrings(idpServices.github, args, "hostname must be a valid DNS subdomain or IP address")
 
 			By("Create github idp with hostname myhost.com/aa")
 			args = getDefaultGitHubArgs(idpName)
-			args.HostedDomain = helper.StringPointer("myhost.com/aa")
+			args.HostedDomain = new("myhost.com/aa")
 			validateIDPArgAgainstErrorSubstrings(idpServices.github, args, "hostname must be a valid DNS subdomain or IP address")
 
 			By("Create github idp with hostname example.com")
 			args = getDefaultGitHubArgs(idpName)
-			args.HostedDomain = helper.StringPointer("example.com")
+			args.HostedDomain = new("example.com")
 			validateIDPArgAgainstNoError(idpServices.github, args)
 		})
 
@@ -738,8 +738,8 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 			By("Validate idp can't be created with password less than 14")
 			args := getDefaultHTPasswordArgs(idpName)
 			newHTPwd := append(*args.HtpasswdUsers, exec.HTPasswordUser{
-				Username: helper.StringPointer(usernameInvalid),
-				Password: helper.StringPointer(helper.GenerateRandomPassword(3)),
+				Username: new(usernameInvalid),
+				Password: new(helper.GenerateRandomPassword(3)),
 			})
 			args.HtpasswdUsers = &newHTPwd
 			validateIDPArgAgainstErrorSubstrings(idpServices.htpasswd, args, "password string length must be at least 14")
@@ -747,8 +747,8 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 			By("Validate idp can't be created without upercase letter in password")
 			args = getDefaultHTPasswordArgs(idpName)
 			newHTPwd = append(*args.HtpasswdUsers, exec.HTPasswordUser{
-				Username: helper.StringPointer(usernameInvalid),
-				Password: helper.StringPointer(helper.Subfix(3)),
+				Username: new(usernameInvalid),
+				Password: new(helper.Subfix(3)),
 			})
 			args.HtpasswdUsers = &newHTPwd
 			validateIDPArgAgainstErrorSubstrings(idpServices.htpasswd, args, "password must contain uppercase")
@@ -763,8 +763,8 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 			By("Create 2 htpasswd idps with the same username")
 			args := getDefaultHTPasswordArgs(idpName)
 			newHTPwd := append(*args.HtpasswdUsers, exec.HTPasswordUser{
-				Username: helper.StringPointer(defaultHTPUsername),
-				Password: helper.StringPointer(defaultHTPPassword),
+				Username: new(defaultHTPUsername),
+				Password: new(defaultHTPPassword),
 			})
 			args.HtpasswdUsers = &newHTPwd
 			validateIDPArgAgainstErrorSubstrings(idpServices.htpasswd, args, "Usernames in HTPasswd user list must be unique")
@@ -982,7 +982,7 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				// update is currently not supported for idp :: OCM-4622
 				By("Update and apply idp using terraform")
 				newClientSecret = helper.GenerateRandomStringWithSymbols(30)
-				idpParam.ClientSecret = helper.StringPointer(newClientSecret)
+				idpParam.ClientSecret = new(newClientSecret)
 				_, err = idpServices.gitlab.Apply(idpParam)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).Should(ContainSubstring(

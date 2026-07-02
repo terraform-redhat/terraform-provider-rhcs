@@ -70,12 +70,12 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			By("Create new proxy")
 			proxyArgs, err := readProxyArgs()
 			Expect(err).ShouldNot(HaveOccurred())
-			proxyArgs.ProxyCount = helper.IntPointer(2)
+			proxyArgs.ProxyCount = new(2)
 			_, err = proxyService.Apply(proxyArgs)
 			Expect(err).ShouldNot(HaveOccurred())
 			defer func() {
 				By("Delete created proxy")
-				proxyArgs.ProxyCount = helper.IntPointer(1)
+				proxyArgs.ProxyCount = new(1)
 				_, err = proxyService.Apply(proxyArgs)
 				Expect(err).ShouldNot(HaveOccurred())
 			}()
@@ -85,10 +85,10 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 
 			By("Edit cluster proxy with new proxy information")
 			clusterArgs.Proxy = &exec.Proxy{
-				AdditionalTrustBundle: helper.StringPointer(newProxyOutput.AdditionalTrustBundle),
-				HTTPSProxy:            helper.StringPointer(newProxyOutput.HttpsProxy),
-				HTTPProxy:             helper.StringPointer(newProxyOutput.HttpProxy),
-				NoProxy:               helper.StringPointer(newProxyOutput.NoProxy),
+				AdditionalTrustBundle: new(newProxyOutput.AdditionalTrustBundle),
+				HTTPSProxy:            new(newProxyOutput.HttpsProxy),
+				HTTPProxy:             new(newProxyOutput.HttpProxy),
+				NoProxy:               new(newProxyOutput.NoProxy),
 			}
 			_, err = clusterService.Apply(clusterArgs)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -134,7 +134,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 
 			By("Edit the cluster with allowed_registries and blocked_registries is empty")
 			registries := helper.GetRegistries(8088)
-			clusterArgs.RegistryConfig.RegistrySources.AllowedRegistries = helper.StringSlicePointer(registries)
+			clusterArgs.RegistryConfig.RegistrySources.AllowedRegistries = new(registries)
 			clusterArgs.RegistryConfig.RegistrySources.BlockedRegistries = nil
 			_, err := clusterService.Apply(clusterArgs)
 			Expect(err).ToNot(HaveOccurred())
@@ -145,7 +145,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			By("Edit the cluster with blocked_registries and allowed_registries is empty")
 			registries = helper.GetRegistries(8089)
 			clusterArgs.RegistryConfig.RegistrySources.AllowedRegistries = nil
-			clusterArgs.RegistryConfig.RegistrySources.BlockedRegistries = helper.StringSlicePointer(registries)
+			clusterArgs.RegistryConfig.RegistrySources.BlockedRegistries = new(registries)
 			_, err = clusterService.Apply(clusterArgs)
 			Expect(err).ToNot(HaveOccurred())
 			registryConfig = getCMSClusterRegistryConfig()
@@ -154,7 +154,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 
 			By("Edit insecure registries")
 			registries = helper.GetRegistries(8090)
-			clusterArgs.RegistryConfig.RegistrySources.InsecureRegistries = helper.StringSlicePointer(registries)
+			clusterArgs.RegistryConfig.RegistrySources.InsecureRegistries = new(registries)
 			_, err = clusterService.Apply(clusterArgs)
 			Expect(err).ToNot(HaveOccurred())
 			registryConfig = getCMSClusterRegistryConfig()
@@ -165,7 +165,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			Expect(err).ToNot(HaveOccurred())
 			if alResp.Size() > 0 {
 				allowListID := alResp.Items().Slice()[0].ID()
-				clusterArgs.RegistryConfig.PlatformAllowlistID = helper.StringPointer(allowListID)
+				clusterArgs.RegistryConfig.PlatformAllowlistID = new(allowListID)
 				_, err = clusterService.Apply(clusterArgs)
 				Expect(err).ToNot(HaveOccurred())
 				registryConfig = getCMSClusterRegistryConfig()
@@ -236,22 +236,22 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 		It("required fields - [id:72452]", ci.Medium, ci.FeatureClusterDefault, func() {
 			By("Try to edit aws account with wrong value")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.AWSAccountID = helper.StringPointer("another_account")
+				args.AWSAccountID = new("another_account")
 			}, "Attribute aws_account_id aws account ID must be only digits and exactly 12")
 
 			By("Try to edit aws account with wrong account")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.AWSAccountID = helper.StringPointer("000000000000")
+				args.AWSAccountID = new("000000000000")
 			}, "Attribute aws_account_id, cannot be changed from")
 
 			By("Try to edit billing account with wrong value")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.AWSBillingAccountID = helper.StringPointer("anything")
+				args.AWSBillingAccountID = new("anything")
 			}, "Attribute aws_billing_account_id aws billing account ID must be only digits and exactly 12 in length")
 
 			By("Try to edit billing account with wrong account")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.AWSBillingAccountID = helper.StringPointer("000000000000")
+				args.AWSBillingAccountID = new("000000000000")
 			}, "billing account 000000000000 not linked to organization")
 
 			By("Try to edit cloud region")
@@ -260,7 +260,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 				if profileHandler.Profile().GetRegion() == region {
 					region = "us-west-2" // make sure we are not in the same region
 				}
-				args.AWSRegion = helper.StringPointer(region)
+				args.AWSRegion = new(region)
 			}, "Invalid AZ")
 
 			By("Try to edit cloud region and Availability zone(s)")
@@ -271,13 +271,13 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 					region = "us-west-2" // make sure we are not in the same region
 					azs = []string{"us-west-2b"}
 				}
-				args.AWSRegion = helper.StringPointer(region)
-				args.AWSAvailabilityZones = helper.StringSlicePointer(azs)
+				args.AWSRegion = new(region)
+				args.AWSAvailabilityZones = new(azs)
 			}, "Attribute cloud_region, cannot be changed from")
 
 			By("Try to edit name")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.ClusterName = helper.StringPointer("any_name")
+				args.ClusterName = new("any_name")
 			}, "Attribute name, cannot be changed from")
 		})
 
@@ -292,17 +292,17 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 				machineType = "m5.xlarge"
 			}
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.ComputeMachineType = helper.StringPointer(machineType)
+				args.ComputeMachineType = new(machineType)
 			}, "Attribute compute_machine_type, cannot be changed from")
 
 			By("Try to edit replicas")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.Replicas = helper.IntPointer(5)
+				args.Replicas = new(5)
 			}, "Attribute replicas, cannot be changed from")
 
 			By("Try to edit with replicas < 2")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.Replicas = helper.IntPointer(1)
+				args.Replicas = new(1)
 			}, "Attribute replicas value must be at least 2")
 		})
 
@@ -316,7 +316,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			props := helper.CopyStringMap(currentProperties)
 			props["rosa_creator_arn"] = "anything"
 			validateClusterArg(func(args *exec.ClusterArgs) {
-				args.CustomProperties = helper.StringMapPointer(props)
+				args.CustomProperties = new(props)
 			}, func(output string, err error) {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(output).To(ContainSubstring("Warning: Shouldn't patch cluster properties"))
@@ -330,8 +330,8 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			props = helper.CopyStringMap(currentProperties)
 			delete(props, "rosa_creator_arn")
 			validateClusterArg(func(args *exec.ClusterArgs) {
-				args.CustomProperties = helper.StringMapPointer(props)
-				args.IncludeCreatorProperty = helper.BoolPointer(false)
+				args.CustomProperties = new(props)
+				args.IncludeCreatorProperty = new(false)
 			}, func(output string, err error) {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(output).ToNot(BeEmpty())
@@ -344,7 +344,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			props = helper.CopyStringMap(currentProperties)
 			props["rosa_tf_version"] = "any"
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.CustomProperties = helper.StringMapPointer(props)
+				args.CustomProperties = new(props)
 			}, "Can not override reserved properties keys. rosa_tf_version is a reserved")
 		})
 
@@ -361,7 +361,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			// 	args.AWSAvailabilityZones = helper.StringSlicePointer(azs)
 			// }, "Attribute availability_zones, cannot be changed from")
 			validateClusterArg(func(args *exec.ClusterArgs) {
-				args.AWSAvailabilityZones = helper.StringSlicePointer(azs)
+				args.AWSAvailabilityZones = new(azs)
 			}, func(output string, err error) {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(output).ToNot(BeEmpty())
@@ -373,27 +373,27 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			By("Try to edit subnet ids")
 			azs = []string{"subnet-1", "subnet-2"}
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.AWSAvailabilityZones = helper.StringSlicePointer(azs)
+				args.AWSAvailabilityZones = new(azs)
 			}, "Invalid AZ")
 
 			By("Try to edit host prefix")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.HostPrefix = helper.IntPointer(25)
+				args.HostPrefix = new(25)
 			}, "Attribute host_prefix, cannot be changed from")
 
 			By("Try to edit machine cidr")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.MachineCIDR = helper.StringPointer("10.0.0.0/17")
+				args.MachineCIDR = new("10.0.0.0/17")
 			}, "Attribute machine_cidr, cannot be changed from")
 
 			By("Try to edit service cidr")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.ServiceCIDR = helper.StringPointer("172.50.0.0/20")
+				args.ServiceCIDR = new("172.50.0.0/20")
 			}, "Attribute service_cidr, cannot be changed from")
 
 			By("Try to edit pod cidr")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.PodCIDR = helper.StringPointer("10.128.0.0/16")
+				args.PodCIDR = new("10.128.0.0/16")
 			}, "Attribute pod_cidr, cannot be changed from")
 		})
 
@@ -417,13 +417,13 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 				By("Try to edit version to one from another channel_group")
 				errString := fmt.Sprintf("Can't upgrade cluster version with identifier: `%s`, desired version (%s) is not in the list of available upgrades", clusterID, lastVersion.RawID)
 				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-					args.OpenshiftVersion = helper.StringPointer(lastVersion.RawID)
+					args.OpenshiftVersion = new(lastVersion.RawID)
 				}, errString)
 			}
 
 			By("Edit channel_group")
 			validateClusterArg(func(args *exec.ClusterArgs) {
-				args.ChannelGroup = helper.StringPointer(otherChannelGroup)
+				args.ChannelGroup = new(otherChannelGroup)
 			}, func(output string, err error) {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(output).ToNot(BeEmpty())
@@ -435,14 +435,14 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			By("Try to edit channel_group to a non-existing value")
 			otherChannelGroup = "invalidChannelGroup"
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.ChannelGroup = helper.StringPointer(otherChannelGroup)
+				args.ChannelGroup = new(otherChannelGroup)
 			}, fmt.Sprintf("Current cluster version %s is not available in channel group %s", currentVersion, otherChannelGroup))
 		})
 
 		It("private fields - [id:72480]", ci.Medium, ci.FeatureClusterPrivate, func() {
 			By("Try to edit private")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.Private = helper.BoolPointer(!profileHandler.Profile().IsPrivate())
+				args.Private = new(!profileHandler.Profile().IsPrivate())
 			}, "Attribute private, cannot be changed from")
 		})
 
@@ -455,51 +455,51 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 				otherHttpToken = constants.RequiredEc2MetadataHttpTokens
 			}
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.Ec2MetadataHttpTokens = helper.StringPointer(otherHttpToken)
+				args.Ec2MetadataHttpTokens = new(otherHttpToken)
 			})
 		})
 
 		It("encryption fields - [id:72487]", ci.Medium, ci.FeatureClusterEncryption, func() {
 			By("Try to edit etcd_encryption")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.Etcd = helper.BoolPointer(!profileHandler.Profile().IsEtcd())
+				args.Etcd = new(!profileHandler.Profile().IsEtcd())
 			}, "Attribute etcd_encryption, cannot be changed from")
 
 			By("Try to edit etcd_kms_key_arn")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.EtcdKmsKeyARN = helper.StringPointer("anything")
+				args.EtcdKmsKeyARN = new("anything")
 			}, "Attribute etcd_kms_key_arn, cannot be changed from")
 
 			By("Try to edit kms_key_arn")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.KmsKeyARN = helper.StringPointer("anything")
+				args.KmsKeyARN = new("anything")
 			}, "Attribute kms_key_arn, cannot be changed from")
 		})
 
 		It("sts fields - [id:72497]", ci.Medium, ci.FeatureClusterEncryption, func() {
 			By("Try to edit oidc config")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.OIDCConfigID = helper.StringPointer("2a4rv4o76gljek6c3po16abquaciv0a7")
+				args.OIDCConfigID = new("2a4rv4o76gljek6c3po16abquaciv0a7")
 			}, "Attribute sts.oidc_config_id, cannot be changed from")
 
 			By("Try to edit installer role")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.StsInstallerRole = helper.StringPointer("anything")
+				args.StsInstallerRole = new("anything")
 			}, "Attribute sts.role_arn, cannot be changed from")
 
 			By("Try to edit support role")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.StsSupportRole = helper.StringPointer("anything")
+				args.StsSupportRole = new("anything")
 			}, "Attribute sts.support_role_arn, cannot be changed from")
 
 			By("Try to edit worker role")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.StsWorkerRole = helper.StringPointer("anything")
+				args.StsWorkerRole = new("anything")
 			}, "Attribute sts.instance_iam_roles.worker_role_arn, cannot be changed from")
 
 			By("Try to edit operator role prefix")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.OperatorRolePrefix = helper.StringPointer("anything")
+				args.OperatorRolePrefix = new("anything")
 			}, "Attribute sts.operator_role_prefix, cannot be changed from")
 		})
 
@@ -507,21 +507,21 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			By("Edit proxy with wrong http_proxy")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.Proxy = &exec.Proxy{
-					HTTPProxy: helper.StringPointer("aaaaxxxx"),
+					HTTPProxy: new("aaaaxxxx"),
 				}
 			}, "Invalid 'proxy.http_proxy' attribute 'aaaaxxxx'")
 
 			By("Edit proxy with http_proxy starts with https")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.Proxy = &exec.Proxy{
-					HTTPProxy: helper.StringPointer("https://anything"),
+					HTTPProxy: new("https://anything"),
 				}
 			}, "'proxy.http_proxy' prefix is not 'http'")
 
 			By("Edit proxy with invalid https_proxy")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.Proxy = &exec.Proxy{
-					HTTPSProxy: helper.StringPointer("aaavvv"),
+					HTTPSProxy: new("aaavvv"),
 				}
 			},
 				"Invalid",
@@ -531,7 +531,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			By("Edit proxy with invalid additional_trust_bundle set")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.Proxy = &exec.Proxy{
-					AdditionalTrustBundle: helper.StringPointer("wrong value"),
+					AdditionalTrustBundle: new("wrong value"),
 				}
 			}, "Failed to parse")
 
@@ -540,14 +540,14 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 				args.Proxy = &exec.Proxy{
 					HTTPProxy:  helper.EmptyStringPointer,
 					HTTPSProxy: helper.EmptyStringPointer,
-					NoProxy:    helper.StringPointer("test.com"),
+					NoProxy:    new("test.com"),
 				}
 			}, "Cannot set 'proxy.no_proxy' attribute 'test.com' while removing 'proxy.http_proxy'")
 
 			By("Edit proxy with with invalid no_proxy")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.Proxy = &exec.Proxy{
-					NoProxy: helper.StringPointer("*"),
+					NoProxy: new("*"),
 				}
 			}, "no-proxy value: '*' should match the regular expression")
 		})
@@ -581,7 +581,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			tags["newTag"] = "appendTag"
 
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.Tags = helper.StringMapPointer(tags)
+				args.Tags = new(tags)
 			}, "Attribute tags, cannot be changed from")
 		})
 
@@ -598,22 +598,22 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 				Expect(err).ToNot(HaveOccurred())
 				args := map[string]*exec.ClusterArgs{
 					"aws_additional_compute_security_group_ids": {
-						AdditionalComputeSecurityGroups:      helper.StringSlicePointer(output.AdditionalComputeSecurityGroups[0:1]),
-						AdditionalInfraSecurityGroups:        helper.StringSlicePointer(output.AdditionalInfraSecurityGroups),
-						AdditionalControlPlaneSecurityGroups: helper.StringSlicePointer(output.AdditionalControlPlaneSecurityGroups),
-						AWSRegion:                            helper.StringPointer(profileHandler.Profile().GetRegion()),
+						AdditionalComputeSecurityGroups:      new(output.AdditionalComputeSecurityGroups[0:1]),
+						AdditionalInfraSecurityGroups:        new(output.AdditionalInfraSecurityGroups),
+						AdditionalControlPlaneSecurityGroups: new(output.AdditionalControlPlaneSecurityGroups),
+						AWSRegion:                            new(profileHandler.Profile().GetRegion()),
 					},
 					"aws_additional_infra_security_group_ids": {
-						AdditionalInfraSecurityGroups:        helper.StringSlicePointer(output.AdditionalInfraSecurityGroups[0:1]),
-						AdditionalComputeSecurityGroups:      helper.StringSlicePointer(output.AdditionalComputeSecurityGroups),
-						AdditionalControlPlaneSecurityGroups: helper.StringSlicePointer(output.AdditionalControlPlaneSecurityGroups),
-						AWSRegion:                            helper.StringPointer(profileHandler.Profile().GetRegion()),
+						AdditionalInfraSecurityGroups:        new(output.AdditionalInfraSecurityGroups[0:1]),
+						AdditionalComputeSecurityGroups:      new(output.AdditionalComputeSecurityGroups),
+						AdditionalControlPlaneSecurityGroups: new(output.AdditionalControlPlaneSecurityGroups),
+						AWSRegion:                            new(profileHandler.Profile().GetRegion()),
 					},
 					"aws_additional_control_plane_security_group_ids": {
-						AdditionalControlPlaneSecurityGroups: helper.StringSlicePointer(output.AdditionalControlPlaneSecurityGroups[0:1]),
-						AdditionalComputeSecurityGroups:      helper.StringSlicePointer(output.AdditionalComputeSecurityGroups),
-						AdditionalInfraSecurityGroups:        helper.StringSlicePointer(output.AdditionalInfraSecurityGroups),
-						AWSRegion:                            helper.StringPointer(profileHandler.Profile().GetRegion()),
+						AdditionalControlPlaneSecurityGroups: new(output.AdditionalControlPlaneSecurityGroups[0:1]),
+						AdditionalComputeSecurityGroups:      new(output.AdditionalComputeSecurityGroups),
+						AdditionalInfraSecurityGroups:        new(output.AdditionalInfraSecurityGroups),
+						AWSRegion:                            new(profileHandler.Profile().GetRegion()),
 					},
 				}
 				for keyword, updatingArgs := range args {
@@ -677,7 +677,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 
 			By("Platform allowlist does not exist")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.RegistryConfig.PlatformAllowlistID = helper.StringPointer("anything")
+				args.RegistryConfig.PlatformAllowlistID = new("anything")
 			}, "Allowlist with id 'anything' not found")
 
 			By("Additional Trust CA is invalid")
@@ -696,35 +696,35 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 				By("Update the cluster autoscaling")
 				if profileHandler.Profile().IsAutoscaling() {
 					By("Change autoscaling_enabled from true to false")
-					clusterArgs.Autoscaling = helper.BoolPointer(false)
+					clusterArgs.Autoscaling = new(false)
 					_, err := clusterService.Apply(clusterArgs)
 					Expect(err).To(HaveOccurred())
 					helper.ExpectTFErrorContains(err, "Attribute autoscaling_enabled, cannot be changed")
 
 					By("Change max_replicas")
-					clusterArgs.Autoscaling = helper.BoolPointer(true)
-					clusterArgs.MaxReplicas = helper.IntPointer(9)
+					clusterArgs.Autoscaling = new(true)
+					clusterArgs.MaxReplicas = new(9)
 					_, err = clusterService.Apply(clusterArgs)
 					Expect(err).To(HaveOccurred())
 					helper.ExpectTFErrorContains(err, " Attribute max_replicas, cannot be changed")
 
 					By("Change min_replicas")
-					clusterArgs.Autoscaling = helper.BoolPointer(true)
+					clusterArgs.Autoscaling = new(true)
 					clusterArgs.MaxReplicas = originalClusterArgs.MaxReplicas
-					clusterArgs.MinReplicas = helper.IntPointer(3)
+					clusterArgs.MinReplicas = new(3)
 					_, err = clusterService.Apply(clusterArgs)
 					Expect(err).To(HaveOccurred())
 					helper.ExpectTFErrorContains(err, " Attribute min_replicas, cannot be changed")
 				} else {
 					By("Change autoscaling_enabled from failse to true")
-					clusterArgs.Autoscaling = helper.BoolPointer(true)
+					clusterArgs.Autoscaling = new(true)
 					_, err := clusterService.Apply(clusterArgs)
 					Expect(err).To(HaveOccurred())
 					helper.ExpectTFErrorContains(err, "Attribute autoscaling_enabled, cannot be changed")
 
 					By("Change replicas")
-					clusterArgs.Autoscaling = helper.BoolPointer(false)
-					clusterArgs.Replicas = helper.IntPointer(9)
+					clusterArgs.Autoscaling = new(false)
+					clusterArgs.Replicas = new(9)
 					_, err = clusterService.Apply(clusterArgs)
 					Expect(err).To(HaveOccurred())
 					helper.ExpectTFErrorContains(err, "Attribute replicas, cannot be changed from")

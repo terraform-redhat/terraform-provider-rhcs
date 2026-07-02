@@ -30,11 +30,11 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 		existingTCs []string
 	)
 
-	verifyTuningConfigSpec := func(spec interface{}, profileName string, specVmDirtyRatio, specPriority int) {
+	verifyTuningConfigSpec := func(spec any, profileName string, specVmDirtyRatio, specPriority int) {
 		Expect(spec).ToNot(BeEmpty())
-		tcSpec := spec.(map[string]interface{})
-		tcProfileSpec := (tcSpec["profile"].([]interface{}))[0].(map[string]interface{})
-		tcRecommendSpec := (tcSpec["recommend"].([]interface{}))[0].(map[string]interface{})
+		tcSpec := spec.(map[string]any)
+		tcProfileSpec := (tcSpec["profile"].([]any))[0].(map[string]any)
+		tcRecommendSpec := (tcSpec["recommend"].([]any))[0].(map[string]any)
 		Expect(tcProfileSpec["name"]).To(ContainSubstring(profileName))
 		Expect(tcProfileSpec["data"]).To(ContainSubstring(fmt.Sprintf("vm.dirty_ratio=\"%d\"", specVmDirtyRatio)))
 		Expect(tcRecommendSpec["priority"]).To(BeEquivalentTo(specPriority))
@@ -81,9 +81,9 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 		tc1JSON, err := json.Marshal(tc1Spec)
 		Expect(err).ToNot(HaveOccurred())
 		tcArgs := &exec.TuningConfigArgs{
-			Cluster: helper.StringPointer(clusterID),
-			Name:    helper.StringPointer(name),
-			Count:   helper.IntPointer(tcCount),
+			Cluster: new(clusterID),
+			Name:    new(name),
+			Count:   new(tcCount),
 			Specs: &[]exec.TuningConfigSpec{
 				exec.NewTuningConfigSpecFromString(string(tc1JSON)),
 			},
@@ -114,7 +114,7 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 		tc2Spec := helper.NewTuningConfigSpecRootStub(tc2Name, firstVMDirtyRatio, firstPriority)
 		tc2YAML, err := yaml.Marshal(tc2Spec)
 		Expect(err).ToNot(HaveOccurred())
-		tcArgs.Count = helper.IntPointer(tcCount)
+		tcArgs.Count = new(tcCount)
 		tcArgs.Specs = &[]exec.TuningConfigSpec{
 			exec.NewTuningConfigSpecFromString(string(tc1JSON)),
 			exec.NewTuningConfigSpecFromString(string(tc2YAML)),
@@ -206,8 +206,8 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 			tc1JSON, err := json.Marshal(tc1Spec)
 			Expect(err).ToNot(HaveOccurred())
 			return &exec.TuningConfigArgs{
-				Cluster: helper.StringPointer(clusterID),
-				Name:    helper.StringPointer(tcName),
+				Cluster: new(clusterID),
+				Name:    new(tcName),
 				Specs: &[]exec.TuningConfigSpec{
 					exec.NewTuningConfigSpecFromString(string(tc1JSON)),
 				},
@@ -257,7 +257,7 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 		}
 		if otherClusterID != "" {
 			validateTCArgAgainstErrorSubstrings(func(args *exec.TuningConfigArgs) {
-				args.Cluster = helper.StringPointer(otherClusterID)
+				args.Cluster = new(otherClusterID)
 			}, "Attribute cluster, cannot be changed from")
 		} else {
 			Logger.Info("No other cluster accessible for testing this change")
@@ -265,12 +265,12 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 
 		By("Try to edit cluster field with wrong value")
 		validateTCArgAgainstErrorSubstrings(func(args *exec.TuningConfigArgs) {
-			args.Cluster = helper.StringPointer("wrong")
+			args.Cluster = new("wrong")
 		}, "Attribute cluster, cannot be changed from")
 
 		By("Try to edit name field")
 		validateTCArgAgainstErrorSubstrings(func(args *exec.TuningConfigArgs) {
-			args.Name = helper.StringPointer("new_name")
+			args.Name = new("new_name")
 		}, "Attribute name, cannot be changed from")
 
 		By("Try to edit spec field with non json value")
@@ -300,14 +300,14 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 		subnetId := vpcOutput.PrivateSubnets[0]
 		tuningConfigs := []string{tcName}
 		mpArgs := &exec.MachinePoolArgs{
-			Cluster:            helper.StringPointer(clusterID),
-			AutoscalingEnabled: helper.BoolPointer(false),
-			Replicas:           helper.IntPointer(replicas),
-			Name:               helper.StringPointer(name),
-			SubnetID:           helper.StringPointer(subnetId),
-			MachineType:        helper.StringPointer(machineType),
-			AutoRepair:         helper.BoolPointer(true),
-			TuningConfigs:      helper.StringSlicePointer(tuningConfigs),
+			Cluster:            new(clusterID),
+			AutoscalingEnabled: new(false),
+			Replicas:           new(replicas),
+			Name:               new(name),
+			SubnetID:           new(subnetId),
+			MachineType:        new(machineType),
+			AutoRepair:         new(true),
+			TuningConfigs:      new(tuningConfigs),
 		}
 		_, err = mpService.Apply(mpArgs)
 		Expect(err).ToNot(HaveOccurred())

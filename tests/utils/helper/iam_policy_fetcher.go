@@ -21,8 +21,8 @@ type IAMPolicy struct {
 
 type IAMPolicyStatement struct {
 	Effect   string
-	Action   interface{}
-	Resource interface{}
+	Action   any
+	Resource any
 }
 
 func GetRoleAttachedPolicies(roleName string) ([]IAMPolicy, error) {

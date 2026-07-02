@@ -51,17 +51,17 @@ var _ = Describe("Create Classic or HCP MachinePool", ci.Day2, ci.FeatureMachine
 		replicas := 3
 		machineType := "m5.2xlarge"
 		mpArgs := &exec.MachinePoolArgs{
-			Cluster:     helper.StringPointer(clusterID),
-			Replicas:    helper.IntPointer(replicas),
-			MachineType: helper.StringPointer(machineType),
-			Name:        helper.StringPointer(name),
+			Cluster:     new(clusterID),
+			Replicas:    new(replicas),
+			MachineType: new(machineType),
+			Name:        new(name),
 		}
 
 		if isHCP {
 			subnetId := vpcOutput.PrivateSubnets[0]
-			mpArgs.AutoscalingEnabled = helper.BoolPointer(false)
-			mpArgs.SubnetID = helper.StringPointer(subnetId)
-			mpArgs.AutoRepair = helper.BoolPointer(true)
+			mpArgs.AutoscalingEnabled = new(false)
+			mpArgs.SubnetID = new(subnetId)
+			mpArgs.AutoRepair = new(true)
 		}
 		return mpArgs
 	}
@@ -73,18 +73,18 @@ var _ = Describe("Create Classic or HCP MachinePool", ci.Day2, ci.FeatureMachine
 		name := helper.GenerateRandomName("mp-69144", 2)
 		diskSize := 249
 		mpArgs := &exec.MachinePoolArgs{
-			Cluster:     helper.StringPointer(clusterID),
-			Replicas:    helper.IntPointer(replicas),
-			MachineType: helper.StringPointer(machineType),
-			Name:        helper.StringPointer(name),
-			DiskSize:    helper.IntPointer(diskSize),
+			Cluster:     new(clusterID),
+			Replicas:    new(replicas),
+			MachineType: new(machineType),
+			Name:        new(name),
+			DiskSize:    new(diskSize),
 		}
 
 		if profileHandler.Profile().IsHCP() {
 			subnetId := vpcOutput.PrivateSubnets[0]
-			mpArgs.AutoscalingEnabled = helper.BoolPointer(false)
-			mpArgs.SubnetID = helper.StringPointer(subnetId)
-			mpArgs.AutoRepair = helper.BoolPointer(true)
+			mpArgs.AutoscalingEnabled = new(false)
+			mpArgs.SubnetID = new(subnetId)
+			mpArgs.AutoRepair = new(true)
 		}
 
 		_, err := mpService.Apply(mpArgs)
@@ -140,12 +140,12 @@ var _ = Describe("Create Classic or HCP MachinePool", ci.Day2, ci.FeatureMachine
 
 		errMsg := fmt.Sprintf("Must be between %d GiB and %d GiB", minDiskSize, maxDiskSize)
 
-		mpArgs.DiskSize = helper.IntPointer(minDiskSize - 1)
+		mpArgs.DiskSize = new(minDiskSize - 1)
 		_, err := mpService.Apply(mpArgs)
 		Expect(err).To(HaveOccurred())
 		helper.ExpectTFErrorContains(err, errMsg)
 
-		mpArgs.DiskSize = helper.IntPointer(maxDiskSize + 1)
+		mpArgs.DiskSize = new(maxDiskSize + 1)
 		_, err = mpService.Apply(mpArgs)
 		Expect(err).To(HaveOccurred())
 		helper.ExpectTFErrorContains(err, errMsg)
@@ -155,13 +155,13 @@ var _ = Describe("Create Classic or HCP MachinePool", ci.Day2, ci.FeatureMachine
 		By("Create a successful machine pool with disk size specified")
 		mpName = helper.GenerateRandomName("mp-76345", 2)
 		mpArgs = getDefaultMPArgs(mpName, profileHandler.Profile().IsHCP())
-		mpArgs.DiskSize = helper.IntPointer(249)
+		mpArgs.DiskSize = new(249)
 
 		_, err = mpService.Apply(mpArgs)
 		Expect(err).ToNot(HaveOccurred())
 
 		By("Update disk size of the created machine pool is not allowed")
-		mpArgs.DiskSize = helper.IntPointer(320)
+		mpArgs.DiskSize = new(320)
 		_, err = mpService.Apply(mpArgs)
 		Expect(err).To(HaveOccurred())
 		helper.ExpectTFErrorContains(err, "disk_size, cannot be changed from 249 to 320")

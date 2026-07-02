@@ -25,17 +25,17 @@ const tfVarsFilenameTemplate = "terraform.%s.tfvars"
 
 type TerraformExecutor interface {
 	RunTerraformInit() (string, error)
-	RunTerraformPlan(argObj interface{}) (string, error)
-	RunTerraformApply(argObj interface{}) (string, error)
+	RunTerraformPlan(argObj any) (string, error)
+	RunTerraformApply(argObj any) (string, error)
 	RunTerraformDestroy() (string, error)
 	RunTerraformOutput() (string, error)
 	RunTerraformOutputIntoObject(obj any) error
 	RunTerraformState(subcommand string, options ...string) (string, error)
-	GetStateResource(resourceType string, resoureName string) (interface{}, error)
+	GetStateResource(resourceType string, resoureName string) (any, error)
 	RunTerraformImport(importArgs ...string) (string, error)
 
-	ReadTerraformVars(obj interface{}) error
-	WriteTerraformVars(obj interface{}) error
+	ReadTerraformVars(obj any) error
+	WriteTerraformVars(obj any) error
 	DeleteTerraformVars() error
 }
 
@@ -89,7 +89,7 @@ func (ctx *terraformExecutorContext) RunTerraformInit() (string, error) {
 	return ctx.runTerraformCommand("init", "-no-color")
 }
 
-func (ctx *terraformExecutorContext) RunTerraformPlan(argObj interface{}) (output string, err error) {
+func (ctx *terraformExecutorContext) RunTerraformPlan(argObj any) (output string, err error) {
 	tempFile, err := ctx.writeTemporaryTFVarsFile(argObj)
 	if err != nil {
 		return "", err
@@ -99,7 +99,7 @@ func (ctx *terraformExecutorContext) RunTerraformPlan(argObj interface{}) (outpu
 	return ctx.runTerraformCommand("plan", planArgs...)
 }
 
-func (ctx *terraformExecutorContext) RunTerraformApply(argObj interface{}) (string, error) {
+func (ctx *terraformExecutorContext) RunTerraformApply(argObj any) (string, error) {
 	tempFile, err := ctx.writeTemporaryTFVarsFile(argObj)
 	if err != nil {
 		return "", err
@@ -175,11 +175,11 @@ func (ctx *terraformExecutorContext) RunTerraformImport(importArgs ...string) (o
 	return ctx.runTerraformCommand("import", importArgs...)
 }
 
-func (ctx *terraformExecutorContext) WriteTerraformVars(obj interface{}) error {
+func (ctx *terraformExecutorContext) WriteTerraformVars(obj any) error {
 	return WriteTFvarsFile(obj, ctx.grantTFvarsFile())
 }
 
-func WriteTFvarsFile(obj interface{}, tfvarsFilePath string) error {
+func WriteTFvarsFile(obj any, tfvarsFilePath string) error {
 	tfVarsFile, err := os.Create(tfvarsFilePath)
 	if err != nil {
 		return err
@@ -198,17 +198,17 @@ func WriteTFvarsFile(obj interface{}, tfvarsFilePath string) error {
 	return err
 }
 
-func (ctx *terraformExecutorContext) writeTemporaryTFVarsFile(obj interface{}) (string, error) {
+func (ctx *terraformExecutorContext) writeTemporaryTFVarsFile(obj any) (string, error) {
 	return ctx.grantTFvarsTempFile(), WriteTFvarsFile(obj, ctx.grantTFvarsTempFile())
 }
 
 // Function to read parse tf vars in an object
 // See https://hclguide.readthedocs.io/en/latest/go_decoding_gohcl.html
-func (ctx *terraformExecutorContext) ReadTerraformVars(obj interface{}) error {
+func (ctx *terraformExecutorContext) ReadTerraformVars(obj any) error {
 	return ReadTerraformVarsFile(ctx.grantTFvarsFile(), obj)
 }
 
-func ReadTerraformVarsFile(filePath string, obj interface{}) error {
+func ReadTerraformVarsFile(filePath string, obj any) error {
 	if fileExists, err := helper.IsFileExists(filePath); err != nil {
 		return err
 	} else if !fileExists {
@@ -272,7 +272,7 @@ func (ctx *terraformExecutorContext) grantTFstateFile() string {
 }
 
 // Get the resoources state from the terraform.tfstate file by resource type and name
-func (ctx *terraformExecutorContext) GetStateResource(resourceType string, resoureName string) (interface{}, error) {
+func (ctx *terraformExecutorContext) GetStateResource(resourceType string, resoureName string) (any, error) {
 	// Check if there is a terraform.tfstate file in the manifest directory
 	stateFile := ctx.grantTFstateFile()
 	if _, err := os.Stat(stateFile); err == nil {
@@ -282,13 +282,13 @@ func (ctx *terraformExecutorContext) GetStateResource(resourceType string, resou
 			return nil, fmt.Errorf("failed to readFile %s folder,%v", stateFile, err)
 		}
 		// Unmarshal the data from the terraform.tfstate file
-		var state map[string]interface{}
+		var state map[string]any
 		err = json.Unmarshal(data, &state)
 		if err != nil {
 			return nil, fmt.Errorf("failed to Unmarshal state %v", err)
 		}
 		//Find resource by resource type and resource name
-		for _, resource := range state["resources"].([]interface{}) {
+		for _, resource := range state["resources"].([]any) {
 			if helper.DigString(resource, "type") == resourceType && helper.DigString(resource, "name") == resoureName && resource != nil {
 				return resource, err
 			}

@@ -45,7 +45,7 @@ func EnabledVersions(connection *client.Connection, channel string, throttleVers
 		search = fmt.Sprintf("%s and available_upgrades != ''", search)
 	}
 
-	params := map[string]interface{}{
+	params := map[string]any{
 		"search": search,
 		"size":   -1,
 	}
@@ -89,7 +89,7 @@ func HCPEnabledVersions(connection *client.Connection, channel string, upgradeAv
 		search = fmt.Sprintf("%s and available_upgrades != ''", search)
 	}
 
-	params := map[string]interface{}{
+	params := map[string]any{
 		"search": search,
 		"size":   -1,
 	}
@@ -183,7 +183,7 @@ func GetOneSpecifiedVersion(versionList []*ImageVersion, index string) *ImageVer
 
 func FindAnUpgradeVersion(connection *client.Connection) string {
 	timeNow := time.Now().UTC().Format(time.RFC3339)
-	filterParam := map[string]interface{}{
+	filterParam := map[string]any{
 		"search": fmt.Sprintf("enabled='t' and available_upgrades != '' and (end_of_life_timestamp > '%s' or end_of_life_timestamp is null)", timeNow),
 	}
 	resp, err := ListVersions(connection, filterParam)
@@ -253,7 +253,7 @@ func GetLowerOrEqualVersions(connection *client.Connection, throttleVersion stri
 
 // GetGreaterVersions will return a version list which is euqal or greater than the version provided as throttleVersion
 func GetDefaultVersion(connection *client.Connection) *v1.Version {
-	resp, err := ListVersions(connection, map[string]interface{}{"search": "default='true'"})
+	resp, err := ListVersions(connection, map[string]any{"search": "default='true'"})
 	Expect(err).ToNot(HaveOccurred())
 	Expect(resp.Status()).To(Equal(http.StatusOK))
 	version := resp.Items().Slice()[0]
@@ -344,7 +344,7 @@ func GetVersionsWithUpgrades(connection *client.Connection, channel string, stre
 		filters = append(filters, "hosted_control_plane_enabled='t'")
 	}
 
-	filterParam := map[string]interface{}{
+	filterParam := map[string]any{
 		"search": strings.Join(filters, " and "),
 		"size":   "-1",
 	}
@@ -422,7 +422,7 @@ func GetVersionsWithUpgradesToVersion(connection *client.Connection, targetVersi
 		filters = append(filters, "hosted_control_plane_enabled='t'")
 	}
 
-	filterParam := map[string]interface{}{
+	filterParam := map[string]any{
 		"search": strings.Join(filters, " and "),
 		"size":   "-1",
 	}

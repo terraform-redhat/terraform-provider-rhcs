@@ -51,31 +51,31 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 
 			if ingressBefore.ComponentRoutes()["oauth"] != nil {
 				crs["oauth"] = exec.NewIngressComponentRoute(
-					helper.StringPointer(ingressBefore.ComponentRoutes()["oauth"].Hostname()),
-					helper.StringPointer(ingressBefore.ComponentRoutes()["oauth"].TlsSecretRef()),
+					new(ingressBefore.ComponentRoutes()["oauth"].Hostname()),
+					new(ingressBefore.ComponentRoutes()["oauth"].TlsSecretRef()),
 				)
 			}
 			if ingressBefore.ComponentRoutes()["console"] != nil {
 				crs["console"] = exec.NewIngressComponentRoute(
-					helper.StringPointer(ingressBefore.ComponentRoutes()["console"].Hostname()),
-					helper.StringPointer(ingressBefore.ComponentRoutes()["console"].TlsSecretRef()),
+					new(ingressBefore.ComponentRoutes()["console"].Hostname()),
+					new(ingressBefore.ComponentRoutes()["console"].TlsSecretRef()),
 				)
 			}
 			if ingressBefore.ComponentRoutes()["downloads"] != nil {
 				crs["downloads"] = exec.NewIngressComponentRoute(
-					helper.StringPointer(ingressBefore.ComponentRoutes()["downloads"].Hostname()),
-					helper.StringPointer(ingressBefore.ComponentRoutes()["downloads"].TlsSecretRef()),
+					new(ingressBefore.ComponentRoutes()["downloads"].Hostname()),
+					new(ingressBefore.ComponentRoutes()["downloads"].TlsSecretRef()),
 				)
 			}
 			componentRoutes = &crs
 		}
 		args := exec.IngressArgs{
-			Cluster:                       helper.StringPointer(clusterID),
-			ExcludedNamespaces:            helper.StringSlicePointer(ingressBefore.ExcludedNamespaces()),
-			LoadBalancerType:              helper.StringPointer(string(ingressBefore.LoadBalancerType())),
-			RouteSelectors:                helper.StringMapPointer(ingressBefore.RouteSelectors()),
-			RouteNamespaceOwnershipPolicy: helper.StringPointer(string(ingressBefore.RouteNamespaceOwnershipPolicy())),
-			RouteWildcardPolicy:           helper.StringPointer(string(ingressBefore.RouteWildcardPolicy())),
+			Cluster:                       new(clusterID),
+			ExcludedNamespaces:            new(ingressBefore.ExcludedNamespaces()),
+			LoadBalancerType:              new(string(ingressBefore.LoadBalancerType())),
+			RouteSelectors:                new(ingressBefore.RouteSelectors()),
+			RouteNamespaceOwnershipPolicy: new(string(ingressBefore.RouteNamespaceOwnershipPolicy())),
+			RouteWildcardPolicy:           new(string(ingressBefore.RouteWildcardPolicy())),
 			ComponentRoutes:               componentRoutes,
 		}
 		ingressService.Apply(&args)
@@ -87,8 +87,8 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 		func() {
 			By("update the LB type to classic")
 			args := exec.IngressArgs{
-				LoadBalancerType: helper.StringPointer("classic"),
-				Cluster:          helper.StringPointer(clusterID),
+				LoadBalancerType: new("classic"),
+				Cluster:          new(clusterID),
 			}
 			_, err = ingressService.Apply(&args)
 			Expect(err).ToNot(HaveOccurred())
@@ -101,8 +101,8 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 
 			By("update the LB type to back to NLB")
 			args = exec.IngressArgs{
-				LoadBalancerType: helper.StringPointer("nlb"),
-				Cluster:          helper.StringPointer(clusterID),
+				LoadBalancerType: new("nlb"),
+				Cluster:          new(clusterID),
 			}
 			_, err = ingressService.Apply(&args)
 			Expect(err).ToNot(HaveOccurred())
@@ -118,16 +118,16 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			By("set ingress component routes")
 			componentRoutes := map[string]*exec.IngressComponentRoute{
 				"oauth": exec.NewIngressComponentRoute(
-					helper.StringPointer("oauth.example.com"),
-					helper.StringPointer("oauth"),
+					new("oauth.example.com"),
+					new("oauth"),
 				),
 				"console": exec.NewIngressComponentRoute(
-					helper.StringPointer("console.example.com"),
-					helper.StringPointer("console"),
+					new("console.example.com"),
+					new("console"),
 				),
 				"downloads": exec.NewIngressComponentRoute(
-					helper.StringPointer("downloads.example.com"),
-					helper.StringPointer("downloads"),
+					new("downloads.example.com"),
+					new("downloads"),
 				),
 			}
 			args := exec.IngressArgs{
@@ -150,16 +150,16 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			By("update ingress component routes")
 			componentRoutes = map[string]*exec.IngressComponentRoute{
 				"oauth": exec.NewIngressComponentRoute(
-					helper.StringPointer("oauth.test.example.com"),
-					helper.StringPointer("test-oauth"),
+					new("oauth.test.example.com"),
+					new("test-oauth"),
 				),
 				"console": exec.NewIngressComponentRoute(
-					helper.StringPointer("console.test.example.com"),
-					helper.StringPointer("test-console"),
+					new("console.test.example.com"),
+					new("test-console"),
 				),
 				"downloads": exec.NewIngressComponentRoute(
-					helper.StringPointer("downloads.test.example.com"),
-					helper.StringPointer("test-downloads"),
+					new("downloads.test.example.com"),
+					new("test-downloads"),
 				),
 			}
 			args = exec.IngressArgs{
@@ -182,8 +182,8 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			By("remove some component routes")
 			componentRoutes = map[string]*exec.IngressComponentRoute{
 				"oauth": exec.NewIngressComponentRoute(
-					helper.StringPointer("oauth.test.example.com"),
-					helper.StringPointer("test-oauth"),
+					new("oauth.test.example.com"),
+					new("test-oauth"),
 				),
 			}
 			args = exec.IngressArgs{
@@ -225,16 +225,16 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			args := exec.IngressArgs{
 				ComponentRoutes: &map[string]*exec.IngressComponentRoute{
 					"oauth": exec.NewIngressComponentRoute(
-						helper.StringPointer(""),
-						helper.StringPointer("test-oauth"),
+						new(""),
+						new("test-oauth"),
 					),
 					"console": exec.NewIngressComponentRoute(
-						helper.StringPointer("console.test.example.com"),
-						helper.StringPointer("test-console"),
+						new("console.test.example.com"),
+						new("test-console"),
 					),
 					"downloads": exec.NewIngressComponentRoute(
-						helper.StringPointer("downloads.test.example.com"),
-						helper.StringPointer("test-downloads"),
+						new("downloads.test.example.com"),
+						new("test-downloads"),
 					),
 				},
 				Cluster: &clusterID,
@@ -249,16 +249,16 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			args = exec.IngressArgs{
 				ComponentRoutes: &map[string]*exec.IngressComponentRoute{
 					"oauth": exec.NewIngressComponentRoute(
-						helper.StringPointer("oauth.test.example.com"),
-						helper.StringPointer(""),
+						new("oauth.test.example.com"),
+						new(""),
 					),
 					"console": exec.NewIngressComponentRoute(
-						helper.StringPointer("console.test.example.com"),
-						helper.StringPointer("test-console"),
+						new("console.test.example.com"),
+						new("test-console"),
 					),
 					"downloads": exec.NewIngressComponentRoute(
-						helper.StringPointer("downloads.test.example.com"),
-						helper.StringPointer("test-downloads"),
+						new("downloads.test.example.com"),
+						new("test-downloads"),
 					),
 				},
 				Cluster: &clusterID,
@@ -282,11 +282,11 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			componentRoutes := map[string]*exec.IngressComponentRoute{
 				"oauth": nil,
 				"console": exec.NewIngressComponentRoute(
-					helper.StringPointer("console.test.example.com"),
-					helper.StringPointer("test-console")),
+					new("console.test.example.com"),
+					new("test-console")),
 				"downloads": exec.NewIngressComponentRoute(
-					helper.StringPointer("downloads.test.example.com"),
-					helper.StringPointer("test-downloads"),
+					new("downloads.test.example.com"),
+					new("test-downloads"),
 				),
 			}
 			args = exec.IngressArgs{
@@ -299,14 +299,14 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 
 			componentRoutes = map[string]*exec.IngressComponentRoute{
 				"oauth": exec.NewIngressComponentRoute(
-					helper.StringPointer(""),
-					helper.StringPointer("")),
+					new(""),
+					new("")),
 				"console": exec.NewIngressComponentRoute(
-					helper.StringPointer("console.test.example.com"),
-					helper.StringPointer("test-console")),
+					new("console.test.example.com"),
+					new("test-console")),
 				"downloads": exec.NewIngressComponentRoute(
-					helper.StringPointer("downloads.test.example.com"),
-					helper.StringPointer("test-downloads"),
+					new("downloads.test.example.com"),
+					new("test-downloads"),
 				),
 			}
 			_, err = ingressService.Apply(&args)
@@ -318,16 +318,16 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 			args = exec.IngressArgs{
 				ComponentRoutes: &map[string]*exec.IngressComponentRoute{
 					"oauth": exec.NewIngressComponentRoute(
-						helper.StringPointer("oauth.test.example.com"),
-						helper.StringPointer("test-oauth"),
+						new("oauth.test.example.com"),
+						new("test-oauth"),
 					),
 					"console": exec.NewIngressComponentRoute(
-						helper.StringPointer("console.test.example.com"),
-						helper.StringPointer("test-console"),
+						new("console.test.example.com"),
+						new("test-console"),
 					),
 					"downloads": exec.NewIngressComponentRoute(
-						helper.StringPointer("downloads.test.example.com"),
-						helper.StringPointer("test-downloads"),
+						new("downloads.test.example.com"),
+						new("test-downloads"),
 					),
 				},
 				Cluster: &invalidID,
@@ -343,15 +343,15 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 		func() {
 			By("update ingress attributes")
 			args := exec.IngressArgs{
-				ExcludedNamespaces: helper.StringSlicePointer([]string{
+				ExcludedNamespaces: new([]string{
 					"qe",
 					"test"}),
 				Cluster: &clusterID,
-				RouteSelectors: helper.StringMapPointer(map[string]string{
+				RouteSelectors: new(map[string]string{
 					"route": "internal",
 				}),
-				RouteNamespaceOwnershipPolicy: helper.StringPointer("Strict"),
-				RouteWildcardPolicy:           helper.StringPointer("WildcardsAllowed"),
+				RouteNamespaceOwnershipPolicy: new("Strict"),
+				RouteWildcardPolicy:           new("WildcardsAllowed"),
 			}
 			_, err = ingressService.Apply(&args)
 			Expect(err).ToNot(HaveOccurred())
@@ -366,8 +366,8 @@ var _ = Describe("Classic Ingress", ci.FeatureIngress, func() {
 
 			By("just update one of cluster_routes_tls_secret_ref and cluster_routes_hostname, not update both together.")
 			args = exec.IngressArgs{
-				ClusterRoutesHostename: helper.StringPointer("test.example.com"),
-				Cluster:                helper.StringPointer(clusterID),
+				ClusterRoutesHostename: new("test.example.com"),
+				Cluster:                new(clusterID),
 			}
 			_, err = ingressService.Apply(&args)
 			Expect(err).To(HaveOccurred())

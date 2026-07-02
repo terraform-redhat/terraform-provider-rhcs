@@ -6,7 +6,6 @@ package exec
 import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
 type ImageMirrorArgs struct {
@@ -87,9 +86,9 @@ func (svc *imageMirrorService) DeleteTFVars() error {
 
 func NewImageMirrorArgs(cluster, source string, mirrors []string) *ImageMirrorArgs {
 	return &ImageMirrorArgs{
-		Cluster: helper.StringPointer(cluster),
-		Type:    helper.StringPointer("digest"),
-		Source:  helper.StringPointer(source),
+		Cluster: new(cluster),
+		Type:    new("digest"),
+		Source:  new(source),
 		Mirrors: &mirrors,
 	}
 }

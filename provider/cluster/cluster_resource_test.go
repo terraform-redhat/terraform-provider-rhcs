@@ -95,46 +95,46 @@ var _ = Describe("Cluster creation", func() {
 
 	It("populateClusterState converts correctly a Cluster object into a ClusterState", func() {
 		// We builder a Cluster object by creating a json and using cmv1.UnmarshalCluster on it
-		clusterJson := map[string]interface{}{
+		clusterJson := map[string]any{
 			"id":            clusterId,
 			"domain_prefix": domainPrefix,
-			"product": map[string]interface{}{
+			"product": map[string]any{
 				"id": productId,
 			},
-			"cloud_provider": map[string]interface{}{
+			"cloud_provider": map[string]any{
 				"id": cloudProviderId,
 			},
-			"region": map[string]interface{}{
+			"region": map[string]any{
 				"id": regionId,
 			},
 			"multi_az": multiAz,
-			"properties": map[string]interface{}{
+			"properties": map[string]any{
 				"rosa_creator_arn": rosaCreatorArn,
 			},
-			"api": map[string]interface{}{
+			"api": map[string]any{
 				"url": apiUrl,
 			},
-			"console": map[string]interface{}{
+			"console": map[string]any{
 				"url": consoleUrl,
 			},
-			"nodes": map[string]interface{}{
-				"compute_machine_type": map[string]interface{}{
+			"nodes": map[string]any{
+				"compute_machine_type": map[string]any{
 					"id": machineType,
 				},
-				"availability_zones": []interface{}{
+				"availability_zones": []any{
 					availabilityZone,
 				},
 			},
-			"ccs": map[string]interface{}{
+			"ccs": map[string]any{
 				"enabled": ccsEnabled,
 			},
-			"aws": map[string]interface{}{
+			"aws": map[string]any{
 				"account_id":        awsAccountID,
 				"access_key_id":     awsAccessKeyID,
 				"secret_access_key": awsSecretAccessKey,
 				"private_link":      privateLink,
 			},
-			"version": map[string]interface{}{
+			"version": map[string]any{
 				"id": clusterVersion,
 			},
 		}

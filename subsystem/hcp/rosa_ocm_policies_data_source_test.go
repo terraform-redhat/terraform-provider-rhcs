@@ -248,10 +248,10 @@ var _ = Describe("Hcp OCM policies data source", func() {
 		Expect(runOutput.ExitCode).To(BeZero())
 
 		// Check the state:
-		resource := Terraform.Resource("rhcs_hcp_policies", "my_policies").(map[string]interface{})
+		resource := Terraform.Resource("rhcs_hcp_policies", "my_policies").(map[string]any)
 		Expect(fmt.Sprint(resource["attributes"])).To(Equal(fmt.Sprint(
-			map[string]interface{}{
-				"operator_role_policies": map[string]interface{}{
+			map[string]any{
+				"operator_role_policies": map[string]any{
 					"openshift_hcp_image_registry_installer_cloud_credentials_policy":        "arn:aws:iam::aws:policy/service-role/ROSAImageRegistryOperatorPolicy",
 					"openshift_hcp_ingress_operator_cloud_credentials_policy":                "arn:aws:iam::aws:policy/service-role/ROSAIngressOperatorPolicy",
 					"openshift_hcp_cluster_csi_drivers_ebs_cloud_credentials_policy":         "arn:aws:iam::aws:policy/service-role/ROSAAmazonEBSCSIDriverOperatorPolicy",
@@ -261,13 +261,13 @@ var _ = Describe("Hcp OCM policies data source", func() {
 					"openshift_hcp_control_plane_operator_credentials_policy":                "arn:aws:iam::aws:policy/service-role/ROSAControlPlaneOperatorPolicy",
 					"openshift_hcp_kms_provider_credentials_policy":                          "arn:aws:iam::aws:policy/service-role/ROSAKMSProviderPolicy",
 				},
-				"account_role_policies": map[string]interface{}{
+				"account_role_policies": map[string]any{
 					"sts_hcp_installer_permission_policy":       "arn:aws:iam::aws:policy/service-role/ROSAInstallerPolicy",
 					"sts_hcp_support_permission_policy":         "arn:aws:iam::aws:policy/service-role/ROSASRESupportPolicy",
 					"sts_hcp_instance_worker_permission_policy": "arn:aws:iam::aws:policy/service-role/ROSAWorkerInstancePolicy",
 					"sts_support_rh_sre_role":                   "arn:aws:iam::12345678912:role/RH-Technical-Support-12345678",
 				},
-				"ocm_role_policies": map[string]interface{}{
+				"ocm_role_policies": map[string]any{
 					"sts_ocm_trust_policy":                 "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": \"sts:AssumeRole\", \"Principal\": {\"AWS\": \"arn:aws:iam::710019948333:root\"}}]}",
 					"sts_ocm_permission_policy":            "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": [\"iam:GetRole\"], \"Resource\": \"*\"}]}",
 					"sts_ocm_admin_permission_policy":      "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": [\"iam:*\"], \"Resource\": \"*\"}]}",

@@ -50,7 +50,7 @@ type IDPService interface {
 	Output() (*IDPOutput, error)
 	Destroy() (string, error)
 
-	GetStateResource(resourceType string, resoureName string) (interface{}, error)
+	GetStateResource(resourceType string, resoureName string) (any, error)
 
 	ReadTFVars() (*IDPArgs, error)
 	DeleteTFVars() error
@@ -94,7 +94,7 @@ func (svc *idpService) Destroy() (string, error) {
 	return svc.tfExecutor.RunTerraformDestroy()
 }
 
-func (svc *idpService) GetStateResource(resourceType string, resoureName string) (interface{}, error) {
+func (svc *idpService) GetStateResource(resourceType string, resoureName string) (any, error) {
 	return svc.tfExecutor.GetStateResource(resourceType, resoureName)
 }
 

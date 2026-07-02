@@ -12,6 +12,7 @@ ENHANCEMENTS:
    * OCM-NA | docs: fix mixup re. versioning
    * Add autoscalling fields into hcp datasource
  * Chores
+   * Bump Go to 1.26.3
    * Add Vale inclusive-language check
    * Replace version by sha in github actions
    * Bump Go to 1.25 (+ deps) and configure Renovate

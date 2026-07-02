@@ -206,7 +206,7 @@ var _ = Describe("Cluster Autoscaler", func() {
 					VerifyJQ(".pod_priority_threshold", float64(-10)),
 					VerifyJQ(".ignore_daemonsets_utilization", false),
 					VerifyJQ(".max_node_provision_time", "1h"),
-					VerifyJQ(".balancing_ignored_labels", []interface{}{"l1", "l2"}),
+					VerifyJQ(".balancing_ignored_labels", []any{"l1", "l2"}),
 					VerifyJQ(".resource_limits.max_nodes_total", float64(20)),
 					VerifyJQ(".resource_limits.cores.min", float64(0)),
 					VerifyJQ(".resource_limits.cores.max", float64(1)),
@@ -454,11 +454,11 @@ var _ = Describe("Cluster Autoscaler", func() {
 			runOutput := Terraform.Import("rhcs_cluster_autoscaler.cluster_autoscaler", "123")
 			Expect(runOutput.ExitCode).To(BeZero())
 
-			actualResource, ok := Terraform.Resource("rhcs_cluster_autoscaler", "cluster_autoscaler").(map[string]interface{})
+			actualResource, ok := Terraform.Resource("rhcs_cluster_autoscaler", "cluster_autoscaler").(map[string]any)
 			Expect(ok).To(BeTrue(), "Type conversion failed for the received resource state")
 
 			Expect(actualResource["attributes"]).To(Equal(
-				map[string]interface{}{
+				map[string]any{
 					"cluster":                       "123",
 					"balance_similar_node_groups":   nil,
 					"skip_nodes_with_local_storage": nil,
@@ -469,7 +469,7 @@ var _ = Describe("Cluster Autoscaler", func() {
 					"max_node_provision_time":       nil,
 					"balancing_ignored_labels":      nil,
 					"resource_limits":               nil,
-					"scale_down": map[string]interface{}{
+					"scale_down": map[string]any{
 						"enabled":               nil,
 						"unneeded_time":         nil,
 						"utilization_threshold": nil,
@@ -630,11 +630,11 @@ var _ = Describe("Cluster Autoscaler", func() {
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
 
-			actualResource, ok := Terraform.Resource("rhcs_cluster_autoscaler", "cluster_autoscaler").(map[string]interface{})
+			actualResource, ok := Terraform.Resource("rhcs_cluster_autoscaler", "cluster_autoscaler").(map[string]any)
 			Expect(ok).To(BeTrue(), "Type conversion failed for the received resource state")
 
 			Expect(actualResource["attributes"]).To(Equal(
-				map[string]interface{}{
+				map[string]any{
 					"cluster":                       "123",
 					"balance_similar_node_groups":   true,
 					"skip_nodes_with_local_storage": true,

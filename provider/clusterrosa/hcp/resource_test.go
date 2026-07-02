@@ -93,49 +93,49 @@ var (
 	}
 )
 
-func generateBasicRosaHcpClusterJson() map[string]interface{} {
-	return map[string]interface{}{
+func generateBasicRosaHcpClusterJson() map[string]any {
+	return map[string]any{
 		"id":            clusterId,
 		"name":          clusterName,
 		"domain_prefix": domainPrefix,
-		"hypershift": map[string]interface{}{
+		"hypershift": map[string]any{
 			"enabled": true,
 		},
 		"multiAZ": true,
-		"region": map[string]interface{}{
+		"region": map[string]any{
 			"id": regionId,
 		},
-		"properties": map[string]interface{}{
+		"properties": map[string]any{
 			"rosa_creator_arn": rosaCreatorArn,
 			"rosa_tf_version":  build.Version,
 			"rosa_tf_commit":   build.Commit,
 		},
-		"api": map[string]interface{}{
+		"api": map[string]any{
 			"url": apiUrl,
 		},
-		"console": map[string]interface{}{
+		"console": map[string]any{
 			"url": consoleUrl,
 		},
-		"dns": map[string]interface{}{
+		"dns": map[string]any{
 			"base_domain": baseDomain,
 		},
-		"nodes": map[string]interface{}{
-			"compute_machine_type": map[string]interface{}{
+		"nodes": map[string]any{
+			"compute_machine_type": map[string]any{
 				"id": machineType,
 			},
-			"availability_zones": []interface{}{
+			"availability_zones": []any{
 				availabilityZone1,
 			},
 		},
-		"ccs": map[string]interface{}{
+		"ccs": map[string]any{
 			"enabled": ccsEnabled,
 		},
 		"fips": false,
-		"aws": map[string]interface{}{
+		"aws": map[string]any{
 			"account_id":       awsAccountID,
 			"billingAccountID": awsBillingAccountId,
 			"private_link":     privateLink,
-			"sts": map[string]interface{}{
+			"sts": map[string]any{
 				"oidc_endpoint_url": oidcEndpointUrl,
 				"role_arn":          roleArn,
 			},
@@ -325,8 +325,8 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 		It("Check trimming of oidc url with https perfix", func() {
 			clusterState := &ClusterRosaHcpState{}
 			clusterJson := generateBasicRosaHcpClusterJson()
-			clusterJson["aws"].(map[string]interface{})["sts"].(map[string]interface{})["oidc_endpoint_url"] = "https://nonce.com"
-			clusterJson["aws"].(map[string]interface{})["sts"].(map[string]interface{})["operator_role_prefix"] = "terraform-operator"
+			clusterJson["aws"].(map[string]any)["sts"].(map[string]any)["oidc_endpoint_url"] = "https://nonce.com"
+			clusterJson["aws"].(map[string]any)["sts"].(map[string]any)["operator_role_prefix"] = "terraform-operator"
 
 			clusterJsonString, err := json.Marshal(clusterJson)
 			Expect(err).ToNot(HaveOccurred())
@@ -342,7 +342,7 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 		It("Throws an error when oidc_endpoint_url is an invalid url", func() {
 			clusterState := &ClusterRosaHcpState{}
 			clusterJson := generateBasicRosaHcpClusterJson()
-			clusterJson["aws"].(map[string]interface{})["sts"].(map[string]interface{})["oidc_endpoint_url"] = "invalid$url"
+			clusterJson["aws"].(map[string]any)["sts"].(map[string]any)["oidc_endpoint_url"] = "invalid$url"
 			clusterJsonString, err := json.Marshal(clusterJson)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -356,7 +356,7 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 		It("Reads audit log ARN from API response", func() {
 			clusterState := &ClusterRosaHcpState{}
 			clusterJson := generateBasicRosaHcpClusterJson()
-			clusterJson["aws"].(map[string]interface{})["audit_log"] = map[string]interface{}{
+			clusterJson["aws"].(map[string]any)["audit_log"] = map[string]any{
 				"role_arn": auditLogRoleArn,
 			}
 			clusterJsonString, err := json.Marshal(clusterJson)
@@ -386,10 +386,10 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 		It("Reads auto_node mode and role ARN from API response", func() {
 			clusterState := &ClusterRosaHcpState{}
 			clusterJson := generateBasicRosaHcpClusterJson()
-			clusterJson["auto_node"] = map[string]interface{}{
+			clusterJson["auto_node"] = map[string]any{
 				"mode": autoNodeModeEnabled,
 			}
-			clusterJson["aws"].(map[string]interface{})["auto_node"] = map[string]interface{}{
+			clusterJson["aws"].(map[string]any)["auto_node"] = map[string]any{
 				"role_arn": autoNodeRoleArn,
 			}
 			clusterJsonString, err := json.Marshal(clusterJson)
@@ -407,7 +407,7 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 		It("Ignores auto_node when mode is disabled", func() {
 			clusterState := &ClusterRosaHcpState{}
 			clusterJson := generateBasicRosaHcpClusterJson()
-			clusterJson["auto_node"] = map[string]interface{}{
+			clusterJson["auto_node"] = map[string]any{
 				"mode": "disabled",
 			}
 			clusterJsonString, err := json.Marshal(clusterJson)
@@ -423,7 +423,7 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 		It("Ignores auto_node when role_arn is missing", func() {
 			clusterState := &ClusterRosaHcpState{}
 			clusterJson := generateBasicRosaHcpClusterJson()
-			clusterJson["auto_node"] = map[string]interface{}{
+			clusterJson["auto_node"] = map[string]any{
 				"mode": autoNodeModeEnabled,
 			}
 			clusterJsonString, err := json.Marshal(clusterJson)
@@ -485,7 +485,7 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 		It("Nulls Channel and populates ChannelGroup when cluster has no channel", func() {
 			clusterState := &ClusterRosaHcpState{}
 			clusterJson := generateBasicRosaHcpClusterJson()
-			clusterJson["version"] = map[string]interface{}{
+			clusterJson["version"] = map[string]any{
 				"id":            "openshift-v4.14.0",
 				"channel_group": "stable",
 			}

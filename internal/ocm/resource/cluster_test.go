@@ -21,17 +21,17 @@ var _ = Describe("Cluster", func() {
 	})
 	Context("CreateNodes validation", func() {
 		It("Autoscaling disabled minReplicas set - failure", func() {
-			err := cluster.CreateNodes(rosaTypes.Classic, false, nil, pointer(int64(2)), nil, nil, nil, nil, false, nil, nil)
+			err := cluster.CreateNodes(rosaTypes.Classic, false, nil, new(int64(2)), nil, nil, nil, nil, false, nil, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("Autoscaling must be enabled in order to set min and max replicas"))
 		})
 		It("Autoscaling disabled maxReplicas set - failure", func() {
-			err := cluster.CreateNodes(rosaTypes.Classic, false, nil, nil, pointer(int64(2)), nil, nil, nil, false, nil, nil)
+			err := cluster.CreateNodes(rosaTypes.Classic, false, nil, nil, new(int64(2)), nil, nil, nil, false, nil, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("Autoscaling must be enabled in order to set min and max replicas"))
 		})
 		It("Autoscaling disabled replicas smaller than 2 - failure", func() {
-			err := cluster.CreateNodes(rosaTypes.Classic, false, pointer(int64(1)), nil, nil, nil, nil, nil, false, nil, nil)
+			err := cluster.CreateNodes(rosaTypes.Classic, false, new(int64(1)), nil, nil, nil, nil, nil, false, nil, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("Cluster requires at least 2 compute nodes"))
 		})
@@ -50,7 +50,7 @@ var _ = Describe("Cluster", func() {
 			Expect(autoscaleCompute).To(BeNil())
 		})
 		It("Autoscaling disabled 3 replicas - success", func() {
-			err := cluster.CreateNodes(rosaTypes.Classic, false, pointer(int64(3)), nil, nil, nil, nil, nil, false, nil, nil)
+			err := cluster.CreateNodes(rosaTypes.Classic, false, new(int64(3)), nil, nil, nil, nil, nil, false, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -64,7 +64,7 @@ var _ = Describe("Cluster", func() {
 			Expect(autoscaleCompute).To(BeNil())
 		})
 		It("Autoscaling enabled replicas set - failure", func() {
-			err := cluster.CreateNodes(rosaTypes.Classic, true, pointer(int64(2)), nil, nil, nil, nil, nil, false, nil, nil)
+			err := cluster.CreateNodes(rosaTypes.Classic, true, new(int64(2)), nil, nil, nil, nil, nil, false, nil, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("When autoscaling is enabled, replicas should not be configured"))
 		})
@@ -85,12 +85,12 @@ var _ = Describe("Cluster", func() {
 			Expect(autoscaleCompute.MaxReplicas()).To(Equal(2))
 		})
 		It("Autoscaling enabled default maxReplicas smaller than minReplicas - failure", func() {
-			err := cluster.CreateNodes(rosaTypes.Classic, true, nil, pointer(int64(4)), pointer(int64(3)), nil, nil, nil, false, nil, nil)
+			err := cluster.CreateNodes(rosaTypes.Classic, true, nil, new(int64(4)), new(int64(3)), nil, nil, nil, false, nil, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("max-replicas must be greater or equal to min-replicas"))
 		})
 		It("Autoscaling enabled set minReplicas & maxReplicas - success", func() {
-			err := cluster.CreateNodes(rosaTypes.Classic, true, nil, pointer(int64(2)), pointer(int64(4)), nil, nil, nil, false, nil, nil)
+			err := cluster.CreateNodes(rosaTypes.Classic, true, nil, new(int64(2)), new(int64(4)), nil, nil, nil, false, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -106,7 +106,7 @@ var _ = Describe("Cluster", func() {
 			Expect(autoscaleCompute.MaxReplicas()).To(Equal(4))
 		})
 		It("Autoscaling disabled set ComputeMachineType - success", func() {
-			err := cluster.CreateNodes(rosaTypes.Classic, false, nil, nil, nil, pointer("asdf"), nil, nil, false, nil, nil)
+			err := cluster.CreateNodes(rosaTypes.Classic, false, nil, nil, nil, new("asdf"), nil, nil, false, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -158,12 +158,12 @@ var _ = Describe("Cluster", func() {
 			Expect(err.Error()).To(Equal("The number of availability zones for a single AZ cluster should be 1, instead received: 3"))
 		})
 		It("Autoscaling disabled multiAZ true set three availability zones and two replicas - failure", func() {
-			err := cluster.CreateNodes(rosaTypes.Classic, false, pointer(int64(2)), nil, nil, nil, nil, []string{"us-east-1a", "us-east-1b", "us-east-1c"}, true, nil, nil)
+			err := cluster.CreateNodes(rosaTypes.Classic, false, new(int64(2)), nil, nil, nil, nil, []string{"us-east-1a", "us-east-1b", "us-east-1c"}, true, nil, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("Multi AZ cluster requires at least 3 compute nodes"))
 		})
 		It("Autoscaling disabled multiAZ true set three availability zones and three replicas - success", func() {
-			err := cluster.CreateNodes(rosaTypes.Classic, false, pointer(int64(3)), nil, nil, nil, nil, []string{"us-east-1a", "us-east-1b", "us-east-1c"}, true, nil, nil)
+			err := cluster.CreateNodes(rosaTypes.Classic, false, new(int64(3)), nil, nil, nil, nil, []string{"us-east-1a", "us-east-1b", "us-east-1c"}, true, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -185,7 +185,7 @@ var _ = Describe("Cluster", func() {
 		It("Custom disk size", func() {
 			diskSize := int64(543)
 			version := "4.14.0"
-			err := cluster.CreateNodes(rosaTypes.Classic, false, pointer(int64(3)), nil, nil, nil, nil, nil, false, &diskSize, &version)
+			err := cluster.CreateNodes(rosaTypes.Classic, false, new(int64(3)), nil, nil, nil, nil, nil, false, &diskSize, &version)
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -200,7 +200,7 @@ var _ = Describe("Cluster", func() {
 		It("Custom disk size with version before 4.14", func() {
 			diskSize := int64(2000)
 			version := "4.10.0"
-			err := cluster.CreateNodes(rosaTypes.Classic, false, pointer(int64(3)), nil, nil, nil, nil, nil, false, &diskSize, &version)
+			err := cluster.CreateNodes(rosaTypes.Classic, false, new(int64(3)), nil, nil, nil, nil, nil, false, &diskSize, &version)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("Invalid root disk size"))
 		})
@@ -212,7 +212,7 @@ var _ = Describe("Cluster", func() {
 			Expect(err.Error()).To(Equal("Clusters with PrivateLink must have a pre-configured VPC. Make sure to specify the subnet ids."))
 		})
 		It("PrivateLink false invalid kmsKeyARN - failure", func() {
-			err := cluster.CreateAWSBuilder(rosaTypes.Classic, nil, nil, pointer("test"), nil, nil, false, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+			err := cluster.CreateAWSBuilder(rosaTypes.Classic, nil, nil, new("test"), nil, nil, false, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal(fmt.Sprintf("expected the kms-key-arn: %s to match %s", "test", kmsArnRegexpValidator.KmsArnRE)))
 		})
@@ -232,7 +232,7 @@ var _ = Describe("Cluster", func() {
 		})
 		It("PrivateLink false invalid Ec2MetadataHttpTokens - success", func() {
 			// TODO Need to add validation for Ec2MetadataHttpTokens
-			err := cluster.CreateAWSBuilder(rosaTypes.Classic, nil, pointer("test"), nil, nil, nil, false, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+			err := cluster.CreateAWSBuilder(rosaTypes.Classic, nil, new("test"), nil, nil, nil, false, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -260,7 +260,7 @@ var _ = Describe("Cluster", func() {
 			autoNodeRoleArn := "arn:aws:iam::111111111111:role/karpenter-role"
 			subnets := []string{"subnet-1a1a1a1a1a1a1a1a1"}
 			err := cluster.CreateAWSBuilder(rosaTypes.Hcp, nil, nil, nil, nil, nil, false, nil, nil, nil, subnets,
-				nil, nil, nil, nil, nil, nil, nil, nil, pointer(autoNodeRoleArn))
+				nil, nil, nil, nil, nil, nil, nil, nil, new(autoNodeRoleArn))
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
 			Expect(err).NotTo(HaveOccurred())
@@ -279,10 +279,10 @@ var _ = Describe("Cluster", func() {
 			operatorRolePrefix := "bbb"
 			oidcConfigID := "1234567dgsdfgh"
 			sts := CreateSTS(installerRole, supportRole, &masterRole, workerRole,
-				operatorRolePrefix, pointer(oidcConfigID), nil)
+				operatorRolePrefix, new(oidcConfigID), nil)
 			err := cluster.CreateAWSBuilder(rosaTypes.Classic, map[string]string{"key1": "val1"},
 				pointer(string(cmv1.Ec2MetadataHttpTokensRequired)),
-				pointer(validKmsKey), nil, nil, true, pointer(accountID), nil,
+				new(validKmsKey), nil, nil, true, new(accountID), nil,
 				sts, subnets, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
@@ -321,10 +321,10 @@ var _ = Describe("Cluster", func() {
 			operatorRolePrefix := "bbb"
 			oidcConfigID := "1234567dgsdfgh"
 			sts := CreateSTS(installerRole, supportRole, &masterRole, workerRole,
-				operatorRolePrefix, pointer(oidcConfigID), nil)
+				operatorRolePrefix, new(oidcConfigID), nil)
 			err := cluster.CreateAWSBuilder(rosaTypes.Classic, map[string]string{"key1": "val1"},
 				pointer(string(cmv1.Ec2MetadataHttpTokensRequired)),
-				pointer(validKmsKey), nil, nil, true, pointer(accountID), nil,
+				new(validKmsKey), nil, nil, true, new(accountID), nil,
 				sts, subnets, &privateHZId, &privateHZRoleArn, nil, nil, nil, nil, nil, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
@@ -346,10 +346,10 @@ var _ = Describe("Cluster", func() {
 			operatorRolePrefix := "bbb"
 			oidcConfigID := "1234567dgsdfgh"
 			sts := CreateSTS(installerRole, supportRole, &masterRole, workerRole,
-				operatorRolePrefix, pointer(oidcConfigID), nil)
+				operatorRolePrefix, new(oidcConfigID), nil)
 			err := cluster.CreateAWSBuilder(rosaTypes.Classic, map[string]string{"key1": "val1"},
 				pointer(string(cmv1.Ec2MetadataHttpTokensRequired)),
-				pointer(validKmsKey), nil, nil, true, pointer(accountID), nil,
+				new(validKmsKey), nil, nil, true, new(accountID), nil,
 				sts, subnets, &privateHZId, &privateHZRoleArn, nil, nil, nil, nil, nil, nil, nil)
 			Expect(err).To(HaveOccurred())
 		})
@@ -361,7 +361,7 @@ var _ = Describe("Cluster", func() {
 			privateHZId := "123123"
 			err := cluster.CreateAWSBuilder(rosaTypes.Classic, map[string]string{"key1": "val1"},
 				pointer(string(cmv1.Ec2MetadataHttpTokensRequired)),
-				pointer(validKmsKey), nil, nil, true, pointer(accountID), nil,
+				new(validKmsKey), nil, nil, true, new(accountID), nil,
 				nil, subnets, &privateHZId, &privateHZRoleArn, nil, nil, nil, nil, nil, nil, nil)
 			Expect(err).To(HaveOccurred())
 		})
@@ -377,10 +377,10 @@ var _ = Describe("Cluster", func() {
 			operatorRolePrefix := "bbb"
 			oidcConfigID := "1234567dgsdfgh"
 			sts := CreateSTS(installerRole, supportRole, &masterRole, workerRole,
-				operatorRolePrefix, pointer(oidcConfigID), nil)
+				operatorRolePrefix, new(oidcConfigID), nil)
 			err := cluster.CreateAWSBuilder(rosaTypes.Classic, map[string]string{"key1": "val1"},
 				pointer(string(cmv1.Ec2MetadataHttpTokensRequired)),
-				pointer(validKmsKey), nil, nil, true, pointer(accountID), nil,
+				new(validKmsKey), nil, nil, true, new(accountID), nil,
 				sts, nil, &privateHZId, &privateHZRoleArn, nil, nil, nil, nil, nil, nil, nil)
 			Expect(err).To(HaveOccurred())
 		})
@@ -396,10 +396,10 @@ var _ = Describe("Cluster", func() {
 			oidcConfigID := "1234567dgsdfgh"
 			externalID := "test-external-id-67890"
 			sts := CreateSTS(installerRole, supportRole, &masterRole, workerRole,
-				operatorRolePrefix, pointer(oidcConfigID), pointer(externalID))
+				operatorRolePrefix, new(oidcConfigID), new(externalID))
 			err := cluster.CreateAWSBuilder(rosaTypes.Classic, map[string]string{"key1": "val1"},
 				pointer(string(cmv1.Ec2MetadataHttpTokensRequired)),
-				pointer(validKmsKey), nil, nil, true, pointer(accountID), nil,
+				new(validKmsKey), nil, nil, true, new(accountID), nil,
 				sts, subnets, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 			Expect(err).NotTo(HaveOccurred())
 			ocmCluster, err := cluster.Build()
@@ -448,6 +448,7 @@ var _ = Describe("Cluster", func() {
 	})
 })
 
+//go:fix inline
 func pointer[T any](src T) *T {
-	return &src
+	return new(src)
 }

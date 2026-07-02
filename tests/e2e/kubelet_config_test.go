@@ -13,7 +13,6 @@ import (
 	ci "github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	cms "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	exe "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 
@@ -45,8 +44,8 @@ var _ = Describe("Kubelet config", func() {
 		By("Create kubeletconfig")
 		podPidsLimit := 12345
 		kcArgs := &exe.KubeletConfigArgs{
-			PodPidsLimit: helper.IntPointer(podPidsLimit),
-			Cluster:      helper.StringPointer(clusterID),
+			PodPidsLimit: new(podPidsLimit),
+			Cluster:      new(clusterID),
 		}
 
 		_, err := kcService.Apply(kcArgs)
@@ -70,7 +69,7 @@ var _ = Describe("Kubelet config", func() {
 
 		By("Update kubeletConfig")
 		podPidsLimit = 12346
-		kcArgs.PodPidsLimit = helper.IntPointer(podPidsLimit)
+		kcArgs.PodPidsLimit = new(podPidsLimit)
 		_, err = kcService.Apply(kcArgs)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -104,10 +103,10 @@ var _ = Describe("Kubelet config", func() {
 
 		By("Create multiple kubeletconfigs to the cluster")
 		kcArgs = &exe.KubeletConfigArgs{
-			PodPidsLimit:        helper.IntPointer(podPidsLimit),
-			Cluster:             helper.StringPointer(clusterID),
-			KubeletConfigNumber: helper.IntPointer(10),
-			NamePrefix:          helper.StringPointer("kube-70128"),
+			PodPidsLimit:        new(podPidsLimit),
+			Cluster:             new(clusterID),
+			KubeletConfigNumber: new(10),
+			NamePrefix:          new("kube-70128"),
 		}
 		_, err = kcService.Apply(kcArgs)
 		if cluster.Hypershift().Enabled() {
@@ -125,20 +124,20 @@ var _ = Describe("Kubelet config", func() {
 		By("Create kubeletconfig")
 		podPidsLimit := 1
 		kcArgs := &exe.KubeletConfigArgs{
-			PodPidsLimit: helper.IntPointer(podPidsLimit),
-			Cluster:      helper.StringPointer(clusterID),
+			PodPidsLimit: new(podPidsLimit),
+			Cluster:      new(clusterID),
 		}
 
 		output, err := kcService.Plan(kcArgs)
 		Expect(err).To(HaveOccurred())
 		Expect(output).Should(ContainSubstring("The requested podPidsLimit of '%d' is below the minimum allowable value of", *kcArgs.PodPidsLimit))
 
-		kcArgs.PodPidsLimit = helper.IntPointer(1234567890)
+		kcArgs.PodPidsLimit = new(1234567890)
 		output, err = kcService.Plan(kcArgs)
 		Expect(err).To(HaveOccurred())
 		Expect(output).Should(ContainSubstring("The requested podPidsLimit of '%d' is above the default maximum value", *kcArgs.PodPidsLimit))
 
-		kcArgs.PodPidsLimit = helper.IntPointer(1234567)
+		kcArgs.PodPidsLimit = new(1234567)
 		output, err = kcService.Plan(kcArgs)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -146,9 +145,9 @@ var _ = Describe("Kubelet config", func() {
 
 		if cluster.Hypershift().Enabled() {
 			By("Create more than 100 kubeletconfig is not allowed")
-			kcArgs.PodPidsLimit = helper.IntPointer(4096)
-			kcArgs.KubeletConfigNumber = helper.IntPointer(300)
-			kcArgs.NamePrefix = helper.StringPointer("kc-70129")
+			kcArgs.PodPidsLimit = new(4096)
+			kcArgs.KubeletConfigNumber = new(300)
+			kcArgs.NamePrefix = new("kc-70129")
 			_, err = kcService.Apply(kcArgs)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).Should(ContainSubstring("Maximum allowed is '100'"))

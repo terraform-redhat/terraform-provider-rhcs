@@ -691,7 +691,7 @@ func (r *IdentityProviderResource) ImportState(ctx context.Context, request reso
 
 // getIDPIDFromName returns the ID of the identity provider with the given name.
 func getIDPIDFromName(ctx context.Context, client *cmv1.ClusterClient, name string) (string, error) {
-	tflog.Debug(ctx, "Converting IDP name to ID", map[string]interface{}{"name": name})
+	tflog.Debug(ctx, "Converting IDP name to ID", map[string]any{"name": name})
 	// Get the list of identity providers for the cluster:
 	pClient := client.IdentityProviders()
 	identityProviders := []*cmv1.IdentityProvider{}
@@ -716,7 +716,7 @@ func getIDPIDFromName(ctx context.Context, client *cmv1.ClusterClient, name stri
 	for _, item := range identityProviders {
 		if item.Name() == name {
 			id := item.ID()
-			tflog.Debug(ctx, "Found IDP", map[string]interface{}{"name": name, "id": id})
+			tflog.Debug(ctx, "Found IDP", map[string]any{"name": name, "id": id})
 			return id, nil
 		}
 	}

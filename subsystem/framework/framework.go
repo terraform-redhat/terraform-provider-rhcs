@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -104,7 +103,7 @@ func (b *TerraformRunnerBuilder) Build() *TerraformRunner {
 
 	// Create a temporary directory for the files so that we don't interfere with the
 	// configuration that may already exist for the user running the tests.
-	tmpDir, err := ioutil.TempDir("", "rhcs-test-*.d")
+	tmpDir, err := os.MkdirTemp("", "rhcs-test-*.d")
 	ExpectWithOffset(1, err).ToNot(HaveOccurred())
 
 	ExpectWithOffset(1, err).ToNot(HaveOccurred())
@@ -131,7 +130,7 @@ func (b *TerraformRunnerBuilder) Build() *TerraformRunner {
 		"Token", b.token,
 		"CA", strings.ReplaceAll(b.ca, "\\", "/"),
 	)
-	err = ioutil.WriteFile(mainPath, []byte(mainContent), 0600)
+	err = os.WriteFile(mainPath, []byte(mainContent), 0600)
 	ExpectWithOffset(1, err).ToNot(HaveOccurred())
 
 	// Parse the current environment into a map so that it is easy to update it:
@@ -188,7 +187,7 @@ func (b *TerraformRunnerBuilder) Build() *TerraformRunner {
 // Source sets the Terraform source of the test.
 func (r *TerraformRunner) Source(text string) {
 	file := filepath.Join(r.dir, "test.tf")
-	err := ioutil.WriteFile(file, []byte(text), 0600)
+	err := os.WriteFile(file, []byte(text), 0600)
 	ExpectWithOffset(1, err).ToNot(HaveOccurred())
 }
 
@@ -248,13 +247,13 @@ func (r *TerraformRunner) Import(args ...string) RunOutput {
 
 // State returns the reads the Terraform state and returns the result of parsing
 // it as a JSON document.
-func (r *TerraformRunner) State() interface{} {
+func (r *TerraformRunner) State() any {
 	path := filepath.Join(r.dir, "terraform.tfstate")
 	_, err := os.Stat(path)
-	var result interface{}
+	var result any
 	if err == nil {
 		var data []byte
-		data, err = ioutil.ReadFile(path)
+		data, err = os.ReadFile(path)
 		ExpectWithOffset(1, err).ToNot(HaveOccurred())
 		err = json.Unmarshal(data, &result)
 		ExpectWithOffset(1, err).ToNot(HaveOccurred())
@@ -263,7 +262,7 @@ func (r *TerraformRunner) State() interface{} {
 }
 
 // Resource returns the resource stored in the state with the given type and identifier.
-func (r *TerraformRunner) Resource(typ, name string) interface{} {
+func (r *TerraformRunner) Resource(typ, name string) any {
 	state := r.State()
 	filter := fmt.Sprintf(
 		`.resources[] | select(.type == "%s" and .name == "%s") | .instances[]`,

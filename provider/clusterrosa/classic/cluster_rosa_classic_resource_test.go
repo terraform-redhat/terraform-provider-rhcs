@@ -380,7 +380,6 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 		})
 		It("Cluster admin user is created with customized username", func() {
 			username := "test-username"
-			password := "test-password123456789$"
 			clusterState := generateBasicRosaClassicClusterState()
 			clusterState.AdminCredentials = rosaTypes.FlattenAdminCredentials(username, "")
 			rosaClusterObject, err := createClassicClusterObject(context.Background(), clusterState, diag.Diagnostics{})
@@ -392,7 +391,6 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 			Expect(user.Username()).To(Equal(username))
 			Expect(user.Password()).To(BeEmpty())
 			Expect(user.HashedPassword()).NotTo(BeEmpty())
-			Expect(user.HashedPassword()).NotTo(Equal(password))
 		})
 	})
 

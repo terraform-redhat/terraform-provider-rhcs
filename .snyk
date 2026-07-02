@@ -1,0 +1,26 @@
+# Snyk policy — terraform-provider-rhcs
+# https://docs.snyk.io/manage-risk/policies/the-.snyk-file
+# https://docs.ci.openshift.org/how-tos/add-security-scanning/
+#
+# Code (SAST): exclude test-only paths from Snyk Code. Complements Prow:
+#   SNYK_CODE_ADDITIONAL_ARGS: --severity-threshold=high --policy-path=.snyk
+#
+# Open Source (deps): .snyk at repo root is auto-loaded by `snyk test`.
+# Do not set SNYK_DEPS_ADDITIONAL_ARGS to --policy-path alone (replaces default
+# CLI args in openshift-ci-security). Add ignore entries only after fix attempts.
+
+version: v1.25.1
+
+exclude:
+  global:
+    - "**/*_test.go"
+    - "tests/**"
+    - "subsystem/**"
+
+ignore:
+  SNYK-GOLANG-GITHUBCOMVMIHAILENCOMSGPACKV5-15702238:
+    - "*":
+        reason: >-
+          msgpack/v5 v5.4.1 is latest; transitive via HashiCorp plugin stack with
+          no upstream fix. Revisit when msgpack or plugins release a fix.
+        expires: 2026-09-30T00:00:00.000Z

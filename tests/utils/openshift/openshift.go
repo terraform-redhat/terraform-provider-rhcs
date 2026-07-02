@@ -269,10 +269,10 @@ func WaitHCPClusterUpgradeFinished(connection *client.Connection, clusterID stri
 }
 
 // will return [map["NAME":"ip-10-0-130-210.us-east-2.compute.internal","STATUS":"Ready","ROLES":"worker"...]]
-func FigureStdout(stdout string, columns map[string][]interface{}) (result []map[string]interface{}, err error) {
+func FigureStdout(stdout string, columns map[string][]any) (result []map[string]any, err error) {
 	items := helper.DigArray(helper.Parse([]byte(stdout)), "items")
 	for _, item := range items {
-		newMap := map[string]interface{}{}
+		newMap := map[string]any{}
 		for key, pattern := range columns {
 			newMap[key] = helper.Dig(item, pattern)
 		}

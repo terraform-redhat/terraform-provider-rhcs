@@ -27,8 +27,8 @@ import (
 )
 
 // Parse parses the given JSON data and returns a map of strings containing the result.
-func Parse(data []byte) map[string]interface{} {
-	var object map[string]interface{}
+func Parse(data []byte) map[string]any {
+	var object map[string]any
 	err := json.Unmarshal(data, &object)
 	Expect(err).ToNot(HaveOccurred())
 	return object
@@ -37,7 +37,7 @@ func Parse(data []byte) map[string]interface{} {
 func ParseStringToMap(input string) (map[string]string, error) {
 
 	// Attempt to parse input as JSON
-	var jsonData map[string]interface{}
+	var jsonData map[string]any
 	if err := json.Unmarshal([]byte(input), &jsonData); err == nil {
 		// If successful, convert the map to map[string]string
 		result := make(map[string]string)
@@ -77,7 +77,7 @@ func ParseStringToMap(input string) (map[string]string, error) {
 }
 
 // If there is no attribute with the given path then the return value will be an empty string.
-func DigString(object interface{}, keys ...interface{}) string {
+func DigString(object any, keys ...any) string {
 	switch result := Dig(object, keys).(type) {
 	case nil:
 		return ""
@@ -97,7 +97,7 @@ func NewRand() *rand.Rand {
 
 // DigStringArray tries to find an array inside the given object with the given path, and returns its
 // value. If there is no attribute with the given path then the test will be aborted with an error.
-func DigStringArray(object interface{}, keys ...interface{}) []string {
+func DigStringArray(object any, keys ...any) []string {
 	value := Dig(object, keys)
 	if value == nil {
 		return nil
@@ -112,35 +112,35 @@ func DigStringArray(object interface{}, keys ...interface{}) []string {
 
 // DigArray tries to find an array inside the given object with the given path, and returns its
 // value. If there is no attribute with the given path then the test will be aborted with an error.
-func DigArray(object interface{}, keys ...interface{}) []interface{} {
+func DigArray(object any, keys ...any) []any {
 	value := Dig(object, keys)
 	if value == nil {
 		return nil
 	}
-	result := value.([]interface{})
+	result := value.([]any)
 	return result
 }
 
-func DigArrayToString(object interface{}, keys ...interface{}) []string {
+func DigArrayToString(object any, keys ...any) []string {
 	value := Dig(object, keys)
-	var result []interface{}
+	var result []any
 	if value == nil {
 		return nil
 	}
-	result = value.([]interface{})
+	result = value.([]any)
 	strR := []string{}
 	for _, r := range result {
 		strR = append(strR, r.(string))
 	}
 	return strR
 }
-func DigArrayToInt(object interface{}, keys ...interface{}) []int {
+func DigArrayToInt(object any, keys ...any) []int {
 	value := Dig(object, keys)
-	var result []interface{}
+	var result []any
 	if value == nil {
 		return nil
 	}
-	result = value.([]interface{})
+	result = value.([]any)
 	intR := []int{}
 	for _, r := range result {
 		intR = append(intR, r.(int))
@@ -148,12 +148,12 @@ func DigArrayToInt(object interface{}, keys ...interface{}) []int {
 	return intR
 }
 
-func DigMapToString(object interface{}, keys ...interface{}) map[string]string {
+func DigMapToString(object any, keys ...any) map[string]string {
 	value := Dig(object, keys)
 	if value == nil {
 		return nil
 	}
-	result, ok := value.(map[string]interface{})
+	result, ok := value.(map[string]any)
 	if !ok {
 		return nil
 	}
@@ -167,7 +167,7 @@ func DigMapToString(object interface{}, keys ...interface{}) map[string]string {
 // DigInt tries to find an attribute inside the given object with the given path, and returns its
 // value, assuming that it is an integer. If there is no attribute with the given path then the test
 // will be aborted with an error.
-func DigInt(object interface{}, keys ...interface{}) int {
+func DigInt(object any, keys ...any) int {
 	value := Dig(object, keys)
 	if value == nil {
 		return 0
@@ -179,7 +179,7 @@ func DigInt(object interface{}, keys ...interface{}) int {
 	return int(result)
 }
 
-func DigBool(object interface{}, keys ...interface{}) bool {
+func DigBool(object any, keys ...any) bool {
 	switch result := Dig(object, keys).(type) {
 	case nil:
 		return false
@@ -196,19 +196,19 @@ func DigBool(object interface{}, keys ...interface{}) bool {
 	}
 }
 
-func DigObject(object interface{}, keys ...interface{}) interface{} {
+func DigObject(object any, keys ...any) any {
 	value := Dig(object, keys)
 	return value
 }
 
-func Dig(object interface{}, keys []interface{}) interface{} {
+func Dig(object any, keys []any) any {
 	if object == nil || len(keys) == 0 {
 		return nil
 	}
 	switch key := keys[0].(type) {
 	case string:
 		switch data := object.(type) {
-		case map[string]interface{}:
+		case map[string]any:
 			value := data[key]
 			if len(keys) == 1 {
 				return value
@@ -217,7 +217,7 @@ func Dig(object interface{}, keys []interface{}) interface{} {
 		}
 	case int:
 		switch data := object.(type) {
-		case []interface{}:
+		case []any:
 			value := data[key]
 			if len(keys) == 1 {
 				return value
@@ -250,7 +250,7 @@ func RunCMD(cmd string) (stdout string, stderr string, err error) {
 }
 
 // MapStructure will map the map to the address of the structre *i
-func MapStructure(m map[string]interface{}, i interface{}) error {
+func MapStructure(m map[string]any, i any) error {
 	jsonbody, err := json.Marshal(m)
 	if err != nil {
 		return err
@@ -334,7 +334,7 @@ func Contains(arry []string, val string) (index int, flag bool) {
 	if len(arry) == 0 {
 		return
 	}
-	for i = 0; i < len(arry); i++ {
+	for i = range arry {
 		if arry[i] == val {
 			index = i
 			flag = true
@@ -396,7 +396,7 @@ func NegateBoolToString(value bool) string {
 }
 
 // ConvertMapToJSONString converts the map to a json string.
-func ConvertMapToJSONString(inputMap map[string]interface{}) string {
+func ConvertMapToJSONString(inputMap map[string]any) string {
 	jsonBytes, _ := json.Marshal(inputMap)
 	return string(jsonBytes)
 }
@@ -406,8 +406,8 @@ func ConvertStringToInt(mystring string) int {
 	return myint
 }
 
-func ConvertStructToMap(s interface{}) map[string]interface{} {
-	structMap := make(map[string]interface{})
+func ConvertStructToMap(s any) map[string]any {
+	structMap := make(map[string]any)
 
 	j, _ := json.Marshal(s)
 	err := json.Unmarshal(j, &structMap)
@@ -418,12 +418,12 @@ func ConvertStructToMap(s interface{}) map[string]interface{} {
 	return structMap
 }
 
-func ConvertStructToString(s interface{}) string {
+func ConvertStructToString(s any) string {
 	structMap := ConvertStructToMap(s)
 	return ConvertMapToJSONString(structMap)
 }
 
-func IsInMap(inputMap map[string]interface{}, key string) bool {
+func IsInMap(inputMap map[string]any, key string) bool {
 	_, contain := inputMap[key]
 	return contain
 }
@@ -548,42 +548,53 @@ var (
 	NilMap                map[string]string
 )
 
-var EmptyStringPointer = StringPointer(emptyStringValue)
-var EmptyStringSlicePointer = StringSlicePointer(emptyStringSliceValue)
+var EmptyStringPointer = new(emptyStringValue)
+var EmptyStringSlicePointer = new(emptyStringSliceValue)
 
 // Return a bool pointer of the input bool value
+//
+//go:fix inline
 func BoolPointer(b bool) *bool {
-	return &b
+	return new(b)
 }
 
 // Return a string pointer of the input string value
+//
+//go:fix inline
 func StringPointer(s string) *string {
-	return &s
+	return new(s)
 }
 
 // Return a pointer of the input int value
+//
+//go:fix inline
 func IntPointer(i int) *int {
-	return &i
+	return new(i)
 }
 
+//go:fix inline
 func Float64Pointer(f float64) *float64 {
-	return &f
+	return new(f)
 }
 
+//go:fix inline
 func StringSlicePointer(f []string) *[]string {
-	return &f
+	return new(f)
 }
 
+//go:fix inline
 func IntSlicePointer(f []int) *[]int {
-	return &f
+	return new(f)
 }
 
+//go:fix inline
 func StringMapPointer(f map[string]string) *map[string]string {
-	return &f
+	return new(f)
 }
 
-func Pointer(f interface{}) *interface{} {
-	return &f
+//go:fix inline
+func Pointer(f any) *any {
+	return new(f)
 }
 
 func GetTFErrorMessage(err error) string {

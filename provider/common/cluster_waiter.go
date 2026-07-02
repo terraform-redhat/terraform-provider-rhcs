@@ -139,7 +139,7 @@ func pollClusterCurrentCompute(clusterId string, ctx context.Context, timeout in
 		Interval(pollingIntervalInMinutes * time.Minute).
 		Predicate(func(getClusterResponse *cmv1.ClusterGetResponse) bool {
 			object = getClusterResponse.Body()
-			tflog.Debug(ctx, "polled cluster compute", map[string]interface{}{
+			tflog.Debug(ctx, "polled cluster compute", map[string]any{
 				"currentCompute": object.Status().CurrentCompute(),
 			})
 			switch object.Status().CurrentCompute() {
@@ -166,7 +166,7 @@ func pollClusterState(clusterId string, ctx context.Context, timeout int64, clus
 		Interval(pollingIntervalInMinutes * time.Minute).
 		Predicate(func(getClusterResponse *cmv1.ClusterGetResponse) bool {
 			object = getClusterResponse.Body()
-			tflog.Debug(ctx, "polled cluster state", map[string]interface{}{
+			tflog.Debug(ctx, "polled cluster state", map[string]any{
 				"state": object.State(),
 			})
 			switch object.State() {

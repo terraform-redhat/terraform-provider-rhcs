@@ -53,7 +53,7 @@ var _ = Describe("Tuning Configs", func() {
 		ID("456").
 		HREF("/api/clusters_mgmt/v1/clusters/123/tuning_configs/456").
 		Name("my_config").
-		Spec(map[string]interface{}{})
+		Spec(map[string]any{})
 	tuningConfig, err := tuningConfigBuilder.Build()
 	Expect(err).ToNot(HaveOccurred())
 	b.Reset()
@@ -65,7 +65,7 @@ var _ = Describe("Tuning Configs", func() {
 		ID("456").
 		HREF("/api/clusters_mgmt/v1/clusters/123/tuning_configs/456").
 		Name("my_config").
-		Spec(map[string]interface{}{"key": "value"})
+		Spec(map[string]any{"key": "value"})
 	tuningConfigSpec, err := tuningConfigSpecBuilder.Build()
 	Expect(err).ToNot(HaveOccurred())
 	b.Reset()
@@ -177,7 +177,7 @@ var _ = Describe("Tuning Configs", func() {
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/tuning_configs"),
 					VerifyJQ(".name", "my_config"),
-					VerifyJQ(".spec", map[string]interface{}{}),
+					VerifyJQ(".spec", map[string]any{}),
 					RespondWithJSON(http.StatusCreated, tuningConfigTemplate),
 				),
 			)
@@ -236,11 +236,11 @@ var _ = Describe("Tuning Configs", func() {
 			runOutput := Terraform.Import("rhcs_tuning_config.tuning_config", "123,456")
 			Expect(runOutput.ExitCode).To(BeZero())
 
-			actualResource, ok := Terraform.Resource("rhcs_tuning_config", "tuning_config").(map[string]interface{})
+			actualResource, ok := Terraform.Resource("rhcs_tuning_config", "tuning_config").(map[string]any)
 			Expect(ok).To(BeTrue(), "Type conversion failed for the received resource state")
 
 			Expect(actualResource["attributes"]).To(Equal(
-				map[string]interface{}{
+				map[string]any{
 					"cluster": "123",
 					"id":      "456",
 					"name":    "my_config",
@@ -264,7 +264,7 @@ var _ = Describe("Tuning Configs", func() {
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/tuning_configs"),
 					VerifyJQ(".name", "my_config"),
-					VerifyJQ(".spec", map[string]interface{}{}),
+					VerifyJQ(".spec", map[string]any{}),
 					RespondWithJSON(http.StatusCreated, tuningConfigTemplate),
 				),
 			)
@@ -288,7 +288,7 @@ var _ = Describe("Tuning Configs", func() {
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/tuning_configs/456"),
-					VerifyJQ(".spec", map[string]interface{}{"key": "value"}),
+					VerifyJQ(".spec", map[string]any{"key": "value"}),
 					RespondWithJSON(http.StatusOK, tuningConfigSpecTemplate),
 				),
 			)
@@ -303,11 +303,11 @@ var _ = Describe("Tuning Configs", func() {
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
 
-			actualResource, ok := Terraform.Resource("rhcs_tuning_config", "tuning_config").(map[string]interface{})
+			actualResource, ok := Terraform.Resource("rhcs_tuning_config", "tuning_config").(map[string]any)
 			Expect(ok).To(BeTrue(), "Type conversion failed for the received resource state")
 
 			Expect(actualResource["attributes"]).To(Equal(
-				map[string]interface{}{
+				map[string]any{
 					"cluster": "123",
 					"id":      "456",
 					"name":    "my_config",
@@ -331,7 +331,7 @@ var _ = Describe("Tuning Configs", func() {
 				CombineHandlers(
 					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/tuning_configs"),
 					VerifyJQ(".name", "my_config"),
-					VerifyJQ(".spec", map[string]interface{}{}),
+					VerifyJQ(".spec", map[string]any{}),
 					RespondWithJSON(http.StatusCreated, tuningConfigTemplate),
 				),
 			)

@@ -250,7 +250,7 @@ func (r *LogForwarderResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	tflog.Debug(ctx, "Creating log forwarder", map[string]interface{}{
+	tflog.Debug(ctx, "Creating log forwarder", map[string]any{
 		"cluster": clusterId,
 	})
 
@@ -291,7 +291,7 @@ func (r *LogForwarderResource) Read(ctx context.Context, req resource.ReadReques
 	clusterId := state.Cluster.ValueString()
 	logForwarderId := state.ID.ValueString()
 
-	tflog.Debug(ctx, "Reading log forwarder", map[string]interface{}{
+	tflog.Debug(ctx, "Reading log forwarder", map[string]any{
 		"cluster":       clusterId,
 		"log_forwarder": logForwarderId,
 	})
@@ -300,7 +300,7 @@ func (r *LogForwarderResource) Read(ctx context.Context, req resource.ReadReques
 	getResp, err := logForwardersClient.LogForwarder(logForwarderId).Get().SendContext(ctx)
 	if err != nil {
 		if getResp != nil && getResp.Status() == http.StatusNotFound {
-			tflog.Warn(ctx, "Log forwarder not found, removing from state", map[string]interface{}{
+			tflog.Warn(ctx, "Log forwarder not found, removing from state", map[string]any{
 				"cluster":       clusterId,
 				"log_forwarder": logForwarderId,
 			})
@@ -366,7 +366,7 @@ func (r *LogForwarderResource) Update(ctx context.Context, req resource.UpdateRe
 		return
 	}
 
-	tflog.Debug(ctx, "Updating log forwarder", map[string]interface{}{
+	tflog.Debug(ctx, "Updating log forwarder", map[string]any{
 		"cluster":       clusterId,
 		"log_forwarder": logForwarderId,
 	})
@@ -408,7 +408,7 @@ func (r *LogForwarderResource) Delete(ctx context.Context, req resource.DeleteRe
 	clusterId := state.Cluster.ValueString()
 	logForwarderId := state.ID.ValueString()
 
-	tflog.Debug(ctx, "Deleting log forwarder", map[string]interface{}{
+	tflog.Debug(ctx, "Deleting log forwarder", map[string]any{
 		"cluster":       clusterId,
 		"log_forwarder": logForwarderId,
 	})

@@ -53,10 +53,10 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		machineType := "r5.xlarge"
 		name := "ocp-64757"
 		mpArgs := &exec.MachinePoolArgs{
-			Cluster:     helper.StringPointer(clusterID),
-			Replicas:    helper.IntPointer(replicas),
-			MachineType: helper.StringPointer(machineType),
-			Name:        helper.StringPointer(name),
+			Cluster:     new(clusterID),
+			Replicas:    new(replicas),
+			MachineType: new(machineType),
+			Name:        new(name),
 		}
 
 		_, err := mpService.Apply(mpArgs)
@@ -87,11 +87,11 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		updatingLabels := map[string]string{"fo1": "bar3", "fo3": "baz3"}
 		emptyLabels := map[string]string{}
 		mpArgs := &exec.MachinePoolArgs{
-			Cluster:     helper.StringPointer(clusterID),
-			Replicas:    helper.IntPointer(replicas),
-			MachineType: helper.StringPointer(machineType),
-			Name:        helper.StringPointer(name),
-			Labels:      helper.StringMapPointer(creationLabels),
+			Cluster:     new(clusterID),
+			Replicas:    new(replicas),
+			MachineType: new(machineType),
+			Name:        new(name),
+			Labels:      new(creationLabels),
 		}
 
 		_, err := mpService.Apply(mpArgs)
@@ -103,7 +103,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		Expect(mpResponseBody.Labels()).To(Equal(creationLabels))
 
 		By("Edit the labels of the machinepool")
-		mpArgs.Labels = helper.StringMapPointer(updatingLabels)
+		mpArgs.Labels = new(updatingLabels)
 		_, err = mpService.Apply(mpArgs)
 		Expect(err).ToNot(HaveOccurred())
 		mpResponseBody, err = cms.RetrieveClusterMachinePool(cms.RHCSConnection, clusterID, name)
@@ -111,7 +111,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		Expect(mpResponseBody.Labels()).To(Equal(updatingLabels))
 
 		By("Delete the labels of the machinepool")
-		mpArgs.Labels = helper.StringMapPointer(emptyLabels)
+		mpArgs.Labels = new(emptyLabels)
 		_, err = mpService.Apply(mpArgs)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -129,12 +129,12 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		machineType := "r5.xlarge"
 		name := "ocp-68296"
 		mpArgs := &exec.MachinePoolArgs{
-			Cluster:            helper.StringPointer(clusterID),
-			MinReplicas:        helper.IntPointer(minReplicas),
-			MaxReplicas:        helper.IntPointer(maxReplicas),
-			MachineType:        helper.StringPointer(machineType),
-			Name:               helper.StringPointer(name),
-			AutoscalingEnabled: helper.BoolPointer(true),
+			Cluster:            new(clusterID),
+			MinReplicas:        new(minReplicas),
+			MaxReplicas:        new(maxReplicas),
+			MachineType:        new(machineType),
+			Name:               new(name),
+			AutoscalingEnabled: new(true),
 		}
 
 		_, err := mpService.Apply(mpArgs)
@@ -149,8 +149,8 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		By("Change the number of replicas of the machinepool")
 		minReplicas = minReplicas * 2
 		maxReplicas = maxReplicas * 2
-		mpArgs.MinReplicas = helper.IntPointer(minReplicas)
-		mpArgs.MaxReplicas = helper.IntPointer(maxReplicas)
+		mpArgs.MinReplicas = new(minReplicas)
+		mpArgs.MaxReplicas = new(maxReplicas)
 		_, err = mpService.Apply(mpArgs)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -162,10 +162,10 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 		By("Disable autoscaling of the machinepool")
 		mpArgs = &exec.MachinePoolArgs{
-			Cluster:     helper.StringPointer(clusterID),
-			Replicas:    helper.IntPointer(replicas),
-			MachineType: helper.StringPointer(machineType),
-			Name:        helper.StringPointer(name),
+			Cluster:     new(clusterID),
+			Replicas:    new(replicas),
+			MachineType: new(machineType),
+			Name:        new(name),
 		}
 
 		_, err = mpService.Apply(mpArgs)
@@ -187,10 +187,10 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		taint2 := map[string]string{"key": "k3", "value": "val3", "schedule_type": constants.PreferNoSchedule}
 		taints := []map[string]string{taint0, taint1}
 		mpArgs := &exec.MachinePoolArgs{
-			Cluster:     helper.StringPointer(clusterID),
-			Replicas:    helper.IntPointer(replicas),
-			MachineType: helper.StringPointer(machineType),
-			Name:        helper.StringPointer(name),
+			Cluster:     new(clusterID),
+			Replicas:    new(replicas),
+			MachineType: new(machineType),
+			Name:        new(name),
 			Taints:      &taints,
 		}
 
@@ -255,10 +255,10 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		)
 		By("Create machinepool with invalid name")
 		mpArgs := &exec.MachinePoolArgs{
-			Cluster:     helper.StringPointer(clusterID),
-			Replicas:    helper.IntPointer(invalidMpReplicas),
-			Name:        helper.StringPointer(invalidMachinepoolName),
-			MachineType: helper.StringPointer(machineType),
+			Cluster:     new(clusterID),
+			Replicas:    new(invalidMpReplicas),
+			Name:        new(invalidMachinepoolName),
+			MachineType: new(machineType),
 		}
 		_, err := mpService.Apply(mpArgs)
 		Expect(err).To(HaveOccurred())
@@ -266,10 +266,10 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 		By("Create machinepool with invalid replica value")
 		mpArgs = &exec.MachinePoolArgs{
-			Cluster:     helper.StringPointer(clusterID),
-			Replicas:    helper.IntPointer(invalidMpReplicas),
-			Name:        helper.StringPointer(machinepoolName),
-			MachineType: helper.StringPointer(machineType),
+			Cluster:     new(clusterID),
+			Replicas:    new(invalidMpReplicas),
+			Name:        new(machinepoolName),
+			MachineType: new(machineType),
 		}
 		_, err = mpService.Apply(mpArgs)
 		Expect(err).To(HaveOccurred())
@@ -277,10 +277,10 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 		By("Create machinepool with invalid instance type")
 		mpArgs = &exec.MachinePoolArgs{
-			Cluster:     helper.StringPointer(clusterID),
-			Replicas:    helper.IntPointer(mpReplicas),
-			Name:        helper.StringPointer(machinepoolName),
-			MachineType: helper.StringPointer(InvalidInstanceType),
+			Cluster:     new(clusterID),
+			Replicas:    new(mpReplicas),
+			Name:        new(machinepoolName),
+			MachineType: new(InvalidInstanceType),
 		}
 		_, err = mpService.Apply(mpArgs)
 		Expect(err).To(HaveOccurred())
@@ -288,11 +288,11 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 		By("Create machinepool with setting replicas and enable-autoscaling at the same time")
 		mpArgs = &exec.MachinePoolArgs{
-			Cluster:            helper.StringPointer(clusterID),
-			Replicas:           helper.IntPointer(mpReplicas),
-			Name:               helper.StringPointer(machinepoolName),
-			AutoscalingEnabled: helper.BoolPointer(true),
-			MachineType:        helper.StringPointer(machineType),
+			Cluster:            new(clusterID),
+			Replicas:           new(mpReplicas),
+			Name:               new(machinepoolName),
+			AutoscalingEnabled: new(true),
+			MachineType:        new(machineType),
 		}
 		_, err = mpService.Apply(mpArgs)
 		Expect(err).To(HaveOccurred())
@@ -300,12 +300,12 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 		By("Create machinepool with setting min-replicas large than max-replicas")
 		mpArgs = &exec.MachinePoolArgs{
-			Cluster:            helper.StringPointer(clusterID),
-			MinReplicas:        helper.IntPointer(maxReplicas),
-			MaxReplicas:        helper.IntPointer(minReplicas),
-			Name:               helper.StringPointer(machinepoolName),
-			AutoscalingEnabled: helper.BoolPointer(true),
-			MachineType:        helper.StringPointer(machineType),
+			Cluster:            new(clusterID),
+			MinReplicas:        new(maxReplicas),
+			MaxReplicas:        new(minReplicas),
+			Name:               new(machinepoolName),
+			AutoscalingEnabled: new(true),
+			MachineType:        new(machineType),
 		}
 		_, err = mpService.Apply(mpArgs)
 		Expect(err).To(HaveOccurred())
@@ -313,11 +313,11 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 		By("Create machinepool with setting min-replicas and max-replicas but without setting --enable-autoscaling")
 		mpArgs = &exec.MachinePoolArgs{
-			Cluster:     helper.StringPointer(clusterID),
-			MinReplicas: helper.IntPointer(minReplicas),
-			MaxReplicas: helper.IntPointer(maxReplicas),
-			Name:        helper.StringPointer(machinepoolName),
-			MachineType: helper.StringPointer(machineType),
+			Cluster:     new(clusterID),
+			MinReplicas: new(minReplicas),
+			MaxReplicas: new(maxReplicas),
+			Name:        new(machinepoolName),
+			MachineType: new(machineType),
 		}
 		_, err = mpService.Apply(mpArgs)
 		Expect(err).To(HaveOccurred())
@@ -327,24 +327,24 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		if profileHandler.Profile().IsMultiAZ() {
 			By("Create machinepool with setting min-replicas and max-replicas not multiple 3 for multi-az")
 			mpArgs = &exec.MachinePoolArgs{
-				Cluster:            helper.StringPointer(clusterID),
-				MinReplicas:        helper.IntPointer(minReplicas),
-				MaxReplicas:        helper.IntPointer(invalidMaxReplicas4Mutilcluster),
-				Name:               helper.StringPointer(machinepoolName),
-				MachineType:        helper.StringPointer(machineType),
-				AutoscalingEnabled: helper.BoolPointer(true),
+				Cluster:            new(clusterID),
+				MinReplicas:        new(minReplicas),
+				MaxReplicas:        new(invalidMaxReplicas4Mutilcluster),
+				Name:               new(machinepoolName),
+				MachineType:        new(machineType),
+				AutoscalingEnabled: new(true),
 			}
 			_, err = mpService.Apply(mpArgs)
 			Expect(err).To(HaveOccurred())
 			helper.ExpectTFErrorContains(err, "Multi AZ clusters require that the number of replicas be a multiple of 3")
 
 			mpArgs = &exec.MachinePoolArgs{
-				Cluster:            helper.StringPointer(clusterID),
-				MinReplicas:        helper.IntPointer(invalidMinReplicas4Mutilcluster),
-				MaxReplicas:        helper.IntPointer(maxReplicas),
-				Name:               helper.StringPointer(machinepoolName),
-				MachineType:        helper.StringPointer(machineType),
-				AutoscalingEnabled: helper.BoolPointer(true),
+				Cluster:            new(clusterID),
+				MinReplicas:        new(invalidMinReplicas4Mutilcluster),
+				MaxReplicas:        new(maxReplicas),
+				Name:               new(machinepoolName),
+				MachineType:        new(machineType),
+				AutoscalingEnabled: new(true),
 			}
 			_, err = mpService.Apply(mpArgs)
 			Expect(err).To(HaveOccurred())
@@ -365,11 +365,11 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		machineType := "r5.xlarge"
 		name := helper.GenerateRandomName("ocp-65063", 10)
 		MachinePoolArgs := &exec.MachinePoolArgs{
-			Cluster:          helper.StringPointer(clusterID),
-			Replicas:         helper.IntPointer(replicas),
-			MachineType:      helper.StringPointer(machineType),
-			Name:             helper.StringPointer(name),
-			AvailabilityZone: helper.StringPointer(azs[0]),
+			Cluster:          new(clusterID),
+			Replicas:         new(replicas),
+			MachineType:      new(machineType),
+			Name:             new(name),
+			AvailabilityZone: new(azs[0]),
 		}
 
 		_, err = mpService.Apply(MachinePoolArgs)
@@ -387,11 +387,11 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		awsSubnetIds := getResp.Body().AWS().SubnetIDs()
 		name = helper.GenerateRandomName("ocp-65063", 10)
 		MachinePoolArgs = &exec.MachinePoolArgs{
-			Cluster:     helper.StringPointer(clusterID),
-			Replicas:    helper.IntPointer(replicas),
-			MachineType: helper.StringPointer(machineType),
-			Name:        helper.StringPointer(name),
-			SubnetID:    helper.StringPointer(awsSubnetIds[0]),
+			Cluster:     new(clusterID),
+			Replicas:    new(replicas),
+			MachineType: new(machineType),
+			Name:        new(name),
+			SubnetID:    new(awsSubnetIds[0]),
 		}
 
 		_, err = mpService.Apply(MachinePoolArgs)
@@ -408,12 +408,12 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		By("Create additional machinepool with multi_availability_zone=false specified")
 		name = helper.GenerateRandomName("ocp-65063", 10)
 		MachinePoolArgs = &exec.MachinePoolArgs{
-			Cluster:          helper.StringPointer(clusterID),
-			Replicas:         helper.IntPointer(replicas),
-			MachineType:      helper.StringPointer(machineType),
-			Name:             helper.StringPointer(name),
-			MultiAZ:          helper.BoolPointer(false),
-			AvailabilityZone: helper.StringPointer(azs[1]),
+			Cluster:          new(clusterID),
+			Replicas:         new(replicas),
+			MachineType:      new(machineType),
+			Name:             new(name),
+			MultiAZ:          new(false),
+			AvailabilityZone: new(azs[1]),
 		}
 
 		_, err = mpService.Apply(MachinePoolArgs)
@@ -471,10 +471,10 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		tagKey := fmt.Sprintf("kubernetes.io/cluster/%s", clusterResp.Body().InfraID())
 		tagValue := "shared"
 		VPCTagArgs := &exec.VPCTagArgs{
-			AWSRegion: helper.StringPointer(clusterResp.Body().Region().ID()),
-			IDs:       helper.StringSlicePointer(append(vpcOutput.PrivateSubnets, subnet.ID)),
-			TagKey:    helper.StringPointer(tagKey),
-			TagValue:  helper.StringPointer(tagValue),
+			AWSRegion: new(clusterResp.Body().Region().ID()),
+			IDs:       new(append(vpcOutput.PrivateSubnets, subnet.ID)),
+			TagKey:    new(tagKey),
+			TagValue:  new(tagValue),
 		}
 		_, err = vpcTagService.Apply(VPCTagArgs)
 		Expect(err).ToNot(HaveOccurred())
@@ -485,11 +485,11 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		name := "ocp-65071"
 
 		mpArgs := &exec.MachinePoolArgs{
-			Cluster:     helper.StringPointer(clusterID),
-			Replicas:    helper.IntPointer(replicas),
-			MachineType: helper.StringPointer(machineType),
-			Name:        helper.StringPointer(name),
-			SubnetID:    helper.StringPointer(subnet.ID),
+			Cluster:     new(clusterID),
+			Replicas:    new(replicas),
+			MachineType: new(machineType),
+			Name:        new(name),
+			SubnetID:    new(subnet.ID),
 		}
 		_, err = mpService.Apply(mpArgs)
 		Expect(err).ToNot(HaveOccurred())
@@ -500,7 +500,7 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		Expect(mpResponseBody.Subnets()[0]).To(Equal(subnet.ID))
 
 		replicas = 4
-		mpArgs.Replicas = helper.IntPointer(replicas)
+		mpArgs.Replicas = new(replicas)
 		_, err = mpService.Apply(mpArgs)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -526,9 +526,9 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			vpcOutput, err := vpcService.Output()
 			Expect(err).ToNot(HaveOccurred())
 			sgArgs := &exec.SecurityGroupArgs{
-				AWSRegion: helper.StringPointer(profileHandler.Profile().GetRegion()),
-				VPCID:     helper.StringPointer(vpcOutput.VPCID),
-				SGNumber:  helper.IntPointer(4),
+				AWSRegion: new(profileHandler.Profile().GetRegion()),
+				VPCID:     new(vpcOutput.VPCID),
+				SGNumber:  new(4),
 			}
 			_, err = sgService.Apply(sgArgs)
 			Expect(err).ToNot(HaveOccurred())
@@ -548,11 +548,11 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			sgIDs = sgIDs[0:4]
 		}
 		mpArgs := &exec.MachinePoolArgs{
-			Cluster:                  helper.StringPointer(clusterID),
-			Replicas:                 helper.IntPointer(replicas),
-			MachineType:              helper.StringPointer(machineType),
-			Name:                     helper.StringPointer(name),
-			AdditionalSecurityGroups: helper.StringSlicePointer(sgIDs),
+			Cluster:                  new(clusterID),
+			Replicas:                 new(replicas),
+			MachineType:              new(machineType),
+			Name:                     new(name),
+			AdditionalSecurityGroups: new(sgIDs),
 		}
 
 		_, err = mpService.Apply(mpArgs)
@@ -573,11 +573,11 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		By("Update security groups is not allowed to a machinepool")
 		testAdditionalSecurityGroups := output.SGIDs[0:1]
 		mpArgs = &exec.MachinePoolArgs{
-			Cluster:                  helper.StringPointer(clusterID),
-			Replicas:                 helper.IntPointer(replicas),
-			MachineType:              helper.StringPointer(machineType),
-			Name:                     helper.StringPointer(name),
-			AdditionalSecurityGroups: helper.StringSlicePointer(testAdditionalSecurityGroups),
+			Cluster:                  new(clusterID),
+			Replicas:                 new(replicas),
+			MachineType:              new(machineType),
+			Name:                     new(name),
+			AdditionalSecurityGroups: new(testAdditionalSecurityGroups),
 		}
 
 		applyOutput, err := mpService.Apply(mpArgs)
@@ -591,10 +591,10 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		By("Create another machinepool without additional sg ")
 		name = "add-69146"
 		mpArgs = &exec.MachinePoolArgs{
-			Cluster:     helper.StringPointer(clusterID),
-			Replicas:    helper.IntPointer(replicas),
-			MachineType: helper.StringPointer("m5.2xlarge"),
-			Name:        helper.StringPointer(name),
+			Cluster:     new(clusterID),
+			Replicas:    new(replicas),
+			MachineType: new("m5.2xlarge"),
+			Name:        new(name),
 		}
 
 		_, err = mpService.Apply(mpArgs)
@@ -618,11 +618,11 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			"tagsKey": "tagValue",
 		}
 		mpArgs := &exec.MachinePoolArgs{
-			Cluster:     helper.StringPointer(clusterID),
-			Replicas:    helper.IntPointer(replicas),
-			MachineType: helper.StringPointer(machineType),
-			Name:        helper.StringPointer(name),
-			Tags:        helper.StringMapPointer(validTags),
+			Cluster:     new(clusterID),
+			Replicas:    new(replicas),
+			MachineType: new(machineType),
+			Name:        new(name),
+			Tags:        new(validTags),
 		}
 		_, err := mpService.Apply(mpArgs)
 		Expect(err).ToNot(HaveOccurred())
@@ -649,10 +649,10 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		taint0 := map[string]string{"key": "k1", "value": "val", "schedule_type": constants.NoExecute}
 		taints := []map[string]string{taint0}
 		mpArgs := &exec.MachinePoolArgs{
-			Cluster:     helper.StringPointer(clusterID),
-			Replicas:    helper.IntPointer(replicas),
-			MachineType: helper.StringPointer(machineType),
-			Name:        helper.StringPointer(mpName),
+			Cluster:     new(clusterID),
+			Replicas:    new(replicas),
+			MachineType: new(machineType),
+			Name:        new(mpName),
 			Taints:      &taints,
 		}
 
@@ -690,11 +690,11 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 	It("will validate well - [id:63139]", ci.Medium, func() {
 		By("Will validate the subnet")
 		mpArgs := &exec.MachinePoolArgs{
-			Cluster:     helper.StringPointer(clusterID),
-			Replicas:    helper.IntPointer(0),
-			MachineType: helper.StringPointer("m5.xlarge"),
-			Name:        helper.StringPointer("invalidsub"),
-			SubnetID:    helper.StringPointer("subnet-invalidsubnetid"),
+			Cluster:     new(clusterID),
+			Replicas:    new(0),
+			MachineType: new("m5.xlarge"),
+			Name:        new("invalidsub"),
+			SubnetID:    new("subnet-invalidsubnetid"),
 		}
 		output, err := mpService.Apply(mpArgs)
 		Expect(err).To(HaveOccurred())
@@ -702,10 +702,10 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 		By("Will validate the instance type")
 		mpArgs = &exec.MachinePoolArgs{
-			Cluster:     helper.StringPointer(clusterID),
-			Replicas:    helper.IntPointer(0),
-			MachineType: helper.StringPointer("invalid"),
-			Name:        helper.StringPointer("invalidinstype"),
+			Cluster:     new(clusterID),
+			Replicas:    new(0),
+			MachineType: new("invalid"),
+			Name:        new("invalidinstype"),
 		}
 		_, err = mpService.Apply(mpArgs)
 		Expect(err).To(HaveOccurred())
@@ -720,11 +720,11 @@ var _ = Describe("Create MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		name := "mp-73942"
 
 		mpArgs = &exec.MachinePoolArgs{
-			Cluster:     helper.StringPointer(clusterID),
-			Replicas:    helper.IntPointer(replicas),
-			MachineType: helper.StringPointer(machineType),
-			Name:        helper.StringPointer(name),
-			Tags:        helper.StringMapPointer(invalidTags),
+			Cluster:     new(clusterID),
+			Replicas:    new(replicas),
+			MachineType: new(machineType),
+			Name:        new(name),
+			Tags:        new(invalidTags),
 		}
 		_, err = mpService.Apply(mpArgs)
 		Expect(err).To(HaveOccurred())
@@ -769,13 +769,13 @@ var _ = Describe("Import MachinePool", ci.Day2, ci.FeatureImport, func() {
 		machineType := "r5.xlarge"
 		name := "ocp-66403"
 		mpArgs := &exec.MachinePoolArgs{
-			Cluster:            helper.StringPointer(clusterID),
-			MinReplicas:        helper.IntPointer(minReplicas),
-			MaxReplicas:        helper.IntPointer(maxReplicas),
-			MachineType:        helper.StringPointer(machineType),
-			Name:               helper.StringPointer(name),
-			Labels:             helper.StringMapPointer(creationLabels),
-			AutoscalingEnabled: helper.BoolPointer(true),
+			Cluster:            new(clusterID),
+			MinReplicas:        new(minReplicas),
+			MaxReplicas:        new(maxReplicas),
+			MachineType:        new(machineType),
+			Name:               new(name),
+			Labels:             new(creationLabels),
+			AutoscalingEnabled: new(true),
 		}
 
 		_, err := mpService.Apply(mpArgs)
@@ -860,15 +860,15 @@ var _ = Describe("Edit MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		zeroReplicas := 0
 		if _, ok := defaultMachinepoolResponse.GetAutoscaling(); ok {
 			By("Edit the deafult machinepool max and min replicas to 0")
-			dmpArgFromMachinepoolForTesting.MaxReplicas = helper.IntPointer(zeroReplicas)
-			dmpArgFromMachinepoolForTesting.MinReplicas = helper.IntPointer(zeroReplicas)
+			dmpArgFromMachinepoolForTesting.MaxReplicas = new(zeroReplicas)
+			dmpArgFromMachinepoolForTesting.MinReplicas = new(zeroReplicas)
 			_, err = dmpService.Apply(dmpArgFromMachinepoolForTesting)
 			Expect(err).To(HaveOccurred())
 			Expect(output).To(ContainSubstring("Failed to update machine pool"))
 			Expect(output).To(ContainSubstring("must be a integer greater than 0"))
 		} else {
 			By("Edit the deafult machinepool replicas to 0")
-			dmpArgFromMachinepoolForTesting.Replicas = helper.IntPointer(zeroReplicas)
+			dmpArgFromMachinepoolForTesting.Replicas = new(zeroReplicas)
 			_, err = dmpService.Apply(dmpArgFromMachinepoolForTesting)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("Failed to update machine pool"))
@@ -878,7 +878,7 @@ var _ = Describe("Edit MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 		By("Check the machine type change will triger re-creation")
 		dmpArgFromMachinepoolForTesting, err = dmpService.ReadTFVars()
 		Expect(err).ToNot(HaveOccurred())
-		dmpArgFromMachinepoolForTesting.MachineType = helper.StringPointer("r5.xlarge")
+		dmpArgFromMachinepoolForTesting.MachineType = new("r5.xlarge")
 		out, err := dmpService.Apply(dmpArgFromMachinepoolForTesting)
 		Expect(err).To(HaveOccurred())
 		Expect(out).To(ContainSubstring("machine_type, cannot be changed"))
@@ -918,8 +918,8 @@ var _ = Describe("Edit MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 				By("Edit default machinepool with autoscale configuration")
 				minReplicas := 3
 				maxReplicas := 6
-				dmpArgFromMachinepoolForTesting.MinReplicas = helper.IntPointer(minReplicas)
-				dmpArgFromMachinepoolForTesting.MaxReplicas = helper.IntPointer(maxReplicas)
+				dmpArgFromMachinepoolForTesting.MinReplicas = new(minReplicas)
+				dmpArgFromMachinepoolForTesting.MaxReplicas = new(maxReplicas)
 				_, err := dmpService.Apply(dmpArgFromMachinepoolForTesting)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -931,7 +931,7 @@ var _ = Describe("Edit MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			} else {
 				By("Edit default machinepool with replicas")
 				replicas := 6
-				dmpArgFromMachinepoolForTesting.Replicas = helper.IntPointer(replicas)
+				dmpArgFromMachinepoolForTesting.Replicas = new(replicas)
 				_, err := dmpService.Apply(dmpArgFromMachinepoolForTesting)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -943,7 +943,7 @@ var _ = Describe("Edit MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 			By("Edit default machinepool with labels")
 			creationLabels := map[string]string{"fo1": "bar1", "fo2": "baz2"}
-			dmpArgFromMachinepoolForTesting.Labels = helper.StringMapPointer(creationLabels)
+			dmpArgFromMachinepoolForTesting.Labels = new(creationLabels)
 			_, err = dmpService.Apply(dmpArgFromMachinepoolForTesting)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -958,10 +958,10 @@ var _ = Describe("Edit MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			name := "amp-69009"
 
 			mpArgs := &exec.MachinePoolArgs{
-				Cluster:     helper.StringPointer(clusterID),
-				Replicas:    helper.IntPointer(replicas),
-				MachineType: helper.StringPointer(machineType),
-				Name:        helper.StringPointer(name),
+				Cluster:     new(clusterID),
+				Replicas:    new(replicas),
+				MachineType: new(machineType),
+				Name:        new(name),
 			}
 
 			_, err = mpService.Apply(mpArgs)
@@ -1043,10 +1043,10 @@ var _ = Describe("Destroy MachinePool", ci.Day3, ci.FeatureMachinepool, func() {
 		name := "amp-69727"
 
 		mpArgs := &exec.MachinePoolArgs{
-			Cluster:     helper.StringPointer(clusterID),
-			Replicas:    helper.IntPointer(replicas),
-			MachineType: helper.StringPointer(machineType),
-			Name:        helper.StringPointer(name),
+			Cluster:     new(clusterID),
+			Replicas:    new(replicas),
+			MachineType: new(machineType),
+			Name:        new(name),
 		}
 
 		_, err = mpService.Apply(mpArgs)
@@ -1063,10 +1063,10 @@ var _ = Describe("Destroy MachinePool", ci.Day3, ci.FeatureMachinepool, func() {
 
 		By("Create default machinepool after delete")
 		defaultMachinePoolArgs = &exec.MachinePoolArgs{
-			Cluster:     helper.StringPointer(clusterID),
-			Replicas:    helper.IntPointer(replicas),
-			MachineType: helper.StringPointer(machineType),
-			Name:        helper.StringPointer(defaultMachinePoolName),
+			Cluster:     new(clusterID),
+			Replicas:    new(replicas),
+			MachineType: new(machineType),
+			Name:        new(defaultMachinePoolName),
 		}
 		output, err = dmpService.Apply(defaultMachinePoolArgs)
 		Expect(err).To(HaveOccurred())

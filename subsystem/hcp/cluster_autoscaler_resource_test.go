@@ -194,11 +194,11 @@ var _ = Describe("Hcp Cluster Autoscaler", func() {
 			runOutput := Terraform.Import("rhcs_hcp_cluster_autoscaler.cluster_autoscaler", "123")
 			Expect(runOutput.ExitCode).To(BeZero())
 
-			actualResource, ok := Terraform.Resource("rhcs_hcp_cluster_autoscaler", "cluster_autoscaler").(map[string]interface{})
+			actualResource, ok := Terraform.Resource("rhcs_hcp_cluster_autoscaler", "cluster_autoscaler").(map[string]any)
 			Expect(ok).To(BeTrue(), "Type conversion failed for the received resource state")
 
 			Expect(actualResource["attributes"]).To(Equal(
-				map[string]interface{}{
+				map[string]any{
 					"cluster":                 "123",
 					"max_pod_grace_period":    nil,
 					"pod_priority_threshold":  nil,
@@ -258,11 +258,11 @@ var _ = Describe("Hcp Cluster Autoscaler", func() {
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
 
-			actualResource, ok := Terraform.Resource("rhcs_hcp_cluster_autoscaler", "cluster_autoscaler").(map[string]interface{})
+			actualResource, ok := Terraform.Resource("rhcs_hcp_cluster_autoscaler", "cluster_autoscaler").(map[string]any)
 			Expect(ok).To(BeTrue(), "Type conversion failed for the received resource state")
 
 			Expect(actualResource["attributes"]).To(Equal(
-				map[string]interface{}{
+				map[string]any{
 					"cluster":                 "123",
 					"max_pod_grace_period":    nil,
 					"pod_priority_threshold":  nil,

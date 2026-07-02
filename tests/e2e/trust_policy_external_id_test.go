@@ -41,8 +41,8 @@ var _ = Describe("Trust policy external ID", func() {
 
 		clusterName := helper.GenerateRandomName("trust-policy-extid", 2)
 		args := &exec.ClusterArgs{
-			ClusterName:              helper.StringPointer(clusterName),
-			StsTrustPolicyExternalID: helper.StringPointer(externalID),
+			ClusterName:              new(clusterName),
+			StsTrustPolicyExternalID: new(externalID),
 		}
 
 		_, err := clusterService.Apply(args)

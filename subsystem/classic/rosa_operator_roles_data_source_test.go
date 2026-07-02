@@ -82,7 +82,7 @@ var _ = Describe("ROSA Operator IAM roles data source", func() {
 		Expect(resource).To(MatchJQ(`.attributes.operator_iam_roles | length`, 2))
 
 		index := 0
-		firstOperatorName := resource.(map[string]interface{})["attributes"].(map[string]interface{})["operator_iam_roles"].([]interface{})[0].(map[string]interface{})["operator_name"].(string)
+		firstOperatorName := resource.(map[string]any)["attributes"].(map[string]any)["operator_iam_roles"].([]any)[0].(map[string]any)["operator_name"].(string)
 		if firstOperatorName != "ebs-cloud-credentials" {
 			index = 1
 		}
@@ -134,7 +134,7 @@ var _ = Describe("ROSA Operator IAM roles data source", func() {
 		Expect(resource).To(MatchJQ(`.attributes.operator_iam_roles | length`, 2))
 
 		index := 0
-		firstOperatorName := resource.(map[string]interface{})["attributes"].(map[string]interface{})["operator_iam_roles"].([]interface{})[0].(map[string]interface{})["operator_name"].(string)
+		firstOperatorName := resource.(map[string]any)["attributes"].(map[string]any)["operator_iam_roles"].([]any)[0].(map[string]any)["operator_name"].(string)
 		if firstOperatorName != "ebs-cloud-credentials" {
 			index = 1
 		}
@@ -162,7 +162,7 @@ var _ = Describe("ROSA Operator IAM roles data source", func() {
 	})
 })
 
-func compareResultOfRoles(resource interface{}, index int, name, namespace, policyName, roleName string, serviceAccountLen int, serviceAccounts []string) {
+func compareResultOfRoles(resource any, index int, name, namespace, policyName, roleName string, serviceAccountLen int, serviceAccounts []string) {
 	operatorNameFmt := ".attributes.operator_iam_roles[%v].operator_name"
 	operatorNamespaceFmt := ".attributes.operator_iam_roles[%v].operator_namespace"
 	policyNameFmt := ".attributes.operator_iam_roles[%v].policy_name"

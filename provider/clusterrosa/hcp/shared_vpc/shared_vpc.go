@@ -5,6 +5,7 @@ package sharedvpc
 
 import (
 	"context"
+	"slices"
 
 	dsschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -94,10 +95,8 @@ var HcpSharedVpcValidator = attrvalidators.NewObjectValidator("Shared VPC attrib
 			sharedVpc.Route53RoleArn,
 			sharedVpc.VpceRoleArn,
 		}
-		for _, value := range valuesToCheck {
-			if common.IsStringAttributeKnownAndEmpty(value) {
-				resp.Diagnostics.AddError(errSum, "Invalid configuration, all attributes are required")
-				return
-			}
+		if slices.ContainsFunc(valuesToCheck, common.IsStringAttributeKnownAndEmpty) {
+			resp.Diagnostics.AddError(errSum, "Invalid configuration, all attributes are required")
+			return
 		}
 	})

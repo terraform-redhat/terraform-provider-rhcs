@@ -22,7 +22,7 @@
   },
   "gomod": {
     "constraints": {
-      "go": "1.25.8"
+      "go": "1.26.3"
     },
     "postUpdateOptions": [
       "gomodUpdateImportPaths",
@@ -177,16 +177,6 @@
         "k8s.io/{/,}**",
         "sigs.k8s.io/{/,}**"
       ]
-    },
-    {
-      "description": "Pin k8s.io/apimachinery to v0.35.x (requires Go 1.26+ for v0.36+)",
-      "matchManagers": [
-        "gomod"
-      ],
-      "matchPackageNames": [
-        "k8s.io/apimachinery"
-      ],
-      "allowedVersions": "< 0.36.0"
     },
     {
       "description": "Test stack",

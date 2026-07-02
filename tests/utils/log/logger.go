@@ -43,7 +43,7 @@ func (l *Log) Redact(fmtedString string) string {
 	}
 	return RedactString(fmtedString)
 }
-func (l *Log) Infof(fmtString string, args ...interface{}) {
+func (l *Log) Infof(fmtString string, args ...any) {
 	if len(args) != 0 {
 		fmtString = fmt.Sprintf(fmtString, args...)
 	}
@@ -55,7 +55,7 @@ func (l *Log) Info(fmtString string) {
 	l.logger.Info(fmtString)
 }
 
-func (l *Log) Errorf(fmtString string, args ...interface{}) {
+func (l *Log) Errorf(fmtString string, args ...any) {
 	if len(args) != 0 {
 		fmtString = fmt.Sprintf(fmtString, args...)
 	}
@@ -67,7 +67,7 @@ func (l *Log) Error(fmtString string) {
 	l.logger.Error(fmtString)
 }
 
-func (l *Log) Warnf(fmtString string, args ...interface{}) {
+func (l *Log) Warnf(fmtString string, args ...any) {
 	if len(args) != 0 {
 		fmtString = fmt.Sprintf(fmtString, args...)
 	}
@@ -79,7 +79,7 @@ func (l *Log) Warn(fmtString string) {
 	l.logger.Warn(fmtString)
 }
 
-func (l *Log) Debugf(fmtString string, args ...interface{}) {
+func (l *Log) Debugf(fmtString string, args ...any) {
 	if len(args) != 0 {
 		fmtString = fmt.Sprintf(fmtString, args...)
 	}

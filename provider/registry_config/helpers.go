@@ -5,6 +5,7 @@ package registry_config
 
 import (
 	"context"
+	"maps"
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -119,9 +120,7 @@ func fillAdditionalCa(ctx context.Context, stateInput types.Map,
 	if err != nil {
 		return err
 	}
-	for k, v := range elements {
-		additionalCa[k] = v
-	}
+	maps.Copy(additionalCa, elements)
 	registryConfig.AdditionalTrustedCa(additionalCa)
 	return nil
 }

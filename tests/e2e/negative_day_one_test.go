@@ -147,18 +147,18 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 			By("Create cluster with wrong billing account")
 			newValue := "012345678912"
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.AWSBillingAccountID = helper.StringPointer(newValue)
+				args.AWSBillingAccountID = new(newValue)
 			}, fmt.Sprintf("billing account %s not linked to organization", newValue))
 
 			By("Create cluster with wrong cloud region")
 			newValue = "us-anything-2"
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.AWSRegion = helper.StringPointer(newValue)
+				args.AWSRegion = new(newValue)
 			}, fmt.Sprintf("Invalid AWS Region: %s", newValue))
 
 			By("Create cluster with cluster name > 54 characters")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.ClusterName = helper.StringPointer(helper.GenerateRandomName("cluster-72445", 50))
+				args.ClusterName = new(helper.GenerateRandomName("cluster-72445", 50))
 			}, "Attribute name string length must be at most 54")
 
 			By("Create cluster with empty aws account id")
@@ -202,37 +202,37 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 
 			By("Create cluster without rosa_creator_arn property")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.IncludeCreatorProperty = helper.BoolPointer(false)
+				args.IncludeCreatorProperty = new(false)
 			}, "Expected property 'rosa_creator_arn'")
 
 			By("Create cluster with wrong rosa_creator_arn property")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				(*args.CustomProperties)["rosa_creator_arn"] = "wrong_value"
-				args.IncludeCreatorProperty = helper.BoolPointer(false)
+				args.IncludeCreatorProperty = new(false)
 			}, "Property 'rosa_creator_arn' does not have a valid user arn")
 		})
 
 		It("validate compute fields - [id:72449]", ci.Medium, func() {
 			By("Create cluster with wrong compute machine type")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.ComputeMachineType = helper.StringPointer("anything")
+				args.ComputeMachineType = new("anything")
 			}, "Machine type 'anything' is not supported")
 
 			By("Create cluster with replicas < 1")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.Replicas = helper.IntPointer(1)
+				args.Replicas = new(1)
 			}, "A hosted cluster requires at least 2 replicas")
 		})
 
 		It("validate version fields - [id:72477]", ci.Medium, func() {
 			By("Create cluster with wrong version")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.OpenshiftVersion = helper.StringPointer("4.14.2-rc")
+				args.OpenshiftVersion = new("4.14.2-rc")
 			}, "version 4.14.2-rc is not in the list of supported versions")
 
 			By("Create cluster with wrong channel group")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.ChannelGroup = helper.StringPointer("anything")
+				args.ChannelGroup = new("anything")
 			}, "Could not find versions")
 
 			By("Create cluster with version from another channel group")
@@ -240,38 +240,38 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 			versions = cms.SortVersions(versions)
 			vs := versions[len(versions)-1].RawID
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.OpenshiftVersion = helper.StringPointer(vs)
-				args.ChannelGroup = helper.StringPointer(constants.VersionStableChannel)
+				args.OpenshiftVersion = new(vs)
+				args.ChannelGroup = new(constants.VersionStableChannel)
 			}, fmt.Sprintf("version %s is not in the list of supported versions", vs))
 		})
 
 		It("validate encryption fields - [id:72486]", ci.Medium, func() {
 			By("Create cluster with etcd_encryption=true and no etcd_kms_key_arn")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.Etcd = helper.BoolPointer(true)
+				args.Etcd = new(true)
 				args.EtcdKmsKeyARN = helper.EmptyStringPointer
 			}, "When utilizing etcd encryption an etcd kms key arn must also be supplied and vice versa")
 
 			By("Create cluster with etcd_encryption=true and etcd_kms_key_arn wrong format")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.Etcd = helper.BoolPointer(true)
-				args.EtcdKmsKeyARN = helper.StringPointer("anything")
+				args.Etcd = new(true)
+				args.EtcdKmsKeyARN = new("anything")
 			}, "expected the kms-key-arn: anything to match")
 
 			By("Create cluster with etcd_encryption=true and etcd_kms_key_arn wrong arn")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.Etcd = helper.BoolPointer(true)
-				args.EtcdKmsKeyARN = helper.StringPointer("arn:aws:kms:us-west-2:301721915996:key/9f1b5aee-3dc6-43d2-8c6e-793ca48c0c5c")
+				args.Etcd = new(true)
+				args.EtcdKmsKeyARN = new("arn:aws:kms:us-west-2:301721915996:key/9f1b5aee-3dc6-43d2-8c6e-793ca48c0c5c")
 			}, "Create a new one in the correct region, replace the ARN, and try again")
 
 			By("Create cluster with kms_key_arn wrong format")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.KmsKeyARN = helper.StringPointer("anything")
+				args.KmsKeyARN = new("anything")
 			}, "expected the kms-key-arn: anything to match")
 
 			By("Create cluster with kms_key_arn wrong arn")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.KmsKeyARN = helper.StringPointer("arn:aws:kms:us-west-2:301721915996:key/9f1b5aee-3dc6-43d2-8c6e-793ca48c0c5c")
+				args.KmsKeyARN = new("arn:aws:kms:us-west-2:301721915996:key/9f1b5aee-3dc6-43d2-8c6e-793ca48c0c5c")
 			}, "Create a new one in the correct region, replace the ARN, and try again")
 		})
 
@@ -279,43 +279,43 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 			By("Create cluster with invalid http_proxy")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.Proxy = &exec.Proxy{
-					HTTPProxy: helper.StringPointer("aaavvv"),
+					HTTPProxy: new("aaavvv"),
 				}
 			}, "Invalid 'proxy.http_proxy' attribute 'aaavvv'")
 
 			By("Create cluster with http_proxy not starting with http")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.Proxy = &exec.Proxy{
-					HTTPProxy: helper.StringPointer("https://aaavvv.test.nohttp.com/"),
+					HTTPProxy: new("https://aaavvv.test.nohttp.com/"),
 				}
 			}, "Attribute 'proxy.http_proxy' prefix is not 'http'")
 
 			By("Create cluster with invalid https_proxy")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.Proxy = &exec.Proxy{
-					HTTPSProxy: helper.StringPointer("aaavvv"),
+					HTTPSProxy: new("aaavvv"),
 				}
 			}, "Invalid 'proxy.https_proxy' attribute 'aaavvv'")
 
 			By("Create cluster with invalid additional_trust_bundle")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.Proxy = &exec.Proxy{
-					AdditionalTrustBundle: helper.StringPointer("/home/wrong_path/ca.cert"),
+					AdditionalTrustBundle: new("/home/wrong_path/ca.cert"),
 				}
 			}, "Failed to parse additional_trust_bundle")
 
 			By("Create cluster with no http/https proxy defined but no-proxy is set")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.Proxy = &exec.Proxy{
-					NoProxy: helper.StringPointer("quay.io"),
+					NoProxy: new("quay.io"),
 				}
 			}, "Either 'proxy.http_proxy' or 'proxy.https_proxy' attributes is needed to set 'proxy.no_proxy'")
 
 			By("Create cluster with http proxy set and no-proxy=\"*\"")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.Proxy = &exec.Proxy{
-					HTTPProxy: helper.StringPointer("http://example.com"),
-					NoProxy:   helper.StringPointer("*"),
+					HTTPProxy: new("http://example.com"),
+					NoProxy:   new("*"),
 				}
 			}, "expected a valid user no-proxy value: '*' should match")
 		})
@@ -345,14 +345,14 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 		It("validate tags fields - [id:72627]", ci.Medium, func() {
 			By("Create cluster with tag wrong key")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.Tags = helper.StringMapPointer(map[string]string{
+				args.Tags = new(map[string]string{
 					"~~~": "cluster",
 				})
 			}, "Attribute key 'aws.tags.~~~' invalid")
 
 			By("Create cluster with tag wrong value")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.Tags = helper.StringMapPointer(map[string]string{
+				args.Tags = new(map[string]string{
 					"name": "***",
 				})
 			}, "Attribute value '***' of 'aws.tags.name' invalid")
@@ -367,7 +367,7 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 
 			By("Create cluster with wrong AZ name")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.AWSAvailabilityZones = helper.StringSlicePointer([]string{"us-west-2abhd"})
+				args.AWSAvailabilityZones = new([]string{"us-west-2abhd"})
 			}, "Invalid availability zone: [us-west-2abhd]")
 
 			By("Create cluster with AZ not in region name")
@@ -376,7 +376,7 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 				az = "us-east-1a"
 			}
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.AWSAvailabilityZones = helper.StringSlicePointer([]string{az})
+				args.AWSAvailabilityZones = new([]string{az})
 			}, fmt.Sprintf("Invalid AZ '%s' for region", az))
 
 			By("Create cluster with wrong subnet")
@@ -385,7 +385,7 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 				if !*args.Private {
 					subnetIDs = append(subnetIDs, "subnet-08f6089e344f3e1d")
 				}
-				args.AWSSubnetIDs = helper.StringSlicePointer(subnetIDs)
+				args.AWSSubnetIDs = new(subnetIDs)
 			}, "Failed to find subnet with ID 'subnet-08f6089e344f3e1f'")
 
 			By("Create cluster with subnet from another VPC")
@@ -393,47 +393,47 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 
 			By("Create cluster with incorrect machine CIDR")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.MachineCIDR = helper.StringPointer("10.0.0.0/24")
+				args.MachineCIDR = new("10.0.0.0/24")
 			}, "is outside of the machine CIDR range '10.0.0.0/24'")
 
 			By("Create cluster with machine_cidr overlap with service_cidr")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.MachineCIDR = helper.StringPointer("10.0.0.0/16")
-				args.ServiceCIDR = helper.StringPointer("10.0.0.0/20")
+				args.MachineCIDR = new("10.0.0.0/16")
+				args.ServiceCIDR = new("10.0.0.0/20")
 			}, "Machine CIDR '10.0.0.0/16' and service CIDR '10.0.0.0/20' overlap")
 
 			By("Create cluster with machine_cidr overlap with pod_cidr")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.MachineCIDR = helper.StringPointer("10.0.0.0/16")
-				args.PodCIDR = helper.StringPointer("10.0.0.0/18")
+				args.MachineCIDR = new("10.0.0.0/16")
+				args.PodCIDR = new("10.0.0.0/18")
 			}, "Machine CIDR '10.0.0.0/16' and pod CIDR '10.0.0.0/18' overlap")
 
 			By("Create cluster with pod_cidr overlaps with default machine_cidr in AWS")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.PodCIDR = helper.StringPointer("10.0.0.0/16")
+				args.PodCIDR = new("10.0.0.0/16")
 			}, "Machine CIDR '10.0.0.0/16' and pod CIDR '10.0.0.0/16' overlap")
 
 			By("Create cluster with service_cidr overlap with pod_cidr")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.ServiceCIDR = helper.StringPointer("172.0.0.0/16")
-				args.PodCIDR = helper.StringPointer("172.0.0.0/18")
+				args.ServiceCIDR = new("172.0.0.0/16")
+				args.PodCIDR = new("172.0.0.0/18")
 			}, "Service CIDR '172.0.0.0/16' and pod CIDR '172.0.0.0/18' overlap")
 
 			By("Create cluster  with CIDR without corresponding host prefix")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.MachineCIDR = helper.StringPointer("11.19.1.0/15")
-				args.PodCIDR = helper.StringPointer("11.19.0.0/21")
+				args.MachineCIDR = new("11.19.1.0/15")
+				args.PodCIDR = new("11.19.0.0/21")
 			}, "network address '11.19.1.0' isn't consistent with network prefix 15")
 
 			By("Create cluster with AZ and subnets not matching")
 			if len(vpcOutput.AvailabilityZones) > 1 {
 				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-					args.AWSAvailabilityZones = helper.StringSlicePointer([]string{vpcOutput.AvailabilityZones[0]})
+					args.AWSAvailabilityZones = new([]string{vpcOutput.AvailabilityZones[0]})
 					subnetIDs := []string{vpcOutput.PrivateSubnets[1]}
 					if !*args.Private {
 						subnetIDs = append(subnetIDs, vpcOutput.PublicSubnets[1])
 					}
-					args.AWSSubnetIDs = helper.StringSlicePointer(subnetIDs)
+					args.AWSSubnetIDs = new(subnetIDs)
 				}, "does not belong to any of the provided zones. Provide a new subnet ID and try again.")
 			} else {
 				Logger.Infof("Not enough AZ to test this. Need at least 2 but found only %v", len(vpcOutput.AvailabilityZones))
@@ -442,12 +442,12 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 			By("Create cluster with more AZ than corresponding subnets")
 			if len(vpcOutput.AvailabilityZones) > 1 {
 				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-					args.AWSAvailabilityZones = helper.StringSlicePointer([]string{vpcOutput.AvailabilityZones[0], vpcOutput.AvailabilityZones[1]})
+					args.AWSAvailabilityZones = new([]string{vpcOutput.AvailabilityZones[0], vpcOutput.AvailabilityZones[1]})
 					subnetIDs := []string{vpcOutput.PrivateSubnets[1]}
 					if !*args.Private {
 						subnetIDs = append(subnetIDs, vpcOutput.PublicSubnets[1])
 					}
-					args.AWSSubnetIDs = helper.StringSlicePointer(subnetIDs)
+					args.AWSSubnetIDs = new(subnetIDs)
 				}, "1 private subnet is required per zone")
 			} else {
 				Logger.Infof("Not enough AZ to test this. Need at least 2 but found only %v", len(vpcOutput.AvailabilityZones))
@@ -456,13 +456,13 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 			By("Create cluster multiAZ with 3 private subnets and no replicas defined")
 			if len(vpcOutput.AvailabilityZones) > 2 {
 				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-					args.Replicas = helper.IntPointer(2)
-					args.AWSAvailabilityZones = helper.StringSlicePointer([]string{vpcOutput.AvailabilityZones[0], vpcOutput.AvailabilityZones[1], vpcOutput.AvailabilityZones[2]})
+					args.Replicas = new(2)
+					args.AWSAvailabilityZones = new([]string{vpcOutput.AvailabilityZones[0], vpcOutput.AvailabilityZones[1], vpcOutput.AvailabilityZones[2]})
 					subnetIDs := []string{vpcOutput.PrivateSubnets[0], vpcOutput.PrivateSubnets[1], vpcOutput.PrivateSubnets[2]}
 					if !*args.Private {
 						subnetIDs = append(subnetIDs, vpcOutput.PublicSubnets[1])
 					}
-					args.AWSSubnetIDs = helper.StringSlicePointer(subnetIDs)
+					args.AWSSubnetIDs = new(subnetIDs)
 				}, "Hosted clusters require that the compute nodes be a multiple of the private subnets 3")
 			} else {
 				Logger.Infof("Not enough AZ to test this. Need at least 3 but found only %v", len(vpcOutput.AvailabilityZones))
@@ -470,7 +470,7 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 
 			By("Create service with unsupported host prefix")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.HostPrefix = helper.IntPointer(22)
+				args.HostPrefix = new(22)
 			}, "Invalid Network Host Prefix '22': Subnet length should be between '23' and '26")
 
 			By("Remove Subnets tagging")
@@ -523,23 +523,23 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 
 			By("Create public cluster with public subnets without elb tag")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.Private = helper.BoolPointer(false)
+				args.Private = new(false)
 				subnetIDs := append(*args.AWSSubnetIDs, vpcOutput.PublicSubnets[0])
-				args.AWSSubnetIDs = helper.StringSlicePointer(subnetIDs)
+				args.AWSSubnetIDs = new(subnetIDs)
 			}, "The VPC needs to contain a public subnet with the tag 'kubernetes.io/role/elb'")
 
 			By("Create private cluster with private subnets without internal-elb tag")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.Private = helper.BoolPointer(true)
-				args.AWSSubnetIDs = helper.StringSlicePointer(vpcOutput.PrivateSubnets)
-				args.AWSAvailabilityZones = helper.StringSlicePointer(vpcOutput.AvailabilityZones)
+				args.Private = new(true)
+				args.AWSSubnetIDs = new(vpcOutput.PrivateSubnets)
+				args.AWSAvailabilityZones = new(vpcOutput.AvailabilityZones)
 			}, "The VPC needs to contain a private subnet with the tag 'kubernetes.io/role/internal-elb'")
 		})
 
 		It("validate imdsv2 fields - [id:75392]", ci.Medium, func() {
 			By("Create cluster with invalid imdsv2 value")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.Ec2MetadataHttpTokens = helper.StringPointer("invalid")
+				args.Ec2MetadataHttpTokens = new("invalid")
 			}, "Expected a valid param. Options are [optional required]. Got invalid.")
 		})
 	})
@@ -549,43 +549,43 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 			func() {
 				By("Setting autoscaling_enable and replicas at the same time")
 				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-					args.Autoscaling = helper.BoolPointer(true)
-					args.Replicas = helper.IntPointer(3)
+					args.Autoscaling = new(true)
+					args.Replicas = new(3)
 				}, "When autoscaling is enabled, replicas should not be configured")
 
 				By("autoscaling_enable=false and set min_replicas and max_replicas at the same time")
 				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-					args.Autoscaling = helper.BoolPointer(false)
-					args.MinReplicas = helper.IntPointer(3)
-					args.MaxReplicas = helper.IntPointer(6)
+					args.Autoscaling = new(false)
+					args.MinReplicas = new(3)
+					args.MaxReplicas = new(6)
 				}, "Autoscaling must be enabled in order to set min and max replicas")
 				By("autoscaling_enable=true and set min_replicas greater than max_replicas")
 				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-					args.Autoscaling = helper.BoolPointer(true)
+					args.Autoscaling = new(true)
 					args.Replicas = nil
-					args.MinReplicas = helper.IntPointer(6)
-					args.MaxReplicas = helper.IntPointer(3)
+					args.MinReplicas = new(6)
+					args.MaxReplicas = new(3)
 				}, "greater or equal to min-replicas")
 				By("min_relicas with negative value")
 				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-					args.Autoscaling = helper.BoolPointer(true)
+					args.Autoscaling = new(true)
 					args.Replicas = nil
-					args.MinReplicas = helper.IntPointer(-3)
-					args.MaxReplicas = helper.IntPointer(3)
+					args.MinReplicas = new(-3)
+					args.MaxReplicas = new(3)
 				}, "value must be at least 0")
 				By("setting max_replicas to 0")
 				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-					args.Autoscaling = helper.BoolPointer(true)
+					args.Autoscaling = new(true)
 					args.Replicas = nil
-					args.MinReplicas = helper.IntPointer(0)
-					args.MaxReplicas = helper.IntPointer(0)
+					args.MinReplicas = new(0)
+					args.MaxReplicas = new(0)
 				}, "must be a integer greater than 0")
 				By("with a number not a multiple of 3")
 				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-					args.Autoscaling = helper.BoolPointer(true)
+					args.Autoscaling = new(true)
 					args.Replicas = nil
-					args.MinReplicas = helper.IntPointer(3)
-					args.MaxReplicas = helper.IntPointer(7)
+					args.MinReplicas = new(3)
+					args.MaxReplicas = new(7)
 				}, "require that the compute nodes be a multiple of the private subnets 3")
 			})
 		It("validate worker disk size - [id:76344]", ci.Low, func() {
@@ -598,10 +598,10 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 			By("Create cluster with invalid worker disk size")
 			errMsg := fmt.Sprintf("Must be between %d GiB and %d GiB", minDiskSize, maxDiskSize)
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.WorkerDiskSize = helper.IntPointer(minDiskSize - 1)
+				args.WorkerDiskSize = new(minDiskSize - 1)
 			}, errMsg)
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.WorkerDiskSize = helper.IntPointer(maxDiskSize + 1)
+				args.WorkerDiskSize = new(maxDiskSize + 1)
 			}, errMsg)
 
 			// TODO OCM-11521 terraform plan doesn't have validation
@@ -640,7 +640,7 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 			}
 			By("create cluster with an EOL OCP version")
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
-				args.OpenshiftVersion = helper.StringPointer("4.9.59")
+				args.OpenshiftVersion = new("4.9.59")
 			}, "version 4.9.59 is not in the list of supported versions")
 		})
 	})

@@ -53,7 +53,7 @@ var _ = Describe("Break Glass Credential", ci.Day2, ci.FeatureBreakGlassCredenti
 	It("Verify break glass credential can be created/imported - [id:85748]", ci.Day2, ci.Critical, func() {
 		By("Create break glass credential")
 		bgcArgs := &exe.BreakGlassCredentialArgs{
-			Cluster: helper.StringPointer(clusterID),
+			Cluster: new(clusterID),
 		}
 		_, err := bgcService.Apply(bgcArgs)
 		Expect(err).ToNot(HaveOccurred())
@@ -86,9 +86,9 @@ var _ = Describe("Break Glass Credential", ci.Day2, ci.FeatureBreakGlassCredenti
 		// so we use a random username to avoid conflicts
 		username := base32.StdEncoding.EncodeToString(ksuid.New().Bytes())
 		bgcArgs = &exe.BreakGlassCredentialArgs{
-			Cluster:            helper.StringPointer(clusterID),
-			Username:           helper.StringPointer(username),
-			ExpirationDuration: helper.StringPointer("1h"),
+			Cluster:            new(clusterID),
+			Username:           new(username),
+			ExpirationDuration: new("1h"),
 		}
 		_, err = bgcService.Apply(bgcArgs)
 		Expect(err).ToNot(HaveOccurred())
@@ -113,8 +113,8 @@ var _ = Describe("Break Glass Credential", ci.Day2, ci.FeatureBreakGlassCredenti
 
 		By("Create break glass credential with invalid username")
 		bgcArgs = &exe.BreakGlassCredentialArgs{
-			Cluster:  helper.StringPointer(clusterID),
-			Username: helper.StringPointer("test user"),
+			Cluster:  new(clusterID),
+			Username: new("test user"),
 		}
 		output, err = bgcService.Plan(bgcArgs)
 		Expect(err).To(HaveOccurred())
@@ -122,15 +122,15 @@ var _ = Describe("Break Glass Credential", ci.Day2, ci.FeatureBreakGlassCredenti
 
 		By("Create break glass credential with invalid expiration duration")
 		bgcArgs = &exe.BreakGlassCredentialArgs{
-			Cluster:            helper.StringPointer(clusterID),
-			ExpirationDuration: helper.StringPointer("25h"),
+			Cluster:            new(clusterID),
+			ExpirationDuration: new("25h"),
 		}
 		output, err = bgcService.Plan(bgcArgs)
 		Expect(err).To(HaveOccurred())
 		Expect(output).To(ContainSubstring("The expiration duration needs to be at maximum 24 hours"))
 		bgcArgs = &exe.BreakGlassCredentialArgs{
-			Cluster:            helper.StringPointer(clusterID),
-			ExpirationDuration: helper.StringPointer("invalid"),
+			Cluster:            new(clusterID),
+			ExpirationDuration: new("invalid"),
 		}
 		output, err = bgcService.Plan(bgcArgs)
 		Expect(err).To(HaveOccurred())

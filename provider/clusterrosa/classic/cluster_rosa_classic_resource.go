@@ -19,6 +19,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"os"
 	"reflect"
@@ -547,9 +548,7 @@ func createClassicClusterObject(ctx context.Context,
 
 	// Set default properties
 	properties := make(map[string]string)
-	for k, v := range rosa.OCMProperties {
-		properties[k] = v
-	}
+	maps.Copy(properties, rosa.OCMProperties)
 	if common.HasValue(state.Properties) {
 		propertiesElements, err := common.OptionalMap(ctx, state.Properties)
 		if err != nil {
@@ -584,9 +583,7 @@ func createClassicClusterObject(ctx context.Context,
 			return nil, errors.New(errHeadline + "\n" + errDescription)
 		}
 
-		for k, v := range propertiesElements {
-			properties[k] = v
-		}
+		maps.Copy(properties, propertiesElements)
 	}
 	builder.Properties(properties)
 
@@ -1333,9 +1330,7 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resourc
 			)
 		}
 		if propertiesElements != nil {
-			for k, v := range rosa.OCMProperties {
-				propertiesElements[k] = v
-			}
+			maps.Copy(propertiesElements, rosa.OCMProperties)
 			clusterBuilder.Properties(propertiesElements)
 		}
 	}
@@ -1394,7 +1389,7 @@ func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context,
 	}
 
 	tflog.Debug(ctx, "Cluster versions",
-		map[string]interface{}{
+		map[string]any{
 			"current_version": state.CurrentVersion.ValueString(),
 			"plan-version":    plan.Version.ValueString(),
 			"state-version":   state.Version.ValueString(),
@@ -1524,7 +1519,7 @@ func scheduleUpgrade(ctx context.Context, client *cmv1.ClustersClient, clusterID
 	// Ack all gates to OCM
 	for _, gate := range gates {
 		gateID := gate.ID()
-		tflog.Debug(ctx, "Acknowledging version gate", map[string]interface{}{"gateID": gateID})
+		tflog.Debug(ctx, "Acknowledging version gate", map[string]any{"gateID": gateID})
 		gateAgreementsClient := clusterClient.GateAgreements()
 		err := upgrade.AckVersionGate(gateAgreementsClient, gateID)
 		if err != nil {

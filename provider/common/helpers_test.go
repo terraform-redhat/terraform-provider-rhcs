@@ -193,10 +193,10 @@ var _ = Describe("Helper function tests", func() {
 			Expect(result).NotTo(BeNil())
 			Expect(*result).To(Equal(*expected))
 		},
-		Entry("nil uses default", nil, int64(45), ptrInt64(45), false),
-		Entry("positive unchanged", ptrInt64(30), int64(45), ptrInt64(30), false),
-		Entry("zero errors", ptrInt64(0), int64(45), nil, true),
-		Entry("negative errors", ptrInt64(-1), int64(45), nil, true),
+		Entry("nil uses default", nil, int64(45), new(int64(45)), false),
+		Entry("positive unchanged", new(int64(30)), int64(45), new(int64(30)), false),
+		Entry("zero errors", new(int64(0)), int64(45), nil, true),
+		Entry("negative errors", new(int64(-1)), int64(45), nil, true),
 	)
 
 	Describe("HandleErr", func() {
@@ -240,6 +240,7 @@ var _ = Describe("Helper function tests", func() {
 	)
 })
 
+//go:fix inline
 func ptrInt64(v int64) *int64 {
-	return &v
+	return new(v)
 }

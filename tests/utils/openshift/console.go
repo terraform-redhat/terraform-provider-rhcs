@@ -93,12 +93,12 @@ func (c *Console) GetClusterVersion() (version string, err error) {
 // If namespace passed as parameter, will return the pod list of the specified namespace
 func (c *Console) GetPods(namespace ...string) ([]*Pod, error) {
 	var pods []*Pod
-	var columns = make(map[string][]interface{})
-	columns["name"] = []interface{}{"metadata", "name"}
-	columns["ip"] = []interface{}{"status", "podIP"}
-	columns["status"] = []interface{}{"status", "phase"}
-	columns["startTime"] = []interface{}{"status", "startTime"}
-	columns["hostIP"] = []interface{}{"status", "hostIP"}
+	var columns = make(map[string][]any)
+	columns["name"] = []any{"metadata", "name"}
+	columns["ip"] = []any{"status", "podIP"}
+	columns["status"] = []any{"status", "phase"}
+	columns["startTime"] = []any{"status", "startTime"}
+	columns["hostIP"] = []any{"status", "hostIP"}
 	CMD := fmt.Sprintf("oc get pod -o json")
 	if len(namespace) == 1 {
 		CMD = fmt.Sprintf("oc get pod -n %s -o json  --kubeconfig %s", namespace[0], c.KubePath)

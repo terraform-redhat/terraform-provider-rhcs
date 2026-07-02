@@ -19,6 +19,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"os"
 	"reflect"
@@ -621,9 +622,7 @@ func createHcpClusterObject(ctx context.Context,
 
 	// Set default properties
 	properties := make(map[string]string)
-	for k, v := range rosa.OCMProperties {
-		properties[k] = v
-	}
+	maps.Copy(properties, rosa.OCMProperties)
 
 	// TODO: refactor to common pkg in properties file
 	if common.HasValue(state.Properties) {
@@ -659,9 +658,7 @@ func createHcpClusterObject(ctx context.Context,
 			return nil, errors.New(errHeadline + "\n" + errDescription)
 		}
 
-		for k, v := range propertiesElements {
-			properties[k] = v
-		}
+		maps.Copy(properties, propertiesElements)
 	}
 	builder.Properties(properties)
 
@@ -1543,9 +1540,7 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 			)
 		}
 		if propertiesElements != nil {
-			for k, v := range rosa.OCMProperties {
-				propertiesElements[k] = v
-			}
+			maps.Copy(propertiesElements, rosa.OCMProperties)
 			clusterBuilder.Properties(propertiesElements)
 		}
 	}
@@ -1682,7 +1677,7 @@ func (r *ClusterRosaHcpResource) upgradeClusterIfNeeded(ctx context.Context, sta
 	}
 
 	tflog.Debug(ctx, "Cluster versions",
-		map[string]interface{}{
+		map[string]any{
 			"current_version": state.CurrentVersion.ValueString(),
 			"plan-version":    plan.Version.ValueString(),
 			"state-version":   state.Version.ValueString(),
@@ -1808,7 +1803,7 @@ func scheduleUpgrade(ctx context.Context, client *cmv1.ClustersClient, clusterID
 	// Ack all gates to OCM
 	for _, gate := range gates {
 		gateID := gate.ID()
-		tflog.Debug(ctx, "Acknowledging version gate", map[string]interface{}{"gateID": gateID})
+		tflog.Debug(ctx, "Acknowledging version gate", map[string]any{"gateID": gateID})
 		gateAgreementsClient := clusterClient.GateAgreements()
 		err := upgrade.AckVersionGate(gateAgreementsClient, gateID)
 		if err != nil {

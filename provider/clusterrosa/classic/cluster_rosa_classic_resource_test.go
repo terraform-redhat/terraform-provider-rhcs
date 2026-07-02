@@ -84,45 +84,45 @@ var (
 	}
 )
 
-func generateBasicRosaClassicClusterJson() map[string]interface{} {
-	return map[string]interface{}{
+func generateBasicRosaClassicClusterJson() map[string]any {
+	return map[string]any{
 		"id":            clusterId,
 		"name":          clusterName,
 		"domain_prefix": domainPrefix,
-		"region": map[string]interface{}{
+		"region": map[string]any{
 			"id": regionId,
 		},
 		"multi_az": multiAz,
-		"properties": map[string]interface{}{
+		"properties": map[string]any{
 			"rosa_creator_arn": rosaCreatorArn,
 			"rosa_tf_version":  build.Version,
 			"rosa_tf_commit":   build.Commit,
 		},
-		"api": map[string]interface{}{
+		"api": map[string]any{
 			"url": apiUrl,
 		},
-		"console": map[string]interface{}{
+		"console": map[string]any{
 			"url": consoleUrl,
 		},
-		"dns": map[string]interface{}{
+		"dns": map[string]any{
 			"base_domain": baseDomain,
 		},
-		"nodes": map[string]interface{}{
-			"compute_machine_type": map[string]interface{}{
+		"nodes": map[string]any{
+			"compute_machine_type": map[string]any{
 				"id": machineType,
 			},
-			"availability_zones": []interface{}{
+			"availability_zones": []any{
 				availabilityZone1,
 			},
 		},
-		"ccs": map[string]interface{}{
+		"ccs": map[string]any{
 			"enabled": ccsEnabled,
 		},
-		"aws": map[string]interface{}{
+		"aws": map[string]any{
 			"account_id":               awsAccountID,
 			"private_link":             privateLink,
 			"ec2_metadata_http_tokens": httpTokens,
-			"sts": map[string]interface{}{
+			"sts": map[string]any{
 				"oidc_endpoint_url": oidcEndpointUrl,
 				"role_arn":          roleArn,
 			},
@@ -291,7 +291,7 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 		It("Nulls Channel and populates ChannelGroup when cluster has no channel", func() {
 			clusterState := &ClusterRosaClassicState{}
 			clusterJson := generateBasicRosaClassicClusterJson()
-			clusterJson["version"] = map[string]interface{}{
+			clusterJson["version"] = map[string]any{
 				"id":            "openshift-v4.14.0",
 				"channel_group": "stable",
 			}
@@ -312,8 +312,8 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 		It("Check trimming of oidc url with https perfix", func() {
 			clusterState := &ClusterRosaClassicState{}
 			clusterJson := generateBasicRosaClassicClusterJson()
-			clusterJson["aws"].(map[string]interface{})["sts"].(map[string]interface{})["oidc_endpoint_url"] = "https://nonce.com"
-			clusterJson["aws"].(map[string]interface{})["sts"].(map[string]interface{})["operator_role_prefix"] = "terraform-operator"
+			clusterJson["aws"].(map[string]any)["sts"].(map[string]any)["oidc_endpoint_url"] = "https://nonce.com"
+			clusterJson["aws"].(map[string]any)["sts"].(map[string]any)["operator_role_prefix"] = "terraform-operator"
 
 			clusterJsonString, err := json.Marshal(clusterJson)
 			Expect(err).ToNot(HaveOccurred())
@@ -329,7 +329,7 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 		It("Throws an error when oidc_endpoint_url is an invalid url", func() {
 			clusterState := &ClusterRosaClassicState{}
 			clusterJson := generateBasicRosaClassicClusterJson()
-			clusterJson["aws"].(map[string]interface{})["sts"].(map[string]interface{})["oidc_endpoint_url"] = "invalid$url"
+			clusterJson["aws"].(map[string]any)["sts"].(map[string]any)["oidc_endpoint_url"] = "invalid$url"
 			clusterJsonString, err := json.Marshal(clusterJson)
 			Expect(err).ToNot(HaveOccurred())
 

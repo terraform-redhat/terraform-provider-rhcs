@@ -163,7 +163,7 @@ var _ = Describe("HCP ImageMirror", ci.Day2, ci.Exclude, func() {
 
 			By("Try to update source (should trigger replace)")
 			newSource := "docker.io/library/postgres"
-			imageMirrorArgs.Source = helper.StringPointer(newSource)
+			imageMirrorArgs.Source = new(newSource)
 
 			// This should work but should trigger a replace operation
 			_, err = imageMirrorService.Apply(imageMirrorArgs)
@@ -176,7 +176,7 @@ var _ = Describe("HCP ImageMirror", ci.Day2, ci.Exclude, func() {
 
 			By("Try to update cluster_id (should trigger replace)")
 			newClusterID := "different-cluster-id"
-			imageMirrorArgs.Cluster = helper.StringPointer(newClusterID)
+			imageMirrorArgs.Cluster = new(newClusterID)
 
 			// This should work but should trigger a replace operation
 			_, err = imageMirrorService.Apply(imageMirrorArgs)
@@ -208,7 +208,7 @@ var _ = Describe("HCP ImageMirror", ci.Day2, ci.Exclude, func() {
 			// Note: Currently only 'digest' type is supported, so this test
 			// verifies that the type field can be updated in-place when
 			// additional types become available in the future
-			imageMirrorArgs.Type = helper.StringPointer("digest") // Same value, but tests update path
+			imageMirrorArgs.Type = new("digest") // Same value, but tests update path
 
 			_, err = imageMirrorService.Apply(imageMirrorArgs)
 			Expect(err).ToNot(HaveOccurred())

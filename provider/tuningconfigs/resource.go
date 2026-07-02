@@ -387,8 +387,8 @@ func getTuningConfigBuilder(plan *TuningConfig) (*cmv1.TuningConfigBuilder, erro
 	return tuningConfigBuilder, nil
 }
 
-func parseInputString(input []byte) (map[string]interface{}, error) {
-	var validSpec map[string]interface{}
+func parseInputString(input []byte) (map[string]any, error) {
+	var validSpec map[string]any
 	err := yaml.Unmarshal(input, &validSpec)
 	if err != nil {
 		return nil, err

@@ -19,6 +19,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net/http"
 	"time"
 
@@ -274,9 +275,7 @@ func createClusterObject(ctx context.Context,
 		if err != nil {
 			return nil, err
 		}
-		for k, v := range propertiesElements {
-			properties[k] = v
-		}
+		maps.Copy(properties, propertiesElements)
 		builder.Properties(properties)
 	}
 	nodes := cmv1.NewClusterNodes()

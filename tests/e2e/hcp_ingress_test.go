@@ -32,7 +32,7 @@ var _ = Describe("HCP Ingress", ci.FeatureIngress, ci.Day2, func() {
 		args, err := ingressService.ReadTFVars()
 		Expect(err).ToNot(HaveOccurred())
 		if args.Cluster == nil {
-			args.Cluster = helper.StringPointer(clusterID)
+			args.Cluster = new(clusterID)
 		}
 		return args
 	}
@@ -57,7 +57,7 @@ var _ = Describe("HCP Ingress", ci.FeatureIngress, ci.Day2, func() {
 	})
 
 	AfterEach(func() {
-		ingressArgs.ListeningMethod = helper.StringPointer(string(ingressBefore.Listening()))
+		ingressArgs.ListeningMethod = new(string(ingressBefore.Listening()))
 		_, err := ingressService.Apply(ingressArgs)
 		Expect(err).ToNot(HaveOccurred())
 	})
@@ -66,7 +66,7 @@ var _ = Describe("HCP Ingress", ci.FeatureIngress, ci.Day2, func() {
 		ci.High,
 		func() {
 			By("Set Listening method to internal")
-			ingressArgs.ListeningMethod = helper.StringPointer(internalListeningMethod)
+			ingressArgs.ListeningMethod = new(internalListeningMethod)
 			_, err := ingressService.Apply(ingressArgs)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -76,7 +76,7 @@ var _ = Describe("HCP Ingress", ci.FeatureIngress, ci.Day2, func() {
 			Expect(string(ingress.Listening())).To(Equal("internal"))
 
 			By("Set Listening method to external")
-			ingressArgs.ListeningMethod = helper.StringPointer(externalListeningMethod)
+			ingressArgs.ListeningMethod = new(externalListeningMethod)
 			_, err = ingressService.Apply(ingressArgs)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -97,7 +97,7 @@ var _ = Describe("HCP Ingress", ci.FeatureIngress, ci.Day2, func() {
 
 	It("validate edit - [id:72520]", ci.Medium, func() {
 		By("Initialize ingress state")
-		ingressArgs.ListeningMethod = helper.StringPointer(string(ingressBefore.Listening()))
+		ingressArgs.ListeningMethod = new(string(ingressBefore.Listening()))
 		_, err := ingressService.Apply(ingressArgs)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -119,7 +119,7 @@ var _ = Describe("HCP Ingress", ci.FeatureIngress, ci.Day2, func() {
 		}
 		if otherClusterID != "" {
 			ingressArgs = getOriginalIngressArgs()
-			ingressArgs.Cluster = helper.StringPointer(otherClusterID)
+			ingressArgs.Cluster = new(otherClusterID)
 			_, err = ingressService.Apply(ingressArgs)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("Attribute cluster, cannot be changed from"))
@@ -129,7 +129,7 @@ var _ = Describe("HCP Ingress", ci.FeatureIngress, ci.Day2, func() {
 
 		By("Try to edit cluster field with wrong value")
 		ingressArgs = getOriginalIngressArgs()
-		ingressArgs.Cluster = helper.StringPointer("wrong")
+		ingressArgs.Cluster = new("wrong")
 		_, err = ingressService.Apply(ingressArgs)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Cluster 'wrong' not"))
@@ -144,7 +144,7 @@ var _ = Describe("HCP Ingress", ci.FeatureIngress, ci.Day2, func() {
 
 		By("Try to edit with wrong listening_method")
 		ingressArgs = getOriginalIngressArgs()
-		ingressArgs.ListeningMethod = helper.StringPointer("wrong")
+		ingressArgs.ListeningMethod = new("wrong")
 		_, err = ingressService.Apply(ingressArgs)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Expected a valid param"))

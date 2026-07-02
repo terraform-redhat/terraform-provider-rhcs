@@ -51,7 +51,7 @@ var _ = Describe("Edit Account roles", func() {
 		By("Create account roles with empty prefix")
 		args := &exec.AccountRolesArgs{
 			AccountRolePrefix: helper.EmptyStringPointer,
-			OpenshiftVersion:  helper.StringPointer(majorVersion),
+			OpenshiftVersion:  new(majorVersion),
 		}
 		_, err := accService.Apply(args)
 		Expect(err).ToNot(HaveOccurred())
@@ -62,7 +62,7 @@ var _ = Describe("Edit Account roles", func() {
 		By("Create account roles with no prefix defined")
 		args = &exec.AccountRolesArgs{
 			AccountRolePrefix: nil,
-			OpenshiftVersion:  helper.StringPointer(majorVersion),
+			OpenshiftVersion:  new(majorVersion),
 		}
 		_, err = accService.Apply(args)
 		Expect(err).ToNot(HaveOccurred())
@@ -74,8 +74,8 @@ var _ = Describe("Edit Account roles", func() {
 
 	It("can delete account roles via account-role module - [id:63316]", ci.Day2, ci.Critical, func() {
 		args := &exec.AccountRolesArgs{
-			AccountRolePrefix: helper.StringPointer(helper.GenerateRandomName("OCP-63316", 10)),
-			OpenshiftVersion:  helper.StringPointer(majorVersion),
+			AccountRolePrefix: new(helper.GenerateRandomName("OCP-63316", 10)),
+			OpenshiftVersion:  new(majorVersion),
 		}
 		_, err := accService.Apply(args)
 		Expect(err).ToNot(HaveOccurred())
@@ -142,8 +142,8 @@ var _ = Describe("Create Account roles with shared vpc role", ci.Exclude, func()
 		}
 		By("Create account role without shared vpc role arn")
 		accArgs := &exec.AccountRolesArgs{
-			AccountRolePrefix: helper.StringPointer(helper.GenerateRandomName("OCP-67574", 2)),
-			OpenshiftVersion:  helper.StringPointer(majorVersion),
+			AccountRolePrefix: new(helper.GenerateRandomName("OCP-67574", 2)),
+			OpenshiftVersion:  new(majorVersion),
 		}
 		_, err := accService.Apply(accArgs)
 		Expect(err).ToNot(HaveOccurred())
@@ -153,10 +153,10 @@ var _ = Describe("Create Account roles with shared vpc role", ci.Exclude, func()
 
 		By("Create operator role")
 		oidcOpArgs := &exec.OIDCProviderOperatorRolesArgs{
-			AccountRolePrefix:  helper.StringPointer(accRoleOutput.AccountRolePrefix),
-			OperatorRolePrefix: helper.StringPointer(accRoleOutput.AccountRolePrefix),
-			OIDCPrefix:         helper.StringPointer(helper.TruncateString(accRoleOutput.AccountRolePrefix, 16)),
-			OIDCConfig:         helper.StringPointer(profileHandler.Profile().GetOIDCConfig()),
+			AccountRolePrefix:  new(accRoleOutput.AccountRolePrefix),
+			OperatorRolePrefix: new(accRoleOutput.AccountRolePrefix),
+			OIDCPrefix:         new(helper.TruncateString(accRoleOutput.AccountRolePrefix, 16)),
+			OIDCConfig:         new(profileHandler.Profile().GetOIDCConfig()),
 		}
 		_, err = oidcOpService.Apply(oidcOpArgs)
 		Expect(err).ToNot(HaveOccurred())
@@ -179,25 +179,25 @@ var _ = Describe("Create Account roles with shared vpc role", ci.Exclude, func()
 		By("Create shared vpc role")
 		clusterName := "OCP-67574"
 		vpcArgs := &exec.VPCArgs{
-			NamePrefix:                helper.StringPointer(clusterName),
-			AWSRegion:                 helper.StringPointer(profileHandler.Profile().GetRegion()),
-			VPCCIDR:                   helper.StringPointer(profilehandler.DefaultVPCCIDR),
-			AWSSharedCredentialsFiles: helper.StringSlicePointer([]string{config.GetSharedVpcAWSSharedCredentialsFile()}),
+			NamePrefix:                new(clusterName),
+			AWSRegion:                 new(profileHandler.Profile().GetRegion()),
+			VPCCIDR:                   new(profilehandler.DefaultVPCCIDR),
+			AWSSharedCredentialsFiles: new([]string{config.GetSharedVpcAWSSharedCredentialsFile()}),
 		}
 		_, err = vpcService.Apply(vpcArgs)
 		Expect(err).ToNot(HaveOccurred())
 		vpcOutput, err := vpcService.Output()
 		Expect(err).ToNot(HaveOccurred())
 		sharedVPCArgs := &exec.SharedVpcPolicyAndHostedZoneArgs{
-			SharedVpcAWSSharedCredentialsFiles: helper.StringSlicePointer([]string{config.GetSharedVpcAWSSharedCredentialsFile()}),
-			Region:                             helper.StringPointer(profileHandler.Profile().GetRegion()),
-			ClusterName:                        helper.StringPointer(clusterName),
-			DnsDomainId:                        helper.StringPointer(dnsDomainOutput.DnsDomainId),
-			IngressOperatorRoleArn:             helper.StringPointer(oidcOpOutput.IngressOperatorRoleArn),
-			InstallerRoleArn:                   helper.StringPointer(accRoleOutput.InstallerRoleArn),
-			ClusterAWSAccount:                  helper.StringPointer(accRoleOutput.AWSAccountId),
-			VpcId:                              helper.StringPointer(vpcOutput.VPCID),
-			Subnets:                            helper.StringSlicePointer(vpcOutput.PrivateSubnets),
+			SharedVpcAWSSharedCredentialsFiles: new([]string{config.GetSharedVpcAWSSharedCredentialsFile()}),
+			Region:                             new(profileHandler.Profile().GetRegion()),
+			ClusterName:                        new(clusterName),
+			DnsDomainId:                        new(dnsDomainOutput.DnsDomainId),
+			IngressOperatorRoleArn:             new(oidcOpOutput.IngressOperatorRoleArn),
+			InstallerRoleArn:                   new(accRoleOutput.InstallerRoleArn),
+			ClusterAWSAccount:                  new(accRoleOutput.AWSAccountId),
+			VpcId:                              new(vpcOutput.VPCID),
+			Subnets:                            new(vpcOutput.PrivateSubnets),
 		}
 		_, err = sharedVPCService.Apply(sharedVPCArgs)
 		Expect(err).ToNot(HaveOccurred())
@@ -206,9 +206,9 @@ var _ = Describe("Create Account roles with shared vpc role", ci.Exclude, func()
 
 		By("Add shared vpc role arn to account role")
 		accArgs = &exec.AccountRolesArgs{
-			AccountRolePrefix: helper.StringPointer(accRoleOutput.AccountRolePrefix),
-			OpenshiftVersion:  helper.StringPointer(majorVersion),
-			SharedVpcRoleArn:  helper.StringPointer(sharedVPCOutput.SharedRole),
+			AccountRolePrefix: new(accRoleOutput.AccountRolePrefix),
+			OpenshiftVersion:  new(majorVersion),
+			SharedVpcRoleArn:  new(sharedVPCOutput.SharedRole),
 		}
 		_, err = accService.Apply(accArgs)
 		Expect(err).ToNot(HaveOccurred())

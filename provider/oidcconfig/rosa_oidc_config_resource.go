@@ -390,8 +390,8 @@ func (o *RosaOidcConfigResource) populateState(ctx context.Context, object *cmv1
 	}
 
 	oidcEndpointURL := issuerUrl
-	if strings.HasPrefix(oidcEndpointURL, "https://") {
-		oidcEndpointURL = strings.TrimPrefix(oidcEndpointURL, "https://")
+	if after, ok0 := strings.CutPrefix(oidcEndpointURL, "https://"); ok0 {
+		oidcEndpointURL = after
 	}
 	state.OIDCEndpointURL = types.StringValue(oidcEndpointURL)
 

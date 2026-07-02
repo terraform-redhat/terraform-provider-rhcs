@@ -248,10 +248,10 @@ var _ = Describe("OCM policies data source", func() {
 		Expect(runOutput.ExitCode).To(BeZero())
 
 		// Check the state:
-		resource := Terraform.Resource("rhcs_policies", "my_policies").(map[string]interface{})
+		resource := Terraform.Resource("rhcs_policies", "my_policies").(map[string]any)
 		Expect(fmt.Sprint(resource["attributes"])).To(Equal(fmt.Sprint(
-			map[string]interface{}{
-				"operator_role_policies": map[string]interface{}{
+			map[string]any{
+				"operator_role_policies": map[string]any{
 					"openshift_cloud_credential_operator_cloud_credential_operator_iam_ro_creds_policy": "{}",
 					"openshift_cloud_network_config_controller_cloud_credentials_policy":                "{}",
 					"openshift_cluster_csi_drivers_ebs_cloud_credentials_policy":                        "{}",
@@ -261,14 +261,14 @@ var _ = Describe("OCM policies data source", func() {
 					"openshift_machine_api_aws_cloud_credentials_policy":                                "{}",
 					"openshift_aws_vpce_operator_avo_aws_creds_policy":                                  nil,
 				},
-				"account_role_policies": map[string]interface{}{
+				"account_role_policies": map[string]any{
 					"sts_installer_permission_policy":             "{}",
 					"sts_support_permission_policy":               "{}",
 					"sts_instance_worker_permission_policy":       "{}",
 					"sts_instance_controlplane_permission_policy": "{}",
 					"sts_support_rh_sre_role":                     "arn:aws:iam::12345678912:role/RH-Technical-Support-12345678",
 				},
-				"ocm_role_policies": map[string]interface{}{
+				"ocm_role_policies": map[string]any{
 					"sts_ocm_trust_policy":                 "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": \"sts:AssumeRole\", \"Principal\": {\"AWS\": \"arn:aws:iam::710019948333:root\"}}]}",
 					"sts_ocm_permission_policy":            "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": [\"iam:GetRole\"], \"Resource\": \"*\"}]}",
 					"sts_ocm_admin_permission_policy":      "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Action\": [\"iam:*\"], \"Resource\": \"*\"}]}",

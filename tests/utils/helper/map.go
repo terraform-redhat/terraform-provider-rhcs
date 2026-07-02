@@ -3,6 +3,8 @@
 
 package helper
 
+import "maps"
+
 type m = map[string]string
 
 // combine two strings maps to one,
@@ -20,8 +22,6 @@ func MergeMaps(map1, map2 m) m {
 // Create a file for usage
 func CopyStringMap(originalMap m) m {
 	newMap := make(m)
-	for k, v := range originalMap {
-		newMap[k] = v
-	}
+	maps.Copy(newMap, originalMap)
 	return newMap
 }

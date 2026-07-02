@@ -346,8 +346,8 @@ func (ctx *profileContext) PrepareVPC(multiZone bool, azIDs []string, name strin
 		return nil, err
 	}
 	vpcArgs := &exec.VPCArgs{
-		AWSRegion: helper.StringPointer(region),
-		VPCCIDR:   helper.StringPointer(DefaultVPCCIDR),
+		AWSRegion: new(region),
+		VPCCIDR:   new(DefaultVPCCIDR),
 		Tags: &map[string]string{
 			"kubernetes.io/cluster/unmanaged": "true",
 		},
@@ -362,20 +362,20 @@ func (ctx *profileContext) PrepareVPC(multiZone bool, azIDs []string, name strin
 				turnedZoneIDs = append(turnedZoneIDs, region+zone)
 			}
 		}
-		vpcArgs.AvailabilityZones = helper.StringSlicePointer(turnedZoneIDs)
+		vpcArgs.AvailabilityZones = new(turnedZoneIDs)
 	} else {
 		azCount := 1
 		if multiZone {
 			azCount = 3
 		}
-		vpcArgs.AvailabilityZonesCount = helper.IntPointer(azCount)
+		vpcArgs.AvailabilityZonesCount = new(azCount)
 	}
 	if name != "" {
-		vpcArgs.NamePrefix = helper.StringPointer(name)
+		vpcArgs.NamePrefix = new(name)
 	}
 
 	if sharedVpcAWSSharedCredentialsFile != "" {
-		vpcArgs.AWSSharedCredentialsFiles = helper.StringSlicePointer([]string{sharedVpcAWSSharedCredentialsFile})
+		vpcArgs.AWSSharedCredentialsFiles = new([]string{sharedVpcAWSSharedCredentialsFile})
 	}
 
 	_, err = vpcService.Apply(vpcArgs)
@@ -397,10 +397,10 @@ func (ctx *profileContext) PrepareAdditionalSecurityGroups(vpcID string, sgNumbe
 		return nil, err
 	}
 	sgArgs := &exec.SecurityGroupArgs{
-		AWSRegion:  helper.StringPointer(ctx.profile.Region),
-		VPCID:      helper.StringPointer(vpcID),
-		SGNumber:   helper.IntPointer(sgNumbers),
-		NamePrefix: helper.StringPointer("rhcs-ci"),
+		AWSRegion:  new(ctx.profile.Region),
+		VPCID:      new(vpcID),
+		SGNumber:   new(sgNumbers),
+		NamePrefix: new("rhcs-ci"),
 	}
 	_, err = sgService.Apply(sgArgs)
 	if err != nil {
@@ -422,13 +422,13 @@ func (ctx *profileContext) PrepareAccountRoles(token string, accountRolePrefix s
 		return nil, err
 	}
 	args := &exec.AccountRolesArgs{
-		AccountRolePrefix:   helper.StringPointer(accountRolePrefix),
-		OpenshiftVersion:    helper.StringPointer(openshiftVersion),
-		UnifiedAccRolesPath: helper.StringPointer(accountRolesPath),
+		AccountRolePrefix:   new(accountRolePrefix),
+		OpenshiftVersion:    new(openshiftVersion),
+		UnifiedAccRolesPath: new(accountRolesPath),
 	}
 
 	if sharedVpcRoleArn != "" {
-		args.SharedVpcRoleArn = helper.StringPointer(sharedVpcRoleArn)
+		args.SharedVpcRoleArn = new(sharedVpcRoleArn)
 	}
 
 	_, err = accService.Apply(args)
@@ -446,11 +446,11 @@ func (ctx *profileContext) PrepareOIDCProviderAndOperatorRoles(token string, oid
 		return nil, err
 	}
 	args := &exec.OIDCProviderOperatorRolesArgs{
-		AccountRolePrefix:   helper.StringPointer(accountRolePrefix),
-		OperatorRolePrefix:  helper.StringPointer(operatorRolePrefix),
-		OIDCConfig:          helper.StringPointer(oidcConfigType),
-		OIDCPrefix:          helper.StringPointer(helper.TruncateString(operatorRolePrefix, 16)),
-		UnifiedAccRolesPath: helper.StringPointer(accountRolesPath),
+		AccountRolePrefix:   new(accountRolePrefix),
+		OperatorRolePrefix:  new(operatorRolePrefix),
+		OIDCConfig:          new(oidcConfigType),
+		OIDCPrefix:          new(helper.TruncateString(operatorRolePrefix, 16)),
+		UnifiedAccRolesPath: new(accountRolesPath),
 	}
 	_, err = oidcOpService.Apply(args)
 	if err != nil {
@@ -469,12 +469,12 @@ func (ctx *profileContext) PrepareProxy(VPCID string, subnetPublicID string, key
 		return nil, err
 	}
 	proxyArgs := &exec.ProxyArgs{
-		ProxyCount:          helper.IntPointer(1),
-		Region:              helper.StringPointer(ctx.profile.Region),
-		VPCID:               helper.StringPointer(VPCID),
-		PublicSubnetID:      helper.StringPointer(subnetPublicID),
-		TrustBundleFilePath: helper.StringPointer(config.GetClusterTrustBundleFilename()),
-		KeyPairID:           helper.StringPointer(keyPairID),
+		ProxyCount:          new(1),
+		Region:              new(ctx.profile.Region),
+		VPCID:               new(VPCID),
+		PublicSubnetID:      new(subnetPublicID),
+		TrustBundleFilePath: new(config.GetClusterTrustBundleFilename()),
+		KeyPairID:           new(keyPairID),
 	}
 
 	_, err = proxyService.Apply(proxyArgs)
@@ -497,14 +497,14 @@ func (ctx *profileContext) PrepareKMSKey(kmsName string, accountRolePrefix strin
 		return "", err
 	}
 	kmsArgs := &exec.KMSArgs{
-		KMSName:           helper.StringPointer(kmsName),
-		AWSRegion:         helper.StringPointer(ctx.profile.Region),
-		AccountRolePrefix: helper.StringPointer(accountRolePrefix),
-		AccountRolePath:   helper.StringPointer(accountRolePath),
-		TagKey:            helper.StringPointer("Purpose"),
-		TagValue:          helper.StringPointer("RHCS automation test"),
-		TagDescription:    helper.StringPointer("BYOK Test Key for API automation"),
-		HCP:               helper.BoolPointer(ctx.GetClusterType().HCP),
+		KMSName:           new(kmsName),
+		AWSRegion:         new(ctx.profile.Region),
+		AccountRolePrefix: new(accountRolePrefix),
+		AccountRolePath:   new(accountRolePath),
+		TagKey:            new("Purpose"),
+		TagValue:          new("RHCS automation test"),
+		TagDescription:    new("BYOK Test Key for API automation"),
+		HCP:               new(ctx.GetClusterType().HCP),
 	}
 
 	_, err = kmsService.Apply(kmsArgs)
@@ -549,18 +549,18 @@ func (ctx *profileContext) PrepareSharedVpcPolicyAndHostedZone(sharedCredentials
 	}
 
 	hostedZoneArgs := &exec.SharedVpcPolicyAndHostedZoneArgs{
-		SharedVpcAWSSharedCredentialsFiles: helper.StringSlicePointer([]string{sharedCredentialsFile}),
-		Region:                             helper.StringPointer(ctx.profile.Region),
-		ClusterName:                        helper.StringPointer(clusterName),
-		DnsDomainId:                        helper.StringPointer(dnsDomainID),
-		IngressOperatorRoleArn:             helper.StringPointer(ingressOperatorRoleArn),
-		InstallerRoleArn:                   helper.StringPointer(installerRoleArn),
-		ClusterAWSAccount:                  helper.StringPointer(clusterAwsAccount),
-		VpcId:                              helper.StringPointer(vpcID),
-		Subnets:                            helper.StringSlicePointer(subnets),
+		SharedVpcAWSSharedCredentialsFiles: new([]string{sharedCredentialsFile}),
+		Region:                             new(ctx.profile.Region),
+		ClusterName:                        new(clusterName),
+		DnsDomainId:                        new(dnsDomainID),
+		IngressOperatorRoleArn:             new(ingressOperatorRoleArn),
+		InstallerRoleArn:                   new(installerRoleArn),
+		ClusterAWSAccount:                  new(clusterAwsAccount),
+		VpcId:                              new(vpcID),
+		Subnets:                            new(subnets),
 	}
 	if domainPrefix != "" {
-		hostedZoneArgs.DomainPrefix = helper.StringPointer(domainPrefix)
+		hostedZoneArgs.DomainPrefix = new(domainPrefix)
 	}
 
 	_, err = sharedVPCService.Apply(hostedZoneArgs)
@@ -634,51 +634,51 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 	version, channelGroup, err := ctx.PrepareVersionAndChannelGroup()
 
 	clusterArgs = &exec.ClusterArgs{
-		OpenshiftVersion: helper.StringPointer(version),
-		ChannelGroup:     helper.StringPointer(channelGroup),
+		OpenshiftVersion: new(version),
+		ChannelGroup:     new(channelGroup),
 	}
 
 	// Init cluster's args by profile's attributes
 
-	clusterArgs.Fips = helper.BoolPointer(ctx.profile.FIPS)
-	clusterArgs.MultiAZ = helper.BoolPointer(ctx.profile.MultiAZ)
-	clusterArgs.ExternalAuthProvidersEnabled = helper.BoolPointer(ctx.profile.ExternalAuthEnabled)
+	clusterArgs.Fips = new(ctx.profile.FIPS)
+	clusterArgs.MultiAZ = new(ctx.profile.MultiAZ)
+	clusterArgs.ExternalAuthProvidersEnabled = new(ctx.profile.ExternalAuthEnabled)
 
 	if ctx.profile.NetWorkingSet {
-		clusterArgs.MachineCIDR = helper.StringPointer(DefaultVPCCIDR)
+		clusterArgs.MachineCIDR = new(DefaultVPCCIDR)
 	}
 
 	if ctx.profile.Autoscaling {
-		clusterArgs.Autoscaling = helper.BoolPointer(ctx.profile.Autoscaling)
-		clusterArgs.MinReplicas = helper.IntPointer(ctx.profile.MinReplicas)
-		clusterArgs.MaxReplicas = helper.IntPointer(ctx.profile.MaxReplicas)
+		clusterArgs.Autoscaling = new(ctx.profile.Autoscaling)
+		clusterArgs.MinReplicas = new(ctx.profile.MinReplicas)
+		clusterArgs.MaxReplicas = new(ctx.profile.MaxReplicas)
 	} else {
 		if ctx.profile.ComputeReplicas > 0 {
-			clusterArgs.Replicas = helper.IntPointer(ctx.profile.ComputeReplicas)
+			clusterArgs.Replicas = new(ctx.profile.ComputeReplicas)
 		}
 	}
 
 	if ctx.profile.ComputeMachineType != "" {
-		clusterArgs.ComputeMachineType = helper.StringPointer(ctx.profile.ComputeMachineType)
+		clusterArgs.ComputeMachineType = new(ctx.profile.ComputeMachineType)
 	}
 
 	if ctx.profile.Ec2MetadataHttpTokens != "" {
-		clusterArgs.Ec2MetadataHttpTokens = helper.StringPointer(ctx.profile.Ec2MetadataHttpTokens)
+		clusterArgs.Ec2MetadataHttpTokens = new(ctx.profile.Ec2MetadataHttpTokens)
 	}
 
 	if ctx.profile.Labeling {
-		clusterArgs.DefaultMPLabels = helper.StringMapPointer(DefaultMPLabels)
+		clusterArgs.DefaultMPLabels = new(DefaultMPLabels)
 	}
 
 	if ctx.profile.Tagging {
-		clusterArgs.Tags = helper.StringMapPointer(Tags)
+		clusterArgs.Tags = new(Tags)
 	}
 
 	if ctx.profile.AdminEnabled {
 		userName := ClusterAdminUser
 		password := helper.GenerateRandomPassword(14)
 		adminPasswdMap := map[string]string{"username": userName, "password": password}
-		clusterArgs.AdminCredentials = helper.StringMapPointer(adminPasswdMap)
+		clusterArgs.AdminCredentials = new(adminPasswdMap)
 		pass := []byte(password)
 		err = os.WriteFile(config.GetClusterAdminUserFilename(), pass, 0644)
 		if err != nil {
@@ -701,7 +701,7 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 		name := helper.GenerateClusterName(ctx.profile.Name)
 		clusterName = name
 	}
-	clusterArgs.ClusterName = helper.StringPointer(clusterName)
+	clusterArgs.ClusterName = new(clusterName)
 
 	// There are some problem for cluster created with name length
 	// longer than 15 chars with auto generated domain prefix
@@ -749,8 +749,8 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 		if err != nil {
 			return
 		}
-		clusterArgs.AccountRolePrefix = helper.StringPointer(accountRolesOutput.AccountRolePrefix)
-		clusterArgs.UnifiedAccRolesPath = helper.StringPointer(ctx.profile.UnifiedAccRolesPath)
+		clusterArgs.AccountRolePrefix = new(accountRolesOutput.AccountRolePrefix)
+		clusterArgs.UnifiedAccRolesPath = new(ctx.profile.UnifiedAccRolesPath)
 		Logger.Infof("Created account roles with prefix %s", accountRolesOutput.AccountRolePrefix)
 
 		Logger.Infof("Sleep for 10 sec to let aws account role async creation finished")
@@ -806,8 +806,8 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 				return
 			}
 			if ctx.profile.Private {
-				clusterArgs.Private = helper.BoolPointer(ctx.profile.Private)
-				clusterArgs.PrivateLink = helper.BoolPointer(ctx.profile.PrivateLink)
+				clusterArgs.Private = new(ctx.profile.Private)
+				clusterArgs.PrivateLink = new(ctx.profile.PrivateLink)
 				if ctx.IsPrivateLink() {
 					clusterArgs.AWSSubnetIDs = &vpcOutput.PrivateSubnets
 				}
@@ -841,7 +841,7 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 					return
 				}
 
-				clusterArgs.BaseDnsDomain = helper.StringPointer(baseDnsDomain)
+				clusterArgs.BaseDnsDomain = new(baseDnsDomain)
 				privateHostedZone := exec.PrivateHostedZone{
 					ID:      sharedVpcPolicyAndHostedZoneOutput.HostedZoneId,
 					RoleArn: sharedVpcPolicyAndHostedZoneOutput.SharedRole,
@@ -856,16 +856,16 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 				clusterArgs.AWSAvailabilityZones = &vpcOutput.AvailabilityZones
 			}
 
-			clusterArgs.MachineCIDR = helper.StringPointer(vpcOutput.VPCCIDR)
+			clusterArgs.MachineCIDR = new(vpcOutput.VPCCIDR)
 			if ctx.profile.AdditionalSGNumber != 0 {
 				// Prepare profile.AdditionalSGNumber+5 security groups for negative testing
 				sgIDs, err = ctx.PrepareAdditionalSecurityGroups(vpcOutput.VPCID, ctx.profile.AdditionalSGNumber+5)
 				if err != nil {
 					return
 				}
-				clusterArgs.AdditionalComputeSecurityGroups = helper.StringSlicePointer(sgIDs[0:ctx.profile.AdditionalSGNumber])
-				clusterArgs.AdditionalInfraSecurityGroups = helper.StringSlicePointer(sgIDs[0:ctx.profile.AdditionalSGNumber])
-				clusterArgs.AdditionalControlPlaneSecurityGroups = helper.StringSlicePointer(sgIDs[0:ctx.profile.AdditionalSGNumber])
+				clusterArgs.AdditionalComputeSecurityGroups = new(sgIDs[0:ctx.profile.AdditionalSGNumber])
+				clusterArgs.AdditionalInfraSecurityGroups = new(sgIDs[0:ctx.profile.AdditionalSGNumber])
+				clusterArgs.AdditionalControlPlaneSecurityGroups = new(sgIDs[0:ctx.profile.AdditionalSGNumber])
 			}
 
 			// in case Proxy is enabled
@@ -896,7 +896,7 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 
 		if ctx.profile.Etcd {
 			clusterArgs.Etcd = &ctx.profile.Etcd
-			clusterArgs.EtcdKmsKeyARN = helper.StringPointer(kmskey)
+			clusterArgs.EtcdKmsKeyARN = new(kmskey)
 		}
 		if ctx.profile.KMSKey {
 			clusterArgs.KmsKeyARN = &kmskey
@@ -909,7 +909,7 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 					if err != nil {
 						return
 					}
-					clusterArgs.EtcdKmsKeyARN = helper.StringPointer(etcdKMSKeyArn)
+					clusterArgs.EtcdKmsKeyARN = new(etcdKMSKeyArn)
 				}
 			}
 
@@ -917,37 +917,37 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 	}
 
 	if ctx.profile.MachineCIDR != "" {
-		clusterArgs.MachineCIDR = helper.StringPointer(ctx.profile.MachineCIDR)
+		clusterArgs.MachineCIDR = new(ctx.profile.MachineCIDR)
 	}
 	if ctx.profile.ServiceCIDR != "" {
-		clusterArgs.ServiceCIDR = helper.StringPointer(ctx.profile.ServiceCIDR)
+		clusterArgs.ServiceCIDR = new(ctx.profile.ServiceCIDR)
 	}
 	if ctx.profile.PodCIDR != "" {
-		clusterArgs.PodCIDR = helper.StringPointer(ctx.profile.PodCIDR)
+		clusterArgs.PodCIDR = new(ctx.profile.PodCIDR)
 	}
 	if ctx.profile.HostPrefix > 0 {
-		clusterArgs.HostPrefix = helper.IntPointer(ctx.profile.HostPrefix)
+		clusterArgs.HostPrefix = new(ctx.profile.HostPrefix)
 	}
 
 	if ctx.profile.WorkerDiskSize != 0 {
-		clusterArgs.WorkerDiskSize = helper.IntPointer(ctx.profile.WorkerDiskSize)
+		clusterArgs.WorkerDiskSize = new(ctx.profile.WorkerDiskSize)
 	}
-	clusterArgs.UnifiedAccRolesPath = helper.StringPointer(ctx.profile.UnifiedAccRolesPath)
-	clusterArgs.CustomProperties = helper.StringMapPointer(CustomProperties) // id:72450
+	clusterArgs.UnifiedAccRolesPath = new(ctx.profile.UnifiedAccRolesPath)
+	clusterArgs.CustomProperties = new(CustomProperties) // id:72450
 
 	if ctx.profile.FullResources {
-		clusterArgs.FullResources = helper.BoolPointer(true)
+		clusterArgs.FullResources = new(true)
 	}
 	if ctx.profile.DontWaitForCluster {
-		clusterArgs.WaitForCluster = helper.BoolPointer(false)
+		clusterArgs.WaitForCluster = new(false)
 	}
 
 	if ctx.profile.UseRegistryConfig {
 		clusterArgs.RegistryConfig = exec.GetDefaultRegistryConfig()
 		if len(ctx.profile.AllowedRegistries) > 0 {
-			clusterArgs.RegistryConfig.RegistrySources.AllowedRegistries = helper.StringSlicePointer(ctx.profile.AllowedRegistries)
+			clusterArgs.RegistryConfig.RegistrySources.AllowedRegistries = new(ctx.profile.AllowedRegistries)
 		} else if len(ctx.profile.BlockedRegistries) > 0 { // allowed and blocked are mutually exclusive
-			clusterArgs.RegistryConfig.RegistrySources.BlockedRegistries = helper.StringSlicePointer(ctx.profile.BlockedRegistries)
+			clusterArgs.RegistryConfig.RegistrySources.BlockedRegistries = new(ctx.profile.BlockedRegistries)
 		}
 	}
 
@@ -1002,7 +1002,7 @@ func (ctx *profileContext) DestroyRHCSClusterResources(token string) error {
 	clusterName, _ := helper.ReadFile(config.GetClusterNameFilename())
 	Logger.Infof("Double checking with the cluster name %s", clusterName)
 	if clusterName != "" {
-		parameter := map[string]interface{}{
+		parameter := map[string]any{
 			"search": fmt.Sprintf("name is '%s'", clusterName),
 		}
 		resp, err := cms.ListClusters(cms.RHCSConnection, parameter)

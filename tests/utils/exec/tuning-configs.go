@@ -6,7 +6,6 @@ package exec
 import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
 type TuningConfigArgs struct {
@@ -87,14 +86,14 @@ func (svc *tuningConfigService) DeleteTFVars() error {
 
 func NewTuningConfigSpecFromString(specValue string) TuningConfigSpec {
 	return TuningConfigSpec{
-		Type:  helper.StringPointer("string"),
+		Type:  new("string"),
 		Value: &specValue,
 	}
 }
 
 func NewTuningConfigSpecFromFile(specFile string) TuningConfigSpec {
 	return TuningConfigSpec{
-		Type:  helper.StringPointer("file"),
+		Type:  new("file"),
 		Value: &specFile,
 	}
 }

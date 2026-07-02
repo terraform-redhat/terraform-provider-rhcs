@@ -6,7 +6,6 @@ package exec
 import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec/manifests"
-	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 )
 
 type ClusterArgs struct {
@@ -125,7 +124,7 @@ type ClusterService interface {
 	Output() (*ClusterOutput, error)
 	Destroy() (string, error)
 
-	GetStateResource(resourceType string, resoureName string) (interface{}, error)
+	GetStateResource(resourceType string, resoureName string) (any, error)
 
 	ReadTFVars() (*ClusterArgs, error)
 	WriteTFVars(args *ClusterArgs) error
@@ -170,7 +169,7 @@ func (svc *clusterService) Destroy() (string, error) {
 	return svc.tfExecutor.RunTerraformDestroy()
 }
 
-func (svc *clusterService) GetStateResource(resourceType string, resoureName string) (interface{}, error) {
+func (svc *clusterService) GetStateResource(resourceType string, resoureName string) (any, error) {
 	return svc.tfExecutor.GetStateResource(resourceType, resoureName)
 }
 
@@ -196,7 +195,7 @@ func GetDefaultRegistryConfig() *RegistryConfig {
 			GetAllowedRegistryForImport("registry.com", false),
 		},
 		RegistrySources: &RegistrySources{
-			InsecureRegistries: helper.StringSlicePointer([]string{
+			InsecureRegistries: new([]string{
 				"*.io",
 				"test.io",
 			}),
@@ -206,7 +205,7 @@ func GetDefaultRegistryConfig() *RegistryConfig {
 
 func GetAllowedRegistryForImport(domainName string, insecure bool) AllowedRegistryForImport {
 	return AllowedRegistryForImport{
-		DomainName: helper.StringPointer(domainName),
-		Insecure:   helper.BoolPointer(insecure),
+		DomainName: new(domainName),
+		Insecure:   new(insecure),
 	}
 }

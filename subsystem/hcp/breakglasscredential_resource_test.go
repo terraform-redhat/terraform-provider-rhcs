@@ -194,10 +194,10 @@ var _ = Describe("Break Glass Credential", func() {
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
 
-			actualResource, ok := Terraform.Resource("rhcs_break_glass_credential", "break_glass").(map[string]interface{})
+			actualResource, ok := Terraform.Resource("rhcs_break_glass_credential", "break_glass").(map[string]any)
 			Expect(ok).To(BeTrue(), "Type conversion failed for the received resource state")
 
-			attributes := actualResource["attributes"].(map[string]interface{})
+			attributes := actualResource["attributes"].(map[string]any)
 			Expect(attributes["cluster"]).To(Equal("123"))
 			Expect(attributes["id"]).To(Equal("bgc-123"))
 			Expect(attributes["username"]).To(Equal("break-glass-user"))
@@ -258,10 +258,10 @@ var _ = Describe("Break Glass Credential", func() {
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
 
-			actualResource, ok := Terraform.Resource("rhcs_break_glass_credential", "break_glass").(map[string]interface{})
+			actualResource, ok := Terraform.Resource("rhcs_break_glass_credential", "break_glass").(map[string]any)
 			Expect(ok).To(BeTrue(), "Type conversion failed for the received resource state")
 
-			attributes := actualResource["attributes"].(map[string]interface{})
+			attributes := actualResource["attributes"].(map[string]any)
 			Expect(attributes["username"]).To(Equal("custom-admin"))
 		})
 
@@ -317,10 +317,10 @@ var _ = Describe("Break Glass Credential", func() {
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
 
-			actualResource, ok := Terraform.Resource("rhcs_break_glass_credential", "break_glass").(map[string]interface{})
+			actualResource, ok := Terraform.Resource("rhcs_break_glass_credential", "break_glass").(map[string]any)
 			Expect(ok).To(BeTrue(), "Type conversion failed for the received resource state")
 
-			attributes := actualResource["attributes"].(map[string]interface{})
+			attributes := actualResource["attributes"].(map[string]any)
 			Expect(attributes["expiration_duration"]).To(Equal("2h"))
 			Expect(attributes["expiration_timestamp"]).ToNot(BeEmpty())
 		})
@@ -403,10 +403,10 @@ var _ = Describe("Break Glass Credential", func() {
 			runOutput := Terraform.Import("rhcs_break_glass_credential.break_glass", "123,bgc-123")
 			Expect(runOutput.ExitCode).To(BeZero())
 
-			actualResource, ok := Terraform.Resource("rhcs_break_glass_credential", "break_glass").(map[string]interface{})
+			actualResource, ok := Terraform.Resource("rhcs_break_glass_credential", "break_glass").(map[string]any)
 			Expect(ok).To(BeTrue(), "Type conversion failed for the received resource state")
 
-			attributes := actualResource["attributes"].(map[string]interface{})
+			attributes := actualResource["attributes"].(map[string]any)
 			Expect(attributes["cluster"]).To(Equal("123"))
 			Expect(attributes["id"]).To(Equal("bgc-123"))
 			Expect(attributes["username"]).To(Equal("imported-user"))

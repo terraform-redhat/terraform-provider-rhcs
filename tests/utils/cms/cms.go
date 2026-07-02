@@ -17,6 +17,8 @@ import (
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
+type queryParams map[string]any
+
 // RetrieveClusterDetail will retrieve cluster detailed information based on the clusterID
 func RetrieveClusterDetail(connection *client.Connection, clusterID string) (*cmv1.ClusterGetResponse, error) {
 	return connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).Get().Send()
@@ -33,7 +35,10 @@ func RetrieveClusterIngress(connection *client.Connection, clusterID string) (*c
 }
 
 // ListClusters will list the clusters
-func ListClusters(connection *client.Connection, parameters ...map[string]interface{}) (response *cmv1.ClustersListResponse, err error) {
+func ListClusters(
+	connection *client.Connection,
+	parameters ...queryParams,
+) (response *cmv1.ClustersListResponse, err error) {
 	request := connection.ClustersMgmt().V1().Clusters().List()
 	for _, param := range parameters {
 		for k, v := range param {
@@ -94,7 +99,7 @@ func ListHtpasswdUsers(connection *client.Connection, clusterID string, IDPID st
 
 // RetrieveClusterLogDetail return the log response based on parameter
 func RetrieveClusterInstallLogDetail(connection *client.Connection, clusterID string,
-	parameter ...map[string]interface{}) (*cmv1.LogGetResponse, error) {
+	parameter ...queryParams) (*cmv1.LogGetResponse, error) {
 	request := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).Logs().Install().Get()
 	if len(parameter) == 1 {
 		for paramK, paramV := range parameter[0] {
@@ -106,7 +111,7 @@ func RetrieveClusterInstallLogDetail(connection *client.Connection, clusterID st
 
 // RetrieveClusterUninstallLogDetail return the uninstall log response based on parameter
 func RetrieveClusterUninstallLogDetail(connection *client.Connection, clusterID string,
-	parameter ...map[string]interface{}) (*cmv1.LogGetResponse, error) {
+	parameter ...queryParams) (*cmv1.LogGetResponse, error) {
 	request := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).Logs().Uninstall().Get()
 	if len(parameter) == 1 {
 		for paramK, paramV := range parameter[0] {
@@ -122,7 +127,10 @@ func RetrieveClusterStatus(connection *client.Connection, clusterID string) (*cm
 
 // cloud_providers & regions
 
-func ListCloudProviders(connection *client.Connection, params ...map[string]interface{}) (*cmv1.CloudProvidersListResponse, error) {
+func ListCloudProviders(
+	connection *client.Connection,
+	params ...queryParams,
+) (*cmv1.CloudProvidersListResponse, error) {
 	request := connection.ClustersMgmt().V1().CloudProviders().List()
 	if len(params) == 1 {
 		for k, v := range params[0] {
@@ -138,7 +146,11 @@ func RetrieveCloudProviderDetail(connection *client.Connection, providerID strin
 
 // ListRegions list the regions of specified cloud providers
 // If params passed, will add parameter to the request
-func ListRegions(connection *client.Connection, providerID string, params ...map[string]interface{}) (*cmv1.CloudRegionsListResponse, error) {
+func ListRegions(
+	connection *client.Connection,
+	providerID string,
+	params ...queryParams,
+) (*cmv1.CloudRegionsListResponse, error) {
 	request := connection.ClustersMgmt().V1().CloudProviders().CloudProvider(providerID).Regions().List()
 	if len(params) == 1 {
 		for k, v := range params[0] {
@@ -164,7 +176,10 @@ func ListAvailableRegions(connection *client.Connection, providerID string, body
 }
 
 // version
-func ListVersions(connection *client.Connection, parameter ...map[string]interface{}) (resp *cmv1.VersionsListResponse, err error) {
+func ListVersions(
+	connection *client.Connection,
+	parameter ...queryParams,
+) (resp *cmv1.VersionsListResponse, err error) {
 	request := connection.ClustersMgmt().V1().Versions().List()
 	if len(parameter) == 1 {
 		for k, v := range parameter[0] {
@@ -180,7 +195,7 @@ func RetrieveVersionDetail(connection *client.Connection, versionID string) (*cm
 }
 
 // ListMachineTypes will list the machine types
-func ListMachineTypes(connection *client.Connection, params ...map[string]interface{}) (*cmv1.MachineTypesListResponse, error) {
+func ListMachineTypes(connection *client.Connection, params ...queryParams) (*cmv1.MachineTypesListResponse, error) {
 	request := connection.ClustersMgmt().V1().MachineTypes().List()
 	if len(params) == 1 {
 		for k, v := range params[0] {
@@ -235,7 +250,11 @@ func ListClusterExternalConfiguration(connection *client.Connection, clusterID s
 	return resp, err
 }
 
-func ListClusterLabels(connection *client.Connection, clusterID string, parameter ...map[string]interface{}) (*cmv1.LabelsListResponse, error) {
+func ListClusterLabels(
+	connection *client.Connection,
+	clusterID string,
+	parameter ...queryParams,
+) (*cmv1.LabelsListResponse, error) {
 	request := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).ExternalConfiguration().Labels().List()
 	for _, param := range parameter {
 		for k, v := range param {
@@ -250,7 +269,11 @@ func RetrieveDetailedLabelOfCluster(connection *client.Connection, clusterID str
 }
 
 // Machine Pool related
-func ListMachinePool(connection *client.Connection, clusterID string, params ...map[string]interface{}) (*cmv1.MachinePoolsListResponse, error) {
+func ListMachinePool(
+	connection *client.Connection,
+	clusterID string,
+	params ...queryParams,
+) (*cmv1.MachinePoolsListResponse, error) {
 	request := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).MachinePools().List()
 	for _, param := range params {
 		for k, v := range param {
@@ -294,7 +317,11 @@ func RetrieveClusterAutoscaler(connection *client.Connection, clusterID string) 
 }
 
 // Upgrade policies related
-func ListUpgradePolicies(connection *client.Connection, clusterID string, params ...map[string]interface{}) (*cmv1.UpgradePoliciesListResponse, error) {
+func ListUpgradePolicies(
+	connection *client.Connection,
+	clusterID string,
+	params ...queryParams,
+) (*cmv1.UpgradePoliciesListResponse, error) {
 	request := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).UpgradePolicies().List()
 	for _, param := range params {
 		for k, v := range param {
@@ -315,7 +342,11 @@ func RetrieveUpgradePolicies(connection *client.Connection, clusterID string, up
 }
 
 // ControlPlane Upgrade policies related
-func ListControlPlaneUpgradePolicies(connection *client.Connection, clusterID string, params ...map[string]interface{}) (*cmv1.ControlPlaneUpgradePoliciesListResponse, error) {
+func ListControlPlaneUpgradePolicies(
+	connection *client.Connection,
+	clusterID string,
+	params ...queryParams,
+) (*cmv1.ControlPlaneUpgradePoliciesListResponse, error) {
 	request := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).ControlPlane().UpgradePolicies().List()
 	for _, param := range params {
 		for k, v := range param {
@@ -331,7 +362,12 @@ func RetrieveControlPlaneUpgradePolicy(connection *client.Connection, clusterID 
 }
 
 // NodePool Upgrade policies related
-func ListNodePoolUpgradePolicies(connection *client.Connection, clusterID string, npID string, params ...map[string]interface{}) (*cmv1.NodePoolUpgradePoliciesListResponse, error) {
+func ListNodePoolUpgradePolicies(
+	connection *client.Connection,
+	clusterID string,
+	npID string,
+	params ...queryParams,
+) (*cmv1.NodePoolUpgradePoliciesListResponse, error) {
 	request := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).NodePools().NodePool(npID).UpgradePolicies().List()
 	for _, param := range params {
 		for k, v := range param {
@@ -347,7 +383,10 @@ func RetrieveNodePoolUpgradePolicy(connection *client.Connection, clusterID stri
 }
 
 // RetrieveCurrentAccount return the response of retrieve current account
-func RetrieveCurrentAccount(connection *client.Connection, params ...map[string]interface{}) (resp *v1.CurrentAccountGetResponse, err error) {
+func RetrieveCurrentAccount(
+	connection *client.Connection,
+	params ...queryParams,
+) (resp *v1.CurrentAccountGetResponse, err error) {
 	if len(params) > 1 {
 		return nil, errors.New("only one parameter map is allowed")
 	}
@@ -374,7 +413,12 @@ func RetrieveHCPKubeletConfig(connection *client.Connection, clusterID string, k
 }
 
 // RetrieveNodePool returns the nodePool detail of HCP
-func RetrieveNodePool(connection *client.Connection, clusterID string, npID string, parameter ...map[string]interface{}) (*cmv1.NodePool, error) {
+func RetrieveNodePool(
+	connection *client.Connection,
+	clusterID string,
+	npID string,
+	parameter ...queryParams,
+) (*cmv1.NodePool, error) {
 	request := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).NodePools().NodePool(npID).Get()
 	for _, param := range parameter {
 		for k, v := range param {
@@ -386,7 +430,11 @@ func RetrieveNodePool(connection *client.Connection, clusterID string, npID stri
 }
 
 // RetrieveNodePool returns the nodePool detail of HCP
-func ListNodePools(connection *client.Connection, clusterID string, parameter ...map[string]interface{}) ([]*cmv1.NodePool, error) {
+func ListNodePools(
+	connection *client.Connection,
+	clusterID string,
+	parameter ...queryParams,
+) ([]*cmv1.NodePool, error) {
 	request := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).NodePools().List()
 	for _, param := range parameter {
 		for k, v := range param {
@@ -398,7 +446,11 @@ func ListNodePools(connection *client.Connection, clusterID string, parameter ..
 }
 
 // Delete cluster
-func DeleteCluster(connection *client.Connection, clusterID string, params ...map[string]interface{}) (*cmv1.ClusterDeleteResponse, error) {
+func DeleteCluster(
+	connection *client.Connection,
+	clusterID string,
+	params ...queryParams,
+) (*cmv1.ClusterDeleteResponse, error) {
 	request := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).Delete()
 	for _, param := range params {
 		for k, v := range param {

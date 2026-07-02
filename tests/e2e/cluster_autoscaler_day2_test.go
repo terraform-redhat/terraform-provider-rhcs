@@ -75,13 +75,13 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 		max := 1
 		min := 0
 		resourceRange := &exec.ResourceRange{
-			Max: helper.IntPointer(max),
-			Min: helper.IntPointer(min),
+			Max: new(max),
+			Min: new(min),
 		}
 		maxNodesTotal := 10
 		resourceLimits := &exec.ResourceLimits{
 			Cores:         resourceRange,
-			MaxNodesTotal: helper.IntPointer(maxNodesTotal),
+			MaxNodesTotal: new(maxNodesTotal),
 			Memory:        resourceRange,
 		}
 		delayAfterAdd := "3h"
@@ -91,12 +91,12 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 		utilizationThreshold := "0.5"
 		enabled := true
 		scaleDown := &exec.ScaleDown{
-			DelayAfterAdd:        helper.StringPointer(delayAfterAdd),
-			DelayAfterDelete:     helper.StringPointer(delayAfterDelete),
-			DelayAfterFailure:    helper.StringPointer(delayAfterFailure),
-			UnneededTime:         helper.StringPointer(unneededTime),
-			UtilizationThreshold: helper.StringPointer(utilizationThreshold),
-			Enabled:              helper.BoolPointer(enabled),
+			DelayAfterAdd:        new(delayAfterAdd),
+			DelayAfterDelete:     new(delayAfterDelete),
+			DelayAfterFailure:    new(delayAfterFailure),
+			UnneededTime:         new(unneededTime),
+			UtilizationThreshold: new(utilizationThreshold),
+			Enabled:              new(enabled),
 		}
 		balanceSimilarNodeGroups := true
 		skipNodesWithLocalStorage := true
@@ -108,14 +108,14 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 		balancingIgnoredLabels := []string{"l1", "l2"}
 		ClusterAutoscalerArgs := &exec.ClusterAutoscalerArgs{
 			Cluster:                     &clusterID,
-			BalanceSimilarNodeGroups:    helper.BoolPointer(balanceSimilarNodeGroups),
-			SkipNodesWithLocalStorage:   helper.BoolPointer(skipNodesWithLocalStorage),
-			LogVerbosity:                helper.IntPointer(logVerbosity),
-			MaxPodGracePeriod:           helper.IntPointer(maxPodGracePeriod),
-			PodPriorityThreshold:        helper.IntPointer(podPriorityThreshold),
-			IgnoreDaemonsetsUtilization: helper.BoolPointer(ignoreDaemonsetsUtilization),
-			MaxNodeProvisionTime:        helper.StringPointer(maxNodeProvisionTime),
-			BalancingIgnoredLabels:      helper.StringSlicePointer(balancingIgnoredLabels),
+			BalanceSimilarNodeGroups:    new(balanceSimilarNodeGroups),
+			SkipNodesWithLocalStorage:   new(skipNodesWithLocalStorage),
+			LogVerbosity:                new(logVerbosity),
+			MaxPodGracePeriod:           new(maxPodGracePeriod),
+			PodPriorityThreshold:        new(podPriorityThreshold),
+			IgnoreDaemonsetsUtilization: new(ignoreDaemonsetsUtilization),
+			MaxNodeProvisionTime:        new(maxNodeProvisionTime),
+			BalancingIgnoredLabels:      new(balancingIgnoredLabels),
 			ResourceLimits:              resourceLimits,
 			ScaleDown:                   scaleDown,
 		}
@@ -167,16 +167,16 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 			By("Add autoscaler to cluster")
 			maxNodesTotal := 10
 			resourceLimits := &exec.ResourceLimits{
-				MaxNodesTotal: helper.IntPointer(maxNodesTotal),
+				MaxNodesTotal: new(maxNodesTotal),
 			}
 			maxPodGracePeriod := 600
 			podPriorityThreshold := -10
 			maxNodeProvisionTime := "1h"
 			clusterAutoscalerArgs := &exec.ClusterAutoscalerArgs{
-				Cluster:              helper.StringPointer(clusterID),
-				MaxPodGracePeriod:    helper.IntPointer(maxPodGracePeriod),
-				PodPriorityThreshold: helper.IntPointer(podPriorityThreshold),
-				MaxNodeProvisionTime: helper.StringPointer(maxNodeProvisionTime),
+				Cluster:              new(clusterID),
+				MaxPodGracePeriod:    new(maxPodGracePeriod),
+				PodPriorityThreshold: new(podPriorityThreshold),
+				MaxNodeProvisionTime: new(maxNodeProvisionTime),
 				ResourceLimits:       resourceLimits,
 			}
 			_, err = caService.Apply(clusterAutoscalerArgs)
@@ -195,15 +195,15 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 			By("Edit cluster autoscaler")
 			maxNodesTotal = 20
 			resourceLimits = &exec.ResourceLimits{
-				MaxNodesTotal: helper.IntPointer(maxNodesTotal),
+				MaxNodesTotal: new(maxNodesTotal),
 			}
 			maxPodGracePeriod = 650
 			podPriorityThreshold = 3
 			maxNodeProvisionTime = "60m"
 
-			clusterAutoscalerArgs.MaxPodGracePeriod = helper.IntPointer(maxPodGracePeriod)
-			clusterAutoscalerArgs.PodPriorityThreshold = helper.IntPointer(podPriorityThreshold)
-			clusterAutoscalerArgs.MaxNodeProvisionTime = helper.StringPointer(maxNodeProvisionTime)
+			clusterAutoscalerArgs.MaxPodGracePeriod = new(maxPodGracePeriod)
+			clusterAutoscalerArgs.PodPriorityThreshold = new(podPriorityThreshold)
+			clusterAutoscalerArgs.MaxNodeProvisionTime = new(maxNodeProvisionTime)
 			clusterAutoscalerArgs.ResourceLimits = resourceLimits
 			_, err = caService.Apply(clusterAutoscalerArgs)
 			Expect(err).ToNot(HaveOccurred())
@@ -257,7 +257,7 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 		By("Try to create tuning config with wrong cluster ID")
 		value := "wrong"
 		args = &exec.ClusterAutoscalerArgs{
-			Cluster:        helper.StringPointer(value),
+			Cluster:        new(value),
 			ResourceLimits: &exec.ResourceLimits{},
 		}
 		_, err = caService.Apply(args)
@@ -266,7 +266,7 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 
 		By("Create Autoscaler")
 		args = &exec.ClusterAutoscalerArgs{
-			Cluster:        helper.StringPointer(clusterID),
+			Cluster:        new(clusterID),
 			ResourceLimits: &exec.ResourceLimits{},
 		}
 		_, err = caService.Apply(args)
@@ -284,7 +284,7 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 		}
 		if otherClusterID != "" {
 			args = &exec.ClusterAutoscalerArgs{
-				Cluster:        helper.StringPointer(otherClusterID),
+				Cluster:        new(otherClusterID),
 				ResourceLimits: &exec.ResourceLimits{},
 			}
 			_, err = caService.Apply(args)
@@ -296,8 +296,8 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 
 		By("Try to edit autoscaler `max_node_provision_time` with negative value")
 		args = &exec.ClusterAutoscalerArgs{
-			Cluster:              helper.StringPointer(clusterID),
-			MaxNodeProvisionTime: helper.StringPointer("-1h"),
+			Cluster:              new(clusterID),
+			MaxNodeProvisionTime: new("-1h"),
 			ResourceLimits:       &exec.ResourceLimits{},
 		}
 		_, err = caService.Apply(args)
@@ -314,11 +314,11 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 			max := 1
 			min := 0
 			resourceRange := &exec.ResourceRange{
-				Max: helper.IntPointer(max),
-				Min: helper.IntPointer(min),
+				Max: new(max),
+				Min: new(min),
 			}
 			return &exec.ClusterAutoscalerArgs{
-				Cluster: helper.StringPointer(clusterID),
+				Cluster: new(clusterID),
 				ResourceLimits: &exec.ResourceLimits{
 					Cores:  resourceRange,
 					Memory: resourceRange,
@@ -347,7 +347,7 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 
 		By("Try to create autoscaler with wrong cluster ID")
 		args = defaultClusterAutoscalerArgs()
-		args.Cluster = helper.StringPointer("wrong")
+		args.Cluster = new("wrong")
 		_, err = caService.Apply(args)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Cluster 'wrong' not found"))
@@ -369,7 +369,7 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 		}
 		if otherClusterID != "" {
 			args = defaultClusterAutoscalerArgs()
-			args.Cluster = helper.StringPointer(otherClusterID)
+			args.Cluster = new(otherClusterID)
 			_, err = caService.Apply(args)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("Attribute cluster, cannot be changed from"))
@@ -379,35 +379,35 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 
 		By("Try to edit autoscaler `max_node_provision_time` with negative value")
 		args = defaultClusterAutoscalerArgs()
-		args.MaxNodeProvisionTime = helper.StringPointer("-1h")
+		args.MaxNodeProvisionTime = new("-1h")
 		_, err = caService.Apply(args)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Only positive durations are allowed"))
 
 		By("Try to edit autoscaler `unneeded_time` with negative value")
 		args = defaultClusterAutoscalerArgs()
-		args.ScaleDown.UnneededTime = helper.StringPointer("-1h")
+		args.ScaleDown.UnneededTime = new("-1h")
 		_, err = caService.Apply(args)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Only positive durations are allowed"))
 
 		By("Try to edit autoscaler `delay_after_add` with negative value")
 		args = defaultClusterAutoscalerArgs()
-		args.ScaleDown.DelayAfterAdd = helper.StringPointer("-3h")
+		args.ScaleDown.DelayAfterAdd = new("-3h")
 		_, err = caService.Apply(args)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Only positive durations are allowed"))
 
 		By("Try to edit autoscaler `delay_after_delete` with negative value")
 		args = defaultClusterAutoscalerArgs()
-		args.ScaleDown.DelayAfterDelete = helper.StringPointer("-3h")
+		args.ScaleDown.DelayAfterDelete = new("-3h")
 		_, err = caService.Apply(args)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Only positive durations are allowed"))
 
 		By("Try to edit autoscaler `delay_after_failure` with negative value")
 		args = defaultClusterAutoscalerArgs()
-		args.ScaleDown.DelayAfterFailure = helper.StringPointer("-3h")
+		args.ScaleDown.DelayAfterFailure = new("-3h")
 		_, err = caService.Apply(args)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("Only positive durations are allowed"))

@@ -39,14 +39,14 @@ func CreateTempFileWithPrefixAndContent(prefix string, fileContent string) (stri
 }
 
 // Write string to a file
-func CreateFileWithContent(fileAbsPath string, content interface{}) (string, error) {
+func CreateFileWithContent(fileAbsPath string, content any) (string, error) {
 	var err error
 	switch content := content.(type) {
 	case string:
 		err = os.WriteFile(fileAbsPath, []byte(content), 0644) // #nosec G306
 	case []byte:
 		err = os.WriteFile(fileAbsPath, content, 0644) // #nosec G306
-	case interface{}:
+	case any:
 		var marshedContent []byte
 		marshedContent, err = json.Marshal(content)
 		if err != nil {

@@ -31,8 +31,9 @@ locals {
 module "create_account_roles" {
   source = "git::https://github.com/terraform-redhat/terraform-rhcs-rosa-hcp//modules/account-iam-resources?ref=main"
 
-  account_role_prefix  = var.account_role_prefix
-  path                 = local.path
-  permissions_boundary = var.permissions_boundary
-  tags                 = var.tags
+  account_role_prefix      = var.account_role_prefix
+  path                     = local.path
+  permissions_boundary     = var.permissions_boundary
+  tags                     = var.tags
+  trust_policy_external_id = var.trust_policy_external_id
 }

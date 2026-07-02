@@ -1010,6 +1010,26 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 		return
 	}
 
+	if state.Sts != nil {
+		region := ""
+		if common.HasValue(state.CloudRegion) {
+			region = state.CloudRegion.ValueString()
+		}
+		if err := sts.ValidateTrustPolicyExternalIDFromConfig(
+			ctx, state.Sts.TrustPolicyExternalID, state.Sts.RoleARN,
+			state.Sts.SupportRoleArn, region,
+		); err != nil {
+			response.Diagnostics.AddError(
+				summary,
+				fmt.Sprintf(
+					"Invalid sts.trust_policy_external_id for cluster '%s': %v",
+					state.Name.ValueString(), err,
+				),
+			)
+			return
+		}
+	}
+
 	object, err := createHcpClusterObject(ctx, state, diags)
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -2047,6 +2067,7 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 		if ok && oidcConfig != nil {
 			state.Sts.OIDCConfigID = types.StringValue(oidcConfig.ID())
 		}
+		sts.PopulateTrustPolicyExternalIDFromSTS(stsState, &state.Sts.TrustPolicyExternalID)
 	}
 
 	subnetIds, ok := object.AWS().GetSubnetIDs()

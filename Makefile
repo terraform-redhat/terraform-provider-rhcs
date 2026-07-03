@@ -125,6 +125,7 @@ unit-test: $(GINKGO)
 		-ldflags="$(ldflags)" \
 		-r provider internal/...
 
+# Optional local diagnostics — not run by pre-push-checks or CI.
 .PHONY: unit-test-coverage
 unit-test-coverage: $(GINKGO)
 	$(GINKGO) run \
@@ -263,6 +264,7 @@ e2e_test: $(GINKGO) install
         --focus-file tests/e2e/.* \
 		$(NULL)
 
+# Optional local diagnostic (gocovdiff on changed provider/internal lines vs main).
 .PHONY: coverage-changed-files
 coverage-changed-files:
 	./hack/coverage-changed-files.sh

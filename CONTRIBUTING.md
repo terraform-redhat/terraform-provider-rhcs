@@ -54,7 +54,7 @@ The hooks are configured in `.pre-commit-config.yaml` and perform:
 
 - `pre-commit`: formats staged Go files with `gci` + `gofmt` plus staged Terraform files under `examples/` and `tests/`, adds Apache 2.0 license headers to staged files missing them, and blocks the commit if files were rewritten so you can review and stage the updates
 - `commit-msg`: validates the commit message format (JIRA-123 | type(scope): message)
-- `pre-push`: runs the same steps as `make pre-push-checks` (format-check, build, generated-files check, lint, docs-lint, license-check, changed-files coverage, subsystem registry check, and `make test`)
+- `pre-push`: runs the same steps as `make pre-push-checks` (format-check, build, generated-files check, lint, docs-lint, license-check, subsystem registry check, and `make test`)
 - `pre-push` runs against committed content and blocks when staged or unstaged tracked changes are present
 - check runs are fail-fast: execution stops at the first failing step
 
@@ -99,7 +99,6 @@ make test
 `make pre-push-checks` (also run by the pre-push git hook and GitHub Actions) verifies:
 
 - Formatting, build, generated files, lint, docs-lint, and license headers
-- **`make coverage-changed-files`** — at least 80% of changed lines in `provider/` and `internal/` (non-test `.go` files) must be covered by unit tests, compared to the merge base with `main`
 - **`make check-subsystem-registry`** — every registered resource and data source type must be referenced in `subsystem/` tests, or listed in `hack/subsystem-registry-allowlist.yaml` with a ticket and reason; **new types** added on the branch must include a subsystem test
 - **`make test`** — unit, subsystem, and utils suites pass
 
@@ -113,7 +112,18 @@ See `AGENTS.md` for when to add unit versus subsystem tests.
 | New or changed **validation, plan modifiers, or helpers** (Go code) | **Unit** test in the same package (`*_test.go`) |
 | **Schema / ConfigValidators** (plan-time errors) | **Unit** and/or **one** subsystem test expecting plan/apply failure — avoid duplicating the same cases in both layers |
 
-`make unit-test-coverage` is optional for local debugging (`go tool cover -html=coverage.out`); it is **not** a merge gate.
+Unit tests for validators and helpers are required by review policy and the PR testing checklist; they are **not** enforced by an automated coverage percentage gate.
+
+#### Optional coverage tools (not merge gates)
+
+These commands help locally; CI and pre-push do not enforce them:
+
+| Command | Purpose |
+|---------|---------|
+| `make unit-test-coverage` | Package-level unit coverage for `provider/` and `internal/`; produces `coverage.out` for `go tool cover -html=coverage.out` |
+| `make coverage-changed-files` | Changed-line unit coverage compared to merge base with `main` (gocovdiff, 80% threshold). **Does not include subsystem tests.** Useful before large refactors; not required to merge |
+
+Pre-merge quality for provider behavior relies on **`make test`** (unit + subsystem + utils) and **`make check-subsystem-registry`** for registered types.
 
 Use these commands before pushing:
 
@@ -122,10 +132,9 @@ make basic-checks      # convenience flow: starts with make fmt and may stop aft
 make pre-push-checks   # exact non-mutating verification used by the pre-push hook
 ```
 
-`make basic-checks` runs format, format-check, build, generated-files verification, lint, docs-lint (Vale), changed-files coverage, subsystem registry check, and unit/subsystem/utils tests.
+`make basic-checks` runs format, format-check, build, generated-files verification, lint, docs-lint (Vale), subsystem registry check, and unit/subsystem/utils tests.
 `make lint` uses the repo's pinned `golangci-lint` v2 configuration.
 `make docs-lint` runs the pinned [Vale](https://docs.vale.sh/) CLI with only the custom inclusive-language rules under `styles/InclusiveLanguage/` (general Vale styles and packages are not used). Building Vale uses `CGO_ENABLED=1` and requires a C compiler toolchain on the first install.
-Changed-files coverage is enforced through `make coverage-changed-files` using `gocovdiff` with an 80% threshold for changed Go files under `provider/` and `internal/`, diffed against the merge base with `main`.
 
 ### 5. Manual testing and debugging using the locally compiled RHCS Provider binary
 Manual testing should be performed before opening a PR to ensure there isn't any regression behavior in the provider. You can find [here an example for that](https://github.com/terraform-redhat/terraform-rhcs-rosa/tree/main/examples/rosa-classic-public-with-unmanaged-oidc)

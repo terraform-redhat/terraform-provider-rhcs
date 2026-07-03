@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Copyright Red Hat
 # SPDX-License-Identifier: Apache-2.0
-
+#
+# Optional local diagnostic: changed-line unit coverage for provider/ and internal/
+# (gocovdiff vs merge base with main). Not run by make pre-push-checks or CI.
+# Subsystem tests do not count toward the score. Invoke via: make coverage-changed-files
 
 set -euo pipefail
 

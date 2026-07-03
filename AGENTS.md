@@ -43,7 +43,7 @@ Reference sources:
 
 ## Expectations for agent-produced changes
 
-These are **review and design expectations**. They are not all enforced by automation; contributors and reviewers still apply them. Concrete commands and gates are in `CONTRIBUTING.md` (for example hooks, `make pre-push-checks`, coverage rules).
+These are **review and design expectations**. They are not all enforced by automation; contributors and reviewers still apply them. Concrete commands and gates are in `CONTRIBUTING.md` (for example hooks, `make pre-push-checks`, subsystem registry, and the full test suite). Optional local coverage targets exist but are not merge gates.
 
 - Do not hard code secrets, API keys, tokens, kubeconfigs, AWS credentials, or customer identifiers in code, tests, docs, examples, or logs.
 - Do not document bypassing local hooks or verification gates.

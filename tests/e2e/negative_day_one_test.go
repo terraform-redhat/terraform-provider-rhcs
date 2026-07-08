@@ -572,21 +572,29 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 					args.Replicas = nil
 					args.MinReplicas = new(-3)
 					args.MaxReplicas = new(3)
-				}, "value must be at least 0")
+				}, "The value for the number of cluster nodes must be non-negative")
 				By("setting max_replicas to 0")
+				maxReplicasZeroErr := "must be a integer greater than 0"
+				if profileHandler.Profile().IsMultiAZ() {
+					maxReplicasZeroErr = "Multi AZ cluster requires at least 3 compute nodes"
+				}
 				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 					args.Autoscaling = new(true)
 					args.Replicas = nil
 					args.MinReplicas = new(0)
 					args.MaxReplicas = new(0)
-				}, "must be a integer greater than 0")
+				}, maxReplicasZeroErr)
 				By("with a number not a multiple of 3")
+				multipleOfThreeErr := "require that the compute nodes be a multiple of the private subnets 3"
+				if profileHandler.Profile().IsMultiAZ() {
+					multipleOfThreeErr = "Multi AZ clusters require that the number of compute nodes be a multiple of 3"
+				}
 				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 					args.Autoscaling = new(true)
 					args.Replicas = nil
 					args.MinReplicas = new(3)
 					args.MaxReplicas = new(7)
-				}, "require that the compute nodes be a multiple of the private subnets 3")
+				}, multipleOfThreeErr)
 			})
 		It("validate worker disk size - [id:76344]", ci.Low, func() {
 			maxDiskSize := constants.MaxDiskSize
@@ -629,7 +637,7 @@ var _ = Describe("Negative Tests", Ordered, ContinueOnFailure, func() {
 				}
 				args.AWSRegion = &region
 				args.AWSAvailabilityZones = &azs
-			}, "Failed to find subnets")
+			}, "Failed to find subnet")
 		})
 	})
 

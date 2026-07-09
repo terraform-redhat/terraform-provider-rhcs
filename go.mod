@@ -20,7 +20,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.32.0
 	github.com/onsi/gomega v1.42.1
 	github.com/openshift-online/ocm-common v0.0.44
-	github.com/openshift-online/ocm-sdk-go v0.1.504
+	github.com/openshift-online/ocm-sdk-go v0.1.505
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.4
 	github.com/sirupsen/logrus v1.9.4
@@ -69,8 +69,8 @@ require (
 	github.com/mattn/go-runewidth v0.0.19 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/openshift-online/ocm-api-model/clientapi v0.0.459 // indirect
-	github.com/openshift-online/ocm-api-model/model v0.0.459 // indirect
+	github.com/openshift-online/ocm-api-model/clientapi v0.0.461 // indirect
+	github.com/openshift-online/ocm-api-model/model v0.0.461 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	github.com/yuin/goldmark v1.7.7 // indirect
 	github.com/yuin/goldmark-meta v1.1.0 // indirect

@@ -1,32 +1,23 @@
-FROM registry.access.redhat.com/ubi9/ubi:9.8-1782841664
-WORKDIR /app
-COPY . /app
-RUN curl -fsSL -o /tmp/epel-release.rpm https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm && \
-    yum install -y /tmp/epel-release.rpm && \
-    yum install -y yum-utils shadow-utils unzip tar make git gcc gcc-c++ jq diffutils rubygem-asciidoctor && \
-    asciidoctor --version && \
-    yum clean all && \
-    rm -rf /var/cache/yum /tmp/epel-release.rpm
-# Prow / integration client image: Go toolchain follows go.mod; Terraform pinned below for fmt-check on examples/ and tests/.
-RUN GO_VER=$(awk '/^go / { print $2; exit }' go.mod) && \
-    GO_TAR="go${GO_VER}.linux-amd64.tar.gz" && \
-    curl -fsSL "https://dl.google.com/go/${GO_TAR}" -o "/tmp/${GO_TAR}" && \
-    curl -fsSL "https://dl.google.com/go/${GO_TAR}.sha256" -o /tmp/go.sha256 && \
-    printf '%s  %s\n' "$(tr -d '\n' < /tmp/go.sha256)" "${GO_TAR}" | (cd /tmp && sha256sum -c -) && \
-    tar -C /usr/local -xzf "/tmp/${GO_TAR}" && \
-    rm -f "/tmp/${GO_TAR}" /tmp/go.sha256 && \
-    /usr/local/go/bin/go version
+# Prow presubmit client image: make pre-push-checks.
+# Source is copied at image build (ci-operator builds this image from the PR tree).
+FROM registry.access.redhat.com/ubi9/go-toolset:1.26.5-1783931515
+USER root
+WORKDIR /opt/app-root/src
+RUN dnf install -y --setopt=install_weak_deps=False --nodocs \
+        yum-utils jq make git gcc gcc-c++ diffutils && \
+    dnf clean all
 # renovate: datasource=github-releases depName=hashicorp/terraform
 ARG TERRAFORM_VERSION=1.15.4
 RUN yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo && \
-    yum -y install "terraform-${TERRAFORM_VERSION}" && \
-    yum clean all && \
-    rm -rf /var/cache/yum && \
+    dnf -y install "terraform-${TERRAFORM_VERSION}" && \
+    dnf clean all && \
     terraform version
-# OpenShift Prow: arbitrary UID runs with GID 0; group-writable /app for make pre-push-checks (bin/, Go/Vale caches).
-RUN mkdir -p /app/bin && \
-    chgrp -R 0 /app && \
-    chmod -R g+rwX /app
-ENV PATH="/usr/local/go/bin:/usr/local/bin:${PATH}" \
-    HOME="/app" \
-    GOMODCACHE="/tmp/gomodcache"
+RUN git config --global --add safe.directory '*'
+COPY . .
+# OpenShift Prow: arbitrary UID runs with GID 0; group-writable workdir and Go caches.
+RUN mkdir -p /opt/app-root/src/bin /tmp/gomodcache /tmp/.cache && \
+    chgrp -R 0 /opt/app-root/src /tmp/gomodcache /tmp/.cache && \
+    chmod -R g+rwX /opt/app-root/src /tmp/gomodcache /tmp/.cache
+ENV HOME="/opt/app-root/src" \
+    GOMODCACHE="/tmp/gomodcache" \
+    GOLANGCI_LINT_CACHE="/tmp/.cache"

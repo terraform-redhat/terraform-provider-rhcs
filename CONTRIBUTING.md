@@ -144,6 +144,20 @@ make pre-push-checks   # exact non-mutating verification used by the pre-push ho
 `make lint` uses the repo's pinned `golangci-lint` v2 configuration.
 `make docs-lint` runs the pinned [Vale](https://docs.vale.sh/) CLI with only the custom inclusive-language rules under `styles/InclusiveLanguage/` (general Vale styles and packages are not used). Building Vale uses `CGO_ENABLED=1` and requires a C compiler toolchain on the first install.
 
+#### CI container images and Go version bumps
+
+This repository uses **OpenShift ci-operator** (config in `openshift/release`) and **Konflux** (`.tekton/`). See `AGENTS.md` for which Dockerfile maps to which job type.
+
+When bumping the Go version, update these together so compile, presubmits, E2E builds, and product images stay aligned:
+
+- `go.mod` (`go` directive)
+- `renovate.json` — `gomod.constraints.go` (must match `go.mod` so Renovate `gomodTidy` PRs succeed)
+- `Dockerfile`, `Dockerfile.clients`, `build/ci-tf-e2e.Dockerfile` — `ubi9/go-toolset` image tag
+- `.ci-operator.yaml` — `build_root_image.tag` (match an available `ocp/builder:rhel-9-golang-*` tag for pipeline plumbing; presubmit compile runs in `Dockerfile.clients`)
+- `TERRAFORM_VERSION` in `Dockerfile.clients` when `terraform fmt` checks need a newer Terraform CLI
+
+Sibling checklist for the ROSA CLI: `openshift/rosa` `AGENTS.md`.
+
 ### 5. Manual testing and debugging using the locally compiled RHCS Provider binary
 Manual testing should be performed before opening a PR to ensure there isn't any regression behavior in the provider. You can find [here an example for that](https://github.com/terraform-redhat/terraform-rhcs-rosa/tree/main/examples/rosa-classic-public-with-unmanaged-oidc)
 After compiling the RHCS provider, debugging terraform provider can be difficult. But here are a some tips to make your life easier.

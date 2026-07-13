@@ -496,6 +496,7 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"delete_protection": rosa.DeleteProtectionResourceSchema(),
 			"log_forwarders_at_cluster_creation": schema.ListNestedAttribute{
 				Description: "List of log forwarders to configure during cluster creation (Day 1 only). " +
 					"This field is immutable after cluster creation and cannot be modified. " +
@@ -949,6 +950,7 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 	if response.Diagnostics.HasError() {
 		return
 	}
+	enableDeleteProtection := common.HasValue(state.DeleteProtection) && state.DeleteProtection.ValueBool()
 	summary := "Can't build cluster"
 
 	shouldWaitCreationComplete := common.BoolWithFalseDefault(state.WaitForCreateComplete)
@@ -1204,6 +1206,30 @@ func (r *ClusterRosaHcpResource) Create(ctx context.Context, request resource.Cr
 		state.Proxy.NoProxy = plannedNoProxy
 	}
 
+	if enableDeleteProtection {
+		clusterClient := r.ClusterCollection.Cluster(state.ID.ValueString())
+		err = rosa.UpdateDeleteProtection(ctx, clusterClient, true)
+		if err != nil {
+			response.Diagnostics.AddError(
+				"Can't enable delete protection",
+				fmt.Sprintf(
+					"Cluster '%s' was created but delete protection could not be enabled: %v",
+					state.ID.ValueString(), err,
+				),
+			)
+			state.DeleteProtection = types.BoolValue(true)
+			diags = response.State.Set(ctx, state)
+			response.Diagnostics.Append(diags...)
+			return
+		}
+		state.DeleteProtection = types.BoolValue(true)
+	} else {
+		clusterClient := r.ClusterCollection.Cluster(state.ID.ValueString())
+		dpVal, dpDiags := rosa.ResolveDeleteProtection(ctx, clusterClient, object)
+		response.Diagnostics.Append(dpDiags...)
+		state.DeleteProtection = dpVal
+	}
+
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
 }
@@ -1278,6 +1304,16 @@ func (r *ClusterRosaHcpResource) Read(ctx context.Context, request resource.Read
 			fmt.Sprintf("Received error %v", err),
 		)
 		state.Proxy.NoProxy = priorNoProxy
+	}
+
+	clusterClient := r.ClusterCollection.Cluster(state.ID.ValueString())
+	priorDeleteProtection := state.DeleteProtection
+	dpVal, dpDiags := rosa.ResolveDeleteProtection(ctx, clusterClient, object)
+	response.Diagnostics.Append(dpDiags...)
+	if len(dpDiags) > 0 && common.HasValue(priorDeleteProtection) && priorDeleteProtection.ValueBool() {
+		state.DeleteProtection = priorDeleteProtection
+	} else {
+		state.DeleteProtection = dpVal
 	}
 
 	diags = response.State.Set(ctx, state)
@@ -1499,6 +1535,9 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 		return
 	}
 
+	_, shouldPatchDeleteProtection := common.ShouldPatchBool(state.DeleteProtection, plan.DeleteProtection)
+	desiredDeleteProtection := plan.DeleteProtection
+
 	clusterBuilder := cmv1.NewCluster()
 
 	// Handle channel change
@@ -1676,6 +1715,34 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 			fmt.Sprintf("Received error %v", err),
 		)
 		plan.Proxy.NoProxy = plannedNoProxy
+	}
+
+	clusterClient := r.ClusterCollection.Cluster(plan.ID.ValueString())
+	if shouldPatchDeleteProtection {
+		err = rosa.UpdateDeleteProtection(ctx, clusterClient, desiredDeleteProtection.ValueBool())
+		if err != nil {
+			response.Diagnostics.AddError(
+				"Can't update delete protection",
+				fmt.Sprintf(
+					"Can't update delete protection for cluster with identifier '%s': %v",
+					plan.ID.ValueString(), err,
+				),
+			)
+			plan.DeleteProtection = types.BoolValue(true)
+		} else {
+			plan.DeleteProtection = desiredDeleteProtection
+			tflog.Debug(ctx, fmt.Sprintf("Updated delete protection from %v to %v",
+				state.DeleteProtection.ValueBool(), desiredDeleteProtection.ValueBool()))
+		}
+	} else {
+		priorDeleteProtection := state.DeleteProtection
+		dpVal, dpDiags := rosa.ResolveDeleteProtection(ctx, clusterClient, object)
+		response.Diagnostics.Append(dpDiags...)
+		if len(dpDiags) > 0 && common.HasValue(priorDeleteProtection) && priorDeleteProtection.ValueBool() {
+			plan.DeleteProtection = priorDeleteProtection
+		} else {
+			plan.DeleteProtection = dpVal
+		}
 	}
 
 	diags = response.State.Set(ctx, plan)
@@ -1874,9 +1941,22 @@ func (r *ClusterRosaHcpResource) Delete(ctx context.Context, request resource.De
 		return
 	}
 
+	clusterClient := r.ClusterCollection.Cluster(state.ID.ValueString())
+	deleteProtectionEnabledInOCM, checkDiags := rosa.CheckDeleteProtectionEnabled(
+		ctx, state.ID.ValueString(), clusterClient)
+	deleteProtectionEnabledInState := common.HasValue(state.DeleteProtection) && state.DeleteProtection.ValueBool()
+	if checkDiags.HasError() && !deleteProtectionEnabledInState {
+		response.Diagnostics.Append(checkDiags...)
+		return
+	}
+	deleteProtectionEnabled := deleteProtectionEnabledInState || deleteProtectionEnabledInOCM
+	if deleteDiags := rosa.ValidateDeleteAllowed(state.ID.ValueString(), deleteProtectionEnabled); deleteDiags.HasError() {
+		response.Diagnostics.Append(deleteDiags...)
+		return
+	}
+
 	// Send the request to delete the cluster:
-	resource := r.ClusterCollection.Cluster(state.ID.ValueString())
-	_, err := resource.Delete().SendContext(ctx)
+	_, err := clusterClient.Delete().SendContext(ctx)
 	if err != nil {
 		response.Diagnostics.AddError(
 			"Can't delete cluster",
@@ -1899,7 +1979,7 @@ func (r *ClusterRosaHcpResource) Delete(ctx context.Context, request resource.De
 				timeout = state.DestroyTimeout.ValueInt64()
 			}
 		}
-		isNotFound, err := r.retryClusterNotFoundWithTimeout(3, 1*time.Minute, ctx, timeout, resource)
+		isNotFound, err := r.retryClusterNotFoundWithTimeout(3, 1*time.Minute, ctx, timeout, clusterClient)
 		if err != nil {
 			response.Diagnostics.AddError(
 				"Can't poll cluster state",

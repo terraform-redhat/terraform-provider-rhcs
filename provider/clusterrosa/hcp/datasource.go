@@ -375,6 +375,7 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				Description: "Enable external authentication providers on the cluster.",
 				Computed:    true,
 			},
+			"delete_protection": rosa.DeleteProtectionDatasourceSchema(),
 		},
 	}
 }
@@ -496,6 +497,14 @@ func (r *ClusterRosaHcpDatasource) Read(ctx context.Context, request datasource.
 			},
 		},
 	})
+
+	clusterClient := r.clusterCollection.Cluster(state.ID.ValueString())
+	dpVal, dpDiags := rosa.ResolveDeleteProtection(ctx, clusterClient, object)
+	response.Diagnostics.Append(dpDiags...)
+	if dpDiags.HasError() {
+		return
+	}
+	state.DeleteProtection = dpVal
 
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)

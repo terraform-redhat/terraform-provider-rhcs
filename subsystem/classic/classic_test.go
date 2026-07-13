@@ -39,6 +39,11 @@ var _ = BeforeEach(func() {
 	// Create the server:
 	var ca string
 	TestServer, ca = MakeTCPTLSServer()
+
+	SetDeleteProtectionEnabled(false)
+	SetDeleteProtectionError(false)
+	RegisterDeleteProtectionHandlers(TestServer, "123", "1234")
+
 	// Create an access token:
 	token := MakeTokenString("Bearer", 10*time.Minute)
 

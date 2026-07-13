@@ -27,4 +27,7 @@ resource "rhcs_cluster_rosa_hcp" "rosa_sts_cluster" {
   sts                                 = local.sts_roles
   wait_for_create_complete            = true
   wait_for_std_compute_nodes_complete = true
+
+  # Optional: enable OCM delete protection (set to false and apply before terraform destroy)
+  # delete_protection = true
 }

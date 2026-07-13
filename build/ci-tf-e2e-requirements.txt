@@ -1,0 +1,3 @@
+# Pin E2E image Python deps (installed in build/ci-tf-e2e.Dockerfile).
+PyYAML==6.0.3
+Jinja2==3.1.6

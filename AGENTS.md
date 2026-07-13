@@ -13,7 +13,7 @@ Do **not** duplicate checklists or command lists here. Use one source per concer
 | `README.md` | Project overview, prerequisites, contributor setup summary, limitations, and links to deeper docs — **read this** for context before changing behavior or docs. |
 | `docs/` | Published provider documentation (often **generated** from `templates/` and schema); do not edit generated pages by hand when the workflow requires regeneration — follow `CONTRIBUTING.md`. |
 | `examples/` | Runnable Terraform under `examples/` (resources, data sources, guides paths); use for manual checks and as references for HCL style — align with provider schema and HashiCorp Terraform style. |
-| `CONTRIBUTING.md` | Commands, hooks, tests, formatting, release — **procedural authority**. |
+| `CONTRIBUTING.md` | Commands, hooks, tests, formatting, release, and **Go version bump checklist** — **procedural authority**. |
 | `.github/pull_request_template.md` | What to complete on a PR and the **Developer Verification Checklist** — **submission checklist**. |
 | `.cursor/rules/` | Code style and Terraform Plugin Framework guardrails. |
 | **`AGENTS.md` (this file)** | ROSA/OCM boundaries, escalation triggers, and **high-level** implementation flow — not step-by-step commands. |
@@ -23,6 +23,24 @@ Thin entrypoints `CLAUDE.md` and `GEMINI.md` should only point here to avoid dri
 **Precedence:** If anything here conflicts with `CONTRIBUTING.md` or `.cursor/rules/`, follow `CONTRIBUTING.md` first, then `.cursor/rules/`.
 
 **Before opening a PR:** Complete the checklist in `.github/pull_request_template.md`.
+
+## CI Container Images
+
+This repo uses **OpenShift ci-operator** (config in `openshift/release`) and **Konflux** (`.tekton/`). Each Dockerfile serves a different job type.
+
+| Dockerfile | Built by | Used for |
+|------------|----------|----------|
+| `Dockerfile` | Konflux | Shipping provider binary (product) |
+| `Dockerfile.clients` | Prow (main config) | Presubmit: `make pre-push-checks` |
+| `build/ci-tf-e2e.Dockerfile` | Prow (e2e variants) | E2E runner; image `rhcs-tf-e2e` |
+
+- Presubmit jobs run inside **`terraform-provider-rhcs-clients`** (from `Dockerfile.clients`).
+- Prow E2E runs inside **`rhcs-tf-e2e`** (from `build/ci-tf-e2e.Dockerfile`); step scripts expect `/root/terraform-provider-rhcs`.
+- **`.ci-operator.yaml`** pins ci-operator `build_root` (`ocp/builder`) for pipeline plumbing (clone and image builds), not presubmit execution. Release configs under `openshift/release` use `build_root: from_repository: true`.
+
+### Bumping the Go version
+
+See [CI container images and Go version bumps](CONTRIBUTING.md#ci-container-images-and-go-version-bumps) in `CONTRIBUTING.md`.
 
 ## HashiCorp Terraform Skills
 

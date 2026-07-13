@@ -22,7 +22,7 @@
   },
   "gomod": {
     "constraints": {
-      "go": "1.26.3"
+      "go": "1.26.5"
     },
     "postUpdateOptions": [
       "gomodUpdateImportPaths",
@@ -95,6 +95,11 @@
       "depNameTemplate": "github.com/errata-ai/vale/v3"
     }
   ],
+  "pip_requirements": {
+    "managerFilePatterns": [
+      "/^build\\/ci-tf-e2e-requirements\\.txt$/"
+    ]
+  },
   "labels": [
     "ok-to-test"
   ],

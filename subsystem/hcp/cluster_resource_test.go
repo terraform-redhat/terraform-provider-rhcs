@@ -8788,4 +8788,674 @@ var _ = Describe("HCP Cluster", func() {
 			})
 		})
 	})
+
+	Context("Delete Protection", func() {
+		const deleteProtectionRoute = cluster123Route + "/delete_protection"
+		const hcpClusterWithDeleteProtectionPatch = `[
+					{
+					  "op": "add",
+					  "path": "/delete_protection",
+					  "value": {"enabled": true}
+					},
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					}]`
+		const hcpClusterBase = `
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					},
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+			`
+
+		It("Enables delete protection during cluster creation", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					}]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, deleteProtectionRoute),
+					VerifyJQ(`.enabled`, true),
+					RespondWithJSON(http.StatusOK, `{"enabled": true}`),
+				),
+			)
+			Terraform.Source(hcpClusterBase + `
+				delete_protection = true
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.delete_protection", true))
+		})
+
+		It("Updates delete protection from false to true", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					}]`),
+				),
+			)
+			Terraform.Source(hcpClusterBase + `}`)
+			Expect(Terraform.Apply().ExitCode).To(BeZero())
+
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					}]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					}]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, deleteProtectionRoute),
+					VerifyJQ(`.enabled`, true),
+					RespondWithJSON(http.StatusOK, `{"enabled": true}`),
+				),
+			)
+			Terraform.Source(hcpClusterBase + `
+				delete_protection = true
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.delete_protection", true))
+		})
+
+		It("Updates delete protection from true to false", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					}]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, deleteProtectionRoute),
+					VerifyJQ(`.enabled`, true),
+					RespondWithJSON(http.StatusOK, `{"enabled": true}`),
+				),
+			)
+			Terraform.Source(hcpClusterBase + `
+				delete_protection = true
+			}`)
+			Expect(Terraform.Apply().ExitCode).To(BeZero())
+			SetDeleteProtectionEnabled(true)
+
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, hcpClusterWithDeleteProtectionPatch),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/delete_protection",
+					  "value": {"enabled": false}
+					},
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					}]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, deleteProtectionRoute),
+					VerifyJQ(`.enabled`, false),
+					RespondWithJSON(http.StatusOK, `{"enabled": false}`),
+				),
+			)
+			Terraform.Source(hcpClusterBase + `
+				delete_protection = false
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.delete_protection", false))
+			SetDeleteProtectionEnabled(false)
+		})
+
+		It("Blocks destroy when delete protection is enabled", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					}]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, deleteProtectionRoute),
+					VerifyJQ(`.enabled`, true),
+					RespondWithJSON(http.StatusOK, `{"enabled": true}`),
+				),
+			)
+			Terraform.Source(hcpClusterBase + `
+				delete_protection = true
+			}`)
+			Expect(Terraform.Apply().ExitCode).To(BeZero())
+			SetDeleteProtectionEnabled(true)
+
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, hcpClusterWithDeleteProtectionPatch),
+				),
+			)
+			runOutput := Terraform.Destroy()
+			Expect(runOutput.ExitCode).NotTo(BeZero())
+			runOutput.VerifyErrorContainsSubstring("delete_protection = false")
+		})
+
+		It("Adopts out-of-band delete protection from cluster GET", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					}]`),
+				),
+			)
+			Terraform.Source(hcpClusterBase + `}`)
+			Expect(Terraform.Apply().ExitCode).To(BeZero())
+
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/delete_protection",
+					  "value": {"enabled": true}
+					},
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					}]`),
+				),
+			)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.delete_protection", true))
+		})
+
+		It("Persists delete_protection = true on create PATCH failure", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					}]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, deleteProtectionRoute),
+					RespondWithJSON(http.StatusInternalServerError, `{
+						"kind": "Error",
+						"id": "500",
+						"href": "/api/clusters_mgmt/v1/errors/500",
+						"code": "CLUSTERS-MGMT-500",
+						"reason": "Internal Server Error"
+					}`),
+				),
+			)
+			Terraform.Source(hcpClusterBase + `
+				delete_protection = true
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).NotTo(BeZero())
+			runOutput.VerifyErrorContainsSubstring("delete protection could not be enabled")
+		})
+
+		It("Persists delete_protection = true on update PATCH failure", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					}]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, deleteProtectionRoute),
+					VerifyJQ(`.enabled`, true),
+					RespondWithJSON(http.StatusOK, `{"enabled": true}`),
+				),
+			)
+			Terraform.Source(hcpClusterBase + `
+				delete_protection = true
+			}`)
+			Expect(Terraform.Apply().ExitCode).To(BeZero())
+			SetDeleteProtectionEnabled(true)
+
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, hcpClusterWithDeleteProtectionPatch),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, hcpClusterWithDeleteProtectionPatch),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, deleteProtectionRoute),
+					RespondWithJSON(http.StatusInternalServerError, `{
+						"kind": "Error",
+						"id": "500",
+						"href": "/api/clusters_mgmt/v1/errors/500",
+						"code": "CLUSTERS-MGMT-500",
+						"reason": "Internal Server Error"
+					}`),
+				),
+			)
+			Terraform.Source(hcpClusterBase + `
+				delete_protection = false
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).NotTo(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Can't update delete protection")
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.delete_protection", true))
+			SetDeleteProtectionEnabled(false)
+		})
+
+		It("Preserves delete_protection = true during unrelated update when resolution warns", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					}]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, deleteProtectionRoute),
+					VerifyJQ(`.enabled`, true),
+					RespondWithJSON(http.StatusOK, `{"enabled": true}`),
+				),
+			)
+			Terraform.Source(hcpClusterBase + `
+				delete_protection = true
+			}`)
+			Expect(Terraform.Apply().ExitCode).To(BeZero())
+			SetDeleteProtectionEnabled(true)
+
+			// Trigger an unrelated update (properties change) while
+			// delete_protection resolution fails
+			SetDeleteProtectionError(true)
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					}]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					{
+					  "op": "replace",
+					  "path": "/properties",
+					  "value": {
+						  "test_key": "test_value"
+					  }
+					}]`),
+				),
+			)
+			Terraform.Source(hcpClusterBase + `
+				delete_protection = true
+				properties = {
+					"test_key" = "test_value"
+				}
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.delete_protection", true))
+			SetDeleteProtectionError(false)
+		})
+
+		It("Blocks destroy when delete_protection check fails", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					}]`),
+				),
+			)
+			Terraform.Source(hcpClusterBase + `}`)
+			Expect(Terraform.Apply().ExitCode).To(BeZero())
+
+			SetDeleteProtectionError(true)
+			TestServer.AppendHandlers(
+				// Read refresh
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					}]`),
+				),
+				// CheckDeleteProtectionEnabled fallback cluster GET
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					}]`),
+				),
+			)
+			runOutput := Terraform.Destroy()
+			Expect(runOutput.ExitCode).NotTo(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Can't verify delete protection")
+			SetDeleteProtectionError(false)
+		})
+	})
 })

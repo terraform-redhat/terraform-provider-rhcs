@@ -27,6 +27,7 @@ import (
 	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
+	rosa "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common"
 	rosaTypes "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common/types"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/sts"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
@@ -94,6 +95,7 @@ func (r *ClusterRosaClassicDatasource) Schema(ctx context.Context, req datasourc
 					"Site Reliability Engineer (SRE) platform metrics.",
 				Computed: true,
 			},
+			"delete_protection": rosa.DeleteProtectionDatasourceSchema(),
 			"disable_scp_checks": schema.BoolAttribute{
 				Description: "Indicates if cloud permission checks are disabled when attempting installation of the cluster. " +
 					common.ValueCannotBeChangedStringDescription,
@@ -414,6 +416,14 @@ func (r *ClusterRosaClassicDatasource) Read(ctx context.Context, request datasou
 	state.ComputeMachineType = types.StringNull()
 	state.WorkerDiskSize = types.Int64Null()
 	state.DefaultMPLabels = types.MapNull(types.StringType)
+
+	clusterClient := r.clusterCollection.Cluster(state.ID.ValueString())
+	dpVal, dpDiags := rosa.ResolveDeleteProtection(ctx, clusterClient, object)
+	response.Diagnostics.Append(dpDiags...)
+	if dpDiags.HasError() {
+		return
+	}
+	state.DeleteProtection = dpVal
 
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)

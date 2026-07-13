@@ -82,4 +82,6 @@ type ClusterRosaClassicState struct {
 	DestroyTimeout                 types.Int64 `tfsdk:"destroy_timeout"`
 	WaitForCreateComplete          types.Bool  `tfsdk:"wait_for_create_complete"`
 	MaxClusterWaitTimeoutInMinutes types.Int64 `tfsdk:"max_cluster_wait_timeout_in_minutes"`
+
+	DeleteProtection types.Bool `tfsdk:"delete_protection"`
 }

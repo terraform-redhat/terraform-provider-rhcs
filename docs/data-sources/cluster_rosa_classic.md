@@ -52,6 +52,7 @@ data "rhcs_cluster_rosa_classic" "cluster" {
 - `create_admin_user` (Boolean) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `current_version` (String) The currently running version of OpenShift on the cluster, for example '4.11.0'.
 - `default_mp_labels` (Map of String) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
+- `delete_protection` (Boolean) Reports whether OCM delete protection is enabled for the cluster.
 - `destroy_timeout` (Number) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `disable_scp_checks` (Boolean) Indicates if cloud permission checks are disabled when attempting installation of the cluster. After the creation of the resource, it is not possible to update the attribute value.
 - `disable_waiting_in_destroy` (Boolean) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource

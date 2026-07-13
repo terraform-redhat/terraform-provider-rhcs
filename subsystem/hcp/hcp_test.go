@@ -50,6 +50,10 @@ var _ = BeforeEach(func() {
 	TestServer.RouteToHandler("GET", "/api/clusters_mgmt/v1/clusters/123/control_plane/log_forwarders", logForwardersHandler)
 	TestServer.RouteToHandler("GET", "/api/clusters_mgmt/v1/clusters/1234/control_plane/log_forwarders", logForwardersHandler)
 
+	SetDeleteProtectionEnabled(false)
+	SetDeleteProtectionError(false)
+	RegisterDeleteProtectionHandlers(TestServer, "123", "1234")
+
 	// Create an access token:
 	token := MakeTokenString("Bearer", 10*time.Minute)
 

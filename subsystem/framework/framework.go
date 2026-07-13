@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -37,7 +38,51 @@ var (
 	TestServer *Server
 	Terraform  *TerraformRunner
 	TestingT   *testing.T
+
+	deleteProtectionEnabled   bool
+	deleteProtectionShouldErr bool
 )
+
+// SetDeleteProtectionEnabled configures the default delete_protection sub-resource
+// handler used by subsystem tests.
+func SetDeleteProtectionEnabled(enabled bool) {
+	deleteProtectionEnabled = enabled
+}
+
+// SetDeleteProtectionError makes the delete_protection GET handler return 500.
+func SetDeleteProtectionError(shouldErr bool) {
+	deleteProtectionShouldErr = shouldErr
+}
+
+// RegisterDeleteProtectionHandlers registers GET handlers for delete_protection on the
+// given cluster IDs. The response reflects SetDeleteProtectionEnabled.
+// RouteToHandler matches take precedence over AppendHandlers FIFO queue, so
+// appended expectations for these endpoints are not dequeued or validated.
+func RegisterDeleteProtectionHandlers(server *Server, clusterIDs ...string) {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if deleteProtectionShouldErr {
+			w.WriteHeader(http.StatusInternalServerError)
+			errBody := `{"kind":"Error","id":"500","href":"/api/clusters_mgmt/v1/errors/500",` +
+				`"code":"CLUSTERS-MGMT-500","reason":"Internal Server Error"}`
+			_, _ = w.Write([]byte(errBody))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		if deleteProtectionEnabled {
+			_, _ = w.Write([]byte(`{"enabled": true}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"enabled": false}`))
+	}
+	for _, clusterID := range clusterIDs {
+		server.RouteToHandler(
+			"GET",
+			fmt.Sprintf("/api/clusters_mgmt/v1/clusters/%s/delete_protection", clusterID),
+			handler,
+		)
+	}
+}
 
 // TerraformRunnerBuilder contains the data and logic needed to build a terraform runner.
 type TerraformRunnerBuilder struct {

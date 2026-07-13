@@ -4708,4 +4708,420 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			runOutput.VerifyErrorContainsSubstring("Attribute worker_disk_size, cannot be changed")
 		})
 	})
+
+	Context("Delete Protection", func() {
+		const cluster123Route = "/api/clusters_mgmt/v1/clusters/123"
+		const deleteProtectionRoute = cluster123Route + "/delete_protection"
+		const classicClusterBase = `
+			resource "rhcs_cluster_rosa_classic" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+				}
+			}
+		`
+		const classicCreatePatch = `[
+			{
+			  "op": "add",
+			  "path": "/aws",
+			  "value": {
+				  "ec2_metadata_http_tokens": "optional",
+				  "sts" : {
+					  "oidc_endpoint_url": "https://127.0.0.1",
+					  "thumbprint": "111111",
+					  "role_arn": "",
+					  "support_role_arn": "",
+					  "instance_iam_roles" : {
+						"master_role_arn" : "",
+						"worker_role_arn" : ""
+					  },
+					  "operator_role_prefix" : "test"
+				  }
+			  }
+			}]`
+		const classicClusterWithDeleteProtectionPatch = `[
+			{
+			  "op": "add",
+			  "path": "/delete_protection",
+			  "value": {"enabled": true}
+			},
+			{
+			  "op": "add",
+			  "path": "/aws",
+			  "value": {
+				  "ec2_metadata_http_tokens": "optional",
+				  "sts" : {
+					  "oidc_endpoint_url": "https://127.0.0.1",
+					  "thumbprint": "111111",
+					  "role_arn": "",
+					  "support_role_arn": "",
+					  "instance_iam_roles" : {
+						"master_role_arn" : "",
+						"worker_role_arn" : ""
+					  },
+					  "operator_role_prefix" : "test"
+				  }
+			  }
+			}]`
+
+		It("Enables delete protection during cluster creation", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					RespondWithPatchedJSON(http.StatusCreated, template, classicCreatePatch),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, deleteProtectionRoute),
+					VerifyJQ(`.enabled`, true),
+					RespondWithJSON(http.StatusOK, `{"enabled": true}`),
+				),
+			)
+			Terraform.Source(classicClusterBase + `
+				delete_protection = true
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.delete_protection", true))
+		})
+
+		It("Updates delete protection from false to true", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					RespondWithPatchedJSON(http.StatusCreated, template, classicCreatePatch),
+				),
+			)
+			Terraform.Source(classicClusterBase + `}`)
+			Expect(Terraform.Apply().ExitCode).To(BeZero())
+
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, classicCreatePatch),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, deleteProtectionRoute),
+					VerifyJQ(`.enabled`, true),
+					RespondWithJSON(http.StatusOK, `{"enabled": true}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, classicCreatePatch),
+				),
+			)
+			Terraform.Source(classicClusterBase + `
+				delete_protection = true
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.delete_protection", true))
+		})
+
+		It("Blocks destroy when delete protection is enabled", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					RespondWithPatchedJSON(http.StatusCreated, template, classicCreatePatch),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, deleteProtectionRoute),
+					VerifyJQ(`.enabled`, true),
+					RespondWithJSON(http.StatusOK, `{"enabled": true}`),
+				),
+			)
+			Terraform.Source(classicClusterBase + `
+				delete_protection = true
+			}`)
+			Expect(Terraform.Apply().ExitCode).To(BeZero())
+			SetDeleteProtectionEnabled(true)
+
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, classicClusterWithDeleteProtectionPatch),
+				),
+			)
+			runOutput := Terraform.Destroy()
+			Expect(runOutput.ExitCode).NotTo(BeZero())
+			runOutput.VerifyErrorContainsSubstring("delete_protection = false")
+		})
+
+		It("Updates delete protection from true to false", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					RespondWithPatchedJSON(http.StatusCreated, template, classicCreatePatch),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, deleteProtectionRoute),
+					VerifyJQ(`.enabled`, true),
+					RespondWithJSON(http.StatusOK, `{"enabled": true}`),
+				),
+			)
+			Terraform.Source(classicClusterBase + `
+				delete_protection = true
+			}`)
+			Expect(Terraform.Apply().ExitCode).To(BeZero())
+			SetDeleteProtectionEnabled(true)
+
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, classicClusterWithDeleteProtectionPatch),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, deleteProtectionRoute),
+					VerifyJQ(`.enabled`, false),
+					RespondWithJSON(http.StatusOK, `{"enabled": false}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, classicCreatePatch),
+				),
+			)
+			Terraform.Source(classicClusterBase + `
+				delete_protection = false
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.delete_protection", false))
+			SetDeleteProtectionEnabled(false)
+		})
+
+		It("Adopts out-of-band delete protection from cluster GET", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					RespondWithPatchedJSON(http.StatusCreated, template, classicCreatePatch),
+				),
+			)
+			Terraform.Source(classicClusterBase + `}`)
+			Expect(Terraform.Apply().ExitCode).To(BeZero())
+
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, classicClusterWithDeleteProtectionPatch),
+				),
+			)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.delete_protection", true))
+		})
+
+		It("Persists delete_protection = true on create PATCH failure", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					RespondWithPatchedJSON(http.StatusCreated, template, classicCreatePatch),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, deleteProtectionRoute),
+					RespondWithJSON(http.StatusInternalServerError, `{
+						"kind": "Error",
+						"id": "500",
+						"href": "/api/clusters_mgmt/v1/errors/500",
+						"code": "CLUSTERS-MGMT-500",
+						"reason": "Internal Server Error"
+					}`),
+				),
+			)
+			Terraform.Source(classicClusterBase + `
+				delete_protection = true
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).NotTo(BeZero())
+			runOutput.VerifyErrorContainsSubstring("delete protection could not be enabled")
+		})
+
+		It("Persists delete_protection = true on update PATCH failure", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					RespondWithPatchedJSON(http.StatusCreated, template, classicCreatePatch),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, deleteProtectionRoute),
+					VerifyJQ(`.enabled`, true),
+					RespondWithJSON(http.StatusOK, `{"enabled": true}`),
+				),
+			)
+			Terraform.Source(classicClusterBase + `
+				delete_protection = true
+			}`)
+			Expect(Terraform.Apply().ExitCode).To(BeZero())
+			SetDeleteProtectionEnabled(true)
+
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, classicClusterWithDeleteProtectionPatch),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, deleteProtectionRoute),
+					RespondWithJSON(http.StatusInternalServerError, `{
+						"kind": "Error",
+						"id": "500",
+						"href": "/api/clusters_mgmt/v1/errors/500",
+						"code": "CLUSTERS-MGMT-500",
+						"reason": "Internal Server Error"
+					}`),
+				),
+			)
+			Terraform.Source(classicClusterBase + `
+				delete_protection = false
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).NotTo(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Can't update delete protection")
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.delete_protection", true))
+			SetDeleteProtectionEnabled(false)
+		})
+
+		It("Preserves delete_protection = true during unrelated update when resolution warns", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					RespondWithPatchedJSON(http.StatusCreated, template, classicCreatePatch),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, deleteProtectionRoute),
+					VerifyJQ(`.enabled`, true),
+					RespondWithJSON(http.StatusOK, `{"enabled": true}`),
+				),
+			)
+			Terraform.Source(classicClusterBase + `
+				delete_protection = true
+			}`)
+			Expect(Terraform.Apply().ExitCode).To(BeZero())
+			SetDeleteProtectionEnabled(true)
+
+			// Trigger an unrelated update (properties change) while
+			// delete_protection resolution fails
+			SetDeleteProtectionError(true)
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, classicCreatePatch),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								  "master_role_arn" : "",
+								  "worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					},
+					{
+					  "op": "replace",
+					  "path": "/properties",
+					  "value": {
+						  "test_key": "test_value"
+					  }
+					}]`),
+				),
+			)
+			Terraform.Source(classicClusterBase + `
+				delete_protection = true
+				properties = {
+					"test_key" = "test_value"
+				}
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(".attributes.delete_protection", true))
+			SetDeleteProtectionError(false)
+		})
+
+		It("Blocks destroy when delete_protection check fails", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					RespondWithPatchedJSON(http.StatusCreated, template, classicCreatePatch),
+				),
+			)
+			Terraform.Source(classicClusterBase + `}`)
+			Expect(Terraform.Apply().ExitCode).To(BeZero())
+
+			SetDeleteProtectionError(true)
+			TestServer.AppendHandlers(
+				// Read refresh
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, classicCreatePatch),
+				),
+				// CheckDeleteProtectionEnabled fallback cluster GET
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, classicCreatePatch),
+				),
+			)
+			runOutput := Terraform.Destroy()
+			Expect(runOutput.ExitCode).NotTo(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Can't verify delete protection")
+			SetDeleteProtectionError(false)
+		})
+	})
 })

@@ -98,4 +98,7 @@ type ClusterRosaHcpState struct {
 	// Log forwarder fields
 	LogForwardersAtClusterCreation types.List `tfsdk:"log_forwarders_at_cluster_creation"`
 	LogForwarderIds                types.List `tfsdk:"log_forwarder_ids"`
+
+	// Delete protection
+	DeleteProtection types.Bool `tfsdk:"delete_protection"`
 }

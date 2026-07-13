@@ -58,6 +58,7 @@ Use the `fips` attribute from this data source to confirm whether FIPS was enabl
 - `console_url` (String) URL of the console.
 - `create_admin_user` (Boolean) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `current_version` (String) The currently running version of OpenShift on the cluster, for example '4.11.0'.
+- `delete_protection` (Boolean) Reports whether OCM delete protection is enabled for the cluster.
 - `destroy_timeout` (Number) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `disable_waiting_in_destroy` (Boolean) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `domain` (String) DNS domain of cluster.

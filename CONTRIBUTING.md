@@ -158,6 +158,24 @@ When bumping the Go version, update these together so compile, presubmits, E2E b
 
 Sibling checklist for the ROSA CLI: `openshift/rosa` `AGENTS.md`.
 
+`make verify-govulncheck` scans the module for known Go vulnerabilities using the pinned
+[govulncheck](https://go.dev/doc/security/vuln/) tool. It runs two passes:
+
+- **Source mode** (`./...`) for reachable dependency CVEs in the codebase (including tests).
+- **Binary mode** (`terraform-provider-rhcs`) for stdlib/toolchain CVEs in the compiled provider artifact.
+
+The check is enforced by the optional Prow presubmit `govulncheck` (context `ci/prow/govulncheck`) and is **not** part of
+`pre-push-checks`. It complements the optional Snyk `security` presubmit.
+
+When a vulnerability has no fix available, or a fix cannot be adopted yet (for example
+a stdlib fix that requires a newer Go toolchain), add an entry to `.govulncheck-ignore.yaml`
+with the GO ID, exact module path, and reason. Remove entries once the fix is adopted.
+
+The ignore wrapper requires `jq` to parse govulncheck JSON output. Provider Prow jobs use the
+`terraform-provider-rhcs-clients` image (`Dockerfile.clients`), which includes `jq` as a system
+package. For local runs, install `jq` if it is not already available. `yq` is optional; the
+wrapper falls back to awk when `yq` is not installed.
+
 ### 5. Manual testing and debugging using the locally compiled RHCS Provider binary
 Manual testing should be performed before opening a PR to ensure there isn't any regression behavior in the provider. You can find [here an example for that](https://github.com/terraform-redhat/terraform-rhcs-rosa/tree/main/examples/rosa-classic-public-with-unmanaged-oidc)
 After compiling the RHCS provider, debugging terraform provider can be difficult. But here are a some tips to make your life easier.

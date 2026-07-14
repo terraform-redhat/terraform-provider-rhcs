@@ -1,0 +1,15 @@
+# govulncheck ignore configuration
+#
+# This file specifies vulnerabilities that should be ignored when running
+# govulncheck. Prefer fixing or bumping dependencies/toolchain over ignoring.
+# Remove entries once the fix is adopted (for example after a Go toolchain bump).
+#
+# Each entry must specify:
+# - id: The vulnerability ID (GO-XXXX-XXXX format)
+# - module: The exact module path where the vulnerability exists
+# - reason: Why this vulnerability is accepted
+
+ignored_vulnerabilities:
+  - id: GO-2026-5932
+    module: golang.org/x/crypto
+    reason: "No fix available (unmaintained golang.org/x/crypto/openpgp); provider does not import openpgp symbols (transitive dependency only)"

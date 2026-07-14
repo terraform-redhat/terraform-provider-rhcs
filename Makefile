@@ -41,6 +41,7 @@ GCI_VERSION ?= v0.14.0
 GOLANGCI_LINT_VERSION ?= v2.12.2
 VALE_VERSION ?= v3.15.1
 ADDLICENSE_VERSION ?= v1.2.0
+GOVULNCHECK_VERSION ?= v1.1.4
 
 GCI := $(LOCALBIN)/gci$(BIN_EXT)
 GINKGO := $(LOCALBIN)/ginkgo$(BIN_EXT)
@@ -48,6 +49,7 @@ MOCKGEN := $(LOCALBIN)/mockgen$(BIN_EXT)
 GOLANGCI_LINT := $(LOCALBIN)/golangci-lint$(BIN_EXT)
 VALE := $(LOCALBIN)/vale$(BIN_EXT)
 ADDLICENSE := $(LOCALBIN)/addlicense$(BIN_EXT)
+GOVULNCHECK := $(LOCALBIN)/govulncheck$(BIN_EXT)
 
 LINT_OUTPUT_FLAGS ?=
 GO_SOURCE_TARGETS := main.go build internal logging provider subsystem tests tools
@@ -91,6 +93,9 @@ $(VALE): | $(LOCALBIN)
 
 $(ADDLICENSE): | $(LOCALBIN)
 	GOBIN="$(LOCALBIN_ABS)" go install github.com/google/addlicense@$(ADDLICENSE_VERSION)
+
+$(GOVULNCHECK): | $(LOCALBIN)
+	GOBIN="$(LOCALBIN_ABS)" go install golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION)
 
 .PHONY: build
 build:
@@ -206,7 +211,13 @@ docs:
 
 .PHONY: tools
 tools:
-	@$(MAKE) --no-print-directory $(GCI) $(GINKGO) $(MOCKGEN) $(GOLANGCI_LINT) $(VALE) $(ADDLICENSE)
+	@$(MAKE) --no-print-directory $(GCI) $(GINKGO) $(MOCKGEN) $(GOLANGCI_LINT) $(VALE) $(ADDLICENSE) $(GOVULNCHECK)
+
+.PHONY: verify-govulncheck govulncheck
+verify-govulncheck: $(GOVULNCHECK) build
+	GOVULNCHECK_BIN="$(GOVULNCHECK)" ./hack/govulncheck.sh
+
+govulncheck: verify-govulncheck
 
 .PHONY: e2e-unit-test
 e2e-unit-test: $(GINKGO)

@@ -5,6 +5,14 @@ It was targeted to developers who want to help improve the provider, and does no
 
 Please read this document and follow this guide to ensure your contribution will be accepted as fast as possible.
 
+## Communication
+
+For internal Red Hat contributors: post your PR link and Jira story in `#forum-rosa-service-engineering` and ping `@rosa-cli-tf-devs` on Red Hat Slack.
+
+## Feature process
+
+For all new features and changes, the CLI serves as our design source of truth, meaning any corresponding provider PRs will be placed on hold until the CLI PR is approved and merged. Use the existing `/hold` mechanism on your PR and reference the upstream CLI PR it depends on.
+
 ## Contributing Code Guidelines
 To begin with, we appreciate your enthusiasm for contributing to RHCS Provider.
 If you have any questions or uncertainties, feel free to reach out for help.

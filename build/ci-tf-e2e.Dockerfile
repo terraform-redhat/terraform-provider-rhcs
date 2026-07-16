@@ -11,7 +11,7 @@ ARG OCM_VERSION=0.1.66
 # When bumping, pick a version under .../clients/ocp/<version>/; build verifies sha256sum.txt.
 ARG OC_VERSION=4.22.3
 
-FROM registry.access.redhat.com/ubi9/go-toolset:1.26.5-1783931515 AS builder
+FROM registry.access.redhat.com/ubi9/go-toolset:1.26.5-1784190466 AS builder
 ARG TERRAFORM_VERSION
 USER root
 # Configure safe.directory before COPY: a worktree .git file is invalid inside the image build.
@@ -35,7 +35,7 @@ RUN go env -w GO111MODULE=on && \
     go install -mod=readonly go.uber.org/mock/mockgen && \
     make install
 
-FROM registry.access.redhat.com/ubi9/go-toolset:1.26.5-1783931515
+FROM registry.access.redhat.com/ubi9/go-toolset:1.26.5-1784190466
 ARG TERRAFORM_VERSION
 ARG OCM_VERSION
 ARG OC_VERSION

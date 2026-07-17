@@ -152,3 +152,25 @@ var _ = Describe("RemoveNoProxyZeroEgressDefaultDomains", func() {
 		Expect(result).To(Equal("999888777666.dkr.ecr.us-east-1.amazonaws.com")) // Should NOT be filtered
 	})
 })
+
+var _ = Describe("Contains", func() {
+	It("returns false for an empty slice", func() {
+		Expect(Contains([]string{}, "a")).To(BeFalse())
+	})
+
+	It("returns true when the element is present", func() {
+		Expect(Contains([]string{"a", "b", "c"}, "b")).To(BeTrue())
+	})
+
+	It("returns false when the element is absent", func() {
+		Expect(Contains([]string{"a", "b", "c"}, "d")).To(BeFalse())
+	})
+
+	It("returns true for a single matching element", func() {
+		Expect(Contains([]string{"only"}, "only")).To(BeTrue())
+	})
+
+	It("returns false for a single non-matching element", func() {
+		Expect(Contains([]string{"only"}, "other")).To(BeFalse())
+	})
+})

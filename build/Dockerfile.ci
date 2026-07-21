@@ -1,7 +1,13 @@
-# Prow presubmit client image: make pre-push-checks.
-# Source is copied at image build (ci-operator builds this image from the PR tree).
-# Active path for openshift/release today. Staged copy: build/Dockerfile.ci
-# (switch release dockerfile_path there in a follow-up, then remove this file).
+# Prow presubmit CI image: make pre-push-checks (image to: terraform-provider-rhcs-clients).
+#
+# Staged location for a consistent build/ layout. openshift/release still points at
+# root Dockerfile.clients. After this lands on main, update the release config to:
+#
+#   dockerfile_path: build/Dockerfile.ci
+#
+# Then remove root Dockerfile.clients. Naming matches a common OpenShift CI
+# convention (Dockerfile.ci); no functional change until the release switch.
+# Keep this file in sync with Dockerfile.clients until then.
 FROM registry.access.redhat.com/ubi9/go-toolset:1.26.5-1783931515
 USER root
 WORKDIR /opt/app-root/src

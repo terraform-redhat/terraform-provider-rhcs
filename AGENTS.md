@@ -31,12 +31,16 @@ This repo uses **OpenShift ci-operator** (config in `openshift/release`) and **K
 | Dockerfile | Built by | Used for |
 |------------|----------|----------|
 | `Dockerfile` | Konflux | Shipping provider binary (product) |
-| `Dockerfile.clients` | Prow (main config) | Presubmit: `make pre-push-checks` |
+| `Dockerfile.clients` | Prow (main config, active) | Presubmit: `make pre-push-checks` → image `terraform-provider-rhcs-clients` |
+| `build/Dockerfile.ci` | Prow (after release follow-up) | Same presubmit image; staged rename/move under `build/` |
 | `build/ci-tf-e2e.Dockerfile` | Prow (e2e variants) | E2E runner; image `rhcs-tf-e2e` |
+| `build/custom-ci-build-root.Dockerfile` | Prow (`project_image`, after release follow-up) | ci-operator `build_root` / src image (clone, image builds, Snyk) |
 
-- Presubmit jobs run inside **`terraform-provider-rhcs-clients`** (from `Dockerfile.clients`).
+- Presubmit jobs run inside **`terraform-provider-rhcs-clients`** (from `Dockerfile.clients` today).
 - Prow E2E runs inside **`rhcs-tf-e2e`** (from `build/ci-tf-e2e.Dockerfile`); step scripts expect `/root/terraform-provider-rhcs`.
-- **`.ci-operator.yaml`** pins ci-operator `build_root` (`ocp/builder`) for pipeline plumbing (clone and image builds), not presubmit execution. Release configs under `openshift/release` use `build_root: from_repository: true`.
+- **`.ci-operator.yaml`** still pins ci-operator `build_root` to an `ocp/builder` imagestream while `openshift/release` uses `build_root: from_repository: true`.
+- **`build/custom-ci-build-root.Dockerfile`** (`ubi9/go-toolset`) is the intended build root. After it is on `main`, change the terraform-provider-rhcs configs in `openshift/release` from `from_repository: true` to `build_root.project_image.dockerfile_path: build/custom-ci-build-root.Dockerfile` (common pattern across many OpenShift CI projects). Goal: bump Go on our schedule and give the Snyk `security` job a matching toolchain.
+- **`build/Dockerfile.ci`** is a staged copy of `Dockerfile.clients` for layout consistency (`Dockerfile.ci` is a common OpenShift CI name). In the same release follow-up (or a small companion change), set `images.items[].dockerfile_path: build/Dockerfile.ci` and delete root `Dockerfile.clients`. No technical behavior change—naming/path only.
 
 ### Bumping the Go version
 

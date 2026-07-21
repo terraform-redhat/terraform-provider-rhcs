@@ -8,7 +8,9 @@
     "managerFilePatterns": [
       "/^Dockerfile$/",
       "/^Dockerfile\\.clients$/",
-      "/^build/ci-tf-e2e\\.Dockerfile$/"
+      "/^build/Dockerfile\\.ci$/",
+      "/^build/ci-tf-e2e\\.Dockerfile$/",
+      "/^build/custom-ci-build-root\\.Dockerfile$/"
     ]
   },
   "commitMessagePrefix": "OCM-00000 | ci: ",
@@ -136,7 +138,9 @@
       "matchFileNames": [
         "Dockerfile.clients",
         "Dockerfile",
-        "build/ci-tf-e2e.Dockerfile"
+        "build/Dockerfile.ci",
+        "build/ci-tf-e2e.Dockerfile",
+        "build/custom-ci-build-root.Dockerfile"
       ],
       "groupName": "CI client image",
       "groupSlug": "ci-client-image",

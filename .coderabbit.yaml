@@ -70,7 +70,8 @@ reviews:
         - Keep wording actionable and consistent with provider terminology (ROSA, OCM, classic/HCP).
     - path: "**/*.md"
       instructions: |
-        - Do not duplicate checklists or command lists in AGENTS.md; refer to README.md, docs/, CONTRIBUTING.md, and .github/pull_request_template.md as the single sources of truth.
+        - AGENTS.md is the hub for AI assistants and review tooling; rules live in developer-docs/; commands live in CONTRIBUTING.md; PR submission checklist is .github/pull_request_template.md.
+        - Do not reintroduce .cursor/rules/ as a source of truth; prefer developer-docs/ MUST/WHEN/DEFAULT rules.
   tools:
     checkov:
       enabled: true

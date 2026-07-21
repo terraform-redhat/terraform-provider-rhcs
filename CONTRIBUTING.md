@@ -9,6 +9,16 @@ Please read this document and follow this guide to ensure your contribution will
 
 For internal Red Hat contributors: post your PR link and Jira story in `#forum-rosa-service-engineering` and ping `@rosa-cli-tf-devs` on Red Hat Slack.
 
+## AI assistants
+
+| Location | Purpose |
+|----------|---------|
+| [`developer-docs/`](developer-docs/) | Tool-agnostic guardrails: architecture, resources/data sources, testing, security, breaking changes, docs/examples |
+| [`AGENTS.md`](AGENTS.md) | Agent hub (links to **`developer-docs/`**), skills, workflow; commands live in **`CONTRIBUTING.md`** |
+| [`CLAUDE.md`](CLAUDE.md), [`GEMINI.md`](GEMINI.md) | One-line pointers to [`AGENTS.md`](AGENTS.md) (names match Claude Code / Gemini CLI defaults) |
+
+**HashiCorp Terraform skills** (optional): [terraform skills in agent-skills](https://github.com/hashicorp/agent-skills/tree/main/terraform) — e.g. **terraform-provider-development**, **terraform-test**, **terraform-style-guide**. If a skill conflicts with **`CONTRIBUTING.md`** or **`developer-docs/`**, those win (see [`AGENTS.md`](AGENTS.md)).
+
 ## Feature process
 
 For all new features and changes, the CLI serves as our design source of truth, meaning any corresponding provider PRs will be placed on hold until the CLI PR is approved and merged. Use the existing `/hold` mechanism on your PR and reference the upstream CLI PR it depends on.
@@ -110,7 +120,7 @@ make test
 - **`make check-subsystem-registry`** — every registered resource and data source type must be referenced in `subsystem/` tests, or listed in `hack/subsystem-registry-allowlist.yaml` with a ticket and reason; **new types** added on the branch must include a subsystem test
 - **`make test`** — unit, subsystem, and utils suites pass
 
-See `AGENTS.md` for when to add unit versus subsystem tests.
+See [`developer-docs/testing.md`](developer-docs/testing.md) for when to add unit versus subsystem tests.
 
 #### When to add which test
 
@@ -146,7 +156,7 @@ make pre-push-checks   # exact non-mutating verification used by the pre-push ho
 
 #### CI container images and Go version bumps
 
-This repository uses **OpenShift ci-operator** (config in `openshift/release`) and **Konflux** (`.tekton/`). See `AGENTS.md` for which Dockerfile maps to which job type.
+This repository uses **OpenShift ci-operator** (config in `openshift/release`) and **Konflux** (`.tekton/`). See [`AGENTS.md`](AGENTS.md) for which Dockerfile maps to which job type.
 
 When bumping the Go version, update these together so compile, presubmits, E2E builds, and product images stay aligned:
 

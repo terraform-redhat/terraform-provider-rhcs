@@ -1,5 +1,5 @@
 # Terraform types temporarily allowed without a subsystem test reference.
-# Remove entries when subsystem coverage is added (see AGENTS.md).
+# Remove entries when subsystem coverage is added (see developer-docs/testing.md).
 allowlist:
   - type: rhcs_info
     ticket: ROSAENG-60113

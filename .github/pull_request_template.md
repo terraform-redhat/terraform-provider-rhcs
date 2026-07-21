@@ -68,7 +68,7 @@ For details, see: ./CONTRIBUTING.md
 
 ## Breaking Changes
 - [ ] No breaking changes
-- [ ] Yes, this PR introduces a breaking change (describe impact and migration plan below)
+- [ ] Yes, this PR introduces a breaking change (describe impact and migration plan below; see [breaking-change guidance](https://github.com/terraform-redhat/terraform-provider-rhcs/blob/main/developer-docs/breaking-changes.md))
 
 ### Breaking Change Details / Migration Plan
 <!-- Required only when breaking changes are introduced -->
@@ -79,14 +79,16 @@ For details, see: ./CONTRIBUTING.md
 - [ ] Relevant Jira/GitHub issues and related PRs are linked.
 - [ ] `make install-hooks` has been run in this clone.
 - [ ] `make pre-push-checks` passes.
-- [ ] Documentation was added/updated where appropriate.
+- [ ] Documentation was added/updated where appropriate (see [docs and examples](https://github.com/terraform-redhat/terraform-provider-rhcs/blob/main/developer-docs/docs-and-examples.md)).
 - [ ] Any risk, limitation, or follow-up work is documented.
+- [ ] **Classic and HCP:** If this PR touches both Classic and HCP paths, I called out parity or intentional divergence (see [architecture](https://github.com/terraform-redhat/terraform-provider-rhcs/blob/main/developer-docs/architecture.md)).
+- [ ] **Auth / secrets / sensitive:** Changes involving credentials, tokens, Sensitive attributes, or request/response logging follow [security](https://github.com/terraform-redhat/terraform-provider-rhcs/blob/main/developer-docs/security.md).
 
 ### Testing (check all that apply; use N/A when not relevant)
 - [ ] **N/A** — no provider resource/data source or `provider/` / `internal/` logic changes.
-- [ ] **New or changed resource / data source** — subsystem test added or updated under `subsystem/classic/` or `subsystem/hcp/`.
+- [ ] **New or changed resource / data source** — subsystem test added or updated under `subsystem/classic/` or `subsystem/hcp/` (see [testing](https://github.com/terraform-redhat/terraform-provider-rhcs/blob/main/developer-docs/testing.md) and [resources and data sources](https://github.com/terraform-redhat/terraform-provider-rhcs/blob/main/developer-docs/resources-and-datasources.md)).
 - [ ] **New or changed validation, plan modifiers, or helpers** — unit tests in the same package (`*_test.go`), or a subsystem negative test when integration-only (not both for the same cases unless a wiring smoke test is needed).
-- [ ] **Schema / config validation** — unit test and/or subsystem test expecting plan/apply failure (one primary layer per rule; see [CONTRIBUTING.md](CONTRIBUTING.md)).
+- [ ] **Schema / config validation** — unit test and/or subsystem test expecting plan/apply failure (one primary layer per rule; see [CONTRIBUTING.md](https://github.com/terraform-redhat/terraform-provider-rhcs/blob/main/CONTRIBUTING.md) and [testing](https://github.com/terraform-redhat/terraform-provider-rhcs/blob/main/developer-docs/testing.md)).
 - [ ] **Validators / helpers** — unit tests in the same package where applicable (review policy; no automated coverage % gate).
 - [ ] `make check-subsystem-registry` passes.
 - [ ] I manually tested the change when behavior is user-visible.

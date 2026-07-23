@@ -116,6 +116,220 @@ var _ = Describe("rhcs_cluster_rosa_hcp - default ingress", func() {
 		Expect(runOutput.ExitCode).To(BeZero())
 	})
 
+	It("When component_routes with console and downloads are set it should update successfully", func() {
+		TestServer.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, clusterReady),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/ingresses"),
+				RespondWithJSON(http.StatusOK, defaultDay1Template),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
+				VerifyJQ(".component_routes.console.hostname", "console.custom.example.com"),
+				VerifyJQ(".component_routes.console.tls_secret_ref", "console-tls-secret"),
+				VerifyJQ(".component_routes.downloads.hostname", "downloads.custom.example.com"),
+				VerifyJQ(".component_routes.downloads.tls_secret_ref", "downloads-tls-secret"),
+				RespondWithJSON(http.StatusOK, `
+				{
+					"kind": "Ingress",
+					"href": "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2",
+					"id": "d6z2",
+					"listening": "external",
+					"default": true,
+					"dns_name": "redhat.com",
+					"component_routes": {
+						"console": {
+							"hostname": "console.custom.example.com",
+							"tls_secret_ref": "console-tls-secret"
+						},
+						"downloads": {
+							"hostname": "downloads.custom.example.com",
+							"tls_secret_ref": "downloads-tls-secret"
+						}
+					}
+				}`),
+			),
+		)
+		Terraform.Source(`
+			resource "rhcs_hcp_default_ingress" "default_ingress" {
+				cluster = "123"
+				listening_method = "external"
+				component_routes = {
+					"console" = {
+						"hostname"       = "console.custom.example.com"
+						"tls_secret_ref" = "console-tls-secret"
+					}
+					"downloads" = {
+						"hostname"       = "downloads.custom.example.com"
+						"tls_secret_ref" = "downloads-tls-secret"
+					}
+				}
+			}`)
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+
+		resource := Terraform.Resource("rhcs_hcp_default_ingress", "default_ingress")
+		Expect(resource).To(MatchJQ(".attributes.component_routes.console.hostname", "console.custom.example.com"))
+		Expect(resource).To(MatchJQ(".attributes.component_routes.console.tls_secret_ref", "console-tls-secret"))
+		Expect(resource).To(MatchJQ(".attributes.component_routes.downloads.hostname", "downloads.custom.example.com"))
+		Expect(resource).To(MatchJQ(".attributes.component_routes.downloads.tls_secret_ref", "downloads-tls-secret"))
+	})
+
+	It("When component_routes with only console is set it should update successfully", func() {
+		TestServer.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, clusterReady),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/ingresses"),
+				RespondWithJSON(http.StatusOK, defaultDay1Template),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
+				VerifyJQ(".component_routes.console.hostname", "console.custom.example.com"),
+				VerifyJQ(".component_routes.console.tls_secret_ref", "console-tls-secret"),
+				RespondWithJSON(http.StatusOK, `
+				{
+					"kind": "Ingress",
+					"href": "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2",
+					"id": "d6z2",
+					"listening": "external",
+					"default": true,
+					"dns_name": "redhat.com",
+					"component_routes": {
+						"console": {
+							"hostname": "console.custom.example.com",
+							"tls_secret_ref": "console-tls-secret"
+						}
+					}
+				}`),
+			),
+		)
+		Terraform.Source(`
+			resource "rhcs_hcp_default_ingress" "default_ingress" {
+				cluster = "123"
+				listening_method = "external"
+				component_routes = {
+					"console" = {
+						"hostname"       = "console.custom.example.com"
+						"tls_secret_ref" = "console-tls-secret"
+					}
+				}
+			}`)
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+
+		resource := Terraform.Resource("rhcs_hcp_default_ingress", "default_ingress")
+		Expect(resource).To(MatchJQ(".attributes.component_routes.console.hostname", "console.custom.example.com"))
+		Expect(resource).To(MatchJQ(".attributes.component_routes.console.tls_secret_ref", "console-tls-secret"))
+	})
+
+It("When component_routes block is removed it should clear routes", func() {
+		TestServer.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+				RespondWithJSON(http.StatusOK, clusterReady),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/ingresses"),
+				RespondWithJSON(http.StatusOK, defaultDay1Template),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
+				VerifyJQ(".component_routes.console.hostname", "console.custom.example.com"),
+				VerifyJQ(".component_routes.downloads.hostname", "downloads.custom.example.com"),
+				RespondWithJSON(http.StatusOK, `
+				{
+					"kind": "Ingress",
+					"href": "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2",
+					"id": "d6z2",
+					"listening": "external",
+					"default": true,
+					"dns_name": "redhat.com",
+					"component_routes": {
+						"console": {
+							"hostname": "console.custom.example.com",
+							"tls_secret_ref": "console-tls-secret"
+						},
+						"downloads": {
+							"hostname": "downloads.custom.example.com",
+							"tls_secret_ref": "downloads-tls-secret"
+						}
+					}
+				}`),
+			),
+		)
+		Terraform.Source(`
+			resource "rhcs_hcp_default_ingress" "default_ingress" {
+				cluster = "123"
+				listening_method = "external"
+				component_routes = {
+					"console" = {
+						"hostname"       = "console.custom.example.com"
+						"tls_secret_ref" = "console-tls-secret"
+					}
+					"downloads" = {
+						"hostname"       = "downloads.custom.example.com"
+						"tls_secret_ref" = "downloads-tls-secret"
+					}
+				}
+			}`)
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+
+		TestServer.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
+				RespondWithJSON(http.StatusOK, `
+				{
+					"kind": "Ingress",
+					"href": "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2",
+					"id": "d6z2",
+					"listening": "external",
+					"default": true,
+					"dns_name": "redhat.com",
+					"component_routes": {
+						"console": {
+							"hostname": "console.custom.example.com",
+							"tls_secret_ref": "console-tls-secret"
+						},
+						"downloads": {
+							"hostname": "downloads.custom.example.com",
+							"tls_secret_ref": "downloads-tls-secret"
+						}
+					}
+				}`),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2"),
+				RespondWithJSON(http.StatusOK, `
+				{
+					"kind": "Ingress",
+					"href": "/api/clusters_mgmt/v1/clusters/123/ingresses/d6z2",
+					"id": "d6z2",
+					"listening": "external",
+					"default": true,
+					"dns_name": "redhat.com"
+				}`),
+			),
+		)
+
+		Terraform.Source(`
+			resource "rhcs_hcp_default_ingress" "default_ingress" {
+				cluster = "123"
+				listening_method = "external"
+			}`)
+		runOutput = Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+
+		resource := Terraform.Resource("rhcs_hcp_default_ingress", "default_ingress")
+		Expect(resource).To(MatchJQ(".attributes.component_routes", nil))
+	})
+
 	It("Update default ingress and delete it", func() {
 		// Prepare the server:
 		TestServer.AppendHandlers(

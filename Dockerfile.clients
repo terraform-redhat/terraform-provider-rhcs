@@ -1,6 +1,6 @@
 # Prow presubmit client image: make pre-push-checks.
 # Source is copied at image build (ci-operator builds this image from the PR tree).
-FROM registry.access.redhat.com/ubi9/go-toolset:1.26.5-1783931515
+FROM registry.access.redhat.com/ubi9/go-toolset:1.26.5-1784751462
 USER root
 WORKDIR /opt/app-root/src
 RUN dnf install -y --setopt=install_weak_deps=False --nodocs \

@@ -1,6 +1,14 @@
 # Testing
 
-Commands live in [`CONTRIBUTING.md`](../CONTRIBUTING.md). Rules below define **when** to add which layer.
+Router: [`AGENTS.md`](../AGENTS.md). Commands: [`CONTRIBUTING.md`](../CONTRIBUTING.md).
+
+Rules for **when** to add which test layer. Shared by resources and data sources.
+
+WHEN your situation matches one of these, open **only** that section:
+- WHEN choosing which test layer applies → [Layers](#layers)
+- WHEN adding or changing tests for a type or behavior → [When to add tests](#when-to-add-tests)
+- WHEN registering a new `rhcs_*` type → [Subsystem registry](#subsystem-registry)
+- DEFAULT: Open [When to add tests](#when-to-add-tests) for behavior changes; [Subsystem registry](#subsystem-registry) for new types.
 
 ## Layers
 
@@ -33,10 +41,10 @@ WHEN the change touches `tests/utils/exec` or tf-manifests:
 
 ## Subsystem registry
 
+WHEN adding or registering a Terraform type:
 - MUST: Every registered `rhcs_*` type is referenced in at least one subsystem test (`resource "rhcs_…"` or `data "rhcs_…"`).
 - MUST: Run `make check-subsystem-registry` (also part of `make pre-push-checks`).
 - MUST NOT: Add an allowlist entry for **new** types — add a subsystem test instead.
 - MUST: Use `hack/subsystem-registry-allowlist.yaml` only for temporary, documented exceptions (`type`, `ticket`, `reason`); remove the entry in the same PR that adds coverage.
 - MUST: New types on the branch (versus merge base with `main`) without a subsystem reference fail the check even if allowlisted elsewhere.
-
-DEFAULT: Docs-only or refactor-only changes need no new subsystem tests unless behavior or registry surface changes.
+- DEFAULT: Docs-only or refactor-only changes need no new subsystem tests unless behavior or registry surface changes.

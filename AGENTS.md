@@ -8,6 +8,24 @@ This guide defines how coding agents should make decisions, implement changes, a
 
 Do **not** duplicate checklists or command lists here. Use one source per concern:
 
+| Topic | When to read | Doc |
+|-------|--------------|-----|
+| Architecture | Any change; Classic versus HCP; ROSA/OCM boundaries | [`developer-docs/architecture.md`](developer-docs/architecture.md) |
+| Package layout | New package, file layout, Classic/HCP dirs | [`developer-docs/packages/package-layout.md`](developer-docs/packages/package-layout.md) |
+| Shared helpers | `provider/common` or feature `.../common` | [`developer-docs/packages/package-common.md`](developer-docs/packages/package-common.md) |
+| Naming | Type or attribute/block names | [`developer-docs/naming.md`](developer-docs/naming.md) |
+| Resources | Add or change a resource | [`developer-docs/resources/resource-overview.md`](developer-docs/resources/resource-overview.md) |
+| Data sources | Add or change a data source | [`developer-docs/datasources/datasource-overview.md`](developer-docs/datasources/datasource-overview.md) |
+| Logging | Provider log statements | [`developer-docs/logging.md`](developer-docs/logging.md) |
+| Errors | Diagnostics, warn versus error, API failures and state | [`developer-docs/errors.md`](developer-docs/errors.md) |
+| Testing | Unit, subsystem, e2e, registry | [`developer-docs/testing.md`](developer-docs/testing.md) |
+| Security | Secrets, Sensitive, Trivy | [`developer-docs/security.md`](developer-docs/security.md) |
+| Breaking changes | Schema/behavior/deps; human review | [`developer-docs/breaking-changes.md`](developer-docs/breaking-changes.md) |
+| Docs and examples | Generated docs, templates, examples | [`developer-docs/docs-and-examples.md`](developer-docs/docs-and-examples.md) |
+| Commits, DCO, changelog | Commit format, sign-off, changelog automation | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
+| Commands and PR checks | Before opening a PR | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
+| PR submission checklist | Before opening a PR | [`.github/pull_request_template.md`](.github/pull_request_template.md) |
+
 | Source | Use it for |
 |--------|------------|
 | `README.md` | Project overview, prerequisites, contributor setup summary, limitations, and links to deeper docs — **read this** for context before changing behavior or docs. |
@@ -24,9 +42,28 @@ Thin entrypoints `CLAUDE.md` and `GEMINI.md` should only point here to avoid dri
 
 **Before opening a PR:** Complete the checklist in `.github/pull_request_template.md`.
 
+## Workflow
+
+1. Confirm ROSA/OCM support — [`developer-docs/architecture.md`](developer-docs/architecture.md).
+2. Resource? — [`developer-docs/resources/resource-overview.md`](developer-docs/resources/resource-overview.md). Data source? — [`developer-docs/datasources/datasource-overview.md`](developer-docs/datasources/datasource-overview.md). Follow an analogous package under `provider/`.
+3. Tests — [`developer-docs/testing.md`](developer-docs/testing.md); commands in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+4. Docs/examples — [`developer-docs/docs-and-examples.md`](developer-docs/docs-and-examples.md).
+5. Security — [`developer-docs/security.md`](developer-docs/security.md).
+6. Breaking or high-risk? — [`developer-docs/breaking-changes.md`](developer-docs/breaking-changes.md).
+7. Commits / DCO / changelog — [`CONTRIBUTING.md`](CONTRIBUTING.md).
+8. Before PR — [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`.github/pull_request_template.md`](.github/pull_request_template.md).
+
+## Guardrails
+
+- MUST NOT: Document bypassing local hooks or verification gates.
+- MUST NOT: Hand-edit `CHANGELOG.md` for ordinary PRs (changelog is automated; see [`CONTRIBUTING.md`](CONTRIBUTING.md)).
+- MUST: Prefer existing patterns; keep commits small and reviewable.
+- MUST: Keep PR descriptions concrete with reproducible validation steps.
+- MUST NOT: Speculate refactors while implementing functional changes.
+
 ## CI Container Images
 
-This repo uses **OpenShift ci-operator** (config in `openshift/release`) and **Konflux** (`.tekton/`). Each Dockerfile serves a different job type.
+This repo uses **OpenShift ci-operator** (config in `openshift/release`) and **Konflux** (`.tekton/`). Each Dockerfile serves a different job type. Dockerfiles and Go bumps: [CI container images and Go version bumps](CONTRIBUTING.md#ci-container-images-and-go-version-bumps) in **`CONTRIBUTING.md`**.
 
 | Dockerfile | Built by | Used for |
 |------------|----------|----------|

@@ -152,9 +152,9 @@ When bumping the Go version, update these together so compile, presubmits, E2E b
 
 - `go.mod` (`go` directive)
 - `renovate.json` — `gomod.constraints.go` (must match `go.mod` so Renovate `gomodTidy` PRs succeed)
-- `Dockerfile`, `Dockerfile.clients`, `build/ci-tf-e2e.Dockerfile` — `ubi9/go-toolset` image tag
-- `.ci-operator.yaml` — `build_root_image.tag` (match an available `ocp/builder:rhel-9-golang-*` tag for pipeline plumbing; presubmit compile runs in `Dockerfile.clients`)
-- `TERRAFORM_VERSION` in `Dockerfile.clients` when `terraform fmt` checks need a newer Terraform CLI
+- `Dockerfile`, `Dockerfile.clients`, `build/Dockerfile.ci`, `build/ci-tf-e2e.Dockerfile`, `build/custom-ci-build-root.Dockerfile` — `ubi9/go-toolset` image tag (keep `Dockerfile.clients` and `build/Dockerfile.ci` in sync until the release path switch)
+- `.ci-operator.yaml` — `build_root_image` imagestream (`namespace` / `name` / `tag`) while release still uses `from_repository: true`. After the release follow-up switches to `project_image.dockerfile_path`, Go for build_root/Snyk is controlled by `build/custom-ci-build-root.Dockerfile` instead
+- `TERRAFORM_VERSION` in `Dockerfile.clients` / `build/Dockerfile.ci` when `terraform fmt` checks need a newer Terraform CLI
 
 Sibling checklist for the ROSA CLI: `openshift/rosa` `AGENTS.md`.
 

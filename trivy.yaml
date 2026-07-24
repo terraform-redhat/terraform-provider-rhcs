@@ -3,7 +3,7 @@
 # Used with `trivy config --config trivy.yaml .` and by CodeRabbit when Trivy
 # is enabled (see .coderabbit.yaml). Scans Terraform under **examples/**,
 # **tests/**, **generate_example_usages/**, plus the root **Dockerfile**.
-# Prefer inline `#trivy:ignore:<ID>` on the flagged resource (see AGENTS.md);
+# Prefer inline `#trivy:ignore:<ID>` on the flagged resource (see developer-docs/security.md);
 # repo-wide `.trivyignore` only as a last resort.
 #
 # https://trivy.dev/latest/docs/references/configuration/config-file/

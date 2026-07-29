@@ -46,7 +46,7 @@ const unManagedOidcConfig = `{
   "href": "/api/clusters_mgmt/v1/oidc_configs/23f6gk51qi5ng15mm095c90hhajbf7c5",
   "id": "23f6gk51qi5ng15mm095c90hhajbf7c5",
   "issuer_url": "https://oidc-f3y4.s3.us-east-1.amazonaws.com",
-  "secret_arn": "arn:aws:secretsmanager:us-east-1:765374464689:secret:rosa-private-key-oidc-f3y4-fEqj4c",
+  "secret_arn": "arn:aws:secretsmanager:us-east-1:123456789012:secret:rosa-private-key-oidc-f3y4-testexample",
   "managed": false,
   "reusable": true
 }`
@@ -78,7 +78,7 @@ const unManagedIssuerURL = "https://oidc-f3y4.s3.us-east-1.amazonaws.com"
 const managedIssuerURL = "https://d3gt1gce2zmg3d.cloudfront.net/23f6gk51qi5ng15mm095c90hhajbf7c5"
 const managedOidcEndpointURL = "d3gt1gce2zmg3d.cloudfront.net/23f6gk51qi5ng15mm095c90hhajbf7c5"
 const unManagedOidcEndpointURL = "oidc-f3y4.s3.us-east-1.amazonaws.com"
-const secretARN = "arn:aws:secretsmanager:us-east-1:765374464689:secret:rosa-private-key-oidc-f3y4-fEqj4c"
+const secretARN = "arn:aws:secretsmanager:us-east-1:123456789012:secret:rosa-private-key-oidc-f3y4-testexample"
 const ID = "23f6gk51qi5ng15mm095c90hhajbf7c5"
 const thumbprint = "9e99a48a9960b14926bb7f3b02e22da2b0ab7280"
 
@@ -180,7 +180,7 @@ var _ = Describe("OIDC config creation", func() {
 			Terraform.Source(`
 		resource "rhcs_rosa_oidc_config" "oidc_config" {
 			  managed = false
-			  secret_arn =  "arn:aws:secretsmanager:us-east-1:765374464689:secret:rosa-private-key-oidc-f3y4-fEqj4c"
+			  secret_arn =  "arn:aws:secretsmanager:us-east-1:123456789012:secret:rosa-private-key-oidc-f3y4-testexample"
 			  issuer_url = "https://oidc-f3y4.s3.us-east-1.amazonaws.com"
 			  installer_role_arn = "arn:aws:iam::765374464689:role/terr-account2-Installer-Role"
 		}
@@ -208,7 +208,7 @@ var _ = Describe("OIDC config creation", func() {
 			Terraform.Source(`
 		resource "rhcs_rosa_oidc_config" "oidc_config" {
 			  managed = false
-			  secret_arn =  "arn:aws:secretsmanager:us-east-1:765374464689:secret:rosa-private-key-oidc-f3y4-fEqj4c"
+			  secret_arn =  "arn:aws:secretsmanager:us-east-1:123456789012:secret:rosa-private-key-oidc-f3y4-testexample"
 			  issuer_url = "https://oidc-f3y4.s3.us-east-1.amazonaws.com"
 			  installer_role_arn = "arn:aws:iam::765374464689:role/terr-account2-Installer-Role"
 		}
@@ -241,7 +241,7 @@ var _ = Describe("OIDC config creation", func() {
 			Terraform.Source(`
 		resource "rhcs_rosa_oidc_config" "oidc_config" {
 			  managed = false
-			  secret_arn =  "arn:aws:secretsmanager:us-east-1:765374464689:secret:rosa-private-key-oidc-f3y4-fEqj4c"
+			  secret_arn =  "arn:aws:secretsmanager:us-east-1:123456789012:secret:rosa-private-key-oidc-f3y4-testexample"
 			  issuer_url = "https://oidc-f3y4.s3.us-east-1.amazonaws.com"
 			  installer_role_arn = "arn:aws:iam::765374464689:role/terr-account2-Installer-Role"
 		}
@@ -273,7 +273,7 @@ var _ = Describe("OIDC config creation", func() {
 			Terraform.Source(`
 		resource "rhcs_rosa_oidc_config" "oidc_config" {
 			  managed = false
-			  secret_arn =  "arn:aws:secretsmanager:us-east-1:765374464689:secret:rosa-private-key-oidc-f3y4-fEqj4c"
+			  secret_arn =  "arn:aws:secretsmanager:us-east-1:123456789012:secret:rosa-private-key-oidc-f3y4-testexample"
 			  issuer_url = "https://oidc-f3y4.s3.us-east-1.amazonaws.com"
 			  installer_role_arn = "arn:aws:iam::765374464689:role/terr-account2-Installer-Role"
 		}
@@ -322,7 +322,7 @@ var _ = Describe("OIDC config creation", func() {
 		Terraform.Source(`
 		resource "rhcs_rosa_oidc_config" "oidc_config" {
 			  managed = true
-			  secret_arn =  "arn:aws:secretsmanager:us-east-1:765374464689:secret:rosa-private-key-oidc-f3y4-fEqj4c"
+			  secret_arn =  "arn:aws:secretsmanager:us-east-1:123456789012:secret:rosa-private-key-oidc-f3y4-testexample"
 			  issuer_url = "https://oidc-f3y4.s3.us-east-1.amazonaws.com"
 			  installer_role_arn = "arn:aws:iam::765374464689:role/terr-account2-Installer-Role"
 		}

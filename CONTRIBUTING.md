@@ -68,13 +68,13 @@ This repository uses [pre-commit](https://pre-commit.com/) to manage git hooks. 
 
 YOU MUST LET THE LOCAL HOOKS RUN ON EVERY COMMIT AND PUSH. DO NOT BYPASS LOCAL HOOKS.
 
-The hooks are configured in `.pre-commit-config.yaml` and perform:
+The hooks are configured in `.pre-commit-config.yaml` (source of truth for hook IDs and stages):
 
-- `pre-commit`: formats staged Go files with `gci` + `gofmt` plus staged Terraform files under `examples/` and `tests/`, adds Apache 2.0 license headers to staged files missing them, and blocks the commit if files were rewritten so you can review and stage the updates
-- `commit-msg`: validates the commit message format (JIRA-123 | type(scope): message)
-- `pre-push`: runs the same steps as `make pre-push-checks` (format-check, build, generated-files check, lint, docs-lint, license-check, subsystem registry check, and `make test`)
+- `pre-commit` / `commit-msg` / `pre-push` stages — see that file for what each hook runs
+- `pre-push` runs the same checks as `make pre-push-checks` (`make run-checks -- pre-push --list-steps`)
 - `pre-push` runs against committed content and blocks when staged or unstaged tracked changes are present
-- check runs are fail-fast: execution stops at the first failing step
+- Checks are fail-fast: execution stops at the first failing step
+- Never bypass security hooks. `pre-push-checks` (and Prow `ci/prow/pre-push-checks`) re-runs Gitleaks so PRs remain gated.
 
 To manually run all hooks on all files:
 ```shell
@@ -150,7 +150,14 @@ make basic-checks      # convenience flow: starts with make fmt and may stop aft
 make pre-push-checks   # exact non-mutating verification used by the pre-push hook
 ```
 
-`make basic-checks` runs format, format-check, build, generated-files verification, lint, docs-lint (Vale), subsystem registry check, and unit/subsystem/utils tests.
+`make basic-checks` and `make pre-push-checks` run the verification steps defined in
+`hack/run-checks.sh` (wired from the Makefile). To list the current steps without running them:
+
+```shell
+make run-checks -- basic --list-steps
+make run-checks -- pre-push --list-steps
+```
+
 `make lint` uses the repo's pinned `golangci-lint` v2 configuration.
 `make docs-lint` runs the pinned [Vale](https://docs.vale.sh/) CLI with only the custom inclusive-language rules under `styles/InclusiveLanguage/` (general Vale styles and packages are not used). Building Vale uses `CGO_ENABLED=1` and requires a C compiler toolchain on the first install.
 
@@ -185,6 +192,20 @@ The ignore wrapper requires `jq` to parse govulncheck JSON output. Provider Prow
 `terraform-provider-rhcs-clients` image (`Dockerfile.clients`), which includes `jq` as a system
 package. For local runs, install `jq` if it is not already available. `yq` is optional; the
 wrapper falls back to awk when `yq` is not installed.
+
+`make verify-gitleaks` scans the working tree for hard-coded secrets using the pinned
+[gitleaks](https://github.com/gitleaks/gitleaks) release (`GITLEAKS_VERSION` in the Makefile).
+The pre-commit hook pins the matching commit SHA (`# frozen: <tag>` in
+`.pre-commit-config.yaml`). Configuration lives in `.gitleaks.toml` (extends upstream
+defaults plus provider-specific rules/allowlists).
+
+The scan is part of `make pre-push-checks` (and therefore Prow `ci/prow/pre-push-checks`) and
+also runs as a blocking pre-commit hook. Prefer fixing findings. For justified mocks/fixtures
+only, add a documented allowlist entry in `.gitleaks.toml` — never disable the scan. Renovate
+is configured to bump the Makefile release tag and the pre-commit SHA together.
+
+FYI: Terraform module repos already run gitleaks inside `make security-check` / Prow
+`ci/prow/security-check`; that is separate from this provider gate.
 
 ### 5. Manual testing and debugging using the locally compiled RHCS Provider binary
 Manual testing should be performed before opening a PR to ensure there isn't any regression behavior in the provider. You can find [here an example for that](https://github.com/terraform-redhat/terraform-rhcs-rosa/tree/main/examples/rosa-classic-public-with-unmanaged-oidc)

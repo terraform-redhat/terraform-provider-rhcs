@@ -42,6 +42,11 @@ GOLANGCI_LINT_VERSION ?= v2.12.2
 VALE_VERSION ?= v3.15.1
 ADDLICENSE_VERSION ?= v1.2.0
 GOVULNCHECK_VERSION ?= v1.1.4
+# Release tag for the binary used by make verify-gitleaks. Pre-commit pins the
+# matching commit SHA in .pre-commit-config.yaml (# frozen: <same tag>).
+# renovate: datasource=github-releases depName=gitleaks/gitleaks
+GITLEAKS_VERSION ?= v8.30.1
+GITLEAKS_CONFIG ?= .gitleaks.toml
 
 GCI := $(LOCALBIN)/gci$(BIN_EXT)
 GINKGO := $(LOCALBIN)/ginkgo$(BIN_EXT)
@@ -50,6 +55,7 @@ GOLANGCI_LINT := $(LOCALBIN)/golangci-lint$(BIN_EXT)
 VALE := $(LOCALBIN)/vale$(BIN_EXT)
 ADDLICENSE := $(LOCALBIN)/addlicense$(BIN_EXT)
 GOVULNCHECK := $(LOCALBIN)/govulncheck$(BIN_EXT)
+GITLEAKS := $(LOCALBIN)/gitleaks$(BIN_EXT)
 
 LINT_OUTPUT_FLAGS ?=
 GO_SOURCE_TARGETS := main.go build internal logging provider subsystem tests tools
@@ -96,6 +102,13 @@ $(ADDLICENSE): | $(LOCALBIN)
 
 $(GOVULNCHECK): | $(LOCALBIN)
 	GOBIN="$(LOCALBIN_ABS)" go install golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION)
+
+$(GITLEAKS): $(LOCALBIN)/.gitleaks-$(GITLEAKS_VERSION).stamp
+
+$(LOCALBIN)/.gitleaks-$(GITLEAKS_VERSION).stamp: | $(LOCALBIN)
+	bash hack/install-gitleaks.sh "$(GITLEAKS_VERSION)" "$(LOCALBIN_ABS)"
+	@rm -f "$(LOCALBIN)"/.gitleaks-*.stamp
+	@touch "$@"
 
 .PHONY: build
 build:
@@ -211,13 +224,23 @@ docs:
 
 .PHONY: tools
 tools:
-	@$(MAKE) --no-print-directory $(GCI) $(GINKGO) $(MOCKGEN) $(GOLANGCI_LINT) $(VALE) $(ADDLICENSE) $(GOVULNCHECK)
+	@$(MAKE) --no-print-directory $(GCI) $(GINKGO) $(MOCKGEN) $(GOLANGCI_LINT) $(VALE) $(ADDLICENSE) $(GOVULNCHECK) $(GITLEAKS)
 
 .PHONY: verify-govulncheck govulncheck
 verify-govulncheck: $(GOVULNCHECK) build
 	GOVULNCHECK_BIN="$(GOVULNCHECK)" ./hack/govulncheck.sh
 
 govulncheck: verify-govulncheck
+
+# Secret scan of the working tree (not full git history). Binary version is
+# GITLEAKS_VERSION; pre-commit uses the matching commit SHA. Included in
+# pre-push-checks so Prow enforces it.
+.PHONY: verify-gitleaks gitleaks
+verify-gitleaks: $(GITLEAKS)
+	@echo "== Gitleaks secret scan (config=$(GITLEAKS_CONFIG), version=$(GITLEAKS_VERSION)) =="
+	@"$(GITLEAKS)" detect --source . --config "$(GITLEAKS_CONFIG)" --no-banner --no-git
+
+gitleaks: verify-gitleaks
 
 .PHONY: e2e-unit-test
 e2e-unit-test: $(GINKGO)

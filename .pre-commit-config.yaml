@@ -17,6 +17,14 @@ repos:
         stages: [pre-commit]
         exclude: '^tests/tf-manifests/'
 
+  # Secrets detection (blocking). Pin to the commit for release tag GITLEAKS_VERSION
+  # in the Makefile (same release). Never SKIP=gitleaks or git commit --no-verify.
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: 83d9cd684c87d95d656c1458ef04895a7f1cbd8e  # frozen: v8.30.1
+    hooks:
+      - id: gitleaks
+        stages: [pre-commit]
+
   # Local repository-specific hooks
   - repo: local
     hooks:
@@ -48,7 +56,7 @@ repos:
       # Pre-push stage: comprehensive checks before push
       - id: pre-push-checks
         name: Run pre-push checks
-        description: Runs format-check, build, lint, docs-lint, coverage, and tests
+        description: Runs make pre-push-checks (see make run-checks -- pre-push --list-steps)
         entry: ./hack/pre-push-hook.sh
         language: script
         stages: [pre-push]

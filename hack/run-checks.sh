@@ -18,8 +18,8 @@ Usage:
   make run-checks -- <mode> [--dry-run] [--list-steps]
 
 Modes:
-  pre-push                 Steps: format-check, build, generated-files, lint, docs-lint, license-check, subsystem-registry, tests
-  basic                    Steps: format, format-check, build, generated-files, lint, docs-lint, license-check, subsystem-registry, tests
+  pre-push                 Steps: format-check, gitleaks, build, generated-files, lint, docs-lint, license-check, subsystem-registry, tests
+  basic                    Steps: format, format-check, gitleaks, build, generated-files, lint, docs-lint, license-check, subsystem-registry, tests
 
 Flags:
   --dry-run                Print planned steps and commands without executing
@@ -78,6 +78,7 @@ declare -a step_commands=()
 case "$mode" in
   pre-push)
     append_step "Format check (gci + gofmt + terraform fmt)" "make --no-print-directory fmt-check"
+    append_step "Gitleaks secret scan" "make --no-print-directory verify-gitleaks"
     append_step "Build" "make --no-print-directory build"
     append_step "Generated files check" "make --no-print-directory check-gen"
     append_step "Lint" "make --no-print-directory lint"
@@ -89,6 +90,7 @@ case "$mode" in
   basic)
     append_step "Format (gci + gofmt + terraform fmt)" "make --no-print-directory fmt"
     append_step "Format check (gci + gofmt + terraform fmt)" "make --no-print-directory fmt-check"
+    append_step "Gitleaks secret scan" "make --no-print-directory verify-gitleaks"
     append_step "Build" "make --no-print-directory build"
     append_step "Generated files check" "make --no-print-directory check-gen"
     append_step "Lint" "make --no-print-directory lint"

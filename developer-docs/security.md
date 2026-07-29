@@ -17,6 +17,14 @@ WHEN editing provider code, tests, docs, examples, or logs:
 - MUST: Mark secret schema attributes **Sensitive**.
 - DEFAULT: Prefer placeholders and variables in examples and test fixtures.
 
+## Gitleaks (secret scanning)
+
+- MUST: Run `make verify-gitleaks` (also part of `make pre-push-checks` / Prow `ci/prow/pre-push-checks`) and the blocking pre-commit `gitleaks` hook.
+- MUST NOT: Bypass with `SKIP=gitleaks` or `git commit --no-verify`.
+- MUST: Prefer fixing findings. MAY allowlist only justified mocks/fixtures in `.gitleaks.toml` with a short comment — never disable the scan.
+- Config: `.gitleaks.toml`. Makefile pin: `GITLEAKS_VERSION` (release tag). Pre-commit pin: commit SHA with `# frozen: <same tag>`.
+- Commands and Renovate notes: [`CONTRIBUTING.md`](../CONTRIBUTING.md).
+
 ## Trivy (IaC misconfiguration)
 
 Repo config: root **`trivy.yaml`**. CodeRabbit may run Trivy when enabled in **`.coderabbit.yaml`**.

@@ -1,16 +1,92 @@
 # Gitleaks — https://github.com/gitleaks/gitleaks/blob/master/README.md
-# Used by CodeRabbit when gitleaks is enabled (.coderabbit.yaml) and by CI/local
-# `gitleaks detect`. Extends upstream default rules.
 #
-# **/*.tftest.hcl harnesses may use mocks/placeholders — not live credentials.
+# Purpose: Detect hardcoded secrets, credentials, and sensitive data in this
+# Terraform provider repository.
+#
+# Integration:
+# - pre-commit hook (blocking)
+# - make verify-gitleaks (also part of make pre-push-checks / Prow pre-push-checks)
+# - CodeRabbit when gitleaks is enabled (.coderabbit.yaml)
+#
+# Usage:
+#   make verify-gitleaks
+#   pre-commit run gitleaks --all-files
+#   gitleaks detect --source . --config .gitleaks.toml --no-git --verbose
+#
+# Allowlist policy:
+# 1. Prefer fixing real or avoidable findings.
+# 2. Allowlist only justified mocks/fixtures with a short comment.
+# 3. Never disable gitleaks entirely.
+# 4. Keep Makefile GITLEAKS_VERSION (release tag) aligned with the pre-commit
+#    gitleaks commit SHA (# frozen: <same tag>) for the same release.
 
 title = "terraform-provider-rhcs"
 
 [extend]
 useDefault = true
 
+# =============================================================================
+# GLOBAL ALLOWLIST
+# =============================================================================
+
 [allowlist]
-description = "Terraform CLI test configs may contain mock tokens/placeholders."
+description = "Paths and mock patterns that are not live credentials"
+
 paths = [
+  # Terraform plugin/CLI caches and local tool binaries (not source)
+  '''(?:^|/)\.terraform(?:/|$)''',
+  '''^bin/''',
+  '''^vendor/''',
+  # Terraform test harnesses may use placeholders
   '''\.tftest''',
 ]
+
+# Allow specific test/example values that look like secrets but are not
+regexes = [
+  '''(?i)fake[_-]?token''',
+  '''(?i)test[_-]?secret''',
+  '''(?i)example[_-]?key''',
+  '''(?i)dummy[_-]?password''',
+  '''(?i)placeholder''',
+  '''AKIAIOSFODNN7EXAMPLE''', # AWS documentation example access key
+]
+
+stopwords = [
+  "example",
+  "test",
+  "fake",
+  "dummy",
+  "placeholder",
+  "sample",
+  "mock",
+]
+
+# =============================================================================
+# CUSTOM RULES (provider / ROSA / OpenShift specific)
+# =============================================================================
+
+[[rules]]
+id = "ocm-rhcs-token"
+description = "OCM / RHCS offline or service token assignment"
+regex = '''(?i)(?:ocm|rhcs)[_-]?(?:offline[_-]?)?token\s*[:=]\s*['"]?[A-Za-z0-9._\-]{32,}'''
+tags = ["token", "ocm", "rhcs", "critical"]
+
+[[rules]]
+id = "openshift-pull-secret"
+description = "OpenShift pull secret auth blob"
+regex = '''(?i)pull[_-]?secret.*auth.*[A-Za-z0-9+/]{30,}={0,2}'''
+tags = ["secret", "openshift", "high"]
+
+[[rules]]
+id = "kubeconfig-embedded"
+description = "Embedded kubeconfig with certificate data"
+regex = '''client-certificate-data:\s*[A-Za-z0-9+/]{30,}={0,2}'''
+tags = ["kubeconfig", "certificate", "critical"]
+
+[[rules]]
+id = "private-key-pem"
+description = "PEM-encoded private key"
+regex = '''-----BEGIN\s+(?:RSA\s+|EC\s+|OPENSSH\s+)?PRIVATE KEY-----'''
+tags = ["private-key", "pem", "critical"]
+
+# AWS / GitHub / generic API keys: use gitleaks defaults via [extend] useDefault

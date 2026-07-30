@@ -19,7 +19,6 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	"github.com/sethvargo/go-password/password"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/constants"
@@ -461,11 +460,34 @@ func GenerateRandomStringWithSymbols(length int) string {
 }
 
 func GenerateRandomPassword(length int) string {
-	randomPassword, err := password.Generate(length, 1, 1, false, true)
-	if err != nil {
-		panic(err)
+	const (
+		lowercase = "abcdefghijklmnopqrstuvwxyz"
+		uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		digits    = "0123456789"
+		symbols   = "!@#$%^&*()_+-=[]{}|;:,.<>?"
+		all       = lowercase + uppercase + digits + symbols
+	)
+
+	if length < 4 {
+		length = 4
 	}
-	return randomPassword
+
+	result := make([]byte, length)
+	result[0] = lowercase[RandomInt(len(lowercase))]
+	result[1] = uppercase[RandomInt(len(uppercase))]
+	result[2] = digits[RandomInt(len(digits))]
+	result[3] = symbols[RandomInt(len(symbols))]
+
+	for i := 4; i < length; i++ {
+		result[i] = all[RandomInt(len(all))]
+	}
+
+	for i := length - 1; i > 0; i-- {
+		j := RandomInt(i + 1)
+		result[i], result[j] = result[j], result[i]
+	}
+
+	return string(result)
 }
 
 // Generate random string

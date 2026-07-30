@@ -39,7 +39,7 @@ RUN_CHECKS_SCRIPT := ./hack/run-checks.sh
 
 GCI_VERSION ?= v0.14.0
 GOLANGCI_LINT_VERSION ?= v2.12.2
-VALE_VERSION ?= v3.15.1
+VALE_VERSION ?= v3.15.2
 ADDLICENSE_VERSION ?= v1.2.0
 GOVULNCHECK_VERSION ?= v1.1.4
 
@@ -73,6 +73,8 @@ ldflags:=\
 
 $(LOCALBIN):
 	mkdir -p "$(LOCALBIN)"
+
+.PHONY: $(GCI) $(GINKGO) $(MOCKGEN) $(GOLANGCI_LINT) $(VALE) $(ADDLICENSE) $(GOVULNCHECK)
 
 $(GCI): | $(LOCALBIN)
 	GOBIN="$(LOCALBIN_ABS)" go install github.com/daixiang0/gci@$(GCI_VERSION)

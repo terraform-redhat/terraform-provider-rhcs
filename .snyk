@@ -18,9 +18,8 @@ exclude:
     - "subsystem/**"
 
 ignore:
-  SNYK-GOLANG-GITHUBCOMVMIHAILENCOMSGPACKV5-15702238:
+  SNYK-GOLANG-GOOGLEGOLANGORGGRPCINTERNALTRANSPORT-18172578:
     - "*":
         reason: >-
-          msgpack/v5 v5.4.1 is latest; transitive via HashiCorp plugin stack with
-          no upstream fix. Revisit when msgpack or plugins release a fix.
-        expires: 2026-09-30T00:00:00.000Z
+          Revisit when terraform-plugin-framework release a fix. They already merged a PR for fixing it (1316).
+        expires: 2026-08-30T00:00:00.000Z

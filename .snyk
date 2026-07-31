@@ -18,6 +18,12 @@ exclude:
     - "subsystem/**"
 
 ignore:
+  SNYK-GOLANG-GITHUBCOMVMIHAILENCOMSGPACKV5-15702238:
+    - "*":
+        reason: >-
+          msgpack/v5 v5.4.1 is latest; transitive via HashiCorp plugin stack with
+          no upstream fix. Revisit when msgpack or plugins release a fix.
+        expires: 2026-08-30T00:00:00.000Z
   SNYK-GOLANG-GOOGLEGOLANGORGGRPCINTERNALTRANSPORT-18172578:
     - "*":
         reason: >-

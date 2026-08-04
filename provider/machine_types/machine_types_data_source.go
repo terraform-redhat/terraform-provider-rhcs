@@ -159,7 +159,10 @@ func (s *MachineTypesDataSource) Read(ctx context.Context, req datasource.ReadRe
 	for i, listItem := range listItems {
 		machineTypeState, err := s.machineTypeState(listItem)
 		if err != nil {
-			resp.Diagnostics.AddError("Can't populate machine type state", err.Error())
+			resp.Diagnostics.AddError(
+				"Can't populate machine type state",
+				fmt.Sprintf("machine type '%s': %s", listItem.ID(), err.Error()),
+			)
 			return
 		}
 		state.Items[i] = machineTypeState

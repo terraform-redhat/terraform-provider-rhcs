@@ -16,8 +16,13 @@ limitations under the License.
 
 package machine_types
 
+import "github.com/hashicorp/terraform-plugin-framework/types"
+
 type MachineTypesState struct {
-	Items []*MachineTypeState `tfsdk:"items"`
+	Search types.String        `tfsdk:"search"`
+	Order  types.String        `tfsdk:"order"`
+	Item   *MachineTypeState   `tfsdk:"item"`
+	Items  []*MachineTypeState `tfsdk:"items"`
 }
 
 type MachineTypeState struct {

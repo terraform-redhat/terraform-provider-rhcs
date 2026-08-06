@@ -1,10 +1,21 @@
 # Security
 
+Router: [`AGENTS.md`](../AGENTS.md). Schema Sensitive flags: [`resources/resource-schema.md`](resources/resource-schema.md). Logs: [`logging.md`](logging.md). Diagnostics: [`errors.md`](errors.md).
+
+Secrets, Sensitive attributes, and Trivy misconfiguration handling. Shared by resources and data sources.
+
+WHEN your situation matches one of these, open **only** that section:
+- WHEN handling secrets in code, tests, docs, examples, or logs → [Secrets](#secrets)
+- WHEN addressing a Trivy IaC misconfiguration finding → [Trivy (IaC misconfiguration)](#trivy-iac-misconfiguration)
+- DEFAULT: Open [Secrets](#secrets) for any change that touches credentials or Sensitive attributes.
+
+## Secrets
+
 WHEN editing provider code, tests, docs, examples, or logs:
 - MUST NOT: Hard code secrets, API keys, tokens, kubeconfigs, AWS credentials, or customer identifiers.
 - MUST NOT: Log or print credentials, tokens, or other secrets.
 - MUST: Mark secret schema attributes **Sensitive**.
-DEFAULT: Prefer placeholders and variables in examples and test fixtures.
+- DEFAULT: Prefer placeholders and variables in examples and test fixtures.
 
 ## Trivy (IaC misconfiguration)
 
@@ -14,4 +25,4 @@ WHEN **`trivy config`** reports a **misconfiguration** (IDs like **`AWS-0104`**,
 1. MUST: Prefer fixing the HCL/Dockerfile (least privilege, encryption, IMDSv2, non-root, etc.).
 2. MAY: `#trivy:ignore:<id>` on the line immediately above the resource or Dockerfile instruction, with a short `#` justification (narrow scope).
 3. MAY: `.trivyignore` only when inline suppression is impossible — one ID per line with a `#` justification above each.
-DEFAULT: Do not suppress findings without a documented reason.
+- DEFAULT: Do not suppress findings without a documented reason.

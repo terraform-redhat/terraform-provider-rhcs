@@ -6,8 +6,8 @@ package logging
 import (
 	"testing"
 
-	. "github.com/onsi/ginkgo/v2/dsl/core" // nolint
-	. "github.com/onsi/gomega"             // nolint
+	. "github.com/onsi/ginkgo/v2/dsl/core"
+	. "github.com/onsi/gomega"
 )
 
 func TestLogging(t *testing.T) {

@@ -128,7 +128,7 @@ unit-test: $(GINKGO)
 	$(GINKGO) run \
 		--succinct \
 		-ldflags="$(ldflags)" \
-		-r provider internal/...
+		-r provider internal/... logging
 
 # Optional local diagnostics — not run by pre-push-checks or CI.
 .PHONY: unit-test-coverage
@@ -138,7 +138,7 @@ unit-test-coverage: $(GINKGO)
 		--cover \
 		--coverprofile coverage.out \
 		-ldflags="$(ldflags)" \
-		-r provider internal/...
+		-r provider internal/... logging
 
 
 .PHONY: test tests

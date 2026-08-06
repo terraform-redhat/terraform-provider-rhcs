@@ -68,7 +68,8 @@ Reference sources:
 These are **review and design expectations**. They are not all enforced by automation; contributors and reviewers still apply them. Concrete commands and gates are in `CONTRIBUTING.md` (for example hooks, `make pre-push-checks`, subsystem registry, and the full test suite). Optional local coverage targets exist but are not merge gates.
 
 - Do not hard code secrets, API keys, tokens, kubeconfigs, AWS credentials, or customer identifiers in code, tests, docs, examples, or logs.
-- Do not document bypassing local hooks or verification gates.
+- Do not document bypassing local hooks or verification gates (`git commit --no-verify`, `SKIP=gitleaks`).
+- Do not bypass gitleaks; it runs in pre-commit and again in `make pre-push-checks` (Prow). Prefer fixing findings; allowlist only justified mocks in `.gitleaks.toml` (see `developer-docs/security.md` and `CONTRIBUTING.md`).
 - Do not ship silent breaking changes: call out impact and migration in the PR (see **Breaking Changes** in the PR template).
 - Do not edit generated provider docs by hand when the workflow requires regeneration; edit sources and regenerate per `CONTRIBUTING.md`.
 - Prefer existing patterns in this repo over new architecture or naming.

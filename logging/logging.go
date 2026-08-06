@@ -6,12 +6,26 @@ package logging
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	tflogging "github.com/hashicorp/terraform-plugin-sdk/v2/helper/logging"
 	ocmlogging "github.com/openshift-online/ocm-sdk-go/logging"
 )
+
+// Terraform log levels recognized via the TF_LOG environment variable.
+const (
+	levelTrace = "TRACE"
+	levelDebug = "DEBUG"
+	levelInfo  = "INFO"
+	levelWarn  = "WARN"
+	levelError = "ERROR"
+)
+
+// validLogLevels lists the levels recognized by Terraform's TF_LOG
+// environment variable.
+var validLogLevels = []string{levelTrace, levelDebug, levelInfo, levelWarn, levelError}
 
 // TfLogger is a logger that uses the Go `log` package.
 type TfLogger struct {
@@ -24,24 +38,45 @@ type TfLogger struct {
 // New creates the provider.
 func New() ocmlogging.Logger {
 	tfLogger := &TfLogger{}
-	logLevel := tflogging.LogLevel()
+	logLevel := tfLogLevel()
 	switch logLevel {
-	case "TRACE", "DEBUG":
+	case levelTrace, levelDebug:
 		tfLogger.debugEnabled = true
 		tfLogger.infoEnabled = true
 		tfLogger.warnEnabled = true
 		tfLogger.errorEnabled = true
-	case "INFO":
+	case levelInfo:
 		tfLogger.infoEnabled = true
 		tfLogger.warnEnabled = true
 		tfLogger.errorEnabled = true
-	case "WARN":
+	case levelWarn:
 		tfLogger.warnEnabled = true
 		tfLogger.errorEnabled = true
-	case "ERROR", "":
+	case levelError, "":
 		tfLogger.errorEnabled = true
 	}
 	return tfLogger
+}
+
+// tfLogLevel returns the normalized Terraform log level from the TF_LOG
+// environment variable. It mirrors the semantics previously provided by
+// terraform-plugin-sdk/v2/helper/logging.LogLevel(): an unset TF_LOG yields an
+// empty string, a recognized level (case-insensitive) is upper-cased, and any
+// other non-empty value falls back to TRACE.
+func tfLogLevel() string {
+	envLevel := os.Getenv("TF_LOG")
+	if envLevel == "" {
+		return ""
+	}
+	upperLevel := strings.ToUpper(envLevel)
+	for _, level := range validLogLevels {
+		if upperLevel == level {
+			return upperLevel
+		}
+	}
+	log.Printf("[WARN] Invalid log level: %q. Defaulting to level: TRACE. Valid levels are: %+v",
+		envLevel, validLogLevels)
+	return levelTrace
 }
 
 // DebugEnabled returns true iff the debug level is enabled.

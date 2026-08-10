@@ -24,7 +24,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	sdk "github.com/openshift-online/ocm-sdk-go"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/providerdata"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/ocm_policies/common"
@@ -158,7 +158,7 @@ func (s *OcmPoliciesDataSource) Configure(ctx context.Context, req datasource.Co
 	}
 
 	// Cast the provider data to the specific implementation:
-	connection := req.ProviderData.(*sdk.Connection)
+	connection, _ := providerdata.OCMConn(req.ProviderData)
 
 	// Get the collection of cloud providers:
 	s.awsInquiries = connection.ClustersMgmt().V1().AWSInquiries()

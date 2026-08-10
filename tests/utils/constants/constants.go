@@ -93,10 +93,12 @@ type ClusterType struct {
 var (
 	ROSA_CLASSIC = ClusterType{Name: "rosa-classic"}
 	ROSA_HCP     = ClusterType{Name: "rosa-hcp", HCP: true}
+	HYPERFLEET   = ClusterType{Name: "hyperfleet", HCP: true}
 
 	allClusterTypes = []ClusterType{
 		ROSA_CLASSIC,
 		ROSA_HCP,
+		HYPERFLEET,
 	}
 )
 

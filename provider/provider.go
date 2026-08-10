@@ -21,16 +21,21 @@ import (
 	"crypto/x509"
 	"fmt"
 	"os"
+	"regexp"
 
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	tfprovider "github.com/hashicorp/terraform-plugin-framework/provider"
 	tfpschema "github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	sdk "github.com/openshift-online/ocm-sdk-go"
+	hyperfleet "github.com/openshift-online/rosa-hyperfleet-api/clientset"
+	hfrest "github.com/openshift-online/rosa-hyperfleet-api/clientset/rest"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/build"
 	"github.com/terraform-redhat/terraform-provider-rhcs/logging"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/providerdata"
 	classicAutoscaler "github.com/terraform-redhat/terraform-provider-rhcs/provider/autoscaler/classic"
 	hcpAutoscaler "github.com/terraform-redhat/terraform-provider-rhcs/provider/autoscaler/hcp"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/breakglasscredential"
@@ -38,6 +43,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cluster"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/classic"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/hcp"
+	hyperfleethcp "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/hyperfleet"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterwaiter"
 	defaultingress "github.com/terraform-redhat/terraform-provider-rhcs/provider/defaultingress/classic"
 	hcpingress "github.com/terraform-redhat/terraform-provider-rhcs/provider/defaultingress/hcp"
@@ -79,6 +85,13 @@ type Config struct {
 	ClientSecret types.String `tfsdk:"client_secret"`
 	TrustedCAs   types.String `tfsdk:"trusted_cas"`
 	Insecure     types.Bool   `tfsdk:"insecure"`
+
+	// Hyperfleet (Platform API v2) configuration. All fields are optional; when
+	// hyperfleet_url is absent the provider operates in OCM-only mode.
+	HyperfleetURL types.String `tfsdk:"hyperfleet_url"`
+	AWSAccountID  types.String `tfsdk:"aws_account_id"`
+	AWSCallerARN  types.String `tfsdk:"aws_caller_arn"`
+	AWSRegion     types.String `tfsdk:"aws_region"`
 }
 
 // New creates the provider.
@@ -135,6 +148,34 @@ func (p *Provider) Schema(ctx context.Context, req tfprovider.SchemaRequest, res
 					"with the server. This disables verification of TLS " +
 					"certificates and host names, and it is not recommended " +
 					"for production environments.",
+				Optional: true,
+			},
+			"hyperfleet_url": tfpschema.StringAttribute{
+				Description: "Base URL of the Hyperfleet Platform API v2 endpoint " +
+					"(e.g. `https://abc123.execute-api.us-east-1.amazonaws.com`). " +
+					"When set the provider enables hyperfleet resources. " +
+					"Can also be set via the `RHCS_HYPERFLEET_URL` environment variable.",
+				Optional: true,
+			},
+			"aws_account_id": tfpschema.StringAttribute{
+				Description: "AWS account ID used to namespace Hyperfleet API calls. " +
+					"Required when `hyperfleet_url` is set. " +
+					"Typically sourced from `data.aws_caller_identity.current.account_id`. " +
+					"Can also be set via the `RHCS_AWS_ACCOUNT_ID` environment variable.",
+				Optional: true,
+			},
+			"aws_caller_arn": tfpschema.StringAttribute{
+				Description: "ARN of the AWS caller identity forwarded to the Hyperfleet API " +
+					"as an informational header. Optional when `hyperfleet_url` is set. " +
+					"Typically sourced from `data.aws_caller_identity.current.arn`. " +
+					"Can also be set via the `RHCS_AWS_CALLER_ARN` environment variable.",
+				Optional: true,
+			},
+			"aws_region": tfpschema.StringAttribute{
+				Description: "AWS region used for SigV4 request signing against the " +
+					"Hyperfleet Platform API. Optional: when absent the region is derived " +
+					"from the `hyperfleet_url` hostname. " +
+					"Can also be set via the `RHCS_AWS_REGION` environment variable.",
 				Optional: true,
 			},
 		},
@@ -206,16 +247,79 @@ func (p *Provider) Configure(ctx context.Context, req tfprovider.ConfigureReques
 		builder.Insecure(config.Insecure.ValueBool())
 	}
 
-	// Create the connection:
+	shared := &providerdata.ProviderSharedData{}
+
+	// Build the OCM connection. When hyperfleet_url is set without OCM credentials
+	// the connection build may fail — that is acceptable for hyperfleet-only usage.
 	connection, err := builder.BuildContext(ctx)
 	if err != nil {
-		resp.Diagnostics.AddError(err.Error(), "")
-		return
+		if config.HyperfleetURL.IsNull() || config.HyperfleetURL.ValueString() == "" {
+			// No hyperfleet fallback — OCM is required.
+			resp.Diagnostics.AddError(err.Error(), "")
+			return
+		}
+		// Hyperfleet-only mode: OCM credentials absent but hyperfleet_url is set.
+	} else {
+		shared.OCMConnection = connection
 	}
 
-	// Save the connection:
-	resp.DataSourceData = connection
-	resp.ResourceData = connection
+	// Build the hyperfleet clientset when hyperfleet_url is configured.
+	if hfURL, ok := p.getAttrValueOrConfig(config.HyperfleetURL, "HYPERFLEET_URL"); ok {
+		accountID, hasAccountID := p.getAttrValueOrConfig(config.AWSAccountID, "AWS_ACCOUNT_ID")
+		if !hasAccountID {
+			resp.Diagnostics.AddError(
+				"Missing required provider attribute",
+				"'aws_account_id' is required when 'hyperfleet_url' is set. "+
+					"Set it explicitly or via the RHCS_AWS_ACCOUNT_ID environment variable.",
+			)
+			return
+		}
+
+		awsCfg, err := awsconfig.LoadDefaultConfig(ctx)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to load AWS configuration", err.Error())
+			return
+		}
+
+		callerARN, _ := p.getAttrValueOrConfig(config.AWSCallerARN, "AWS_CALLER_ARN")
+		region, _ := p.getAttrValueOrConfig(config.AWSRegion, "AWS_REGION")
+
+		// Derive the platform region from the hyperfleet URL (execute-api hostname).
+		platformRegion := regionFromHyperfleetURL(hfURL)
+		if platformRegion != "" && region != "" && region != platformRegion {
+			resp.Diagnostics.AddError(
+				"AWS region mismatch",
+				fmt.Sprintf(
+					"'aws_region' (%q) does not match the region embedded in 'hyperfleet_url' (%q). "+
+						"Set 'aws_region' to %q or update 'hyperfleet_url' to point to the %q endpoint.",
+					region, hfURL, platformRegion, region,
+				),
+			)
+			return
+		}
+		if region == "" {
+			region = platformRegion
+		}
+
+		hfClient, err := hyperfleet.NewForConfig(&hfrest.Config{
+			Host:      hfURL,
+			Region:    region,
+			AccountID: accountID,
+			CallerARN: callerARN,
+			AWSConfig: awsCfg,
+		})
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to create Hyperfleet client", err.Error())
+			return
+		}
+
+		shared.HyperfleetClient = hfClient
+		shared.HyperfleetAccountID = accountID
+		shared.HyperfleetCallerARN = callerARN
+	}
+
+	resp.DataSourceData = shared
+	resp.ResourceData = shared
 }
 
 // Resources returns the resources supported by the provider.
@@ -235,6 +339,7 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 		defaultingress.New,
 		kubeletconfig.New,
 		hcp.New,
+		hyperfleethcp.New,
 		nodepool.New,
 		hcpingress.New,
 		tuningconfigs.New,
@@ -264,4 +369,15 @@ func (p *Provider) DataSources(ctx context.Context) []func() datasource.DataSour
 		imagemirror.NewDataSource,
 		logforwarder.NewDataSource,
 	}
+}
+
+// awsRegionRE matches standard and GovCloud AWS region names embedded in a URL
+// hostname (e.g. us-east-1, ap-southeast-1, us-gov-east-1).
+var awsRegionRE = regexp.MustCompile(`[a-z]+-(?:[a-z]+-)+\d+`)
+
+// regionFromHyperfleetURL extracts the AWS region from a Platform API execute-api
+// URL (e.g. https://<id>.execute-api.<region>.amazonaws.com/…).
+// Returns "" when no recognisable region segment is found.
+func regionFromHyperfleetURL(rawURL string) string {
+	return awsRegionRE.FindString(rawURL)
 }

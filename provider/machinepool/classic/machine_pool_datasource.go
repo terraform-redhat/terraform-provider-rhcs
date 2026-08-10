@@ -26,7 +26,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	sdk "github.com/openshift-online/ocm-sdk-go"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/providerdata"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
@@ -50,11 +50,11 @@ func (r *MachinePoolDatasource) Configure(ctx context.Context, req datasource.Co
 		return
 	}
 
-	connection, ok := req.ProviderData.(*sdk.Connection)
+	connection, ok := providerdata.OCMConn(req.ProviderData)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *sdk.Connaction, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *providerdata.ProviderSharedData, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 		return
 	}

@@ -86,6 +86,10 @@ func (ctx *terraformExecutorContext) execCommand(cmd string, flags []string) (ou
 }
 
 func (ctx *terraformExecutorContext) RunTerraformInit() (string, error) {
+	// Delete the lock file so Terraform regenerates checksums for the local
+	// provider binary, which changes on every `make install`.
+	lockFile := path.Join(ctx.manifestsDir, ".terraform.lock.hcl")
+	_ = os.Remove(lockFile)
 	return ctx.runTerraformCommand("init", "-no-color")
 }
 

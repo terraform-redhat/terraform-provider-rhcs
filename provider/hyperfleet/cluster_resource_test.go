@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	v1alpha1 "github.com/openshift-online/rosa-hyperfleet-api/api/v1alpha1/public"
 	hypershiftv1beta1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
+
 	generated "github.com/terraform-redhat/terraform-provider-rhcs/provider/hyperfleet/generated"
 )
 

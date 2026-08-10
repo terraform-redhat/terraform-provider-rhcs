@@ -27,24 +27,11 @@ provider "rhcs" {
 }
 
 resource "rhcs_cluster_hyperfleet" "cluster" {
-  name                  = var.cluster_name
+  name                 = var.cluster_name
   operator_roles_prefix = var.operator_roles_prefix
-  version               = var.release_image
-  aws = {
-    aws_subnet_ids     = [var.subnet_id]
-    vpc_id             = var.vpc_id
-    availability_zones = [var.availability_zone]
-  }
-  expiration_timestamp               = var.expiration_timestamp
-  oidc_config_id                     = var.oidc_config_id != "" ? var.oidc_config_id : null
-  scheduler_profile                  = var.scheduler_profile
-  tags                               = var.tags
-  http_proxy                         = var.http_proxy
-  https_proxy                        = var.https_proxy
-  no_proxy                           = var.no_proxy
-  autoscaler_max_node_provision_time = var.autoscaler_max_node_provision_time
-  autoscaler_max_nodes_total         = var.autoscaler_max_nodes_total
-  autoscaler_max_pod_grace_period    = var.autoscaler_max_pod_grace_period
-  autoscaler_pod_priority_threshold  = var.autoscaler_pod_priority_threshold
-  component_routes                   = var.component_routes
+  aws_subnet_ids       = [var.subnet_id]
+  vpc_id               = var.vpc_id
+  availability_zones   = [var.availability_zone]
+  release_image        = var.release_image
+  expiration_timestamp = var.expiration_timestamp
 }

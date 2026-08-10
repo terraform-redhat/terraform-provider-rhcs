@@ -42,6 +42,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/cluster"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/classic"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/hcp"
+	rosaHyperfleet "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/hyperfleet"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterwaiter"
 	defaultingress "github.com/terraform-redhat/terraform-provider-rhcs/provider/defaultingress/classic"
 	hcpingress "github.com/terraform-redhat/terraform-provider-rhcs/provider/defaultingress/hcp"
@@ -351,6 +352,7 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 		tuningconfigs.New,
 		hcpAutoscaler.New,
 		breakglasscredential.New,
+		rosaHyperfleet.New,
 		logforwarder.New,
 		notificationcontacts.New,
 		ocmrole.New,

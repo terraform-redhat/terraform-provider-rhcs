@@ -15,6 +15,7 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
 	"github.com/aws/smithy-go"
 
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
@@ -260,4 +261,102 @@ func hasAWSErrorCode(err error, code string) bool {
 		return apiErr.ErrorCode() == code
 	}
 	return false
+}
+
+// DeleteNonDefaultSecurityGroups deletes every security group in vpcID except
+// the VPC's built-in "default" group, which AWS does not allow deleting.
+// This is a broader cleanup than DeleteExtraSecurityGroups: it removes any SG
+// that would block VPC teardown regardless of its name or tags.
+func DeleteNonDefaultSecurityGroups(region, vpcID string) error {
+	if strings.TrimSpace(vpcID) == "" {
+		Logger.Warn("Skipping security groups cleanup because VPC ID is empty")
+		return nil
+	}
+
+	ctx := context.Background()
+	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithRegion(region))
+	if err != nil {
+		return err
+	}
+	return deleteNonDefaultSecurityGroupsWithClient(ctx, ec2.NewFromConfig(cfg), vpcID, defaultSecurityGroupCleanupOptions())
+}
+
+func deleteNonDefaultSecurityGroupsWithClient(ctx context.Context, client ec2SecurityGroupAPI, vpcID string, opts securityGroupCleanupOptions) error {
+	opts = normalizeSecurityGroupCleanupOptions(opts)
+
+	var sgs []types.SecurityGroup
+	paginator := ec2.NewDescribeSecurityGroupsPaginator(client, &ec2.DescribeSecurityGroupsInput{
+		Filters: []types.Filter{
+			{Name: aws.String("vpc-id"), Values: []string{vpcID}},
+		},
+	})
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return fmt.Errorf("describing security groups in VPC %s: %w", vpcID, err)
+		}
+		sgs = append(sgs, page.SecurityGroups...)
+	}
+
+	var errs []error
+	for _, sg := range sgs {
+		if aws.ToString(sg.GroupName) == "default" {
+			continue
+		}
+		Logger.Infof("Deleting security group %s (%s) in VPC %s", aws.ToString(sg.GroupName), aws.ToString(sg.GroupId), vpcID)
+		if err := deleteSecurityGroupWithRetry(ctx, client, vpcID, sg, opts); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
+}
+
+type classicELBAPI interface {
+	DescribeLoadBalancers(ctx context.Context, params *elasticloadbalancing.DescribeLoadBalancersInput, optFns ...func(*elasticloadbalancing.Options)) (*elasticloadbalancing.DescribeLoadBalancersOutput, error)
+	DeleteLoadBalancer(ctx context.Context, params *elasticloadbalancing.DeleteLoadBalancerInput, optFns ...func(*elasticloadbalancing.Options)) (*elasticloadbalancing.DeleteLoadBalancerOutput, error)
+}
+
+// DeleteClassicLoadBalancers deletes all classic (v1) ELBs whose VPC matches
+// vpcID. This is needed during VPC teardown because the cluster may have
+// created ELBs for LoadBalancer-type services that Terraform doesn't track.
+func DeleteClassicLoadBalancers(region, vpcID string) error {
+	if strings.TrimSpace(vpcID) == "" {
+		Logger.Warn("Skipping classic ELB cleanup because VPC ID is empty")
+		return nil
+	}
+
+	ctx := context.Background()
+	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithRegion(region))
+	if err != nil {
+		return err
+	}
+	return deleteClassicLoadBalancersWithClient(ctx, elasticloadbalancing.NewFromConfig(cfg), vpcID)
+}
+
+func deleteClassicLoadBalancersWithClient(ctx context.Context, client classicELBAPI, vpcID string) error {
+	var names []string
+	paginator := elasticloadbalancing.NewDescribeLoadBalancersPaginator(client, &elasticloadbalancing.DescribeLoadBalancersInput{})
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return fmt.Errorf("describing classic ELBs: %w", err)
+		}
+		for _, lb := range page.LoadBalancerDescriptions {
+			if aws.ToString(lb.VPCId) == vpcID {
+				names = append(names, aws.ToString(lb.LoadBalancerName))
+			}
+		}
+	}
+
+	var errs []error
+	for _, name := range names {
+		Logger.Infof("Deleting classic ELB %s in VPC %s", name, vpcID)
+		_, err := client.DeleteLoadBalancer(ctx, &elasticloadbalancing.DeleteLoadBalancerInput{
+			LoadBalancerName: aws.String(name),
+		})
+		if err != nil && !hasAWSErrorCode(err, "LoadBalancerNotFound") {
+			errs = append(errs, fmt.Errorf("deleting classic ELB %s: %w", name, err))
+		}
+	}
+	return errors.Join(errs...)
 }

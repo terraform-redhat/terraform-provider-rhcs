@@ -25,10 +25,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/providerdata"
 )
 
 type RosaOperatorRolesDataSource struct {
@@ -104,7 +104,7 @@ func (s *RosaOperatorRolesDataSource) Configure(ctx context.Context, req datasou
 	}
 
 	// Cast the provider data to the specific implementation:
-	connection := req.ProviderData.(*sdk.Connection)
+	connection, _ := providerdata.OCMConn(req.ProviderData)
 
 	// Get the collection of cloud providers:
 	s.awsInquiries = connection.ClustersMgmt().V1().AWSInquiries()

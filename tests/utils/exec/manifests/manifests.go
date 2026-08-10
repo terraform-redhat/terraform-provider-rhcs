@@ -110,3 +110,15 @@ func GetBreakGlassCredentialManifestsDir(clusterType constants.ClusterType) stri
 func GetExternalAuthProviderManifestsDir(clusterType constants.ClusterType) string {
 	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "external-auth-providers", clusterType.String())
 }
+
+func GetHyperfleetClusterManifestsDir() string {
+	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "clusters", "hyperfleet")
+}
+
+func GetHyperfleetVPCManifestsDir() string {
+	return path.Join(config.GetManifestsDir(), awsProviderDir, "vpc", "hyperfleet")
+}
+
+func GetHyperfleetIAMManifestsDir() string {
+	return path.Join(config.GetManifestsDir(), awsProviderDir, "iam-roles", "hyperfleet")
+}

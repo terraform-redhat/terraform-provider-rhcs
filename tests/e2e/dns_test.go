@@ -9,6 +9,8 @@ import (
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 
@@ -22,7 +24,13 @@ var _ = Describe("DNS Domain", func() {
 		profileHandler, err = profilehandler.NewProfileHandlerFromYamlFile()
 		Expect(err).ToNot(HaveOccurred())
 
-		dnsService, err = profileHandler.Services().GetDnsDomainService()
+		// Use a dedicated temp workspace so shared-vpc day1 PrepareRoute53 DNS
+		// (profile workspace) is not destroyed while the cluster still exists.
+		// Same isolation pattern as id:67574 in account_roles_test.go.
+		tempWorkspace := helper.GenerateRandomName("ocp-67570"+profileHandler.Profile().GetName(), 2)
+		Logger.Infof("Using temp workspace '%s' for creating resources", tempWorkspace)
+
+		dnsService, err = exec.NewDnsDomainService(tempWorkspace, profileHandler.Profile().GetClusterType())
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -36,14 +44,8 @@ var _ = Describe("DNS Domain", func() {
 				Skip("Test can run only on Classic cluster")
 			}
 
-			By("Retrieve DNS creation args")
-			dnsArgs, err := dnsService.ReadTFVars()
-			if err != nil {
-				dnsArgs = &exec.DnsDomainArgs{}
-			}
-
 			By("Create/Apply dns-domain resource by terraform")
-			_, err = dnsService.Apply(dnsArgs)
+			_, err := dnsService.Apply(&exec.DnsDomainArgs{})
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Destroy dns-domain resource by terraform")

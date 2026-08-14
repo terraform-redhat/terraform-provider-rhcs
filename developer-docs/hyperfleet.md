@@ -20,7 +20,7 @@ Because Hyperfleet resources share no auth or API surface with OCM, they cannot 
 ## Architecture decisions
 
 ### No OCM token; provider config is different
-The provider `rhcs` block for Hyperfleet resources requires `hyperfleet_url`, `aws_account_id`, and `aws_caller_arn`. No `token` or `url` (OCM gateway) is needed. The client is `hyperfleet.Interface` from `rosa-hyperfleet-api/clientset`, not `*cmv1.Client`.
+The provider `rhcs` block for Hyperfleet resources requires `hyperfleet_url` and `aws_account_id`. `aws_account_id` is sent as the mandatory `X-Amz-Account-Id` SigV4 signed header. `aws_caller_arn` is optional: when supplied it is added as the `X-Amz-Caller-Arn` signed header (and becomes the cluster `CreatorARN`); when omitted, requests are still signed and authenticated with the ambient AWS credentials and account ID. `aws_region` is also optional — it is derived from the `hyperfleet_url` execute-api hostname when unset. No `token` or `url` (OCM gateway) is needed. The client is `hyperfleet.Interface` from `rosa-hyperfleet-api/clientset`, not `*cmv1.Client`.
 
 ### Passthrough write-mode governs what users can set
 The Hyperfleet API annotates every HyperShift field with `+hyperfleet:write-mode`:
@@ -29,12 +29,15 @@ The Hyperfleet API annotates every HyperShift field with `+hyperfleet:write-mode
 
 Fields marked `service-set` cannot be exposed as writable resource attributes. See the gap tables below for the full breakdown.
 
-### No subsystem test layer
-The standard `subsystem/hcp/` and `subsystem/classic/` suites rely on a stubbed OCM HTTP server (`TestServer`). No equivalent stub exists for the Hyperfleet API, which uses a Kubernetes API server wire protocol. Subsystem coverage is therefore replaced by:
-- Unit tests in `provider/clusterrosa/hyperfleet/*_test.go` (state mapping, `buildNodePoolSpec`, `populateState`).
-- E2E tests in `tests/e2e/hyperfleet/` against a real Hyperfleet environment.
+### Subsystem test layer covers provider-config diagnostics only
+The standard `subsystem/hcp/` and `subsystem/classic/` suites rely on a stubbed OCM HTTP server (`TestServer`). No equivalent stub exists for the Hyperfleet Platform API, which uses a Kubernetes API server wire protocol, so the subsystem suite cannot exercise the CRUD path. The `subsystem/hyperfleet/` suite therefore covers only the provider-configuration diagnostics that fire before any Platform API call:
+- `hyperfleet_url` absent from the provider block → descriptive error.
+- `hyperfleet_url` set but `aws_account_id` missing → descriptive error.
+- `aws_region` contradicting the region in `hyperfleet_url` → "AWS region mismatch" error.
 
-The `make check-subsystem-registry` check is handled via `hack/subsystem-registry-allowlist.yaml` with a ticket reference until a hyperfleet stub server is available.
+Full field-mapping and CRUD coverage is provided by:
+- Unit tests in `provider/hyperfleet/*_test.go` (state mapping, `buildNodePoolSpec`, `populateState`).
+- E2E tests in `tests/e2e/hyperfleet/` against a real Hyperfleet environment.
 
 ### Worker instance profile is computed, not exposed
 The Hyperfleet cluster object carries the 7 operator role ARNs (`RolesRef`) but **not** the worker IAM instance profile. If the nodepool spec omits it, CAPA defaults to a non-existent `<infra-id>-worker-profile` and the create fails with `Invalid IAM Instance Profile name`. The provider therefore computes it during `Create`: it fetches the parent cluster, recovers the operator roles prefix from `RolesRef` (via `prefixAndPartitionFromRolesRef`), and sets `spec.NodePool.Platform.AWS.InstanceProfile = <prefix>-ROSA-Worker-Role` — matching the IAM manifest naming convention (`tests/tf-manifests/aws/iam-roles/hyperfleet/main.tf`). On `Update` the value is preserved from the live object.
@@ -65,7 +68,7 @@ Both resources implement `ResourceWithImportState`. The cluster resource imports
 ## File layout
 
 ```
-provider/clusterrosa/hyperfleet/
+provider/hyperfleet/
 ├── resource.go               # rhcs_cluster_hyperfleet — Schema, CRUD, ImportState
 ├── state.go                  # ClusterHyperfleetState struct with tfsdk tags
 ├── resource_test.go          # Unit tests for populateState, computeRolesRef
@@ -234,8 +237,9 @@ Import format: `<cluster_uuid>/<nodepool_name>`
 
 | Layer | Location | Coverage |
 |---|---|---|
-| Unit (cluster) | `provider/clusterrosa/hyperfleet/resource_test.go` | `populateState` field mapping, `computeRolesRef` / `prefixAndPartitionFromRolesRef` round-trips |
-| Unit (nodepool) | `provider/clusterrosa/hyperfleet/nodepool_resource_test.go` | `buildNodePoolSpec` (basic fields, disk size, labels, tags), `populateNodePoolState` |
+| Unit (cluster) | `provider/hyperfleet/resource_test.go` | `populateState` field mapping, `computeRolesRef` / `prefixAndPartitionFromRolesRef` round-trips |
+| Unit (nodepool) | `provider/hyperfleet/nodepool_resource_test.go` | `buildNodePoolSpec` (basic fields, disk size, labels, tags), `populateNodePoolState` |
+| Subsystem | `subsystem/hyperfleet/cluster_resource_test.go` | Provider-config diagnostics: missing `hyperfleet_url`, missing `aws_account_id`, `aws_region` mismatch |
 | E2E sanity | `tests/e2e/hyperfleet/sanity_test.go` | Full create/read/destroy cycle: VPC → cluster (wait Ready) → IAM → two nodepools (wait Ready) → replica scale (np2: 1→2) → LIFO teardown |
 
 Run the E2E suite:
@@ -259,7 +263,7 @@ The following scenarios are not covered today:
 
 | Gap | Priority | Notes |
 |---|---|---|
-| Subsystem tests | High | No Hyperfleet API stub exists; requires a fake Kubernetes API server or interface mock. Tracked in allowlist. |
+| Subsystem CRUD coverage | High | The `subsystem/hyperfleet/` suite covers provider-config diagnostics only. Full CRUD subsystem coverage still needs a Hyperfleet API stub (fake Kubernetes API server or interface mock). |
 | Cluster `expiration_timestamp` update | Medium | The only mutable cluster field besides future additions; currently only exercised implicitly. |
 | Nodepool `labels` update | Medium | Mutable but not exercised via apply after creation. |
 | Nodepool `auto_repair` update | Medium | Mutable but not covered in e2e. |

@@ -45,12 +45,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	diskValidator "github.com/openshift-online/ocm-common/pkg/machinepool/validations"
 	ocmUtils "github.com/openshift-online/ocm-common/pkg/ocm/utils"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/providerdata"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 
 	rosa "github.com/terraform-redhat/terraform-provider-rhcs/provider/clusterrosa/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool/hcp/upgrade"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/providerdata"
 )
 
 var nodePoolNameRE = regexp.MustCompile(
@@ -241,7 +241,7 @@ func (r *HcpMachinePoolResource) Configure(ctx context.Context, req resource.Con
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *providerdata.ProviderSharedData, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *providerdata.ProviderSharedData, got: %T. Please report this issue to the provider developers.", req.ProviderData), //nolint:lll
 		)
 		return
 	}

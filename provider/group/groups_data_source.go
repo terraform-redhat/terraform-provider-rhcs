@@ -25,8 +25,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/providerdata"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/providerdata"
 )
 
 type GroupsDataSource struct {

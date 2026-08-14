@@ -28,8 +28,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/providerdata"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/providerdata"
 )
 
 type RosaOidcConfigResource struct {
@@ -97,7 +98,7 @@ func (o *RosaOidcConfigResource) Configure(ctx context.Context, req resource.Con
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *providerdata.ProviderSharedData, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *providerdata.ProviderSharedData, got: %T. Please report this issue to the provider developers.", req.ProviderData), //nolint:lll
 		)
 		return
 	}

@@ -33,10 +33,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/terraform-redhat/terraform-provider-rhcs/provider/providerdata"
 	amsv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/providerdata"
 )
 
 const ocmRoleLabelKey = "sts_ocm_role"

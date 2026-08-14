@@ -2,7 +2,7 @@ module github.com/terraform-redhat/terraform-provider-rhcs
 
 go 1.26.10
 
-replace github.com/openshift-online/rosa-hyperfleet-api/hyperfleet-operator/api v0.0.0 => github.com/openshift-online/rosa-hyperfleet-api/hyperfleet-operator/api v0.0.0-20260731220330-4c0f86054074
+replace github.com/openshift-online/rosa-hyperfleet-api/api v0.0.0 => github.com/openshift-online/rosa-hyperfleet-api/api v0.0.0-20260810145312-a1bbdf150898
 
 require (
 	github.com/Masterminds/semver v1.5.0
@@ -25,9 +25,8 @@ require (
 	github.com/onsi/gomega v1.43.0
 	github.com/openshift-online/ocm-common v0.0.46
 	github.com/openshift-online/ocm-sdk-go v0.1.517
-	github.com/openshift-online/rosa-hyperfleet-api/api v0.1.21
-	github.com/openshift-online/rosa-hyperfleet-api/clientset v0.0.0-20260803002448-a25b07fe4598
-	github.com/openshift-online/rosa-hyperfleet-api/hyperfleet-operator/api v0.0.0
+	github.com/openshift-online/rosa-hyperfleet-api/api v0.0.0
+	github.com/openshift-online/rosa-hyperfleet-api/clientset v0.0.0-20260812125925-97221f0b11a8
 	github.com/openshift/hypershift/api v0.0.0-20260803100438-deb947936de7
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.4

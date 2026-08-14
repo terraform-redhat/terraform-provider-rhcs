@@ -9,7 +9,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	v1alpha1 "github.com/openshift-online/rosa-hyperfleet-api/hyperfleet-operator/api/v1alpha1"
+	v1alpha1 "github.com/openshift-online/rosa-hyperfleet-api/api/v1alpha1/public"
 	hypershiftv1beta1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 )
 
@@ -133,8 +133,7 @@ func TestPopulateState_BasicFields(t *testing.T) {
 			},
 		},
 		Spec: v1alpha1.ClusterSpec{
-			HostedCluster: hypershiftv1beta1.HostedClusterSpec{
-				Release:   hypershiftv1beta1.Release{Image: "quay.io/ocp:4.17.0"},
+			HostedCluster: v1alpha1.HostedClusterSpecPassthrough{
 				IssuerURL: "https://oidc.example.com/issuer",
 			},
 		},
@@ -158,9 +157,6 @@ func TestPopulateState_BasicFields(t *testing.T) {
 	if state.OIDCIssuer.ValueString() != "https://oidc.example.com/issuer" {
 		t.Errorf("OIDCIssuer = %q", state.OIDCIssuer.ValueString())
 	}
-	if state.ReleaseImage.ValueString() != "quay.io/ocp:4.17.0" {
-		t.Errorf("ReleaseImage = %q", state.ReleaseImage.ValueString())
-	}
 	if state.CreatorARN.ValueString() != "arn:aws:iam::123:user/test" {
 		t.Errorf("CreatorARN = %q", state.CreatorARN.ValueString())
 	}
@@ -169,7 +165,7 @@ func TestPopulateState_BasicFields(t *testing.T) {
 func TestPopulateState_ExpirationNull(t *testing.T) {
 	cluster := &v1alpha1.Cluster{
 		Spec: v1alpha1.ClusterSpec{
-			HostedCluster: hypershiftv1beta1.HostedClusterSpec{},
+			HostedCluster: v1alpha1.HostedClusterSpecPassthrough{},
 		},
 	}
 	var state ClusterHyperfleetState
@@ -184,7 +180,7 @@ func TestPopulateState_AWSPlatformFields(t *testing.T) {
 	cluster := &v1alpha1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{Name: "aws-cluster"},
 		Spec: v1alpha1.ClusterSpec{
-			HostedCluster: hypershiftv1beta1.HostedClusterSpec{
+			HostedCluster: v1alpha1.HostedClusterSpecPassthrough{
 				Platform: hypershiftv1beta1.PlatformSpec{
 					AWS: &hypershiftv1beta1.AWSPlatformSpec{
 						Region: "us-west-2",

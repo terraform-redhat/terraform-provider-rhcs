@@ -32,6 +32,5 @@ resource "rhcs_cluster_hyperfleet" "cluster" {
   aws_subnet_ids       = [var.subnet_id]
   vpc_id               = var.vpc_id
   availability_zones   = [var.availability_zone]
-  release_image        = var.release_image
   expiration_timestamp = var.expiration_timestamp
 }

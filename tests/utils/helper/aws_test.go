@@ -564,3 +564,102 @@ func TestPurgeHostedZoneRecords_EmptyZoneID(t *testing.T) {
 		t.Fatalf("empty zone ID should be a no-op, got: %v", err)
 	}
 }
+
+// ── deleteVPCEndpointsWithClient ──────────────────────────────────────────────
+
+type fakeVPCEndpointClient struct {
+	endpoints    []types.VpcEndpoint
+	describeErr  error
+	deleteErr    error
+	unsuccessful []types.UnsuccessfulItem
+	deletedIDs   []string
+	deleteCalls  int
+}
+
+func (f *fakeVPCEndpointClient) DescribeVpcEndpoints(_ context.Context, _ *ec2.DescribeVpcEndpointsInput, _ ...func(*ec2.Options)) (*ec2.DescribeVpcEndpointsOutput, error) {
+	if f.describeErr != nil {
+		return nil, f.describeErr
+	}
+	return &ec2.DescribeVpcEndpointsOutput{VpcEndpoints: f.endpoints}, nil
+}
+
+func (f *fakeVPCEndpointClient) DeleteVpcEndpoints(_ context.Context, input *ec2.DeleteVpcEndpointsInput, _ ...func(*ec2.Options)) (*ec2.DeleteVpcEndpointsOutput, error) {
+	f.deleteCalls++
+	f.deletedIDs = append(f.deletedIDs, input.VpcEndpointIds...)
+	if f.deleteErr != nil {
+		return nil, f.deleteErr
+	}
+	return &ec2.DeleteVpcEndpointsOutput{Unsuccessful: f.unsuccessful}, nil
+}
+
+func TestDeleteVPCEndpoints_DeletesAllInVPC(t *testing.T) {
+	client := &fakeVPCEndpointClient{
+		endpoints: []types.VpcEndpoint{
+			{VpcEndpointId: aws.String("vpce-1")},
+			{VpcEndpointId: aws.String("vpce-2")},
+		},
+	}
+	err := deleteVPCEndpointsWithClient(context.Background(), client, "vpc-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if client.deleteCalls != 1 {
+		t.Fatalf("expected 1 delete call, got %d", client.deleteCalls)
+	}
+	if got := strings.Join(client.deletedIDs, ","); got != "vpce-1,vpce-2" {
+		t.Fatalf("expected both endpoints deleted, got %q", got)
+	}
+}
+
+func TestDeleteVPCEndpoints_NoEndpointsIsNoOp(t *testing.T) {
+	client := &fakeVPCEndpointClient{}
+	err := deleteVPCEndpointsWithClient(context.Background(), client, "vpc-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if client.deleteCalls != 0 {
+		t.Fatalf("expected no delete call when there are no endpoints, got %d", client.deleteCalls)
+	}
+}
+
+func TestDeleteVPCEndpoints_DescribeError(t *testing.T) {
+	client := &fakeVPCEndpointClient{describeErr: errors.New("describe failed")}
+	if err := deleteVPCEndpointsWithClient(context.Background(), client, "vpc-1"); err == nil {
+		t.Fatal("expected error from DescribeVpcEndpoints, got nil")
+	}
+}
+
+func TestDeleteVPCEndpoints_DeleteError(t *testing.T) {
+	client := &fakeVPCEndpointClient{
+		endpoints: []types.VpcEndpoint{{VpcEndpointId: aws.String("vpce-1")}},
+		deleteErr: errors.New("delete failed"),
+	}
+	if err := deleteVPCEndpointsWithClient(context.Background(), client, "vpc-1"); err == nil {
+		t.Fatal("expected error from DeleteVpcEndpoints, got nil")
+	}
+}
+
+func TestDeleteVPCEndpoints_UnsuccessfulItemsReturnError(t *testing.T) {
+	client := &fakeVPCEndpointClient{
+		endpoints: []types.VpcEndpoint{{VpcEndpointId: aws.String("vpce-1")}},
+		unsuccessful: []types.UnsuccessfulItem{
+			{
+				ResourceId: aws.String("vpce-1"),
+				Error:      &types.UnsuccessfulItemError{Message: aws.String("still in use")},
+			},
+		},
+	}
+	err := deleteVPCEndpointsWithClient(context.Background(), client, "vpc-1")
+	if err == nil {
+		t.Fatal("expected error when an endpoint deletion is unsuccessful, got nil")
+	}
+	if !strings.Contains(err.Error(), "vpce-1") || !strings.Contains(err.Error(), "still in use") {
+		t.Fatalf("expected error to name the endpoint and reason, got: %v", err)
+	}
+}
+
+func TestDeleteVPCEndpoints_EmptyVPCID(t *testing.T) {
+	if err := DeleteVPCEndpoints("us-east-1", ""); err != nil {
+		t.Fatalf("empty VPC ID should be a no-op, got: %v", err)
+	}
+}

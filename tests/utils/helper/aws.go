@@ -317,6 +317,81 @@ func deleteNonDefaultSecurityGroupsWithClient(
 	return errors.Join(errs...)
 }
 
+type ec2VPCEndpointAPI interface {
+	DescribeVpcEndpoints(
+		ctx context.Context,
+		params *ec2.DescribeVpcEndpointsInput,
+		optFns ...func(*ec2.Options),
+	) (*ec2.DescribeVpcEndpointsOutput, error)
+	DeleteVpcEndpoints(
+		ctx context.Context,
+		params *ec2.DeleteVpcEndpointsInput,
+		optFns ...func(*ec2.Options),
+	) (*ec2.DeleteVpcEndpointsOutput, error)
+}
+
+// DeleteVPCEndpoints deletes every VPC endpoint in vpcID. The Hyperfleet cluster
+// operator creates interface endpoints (e.g. the `<infra-id>-vpce-private-router`
+// endpoint) whose managed ENIs pin a security group of the same name. Terraform
+// does not track these endpoints, so their ENIs keep that security group attached
+// and block both DeleteNonDefaultSecurityGroups and VPC teardown. Deleting the
+// endpoints releases the ENIs (asynchronously), after which the security group
+// and VPC can be removed. Call this before DeleteNonDefaultSecurityGroups.
+func DeleteVPCEndpoints(region, vpcID string) error {
+	if strings.TrimSpace(vpcID) == "" {
+		Logger.Warn("Skipping VPC endpoint cleanup because VPC ID is empty")
+		return nil
+	}
+
+	ctx := context.Background()
+	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithRegion(region))
+	if err != nil {
+		return err
+	}
+	return deleteVPCEndpointsWithClient(ctx, ec2.NewFromConfig(cfg), vpcID)
+}
+
+func deleteVPCEndpointsWithClient(ctx context.Context, client ec2VPCEndpointAPI, vpcID string) error {
+	var ids []string
+	paginator := ec2.NewDescribeVpcEndpointsPaginator(client, &ec2.DescribeVpcEndpointsInput{
+		Filters: []types.Filter{
+			{Name: aws.String("vpc-id"), Values: []string{vpcID}},
+		},
+	})
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return fmt.Errorf("describing VPC endpoints in VPC %s: %w", vpcID, err)
+		}
+		for _, ep := range page.VpcEndpoints {
+			ids = append(ids, aws.ToString(ep.VpcEndpointId))
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+
+	Logger.Infof("Deleting %d VPC endpoint(s) in VPC %s", len(ids), vpcID)
+	out, err := client.DeleteVpcEndpoints(ctx, &ec2.DeleteVpcEndpointsInput{
+		VpcEndpointIds: ids,
+	})
+	if err != nil {
+		return fmt.Errorf("deleting VPC endpoints in VPC %s: %w", vpcID, err)
+	}
+
+	var errs []error
+	if out != nil {
+		for _, u := range out.Unsuccessful {
+			msg := ""
+			if u.Error != nil {
+				msg = aws.ToString(u.Error.Message)
+			}
+			errs = append(errs, fmt.Errorf("VPC endpoint %s: %s", aws.ToString(u.ResourceId), msg))
+		}
+	}
+	return errors.Join(errs...)
+}
+
 type classicELBAPI interface {
 	DescribeLoadBalancers(
 		ctx context.Context,

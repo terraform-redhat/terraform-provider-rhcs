@@ -87,8 +87,10 @@ Optional:
 - `disk_size` (Number) Root disk size, in GiB. After the creation of the resource, it is not possible to update the attribute value.
 - `ec2_metadata_http_tokens` (String) This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the nodes.This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). This feature is available from After the creation of the resource, it is not possible to update the attribute value.
 - `image_type` (String) The image type to use for the node pool. Valid values are 'Default' or 'Windows'. After the creation of the resource, it is not possible to update the attribute value.
+- `max_spot_price` (Number) Maximum hourly price for Spot Instances in USD. Requires use_spot_instances to be true. Must be a positive value (> 0). If not specified, the on-demand price is used as the maximum. After the creation of the resource, it is not possible to update the attribute value.
 - `node_drain_grace_period` (Number) Grace period in whole minutes before nodes are forcibly drained during upgrade or replacement. This value is stored on the NodePool in OpenShift Cluster Manager but is grouped under `aws_node_pool` for consistency with other pool settings. Valid range is 0–10080 minutes (one week).
 - `tags` (Map of String) Apply user defined tags to all machine pool resources created in AWS.After the creation of the resource, it is not possible to update the attribute value.
+- `use_spot_instances` (Boolean) Use Amazon EC2 Spot Instances. When enabled, max_spot_price can be set to control the maximum hourly price. Cannot be used with capacity_reservation_id or capacity_reservation_preference. After the creation of the resource, it is not possible to update the attribute value.
 
 Read-Only:
 

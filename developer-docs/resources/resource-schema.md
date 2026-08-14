@@ -28,11 +28,17 @@ WHEN deciding what practitioners configure versus what the provider/API owns:
 - DEFAULT: Framework attribute behaviors — https://developer.hashicorp.com/terraform/plugin/framework/handling-data/attributes
 - EXAMPLE: `provider/imagemirror` (`cluster_id` Required; `type` Optional+Computed+Default; `id` Computed).
 
+WHEN adding an Optional boolean that enables an API feature where the API omits the feature object entirely when disabled (Read sets the attribute to null):
+- MUST NOT: Leave it Optional-only if `false` and `null` produce different Terraform behavior. Terraform treats explicit `false` and null as distinct values — if Read always returns null when the feature is absent, a user who writes `= false` gets a perpetual plan diff (`false` → `null` on every refresh).
+- MUST: Use one of: (a) `IgnoreFalse()` plan modifier to normalize `false` → `null` in the plan so `false` is never stored in state (preferred — no schema change, no drift), (b) Optional+Computed so Read can set `false` explicitly when the API omits the feature, or (c) keep it Optional-only and accept null as the only way to express "not enabled" — but then document in the Description that `= false` is not a supported value.
+- EXAMPLE: `provider/machinepool/hcp/aws_node_pool.go` `use_spot_instances` — uses `IgnoreFalse()` before `ImmutableBool()` so that `= false` is treated as "not set".
+
 ## Validation (no client)
 
 WHEN validating configuration without calling OCM (or other APIs):
 - MUST NOT: Rely on resource `Configure` (or a live API client) inside attribute validators, `ConfigValidators`, or `ValidateConfig` — those run before provider Configure may have completed.
 - MUST: Put client-dependent checks in Create/Read/Update/Delete (or other RPCs that run with a configured provider).
+- NOTE: Schema-level validators and `ConfigValidators` run automatically on all operations. In-method checks inside Create/Update do not — they must be mirrored manually. See [`resource-create.md`](resource-create.md) and [`resource-update.md`](resource-update.md).
 - EXAMPLE (`ConfigValidators`): `provider/machinepool/classic` — copy only the validation pattern you need. Reuse helpers per [`package-common.md`](../packages/package-common.md).
 
 ## Defaults

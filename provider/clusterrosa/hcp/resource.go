@@ -259,6 +259,17 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 					"to send audit logs to a CloudWatch Logs log group. To disable audit log forwarding, provide an empty string.",
 				Optional: true,
 			},
+			"spot_termination_queue_url": schema.StringAttribute{
+				Description: "The URL of an SQS queue for enhanced spot termination handling. " +
+					"When set, enables Enhanced mode using AWS Node Termination Handler to " +
+					"gracefully drain nodes within the 2-minute spot interruption window. " +
+					"When omitted, Simple mode is used (reactive replacement via MachineHealthCheck). " +
+					"The queue must be an SQS queue in the same region as the cluster.",
+				Optional: true,
+				Validators: []validator.String{
+					attrvalidators.SqsUrlValidator(),
+				},
+			},
 			"private": schema.BoolAttribute{
 				Description: "Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet. " + common.ValueCannotBeChangedStringDescription,
 				Optional:    true,
@@ -710,6 +721,15 @@ func createHcpClusterObject(ctx context.Context,
 	kmsKeyARN := common.OptionalString(state.KMSKeyArn)
 	etcdKmsKeyArn := common.OptionalString(state.EtcdKmsKeyArn)
 	auditLogArn := common.OptionalString(state.AuditLogArn)
+	terminationHandlerQueueUrl := common.OptionalString(state.SpotTerminationQueueUrl)
+	if terminationHandlerQueueUrl != nil {
+		err := validateSqsUrlRegionMatchesCluster(*terminationHandlerQueueUrl, state.CloudRegion.ValueString())
+		if err != nil {
+			errDescription := err.Error()
+			diags.AddError(errHeadline, errDescription)
+			return nil, errors.New(errHeadline + "\n" + errDescription)
+		}
+	}
 	awsAccountID := common.OptionalString(state.AWSAccountID)
 	awsBillingAccountId := common.OptionalString(state.AWSBillingAccountID)
 
@@ -756,7 +776,8 @@ func createHcpClusterObject(ctx context.Context,
 		kmsKeyARN, etcdKmsKeyArn, auditLogArn,
 		isPrivate, awsAccountID, awsBillingAccountId, stsBuilder, awsSubnetIDs,
 		ingressHostedZoneId, route53RoleArn, internalCommunicationHostedZoneId, vpceRoleArn,
-		awsAdditionalComputeSecurityGroupIds, nil, nil, awsAdditionalAllowedPrincipals, nil); err != nil {
+		awsAdditionalComputeSecurityGroupIds, nil, nil, awsAdditionalAllowedPrincipals, nil,
+		terminationHandlerQueueUrl); err != nil {
 		return nil, err
 	}
 
@@ -1646,6 +1667,23 @@ func (r *ClusterRosaHcpResource) Update(ctx context.Context, request resource.Up
 		changesToAws = true
 	}
 
+	if plan.SpotTerminationQueueUrl.IsNull() && !state.SpotTerminationQueueUrl.IsNull() &&
+		state.SpotTerminationQueueUrl.ValueString() != "" {
+		awsBuilder.TerminationHandlerQueueUrl("")
+		changesToAws = true
+	} else if newUrl, shouldPatch := common.ShouldPatchString(
+		state.SpotTerminationQueueUrl, plan.SpotTerminationQueueUrl); shouldPatch {
+		if err := validateSqsUrlRegionMatchesCluster(newUrl, plan.CloudRegion.ValueString()); err != nil {
+			response.Diagnostics.AddError(
+				"Can't update cluster",
+				err.Error(),
+			)
+			return
+		}
+		awsBuilder.TerminationHandlerQueueUrl(newUrl)
+		changesToAws = true
+	}
+
 	if changesToAws {
 		clusterBuilder.AWS(awsBuilder)
 	}
@@ -2106,6 +2144,13 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 		state.AuditLogArn = types.StringNull()
 	}
 
+	terminationUrl, ok := object.AWS().GetTerminationHandlerQueueUrl()
+	if ok && terminationUrl != "" {
+		state.SpotTerminationQueueUrl = types.StringValue(terminationUrl)
+	} else {
+		state.SpotTerminationQueueUrl = types.StringNull()
+	}
+
 	state.AutoNode = nil
 	if awsAutoNode, ok := object.AWS().GetAutoNode(); ok {
 		if roleArn, ok := awsAutoNode.GetRoleArn(); ok && roleArn != "" {
@@ -2506,4 +2551,18 @@ func shouldPatchProperties(state, plan *ClusterRosaHcpState) bool {
 
 	return false
 
+}
+
+// validateSqsUrlRegionMatchesCluster validates that the SQS URL region matches the cluster region.
+// Returns an error if the regions don't match.
+func validateSqsUrlRegionMatchesCluster(sqsUrl, clusterRegion string) error {
+	sqsRegion, err := attrvalidators.ExtractRegionFromSqsUrl(sqsUrl)
+	if err == nil && sqsRegion != clusterRegion {
+		return fmt.Errorf(
+			"spot termination queue URL region '%s' does not match cluster region '%s'; "+
+				"the SQS queue must be in the same region as the cluster",
+			sqsRegion, clusterRegion,
+		)
+	}
+	return nil
 }

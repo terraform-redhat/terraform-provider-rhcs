@@ -9458,4 +9458,701 @@ var _ = Describe("HCP Cluster", func() {
 			SetDeleteProtectionError(false)
 		})
 	})
+
+	Context("Spot termination queue URL", func() {
+		It("Creates cluster with spot_termination_queue_url", func() {
+			// Prepare the server:
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.aws.termination_handler_queue_url`, "https://sqs.us-west-1.amazonaws.com/123456789012/my-spot-queue"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.1",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							},
+							"termination_handler_queue_url": "https://sqs.us-west-1.amazonaws.com/123456789012/my-spot-queue"
+						}
+					}]`),
+				),
+			)
+
+			// Run the apply command:
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				spot_termination_queue_url = "https://sqs.us-west-1.amazonaws.com/123456789012/my-spot-queue"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.spot_termination_queue_url`, "https://sqs.us-west-1.amazonaws.com/123456789012/my-spot-queue"))
+		})
+
+		It("Update cluster - add spot_termination_queue_url", func() {
+			// Prepare the server for initial creation:
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.1",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							}
+						}
+					}]`),
+				),
+			)
+
+			// Run the apply command without spot_termination_queue_url:
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// Prepare server for update to add spot_termination_queue_url
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.1",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							}
+						}
+					}]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, cluster123Route),
+					VerifyJQ(`.aws.termination_handler_queue_url`, "https://sqs.us-west-1.amazonaws.com/123456789012/my-spot-queue"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.1",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							},
+							"termination_handler_queue_url": "https://sqs.us-west-1.amazonaws.com/123456789012/my-spot-queue"
+						}
+					}]`),
+				),
+			)
+
+			// Update to add spot_termination_queue_url
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				spot_termination_queue_url = "https://sqs.us-west-1.amazonaws.com/123456789012/my-spot-queue"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+			}`)
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.spot_termination_queue_url`, "https://sqs.us-west-1.amazonaws.com/123456789012/my-spot-queue"))
+		})
+
+		It("Update cluster - change spot_termination_queue_url", func() {
+			// Prepare the server for initial creation:
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.aws.termination_handler_queue_url`, "https://sqs.us-west-1.amazonaws.com/123456789012/my-spot-queue"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.1",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							},
+							"termination_handler_queue_url": "https://sqs.us-west-1.amazonaws.com/123456789012/my-spot-queue"
+						}
+					}]`),
+				),
+			)
+
+			// Run the apply command with initial spot_termination_queue_url:
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				spot_termination_queue_url = "https://sqs.us-west-1.amazonaws.com/123456789012/my-spot-queue"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// Prepare server for update to change spot_termination_queue_url
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.1",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							},
+							"termination_handler_queue_url": "https://sqs.us-west-1.amazonaws.com/123456789012/my-spot-queue"
+						}
+					}]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, cluster123Route),
+					VerifyJQ(`.aws.termination_handler_queue_url`, "https://sqs.us-west-1.amazonaws.com/123456789012/my-updated-queue"),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.1",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							},
+							"termination_handler_queue_url": "https://sqs.us-west-1.amazonaws.com/123456789012/my-updated-queue"
+						}
+					}]`),
+				),
+			)
+
+			// Update to change spot_termination_queue_url
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				spot_termination_queue_url = "https://sqs.us-west-1.amazonaws.com/123456789012/my-updated-queue"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+			}`)
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.spot_termination_queue_url`, "https://sqs.us-west-1.amazonaws.com/123456789012/my-updated-queue"))
+		})
+
+		It("Update cluster - remove spot_termination_queue_url", func() {
+			// Prepare the server for initial creation with spot_termination_queue_url:
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.aws.termination_handler_queue_url`, "https://sqs.us-west-1.amazonaws.com/123456789012/my-spot-queue"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.1",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							},
+							"termination_handler_queue_url": "https://sqs.us-west-1.amazonaws.com/123456789012/my-spot-queue"
+						}
+					}]`),
+				),
+			)
+
+			// Run the apply command with initial spot_termination_queue_url:
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				spot_termination_queue_url = "https://sqs.us-west-1.amazonaws.com/123456789012/my-spot-queue"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// Prepare server for update to remove spot_termination_queue_url
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.1",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							},
+							"termination_handler_queue_url": "https://sqs.us-west-1.amazonaws.com/123456789012/my-spot-queue"
+						}
+					}]`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, cluster123Route),
+					VerifyJQ(`.aws.termination_handler_queue_url`, ""),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.1",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							}
+						}
+					}]`),
+				),
+			)
+
+			// Update to remove spot_termination_queue_url (attribute removed from config)
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+			}`)
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
+			Expect(resource).To(MatchJQ(`.attributes.spot_termination_queue_url`, nil))
+		})
+
+		It("Update fails - SQS URL region mismatch", func() {
+			// Prepare the server for initial creation with spot_termination_queue_url:
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					VerifyJQ(`.name`, "my-cluster"),
+					VerifyJQ(`.cloud_provider.id`, "aws"),
+					VerifyJQ(`.region.id`, "us-west-1"),
+					VerifyJQ(`.product.id`, "rosa"),
+					VerifyJQ(`.aws.termination_handler_queue_url`, "https://sqs.us-west-1.amazonaws.com/123456789012/my-spot-queue"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.1",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							},
+							"termination_handler_queue_url": "https://sqs.us-west-1.amazonaws.com/123456789012/my-spot-queue"
+						}
+					}]`),
+				),
+			)
+
+			// Run the apply command with initial spot_termination_queue_url:
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				spot_termination_queue_url = "https://sqs.us-west-1.amazonaws.com/123456789012/my-spot-queue"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// Prepare server for update (GET to read current state)
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route),
+					RespondWithPatchedJSON(http.StatusOK, template, `[
+					{
+						"op": "add",
+						"path": "/aws",
+						"value": {
+							"sts" : {
+								"oidc_endpoint_url": "https://127.0.0.1",
+								"thumbprint": "111111",
+								"role_arn": "",
+								"support_role_arn": "",
+								"instance_iam_roles" : {
+									"worker_role_arn" : ""
+								},
+								"operator_role_prefix" : "test"
+							},
+							"termination_handler_queue_url": "https://sqs.us-west-1.amazonaws.com/123456789012/my-spot-queue"
+						}
+					}]`),
+				),
+			)
+
+			// Update to change spot_termination_queue_url to a different region (eu-west-1)
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				spot_termination_queue_url = "https://sqs.eu-west-1.amazonaws.com/123456789012/my-spot-queue"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+			}`)
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("spot termination queue URL region 'eu-west-1' does not match cluster region 'us-west-1'")
+		})
+
+		It("Plan fails - invalid SQS URL (not HTTPS)", func() {
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				spot_termination_queue_url = "http://sqs.us-west-1.amazonaws.com/123456789012/my-spot-queue"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+			}`)
+			Expect(Terraform.Apply()).NotTo(BeZero())
+		})
+
+		It("Plan fails - invalid SQS URL (wrong host pattern)", func() {
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				spot_termination_queue_url = "https://s3.us-west-1.amazonaws.com/123456789012/my-spot-queue"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+			}`)
+			Expect(Terraform.Apply()).NotTo(BeZero())
+		})
+
+		It("Apply fails - SQS URL region mismatch", func() {
+			// Prepare the server for version check and POST (even though POST won't be reached):
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage),
+				),
+			)
+
+			Terraform.Source(`
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				spot_termination_queue_url = "https://sqs.eu-west-1.amazonaws.com/123456789012/my-spot-queue"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					}
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("spot termination queue URL region 'eu-west-1' does not match cluster region 'us-west-1'")
+		})
+	})
 })

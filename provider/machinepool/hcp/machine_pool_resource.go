@@ -23,6 +23,7 @@ import (
 	"math"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -370,6 +371,38 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 			awsNodePoolBuilder.CapacityReservation(capacityReservationBuilder)
 		}
 
+		useSpotInstances := common.HasValue(plan.AWSNodePool.UseSpotInstances) &&
+			plan.AWSNodePool.UseSpotInstances.ValueBool()
+		isSpotMaxPriceSet := common.HasValue(plan.AWSNodePool.MaxSpotPrice)
+
+		if isSpotMaxPriceSet && !useSpotInstances {
+			resp.Diagnostics.AddError(
+				"Invalid node pool configuration",
+				"Cannot set max_spot_price when not using spot instances "+
+					"(set \"use_spot_instances\" to true).",
+			)
+			return
+		}
+
+		if useSpotInstances {
+			hasCapRes := !common.IsStringAttributeUnknownOrEmpty(plan.AWSNodePool.CapacityReservationId) ||
+				(!common.IsStringAttributeUnknownOrEmpty(plan.AWSNodePool.CapacityReservationPreference) &&
+					plan.AWSNodePool.CapacityReservationPreference.ValueString() != "none")
+			if hasCapRes {
+				resp.Diagnostics.AddError(
+					"Invalid node pool configuration",
+					"Can't use spot instances with capacity reservation.",
+				)
+				return
+			}
+
+			spotBuilder := cmv1.NewAwsNodePoolSpotMarketOptions()
+			if isSpotMaxPriceSet {
+				spotBuilder.MaxPrice(fmt.Sprintf("%g", plan.AWSNodePool.MaxSpotPrice.ValueFloat64()))
+			}
+			awsNodePoolBuilder.SpotMarketOptions(spotBuilder)
+		}
+
 		if !common.IsStringAttributeUnknownOrEmpty(plan.AWSNodePool.ImageType) {
 			builder.ImageType(cmv1.ImageType(plan.AWSNodePool.ImageType.ValueString()))
 		}
@@ -484,6 +517,18 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 			),
 		)
 		return
+	}
+
+	if plan.AWSNodePool != nil && common.HasValue(plan.AWSNodePool.UseSpotInstances) &&
+		plan.AWSNodePool.UseSpotInstances.ValueBool() {
+		if clusterObject.AWS() == nil || clusterObject.AWS().TerminationHandlerQueueUrl() == "" {
+			resp.Diagnostics.AddWarning(
+				"Spot node pool created without termination handler configuration",
+				"Nodes will not be gracefully drained on interruptions. "+
+					"Set spot_termination_queue_url on the rhcs_cluster_rosa_hcp "+
+					"resource to enable enhanced spot termination handling.",
+			)
+		}
 	}
 
 	collection := r.clusterCollection.Cluster(clusterObject.ID()).NodePools()
@@ -666,7 +711,12 @@ func validateNoImmutableAttChange(state, plan *HcpMachinePoolState) diag.Diagnos
 			"aws_node_pool.ec2_metadata_http_tokens", &diags)
 		validateStateAndPlanEquals(state.AWSNodePool.DiskSize, plan.AWSNodePool.DiskSize, "aws_node_pool.disk_size", &diags)
 		validateStateAndPlanEquals(state.AWSNodePool.ImageType, plan.AWSNodePool.ImageType, "aws_node_pool.image_type", &diags)
+		validateOptionalOnlyImmutable(state.AWSNodePool.UseSpotInstances, plan.AWSNodePool.UseSpotInstances,
+			"aws_node_pool.use_spot_instances", &diags)
+		validateOptionalOnlyImmutable(state.AWSNodePool.MaxSpotPrice, plan.AWSNodePool.MaxSpotPrice,
+			"aws_node_pool.max_spot_price", &diags)
 	}
+
 	return diags
 }
 
@@ -678,6 +728,23 @@ func validateStateAndPlanEquals(stateAttr attr.Value, planAttr attr.Value, attrN
 		return
 	}
 	common.ValidateStateAndPlanEquals(stateAttr, planAttr, attrName, diags)
+}
+
+// validateOptionalOnlyImmutable works like validateStateAndPlanEquals but also
+// catches removal (state has a value, plan is null). Use for Optional-only
+// attributes that are not Computed, since Terraform sets those to null when
+// removed from config rather than preserving the state value.
+func validateOptionalOnlyImmutable(
+	stateAttr attr.Value, planAttr attr.Value, attrName string, diags *diag.Diagnostics,
+) {
+	if !common.HasValue(planAttr) && common.HasValue(stateAttr) {
+		diags.AddError(
+			common.AssertionErrorSummaryMessage,
+			fmt.Sprintf(common.AssertionErrorDetailsMessage, attrName, stateAttr, planAttr),
+		)
+		return
+	}
+	validateStateAndPlanEquals(stateAttr, planAttr, attrName, diags)
 }
 
 func (r *HcpMachinePoolResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -807,6 +874,7 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 		awsNodePoolBuilder := cmv1.NewAWSNodePool()
 		// FIXME: even though we do not necessarily need to patch OCM CS API enforces this value cannot be empty
 		awsNodePoolBuilder.InstanceType(plan.AWSNodePool.InstanceType.ValueString())
+
 		npBuilder.AWSNodePool(awsNodePoolBuilder)
 	}
 
@@ -1338,6 +1406,20 @@ func populateState(ctx context.Context, object *cmv1.NodePool, state *HcpMachine
 		} else {
 			state.AWSNodePool.CapacityReservationId = types.StringNull()
 			state.AWSNodePool.CapacityReservationPreference = types.StringNull()
+		}
+
+		if spotOpts, ok := awsNodePool.GetSpotMarketOptions(); ok {
+			state.AWSNodePool.UseSpotInstances = types.BoolValue(true)
+			if maxPrice, ok := spotOpts.GetMaxPrice(); ok && maxPrice != "" {
+				if parsed, err := strconv.ParseFloat(maxPrice, 64); err == nil {
+					state.AWSNodePool.MaxSpotPrice = types.Float64Value(parsed)
+				}
+			} else {
+				state.AWSNodePool.MaxSpotPrice = types.Float64Null()
+			}
+		} else {
+			state.AWSNodePool.UseSpotInstances = types.BoolNull()
+			state.AWSNodePool.MaxSpotPrice = types.Float64Null()
 		}
 	}
 

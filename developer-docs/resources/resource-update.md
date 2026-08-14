@@ -15,6 +15,7 @@ WHEN implementing Update:
 - MUST: Save every null or known plan value into response state exactly as-is; only unknown plan values may be filled from the API.
 - MUST: Follow [`resource-model.md`](resource-model.md) and [`resource-read.md`](resource-read.md) populate rules when writing nested objects/collections into state after update.
 - MUST: Handle not-found and other update failures per [`errors.md`](../errors.md) (no `RemoveResource` in Update).
+- MUST: Mirror in-method validations from Create — schema-level validators ([`resource-schema.md`](resource-schema.md) `Validators`) run automatically on all operations, but checks inside `Create()` (cross-field rules, region matching, mutual exclusion) must be replicated in `Update()` for any attribute that can change after creation.
 - WHEN the resource does not support in-place update: MUST leave Update empty (or unused) and ensure configurable attributes that cannot change use `RequiresReplace()` — see [`resource-schema.md`](resource-schema.md).
 - DEFAULT: For new types, follow HashiCorp Update (https://developer.hashicorp.com/terraform/plugin/framework/resources/update) where it does not conflict with this repo’s rules. When editing an existing package, match that package.
 - EXAMPLE: `provider/imagemirror` Update (plan + state get → PATCH type/mirrors → keep id → `State.Set`). Prefer a package closest to your feature.

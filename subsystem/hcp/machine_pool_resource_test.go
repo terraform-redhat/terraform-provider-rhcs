@@ -2854,6 +2854,498 @@ var _ = Describe("Hcp Machine pool", func() {
 		})
 	})
 
+	Context("Spot instances", func() {
+		BeforeEach(func() {
+			prepareClusterRead("123")
+		})
+
+		It("Can create spot node pool with max_spot_price", func() {
+			// Prepare the server:
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools",
+					),
+					VerifyJQ(".aws_node_pool.spot_market_options.max_price", "1"),
+					RespondWithJSON(http.StatusCreated, `{
+						"id":"my-pool",
+						"aws_node_pool":{
+						   "instance_type":"r5.xlarge",
+						   "instance_profile": "bla",
+						   "spot_market_options": {
+						       "max_price": "1"
+						   }
+						},
+						"auto_repair": true,
+						"replicas":2,
+						"subnet":"id-1",
+						"availability_zone":"us-east-1a",
+						"version": {
+							"raw_id": "4.14.10"
+						}
+					}`),
+				),
+			)
+
+			// Run the apply command:
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+					use_spot_instances = true
+					max_spot_price = 1.0
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 2
+				auto_repair = true
+				version = "4.14.10"
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// Check the state:
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
+			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
+			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.instance_type", "r5.xlarge"))
+			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.use_spot_instances", true))
+			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.max_spot_price", 1.0))
+			Expect(resource).To(MatchJQ(".attributes.replicas", 2.0))
+		})
+
+		It("Can create spot node pool without max_spot_price (on-demand pricing)", func() {
+			// Prepare the server:
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools",
+					),
+					VerifyJQ(".aws_node_pool.spot_market_options.max_price", nil),
+					RespondWithJSON(http.StatusCreated, `{
+						"id":"my-pool",
+						"aws_node_pool":{
+						   "instance_type":"r5.xlarge",
+						   "instance_profile": "bla",
+						   "spot_market_options": {}
+						},
+						"auto_repair": true,
+						"replicas":2,
+						"subnet":"id-1",
+						"availability_zone":"us-east-1a",
+						"version": {
+							"raw_id": "4.14.10"
+						}
+					}`),
+				),
+			)
+
+			// Run the apply command:
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+					use_spot_instances = true
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 2
+				auto_repair = true
+				version = "4.14.10"
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// Check the state:
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
+			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
+			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.instance_type", "r5.xlarge"))
+			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.use_spot_instances", true))
+			Expect(resource).To(MatchJQ(".attributes.replicas", 2.0))
+		})
+
+		It("Can create non-spot node pool", func() {
+			// Prepare the server:
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools",
+					),
+					VerifyJQ(".aws_node_pool.spot_market_options", nil),
+					RespondWithJSON(http.StatusCreated, `{
+						"id":"my-pool",
+						"aws_node_pool":{
+						   "instance_type":"r5.xlarge",
+						   "instance_profile": "bla"
+						},
+						"auto_repair": true,
+						"replicas":2,
+						"subnet":"id-1",
+						"availability_zone":"us-east-1a",
+						"version": {
+							"raw_id": "4.14.10"
+						}
+					}`),
+				),
+			)
+
+			// Run the apply command:
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 2
+				auto_repair = true
+				version = "4.14.10"
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// Check the state:
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
+			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
+			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
+			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.instance_type", "r5.xlarge"))
+			Expect(resource).To(MatchJQ(".attributes.replicas", 2.0))
+		})
+
+		It("Fails to create spot node pool with capacity reservation", func() {
+			// Run the apply command:
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+					use_spot_instances = true
+					max_spot_price = 1.0
+					capacity_reservation_id = "cr-123"
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 2
+				auto_repair = true
+				version = "4.14.10"
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Can't use spot instances with capacity reservation")
+		})
+
+		It("Fails to update max_spot_price", func() {
+			// Prepare the server for create:
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools",
+					),
+					VerifyJQ(".aws_node_pool.spot_market_options.max_price", "1"),
+					RespondWithJSON(http.StatusCreated, `{
+						"id":"my-pool",
+						"aws_node_pool":{
+						   "instance_type":"r5.xlarge",
+						   "instance_profile": "bla",
+						   "spot_market_options": {
+						       "max_price": "1"
+						   }
+						},
+						"auto_repair": true,
+						"replicas":2,
+						"subnet":"id-1",
+						"availability_zone":"us-east-1a",
+						"version": {
+							"raw_id": "4.14.10"
+						}
+					}`),
+				),
+			)
+
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+					use_spot_instances = true
+					max_spot_price = 1.0
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 2
+				auto_repair = true
+				version = "4.14.10"
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// Refresh read for update
+			prepareClusterRead("123")
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodGet,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+					),
+					RespondWithJSON(http.StatusOK, `{
+						"id":"my-pool",
+						"aws_node_pool":{
+						   "instance_type":"r5.xlarge",
+						   "instance_profile": "bla",
+						   "spot_market_options": {
+						       "max_price": "1"
+						   }
+						},
+						"auto_repair": true,
+						"replicas":2,
+						"subnet":"id-1",
+						"availability_zone":"us-east-1a",
+						"version": {
+							"raw_id": "4.14.10"
+						}
+					}`),
+				),
+			)
+
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+					use_spot_instances = true
+					max_spot_price = 2.0
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 2
+				auto_repair = true
+				version = "4.14.10"
+			}`)
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("aws_node_pool.max_spot_price")
+			runOutput.VerifyErrorContainsSubstring("cannot be changed")
+		})
+
+		It("Fails to enable spot on existing non-spot pool", func() {
+			// Prepare the server for create (no spot):
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools",
+					),
+					RespondWithJSON(http.StatusCreated, `{
+						"id":"my-pool",
+						"aws_node_pool":{
+						   "instance_type":"r5.xlarge",
+						   "instance_profile": "bla"
+						},
+						"auto_repair": true,
+						"replicas":2,
+						"subnet":"id-1",
+						"availability_zone":"us-east-1a",
+						"version": {
+							"raw_id": "4.14.10"
+						}
+					}`),
+				),
+			)
+
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 2
+				auto_repair = true
+				version = "4.14.10"
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// Refresh read for update
+			prepareClusterRead("123")
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodGet,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+					),
+					RespondWithJSON(http.StatusOK, `{
+						"id":"my-pool",
+						"aws_node_pool":{
+						   "instance_type":"r5.xlarge",
+						   "instance_profile": "bla"
+						},
+						"auto_repair": true,
+						"replicas":2,
+						"subnet":"id-1",
+						"availability_zone":"us-east-1a",
+						"version": {
+							"raw_id": "4.14.10"
+						}
+					}`),
+				),
+			)
+
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+					use_spot_instances = true
+					max_spot_price = 1.0
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 2
+				auto_repair = true
+				version = "4.14.10"
+			}`)
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("aws_node_pool.use_spot_instances")
+			runOutput.VerifyErrorContainsSubstring("cannot be changed")
+		})
+
+		It("Fails to disable spot on existing spot pool", func() {
+			// Prepare the server for create:
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools",
+					),
+					VerifyJQ(".aws_node_pool.spot_market_options.max_price", "1"),
+					RespondWithJSON(http.StatusCreated, `{
+						"id":"my-pool",
+						"aws_node_pool":{
+						   "instance_type":"r5.xlarge",
+						   "instance_profile": "bla",
+						   "spot_market_options": {
+						       "max_price": "1"
+						   }
+						},
+						"auto_repair": true,
+						"replicas":2,
+						"subnet":"id-1",
+						"availability_zone":"us-east-1a",
+						"version": {
+							"raw_id": "4.14.10"
+						}
+					}`),
+				),
+			)
+
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+					use_spot_instances = true
+					max_spot_price = 1.0
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 2
+				auto_repair = true
+				version = "4.14.10"
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// Refresh read for update
+			prepareClusterRead("123")
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodGet,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+					),
+					RespondWithJSON(http.StatusOK, `{
+						"id":"my-pool",
+						"aws_node_pool":{
+						   "instance_type":"r5.xlarge",
+						   "instance_profile": "bla",
+						   "spot_market_options": {
+						       "max_price": "1"
+						   }
+						},
+						"auto_repair": true,
+						"replicas":2,
+						"subnet":"id-1",
+						"availability_zone":"us-east-1a",
+						"version": {
+							"raw_id": "4.14.10"
+						}
+					}`),
+				),
+			)
+
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 2
+				auto_repair = true
+				version = "4.14.10"
+			}`)
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("aws_node_pool.use_spot_instances")
+			runOutput.VerifyErrorContainsSubstring("cannot be changed")
+		})
+	})
+
 	Context("Standard workers machine pool", func() {
 		BeforeEach(func() {
 			prepareClusterRead("123")

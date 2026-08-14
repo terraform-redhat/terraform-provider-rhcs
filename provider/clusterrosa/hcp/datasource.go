@@ -180,6 +180,11 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 					"to send audit logs to a CloudWatch Logs log group.",
 				Computed: true,
 			},
+			"spot_termination_queue_url": schema.StringAttribute{
+				Description: "The URL of an SQS queue for enhanced spot termination handling. " +
+					"When set, Enhanced mode is active. When empty, Simple mode is used.",
+				Computed: true,
+			},
 			"private": schema.BoolAttribute{
 				Description: "Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet. " + common.ValueCannotBeChangedStringDescription,
 				Computed:    true,

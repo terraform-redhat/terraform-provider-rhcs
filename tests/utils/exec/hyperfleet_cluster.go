@@ -17,7 +17,6 @@ type HyperfleetClusterArgs struct {
 	SubnetID            *string `hcl:"subnet_id"`
 	VPCID               *string `hcl:"vpc_id"`
 	AvailabilityZone    *string `hcl:"availability_zone"`
-	ReleaseImage        *string `hcl:"release_image"`
 	ExpirationTimestamp *string `hcl:"expiration_timestamp"`
 }
 

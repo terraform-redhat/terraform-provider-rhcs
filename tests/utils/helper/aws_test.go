@@ -16,6 +16,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
 	elbtypes "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing/types"
+	"github.com/aws/aws-sdk-go-v2/service/route53"
+	route53types "github.com/aws/aws-sdk-go-v2/service/route53/types"
 	"github.com/aws/smithy-go"
 )
 
@@ -462,5 +464,103 @@ func TestDeleteClassicLoadBalancers_ReturnsErrorOnOtherDeleteFailure(t *testing.
 	err := deleteClassicLoadBalancersWithClient(context.Background(), client, "vpc-1")
 	if err == nil {
 		t.Fatal("expected error, got nil")
+	}
+}
+
+// ── purgeHostedZoneRecordsWithClient ──────────────────────────────────────────
+
+type fakeRoute53Client struct {
+	recordSets []route53types.ResourceRecordSet
+	listErr    error
+	changeErr  error
+	lastChange *route53types.ChangeBatch
+	changeCall int
+}
+
+func (f *fakeRoute53Client) ListResourceRecordSets(_ context.Context, _ *route53.ListResourceRecordSetsInput, _ ...func(*route53.Options)) (*route53.ListResourceRecordSetsOutput, error) {
+	if f.listErr != nil {
+		return nil, f.listErr
+	}
+	return &route53.ListResourceRecordSetsOutput{ResourceRecordSets: f.recordSets}, nil
+}
+
+func (f *fakeRoute53Client) ChangeResourceRecordSets(_ context.Context, input *route53.ChangeResourceRecordSetsInput, _ ...func(*route53.Options)) (*route53.ChangeResourceRecordSetsOutput, error) {
+	f.changeCall++
+	f.lastChange = input.ChangeBatch
+	if f.changeErr != nil {
+		return nil, f.changeErr
+	}
+	return &route53.ChangeResourceRecordSetsOutput{}, nil
+}
+
+func TestPurgeHostedZoneRecords_DeletesNonNSSOARecords(t *testing.T) {
+	client := &fakeRoute53Client{
+		recordSets: []route53types.ResourceRecordSet{
+			{Name: aws.String("zone."), Type: route53types.RRTypeNs},
+			{Name: aws.String("zone."), Type: route53types.RRTypeSoa},
+			{Name: aws.String("api.zone."), Type: route53types.RRTypeCname},
+			{Name: aws.String("*.apps.zone."), Type: route53types.RRTypeCname},
+		},
+	}
+	err := purgeHostedZoneRecordsWithClient(context.Background(), client, "Z123")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if client.changeCall != 1 {
+		t.Fatalf("expected 1 change call, got %d", client.changeCall)
+	}
+	if got := len(client.lastChange.Changes); got != 2 {
+		t.Fatalf("expected 2 records deleted, got %d", got)
+	}
+	for _, c := range client.lastChange.Changes {
+		if c.Action != route53types.ChangeActionDelete {
+			t.Errorf("expected DELETE action, got %s", c.Action)
+		}
+		if c.ResourceRecordSet.Type == route53types.RRTypeNs || c.ResourceRecordSet.Type == route53types.RRTypeSoa {
+			t.Errorf("NS/SOA record should not be deleted: %s", c.ResourceRecordSet.Type)
+		}
+	}
+}
+
+func TestPurgeHostedZoneRecords_NoChangeWhenOnlyNSSOA(t *testing.T) {
+	client := &fakeRoute53Client{
+		recordSets: []route53types.ResourceRecordSet{
+			{Name: aws.String("zone."), Type: route53types.RRTypeNs},
+			{Name: aws.String("zone."), Type: route53types.RRTypeSoa},
+		},
+	}
+	err := purgeHostedZoneRecordsWithClient(context.Background(), client, "Z123")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if client.changeCall != 0 {
+		t.Errorf("expected no change call, got %d", client.changeCall)
+	}
+}
+
+func TestPurgeHostedZoneRecords_ReturnsErrorOnListFailure(t *testing.T) {
+	client := &fakeRoute53Client{listErr: errors.New("list failed")}
+	err := purgeHostedZoneRecordsWithClient(context.Background(), client, "Z123")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestPurgeHostedZoneRecords_ReturnsErrorOnChangeFailure(t *testing.T) {
+	client := &fakeRoute53Client{
+		recordSets: []route53types.ResourceRecordSet{
+			{Name: aws.String("api.zone."), Type: route53types.RRTypeCname},
+		},
+		changeErr: errors.New("change failed"),
+	}
+	err := purgeHostedZoneRecordsWithClient(context.Background(), client, "Z123")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestPurgeHostedZoneRecords_EmptyZoneID(t *testing.T) {
+	if err := PurgeHostedZoneRecords("us-east-1", ""); err != nil {
+		t.Fatalf("empty zone ID should be a no-op, got: %v", err)
 	}
 }

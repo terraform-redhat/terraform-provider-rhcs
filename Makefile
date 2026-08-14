@@ -300,6 +300,13 @@ e2e_test: $(GINKGO) install
         --focus-file tests/e2e/.* \
 		$(NULL)
 
+.PHONY: e2e-hyperfleet
+e2e-hyperfleet: $(GINKGO) install
+	$(GINKGO) run \
+		--timeout 3h \
+		./tests/e2e/hyperfleet/... \
+		$(NULL)
+
 # Optional local diagnostic (gocovdiff on changed provider/internal lines vs main).
 .PHONY: coverage-changed-files
 coverage-changed-files:

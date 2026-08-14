@@ -340,6 +340,7 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 		kubeletconfig.New,
 		hcp.New,
 		hyperfleethcp.New,
+		hyperfleethcp.NewNodePool,
 		nodepool.New,
 		hcpingress.New,
 		tuningconfigs.New,

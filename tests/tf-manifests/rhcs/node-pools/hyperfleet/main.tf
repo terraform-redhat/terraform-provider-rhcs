@@ -26,11 +26,18 @@ provider "rhcs" {
   aws_caller_arn = data.aws_caller_identity.current.arn
 }
 
-resource "rhcs_cluster_hyperfleet" "cluster" {
-  name                 = var.cluster_name
-  operator_roles_prefix = var.operator_roles_prefix
-  aws_subnet_ids       = [var.subnet_id]
-  vpc_id               = var.vpc_id
-  availability_zones   = [var.availability_zone]
-  expiration_timestamp = var.expiration_timestamp
+resource "rhcs_nodepool_hyperfleet" "nodepool" {
+  cluster     = var.cluster_id
+  name        = var.name
+  subnet_id   = var.subnet_id
+  auto_repair = var.auto_repair
+  replicas      = var.replicas
+
+  aws_node_pool = {
+    instance_type = var.instance_type
+    disk_size     = var.disk_size
+    tags          = var.tags
+  }
+
+  labels = var.labels
 }

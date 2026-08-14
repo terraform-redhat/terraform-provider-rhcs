@@ -83,7 +83,7 @@ func (d *ImageMirrorDataSource) Configure(ctx context.Context, req datasource.Co
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Data Source Configure Type",
-			fmt.Sprintf("Expected *providerdata.ProviderSharedData, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *providerdata.ProviderSharedData, got: %T. Please report this issue to the provider developers.", req.ProviderData), //nolint:lll
 		)
 		return
 	}

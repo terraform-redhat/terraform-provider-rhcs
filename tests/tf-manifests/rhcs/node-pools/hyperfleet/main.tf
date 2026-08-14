@@ -31,7 +31,7 @@ resource "rhcs_nodepool_hyperfleet" "nodepool" {
   name        = var.name
   subnet_id   = var.subnet_id
   auto_repair = var.auto_repair
-  replicas      = var.replicas
+  replicas    = var.replicas
 
   aws_node_pool = {
     instance_type = var.instance_type

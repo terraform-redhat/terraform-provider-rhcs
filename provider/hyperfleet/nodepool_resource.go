@@ -47,11 +47,15 @@ func NewNodePool() resource.Resource {
 	return &NodePoolHyperfleetResource{}
 }
 
-func (r *NodePoolHyperfleetResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *NodePoolHyperfleetResource) Metadata(
+	_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse,
+) {
 	resp.TypeName = req.ProviderTypeName + "_nodepool_hyperfleet"
 }
 
-func (r *NodePoolHyperfleetResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *NodePoolHyperfleetResource) Schema(
+	_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse,
+) {
 	resp.Schema = schema.Schema{
 		//nolint:lll
 		Description: "Manages a node pool for an rhcs_cluster_hyperfleet cluster through the Hyperfleet Platform API v2. The provider must be configured with `hyperfleet_url` and `aws_account_id`.",
@@ -148,7 +152,9 @@ func (r *NodePoolHyperfleetResource) Schema(_ context.Context, _ resource.Schema
 	}
 }
 
-func (r *NodePoolHyperfleetResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *NodePoolHyperfleetResource) Configure(
+	_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse,
+) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -175,7 +181,9 @@ func (r *NodePoolHyperfleetResource) Configure(_ context.Context, req resource.C
 	r.client = shared.HyperfleetClient
 }
 
-func (r *NodePoolHyperfleetResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+func (r *NodePoolHyperfleetResource) Create(
+	ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse,
+) {
 	var plan NodePoolHyperfleetState
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
@@ -210,7 +218,7 @@ func (r *NodePoolHyperfleetResource) Create(ctx context.Context, req resource.Cr
 	if cluster.Spec.HostedCluster.Platform.AWS == nil {
 		resp.Diagnostics.AddError(
 			"Cannot compute worker instance profile",
-			fmt.Sprintf("Parent cluster %q has no AWS platform configuration; cannot derive the operator roles prefix.", plan.Cluster.ValueString()),
+			fmt.Sprintf("Parent cluster %q has no AWS platform configuration; cannot derive the operator roles prefix.", plan.Cluster.ValueString()), //nolint:lll
 		)
 		return
 	}
@@ -235,7 +243,8 @@ func (r *NodePoolHyperfleetResource) Create(ctx context.Context, req resource.Cr
 		Spec: spec,
 	}
 
-	created, err := r.client.HyperfleetV1alpha1().NodePools(plan.Cluster.ValueString()).Create(ctx, obj, hfwrappers.CreateOptions{})
+	nodePools := r.client.HyperfleetV1alpha1().NodePools(plan.Cluster.ValueString())
+	created, err := nodePools.Create(ctx, obj, hfwrappers.CreateOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create node pool", err.Error())
 		return
@@ -252,7 +261,8 @@ func (r *NodePoolHyperfleetResource) Read(ctx context.Context, req resource.Read
 		return
 	}
 
-	np, err := r.client.HyperfleetV1alpha1().NodePools(state.Cluster.ValueString()).Get(ctx, state.Name.ValueString(), hfwrappers.GetOptions{})
+	nodePools := r.client.HyperfleetV1alpha1().NodePools(state.Cluster.ValueString())
+	np, err := nodePools.Get(ctx, state.Name.ValueString(), hfwrappers.GetOptions{})
 	if err != nil {
 		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
@@ -266,7 +276,9 @@ func (r *NodePoolHyperfleetResource) Read(ctx context.Context, req resource.Read
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-func (r *NodePoolHyperfleetResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (r *NodePoolHyperfleetResource) Update(
+	ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse,
+) {
 	var state, plan NodePoolHyperfleetState
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -274,7 +286,8 @@ func (r *NodePoolHyperfleetResource) Update(ctx context.Context, req resource.Up
 		return
 	}
 
-	np, err := r.client.HyperfleetV1alpha1().NodePools(state.Cluster.ValueString()).Get(ctx, state.Name.ValueString(), hfwrappers.GetOptions{})
+	nodePools := r.client.HyperfleetV1alpha1().NodePools(state.Cluster.ValueString())
+	np, err := nodePools.Get(ctx, state.Name.ValueString(), hfwrappers.GetOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to read node pool before update", err.Error())
 		return
@@ -295,7 +308,7 @@ func (r *NodePoolHyperfleetResource) Update(ctx context.Context, req resource.Up
 	spec.NodePool.ClusterName = np.Spec.NodePool.ClusterName
 	np.Spec = spec
 
-	updated, err := r.client.HyperfleetV1alpha1().NodePools(state.Cluster.ValueString()).Update(ctx, np, hfwrappers.UpdateOptions{})
+	updated, err := nodePools.Update(ctx, np, hfwrappers.UpdateOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update node pool", err.Error())
 		return
@@ -305,14 +318,17 @@ func (r *NodePoolHyperfleetResource) Update(ctx context.Context, req resource.Up
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
-func (r *NodePoolHyperfleetResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+func (r *NodePoolHyperfleetResource) Delete(
+	ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse,
+) {
 	var state NodePoolHyperfleetState
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	err := r.client.HyperfleetV1alpha1().NodePools(state.Cluster.ValueString()).Delete(ctx, state.Name.ValueString(), hfwrappers.DeleteOptions{})
+	nodePools := r.client.HyperfleetV1alpha1().NodePools(state.Cluster.ValueString())
+	err := nodePools.Delete(ctx, state.Name.ValueString(), hfwrappers.DeleteOptions{})
 	if err != nil && !isNotFound(err) {
 		if !state.IgnoreDeletionError.ValueBool() {
 			resp.Diagnostics.AddError("Failed to delete node pool", err.Error())
@@ -320,7 +336,9 @@ func (r *NodePoolHyperfleetResource) Delete(ctx context.Context, req resource.De
 	}
 }
 
-func (r *NodePoolHyperfleetResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *NodePoolHyperfleetResource) ImportState(
+	ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse,
+) {
 	// Import format: <cluster_uuid>/<nodepool_name>
 	parts := strings.SplitN(req.ID, "/", 2)
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {

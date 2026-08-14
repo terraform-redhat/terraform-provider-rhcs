@@ -19,11 +19,11 @@ type HyperfleetVPCArgs struct {
 // HyperfleetVPCOutput holds the Terraform output values from the hyperfleet
 // VPC manifest.
 type HyperfleetVPCOutput struct {
-	VPCID           string `json:"vpc_id,omitempty"`
-	PrivateSubnetID string `json:"private_subnet_id,omitempty"`
-	PublicSubnetID  string `json:"public_subnet_id,omitempty"`
+	VPCID            string `json:"vpc_id,omitempty"`
+	PrivateSubnetID  string `json:"private_subnet_id,omitempty"`
+	PublicSubnetID   string `json:"public_subnet_id,omitempty"`
 	AvailabilityZone string `json:"availability_zone,omitempty"`
-	HostedZoneID    string `json:"hosted_zone_id,omitempty"`
+	HostedZoneID     string `json:"hosted_zone_id,omitempty"`
 }
 
 // HyperfleetVPCService manages the VPC + networking Terraform resources needed

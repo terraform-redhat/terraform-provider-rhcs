@@ -27,10 +27,10 @@ provider "rhcs" {
 }
 
 resource "rhcs_cluster_hyperfleet" "cluster" {
-  name                 = var.cluster_name
+  name                  = var.cluster_name
   operator_roles_prefix = var.operator_roles_prefix
-  aws_subnet_ids       = [var.subnet_id]
-  vpc_id               = var.vpc_id
-  availability_zones   = [var.availability_zone]
-  expiration_timestamp = var.expiration_timestamp
+  aws_subnet_ids        = [var.subnet_id]
+  vpc_id                = var.vpc_id
+  availability_zones    = [var.availability_zone]
+  expiration_timestamp  = var.expiration_timestamp
 }

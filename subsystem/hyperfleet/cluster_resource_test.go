@@ -36,7 +36,6 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 					aws_subnet_ids       = ["subnet-0abc123"]
 					vpc_id               = "vpc-0def456"
 					availability_zones   = ["us-east-1a"]
-					release_image         = "quay.io/openshift-release-dev/ocp-release:4.16.0-multi"
 				}
 			`)
 			runOutput := Terraform.Apply()
@@ -62,7 +61,6 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 					aws_subnet_ids       = ["subnet-0abc123"]
 					vpc_id               = "vpc-0def456"
 					availability_zones   = ["us-east-1a"]
-					release_image         = "quay.io/openshift-release-dev/ocp-release:4.16.0-multi"
 				}
 			`)
 			runOutput := Terraform.Apply()
@@ -92,7 +90,6 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 					aws_subnet_ids       = ["subnet-0abc123"]
 					vpc_id               = "vpc-0def456"
 					availability_zones   = ["us-east-1a"]
-					release_image         = "quay.io/openshift-release-dev/ocp-release:4.16.0-multi"
 				}
 			`)
 			runOutput := Terraform.Apply()

@@ -55,7 +55,9 @@ func New() resource.Resource {
 	return &ClusterHyperfleetResource{}
 }
 
-func (r *ClusterHyperfleetResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *ClusterHyperfleetResource) Metadata(
+	_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse,
+) {
 	resp.TypeName = req.ProviderTypeName + "_cluster_hyperfleet"
 }
 
@@ -117,6 +119,7 @@ func (r *ClusterHyperfleetResource) Schema(_ context.Context, _ resource.SchemaR
 				Optional:    true,
 			},
 			"aws_partition": schema.StringAttribute{
+				//nolint:lll
 				Description: "AWS partition used when computing operator role ARNs. Defaults to `aws`. Set to `aws-us-gov` for GovCloud regions.",
 				Optional:    true,
 				Computed:    true,
@@ -126,6 +129,7 @@ func (r *ClusterHyperfleetResource) Schema(_ context.Context, _ resource.SchemaR
 				},
 			},
 			"creator_arn": schema.StringAttribute{
+				//nolint:lll
 				Description: "IAM ARN of the caller that created the cluster. Populated from the provider `aws_caller_arn` attribute.",
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
@@ -133,6 +137,7 @@ func (r *ClusterHyperfleetResource) Schema(_ context.Context, _ resource.SchemaR
 				},
 			},
 			"cloud_region": schema.StringAttribute{
+				//nolint:lll
 				Description: "AWS region identifier (e.g. `us-east-1`). Derived from `availability_zones` if not set. Immutable after creation.",
 				Optional:    true,
 				Computed:    true,
@@ -169,7 +174,9 @@ func (r *ClusterHyperfleetResource) Schema(_ context.Context, _ resource.SchemaR
 	}
 }
 
-func (r *ClusterHyperfleetResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *ClusterHyperfleetResource) Configure(
+	_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse,
+) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -198,7 +205,9 @@ func (r *ClusterHyperfleetResource) Configure(_ context.Context, req resource.Co
 	r.callerARN = shared.HyperfleetCallerARN
 }
 
-func (r *ClusterHyperfleetResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+func (r *ClusterHyperfleetResource) Create(
+	ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse,
+) {
 	var plan ClusterHyperfleetState
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
@@ -295,7 +304,9 @@ func (r *ClusterHyperfleetResource) Read(ctx context.Context, req resource.ReadR
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-func (r *ClusterHyperfleetResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (r *ClusterHyperfleetResource) Update(
+	ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse,
+) {
 	var state, plan ClusterHyperfleetState
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -332,7 +343,9 @@ func (r *ClusterHyperfleetResource) Update(ctx context.Context, req resource.Upd
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
-func (r *ClusterHyperfleetResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+func (r *ClusterHyperfleetResource) Delete(
+	ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse,
+) {
 	var state ClusterHyperfleetState
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
@@ -346,7 +359,9 @@ func (r *ClusterHyperfleetResource) Delete(ctx context.Context, req resource.Del
 	}
 }
 
-func (r *ClusterHyperfleetResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *ClusterHyperfleetResource) ImportState(
+	ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse,
+) {
 	cluster, err := r.client.HyperfleetV1alpha1().Clusters().Get(ctx, req.ID, hfwrappers.GetOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to import cluster", err.Error())
@@ -389,11 +404,18 @@ func populateState(cluster *v1alpha1.Cluster, callerARN, region string, state *C
 			az := aws.CloudProviderConfig.Zone
 			state.AvailabilityZones = types.ListValueMust(types.StringType, []attr.Value{types.StringValue(az)})
 			if aws.CloudProviderConfig.Subnet != nil && aws.CloudProviderConfig.Subnet.ID != nil {
-				state.AWSSubnetIDs = types.ListValueMust(types.StringType, []attr.Value{types.StringValue(*aws.CloudProviderConfig.Subnet.ID)})
+				subnetID := *aws.CloudProviderConfig.Subnet.ID
+				state.AWSSubnetIDs = types.ListValueMust(
+					types.StringType,
+					[]attr.Value{types.StringValue(subnetID)},
+				)
 			}
 		}
 		// Derive operator_roles_prefix and partition from RolesRef if not already set.
-		if state.OperatorRolesPrefix.IsNull() || state.OperatorRolesPrefix.IsUnknown() || state.OperatorRolesPrefix.ValueString() == "" {
+		prefixUnset := state.OperatorRolesPrefix.IsNull() ||
+			state.OperatorRolesPrefix.IsUnknown() ||
+			state.OperatorRolesPrefix.ValueString() == ""
+		if prefixUnset {
 			prefix, partition := prefixAndPartitionFromRolesRef(aws.RolesRef)
 			state.OperatorRolesPrefix = types.StringValue(prefix)
 			state.AWSPartition = types.StringValue(partition)

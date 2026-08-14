@@ -36,11 +36,6 @@ variable "availability_zone" {
   description = "Availability zone of the worker subnet"
 }
 
-variable "release_image" {
-  type        = string
-  description = "OCP release pull spec (e.g. quay.io/openshift-release-dev/ocp-release:5.0.0-ec.2-multi)"
-}
-
 variable "expiration_timestamp" {
   type        = string
   description = "Optional RFC3339 expiration timestamp for automatic cluster deletion"

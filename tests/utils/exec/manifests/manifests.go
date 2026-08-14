@@ -111,6 +111,10 @@ func GetHyperfleetClusterManifestsDir() string {
 	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "clusters", "hyperfleet")
 }
 
+func GetHyperfleetNodePoolManifestsDir() string {
+	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "node-pools", "hyperfleet")
+}
+
 func GetHyperfleetVPCManifestsDir() string {
 	return path.Join(config.GetManifestsDir(), awsProviderDir, "vpc", "hyperfleet")
 }

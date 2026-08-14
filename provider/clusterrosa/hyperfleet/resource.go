@@ -32,8 +32,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	hyperfleet "github.com/openshift-online/rosa-hyperfleet-api/clientset"
-	hfwrappers "github.com/openshift-online/rosa-hyperfleet-api/clientset/wrappers"
-	v1alpha1 "github.com/openshift-online/rosa-hyperfleet-api/hyperfleet-operator/api/v1alpha1"
+	hfwrappers "github.com/openshift-online/rosa-hyperfleet-api/clientset/platform"
+	v1alpha1 "github.com/openshift-online/rosa-hyperfleet-api/api/v1alpha1/public"
 	hypershiftv1beta1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -109,14 +109,6 @@ func (r *ClusterHyperfleetResource) Schema(_ context.Context, _ resource.SchemaR
 				ElementType: types.StringType,
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.RequiresReplace(),
-				},
-			},
-			"release_image": schema.StringAttribute{
-				//nolint:lll
-				Description: "OCP release pull spec (e.g. `quay.io/openshift-release-dev/ocp-release:4.16.0-multi`). Immutable after creation.",
-				Required:    true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"expiration_timestamp": schema.StringAttribute{
@@ -239,9 +231,7 @@ func (r *ClusterHyperfleetResource) Create(ctx context.Context, req resource.Cre
 	clusterSpec := &v1alpha1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{Name: plan.Name.ValueString()},
 		Spec: v1alpha1.ClusterSpec{
-			CreatorARN: r.callerARN,
-			HostedCluster: hypershiftv1beta1.HostedClusterSpec{
-				Release: hypershiftv1beta1.Release{Image: plan.ReleaseImage.ValueString()},
+			HostedCluster: v1alpha1.HostedClusterSpecPassthrough{
 				Platform: hypershiftv1beta1.PlatformSpec{
 					Type: hypershiftv1beta1.AWSPlatform,
 					AWS: &hypershiftv1beta1.AWSPlatformSpec{
@@ -273,7 +263,7 @@ func (r *ClusterHyperfleetResource) Create(ctx context.Context, req resource.Cre
 		clusterSpec.Spec.ExpirationTimestamp = &mt
 	}
 
-	cluster, err := r.client.HyperfleetV1alpha1().Clusters(r.accountID).Create(ctx, clusterSpec, hfwrappers.CreateOptions{})
+	cluster, err := r.client.HyperfleetV1alpha1().Clusters().Create(ctx, clusterSpec, hfwrappers.CreateOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create cluster", err.Error())
 		return
@@ -290,7 +280,7 @@ func (r *ClusterHyperfleetResource) Read(ctx context.Context, req resource.ReadR
 		return
 	}
 
-	cluster, err := r.client.HyperfleetV1alpha1().Clusters(r.accountID).Get(ctx, state.ID.ValueString(), hfwrappers.GetOptions{})
+	cluster, err := r.client.HyperfleetV1alpha1().Clusters().Get(ctx, state.ID.ValueString(), hfwrappers.GetOptions{})
 	if err != nil {
 		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
@@ -313,7 +303,7 @@ func (r *ClusterHyperfleetResource) Update(ctx context.Context, req resource.Upd
 	}
 
 	// Only expiration_timestamp is mutable.
-	cluster, err := r.client.HyperfleetV1alpha1().Clusters(r.accountID).Get(ctx, state.ID.ValueString(), hfwrappers.GetOptions{})
+	cluster, err := r.client.HyperfleetV1alpha1().Clusters().Get(ctx, state.ID.ValueString(), hfwrappers.GetOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to read cluster before update", err.Error())
 		return
@@ -331,7 +321,7 @@ func (r *ClusterHyperfleetResource) Update(ctx context.Context, req resource.Upd
 		cluster.Spec.ExpirationTimestamp = nil
 	}
 
-	updated, err := r.client.HyperfleetV1alpha1().Clusters(r.accountID).Update(ctx, cluster, hfwrappers.UpdateOptions{})
+	updated, err := r.client.HyperfleetV1alpha1().Clusters().Update(ctx, cluster, hfwrappers.UpdateOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update cluster", err.Error())
 		return
@@ -348,7 +338,7 @@ func (r *ClusterHyperfleetResource) Delete(ctx context.Context, req resource.Del
 		return
 	}
 
-	err := r.client.HyperfleetV1alpha1().Clusters(r.accountID).Delete(ctx, state.ID.ValueString(), hfwrappers.DeleteOptions{})
+	err := r.client.HyperfleetV1alpha1().Clusters().Delete(ctx, state.ID.ValueString(), hfwrappers.DeleteOptions{})
 	if err != nil && !isNotFound(err) {
 		resp.Diagnostics.AddError("Failed to delete cluster", err.Error())
 		return
@@ -356,7 +346,7 @@ func (r *ClusterHyperfleetResource) Delete(ctx context.Context, req resource.Del
 }
 
 func (r *ClusterHyperfleetResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	cluster, err := r.client.HyperfleetV1alpha1().Clusters(r.accountID).Get(ctx, req.ID, hfwrappers.GetOptions{})
+	cluster, err := r.client.HyperfleetV1alpha1().Clusters().Get(ctx, req.ID, hfwrappers.GetOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to import cluster", err.Error())
 		return
@@ -409,7 +399,6 @@ func populateState(cluster *v1alpha1.Cluster, callerARN, region string, state *C
 		}
 	}
 
-	state.ReleaseImage = types.StringValue(cluster.Spec.HostedCluster.Release.Image)
 	state.OIDCIssuer = types.StringValue(cluster.Spec.HostedCluster.IssuerURL)
 }
 

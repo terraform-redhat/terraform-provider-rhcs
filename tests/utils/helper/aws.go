@@ -16,6 +16,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
+	"github.com/aws/aws-sdk-go-v2/service/route53"
+	route53types "github.com/aws/aws-sdk-go-v2/service/route53/types"
 	"github.com/aws/smithy-go"
 
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
@@ -331,6 +333,68 @@ func DeleteClassicLoadBalancers(region, vpcID string) error {
 		return err
 	}
 	return deleteClassicLoadBalancersWithClient(ctx, elasticloadbalancing.NewFromConfig(cfg), vpcID)
+}
+
+// route53RecordsAPI is the subset of the Route53 client used to purge records
+// from a hosted zone.
+type route53RecordsAPI interface {
+	ListResourceRecordSets(ctx context.Context, params *route53.ListResourceRecordSetsInput, optFns ...func(*route53.Options)) (*route53.ListResourceRecordSetsOutput, error)
+	ChangeResourceRecordSets(ctx context.Context, params *route53.ChangeResourceRecordSetsInput, optFns ...func(*route53.Options)) (*route53.ChangeResourceRecordSetsOutput, error)
+}
+
+// PurgeHostedZoneRecords deletes every non-NS/non-SOA record from the given
+// Route53 hosted zone. The Hyperfleet cluster operator writes CNAME records
+// (api.*, *.apps.*) into the cluster's private `<name>.hypershift.local` zone;
+// terraform destroy of the zone fails with HostedZoneNotEmpty while those
+// records remain, so the e2e VPC teardown purges them first. NS and SOA records
+// are left in place — they are created and removed by Route53 with the zone
+// itself and cannot be deleted independently.
+func PurgeHostedZoneRecords(region, hostedZoneID string) error {
+	if strings.TrimSpace(hostedZoneID) == "" {
+		Logger.Warn("Skipping hosted zone record purge because hosted zone ID is empty")
+		return nil
+	}
+
+	ctx := context.Background()
+	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithRegion(region))
+	if err != nil {
+		return err
+	}
+	return purgeHostedZoneRecordsWithClient(ctx, route53.NewFromConfig(cfg), hostedZoneID)
+}
+
+func purgeHostedZoneRecordsWithClient(ctx context.Context, client route53RecordsAPI, hostedZoneID string) error {
+	out, err := client.ListResourceRecordSets(ctx, &route53.ListResourceRecordSetsInput{
+		HostedZoneId: aws.String(hostedZoneID),
+	})
+	if err != nil {
+		return fmt.Errorf("listing record sets for zone %s: %w", hostedZoneID, err)
+	}
+
+	var changes []route53types.Change
+	for i := range out.ResourceRecordSets {
+		rrs := out.ResourceRecordSets[i]
+		if rrs.Type == route53types.RRTypeNs || rrs.Type == route53types.RRTypeSoa {
+			continue
+		}
+		changes = append(changes, route53types.Change{
+			Action:            route53types.ChangeActionDelete,
+			ResourceRecordSet: &rrs,
+		})
+	}
+	if len(changes) == 0 {
+		return nil
+	}
+
+	Logger.Infof("Purging %d record(s) from hosted zone %s", len(changes), hostedZoneID)
+	_, err = client.ChangeResourceRecordSets(ctx, &route53.ChangeResourceRecordSetsInput{
+		HostedZoneId: aws.String(hostedZoneID),
+		ChangeBatch:  &route53types.ChangeBatch{Changes: changes},
+	})
+	if err != nil {
+		return fmt.Errorf("deleting records from zone %s: %w", hostedZoneID, err)
+	}
+	return nil
 }
 
 func deleteClassicLoadBalancersWithClient(ctx context.Context, client classicELBAPI, vpcID string) error {

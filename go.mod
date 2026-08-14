@@ -9,6 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.338.4
 	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing v1.36.4
 	github.com/aws/aws-sdk-go-v2/service/iam v1.64.4
+	github.com/aws/aws-sdk-go-v2/service/route53 v1.40.3
 	github.com/aws/aws-sdk-go-v2/service/sts v1.51.4
 	github.com/aws/smithy-go v1.28.5
 	github.com/hashicorp/go-version v1.9.0
@@ -22,8 +23,8 @@ require (
 	github.com/onsi/gomega v1.43.0
 	github.com/openshift-online/ocm-common v0.0.46
 	github.com/openshift-online/ocm-sdk-go v0.1.517
-	github.com/openshift-online/rosa-hyperfleet-api/clientset v0.0.0-20260803002448-a25b07fe4598
-	github.com/openshift-online/rosa-hyperfleet-api/hyperfleet-operator/api v0.0.0
+	github.com/openshift-online/rosa-hyperfleet-api/api v0.0.0
+	github.com/openshift-online/rosa-hyperfleet-api/clientset v0.0.0-20260812125925-97221f0b11a8
 	github.com/openshift/hypershift/api v0.0.0-20260803100438-deb947936de7
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.4
@@ -58,7 +59,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.14.6 // indirect
 	github.com/aws/aws-sdk-go-v2/service/kms v1.30.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ram v1.26.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/route53 v1.40.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/signin v1.10.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.38.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.43.4 // indirect
@@ -189,4 +189,4 @@ require (
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af // indirect
 )
 
-replace github.com/openshift-online/rosa-hyperfleet-api/hyperfleet-operator/api v0.0.0 => github.com/openshift-online/rosa-hyperfleet-api/hyperfleet-operator/api v0.0.0-20260731220330-4c0f86054074
+replace github.com/openshift-online/rosa-hyperfleet-api/api v0.0.0 => github.com/openshift-online/rosa-hyperfleet-api/api v0.0.0-20260810145312-a1bbdf150898

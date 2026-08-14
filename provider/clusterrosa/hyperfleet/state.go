@@ -42,10 +42,6 @@ type ClusterHyperfleetState struct {
 	// determines the cluster AZ.
 	AvailabilityZones types.List `tfsdk:"availability_zones"`
 
-	// release_image is the OCP release pull spec
-	// (e.g. quay.io/openshift-release-dev/ocp-release:4.16.0-multi).
-	ReleaseImage types.String `tfsdk:"release_image"`
-
 	// expiration_timestamp is an optional RFC3339 timestamp after which the
 	// Platform API automatically deletes the cluster.
 	ExpirationTimestamp types.String `tfsdk:"expiration_timestamp"`

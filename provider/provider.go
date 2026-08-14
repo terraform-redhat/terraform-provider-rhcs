@@ -353,6 +353,7 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 		hcpAutoscaler.New,
 		breakglasscredential.New,
 		rosaHyperfleet.New,
+		rosaHyperfleet.NewNodePool,
 		logforwarder.New,
 		notificationcontacts.New,
 		ocmrole.New,

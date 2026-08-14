@@ -77,6 +77,8 @@ Read-Only:
 
 - `instance_profile` (String) Instance profile attached to the replica
 - `instance_type` (String) Identifier of the machine type used by the nodes, for example `m5.xlarge`. Use the `rhcs_machine_types` data source to find the possible values. After the creation of the resource, it is not possible to update the attribute value.
+- `max_spot_price` (Number) Max Spot price.
+- `use_spot_instances` (Boolean) Use Amazon EC2 Spot Instances.
 
 
 <a id="nestedatt--status"></a>

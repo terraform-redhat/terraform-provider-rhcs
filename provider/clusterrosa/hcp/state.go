@@ -42,6 +42,7 @@ type ClusterRosaHcpState struct {
 	KMSKeyArn                            types.String `tfsdk:"kms_key_arn"`
 	EtcdKmsKeyArn                        types.String `tfsdk:"etcd_kms_key_arn"`
 	AuditLogArn                          types.String `tfsdk:"audit_log_arn"`
+	SpotTerminationQueueUrl              types.String `tfsdk:"spot_termination_queue_url"`
 	Tags                                 types.Map    `tfsdk:"tags"`
 	AWSAdditionalComputeSecurityGroupIds types.List   `tfsdk:"aws_additional_compute_security_group_ids"`
 	AWSAdditionalAllowedPrincipals       types.List   `tfsdk:"aws_additional_allowed_principals"`

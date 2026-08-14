@@ -16,6 +16,7 @@ WHEN implementing Create:
 - MUST: Write only known or null values to `CreateResponse.State` — never unknown. Copy every null or known plan value into response state as-is; only unknown plan values may be filled from the API response.
 - MUST: Follow [`resource-model.md`](resource-model.md) for List/Set/Map nulls and [`resource-schema.md`](resource-schema.md) nested Required rules when populating state from the API.
 - MUST: Handle create failures (including duplicate remote object → import) per [`errors.md`](../errors.md).
+- MUST: When adding in-method validation (cross-field rules, region matching, mutual exclusion) to Create, also add the same check to Update for any attribute that can change after creation — schema-level validators run automatically, but in-method checks do not. See [`resource-update.md`](resource-update.md).
 - DEFAULT: WHEN editing an existing package, match that package. For new types, follow HashiCorp Create (https://developer.hashicorp.com/terraform/plugin/framework/resources/create) where it does not conflict with this repo’s rules.
 - EXAMPLE: `provider/imagemirror` Create (plan get → validate cluster ready/HCP → API add → set id/timestamps → `State.Set`). Prefer a package closest to your feature.
 

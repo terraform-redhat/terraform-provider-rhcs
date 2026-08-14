@@ -86,6 +86,7 @@ Use the `fips` attribute from this data source to confirm whether FIPS was enabl
 - `replicas` (Number) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `service_cidr` (String) Block of IP addresses for the cluster service network. After the creation of the resource, it is not possible to update the attribute value.
 - `shared_vpc` (Attributes) Shared VPC configuration.After the creation of the resource, it is not possible to update the attribute value. (see [below for nested schema](#nestedatt--shared_vpc))
+- `spot_termination_queue_url` (String) The URL of an SQS queue for enhanced spot termination handling. When set, Enhanced mode is active. When empty, Simple mode is used.
 - `state` (String) State of the cluster.
 - `sts` (Attributes) STS configuration. (see [below for nested schema](#nestedatt--sts))
 - `tags` (Map of String) Apply user defined tags to all cluster resources created in AWS. After the creation of the resource, it is not possible to update the attribute value.

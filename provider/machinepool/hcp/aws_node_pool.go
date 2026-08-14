@@ -26,16 +26,18 @@ const MaxAdditionalSecurityGroupHcp = 10
 const MaxNodeDrainGracePeriodMinutes = 10080
 
 type AWSNodePool struct {
-	InstanceType                  types.String `tfsdk:"instance_type"`
-	InstanceProfile               types.String `tfsdk:"instance_profile"`
-	Tags                          types.Map    `tfsdk:"tags"`
-	AdditionalSecurityGroupIds    types.List   `tfsdk:"additional_security_group_ids"`
-	Ec2MetadataHttpTokens         types.String `tfsdk:"ec2_metadata_http_tokens"`
-	DiskSize                      types.Int64  `tfsdk:"disk_size"`
-	CapacityReservationId         types.String `tfsdk:"capacity_reservation_id"`
-	CapacityReservationPreference types.String `tfsdk:"capacity_reservation_preference"`
-	ImageType                     types.String `tfsdk:"image_type"`
-	NodeDrainGracePeriod          types.Int64  `tfsdk:"node_drain_grace_period"`
+	InstanceType                  types.String  `tfsdk:"instance_type"`
+	InstanceProfile               types.String  `tfsdk:"instance_profile"`
+	Tags                          types.Map     `tfsdk:"tags"`
+	AdditionalSecurityGroupIds    types.List    `tfsdk:"additional_security_group_ids"`
+	Ec2MetadataHttpTokens         types.String  `tfsdk:"ec2_metadata_http_tokens"`
+	DiskSize                      types.Int64   `tfsdk:"disk_size"`
+	CapacityReservationId         types.String  `tfsdk:"capacity_reservation_id"`
+	CapacityReservationPreference types.String  `tfsdk:"capacity_reservation_preference"`
+	UseSpotInstances              types.Bool    `tfsdk:"use_spot_instances"`
+	MaxSpotPrice                  types.Float64 `tfsdk:"max_spot_price"`
+	ImageType                     types.String  `tfsdk:"image_type"`
+	NodeDrainGracePeriod          types.Int64   `tfsdk:"node_drain_grace_period"`
 }
 
 func AwsNodePoolResource() map[string]schema.Attribute {
@@ -107,6 +109,31 @@ func AwsNodePoolResource() map[string]schema.Attribute {
 			})},
 			PlanModifiers: []planmodifier.String{
 				stringplanmodifier.UseStateForUnknown(),
+			},
+		},
+		// use_spot_instances: IgnoreFalse normalizes false→null so false is treated
+		// as "not set" and never stored in state, avoiding false→null drift on refresh.
+		"use_spot_instances": schema.BoolAttribute{
+			Description: "Use Amazon EC2 Spot Instances. When enabled, max_spot_price can be set " +
+				"to control the maximum hourly price. " +
+				"Cannot be used with capacity_reservation_id or capacity_reservation_preference. " +
+				common.ValueCannotBeChangedStringDescription,
+			Optional: true,
+			PlanModifiers: []planmodifier.Bool{
+				commonplanmodifiers.IgnoreFalse(),
+				commonplanmodifiers.ImmutableBool(),
+			},
+		},
+		"max_spot_price": schema.Float64Attribute{
+			Description: "Maximum hourly price for Spot Instances in USD. Requires use_spot_instances to be true. " +
+				"Must be a positive value (> 0). If not specified, the on-demand price is used as the maximum. " +
+				common.ValueCannotBeChangedStringDescription,
+			Optional: true,
+			Validators: []validator.Float64{
+				attrvalidators.PositiveFloat64(),
+			},
+			PlanModifiers: []planmodifier.Float64{
+				commonplanmodifiers.ImmutableFloat64(),
 			},
 		},
 		"image_type": schema.StringAttribute{
@@ -183,6 +210,14 @@ func AwsNodePoolDatasource() map[string]dsschema.Attribute {
 			Optional:    true,
 			Computed:    true,
 			Default:     nil,
+		},
+		"use_spot_instances": schema.BoolAttribute{
+			Description: "Use Amazon EC2 Spot Instances.",
+			Computed:    true,
+		},
+		"max_spot_price": schema.Float64Attribute{
+			Description: "Max Spot price.",
+			Computed:    true,
 		},
 		"image_type": schema.StringAttribute{
 			Description: "The image type used for the node pool. Valid values are 'Default' or 'Windows'.",

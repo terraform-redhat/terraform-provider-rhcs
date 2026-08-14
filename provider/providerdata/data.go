@@ -53,7 +53,10 @@ func OCMConn(data any) (*sdk.Connection, bool) {
 	case *sdk.Connection:
 		return v, v != nil
 	case *ProviderSharedData:
-		return v.OCMConnection, v != nil && v.OCMConnection != nil
+		if v == nil {
+			return nil, false
+		}
+		return v.OCMConnection, v.OCMConnection != nil
 	default:
 		return nil, false
 	}

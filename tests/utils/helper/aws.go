@@ -280,10 +280,14 @@ func DeleteNonDefaultSecurityGroups(region, vpcID string) error {
 	if err != nil {
 		return err
 	}
-	return deleteNonDefaultSecurityGroupsWithClient(ctx, ec2.NewFromConfig(cfg), vpcID, defaultSecurityGroupCleanupOptions())
+	return deleteNonDefaultSecurityGroupsWithClient(
+		ctx, ec2.NewFromConfig(cfg), vpcID, defaultSecurityGroupCleanupOptions(),
+	)
 }
 
-func deleteNonDefaultSecurityGroupsWithClient(ctx context.Context, client ec2SecurityGroupAPI, vpcID string, opts securityGroupCleanupOptions) error {
+func deleteNonDefaultSecurityGroupsWithClient(
+	ctx context.Context, client ec2SecurityGroupAPI, vpcID string, opts securityGroupCleanupOptions,
+) error {
 	opts = normalizeSecurityGroupCleanupOptions(opts)
 
 	var sgs []types.SecurityGroup
@@ -314,8 +318,16 @@ func deleteNonDefaultSecurityGroupsWithClient(ctx context.Context, client ec2Sec
 }
 
 type classicELBAPI interface {
-	DescribeLoadBalancers(ctx context.Context, params *elasticloadbalancing.DescribeLoadBalancersInput, optFns ...func(*elasticloadbalancing.Options)) (*elasticloadbalancing.DescribeLoadBalancersOutput, error)
-	DeleteLoadBalancer(ctx context.Context, params *elasticloadbalancing.DeleteLoadBalancerInput, optFns ...func(*elasticloadbalancing.Options)) (*elasticloadbalancing.DeleteLoadBalancerOutput, error)
+	DescribeLoadBalancers(
+		ctx context.Context,
+		params *elasticloadbalancing.DescribeLoadBalancersInput,
+		optFns ...func(*elasticloadbalancing.Options),
+	) (*elasticloadbalancing.DescribeLoadBalancersOutput, error)
+	DeleteLoadBalancer(
+		ctx context.Context,
+		params *elasticloadbalancing.DeleteLoadBalancerInput,
+		optFns ...func(*elasticloadbalancing.Options),
+	) (*elasticloadbalancing.DeleteLoadBalancerOutput, error)
 }
 
 // DeleteClassicLoadBalancers deletes all classic (v1) ELBs whose VPC matches
@@ -338,8 +350,16 @@ func DeleteClassicLoadBalancers(region, vpcID string) error {
 // route53RecordsAPI is the subset of the Route53 client used to purge records
 // from a hosted zone.
 type route53RecordsAPI interface {
-	ListResourceRecordSets(ctx context.Context, params *route53.ListResourceRecordSetsInput, optFns ...func(*route53.Options)) (*route53.ListResourceRecordSetsOutput, error)
-	ChangeResourceRecordSets(ctx context.Context, params *route53.ChangeResourceRecordSetsInput, optFns ...func(*route53.Options)) (*route53.ChangeResourceRecordSetsOutput, error)
+	ListResourceRecordSets(
+		ctx context.Context,
+		params *route53.ListResourceRecordSetsInput,
+		optFns ...func(*route53.Options),
+	) (*route53.ListResourceRecordSetsOutput, error)
+	ChangeResourceRecordSets(
+		ctx context.Context,
+		params *route53.ChangeResourceRecordSetsInput,
+		optFns ...func(*route53.Options),
+	) (*route53.ChangeResourceRecordSetsOutput, error)
 }
 
 // PurgeHostedZoneRecords deletes every non-NS/non-SOA record from the given
@@ -399,7 +419,9 @@ func purgeHostedZoneRecordsWithClient(ctx context.Context, client route53Records
 
 func deleteClassicLoadBalancersWithClient(ctx context.Context, client classicELBAPI, vpcID string) error {
 	var names []string
-	paginator := elasticloadbalancing.NewDescribeLoadBalancersPaginator(client, &elasticloadbalancing.DescribeLoadBalancersInput{})
+	paginator := elasticloadbalancing.NewDescribeLoadBalancersPaginator(
+		client, &elasticloadbalancing.DescribeLoadBalancersInput{},
+	)
 	for paginator.HasMorePages() {
 		page, err := paginator.NextPage(ctx)
 		if err != nil {

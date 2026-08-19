@@ -29,3 +29,45 @@ ignore:
         reason: >-
           Revisit when terraform-plugin-framework release a fix. They already merged a PR for fixing it (1316).
         expires: 2026-08-30T00:00:00.000Z
+  SNYK-GOLANG-STDHTMLTEMPLATE-18858461:
+    - "*":
+        reason: >-
+          Fixed in Go 1.26.6, but registry.access.redhat.com/ubi9/go-toolset does
+          not yet have a 1.26.6 image available. Remove once the toolchain image is bumped.
+        expires: 2026-09-19T00:00:00.000Z
+  SNYK-GOLANG-STDNETURL-18858438:
+    - "*":
+        reason: >-
+          Fixed in Go 1.26.6, but registry.access.redhat.com/ubi9/go-toolset does
+          not yet have a 1.26.6 image available. Remove once the toolchain image is bumped.
+        expires: 2026-09-19T00:00:00.000Z
+  SNYK-GOLANG-STDNETHTTP-18858429:
+    - "*":
+        reason: >-
+          Fixed in Go 1.26.6, but registry.access.redhat.com/ubi9/go-toolset does
+          not yet have a 1.26.6 image available. Remove once the toolchain image is bumped.
+        expires: 2026-09-19T00:00:00.000Z
+  SNYK-GOLANG-STDNET-18858450:
+    - "*":
+        reason: >-
+          Fixed in Go 1.26.6, but registry.access.redhat.com/ubi9/go-toolset does
+          not yet have a 1.26.6 image available. Remove once the toolchain image is bumped.
+        expires: 2026-09-19T00:00:00.000Z
+  SNYK-GOLANG-STDENCODINGXML-18858455:
+    - "*":
+        reason: >-
+          Fixed in Go 1.26.6, but registry.access.redhat.com/ubi9/go-toolset does
+          not yet have a 1.26.6 image available. Remove once the toolchain image is bumped.
+        expires: 2026-09-19T00:00:00.000Z
+  SNYK-GOLANG-STDENCODINGASN1-18858463:
+    - "*":
+        reason: >-
+          Fixed in Go 1.26.6, but registry.access.redhat.com/ubi9/go-toolset does
+          not yet have a 1.26.6 image available. Remove once the toolchain image is bumped.
+        expires: 2026-09-19T00:00:00.000Z
+  SNYK-GOLANG-STDCRYPTOTLS-18858453:
+    - "*":
+        reason: >-
+          Fixed in Go 1.26.6, but registry.access.redhat.com/ubi9/go-toolset does
+          not yet have a 1.26.6 image available. Remove once the toolchain image is bumped.
+        expires: 2026-09-19T00:00:00.000Z

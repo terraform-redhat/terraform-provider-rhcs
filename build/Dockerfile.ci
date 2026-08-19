@@ -8,7 +8,7 @@
 # Then remove root Dockerfile.clients. Naming matches a common OpenShift CI
 # convention (Dockerfile.ci); no functional change until the release switch.
 # Keep this file in sync with Dockerfile.clients until then.
-FROM registry.access.redhat.com/ubi9/go-toolset:1.26.5-1786522985
+FROM registry.access.redhat.com/ubi9/go-toolset:1.26.5-1787080706
 USER root
 WORKDIR /opt/app-root/src
 RUN dnf install -y --setopt=install_weak_deps=False --nodocs \

@@ -364,6 +364,10 @@ pre-commit-checks:
 pre-push-checks:
 	@$(RUN_CHECKS_SCRIPT) pre-push
 
+.PHONY: pre-push-checks-fast
+pre-push-checks-fast:
+	@$(RUN_CHECKS_SCRIPT) pre-push-fast
+
 .PHONY: run-checks
 run-checks:
 	@$(RUN_CHECKS_SCRIPT) $(filter-out $@,$(MAKECMDGOALS))
@@ -372,7 +376,7 @@ run-checks:
 commits/check:
 	@./hack/commit-msg-verify.sh
 
-RUN_CHECKS_PASSTHROUGH_ARGS := basic pre-push --dry-run --list-steps -h --help
+RUN_CHECKS_PASSTHROUGH_ARGS := basic pre-push pre-push-fast --dry-run --list-steps -h --help
 .PHONY: $(RUN_CHECKS_PASSTHROUGH_ARGS)
 $(RUN_CHECKS_PASSTHROUGH_ARGS):
 	@:

@@ -19,7 +19,7 @@ if ! git diff --cached --quiet --exit-code; then
 fi
 
 set +e
-make --no-print-directory pre-push-checks
+make --no-print-directory pre-push-checks-fast
 checks_exit_code=$?
 set -e
 

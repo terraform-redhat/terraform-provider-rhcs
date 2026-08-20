@@ -18,8 +18,9 @@ Usage:
   make run-checks -- <mode> [--dry-run] [--list-steps]
 
 Modes:
-  pre-push                 Steps: format-check, gitleaks, build, generated-files, lint, docs-lint, license-check, subsystem-registry, tests
-  basic                    Steps: format, format-check, gitleaks, build, generated-files, lint, docs-lint, license-check, subsystem-registry, tests
+  pre-push                 Steps: format-check, gitleaks, build, generated-files, lint, docs-lint, license-check, subsystem-registry, tests (unit + subsystem + e2e-unit)
+  pre-push-fast            Steps: same as pre-push but unit tests only (no subsystem/e2e-unit); used by git pre-push hook
+  basic                    Steps: format, format-check, gitleaks, build, generated-files, lint, docs-lint, license-check, subsystem-registry, tests (unit + subsystem + e2e-unit)
 
 Flags:
   --dry-run                Print planned steps and commands without executing
@@ -40,7 +41,7 @@ strip_ansi() {
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
-    pre-push|basic)
+    pre-push|pre-push-fast|basic)
       if [ -n "$mode" ] && [ "$mode" != "$1" ]; then
         echo "Only one mode can be specified"
         print_usage
@@ -86,6 +87,17 @@ case "$mode" in
     append_step "License header check" "make --no-print-directory license-check"
     append_step "Subsystem registry" "make --no-print-directory check-subsystem-registry"
     append_step "Unit and subsystem tests" "make --no-print-directory test"
+    ;;
+  pre-push-fast)
+    append_step "Format check (gci + gofmt + terraform fmt)" "make --no-print-directory fmt-check"
+    append_step "Gitleaks secret scan" "make --no-print-directory verify-gitleaks"
+    append_step "Build" "make --no-print-directory build"
+    append_step "Generated files check" "make --no-print-directory check-gen"
+    append_step "Lint" "make --no-print-directory lint"
+    append_step "Documentation lint (Vale)" "make --no-print-directory docs-lint"
+    append_step "License header check" "make --no-print-directory license-check"
+    append_step "Subsystem registry" "make --no-print-directory check-subsystem-registry"
+    append_step "Unit tests" "make --no-print-directory unit-test e2e-unit-test"
     ;;
   basic)
     append_step "Format (gci + gofmt + terraform fmt)" "make --no-print-directory fmt"

@@ -37,6 +37,12 @@ func TestProvider(t *testing.T) {
 var _ = BeforeEach(func() {
 	format.MaxLength = 0
 
+	// Set fake AWS credentials so the hyperfleet client can initialize
+	// without requiring real AWS credentials
+	GinkgoT().Setenv("AWS_ACCESS_KEY_ID", "fake-access-key")
+	GinkgoT().Setenv("AWS_SECRET_ACCESS_KEY", "fake-secret-key")
+	GinkgoT().Setenv("AWS_DEFAULT_REGION", "us-east-1")
+
 	// The hyperfleet resources use the Platform API v2, not OCM. However, the
 	// provider Configure() still attempts an OCM connection when OCM credentials
 	// are present. The mock OCM server satisfies that path so the provider

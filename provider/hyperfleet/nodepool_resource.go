@@ -210,7 +210,9 @@ func (r *NodePoolHyperfleetResource) Create(
 	// per-nodepool instance profiles, promote it to an optional
 	// `aws_node_pool.instance_profile` attribute and read it back from the API
 	// response in populateNodePoolState instead of computing it here.
-	cluster, err := r.client.HyperfleetV1alpha1().Clusters().Get(ctx, plan.Cluster.ValueString(), hfwrappers.GetOptions{})
+	cluster, err := r.client.HyperfleetV1alpha1().
+		Clusters().
+		Get(ctx, plan.Cluster.ValueString(), hfwrappers.GetOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to read parent cluster for node pool", err.Error())
 		return
@@ -218,7 +220,10 @@ func (r *NodePoolHyperfleetResource) Create(
 	if cluster.Spec.HostedCluster.Platform.AWS == nil {
 		resp.Diagnostics.AddError(
 			"Cannot compute worker instance profile",
-			fmt.Sprintf("Parent cluster %q has no AWS platform configuration; cannot derive the operator roles prefix.", plan.Cluster.ValueString()), //nolint:lll
+			fmt.Sprintf(
+				"Parent cluster %q has no AWS platform configuration; cannot derive the operator roles prefix.",
+				plan.Cluster.ValueString(),
+			), //nolint:lll
 		)
 		return
 	}
@@ -262,7 +267,7 @@ func (r *NodePoolHyperfleetResource) Read(ctx context.Context, req resource.Read
 	}
 
 	nodePools := r.client.HyperfleetV1alpha1().NodePools(state.Cluster.ValueString())
-	np, err := nodePools.Get(ctx, state.Name.ValueString(), hfwrappers.GetOptions{})
+	np, err := nodePools.Get(ctx, state.ID.ValueString(), hfwrappers.GetOptions{})
 	if err != nil {
 		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
@@ -287,7 +292,7 @@ func (r *NodePoolHyperfleetResource) Update(
 	}
 
 	nodePools := r.client.HyperfleetV1alpha1().NodePools(state.Cluster.ValueString())
-	np, err := nodePools.Get(ctx, state.Name.ValueString(), hfwrappers.GetOptions{})
+	np, err := nodePools.Get(ctx, state.ID.ValueString(), hfwrappers.GetOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to read node pool before update", err.Error())
 		return
@@ -328,7 +333,7 @@ func (r *NodePoolHyperfleetResource) Delete(
 	}
 
 	nodePools := r.client.HyperfleetV1alpha1().NodePools(state.Cluster.ValueString())
-	err := nodePools.Delete(ctx, state.Name.ValueString(), hfwrappers.DeleteOptions{})
+	err := nodePools.Delete(ctx, state.ID.ValueString(), hfwrappers.DeleteOptions{})
 	if err != nil && !isNotFound(err) {
 		if !state.IgnoreDeletionError.ValueBool() {
 			resp.Diagnostics.AddError("Failed to delete node pool", err.Error())

@@ -53,10 +53,11 @@ repos:
         language: script
         stages: [commit-msg]
 
-      # Pre-push stage: comprehensive checks before push
+      # Pre-push stage: fast checks + unit tests only (no subsystem tests).
+      # Full suite (make pre-push-checks) runs in Prow CI.
       - id: pre-push-checks
-        name: Run pre-push checks
-        description: Runs make pre-push-checks (see make run-checks -- pre-push --list-steps)
+        name: Run pre-push checks (fast)
+        description: Runs make pre-push-checks-fast (see make run-checks -- pre-push-fast --list-steps)
         entry: ./hack/pre-push-hook.sh
         language: script
         stages: [pre-push]

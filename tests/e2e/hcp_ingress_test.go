@@ -132,7 +132,7 @@ var _ = Describe("HCP Ingress", ci.FeatureIngress, ci.Day2, func() {
 		ingressArgs.Cluster = new("wrong")
 		_, err = ingressService.Apply(ingressArgs)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("Cluster 'wrong' not"))
+		Expect(err.Error()).To(ContainSubstring("cannot be changed"))
 
 		By("Try to edit with empty listening_method")
 		ingressArgs = getOriginalIngressArgs()

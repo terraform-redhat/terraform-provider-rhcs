@@ -74,9 +74,13 @@ To use the Red Hat Cloud Services provider inside your Terraform configuration y
 
   You must complete some AWS account and local configurations to create and managed ROSA clusters.
 
-* An offline [OCM token](https://console.redhat.com/openshift/token/rosa)
+* **(Recommended)** A [Red Hat Hybrid Cloud Console service account](https://console.redhat.com/iam/service-accounts) with a Client ID and Client Secret
 
-  This token is generated through the Red Hat Hybrid Cloud Console. The purpose of this token is to verify that you have access and permission to create and upgrade clusters. This token is unique to your account and should not be shared.
+  Service accounts are the recommended authentication method for the RHCS provider. Create a service account in the Red Hat Hybrid Cloud Console, copy the generated Client ID and Client Secret (the secret is only shown once), then add the service account to a User Access group with appropriate roles (either **OCM Organization Administrator** for full access, or the individual roles: **OCM Cluster Provisioner**, **OCM Cluster Editor**, **OCM Machine Pool Editor**, and **OCM IdP Editor**). For detailed instructions, see the Red Hat documentation on [Creating and Managing Service Accounts](https://docs.redhat.com/en/documentation/red_hat_hybrid_cloud_console/1-latest/html-single/creating_and_managing_service_accounts/index).
+
+* **(Legacy)** An offline [OCM token](https://console.redhat.com/openshift/token/rosa)
+
+  This token is generated through the Red Hat Hybrid Cloud Console. The purpose of this token is to verify that you have access and permission to create and upgrade clusters. This token is unique to your account and should not be shared. Service accounts are replacing offline tokens as the default authentication method.
 
 * [GoLang version 1.26 or newer](https://go.dev/doc/install)
 
@@ -164,20 +168,46 @@ To use the Red Hat Cloud Services provider inside your Terraform configuration y
 
 ## Authentication and configuration
 
-The login to your Red Hat account is done by private offline access token which can be generate at https://console.redhat.com/openshift/token/rosa
-
 Configuration for the RHCS Provider can be derived from several sources, which are applied in the following order:
 
 1. Parameters in the provider configuration
-2. Environment Variables
-
-## Provider Configuration
+2. Environment variables
 
 !> **Warning:** Hard-coded credentials are not recommended in any Terraform configuration and risks secret leakage should this file ever be committed to a public version control system.
 
-The Red Hat Cloud Services token can be provided by adding a `token` to the `rhcs` provider block.
+### Service Account Authentication (Recommended)
 
-Usage:
+Service accounts provide stable credentials that do not expire, making them ideal for automation workflows. The provider uses the Client ID and Client Secret to obtain short-lived OAuth access tokens (which expire after 15 minutes) automatically.
+
+To create a service account, assign the required roles (either **OCM Organization Administrator** for full access, or the individual roles: **OCM Cluster Provisioner**, **OCM Cluster Editor**, **OCM Machine Pool Editor**, and **OCM IdP Editor**), and add it to a User Access group. For more information, see the Red Hat documentation on [Creating and Managing Service Accounts](https://docs.redhat.com/en/documentation/red_hat_hybrid_cloud_console/1-latest/html-single/creating_and_managing_service_accounts/index).
+
+Once you have a Client ID and Client Secret, set them as environment variables:
+
+```shell
+export RHCS_CLIENT_ID="<your-client-id>"
+export RHCS_CLIENT_SECRET="<your-client-secret>"
+```
+
+```terraform
+provider "rhcs" {}
+```
+
+You can also pass credentials explicitly via the provider block:
+
+```terraform
+provider "rhcs" {
+  client_id     = var.rhcs_client_id
+  client_secret = var.rhcs_client_secret
+}
+```
+
+### Offline Access Token Authentication (Legacy)
+
+~> **Note:** Offline access tokens are a legacy authentication method. Service account authentication (above) is the recommended approach and will become the default.
+
+The offline access token can be generated at https://console.redhat.com/openshift/token/rosa
+
+The token can be provided by adding a `token` to the `rhcs` provider block:
 
 ```terraform
 provider "rhcs" {
@@ -185,11 +215,7 @@ provider "rhcs" {
 }
 ```
 
-### Environment Variables
-
-The Red Hat Cloud Services token can be provided by using the `RHCS_TOKEN` environment variables.
-
-For example:
+Or by using the `RHCS_TOKEN` environment variable:
 
 ```terraform
 provider "rhcs" {}

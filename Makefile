@@ -39,7 +39,7 @@ RUN_CHECKS_SCRIPT := ./hack/run-checks.sh
 
 GCI_VERSION ?= v0.14.0
 GOLANGCI_LINT_VERSION ?= v2.12.2
-VALE_VERSION ?= v3.15.2
+VALE_VERSION ?= v3.18.0
 ADDLICENSE_VERSION ?= v1.2.0
 GOVULNCHECK_VERSION ?= v1.1.4
 # Release tag for the binary used by make verify-gitleaks. Pre-commit pins the

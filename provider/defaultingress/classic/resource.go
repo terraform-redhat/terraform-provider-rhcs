@@ -113,9 +113,10 @@ func (r *DefaultIngressResource) Schema(ctx context.Context, req resource.Schema
 				Validators: []validator.String{attrvalidators.EnumValueValidator(validNamespaceOwnershipPolicies)},
 			},
 			"cluster_routes_hostname": schema.StringAttribute{
-				Description: "Components route hostname for oauth, console, download.",
-				Optional:    true,
-				Validators:  []validator.String{stringvalidator.LengthAtLeast(1)},
+				Description:        "Components route hostname for oauth, console, download.",
+				DeprecationMessage: "Use component_routes instead.",
+				Optional:           true,
+				Validators:         []validator.String{stringvalidator.LengthAtLeast(1)},
 			},
 			"load_balancer_type": schema.StringAttribute{
 				Description: fmt.Sprintf("Type of Load Balancer. Options are %s.", strings.Join(validLbTypes, ",")),
@@ -124,9 +125,10 @@ func (r *DefaultIngressResource) Schema(ctx context.Context, req resource.Schema
 				Validators:  []validator.String{attrvalidators.EnumValueValidator(validLbTypes)},
 			},
 			"cluster_routes_tls_secret_ref": schema.StringAttribute{
-				Description: "Components route TLS secret reference for oauth, console, download.",
-				Optional:    true,
-				Validators:  []validator.String{stringvalidator.LengthAtLeast(1)},
+				Description:        "Components route TLS secret reference for oauth, console, download.",
+				DeprecationMessage: "Use component_routes instead.",
+				Optional:           true,
+				Validators:         []validator.String{stringvalidator.LengthAtLeast(1)},
 			},
 			"component_routes": schema.MapAttribute{
 				Description: "Component route parameters for oauth, console, downloads.",
@@ -137,7 +139,6 @@ func (r *DefaultIngressResource) Schema(ctx context.Context, req resource.Schema
 			},
 		},
 	}
-	return
 }
 
 func (r *DefaultIngressResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {

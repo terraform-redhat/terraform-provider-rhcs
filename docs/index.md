@@ -225,6 +225,13 @@ provider "rhcs" {}
 % export RHCS_TOKEN="my-token"
 ```
 
+### TLS configuration
+
+By default, the provider verifies TLS certificates for the OCM API connection using system certificate authorities.
+
+- `trusted_cas` — PEM encoded certificates of authorities that will be trusted. If this is not explicitly specified, then the provider will trust the default certificate authorities trusted by the system.
+- `insecure` — When set to `true`, disables TLS certificate and hostname verification. Not recommended for production; prefer `trusted_cas` when custom CA trust is required.
+
 ## Terraform examples
 
 The example Terraform files are all considered in development and should not be used for production environments:

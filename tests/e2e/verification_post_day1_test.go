@@ -154,7 +154,11 @@ var _ = Describe("Verify cluster", func() {
 		zonesArray := strings.Split(profile.GetZones(), ",")
 		clusterAvailZones := getResp.Body().Nodes().AvailabilityZones()
 		Expect(err).ToNot(HaveOccurred())
-		Expect(getResp.Body().MultiAZ()).To(Equal(profile.IsMultiAZ()))
+		if profile.IsHCP() {
+			Expect(getResp.Body().MultiAZ()).To(BeTrue())
+		} else {
+			Expect(getResp.Body().MultiAZ()).To(Equal(profile.IsMultiAZ()))
+		}
 
 		if profile.GetZones() != "" {
 			Expect(clusterAvailZones).To(Equal(helper.JoinStringWithArray(profile.GetRegion(), zonesArray)))

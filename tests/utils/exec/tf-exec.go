@@ -86,6 +86,10 @@ func (ctx *terraformExecutorContext) execCommand(cmd string, flags []string) (ou
 }
 
 func (ctx *terraformExecutorContext) RunTerraformInit() (string, error) {
+	// Delete the lock file so Terraform regenerates checksums for the local
+	// provider binary, which changes on every `make install`.
+	lockFile := path.Join(ctx.manifestsDir, ".terraform.lock.hcl")
+	_ = os.Remove(lockFile)
 	return ctx.runTerraformCommand("init", "-no-color")
 }
 
@@ -135,10 +139,33 @@ func (ctx *terraformExecutorContext) RunTerraformDestroy() (output string, err e
 	output, err = ctx.runTerraformCommand("destroy", "-auto-approve", "-no-color", "-var-file", varsFile)
 	if err == nil {
 		ctx.DeleteTerraformVars()
+		// A finished destroy leaves an empty state; remove the per-workspace
+		// state and tfvars directories so runs don't accumulate stale local
+		// workspace artifacts. Best-effort: a cleanup failure must not turn a
+		// successful teardown into an error.
+		if cleanupErr := ctx.cleanupWorkspace(); cleanupErr != nil {
+			Logger.Warnf("Failed to clean up terraform workspace %q: %v", ctx.tfWorkspace, cleanupErr)
+		}
 	} else {
 		err = fmt.Errorf("%s", RedactString(err.Error()))
 	}
 	return
+}
+
+// cleanupWorkspace removes the local per-workspace state and tfvars directories
+// created for a named workspace (local backend: a workspace is just its
+// terraform.tfstate.d/<name> directory). It is a no-op for the default (empty)
+// workspace. Called after a successful destroy so finished runs leave no stale
+// artifacts behind; the directories are recreated automatically if the workspace
+// is used again.
+func (ctx *terraformExecutorContext) cleanupWorkspace() error {
+	if ctx.tfWorkspace == "" {
+		return nil
+	}
+	stateDir := path.Join(ctx.manifestsDir, "terraform.tfstate.d", ctx.tfWorkspace)
+	varsDir := path.Join(ctx.manifestsDir, "terraform.tfvars.d", ctx.tfWorkspace)
+	Logger.Infof("Removing terraform workspace artifacts for %q", ctx.tfWorkspace)
+	return errors.Join(os.RemoveAll(stateDir), os.RemoveAll(varsDir))
 }
 
 func (ctx *terraformExecutorContext) RunTerraformOutput() (string, error) {

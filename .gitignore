@@ -17,3 +17,5 @@ terraform-provider-rhcs
 /temp
 **/*.test
 coverage.out
+
+**/.DS_Store

@@ -53,7 +53,6 @@ import (
 	ocmUtils "github.com/openshift-online/ocm-common/pkg/ocm/utils"
 	"github.com/openshift-online/ocm-common/pkg/rosa/oidcconfigs"
 	commonutils "github.com/openshift-online/ocm-common/pkg/utils"
-	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	ocm_errors "github.com/openshift-online/ocm-sdk-go/errors"
 
@@ -66,6 +65,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/common/attrvalidators"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/identityprovider"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/providerdata"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/proxy"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/registry_config"
 )
@@ -595,11 +595,11 @@ func (r *ClusterRosaHcpResource) Configure(ctx context.Context, req resource.Con
 		return
 	}
 
-	connection, ok := req.ProviderData.(*sdk.Connection)
+	connection, ok := providerdata.OCMConn(req.ProviderData)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *sdk.Connection, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *providerdata.ProviderSharedData, got: %T. Please report this issue to the provider developers.", req.ProviderData), //nolint:lll
 		)
 		return
 	}

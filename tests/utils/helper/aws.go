@@ -15,6 +15,9 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
+	"github.com/aws/aws-sdk-go-v2/service/route53"
+	route53types "github.com/aws/aws-sdk-go-v2/service/route53/types"
 	"github.com/aws/smithy-go"
 
 	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
@@ -260,4 +263,261 @@ func hasAWSErrorCode(err error, code string) bool {
 		return apiErr.ErrorCode() == code
 	}
 	return false
+}
+
+// DeleteNonDefaultSecurityGroups deletes every security group in vpcID except
+// the VPC's built-in "default" group, which AWS does not allow deleting.
+// This is a broader cleanup than DeleteExtraSecurityGroups: it removes any SG
+// that would block VPC teardown regardless of its name or tags.
+func DeleteNonDefaultSecurityGroups(region, vpcID string) error {
+	if strings.TrimSpace(vpcID) == "" {
+		Logger.Warn("Skipping security groups cleanup because VPC ID is empty")
+		return nil
+	}
+
+	ctx := context.Background()
+	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithRegion(region))
+	if err != nil {
+		return err
+	}
+	return deleteNonDefaultSecurityGroupsWithClient(
+		ctx, ec2.NewFromConfig(cfg), vpcID, defaultSecurityGroupCleanupOptions(),
+	)
+}
+
+func deleteNonDefaultSecurityGroupsWithClient(
+	ctx context.Context, client ec2SecurityGroupAPI, vpcID string, opts securityGroupCleanupOptions,
+) error {
+	opts = normalizeSecurityGroupCleanupOptions(opts)
+
+	var sgs []types.SecurityGroup
+	paginator := ec2.NewDescribeSecurityGroupsPaginator(client, &ec2.DescribeSecurityGroupsInput{
+		Filters: []types.Filter{
+			{Name: aws.String("vpc-id"), Values: []string{vpcID}},
+		},
+	})
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return fmt.Errorf("describing security groups in VPC %s: %w", vpcID, err)
+		}
+		sgs = append(sgs, page.SecurityGroups...)
+	}
+
+	var errs []error
+	for _, sg := range sgs {
+		if aws.ToString(sg.GroupName) == "default" {
+			continue
+		}
+		Logger.Infof("Deleting security group %s (%s) in VPC %s", aws.ToString(sg.GroupName), aws.ToString(sg.GroupId), vpcID)
+		if err := deleteSecurityGroupWithRetry(ctx, client, vpcID, sg, opts); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
+}
+
+type ec2VPCEndpointAPI interface {
+	DescribeVpcEndpoints(
+		ctx context.Context,
+		params *ec2.DescribeVpcEndpointsInput,
+		optFns ...func(*ec2.Options),
+	) (*ec2.DescribeVpcEndpointsOutput, error)
+	DeleteVpcEndpoints(
+		ctx context.Context,
+		params *ec2.DeleteVpcEndpointsInput,
+		optFns ...func(*ec2.Options),
+	) (*ec2.DeleteVpcEndpointsOutput, error)
+}
+
+// DeleteVPCEndpoints deletes every VPC endpoint in vpcID. The Hyperfleet cluster
+// operator creates interface endpoints (e.g. the `<infra-id>-vpce-private-router`
+// endpoint) whose managed ENIs pin a security group of the same name. Terraform
+// does not track these endpoints, so their ENIs keep that security group attached
+// and block both DeleteNonDefaultSecurityGroups and VPC teardown. Deleting the
+// endpoints releases the ENIs (asynchronously), after which the security group
+// and VPC can be removed. Call this before DeleteNonDefaultSecurityGroups.
+func DeleteVPCEndpoints(region, vpcID string) error {
+	if strings.TrimSpace(vpcID) == "" {
+		Logger.Warn("Skipping VPC endpoint cleanup because VPC ID is empty")
+		return nil
+	}
+
+	ctx := context.Background()
+	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithRegion(region))
+	if err != nil {
+		return err
+	}
+	return deleteVPCEndpointsWithClient(ctx, ec2.NewFromConfig(cfg), vpcID)
+}
+
+func deleteVPCEndpointsWithClient(ctx context.Context, client ec2VPCEndpointAPI, vpcID string) error {
+	var ids []string
+	paginator := ec2.NewDescribeVpcEndpointsPaginator(client, &ec2.DescribeVpcEndpointsInput{
+		Filters: []types.Filter{
+			{Name: aws.String("vpc-id"), Values: []string{vpcID}},
+		},
+	})
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return fmt.Errorf("describing VPC endpoints in VPC %s: %w", vpcID, err)
+		}
+		for _, ep := range page.VpcEndpoints {
+			ids = append(ids, aws.ToString(ep.VpcEndpointId))
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+
+	Logger.Infof("Deleting %d VPC endpoint(s) in VPC %s", len(ids), vpcID)
+	out, err := client.DeleteVpcEndpoints(ctx, &ec2.DeleteVpcEndpointsInput{
+		VpcEndpointIds: ids,
+	})
+	if err != nil {
+		return fmt.Errorf("deleting VPC endpoints in VPC %s: %w", vpcID, err)
+	}
+
+	var errs []error
+	if out != nil {
+		for _, u := range out.Unsuccessful {
+			msg := ""
+			if u.Error != nil {
+				msg = aws.ToString(u.Error.Message)
+			}
+			errs = append(errs, fmt.Errorf("VPC endpoint %s: %s", aws.ToString(u.ResourceId), msg))
+		}
+	}
+	return errors.Join(errs...)
+}
+
+type classicELBAPI interface {
+	DescribeLoadBalancers(
+		ctx context.Context,
+		params *elasticloadbalancing.DescribeLoadBalancersInput,
+		optFns ...func(*elasticloadbalancing.Options),
+	) (*elasticloadbalancing.DescribeLoadBalancersOutput, error)
+	DeleteLoadBalancer(
+		ctx context.Context,
+		params *elasticloadbalancing.DeleteLoadBalancerInput,
+		optFns ...func(*elasticloadbalancing.Options),
+	) (*elasticloadbalancing.DeleteLoadBalancerOutput, error)
+}
+
+// DeleteClassicLoadBalancers deletes all classic (v1) ELBs whose VPC matches
+// vpcID. This is needed during VPC teardown because the cluster may have
+// created ELBs for LoadBalancer-type services that Terraform doesn't track.
+func DeleteClassicLoadBalancers(region, vpcID string) error {
+	if strings.TrimSpace(vpcID) == "" {
+		Logger.Warn("Skipping classic ELB cleanup because VPC ID is empty")
+		return nil
+	}
+
+	ctx := context.Background()
+	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithRegion(region))
+	if err != nil {
+		return err
+	}
+	return deleteClassicLoadBalancersWithClient(ctx, elasticloadbalancing.NewFromConfig(cfg), vpcID)
+}
+
+// route53RecordsAPI is the subset of the Route53 client used to purge records
+// from a hosted zone.
+type route53RecordsAPI interface {
+	ListResourceRecordSets(
+		ctx context.Context,
+		params *route53.ListResourceRecordSetsInput,
+		optFns ...func(*route53.Options),
+	) (*route53.ListResourceRecordSetsOutput, error)
+	ChangeResourceRecordSets(
+		ctx context.Context,
+		params *route53.ChangeResourceRecordSetsInput,
+		optFns ...func(*route53.Options),
+	) (*route53.ChangeResourceRecordSetsOutput, error)
+}
+
+// PurgeHostedZoneRecords deletes every non-NS/non-SOA record from the given
+// Route53 hosted zone. The Hyperfleet cluster operator writes CNAME records
+// (api.*, *.apps.*) into the cluster's private `<name>.hypershift.local` zone;
+// terraform destroy of the zone fails with HostedZoneNotEmpty while those
+// records remain, so the e2e VPC teardown purges them first. NS and SOA records
+// are left in place — they are created and removed by Route53 with the zone
+// itself and cannot be deleted independently.
+func PurgeHostedZoneRecords(region, hostedZoneID string) error {
+	if strings.TrimSpace(hostedZoneID) == "" {
+		Logger.Warn("Skipping hosted zone record purge because hosted zone ID is empty")
+		return nil
+	}
+
+	ctx := context.Background()
+	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithRegion(region))
+	if err != nil {
+		return err
+	}
+	return purgeHostedZoneRecordsWithClient(ctx, route53.NewFromConfig(cfg), hostedZoneID)
+}
+
+func purgeHostedZoneRecordsWithClient(ctx context.Context, client route53RecordsAPI, hostedZoneID string) error {
+	out, err := client.ListResourceRecordSets(ctx, &route53.ListResourceRecordSetsInput{
+		HostedZoneId: aws.String(hostedZoneID),
+	})
+	if err != nil {
+		return fmt.Errorf("listing record sets for zone %s: %w", hostedZoneID, err)
+	}
+
+	var changes []route53types.Change
+	for i := range out.ResourceRecordSets {
+		rrs := out.ResourceRecordSets[i]
+		if rrs.Type == route53types.RRTypeNs || rrs.Type == route53types.RRTypeSoa {
+			continue
+		}
+		changes = append(changes, route53types.Change{
+			Action:            route53types.ChangeActionDelete,
+			ResourceRecordSet: &rrs,
+		})
+	}
+	if len(changes) == 0 {
+		return nil
+	}
+
+	Logger.Infof("Purging %d record(s) from hosted zone %s", len(changes), hostedZoneID)
+	_, err = client.ChangeResourceRecordSets(ctx, &route53.ChangeResourceRecordSetsInput{
+		HostedZoneId: aws.String(hostedZoneID),
+		ChangeBatch:  &route53types.ChangeBatch{Changes: changes},
+	})
+	if err != nil {
+		return fmt.Errorf("deleting records from zone %s: %w", hostedZoneID, err)
+	}
+	return nil
+}
+
+func deleteClassicLoadBalancersWithClient(ctx context.Context, client classicELBAPI, vpcID string) error {
+	var names []string
+	paginator := elasticloadbalancing.NewDescribeLoadBalancersPaginator(
+		client, &elasticloadbalancing.DescribeLoadBalancersInput{},
+	)
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return fmt.Errorf("describing classic ELBs: %w", err)
+		}
+		for _, lb := range page.LoadBalancerDescriptions {
+			if aws.ToString(lb.VPCId) == vpcID {
+				names = append(names, aws.ToString(lb.LoadBalancerName))
+			}
+		}
+	}
+
+	var errs []error
+	for _, name := range names {
+		Logger.Infof("Deleting classic ELB %s in VPC %s", name, vpcID)
+		_, err := client.DeleteLoadBalancer(ctx, &elasticloadbalancing.DeleteLoadBalancerInput{
+			LoadBalancerName: aws.String(name),
+		})
+		if err != nil && !hasAWSErrorCode(err, "LoadBalancerNotFound") {
+			errs = append(errs, fmt.Errorf("deleting classic ELB %s: %w", name, err))
+		}
+	}
+	return errors.Join(errs...)
 }

@@ -24,8 +24,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-	sdk "github.com/openshift-online/ocm-sdk-go"
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
+
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/providerdata"
 )
 
 type MachineTypesDataSource struct {
@@ -86,7 +87,7 @@ func (s *MachineTypesDataSource) Configure(ctx context.Context, req datasource.C
 	}
 
 	// Cast the provider data to the specific implementation:
-	connection := req.ProviderData.(*sdk.Connection)
+	connection, _ := providerdata.OCMConn(req.ProviderData)
 
 	// Get the collection of cloud providers:
 	s.collection = connection.ClustersMgmt().V1().MachineTypes()

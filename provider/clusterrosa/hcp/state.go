@@ -102,4 +102,7 @@ type ClusterRosaHcpState struct {
 
 	// Delete protection
 	DeleteProtection types.Bool `tfsdk:"delete_protection"`
+
+	// Notification contacts
+	NotificationContacts types.Set `tfsdk:"notification_contacts"`
 }

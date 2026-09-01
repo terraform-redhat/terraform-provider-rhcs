@@ -43,8 +43,11 @@ resource "rhcs_cluster_rosa_hcp" "rosa_sts_cluster" {
   wait_for_create_complete            = true
   wait_for_std_compute_nodes_complete = true
 
-  # Optional: enable OCM delete protection (set to false and apply before terraform destroy)
+  # Optional: enable Red Hat OpenShift Cluster Manager (OCM) delete protection (set to false and apply before terraform destroy)
   # delete_protection = true
+
+  # Optional: set notification contacts (must be Red Hat OpenShift Cluster Manager (OCM) usernames in the same organization)
+  # notification_contacts = ["ocm-username-1", "ocm-username-2"]
 }
 ```
 
@@ -104,6 +107,7 @@ When a proxy is configured on a zero-egress cluster, the OCM API appends platfor
 - `max_replicas` (Number) Maximum replicas of worker nodes in a machine pool. This attribute specifically applies to the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the initial Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)
 - `min_replicas` (Number) Minimum replicas of worker nodes in a machine pool. This attribute specifically applies to the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the initial Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)
 - `no_cni` (Boolean) Disable CNI creation to let users bring their own CNI. After the creation of the resource, it is not possible to update the attribute value.
+- `notification_contacts` (Set of String) Set of Red Hat OpenShift Cluster Manager (OCM) account usernames to receive cluster notification emails. Values must be OCM usernames (not email addresses). While email addresses are accepted by the API, they are resolved to usernames internally, which will cause persistent plan diffs and may lead to incorrect contact removal on subsequent applies. All contacts must belong to the same Red Hat organization as the cluster. This attribute is configured after cluster creation (Day 2). By default, the cluster creator is set as the notification contact. For clusters created with service accounts, no default contact is set.
 - `pod_cidr` (String) Block of IP addresses for pods. After the creation of the resource, it is not possible to update the attribute value.
 - `private` (Boolean) Provides private connectivity from your cluster's VPC to Red Hat SRE, without exposing traffic to the public internet. After the creation of the resource, it is not possible to update the attribute value.
 - `properties` (Map of String) User defined properties. It is essential to include property 'role_creator_arn' with the value of the user creating the cluster. Example: properties = {rosa_creator_arn = data.aws_caller_identity.current.arn}

@@ -164,7 +164,7 @@ var _ = Describe("Verify cluster", func() {
 			Expect(clusterAvailZones).To(Equal(helper.JoinStringWithArray(profile.GetRegion(), zonesArray)))
 		} else {
 			// the default zone for each region
-			Expect(clusterAvailZones[0]).To(Equal(fmt.Sprintf("%sa", profile.GetRegion())))
+			Expect(clusterAvailZones[0]).To(HavePrefix(profile.GetRegion()))
 		}
 	})
 

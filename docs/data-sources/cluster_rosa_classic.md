@@ -70,6 +70,7 @@ data "rhcs_cluster_rosa_classic" "cluster" {
 - `min_replicas` (Number) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `multi_az` (Boolean) Indicates if the cluster should be deployed to multiple availability zones. Default value is 'false'. This attribute specifically applies to the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the initial Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)
 - `name` (String) Name of the cluster. Cannot exceed 54 characters in length. After the creation of the resource, it is not possible to update the attribute value.
+- `notification_contacts` (Set of String) Set of Red Hat OpenShift Cluster Manager (OCM) account usernames configured to receive cluster notification emails.
 - `ocm_properties` (Map of String) Merged properties defined by OCM and the user defined 'properties'.
 - `pod_cidr` (String) Block of IP addresses for pods. After the creation of the resource, it is not possible to update the attribute value.
 - `private` (Boolean) Restrict cluster API endpoint and application routes to, private connectivity. This requires that PrivateLink be enabled and by extension, your own VPC. After the creation of the resource, it is not possible to update the attribute value.

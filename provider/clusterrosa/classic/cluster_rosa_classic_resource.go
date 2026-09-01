@@ -151,7 +151,8 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 					"Site Reliability Engineer (SRE) platform metrics.",
 				Optional: true,
 			},
-			"delete_protection": rosa.DeleteProtectionResourceSchema(),
+			"delete_protection":     rosa.DeleteProtectionResourceSchema(),
+			"notification_contacts": rosa.NotificationContactsResourceSchema(),
 			"disable_scp_checks": schema.BoolAttribute{
 				Description: "Indicates if cloud permission checks are disabled when attempting installation of the cluster. " +
 					common.ValueCannotBeChangedStringDescription,
@@ -510,6 +511,7 @@ func (r *ClusterRosaClassicResource) Configure(ctx context.Context, req resource
 	r.ClusterCollection = connection.ClustersMgmt().V1().Clusters()
 	r.VersionCollection = connection.ClustersMgmt().V1().Versions()
 	r.ClusterWait = common.NewClusterWait(r.ClusterCollection, connection)
+	r.Connection = connection
 }
 
 const (
@@ -868,6 +870,15 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 		return
 	}
 	enableDeleteProtection := common.HasValue(state.DeleteProtection) && state.DeleteProtection.ValueBool()
+	// Save notification contacts from config — plan values for Optional+Computed
+	// attributes are unknown during create (no prior state for UseStateForUnknown).
+	var plannedContacts types.Set
+	diags = request.Config.GetAttribute(ctx, path.Root("notification_contacts"), &plannedContacts)
+	response.Diagnostics.Append(diags...)
+	if response.Diagnostics.HasError() {
+		return
+	}
+	state.NotificationContacts = types.SetNull(types.StringType)
 	summary := "Can't build cluster"
 
 	// In case version with "openshift-v" prefix was used here,
@@ -966,7 +977,13 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 	}
 	object = add.Body()
 
-	// Save initial state:
+	// Save subscription ID from create response — GET responses after
+	// the waiter may not include the subscription link.
+	createSubID, hasCreateSubID := rosa.GetSubscriptionID(object)
+	tflog.Debug(ctx, fmt.Sprintf("Subscription ID from create response: id=%q, available=%v", createSubID, hasCreateSubID))
+
+	// Populate state from the create response before attempting notification contacts,
+	// so that error paths save fully-known state (not plan unknowns for Computed fields).
 	err = populateRosaClassicClusterState(ctx, object, state, common.DefaultHttpClient{})
 	if err != nil {
 		response.Diagnostics.AddError(
@@ -976,6 +993,52 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 			),
 		)
 		return
+	}
+
+	// Set notification contacts immediately after cluster POST — the subscription
+	// already exists, no need to wait for the cluster to be ready.
+	if !plannedContacts.IsNull() && !plannedContacts.IsUnknown() {
+		if !hasCreateSubID {
+			freshGet, err := r.ClusterCollection.Cluster(object.ID()).Get().SendContext(ctx)
+			if err != nil {
+				response.Diagnostics.AddWarning(
+					"Can't set notification contacts",
+					fmt.Sprintf(
+						"Could not fetch cluster to retrieve subscription ID: %v. "+
+							"Notification contacts will be set on the next terraform apply.", err,
+					),
+				)
+			} else {
+				createSubID, hasCreateSubID = rosa.GetSubscriptionID(freshGet.Body())
+			}
+		}
+		if hasCreateSubID {
+			var usernames []string
+			diags = plannedContacts.ElementsAs(ctx, &usernames, false)
+			response.Diagnostics.Append(diags...)
+			if response.Diagnostics.HasError() {
+				return
+			}
+			err = rosa.UpdateNotificationContacts(ctx, r.Connection, createSubID, usernames)
+			if err != nil {
+				response.Diagnostics.AddError(
+					"Can't set notification contacts",
+					fmt.Sprintf(
+						"Cluster '%s' was created but notification contacts could not be set: %v",
+						state.ID.ValueString(), err,
+					),
+				)
+				diags = response.State.Set(ctx, state)
+				response.Diagnostics.Append(diags...)
+				return
+			}
+		} else {
+			response.Diagnostics.AddWarning(
+				"Can't set notification contacts",
+				"Cluster subscription ID is not available yet. "+
+					"Notification contacts will be set on the next terraform apply.",
+			)
+		}
 	}
 
 	if common.HasValue(state.WaitForCreateComplete) && state.WaitForCreateComplete.ValueBool() {
@@ -1037,6 +1100,24 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 		state.DeleteProtection = dpVal
 	}
 
+	// Resolve notification contacts using the subscription ID from the create response,
+	// since the post-wait cluster object may not include the subscription link.
+	ncSubID := createSubID
+	if !hasCreateSubID {
+		ncSubID, _ = rosa.GetSubscriptionID(object)
+	}
+	if ncSubID != "" {
+		ncVal, ncDiags := rosa.ResolveNotificationContactsBySubID(ctx, r.Connection, ncSubID)
+		response.Diagnostics.Append(ncDiags...)
+		state.NotificationContacts = ncVal
+	} else {
+		response.Diagnostics.Append(diag.NewWarningDiagnostic(
+			"Can't read notification contacts",
+			"Cluster subscription ID is not available. "+
+				"Notification contacts will be populated on the next terraform apply.",
+		))
+	}
+
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)
 }
@@ -1074,6 +1155,10 @@ func (r *ClusterRosaClassicResource) Read(ctx context.Context, request resource.
 
 	object := get.Body()
 
+	// Capture prior values before populate overwrites them with defaults.
+	priorDeleteProtection := state.DeleteProtection
+	priorNotificationContacts := state.NotificationContacts
+
 	// Save the state:
 	err = populateRosaClassicClusterState(ctx, object, state, common.DefaultHttpClient{})
 	if err != nil {
@@ -1087,13 +1172,20 @@ func (r *ClusterRosaClassicResource) Read(ctx context.Context, request resource.
 	}
 
 	clusterClient := r.ClusterCollection.Cluster(state.ID.ValueString())
-	priorDeleteProtection := state.DeleteProtection
 	dpVal, dpDiags := rosa.ResolveDeleteProtection(ctx, clusterClient, object)
 	response.Diagnostics.Append(dpDiags...)
 	if len(dpDiags) > 0 && common.HasValue(priorDeleteProtection) && priorDeleteProtection.ValueBool() {
 		state.DeleteProtection = priorDeleteProtection
 	} else {
 		state.DeleteProtection = dpVal
+	}
+
+	ncVal, ncDiags := rosa.ResolveNotificationContacts(ctx, r.Connection, object)
+	response.Diagnostics.Append(ncDiags...)
+	if len(ncDiags) > 0 && !priorNotificationContacts.IsNull() {
+		state.NotificationContacts = priorNotificationContacts
+	} else {
+		state.NotificationContacts = ncVal
 	}
 
 	diags = response.State.Set(ctx, state)
@@ -1312,6 +1404,10 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resourc
 
 	_, shouldPatchDeleteProtection := common.ShouldPatchBool(state.DeleteProtection, plan.DeleteProtection)
 	desiredDeleteProtection := plan.DeleteProtection
+
+	_, shouldPatchNotificationContacts := common.ShouldPatchSet(state.NotificationContacts, plan.NotificationContacts)
+	desiredNotificationContacts := plan.NotificationContacts
+
 	if shouldPatchDeleteProtection {
 		clusterClient := r.ClusterCollection.Cluster(state.ID.ValueString())
 		err := rosa.UpdateDeleteProtection(ctx, clusterClient, plan.DeleteProtection.ValueBool())
@@ -1445,6 +1541,52 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resourc
 			plan.DeleteProtection = priorDeleteProtection
 		} else {
 			plan.DeleteProtection = dpVal
+		}
+	}
+
+	if shouldPatchNotificationContacts {
+		subID, hasSubID := rosa.GetSubscriptionID(object)
+		if hasSubID {
+			var usernames []string
+			diags = desiredNotificationContacts.ElementsAs(ctx, &usernames, false)
+			response.Diagnostics.Append(diags...)
+			if response.Diagnostics.HasError() {
+				return
+			}
+			err := rosa.UpdateNotificationContacts(ctx, r.Connection, subID, usernames)
+			if err != nil {
+				response.Diagnostics.AddError(
+					"Can't update notification contacts",
+					fmt.Sprintf(
+						"Can't update notification contacts for cluster '%s': %v",
+						plan.ID.ValueString(), err,
+					),
+				)
+				ncVal, ncDiags := rosa.ResolveNotificationContacts(ctx, r.Connection, object)
+				response.Diagnostics.Append(ncDiags...)
+				if !ncVal.IsNull() {
+					plan.NotificationContacts = ncVal
+				} else {
+					plan.NotificationContacts = state.NotificationContacts
+				}
+			} else {
+				plan.NotificationContacts = desiredNotificationContacts
+			}
+		} else {
+			response.Diagnostics.AddError(
+				"Can't update notification contacts",
+				"Cluster subscription ID is not available. "+
+					"Notification contacts could not be updated.",
+			)
+			plan.NotificationContacts = state.NotificationContacts
+		}
+	} else {
+		ncVal, ncDiags := rosa.ResolveNotificationContacts(ctx, r.Connection, object)
+		response.Diagnostics.Append(ncDiags...)
+		if !ncVal.IsNull() {
+			plan.NotificationContacts = ncVal
+		} else {
+			plan.NotificationContacts = state.NotificationContacts
 		}
 	}
 
@@ -2004,6 +2146,8 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	if state.AdminCredentials.IsUnknown() {
 		state.AdminCredentials = rosaTypes.AdminCredentialsNull()
 	}
+
+	state.NotificationContacts = types.SetNull(types.StringType)
 
 	return nil
 }

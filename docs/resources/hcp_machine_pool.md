@@ -25,6 +25,10 @@ resource "rhcs_hcp_machine_pool" "machine_pool" {
     instance_type           = "m5.xlarge"
     node_drain_grace_period = 45
   }
+  management = {
+    max_surge       = "1"
+    max_unavailable = "0"
+  }
   auto_repair = true
 }
 ```
@@ -46,6 +50,7 @@ resource "rhcs_hcp_machine_pool" "machine_pool" {
 - `ignore_deletion_error` (Boolean) Indicates to the provider to disregard API errors when deleting the machine pool. This will remove the resource from the management file, but not necessirely delete the underlying pool in case it errors. Setting this to true can bypass issues when destroying the cluster resource alongside the pool resource in the same management file. This is not recommended to be set in other use cases
 - `kubelet_configs` (String) Name of the kubelet config applied to the machine pool. A single kubelet config is allowed. Kubelet config must already exist.
 - `labels` (Map of String) Labels for the machine pool. Format should be a comma-separated list of 'key = value'. This list will overwrite any modifications made to node labels on an ongoing basis.
+- `management` (Attributes) Management settings for the machine pool. Controls rolling upgrade behavior. (see [below for nested schema](#nestedatt--management))
 - `replicas` (Number) The number of machines of the pool
 - `taints` (Attributes List) Taints for a machine pool. Format should be a comma-separated list of 'key=value'. This list will overwrite any modifications made to node taints on an ongoing basis. (see [below for nested schema](#nestedatt--taints))
 - `tuning_configs` (List of String) A list of tuning configs attached to the pool.
@@ -95,6 +100,16 @@ Optional:
 Read-Only:
 
 - `instance_profile` (String) Instance profile attached to the replica
+
+
+<a id="nestedatt--management"></a>
+### Nested Schema for `management`
+
+Optional:
+
+- `max_surge` (String) Maximum number of nodes that can be scheduled above the desired number of nodes during the upgrade. Can be an integer or a percentage (e.g., "1" or "25%").
+- `max_unavailable` (String) Maximum number of nodes that can be unavailable during the upgrade. Can be an integer or a percentage (e.g., "0" or "10%").
+- `type` (String) Type of strategy for handling upgrades.
 
 
 <a id="nestedatt--taints"></a>

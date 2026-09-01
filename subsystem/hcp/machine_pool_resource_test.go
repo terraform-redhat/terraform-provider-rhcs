@@ -4672,6 +4672,567 @@ var _ = Describe("Hcp Machine pool", func() {
 		})
 	})
 
+	Context("Management", func() {
+		BeforeEach(func() {
+			prepareClusterRead("123")
+		})
+		It("Can create machine pool with management", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools",
+					),
+					VerifyJQ(".management_upgrade.type", "Replace"),
+					VerifyJQ(".management_upgrade.max_surge", "2"),
+					VerifyJQ(".management_upgrade.max_unavailable", "1"),
+					RespondWithJSON(http.StatusCreated, `{
+					"id":"my-pool",
+					"aws_node_pool":{
+					   "instance_type":"r5.xlarge",
+					   "instance_profile": "bla"
+					},
+					"auto_repair": true,
+					"replicas":4,
+					"subnet":"id-1",
+					"availability_zone":"us-east-1a",
+					"management_upgrade": {
+					   "type": "Replace",
+					   "max_surge": "2",
+					   "max_unavailable": "1"
+					},
+					"version": {
+						"raw_id": "4.14.10"
+					}
+				}`),
+				),
+			)
+
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 4
+				management = {
+					type            = "Replace"
+					max_surge       = "2"
+					max_unavailable = "1"
+				}
+				version = "4.14.10"
+				auto_repair = true
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(".attributes.management.type", "Replace"))
+			Expect(resource).To(MatchJQ(".attributes.management.max_surge", "2"))
+			Expect(resource).To(MatchJQ(".attributes.management.max_unavailable", "1"))
+		})
+
+		It("Can create machine pool without management and API defaults populate state", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools",
+					),
+					RespondWithJSON(http.StatusCreated, `{
+					"id":"my-pool",
+					"aws_node_pool":{
+					   "instance_type":"r5.xlarge",
+					   "instance_profile": "bla"
+					},
+					"auto_repair": true,
+					"replicas":4,
+					"subnet":"id-1",
+					"availability_zone":"us-east-1a",
+					"management_upgrade": {
+					   "type": "Replace",
+					   "max_surge": "1",
+					   "max_unavailable": "0"
+					},
+					"version": {
+						"raw_id": "4.14.10"
+					}
+				}`),
+				),
+			)
+
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 4
+				version = "4.14.10"
+				auto_repair = true
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(".attributes.management.type", "Replace"))
+			Expect(resource).To(MatchJQ(".attributes.management.max_surge", "1"))
+			Expect(resource).To(MatchJQ(".attributes.management.max_unavailable", "0"))
+		})
+
+		It("Does not produce a perpetual diff when management is omitted", func() {
+			// Create
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools",
+					),
+					RespondWithJSON(http.StatusCreated, `{
+					"id":"my-pool",
+					"aws_node_pool":{
+					   "instance_type":"r5.xlarge",
+					   "instance_profile": "bla"
+					},
+					"auto_repair": true,
+					"replicas":4,
+					"subnet":"id-1",
+					"availability_zone":"us-east-1a",
+					"management_upgrade": {
+					   "type": "Replace",
+					   "max_surge": "1",
+					   "max_unavailable": "0"
+					},
+					"version": {
+						"raw_id": "4.14.10"
+					}
+				}`),
+				),
+			)
+
+			hclConfig := `
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 4
+				version = "4.14.10"
+				auto_repair = true
+			}`
+			Terraform.Source(hclConfig)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// Second apply with the same config - read handlers for refresh
+			prepareClusterRead("123")
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
+					RespondWithJSON(http.StatusOK, `{
+					"id":"my-pool",
+					"aws_node_pool":{
+					   "instance_type":"r5.xlarge",
+					   "instance_profile": "bla"
+					},
+					"auto_repair": true,
+					"replicas":4,
+					"subnet":"id-1",
+					"availability_zone":"us-east-1a",
+					"management_upgrade": {
+					   "type": "Replace",
+					   "max_surge": "1",
+					   "max_unavailable": "0"
+					},
+					"version": {
+						"raw_id": "4.14.10"
+					}
+				}`),
+				),
+			)
+
+			Terraform.Source(hclConfig)
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+		})
+
+		It("Can create machine pool with management using percentage values", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools",
+					),
+					VerifyJQ(".management_upgrade.max_surge", "25%"),
+					VerifyJQ(".management_upgrade.max_unavailable", "10%"),
+					RespondWithJSON(http.StatusCreated, `{
+					"id":"my-pool",
+					"aws_node_pool":{
+					   "instance_type":"r5.xlarge",
+					   "instance_profile": "bla"
+					},
+					"auto_repair": true,
+					"replicas":4,
+					"subnet":"id-1",
+					"availability_zone":"us-east-1a",
+					"management_upgrade": {
+					   "type": "Replace",
+					   "max_surge": "25%",
+					   "max_unavailable": "10%"
+					},
+					"version": {
+						"raw_id": "4.14.10"
+					}
+				}`),
+				),
+			)
+
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 4
+				management = {
+					max_surge       = "25%"
+					max_unavailable = "10%"
+				}
+				version = "4.14.10"
+				auto_repair = true
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(".attributes.management.max_surge", "25%"))
+			Expect(resource).To(MatchJQ(".attributes.management.max_unavailable", "10%"))
+		})
+
+		It("Can update machine pool management", func() {
+			// Create
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools",
+					),
+					RespondWithJSON(http.StatusCreated, `{
+					"id":"my-pool",
+					"aws_node_pool":{
+					   "instance_type":"r5.xlarge",
+					   "instance_profile": "bla"
+					},
+					"auto_repair": true,
+					"replicas":4,
+					"subnet":"id-1",
+					"availability_zone":"us-east-1a",
+					"management_upgrade": {
+					   "type": "Replace",
+					   "max_surge": "1",
+					   "max_unavailable": "0"
+					},
+					"version": {
+						"raw_id": "4.14.10"
+					}
+				}`),
+				),
+			)
+
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 4
+				management = {
+					max_surge       = "1"
+					max_unavailable = "0"
+				}
+				version = "4.14.10"
+				auto_repair = true
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// Update - Read
+			prepareClusterRead("123")
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
+					RespondWithJSON(http.StatusOK, `{
+					"id":"my-pool",
+					"aws_node_pool":{
+					   "instance_type":"r5.xlarge",
+					   "instance_profile": "bla"
+					},
+					"auto_repair": true,
+					"replicas":4,
+					"subnet":"id-1",
+					"availability_zone":"us-east-1a",
+					"management_upgrade": {
+					   "type": "Replace",
+					   "max_surge": "1",
+					   "max_unavailable": "0"
+					},
+					"version": {
+						"raw_id": "4.14.10"
+					}
+				}`),
+				),
+			)
+			// Update - Get for doUpdate
+			prepareClusterRead("123")
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
+					RespondWithJSON(http.StatusOK, `{
+					"id":"my-pool",
+					"aws_node_pool":{
+					   "instance_type":"r5.xlarge",
+					   "instance_profile": "bla"
+					},
+					"auto_repair": true,
+					"replicas":4,
+					"subnet":"id-1",
+					"availability_zone":"us-east-1a",
+					"management_upgrade": {
+					   "type": "Replace",
+					   "max_surge": "1",
+					   "max_unavailable": "0"
+					},
+					"version": {
+						"raw_id": "4.14.10"
+					}
+				}`),
+				),
+			)
+			// Update - PATCH
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPatch,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+					),
+					VerifyJQ(".management_upgrade.max_surge", "25%"),
+					VerifyJQ(".management_upgrade.max_unavailable", "10%"),
+					RespondWithJSON(http.StatusOK, `{
+					"id":"my-pool",
+					"aws_node_pool":{
+					   "instance_type":"r5.xlarge",
+					   "instance_profile": "bla"
+					},
+					"auto_repair": true,
+					"replicas":4,
+					"subnet":"id-1",
+					"availability_zone":"us-east-1a",
+					"management_upgrade": {
+					   "type": "Replace",
+					   "max_surge": "25%",
+					   "max_unavailable": "10%"
+					},
+					"version": {
+						"raw_id": "4.14.10"
+					}
+				}`),
+				),
+			)
+
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 4
+				management = {
+					max_surge       = "25%"
+					max_unavailable = "10%"
+				}
+				version = "4.14.10"
+				auto_repair = true
+			}`)
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(".attributes.management.max_surge", "25%"))
+			Expect(resource).To(MatchJQ(".attributes.management.max_unavailable", "10%"))
+		})
+
+		It("Validates management max_surge format", func() {
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 4
+				management = {
+					max_surge       = "abc"
+					max_unavailable = "0"
+				}
+				auto_repair = true
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("must be a non-negative integer")
+		})
+
+		It("Validates management max_unavailable format", func() {
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+				}
+				autoscaling = {
+					enabled = false,
+				}
+				subnet_id = "id-1"
+				replicas     = 4
+				management = {
+					max_surge       = "1"
+					max_unavailable = "-1"
+				}
+				auto_repair = true
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("must be a non-negative integer")
+		})
+
+		It("Reads management via data source", func() {
+			nodePoolResponse := `{
+				"id":"my-pool",
+				"aws_node_pool":{
+				   "instance_type":"r5.xlarge",
+				   "instance_profile": "bla"
+				},
+				"auto_repair": true,
+				"replicas":4,
+				"subnet":"id-1",
+				"availability_zone":"us-east-1a",
+				"management_upgrade": {
+				   "type": "Replace",
+				   "max_surge": "1",
+				   "max_unavailable": "0"
+				},
+				"version": {
+					"raw_id": "4.14.10"
+				}
+			}`
+			// Read for plan phase
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
+					RespondWithJSON(http.StatusOK, nodePoolResponse),
+				),
+			)
+			// Read for apply phase
+			prepareClusterRead("123")
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
+					RespondWithJSON(http.StatusOK, nodePoolResponse),
+				),
+			)
+
+			Terraform.Source(`
+			data "rhcs_hcp_machine_pool" "my_pool" {
+				cluster = "123"
+				name    = "my-pool"
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(".attributes.management.type", "Replace"))
+			Expect(resource).To(MatchJQ(".attributes.management.max_surge", "1"))
+			Expect(resource).To(MatchJQ(".attributes.management.max_unavailable", "0"))
+		})
+
+		It("Reads absent management as null via data source", func() {
+			nodePoolResponse := `{
+				"id":"my-pool",
+				"aws_node_pool":{
+				   "instance_type":"r5.xlarge",
+				   "instance_profile": "bla"
+				},
+				"auto_repair": true,
+				"replicas":4,
+				"subnet":"id-1",
+				"availability_zone":"us-east-1a",
+				"version": {
+					"raw_id": "4.14.10"
+				}
+			}`
+			// Read for plan phase
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
+					RespondWithJSON(http.StatusOK, nodePoolResponse),
+				),
+			)
+			// Read for apply phase
+			prepareClusterRead("123")
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
+					RespondWithJSON(http.StatusOK, nodePoolResponse),
+				),
+			)
+
+			Terraform.Source(`
+			data "rhcs_hcp_machine_pool" "my_pool" {
+				cluster = "123"
+				name    = "my-pool"
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(".attributes.management", nil))
+		})
+	})
+
 	Context("Upgrade", func() {
 		clusterId := "123"
 		poolId := "pool1"

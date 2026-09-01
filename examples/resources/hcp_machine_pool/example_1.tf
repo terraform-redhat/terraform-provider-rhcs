@@ -10,5 +10,9 @@ resource "rhcs_hcp_machine_pool" "machine_pool" {
     instance_type           = "m5.xlarge"
     node_drain_grace_period = 45
   }
+  management = {
+    max_surge       = "1"
+    max_unavailable = "0"
+  }
   auto_repair = true
 }

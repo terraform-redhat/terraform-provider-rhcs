@@ -43,6 +43,8 @@ type HcpMachinePoolState struct {
 	KubeletConfigs types.String `tfsdk:"kubelet_configs"`
 	AutoRepair     types.Bool   `tfsdk:"auto_repair"`
 
+	Management types.Object `tfsdk:"management"`
+
 	IgnoreDeletionError types.Bool `tfsdk:"ignore_deletion_error"`
 }
 

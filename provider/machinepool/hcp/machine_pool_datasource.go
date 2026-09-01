@@ -65,6 +65,7 @@ func (r *HcpMachinePoolDatasource) Configure(ctx context.Context, req datasource
 	r.collection = connection.ClustersMgmt().V1().Clusters()
 }
 
+// Schema defines the schema for the HCP machine pool data source.
 func (r *HcpMachinePoolDatasource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "Machine pool.",
@@ -157,6 +158,11 @@ func (r *HcpMachinePoolDatasource) Schema(ctx context.Context, req datasource.Sc
 			"auto_repair": schema.BoolAttribute{
 				Description: "Indicates use of autor repair for replica",
 				Optional:    true,
+				Computed:    true,
+			},
+			"management": schema.SingleNestedAttribute{
+				Description: "Management settings for the machine pool.",
+				Attributes:  ManagementDatasource(),
 				Computed:    true,
 			},
 			"version": schema.StringAttribute{

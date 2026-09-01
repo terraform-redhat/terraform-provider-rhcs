@@ -38,6 +38,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -82,6 +83,7 @@ func (r *HcpMachinePoolResource) Metadata(ctx context.Context, req resource.Meta
 	resp.TypeName = req.ProviderTypeName + "_hcp_machine_pool"
 }
 
+// Schema defines the schema for the HCP machine pool resource.
 func (r *HcpMachinePoolResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "Machine pool.",
@@ -194,6 +196,15 @@ func (r *HcpMachinePoolResource) Schema(ctx context.Context, req resource.Schema
 				Description: "Indicates use of autor repair for the pool",
 				Required:    true,
 			},
+			"management": schema.SingleNestedAttribute{
+				Description: "Management settings for the machine pool. Controls rolling upgrade behavior.",
+				Attributes:  ManagementResource(),
+				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"version": schema.StringAttribute{
 				Description: "Desired version of OpenShift for the machine pool, for example '4.11.0'. If version is greater than the currently running version, an upgrade will be scheduled.",
 				Optional:    true,
@@ -251,6 +262,7 @@ func (r *HcpMachinePoolResource) Configure(ctx context.Context, req resource.Con
 	r.clusterWait = common.NewClusterWait(r.clusterCollection, connection)
 }
 
+// Create creates a new HCP machine pool.
 func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Get the plan:
 	plan := &HcpMachinePoolState{}
@@ -498,6 +510,13 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 
 	if common.HasValue(plan.AutoRepair) {
 		builder.AutoRepair(common.BoolWithTrueDefault(plan.AutoRepair))
+	}
+
+	if mgmtUpgrade := buildManagementUpgrade(ctx, plan.Management, &resp.Diagnostics); mgmtUpgrade != nil {
+		builder.ManagementUpgrade(mgmtUpgrade)
+	}
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
 	if common.HasValue(plan.Version) {
@@ -775,6 +794,7 @@ func (r *HcpMachinePoolResource) Update(ctx context.Context, req resource.Update
 	resp.Diagnostics.Append(diags...)
 }
 
+// doUpdate applies in-place updates to an existing HCP machine pool.
 func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachinePoolState, plan *HcpMachinePoolState) diag.Diagnostics {
 	//assert no changes on specific attributes
 	diags := validateNoImmutableAttChange(state, plan)
@@ -964,6 +984,13 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 		if v, ok := common.ShouldPatchInt(state.AWSNodePool.NodeDrainGracePeriod, plan.AWSNodePool.NodeDrainGracePeriod); ok {
 			npBuilder.NodeDrainGracePeriod(cmv1.NewValue().Value(float64(v)))
 		}
+	}
+
+	if mgmtUpgrade := buildManagementUpgrade(ctx, plan.Management, &diags); mgmtUpgrade != nil {
+		npBuilder.ManagementUpgrade(mgmtUpgrade)
+	}
+	if diags.HasError() {
+		return diags
 	}
 
 	nodePool, err := npBuilder.Build()
@@ -1544,6 +1571,16 @@ func populateState(ctx context.Context, object *cmv1.NodePool, state *HcpMachine
 	}
 
 	state.AutoRepair = types.BoolValue(object.AutoRepair())
+
+	if mgmtUpgrade, ok := object.GetManagementUpgrade(); ok {
+		upgradeType, _ := mgmtUpgrade.GetType()
+		maxSurge, _ := mgmtUpgrade.GetMaxSurge()
+		maxUnavailable, _ := mgmtUpgrade.GetMaxUnavailable()
+		state.Management = flattenManagement(upgradeType, maxSurge, maxUnavailable)
+	} else {
+		state.Management = managementNull()
+	}
+
 	return nil
 }
 

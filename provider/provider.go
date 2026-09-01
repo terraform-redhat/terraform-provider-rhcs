@@ -52,6 +52,7 @@ import (
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/machine_types"
 	machinepool "github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool/classic"
 	nodepool "github.com/terraform-redhat/terraform-provider-rhcs/provider/machinepool/hcp"
+	"github.com/terraform-redhat/terraform-provider-rhcs/provider/notificationcontacts"
 	classicStsPolicies "github.com/terraform-redhat/terraform-provider-rhcs/provider/ocm_policies/classic"
 	hcpStsPolicies "github.com/terraform-redhat/terraform-provider-rhcs/provider/ocm_policies/hcp"
 	"github.com/terraform-redhat/terraform-provider-rhcs/provider/ocmrole"
@@ -241,6 +242,7 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 		hcpAutoscaler.New,
 		breakglasscredential.New,
 		logforwarder.New,
+		notificationcontacts.New,
 		ocmrole.New,
 	}
 }

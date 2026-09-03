@@ -1295,6 +1295,9 @@ func (r *ClusterRosaHcpResource) Read(ctx context.Context, request resource.Read
 
 	object := get.Body()
 
+	// Capture prior delete protection before populate overwrites it with a default.
+	priorDeleteProtection := state.DeleteProtection
+
 	// Save the state:
 	err = populateRosaHcpClusterState(ctx, object, state)
 	if err != nil {
@@ -1328,7 +1331,6 @@ func (r *ClusterRosaHcpResource) Read(ctx context.Context, request resource.Read
 	}
 
 	clusterClient := r.ClusterCollection.Cluster(state.ID.ValueString())
-	priorDeleteProtection := state.DeleteProtection
 	dpVal, dpDiags := rosa.ResolveDeleteProtection(ctx, clusterClient, object)
 	response.Diagnostics.Append(dpDiags...)
 	if len(dpDiags) > 0 && common.HasValue(priorDeleteProtection) && priorDeleteProtection.ValueBool() {
@@ -2358,6 +2360,8 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 	}
 
 	state.LogForwarderIds = types.ListNull(types.StringType)
+
+	state.DeleteProtection = types.BoolValue(false)
 
 	return nil
 }

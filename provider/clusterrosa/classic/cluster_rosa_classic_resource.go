@@ -1074,6 +1074,9 @@ func (r *ClusterRosaClassicResource) Read(ctx context.Context, request resource.
 
 	object := get.Body()
 
+	// Capture prior delete protection before populate overwrites it with a default.
+	priorDeleteProtection := state.DeleteProtection
+
 	// Save the state:
 	err = populateRosaClassicClusterState(ctx, object, state, common.DefaultHttpClient{})
 	if err != nil {
@@ -1087,7 +1090,6 @@ func (r *ClusterRosaClassicResource) Read(ctx context.Context, request resource.
 	}
 
 	clusterClient := r.ClusterCollection.Cluster(state.ID.ValueString())
-	priorDeleteProtection := state.DeleteProtection
 	dpVal, dpDiags := rosa.ResolveDeleteProtection(ctx, clusterClient, object)
 	response.Diagnostics.Append(dpDiags...)
 	if len(dpDiags) > 0 && common.HasValue(priorDeleteProtection) && priorDeleteProtection.ValueBool() {
@@ -2004,6 +2006,8 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	if state.AdminCredentials.IsUnknown() {
 		state.AdminCredentials = rosaTypes.AdminCredentialsNull()
 	}
+
+	state.DeleteProtection = types.BoolValue(false)
 
 	return nil
 }

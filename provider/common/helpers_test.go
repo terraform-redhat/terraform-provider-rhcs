@@ -123,6 +123,36 @@ var _ = Describe("Helper function tests", func() {
 		),
 	)
 
+	DescribeTable("ShouldPatchSet",
+		func(state, plan types.Set, expectedPatch bool) {
+			result, ok := ShouldPatchSet(state, plan)
+			Expect(ok).To(Equal(expectedPatch))
+			if expectedPatch {
+				Expect(result).To(Equal(plan))
+			}
+		},
+		Entry("identical sets -> no patch",
+			types.SetValueMust(types.StringType, []attr.Value{types.StringValue("a"), types.StringValue("b")}),
+			types.SetValueMust(types.StringType, []attr.Value{types.StringValue("a"), types.StringValue("b")}),
+			false,
+		),
+		Entry("different sets -> patch",
+			types.SetValueMust(types.StringType, []attr.Value{types.StringValue("a")}),
+			types.SetValueMust(types.StringType, []attr.Value{types.StringValue("b")}),
+			true,
+		),
+		Entry("empty vs non-empty -> patch",
+			types.SetValueMust(types.StringType, []attr.Value{}),
+			types.SetValueMust(types.StringType, []attr.Value{types.StringValue("a")}),
+			true,
+		),
+		Entry("both empty -> no patch",
+			types.SetValueMust(types.StringType, []attr.Value{}),
+			types.SetValueMust(types.StringType, []attr.Value{}),
+			false,
+		),
+	)
+
 	DescribeTable("IsStringAttributeUnknownOrEmpty",
 		func(param types.String, expected bool) {
 			Expect(IsStringAttributeUnknownOrEmpty(param)).To(Equal(expected))

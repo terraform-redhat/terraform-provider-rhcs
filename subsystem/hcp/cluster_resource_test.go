@@ -10155,4 +10155,355 @@ var _ = Describe("HCP Cluster", func() {
 			runOutput.VerifyErrorContainsSubstring("spot termination queue URL region 'eu-west-1' does not match cluster region 'us-west-1'")
 		})
 	})
+
+	Context("Notification Contacts", func() {
+		const ncRoute = "/api/accounts_mgmt/v1/subscriptions/sub-123/notification_contacts"
+		const clusterWithSubPatch = `[
+					{
+					  "op": "add",
+					  "path": "/subscription",
+					  "value": {
+						  "id": "sub-123",
+						  "href": "/api/accounts_mgmt/v1/subscriptions/sub-123"
+					  }
+					},
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					}]`
+		const ncBase = `
+			resource "rhcs_cluster_rosa_hcp" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				aws_billing_account_id = "123456789012"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						worker_role_arn = "",
+					},
+				}
+				aws_subnet_ids = [
+					"id1", "id2", "id3"
+				]
+				availability_zones = [
+					"us-west-1a",
+					"us-west-1b",
+					"us-west-1c",
+				]
+			`
+		ncListResponse := func(contacts ...string) string {
+			items := ""
+			for i, c := range contacts {
+				if i > 0 {
+					items += ","
+				}
+				items += `{"kind":"Account","id":"acc-` + c + `","username":"` + c + `"}`
+			}
+			return `{"kind":"AccountList","items":[` + items + `],"size":` + fmt.Sprintf("%d", len(contacts)) + `,"total":` + fmt.Sprintf("%d", len(contacts)) + `}`
+		}
+
+		It("Sets notification contacts during creation", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodGet,
+						"/api/clusters_mgmt/v1/versions",
+					),
+					RespondWithJSON(
+						http.StatusOK, versionListPage,
+					),
+				),
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters",
+					),
+					RespondWithPatchedJSON(
+						http.StatusCreated,
+						template,
+						clusterWithSubPatch,
+					),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, ncRoute),
+					RespondWithJSON(http.StatusOK, ncListResponse()),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, ncRoute),
+					VerifyJQ(`.account_identifier`, "alice"),
+					RespondWithJSON(http.StatusCreated, `{"kind":"Account","id":"acc-alice","username":"alice"}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, ncRoute),
+					VerifyJQ(`.account_identifier`, "bob"),
+					RespondWithJSON(http.StatusCreated, `{"kind":"Account","id":"acc-bob","username":"bob"}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, ncRoute),
+					RespondWithJSON(http.StatusOK, ncListResponse("alice", "bob")),
+				),
+			)
+			Terraform.Source(ncBase + `
+				notification_contacts = ["alice", "bob"]
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource(
+				"rhcs_cluster_rosa_hcp", "my_cluster",
+			)
+			Expect(resource).To(MatchJQ(
+				`.attributes.notification_contacts`,
+				[]interface{}{"alice", "bob"},
+			))
+		})
+
+		It("Reads notification contacts from API", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodGet,
+						"/api/clusters_mgmt/v1/versions",
+					),
+					RespondWithJSON(
+						http.StatusOK, versionListPage,
+					),
+				),
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters",
+					),
+					RespondWithPatchedJSON(
+						http.StatusCreated,
+						template,
+						clusterWithSubPatch,
+					),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, ncRoute),
+					RespondWithJSON(http.StatusOK, ncListResponse("creator")),
+				),
+			)
+			Terraform.Source(ncBase + `}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource(
+				"rhcs_cluster_rosa_hcp", "my_cluster",
+			)
+			Expect(resource).To(MatchJQ(
+				`.attributes.notification_contacts`,
+				[]interface{}{"creator"},
+			))
+		})
+
+		It("Updates notification contacts", func() {
+			// First apply - create with initial contacts
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodGet,
+						"/api/clusters_mgmt/v1/versions",
+					),
+					RespondWithJSON(
+						http.StatusOK, versionListPage,
+					),
+				),
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters",
+					),
+					RespondWithPatchedJSON(
+						http.StatusCreated,
+						template,
+						clusterWithSubPatch,
+					),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, ncRoute),
+					RespondWithJSON(http.StatusOK, ncListResponse()),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, ncRoute),
+					VerifyJQ(`.account_identifier`, "alice"),
+					RespondWithJSON(http.StatusCreated, `{"kind":"Account","id":"acc-alice","username":"alice"}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, ncRoute),
+					RespondWithJSON(http.StatusOK, ncListResponse("alice")),
+				),
+			)
+			Terraform.Source(ncBase + `
+				notification_contacts = ["alice"]
+			}`)
+			Expect(Terraform.Apply().ExitCode).To(BeZero())
+
+			// Second apply - update contacts (add bob)
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodGet, cluster123Route,
+					),
+					RespondWithPatchedJSON(
+						http.StatusOK,
+						template,
+						clusterWithSubPatch,
+					),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, ncRoute),
+					RespondWithJSON(http.StatusOK, ncListResponse("alice")),
+				),
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPatch, cluster123Route,
+					),
+					RespondWithPatchedJSON(
+						http.StatusOK,
+						template,
+						clusterWithSubPatch,
+					),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, ncRoute),
+					RespondWithJSON(http.StatusOK, ncListResponse("alice")),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, ncRoute),
+					VerifyJQ(`.account_identifier`, "bob"),
+					RespondWithJSON(http.StatusCreated, `{"kind":"Account","id":"acc-bob","username":"bob"}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, ncRoute),
+					RespondWithJSON(http.StatusOK, ncListResponse("alice", "bob")),
+				),
+			)
+			Terraform.Source(ncBase + `
+				notification_contacts = ["alice", "bob"]
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource(
+				"rhcs_cluster_rosa_hcp", "my_cluster",
+			)
+			Expect(resource).To(MatchJQ(
+				`.attributes.notification_contacts`,
+				[]interface{}{"alice", "bob"},
+			))
+		})
+		It("Removes a notification contact", func() {
+			// First apply - create with two contacts
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodGet,
+						"/api/clusters_mgmt/v1/versions",
+					),
+					RespondWithJSON(
+						http.StatusOK, versionListPage,
+					),
+				),
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters",
+					),
+					RespondWithPatchedJSON(
+						http.StatusCreated,
+						template,
+						clusterWithSubPatch,
+					),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, ncRoute),
+					RespondWithJSON(http.StatusOK, ncListResponse()),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, ncRoute),
+					VerifyJQ(`.account_identifier`, "alice"),
+					RespondWithJSON(http.StatusCreated, `{"kind":"Account","id":"acc-alice","username":"alice"}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, ncRoute),
+					VerifyJQ(`.account_identifier`, "bob"),
+					RespondWithJSON(http.StatusCreated, `{"kind":"Account","id":"acc-bob","username":"bob"}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, ncRoute),
+					RespondWithJSON(http.StatusOK, ncListResponse("alice", "bob")),
+				),
+			)
+			Terraform.Source(ncBase + `
+				notification_contacts = ["alice", "bob"]
+			}`)
+			Expect(Terraform.Apply().ExitCode).To(BeZero())
+
+			// Second apply - remove bob, keep only alice
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodGet, cluster123Route,
+					),
+					RespondWithPatchedJSON(
+						http.StatusOK,
+						template,
+						clusterWithSubPatch,
+					),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, ncRoute),
+					RespondWithJSON(http.StatusOK, ncListResponse("alice", "bob")),
+				),
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPatch, cluster123Route,
+					),
+					RespondWithPatchedJSON(
+						http.StatusOK,
+						template,
+						clusterWithSubPatch,
+					),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, ncRoute),
+					RespondWithJSON(http.StatusOK, ncListResponse("alice", "bob")),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodDelete, ncRoute+"/acc-bob"),
+					RespondWithJSON(http.StatusNoContent, ""),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, ncRoute),
+					RespondWithJSON(http.StatusOK, ncListResponse("alice")),
+				),
+			)
+			Terraform.Source(ncBase + `
+				notification_contacts = ["alice"]
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource(
+				"rhcs_cluster_rosa_hcp", "my_cluster",
+			)
+			Expect(resource).To(MatchJQ(
+				`.attributes.notification_contacts`,
+				[]interface{}{"alice"},
+			))
+		})
+	})
 })

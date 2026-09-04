@@ -43,6 +43,7 @@ type ClusterRosaClassicDatasource struct {
 	clusterCollection *cmv1.ClustersClient
 	versionCollection *cmv1.VersionsClient
 	clusterWait       common.ClusterWait
+	connection        *sdk.Connection
 }
 
 func NewDataSource() datasource.DataSource {
@@ -95,7 +96,8 @@ func (r *ClusterRosaClassicDatasource) Schema(ctx context.Context, req datasourc
 					"Site Reliability Engineer (SRE) platform metrics.",
 				Computed: true,
 			},
-			"delete_protection": rosa.DeleteProtectionDatasourceSchema(),
+			"delete_protection":     rosa.DeleteProtectionDatasourceSchema(),
+			"notification_contacts": rosa.NotificationContactsDatasourceSchema(),
 			"disable_scp_checks": schema.BoolAttribute{
 				Description: "Indicates if cloud permission checks are disabled when attempting installation of the cluster. " +
 					common.ValueCannotBeChangedStringDescription,
@@ -353,6 +355,7 @@ func (r *ClusterRosaClassicDatasource) Configure(ctx context.Context, req dataso
 	r.clusterCollection = connection.ClustersMgmt().V1().Clusters()
 	r.versionCollection = connection.ClustersMgmt().V1().Versions()
 	r.clusterWait = common.NewClusterWait(r.clusterCollection, connection)
+	r.connection = connection
 }
 
 func (r *ClusterRosaClassicDatasource) Read(ctx context.Context, request datasource.ReadRequest,
@@ -424,6 +427,12 @@ func (r *ClusterRosaClassicDatasource) Read(ctx context.Context, request datasou
 		return
 	}
 	state.DeleteProtection = dpVal
+
+	ncVal, ncDiags := rosa.ResolveNotificationContacts(ctx, r.connection, object)
+	response.Diagnostics.Append(ncDiags...)
+	if !ncVal.IsNull() {
+		state.NotificationContacts = ncVal
+	}
 
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)

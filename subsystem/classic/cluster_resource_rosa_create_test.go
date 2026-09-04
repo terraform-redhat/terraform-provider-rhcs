@@ -5124,4 +5124,185 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			SetDeleteProtectionError(false)
 		})
 	})
+
+	Context("Notification Contacts", func() {
+		const ncCluster123Route = "/api/clusters_mgmt/v1/clusters/123"
+		const ncRoute = "/api/accounts_mgmt/v1/subscriptions/sub-123/notification_contacts"
+		const ncClusterBase = `
+			resource "rhcs_cluster_rosa_classic" "my_cluster" {
+				name           = "my-cluster"
+				cloud_region   = "us-west-1"
+				aws_account_id = "123456789012"
+				sts = {
+					operator_role_prefix = "test"
+					role_arn = "",
+					support_role_arn = "",
+					instance_iam_roles = {
+						master_role_arn = "",
+						worker_role_arn = "",
+					}
+				}
+		`
+		const ncCreatePatch = `[
+			{
+			  "op": "add",
+			  "path": "/subscription",
+			  "value": {
+				"id": "sub-123",
+				"href": "/api/accounts_mgmt/v1/subscriptions/sub-123"
+			  }
+			},
+			{
+			  "op": "add",
+			  "path": "/aws",
+			  "value": {
+				"ec2_metadata_http_tokens": "optional",
+				"sts": {
+					"oidc_endpoint_url": "https://127.0.0.1",
+					"thumbprint": "111111",
+					"role_arn": "",
+					"support_role_arn": "",
+					"instance_iam_roles": {
+						"master_role_arn": "",
+						"worker_role_arn": ""
+					},
+					"operator_role_prefix": "test"
+				}
+			  }
+			}]`
+		ncListResponse := func(contacts ...string) string {
+			items := ""
+			for i, c := range contacts {
+				if i > 0 {
+					items += ","
+				}
+				items += `{"kind":"Account","id":"acc-` + c + `","username":"` + c + `"}`
+			}
+			return `{"kind":"AccountList","items":[` + items + `],"size":` + fmt.Sprintf("%d", len(contacts)) + `,"total":` + fmt.Sprintf("%d", len(contacts)) + `}`
+		}
+
+		It("Sets notification contacts during cluster creation", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					RespondWithPatchedJSON(
+						http.StatusCreated, template, ncCreatePatch),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, ncRoute),
+					RespondWithJSON(http.StatusOK, ncListResponse()),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, ncRoute),
+					VerifyJQ(`.account_identifier`, "user1"),
+					RespondWithJSON(http.StatusCreated, `{"kind":"Account","id":"acc-user1","username":"user1"}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, ncRoute),
+					RespondWithJSON(http.StatusOK, ncListResponse("user1")),
+				),
+			)
+			Terraform.Source(ncClusterBase + `
+				notification_contacts = ["user1"]
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource(
+				"rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(
+				`.attributes.notification_contacts[0]`, "user1"))
+		})
+
+		It("Reads notification contacts from subscription", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					RespondWithPatchedJSON(
+						http.StatusCreated, template, ncCreatePatch),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, ncRoute),
+					RespondWithJSON(http.StatusOK, ncListResponse("user1")),
+				),
+			)
+			Terraform.Source(ncClusterBase + `}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource(
+				"rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(
+				`.attributes.notification_contacts[0]`, "user1"))
+		})
+
+		It("Updates notification contacts", func() {
+			// Create without contacts
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					RespondWithPatchedJSON(
+						http.StatusCreated, template, ncCreatePatch),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, ncRoute),
+					RespondWithJSON(http.StatusOK, ncListResponse()),
+				),
+			)
+			Terraform.Source(ncClusterBase + `}`)
+			Expect(Terraform.Apply().ExitCode).To(BeZero())
+
+			// Update with contacts
+			TestServer.AppendHandlers(
+				// Read (refresh during plan)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, ncCluster123Route),
+					RespondWithPatchedJSON(
+						http.StatusOK, template, ncCreatePatch),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, ncRoute),
+					RespondWithJSON(http.StatusOK, ncListResponse()),
+				),
+				// Update
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, ncCluster123Route),
+					RespondWithPatchedJSON(
+						http.StatusOK, template, ncCreatePatch),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, ncRoute),
+					RespondWithJSON(http.StatusOK, ncListResponse()),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, ncRoute),
+					VerifyJQ(`.account_identifier`, "user1"),
+					RespondWithJSON(http.StatusCreated, `{"kind":"Account","id":"acc-user1","username":"user1"}`),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, ncRoute),
+					RespondWithJSON(http.StatusOK, ncListResponse("user1")),
+				),
+			)
+			Terraform.Source(ncClusterBase + `
+				notification_contacts = ["user1"]
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			resource := Terraform.Resource(
+				"rhcs_cluster_rosa_classic", "my_cluster")
+			Expect(resource).To(MatchJQ(
+				`.attributes.notification_contacts[0]`, "user1"))
+		})
+	})
 })

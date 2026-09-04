@@ -28,6 +28,9 @@ resource "rhcs_cluster_rosa_hcp" "rosa_sts_cluster" {
   wait_for_create_complete            = true
   wait_for_std_compute_nodes_complete = true
 
-  # Optional: enable OCM delete protection (set to false and apply before terraform destroy)
+  # Optional: enable Red Hat OpenShift Cluster Manager (OCM) delete protection (set to false and apply before terraform destroy)
   # delete_protection = true
+
+  # Optional: set notification contacts (must be Red Hat OpenShift Cluster Manager (OCM) usernames in the same organization)
+  # notification_contacts = ["ocm-username-1", "ocm-username-2"]
 }

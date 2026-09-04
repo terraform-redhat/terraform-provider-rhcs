@@ -63,6 +63,7 @@ type ClusterArgs struct {
 	StsTrustPolicyExternalID             *string            `hcl:"sts_trust_policy_external_id"`
 	RegistryConfig                       *RegistryConfig    `hcl:"registry_config"`
 	ExternalAuthProvidersEnabled         *bool              `hcl:"external_auth_providers_enabled"`
+	DeleteProtection                     *bool              `hcl:"delete_protection"`
 
 	IncludeCreatorProperty *bool `hcl:"include_creator_property"`
 

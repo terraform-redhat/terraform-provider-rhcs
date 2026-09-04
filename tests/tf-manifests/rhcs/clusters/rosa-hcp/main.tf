@@ -92,6 +92,7 @@ resource "rhcs_cluster_rosa_hcp" "rosa_hcp_cluster" {
   disable_waiting_in_destroy                = var.disable_waiting_in_destroy
   registry_config                           = var.registry_config
   worker_disk_size                          = var.worker_disk_size
+  delete_protection                         = var.delete_protection
   external_auth_providers_enabled           = var.external_auth_providers_enabled
   log_forwarders_at_cluster_creation        = var.log_forwarders_at_cluster_creation
 }

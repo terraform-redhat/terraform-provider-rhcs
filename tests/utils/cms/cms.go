@@ -24,6 +24,18 @@ func RetrieveClusterDetail(connection *client.Connection, clusterID string) (*cm
 	return connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).Get().Send()
 }
 
+// RetrieveClusterDeleteProtection will retrieve delete protection status for a cluster
+func RetrieveClusterDeleteProtection(connection *client.Connection, clusterID string) (bool, error) {
+	resp, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).DeleteProtection().Get().Send()
+	if err != nil {
+		return false, err
+	}
+	if resp.Body() != nil {
+		return resp.Body().Enabled(), nil
+	}
+	return false, fmt.Errorf("delete protection response body is empty")
+}
+
 // RetrieveClusterIngress will retrieve default ingress detail information based on the clusterID
 func RetrieveClusterIngress(connection *client.Connection, clusterID string) (*cmv1.Ingress, error) {
 	ListResp, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).Ingresses().List().Send()

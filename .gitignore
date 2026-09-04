@@ -3,6 +3,7 @@
 .terraform*
 /dist/
 terraform.tfstate*
+*.tfstate.d/
 terraform.tfvars.d*
 /playground/*
 /vendor

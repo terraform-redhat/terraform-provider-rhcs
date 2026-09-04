@@ -28,14 +28,14 @@ import (
 )
 
 var _ = Describe("Machine types data source", func() {
-	It("Can list machine types", func() {
+	It("Can list machine types without filters", func() {
 		// Prepare the server:
 		TestServer.AppendHandlers(
 			CombineHandlers(
 				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/machine_types"),
 				RespondWithJSON(http.StatusOK, `{
 				  "page": 1,
-				  "size": 1,
+				  "size": 2,
 				  "total": 2,
 				  "items": [
 				    {
@@ -113,5 +113,128 @@ var _ = Describe("Machine types data source", func() {
 		Expect(awsType).To(MatchJQ(".name", "c5.12xlarge - Compute optimized"))
 		Expect(awsType).To(MatchJQ(".cpu", 48.0))
 		Expect(awsType).To(MatchJQ(".ram", 103079215104.0))
+
+		// item is nil when there are multiple results:
+		Expect(resource).To(MatchJQ(`.attributes.item`, nil))
+	})
+
+	It("Forwards search and order to the OCM API", func() {
+		// Prepare the server:
+		TestServer.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/machine_types"),
+				VerifyFormKV("search", "id in ('m5.xlarge','m5.2xlarge')"),
+				VerifyFormKV("order", "id asc"),
+				RespondWithJSON(http.StatusOK, `{
+				  "page": 1,
+				  "size": 2,
+				  "total": 2,
+				  "items": [
+				    {
+				      "name": "m5.xlarge",
+				      "id": "m5.xlarge",
+				      "memory": {"value": 17179869184, "unit": "B"},
+				      "cpu": {"value": 4, "unit": "vCPU"},
+				      "cloud_provider": {"id": "aws"}
+				    },
+				    {
+				      "name": "m5.2xlarge",
+				      "id": "m5.2xlarge",
+				      "memory": {"value": 34359738368, "unit": "B"},
+				      "cpu": {"value": 8, "unit": "vCPU"},
+				      "cloud_provider": {"id": "aws"}
+				    }
+				  ]
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		Terraform.Source(`
+		  data "rhcs_machine_types" "my_machines" {
+		    search = "id in ('m5.xlarge','m5.2xlarge')"
+		    order  = "id asc"
+		  }
+		`)
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+
+		// Check the state:
+		resource := Terraform.Resource("rhcs_machine_types", "my_machines")
+		Expect(resource).To(MatchJQ(`.attributes.items | length`, 2))
+		Expect(resource).To(MatchJQ(`.attributes.items[0].id`, "m5.xlarge"))
+		Expect(resource).To(MatchJQ(`.attributes.items[1].id`, "m5.2xlarge"))
+		Expect(resource).To(MatchJQ(`.attributes.item`, nil))
+	})
+
+	It("Populates item when search returns exactly one result", func() {
+		// Prepare the server:
+		TestServer.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/machine_types"),
+				VerifyFormKV("search", "id = 'm5.xlarge'"),
+				RespondWithJSON(http.StatusOK, `{
+				  "page": 1,
+				  "size": 1,
+				  "total": 1,
+				  "items": [
+				    {
+				      "name": "m5.xlarge",
+				      "id": "m5.xlarge",
+				      "memory": {"value": 17179869184, "unit": "B"},
+				      "cpu": {"value": 4, "unit": "vCPU"},
+				      "cloud_provider": {"id": "aws"}
+				    }
+				  ]
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		Terraform.Source(`
+		  data "rhcs_machine_types" "my_machines" {
+		    search = "id = 'm5.xlarge'"
+		  }
+		`)
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+
+		// Check the state:
+		resource := Terraform.Resource("rhcs_machine_types", "my_machines")
+		Expect(resource).To(MatchJQ(`.attributes.items | length`, 1))
+		Expect(resource).To(MatchJQ(`.attributes.item.id`, "m5.xlarge"))
+		Expect(resource).To(MatchJQ(`.attributes.item.cloud_provider`, "aws"))
+		Expect(resource).To(MatchJQ(`.attributes.item.cpu`, 4.0))
+		Expect(resource).To(MatchJQ(`.attributes.item.ram`, 17179869184.0))
+	})
+
+	It("Does not populate item when search returns no results", func() {
+		// Prepare the server:
+		TestServer.AppendHandlers(
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/machine_types"),
+				VerifyFormKV("search", "id = 'nonexistent'"),
+				RespondWithJSON(http.StatusOK, `{
+				  "page": 1,
+				  "size": 0,
+				  "total": 0,
+				  "items": []
+				}`),
+			),
+		)
+
+		// Run the apply command:
+		Terraform.Source(`
+		  data "rhcs_machine_types" "my_machines" {
+		    search = "id = 'nonexistent'"
+		  }
+		`)
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+
+		// Check the state:
+		resource := Terraform.Resource("rhcs_machine_types", "my_machines")
+		Expect(resource).To(MatchJQ(`.attributes.items | length`, 0))
+		Expect(resource).To(MatchJQ(`.attributes.item`, nil))
 	})
 })

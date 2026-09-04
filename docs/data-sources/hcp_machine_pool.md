@@ -42,6 +42,7 @@ data "rhcs_hcp_machine_pool" "machine_pool" {
 - `ignore_deletion_error` (Boolean) Indicates to the provider to disregard API errors when deleting the machine pool. This will remove the resource from the management file, but not necessirely delete the underlying pool in case it errors. Setting this to true can bypass issues when destroying the cluster resource alongside the pool resource in the same management file. This is not recommended to be set in other use cases
 - `kubelet_configs` (String) Name of the kubelet config applied to the machine pool.
 - `labels` (Map of String) Labels for the machine pool. Format should be a comma-separated list of 'key = value'. This list will overwrite any modifications made to node labels on an ongoing basis.
+- `management` (Attributes) Management settings for the machine pool. (see [below for nested schema](#nestedatt--management))
 - `replicas` (Number) The number of machines of the pool
 - `status` (Attributes) HCP replica status (see [below for nested schema](#nestedatt--status))
 - `subnet_id` (String) Select the subnet in which to create a single AZ machine pool for BYO-VPC cluster. After the creation of the resource, it is not possible to update the attribute value.
@@ -79,6 +80,16 @@ Read-Only:
 - `instance_type` (String) Identifier of the machine type used by the nodes, for example `m5.xlarge`. Use the `rhcs_machine_types` data source to find the possible values. After the creation of the resource, it is not possible to update the attribute value.
 - `max_spot_price` (Number) Max Spot price.
 - `use_spot_instances` (Boolean) Use Amazon EC2 Spot Instances.
+
+
+<a id="nestedatt--management"></a>
+### Nested Schema for `management`
+
+Read-Only:
+
+- `max_surge` (String) Maximum number of nodes that can be scheduled above the desired number of nodes during the upgrade.
+- `max_unavailable` (String) Maximum number of nodes that can be unavailable during the upgrade.
+- `type` (String) Type of strategy for handling upgrades.
 
 
 <a id="nestedatt--status"></a>

@@ -11,6 +11,7 @@ import (
 var FeatureClusterAutoscaler = Label("feature-cluster-autoscaler")
 var FeatureClusterCompute = Label("feature-cluster-compute")
 var FeatureClusterDefault = Label("feature-cluster-default")
+var FeatureClusterDeleteProtection = Label("feature-cluster-delete-protection")
 var FeatureClusterEncryption = Label("feature-cluster-encryption")
 var FeatureClusterIMDSv2 = Label("feature-cluster-imdsv2")
 var FeatureClusterMisc = Label("feature-cluster-misc")

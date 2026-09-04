@@ -92,6 +92,7 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   aws_additional_compute_security_group_ids       = var.additional_compute_security_groups
   aws_additional_infra_security_group_ids         = var.additional_infra_security_groups
   aws_additional_control_plane_security_group_ids = var.additional_control_plane_security_groups
+  delete_protection                               = var.delete_protection
   destroy_timeout                                 = 120
   upgrade_acknowledgements_for                    = var.upgrade_acknowledgements_for
   base_dns_domain                                 = var.base_dns_domain

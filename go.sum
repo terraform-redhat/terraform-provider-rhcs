@@ -45,8 +45,8 @@ github.com/aws/aws-sdk-go-v2/service/cloudformation v1.48.0 h1:uMlYsoHdd2Gr9sDGq
 github.com/aws/aws-sdk-go-v2/service/cloudformation v1.48.0/go.mod h1:G2qcp9xrwch6TH9AlzWoYbV9QScyZhLCoMCQ1+BD404=
 github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.35.1 h1:suWu59CRsDNhw2YXPpa6drYEetIUUIMUhkzHmucbCf8=
 github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.35.1/go.mod h1:tZiRxrv5yBRgZ9Z4OOOxwscAZRFk5DgYhEcjX1QpvgI=
-github.com/aws/aws-sdk-go-v2/service/ec2 v1.326.0 h1:Ss1S5gY5ElwOreWCTvOZxgNf4iQCkoX6lQqNLP/Mh0k=
-github.com/aws/aws-sdk-go-v2/service/ec2 v1.326.0/go.mod h1:M8AJ/M7737nKBNqZvXUNrADGBy+d3PNggJGmAStCWxI=
+github.com/aws/aws-sdk-go-v2/service/ec2 v1.327.0 h1:RQ2Dt43PSvHWnc0+NgOUPNIpGd7vpx9cOyuKWV15/54=
+github.com/aws/aws-sdk-go-v2/service/ec2 v1.327.0/go.mod h1:M8AJ/M7737nKBNqZvXUNrADGBy+d3PNggJGmAStCWxI=
 github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.34.0 h1:8rDRtPOu3ax8jEctw7G926JQlnFdhZZA4KJzQ+4ks3Q=
 github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.34.0/go.mod h1:L5bVuO4PeXuDuMYZfL3IW69E6mz6PDCYpp6IKDlcLMA=
 github.com/aws/aws-sdk-go-v2/service/iam v1.62.0 h1:pMq9Wvwbxre0ALXgh6wesNH3+92DaGzAle38t2V0ucU=

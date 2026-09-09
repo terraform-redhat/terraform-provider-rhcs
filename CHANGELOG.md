@@ -1,3 +1,46 @@
+## 1.7.8 (09 Sep, 2026)
+
+FEATURES:
+   * Add component_routes support to HCP default ingress resource
+   * Add delete_protection to ROSA cluster resources
+   * Implement no-cni for HCP clusters (#1204)
+   * Read noproxy default domains from ocm api
+ * Hcp
+   * Add spot instance support for machine pools and clusters
+ * Sts
+   * Add trust_policy_external_id for ROSA Classic and HCP
+
+ENHANCEMENTS:
+ * Bug fixes
+   * Set delete_protection default in populate functions
+   * Fix .govulncheck-ignore.yaml, snyk and bump indirect deps
+ * Chores
+   * Add markirish to OWNERS list
+   * Upgrade ocm-common to v0.0.45
+   * Update Vale
+   * Bump Go to 1.26.3
+   * Add LICENSE and automation for checking it
+   * Add ROSAENG to commit pattern
+ * Documentation
+   * Add service account authentication documentation
+   * Expand nested developer-docs for resources
+   * Add agent-agnostic developer-docs hub
+   * Add communication channels and feature process to CONTRIBUTING
+   * Add DCO sign-off requirement to CONTRIBUTING.md
+ * Cluster
+   * Fail destroy when OCM delete wait times out
+ * Common
+   * Remove unused HTPasswd validators
+ * E2e
+   * Isolate dnsdomain day2 test on temp workspace
+ * Logging
+   * Drop direct terraform-plugin-sdk/v2 dependency
+   * Improve error logging to include actionable error details
+ * Test
+   * Correct multi_az assertion for HCP clusters
+ * Upgrade
+   * Skip recurring upgrade policies with empty version (#1186) (#1213)
+
 ## 1.7.7 (08 Jun, 2026)
 
 FEATURES:

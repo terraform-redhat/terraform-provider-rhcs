@@ -85,3 +85,4 @@ jobs:
           delete-branch: true
           add-paths: "CHANGELOG.md"
           sign-commits: true
+          signoff: true

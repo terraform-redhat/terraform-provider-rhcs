@@ -258,6 +258,11 @@ variable "log_forwarders_at_cluster_creation" {
   default = null
 }
 
+variable "delete_protection" {
+  type    = bool
+  default = null
+}
+
 variable "autoscaling_enabled" {
   type    = bool
   default = null

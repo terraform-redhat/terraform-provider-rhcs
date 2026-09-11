@@ -121,6 +121,40 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			Expect(clusterProxy.NoProxy()).To(BeEmpty())
 		})
 
+		It("delete_protection - [id:66500]", ci.High, ci.FeatureClusterDeleteProtection, func() {
+			DeferCleanup(func() {
+				By("Ensure delete_protection is disabled for teardown")
+				clusterArgs.DeleteProtection = new(false)
+				_, err := clusterService.Apply(clusterArgs)
+				Expect(err).ShouldNot(HaveOccurred())
+			})
+
+			By("Enable delete_protection")
+			clusterArgs.DeleteProtection = new(true)
+			_, err := clusterService.Apply(clusterArgs)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			By("Verify delete_protection is enabled via OCM API")
+			enabled, err := cms.RetrieveClusterDeleteProtection(cms.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(enabled).To(BeTrue())
+
+			By("Verify destroy fails when delete_protection is enabled")
+			_, err = clusterService.Destroy()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Can't delete cluster"))
+
+			By("Disable delete_protection")
+			clusterArgs.DeleteProtection = new(false)
+			_, err = clusterService.Apply(clusterArgs)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			By("Verify delete_protection is disabled via OCM API")
+			enabled, err = cms.RetrieveClusterDeleteProtection(cms.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(enabled).To(BeFalse())
+		})
+
 		It("registry config - [id:76500]", ci.High, ci.FeatureClusterRegistryConfig, func() {
 			if !profileHandler.Profile().IsHCP() {
 				Skip("Test can run only on Hosted cluster")

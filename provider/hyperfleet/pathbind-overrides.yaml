@@ -1,0 +1,111 @@
+# pathbind-overrides.yaml — Terraform resource field mapping for Cluster resource
+# This file defines the mapping from Terraform schema attributes to the Hyperfleet
+# v1alpha1.Cluster SDK fields using pathbind path expressions.
+#
+# Fields are categorized as:
+# - Mapped: path expression in SDK (pathbind.Expand/Flatten)
+# - Consumer-only: no path expression (set manually in handler)
+# - Computed: read-only from API response
+
+config:
+  package: hyperfleet
+  tfProviderPkg: github.com/terraform-redhat/terraform-provider-rhcs/provider/hyperfleet
+
+resources:
+  cluster:
+    # Mapped fields — Terraform schema attributes that correspond directly to SDK paths
+    aliases:
+      # identity — immutable after creation
+      - path: metadata.name
+        attr: name
+        type: string
+        required: true
+        immutable: true
+        description: "Human-readable cluster name. Immutable after creation."
+
+      # consumer-only fields — set manually in PreExpand handler
+      # These fields don't map to SDK paths and must be computed by the handler
+      - attr: operator_roles_prefix
+        type: string
+        required: true
+        immutable: true
+        description: "Prefix used to construct the seven operator IAM role ARNs (e.g. a prefix of `my-cluster` produces `my-cluster-ingress`, `my-cluster-ebs-csi`, etc.). Immutable after creation."
+
+      - attr: aws_subnet_ids
+        type: string[]
+        required: true
+        immutable: true
+        description: "IDs of worker-node subnets. The first entry is used as the cluster subnet. Typically sourced from `data.aws_subnet`. Immutable after creation."
+
+      - attr: vpc_id
+        type: string
+        required: true
+        immutable: true
+        description: "ID of the VPC that contains the worker subnet. Typically sourced from `data.aws_subnet.*.vpc_id`. Immutable after creation."
+
+      - attr: availability_zones
+        type: string[]
+        required: true
+        immutable: true
+        description: "Availability zones for worker nodes. The first entry determines the cluster AZ. Typically sourced from `data.aws_subnet.*.availability_zone`. Immutable after creation."
+
+      - attr: aws_partition
+        type: string
+        immutable: true
+        computed: true
+        default: "aws"
+        description: "AWS partition used when computing operator role ARNs. Defaults to `aws`. Set to `aws-us-gov` for GovCloud regions. Immutable after creation."
+
+      - attr: cloud_region
+        type: string
+        immutable: true
+        computed: true
+        description: "AWS region identifier (e.g. `us-east-1`). Derived from `availability_zones` if not set. Immutable after creation."
+
+      # optional mutable fields
+      - path: spec.expirationTimestamp
+        attr: expiration_timestamp
+        type: string
+        description: "Optional RFC3339 timestamp after which the Platform API automatically deletes the cluster."
+
+      # computed fields — read-only from API response
+      - path: metadata.uid
+        attr: id
+        type: string
+        computed: true
+        description: "Cluster UID assigned by the Platform API on creation."
+
+      - path: status.phase
+        attr: phase
+        type: string
+        computed: true
+        description: "Current lifecycle phase of the cluster (WaitingForPlacement, Provisioning, Ready, Deleting)."
+
+      - path: status.apiUrl
+        attr: api_url
+        type: string
+        computed: true
+        description: "Control-plane API endpoint host. Empty until the cluster is Ready."
+
+      - path: status.currentVersion
+        attr: current_version
+        type: string
+        computed: true
+        description: "Running OpenShift version as reported by the operator."
+
+      - path: status.managementCluster
+        attr: management_cluster
+        type: string
+        computed: true
+        description: "Management cluster ID assigned by the Platform API."
+
+      - path: status.oidcIssuer
+        attr: oidc_issuer
+        type: string
+        computed: true
+        description: "OIDC service-account issuer URL for the cluster. Use this to create the IAM OIDC provider and build operator role trust policies after cluster creation."
+
+      - attr: creator_arn
+        type: string
+        computed: true
+        description: "IAM ARN of the caller that created the cluster. Populated from the provider `aws_caller_arn` attribute."

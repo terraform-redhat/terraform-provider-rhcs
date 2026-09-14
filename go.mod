@@ -2,7 +2,10 @@ module github.com/terraform-redhat/terraform-provider-rhcs
 
 go 1.26.9
 
-replace github.com/openshift-online/rosa-hyperfleet-api/api v0.0.0 => github.com/openshift-online/rosa-hyperfleet-api/api v0.0.0-20260810145312-a1bbdf150898
+replace (
+	github.com/openshift-online/rosa-hyperfleet-api/api v0.0.0 => github.com/openshift-online/rosa-hyperfleet-api/api v0.0.0-20260810145312-a1bbdf150898
+	github.com/openshift-online/rosa-hyperfleet-api/clientset v0.0.0-20260812125925-97221f0b11a8 => ../../hyperfleet/rosa-hyperfleet-api/clientset
+)
 
 require (
 	github.com/Masterminds/semver v1.5.0

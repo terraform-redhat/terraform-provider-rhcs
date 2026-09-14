@@ -219,6 +219,31 @@ clean:
 generate: $(MOCKGEN)
 	PATH="$(LOCALBIN_ABS):$$PATH" go generate ./...
 
+.PHONY: generate-hyperfleet
+generate-hyperfleet:
+	@echo "Generating Terraform resource code from hyperfleet pathbind configuration..."
+	@if [ ! -f "provider/hyperfleet/pathbind-overrides.yaml" ]; then \
+		echo "Error: provider/hyperfleet/pathbind-overrides.yaml not found"; \
+		exit 1; \
+	fi
+	@HYPERFLEET_TMPDIR=$$(mktemp -d); \
+	PATHBIND_GEN_BIN=$$(mktemp); \
+	OUTPUT_DIR=provider/hyperfleet/generated; \
+	trap 'rm -rf "$$HYPERFLEET_TMPDIR" "$$PATHBIND_GEN_BIN"' EXIT; \
+	echo "Cloning rosa-hyperfleet-api (chore/tf-pathbind branch) to $$HYPERFLEET_TMPDIR..."; \
+	git clone --depth=1 --branch chore/tf-pathbind https://github.com/openshift-online/rosa-hyperfleet-api.git "$$HYPERFLEET_TMPDIR" 2>/dev/null || \
+	git clone --depth=1 https://github.com/openshift-online/rosa-hyperfleet-api.git "$$HYPERFLEET_TMPDIR" || exit 1; \
+	echo "Building pathbind-gen..."; \
+	cd "$$HYPERFLEET_TMPDIR/clientset" && go build -o "$$PATHBIND_GEN_BIN" ./cmd/pathbind-gen || exit 1; \
+	cd - > /dev/null; \
+	mkdir -p "$$OUTPUT_DIR"; \
+	echo "Running pathbind-gen in TF mode..."; \
+	"$$PATHBIND_GEN_BIN" \
+		--mode=tf \
+		--draft="$$HYPERFLEET_TMPDIR/clientset/pathbind/pathbind-draft.yaml" \
+		--overrides=provider/hyperfleet/pathbind-overrides.yaml \
+		--output-dir="$$OUTPUT_DIR"
+
 .PHONY: docs
 docs:
 	go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate

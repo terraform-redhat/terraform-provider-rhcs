@@ -23,6 +23,17 @@ resources:
         immutable: true
         description: "Human-readable cluster name. Immutable after creation."
 
+      # optional mutable cluster metadata fields
+      - path: spec.displayName
+        attr: display_name
+        type: string
+        description: "Optional display name for the cluster. Can be updated after cluster creation."
+
+      - path: spec.deleteProtection
+        attr: delete_protection
+        type: bool
+        description: "Enable or disable deletion protection for the cluster. When enabled, the cluster cannot be deleted via the API."
+
       # consumer-only fields — set manually in PreExpand handler
       # These fields don't map to SDK paths and must be computed by the handler
       - attr: operator_roles_prefix

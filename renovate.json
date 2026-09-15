@@ -181,6 +181,16 @@
       ]
     },
     {
+      "description": "golang.org/x/ packages",
+      "groupName": "golang.org/x",
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchPackageNames": [
+        "/^golang\\.org\\/x\\//"
+      ]
+    },
+    {
       "description": "AWS SDK v2 and smithy",
       "groupName": "aws-sdk",
       "matchManagers": [

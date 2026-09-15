@@ -464,6 +464,37 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 			Expect(clusterState.AutoNode.RoleARN.ValueString()).To(Equal(autoNodeRoleArn))
 		})
 
+		It("Populates replicas from API compute nodes count", func() {
+			clusterState := &ClusterRosaHcpState{}
+			clusterJson := generateBasicRosaHcpClusterJson()
+			clusterJson["nodes"].(map[string]any)["compute"] = 5
+
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(clusterState.Replicas.ValueInt64()).To(Equal(int64(5)))
+		})
+
+		It("Populates compute_machine_type from API response", func() {
+			clusterState := &ClusterRosaHcpState{}
+			clusterJson := generateBasicRosaHcpClusterJson()
+
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(clusterState.ComputeMachineType.ValueString()).To(Equal(machineType))
+		})
+
 		It("Populates Channel and nulls ChannelGroup when cluster has channel", func() {
 			clusterState := &ClusterRosaHcpState{}
 			clusterJson := generateBasicRosaHcpClusterJson()
@@ -501,6 +532,29 @@ var _ = Describe("Rosa HCP Sts cluster", func() {
 
 			Expect(clusterState.Channel.IsNull()).To(BeTrue())
 			Expect(clusterState.ChannelGroup.ValueString()).To(Equal("stable"))
+		})
+	})
+
+	Context("Read restores default machine pool attributes absent from configuration", func() {
+		It("Restores replicas and compute_machine_type from API response", func() {
+			clusterState := &ClusterRosaHcpState{}
+			clusterJson := generateBasicRosaHcpClusterJson()
+			clusterJson["nodes"].(map[string]any)["compute"] = 6
+
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(clusterState.Replicas.IsNull()).To(BeTrue())
+			Expect(clusterState.ComputeMachineType.IsNull()).To(BeTrue())
+
+			err = populateRosaHcpClusterState(context.Background(), clusterObject, clusterState)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(clusterState.Replicas.ValueInt64()).To(Equal(int64(6)))
+			Expect(clusterState.ComputeMachineType.ValueString()).To(Equal(machineType))
 		})
 	})
 

@@ -326,6 +326,57 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 			Expect(clusterState.Sts.OIDCEndpointURL.ValueString()).To(Equal("nonce.com"))
 		})
 
+		It("Populates replicas from API compute nodes count", func() {
+			clusterState := &ClusterRosaClassicState{}
+			clusterJson := generateBasicRosaClassicClusterJson()
+			clusterJson["nodes"].(map[string]any)["compute"] = 5
+
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(clusterState.Replicas.ValueInt64()).To(Equal(int64(5)))
+		})
+
+		It("Populates compute_machine_type from API response", func() {
+			clusterState := &ClusterRosaClassicState{}
+			clusterJson := generateBasicRosaClassicClusterJson()
+
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(clusterState.ComputeMachineType.ValueString()).To(Equal(machineType))
+		})
+
+		It("Populates default_mp_labels from API response", func() {
+			clusterState := &ClusterRosaClassicState{}
+			clusterJson := generateBasicRosaClassicClusterJson()
+			clusterJson["nodes"].(map[string]any)["compute_labels"] = map[string]any{
+				"env": "test",
+			}
+
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)
+			Expect(err).ToNot(HaveOccurred())
+			labels, err := common.OptionalMap(context.Background(), clusterState.DefaultMPLabels)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(labels["env"]).To(Equal("test"))
+		})
+
 		It("Throws an error when oidc_endpoint_url is an invalid url", func() {
 			clusterState := &ClusterRosaClassicState{}
 			clusterJson := generateBasicRosaClassicClusterJson()
@@ -339,6 +390,39 @@ var _ = Describe("Rosa Classic Sts cluster", func() {
 			err = populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clusterState.Sts.Thumbprint.ValueString()).To(Equal(""))
+		})
+	})
+
+	Context("Read restores default machine pool attributes absent from configuration", func() {
+		It("Restores replicas, compute_machine_type, and default_mp_labels from API response", func() {
+			clusterState := &ClusterRosaClassicState{}
+			clusterJson := generateBasicRosaClassicClusterJson()
+			clusterJson["nodes"].(map[string]any)["compute"] = 3
+			clusterJson["nodes"].(map[string]any)["compute_labels"] = map[string]any{
+				"env":  "production",
+				"tier": "frontend",
+			}
+
+			clusterJsonString, err := json.Marshal(clusterJson)
+			Expect(err).ToNot(HaveOccurred())
+
+			clusterObject, err := cmv1.UnmarshalCluster(clusterJsonString)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(clusterState.Replicas.IsNull()).To(BeTrue())
+			Expect(clusterState.ComputeMachineType.IsNull()).To(BeTrue())
+			Expect(clusterState.DefaultMPLabels.IsNull()).To(BeTrue())
+
+			err = populateRosaClassicClusterState(context.Background(), clusterObject, clusterState, mockHttpClient)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(clusterState.Replicas.ValueInt64()).To(Equal(int64(3)))
+			Expect(clusterState.ComputeMachineType.ValueString()).To(Equal(machineType))
+			labels, err := common.OptionalMap(context.Background(), clusterState.DefaultMPLabels)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(labels).To(HaveLen(2))
+			Expect(labels["env"]).To(Equal("production"))
+			Expect(labels["tier"]).To(Equal("frontend"))
 		})
 	})
 

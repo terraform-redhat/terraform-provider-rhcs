@@ -979,15 +979,16 @@ var _ = Describe("Identity Providers", ci.Day2, ci.FeatureIDP, func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(resp.Status()).To(Equal(http.StatusOK))
 
-				// update is currently not supported for idp :: OCM-4622
-				By("Update and apply idp using terraform")
+				By("Update and apply idp using terraform triggers replacement")
+				originalID := idpOutput.ID
 				newClientSecret = helper.GenerateRandomStringWithSymbols(30)
 				idpParam.ClientSecret = new(newClientSecret)
 				_, err = idpServices.gitlab.Apply(idpParam)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).Should(ContainSubstring(
-					"This RHCS provider version does not support updating an existing IDP"),
-				)
+				Expect(err).ToNot(HaveOccurred())
+				idpOutput, err = idpServices.gitlab.Output()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(idpOutput.ID).ToNot(Equal(originalID),
+					"IDP ID should change after replacement, not remain the same")
 			})
 	})
 })

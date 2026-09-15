@@ -13,11 +13,10 @@ config:
 
 resources:
   cluster:
-    # Mapped fields — Terraform schema attributes that correspond directly to SDK paths
     aliases:
       # identity — immutable after creation
       - path: metadata.name
-        attr: name
+        alias: name
         type: string
         required: true
         immutable: true
@@ -25,98 +24,138 @@ resources:
 
       # optional mutable cluster metadata fields
       - path: spec.displayName
-        attr: display_name
+        alias: display_name
         type: string
         description: "Optional display name for the cluster. Can be updated after cluster creation."
 
       - path: spec.deleteProtection
-        attr: delete_protection
+        alias: delete_protection
         type: bool
         description: "Enable or disable deletion protection for the cluster. When enabled, the cluster cannot be deleted via the API."
 
       # consumer-only fields — set manually in PreExpand handler
       # These fields don't map to SDK paths and must be computed by the handler
-      - attr: operator_roles_prefix
+      - alias: operator_roles_prefix
         type: string
         required: true
         immutable: true
+        operations:
+          - create
         description: "Prefix used to construct the seven operator IAM role ARNs (e.g. a prefix of `my-cluster` produces `my-cluster-ingress`, `my-cluster-ebs-csi`, etc.). Immutable after creation."
 
-      - attr: aws_subnet_ids
+      - alias: aws_subnet_ids
         type: string[]
         required: true
         immutable: true
+        operations:
+          - create
         description: "IDs of worker-node subnets. The first entry is used as the cluster subnet. Typically sourced from `data.aws_subnet`. Immutable after creation."
 
-      - attr: vpc_id
+      - alias: vpc_id
         type: string
         required: true
         immutable: true
+        operations:
+          - create
         description: "ID of the VPC that contains the worker subnet. Typically sourced from `data.aws_subnet.*.vpc_id`. Immutable after creation."
 
-      - attr: availability_zones
+      - alias: availability_zones
         type: string[]
         required: true
         immutable: true
+        operations:
+          - create
         description: "Availability zones for worker nodes. The first entry determines the cluster AZ. Typically sourced from `data.aws_subnet.*.availability_zone`. Immutable after creation."
 
-      - attr: aws_partition
+      - alias: aws_partition
         type: string
         immutable: true
         computed: true
         default: "aws"
+        operations:
+          - create
         description: "AWS partition used when computing operator role ARNs. Defaults to `aws`. Set to `aws-us-gov` for GovCloud regions. Immutable after creation."
 
-      - attr: cloud_region
+      - alias: cloud_region
         type: string
         immutable: true
         computed: true
+        operations:
+          - create
         description: "AWS region identifier (e.g. `us-east-1`). Derived from `availability_zones` if not set. Immutable after creation."
 
       # optional mutable fields
       - path: spec.expirationTimestamp
-        attr: expiration_timestamp
+        alias: expiration_timestamp
         type: string
         description: "Optional RFC3339 timestamp after which the Platform API automatically deletes the cluster."
 
       # computed fields — read-only from API response
       - path: metadata.uid
-        attr: id
+        alias: id
         type: string
         computed: true
         description: "Cluster UID assigned by the Platform API on creation."
 
+      - path: spec.hostedCluster.platform.aws.cloudProviderConfig.subnet.id
+        alias: subnet_id
+        type: string
+        computed: true
+        description: "Subnet ID for the cluster."
+
       - path: status.phase
-        attr: phase
+        alias: phase
         type: string
         computed: true
         description: "Current lifecycle phase of the cluster (WaitingForPlacement, Provisioning, Ready, Deleting)."
 
       - path: status.apiUrl
-        attr: api_url
+        alias: api_url
         type: string
         computed: true
         description: "Control-plane API endpoint host. Empty until the cluster is Ready."
 
       - path: status.currentVersion
-        attr: current_version
+        alias: current_version
         type: string
         computed: true
         description: "Running OpenShift version as reported by the operator."
 
       - path: status.managementCluster
-        attr: management_cluster
+        alias: management_cluster
         type: string
         computed: true
         description: "Management cluster ID assigned by the Platform API."
 
       - path: status.oidcIssuer
-        attr: oidc_issuer
+        alias: oidc_issuer
         type: string
         computed: true
         description: "OIDC service-account issuer URL for the cluster. Use this to create the IAM OIDC provider and build operator role trust policies after cluster creation."
 
-      - attr: creator_arn
+      - alias: creator_arn
         type: string
         computed: true
+        operations:
+          - read
         description: "IAM ARN of the caller that created the cluster. Populated from the provider `aws_caller_arn` attribute."
+
+  nodePool:
+    aliases:
+      - path: metadata.uid
+        alias: id
+        type: string
+        computed: true
+
+      - path: spec.nodePool.platform.type
+        alias: platform_type
+        type: string
+        computed: true
+        description: "Platform type for the NodePool (AWS)."
+
+  oidcConfig:
+    aliases:
+      - path: metadata.uid
+        alias: id
+        type: string
+        computed: true

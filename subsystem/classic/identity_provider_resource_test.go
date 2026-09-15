@@ -1360,6 +1360,655 @@ var _ = Describe("Identity provider creation", func() {
 	})
 })
 
+// Verifies that non-HTPasswd IDP changes trigger destroy+create (RequiresReplace),
+// and that HTPasswd user changes remain in-place updates.
+var _ = Describe("Identity provider replacement", func() {
+
+	// clusterReadyHandlers returns two mock handlers that satisfy the
+	// cluster-existence check and cluster-ready poll that Create performs.
+	clusterReadyHandlers := func() []http.HandlerFunc {
+		h := CombineHandlers(
+			VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+			RespondWithJSON(http.StatusOK, `{
+				"id": "123",
+				"name": "my-cluster",
+				"state": "ready"
+			}`),
+		)
+		return []http.HandlerFunc{h, h}
+	}
+
+	// --- GitLab ---
+
+	It("Forces replacement when GitLab configuration changes", func() {
+		gitlabIDPResponse := `{
+			"id": "456",
+			"name": "my-ip",
+			"mapping_method": "claim",
+			"gitlab": {
+				"ca": "test-ca",
+				"url": "https://test.gitlab.com",
+				"client_id": "test-client",
+				"client_secret": "test-secret"
+			}
+		}`
+
+		TestServer.AppendHandlers(
+			clusterReadyHandlers()[0],
+			clusterReadyHandlers()[1],
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/identity_providers"),
+				RespondWithJSON(http.StatusOK, gitlabIDPResponse),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/identity_providers/456"),
+				RespondWithJSON(http.StatusOK, gitlabIDPResponse),
+			),
+		)
+
+		Terraform.Source(`
+		  resource "rhcs_identity_provider" "my_idp" {
+		    cluster       = "123"
+		    name          = "my-ip"
+		    gitlab = {
+		      ca            = "test-ca"
+		      url           = "https://test.gitlab.com"
+		      client_id     = "test-client"
+		      client_secret = "test-secret"
+		    }
+		  }
+		`)
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+
+		Terraform.Source(`
+		  resource "rhcs_identity_provider" "my_idp" {
+		    cluster       = "123"
+		    name          = "my-ip"
+		    gitlab = {
+		      ca            = "test-ca"
+		      url           = "https://test.gitlab.com"
+		      client_id     = "changed-client"
+		      client_secret = "test-secret"
+		    }
+		  }
+		`)
+		runOutput = Terraform.Run("plan", "-detailed-exitcode")
+		Expect(runOutput.ExitCode).To(Equal(2))
+		runOutput.VerifyOutputContainsSubstring("forces replacement")
+	})
+
+	// --- OpenID ---
+
+	It("Forces replacement when OpenID configuration changes", func() {
+		openidIDPResponse := `{
+			"id": "456",
+			"name": "my-ip",
+			"mapping_method": "claim",
+			"open_id": {
+				"ca": "test_ca",
+				"claims": {
+					"email": ["email"],
+					"name": ["name"],
+					"preferred_username": ["preferred_username"]
+				},
+				"client_id": "test_client",
+				"issuer": "https://test.okta.com"
+			}
+		}`
+
+		TestServer.AppendHandlers(
+			clusterReadyHandlers()[0],
+			clusterReadyHandlers()[1],
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/identity_providers"),
+				RespondWithJSON(http.StatusOK, openidIDPResponse),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/identity_providers/456"),
+				RespondWithJSON(http.StatusOK, openidIDPResponse),
+			),
+		)
+
+		Terraform.Source(`
+		  resource "rhcs_identity_provider" "my_idp" {
+		    cluster = "123"
+		    name    = "my-ip"
+		    openid = {
+		      ca            = "test_ca"
+		      issuer        = "https://test.okta.com"
+		      client_id     = "test_client"
+		      client_secret = "test_secret"
+		      claims = {
+		        email              = ["email"]
+		        name               = ["name"]
+		        preferred_username = ["preferred_username"]
+		      }
+		    }
+		  }
+		`)
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+
+		Terraform.Source(`
+		  resource "rhcs_identity_provider" "my_idp" {
+		    cluster = "123"
+		    name    = "my-ip"
+		    openid = {
+		      ca            = "test_ca"
+		      issuer        = "https://changed.okta.com"
+		      client_id     = "test_client"
+		      client_secret = "test_secret"
+		      claims = {
+		        email              = ["email"]
+		        name               = ["name"]
+		        preferred_username = ["preferred_username"]
+		      }
+		    }
+		  }
+		`)
+		runOutput = Terraform.Run("plan", "-detailed-exitcode")
+		Expect(runOutput.ExitCode).To(Equal(2))
+		runOutput.VerifyOutputContainsSubstring("forces replacement")
+	})
+
+	It("Executes delete then create when OpenID configuration changes", func() {
+		openidIDPResponse := `{
+			"id": "456",
+			"name": "my-ip",
+			"mapping_method": "claim",
+			"open_id": {
+				"ca": "test_ca",
+				"claims": {
+					"email": ["email"],
+					"name": ["name"],
+					"preferred_username": ["preferred_username"]
+				},
+				"client_id": "test_client",
+				"issuer": "https://test.okta.com"
+			}
+		}`
+		newOpenidIDPResponse := `{
+			"id": "789",
+			"name": "my-ip",
+			"mapping_method": "claim",
+			"open_id": {
+				"ca": "test_ca",
+				"claims": {
+					"email": ["email"],
+					"name": ["name"],
+					"preferred_username": ["preferred_username"]
+				},
+				"client_id": "test_client",
+				"issuer": "https://changed.okta.com"
+			}
+		}`
+
+		TestServer.AppendHandlers(
+			// Create
+			clusterReadyHandlers()[0],
+			clusterReadyHandlers()[1],
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/identity_providers"),
+				RespondWithJSON(http.StatusOK, openidIDPResponse),
+			),
+			// Refresh read before replacement
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/identity_providers/456"),
+				RespondWithJSON(http.StatusOK, openidIDPResponse),
+			),
+			// Destroy
+			CombineHandlers(
+				VerifyRequest(http.MethodDelete, "/api/clusters_mgmt/v1/clusters/123/identity_providers/456"),
+				RespondWithJSON(http.StatusNoContent, "{}"),
+			),
+			// Re-create
+			clusterReadyHandlers()[0],
+			clusterReadyHandlers()[1],
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/identity_providers"),
+				RespondWithJSON(http.StatusOK, newOpenidIDPResponse),
+			),
+		)
+
+		Terraform.Source(`
+		  resource "rhcs_identity_provider" "my_idp" {
+		    cluster = "123"
+		    name    = "my-ip"
+		    openid = {
+		      ca            = "test_ca"
+		      issuer        = "https://test.okta.com"
+		      client_id     = "test_client"
+		      client_secret = "test_secret"
+		      claims = {
+		        email              = ["email"]
+		        name               = ["name"]
+		        preferred_username = ["preferred_username"]
+		      }
+		    }
+		  }
+		`)
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+
+		Terraform.Source(`
+		  resource "rhcs_identity_provider" "my_idp" {
+		    cluster = "123"
+		    name    = "my-ip"
+		    openid = {
+		      ca            = "test_ca"
+		      issuer        = "https://changed.okta.com"
+		      client_id     = "test_client"
+		      client_secret = "test_secret"
+		      claims = {
+		        email              = ["email"]
+		        name               = ["name"]
+		        preferred_username = ["preferred_username"]
+		      }
+		    }
+		  }
+		`)
+		runOutput = Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+	})
+
+	// --- GitHub ---
+
+	It("Forces replacement when GitHub configuration changes", func() {
+		githubIDPResponse := `{
+			"id": "456",
+			"name": "my-ip",
+			"mapping_method": "claim",
+			"github": {
+				"ca": "test-ca",
+				"client_id": "test-client",
+				"client_secret": "test-secret",
+				"organizations": ["my-org"]
+			}
+		}`
+
+		TestServer.AppendHandlers(
+			clusterReadyHandlers()[0],
+			clusterReadyHandlers()[1],
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/identity_providers"),
+				RespondWithJSON(http.StatusOK, githubIDPResponse),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/identity_providers/456"),
+				RespondWithJSON(http.StatusOK, githubIDPResponse),
+			),
+		)
+
+		Terraform.Source(`
+		  resource "rhcs_identity_provider" "my_idp" {
+		    cluster = "123"
+		    name    = "my-ip"
+		    github = {
+		      ca            = "test-ca"
+		      client_id     = "test-client"
+		      client_secret = "test-secret"
+		      organizations = ["my-org"]
+		    }
+		  }
+		`)
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+
+		Terraform.Source(`
+		  resource "rhcs_identity_provider" "my_idp" {
+		    cluster = "123"
+		    name    = "my-ip"
+		    github = {
+		      ca            = "test-ca"
+		      client_id     = "changed-client"
+		      client_secret = "test-secret"
+		      organizations = ["my-org"]
+		    }
+		  }
+		`)
+		runOutput = Terraform.Run("plan", "-detailed-exitcode")
+		Expect(runOutput.ExitCode).To(Equal(2))
+		runOutput.VerifyOutputContainsSubstring("forces replacement")
+	})
+
+	// --- Google ---
+
+	It("Forces replacement when Google configuration changes", func() {
+		googleIDPResponse := `{
+			"id": "456",
+			"name": "my-ip",
+			"mapping_method": "claim",
+			"google": {
+				"client_id": "test-client",
+				"client_secret": "test-secret",
+				"hosted_domain": "example.com"
+			}
+		}`
+
+		TestServer.AppendHandlers(
+			clusterReadyHandlers()[0],
+			clusterReadyHandlers()[1],
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/identity_providers"),
+				RespondWithJSON(http.StatusOK, googleIDPResponse),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/identity_providers/456"),
+				RespondWithJSON(http.StatusOK, googleIDPResponse),
+			),
+		)
+
+		Terraform.Source(`
+		  resource "rhcs_identity_provider" "my_idp" {
+		    cluster = "123"
+		    name    = "my-ip"
+		    google = {
+		      client_id     = "test-client"
+		      client_secret = "test-secret"
+		      hosted_domain = "example.com"
+		    }
+		  }
+		`)
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+
+		Terraform.Source(`
+		  resource "rhcs_identity_provider" "my_idp" {
+		    cluster = "123"
+		    name    = "my-ip"
+		    google = {
+		      client_id     = "changed-client"
+		      client_secret = "test-secret"
+		      hosted_domain = "example.com"
+		    }
+		  }
+		`)
+		runOutput = Terraform.Run("plan", "-detailed-exitcode")
+		Expect(runOutput.ExitCode).To(Equal(2))
+		runOutput.VerifyOutputContainsSubstring("forces replacement")
+	})
+
+	// --- LDAP ---
+
+	It("Forces replacement when LDAP configuration changes", func() {
+		ldapIDPResponse := `{
+			"id": "456",
+			"name": "my-ip",
+			"mapping_method": "claim",
+			"ldap": {
+				"ca": "my-ca",
+				"insecure": false,
+				"url": "ldap://my-server.com",
+				"attributes": {
+					"id": ["dn"],
+					"email": ["mail"],
+					"name": ["cn"],
+					"preferred_username": ["uid"]
+				}
+			}
+		}`
+
+		TestServer.AppendHandlers(
+			clusterReadyHandlers()[0],
+			clusterReadyHandlers()[1],
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/identity_providers"),
+				RespondWithJSON(http.StatusOK, ldapIDPResponse),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/identity_providers/456"),
+				RespondWithJSON(http.StatusOK, ldapIDPResponse),
+			),
+		)
+
+		Terraform.Source(`
+		  resource "rhcs_identity_provider" "my_idp" {
+		    cluster = "123"
+		    name    = "my-ip"
+		    ldap = {
+		      insecure = false
+		      ca       = "my-ca"
+		      url      = "ldap://my-server.com"
+		      attributes = {
+		        id                 = ["dn"]
+		        email              = ["mail"]
+		        name               = ["cn"]
+		        preferred_username = ["uid"]
+		      }
+		    }
+		  }
+		`)
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+
+		Terraform.Source(`
+		  resource "rhcs_identity_provider" "my_idp" {
+		    cluster = "123"
+		    name    = "my-ip"
+		    ldap = {
+		      insecure = false
+		      ca       = "my-ca"
+		      url      = "ldap://changed-server.com"
+		      attributes = {
+		        id                 = ["dn"]
+		        email              = ["mail"]
+		        name               = ["cn"]
+		        preferred_username = ["uid"]
+		      }
+		    }
+		  }
+		`)
+		runOutput = Terraform.Run("plan", "-detailed-exitcode")
+		Expect(runOutput.ExitCode).To(Equal(2))
+		runOutput.VerifyOutputContainsSubstring("forces replacement")
+	})
+
+	// --- Name and mapping_method ---
+
+	It("Forces replacement when name changes", func() {
+		gitlabIDPResponse := `{
+			"id": "456",
+			"name": "my-ip",
+			"mapping_method": "claim",
+			"gitlab": {
+				"ca": "test-ca",
+				"url": "https://test.gitlab.com",
+				"client_id": "test-client",
+				"client_secret": "test-secret"
+			}
+		}`
+
+		TestServer.AppendHandlers(
+			clusterReadyHandlers()[0],
+			clusterReadyHandlers()[1],
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/identity_providers"),
+				RespondWithJSON(http.StatusOK, gitlabIDPResponse),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/identity_providers/456"),
+				RespondWithJSON(http.StatusOK, gitlabIDPResponse),
+			),
+		)
+
+		Terraform.Source(`
+		  resource "rhcs_identity_provider" "my_idp" {
+		    cluster       = "123"
+		    name          = "my-ip"
+		    gitlab = {
+		      ca            = "test-ca"
+		      url           = "https://test.gitlab.com"
+		      client_id     = "test-client"
+		      client_secret = "test-secret"
+		    }
+		  }
+		`)
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+
+		Terraform.Source(`
+		  resource "rhcs_identity_provider" "my_idp" {
+		    cluster       = "123"
+		    name          = "my-ip-renamed"
+		    gitlab = {
+		      ca            = "test-ca"
+		      url           = "https://test.gitlab.com"
+		      client_id     = "test-client"
+		      client_secret = "test-secret"
+		    }
+		  }
+		`)
+		runOutput = Terraform.Run("plan", "-detailed-exitcode")
+		Expect(runOutput.ExitCode).To(Equal(2))
+		runOutput.VerifyOutputContainsSubstring("forces replacement")
+	})
+
+	It("Forces replacement when mapping_method changes", func() {
+		gitlabIDPResponse := `{
+			"id": "456",
+			"name": "my-ip",
+			"mapping_method": "claim",
+			"gitlab": {
+				"ca": "test-ca",
+				"url": "https://test.gitlab.com",
+				"client_id": "test-client",
+				"client_secret": "test-secret"
+			}
+		}`
+
+		TestServer.AppendHandlers(
+			clusterReadyHandlers()[0],
+			clusterReadyHandlers()[1],
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/identity_providers"),
+				RespondWithJSON(http.StatusOK, gitlabIDPResponse),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/identity_providers/456"),
+				RespondWithJSON(http.StatusOK, gitlabIDPResponse),
+			),
+		)
+
+		Terraform.Source(`
+		  resource "rhcs_identity_provider" "my_idp" {
+		    cluster        = "123"
+		    name           = "my-ip"
+		    mapping_method = "claim"
+		    gitlab = {
+		      ca            = "test-ca"
+		      url           = "https://test.gitlab.com"
+		      client_id     = "test-client"
+		      client_secret = "test-secret"
+		    }
+		  }
+		`)
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+
+		Terraform.Source(`
+		  resource "rhcs_identity_provider" "my_idp" {
+		    cluster        = "123"
+		    name           = "my-ip"
+		    mapping_method = "add"
+		    gitlab = {
+		      ca            = "test-ca"
+		      url           = "https://test.gitlab.com"
+		      client_id     = "test-client"
+		      client_secret = "test-secret"
+		    }
+		  }
+		`)
+		runOutput = Terraform.Run("plan", "-detailed-exitcode")
+		Expect(runOutput.ExitCode).To(Equal(2))
+		runOutput.VerifyOutputContainsSubstring("forces replacement")
+	})
+
+	// --- HTPasswd (negative test) ---
+
+	// Verifies that modifying HTPasswd users triggers an in-place update, not a
+	// resource replacement. If RequiresReplace were set on htpasswd, Terraform
+	// would attempt to DELETE the IDP resource itself, which would fail because
+	// only user-level update handlers are registered.
+	It("Does not force replacement when HTPasswd users change", func() {
+		htpasswdIDPResponse := `{
+			"id": "456",
+			"name": "my-ip",
+			"mapping_method": "claim",
+			"htpasswd": {
+				"users": {
+					"items": [{"username": "my-user", "password": "` + htpasswdValidPass + `"}]
+				}
+			}
+		}`
+
+		TestServer.AppendHandlers(
+			// Create
+			clusterReadyHandlers()[0],
+			clusterReadyHandlers()[1],
+			CombineHandlers(
+				VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/identity_providers"),
+				RespondWithJSON(http.StatusOK, htpasswdIDPResponse),
+			),
+			// Refresh read
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/identity_providers/456"),
+				RespondWithJSON(http.StatusOK, htpasswdIDPResponse),
+			),
+			// Update: list htpasswd users (called twice by htPasswdUserListToStringMaps)
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/identity_providers/456/htpasswd_users"),
+				RespondWithJSON(http.StatusOK, `{
+					"kind": "HTPasswdUserList",
+					"items": [{"id": "user-1", "username": "my-user"}]
+				}`),
+			),
+			CombineHandlers(
+				VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/identity_providers/456/htpasswd_users"),
+				RespondWithJSON(http.StatusOK, `{
+					"kind": "HTPasswdUserList",
+					"items": [{"id": "user-1", "username": "my-user"}]
+				}`),
+			),
+			// Update: patch user password
+			CombineHandlers(
+				VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123/identity_providers/456/htpasswd_users/user-1"),
+				RespondWithJSON(http.StatusOK, `{"id": "user-1", "username": "my-user"}`),
+			),
+		)
+
+		Terraform.Source(`
+		  resource "rhcs_identity_provider" "my_idp" {
+		    cluster = "123"
+		    name    = "my-ip"
+		    htpasswd = {
+		      users = [{
+		        username = "my-user"
+		        password = "` + htpasswdValidPass + `"
+		      }]
+		    }
+		  }
+		`)
+		runOutput := Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+
+		Terraform.Source(`
+		  resource "rhcs_identity_provider" "my_idp" {
+		    cluster = "123"
+		    name    = "my-ip"
+		    htpasswd = {
+		      users = [{
+		        username = "my-user"
+		        password = "` + htpasswdValidPass2 + `"
+		      }]
+		    }
+		  }
+		`)
+		runOutput = Terraform.Apply()
+		Expect(runOutput.ExitCode).To(BeZero())
+	})
+})
+
 var _ = Describe("Identity provider import", func() {
 	template := `{
 	  "id": "123",

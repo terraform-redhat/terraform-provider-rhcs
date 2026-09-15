@@ -91,18 +91,18 @@ resource "rhcs_identity_provider" "openid_idp" {
 
 ### Required
 
-- `cluster` (String) Identifier of the cluster.
-- `name` (String) Name of the identity provider.
+- `cluster` (String) Identifier of the cluster. Changing this forces a new resource to be created.
+- `name` (String) Name of the identity provider. Changing this forces a new resource to be created.
 
 ### Optional
 
-- `github` (Attributes) Details of the Github identity provider. (see [below for nested schema](#nestedatt--github))
-- `gitlab` (Attributes) Details of the Gitlab identity provider. (see [below for nested schema](#nestedatt--gitlab))
-- `google` (Attributes) Details of the Google identity provider. (see [below for nested schema](#nestedatt--google))
+- `github` (Attributes) Details of the Github identity provider. Changing any value forces a new resource to be created. (see [below for nested schema](#nestedatt--github))
+- `gitlab` (Attributes) Details of the Gitlab identity provider. Changing any value forces a new resource to be created. (see [below for nested schema](#nestedatt--gitlab))
+- `google` (Attributes) Details of the Google identity provider. Changing any value forces a new resource to be created. (see [below for nested schema](#nestedatt--google))
 - `htpasswd` (Attributes) Details of the 'htpasswd' identity provider. (see [below for nested schema](#nestedatt--htpasswd))
-- `ldap` (Attributes) Details of the LDAP identity provider. (see [below for nested schema](#nestedatt--ldap))
-- `mapping_method` (String) Specifies how new identities are mapped to users when they log in. Options are `add`, `claim`, `generate` and `lookup`. (default is `claim`)
-- `openid` (Attributes) Details of the OpenID identity provider. (see [below for nested schema](#nestedatt--openid))
+- `ldap` (Attributes) Details of the LDAP identity provider. Changing any value forces a new resource to be created. (see [below for nested schema](#nestedatt--ldap))
+- `mapping_method` (String) Specifies how new identities are mapped to users when they log in. Options are `add`, `claim`, `generate` and `lookup`. (default is `claim`) Changing this forces a new resource to be created.
+- `openid` (Attributes) Details of the OpenID identity provider. Changing any value forces a new resource to be created. (see [below for nested schema](#nestedatt--openid))
 
 ### Read-Only
 

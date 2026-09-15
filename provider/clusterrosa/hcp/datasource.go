@@ -43,6 +43,7 @@ type ClusterRosaHcpDatasource struct {
 	clusterCollection *cmv1.ClustersClient
 	versionCollection *cmv1.VersionsClient
 	clusterWait       common.ClusterWait
+	connection        *sdk.Connection
 }
 
 var _ datasource.DataSource = &ClusterRosaHcpDatasource{}
@@ -380,7 +381,8 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				Description: "Enable external authentication providers on the cluster.",
 				Computed:    true,
 			},
-			"delete_protection": rosa.DeleteProtectionDatasourceSchema(),
+			"delete_protection":     rosa.DeleteProtectionDatasourceSchema(),
+			"notification_contacts": rosa.NotificationContactsDatasourceSchema(),
 		},
 	}
 }
@@ -403,6 +405,7 @@ func (r *ClusterRosaHcpDatasource) Configure(ctx context.Context, req datasource
 	r.clusterCollection = connection.ClustersMgmt().V1().Clusters()
 	r.versionCollection = connection.ClustersMgmt().V1().Versions()
 	r.clusterWait = common.NewClusterWait(r.clusterCollection, connection)
+	r.connection = connection
 }
 
 func (r *ClusterRosaHcpDatasource) Read(ctx context.Context, request datasource.ReadRequest,
@@ -510,6 +513,12 @@ func (r *ClusterRosaHcpDatasource) Read(ctx context.Context, request datasource.
 		return
 	}
 	state.DeleteProtection = dpVal
+
+	ncVal, ncDiags := rosa.ResolveNotificationContacts(ctx, r.connection, object)
+	response.Diagnostics.Append(ncDiags...)
+	if !ncVal.IsNull() {
+		state.NotificationContacts = ncVal
+	}
 
 	diags = response.State.Set(ctx, state)
 	response.Diagnostics.Append(diags...)

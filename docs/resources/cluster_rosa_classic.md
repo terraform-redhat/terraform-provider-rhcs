@@ -40,8 +40,11 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
   sts                      = local.sts_roles
   wait_for_create_complete = true
 
-  # Optional: enable OCM delete protection (set to false and apply before terraform destroy)
+  # Optional: enable Red Hat OpenShift Cluster Manager (OCM) delete protection (set to false and apply before terraform destroy)
   # delete_protection = true
+
+  # Optional: set notification contacts (must be Red Hat OpenShift Cluster Manager (OCM) usernames in the same organization)
+  # notification_contacts = ["ocm-username-1", "ocm-username-2"]
 }
 ```
 
@@ -86,6 +89,7 @@ resource "rhcs_cluster_rosa_classic" "rosa_sts_cluster" {
 - `max_replicas` (Number) Maximum replicas of worker nodes in a machine pool. This attribute specifically applies to the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the initial Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)
 - `min_replicas` (Number) Minimum replicas of worker nodes in a machine pool. This attribute specifically applies to the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the initial Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)
 - `multi_az` (Boolean) Indicates if the cluster should be deployed to multiple availability zones. Default value is 'false'. This attribute specifically applies to the Worker Machine Pool and becomes irrelevant once the resource is created. Any modifications to the initial Machine Pool should be made through the Terraform imported Machine Pool resource. For more details, refer to [Worker Machine Pool in ROSA Cluster](../guides/worker-machine-pool.md)
+- `notification_contacts` (Set of String) Set of Red Hat OpenShift Cluster Manager (OCM) account usernames to receive cluster notification emails. Values must be OCM usernames (not email addresses). While email addresses are accepted by the API, they are resolved to usernames internally, which will cause persistent plan diffs and may lead to incorrect contact removal on subsequent applies. All contacts must belong to the same Red Hat organization as the cluster. This attribute is configured after cluster creation (Day 2). By default, the cluster creator is set as the notification contact. For clusters created with service accounts, no default contact is set.
 - `pod_cidr` (String) Block of IP addresses for pods. After the creation of the resource, it is not possible to update the attribute value.
 - `private` (Boolean) Restrict cluster API endpoint and application routes to, private connectivity. This requires that PrivateLink be enabled and by extension, your own VPC. After the creation of the resource, it is not possible to update the attribute value.
 - `private_hosted_zone` (Attributes) Used in a shared VPC topology. HostedZone attributes. After the creation of the resource, it is not possible to update the attribute value. (see [below for nested schema](#nestedatt--private_hosted_zone))

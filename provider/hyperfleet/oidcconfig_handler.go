@@ -87,6 +87,11 @@ func (h *OidcConfigHandlerImpl) PostResponse(ctx context.Context, resp *v1alpha1
 	return diags
 }
 
+// PostFlatten populates computed fields in the state from the API response
+func (h *OidcConfigHandlerImpl) PostFlatten(ctx context.Context, state *OidcConfigState, resp *v1alpha1.OidcConfig) {
+	// TODO: Populate computed fields from API response
+}
+
 // NewOidcConfigHandlerImpl creates a new OidcConfigHandlerImpl instance.
 func NewOidcConfigHandlerImpl(client hyperfleet.Interface, accountID string, callerARN string) OidcConfigHandler {
 	return &OidcConfigHandlerImpl{

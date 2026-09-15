@@ -44,6 +44,8 @@ profiles:
     kms_key_arn: true
     fips: true
     autoscaler_enabled: true
+    min_replicas: 3
+    max_replicas: 6
     byok: true
     compute_machine_type: "m5.2xlarge"
     compute_replicas: 3
@@ -75,6 +77,8 @@ profiles:
     kms_key_arn: false
     fips: false
     autoscaler_enabled: true
+    min_replicas: 3
+    max_replicas: 6
     byok: false
     compute_machine_type: "m5.2xlarge"
     compute_replicas: 3

@@ -29,7 +29,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -71,8 +74,11 @@ func (r *IdentityProviderResource) Schema(ctx context.Context, req resource.Sche
 		Description: "Identity provider.",
 		Attributes: map[string]schema.Attribute{
 			"cluster": schema.StringAttribute{
-				Description: "Identifier of the cluster.",
+				Description: "Identifier of the cluster. Changing this forces a new resource to be created.",
 				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(regexp.MustCompile(`.*\S.*`), "cluster ID may not be empty/blank string"),
 				},
@@ -82,13 +88,21 @@ func (r *IdentityProviderResource) Schema(ctx context.Context, req resource.Sche
 				Computed:    true,
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the identity provider.",
+				Description: "Name of the identity provider. Changing this forces a new resource to be created.",
 				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"mapping_method": schema.StringAttribute{
-				Description: "Specifies how new identities are mapped to users when they log in. Options are `add`, `claim`, `generate` and `lookup`. (default is `claim`)",
-				Optional:    true,
-				Computed:    true,
+				Description: "Specifies how new identities are mapped to users when they log in. " +
+					"Options are `add`, `claim`, `generate` and `lookup`. " +
+					"(default is `claim`) Changing this forces a new resource to be created.",
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 				Validators: []validator.String{
 					stringvalidator.OneOf(validMappingMethods...),
 				},
@@ -103,41 +117,56 @@ func (r *IdentityProviderResource) Schema(ctx context.Context, req resource.Sche
 				},
 			},
 			"gitlab": schema.SingleNestedAttribute{
-				Description: "Details of the Gitlab identity provider.",
+				Description: "Details of the Gitlab identity provider. Changing any value forces a new resource to be created.",
 				Attributes:  gitlabSchema,
 				Optional:    true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.RequiresReplace(),
+				},
 				Validators: []validator.Object{
 					objectvalidator.ExactlyOneOf(listOfIDPTypesPathes...),
 				},
 			},
 			"github": schema.SingleNestedAttribute{
-				Description: "Details of the Github identity provider.",
+				Description: "Details of the Github identity provider. Changing any value forces a new resource to be created.",
 				Attributes:  githubSchema,
 				Optional:    true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.RequiresReplace(),
+				},
 				Validators: []validator.Object{
 					objectvalidator.ExactlyOneOf(listOfIDPTypesPathes...),
 				},
 			},
 			"google": schema.SingleNestedAttribute{
-				Description: "Details of the Google identity provider.",
+				Description: "Details of the Google identity provider. Changing any value forces a new resource to be created.",
 				Attributes:  googleSchema,
 				Optional:    true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.RequiresReplace(),
+				},
 				Validators: []validator.Object{
 					objectvalidator.ExactlyOneOf(listOfIDPTypesPathes...),
 				},
 			},
 			"ldap": schema.SingleNestedAttribute{
-				Description: "Details of the LDAP identity provider.",
+				Description: "Details of the LDAP identity provider. Changing any value forces a new resource to be created.",
 				Attributes:  ldapSchema,
 				Optional:    true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.RequiresReplace(),
+				},
 				Validators: []validator.Object{
 					objectvalidator.ExactlyOneOf(listOfIDPTypesPathes...),
 				},
 			},
 			"openid": schema.SingleNestedAttribute{
-				Description: "Details of the OpenID identity provider.",
+				Description: "Details of the OpenID identity provider. Changing any value forces a new resource to be created.",
 				Attributes:  openidSchema,
 				Optional:    true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.RequiresReplace(),
+				},
 				Validators: []validator.Object{
 					objectvalidator.ExactlyOneOf(listOfIDPTypesPathes...),
 				},

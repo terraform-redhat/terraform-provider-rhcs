@@ -20,7 +20,6 @@ import (
 )
 
 var _ = Describe("Edit cluster", ci.Day2, func() {
-
 	var profileHandler profilehandler.ProfileHandler
 	var clusterService exec.ClusterService
 	var clusterArgs *exec.ClusterArgs
@@ -126,6 +125,14 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 				Skip("Test can run only on Hosted cluster")
 			}
 
+			if clusterArgs.RegistryConfig == nil {
+				clusterArgs.RegistryConfig = &exec.RegistryConfig{
+					RegistrySources: &exec.RegistrySources{},
+				}
+			} else if clusterArgs.RegistryConfig.RegistrySources == nil {
+				clusterArgs.RegistryConfig.RegistrySources = &exec.RegistrySources{}
+			}
+
 			getCMSClusterRegistryConfig := func() *cmsv1.ClusterRegistryConfig {
 				resp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 				Expect(err).ToNot(HaveOccurred())
@@ -175,7 +182,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			}
 
 			By("Edit platform additional trust ca")
-			registry := helper.GetRegistry(8091)
+			registry := "10.0.0.0..8091"
 			trustCAs := map[string]string{}
 			trustCAs[registry], err = helper.CreatePEMCertificate()
 			Expect(err).ToNot(HaveOccurred())
@@ -231,6 +238,21 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 					helper.ExpectTFErrorContains(err, errStr)
 				}
 			})
+		}
+		ensureRegistryConfig := func(args *exec.ClusterArgs) {
+			if args.RegistryConfig == nil {
+				args.RegistryConfig = &exec.RegistryConfig{
+					RegistrySources: &exec.RegistrySources{},
+				}
+			} else if args.RegistryConfig.RegistrySources == nil {
+				args.RegistryConfig.RegistrySources = &exec.RegistrySources{}
+			}
+		}
+		validateRegistryConfigArgAgainstErrorSubstrings := func(updateFields func(args *exec.ClusterArgs), errSubStrings ...string) {
+			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+				ensureRegistryConfig(args)
+				updateFields(args)
+			}, errSubStrings...)
 		}
 
 		It("required fields - [id:72452]", ci.Medium, ci.FeatureClusterDefault, func() {
@@ -636,7 +658,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			duplicatedRegistriesErrMsg := fmt.Sprintf("duplicated registry '%s'", registry)
 
 			By("Allowed and blocked registries set at the same time")
-			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+			validateRegistryConfigArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				registries := helper.GetRegistries(8090, 8091)
 				args.RegistryConfig.RegistrySources.AllowedRegistries = &registries
 				args.RegistryConfig.RegistrySources.BlockedRegistries = &registries
@@ -644,31 +666,31 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 				"when \"registry_config.registry_sources.blocked_registries\" is specified")
 
 			By("Blocked registries and insecure registries have same value")
-			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+			validateRegistryConfigArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.RegistryConfig.RegistrySources.AllowedRegistries = nil
 				args.RegistryConfig.RegistrySources.BlockedRegistries = &registries
 				args.RegistryConfig.RegistrySources.InsecureRegistries = &registries
 			}, "Insecure registries should not include registries already present in blocked registries, found duplicated")
 
 			By("Allowed registries have duplicate value")
-			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+			validateRegistryConfigArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.RegistryConfig.RegistrySources.AllowedRegistries = &duplicatedRegistries
 				args.RegistryConfig.RegistrySources.BlockedRegistries = nil
 			}, duplicatedRegistriesErrMsg)
 
 			By("Blocked registries have duplicate value")
-			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+			validateRegistryConfigArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.RegistryConfig.RegistrySources.AllowedRegistries = nil
 				args.RegistryConfig.RegistrySources.BlockedRegistries = &duplicatedRegistries
 			}, duplicatedRegistriesErrMsg)
 
 			By("Insecure registries have duplicate value")
-			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+			validateRegistryConfigArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.RegistryConfig.RegistrySources.InsecureRegistries = &duplicatedRegistries
 			}, duplicatedRegistriesErrMsg)
 
 			By("Allowed Registries For Import have duplicate value")
-			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+			validateRegistryConfigArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.RegistryConfig.AllowedRegistriesForImport = &[]exec.AllowedRegistryForImport{
 					exec.GetAllowedRegistryForImport(registry, true),
 					exec.GetAllowedRegistryForImport(registry, false),
@@ -676,12 +698,12 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			}, fmt.Sprintf("Duplicate domain '%s' in AllowedRegistriesForImport", registry))
 
 			By("Platform allowlist does not exist")
-			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+			validateRegistryConfigArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.RegistryConfig.PlatformAllowlistID = new("anything")
 			}, "Allowlist with id 'anything' not found")
 
 			By("Additional Trust CA is invalid")
-			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
+			validateRegistryConfigArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				trustedCA := map[string]string{}
 				trustedCA[registry] = "invalid"
 				args.RegistryConfig.AdditionalTrustedCA = &trustedCA
@@ -706,17 +728,21 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 					clusterArgs.MaxReplicas = new(9)
 					_, err = clusterService.Apply(clusterArgs)
 					Expect(err).To(HaveOccurred())
-					helper.ExpectTFErrorContains(err, " Attribute max_replicas, cannot be changed")
+					helper.ExpectTFErrorContains(err, "Attribute max_replicas, cannot be changed")
 
 					By("Change min_replicas")
 					clusterArgs.Autoscaling = new(true)
 					clusterArgs.MaxReplicas = originalClusterArgs.MaxReplicas
-					clusterArgs.MinReplicas = new(3)
+					minReplicas := 4
+					if originalClusterArgs.MinReplicas != nil && *originalClusterArgs.MinReplicas >= minReplicas {
+						minReplicas = 2
+					}
+					clusterArgs.MinReplicas = new(minReplicas)
 					_, err = clusterService.Apply(clusterArgs)
 					Expect(err).To(HaveOccurred())
-					helper.ExpectTFErrorContains(err, " Attribute min_replicas, cannot be changed")
+					helper.ExpectTFErrorContains(err, "Attribute min_replicas, cannot be changed")
 				} else {
-					By("Change autoscaling_enabled from failse to true")
+					By("Change autoscaling_enabled from false to true")
 					clusterArgs.Autoscaling = new(true)
 					_, err := clusterService.Apply(clusterArgs)
 					Expect(err).To(HaveOccurred())
@@ -731,5 +757,4 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 				}
 			})
 	})
-
 })

@@ -209,6 +209,10 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 					"Requires that the number supplied be a multiple of the number of private subnets. " +
 					rosaTypes.PoolMessage,
 				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
 				Validators: []validator.Int64{
 					int64validator.AtLeast(2),
 				},
@@ -218,6 +222,10 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 					"for example `m5.xlarge`. Use the `rhcs_machine_types` data " +
 					"source to find the possible values. " + rosaTypes.PoolMessage,
 				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"aws_account_id": schema.StringAttribute{
 				Description: "Identifier of the AWS account. " + common.ValueCannotBeChangedStringDescription,
@@ -2360,6 +2368,17 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 	}
 
 	state.LogForwarderIds = types.ListNull(types.StringType)
+
+	if compute, ok := object.Nodes().GetCompute(); ok {
+		state.Replicas = types.Int64Value(int64(compute))
+	} else if state.Replicas.IsUnknown() {
+		state.Replicas = types.Int64Null()
+	}
+	if mt, ok := object.Nodes().GetComputeMachineType(); ok {
+		state.ComputeMachineType = types.StringValue(mt.ID())
+	} else if state.ComputeMachineType.IsUnknown() {
+		state.ComputeMachineType = types.StringNull()
+	}
 
 	state.DeleteProtection = types.BoolValue(false)
 

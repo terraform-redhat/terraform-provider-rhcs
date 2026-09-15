@@ -40,6 +40,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -228,12 +229,20 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Description: "Number of worker/compute nodes to provision. Single zone clusters need at least 2 nodes, " +
 					"multizone clusters need at least 3 nodes. " + rosaTypes.PoolMessage,
 				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
 			},
 			"compute_machine_type": schema.StringAttribute{
 				Description: "Identifies the machine type used by the initial worker nodes, " +
 					"for example `m5.xlarge`. Use the `rhcs_machine_types` data " +
 					"source to find the possible values. " + rosaTypes.PoolMessage,
 				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"worker_disk_size": schema.Int64Attribute{
 				Description: "Compute node root disk size, in GiB. " + rosaTypes.PoolMessage,
@@ -244,6 +253,10 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 					rosaTypes.PoolMessage,
 				ElementType: types.StringType,
 				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []planmodifier.Map{
+					mapplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"aws_account_id": schema.StringAttribute{
 				Description: "Identifier of the AWS account. " + common.ValueCannotBeChangedStringDescription,
@@ -2005,6 +2018,26 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	state.CloudRegion = types.StringValue(object.Region().ID())
 	if state.AdminCredentials.IsUnknown() {
 		state.AdminCredentials = rosaTypes.AdminCredentialsNull()
+	}
+
+	if compute, ok := object.Nodes().GetCompute(); ok {
+		state.Replicas = types.Int64Value(int64(compute))
+	} else if state.Replicas.IsUnknown() {
+		state.Replicas = types.Int64Null()
+	}
+	if mt, ok := object.Nodes().GetComputeMachineType(); ok {
+		state.ComputeMachineType = types.StringValue(mt.ID())
+	} else if state.ComputeMachineType.IsUnknown() {
+		state.ComputeMachineType = types.StringNull()
+	}
+	if labels, ok := object.Nodes().GetComputeLabels(); ok {
+		mapValue, err := common.ConvertStringMapToMapType(labels)
+		if err != nil {
+			return err
+		}
+		state.DefaultMPLabels = mapValue
+	} else if state.DefaultMPLabels.IsUnknown() {
+		state.DefaultMPLabels = types.MapNull(types.StringType)
 	}
 
 	state.DeleteProtection = types.BoolValue(false)

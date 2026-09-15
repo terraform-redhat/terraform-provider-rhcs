@@ -130,6 +130,17 @@ func (h *ClusterHandlerImpl) PostResponse(ctx context.Context, resp *v1alpha1.Cl
 	return diag.Diagnostics{}
 }
 
+// PostFlatten populates computed fields in the state from the API response
+func (h *ClusterHandlerImpl) PostFlatten(ctx context.Context, state *ClusterState, resp *v1alpha1.Cluster) {
+	if resp == nil {
+		return
+	}
+	// Populate Phase from status (consumer-only field, not mapped via pathbind)
+	if resp.Status.Phase != "" {
+		state.Phase = types.StringValue(string(resp.Status.Phase))
+	}
+}
+
 // computeRolesRef builds the RolesRef from operator prefix and account ID
 func computeRolesRef(prefix, accountID, partition string) hypershiftv1beta1.AWSRolesRef {
 	arn := func(suffix string) string {

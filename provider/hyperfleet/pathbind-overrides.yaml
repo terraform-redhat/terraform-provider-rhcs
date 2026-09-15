@@ -103,42 +103,12 @@ resources:
         computed: true
         description: "Subnet ID for the cluster."
 
-      - path: status.phase
-        alias: phase
-        type: string
-        computed: true
-        description: "Current lifecycle phase of the cluster (WaitingForPlacement, Provisioning, Ready, Deleting)."
-
-      - path: status.apiUrl
-        alias: api_url
-        type: string
-        computed: true
-        description: "Control-plane API endpoint host. Empty until the cluster is Ready."
-
-      - path: status.currentVersion
-        alias: current_version
-        type: string
-        computed: true
-        description: "Running OpenShift version as reported by the operator."
-
-      - path: status.managementCluster
-        alias: management_cluster
-        type: string
-        computed: true
-        description: "Management cluster ID assigned by the Platform API."
-
-      - path: status.oidcIssuer
-        alias: oidc_issuer
-        type: string
-        computed: true
-        description: "OIDC service-account issuer URL for the cluster. Use this to create the IAM OIDC provider and build operator role trust policies after cluster creation."
-
-      - alias: creator_arn
+      - alias: phase
         type: string
         computed: true
         operations:
           - read
-        description: "IAM ARN of the caller that created the cluster. Populated from the provider `aws_caller_arn` attribute."
+        description: "Current lifecycle phase of the cluster (WaitingForPlacement, Provisioning, Ready, Deleting)."
 
   nodePool:
     aliases:

@@ -121,6 +121,11 @@ func (h *NodePoolHandlerImpl) PostResponse(ctx context.Context, resp *v1alpha1.N
 	return diag.Diagnostics{}
 }
 
+// PostFlatten populates computed fields in the state from the API response
+func (h *NodePoolHandlerImpl) PostFlatten(ctx context.Context, state *NodePoolState, resp *v1alpha1.NodePool) {
+	// TODO: Populate computed fields from API response
+}
+
 // NewNodePoolHandlerImpl creates a new NodePoolHandlerImpl instance.
 func NewNodePoolHandlerImpl(client hyperfleet.Interface, accountID string, callerARN string) NodePoolHandler {
 	return &NodePoolHandlerImpl{

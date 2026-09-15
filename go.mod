@@ -189,6 +189,6 @@ require (
 )
 
 replace (
-	github.com/openshift-online/rosa-hyperfleet-api/api v0.0.0 => github.com/openshift-online/rosa-hyperfleet-api/api v0.0.0-20260810145312-a1bbdf150898
+	github.com/openshift-online/rosa-hyperfleet-api/api v0.0.0 => ../../hyperfleet/rosa-hyperfleet-api/api
 	github.com/openshift-online/rosa-hyperfleet-api/clientset v0.0.0-20260812125925-97221f0b11a8 => ../../hyperfleet/rosa-hyperfleet-api/clientset
 )

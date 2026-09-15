@@ -269,7 +269,7 @@ func (ctx *profileContext) IsDifferentEncryptionKeys() bool {
 }
 
 func (ctx *profileContext) IsAutoscaling() bool {
-	return ctx.profile.Autoscaling
+	return ctx.profile.Autoscaler || ctx.profile.Autoscaling
 }
 
 func (ctx *profileContext) IsAdminEnabled() bool {
@@ -649,8 +649,9 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 		clusterArgs.MachineCIDR = new(DefaultVPCCIDR)
 	}
 
-	if ctx.profile.Autoscaling {
-		clusterArgs.Autoscaling = new(ctx.profile.Autoscaling)
+	if ctx.profile.Autoscaler || ctx.profile.Autoscaling {
+		autoscalingEnabled := ctx.profile.Autoscaling || ctx.profile.Autoscaler
+		clusterArgs.Autoscaling = new(autoscalingEnabled)
 		clusterArgs.MinReplicas = new(ctx.profile.MinReplicas)
 		clusterArgs.MaxReplicas = new(ctx.profile.MaxReplicas)
 	} else {

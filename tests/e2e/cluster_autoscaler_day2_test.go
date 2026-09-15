@@ -78,7 +78,7 @@ var _ = Describe("Cluster Autoscaler", ci.Day2, ci.FeatureClusterAutoscaler, fun
 			Max: new(max),
 			Min: new(min),
 		}
-		maxNodesTotal := 10
+		maxNodesTotal := 24
 		resourceLimits := &exec.ResourceLimits{
 			Cores:         resourceRange,
 			MaxNodesTotal: new(maxNodesTotal),

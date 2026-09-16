@@ -73,6 +73,12 @@ On cluster create, the provider reads installer and support role trust policies 
 - When omitted and the roles define conflicting external IDs, create fails with an error asking you to set the attribute explicitly.
 - When omitted and the roles define ambiguous external IDs, create fails with an error asking you to set the attribute explicitly.
 
+### Cross-account configurations
+
+When the Terraform caller's AWS credentials belong to a different account than the one that owns the installer and support roles, the provider cannot read role trust policies (the `iam:GetRole` call requires same-account credentials). In this case, trust policy validation is skipped and a Terraform warning is emitted. Cluster creation proceeds, and OCM and AWS STS still enforce the external ID at role assumption time.
+
+Because validation is skipped, the provider cannot detect whether your roles require an external ID or whether a provided value matches. If your role trust policies include an `sts:ExternalId` condition, always set `trust_policy_external_id` explicitly. Omitting it or providing a wrong value will cause cluster creation to fail with a role assumption error from AWS.
+
 Use the same value on the account IAM module and the cluster resource so Terraform configuration, IAM, and OCM stay aligned.
 
 ## Useful Resources

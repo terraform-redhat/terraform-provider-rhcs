@@ -943,14 +943,9 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 			ctx, state.Sts.TrustPolicyExternalID, state.Sts.RoleARN,
 			state.Sts.SupportRoleArn, region,
 		); err != nil {
-			response.Diagnostics.AddError(
-				summary,
-				fmt.Sprintf(
-					"Invalid sts.trust_policy_external_id for cluster '%s': %v",
-					state.Name.ValueString(), err,
-				),
-			)
-			return
+			if sts.DiagnoseTrustPolicyValidationError(err, summary, state.Name.ValueString(), &response.Diagnostics) {
+				return
+			}
 		}
 	}
 

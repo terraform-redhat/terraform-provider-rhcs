@@ -16,6 +16,7 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/openshift-online/ocm-common/pkg/aws/ststrust"
 )
 
@@ -50,6 +51,45 @@ func (e *trustPolicyExternalIDRequiredError) Error() string {
 	)
 }
 
+// CrossAccountWarning indicates that trust policy validation was skipped because the caller's
+// AWS account differs from the account that owns the IAM roles.
+type CrossAccountWarning struct {
+	CallerAccount string
+	RoleAccount   string
+}
+
+func (w *CrossAccountWarning) Error() string {
+	return fmt.Sprintf(
+		"cannot pre-validate trust_policy_external_id: IAM roles are in account %s "+
+			"but credentials belong to account %s (cross-account); "+
+			"if cluster creation fails, verify the external ID matches your role trust policies",
+		w.RoleAccount, w.CallerAccount,
+	)
+}
+
+// callerAccountIDFunc resolves the AWS account ID of the current caller. Tests may replace this.
+type callerAccountIDFunc func(ctx context.Context, cfg aws.Config) (string, error)
+
+var callerAccountID callerAccountIDFunc = getCallerAccountFromSTS
+
+func getCallerAccountFromSTS(ctx context.Context, cfg aws.Config) (string, error) {
+	client := sts.NewFromConfig(cfg)
+	output, err := client.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+	if err != nil {
+		return "", err
+	}
+	return aws.ToString(output.Account), nil
+}
+
+// loadAWSConfig loads the default AWS configuration for the given region.
+func loadAWSConfig(ctx context.Context, region string) (aws.Config, error) {
+	opts := []func(*awsconfig.LoadOptions) error{}
+	if region != "" {
+		opts = append(opts, awsconfig.WithRegion(region))
+	}
+	return awsconfig.LoadDefaultConfig(ctx, opts...)
+}
+
 // ValidateTrustPolicyExternalID validates sts.trust_policy_external_id against installer and support IAM roles.
 // When entered is set, it must appear in both trust policies. When unset, create fails if a single external ID
 // can be discovered from IAM (explicit config required) or if IAM external IDs are ambiguous.
@@ -74,6 +114,47 @@ func ValidateTrustPolicyExternalID(
 	return TrustPolicyValidator(ctx, "", installerRoleARN, supportRoleARN, region)
 }
 
+// isAWSAccountID reports whether s is a 12-digit AWS account ID.
+func isAWSAccountID(s string) bool {
+	if len(s) != 12 {
+		return false
+	}
+	for i := 0; i < 12; i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+// isIAMRoleNameChar reports whether c is valid in an IAM role name ([\w+=,.@-]).
+func isIAMRoleNameChar(c byte) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
+		c == '_' || c == '+' || c == '=' || c == ',' || c == '.' || c == '@' || c == '-'
+}
+
+// parseIAMRoleARN parses an ARN and returns it only when it identifies an IAM role.
+// Works with all AWS partitions (aws, aws-us-gov, aws-cn, etc.).
+func parseIAMRoleARN(rawARN string) (awsarn.ARN, bool) {
+	parsed, err := awsarn.Parse(rawARN)
+	if err != nil || parsed.Service != "iam" || parsed.Region != "" || !isAWSAccountID(parsed.AccountID) {
+		return awsarn.ARN{}, false
+	}
+	if !strings.HasPrefix(parsed.Resource, "role/") || strings.Contains(parsed.Resource, "//") {
+		return awsarn.ARN{}, false
+	}
+	name := parsed.Resource[strings.LastIndex(parsed.Resource, "/")+1:]
+	if name == "" {
+		return awsarn.ARN{}, false
+	}
+	for i := 0; i < len(name); i++ {
+		if !isIAMRoleNameChar(name[i]) {
+			return awsarn.ARN{}, false
+		}
+	}
+	return parsed, true
+}
+
 // validateTrustPolicyExternalIDWithAWS loads installer and support trust policies from IAM and validates
 // the entered value.
 func validateTrustPolicyExternalIDWithAWS(
@@ -83,9 +164,33 @@ func validateTrustPolicyExternalIDWithAWS(
 	if os.Getenv("IS_TEST") == "true" {
 		return nil
 	}
-	loader, err := newTrustPolicyLoader(ctx, region)
+
+	cfg, err := loadAWSConfig(ctx, region)
 	if err != nil {
 		return fmt.Errorf("failed to load AWS configuration for trust policy validation: %w", err)
+	}
+
+	installerARNParsed, installerIsRole := parseIAMRoleARN(installerRoleARN)
+	supportARNParsed, supportIsRole := parseIAMRoleARN(supportRoleARN)
+	if installerIsRole && supportIsRole {
+		if installerARNParsed.AccountID != supportARNParsed.AccountID {
+			return fmt.Errorf(
+				"installer role (account %s) and support role (account %s) must be in the same AWS account",
+				installerARNParsed.AccountID, supportARNParsed.AccountID,
+			)
+		}
+		account, stsErr := callerAccountID(ctx, cfg)
+		if stsErr == nil && account != "" && account != installerARNParsed.AccountID {
+			return &CrossAccountWarning{
+				CallerAccount: account,
+				RoleAccount:   installerARNParsed.AccountID,
+			}
+		}
+	}
+
+	loader, err := newTrustPolicyLoader(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to create IAM client for trust policy validation: %w", err)
 	}
 	installerPolicy, err := loader.trustPolicyJSONForRoleARN(ctx, installerRoleARN)
 	if err != nil {
@@ -171,16 +276,8 @@ type iamTrustPolicyLoader struct {
 // newTrustPolicyLoader constructs an iamTrustPolicyLoader. Tests may replace this to inject a stub.
 var newTrustPolicyLoader = newIAMTrustPolicyLoader
 
-// newIAMTrustPolicyLoader constructs an IAM trust policy loader for the given AWS region.
-func newIAMTrustPolicyLoader(ctx context.Context, region string) (*iamTrustPolicyLoader, error) {
-	opts := []func(*awsconfig.LoadOptions) error{}
-	if region != "" {
-		opts = append(opts, awsconfig.WithRegion(region))
-	}
-	cfg, err := awsconfig.LoadDefaultConfig(ctx, opts...)
-	if err != nil {
-		return nil, err
-	}
+// newIAMTrustPolicyLoader constructs an IAM trust policy loader from an existing AWS config.
+func newIAMTrustPolicyLoader(cfg aws.Config) (*iamTrustPolicyLoader, error) {
 	return &iamTrustPolicyLoader{client: iam.NewFromConfig(cfg)}, nil
 }
 
@@ -208,23 +305,14 @@ func (l *iamTrustPolicyLoader) trustPolicyJSONForRoleARN(ctx context.Context, ro
 // roleNameFromARN extracts the IAM role name from a role ARN for use with GetRole.
 // IAM role names are unique per account; GetRole expects the name without the path prefix.
 func roleNameFromARN(roleARN string) (string, error) {
-	parsed, err := awsarn.Parse(roleARN)
-	if err != nil {
-		return "", fmt.Errorf("invalid role ARN %q: %w", roleARN, err)
-	}
-	const rolePrefix = "role/"
-	if !strings.HasPrefix(parsed.Resource, rolePrefix) {
+	parsed, ok := parseIAMRoleARN(roleARN)
+	if !ok {
 		return "", fmt.Errorf("invalid role ARN %q: expected IAM role resource", roleARN)
 	}
+	const rolePrefix = "role/"
 	roleResource := parsed.Resource[len(rolePrefix):]
-	if roleResource == "" {
-		return "", fmt.Errorf("invalid role ARN %q: missing role name", roleARN)
-	}
 	if idx := strings.LastIndex(roleResource, "/"); idx >= 0 {
 		roleResource = roleResource[idx+1:]
-	}
-	if roleResource == "" {
-		return "", fmt.Errorf("invalid role ARN %q: missing role name", roleARN)
 	}
 	return roleResource, nil
 }

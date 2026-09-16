@@ -5,7 +5,9 @@ package sts
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -220,6 +222,34 @@ var _ = Describe("STS schema and helpers", func() {
 			PopulateTrustPolicyExternalIDFromSTS(source, &target)
 
 			Expect(target.IsNull()).To(BeTrue())
+		})
+	})
+
+	Context("DiagnoseTrustPolicyValidationError", func() {
+		It("adds warning and returns false for CrossAccountWarning", func() {
+			diags := diag.Diagnostics{}
+			err := &CrossAccountWarning{CallerAccount: "111111111111", RoleAccount: "222222222222"}
+
+			abort := DiagnoseTrustPolicyValidationError(err, "Can't build cluster", "my-cluster", &diags)
+
+			Expect(abort).To(BeFalse())
+			Expect(diags.HasError()).To(BeFalse())
+			Expect(diags.WarningsCount()).To(Equal(1))
+			Expect(diags.Warnings()[0].Summary()).To(Equal("Trust policy validation skipped"))
+			Expect(diags.Warnings()[0].Detail()).To(ContainSubstring("cross-account"))
+		})
+
+		It("adds error and returns true for other errors", func() {
+			diags := diag.Diagnostics{}
+			err := fmt.Errorf("role not found")
+
+			abort := DiagnoseTrustPolicyValidationError(err, "summary", "my-cluster", &diags)
+
+			Expect(abort).To(BeTrue())
+			Expect(diags.HasError()).To(BeTrue())
+			Expect(diags.WarningsCount()).To(Equal(0))
+			Expect(diags.Errors()[0].Detail()).To(ContainSubstring("my-cluster"))
+			Expect(diags.Errors()[0].Detail()).To(ContainSubstring("role not found"))
 		})
 	})
 })

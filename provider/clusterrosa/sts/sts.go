@@ -5,8 +5,11 @@ package sts
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	dsschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -313,6 +316,22 @@ func ValidateTrustPolicyExternalIDFromConfig(
 		entered = trustPolicyExternalID.ValueString()
 	}
 	return ValidateTrustPolicyExternalID(ctx, entered, roleARN.ValueString(), supportRoleARN.ValueString(), region)
+}
+
+// DiagnoseTrustPolicyValidationError adds a warning or error diagnostic for a trust policy
+// validation failure. Returns true when the caller should abort (hard error), false when
+// creation may continue (cross-account warning).
+func DiagnoseTrustPolicyValidationError(err error, summary, clusterName string, diags *diag.Diagnostics) bool {
+	var crossAcct *CrossAccountWarning
+	if errors.As(err, &crossAcct) {
+		diags.AddWarning("Trust policy validation skipped", crossAcct.Error())
+		return false
+	}
+	diags.AddError(
+		summary,
+		fmt.Sprintf("Invalid sts.trust_policy_external_id for cluster '%s': %v", clusterName, err),
+	)
+	return true
 }
 
 // stsExternalIDSource reads the STS external ID from an OCM cluster STS object.

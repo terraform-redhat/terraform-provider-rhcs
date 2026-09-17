@@ -1,11 +1,7 @@
 output "id" {
-  value = rhcs_rosa_oidc_config.oidc_config.id
+  value = module.oidc_config_and_provider.oidc_config_id
 }
 
 output "oidc_endpoint_url" {
-  value = rhcs_rosa_oidc_config.oidc_config.oidc_endpoint_url
-}
-
-output "thumbprint" {
-  value = rhcs_rosa_oidc_config.oidc_config.thumbprint
+  value = module.oidc_config_and_provider.oidc_endpoint_url
 }

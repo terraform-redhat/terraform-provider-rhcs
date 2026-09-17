@@ -18,10 +18,10 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = ">= 4.20.0"
+      version = ">= 6.0.0"
     }
     rhcs = {
-      version = ">= 1.1.0"
+      version = ">= 1.6.2"
       source  = "terraform-redhat/rhcs"
     }
   }
@@ -44,7 +44,6 @@ module "oidc_config" {
   installer_role_arn   = local.installer_role_arn
   operator_role_prefix = var.operator_role_prefix
   account_role_prefix  = var.account_role_prefix
-  cloud_region         = var.cloud_region
   tags                 = var.tags
   path                 = var.path
 }

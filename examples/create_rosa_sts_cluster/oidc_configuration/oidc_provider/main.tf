@@ -18,10 +18,10 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = ">= 4.20.0"
+      version = ">= 6.0.0"
     }
     rhcs = {
-      version = ">= 1.1.0"
+      version = ">= 1.6.2"
       source  = "terraform-redhat/rhcs"
     }
   }
@@ -35,53 +35,22 @@ provider "aws" {
   region = var.cloud_region
 }
 
-# Generates the OIDC config resources' names
-resource "rhcs_rosa_oidc_config_input" "oidc_input" {
-  count = var.managed ? 0 : 1
+module "oidc_config_and_provider" {
+  source  = "terraform-redhat/rosa-classic/rhcs//modules/oidc-config-and-provider"
+  version = ">= 1.7.3"
 
-  region = var.cloud_region
-}
-
-# Create the OIDC config resources on AWS
-module "oidc_config_input_resources" {
-  count = var.managed ? 0 : 1
-
-  source  = "terraform-redhat/rosa-sts/aws"
-  version = "0.0.14"
-
-  create_oidc_config_resources = true
-
-  bucket_name             = one(rhcs_rosa_oidc_config_input.oidc_input[*].bucket_name)
-  discovery_doc           = one(rhcs_rosa_oidc_config_input.oidc_input[*].discovery_doc)
-  jwks                    = one(rhcs_rosa_oidc_config_input.oidc_input[*].jwks)
-  private_key             = one(rhcs_rosa_oidc_config_input.oidc_input[*].private_key)
-  private_key_file_name   = one(rhcs_rosa_oidc_config_input.oidc_input[*].private_key_file_name)
-  private_key_secret_name = one(rhcs_rosa_oidc_config_input.oidc_input[*].private_key_secret_name)
-}
-
-resource "rhcs_rosa_oidc_config" "oidc_config" {
   managed            = var.managed
-  secret_arn         = one(module.oidc_config_input_resources[*].secret_arn)
-  issuer_url         = one(rhcs_rosa_oidc_config_input.oidc_input[*].issuer_url)
   installer_role_arn = var.installer_role_arn
+  tags               = var.tags
 }
 
-data "rhcs_rosa_operator_roles" "operator_roles" {
+module "operator_roles" {
+  source  = "terraform-redhat/rosa-classic/rhcs//modules/operator-roles"
+  version = ">= 1.7.3"
+
   operator_role_prefix = var.operator_role_prefix
   account_role_prefix  = var.account_role_prefix
-}
-
-module "operator_roles_and_oidc_provider" {
-  source  = "terraform-redhat/rosa-sts/aws"
-  version = "0.0.14"
-
-  create_operator_roles = true
-  create_oidc_provider  = true
-
-  cluster_id                  = ""
-  rh_oidc_provider_thumbprint = rhcs_rosa_oidc_config.oidc_config.thumbprint
-  rh_oidc_provider_url        = rhcs_rosa_oidc_config.oidc_config.oidc_endpoint_url
-  operator_roles_properties   = data.rhcs_rosa_operator_roles.operator_roles.operator_iam_roles
-  tags                        = var.tags
-  path                        = var.path
+  oidc_endpoint_url    = module.oidc_config_and_provider.oidc_endpoint_url
+  tags                 = var.tags
+  path                 = var.path
 }

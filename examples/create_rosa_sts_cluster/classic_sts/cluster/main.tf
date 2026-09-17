@@ -18,10 +18,10 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = ">= 4.20.0"
+      version = ">= 4.67.0"
     }
     rhcs = {
-      version = ">= 1.1.0"
+      version = ">= 1.6.2"
       source  = "terraform-redhat/rhcs"
     }
   }
@@ -67,22 +67,27 @@ resource "rhcs_cluster_wait" "rosa_cluster" {
   timeout = 60
 }
 
-data "rhcs_rosa_operator_roles" "operator_roles" {
-  operator_role_prefix = var.operator_role_prefix
-  account_role_prefix  = var.account_role_prefix
+resource "aws_iam_openid_connect_provider" "oidc_provider" {
+  url = "https://${rhcs_cluster_rosa_classic.rosa_sts_cluster.sts.oidc_endpoint_url}"
+
+  client_id_list = [
+    "openshift",
+    "sts.amazonaws.com"
+  ]
+
+  thumbprint_list = [rhcs_cluster_rosa_classic.rosa_sts_cluster.sts.thumbprint]
+
+  tags = var.tags
 }
 
 module "operator_roles" {
-  source  = "terraform-redhat/rosa-sts/aws"
-  version = "0.0.14"
+  source  = "terraform-redhat/rosa-classic/rhcs//modules/operator-roles"
+  version = ">= 1.7.3"
 
-  create_operator_roles = true
-  create_oidc_provider  = true
-  create_account_roles  = false
+  operator_role_prefix = var.operator_role_prefix
+  account_role_prefix  = var.account_role_prefix
+  oidc_endpoint_url    = rhcs_cluster_rosa_classic.rosa_sts_cluster.sts.oidc_endpoint_url
+  tags                 = var.tags
 
-  cluster_id                  = rhcs_cluster_rosa_classic.rosa_sts_cluster.id
-  rh_oidc_provider_thumbprint = rhcs_cluster_rosa_classic.rosa_sts_cluster.sts.thumbprint
-  rh_oidc_provider_url        = rhcs_cluster_rosa_classic.rosa_sts_cluster.sts.oidc_endpoint_url
-  operator_roles_properties   = data.rhcs_rosa_operator_roles.operator_roles.operator_iam_roles
-  tags                        = var.tags
+  depends_on = [aws_iam_openid_connect_provider.oidc_provider]
 }

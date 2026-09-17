@@ -18,10 +18,10 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = ">= 4.20.0"
+      version = ">= 4.67.0"
     }
     rhcs = {
-      version = ">= 1.1.0"
+      version = ">= 1.6.2"
       source  = "terraform-redhat/rhcs"
     }
   }
@@ -32,24 +32,12 @@ provider "rhcs" {
   url   = var.url
 }
 
-data "rhcs_policies" "all_policies" {}
-
-data "rhcs_versions" "all" {}
-
 module "create_account_roles" {
-  source  = "terraform-redhat/rosa-sts/aws"
-  version = ">=0.0.14"
+  source  = "terraform-redhat/rosa-classic/rhcs//modules/account-iam-resources"
+  version = ">= 1.7.3"
 
-  create_operator_roles = false
-  create_oidc_provider  = false
-  create_account_roles  = true
-
-  account_role_prefix    = var.account_role_prefix
-  ocm_environment        = var.ocm_environment
-  rosa_openshift_version = var.openshift_version
-  account_role_policies  = data.rhcs_policies.all_policies.account_role_policies
-  operator_role_policies = data.rhcs_policies.all_policies.operator_role_policies
-  all_versions           = data.rhcs_versions.all
-  path                   = var.path
-  tags                   = var.tags
+  account_role_prefix = var.account_role_prefix
+  openshift_version   = var.openshift_version
+  path                = var.path
+  tags                = var.tags
 }

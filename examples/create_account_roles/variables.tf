@@ -1,8 +1,3 @@
-variable "ocm_environment" {
-  type    = string
-  default = "production"
-}
-
 variable "openshift_version" {
   type    = string
   default = ""

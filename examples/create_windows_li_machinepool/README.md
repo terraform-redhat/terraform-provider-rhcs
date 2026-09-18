@@ -39,7 +39,7 @@ This Terraform example creates a Windows License-Included **machine pool** for a
 
     * Machine pool subnet ID:
 
-      This is the ID of the private subnet in which you would like your MachinePool to be provisioned
+      This is the ID of the private subnet in which you want your MachinePool to be provisioned
 
     * Machine pool name:
         ```

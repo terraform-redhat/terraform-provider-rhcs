@@ -75,7 +75,7 @@ variable "name_prefix" {
 
 variable "availability_zones_count" {
   type        = number
-  description = "The count of availability zones to utilize within the specified AWS Region, where pairs of public and private subnets will be generated. This value should not be updated, please create a new resource instead"
+  description = "The count of availability zones to use within the specified AWS Region, where pairs of public and private subnets will be generated. This value should not be updated, please create a new resource instead"
 }
 
 variable "tags" {

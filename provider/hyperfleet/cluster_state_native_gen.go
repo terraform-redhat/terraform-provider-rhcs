@@ -71,5 +71,6 @@ type ClusterStateNative struct {
 	Availability_zones             []string          `hfsdk:"-"`
 	Aws_partition                  string            `hfsdk:"-"`
 	Cloud_region                   string            `hfsdk:"-"`
+	Api_url                        string            `hfsdk:"-"`
 	Phase                          string            `hfsdk:"-"`
 }

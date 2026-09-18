@@ -20,6 +20,7 @@ import (
 	"context"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	v1alpha1 "github.com/openshift-online/rosa-hyperfleet-api/api/v1alpha1/public"
 	hyperfleet "github.com/openshift-online/rosa-hyperfleet-api/clientset"
 )
@@ -48,19 +49,19 @@ func (h *OidcConfigHandlerImpl) PreExpand(ctx context.Context, input *OidcConfig
 		return diags
 	}
 
-	if input.IssuerUrl.IsNull() || input.IssuerUrl.ValueString() == "" {
-		diags.AddError("issuer_url is required", "OIDC issuer URL must be specified")
-		return diags
-	}
+	// For unmanaged type, installer_role_arn and secret_arn are required
+	// issuer_url is now computed and will be populated by pathbind
+	isUnmanaged := !input.Type.IsNull() && input.Type.ValueString() != "managed"
+	if isUnmanaged {
+		if input.InstallerRoleArn.IsNull() || input.InstallerRoleArn.ValueString() == "" {
+			diags.AddError("installer_role_arn is required", "Installer role ARN must be specified for unmanaged type")
+			return diags
+		}
 
-	if input.InstallerRoleArn.IsNull() || input.InstallerRoleArn.ValueString() == "" {
-		diags.AddError("installer_role_arn is required", "Installer role ARN must be specified")
-		return diags
-	}
-
-	if input.SecretArn.IsNull() || input.SecretArn.ValueString() == "" {
-		diags.AddError("secret_arn is required", "Secret ARN must be specified")
-		return diags
+		if input.SecretArn.IsNull() || input.SecretArn.ValueString() == "" {
+			diags.AddError("secret_arn is required", "Secret ARN must be specified for unmanaged type")
+			return diags
+		}
 	}
 
 	return diags
@@ -89,7 +90,23 @@ func (h *OidcConfigHandlerImpl) PostResponse(ctx context.Context, resp *v1alpha1
 
 // PostFlatten populates computed fields in the state from the API response
 func (h *OidcConfigHandlerImpl) PostFlatten(ctx context.Context, state *OidcConfigState, resp *v1alpha1.OidcConfig) {
-	// TODO: Populate computed fields from API response
+	if resp == nil {
+		return
+	}
+	// Populate Phase from status (consumer-only field, not mapped via pathbind)
+	// Default to "Pending" if not yet set by the controller
+	if resp.Status.Phase != "" {
+		state.Phase = types.StringValue(string(resp.Status.Phase))
+	} else {
+		state.Phase = types.StringValue("Pending")
+	}
+	// Populate Thumbprint from status (consumer-only field, not mapped via pathbind)
+	// Default to empty string if not yet computed by the controller
+	if resp.Status.Thumbprint != "" {
+		state.Thumbprint = types.StringValue(resp.Status.Thumbprint)
+	} else {
+		state.Thumbprint = types.StringValue("")
+	}
 }
 
 // NewOidcConfigHandlerImpl creates a new OidcConfigHandlerImpl instance.

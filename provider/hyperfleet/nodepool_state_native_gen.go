@@ -36,4 +36,6 @@ type NodePoolStateNative struct {
 	Platform_type                 string            `hfsdk:"spec.nodePool.platform.type"`
 	Image                         string            `hfsdk:"spec.nodePool.release.image"`
 	Replicas                      *int32            `hfsdk:"spec.nodePool.replicas"`
+	Cluster_id                    string            `hfsdk:"-"`
+	Phase                         string            `hfsdk:"-"`
 }

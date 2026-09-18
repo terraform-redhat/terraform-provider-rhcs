@@ -116,8 +116,11 @@ func (r *OidcConfigResource) Schema(
 				Optional:            true,
 			},
 			"issuer_url": schema.StringAttribute{
-				MarkdownDescription: "IssuerUrl.",
-				Optional:            true,
+				MarkdownDescription: "Issuer_url.",
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"secret_arn": schema.StringAttribute{
 				MarkdownDescription: "SecretArn.",
@@ -126,6 +129,20 @@ func (r *OidcConfigResource) Schema(
 			"type": schema.StringAttribute{
 				MarkdownDescription: "Type.",
 				Optional:            true,
+			},
+			"phase": schema.StringAttribute{
+				MarkdownDescription: "Phase.",
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"thumbprint": schema.StringAttribute{
+				MarkdownDescription: "Thumbprint.",
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}
@@ -175,6 +192,9 @@ func (r *OidcConfigResource) Create(
 	}
 
 	// Create via API
+	// For namespaced resources, obj.GetNamespace() reflects the value the handler's
+	// PostExpand set on the SDK object; passing it here keeps the client-scoped
+	// namespace and the object's namespace in sync.
 	created, err := r.Client.HyperfleetV1alpha1().OidcConfigs().Create(ctx, obj, hfwrappers.CreateOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create OidcConfig", err.Error())
@@ -431,14 +451,20 @@ func terraformOidcConfigToNative(tf *OidcConfigState) *OidcConfigStateNative {
 	if !tf.InstallerRoleArn.IsNull() && !tf.InstallerRoleArn.IsUnknown() {
 		native.InstallerRoleArn = tf.InstallerRoleArn.ValueString()
 	}
-	if !tf.IssuerUrl.IsNull() && !tf.IssuerUrl.IsUnknown() {
-		native.IssuerUrl = tf.IssuerUrl.ValueString()
+	if !tf.Issuer_url.IsNull() && !tf.Issuer_url.IsUnknown() {
+		native.Issuer_url = tf.Issuer_url.ValueString()
 	}
 	if !tf.SecretArn.IsNull() && !tf.SecretArn.IsUnknown() {
 		native.SecretArn = tf.SecretArn.ValueString()
 	}
 	if !tf.Type.IsNull() && !tf.Type.IsUnknown() {
 		native.Type = tf.Type.ValueString()
+	}
+	if !tf.Phase.IsNull() && !tf.Phase.IsUnknown() {
+		native.Phase = tf.Phase.ValueString()
+	}
+	if !tf.Thumbprint.IsNull() && !tf.Thumbprint.IsUnknown() {
+		native.Thumbprint = tf.Thumbprint.ValueString()
 	}
 	return native
 }
@@ -453,8 +479,10 @@ func nativeOidcConfigToTerraform(native *OidcConfigStateNative) *OidcConfigState
 	tf.Name = toTerraformString(native.Name)
 	tf.Id = toTerraformString(native.Id)
 	tf.InstallerRoleArn = toTerraformString(native.InstallerRoleArn)
-	tf.IssuerUrl = toTerraformString(native.IssuerUrl)
+	tf.Issuer_url = toTerraformString(native.Issuer_url)
 	tf.SecretArn = toTerraformString(native.SecretArn)
 	tf.Type = toTerraformString(native.Type)
+	tf.Phase = toTerraformString(native.Phase)
+	tf.Thumbprint = toTerraformString(native.Thumbprint)
 	return tf
 }

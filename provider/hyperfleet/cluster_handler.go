@@ -136,8 +136,18 @@ func (h *ClusterHandlerImpl) PostFlatten(ctx context.Context, state *ClusterStat
 		return
 	}
 	// Populate Phase from status (consumer-only field, not mapped via pathbind)
+	// Default to "WaitingForPlacement" if not yet set by the controller
 	if resp.Status.Phase != "" {
 		state.Phase = types.StringValue(string(resp.Status.Phase))
+	} else {
+		state.Phase = types.StringValue(string(v1alpha1.ClusterPhaseWaitingForPlacement))
+	}
+	// Populate API URL from control plane endpoint host
+	// Default to empty string if not yet computed by the controller
+	if resp.Status.ControlPlaneEndpoint.Host != "" {
+		state.Api_url = types.StringValue(resp.Status.ControlPlaneEndpoint.Host)
+	} else {
+		state.Api_url = types.StringValue("")
 	}
 }
 

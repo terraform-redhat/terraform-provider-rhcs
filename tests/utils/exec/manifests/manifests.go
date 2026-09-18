@@ -122,3 +122,7 @@ func GetHyperfleetVPCManifestsDir() string {
 func GetHyperfleetIAMManifestsDir() string {
 	return path.Join(config.GetManifestsDir(), awsProviderDir, "iam-roles", "hyperfleet")
 }
+
+func GetHyperfleetOidcConfigManifestsDir() string {
+	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "oidcconfigs", "hyperfleet")
+}

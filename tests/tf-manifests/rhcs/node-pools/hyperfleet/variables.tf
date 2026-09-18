@@ -16,6 +16,11 @@ variable "cluster_id" {
   description = "UID of the parent rhcs_cluster_hyperfleet (its `id` output)"
 }
 
+variable "cluster_name" {
+  type        = string
+  description = "Name of the parent rhcs_cluster_hyperfleet"
+}
+
 variable "name" {
   type        = string
   description = "Node pool name"
@@ -34,8 +39,7 @@ variable "auto_repair" {
 
 variable "replicas" {
   type        = number
-  description = "Fixed replica count (mutually exclusive with autoscaling)"
-  default     = null
+  description = "Fixed replica count"
 }
 
 variable "instance_type" {

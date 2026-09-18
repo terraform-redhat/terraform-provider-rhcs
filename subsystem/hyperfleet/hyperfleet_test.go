@@ -37,6 +37,9 @@ func TestProvider(t *testing.T) {
 var _ = BeforeEach(func() {
 	format.MaxLength = 0
 
+	// Clear hyperfleet_url env var to test without hyperfleet configuration
+	GinkgoT().Setenv("RHCS_HYPERFLEET_URL", "")
+
 	// Set fake AWS credentials so the hyperfleet client can initialize
 	// without requiring real AWS credentials
 	GinkgoT().Setenv("AWS_ACCESS_KEY_ID", "fake-access-key")

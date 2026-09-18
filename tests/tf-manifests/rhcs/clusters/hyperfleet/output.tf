@@ -16,7 +16,3 @@ output "cluster_phase" {
 output "cluster_api_url" {
   value = rhcs_cluster_hyperfleet.cluster.api_url
 }
-
-output "oidc_issuer" {
-  value = rhcs_cluster_hyperfleet.cluster.oidc_issuer
-}

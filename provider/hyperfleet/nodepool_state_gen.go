@@ -40,6 +40,8 @@ type NodePoolState struct {
 	Platform_type                 types.String `tfsdk:"platform_type"`
 	Image                         types.String `tfsdk:"image"`
 	Replicas                      types.Int64  `tfsdk:"replicas"`
+	Cluster_id                    types.String `tfsdk:"cluster_id"`
+	Phase                         types.String `tfsdk:"phase"`
 }
 
 // mergeResponseNodePool merges API response values into the plan state.
@@ -56,5 +58,11 @@ func mergeResponseNodePool(plan, response *NodePoolState) {
 	}
 	if !response.Platform_type.IsNull() {
 		plan.Platform_type = response.Platform_type
+	}
+	if !response.Cluster_id.IsNull() {
+		plan.Cluster_id = response.Cluster_id
+	}
+	if !response.Phase.IsNull() {
+		plan.Phase = response.Phase
 	}
 }

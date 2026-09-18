@@ -387,6 +387,13 @@ func (r *ClusterResource) Schema(
 					stringplanmodifier.RequiresReplace(), stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"api_url": schema.StringAttribute{
+				MarkdownDescription: "Api_url.",
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"phase": schema.StringAttribute{
 				MarkdownDescription: "Phase.",
 				Computed:            true,
@@ -442,6 +449,9 @@ func (r *ClusterResource) Create(
 	}
 
 	// Create via API
+	// For namespaced resources, obj.GetNamespace() reflects the value the handler's
+	// PostExpand set on the SDK object; passing it here keeps the client-scoped
+	// namespace and the object's namespace in sync.
 	created, err := r.Client.HyperfleetV1alpha1().Clusters().Create(ctx, obj, hfwrappers.CreateOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create Cluster", err.Error())
@@ -888,6 +898,9 @@ func terraformClusterToNative(tf *ClusterState) *ClusterStateNative {
 	if !tf.Cloud_region.IsNull() && !tf.Cloud_region.IsUnknown() {
 		native.Cloud_region = tf.Cloud_region.ValueString()
 	}
+	if !tf.Api_url.IsNull() && !tf.Api_url.IsUnknown() {
+		native.Api_url = tf.Api_url.ValueString()
+	}
 	if !tf.Phase.IsNull() && !tf.Phase.IsUnknown() {
 		native.Phase = tf.Phase.ValueString()
 	}
@@ -964,6 +977,7 @@ func nativeClusterToTerraform(native *ClusterStateNative) *ClusterState {
 	tf.Availability_zones = toTerraformList(native.Availability_zones)
 	tf.Aws_partition = toTerraformString(native.Aws_partition)
 	tf.Cloud_region = toTerraformString(native.Cloud_region)
+	tf.Api_url = toTerraformString(native.Api_url)
 	tf.Phase = toTerraformString(native.Phase)
 	return tf
 }

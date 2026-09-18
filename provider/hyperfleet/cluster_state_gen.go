@@ -75,6 +75,7 @@ type ClusterState struct {
 	Availability_zones             types.List   `tfsdk:"availability_zones"`
 	Aws_partition                  types.String `tfsdk:"aws_partition"`
 	Cloud_region                   types.String `tfsdk:"cloud_region"`
+	Api_url                        types.String `tfsdk:"api_url"`
 	Phase                          types.String `tfsdk:"phase"`
 }
 
@@ -113,6 +114,9 @@ func mergeResponseCluster(plan, response *ClusterState) {
 	}
 	if !response.Cloud_region.IsNull() {
 		plan.Cloud_region = response.Cloud_region
+	}
+	if !response.Api_url.IsNull() {
+		plan.Api_url = response.Api_url
 	}
 	if !response.Phase.IsNull() {
 		plan.Phase = response.Phase

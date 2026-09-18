@@ -18,6 +18,7 @@ type HyperfleetClusterArgs struct {
 	VPCID               *string `hcl:"vpc_id"`
 	AvailabilityZone    *string `hcl:"availability_zone"`
 	ExpirationTimestamp *string `hcl:"expiration_timestamp"`
+	OIDCConfigID        *string `hcl:"oidc_config_id"`
 }
 
 // HyperfleetClusterOutput holds the Terraform output values from the hyperfleet
@@ -27,7 +28,6 @@ type HyperfleetClusterOutput struct {
 	ClusterName string `json:"cluster_name,omitempty"`
 	Phase       string `json:"cluster_phase,omitempty"`
 	APIURL      string `json:"cluster_api_url,omitempty"`
-	OIDCIssuer  string `json:"oidc_issuer,omitempty"`
 }
 
 // HyperfleetClusterService manages the lifecycle of an rhcs_cluster_hyperfleet

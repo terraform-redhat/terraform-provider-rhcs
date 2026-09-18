@@ -33,4 +33,5 @@ resource "rhcs_cluster_hyperfleet" "cluster" {
   vpc_id                = var.vpc_id
   availability_zones    = [var.availability_zone]
   expiration_timestamp  = var.expiration_timestamp
+  oidc_config_id        = var.oidc_config_id != "" ? var.oidc_config_id : null
 }

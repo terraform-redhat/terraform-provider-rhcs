@@ -11,7 +11,9 @@ type OidcConfigStateNative struct {
 	Name             string `hfsdk:"metadata.name"`
 	Id               string `hfsdk:"metadata.uid"`
 	InstallerRoleArn string `hfsdk:"spec.installerRoleArn"`
-	IssuerUrl        string `hfsdk:"spec.issuerUrl"`
+	Issuer_url       string `hfsdk:"spec.issuerUrl"`
 	SecretArn        string `hfsdk:"spec.secretArn"`
 	Type             string `hfsdk:"spec.type"`
+	Phase            string `hfsdk:"-"`
+	Thumbprint       string `hfsdk:"-"`
 }

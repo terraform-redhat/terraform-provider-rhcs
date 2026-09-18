@@ -27,17 +27,12 @@ provider "rhcs" {
 }
 
 resource "rhcs_nodepool_hyperfleet" "nodepool" {
-  cluster     = var.cluster_id
-  name        = var.name
-  subnet_id   = var.subnet_id
-  auto_repair = var.auto_repair
-  replicas    = var.replicas
-
-  aws_node_pool = {
-    instance_type = var.instance_type
-    disk_size     = var.disk_size
-    tags          = var.tags
-  }
-
-  labels = var.labels
+  cluster_id    = var.cluster_id
+  cluster_name  = var.cluster_name
+  name          = var.name
+  subnet_id     = var.subnet_id
+  auto_repair   = var.auto_repair
+  replicas      = var.replicas
+  instance_type = var.instance_type
+  labels        = var.labels
 }

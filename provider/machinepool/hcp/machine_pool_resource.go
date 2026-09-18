@@ -1003,7 +1003,7 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 		)
 		return diags
 	}
-	update, err := r.clusterCollection.Cluster(state.Cluster.ValueString()).
+	_, err = r.clusterCollection.Cluster(state.Cluster.ValueString()).
 		NodePools().
 		NodePool(state.ID.ValueString()).Update().
 		Parameter("fetchUserTagsOnly", true).Body(nodePool).SendContext(ctx)
@@ -1018,7 +1018,38 @@ func (r *HcpMachinePoolResource) doUpdate(ctx context.Context, state *HcpMachine
 		return diags
 	}
 
-	object := update.Body()
+	// Perform a canonical GET to retrieve the authoritative node pool state.
+	// The PATCH response may be partial (e.g. missing instance_profile) when
+	// the cluster service's no-op early-return optimization is active.
+	getNp, err := r.clusterCollection.Cluster(state.Cluster.ValueString()).
+		NodePools().
+		NodePool(state.ID.ValueString()).
+		Get().
+		Parameter("fetchUserTagsOnly", true).SendContext(ctx)
+	if err != nil {
+		if getNp.Status() == http.StatusNotFound {
+			diags.AddError(
+				"Machine pool not found after update",
+				fmt.Sprintf(
+					"Machine pool '%s' was not found on cluster '%s' after a "+
+						"successful update",
+					state.ID.ValueString(), state.Cluster.ValueString(),
+				),
+			)
+			return diags
+		}
+		diags.AddError(
+			"Failed to read machine pool after update",
+			fmt.Sprintf(
+				"Failed to read machine pool '%s' on cluster '%s' after "+
+					"update: %v",
+				state.ID.ValueString(), state.Cluster.ValueString(), err,
+			),
+		)
+		return diags
+	}
+
+	object := getNp.Body()
 
 	adjustInitialStateToPlan(state, plan)
 

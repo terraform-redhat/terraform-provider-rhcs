@@ -946,6 +946,31 @@ var _ = Describe("Hcp Machine pool", func() {
 					}`),
 				),
 			)
+			// GET after PATCH (doUpdate re-reads authoritative state)
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool", "fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, `
+					{
+					  "id": "my-pool",
+					  "href": "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+					  "kind": "MachinePool",
+					  "replicas": 12,
+					  "labels": {
+					    "label_key3": "label_value3"
+					  },
+					  "aws_node_pool": {
+						"instance_type": "r5.xlarge",
+						"instance_profile": "bla"
+					  },
+					  "auto_repair": true,
+					  "version": {
+						  "raw_id": "4.14.10"
+					  },
+					  "subnet": "subnet-123"
+					}`),
+				),
+			)
 
 			Terraform.Source(`
 			resource "rhcs_hcp_machine_pool" "my_pool" {
@@ -1059,6 +1084,28 @@ var _ = Describe("Hcp Machine pool", func() {
 						http.MethodPatch,
 						"/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
 					),
+					RespondWithJSON(http.StatusOK, `
+					{
+					  "id": "my-pool",
+					  "href": "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+					  "kind": "MachinePool",
+					  "replicas": 12,
+					  "aws_node_pool": {
+						"instance_type": "r5.xlarge",
+						"instance_profile": "bla"
+					  },
+					  "auto_repair": true,
+					  "version": {
+						  "raw_id": "4.14.10"
+					  },
+					  "subnet": "subnet-123"
+					}`),
+				),
+			)
+			// GET after PATCH (doUpdate re-reads authoritative state)
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool", "fetchUserTagsOnly=true"),
 					RespondWithJSON(http.StatusOK, `
 					{
 					  "id": "my-pool",
@@ -1271,6 +1318,39 @@ var _ = Describe("Hcp Machine pool", func() {
 				  "subnet": "subnet-123"
 				}`),
 				),
+				// GET after PATCH (doUpdate re-reads authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool", "fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, `
+				{
+				  "id": "my-pool",
+				  "href": "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+				  "kind": "MachinePool",
+				  "replicas": 12,
+				  "availability_zone": "us-east-1a",
+				  "taints": [
+					  {
+						"effect": "NoSchedule",
+						"key": "key1",
+						"value": "value1"
+					  },
+					  {
+						"effect": "NoExecute",
+						"key": "key2",
+						"value": "value2"
+					  }
+				  ],
+				  "aws_node_pool": {
+					"instance_type": "r5.xlarge",
+					"instance_profile": "bla"
+				  },
+				  "auto_repair": true,
+				  "version": {
+					  "raw_id": "4.14.10"
+				  },
+				  "subnet": "subnet-123"
+				}`),
+				),
 			)
 
 			Terraform.Source(`
@@ -1448,6 +1528,27 @@ var _ = Describe("Hcp Machine pool", func() {
 						http.MethodPatch,
 						"/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
 					),
+					RespondWithJSON(http.StatusOK, `
+				{
+				  "id": "my-pool",
+				  "href": "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+				  "kind": "MachinePool",
+				  "replicas": 12,
+				  "availability_zone": "us-east-1a",
+				  "aws_node_pool": {
+					"instance_type": "r5.xlarge",
+					"instance_profile": "bla"
+				  },
+				  "auto_repair": true,
+				  "version": {
+					  "raw_id": "4.14.10"
+				  },
+				  "subnet": "subnet-123"
+				}`),
+				),
+				// GET after PATCH (doUpdate re-reads authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool", "fetchUserTagsOnly=true"),
 					RespondWithJSON(http.StatusOK, `
 				{
 				  "id": "my-pool",
@@ -1925,6 +2026,27 @@ var _ = Describe("Hcp Machine pool", func() {
 				  "subnet": "subnet-123"
 				}`),
 				),
+				// GET after PATCH (doUpdate re-reads authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool", "fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, `
+				{
+				  "id": "my-pool",
+				  "href": "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+				  "kind": "MachinePool",
+				  "replicas": 12,
+				  "availability_zone": "us-east-1a",
+				  "aws_node_pool": {
+					"instance_type": "r5.xlarge",
+					"instance_profile": "bla"
+				  },
+				  "auto_repair": true,
+				  "version": {
+					  "raw_id": "4.14.10"
+				  },
+				  "subnet": "subnet-123"
+				}`),
+				),
 			)
 			// Run the apply command to update the machine pool:
 			Terraform.Source(`
@@ -2289,6 +2411,21 @@ var _ = Describe("Hcp Machine pool", func() {
 					}`),
 				),
 			)
+			// GET after PATCH (doUpdate re-reads authoritative state)
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/drain-pool", "fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, `{
+					  "id": "drain-pool",
+					  "replicas": 2,
+					  "subnet": "id-1",
+					  "aws_node_pool": { "instance_type": "r5.xlarge", "instance_profile": "bla" },
+					  "node_drain_grace_period": { "value": 90 },
+					  "auto_repair": true,
+					  "version": { "raw_id": "4.14.10" }
+					}`),
+				),
+			)
 
 			Terraform.Source(`
 			resource "rhcs_hcp_machine_pool" "my_pool" {
@@ -2305,6 +2442,441 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(runOutput2.ExitCode).To(BeZero())
 			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
 			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.node_drain_grace_period", 90.0))
+		})
+
+		// Regression test: the Cluster Service no-op PATCH early-return
+		// optimization can return an empty instance_profile in the PATCH
+		// response. The provider must use the follow-up GET (which returns
+		// the real instance_profile) to populate Terraform state.
+		It("Populates instance_profile from GET after PATCH returns empty value", func() {
+			realProfile := "arn:aws:iam::123456789012:instance-profile/test-pool-profile"
+
+			// Step 1: Create the machine pool. The POST response includes the real instance_profile.
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools",
+					),
+					RespondWithJSONTemplate(http.StatusCreated, `{
+					  "id": "profile-pool",
+					  "replicas": 2,
+					  "availability_zone": "us-east-1a",
+					  "subnet": "subnet-123",
+					  "aws_node_pool": {
+						"instance_type": "r5.xlarge",
+						"instance_profile": "{{.InstanceProfile}}"
+					  },
+					  "auto_repair": true,
+					  "version": { "raw_id": "4.14.10" }
+					}`, "InstanceProfile", realProfile),
+				),
+			)
+
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "profile_pool" {
+				cluster      = "123"
+				name         = "profile-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+				}
+				autoscaling = { enabled = false }
+				subnet_id    = "subnet-123"
+				replicas     = 2
+				auto_repair  = true
+				version      = "4.14.10"
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// Verify initial state has the real instance_profile.
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "profile_pool")
+			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.instance_profile", realProfile))
+
+			// Step 2: Trigger an update (change replicas 2 → 3).
+			// Read phase (Terraform refresh)
+			prepareClusterRead("123")
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/profile-pool"),
+					RespondWithJSONTemplate(http.StatusOK, `{
+					  "id": "profile-pool",
+					  "replicas": 2,
+					  "availability_zone": "us-east-1a",
+					  "subnet": "subnet-123",
+					  "aws_node_pool": {
+						"instance_type": "r5.xlarge",
+						"instance_profile": "{{.InstanceProfile}}"
+					  },
+					  "auto_repair": true,
+					  "version": { "raw_id": "4.14.10" }
+					}`, "InstanceProfile", realProfile),
+				),
+			)
+
+			// doUpdate: cluster read + pre-check GET
+			prepareClusterRead("123")
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/profile-pool"),
+					RespondWithJSONTemplate(http.StatusOK, `{
+					  "id": "profile-pool",
+					  "replicas": 2,
+					  "availability_zone": "us-east-1a",
+					  "subnet": "subnet-123",
+					  "aws_node_pool": {
+						"instance_type": "r5.xlarge",
+						"instance_profile": "{{.InstanceProfile}}"
+					  },
+					  "auto_repair": true,
+					  "version": { "raw_id": "4.14.10" }
+					}`, "InstanceProfile", realProfile),
+				),
+			)
+
+			// PATCH response: simulate the no-op early-return bug by
+			// returning EMPTY instance_profile. Before the fix this would
+			// have been stored in state, breaking Terraform consistency.
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPatch,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools/profile-pool",
+					),
+					RespondWithJSON(http.StatusOK, `{
+					  "id": "profile-pool",
+					  "replicas": 3,
+					  "availability_zone": "us-east-1a",
+					  "subnet": "subnet-123",
+					  "aws_node_pool": {
+						"instance_type": "r5.xlarge",
+						"instance_profile": ""
+					  },
+					  "auto_repair": true,
+					  "version": { "raw_id": "4.14.10" }
+					}`),
+				),
+			)
+
+			// GET after PATCH: the authoritative read returns the REAL
+			// instance_profile. The provider must use THIS value.
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools/profile-pool",
+						"fetchUserTagsOnly=true"),
+					RespondWithJSONTemplate(http.StatusOK, `{
+					  "id": "profile-pool",
+					  "replicas": 3,
+					  "availability_zone": "us-east-1a",
+					  "subnet": "subnet-123",
+					  "aws_node_pool": {
+						"instance_type": "r5.xlarge",
+						"instance_profile": "{{.InstanceProfile}}"
+					  },
+					  "auto_repair": true,
+					  "version": { "raw_id": "4.14.10" }
+					}`, "InstanceProfile", realProfile),
+				),
+			)
+
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "profile_pool" {
+				cluster      = "123"
+				name         = "profile-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+				}
+				autoscaling = { enabled = false }
+				subnet_id    = "subnet-123"
+				replicas     = 3
+				auto_repair  = true
+				version      = "4.14.10"
+			}`)
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// The critical assertion: state must contain the REAL instance_profile
+			// from the GET response, NOT the empty string from the PATCH response.
+			resource = Terraform.Resource("rhcs_hcp_machine_pool", "profile_pool")
+			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.instance_profile", realProfile))
+			Expect(resource).To(MatchJQ(".attributes.replicas", 3.0))
+		})
+
+		It("Fails with diagnostic when GET returns 404 after successful PATCH", func() {
+			// Step 1: Create the machine pool.
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools",
+					),
+					RespondWithJSON(http.StatusCreated, `{
+					  "id": "my-pool",
+					  "replicas": 2,
+					  "availability_zone": "us-east-1a",
+					  "subnet": "subnet-123",
+					  "aws_node_pool": {
+						"instance_type": "r5.xlarge",
+						"instance_profile": "bla"
+					  },
+					  "auto_repair": true,
+					  "version": { "raw_id": "4.14.10" }
+					}`),
+				),
+			)
+
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+				}
+				autoscaling = { enabled = false }
+				subnet_id    = "subnet-123"
+				replicas     = 2
+				auto_repair  = true
+				version      = "4.14.10"
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// Step 2: Trigger an update (change replicas 2 → 3).
+			// Read phase (Terraform refresh)
+			prepareClusterRead("123")
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
+					RespondWithJSON(http.StatusOK, `{
+					  "id": "my-pool",
+					  "replicas": 2,
+					  "availability_zone": "us-east-1a",
+					  "subnet": "subnet-123",
+					  "aws_node_pool": {
+						"instance_type": "r5.xlarge",
+						"instance_profile": "bla"
+					  },
+					  "auto_repair": true,
+					  "version": { "raw_id": "4.14.10" }
+					}`),
+				),
+			)
+
+			// doUpdate: cluster read + pre-check GET
+			prepareClusterRead("123")
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
+					RespondWithJSON(http.StatusOK, `{
+					  "id": "my-pool",
+					  "replicas": 2,
+					  "availability_zone": "us-east-1a",
+					  "subnet": "subnet-123",
+					  "aws_node_pool": {
+						"instance_type": "r5.xlarge",
+						"instance_profile": "bla"
+					  },
+					  "auto_repair": true,
+					  "version": { "raw_id": "4.14.10" }
+					}`),
+				),
+			)
+
+			// PATCH succeeds
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPatch,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+					),
+					RespondWithJSON(http.StatusOK, `{
+					  "id": "my-pool",
+					  "replicas": 3,
+					  "availability_zone": "us-east-1a",
+					  "subnet": "subnet-123",
+					  "aws_node_pool": {
+						"instance_type": "r5.xlarge",
+						"instance_profile": "bla"
+					  },
+					  "auto_repair": true,
+					  "version": { "raw_id": "4.14.10" }
+					}`),
+				),
+			)
+
+			// GET after PATCH returns 404 — the machine pool vanished
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+						"fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusNotFound, `{
+					  "kind": "Error",
+					  "id": "404",
+					  "href": "/api/clusters_mgmt/v1/errors/404",
+					  "code": "CLUSTERS-MGMT-404",
+					  "reason": "Node pool 'my-pool' not found"
+					}`),
+				),
+			)
+
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+				}
+				autoscaling = { enabled = false }
+				subnet_id    = "subnet-123"
+				replicas     = 3
+				auto_repair  = true
+				version      = "4.14.10"
+			}`)
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Machine pool not found after update")
+		})
+
+		It("Fails with diagnostic when GET returns 500 after successful PATCH", func() {
+			// Step 1: Create the machine pool.
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools",
+					),
+					RespondWithJSON(http.StatusCreated, `{
+					  "id": "my-pool",
+					  "replicas": 2,
+					  "availability_zone": "us-east-1a",
+					  "subnet": "subnet-123",
+					  "aws_node_pool": {
+						"instance_type": "r5.xlarge",
+						"instance_profile": "bla"
+					  },
+					  "auto_repair": true,
+					  "version": { "raw_id": "4.14.10" }
+					}`),
+				),
+			)
+
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+				}
+				autoscaling = { enabled = false }
+				subnet_id    = "subnet-123"
+				replicas     = 2
+				auto_repair  = true
+				version      = "4.14.10"
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			// Step 2: Trigger an update (change replicas 2 → 3).
+			// Read phase (Terraform refresh)
+			prepareClusterRead("123")
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
+					RespondWithJSON(http.StatusOK, `{
+					  "id": "my-pool",
+					  "replicas": 2,
+					  "availability_zone": "us-east-1a",
+					  "subnet": "subnet-123",
+					  "aws_node_pool": {
+						"instance_type": "r5.xlarge",
+						"instance_profile": "bla"
+					  },
+					  "auto_repair": true,
+					  "version": { "raw_id": "4.14.10" }
+					}`),
+				),
+			)
+
+			// doUpdate: cluster read + pre-check GET
+			prepareClusterRead("123")
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool"),
+					RespondWithJSON(http.StatusOK, `{
+					  "id": "my-pool",
+					  "replicas": 2,
+					  "availability_zone": "us-east-1a",
+					  "subnet": "subnet-123",
+					  "aws_node_pool": {
+						"instance_type": "r5.xlarge",
+						"instance_profile": "bla"
+					  },
+					  "auto_repair": true,
+					  "version": { "raw_id": "4.14.10" }
+					}`),
+				),
+			)
+
+			// PATCH succeeds
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPatch,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+					),
+					RespondWithJSON(http.StatusOK, `{
+					  "id": "my-pool",
+					  "replicas": 3,
+					  "availability_zone": "us-east-1a",
+					  "subnet": "subnet-123",
+					  "aws_node_pool": {
+						"instance_type": "r5.xlarge",
+						"instance_profile": "bla"
+					  },
+					  "auto_repair": true,
+					  "version": { "raw_id": "4.14.10" }
+					}`),
+				),
+			)
+
+			// GET after PATCH returns 500 — server error.
+			// The OCM SDK retries GET requests on 5xx (up to 2 retries),
+			// so we register handlers for the initial attempt and retries.
+			for i := 0; i < 3; i++ {
+				TestServer.AppendHandlers(
+					CombineHandlers(
+						VerifyRequest(http.MethodGet,
+							"/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool",
+							"fetchUserTagsOnly=true"),
+						RespondWithJSON(http.StatusInternalServerError, `{
+						  "kind": "Error",
+						  "id": "500",
+						  "href": "/api/clusters_mgmt/v1/errors/500",
+						  "code": "CLUSTERS-MGMT-500",
+						  "reason": "Internal server error"
+						}`),
+					),
+				)
+			}
+
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster      = "123"
+				name         = "my-pool"
+				aws_node_pool = {
+					instance_type = "r5.xlarge"
+				}
+				autoscaling = { enabled = false }
+				subnet_id    = "subnet-123"
+				replicas     = 3
+				auto_repair  = true
+				version      = "4.14.10"
+			}`)
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring("Failed to read machine pool after update")
 		})
 
 		It("Can create machine pool with custom disk size set and cannot edit", func() {
@@ -3448,6 +4020,23 @@ var _ = Describe("Hcp Machine pool", func() {
 							"auto_repair": true
 						}`),
 				),
+				// GET after PATCH (doUpdate re-reads authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, workerNodePoolUri, "fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"aws_node_pool":{
+								"instance_type":"r5.xlarge"
+							},
+							"version": {
+								"raw_id": "4.14.10"
+							},
+							"subnet": "subnet-123",
+							"replicas": 4,
+							"auto_repair": true
+						}`),
+				),
 			)
 			Terraform.Source(`
 				resource "rhcs_hcp_machine_pool" "worker" {
@@ -3520,6 +4109,27 @@ var _ = Describe("Hcp Machine pool", func() {
 				// Patch is for the update
 				CombineHandlers(
 					VerifyRequest(http.MethodPatch, workerNodePoolUri),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"labels": {
+								"label_key1": "label_value1"
+							},
+							"replicas": 2,
+							"aws_node_pool":{
+								"instance_type":"r5.xlarge",
+								"instance_profile": "bla"
+							},
+							"version": {
+								"raw_id": "4.14.10"
+							},
+							"subnet": "subnet-123",
+							"auto_repair": true
+						}`),
+				),
+				// GET after PATCH (doUpdate re-reads authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, workerNodePoolUri, "fetchUserTagsOnly=true"),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"id": "worker",
@@ -3764,6 +4374,27 @@ var _ = Describe("Hcp Machine pool", func() {
 							"auto_repair": false
 						}`),
 				),
+				// GET after PATCH (doUpdate re-reads authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, workerNodePoolUri, "fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"labels": {
+								"label_key1": "label_value1"
+							},
+							"replicas": 2,
+							"aws_node_pool":{
+								"instance_type":"r5.xlarge",
+								"instance_profile": "bla"
+							},
+							"version": {
+								"raw_id": "4.14.10"
+							},
+							"subnet": "subnet-123",
+							"auto_repair": false
+						}`),
+				),
 			)
 			Terraform.Source(`
 				resource "rhcs_hcp_machine_pool" "worker" {
@@ -3840,6 +4471,30 @@ var _ = Describe("Hcp Machine pool", func() {
 				// Patch is for the update
 				CombineHandlers(
 					VerifyRequest(http.MethodPatch, workerNodePoolUri),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"labels": {
+								"label_key1": "label_value1"
+							},
+							"replicas": 2,
+							"aws_node_pool":{
+								"instance_type":"r5.xlarge",
+								"instance_profile": "bla"
+							},
+							"version": {
+								"raw_id": "4.14.10"
+							},
+							"subnet": "subnet-123",
+							"auto_repair": true,
+							"tuning_configs": [
+								"config"
+							]
+						}`),
+				),
+				// GET after PATCH (doUpdate re-reads authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, workerNodePoolUri, "fetchUserTagsOnly=true"),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"id": "worker",
@@ -3959,6 +4614,27 @@ var _ = Describe("Hcp Machine pool", func() {
 							"auto_repair": true
 						}`),
 				),
+				// GET after PATCH (doUpdate re-reads authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, workerNodePoolUri, "fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"labels": {
+								"label_key1": "label_value1"
+							},
+							"replicas": 2,
+							"aws_node_pool":{
+								"instance_type":"r5.xlarge",
+								"instance_profile": "bla"
+							},
+							"version": {
+								"raw_id": "4.14.10"
+							},
+							"subnet": "subnet-123",
+							"auto_repair": true
+						}`),
+				),
 			)
 			Terraform.Source(`
 				resource "rhcs_hcp_machine_pool" "worker" {
@@ -4037,6 +4713,30 @@ var _ = Describe("Hcp Machine pool", func() {
 				// Patch is for the update
 				CombineHandlers(
 					VerifyRequest(http.MethodPatch, workerNodePoolUri),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"labels": {
+								"label_key1": "label_value1"
+							},
+							"replicas": 2,
+							"aws_node_pool":{
+								"instance_type":"r5.xlarge",
+								"instance_profile": "bla"
+							},
+							"version": {
+								"raw_id": "4.14.10"
+							},
+							"subnet": "subnet-123",
+							"auto_repair": true,
+							"kubelet_configs": [
+								"my_kubelet_config"
+							]
+						}`),
+				),
+				// GET after PATCH (doUpdate re-reads authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, workerNodePoolUri, "fetchUserTagsOnly=true"),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"id": "worker",
@@ -4161,6 +4861,30 @@ var _ = Describe("Hcp Machine pool", func() {
 							]
 						}`),
 				),
+				// GET after PATCH (doUpdate re-reads authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, workerNodePoolUri, "fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"labels": {
+								"label_key1": "label_value1"
+							},
+							"replicas": 2,
+							"aws_node_pool":{
+								"instance_type":"r5.xlarge",
+								"instance_profile": "bla"
+							},
+							"version": {
+								"raw_id": "4.14.10"
+							},
+							"subnet": "subnet-123",
+							"auto_repair": true,
+							"kubelet_configs": [
+								"my_kubelet_config_1"
+							]
+						}`),
+				),
 			)
 			Terraform.Source(`
 				resource "rhcs_hcp_machine_pool" "worker" {
@@ -4239,6 +4963,30 @@ var _ = Describe("Hcp Machine pool", func() {
 				// Patch is for the update
 				CombineHandlers(
 					VerifyRequest(http.MethodPatch, workerNodePoolUri),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"labels": {
+								"label_key1": "label_value1"
+							},
+							"replicas": 2,
+							"aws_node_pool":{
+								"instance_type":"r5.xlarge",
+								"instance_profile": "bla"
+							},
+							"version": {
+								"raw_id": "4.14.10"
+							},
+							"subnet": "subnet-123",
+							"auto_repair": true,
+							"kubelet_configs": [
+								"my_kubelet_config"
+							]
+						}`),
+				),
+				// GET after PATCH (doUpdate re-reads authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, workerNodePoolUri, "fetchUserTagsOnly=true"),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"id": "worker",
@@ -4342,6 +5090,27 @@ var _ = Describe("Hcp Machine pool", func() {
 				// Patch is for the update
 				CombineHandlers(
 					VerifyRequest(http.MethodPatch, workerNodePoolUri),
+					RespondWithJSON(http.StatusOK, `
+						{
+							"id": "worker",
+							"labels": {
+								"label_key1": "label_value1"
+							},
+							"replicas": 2,
+							"aws_node_pool":{
+								"instance_type":"r5.xlarge",
+								"instance_profile": "bla"
+							},
+							"version": {
+								"raw_id": "4.14.10"
+							},
+							"subnet": "subnet-123",
+							"auto_repair": true
+						}`),
+				),
+				// GET after PATCH (doUpdate re-reads authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, workerNodePoolUri, "fetchUserTagsOnly=true"),
 					RespondWithJSON(http.StatusOK, `
 						{
 							"id": "worker",
@@ -5063,6 +5832,31 @@ var _ = Describe("Hcp Machine pool", func() {
 				}`),
 				),
 			)
+			// GET after PATCH (doUpdate re-reads authoritative state)
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/node_pools/my-pool", "fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, `{
+					"id":"my-pool",
+					"aws_node_pool":{
+					   "instance_type":"r5.xlarge",
+					   "instance_profile": "bla"
+					},
+					"auto_repair": true,
+					"replicas":4,
+					"subnet":"id-1",
+					"availability_zone":"us-east-1a",
+					"management_upgrade": {
+					   "type": "Replace",
+					   "max_surge": "25%",
+					   "max_unavailable": "10%"
+					},
+					"version": {
+						"raw_id": "4.14.10"
+					}
+				}`),
+				),
+			)
 
 			Terraform.Source(`
 			resource "rhcs_hcp_machine_pool" "my_pool" {
@@ -5464,6 +6258,17 @@ var _ = Describe("Hcp Machine pool", func() {
 						"auto_repair": true
 					}`),
 				),
+				// GET after PATCH (doUpdate re-reads authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route+"/node_pools/pool1", "fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, `
+					{
+						"id": "pool1",
+						"replicas": 3,
+						"subnet": "subnet-123",
+						"auto_repair": true
+					}`),
+				),
 			)
 
 			Terraform.Source(EvaluateTemplate(`
@@ -5637,6 +6442,17 @@ var _ = Describe("Hcp Machine pool", func() {
 						"auto_repair": true
 					}`),
 				),
+				// GET after PATCH (doUpdate re-reads authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route+"/node_pools/pool1", "fetchUserTagsOnly=true"),
+					RespondWithJSON(http.StatusOK, `
+					{
+						"id": "pool1",
+						"replicas": 3,
+						"subnet": "subnet-123",
+						"auto_repair": true
+					}`),
+				),
 			)
 
 			Terraform.Source(EvaluateTemplate(`
@@ -5714,6 +6530,16 @@ var _ = Describe("Hcp Machine pool", func() {
 				// Patch the cluster (w/ no changes)
 				CombineHandlers(
 					VerifyRequest(http.MethodPatch, cluster123Route+"/node_pools/pool1"),
+					RespondWithJSON(http.StatusOK, `
+					{
+						"id": "pool1",
+						"replicas": 3,
+						"subnet": "subnet-123"
+					}`),
+				),
+				// GET after PATCH (doUpdate re-reads authoritative state)
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, cluster123Route+"/node_pools/pool1", "fetchUserTagsOnly=true"),
 					RespondWithJSON(http.StatusOK, `
 					{
 						"id": "pool1",
@@ -6023,6 +6849,17 @@ var _ = Describe("Hcp Machine pool", func() {
 					// Patch the cluster (w/ no changes)
 					CombineHandlers(
 						VerifyRequest(http.MethodPatch, cluster123Route+"/node_pools/pool1"),
+						RespondWithJSON(http.StatusOK, `
+						{
+							"id": "pool1",
+							"replicas": 3,
+							"subnet": "subnet-123",
+							"auto_repair": true
+						}`),
+					),
+					// GET after PATCH (doUpdate re-reads authoritative state)
+					CombineHandlers(
+						VerifyRequest(http.MethodGet, cluster123Route+"/node_pools/pool1", "fetchUserTagsOnly=true"),
 						RespondWithJSON(http.StatusOK, `
 						{
 							"id": "pool1",

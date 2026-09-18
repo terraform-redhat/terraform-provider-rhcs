@@ -209,7 +209,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			}
 
 			By("Edit platform additional trust ca")
-			registry := helper.GetRegistry(8091)
+			registry := "10.0.0.0..8091"
 			trustCAs := map[string]string{}
 			trustCAs[registry], err = helper.CreatePEMCertificate()
 			Expect(err).ToNot(HaveOccurred())

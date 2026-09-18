@@ -103,6 +103,13 @@ resources:
         computed: true
         description: "Subnet ID for the cluster."
 
+      - alias: api_url
+        type: string
+        computed: true
+        operations:
+          - read
+        description: "API URL of the cluster control plane endpoint."
+
       - alias: phase
         type: string
         computed: true
@@ -123,9 +130,44 @@ resources:
         computed: true
         description: "Platform type for the NodePool (AWS)."
 
+      - alias: cluster_id
+        type: string
+        required: true
+        immutable: true
+        operations:
+          - create
+        description: "ID of the parent cluster."
+
+      - alias: phase
+        type: string
+        computed: true
+        operations:
+          - read
+        description: "Current lifecycle phase of the node pool (Provisioning, Ready, Deleting)."
+
   oidcConfig:
     aliases:
       - path: metadata.uid
         alias: id
         type: string
         computed: true
+
+      - path: spec.issuerUrl
+        alias: issuer_url
+        type: string
+        computed: true
+        description: "OIDC issuer URL. Computed by the controller for managed type."
+
+      - alias: phase
+        type: string
+        computed: true
+        operations:
+          - read
+        description: "Current lifecycle phase of the OIDC config (Pending, Ready, Error). Read-only."
+
+      - alias: thumbprint
+        type: string
+        computed: true
+        operations:
+          - read
+        description: "SHA-1 fingerprint of the OIDC issuer's TLS certificate. Computed by the controller and refreshed periodically. Read-only."

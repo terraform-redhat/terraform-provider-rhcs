@@ -48,6 +48,12 @@ type NodePoolHandler interface {
 	// Use this to populate computed fields, adjust state values, or perform post-processing
 	// that requires access to both the API response and the state being built.
 	PostFlatten(ctx context.Context, state *NodePoolState, resp *v1alpha1.NodePool)
+
+	// Namespace derives the K8s namespace for this resource from state fields
+	// (e.g. a parent ID). Used by Read/Delete/ImportState, which only have
+	// access to Terraform state (no SDK object) before calling the API.
+	// Must be a pure, side-effect-free computation (no API calls).
+	Namespace(ctx context.Context, state *NodePoolState) string
 }
 
 // NodePoolResource manages NodePool resources via the hyperfleet Platform API.
@@ -220,6 +226,20 @@ func (r *NodePoolResource) Schema(
 				MarkdownDescription: "Replicas.",
 				Optional:            true,
 			},
+			"cluster_id": schema.StringAttribute{
+				MarkdownDescription: "Cluster_id.",
+				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
+			"phase": schema.StringAttribute{
+				MarkdownDescription: "Phase.",
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
 		},
 	}
 }
@@ -268,7 +288,10 @@ func (r *NodePoolResource) Create(
 	}
 
 	// Create via API
-	created, err := r.Client.HyperfleetV1alpha1().NodePools(plan.ClusterName.ValueString()).Create(ctx, obj, hfwrappers.CreateOptions{})
+	// For namespaced resources, obj.GetNamespace() reflects the value the handler's
+	// PostExpand set on the SDK object; passing it here keeps the client-scoped
+	// namespace and the object's namespace in sync.
+	created, err := r.Client.HyperfleetV1alpha1().NodePools(obj.GetNamespace()).Create(ctx, obj, hfwrappers.CreateOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to create NodePool", err.Error())
 		return
@@ -321,7 +344,7 @@ func (r *NodePoolResource) Read(
 	}
 
 	// Get current resource from API
-	obj, err := r.Client.HyperfleetV1alpha1().NodePools(state.ClusterName.ValueString()).Get(ctx, state.Id.ValueString(), hfwrappers.GetOptions{})
+	obj, err := r.Client.HyperfleetV1alpha1().NodePools(r.Handler.Namespace(ctx, &state)).Get(ctx, state.Id.ValueString(), hfwrappers.GetOptions{})
 	if err != nil {
 		if isNotFound(err) {
 			resp.State.RemoveResource(ctx)
@@ -403,7 +426,7 @@ func (r *NodePoolResource) Update(
 	}
 
 	// Update via API
-	updated, err := r.Client.HyperfleetV1alpha1().NodePools(plan.ClusterName.ValueString()).Update(ctx, obj, hfwrappers.UpdateOptions{})
+	updated, err := r.Client.HyperfleetV1alpha1().NodePools(obj.GetNamespace()).Update(ctx, obj, hfwrappers.UpdateOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to update NodePool", err.Error())
 		return
@@ -455,7 +478,7 @@ func (r *NodePoolResource) Delete(
 		return
 	}
 
-	err := r.Client.HyperfleetV1alpha1().NodePools(state.ClusterName.ValueString()).Delete(ctx, state.Id.ValueString(), hfwrappers.DeleteOptions{})
+	err := r.Client.HyperfleetV1alpha1().NodePools(r.Handler.Namespace(ctx, &state)).Delete(ctx, state.Id.ValueString(), hfwrappers.DeleteOptions{})
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to delete NodePool", err.Error())
 		return
@@ -605,6 +628,12 @@ func terraformNodePoolToNative(tf *NodePoolState) *NodePoolStateNative {
 		i := int32(tf.Replicas.ValueInt64())
 		native.Replicas = &i
 	}
+	if !tf.Cluster_id.IsNull() && !tf.Cluster_id.IsUnknown() {
+		native.Cluster_id = tf.Cluster_id.ValueString()
+	}
+	if !tf.Phase.IsNull() && !tf.Phase.IsUnknown() {
+		native.Phase = tf.Phase.ValueString()
+	}
 	return native
 }
 
@@ -643,5 +672,7 @@ func nativeNodePoolToTerraform(native *NodePoolStateNative) *NodePoolState {
 	tf.Platform_type = toTerraformString(native.Platform_type)
 	tf.Image = toTerraformString(native.Image)
 	tf.Replicas = toTerraformInt64Ptr(normalizeOptionalInt32ToInt64(native.Replicas))
+	tf.Cluster_id = toTerraformString(native.Cluster_id)
+	tf.Phase = toTerraformString(native.Phase)
 	return tf
 }

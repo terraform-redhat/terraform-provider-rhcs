@@ -13,6 +13,7 @@ type HyperfleetNodePoolArgs struct {
 	HyperfleetURL *string           `hcl:"hyperfleet_url"`
 	AWSRegion     *string           `hcl:"aws_region"`
 	ClusterID     *string           `hcl:"cluster_id"`
+	ClusterName   *string           `hcl:"cluster_name"`
 	Name          *string           `hcl:"name"`
 	SubnetID      *string           `hcl:"subnet_id"`
 	AutoRepair    *bool             `hcl:"auto_repair"`

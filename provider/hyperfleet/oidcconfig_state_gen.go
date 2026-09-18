@@ -15,9 +15,11 @@ type OidcConfigState struct {
 	Name             types.String `tfsdk:"name"`
 	Id               types.String `tfsdk:"id"`
 	InstallerRoleArn types.String `tfsdk:"installer_role_arn"`
-	IssuerUrl        types.String `tfsdk:"issuer_url"`
+	Issuer_url       types.String `tfsdk:"issuer_url"`
 	SecretArn        types.String `tfsdk:"secret_arn"`
 	Type             types.String `tfsdk:"type"`
+	Phase            types.String `tfsdk:"phase"`
+	Thumbprint       types.String `tfsdk:"thumbprint"`
 }
 
 // mergeResponseOidcConfig merges API response values into the plan state.
@@ -31,5 +33,14 @@ func mergeResponseOidcConfig(plan, response *OidcConfigState) {
 	// to avoid overwriting user inputs with API-generated default values
 	if !response.Id.IsNull() {
 		plan.Id = response.Id
+	}
+	if !response.Issuer_url.IsNull() {
+		plan.Issuer_url = response.Issuer_url
+	}
+	if !response.Phase.IsNull() {
+		plan.Phase = response.Phase
+	}
+	if !response.Thumbprint.IsNull() {
+		plan.Thumbprint = response.Thumbprint
 	}
 }

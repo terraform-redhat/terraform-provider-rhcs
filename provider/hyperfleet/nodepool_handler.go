@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	v1alpha1 "github.com/openshift-online/rosa-hyperfleet-api/api/v1alpha1/public"
 	hyperfleet "github.com/openshift-online/rosa-hyperfleet-api/clientset"
 	hfwrappers "github.com/openshift-online/rosa-hyperfleet-api/clientset/platform"
@@ -39,15 +40,6 @@ type NodePoolHandlerImpl struct {
 	callerARN string
 }
 
-// NewNodePoolHandler creates a new NodePoolHandler
-func NewNodePoolHandler(client hyperfleet.Interface, accountID, callerARN string) NodePoolHandler {
-	return &NodePoolHandlerImpl{
-		client:    client,
-		accountID: accountID,
-		callerARN: callerARN,
-	}
-}
-
 // PreExpand validates inputs and derives computed fields
 func (h *NodePoolHandlerImpl) PreExpand(ctx context.Context, input *NodePoolState) diag.Diagnostics {
 	var diags diag.Diagnostics
@@ -58,8 +50,8 @@ func (h *NodePoolHandlerImpl) PreExpand(ctx context.Context, input *NodePoolStat
 		return diags
 	}
 
-	if input.ClusterName.IsNull() || input.ClusterName.ValueString() == "" {
-		diags.AddError("cluster_name is required", "Cluster name must be specified to create a NodePool")
+	if input.Cluster_id.IsNull() || input.Cluster_id.ValueString() == "" {
+		diags.AddError("cluster_id is required", "Cluster ID must be specified to create a NodePool")
 		return diags
 	}
 
@@ -67,7 +59,11 @@ func (h *NodePoolHandlerImpl) PreExpand(ctx context.Context, input *NodePoolStat
 }
 
 // PostExpand processes inputs after pathbind.Expand to set SDK-specific fields
-func (h *NodePoolHandlerImpl) PostExpand(ctx context.Context, input *NodePoolState, obj *v1alpha1.NodePool) diag.Diagnostics {
+func (h *NodePoolHandlerImpl) PostExpand(
+	ctx context.Context,
+	input *NodePoolState,
+	obj *v1alpha1.NodePool,
+) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	// Ensure platform.type is set to AWS platform (enum constant)
@@ -77,21 +73,32 @@ func (h *NodePoolHandlerImpl) PostExpand(ctx context.Context, input *NodePoolSta
 
 	// Compute the worker instance profile from the parent cluster's operator roles prefix
 	// This is required for CAPA to correctly assign IAM permissions to worker nodes
-	clusterName := input.ClusterName.ValueString()
-	if clusterName != "" {
-		cluster, err := h.client.HyperfleetV1alpha1().Clusters().Get(ctx, clusterName, hfwrappers.GetOptions{})
+	clusterID := input.Cluster_id.ValueString()
+	if clusterID != "" {
+		cluster, err := h.client.HyperfleetV1alpha1().Clusters().Get(ctx, clusterID, hfwrappers.GetOptions{})
 		if err != nil {
 			diags.AddError(
 				"Failed to get parent cluster",
-				fmt.Sprintf("Cannot compute worker instance profile: failed to retrieve cluster %q: %v", clusterName, err),
+				fmt.Sprintf(
+					"Cannot compute worker instance profile: failed to retrieve cluster %q: %v",
+					clusterID,
+					err,
+				),
 			)
 			return diags
 		}
 
+		// Set the nodepool namespace to match the cluster's namespace (cluster-<clusterID>)
+		// The API requires the namespace in the format "cluster-<uuid>"
+		obj.SetNamespace(fmt.Sprintf("cluster-%s", clusterID))
+
 		if cluster.Spec.HostedCluster.Platform.AWS == nil {
 			diags.AddError(
 				"Parent cluster has no AWS configuration",
-				fmt.Sprintf("Cannot compute worker instance profile: parent cluster %q has no AWS platform configuration", clusterName),
+				fmt.Sprintf(
+					"Cannot compute worker instance profile: parent cluster %q has no AWS platform configuration",
+					clusterID,
+				),
 			)
 			return diags
 		}
@@ -101,7 +108,7 @@ func (h *NodePoolHandlerImpl) PostExpand(ctx context.Context, input *NodePoolSta
 			diags.AddError(
 				"Cannot derive operator roles prefix",
 				fmt.Sprintf("Could not derive the operator roles prefix from parent cluster %q RolesRef. "+
-					"The worker instance profile is required; without it the create fails.", clusterName),
+					"The worker instance profile is required; without it the create fails.", clusterID),
 			)
 			return diags
 		}
@@ -121,9 +128,25 @@ func (h *NodePoolHandlerImpl) PostResponse(ctx context.Context, resp *v1alpha1.N
 	return diag.Diagnostics{}
 }
 
+// Namespace derives the K8s namespace ("cluster-<uuid>") for this NodePool from
+// state.Cluster_id. Used by Read/Delete/ImportState, which only have access to
+// Terraform state (no SDK object) before calling the API. Must be side-effect-free.
+func (h *NodePoolHandlerImpl) Namespace(ctx context.Context, state *NodePoolState) string {
+	return fmt.Sprintf("cluster-%s", state.Cluster_id.ValueString())
+}
+
 // PostFlatten populates computed fields in the state from the API response
 func (h *NodePoolHandlerImpl) PostFlatten(ctx context.Context, state *NodePoolState, resp *v1alpha1.NodePool) {
-	// TODO: Populate computed fields from API response
+	if resp == nil {
+		return
+	}
+	// Populate Phase from status (consumer-only field, not mapped via pathbind)
+	// Default to "Provisioning" if not yet set by the controller
+	if resp.Status.Phase != "" {
+		state.Phase = types.StringValue(string(resp.Status.Phase))
+	} else {
+		state.Phase = types.StringValue(string(v1alpha1.NodePoolPhaseProvisioning))
+	}
 }
 
 // NewNodePoolHandlerImpl creates a new NodePoolHandlerImpl instance.

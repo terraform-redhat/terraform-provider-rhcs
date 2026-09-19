@@ -18,7 +18,6 @@ package common
 
 import (
 	"fmt"
-	"reflect"
 	"regexp"
 	"strings"
 
@@ -95,13 +94,19 @@ func ShouldPatchBool(state, plan types.Bool) (value bool, ok bool) {
 // ShouldPatchMap changed checks if the change between the given state and plan requires sending
 // a patch request to the server. If it does it return the value to add to the patch.
 func ShouldPatchMap(state, plan types.Map) (types.Map, bool) {
-	return plan, !reflect.DeepEqual(state.Elements(), plan.Elements())
+	if state.IsNull() && plan.IsNull() {
+		return plan, false
+	}
+	return plan, !state.Equal(plan)
 }
 
 // ShouldPatchList changed checks if the change between the given state and plan requires sending
 // a patch request to the server. If it does it return the value to add to the patch.
 func ShouldPatchList(state, plan types.List) (types.List, bool) {
-	return plan, !reflect.DeepEqual(state.Elements(), plan.Elements())
+	if state.IsNull() && plan.IsNull() {
+		return plan, false
+	}
+	return plan, !state.Equal(plan)
 }
 
 func IsValidDomain(candidate string) bool {

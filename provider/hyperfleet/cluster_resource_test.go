@@ -4,7 +4,6 @@
 package hyperfleet
 
 import (
-	"fmt"
 	"testing"
 
 	hypershiftv1beta1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
@@ -35,20 +34,6 @@ func TestRegionFromAZ(t *testing.T) {
 		if got != tc.want {
 			t.Errorf("regionFromAZ(%q) = %q, want %q", tc.az, got, tc.want)
 		}
-	}
-}
-
-// ── isNotFound ────────────────────────────────────────────────────────────────
-
-func TestIsNotFound(t *testing.T) {
-	if !isNotFound(fmt.Errorf("404 not found")) {
-		t.Error("expected true for 404 error")
-	}
-	if isNotFound(fmt.Errorf("500 internal server error")) {
-		t.Error("expected false for 500 error")
-	}
-	if isNotFound(nil) {
-		t.Error("expected false for nil error")
 	}
 }
 

@@ -43,12 +43,6 @@ func NewOidcConfigHandler(accountID, callerARN string) OidcConfigHandler {
 func (h *OidcConfigHandlerImpl) PreExpand(ctx context.Context, input *OidcConfigState) diag.Diagnostics {
 	var diags diag.Diagnostics
 
-	// Validate required fields
-	if input.Name.IsNull() || input.Name.ValueString() == "" {
-		diags.AddError("name is required", "OidcConfig name must be specified")
-		return diags
-	}
-
 	// For unmanaged type, installer_role_arn and secret_arn are required
 	// issuer_url is now computed and will be populated by pathbind
 	isUnmanaged := !input.Type.IsNull() && input.Type.ValueString() != "managed"

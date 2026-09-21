@@ -262,6 +262,10 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 					RespondWith(http.StatusOK, clusterWithoutExpiration, header),
 				),
 				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
+					RespondWith(http.StatusOK, clusterWithoutExpiration, header),
+				),
+				CombineHandlers(
 					VerifyRequest(http.MethodPut, "/api/v0/clusters/test-cluster-id"),
 					RespondWith(http.StatusOK, clusterWithExpiration, header),
 				),

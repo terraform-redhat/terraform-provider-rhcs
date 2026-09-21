@@ -130,7 +130,7 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 
 				resource "rhcs_nodepool_hyperfleet" "test" {
 					provider         = rhcs.hf
-					cluster_name     = "test-cluster-id"
+					cluster_id       = "test-cluster-id"
 					name             = "worker"
 					replicas         = 3
 					subnet_id        = "subnet-0abc123"
@@ -279,6 +279,10 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 					RespondWith(http.StatusOK, createResponse, header),
 				),
 				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-id"),
+					RespondWith(http.StatusOK, createResponse, header),
+				),
+				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
 					RespondWith(http.StatusOK, clusterResponse, header),
 				),
@@ -299,7 +303,7 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 
 				resource "rhcs_nodepool_hyperfleet" "test" {
 					provider         = rhcs.hf
-					cluster_name     = "test-cluster-id"
+					cluster_id       = "test-cluster-id"
 					name             = "worker"
 					replicas         = 3
 					subnet_id        = "subnet-0abc123"
@@ -326,7 +330,7 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 
 				resource "rhcs_nodepool_hyperfleet" "test" {
 					provider         = rhcs.hf
-					cluster_name     = "test-cluster-id"
+					cluster_id       = "test-cluster-id"
 					name             = "worker"
 					replicas         = 3
 					subnet_id        = "subnet-0abc123"
@@ -457,6 +461,10 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 					RespondWith(http.StatusOK, createResponse, header),
 				),
 				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-id"),
+					RespondWith(http.StatusOK, createResponse, header),
+				),
+				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
 					RespondWith(http.StatusOK, clusterResponse, header),
 				),
@@ -477,7 +485,7 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 
 				resource "rhcs_nodepool_hyperfleet" "test" {
 					provider         = rhcs.hf
-					cluster_name     = "test-cluster-id"
+					cluster_id       = "test-cluster-id"
 					name             = "worker"
 					replicas         = 3
 					subnet_id        = "subnet-0abc123"
@@ -501,7 +509,7 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 
 				resource "rhcs_nodepool_hyperfleet" "test" {
 					provider         = rhcs.hf
-					cluster_name     = "test-cluster-id"
+					cluster_id       = "test-cluster-id"
 					name             = "worker"
 					replicas         = 3
 					subnet_id        = "subnet-0abc123"
@@ -619,7 +627,7 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 
 				resource "rhcs_nodepool_hyperfleet" "test" {
 					provider         = rhcs.hf
-					cluster_name     = "test-cluster-id"
+					cluster_id       = "test-cluster-id"
 					name             = "worker"
 					replicas         = 3
 					subnet_id        = "subnet-0abc123"

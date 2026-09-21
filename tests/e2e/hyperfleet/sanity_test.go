@@ -255,10 +255,8 @@ var _ = Describe("Hyperfleet sanity", func() {
 		// ── Phase 2: OidcConfig ─────────────────────────────────────────────
 		// OidcConfig (managed mode) computes its own issuer URL.
 		By("Phase 2: apply OidcConfig (managed mode)")
-		oidcConfigName := clusterName + "-oidc"
 		_, err = oidcSvc.Apply(&exec.HyperfleetOidcConfigArgs{
 			HyperfleetURL: &hyperfleetURL,
-			Name:          &oidcConfigName,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -330,7 +328,6 @@ var _ = Describe("Hyperfleet sanity", func() {
 		// Refresh OidcConfig state to get computed thumbprint
 		_, err = oidcSvc.Apply(&exec.HyperfleetOidcConfigArgs{
 			HyperfleetURL: &hyperfleetURL,
-			Name:          &oidcConfigName,
 		})
 		Expect(err).NotTo(HaveOccurred())
 

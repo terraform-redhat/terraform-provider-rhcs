@@ -23,6 +23,5 @@ provider "rhcs" {
 }
 
 resource "rhcs_oidcconfig_hyperfleet" "oidc" {
-  name = var.name
   type = var.type
 }

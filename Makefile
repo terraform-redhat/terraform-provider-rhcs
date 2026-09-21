@@ -228,7 +228,7 @@ generate-hyperfleet:
 	fi
 	@HYPERFLEET_TMPDIR=$$(mktemp -d); \
 	PATHBIND_GEN_BIN=$$(mktemp); \
-	OUTPUT_DIR=provider/hyperfleet; \
+	OUTPUT_DIR=provider/hyperfleet/generated; \
 	trap 'rm -rf "$$HYPERFLEET_TMPDIR" "$$PATHBIND_GEN_BIN"' EXIT; \
 	echo "Cloning rosa-hyperfleet-api (chore/tf-pathbind branch) to $$HYPERFLEET_TMPDIR..."; \
 	git clone --depth=1 --branch chore/tf-pathbind https://github.com/gdbranco/rosa-hyperfleet-api.git "$$HYPERFLEET_TMPDIR" || exit 1; \

@@ -8,7 +8,7 @@
 # - Computed: read-only from API response
 
 config:
-  package: hyperfleet
+  package: hyperfleetgenerated
   tfProviderPkg: github.com/terraform-redhat/terraform-provider-rhcs/provider/hyperfleet
 
 resources:
@@ -187,15 +187,31 @@ resources:
 
   oidcConfig:
     aliases:
+      - path: metadata.name
+        alias: name
+        type: string
+        computed: true
+        description: "Server-generated OIDC configuration name."
+
       - path: metadata.uid
         alias: id
         type: string
         computed: true
 
+      - path: spec.installerRoleArn
+        type: string
+        immutable: true
+      - path: spec.secretArn
+        type: string
+        immutable: true
+      - path: spec.type
+        type: string
+        immutable: true
       - path: spec.issuerUrl
         alias: issuer_url
         type: string
         computed: true
+        immutable: true
         description: "OIDC issuer URL. Computed by the controller for managed type."
 
       - alias: phase

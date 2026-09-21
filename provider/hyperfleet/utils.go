@@ -51,8 +51,3 @@ func prefixAndPartitionFromRolesRef(rolesRef hypershiftv1beta1.AWSRolesRef) (pre
 	prefix, _ = strings.CutSuffix(roleName, "-node-pool-management")
 	return prefix, partition
 }
-
-// isNotFound returns true for HTTP 404-style errors from the Platform API.
-func isNotFound(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "404")
-}

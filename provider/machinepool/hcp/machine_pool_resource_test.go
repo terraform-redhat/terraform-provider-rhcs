@@ -21,9 +21,12 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	. "github.com/onsi/ginkgo/v2/dsl/core" // nolint
-	. "github.com/onsi/gomega"             // nolint
+	. "github.com/onsi/ginkgo/v2/dsl/core"  // nolint
+	. "github.com/onsi/ginkgo/v2/dsl/table" // nolint
+	. "github.com/onsi/gomega"              // nolint
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
@@ -84,6 +87,77 @@ var _ = Describe("HCP Machine Pool populateState", func() {
 	BeforeEach(func() {
 		ctx = context.Background()
 		cluster = clusterForNodePoolTests()
+	})
+
+	Context("additional_security_group_ids handling", func() {
+		It("seeds an empty list from the plan", func() {
+			emptyList := types.ListValueMust(types.StringType, []attr.Value{})
+			state := &HcpMachinePoolState{}
+			plan := &HcpMachinePoolState{
+				AutoScaling: &AutoScaling{},
+				AWSNodePool: &AWSNodePool{AdditionalSecurityGroupIds: emptyList},
+			}
+
+			adjustInitialStateToPlan(state, plan)
+
+			Expect(state.AWSNodePool.AdditionalSecurityGroupIds).To(Equal(emptyList))
+		})
+
+		It("preserves an explicitly configured empty list when OCM omits the field", func() {
+			npJSON := buildNodePoolJSON("")
+			raw, err := json.Marshal(npJSON)
+			Expect(err).ToNot(HaveOccurred())
+
+			nodePool, err := cmv1.UnmarshalNodePool(raw)
+			Expect(err).ToNot(HaveOccurred())
+
+			state := &HcpMachinePoolState{
+				AWSNodePool: &AWSNodePool{
+					Tags:                       types.MapNull(types.StringType),
+					AdditionalSecurityGroupIds: types.ListValueMust(types.StringType, []attr.Value{}),
+				},
+			}
+			err = populateState(ctx, nodePool, state, cluster)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(state.AWSNodePool.AdditionalSecurityGroupIds.IsNull()).To(BeFalse())
+			Expect(state.AWSNodePool.AdditionalSecurityGroupIds.Elements()).To(BeEmpty())
+		})
+
+		It("keeps an unset list null when OCM omits the field", func() {
+			npJSON := buildNodePoolJSON("")
+			raw, err := json.Marshal(npJSON)
+			Expect(err).ToNot(HaveOccurred())
+
+			nodePool, err := cmv1.UnmarshalNodePool(raw)
+			Expect(err).ToNot(HaveOccurred())
+
+			state := &HcpMachinePoolState{
+				AWSNodePool: &AWSNodePool{
+					Tags:                       types.MapNull(types.StringType),
+					AdditionalSecurityGroupIds: types.ListNull(types.StringType),
+				},
+			}
+			err = populateState(ctx, nodePool, state, cluster)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(state.AWSNodePool.AdditionalSecurityGroupIds.IsNull()).To(BeTrue())
+		})
+
+		DescribeTable("validates immutable security group lists",
+			func(stateValue, planValue types.List, expectError bool) {
+				diags := diag.Diagnostics{}
+				validateImmutableList(stateValue, planValue,
+					"aws_node_pool.additional_security_group_ids", &diags)
+
+				Expect(diags.HasError()).To(Equal(expectError))
+			},
+			Entry("allows imported null to become configured empty",
+				types.ListNull(types.StringType), types.ListValueMust(types.StringType, []attr.Value{}), false),
+			Entry("allows configured empty to become omitted",
+				types.ListValueMust(types.StringType, []attr.Value{}), types.ListNull(types.StringType), false),
+			Entry("rejects a different security group",
+				types.ListValueMust(types.StringType, []attr.Value{}),
+				types.ListValueMust(types.StringType, []attr.Value{types.StringValue("sg-1")}), true),
+		)
 	})
 
 	// Regression test for the no-op PATCH early-return optimization in

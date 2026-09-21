@@ -645,7 +645,8 @@ func validateNoImmutableAttChange(state, plan *MachinePoolState) diag.Diagnostic
 	validateStateAndPlanEquals(state.AvailabilityZone, plan.AvailabilityZone, "availability_zone", &diags)
 	validateStateAndPlanEquals(state.SubnetID, plan.SubnetID, "subnet_id", &diags)
 	validateStateAndPlanEquals(state.DiskSize, plan.DiskSize, "disk_size", &diags)
-	validateStateAndPlanEquals(state.AdditionalSecurityGroupIds, plan.AdditionalSecurityGroupIds, "aws_additional_security_group_ids", &diags)
+	validateImmutableList(state.AdditionalSecurityGroupIds, plan.AdditionalSecurityGroupIds,
+		"aws_additional_security_group_ids", &diags)
 	validateStateAndPlanEquals(state.AwsTags, plan.AwsTags, "aws_tags", &diags)
 
 	return diags
@@ -660,6 +661,15 @@ func validateStateAndPlanEquals(stateAttr attr.Value, planAttr attr.Value, attrN
 		return
 	}
 	common.ValidateStateAndPlanEquals(stateAttr, planAttr, attrName, diags)
+}
+
+func validateImmutableList(stateAttr, planAttr types.List, attrName string, diags *diag.Diagnostics) {
+	stateIsNullOrEmpty := stateAttr.IsNull() || (!stateAttr.IsUnknown() && len(stateAttr.Elements()) == 0)
+	planIsNullOrEmpty := planAttr.IsNull() || (!planAttr.IsUnknown() && len(planAttr.Elements()) == 0)
+	if stateIsNullOrEmpty && planIsNullOrEmpty {
+		return
+	}
+	validateStateAndPlanEquals(stateAttr, planAttr, attrName, diags)
 }
 
 func (r *MachinePoolResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -843,6 +853,7 @@ func adjustInitialStateToPlan(state, plan *MachinePoolState) {
 	state.Replicas = plan.Replicas
 
 	state.IgnoreDeletionError = plan.IgnoreDeletionError
+	state.AdditionalSecurityGroupIds = plan.AdditionalSecurityGroupIds
 
 	if common.HasValue(plan.AwsTags) {
 		state.AwsTags = plan.AwsTags
@@ -1051,16 +1062,22 @@ func populateState(ctx context.Context, object *cmv1.MachinePool, state *Machine
 		} else {
 			state.UseSpotInstances = types.BoolNull()
 		}
+		// OCM omits this field for an explicitly configured empty list. Keep the
+		// known empty value to preserve the configured Terraform collection shape.
 		if additionalSecurityGroups, ok := getAWS.GetAdditionalSecurityGroupIds(); ok {
 			additionalSecurityGroupsList, err := common.StringArrayToList(additionalSecurityGroups)
 			if err != nil {
 				return err
 			}
 			state.AdditionalSecurityGroupIds = additionalSecurityGroupsList
-		} else {
+		} else if state.AdditionalSecurityGroupIds.IsNull() ||
+			state.AdditionalSecurityGroupIds.IsUnknown() ||
+			len(state.AdditionalSecurityGroupIds.Elements()) > 0 {
 			state.AdditionalSecurityGroupIds = types.ListNull(types.StringType)
 		}
-	} else {
+	} else if state.AdditionalSecurityGroupIds.IsNull() ||
+		state.AdditionalSecurityGroupIds.IsUnknown() ||
+		len(state.AdditionalSecurityGroupIds.Elements()) > 0 {
 		state.AdditionalSecurityGroupIds = types.ListNull(types.StringType)
 	}
 

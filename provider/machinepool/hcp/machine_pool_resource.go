@@ -724,7 +724,7 @@ func validateNoImmutableAttChange(state, plan *HcpMachinePoolState) diag.Diagnos
 		validateStateAndPlanEquals(state.AWSNodePool.Tags, plan.AWSNodePool.Tags, "aws_node_pool.tags", &diags)
 		validateStateAndPlanEquals(state.AWSNodePool.InstanceType, plan.AWSNodePool.InstanceType,
 			"aws_node_pool.instance_type", &diags)
-		validateStateAndPlanEquals(state.AWSNodePool.AdditionalSecurityGroupIds, plan.AWSNodePool.AdditionalSecurityGroupIds,
+		validateImmutableList(state.AWSNodePool.AdditionalSecurityGroupIds, plan.AWSNodePool.AdditionalSecurityGroupIds,
 			"aws_node_pool.additional_security_group_ids", &diags)
 		validateStateAndPlanEquals(state.AWSNodePool.Ec2MetadataHttpTokens, plan.AWSNodePool.Ec2MetadataHttpTokens,
 			"aws_node_pool.ec2_metadata_http_tokens", &diags)
@@ -747,6 +747,15 @@ func validateStateAndPlanEquals(stateAttr attr.Value, planAttr attr.Value, attrN
 		return
 	}
 	common.ValidateStateAndPlanEquals(stateAttr, planAttr, attrName, diags)
+}
+
+func validateImmutableList(stateAttr, planAttr types.List, attrName string, diags *diag.Diagnostics) {
+	stateIsNullOrEmpty := stateAttr.IsNull() || (!stateAttr.IsUnknown() && len(stateAttr.Elements()) == 0)
+	planIsNullOrEmpty := planAttr.IsNull() || (!planAttr.IsUnknown() && len(planAttr.Elements()) == 0)
+	if stateIsNullOrEmpty && planIsNullOrEmpty {
+		return
+	}
+	validateStateAndPlanEquals(stateAttr, planAttr, attrName, diags)
 }
 
 // validateOptionalOnlyImmutable works like validateStateAndPlanEquals but also
@@ -1082,6 +1091,7 @@ func adjustInitialStateToPlan(state, plan *HcpMachinePoolState) {
 	if state.AWSNodePool == nil {
 		state.AWSNodePool = new(AWSNodePool)
 	}
+	state.AWSNodePool.AdditionalSecurityGroupIds = plan.AWSNodePool.AdditionalSecurityGroupIds
 	if common.HasValue(plan.AWSNodePool.Tags) {
 		state.AWSNodePool.Tags = plan.AWSNodePool.Tags
 	}
@@ -1427,13 +1437,17 @@ func populateState(ctx context.Context, object *cmv1.NodePool, state *HcpMachine
 				state.AWSNodePool.Tags = mapValue
 			}
 		}
+		// OCM omits this field for an explicitly configured empty list. Keep the
+		// known empty value to preserve the configured Terraform collection shape.
 		if additionalSecurityGroupIds, ok := awsNodePool.GetAdditionalSecurityGroupIds(); ok {
 			additionalSecurityGroupsList, err := common.StringArrayToList(additionalSecurityGroupIds)
 			if err != nil {
 				return err
 			}
 			state.AWSNodePool.AdditionalSecurityGroupIds = additionalSecurityGroupsList
-		} else {
+		} else if state.AWSNodePool.AdditionalSecurityGroupIds.IsNull() ||
+			state.AWSNodePool.AdditionalSecurityGroupIds.IsUnknown() ||
+			len(state.AWSNodePool.AdditionalSecurityGroupIds.Elements()) > 0 {
 			state.AWSNodePool.AdditionalSecurityGroupIds = types.ListNull(types.StringType)
 		}
 		if httpTokensState, ok := awsNodePool.GetEc2MetadataHttpTokens(); ok {

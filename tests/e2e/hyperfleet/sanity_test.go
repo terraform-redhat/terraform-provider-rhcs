@@ -500,6 +500,21 @@ var _ = Describe("Hyperfleet sanity", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(np2Scaled.Replicas).NotTo(BeNil())
 		Expect(*np2Scaled.Replicas).To(Equal(scaledReplicas))
+
+		By("Verifying node pool 2 scaled replicas through the Platform API")
+		err = nodepools.WaitUntil(
+			ctx, np2Name,
+			func(np *v1alpha1.NodePool) bool {
+				if np == nil || np.Spec.NodePool.Replicas == nil {
+					return false
+				}
+				Logger.Infof("[wait] nodepool %s phase: %s, replicas: %d", np2Name, np.Status.Phase, *np.Spec.NodePool.Replicas)
+				return np.Status.Phase == v1alpha1.NodePoolPhaseReady &&
+					*np.Spec.NodePool.Replicas == int32(scaledReplicas)
+			},
+			pollInterval, nodepoolReadyTimeout,
+		)
+		Expect(err).NotTo(HaveOccurred())
 	})
 })
 

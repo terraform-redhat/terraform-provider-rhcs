@@ -90,6 +90,37 @@ resources:
         type: string
         description: "Optional RFC3339 timestamp after which the Platform API automatically deletes the cluster."
 
+      # Complex SDK values use explicit Terraform representations. Arrays are
+      # JSON strings because the draft does not retain their element schemas.
+      - path: spec.hostedCluster.configuration.kubelet.kubeReserved
+        type: map
+      - path: spec.hostedCluster.configuration.kubelet.systemReserved
+        type: map
+      - path: spec.hostedCluster.configuration.machineConfig.allowedKernelArguments
+        type: string
+      - path: spec.hostedCluster.imageContentSources
+        type: string
+      - path: spec.hostedCluster.networking.apiServer.allowedCIDRBlocks
+        type: string
+      - path: spec.hostedCluster.networking.clusterNetwork
+        type: string
+      - path: spec.hostedCluster.networking.machineNetwork
+        type: string
+      - path: spec.hostedCluster.networking.serviceNetwork
+        type: string
+      - path: spec.hostedCluster.platform.aws.additionalAllowedPrincipals
+        type: string
+      - path: spec.hostedCluster.platform.aws.cloudProviderConfig.subnet.filters
+        type: string
+      - path: spec.hostedCluster.platform.aws.resourceTags
+        type: string
+      - path: spec.hostedCluster.platform.aws.serviceEndpoints
+        type: string
+      - path: spec.properties
+        type: map
+      - path: spec.tags
+        type: map
+
       # computed fields — read-only from API response
       - path: metadata.uid
         alias: id
@@ -129,6 +160,15 @@ resources:
         type: string
         computed: true
         description: "Platform type for the NodePool (AWS)."
+
+      - path: spec.labels
+        type: map
+      - path: spec.nodePool.platform.aws.resourceTags
+        type: string
+      - path: spec.nodePool.platform.aws.securityGroups
+        type: string
+      - path: spec.nodePool.platform.aws.subnet.filters
+        type: string
 
       - alias: cluster_id
         type: string

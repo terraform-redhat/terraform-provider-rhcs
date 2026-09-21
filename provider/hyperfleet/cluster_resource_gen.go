@@ -6,6 +6,7 @@ package hyperfleet
 import (
 	"context"
 	"fmt"
+	"math"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -432,10 +433,20 @@ func (r *ClusterResource) Create(
 	}
 
 	// Convert Terraform state to native Go struct for pathbind
-	native := terraformClusterToNative(&plan)
+	native, conversionDiags := terraformClusterToNative(&plan)
+	resp.Diagnostics.Append(conversionDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	// Create empty SDK struct and expand plan into it
-	obj := &v1alpha1.Cluster{}
+	// Fetch the current object so fields not represented in Terraform are preserved.
+	obj, err := r.Client.HyperfleetV1alpha1().Clusters().Get(ctx, plan.Id.ValueString(), hfwrappers.GetOptions{})
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to read Cluster for update", err.Error())
+		return
+	}
+
+	// Expand the Terraform plan into the current SDK object.
 	if err := pathbind.Expand(ctx, native, obj); err != nil {
 		resp.Diagnostics.AddError("Failed to expand plan to SDK struct", err.Error())
 		return
@@ -570,7 +581,11 @@ func (r *ClusterResource) Update(
 	}
 
 	// Convert Terraform state to native Go struct for pathbind
-	native := terraformClusterToNative(&plan)
+	native, conversionDiags := terraformClusterToNative(&plan)
+	resp.Diagnostics.Append(conversionDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Create empty SDK struct and expand plan into it
 	obj := &v1alpha1.Cluster{}
@@ -687,6 +702,10 @@ func (r *ClusterResource) ImportState(
 
 	// Convert native state to Terraform state
 	state := nativeClusterToTerraform(&nativeState)
+
+	// Call handler to populate computed fields and adjust state after flatten
+	r.Handler.PostFlatten(ctx, state, obj)
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
@@ -694,11 +713,12 @@ func (r *ClusterResource) ImportState(
 
 // terraformClusterToNative converts Terraform framework types to native Go types.
 // This is used before pathbind.Expand to prepare input for API calls.
-func terraformClusterToNative(tf *ClusterState) *ClusterStateNative {
+func terraformClusterToNative(tf *ClusterState) (*ClusterStateNative, diag.Diagnostics) {
 	if tf == nil {
-		return nil
+		return nil, nil
 	}
 	native := &ClusterStateNative{}
+	var diags diag.Diagnostics
 	if !tf.Name.IsNull() && !tf.Name.IsUnknown() {
 		native.Name = tf.Name.ValueString()
 	}
@@ -724,41 +744,73 @@ func terraformClusterToNative(tf *ClusterState) *ClusterStateNative {
 		native.ProvisionerConfigName = tf.ProvisionerConfigName.ValueString()
 	}
 	if !tf.ContainerLogMaxFiles.IsNull() && !tf.ContainerLogMaxFiles.IsUnknown() {
-		i := int32(tf.ContainerLogMaxFiles.ValueInt64())
-		native.ContainerLogMaxFiles = &i
+		value := tf.ContainerLogMaxFiles.ValueInt64()
+		if value < math.MinInt32 || value > math.MaxInt32 {
+			diags.AddError("Invalid int32 value", fmt.Sprintf("field ContainerLogMaxFiles value %d is outside the int32 range", value))
+		} else {
+			i := int32(value)
+			native.ContainerLogMaxFiles = &i
+		}
 	}
 	if !tf.ContainerLogMaxSize.IsNull() && !tf.ContainerLogMaxSize.IsUnknown() {
 		native.ContainerLogMaxSize = tf.ContainerLogMaxSize.ValueString()
 	}
 	if !tf.ImageGCHighThresholdPercent.IsNull() && !tf.ImageGCHighThresholdPercent.IsUnknown() {
-		i := int32(tf.ImageGCHighThresholdPercent.ValueInt64())
-		native.ImageGCHighThresholdPercent = &i
+		value := tf.ImageGCHighThresholdPercent.ValueInt64()
+		if value < math.MinInt32 || value > math.MaxInt32 {
+			diags.AddError("Invalid int32 value", fmt.Sprintf("field ImageGCHighThresholdPercent value %d is outside the int32 range", value))
+		} else {
+			i := int32(value)
+			native.ImageGCHighThresholdPercent = &i
+		}
 	}
 	if !tf.ImageGCLowThresholdPercent.IsNull() && !tf.ImageGCLowThresholdPercent.IsUnknown() {
-		i := int32(tf.ImageGCLowThresholdPercent.ValueInt64())
-		native.ImageGCLowThresholdPercent = &i
+		value := tf.ImageGCLowThresholdPercent.ValueInt64()
+		if value < math.MinInt32 || value > math.MaxInt32 {
+			diags.AddError("Invalid int32 value", fmt.Sprintf("field ImageGCLowThresholdPercent value %d is outside the int32 range", value))
+		} else {
+			i := int32(value)
+			native.ImageGCLowThresholdPercent = &i
+		}
 	}
 	if !tf.ImageMinimumGCAge.IsNull() && !tf.ImageMinimumGCAge.IsUnknown() {
 		native.ImageMinimumGCAge = tf.ImageMinimumGCAge.ValueString()
 	}
 	if !tf.KubeReserved.IsNull() && !tf.KubeReserved.IsUnknown() {
-		native.KubeReserved = terraformMapToStringMap(tf.KubeReserved)
+		values, collectionDiags := terraformMapToStringMap(tf.KubeReserved)
+		diags = append(diags, collectionDiags...)
+		native.KubeReserved = values
 	}
 	if !tf.MaxPods.IsNull() && !tf.MaxPods.IsUnknown() {
-		i := int32(tf.MaxPods.ValueInt64())
-		native.MaxPods = &i
+		value := tf.MaxPods.ValueInt64()
+		if value < math.MinInt32 || value > math.MaxInt32 {
+			diags.AddError("Invalid int32 value", fmt.Sprintf("field MaxPods value %d is outside the int32 range", value))
+		} else {
+			i := int32(value)
+			native.MaxPods = &i
+		}
 	}
 	if !tf.PodPidsLimit.IsNull() && !tf.PodPidsLimit.IsUnknown() {
 		i := tf.PodPidsLimit.ValueInt64()
 		native.PodPidsLimit = &i
 	}
 	if !tf.RegistryBurst.IsNull() && !tf.RegistryBurst.IsUnknown() {
-		i := int32(tf.RegistryBurst.ValueInt64())
-		native.RegistryBurst = &i
+		value := tf.RegistryBurst.ValueInt64()
+		if value < math.MinInt32 || value > math.MaxInt32 {
+			diags.AddError("Invalid int32 value", fmt.Sprintf("field RegistryBurst value %d is outside the int32 range", value))
+		} else {
+			i := int32(value)
+			native.RegistryBurst = &i
+		}
 	}
 	if !tf.RegistryPullQPS.IsNull() && !tf.RegistryPullQPS.IsUnknown() {
-		i := int32(tf.RegistryPullQPS.ValueInt64())
-		native.RegistryPullQPS = &i
+		value := tf.RegistryPullQPS.ValueInt64()
+		if value < math.MinInt32 || value > math.MaxInt32 {
+			diags.AddError("Invalid int32 value", fmt.Sprintf("field RegistryPullQPS value %d is outside the int32 range", value))
+		} else {
+			i := int32(value)
+			native.RegistryPullQPS = &i
+		}
 	}
 	if !tf.SerializeImagePulls.IsNull() && !tf.SerializeImagePulls.IsUnknown() {
 		b := tf.SerializeImagePulls.ValueBool()
@@ -768,7 +820,9 @@ func terraformClusterToNative(tf *ClusterState) *ClusterStateNative {
 		native.StreamingConnectionIdleTimeout = tf.StreamingConnectionIdleTimeout.ValueString()
 	}
 	if !tf.SystemReserved.IsNull() && !tf.SystemReserved.IsUnknown() {
-		native.SystemReserved = terraformMapToStringMap(tf.SystemReserved)
+		values, collectionDiags := terraformMapToStringMap(tf.SystemReserved)
+		diags = append(diags, collectionDiags...)
+		native.SystemReserved = values
 	}
 	if !tf.AllowedKernelArguments.IsNull() && !tf.AllowedKernelArguments.IsUnknown() {
 		native.AllowedKernelArguments = tf.AllowedKernelArguments.ValueString()
@@ -786,8 +840,13 @@ func terraformClusterToNative(tf *ClusterState) *ClusterStateNative {
 		native.AllowedCIDRBlocks = tf.AllowedCIDRBlocks.ValueString()
 	}
 	if !tf.Port.IsNull() && !tf.Port.IsUnknown() {
-		i := int32(tf.Port.ValueInt64())
-		native.Port = &i
+		value := tf.Port.ValueInt64()
+		if value < math.MinInt32 || value > math.MaxInt32 {
+			diags.AddError("Invalid int32 value", fmt.Sprintf("field Port value %d is outside the int32 range", value))
+		} else {
+			i := int32(value)
+			native.Port = &i
+		}
 	}
 	if !tf.ClusterNetwork.IsNull() && !tf.ClusterNetwork.IsUnknown() {
 		native.ClusterNetwork = tf.ClusterNetwork.ValueString()
@@ -875,22 +934,30 @@ func terraformClusterToNative(tf *ClusterState) *ClusterStateNative {
 		native.OidcConfigId = tf.OidcConfigId.ValueString()
 	}
 	if !tf.Properties.IsNull() && !tf.Properties.IsUnknown() {
-		native.Properties = terraformMapToStringMap(tf.Properties)
+		values, collectionDiags := terraformMapToStringMap(tf.Properties)
+		diags = append(diags, collectionDiags...)
+		native.Properties = values
 	}
 	if !tf.Tags.IsNull() && !tf.Tags.IsUnknown() {
-		native.Tags = terraformMapToStringMap(tf.Tags)
+		values, collectionDiags := terraformMapToStringMap(tf.Tags)
+		diags = append(diags, collectionDiags...)
+		native.Tags = values
 	}
 	if !tf.Operator_roles_prefix.IsNull() && !tf.Operator_roles_prefix.IsUnknown() {
 		native.Operator_roles_prefix = tf.Operator_roles_prefix.ValueString()
 	}
 	if !tf.Aws_subnet_ids.IsNull() && !tf.Aws_subnet_ids.IsUnknown() {
-		native.Aws_subnet_ids = terraformListToStringSlice(tf.Aws_subnet_ids)
+		items, collectionDiags := terraformListToStringSlice(tf.Aws_subnet_ids)
+		diags = append(diags, collectionDiags...)
+		native.Aws_subnet_ids = items
 	}
 	if !tf.Vpc_id.IsNull() && !tf.Vpc_id.IsUnknown() {
 		native.Vpc_id = tf.Vpc_id.ValueString()
 	}
 	if !tf.Availability_zones.IsNull() && !tf.Availability_zones.IsUnknown() {
-		native.Availability_zones = terraformListToStringSlice(tf.Availability_zones)
+		items, collectionDiags := terraformListToStringSlice(tf.Availability_zones)
+		diags = append(diags, collectionDiags...)
+		native.Availability_zones = items
 	}
 	if !tf.Aws_partition.IsNull() && !tf.Aws_partition.IsUnknown() {
 		native.Aws_partition = tf.Aws_partition.ValueString()
@@ -904,7 +971,7 @@ func terraformClusterToNative(tf *ClusterState) *ClusterStateNative {
 	if !tf.Phase.IsNull() && !tf.Phase.IsUnknown() {
 		native.Phase = tf.Phase.ValueString()
 	}
-	return native
+	return native, diags
 }
 
 // nativeClusterToTerraform converts native Go types to Terraform framework types.

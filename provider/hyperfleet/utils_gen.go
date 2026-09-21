@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -48,9 +49,9 @@ func toTerraformInt64Ptr(p *int64) types.Int64 {
 }
 
 // toTerraformList converts a Go []string to a Terraform types.List.
-// Empty slices become null.
+// Nil slices become null; non-nil empty slices remain known empty lists.
 func toTerraformList(items []string) types.List {
-	if len(items) == 0 {
+	if items == nil {
 		return types.ListNull(types.StringType)
 	}
 	values := make([]attr.Value, len(items))
@@ -62,29 +63,29 @@ func toTerraformList(items []string) types.List {
 }
 
 // terraformListToStringSlice converts a Terraform types.List to a Go []string.
-func terraformListToStringSlice(list types.List) []string {
+func terraformListToStringSlice(list types.List) ([]string, diag.Diagnostics) {
 	if list.IsNull() || list.IsUnknown() {
-		return nil
+		return nil, nil
 	}
 	var items []string
-	_ = list.ElementsAs(context.Background(), &items, false)
-	return items
+	diags := list.ElementsAs(context.Background(), &items, false)
+	return items, diags
 }
 
 // terraformMapToStringMap converts a Terraform types.Map to a Go map[string]string.
-func terraformMapToStringMap(m types.Map) map[string]string {
+func terraformMapToStringMap(m types.Map) (map[string]string, diag.Diagnostics) {
 	if m.IsNull() || m.IsUnknown() {
-		return nil
+		return nil, nil
 	}
 	var result map[string]string
-	_ = m.ElementsAs(context.Background(), &result, false)
-	return result
+	diags := m.ElementsAs(context.Background(), &result, false)
+	return result, diags
 }
 
 // toTerraformMap converts a Go map[string]string to a Terraform types.Map.
-// Empty maps become null.
+// Nil maps become null; non-nil empty maps remain known empty maps.
 func toTerraformMap(m map[string]string) types.Map {
-	if len(m) == 0 {
+	if m == nil {
 		return types.MapNull(types.StringType)
 	}
 	values := make(map[string]attr.Value, len(m))
@@ -143,30 +144,26 @@ func int64Ptr(p *int64) *int64 {
 	return p
 }
 
-// normalizeOptionalInt64 converts zero-valued pointers to nil for optional numeric fields.
-// This handles the case where JSON unmarshaling creates zero values for missing optional fields.
-// Returns nil if the pointer is nil or points to zero (indicating it wasn't explicitly set).
-// Returns the pointer unchanged if it points to a non-zero value.
+// normalizeOptionalInt64 preserves non-nil pointers, including zero values.
 func normalizeOptionalInt64(p *int64) *int64 {
-	if p == nil || *p == 0 {
+	if p == nil {
 		return nil
 	}
 	return p
 }
 
-// normalizeOptionalInt32 converts zero-valued pointers to nil for optional numeric fields.
-// This handles the case where JSON unmarshaling creates zero values for missing optional fields.
+// normalizeOptionalInt32 preserves non-nil pointers, including zero values.
 func normalizeOptionalInt32(p *int32) *int32 {
-	if p == nil || *p == 0 {
+	if p == nil {
 		return nil
 	}
 	return p
 }
 
 // normalizeOptionalInt32ToInt64 normalizes an optional *int32 and converts to *int64.
-// Returns nil if the input is nil or zero, otherwise converts to *int64.
+// It preserves non-nil pointers, including zero values.
 func normalizeOptionalInt32ToInt64(p *int32) *int64 {
-	if p == nil || *p == 0 {
+	if p == nil {
 		return nil
 	}
 	i := int64(*p)

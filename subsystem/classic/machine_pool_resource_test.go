@@ -2535,6 +2535,7 @@ var _ = Describe("Classic Machine Pool", func() {
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
+			Expect(resource).To(MatchJQ(".attributes.aws_additional_security_group_ids", nil))
 		})
 	})
 
@@ -2675,6 +2676,7 @@ var _ = Describe("Classic Machine Pool", func() {
 				  machine_type = "r5.xlarge"
 				  replicas     = 4
 				  aws_tags = {}
+				  aws_additional_security_group_ids = []
 				}
 			`)
 			runOutput := Terraform.Apply()
@@ -2684,6 +2686,7 @@ var _ = Describe("Classic Machine Pool", func() {
 			Expect(resource).To(MatchJQ(".attributes.name", "worker"))
 			Expect(resource).To(MatchJQ(".attributes.id", "worker"))
 			Expect(resource).To(MatchJQ(".attributes.replicas", 4.0))
+			Expect(resource).To(MatchJQ(".attributes.aws_additional_security_group_ids", []any{}))
 		})
 
 		It("can update labels", func() {

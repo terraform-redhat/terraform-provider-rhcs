@@ -6,6 +6,7 @@ package hyperfleet
 import (
 	"context"
 	"fmt"
+	"math"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -271,10 +272,20 @@ func (r *NodePoolResource) Create(
 	}
 
 	// Convert Terraform state to native Go struct for pathbind
-	native := terraformNodePoolToNative(&plan)
+	native, conversionDiags := terraformNodePoolToNative(&plan)
+	resp.Diagnostics.Append(conversionDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	// Create empty SDK struct and expand plan into it
-	obj := &v1alpha1.NodePool{}
+	// Fetch the current object so fields not represented in Terraform are preserved.
+	obj, err := r.Client.HyperfleetV1alpha1().NodePools(r.Handler.Namespace(ctx, &plan)).Get(ctx, plan.Id.ValueString(), hfwrappers.GetOptions{})
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to read NodePool for update", err.Error())
+		return
+	}
+
+	// Expand the Terraform plan into the current SDK object.
 	if err := pathbind.Expand(ctx, native, obj); err != nil {
 		resp.Diagnostics.AddError("Failed to expand plan to SDK struct", err.Error())
 		return
@@ -409,7 +420,11 @@ func (r *NodePoolResource) Update(
 	}
 
 	// Convert Terraform state to native Go struct for pathbind
-	native := terraformNodePoolToNative(&plan)
+	native, conversionDiags := terraformNodePoolToNative(&plan)
+	resp.Diagnostics.Append(conversionDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Create empty SDK struct and expand plan into it
 	obj := &v1alpha1.NodePool{}
@@ -527,6 +542,10 @@ func (r *NodePoolResource) ImportState(
 
 	// Convert native state to Terraform state
 	state := nativeNodePoolToTerraform(&nativeState)
+
+	// Call handler to populate computed fields and adjust state after flatten
+	r.Handler.PostFlatten(ctx, state, obj)
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
@@ -534,11 +553,12 @@ func (r *NodePoolResource) ImportState(
 
 // terraformNodePoolToNative converts Terraform framework types to native Go types.
 // This is used before pathbind.Expand to prepare input for API calls.
-func terraformNodePoolToNative(tf *NodePoolState) *NodePoolStateNative {
+func terraformNodePoolToNative(tf *NodePoolState) (*NodePoolStateNative, diag.Diagnostics) {
 	if tf == nil {
-		return nil
+		return nil, nil
 	}
 	native := &NodePoolStateNative{}
+	var diags diag.Diagnostics
 	if !tf.Name.IsNull() && !tf.Name.IsUnknown() {
 		native.Name = tf.Name.ValueString()
 	}
@@ -553,7 +573,9 @@ func terraformNodePoolToNative(tf *NodePoolState) *NodePoolStateNative {
 		native.DisplayName = tf.DisplayName.ValueString()
 	}
 	if !tf.Labels.IsNull() && !tf.Labels.IsUnknown() {
-		native.Labels = terraformMapToStringMap(tf.Labels)
+		values, collectionDiags := terraformMapToStringMap(tf.Labels)
+		diags = append(diags, collectionDiags...)
+		native.Labels = values
 	}
 	if !tf.ClusterName.IsNull() && !tf.ClusterName.IsUnknown() {
 		native.ClusterName = tf.ClusterName.ValueString()
@@ -625,8 +647,13 @@ func terraformNodePoolToNative(tf *NodePoolState) *NodePoolStateNative {
 		native.Image = tf.Image.ValueString()
 	}
 	if !tf.Replicas.IsNull() && !tf.Replicas.IsUnknown() {
-		i := int32(tf.Replicas.ValueInt64())
-		native.Replicas = &i
+		value := tf.Replicas.ValueInt64()
+		if value < math.MinInt32 || value > math.MaxInt32 {
+			diags.AddError("Invalid int32 value", fmt.Sprintf("field Replicas value %d is outside the int32 range", value))
+		} else {
+			i := int32(value)
+			native.Replicas = &i
+		}
 	}
 	if !tf.Cluster_id.IsNull() && !tf.Cluster_id.IsUnknown() {
 		native.Cluster_id = tf.Cluster_id.ValueString()
@@ -634,7 +661,7 @@ func terraformNodePoolToNative(tf *NodePoolState) *NodePoolStateNative {
 	if !tf.Phase.IsNull() && !tf.Phase.IsUnknown() {
 		native.Phase = tf.Phase.ValueString()
 	}
-	return native
+	return native, diags
 }
 
 // nativeNodePoolToTerraform converts native Go types to Terraform framework types.

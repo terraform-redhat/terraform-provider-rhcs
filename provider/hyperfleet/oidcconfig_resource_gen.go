@@ -175,10 +175,20 @@ func (r *OidcConfigResource) Create(
 	}
 
 	// Convert Terraform state to native Go struct for pathbind
-	native := terraformOidcConfigToNative(&plan)
+	native, conversionDiags := terraformOidcConfigToNative(&plan)
+	resp.Diagnostics.Append(conversionDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	// Create empty SDK struct and expand plan into it
-	obj := &v1alpha1.OidcConfig{}
+	// Fetch the current object so fields not represented in Terraform are preserved.
+	obj, err := r.Client.HyperfleetV1alpha1().OidcConfigs().Get(ctx, plan.Id.ValueString(), hfwrappers.GetOptions{})
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to read OidcConfig for update", err.Error())
+		return
+	}
+
+	// Expand the Terraform plan into the current SDK object.
 	if err := pathbind.Expand(ctx, native, obj); err != nil {
 		resp.Diagnostics.AddError("Failed to expand plan to SDK struct", err.Error())
 		return
@@ -313,7 +323,11 @@ func (r *OidcConfigResource) Update(
 	}
 
 	// Convert Terraform state to native Go struct for pathbind
-	native := terraformOidcConfigToNative(&plan)
+	native, conversionDiags := terraformOidcConfigToNative(&plan)
+	resp.Diagnostics.Append(conversionDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Create empty SDK struct and expand plan into it
 	obj := &v1alpha1.OidcConfig{}
@@ -430,6 +444,10 @@ func (r *OidcConfigResource) ImportState(
 
 	// Convert native state to Terraform state
 	state := nativeOidcConfigToTerraform(&nativeState)
+
+	// Call handler to populate computed fields and adjust state after flatten
+	r.Handler.PostFlatten(ctx, state, obj)
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
@@ -437,11 +455,12 @@ func (r *OidcConfigResource) ImportState(
 
 // terraformOidcConfigToNative converts Terraform framework types to native Go types.
 // This is used before pathbind.Expand to prepare input for API calls.
-func terraformOidcConfigToNative(tf *OidcConfigState) *OidcConfigStateNative {
+func terraformOidcConfigToNative(tf *OidcConfigState) (*OidcConfigStateNative, diag.Diagnostics) {
 	if tf == nil {
-		return nil
+		return nil, nil
 	}
 	native := &OidcConfigStateNative{}
+	var diags diag.Diagnostics
 	if !tf.Name.IsNull() && !tf.Name.IsUnknown() {
 		native.Name = tf.Name.ValueString()
 	}
@@ -466,7 +485,7 @@ func terraformOidcConfigToNative(tf *OidcConfigState) *OidcConfigStateNative {
 	if !tf.Thumbprint.IsNull() && !tf.Thumbprint.IsUnknown() {
 		native.Thumbprint = tf.Thumbprint.ValueString()
 	}
-	return native
+	return native, diags
 }
 
 // nativeOidcConfigToTerraform converts native Go types to Terraform framework types.

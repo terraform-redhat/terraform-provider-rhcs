@@ -715,11 +715,12 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			}, "Allowlist with id 'anything' not found")
 
 			By("Additional Trust CA is invalid")
+			trustedCARegistry := "10.0.0.0..8090"
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				trustedCA := map[string]string{}
-				trustedCA[registry] = "invalid"
+				trustedCA[trustedCARegistry] = "invalid"
 				args.RegistryConfig.AdditionalTrustedCA = &trustedCA
-			}, fmt.Sprintf("failed to parse CA bundle for registry '%s'", registry))
+			}, fmt.Sprintf("failed to parse CA bundle for registry '%s'", trustedCARegistry))
 		})
 	})
 

@@ -1,3 +1,27 @@
+## 1.7.9 (22 Sep, 2026)
+
+FEATURES:
+ * Hcp
+   * Add management block to machine pool resource
+
+ENHANCEMENTS:
+ * Bug fixes
+   * Use GET after PATCH to populate state on update
+   * Skip trust policy validation for cross-account AWS configs
+   * Force replacement of identity providers on config changes
+   * Populate replicas and compute_machine_type in state
+   * Bump google.golang.org/grpc to v1.83.2 for Snyk vulnerability
+   * Set delete_protection default in populate functions
+   * Update x/crypto for govulncheck findings
+ * Chores
+   * Add golang.org/x packages to Renovate config
+   * Add pre-push-checks-fast
+ * Documentation
+   * Guide for custom-component-routes
+   * Update machine, rhcs_versions, component_routes and TLS settings
+ * Examples
+   * Migrate from legacy rosa-sts to rosa-classic module
+
 ## 1.7.8 (09 Sep, 2026)
 
 FEATURES:

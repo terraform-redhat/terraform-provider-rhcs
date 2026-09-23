@@ -345,6 +345,7 @@ func (p *Provider) Resources(ctx context.Context) []func() resource.Resource {
 		hcp.New,
 		hyperfleethcp.New,
 		hyperfleethcp.NewNodePool,
+		hyperfleethcp.NewOidcConfig,
 		nodepool.New,
 		hcpingress.New,
 		tuningconfigs.New,

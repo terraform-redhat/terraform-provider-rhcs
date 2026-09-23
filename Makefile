@@ -220,6 +220,9 @@ generate: $(MOCKGEN)
 	PATH="$(LOCALBIN_ABS):$$PATH" go generate ./...
 
 .PHONY: generate-hyperfleet
+HYPERFLEET_REPO ?= https://github.com/openshift-online/rosa-hyperfleet-api.git
+HYPERFLEET_BRANCH ?= main
+
 generate-hyperfleet:
 	@echo "Generating Terraform resource code from hyperfleet pathbind configuration..."
 	@if [ ! -f "provider/hyperfleet/pathbind-overrides.yaml" ]; then \
@@ -230,8 +233,8 @@ generate-hyperfleet:
 	PATHBIND_GEN_BIN=$$(mktemp); \
 	OUTPUT_DIR=provider/hyperfleet/generated; \
 	trap 'rm -rf "$$HYPERFLEET_TMPDIR" "$$PATHBIND_GEN_BIN"' EXIT; \
-	echo "Cloning rosa-hyperfleet-api (chore/tf-pathbind branch) to $$HYPERFLEET_TMPDIR..."; \
-	git clone --depth=1 --branch chore/tf-pathbind https://github.com/gdbranco/rosa-hyperfleet-api.git "$$HYPERFLEET_TMPDIR" || exit 1; \
+	echo "Cloning $(HYPERFLEET_REPO) ($(HYPERFLEET_BRANCH) branch) to $$HYPERFLEET_TMPDIR..."; \
+	git clone --depth=1 --branch "$(HYPERFLEET_BRANCH)" "$(HYPERFLEET_REPO)" "$$HYPERFLEET_TMPDIR" || exit 1; \
 	echo "Building pathbind-gen..."; \
 	cd "$$HYPERFLEET_TMPDIR/clientset" && go build -o "$$PATHBIND_GEN_BIN" ./cmd/pathbind-gen || exit 1; \
 	cd - > /dev/null; \

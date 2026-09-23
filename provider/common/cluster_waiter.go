@@ -14,7 +14,10 @@ import (
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 )
 
-const pollingIntervalInMinutes = 2
+const (
+	pollingIntervalInMinutes = 2
+	waitRetryInterval        = 30 * time.Second
+)
 
 //go:generate mockgen -source=cluster_waiter.go -package=common -destination=mock_clusterwait.go
 type ClusterWait interface {
@@ -53,20 +56,16 @@ func (dw *DefaultClusterWait) WaitForStdComputeNodesToBeReady(ctx context.Contex
 		return resp.Body(), nil
 	}
 
-	backoffAttempts := 3
-	backoffSleep := 30 * time.Second
-	var cluster *cmv1.Cluster
-	for cluster == nil {
-		tflog.Debug(ctx, fmt.Sprintf("Updating tokens for cluster %s", clusterId))
-		dw.connection.Tokens()
-		cluster, err = pollClusterCurrentCompute(clusterId, ctx, waitTimeoutMin, dw.collection)
-		if err != nil {
-			backoffAttempts--
-			if backoffAttempts == 0 {
-				return nil, fmt.Errorf("polling cluster state failed with error %v", err)
-			}
-			time.Sleep(backoffSleep)
-		}
+	cluster, err := dw.pollClusterWithRetry(
+		ctx,
+		clusterId,
+		time.Duration(waitTimeoutMin)*time.Minute,
+		func(pollCtx context.Context) (*cmv1.Cluster, error) {
+			return pollClusterCurrentCompute(clusterId, pollCtx, dw.collection)
+		},
+	)
+	if err != nil {
+		return nil, err
 	}
 	tflog.Info(ctx, fmt.Sprintf("WaitForStdComputeNodesToBeReady: Wait done for cluster '%s' with %d/%d", clusterId,
 		cluster.Nodes().Compute(), cluster.Status().CurrentCompute()))
@@ -104,20 +103,16 @@ func (dw *DefaultClusterWait) WaitForClusterToBeReady(ctx context.Context, clust
 	tflog.Info(ctx, fmt.Sprintf("WaitForClusterToBeReady: Cluster '%s' is with state '%s', Wait for the state to become 'READY' with timeout %d minutes",
 		clusterId, currentState, waitTimeoutMin))
 
-	backoffAttempts := 3
-	backoffSleep := 30 * time.Second
-	var cluster *cmv1.Cluster
-	for cluster == nil {
-		tflog.Debug(ctx, fmt.Sprintf("Updating tokens for cluster %s", clusterId))
-		dw.connection.Tokens()
-		cluster, err = pollClusterState(clusterId, ctx, waitTimeoutMin, dw.collection)
-		if err != nil {
-			backoffAttempts--
-			if backoffAttempts == 0 {
-				return nil, fmt.Errorf("polling cluster state failed with error %v", err)
-			}
-			time.Sleep(backoffSleep)
-		}
+	cluster, err := dw.pollClusterWithRetry(
+		ctx,
+		clusterId,
+		time.Duration(waitTimeoutMin)*time.Minute,
+		func(pollCtx context.Context) (*cmv1.Cluster, error) {
+			return pollClusterState(clusterId, pollCtx, dw.collection)
+		},
+	)
+	if err != nil {
+		return nil, err
 	}
 
 	tflog.Info(ctx, fmt.Sprintf("WaitForClusterToBeReady: Wait done for cluster '%s' with state '%s'", clusterId, currentState))
@@ -130,11 +125,48 @@ func (dw *DefaultClusterWait) WaitForClusterToBeReady(ctx context.Context, clust
 	return cluster, fmt.Errorf("cluster '%s' is in state '%s'", clusterId, cluster.State())
 }
 
-func pollClusterCurrentCompute(clusterId string, ctx context.Context, timeout int64, clusterCollection *cmv1.ClustersClient) (*cmv1.Cluster, error) {
+func (dw *DefaultClusterWait) pollClusterWithRetry(
+	ctx context.Context,
+	clusterId string,
+	waitTimeout time.Duration,
+	poll func(context.Context) (*cmv1.Cluster, error),
+) (*cmv1.Cluster, error) {
+	pollCtx, cancel := context.WithTimeout(ctx, waitTimeout)
+	defer cancel()
+
+	backoffAttempts := 3
+	for {
+		tflog.Debug(pollCtx, fmt.Sprintf("Updating tokens for cluster %s", clusterId))
+		if _, _, err := dw.connection.TokensContext(pollCtx); err != nil {
+			return nil, fmt.Errorf("refreshing tokens for cluster %s: %w", clusterId, err)
+		}
+		cluster, err := poll(pollCtx)
+		if err == nil {
+			return cluster, nil
+		}
+
+		backoffAttempts--
+		if ctxErr := pollCtx.Err(); ctxErr != nil {
+			return nil, fmt.Errorf("polling cluster state failed: %w", ctxErr)
+		}
+		if backoffAttempts == 0 {
+			return nil, fmt.Errorf("polling cluster state failed: %w", err)
+		}
+		select {
+		case <-time.After(waitRetryInterval):
+		case <-pollCtx.Done():
+			return nil, fmt.Errorf("polling cluster state failed: %w", pollCtx.Err())
+		}
+	}
+}
+
+func pollClusterCurrentCompute(
+	clusterId string,
+	ctx context.Context,
+	clusterCollection *cmv1.ClustersClient,
+) (*cmv1.Cluster, error) {
 	client := clusterCollection.Cluster(clusterId)
 	var object *cmv1.Cluster
-	pollCtx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Minute)
-	defer cancel()
 	_, err := client.Poll().
 		Interval(pollingIntervalInMinutes * time.Minute).
 		Predicate(func(getClusterResponse *cmv1.ClusterGetResponse) bool {
@@ -148,7 +180,7 @@ func pollClusterCurrentCompute(clusterId string, ctx context.Context, timeout in
 			}
 			return false
 		}).
-		StartContext(pollCtx)
+		StartContext(ctx)
 	if err != nil {
 		tflog.Error(ctx, fmt.Sprintf("Failed polling cluster compute: %v", err))
 		return nil, err
@@ -157,11 +189,13 @@ func pollClusterCurrentCompute(clusterId string, ctx context.Context, timeout in
 	return object, nil
 }
 
-func pollClusterState(clusterId string, ctx context.Context, timeout int64, clusterCollection *cmv1.ClustersClient) (*cmv1.Cluster, error) {
+func pollClusterState(
+	clusterId string,
+	ctx context.Context,
+	clusterCollection *cmv1.ClustersClient,
+) (*cmv1.Cluster, error) {
 	client := clusterCollection.Cluster(clusterId)
 	var object *cmv1.Cluster
-	pollCtx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Minute)
-	defer cancel()
 	_, err := client.Poll().
 		Interval(pollingIntervalInMinutes * time.Minute).
 		Predicate(func(getClusterResponse *cmv1.ClusterGetResponse) bool {
@@ -177,7 +211,7 @@ func pollClusterState(clusterId string, ctx context.Context, timeout int64, clus
 			}
 			return false
 		}).
-		StartContext(pollCtx)
+		StartContext(ctx)
 	if err != nil {
 		tflog.Error(ctx, fmt.Sprintf("Failed polling cluster state: %v", err))
 		return nil, err

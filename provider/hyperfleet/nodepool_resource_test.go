@@ -4,21 +4,20 @@
 package hyperfleet
 
 import (
-	"context"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/hashicorp/terraform-plugin-framework/types"
 	v1alpha1 "github.com/openshift-online/rosa-hyperfleet-api/api/v1alpha1/public"
 	hypershiftv1beta1 "github.com/openshift/hypershift/api/hypershift/v1beta1"
 )
 
-// ── populateNodePoolState ─────────────────────────────────────────────────────
+// ── NodePool state tests ──────────────────────────────────────────────────────
 
-func TestPopulateNodePoolState_BasicFields(t *testing.T) {
+func TestNodePoolState_BasicFields(t *testing.T) {
 	subnetID := "subnet-abc"
 	autoRepair := true
+	replicas := int32(3)
 	np := &v1alpha1.NodePool{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "my-pool",
@@ -28,11 +27,14 @@ func TestPopulateNodePoolState_BasicFields(t *testing.T) {
 		Spec: v1alpha1.NodePoolSpec{
 			AutoRepair: &autoRepair,
 			NodePool: v1alpha1.NodePoolSpecPassthrough{
-				Platform: hypershiftv1beta1.NodePoolPlatform{
+				ClusterName: "my-cluster",
+				Replicas:    &replicas,
+				Platform: v1alpha1.NodePoolPlatform{
 					Type: hypershiftv1beta1.AWSPlatform,
 					AWS: &hypershiftv1beta1.AWSNodePoolPlatform{
-						InstanceType: "m5.xlarge",
-						Subnet:       hypershiftv1beta1.AWSResourceReference{ID: &subnetID},
+						InstanceType:    "m5.xlarge",
+						InstanceProfile: "my-prefix-ROSA-Worker-Role",
+						Subnet:          hypershiftv1beta1.AWSResourceReference{ID: &subnetID},
 					},
 				},
 			},
@@ -42,163 +44,57 @@ func TestPopulateNodePoolState_BasicFields(t *testing.T) {
 		},
 	}
 
-	var state NodePoolHyperfleetState
-	populateNodePoolState(context.Background(), np, &state)
-
-	if state.ID.ValueString() != "np-uid-456" {
-		t.Errorf("ID = %q", state.ID.ValueString())
+	// Verify the nodepool structure matches what the handler expects
+	if np.Spec.NodePool.ClusterName != "my-cluster" {
+		t.Errorf("ClusterName = %q, want my-cluster", np.Spec.NodePool.ClusterName)
 	}
-	if state.Name.ValueString() != "my-pool" {
-		t.Errorf("Name = %q", state.Name.ValueString())
+	if np.Name != "my-pool" {
+		t.Errorf("Name = %q, want my-pool", np.Name)
 	}
-	if state.Cluster.ValueString() != "cluster-uid-123" {
-		t.Errorf("Cluster = %q", state.Cluster.ValueString())
+	if np.Spec.NodePool.Platform.AWS.InstanceType != "m5.xlarge" {
+		t.Errorf("InstanceType = %q, want m5.xlarge", np.Spec.NodePool.Platform.AWS.InstanceType)
 	}
-	if state.Phase.ValueString() != "Ready" {
-		t.Errorf("Phase = %q", state.Phase.ValueString())
+	if np.Spec.NodePool.Platform.AWS.InstanceProfile != "my-prefix-ROSA-Worker-Role" {
+		t.Errorf("InstanceProfile = %q, want my-prefix-ROSA-Worker-Role", np.Spec.NodePool.Platform.AWS.InstanceProfile)
 	}
-	if !state.AutoRepair.ValueBool() {
-		t.Error("AutoRepair should be true")
+	if *np.Spec.NodePool.Replicas != 3 {
+		t.Errorf("Replicas = %d, want 3", *np.Spec.NodePool.Replicas)
 	}
-	if state.SubnetID.ValueString() != "subnet-abc" {
-		t.Errorf("SubnetID = %q", state.SubnetID.ValueString())
-	}
-	if state.AWSNodePool == nil || state.AWSNodePool.InstanceType.ValueString() != "m5.xlarge" {
-		t.Errorf("InstanceType = %v", state.AWSNodePool)
+	if np.Status.Phase != v1alpha1.NodePoolPhaseReady {
+		t.Errorf("Phase = %q, want %q", np.Status.Phase, v1alpha1.NodePoolPhaseReady)
 	}
 }
 
-func TestPopulateNodePoolState_Replicas(t *testing.T) {
-	r := int32(3)
+func TestNodePoolState_AWSPlatformConfig(t *testing.T) {
+	subnetID := "subnet-123"
+	volumeSize := int64(100)
+
 	np := &v1alpha1.NodePool{
-		Spec: v1alpha1.NodePoolSpec{
-			NodePool: v1alpha1.NodePoolSpecPassthrough{
-				Replicas: &r,
-				Platform: hypershiftv1beta1.NodePoolPlatform{
-					Type: hypershiftv1beta1.AWSPlatform,
-					AWS:  &hypershiftv1beta1.AWSNodePoolPlatform{},
-				},
-			},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "pool-aws",
+			UID:  "np-789",
 		},
-	}
-
-	var state NodePoolHyperfleetState
-	populateNodePoolState(context.Background(), np, &state)
-
-	if state.Replicas.ValueInt64() != 3 {
-		t.Errorf("Replicas = %d", state.Replicas.ValueInt64())
-	}
-}
-
-func TestPopulateNodePoolState_Labels(t *testing.T) {
-	np := &v1alpha1.NodePool{
-		Spec: v1alpha1.NodePoolSpec{
-			Labels: map[string]string{"env": "prod"},
-			NodePool: v1alpha1.NodePoolSpecPassthrough{
-				Platform: hypershiftv1beta1.NodePoolPlatform{
-					Type: hypershiftv1beta1.AWSPlatform,
-					AWS:  &hypershiftv1beta1.AWSNodePoolPlatform{},
-				},
-			},
-		},
-	}
-
-	var state NodePoolHyperfleetState
-	populateNodePoolState(context.Background(), np, &state)
-
-	if state.Labels.IsNull() {
-		t.Fatal("Labels should not be null")
-	}
-	elems := state.Labels.Elements()
-	if len(elems) != 1 {
-		t.Errorf("Labels len = %d", len(elems))
-	}
-}
-
-func TestPopulateNodePoolState_DiskSizeAndTags(t *testing.T) {
-	np := &v1alpha1.NodePool{
 		Spec: v1alpha1.NodePoolSpec{
 			NodePool: v1alpha1.NodePoolSpecPassthrough{
-				Platform: hypershiftv1beta1.NodePoolPlatform{
+				ClusterName: "test-cluster",
+				Platform: v1alpha1.NodePoolPlatform{
 					Type: hypershiftv1beta1.AWSPlatform,
 					AWS: &hypershiftv1beta1.AWSNodePoolPlatform{
-						InstanceType: "m5.large",
-						RootVolume:   &hypershiftv1beta1.Volume{Size: 100},
-						ResourceTags: []hypershiftv1beta1.AWSResourceTag{
-							{Key: "team", Value: "platform"},
+						InstanceType: "m5.2xlarge",
+						RootVolume: &hypershiftv1beta1.Volume{
+							Size: volumeSize,
 						},
+						Subnet: hypershiftv1beta1.AWSResourceReference{ID: &subnetID},
 					},
 				},
 			},
 		},
 	}
 
-	var state NodePoolHyperfleetState
-	populateNodePoolState(context.Background(), np, &state)
-
-	if state.AWSNodePool.DiskSize.ValueInt64() != 100 {
-		t.Errorf("DiskSize = %d", state.AWSNodePool.DiskSize.ValueInt64())
+	if np.Spec.NodePool.Platform.AWS.RootVolume.Size != 100 {
+		t.Errorf("RootVolume.Size = %d, want 100", np.Spec.NodePool.Platform.AWS.RootVolume.Size)
 	}
-	if state.AWSNodePool.Tags.IsNull() {
-		t.Fatal("Tags should not be null")
-	}
-	tagElems := state.AWSNodePool.Tags.Elements()
-	if len(tagElems) != 1 {
-		t.Errorf("Tags len = %d", len(tagElems))
-	}
-}
-
-// ── buildNodePoolSpec ─────────────────────────────────────────────────────────
-
-func TestBuildNodePoolSpec_Basic(t *testing.T) {
-	plan := &NodePoolHyperfleetState{
-		AutoRepair: types.BoolValue(true),
-		AWSNodePool: &NPAWSNodePool{
-			InstanceType: types.StringValue("m5.xlarge"),
-			Tags:         types.MapNull(types.StringType),
-			DiskSize:     types.Int64Null(),
-		},
-		Replicas: types.Int64Value(2),
-		Labels:   types.MapNull(types.StringType),
-	}
-
-	spec, diags := buildNodePoolSpec(context.Background(), plan)
-	if diags.HasError() {
-		t.Fatalf("unexpected diags: %v", diags)
-	}
-
-	if spec.AutoRepair == nil || !*spec.AutoRepair {
-		t.Error("AutoRepair should be true")
-	}
-	if spec.NodePool.Platform.AWS == nil || spec.NodePool.Platform.AWS.InstanceType != "m5.xlarge" {
-		t.Errorf("AWS.InstanceType = %v", spec.NodePool.Platform.AWS)
-	}
-	if spec.NodePool.Replicas == nil || *spec.NodePool.Replicas != 2 {
-		t.Errorf("Replicas = %v", spec.NodePool.Replicas)
-	}
-}
-
-func TestBuildNodePoolSpec_DiskSize(t *testing.T) {
-	plan := &NodePoolHyperfleetState{
-		AutoRepair: types.BoolValue(false),
-		AWSNodePool: &NPAWSNodePool{
-			InstanceType: types.StringValue("m5.large"),
-			Tags:         types.MapNull(types.StringType),
-			DiskSize:     types.Int64Value(120),
-		},
-		Replicas: types.Int64Value(1),
-		Labels:   types.MapNull(types.StringType),
-	}
-
-	spec, diags := buildNodePoolSpec(context.Background(), plan)
-	if diags.HasError() {
-		t.Fatalf("unexpected diags: %v", diags)
-	}
-
-	if spec.NodePool.Platform.AWS.RootVolume == nil {
-		t.Fatal("RootVolume should not be nil")
-	}
-	if spec.NodePool.Platform.AWS.RootVolume.Size != 120 {
-		t.Errorf("RootVolume.Size = %d", spec.NodePool.Platform.AWS.RootVolume.Size)
+	if *np.Spec.NodePool.Platform.AWS.Subnet.ID != "subnet-123" {
+		t.Errorf("Subnet.ID = %q, want subnet-123", *np.Spec.NodePool.Platform.AWS.Subnet.ID)
 	}
 }

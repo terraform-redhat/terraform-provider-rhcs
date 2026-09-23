@@ -1,0 +1,229 @@
+# pathbind-overrides.yaml — Terraform resource field mapping for Cluster resource
+# This file defines the mapping from Terraform schema attributes to the Hyperfleet
+# v1alpha1.Cluster SDK fields using pathbind path expressions.
+#
+# Fields are categorized as:
+# - Mapped: path expression in SDK (pathbind.Expand/Flatten)
+# - Consumer-only: no path expression (set manually in handler)
+# - Computed: read-only from API response
+
+config:
+  package: hyperfleetgenerated
+  tfProviderPkg: github.com/terraform-redhat/terraform-provider-rhcs/provider/hyperfleet
+
+resources:
+  cluster:
+    aliases:
+      # identity — immutable after creation
+      - path: metadata.name
+        alias: name
+        type: string
+        required: true
+        immutable: true
+        description: "Human-readable cluster name. Immutable after creation."
+
+      # optional mutable cluster metadata fields
+      - path: spec.displayName
+        alias: display_name
+        type: string
+        description: "Optional display name for the cluster. Can be updated after cluster creation."
+
+      - path: spec.deleteProtection
+        alias: delete_protection
+        type: bool
+        description: "Enable or disable deletion protection for the cluster. When enabled, the cluster cannot be deleted via the API."
+
+      # consumer-only fields — set manually in PreExpand handler
+      # These fields don't map to SDK paths and must be computed by the handler
+      - alias: operator_roles_prefix
+        type: string
+        required: true
+        immutable: true
+        operations:
+          - create
+        description: "Prefix used to construct the seven operator IAM role ARNs (e.g. a prefix of `my-cluster` produces `my-cluster-ingress`, `my-cluster-ebs-csi`, etc.). Immutable after creation."
+
+      - alias: aws_subnet_ids
+        type: string[]
+        required: true
+        immutable: true
+        operations:
+          - create
+        description: "IDs of worker-node subnets. The first entry is used as the cluster subnet. Typically sourced from `data.aws_subnet`. Immutable after creation."
+
+      - alias: vpc_id
+        type: string
+        required: true
+        immutable: true
+        operations:
+          - create
+        description: "ID of the VPC that contains the worker subnet. Typically sourced from `data.aws_subnet.*.vpc_id`. Immutable after creation."
+
+      - alias: availability_zones
+        type: string[]
+        required: true
+        immutable: true
+        operations:
+          - create
+        description: "Availability zones for worker nodes. The first entry determines the cluster AZ. Typically sourced from `data.aws_subnet.*.availability_zone`. Immutable after creation."
+
+      - alias: aws_partition
+        type: string
+        immutable: true
+        computed: true
+        default: "aws"
+        operations:
+          - create
+        description: "AWS partition used when computing operator role ARNs. Defaults to `aws`. Set to `aws-us-gov` for GovCloud regions. Immutable after creation."
+
+      - alias: cloud_region
+        type: string
+        immutable: true
+        computed: true
+        operations:
+          - create
+        description: "AWS region identifier (e.g. `us-east-1`). Derived from `availability_zones` if not set. Immutable after creation."
+
+      # optional mutable fields
+      - path: spec.expirationTimestamp
+        alias: expiration_timestamp
+        type: string
+        description: "Optional RFC3339 timestamp after which the Platform API automatically deletes the cluster."
+
+      # Complex SDK values use explicit Terraform representations. Arrays are
+      # JSON strings because the draft does not retain their element schemas.
+      - path: spec.hostedCluster.configuration.kubelet.kubeReserved
+        type: map
+      - path: spec.hostedCluster.configuration.kubelet.systemReserved
+        type: map
+      - path: spec.hostedCluster.configuration.machineConfig.allowedKernelArguments
+        type: string
+      - path: spec.hostedCluster.imageContentSources
+        type: string
+      - path: spec.hostedCluster.networking.apiServer.allowedCIDRBlocks
+        type: string
+      - path: spec.hostedCluster.networking.clusterNetwork
+        type: string
+      - path: spec.hostedCluster.networking.machineNetwork
+        type: string
+      - path: spec.hostedCluster.networking.serviceNetwork
+        type: string
+      - path: spec.hostedCluster.platform.aws.additionalAllowedPrincipals
+        type: string
+      - path: spec.hostedCluster.platform.aws.cloudProviderConfig.subnet.filters
+        type: string
+      - path: spec.hostedCluster.platform.aws.resourceTags
+        type: string
+      - path: spec.hostedCluster.platform.aws.serviceEndpoints
+        type: string
+      - path: spec.properties
+        type: map
+      - path: spec.tags
+        type: map
+
+      # computed fields — read-only from API response
+      - path: metadata.uid
+        alias: id
+        type: string
+        computed: true
+        description: "Cluster UID assigned by the Platform API on creation."
+
+      - path: spec.hostedCluster.platform.aws.cloudProviderConfig.subnet.id
+        alias: subnet_id
+        type: string
+        computed: true
+        description: "Subnet ID for the cluster."
+
+      - alias: api_url
+        type: string
+        computed: true
+        operations:
+          - read
+        description: "API URL of the cluster control plane endpoint."
+
+      - alias: phase
+        type: string
+        computed: true
+        operations:
+          - read
+        description: "Current lifecycle phase of the cluster (WaitingForPlacement, Provisioning, Ready, Deleting)."
+
+  nodePool:
+    aliases:
+      - path: metadata.uid
+        alias: id
+        type: string
+        computed: true
+
+      - path: spec.nodePool.platform.type
+        alias: platform_type
+        type: string
+        computed: true
+        description: "Platform type for the NodePool (AWS)."
+
+      - path: spec.labels
+        type: map
+      - path: spec.nodePool.platform.aws.resourceTags
+        type: string
+      - path: spec.nodePool.platform.aws.securityGroups
+        type: string
+      - path: spec.nodePool.platform.aws.subnet.filters
+        type: string
+
+      - alias: cluster_id
+        type: string
+        required: true
+        immutable: true
+        operations:
+          - create
+        description: "ID of the parent cluster."
+
+      - alias: phase
+        type: string
+        computed: true
+        operations:
+          - read
+        description: "Current lifecycle phase of the node pool (Provisioning, Ready, Deleting)."
+
+  oidcConfig:
+    aliases:
+      - path: metadata.name
+        alias: name
+        type: string
+        computed: true
+        description: "Server-generated OIDC configuration name."
+
+      - path: metadata.uid
+        alias: id
+        type: string
+        computed: true
+
+      - path: spec.installerRoleArn
+        type: string
+        immutable: true
+      - path: spec.secretArn
+        type: string
+        immutable: true
+      - path: spec.type
+        type: string
+        immutable: true
+      - path: spec.issuerUrl
+        alias: issuer_url
+        type: string
+        computed: true
+        immutable: true
+        description: "OIDC issuer URL. Computed by the controller for managed type."
+
+      - alias: phase
+        type: string
+        computed: true
+        operations:
+          - read
+        description: "Current lifecycle phase of the OIDC config (Pending, Ready, Error). Read-only."
+
+      - alias: thumbprint
+        type: string
+        computed: true
+        operations:
+          - read
+        description: "SHA-1 fingerprint of the OIDC issuer's TLS certificate. Computed by the controller and refreshed periodically. Read-only."

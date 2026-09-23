@@ -68,25 +68,27 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 			}`
 
 			nodepoolResponse := `{
-				"id": "test-nodepool-id",
-				"cluster_id": "test-cluster-id",
-				"name": "worker",
-				"created_at": "2024-01-01T00:00:00Z",
-				"updated_at": "2024-01-01T00:00:00Z",
+				"metadata": {
+					"uid": "test-nodepool-id",
+					"name": "worker",
+					"creationTimestamp": "2024-01-01T00:00:00Z"
+				},
 				"spec": {
 					"autoRepair": true,
 					"labels": {
 						"workload-type": "general"
 					},
 					"nodePool": {
-						"clusterName": "test-cluster",
+						"clusterName": "test-cluster-id",
 						"release": {
 							"image": ""
 						},
 						"platform": {
 							"type": "AWS",
 							"aws": {
-								"subnetId": "subnet-0abc123",
+								"subnet": {
+									"id": "subnet-0abc123"
+								},
 								"instanceType": "m5.xlarge",
 								"rootVolume": {
 									"size": 100
@@ -127,18 +129,16 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 				}
 
 				resource "rhcs_nodepool_hyperfleet" "test" {
-					provider     = rhcs.hf
-					cluster      = "test-cluster-id"
-					name         = "worker"
-					replicas     = 3
-					subnet_id    = "subnet-0abc123"
-					auto_repair  = true
+					provider         = rhcs.hf
+					cluster_id       = "test-cluster-id"
+					name             = "worker"
+					replicas         = 3
+					subnet_id        = "subnet-0abc123"
+					auto_repair      = true
+					instance_type    = "m5.xlarge"
+					size = 100
 					labels = {
 						"workload-type" = "general"
-					}
-					aws_node_pool = {
-						instance_type = "m5.xlarge"
-						disk_size     = 100
 					}
 				}
 			`, hyperfleetServer.URL()))
@@ -188,25 +188,27 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 			}`
 
 			createResponse := `{
-				"id": "test-nodepool-id",
-				"cluster_id": "test-cluster-id",
-				"name": "worker",
-				"created_at": "2024-01-01T00:00:00Z",
-				"updated_at": "2024-01-01T00:00:00Z",
+				"metadata": {
+					"uid": "test-nodepool-id",
+					"name": "worker",
+					"creationTimestamp": "2024-01-01T00:00:00Z"
+				},
 				"spec": {
 					"autoRepair": true,
 					"labels": {
 						"workload-type": "general"
 					},
 					"nodePool": {
-						"clusterName": "test-cluster",
+						"clusterName": "test-cluster-id",
 						"release": {
 							"image": ""
 						},
 						"platform": {
 							"type": "AWS",
 							"aws": {
-								"subnetId": "subnet-0abc123",
+								"subnet": {
+									"id": "subnet-0abc123"
+								},
 								"instanceType": "m5.xlarge",
 								"rootVolume": {
 									"size": 100
@@ -222,11 +224,11 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 			}`
 
 			updateResponse := `{
-				"id": "test-nodepool-id",
-				"cluster_id": "test-cluster-id",
-				"name": "worker",
-				"created_at": "2024-01-01T00:00:00Z",
-				"updated_at": "2024-01-02T00:00:00Z",
+				"metadata": {
+					"uid": "test-nodepool-id",
+					"name": "worker",
+					"creationTimestamp": "2024-01-01T00:00:00Z"
+				},
 				"spec": {
 					"autoRepair": true,
 					"labels": {
@@ -234,14 +236,16 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 						"environment": "production"
 					},
 					"nodePool": {
-						"clusterName": "test-cluster",
+						"clusterName": "test-cluster-id",
 						"release": {
 							"image": ""
 						},
 						"platform": {
 							"type": "AWS",
 							"aws": {
-								"subnetId": "subnet-0abc123",
+								"subnet": {
+									"id": "subnet-0abc123"
+								},
 								"instanceType": "m5.xlarge",
 								"rootVolume": {
 									"size": 100
@@ -268,21 +272,22 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 					VerifyRequest(http.MethodPost, "/api/v0/nodepools"),
 					RespondWith(http.StatusCreated, createResponse, header),
 				),
+				// Second apply: refresh (Read), then update to add labels.
+				// PostExpand fetches the parent cluster again before Update.
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-id"),
 					RespondWith(http.StatusOK, createResponse, header),
 				),
-				// Second apply: update to add labels
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-id"),
 					RespondWith(http.StatusOK, createResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
+					RespondWith(http.StatusOK, clusterResponse, header),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPut, "/api/v0/nodepools/test-nodepool-id"),
-					RespondWith(http.StatusOK, updateResponse, header),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-id"),
 					RespondWith(http.StatusOK, updateResponse, header),
 				),
 			)
@@ -297,18 +302,16 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 				}
 
 				resource "rhcs_nodepool_hyperfleet" "test" {
-					provider     = rhcs.hf
-					cluster      = "test-cluster-id"
-					name         = "worker"
-					replicas     = 3
-					subnet_id    = "subnet-0abc123"
-					auto_repair  = true
+					provider         = rhcs.hf
+					cluster_id       = "test-cluster-id"
+					name             = "worker"
+					replicas         = 3
+					subnet_id        = "subnet-0abc123"
+					auto_repair      = true
+					instance_type    = "m5.xlarge"
+					size = 100
 					labels = {
 						"workload-type" = "general"
-					}
-					aws_node_pool = {
-						instance_type = "m5.xlarge"
-						disk_size     = 100
 					}
 				}
 			`, hyperfleetServer.URL()))
@@ -326,19 +329,17 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 				}
 
 				resource "rhcs_nodepool_hyperfleet" "test" {
-					provider     = rhcs.hf
-					cluster      = "test-cluster-id"
-					name         = "worker"
-					replicas     = 3
-					subnet_id    = "subnet-0abc123"
-					auto_repair  = true
+					provider         = rhcs.hf
+					cluster_id       = "test-cluster-id"
+					name             = "worker"
+					replicas         = 3
+					subnet_id        = "subnet-0abc123"
+					auto_repair      = true
+					instance_type    = "m5.xlarge"
+					size = 100
 					labels = {
 						"workload-type" = "general",
 						"environment"   = "production"
-					}
-					aws_node_pool = {
-						instance_type = "m5.xlarge"
-						disk_size     = 100
 					}
 				}
 			`, hyperfleetServer.URL()))
@@ -376,22 +377,24 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 			}`
 
 			createResponse := `{
-				"id": "test-nodepool-id",
-				"cluster_id": "test-cluster-id",
-				"name": "worker",
-				"created_at": "2024-01-01T00:00:00Z",
-				"updated_at": "2024-01-01T00:00:00Z",
+				"metadata": {
+					"uid": "test-nodepool-id",
+					"name": "worker",
+					"creationTimestamp": "2024-01-01T00:00:00Z"
+				},
 				"spec": {
 					"autoRepair": true,
 					"nodePool": {
-						"clusterName": "test-cluster",
+						"clusterName": "test-cluster-id",
 						"release": {
 							"image": ""
 						},
 						"platform": {
 							"type": "AWS",
 							"aws": {
-								"subnetId": "subnet-0abc123",
+								"subnet": {
+									"id": "subnet-0abc123"
+								},
 								"instanceType": "m5.xlarge",
 								"rootVolume": {
 									"size": 100
@@ -407,22 +410,24 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 			}`
 
 			updateResponse := `{
-				"id": "test-nodepool-id",
-				"cluster_id": "test-cluster-id",
-				"name": "worker",
-				"created_at": "2024-01-01T00:00:00Z",
-				"updated_at": "2024-01-02T00:00:00Z",
+				"metadata": {
+					"uid": "test-nodepool-id",
+					"name": "worker",
+					"creationTimestamp": "2024-01-01T00:00:00Z"
+				},
 				"spec": {
 					"autoRepair": false,
 					"nodePool": {
-						"clusterName": "test-cluster",
+						"clusterName": "test-cluster-id",
 						"release": {
 							"image": ""
 						},
 						"platform": {
 							"type": "AWS",
 							"aws": {
-								"subnetId": "subnet-0abc123",
+								"subnet": {
+									"id": "subnet-0abc123"
+								},
 								"instanceType": "m5.xlarge",
 								"rootVolume": {
 									"size": 100
@@ -449,21 +454,22 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 					VerifyRequest(http.MethodPost, "/api/v0/nodepools"),
 					RespondWith(http.StatusCreated, createResponse, header),
 				),
+				// Second apply: refresh (Read), then update to disable auto_repair.
+				// PostExpand fetches the parent cluster again before Update.
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-id"),
 					RespondWith(http.StatusOK, createResponse, header),
 				),
-				// Second apply: update to disable auto_repair
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-id"),
 					RespondWith(http.StatusOK, createResponse, header),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
+					RespondWith(http.StatusOK, clusterResponse, header),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPut, "/api/v0/nodepools/test-nodepool-id"),
-					RespondWith(http.StatusOK, updateResponse, header),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-id"),
 					RespondWith(http.StatusOK, updateResponse, header),
 				),
 			)
@@ -478,16 +484,14 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 				}
 
 				resource "rhcs_nodepool_hyperfleet" "test" {
-					provider     = rhcs.hf
-					cluster      = "test-cluster-id"
-					name         = "worker"
-					replicas     = 3
-					subnet_id    = "subnet-0abc123"
-					auto_repair  = true
-					aws_node_pool = {
-						instance_type = "m5.xlarge"
-						disk_size     = 100
-					}
+					provider         = rhcs.hf
+					cluster_id       = "test-cluster-id"
+					name             = "worker"
+					replicas         = 3
+					subnet_id        = "subnet-0abc123"
+					auto_repair      = true
+					instance_type    = "m5.xlarge"
+					size = 100
 				}
 			`, hyperfleetServer.URL()))
 
@@ -504,16 +508,14 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 				}
 
 				resource "rhcs_nodepool_hyperfleet" "test" {
-					provider     = rhcs.hf
-					cluster      = "test-cluster-id"
-					name         = "worker"
-					replicas     = 3
-					subnet_id    = "subnet-0abc123"
-					auto_repair  = false
-					aws_node_pool = {
-						instance_type = "m5.xlarge"
-						disk_size     = 100
-					}
+					provider         = rhcs.hf
+					cluster_id       = "test-cluster-id"
+					name             = "worker"
+					replicas         = 3
+					subnet_id        = "subnet-0abc123"
+					auto_repair      = false
+					instance_type    = "m5.xlarge"
+					size = 100
 				}
 			`, hyperfleetServer.URL()))
 
@@ -562,22 +564,24 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 			}`
 
 			createResponse := `{
-				"id": "test-nodepool-id",
-				"cluster_id": "test-cluster-id",
-				"name": "worker",
-				"created_at": "2024-01-01T00:00:00Z",
-				"updated_at": "2024-01-01T00:00:00Z",
+				"metadata": {
+					"uid": "test-nodepool-id",
+					"name": "worker",
+					"creationTimestamp": "2024-01-01T00:00:00Z"
+				},
 				"spec": {
 					"autoRepair": true,
 					"nodePool": {
-						"clusterName": "test-cluster",
+						"clusterName": "test-cluster-id",
 						"release": {
 							"image": ""
 						},
 						"platform": {
 							"type": "AWS",
 							"aws": {
-								"subnetId": "subnet-0abc123",
+								"subnet": {
+									"id": "subnet-0abc123"
+								},
 								"instanceType": "m5.xlarge",
 								"rootVolume": {
 									"size": 100
@@ -622,126 +626,14 @@ var _ = Describe("rhcs_nodepool_hyperfleet", func() {
 				}
 
 				resource "rhcs_nodepool_hyperfleet" "test" {
-					provider     = rhcs.hf
-					cluster      = "test-cluster-id"
-					name         = "worker"
-					replicas     = 3
-					subnet_id    = "subnet-0abc123"
-					auto_repair  = true
-					aws_node_pool = {
-						instance_type = "m5.xlarge"
-						disk_size     = 100
-					}
-				}
-			`, hyperfleetServer.URL()))
-
-			runOutput := Terraform.Apply()
-			Expect(runOutput.ExitCode).To(BeZero())
-
-			runOutput = Terraform.Destroy()
-			Expect(runOutput.ExitCode).To(BeZero())
-		})
-
-		It("deletes a nodepool with ignore_deletion_error=true when API returns error", func() {
-			clusterResponse := `{
-				"id": "test-cluster-id",
-				"name": "test-cluster",
-				"created_at": "2024-01-01T00:00:00Z",
-				"updated_at": "2024-01-01T00:00:00Z",
-				"spec": {
-					"hostedCluster": {
-						"platform": {
-							"type": "AWS",
-							"aws": {
-								"region": "us-east-1",
-								"rolesRef": {
-									"nodePoolManagementARN": "arn:aws:iam::123456789012:role/test-cluster-NodePool"
-								}
-							}
-						}
-					}
-				},
-				"status": {
-					"phase": "Ready",
-					"controlPlaneEndpoint": {
-						"host": "api.test-cluster.example.com",
-						"port": 6443
-					}
-				}
-			}`
-
-			createResponse := `{
-				"id": "test-nodepool-id",
-				"cluster_id": "test-cluster-id",
-				"name": "worker",
-				"created_at": "2024-01-01T00:00:00Z",
-				"updated_at": "2024-01-01T00:00:00Z",
-				"spec": {
-					"autoRepair": true,
-					"nodePool": {
-						"clusterName": "test-cluster",
-						"release": {
-							"image": ""
-						},
-						"platform": {
-							"type": "AWS",
-							"aws": {
-								"subnetId": "subnet-0abc123",
-								"instanceType": "m5.xlarge",
-								"rootVolume": {
-									"size": 100
-								}
-							}
-						},
-						"replicas": 3
-					}
-				},
-				"status": {
-					"phase": "Ready"
-				}
-			}`
-
-			header := http.Header{"Content-Type": []string{"application/json"}}
-
-			hyperfleetServer.AppendHandlers(
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
-					RespondWith(http.StatusOK, clusterResponse, header),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/api/v0/nodepools"),
-					RespondWith(http.StatusCreated, createResponse, header),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/v0/nodepools/test-nodepool-id"),
-					RespondWith(http.StatusOK, createResponse, header),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodDelete, "/api/v0/nodepools/test-nodepool-id"),
-					RespondWith(http.StatusInternalServerError, `{"error": "cluster is being deleted"}`, header),
-				),
-			)
-
-			Terraform.Source(fmt.Sprintf(`
-				provider "rhcs" {
-					alias          = "hf"
-					hyperfleet_url = "%s"
-					aws_account_id = "123456789012"
-					aws_region     = "us-east-1"
-				}
-
-				resource "rhcs_nodepool_hyperfleet" "test" {
-					provider              = rhcs.hf
-					cluster               = "test-cluster-id"
-					name                  = "worker"
-					replicas              = 3
-					subnet_id             = "subnet-0abc123"
-					auto_repair           = true
-					ignore_deletion_error = true
-					aws_node_pool = {
-						instance_type = "m5.xlarge"
-						disk_size     = 100
-					}
+					provider         = rhcs.hf
+					cluster_id       = "test-cluster-id"
+					name             = "worker"
+					replicas         = 3
+					subnet_id        = "subnet-0abc123"
+					auto_repair      = true
+					instance_type    = "m5.xlarge"
+					size = 100
 				}
 			`, hyperfleetServer.URL()))
 

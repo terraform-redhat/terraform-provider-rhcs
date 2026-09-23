@@ -99,28 +99,45 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 
 		It("creates a cluster successfully", func() {
 			clusterResponse := `{
-				"id": "test-cluster-id",
+			"metadata": {
+				"uid": "test-cluster-id",
 				"name": "my-cluster",
-				"created_at": "2024-01-01T00:00:00Z",
-				"updated_at": "2024-01-01T00:00:00Z",
-				"spec": {
-					"hostedCluster": {
-						"platform": {
-							"type": "AWS",
-							"aws": {
-								"region": "us-east-1"
+				"creationTimestamp": "2024-01-01T00:00:00Z"
+			},
+			"spec": {
+				"hostedCluster": {
+					"platform": {
+						"type": "AWS",
+						"aws": {
+							"region": "us-east-1",
+							"rolesRef": {
+								"ingressARN": "arn:aws:iam::123456789012:role/my-cluster-ingress",
+								"kubeCloudControllerARN": "arn:aws:iam::123456789012:role/my-cluster-cloud-controller-manager",
+								"storageARN": "arn:aws:iam::123456789012:role/my-cluster-ebs-csi",
+								"imageRegistryARN": "arn:aws:iam::123456789012:role/my-cluster-image-registry",
+								"networkARN": "arn:aws:iam::123456789012:role/my-cluster-network-config",
+								"controlPlaneOperatorARN": "arn:aws:iam::123456789012:role/my-cluster-control-plane-operator",
+								"nodePoolManagementARN": "arn:aws:iam::123456789012:role/my-cluster-node-pool-management"
+							},
+							"cloudProviderConfig": {
+								"vpc": "vpc-0def456",
+								"zone": "us-east-1a",
+								"subnet": {
+									"id": "subnet-0abc123"
+								}
 							}
 						}
 					}
-				},
-				"status": {
-					"phase": "Provisioning",
-					"controlPlaneEndpoint": {
-						"host": "api.my-cluster.example.com",
-						"port": 6443
-					}
 				}
-			}`
+			},
+			"status": {
+				"phase": "Provisioning",
+				"controlPlaneEndpoint": {
+					"host": "api.my-cluster.example.com",
+					"port": 6443
+				}
+			}
+		}`
 
 			header := http.Header{"Content-Type": []string{"application/json"}}
 
@@ -167,16 +184,24 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 
 		It("updates cluster expiration_timestamp", func() {
 			clusterWithoutExpiration := `{
-				"id": "test-cluster-id",
-				"name": "my-cluster",
-				"created_at": "2024-01-01T00:00:00Z",
-				"updated_at": "2024-01-01T00:00:00Z",
+				"metadata": {
+					"uid": "test-cluster-id",
+					"name": "my-cluster",
+					"creationTimestamp": "2024-01-01T00:00:00Z"
+				},
 				"spec": {
 					"hostedCluster": {
 						"platform": {
 							"type": "AWS",
 							"aws": {
-								"region": "us-east-1"
+								"region": "us-east-1",
+								"cloudProviderConfig": {
+									"vpc": "vpc-0def456",
+									"zone": "us-east-1a",
+									"subnet": {
+										"id": "subnet-0abc123"
+									}
+								}
 							}
 						}
 					}
@@ -191,17 +216,25 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 			}`
 
 			clusterWithExpiration := `{
-				"id": "test-cluster-id",
-				"name": "my-cluster",
-				"created_at": "2024-01-01T00:00:00Z",
-				"updated_at": "2024-01-01T00:00:00Z",
+				"metadata": {
+					"uid": "test-cluster-id",
+					"name": "my-cluster",
+					"creationTimestamp": "2024-01-01T00:00:00Z"
+				},
 				"spec": {
 					"expirationTimestamp": "2025-01-01T00:00:00Z",
 					"hostedCluster": {
 						"platform": {
 							"type": "AWS",
 							"aws": {
-								"region": "us-east-1"
+								"region": "us-east-1",
+								"cloudProviderConfig": {
+									"vpc": "vpc-0def456",
+									"zone": "us-east-1a",
+									"subnet": {
+										"id": "subnet-0abc123"
+									}
+								}
 							}
 						}
 					}
@@ -223,21 +256,17 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 					VerifyRequest(http.MethodPost, "/api/v0/clusters"),
 					RespondWith(http.StatusCreated, clusterWithoutExpiration, header),
 				),
+				// Second apply: refresh (Read) then update to add expiration
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
 					RespondWith(http.StatusOK, clusterWithoutExpiration, header),
 				),
-				// Second apply: update to add expiration
 				CombineHandlers(
 					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
 					RespondWith(http.StatusOK, clusterWithoutExpiration, header),
 				),
 				CombineHandlers(
 					VerifyRequest(http.MethodPut, "/api/v0/clusters/test-cluster-id"),
-					RespondWith(http.StatusOK, clusterWithExpiration, header),
-				),
-				CombineHandlers(
-					VerifyRequest(http.MethodGet, "/api/v0/clusters/test-cluster-id"),
 					RespondWith(http.StatusOK, clusterWithExpiration, header),
 				),
 			)
@@ -302,16 +331,24 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 
 		It("deletes a cluster successfully", func() {
 			createResponse := `{
-				"id": "test-cluster-id",
-				"name": "my-cluster",
-				"created_at": "2024-01-01T00:00:00Z",
-				"updated_at": "2024-01-01T00:00:00Z",
+				"metadata": {
+					"uid": "test-cluster-id",
+					"name": "my-cluster",
+					"creationTimestamp": "2024-01-01T00:00:00Z"
+				},
 				"spec": {
 					"hostedCluster": {
 						"platform": {
 							"type": "AWS",
 							"aws": {
-								"region": "us-east-1"
+								"region": "us-east-1",
+								"cloudProviderConfig": {
+									"vpc": "vpc-0def456",
+									"zone": "us-east-1a",
+									"subnet": {
+										"id": "subnet-0abc123"
+									}
+								}
 							}
 						}
 					}

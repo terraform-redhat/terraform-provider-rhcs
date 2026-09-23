@@ -41,3 +41,9 @@ variable "expiration_timestamp" {
   description = "Optional RFC3339 expiration timestamp for automatic cluster deletion"
   default     = null
 }
+
+variable "oidc_config_id" {
+  type        = string
+  description = "Optional OIDC config ID (e.g., from OidcConfig resource)"
+  default     = ""
+}

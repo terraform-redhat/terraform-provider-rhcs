@@ -14,6 +14,7 @@ type HyperfleetIAMArgs struct {
 	AWSRegion           *string `hcl:"aws_region"`
 	OperatorRolesPrefix *string `hcl:"operator_roles_prefix"`
 	OIDCIssuerURL       *string `hcl:"oidc_issuer_url"`
+	OIDCThumbprint      *string `hcl:"oidc_thumbprint"`
 }
 
 // HyperfleetIAMOutput holds the Terraform output values from the hyperfleet

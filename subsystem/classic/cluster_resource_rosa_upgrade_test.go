@@ -352,6 +352,93 @@ var _ = Describe("rhcs_cluster_rosa_classic - upgrade", func() {
 			Expect(runOutput.ExitCode).To(BeZero())
 		})
 
+		It("Surfaces a deprecation warning returned by CS on upgrade scheduling", func() {
+			TestServer.AppendHandlers(
+				// Refresh cluster state
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, template),
+				),
+				// Get cluster info for upgrade validation
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithJSON(http.StatusOK, template),
+				),
+				// Validate upgrade versions
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions/openshift-v4.10.1"),
+					RespondWithJSON(http.StatusOK, v4_10_1Info),
+				),
+				// Look for existing upgrade policies
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
+					RespondWithJSON(http.StatusOK, upgradePoliciesEmpty),
+				),
+				// Look for gate agreements by posting an upgrade policy w/ dryRun (none missing)
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies", "dryRun=true"),
+					VerifyJQ(".version", "4.10.1"),
+					RespondWithJSON(http.StatusOK, `{}`),
+				),
+				// Create an upgrade policy, with CS returning a deprecation header
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters/123/upgrade_policies"),
+					VerifyJQ(".version", "4.10.1"),
+					func(w http.ResponseWriter, r *http.Request) {
+						w.Header().Set("Deprecation", "2027-01-01T00:00:00Z")
+						w.Header().Set("X-OCM-Deprecation-Message",
+							"To continue with OpenShift v5, create a new ROSA HCP cluster")
+					},
+					RespondWithJSON(http.StatusCreated, `
+				{
+					"kind": "UpgradePolicy",
+					"id": "123",
+					"href": "/api/clusters_mgmt/v1/clusters/123/upgrade_policies/123",
+					"schedule_type": "manual",
+					"upgrade_type": "OSD",
+					"version": "4.10.1",
+					"next_run": "2023-06-09T20:59:00Z",
+					"cluster_id": "123",
+					"enable_minor_version_upgrades": true
+				}`),
+				),
+				// Patch the cluster (w/ no changes)
+				CombineHandlers(
+					VerifyRequest(http.MethodPatch, "/api/clusters_mgmt/v1/clusters/123"),
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+						{
+						  "op": "add",
+						  "path": "/properties",
+						  "value": {
+							"rosa_tf_commit": "123",
+							"rosa_tf_version": "123"
+						  }
+						}
+					]`,
+					)),
+			)
+			Terraform.Source(`
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+			name           = "my-cluster"
+			cloud_region   = "us-west-1"
+			aws_account_id = "123456789012"
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = ""
+				support_role_arn = ""
+				instance_iam_roles = {
+					master_role_arn = ""
+					worker_role_arn = ""
+				}
+			}
+			version = "4.10.1"
+		}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			runOutput.VerifyErrorContainsSubstring("OCM API deprecation notice")
+			runOutput.VerifyErrorContainsSubstring("To continue with OpenShift v5, create a new ROSA HCP cluster")
+		})
+
 		It("Upgrades cluster support old version format", func() {
 			TestServer.AppendHandlers(
 				// Refresh cluster state

@@ -20,7 +20,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.32.2
 	github.com/onsi/gomega v1.43.0
 	github.com/openshift-online/ocm-common v0.0.45
-	github.com/openshift-online/ocm-sdk-go v0.1.513
+	github.com/openshift-online/ocm-sdk-go v0.1.514
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.4
 	github.com/sirupsen/logrus v1.9.4

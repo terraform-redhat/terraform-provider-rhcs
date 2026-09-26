@@ -459,6 +459,54 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.additional_security_group_ids.[0]", "id1"))
 		})
 
+		It("preserves an empty additional security groups list when the API omits it", func() {
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(
+						http.MethodPost,
+						"/api/clusters_mgmt/v1/clusters/123/node_pools",
+					),
+					RespondWithJSON(http.StatusCreated, `{
+					"id":"my-pool",
+					"aws_node_pool":{
+						"instance_type":"r5.xlarge",
+						"instance_profile":"bla"
+					},
+					"auto_repair":true,
+					"replicas":2,
+					"subnet":"id-1",
+					"availability_zone":"us-east-1a",
+					"version": {
+						"raw_id": "4.14.9"
+					}
+				}`),
+				),
+			)
+
+			Terraform.Source(`
+			resource "rhcs_hcp_machine_pool" "my_pool" {
+				cluster = "123"
+				name    = "my-pool"
+				aws_node_pool = {
+					instance_type                 = "r5.xlarge"
+					additional_security_group_ids = []
+				}
+				autoscaling = {
+					enabled = false
+				}
+				subnet_id = "id-1"
+				replicas  = 2
+				version   = "4.14.9"
+				auto_repair = true
+			}`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+
+			resource := Terraform.Resource("rhcs_hcp_machine_pool", "my_pool")
+			Expect(resource).To(MatchJQ(
+				".attributes.aws_node_pool.additional_security_group_ids", []any{}))
+		})
+
 		It("Rejects machine pool with more than 10 additional security groups", func() {
 			// Run the apply command:
 			Terraform.Source(`
@@ -4045,6 +4093,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					aws_node_pool = {
 						instance_type = "r5.xlarge"
 						tags = {}
+						additional_security_group_ids = []
 					}
 					autoscaling = {
 						enabled = false
@@ -4061,6 +4110,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(".attributes.name", "worker"))
 			Expect(resource).To(MatchJQ(".attributes.id", "worker"))
 			Expect(resource).To(MatchJQ(".attributes.replicas", 4.0))
+			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.additional_security_group_ids", []any{}))
 		})
 
 		It("can update labels", func() {
@@ -5231,6 +5281,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(".attributes.cluster", "123"))
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
+			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.additional_security_group_ids", nil))
 		})
 	})
 

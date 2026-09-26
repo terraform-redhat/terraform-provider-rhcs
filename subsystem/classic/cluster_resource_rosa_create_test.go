@@ -1296,6 +1296,66 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 			Expect(resource).To(MatchJQ(".attributes.infra_id", "my-cluster-123"))
 		})
 
+		It("Surfaces a deprecation warning returned by CS on cluster creation", func() {
+			// Prepare the server:
+			TestServer.AppendHandlers(
+				CombineHandlers(
+					VerifyRequest(http.MethodGet, "/api/clusters_mgmt/v1/versions"),
+					RespondWithJSON(http.StatusOK, versionListPage1),
+				),
+				CombineHandlers(
+					VerifyRequest(http.MethodPost, "/api/clusters_mgmt/v1/clusters"),
+					func(w http.ResponseWriter, r *http.Request) {
+						w.Header().Set("Deprecation", "2027-01-01T00:00:00Z")
+						w.Header().Set("X-OCM-Deprecation-Message",
+							"To continue with OpenShift v5, create a new ROSA HCP cluster")
+					},
+					RespondWithPatchedJSON(http.StatusCreated, template, `[
+					{
+					  "op": "add",
+					  "path": "/aws",
+					  "value": {
+						  "ec2_metadata_http_tokens": "optional",
+						  "sts" : {
+							  "oidc_endpoint_url": "https://127.0.0.1",
+							  "thumbprint": "111111",
+							  "role_arn": "",
+							  "support_role_arn": "",
+							  "instance_iam_roles" : {
+								"master_role_arn" : "",
+								"worker_role_arn" : ""
+							  },
+							  "operator_role_prefix" : "test"
+						  }
+					  }
+					}]`),
+				),
+			)
+
+			// Run the apply command:
+			Terraform.Source(`
+		  resource "rhcs_cluster_rosa_classic" "my_cluster" {
+		    name           = "my-cluster"
+			domain_prefix  = "mydomainprefix"
+		    cloud_region   = "us-west-1"
+			aws_account_id = "123456789012"
+			sts = {
+				operator_role_prefix = "test"
+				role_arn = "",
+				support_role_arn = "",
+				instance_iam_roles = {
+					master_role_arn = "",
+					worker_role_arn = "",
+				}
+			}
+		  }
+		`)
+			runOutput := Terraform.Apply()
+			Expect(runOutput.ExitCode).To(BeZero())
+			runOutput.VerifyOutputContainsSubstring("OCM API deprecation notice")
+			runOutput.VerifyOutputContainsSubstring("To continue with OpenShift v5, create a new ROSA HCP cluster")
+		})
+
 		It("Creates basic cluster returned empty az list", func() {
 			// Prepare the server:
 			TestServer.AppendHandlers(

@@ -972,6 +972,7 @@ func (r *ClusterRosaClassicResource) Create(ctx context.Context, request resourc
 		)
 		return
 	}
+	common.AddDeprecationWarning(&response.Diagnostics, add.Header())
 	object = add.Body()
 
 	// Save initial state:
@@ -1312,7 +1313,7 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resourc
 	}
 
 	// Schedule a cluster upgrade if a newer version is requested
-	if err := r.upgradeClusterIfNeeded(ctx, state, plan); err != nil {
+	if err := r.upgradeClusterIfNeeded(ctx, state, plan, &response.Diagnostics); err != nil {
 		response.Diagnostics.AddError(
 			"Can't upgrade cluster",
 			fmt.Sprintf("Can't upgrade cluster version with identifier: `%s`, %v", state.ID.ValueString(), err),
@@ -1464,7 +1465,7 @@ func (r *ClusterRosaClassicResource) Update(ctx context.Context, request resourc
 
 // Upgrades the cluster if the desired (plan) version is greater than the
 // current version
-func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context, state, plan *ClusterRosaClassicState) error {
+func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context, state, plan *ClusterRosaClassicState, diags *diag.Diagnostics) error {
 	if common.IsStringAttributeUnknownOrEmpty(plan.Version) || common.IsStringAttributeUnknownOrEmpty(state.CurrentVersion) {
 		// No version information, nothing to do
 		tflog.Debug(ctx, "Insufficient cluster version information to determine if upgrade should be performed.")
@@ -1531,7 +1532,7 @@ func (r *ClusterRosaClassicResource) upgradeClusterIfNeeded(ctx context.Context,
 	// Schedule a new upgrade
 	if !correctUpgradePending && !cancelingUpgradeOnly {
 		ackString := plan.UpgradeAcksFor.ValueString()
-		if err = scheduleUpgrade(ctx, r.ClusterCollection, state.ID.ValueString(), desiredVersion, ackString); err != nil {
+		if err = scheduleUpgrade(ctx, r.ClusterCollection, state.ID.ValueString(), desiredVersion, ackString, diags); err != nil {
 			return err
 		}
 	}
@@ -1576,7 +1577,7 @@ func (r *ClusterRosaClassicResource) validateUpgrade(ctx context.Context, state,
 }
 
 // Ensure user has acked upgrade gates and schedule the upgrade
-func scheduleUpgrade(ctx context.Context, client *cmv1.ClustersClient, clusterID string, desiredVersion *semver.Version, userAckString string) error {
+func scheduleUpgrade(ctx context.Context, client *cmv1.ClustersClient, clusterID string, desiredVersion *semver.Version, userAckString string, diags *diag.Diagnostics) error {
 	// Gate agreements are checked when the upgrade is scheduled, resulting
 	// in an error return. ROSA cli does this by scheduling once w/ dryRun
 	// to look for un-acked agreements.
@@ -1621,13 +1622,14 @@ func scheduleUpgrade(ctx context.Context, client *cmv1.ClustersClient, clusterID
 	if err != nil {
 		return fmt.Errorf("failed to create upgrade policy: %v", err)
 	}
-	_, err = clusterClient.UpgradePolicies().
+	policyResp, err := clusterClient.UpgradePolicies().
 		Add().
 		Body(newPolicy).
 		SendContext(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to schedule upgrade: %v", err)
 	}
+	common.AddDeprecationWarning(diags, policyResp.Header())
 	return nil
 }
 

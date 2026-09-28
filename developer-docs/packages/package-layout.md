@@ -15,7 +15,7 @@ WHEN your situation matches one of these, open **only** that section:
 - MUST: Keep the resource (or data source) and its state/model in the **same** package directory.
 - MUST: One primary Terraform type per package (resource, data source, or resource + related data source in that package).
 WHEN adding a **new** package:
-- MUST: Use `*_resource.go` for Schema/CRUD/Configure, `*_state.go` for `tfsdk` model structs, and `*_datasource.go` (or `*_data_source.go` if matching a close neighbor) for data sources.
+- MUST: Use `*_resource.go` for Schema/CRUD/Configure, `*_state.go` for `tfsdk` model structs unless a single, resource-local `tfsdk` model is intentionally co-located in `*_resource.go`, and `*_datasource.go` (or `*_data_source.go` if matching a close neighbor) for data sources.
 WHEN changing an **existing** package:
 - MUST: Follow that package’s existing file naming (`resource.go` / `state.go` / `datasource.go` is acceptable if already used there).
 - MUST NOT: Rename files for style-only churn in a behavior PR.
@@ -32,6 +32,9 @@ WHEN a type differs by architecture:
 
 WHEN validators or helpers apply to **only** this package:
 - MUST: Keep them in the same package (e.g. `*_validators.go`, `helpers.go`).
+
+For readability, complex package-local mapping between Terraform state and OCM requests/responses belongs in `<resource>_ocm_mapping.go`, while logic shared by Classic and HCP belongs in `provider/<feature>/common/`.
+
 WHEN they are shared across packages or Classic/HCP of a feature:
 - MUST: Follow [`package-common.md`](package-common.md) — search for an existing helper before adding a new one.
 

@@ -93,6 +93,10 @@ Please read the structure and contribte code to the correct place
 * Label your case with `CI.Day1Post/CI.Day2/CI.Day3` according to the case runtime
 * Label your case with `CI.Exclude` if it fails CI all  the time and you can't fix it in time
 
+### Test IDs
+
+Give every E2E case an `[id:<value>]` suffix. Use the Jira ID when the test has one; otherwise, use a unique, short, lowercase, hyphen-delimited description of the tested behavior, for example `[id:cluster-create-with-external-id]`. IDs are used with `ginkgo --focus`, so use only lowercase letters, digits, and hyphens in descriptive IDs and check that the ID is not already used under `tests/e2e`.
+
 ## Running
 
 The cluster created by the automation scripts are shared across all of the test cases. [Why we need do this?](./docs/challenge.md).

@@ -6,6 +6,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path"
 	"strings"
 
@@ -48,9 +49,22 @@ const (
 )
 
 func GetRootDir() string {
-	currentDir, _ := os.Getwd()
-	project := "terraform-provider-rhcs"
-	return GetEnvWithDefault(EnvWorkspace, strings.SplitAfter(currentDir, project)[0])
+	// Check WORKSPACE environment variable first
+	workspace := GetEnvWithDefault(EnvWorkspace, "")
+	if workspace != "" {
+		return workspace
+	}
+
+	// If environment variable is unset, then attempt to shell out to the `git` command to get the root of the git repo
+	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
+	out, err := cmd.Output()
+	if err == nil && len(out) != 0 {
+		return strings.TrimSpace(string(out))
+	} else {
+		// If the `git` command fails for any reason, assume the current directory is the root directory
+		currentDir, _ := os.Getwd()
+		return currentDir
+	}
 }
 
 func GetClusterProfilesDir() string {
@@ -158,10 +172,14 @@ func GetManifestsDir() string {
 	if manifestsDir != "" {
 		return manifestsDir
 	}
-	currentDir, _ := os.Getwd()
-	manifestsDir = path.Join(strings.SplitAfter(currentDir, "tests")[0], "tf-manifests")
+	manifestsDir = path.Join(GetRootDir(), "tests", "tf-manifests")
 	if _, err := os.Stat(manifestsDir); err != nil {
-		panic(fmt.Sprintf("Manifests dir %s doesn't exist. Make sure you have the manifests dir in testing repo or set the correct env MANIFESTS_DIR value", manifestsDir))
+		errMsg := fmt.Sprintf(
+			"Manifests dir %s not found. Make sure you have the manifests dir in the workspace or set the correct env %s value",
+			manifestsDir,
+			EnvManifestsFolder,
+		)
+		panic(errMsg)
 	}
 	return manifestsDir
 }

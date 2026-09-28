@@ -17,7 +17,7 @@ profiles:
     byok: true
     min_replicas: 0
     max_replicas: 6
-    compute_machine_type: "m5.2xlarge" # id:72448
+    compute_machine_type: "m5.xlarge" # id:72448
     proxy: true # id:72488
     labeling: false # not yet supported
     tagging: true # id:72624

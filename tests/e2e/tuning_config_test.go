@@ -295,7 +295,7 @@ var _ = Describe("Tuning Config", ci.FeatureTuningConfig, ci.Day2, func() {
 
 		By("Create machinepool with tuning config")
 		replicas := 3
-		machineType := "m5.2xlarge"
+		machineType := profileHandler.Profile().GetComputeMachineType()
 		name := helper.GenerateRandomName("np-72522", 2)
 		subnetId := vpcOutput.PrivateSubnets[0]
 		tuningConfigs := []string{tcName}

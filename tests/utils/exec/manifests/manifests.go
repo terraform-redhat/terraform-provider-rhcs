@@ -106,3 +106,7 @@ func GetImageMirrorManifestsDir(clusterType constants.ClusterType) string {
 func GetBreakGlassCredentialManifestsDir(clusterType constants.ClusterType) string {
 	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "break-glass-credentials")
 }
+
+func GetExternalAuthProviderManifestsDir(clusterType constants.ClusterType) string {
+	return path.Join(config.GetManifestsDir(), rhcsProviderDir, "external-auth-providers", clusterType.String())
+}

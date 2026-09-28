@@ -24,6 +24,18 @@ func RetrieveClusterDetail(connection *client.Connection, clusterID string) (*cm
 	return connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).Get().Send()
 }
 
+// RetrieveClusterExternalAuthProvider retrieves an external authentication provider by name.
+func RetrieveClusterExternalAuthProvider(
+	connection *client.Connection, clusterID string, providerName string,
+) (*cmv1.ExternalAuth, error) {
+	response, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).ExternalAuthConfig().ExternalAuths().
+		ExternalAuth(providerName).Get().Send()
+	if err != nil {
+		return nil, err
+	}
+	return response.Body(), nil
+}
+
 // RetrieveClusterDeleteProtection will retrieve delete protection status for a cluster
 func RetrieveClusterDeleteProtection(connection *client.Connection, clusterID string) (bool, error) {
 	resp, err := connection.ClustersMgmt().V1().Clusters().Cluster(clusterID).DeleteProtection().Get().Send()

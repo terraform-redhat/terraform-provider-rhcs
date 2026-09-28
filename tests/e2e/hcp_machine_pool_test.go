@@ -913,6 +913,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 	Context("can validate", func() {
 		validateMPArgAgainstErrorSubstrings := func(mpName string, updateFields func(args *exec.MachinePoolArgs), errSubStrings ...string) {
+			GinkgoHelper()
 			mpArgs := getDefaultMPArgs(mpName)
 			updateFields(mpArgs)
 			_, err := mpService.Apply(mpArgs)
@@ -924,6 +925,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 		It("creation fields - [id:72514]", ci.Medium, func() {
 			mpName := helper.GenerateRandomName("np-72514", 2)
+			channelGroup := profileHandler.Profile().GetChannelGroup()
 
 			By("Retrieve current cluster information")
 			clusterResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
@@ -976,7 +978,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			By("Try to create a nodepool with version > CP version")
 			currentVersion := clusterResp.Body().Version().RawID()
 			currentSemVer, _ := semver.NewVersion(currentVersion)
-			versions := cms.GetHcpHigherVersions(cms.RHCSConnection, currentVersion, profileHandler.Profile().GetChannelGroup())
+			versions := cms.GetHcpHigherVersions(cms.RHCSConnection, currentVersion, channelGroup)
 			if len(versions) > 0 {
 				validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
 					args.OpenshiftVersion = new(versions[0].RawID)
@@ -987,7 +989,7 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 
 			By("Try to create a nodepool with version < CP version-2")
 			throttleVersion := fmt.Sprintf("%v.%v.0", currentSemVer.Major(), currentSemVer.Minor()-2)
-			versions = cms.GetHcpLowerVersions(cms.RHCSConnection, throttleVersion, profileHandler.Profile().GetChannelGroup())
+			versions = cms.GetHcpLowerVersions(cms.RHCSConnection, throttleVersion, channelGroup)
 			versions = cms.SortVersions(versions)
 			if len(versions) > 0 {
 				validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
@@ -1003,9 +1005,14 @@ var _ = Describe("HCP MachinePool", ci.Day2, ci.FeatureMachinepool, func() {
 			}, "must be greater than the minimal supported version")
 
 			By("Try to create a nodepool with wrong version")
+			invalidVersion := "any_version"
+			errVer := "openshift-v" + invalidVersion
+			if channelGroup != "stable" {
+				errVer = errVer + "-" + channelGroup
+			}
 			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {
-				args.OpenshiftVersion = new("any_version")
-			}, "'openshift-vany_version' not found")
+				args.OpenshiftVersion = &invalidVersion
+			}, fmt.Sprintf("'%s' not found", errVer))
 
 			By("Try to create a nodepool with autoscaling enabled and without min replicas")
 			validateMPArgAgainstErrorSubstrings(mpName, func(args *exec.MachinePoolArgs) {

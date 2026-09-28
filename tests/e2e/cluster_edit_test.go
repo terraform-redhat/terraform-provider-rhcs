@@ -5,6 +5,7 @@ package e2e
 
 import (
 	"fmt"
+	"slices"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -259,6 +260,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 		}
 		validateClusterArgAgainstErrorSubstrings := func(updateFields func(args *exec.ClusterArgs), errSubStrings ...string) {
 			validateClusterArg(updateFields, func(output string, err error) {
+				GinkgoHelper()
 				Expect(err).To(HaveOccurred())
 				Expect(output).NotTo(BeEmpty())
 				for _, errStr := range errSubStrings {
@@ -436,10 +438,16 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			clusterResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
 			Expect(err).ToNot(HaveOccurred())
 			currentVersion := clusterResp.Body().Version().RawID()
+			currentChannelGroup := profileHandler.Profile().GetChannelGroup()
+
+			skipChannelGroups := []string{constants.VersionCandidateChannel, constants.VersionNightlyChannel}
+			if slices.Contains(skipChannelGroups, currentChannelGroup) {
+				Skip(fmt.Sprintf("There are versions in the %s channel that don't exist in other channels", currentChannelGroup))
+			}
 
 			By("Get new channel group")
 			otherChannelGroup := constants.VersionFastChannel
-			if profileHandler.Profile().GetChannelGroup() == constants.VersionFastChannel {
+			if currentChannelGroup == constants.VersionFastChannel {
 				otherChannelGroup = constants.VersionCandidateChannel
 			}
 
@@ -447,7 +455,7 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 			versions := cms.SortVersions(cms.HCPEnabledVersions(cms.RHCSConnection, otherChannelGroup))
 			lastVersion := versions[len(versions)-1]
 
-			if lastVersion.RawID != currentVersion {
+			if lastVersion.RawID != currentVersion && currentChannelGroup != constants.VersionCandidateChannel {
 				By("Try to edit version to one from another channel_group")
 				errString := fmt.Sprintf("Can't upgrade cluster version with identifier: `%s`, desired version (%s) is not in the list of available upgrades", clusterID, lastVersion.RawID)
 				validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {

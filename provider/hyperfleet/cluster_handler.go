@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	v1alpha1 "github.com/openshift-online/rosa-hyperfleet-api/api/v1alpha1/public"
@@ -53,20 +54,25 @@ func (h *ClusterHandlerImpl) PreExpand(ctx context.Context, input *ClusterState)
 
 	// Extract and validate availability_zones
 	var azs []string
-	diags.Append(input.Availability_zones.ElementsAs(ctx, &azs, false)...)
+	var azDiags diag.Diagnostics
+	azs, azDiags = awsBundleStringList(ctx, input.Aws, "availability_zones")
+	diags.Append(azDiags...)
 	if diags.HasError() || len(azs) == 0 {
 		diags.AddError("availability_zones must not be empty", "")
 		return diags
+	}
+	if awsBundleStringValue(input.Aws, "aws_partition") == "" {
+		var bundleDiags diag.Diagnostics
+		input.Aws, bundleDiags = awsBundleWithString(input.Aws, "aws_partition", "aws")
+		diags.Append(bundleDiags...)
+		if diags.HasError() {
+			return diags
+		}
 	}
 
 	// Derive cloud_region from first AZ if not set
 	if input.Cloud_region.IsNull() || input.Cloud_region.ValueString() == "" {
 		input.Cloud_region = types.StringValue(regionFromAZ(azs[0]))
-	}
-
-	// Default aws_partition to "aws"
-	if input.Aws_partition.IsNull() || input.Aws_partition.ValueString() == "" {
-		input.Aws_partition = types.StringValue("aws")
 	}
 
 	return diags
@@ -81,23 +87,30 @@ func (h *ClusterHandlerImpl) PostExpand(
 	var diags diag.Diagnostics
 
 	prefix := input.Operator_roles_prefix.ValueString()
-	partition := input.Aws_partition.ValueString()
+	partition := awsBundleStringValue(input.Aws, "aws_partition")
+	if partition == "" {
+		partition = "aws"
+	}
 
 	var azs []string
-	diags.Append(input.Availability_zones.ElementsAs(ctx, &azs, false)...)
+	var azDiags diag.Diagnostics
+	azs, azDiags = awsBundleStringList(ctx, input.Aws, "availability_zones")
+	diags.Append(azDiags...)
 	if diags.HasError() || len(azs) == 0 {
 		return diags
 	}
 
 	var subnetIDs []string
-	diags.Append(input.Aws_subnet_ids.ElementsAs(ctx, &subnetIDs, false)...)
+	var subnetDiags diag.Diagnostics
+	subnetIDs, subnetDiags = awsBundleStringList(ctx, input.Aws, "aws_subnet_ids")
+	diags.Append(subnetDiags...)
 	if diags.HasError() || len(subnetIDs) == 0 {
 		return diags
 	}
 
 	az := azs[0]
 	subnetID := subnetIDs[0]
-	vpcID := input.Vpc_id.ValueString()
+	vpcID := awsBundleStringValue(input.Aws, "vpc_id")
 	region := input.Cloud_region.ValueString()
 
 	// Compute RolesRef
@@ -123,6 +136,42 @@ func (h *ClusterHandlerImpl) PostExpand(
 	}
 
 	return diags
+}
+
+func awsBundleStringValue(bundle types.Object, name string) string {
+	if bundle.IsNull() || bundle.IsUnknown() {
+		return ""
+	}
+	value, ok := bundle.Attributes()[name].(types.String)
+	if !ok || value.IsNull() || value.IsUnknown() {
+		return ""
+	}
+	return value.ValueString()
+}
+
+func awsBundleStringList(ctx context.Context, bundle types.Object, name string) ([]string, diag.Diagnostics) {
+	if bundle.IsNull() || bundle.IsUnknown() {
+		return nil, nil
+	}
+	value, ok := bundle.Attributes()[name].(types.List)
+	if !ok || value.IsNull() || value.IsUnknown() {
+		return nil, nil
+	}
+	var result []string
+	return result, value.ElementsAs(ctx, &result, false)
+}
+
+func awsBundleWithString(bundle types.Object, name, value string) (types.Object, diag.Diagnostics) {
+	if bundle.IsNull() || bundle.IsUnknown() {
+		return bundle, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid AWS bundle", "AWS bundle is null or unknown")}
+	}
+	attributes := bundle.Attributes()
+	attributes[name] = types.StringValue(value)
+	typesByName := make(map[string]attr.Type, len(attributes))
+	for attributeName, attributeValue := range attributes {
+		typesByName[attributeName] = attributeValue.Type(context.Background())
+	}
+	return types.ObjectValue(typesByName, attributes)
 }
 
 // PostResponse is called after API operations

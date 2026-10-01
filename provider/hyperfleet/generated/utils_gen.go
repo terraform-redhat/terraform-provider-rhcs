@@ -5,6 +5,8 @@ package hyperfleetgenerated
 
 import (
 	"context"
+	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -14,6 +16,30 @@ import (
 
 func isNotFound(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "404")
+}
+
+// mergeTerraformObject overlays response values for computed or required child
+// attributes while preserving optional and consumer-only values from the plan.
+func mergeTerraformObject(plan, response types.Object, fields []string) types.Object {
+	if len(fields) == 0 || response.IsNull() || response.IsUnknown() {
+		return plan
+	}
+	if plan.IsNull() || plan.IsUnknown() {
+		return response
+	}
+	attributes := plan.Attributes()
+	responseAttributes := response.Attributes()
+	for _, name := range fields {
+		if value, ok := responseAttributes[name]; ok && !value.IsNull() && !value.IsUnknown() {
+			attributes[name] = value
+		}
+	}
+	typesByName := make(map[string]attr.Type, len(attributes))
+	for name, value := range attributes {
+		typesByName[name] = value.Type(context.Background())
+	}
+	merged, _ := types.ObjectValue(typesByName, attributes)
+	return merged
 }
 
 // Type conversion utilities
@@ -85,6 +111,120 @@ func terraformMapToStringMap(m types.Map) (map[string]string, diag.Diagnostics) 
 	var result map[string]string
 	diags := m.ElementsAs(context.Background(), &result, false)
 	return result, diags
+}
+
+// objectToNative copies a Terraform object into a generated native bundle.
+// Field names are supplied by the generator so this conversion remains shared
+// by top-level and bundled fields.
+func objectToNative(object types.Object, target any, fields map[string]string) diag.Diagnostics {
+	if object.IsNull() || object.IsUnknown() {
+		return nil
+	}
+	targetValue := reflect.ValueOf(target)
+	if targetValue.Kind() != reflect.Pointer || targetValue.Elem().Kind() != reflect.Struct {
+		return diag.Diagnostics{diag.NewErrorDiagnostic("Invalid bundle target", "bundle target must be a pointer to a struct")}
+	}
+	var diags diag.Diagnostics
+	for attrName, goName := range fields {
+		value, ok := object.Attributes()[attrName]
+		if !ok || value.IsNull() || value.IsUnknown() {
+			continue
+		}
+		field := targetValue.Elem().FieldByName(goName)
+		if !field.IsValid() || !field.CanSet() {
+			continue
+		}
+		if err := setObjectValue(field, value); err != nil {
+			diags.AddError("Invalid bundle value", fmt.Sprintf("attribute %s: %v", attrName, err))
+		}
+	}
+	return diags
+}
+
+func setObjectValue(field reflect.Value, value attr.Value) error {
+	switch typed := value.(type) {
+	case types.String:
+		return setNativeValue(field, typed.ValueString())
+	case types.Bool:
+		return setNativeValue(field, typed.ValueBool())
+	case types.Int64:
+		return setNativeValue(field, typed.ValueInt64())
+	case types.List:
+		var values []string
+		if diags := typed.ElementsAs(context.Background(), &values, false); diags.HasError() {
+			return fmt.Errorf("invalid list value: %v", diags)
+		}
+		return setNativeValue(field, values)
+	case types.Map:
+		var values map[string]string
+		if diags := typed.ElementsAs(context.Background(), &values, false); diags.HasError() {
+			return fmt.Errorf("invalid map value: %v", diags)
+		}
+		return setNativeValue(field, values)
+	default:
+		return fmt.Errorf("unsupported Terraform value %T", value)
+	}
+}
+
+func setNativeValue(field reflect.Value, value any) error {
+	source := reflect.ValueOf(value)
+	if field.Kind() == reflect.Pointer {
+		if !source.Type().ConvertibleTo(field.Type().Elem()) {
+			return fmt.Errorf("cannot assign %T to %s", value, field.Type())
+		}
+		converted := source.Convert(field.Type().Elem())
+		field.Set(reflect.New(field.Type().Elem()))
+		field.Elem().Set(converted)
+		return nil
+	}
+	if !source.Type().ConvertibleTo(field.Type()) {
+		return fmt.Errorf("cannot assign %T to %s", value, field.Type())
+	}
+	field.Set(source.Convert(field.Type()))
+	return nil
+}
+
+func nativeBundleAttributes(bundle any, fields map[string]string) map[string]attr.Value {
+	value := reflect.Indirect(reflect.ValueOf(bundle))
+	attrs := make(map[string]attr.Value, len(fields))
+	for attrName, goName := range fields {
+		field := value.FieldByName(goName)
+		if !field.IsValid() {
+			continue
+		}
+		attrs[attrName] = nativeValue(field)
+	}
+	return attrs
+}
+
+func nativeValue(field reflect.Value) attr.Value {
+	if field.Kind() == reflect.Pointer {
+		if field.IsNil() {
+			switch field.Type().Elem().Kind() {
+			case reflect.Bool:
+				return types.BoolNull()
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				return types.Int64Null()
+			default:
+				return types.StringNull()
+			}
+		}
+		field = field.Elem()
+	}
+	switch field.Kind() {
+	case reflect.String:
+		return toTerraformString(field.String())
+	case reflect.Bool:
+		return toTerraformBool(field.Bool())
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return toTerraformInt64(field.Int())
+	case reflect.Slice:
+		return toTerraformList(field.Interface().([]string))
+	case reflect.Map:
+		return toTerraformMap(field.Interface().(map[string]string))
+	default:
+		return types.StringNull()
+	}
 }
 
 // toTerraformMap converts a Go map[string]string to a Terraform types.Map.

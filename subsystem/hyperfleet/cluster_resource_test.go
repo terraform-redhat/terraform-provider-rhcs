@@ -34,9 +34,11 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 				resource "rhcs_cluster_hyperfleet" "test" {
 					name                  = "my-cluster"
 					operator_roles_prefix = "my-cluster"
-					aws_subnet_ids       = ["subnet-0abc123"]
-					vpc_id               = "vpc-0def456"
-					availability_zones   = ["us-east-1a"]
+					aws = {
+						aws_subnet_ids     = ["subnet-0abc123"]
+						vpc_id             = "vpc-0def456"
+						availability_zones = ["us-east-1a"]
+					}
 				}
 			`)
 			runOutput := Terraform.Apply()
@@ -54,9 +56,11 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 					provider              = rhcs.hf
 					name                  = "my-cluster"
 					operator_roles_prefix = "my-cluster"
-					aws_subnet_ids       = ["subnet-0abc123"]
-					vpc_id               = "vpc-0def456"
-					availability_zones   = ["us-east-1a"]
+					aws = {
+						aws_subnet_ids     = ["subnet-0abc123"]
+						vpc_id             = "vpc-0def456"
+						availability_zones = ["us-east-1a"]
+					}
 				}
 			`)
 			runOutput := Terraform.Apply()
@@ -76,9 +80,11 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 					provider              = rhcs.hf
 					name                  = "my-cluster"
 					operator_roles_prefix = "my-cluster"
-					aws_subnet_ids       = ["subnet-0abc123"]
-					vpc_id               = "vpc-0def456"
-					availability_zones   = ["us-east-1a"]
+					aws = {
+						aws_subnet_ids     = ["subnet-0abc123"]
+						vpc_id             = "vpc-0def456"
+						availability_zones = ["us-east-1a"]
+					}
 				}
 			`)
 			runOutput := Terraform.Apply()
@@ -160,9 +166,11 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 					provider              = rhcs.hf
 					name                  = "my-cluster"
 					operator_roles_prefix = "my-cluster"
-					aws_subnet_ids       = ["subnet-0abc123"]
-					vpc_id               = "vpc-0def456"
-					availability_zones   = ["us-east-1a"]
+					aws = {
+						aws_subnet_ids     = ["subnet-0abc123"]
+						vpc_id             = "vpc-0def456"
+						availability_zones = ["us-east-1a"]
+					}
 				}
 			`, hyperfleetServer.URL()))
 
@@ -284,9 +292,11 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 					provider              = rhcs.hf
 					name                  = "my-cluster"
 					operator_roles_prefix = "my-cluster"
-					aws_subnet_ids       = ["subnet-0abc123"]
-					vpc_id               = "vpc-0def456"
-					availability_zones   = ["us-east-1a"]
+					aws = {
+						aws_subnet_ids     = ["subnet-0abc123"]
+						vpc_id             = "vpc-0def456"
+						availability_zones = ["us-east-1a"]
+					}
 				}
 			`, hyperfleetServer.URL()))
 
@@ -306,9 +316,11 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 					provider                = rhcs.hf
 					name                    = "my-cluster"
 					operator_roles_prefix   = "my-cluster"
-					aws_subnet_ids         = ["subnet-0abc123"]
-					vpc_id                 = "vpc-0def456"
-					availability_zones     = ["us-east-1a"]
+					aws = {
+						aws_subnet_ids     = ["subnet-0abc123"]
+						vpc_id             = "vpc-0def456"
+						availability_zones = ["us-east-1a"]
+					}
 					expiration_timestamp   = "2025-01-01T00:00:00Z"
 				}
 			`, hyperfleetServer.URL()))
@@ -391,9 +403,11 @@ var _ = Describe("rhcs_cluster_hyperfleet", func() {
 					provider              = rhcs.hf
 					name                  = "my-cluster"
 					operator_roles_prefix = "my-cluster"
-					aws_subnet_ids       = ["subnet-0abc123"]
-					vpc_id               = "vpc-0def456"
-					availability_zones   = ["us-east-1a"]
+					aws = {
+						aws_subnet_ids     = ["subnet-0abc123"]
+						vpc_id             = "vpc-0def456"
+						availability_zones = ["us-east-1a"]
+					}
 				}
 			`, hyperfleetServer.URL()))
 

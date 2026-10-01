@@ -13,8 +13,10 @@ provider "rhcs" {
 resource "rhcs_cluster_hyperfleet" "cluster" {
   name                  = var.cluster_name
   operator_roles_prefix = var.operator_roles_prefix
-  subnet_id             = data.aws_subnet.worker.id
-  vpc_id                = data.aws_subnet.worker.vpc_id
-  availability_zone     = data.aws_subnet.worker.availability_zone
-  release_image         = var.release_image
+  aws = {
+    aws_subnet_ids     = [data.aws_subnet.worker.id]
+    vpc_id             = data.aws_subnet.worker.vpc_id
+    availability_zones = [data.aws_subnet.worker.availability_zone]
+  }
+  version = var.release_image
 }

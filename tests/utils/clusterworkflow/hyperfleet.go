@@ -20,7 +20,8 @@ import (
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
-	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 
@@ -46,6 +47,7 @@ type hyperFleetDestroyer struct {
 	client    *hyperfleet.Clientset
 	clusterID string
 	ownsVPC   bool
+	region    string
 }
 
 func newHyperFleetDestroyer(profile profilehandler.ProfileHandler, workspace string) (*hyperFleetDestroyer, error) {
@@ -65,7 +67,10 @@ func newHyperFleetDestroyer(profile profilehandler.ProfileHandler, workspace str
 		region = hyperFleetAWSRegionRE.FindString(hyperfleetURL)
 	}
 	if region == "" {
-		return nil, fmt.Errorf("AWS region is not set in REGION and cannot be derived from HYPERFLEET_URL %q", hyperfleetURL)
+		return nil, fmt.Errorf(
+			"AWS region is not set in REGION and cannot be derived from HYPERFLEET_URL %q",
+			hyperfleetURL,
+		)
 	}
 	clusterService, err := exec.NewHyperfleetClusterService(workspace)
 	if err != nil {
@@ -106,6 +111,7 @@ func newHyperFleetDestroyer(profile profilehandler.ProfileHandler, workspace str
 		client:    client,
 		clusterID: clusterID,
 		ownsVPC:   len(config.GetSubnetIDList()) == 0 || len(config.GetAvailabilityZoneList()) == 0,
+		region:    region,
 	}, nil
 }
 
@@ -126,7 +132,15 @@ func (d *hyperFleetDestroyer) Destroy(ctx context.Context) error {
 		return err
 	}
 	if d.ownsVPC {
-		_, err := d.vpc.Destroy()
+		vpcOutput, err := d.vpc.Output()
+		if err != nil {
+			return fmt.Errorf("reading HyperFleet VPC outputs before destroy: %w", err)
+		}
+		if err := helper.PurgeHostedZoneRecords(d.region, vpcOutput.HostedZoneID); err != nil {
+			return fmt.Errorf("purging records from HyperFleet private hosted zone %s: %w", vpcOutput.HostedZoneID, err)
+		}
+		// Terraform remains responsible for deleting the hosted zone and VPC.
+		_, err = d.vpc.Destroy()
 		return err
 	}
 	return nil
@@ -196,7 +210,10 @@ func newHyperFleetBackend(profile profilehandler.ProfileHandler, workspace strin
 		region = hyperFleetAWSRegionRE.FindString(hyperfleetURL)
 	}
 	if region == "" {
-		return nil, fmt.Errorf("AWS region is not set in REGION and cannot be derived from HYPERFLEET_URL %q", hyperfleetURL)
+		return nil, fmt.Errorf(
+			"AWS region is not set in REGION and cannot be derived from HYPERFLEET_URL %q",
+			hyperfleetURL,
+		)
 	}
 
 	var vpcID, subnetID, availabilityZone string
@@ -320,10 +337,10 @@ func (b *hyperFleetBackend) WaitReady(ctx context.Context, clusterID string) err
 		b.oidcID,
 		func(config *v1alpha1.OidcConfig) bool {
 			if config == nil {
-				Logger.Infof("[hyperfleet] OIDC config %s not found while waiting for Ready", b.oidcID)
+				log.Logger.Infof("[hyperfleet] OIDC config %s not found while waiting for Ready", b.oidcID)
 				return false
 			}
-			Logger.Infof("[hyperfleet] OIDC config %s phase: %s", b.oidcID, config.Status.Phase)
+			log.Logger.Infof("[hyperfleet] OIDC config %s phase: %s", b.oidcID, config.Status.Phase)
 			return config.Status.Phase == v1alpha1.OidcConfigPhaseReady
 		},
 		30*time.Second,
@@ -336,10 +353,10 @@ func (b *hyperFleetBackend) WaitReady(ctx context.Context, clusterID string) err
 		clusterID,
 		func(cluster *v1alpha1.Cluster) bool {
 			if cluster == nil {
-				Logger.Infof("[hyperfleet] cluster %s not found while waiting for Ready", clusterID)
+				log.Logger.Infof("[hyperfleet] cluster %s not found while waiting for Ready", clusterID)
 				return false
 			}
-			Logger.Infof("[hyperfleet] cluster %s phase: %s", clusterID, cluster.Status.Phase)
+			log.Logger.Infof("[hyperfleet] cluster %s phase: %s", clusterID, cluster.Status.Phase)
 			return cluster.Status.Phase == v1alpha1.ClusterPhaseReady
 		},
 		30*time.Second,
@@ -353,10 +370,10 @@ func waitForHyperFleetClusterDeletion(ctx context.Context, client *hyperfleet.Cl
 		clusterID,
 		func(cluster *v1alpha1.Cluster) bool {
 			if cluster == nil {
-				Logger.Infof("[hyperfleet] cluster %s deleted", clusterID)
+				log.Logger.Infof("[hyperfleet] cluster %s deleted", clusterID)
 				return true
 			}
-			Logger.Infof("[hyperfleet] cluster %s phase while deleting: %s", clusterID, cluster.Status.Phase)
+			log.Logger.Infof("[hyperfleet] cluster %s phase while deleting: %s", clusterID, cluster.Status.Phase)
 			return false
 		},
 		30*time.Second,
@@ -370,7 +387,8 @@ func vpcIDFromSubnet(subnetID, region string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	output, err := ec2.NewFromConfig(awsConfig).DescribeSubnets(ctx, &ec2.DescribeSubnetsInput{SubnetIds: []string{subnetID}})
+	output, err := ec2.NewFromConfig(awsConfig).
+		DescribeSubnets(ctx, &ec2.DescribeSubnetsInput{SubnetIds: []string{subnetID}})
 	if err != nil {
 		return "", err
 	}

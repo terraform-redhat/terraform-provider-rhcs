@@ -12,7 +12,7 @@ import (
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/cms"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
-	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
 
@@ -68,15 +68,21 @@ func (n *hcpNodePoolReplica) Create(replicas int) error {
 }
 
 func (n *hcpNodePoolReplica) WaitReady(ctx context.Context) error {
-	return wait.PollUntilContextTimeout(ctx, 30*time.Second, 20*time.Minute, false, func(context.Context) (bool, error) {
-		_, err := cms.RetrieveClusterNodePool(cms.RHCSConnection, n.clusterID, n.name)
-		if err != nil {
-			Logger.Infof("[hcp] nodepool %s not ready yet: %v", n.name, err)
-			return false, nil
-		}
-		Logger.Infof("[hcp] nodepool %s is available", n.name)
-		return true, nil
-	})
+	return wait.PollUntilContextTimeout(
+		ctx,
+		30*time.Second,
+		20*time.Minute,
+		false,
+		func(context.Context) (bool, error) {
+			_, err := cms.RetrieveClusterNodePool(cms.RHCSConnection, n.clusterID, n.name)
+			if err != nil {
+				log.Logger.Infof("[hcp] nodepool %s not ready yet: %v", n.name, err)
+				return false, nil
+			}
+			log.Logger.Infof("[hcp] nodepool %s is available", n.name)
+			return true, nil
+		},
+	)
 }
 
 func (n *hcpNodePoolReplica) UpdateReplicas(replicas int) error {
@@ -99,13 +105,19 @@ func (n *hcpNodePoolReplica) Destroy() error {
 }
 
 func (n *hcpNodePoolReplica) WaitDeleted(ctx context.Context) error {
-	return wait.PollUntilContextTimeout(ctx, 30*time.Second, 45*time.Minute, false, func(context.Context) (bool, error) {
-		_, err := cms.RetrieveClusterNodePool(cms.RHCSConnection, n.clusterID, n.name)
-		if err != nil {
-			Logger.Infof("[hcp] nodepool %s deleted", n.name)
-			return true, nil
-		}
-		Logger.Infof("[hcp] nodepool %s still exists while deleting", n.name)
-		return false, nil
-	})
+	return wait.PollUntilContextTimeout(
+		ctx,
+		30*time.Second,
+		45*time.Minute,
+		false,
+		func(context.Context) (bool, error) {
+			_, err := cms.RetrieveClusterNodePool(cms.RHCSConnection, n.clusterID, n.name)
+			if err != nil {
+				log.Logger.Infof("[hcp] nodepool %s deleted", n.name)
+				return true, nil
+			}
+			log.Logger.Infof("[hcp] nodepool %s still exists while deleting", n.name)
+			return false, nil
+		},
+	)
 }

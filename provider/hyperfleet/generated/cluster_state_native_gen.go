@@ -31,6 +31,9 @@ type ClusterStateNative struct {
 	StreamingConnectionIdleTimeout string            `hfsdk:"spec.hostedCluster.configuration.kubelet.streamingConnectionIdleTimeout"`
 	SystemReserved                 map[string]string `hfsdk:"spec.hostedCluster.configuration.kubelet.systemReserved"`
 	AllowedKernelArguments         string            `hfsdk:"spec.hostedCluster.configuration.machineConfig.allowedKernelArguments"`
+	HttpProxy                      string            `hfsdk:"spec.hostedCluster.configuration.proxy.httpProxy"`
+	HttpsProxy                     string            `hfsdk:"spec.hostedCluster.configuration.proxy.httpsProxy"`
+	NoProxy                        string            `hfsdk:"spec.hostedCluster.configuration.proxy.noProxy"`
 	ImageContentSources            string            `hfsdk:"spec.hostedCluster.imageContentSources"`
 	AllocateNodeCIDRs              string            `hfsdk:"spec.hostedCluster.networking.allocateNodeCIDRs"`
 	AdvertiseAddress               string            `hfsdk:"spec.hostedCluster.networking.apiServer.advertiseAddress"`

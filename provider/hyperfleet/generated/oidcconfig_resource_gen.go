@@ -237,7 +237,11 @@ func (r *OidcConfigResource) Create(
 	}
 
 	// Convert native state to Terraform state
-	responseState := nativeOidcConfigToTerraform(&nativeState)
+	responseState, responseDiags := nativeOidcConfigToTerraform(&nativeState)
+	resp.Diagnostics.Append(responseDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Merge API response values into plan to preserve consumer-only fields
 	// This keeps user-provided values while adding computed fields from the API
@@ -294,7 +298,11 @@ func (r *OidcConfigResource) Read(
 	}
 
 	// Convert native state to Terraform state
-	responseState := nativeOidcConfigToTerraform(&nativeState)
+	responseState, responseDiags := nativeOidcConfigToTerraform(&nativeState)
+	resp.Diagnostics.Append(responseDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Merge API response values into state to preserve consumer-only fields
 	// (fields with no SDK path, e.g. immutable creation-only inputs) that
@@ -382,7 +390,11 @@ func (r *OidcConfigResource) Update(
 	}
 
 	// Convert native state to Terraform state
-	responseState := nativeOidcConfigToTerraform(&nativeState)
+	responseState, responseDiags := nativeOidcConfigToTerraform(&nativeState)
+	resp.Diagnostics.Append(responseDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Merge API response values into plan to preserve consumer-only fields
 	// This keeps user-provided values while adding computed fields from the API
@@ -460,7 +472,11 @@ func (r *OidcConfigResource) ImportState(
 	}
 
 	// Convert native state to Terraform state
-	state := nativeOidcConfigToTerraform(&nativeState)
+	state, conversionDiags := nativeOidcConfigToTerraform(&nativeState)
+	resp.Diagnostics.Append(conversionDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	// Call handler to populate computed fields and adjust state after flatten
 	r.Handler.PostFlatten(ctx, state, obj)
@@ -507,11 +523,12 @@ func terraformOidcConfigToNative(tf *OidcConfigState) (*OidcConfigStateNative, d
 
 // nativeOidcConfigToTerraform converts native Go types to Terraform framework types.
 // This is used after pathbind.Flatten to prepare output for state persistence.
-func nativeOidcConfigToTerraform(native *OidcConfigStateNative) *OidcConfigState {
+func nativeOidcConfigToTerraform(native *OidcConfigStateNative) (*OidcConfigState, diag.Diagnostics) {
 	if native == nil {
-		return nil
+		return nil, nil
 	}
 	tf := &OidcConfigState{}
+	var diags diag.Diagnostics
 	tf.Name = toTerraformString(native.Name)
 	tf.Id = toTerraformString(native.Id)
 	tf.InstallerRoleArn = toTerraformString(native.InstallerRoleArn)
@@ -520,5 +537,5 @@ func nativeOidcConfigToTerraform(native *OidcConfigStateNative) *OidcConfigState
 	tf.Type = toTerraformString(native.Type)
 	tf.Phase = toTerraformString(native.Phase)
 	tf.Thumbprint = toTerraformString(native.Thumbprint)
-	return tf
+	return tf, diags
 }

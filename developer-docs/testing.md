@@ -7,6 +7,7 @@ Rules for **when** to add which test layer. Shared by resources and data sources
 WHEN your situation matches one of these, open **only** that section:
 - WHEN choosing which test layer applies → [Layers](#layers)
 - WHEN adding or changing tests for a type or behavior → [When to add tests](#when-to-add-tests)
+- WHEN assessing E2E coverage or contracts → [E2E coverage and contracts](#e2e-coverage-and-contracts)
 - WHEN registering a new `rhcs_*` type → [Subsystem registry](#subsystem-registry)
 - DEFAULT: Open [When to add tests](#when-to-add-tests) for behavior changes; [Subsystem registry](#subsystem-registry) for new types.
 
@@ -38,6 +39,17 @@ WHEN changing profile fields or skip conditions (e.g. `IsAdminEnabled()`):
 
 WHEN the change touches `tests/utils/exec` or tf-manifests:
 - MUST NOT: Treat subsystem coverage alone as sufficient — review e2e harness wiring.
+
+## E2E coverage and contracts
+
+WHEN changing Terraform provider behavior or E2E/harness behavior:
+- MUST: For each provider behavior or E2E/harness change, inspect the relevant E2E coverage and do one of the following:
+  - Add or update relevant coverage under `tests/e2e/`.
+  - If existing, unchanged E2E tests cover the changed behavior, identify the test files, cases, and assertions in the PR verification evidence.
+  - If E2E coverage is not warranted, record why and identify the narrower test layer and test case that verify the changed behavior.
+- MUST: Check that the cited tests exercise the modified logic and assert the required behavior, including relevant setup and profile gates. A test's existence alone does not establish coverage.
+- MUST: Review related existing E2E tests and harness surfaces under `tests/e2e/`, `tests/tf-manifests/`, `tests/utils/exec/`, `tests/utils/profilehandler/`, and `tests/ci/profiles/`, even when they are unchanged.
+- MUST: Distinguish a needed E2E update from a broken user-facing E2E contract; update stale assertions, fixtures, manifest wiring, profile gates, diagnostics, or side-effect expectations, and follow [`breaking-changes.md`](breaking-changes.md) when the contract changes intentionally.
 
 ## Subsystem registry
 

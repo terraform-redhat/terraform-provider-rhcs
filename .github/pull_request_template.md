@@ -92,3 +92,4 @@ For details, see: ./CONTRIBUTING.md
 - [ ] **Validators / helpers** — unit tests in the same package where applicable (review policy; no automated coverage % gate).
 - [ ] `make check-subsystem-registry` passes.
 - [ ] I manually tested the change when behavior is user-visible.
+- [ ] **Terraform provider or E2E/harness code changed** — I posted a completed [PR Verification Template](https://github.com/terraform-redhat/terraform-provider-rhcs/blob/main/developer-docs/verification_template.md) in a PR comment. Every test and required output is present; each skipped test has a specific technical justification; sensitive values are `REDACTED`; and I used the appropriate [`/verified` command](https://docs.ci.openshift.org/architecture/jira/#verified-command-examples).

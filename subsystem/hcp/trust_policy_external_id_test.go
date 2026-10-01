@@ -56,6 +56,7 @@ var _ = Describe("HCP trust policy external ID", func() {
 				AccountID("123456789012").
 				BillingAccountID("123456789012").
 				SubnetIDs("id1", "id2", "id3").
+				Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokensRequired).
 				STS(cmv1.NewSTS().
 					RoleARN("arn:aws:iam::123456789012:role/installer").
 					SupportRoleARN("arn:aws:iam::123456789012:role/support").
@@ -107,6 +108,7 @@ var _ = Describe("HCP trust policy external ID", func() {
 				  "op": "add",
 				  "path": "/aws",
 				  "value": {
+				    "ec2_metadata_http_tokens": "required",
 				    "sts": {
 				      "role_arn": "arn:aws:iam::123456789012:role/installer",
 				      "support_role_arn": "arn:aws:iam::123456789012:role/support",

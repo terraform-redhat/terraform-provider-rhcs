@@ -80,7 +80,7 @@ const (
 
 // Ec2MetadataHttpTokens for hcp cluster
 const (
-	DefaultEc2MetadataHttpTokens  = "optional"
+	DefaultEc2MetadataHttpTokens  = "required"
 	RequiredEc2MetadataHttpTokens = "required"
 	OptionalEc2MetadataHttpTokens = "optional"
 )

@@ -249,8 +249,12 @@ func (r *ClusterRosaHcpDatasource) Schema(ctx context.Context, req datasource.Sc
 				Computed:    true,
 			},
 			"ec2_metadata_http_tokens": schema.StringAttribute{
-				Description: "This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the cluster." +
-					"This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). " + common.ValueCannotBeChangedStringDescription,
+				Description: "EC2 Instance Metadata Service mode for EC2 instances in the cluster " +
+					"(`required` for IMDSv2 only, or `optional` for IMDS v1 or v2). " +
+					"This applies only to the initial machine pool created with the cluster; additional machine pools must " +
+					"configure `ec2_metadata_http_tokens` separately on the `rhcs_hcp_machine_pool` resource. " +
+					"Configure this value on the `rhcs_cluster_rosa_hcp` resource; " +
+					"this data source only reports it.",
 				Computed: true,
 			},
 			"registry_config": schema.SingleNestedAttribute{

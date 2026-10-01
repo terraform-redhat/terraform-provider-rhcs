@@ -396,7 +396,8 @@ var _ = Describe("Verify cluster", func() {
 		if profile.GetEc2MetadataHttpTokens() != "" {
 			Expect(string(cluster.AWS().Ec2MetadataHttpTokens())).To(Equal(profile.GetEc2MetadataHttpTokens()))
 		} else {
-			Expect(cluster.AWS().Ec2MetadataHttpTokens()).To(Equal(cmsv1.Ec2MetadataHttpTokensOptional))
+			Expect(string(cluster.AWS().Ec2MetadataHttpTokens())).
+				To(Equal(constants.DefaultEc2MetadataHttpTokens))
 		}
 	})
 

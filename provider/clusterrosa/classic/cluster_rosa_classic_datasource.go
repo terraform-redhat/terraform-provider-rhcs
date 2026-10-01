@@ -228,9 +228,11 @@ func (r *ClusterRosaClassicDatasource) Schema(ctx context.Context, req datasourc
 				Computed:    true,
 			},
 			"ec2_metadata_http_tokens": schema.StringAttribute{
-				Description: "This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the cluster." +
-					"This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). This feature is available from " +
-					"OpenShift version 4.11.0 and newer. " + common.ValueCannotBeChangedStringDescription,
+				Description: "EC2 Instance Metadata Service mode for EC2 instances in the cluster " +
+					"(`required` for IMDSv2 only, or `optional` for IMDS v1 or v2). " +
+					"Available from OpenShift version 4.11.0 and newer. " +
+					"Configure this value on the `rhcs_cluster_rosa_classic` resource; " +
+					"this data source only reports it.",
 				Computed: true,
 			},
 			"private_hosted_zone": schema.SingleNestedAttribute{

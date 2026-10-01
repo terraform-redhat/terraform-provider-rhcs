@@ -13,7 +13,11 @@ type NodePoolStateNative struct {
 	AutoRepair                    *bool             `hfsdk:"spec.autoRepair"`
 	DisplayName                   string            `hfsdk:"spec.displayName"`
 	Labels                        map[string]string `hfsdk:"spec.labels"`
+	Max                           *int32            `hfsdk:"spec.nodePool.autoScaling.max"`
+	Min                           *int32            `hfsdk:"spec.nodePool.autoScaling.min"`
 	ClusterName                   string            `hfsdk:"spec.nodePool.clusterName"`
+	Config                        string            `hfsdk:"spec.nodePool.config"`
+	NodeDrainTimeout              string            `hfsdk:"spec.nodePool.nodeDrainTimeout"`
 	Ami                           string            `hfsdk:"spec.nodePool.platform.aws.ami"`
 	ImageType                     string            `hfsdk:"spec.nodePool.platform.aws.imageType"`
 	InstanceProfile               string            `hfsdk:"spec.nodePool.platform.aws.instanceProfile"`
@@ -36,6 +40,8 @@ type NodePoolStateNative struct {
 	Platform_type                 string            `hfsdk:"spec.nodePool.platform.type"`
 	Image                         string            `hfsdk:"spec.nodePool.release.image"`
 	Replicas                      *int32            `hfsdk:"spec.nodePool.replicas"`
+	Taints                        string            `hfsdk:"spec.nodePool.taints"`
+	Tuning_config                 string            `hfsdk:"spec.nodePool.tuningConfig"`
 	Cluster_id                    string            `hfsdk:"-"`
 	Phase                         string            `hfsdk:"-"`
 }

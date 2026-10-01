@@ -17,7 +17,11 @@ type NodePoolState struct {
 	AutoRepair                    types.Bool   `tfsdk:"auto_repair"`
 	DisplayName                   types.String `tfsdk:"display_name"`
 	Labels                        types.Map    `tfsdk:"labels"`
+	Max                           types.Int64  `tfsdk:"max"`
+	Min                           types.Int64  `tfsdk:"min"`
 	ClusterName                   types.String `tfsdk:"cluster_name"`
+	Config                        types.List   `tfsdk:"config"`
+	NodeDrainTimeout              types.String `tfsdk:"node_drain_timeout"`
 	Ami                           types.String `tfsdk:"ami"`
 	ImageType                     types.String `tfsdk:"image_type"`
 	InstanceProfile               types.String `tfsdk:"instance_profile"`
@@ -40,6 +44,8 @@ type NodePoolState struct {
 	Platform_type                 types.String `tfsdk:"platform_type"`
 	Image                         types.String `tfsdk:"image"`
 	Replicas                      types.Int64  `tfsdk:"replicas"`
+	Taints                        types.List   `tfsdk:"taints"`
+	Tuning_config                 types.List   `tfsdk:"tuning_config"`
 	Cluster_id                    types.String `tfsdk:"cluster_id"`
 	Phase                         types.String `tfsdk:"phase"`
 }

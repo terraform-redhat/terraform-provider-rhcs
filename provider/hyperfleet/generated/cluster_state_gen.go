@@ -35,6 +35,9 @@ type ClusterState struct {
 	StreamingConnectionIdleTimeout types.String `tfsdk:"streaming_connection_idle_timeout"`
 	SystemReserved                 types.Map    `tfsdk:"system_reserved"`
 	AllowedKernelArguments         types.String `tfsdk:"allowed_kernel_arguments"`
+	HttpProxy                      types.String `tfsdk:"http_proxy"`
+	HttpsProxy                     types.String `tfsdk:"https_proxy"`
+	NoProxy                        types.String `tfsdk:"no_proxy"`
 	ImageContentSources            types.String `tfsdk:"image_content_sources"`
 	AllocateNodeCIDRs              types.String `tfsdk:"allocate_node_cidrs"`
 	AdvertiseAddress               types.String `tfsdk:"advertise_address"`

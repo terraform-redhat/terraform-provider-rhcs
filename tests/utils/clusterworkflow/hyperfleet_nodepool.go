@@ -14,7 +14,7 @@ import (
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/exec"
-	. "github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/log"
 )
 
 type hyperFleetNodePoolReplica struct {
@@ -36,7 +36,9 @@ func NewHyperFleetNodePoolReplica(
 	return newHyperFleetNodePoolReplica(clusterName, nodePoolName, clusterID, workspace)
 }
 
-func newHyperFleetNodePoolReplica(clusterName, nodePoolName, clusterID, workspace string) (*hyperFleetNodePoolReplica, error) {
+func newHyperFleetNodePoolReplica(
+	clusterName, nodePoolName, clusterID, workspace string,
+) (*hyperFleetNodePoolReplica, error) {
 	hyperfleetURL, err := requiredEnv("HYPERFLEET_URL")
 	if err != nil {
 		return nil, err
@@ -46,7 +48,10 @@ func newHyperFleetNodePoolReplica(clusterName, nodePoolName, clusterID, workspac
 		region = hyperFleetAWSRegionRE.FindString(hyperfleetURL)
 	}
 	if region == "" {
-		return nil, fmt.Errorf("AWS region is not set in REGION and cannot be derived from HYPERFLEET_URL %q", hyperfleetURL)
+		return nil, fmt.Errorf(
+			"AWS region is not set in REGION and cannot be derived from HYPERFLEET_URL %q",
+			hyperfleetURL,
+		)
 	}
 	if workspace == "" {
 		workspace = clusterName + "-hyperfleet"
@@ -111,10 +116,10 @@ func (n *hyperFleetNodePoolReplica) WaitReady(ctx context.Context) error {
 		n.name,
 		func(nodePool *v1alpha1.NodePool) bool {
 			if nodePool == nil {
-				Logger.Infof("[hyperfleet] nodepool %s not found while waiting for Ready", n.name)
+				log.Logger.Infof("[hyperfleet] nodepool %s not found while waiting for Ready", n.name)
 				return false
 			}
-			Logger.Infof("[hyperfleet] nodepool %s phase: %s", n.name, nodePool.Status.Phase)
+			log.Logger.Infof("[hyperfleet] nodepool %s phase: %s", n.name, nodePool.Status.Phase)
 			return nodePool.Status.Phase == v1alpha1.NodePoolPhaseReady
 		},
 		30*time.Second,
@@ -150,10 +155,10 @@ func (n *hyperFleetNodePoolReplica) WaitDeleted(ctx context.Context) error {
 		n.name,
 		func(nodePool *v1alpha1.NodePool) bool {
 			if nodePool == nil {
-				Logger.Infof("[hyperfleet] nodepool %s deleted", n.name)
+				log.Logger.Infof("[hyperfleet] nodepool %s deleted", n.name)
 				return true
 			}
-			Logger.Infof("[hyperfleet] nodepool %s phase while deleting: %s", n.name, nodePool.Status.Phase)
+			log.Logger.Infof("[hyperfleet] nodepool %s phase while deleting: %s", n.name, nodePool.Status.Phase)
 			return false
 		},
 		30*time.Second,

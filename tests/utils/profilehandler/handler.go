@@ -776,11 +776,10 @@ func (ctx *profileContext) GenerateClusterCreationArgs(token string) (clusterArg
 		// Supports ENV set passed to make cluster provision more flexy in prow
 		// Export the subnetIDs via env variable if you have existing ones export SubnetIDs=<subnet1>,<subnet2>,<subnet3>
 		// Export the availability zones via env variable export AvailabilitiZones=<az1>,<az2>,<az3>
-		subnetIDs := config.GetSubnetIDs()
-		availabilityZones := config.GetAvailabilityZones()
-		if subnetIDs != "" && availabilityZones != "" {
-			subnetIDs := strings.Split(subnetIDs, ",")
-			azs := strings.Split(availabilityZones, ",")
+		subnetIDs := config.GetSubnetIDList()
+		availabilityZones := config.GetAvailabilityZoneList()
+		if len(subnetIDs) > 0 && len(availabilityZones) > 0 {
+			azs := availabilityZones
 			clusterArgs.AWSAvailabilityZones = &azs
 			clusterArgs.AWSSubnetIDs = &subnetIDs
 		} else {

@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/clusterworkflow"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/helper"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
@@ -26,6 +27,7 @@ func TestRHCSProvider(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	token = config.GetRHCSOCMToken()
+	ctx = context.Background()
 	var err error
 
 	err = helper.AlignRHCSSourceVersion(config.GetManifestsDir())
@@ -33,7 +35,8 @@ var _ = BeforeSuite(func() {
 
 	profileHandler, err := profilehandler.NewProfileHandlerFromYamlFile()
 	Expect(err).ToNot(HaveOccurred())
-	clusterID, err = profileHandler.RetrieveClusterID()
+	fetcher, err := clusterworkflow.NewFetcher(profileHandler)
 	Expect(err).ToNot(HaveOccurred())
-	ctx = context.Background()
+	clusterID, err = fetcher.FetchClusterID(ctx)
+	Expect(err).ToNot(HaveOccurred())
 })

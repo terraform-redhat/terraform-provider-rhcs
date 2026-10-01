@@ -221,7 +221,6 @@ var _ = Describe("Hyperfleet sanity", func() {
 			}
 			_, err := np2Svc.Destroy()
 			Expect(err).NotTo(HaveOccurred())
-
 			waitErr := hfClient.HyperfleetV1alpha1().NodePools(clusterID).WaitUntil(
 				ctx, np2Name,
 				func(np *v1alpha1.NodePool) bool {

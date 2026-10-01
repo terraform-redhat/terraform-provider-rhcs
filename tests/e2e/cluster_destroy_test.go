@@ -4,12 +4,14 @@
 package e2e
 
 import (
+	"context"
 	"os"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/ci"
+	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/clusterworkflow"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/config"
 	"github.com/terraform-redhat/terraform-provider-rhcs/tests/utils/profilehandler"
 )
@@ -25,7 +27,9 @@ var _ = Describe("Delete cluster", func() {
 			// Generate/build cluster by profile selected
 			profileHandler, err := profilehandler.NewProfileHandlerFromYamlFile()
 			Expect(err).ToNot(HaveOccurred())
-			err = profileHandler.DestroyRHCSClusterResources(token)
+			destroyer, err := clusterworkflow.NewDestroyer(profileHandler, token, profileHandler.Profile().GetName())
+			Expect(err).ToNot(HaveOccurred())
+			err = destroyer.Destroy(context.Background())
 			Expect(err).ToNot(HaveOccurred())
 		})
 })

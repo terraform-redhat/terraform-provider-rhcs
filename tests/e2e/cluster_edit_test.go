@@ -490,11 +490,12 @@ var _ = Describe("Edit cluster", ci.Day2, func() {
 
 		It("imdsv2 fields - [id:75414]", ci.Medium, ci.FeatureClusterIMDSv2, func() {
 			By("Try to edit ec2_metadata_http_tokens value")
-			otherHttpToken := profileHandler.Profile().GetImdsv2()
-			if otherHttpToken == constants.RequiredEc2MetadataHttpTokens {
+			clusterResp, err := cms.RetrieveClusterDetail(cms.RHCSConnection, clusterID)
+			Expect(err).ToNot(HaveOccurred())
+			currentHttpToken := string(clusterResp.Body().AWS().Ec2MetadataHttpTokens())
+			otherHttpToken := constants.RequiredEc2MetadataHttpTokens
+			if currentHttpToken == constants.RequiredEc2MetadataHttpTokens {
 				otherHttpToken = constants.OptionalEc2MetadataHttpTokens
-			} else {
-				otherHttpToken = constants.RequiredEc2MetadataHttpTokens
 			}
 			validateClusterArgAgainstErrorSubstrings(func(args *exec.ClusterArgs) {
 				args.Ec2MetadataHttpTokens = new(otherHttpToken)

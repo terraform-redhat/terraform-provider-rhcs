@@ -95,7 +95,8 @@ var _ = Describe("HCP Cluster", func() {
 		AWS(cmv1.NewAWS().
 			AccountID("123456789012").
 			BillingAccountID("123456789012").
-			SubnetIDs("id1", "id2", "id3")).
+			SubnetIDs("id1", "id2", "id3").
+			Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokensRequired)).
 		State(cmv1.ClusterStateReady).
 		Region(cmv1.NewCloudRegion().ID("us-west-1")).
 		MultiAZ(true).
@@ -199,6 +200,7 @@ var _ = Describe("HCP Cluster", func() {
 						  "op": "add",
 						  "path": "/aws",
 						  "value": {
+							  "ec2_metadata_http_tokens": "required",
 							  "sts" : {
 								  "oidc_endpoint_url": "https://127.0.0.1",
 								  "thumbprint": "111111",
@@ -270,6 +272,7 @@ var _ = Describe("HCP Cluster", func() {
 						  "op": "add",
 						  "path": "/aws",
 						  "value": {
+							  "ec2_metadata_http_tokens": "required",
 							  "sts" : {
 								  "oidc_endpoint_url": "https://127.0.0.1",
 								  "thumbprint": "111111",
@@ -379,6 +382,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -444,6 +448,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -553,6 +558,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -574,6 +580,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -652,6 +659,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -1007,6 +1015,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -1027,6 +1036,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -1093,6 +1103,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -1113,6 +1124,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -1178,6 +1190,7 @@ var _ = Describe("HCP Cluster", func() {
 					"op": "add",
 					"path": "/aws",
 					"value": {
+						"ec2_metadata_http_tokens": "required",
 						"sts" : {
 							"oidc_endpoint_url": "https://127.0.0.1",
 							"thumbprint": "111111",
@@ -1198,6 +1211,7 @@ var _ = Describe("HCP Cluster", func() {
 					"op": "add",
 					"path": "/aws",
 					"value": {
+						"ec2_metadata_http_tokens": "required",
 						"sts" : {
 							"oidc_endpoint_url": "https://127.0.0.1",
 							"thumbprint": "111111",
@@ -1223,6 +1237,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -1291,6 +1306,7 @@ var _ = Describe("HCP Cluster", func() {
 				"op": "add",
 				"path": "/aws",
 				"value": {
+					"ec2_metadata_http_tokens": "required",
 					"sts" : {
 						"oidc_endpoint_url": "https://127.0.0.1",
 						"thumbprint": "111111",
@@ -1311,6 +1327,7 @@ var _ = Describe("HCP Cluster", func() {
 				"op": "add",
 				"path": "/aws",
 				"value": {
+					"ec2_metadata_http_tokens": "required",
 					"sts" : {
 						"oidc_endpoint_url": "https://127.0.0.1",
 						"thumbprint": "111111",
@@ -1336,6 +1353,7 @@ var _ = Describe("HCP Cluster", func() {
 					"op": "add",
 					"path": "/aws",
 					"value": {
+						"ec2_metadata_http_tokens": "required",
 						"sts" : {
 							"oidc_endpoint_url": "https://127.0.0.1",
 							"thumbprint": "111111",
@@ -1535,13 +1553,14 @@ var _ = Describe("HCP Cluster", func() {
 					VerifyJQ(`.cloud_provider.id`, "aws"),
 					VerifyJQ(`.region.id`, "us-west-1"),
 					VerifyJQ(`.product.id`, "rosa"),
-					VerifyJQ(`.aws.ec2_metadata_http_tokens`, "optional"),
+					// Provider omits the field when unset so the API default applies.
+					VerifyJQ(`(.aws | has("ec2_metadata_http_tokens"))`, false),
 					RespondWithPatchedJSON(http.StatusCreated, template, `[
 					{
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
-					  	  "ec2_metadata_http_tokens" : "optional",
+					  	  "ec2_metadata_http_tokens" : "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -1584,7 +1603,7 @@ var _ = Describe("HCP Cluster", func() {
 			runOutput := Terraform.Apply()
 			Expect(runOutput.ExitCode).To(BeZero())
 			resource := Terraform.Resource("rhcs_cluster_rosa_hcp", "my_cluster")
-			Expect(resource).To(MatchJQ(".attributes.ec2_metadata_http_tokens", "optional"))
+			Expect(resource).To(MatchJQ(".attributes.ec2_metadata_http_tokens", "required"))
 		})
 
 		Context("Creates cluster with etcd encryption", func() {
@@ -1607,6 +1626,7 @@ var _ = Describe("HCP Cluster", func() {
 						  "op": "add",
 						  "path": "/aws",
 						  "value": {
+							  "ec2_metadata_http_tokens": "required",
 							  "sts" : {
 								  "oidc_endpoint_url": "https://127.0.0.1",
 								  "thumbprint": "111111",
@@ -1773,6 +1793,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -1845,6 +1866,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -1911,6 +1933,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -1985,6 +2008,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -2050,6 +2074,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -2080,6 +2105,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -2096,6 +2122,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"billing_account_id": "123456799012"
 						}
 					  },
@@ -2163,6 +2190,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts": {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -2230,6 +2258,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -2260,6 +2289,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -2339,6 +2369,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -2409,6 +2440,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -2440,6 +2472,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -2521,6 +2554,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -2593,6 +2627,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -2624,6 +2659,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -2703,6 +2739,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts": {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -2764,6 +2801,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -2828,6 +2866,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts": {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -2901,6 +2940,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts": {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -2976,6 +3016,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -3180,6 +3221,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -3422,6 +3464,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -3504,6 +3547,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -3534,6 +3578,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -3550,6 +3595,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"billing_account_id": "123456799012"
 						}
 					},
@@ -3634,6 +3680,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -3698,6 +3745,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -3728,6 +3776,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -3744,6 +3793,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"billing_account_id": "123456799012"
 						}
 					},
@@ -3840,6 +3890,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -3904,6 +3955,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -3934,6 +3986,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -3950,6 +4003,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"billing_account_id": "123456799012"
 						}
 					},
@@ -4042,6 +4096,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -4267,6 +4322,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -4332,6 +4388,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -4370,6 +4427,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -4455,6 +4513,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -4507,6 +4566,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -4528,6 +4588,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -4593,6 +4654,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -4628,6 +4690,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -4720,6 +4783,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -4755,6 +4819,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -4837,6 +4902,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -4872,6 +4938,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -4940,6 +5007,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -4975,6 +5043,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -5058,6 +5127,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -5094,6 +5164,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -5131,6 +5202,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -5166,6 +5238,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -5261,6 +5334,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts": {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -5313,6 +5387,7 @@ var _ = Describe("HCP Cluster", func() {
 				  "op": "add",
 				  "path": "/aws",
 				  "value": {
+					  "ec2_metadata_http_tokens": "required",
 					  "sts" : {
 						  "oidc_endpoint_url": "https://127.0.0.1",
 						  "thumbprint": "111111",
@@ -5333,6 +5408,7 @@ var _ = Describe("HCP Cluster", func() {
 				  "op": "add",
 				  "path": "/aws",
 				  "value": {
+					  "ec2_metadata_http_tokens": "required",
 					  "sts" : {
 						  "oidc_endpoint_url": "https://127.0.0.1",
 						  "thumbprint": "111111",
@@ -5399,6 +5475,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "private_link": true,
 						  "subnet_ids": ["id1", "id2", "id3"],
 						  "sts" : {
@@ -5489,6 +5566,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "private_link": true,
 						  "subnet_ids": ["id1", "id2", "id3"],
 						  "additional_compute_security_group_ids": ["id1"],
@@ -5582,6 +5660,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "private_link": false,
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
@@ -5650,6 +5729,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "oidc_config": {
@@ -5718,6 +5798,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -5780,6 +5861,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -5844,6 +5926,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -5874,6 +5957,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -6028,6 +6112,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -6058,6 +6143,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -6157,6 +6243,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -6187,6 +6274,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -6396,6 +6484,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -6426,6 +6515,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -6551,6 +6641,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -6581,6 +6672,7 @@ var _ = Describe("HCP Cluster", func() {
 							"op": "add",
 							"path": "/aws",
 							"value": {
+								"ec2_metadata_http_tokens": "required",
 								"sts" : {
 									"oidc_endpoint_url": "https://127.0.0.1",
 									"thumbprint": "111111",
@@ -6913,6 +7005,7 @@ var _ = Describe("HCP Cluster", func() {
 								"op": "add",
 								"path": "/aws",
 								"value": {
+									"ec2_metadata_http_tokens": "required",
 									"sts" : {
 										"oidc_endpoint_url": "https://127.0.0.1",
 										"thumbprint": "111111",
@@ -6943,6 +7036,7 @@ var _ = Describe("HCP Cluster", func() {
 								"op": "add",
 								"path": "/aws",
 								"value": {
+									"ec2_metadata_http_tokens": "required",
 									"sts" : {
 										"oidc_endpoint_url": "https://127.0.0.1",
 										"thumbprint": "111111",
@@ -7146,6 +7240,7 @@ var _ = Describe("HCP Cluster", func() {
 						  "op": "add",
 						  "path": "/aws",
 						  "value": {
+							  "ec2_metadata_http_tokens": "required",
 							  "sts" : {
 								  "oidc_endpoint_url": "https://127.0.0.1",
 								  "thumbprint": "111111",
@@ -7212,6 +7307,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -7278,6 +7374,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -7349,6 +7446,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -7383,6 +7481,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -7487,6 +7586,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -7555,6 +7655,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -7587,6 +7688,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -7772,6 +7874,7 @@ var _ = Describe("HCP Cluster", func() {
 						  "op": "add",
 						  "path": "/aws",
 						  "value": {
+							  "ec2_metadata_http_tokens": "required",
 							  "sts" : {
 								  "oidc_endpoint_url": "https://127.0.0.1",
 								  "thumbprint": "111111",
@@ -7846,6 +7949,7 @@ var _ = Describe("HCP Cluster", func() {
 						  "op": "add",
 						  "path": "/aws",
 						  "value": {
+							  "ec2_metadata_http_tokens": "required",
 							  "sts" : {
 								  "oidc_endpoint_url": "https://127.0.0.1",
 								  "thumbprint": "111111",
@@ -7910,6 +8014,7 @@ var _ = Describe("HCP Cluster", func() {
 						  "op": "add",
 						  "path": "/aws",
 						  "value": {
+							  "ec2_metadata_http_tokens": "required",
 							  "sts" : {
 								  "oidc_endpoint_url": "https://127.0.0.1",
 								  "thumbprint": "111111",
@@ -7966,6 +8071,7 @@ var _ = Describe("HCP Cluster", func() {
 						  "op": "add",
 						  "path": "/aws",
 						  "value": {
+							  "ec2_metadata_http_tokens": "required",
 							  "sts" : {
 								  "oidc_endpoint_url": "https://127.0.0.1",
 								  "thumbprint": "111111",
@@ -8022,6 +8128,7 @@ var _ = Describe("HCP Cluster", func() {
 						  "op": "add",
 						  "path": "/aws",
 						  "value": {
+							  "ec2_metadata_http_tokens": "required",
 							  "sts" : {
 								  "oidc_endpoint_url": "https://127.0.0.1",
 								  "thumbprint": "111111",
@@ -8120,6 +8227,7 @@ var _ = Describe("HCP Cluster", func() {
 						  "op": "add",
 						  "path": "/aws",
 						  "value": {
+							  "ec2_metadata_http_tokens": "required",
 							  "sts" : {
 								  "oidc_endpoint_url": "https://127.0.0.1",
 								  "thumbprint": "111111",
@@ -8248,6 +8356,7 @@ var _ = Describe("HCP Cluster", func() {
 						  "op": "add",
 						  "path": "/aws",
 						  "value": {
+							  "ec2_metadata_http_tokens": "required",
 							  "sts" : {
 								  "oidc_endpoint_url": "https://127.0.0.1",
 								  "thumbprint": "111111",
@@ -8375,6 +8484,7 @@ var _ = Describe("HCP Cluster", func() {
 						  "op": "add",
 						  "path": "/aws",
 						  "value": {
+							  "ec2_metadata_http_tokens": "required",
 							  "sts" : {
 								  "oidc_endpoint_url": "https://127.0.0.1",
 								  "thumbprint": "111111",
@@ -8488,6 +8598,7 @@ var _ = Describe("HCP Cluster", func() {
 						  "op": "add",
 						  "path": "/aws",
 						  "value": {
+							  "ec2_metadata_http_tokens": "required",
 							  "sts" : {
 								  "oidc_endpoint_url": "https://127.0.0.1",
 								  "thumbprint": "111111",
@@ -8603,6 +8714,7 @@ var _ = Describe("HCP Cluster", func() {
 						  "op": "add",
 						  "path": "/aws",
 						  "value": {
+							  "ec2_metadata_http_tokens": "required",
 							  "sts" : {
 								  "oidc_endpoint_url": "https://127.0.0.1",
 								  "thumbprint": "111111",
@@ -8801,6 +8913,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -8850,6 +8963,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -8891,6 +9005,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -8916,6 +9031,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -8936,6 +9052,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -8977,6 +9094,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -9019,6 +9137,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -9061,6 +9180,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -9110,6 +9230,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -9140,6 +9261,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -9173,6 +9295,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -9218,6 +9341,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -9287,6 +9411,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -9323,6 +9448,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -9343,6 +9469,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -9390,6 +9517,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -9417,6 +9545,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -9438,6 +9567,7 @@ var _ = Describe("HCP Cluster", func() {
 					  "op": "add",
 					  "path": "/aws",
 					  "value": {
+						  "ec2_metadata_http_tokens": "required",
 						  "sts" : {
 							  "oidc_endpoint_url": "https://127.0.0.1",
 							  "thumbprint": "111111",
@@ -9479,6 +9609,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -9544,6 +9675,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -9595,6 +9727,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -9616,6 +9749,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -9682,6 +9816,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -9735,6 +9870,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -9757,6 +9893,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -9823,6 +9960,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -9876,6 +10014,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -9898,6 +10037,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -9962,6 +10102,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",
@@ -10015,6 +10156,7 @@ var _ = Describe("HCP Cluster", func() {
 						"op": "add",
 						"path": "/aws",
 						"value": {
+							"ec2_metadata_http_tokens": "required",
 							"sts" : {
 								"oidc_endpoint_url": "https://127.0.0.1",
 								"thumbprint": "111111",

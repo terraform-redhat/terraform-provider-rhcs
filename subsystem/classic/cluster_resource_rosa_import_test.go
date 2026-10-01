@@ -36,6 +36,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - import", func() {
 		  "id": "us-west-1"
 		},
 		"aws": {
+			"ec2_metadata_http_tokens": "optional",
 			"sts": {
 				"oidc_endpoint_url": "https://127.0.0.1",
 				"thumbprint": "111111",
@@ -92,6 +93,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - import", func() {
 						  "op": "add",
 						  "path": "/aws",
 						  "value": {
+							  "ec2_metadata_http_tokens": "optional",
 							  "sts" : {
 								  "oidc_endpoint_url": "https://127.0.0.1",
 								  "thumbprint": "111111",

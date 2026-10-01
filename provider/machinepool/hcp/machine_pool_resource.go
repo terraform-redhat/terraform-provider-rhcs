@@ -332,10 +332,11 @@ func (r *HcpMachinePoolResource) Create(ctx context.Context, req resource.Create
 			awsNodePoolBuilder.AdditionalSecurityGroupIds(additionalSecurityGroupIds...)
 		}
 
-		if common.IsStringAttributeUnknownOrEmpty(plan.AWSNodePool.Ec2MetadataHttpTokens) {
-			plan.AWSNodePool.Ec2MetadataHttpTokens = types.StringValue(string(cmv1.Ec2MetadataHttpTokensOptional))
+		if !common.IsStringAttributeUnknownOrEmpty(plan.AWSNodePool.Ec2MetadataHttpTokens) {
+			awsNodePoolBuilder.Ec2MetadataHttpTokens(
+				cmv1.Ec2MetadataHttpTokens(plan.AWSNodePool.Ec2MetadataHttpTokens.ValueString()),
+			)
 		}
-		awsNodePoolBuilder.Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokens(plan.AWSNodePool.Ec2MetadataHttpTokens.ValueString()))
 
 		if workerDiskSize := common.OptionalInt64(plan.AWSNodePool.DiskSize); workerDiskSize != nil {
 			err := diskValidator.ValidateNodePoolRootDiskSize(int(*workerDiskSize))
@@ -1450,12 +1451,12 @@ func populateState(ctx context.Context, object *cmv1.NodePool, state *HcpMachine
 			len(state.AWSNodePool.AdditionalSecurityGroupIds.Elements()) > 0 {
 			state.AWSNodePool.AdditionalSecurityGroupIds = types.ListNull(types.StringType)
 		}
-		if httpTokensState, ok := awsNodePool.GetEc2MetadataHttpTokens(); ok {
-			state.AWSNodePool.Ec2MetadataHttpTokens = types.StringValue(string(cmv1.Ec2MetadataHttpTokensOptional))
-			if httpTokensState != "" {
-				state.AWSNodePool.Ec2MetadataHttpTokens = types.StringValue(string(httpTokensState))
-			}
+		httpTokensState, ok := awsNodePool.GetEc2MetadataHttpTokens()
+		if !ok || httpTokensState == "" {
+			return fmt.Errorf("received empty aws_node_pool.ec2_metadata_http_tokens from API; expected %q or %q",
+				cmv1.Ec2MetadataHttpTokensOptional, cmv1.Ec2MetadataHttpTokensRequired)
 		}
+		state.AWSNodePool.Ec2MetadataHttpTokens = types.StringValue(string(httpTokensState))
 
 		state.AWSNodePool.DiskSize = types.Int64Null()
 		if rootVolume, ok := awsNodePool.GetRootVolume(); ok {

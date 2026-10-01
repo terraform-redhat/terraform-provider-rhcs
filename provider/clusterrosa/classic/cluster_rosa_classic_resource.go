@@ -409,9 +409,12 @@ func (r *ClusterRosaClassicResource) Schema(ctx context.Context, req resource.Sc
 				Computed:    true,
 			},
 			"ec2_metadata_http_tokens": schema.StringAttribute{
-				Description: "This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the cluster." +
-					"This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). This feature is available from " +
-					"OpenShift version 4.11.0 and newer. " + common.ValueCannotBeChangedStringDescription,
+				Description: "This value determines which EC2 Instance Metadata Service mode " +
+					"to use for EC2 instances in the cluster. " +
+					"This can be set as `required` (IMDSv2 only) or `optional` (IMDS v1 or v2). This feature is available from " +
+					"OpenShift version 4.11.0 and newer. When omitted, the API determines the value. " +
+					"Set `required` or `optional` explicitly if you need a specific mode. " +
+					common.ValueCannotBeChangedStringDescription,
 				Optional: true,
 				Computed: true,
 				Validators: []validator.String{attrvalidators.EnumValueValidator([]string{string(cmv1.Ec2MetadataHttpTokensOptional),
@@ -1834,12 +1837,11 @@ func populateRosaClassicClusterState(ctx context.Context, object *cmv1.Cluster, 
 	}
 
 	httpTokensState, ok := object.AWS().GetEc2MetadataHttpTokens()
-	if ok && httpTokensState != "" {
-		state.Ec2MetadataHttpTokens = types.StringValue(string(httpTokensState))
-	} else {
-		// Need to add default as future ocm versions will have this flag as default and not empty string
-		state.Ec2MetadataHttpTokens = types.StringValue(string(cmv1.Ec2MetadataHttpTokensOptional))
+	if !ok || httpTokensState == "" {
+		return fmt.Errorf("received empty ec2_metadata_http_tokens from API; expected %q or %q",
+			cmv1.Ec2MetadataHttpTokensOptional, cmv1.Ec2MetadataHttpTokensRequired)
 	}
+	state.Ec2MetadataHttpTokens = types.StringValue(string(httpTokensState))
 
 	stsState, ok := object.AWS().GetSTS()
 	if ok {

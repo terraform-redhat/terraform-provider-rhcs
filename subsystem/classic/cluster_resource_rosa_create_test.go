@@ -212,6 +212,9 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 	  "region": {
 	    "id": "us-west-1"
 	  },
+	  "aws": {
+	    "ec2_metadata_http_tokens": "optional"
+	  },
 	  "multi_az": true,
 	  "api": {
 	    "url": "https://my-api.example.com"
@@ -3540,6 +3543,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				  "op": "add",
 				  "path": "/aws",
 				  "value": {
+					  "ec2_metadata_http_tokens": "required",
 					  "sts" : {
 						  "oidc_endpoint_url": "https://127.0.0.1",
 						  "thumbprint": "111111",
@@ -3560,6 +3564,7 @@ var _ = Describe("rhcs_cluster_rosa_classic - create", func() {
 				  "op": "add",
 				  "path": "/aws",
 				  "value": {
+					  "ec2_metadata_http_tokens": "required",
 					  "sts" : {
 						  "oidc_endpoint_url": "https://127.0.0.1",
 						  "thumbprint": "111111",

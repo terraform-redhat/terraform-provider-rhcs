@@ -263,7 +263,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					"id":"my-pool",
 					"aws_node_pool":{
 					   "instance_type":"r5.xlarge",
-					   "instance_profile": "bla"
+					   "instance_profile": "bla",
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"auto_repair": true,
 					"replicas":12,
@@ -339,7 +340,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					"id":"my-pool",
 					"aws_node_pool":{
 					   "instance_type":"r5.xlarge",
-					   "instance_profile": "bla"
+					   "instance_profile": "bla",
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"auto_repair": true,
 					"replicas":2,
@@ -393,7 +395,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					"aws_node_pool":{
 					   "instance_type":"r5.xlarge",
 					   "instance_profile": "bla",
-					   "additional_security_group_ids": ["id1"]
+					   "additional_security_group_ids": ["id1"],
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"auto_repair": true,
 					"replicas":12,
@@ -470,7 +473,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					"id":"my-pool",
 					"aws_node_pool":{
 						"instance_type":"r5.xlarge",
-						"instance_profile":"bla"
+						"instance_profile":"bla",
+						"ec2_metadata_http_tokens": "required"
 					},
 					"auto_repair":true,
 					"replicas":2,
@@ -554,7 +558,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					"aws_node_pool":{
 					   "instance_type":"r5.xlarge",
 					   "instance_profile": "bla",
-					   "additional_security_group_ids": ["id1","id2"]
+					   "additional_security_group_ids": ["id1","id2"],
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"auto_repair": true,
 					"replicas":12,
@@ -632,7 +637,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					"aws_node_pool":{
 					   "instance_type":"r5.xlarge",
 					   "instance_profile": "bla",
-					   "additional_security_group_ids": ["id1","id2"]
+					   "additional_security_group_ids": ["id1","id2"],
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"auto_repair": true,
 					"replicas":12,
@@ -700,7 +706,8 @@ var _ = Describe("Hcp Machine pool", func() {
 				  	"id": "my-pool",
 				  	"aws_node_pool": {
 					  	"instance_type": "r5.xlarge",
-					  	"instance_profile": "bla"
+					  	"instance_profile": "bla",
+					  	"ec2_metadata_http_tokens": "required"
 				  	},
 				  	"auto_repair": true,
 				  	"replicas": 12,
@@ -786,7 +793,8 @@ var _ = Describe("Hcp Machine pool", func() {
 				  	"id": "my-pool",
 				  	"aws_node_pool": {
 						"instance_type": "r5.xlarge",
-					  	"instance_profile": "bla"
+					  	"instance_profile": "bla",
+					  	"ec2_metadata_http_tokens": "required"
 				  	},
 				  	"auto_repair": true,
 				  	"replicas": 12,
@@ -870,7 +878,8 @@ var _ = Describe("Hcp Machine pool", func() {
 				  "subnet": "subnet-123",
 				  "aws_node_pool": {
 					"instance_type": "r5.xlarge",
-					"instance_profile": "bla"
+					"instance_profile": "bla",
+					"ec2_metadata_http_tokens": "required"
 				  },
 				  "auto_repair": true,
 				  "version": {
@@ -930,7 +939,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					  },
 					  "aws_node_pool": {
 						"instance_type": "r5.xlarge",
-						"instance_profile": "bla"
+						"instance_profile": "bla",
+						"ec2_metadata_http_tokens": "required"
 					  },
 					  "auto_repair": true,
 					  "version": {
@@ -957,7 +967,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					  },
 					  "aws_node_pool": {
 						"instance_type": "r5.xlarge",
-						"instance_profile": "bla"
+						"instance_profile": "bla",
+						"ec2_metadata_http_tokens": "required"
 					  },
 					  "auto_repair": true,
 					  "version": {
@@ -984,7 +995,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					  },
 					  "aws_node_pool": {
 						"instance_type": "r5.xlarge",
-						"instance_profile": "bla"
+						"instance_profile": "bla",
+						"ec2_metadata_http_tokens": "required"
 					  },
 					  "auto_repair": true,
 					  "version": {
@@ -1009,7 +1021,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					  },
 					  "aws_node_pool": {
 						"instance_type": "r5.xlarge",
-						"instance_profile": "bla"
+						"instance_profile": "bla",
+						"ec2_metadata_http_tokens": "required"
 					  },
 					  "auto_repair": true,
 					  "version": {
@@ -1089,7 +1102,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					  },
 					  "aws_node_pool": {
 						"instance_type": "r5.xlarge",
-						"instance_profile": "bla"
+						"instance_profile": "bla",
+						"ec2_metadata_http_tokens": "required"
 					  },
 					  "auto_repair": true,
 					  "version": {
@@ -1116,7 +1130,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					  },
 					  "aws_node_pool": {
 						"instance_type": "r5.xlarge",
-						"instance_profile": "bla"
+						"instance_profile": "bla",
+						"ec2_metadata_http_tokens": "required"
 					  },
 					  "auto_repair": true,
 					  "version": {
@@ -1140,7 +1155,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					  "replicas": 12,
 					  "aws_node_pool": {
 						"instance_type": "r5.xlarge",
-						"instance_profile": "bla"
+						"instance_profile": "bla",
+						"ec2_metadata_http_tokens": "required"
 					  },
 					  "auto_repair": true,
 					  "version": {
@@ -1162,7 +1178,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					  "replicas": 12,
 					  "aws_node_pool": {
 						"instance_type": "r5.xlarge",
-						"instance_profile": "bla"
+						"instance_profile": "bla",
+						"ec2_metadata_http_tokens": "required"
 					  },
 					  "auto_repair": true,
 					  "version": {
@@ -1223,7 +1240,8 @@ var _ = Describe("Hcp Machine pool", func() {
 				  ],
 				  "aws_node_pool": {
 					"instance_type": "r5.xlarge",
-					"instance_profile": "bla"
+					"instance_profile": "bla",
+					"ec2_metadata_http_tokens": "required"
 				  },
 				  "auto_repair": true,
 				  "version": {
@@ -1291,7 +1309,8 @@ var _ = Describe("Hcp Machine pool", func() {
 				  ],
 				  "aws_node_pool": {
 					"instance_type": "r5.xlarge",
-					"instance_profile": "bla"
+					"instance_profile": "bla",
+					"ec2_metadata_http_tokens": "required"
 				  },
 				  "auto_repair": true,
 				  "version": {
@@ -1322,7 +1341,8 @@ var _ = Describe("Hcp Machine pool", func() {
 				  ],
 				  "aws_node_pool": {
 					"instance_type": "r5.xlarge",
-					"instance_profile": "bla"
+					"instance_profile": "bla",
+					"ec2_metadata_http_tokens": "required"
 				  },
 				  "auto_repair": true,
 				  "version": {
@@ -1357,7 +1377,8 @@ var _ = Describe("Hcp Machine pool", func() {
 				  ],
 				  "aws_node_pool": {
 					"instance_type": "r5.xlarge",
-					"instance_profile": "bla"
+					"instance_profile": "bla",
+					"ec2_metadata_http_tokens": "required"
 				  },
 				  "auto_repair": true,
 				  "version": {
@@ -1390,7 +1411,8 @@ var _ = Describe("Hcp Machine pool", func() {
 				  ],
 				  "aws_node_pool": {
 					"instance_type": "r5.xlarge",
-					"instance_profile": "bla"
+					"instance_profile": "bla",
+					"ec2_metadata_http_tokens": "required"
 				  },
 				  "auto_repair": true,
 				  "version": {
@@ -1463,7 +1485,8 @@ var _ = Describe("Hcp Machine pool", func() {
 				  ],
 				  "aws_node_pool": {
 					"instance_type": "r5.xlarge",
-					"instance_profile": "bla"
+					"instance_profile": "bla",
+					"ec2_metadata_http_tokens": "required"
 				  },
 				  "auto_repair": true,
 				  "version": {
@@ -1531,7 +1554,8 @@ var _ = Describe("Hcp Machine pool", func() {
 				  ],
 				  "aws_node_pool": {
 					"instance_type": "r5.xlarge",
-					"instance_profile": "bla"
+					"instance_profile": "bla",
+					"ec2_metadata_http_tokens": "required"
 				  },
 				  "auto_repair": true,
 				  "version": {
@@ -1562,7 +1586,8 @@ var _ = Describe("Hcp Machine pool", func() {
 				  ],
 				  "aws_node_pool": {
 					"instance_type": "r5.xlarge",
-					"instance_profile": "bla"
+					"instance_profile": "bla",
+					"ec2_metadata_http_tokens": "required"
 				  },
 				  "auto_repair": true,
 				  "version": {
@@ -1585,7 +1610,8 @@ var _ = Describe("Hcp Machine pool", func() {
 				  "availability_zone": "us-east-1a",
 				  "aws_node_pool": {
 					"instance_type": "r5.xlarge",
-					"instance_profile": "bla"
+					"instance_profile": "bla",
+					"ec2_metadata_http_tokens": "required"
 				  },
 				  "auto_repair": true,
 				  "version": {
@@ -1606,7 +1632,8 @@ var _ = Describe("Hcp Machine pool", func() {
 				  "availability_zone": "us-east-1a",
 				  "aws_node_pool": {
 					"instance_type": "r5.xlarge",
-					"instance_profile": "bla"
+					"instance_profile": "bla",
+					"ec2_metadata_http_tokens": "required"
 				  },
 				  "auto_repair": true,
 				  "version": {
@@ -1687,7 +1714,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					"instance_profile": "bla",
 					"tags": {
 						"cluster-tag": "cluster-value"
-					}
+					},
+					"ec2_metadata_http_tokens": "required"
 				  },
 				  "auto_repair": true,
 				  "version": {
@@ -1737,7 +1765,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					"instance_profile": "bla",
 					"tags": {
 						"test-label":"test-value"
-					}
+					},
+					"ec2_metadata_http_tokens": "required"
 				  },
 				  "auto_repair": true,
 				  "version": {
@@ -1796,7 +1825,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"instance_profile": "bla",
 							"tags": {
 								"test-label":"test-value"
-							}
+							},
+							"ec2_metadata_http_tokens": "required"
 						},
 						"auto_repair": true,
 						"version": {
@@ -1851,7 +1881,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					"tags": {
 						"cluster-tag": "cluster-value",
 						"test-label":"test-value"
-					}
+					},
+					"ec2_metadata_http_tokens": "required"
 				  },
 				  "auto_repair": true,
 				  "version": {
@@ -1904,7 +1935,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					"tags": {
 						"cluster-tag": "mp-value",
 						"test-label":"test-value"
-					}
+					},
+					"ec2_metadata_http_tokens": "required"
 				  },
 				  "auto_repair": true,
 				  "version": {
@@ -1957,7 +1989,8 @@ var _ = Describe("Hcp Machine pool", func() {
 				  },
 				  "aws_node_pool": {
 					"instance_type": "r5.xlarge",
-					"instance_profile": "bla"
+					"instance_profile": "bla",
+					"ec2_metadata_http_tokens": "required"
 				  },
 				  "auto_repair": true,
 				  "version": {
@@ -2015,7 +2048,8 @@ var _ = Describe("Hcp Machine pool", func() {
 				  "availability_zone": "us-east-1a",
 				  "aws_node_pool": {
 					"instance_type": "r5.xlarge",
-					"instance_profile": "bla"
+					"instance_profile": "bla",
+					"ec2_metadata_http_tokens": "required"
 				  },
 				  "auto_repair": true,
 				  "version": {
@@ -2042,7 +2076,8 @@ var _ = Describe("Hcp Machine pool", func() {
 				  "availability_zone": "us-east-1a",
 				  "aws_node_pool": {
 					"instance_type": "r5.xlarge",
-					"instance_profile": "bla"
+					"instance_profile": "bla",
+					"ec2_metadata_http_tokens": "required"
 				  },
 				  "auto_repair": true,
 				  "version": {
@@ -2065,7 +2100,8 @@ var _ = Describe("Hcp Machine pool", func() {
 				  "availability_zone": "us-east-1a",
 				  "aws_node_pool": {
 					"instance_type": "r5.xlarge",
-					"instance_profile": "bla"
+					"instance_profile": "bla",
+					"ec2_metadata_http_tokens": "required"
 				  },
 				  "auto_repair": true,
 				  "version": {
@@ -2086,7 +2122,8 @@ var _ = Describe("Hcp Machine pool", func() {
 				  "availability_zone": "us-east-1a",
 				  "aws_node_pool": {
 					"instance_type": "r5.xlarge",
-					"instance_profile": "bla"
+					"instance_profile": "bla",
+					"ec2_metadata_http_tokens": "required"
 				  },
 				  "auto_repair": true,
 				  "version": {
@@ -2136,7 +2173,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					"id":"my-pool",
 					"aws_node_pool":{
 					   "instance_type":"r5.xlarge",
-					   "instance_profile": "bla"
+					   "instance_profile": "bla",
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"auto_repair": true,
 					"replicas":2,
@@ -2249,7 +2287,7 @@ var _ = Describe("Hcp Machine pool", func() {
 				  "availability_zone": "us-east-1a",
 				  "aws_node_pool": {
 					"instance_type": "r5.xlarge",
-					ec2_metadata_http_tokens = "required"
+					"ec2_metadata_http_tokens": "required"
 				  },
 				  "auto_repair": true,
 				  "version": {
@@ -2276,7 +2314,10 @@ var _ = Describe("Hcp Machine pool", func() {
 				auto_repair = true
 				version = "4.14.10"
 			}`)
-			Expect(Terraform.Apply()).NotTo(BeZero())
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring(
+				"Attribute aws_node_pool.ec2_metadata_http_tokens, cannot be changed")
 		})
 
 		It("Can create machine pool without http tokens set", func() {
@@ -2287,13 +2328,14 @@ var _ = Describe("Hcp Machine pool", func() {
 						http.MethodPost,
 						"/api/clusters_mgmt/v1/clusters/123/node_pools",
 					),
-					VerifyJQ(".aws_node_pool.ec2_metadata_http_tokens", "optional"),
+					// Provider omits the field when unset so the API default applies.
+					VerifyJQ(`(.aws_node_pool | has("ec2_metadata_http_tokens"))`, false),
 					RespondWithJSON(http.StatusCreated, `{
 					"id":"my-pool",
 					"aws_node_pool":{
 					   "instance_type":"r5.xlarge",
 					   "instance_profile": "bla",
-					   "ec2_metadata_http_tokens": "optional"
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"auto_repair": true,
 					"replicas":2,
@@ -2331,7 +2373,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.instance_type", "r5.xlarge"))
-			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.ec2_metadata_http_tokens`, "optional"))
+			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.ec2_metadata_http_tokens`, "required"))
 		})
 
 		It("Can create machine pool with node_drain_grace_period", func() {
@@ -2346,7 +2388,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					"id":"my-pool",
 					"aws_node_pool":{
 					   "instance_type":"r5.xlarge",
-					   "instance_profile": "bla"
+					   "instance_profile": "bla",
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"node_drain_grace_period": { "value": 45 },
 					"auto_repair": true,
@@ -2390,7 +2433,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					VerifyJQ(".node_drain_grace_period.value", 30.0),
 					RespondWithJSON(http.StatusOK, `{
 					"id":"drain-pool",
-					"aws_node_pool":{ "instance_type":"r5.xlarge", "instance_profile": "bla" },
+					"aws_node_pool":{ "instance_type":"r5.xlarge", "instance_profile": "bla", "ec2_metadata_http_tokens": "required"},
 					"node_drain_grace_period": { "value": 30 },
 					"auto_repair": true,
 					"replicas":2,
@@ -2422,7 +2465,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					  "id": "drain-pool",
 					  "replicas": 2,
 					  "subnet": "id-1",
-					  "aws_node_pool": { "instance_type": "r5.xlarge", "instance_profile": "bla" },
+					  "aws_node_pool": { "instance_type": "r5.xlarge", "instance_profile": "bla", "ec2_metadata_http_tokens": "required"},
 					  "node_drain_grace_period": { "value": 30 },
 					  "auto_repair": true,
 					  "version": { "raw_id": "4.14.10" }
@@ -2437,7 +2480,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					  "id": "drain-pool",
 					  "replicas": 2,
 					  "subnet": "id-1",
-					  "aws_node_pool": { "instance_type": "r5.xlarge", "instance_profile": "bla" },
+					  "aws_node_pool": { "instance_type": "r5.xlarge", "instance_profile": "bla", "ec2_metadata_http_tokens": "required"},
 					  "node_drain_grace_period": { "value": 30 },
 					  "auto_repair": true,
 					  "version": { "raw_id": "4.14.10" }
@@ -2452,7 +2495,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					  "id": "drain-pool",
 					  "replicas": 2,
 					  "subnet": "id-1",
-					  "aws_node_pool": { "instance_type": "r5.xlarge", "instance_profile": "bla" },
+					  "aws_node_pool": { "instance_type": "r5.xlarge", "instance_profile": "bla", "ec2_metadata_http_tokens": "required"},
 					  "node_drain_grace_period": { "value": 90 },
 					  "auto_repair": true,
 					  "version": { "raw_id": "4.14.10" }
@@ -2467,7 +2510,7 @@ var _ = Describe("Hcp Machine pool", func() {
 					  "id": "drain-pool",
 					  "replicas": 2,
 					  "subnet": "id-1",
-					  "aws_node_pool": { "instance_type": "r5.xlarge", "instance_profile": "bla" },
+					  "aws_node_pool": { "instance_type": "r5.xlarge", "instance_profile": "bla", "ec2_metadata_http_tokens": "required"},
 					  "node_drain_grace_period": { "value": 90 },
 					  "auto_repair": true,
 					  "version": { "raw_id": "4.14.10" }
@@ -2513,7 +2556,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					  "subnet": "subnet-123",
 					  "aws_node_pool": {
 						"instance_type": "r5.xlarge",
-						"instance_profile": "{{.InstanceProfile}}"
+						"instance_profile": "{{.InstanceProfile}}",
+						"ec2_metadata_http_tokens": "required"
 					  },
 					  "auto_repair": true,
 					  "version": { "raw_id": "4.14.10" }
@@ -2554,7 +2598,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					  "subnet": "subnet-123",
 					  "aws_node_pool": {
 						"instance_type": "r5.xlarge",
-						"instance_profile": "{{.InstanceProfile}}"
+						"instance_profile": "{{.InstanceProfile}}",
+						"ec2_metadata_http_tokens": "required"
 					  },
 					  "auto_repair": true,
 					  "version": { "raw_id": "4.14.10" }
@@ -2574,7 +2619,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					  "subnet": "subnet-123",
 					  "aws_node_pool": {
 						"instance_type": "r5.xlarge",
-						"instance_profile": "{{.InstanceProfile}}"
+						"instance_profile": "{{.InstanceProfile}}",
+						"ec2_metadata_http_tokens": "required"
 					  },
 					  "auto_repair": true,
 					  "version": { "raw_id": "4.14.10" }
@@ -2598,7 +2644,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					  "subnet": "subnet-123",
 					  "aws_node_pool": {
 						"instance_type": "r5.xlarge",
-						"instance_profile": ""
+						"instance_profile": "",
+						"ec2_metadata_http_tokens": "required"
 					  },
 					  "auto_repair": true,
 					  "version": { "raw_id": "4.14.10" }
@@ -2620,7 +2667,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					  "subnet": "subnet-123",
 					  "aws_node_pool": {
 						"instance_type": "r5.xlarge",
-						"instance_profile": "{{.InstanceProfile}}"
+						"instance_profile": "{{.InstanceProfile}}",
+						"ec2_metadata_http_tokens": "required"
 					  },
 					  "auto_repair": true,
 					  "version": { "raw_id": "4.14.10" }
@@ -2666,7 +2714,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					  "subnet": "subnet-123",
 					  "aws_node_pool": {
 						"instance_type": "r5.xlarge",
-						"instance_profile": "bla"
+						"instance_profile": "bla",
+						"ec2_metadata_http_tokens": "required"
 					  },
 					  "auto_repair": true,
 					  "version": { "raw_id": "4.14.10" }
@@ -2703,7 +2752,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					  "subnet": "subnet-123",
 					  "aws_node_pool": {
 						"instance_type": "r5.xlarge",
-						"instance_profile": "bla"
+						"instance_profile": "bla",
+						"ec2_metadata_http_tokens": "required"
 					  },
 					  "auto_repair": true,
 					  "version": { "raw_id": "4.14.10" }
@@ -2723,7 +2773,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					  "subnet": "subnet-123",
 					  "aws_node_pool": {
 						"instance_type": "r5.xlarge",
-						"instance_profile": "bla"
+						"instance_profile": "bla",
+						"ec2_metadata_http_tokens": "required"
 					  },
 					  "auto_repair": true,
 					  "version": { "raw_id": "4.14.10" }
@@ -2745,7 +2796,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					  "subnet": "subnet-123",
 					  "aws_node_pool": {
 						"instance_type": "r5.xlarge",
-						"instance_profile": "bla"
+						"instance_profile": "bla",
+						"ec2_metadata_http_tokens": "required"
 					  },
 					  "auto_repair": true,
 					  "version": { "raw_id": "4.14.10" }
@@ -2802,7 +2854,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					  "subnet": "subnet-123",
 					  "aws_node_pool": {
 						"instance_type": "r5.xlarge",
-						"instance_profile": "bla"
+						"instance_profile": "bla",
+						"ec2_metadata_http_tokens": "required"
 					  },
 					  "auto_repair": true,
 					  "version": { "raw_id": "4.14.10" }
@@ -2839,7 +2892,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					  "subnet": "subnet-123",
 					  "aws_node_pool": {
 						"instance_type": "r5.xlarge",
-						"instance_profile": "bla"
+						"instance_profile": "bla",
+						"ec2_metadata_http_tokens": "required"
 					  },
 					  "auto_repair": true,
 					  "version": { "raw_id": "4.14.10" }
@@ -2859,7 +2913,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					  "subnet": "subnet-123",
 					  "aws_node_pool": {
 						"instance_type": "r5.xlarge",
-						"instance_profile": "bla"
+						"instance_profile": "bla",
+						"ec2_metadata_http_tokens": "required"
 					  },
 					  "auto_repair": true,
 					  "version": { "raw_id": "4.14.10" }
@@ -2881,7 +2936,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					  "subnet": "subnet-123",
 					  "aws_node_pool": {
 						"instance_type": "r5.xlarge",
-						"instance_profile": "bla"
+						"instance_profile": "bla",
+						"ec2_metadata_http_tokens": "required"
 					  },
 					  "auto_repair": true,
 					  "version": { "raw_id": "4.14.10" }
@@ -2942,7 +2998,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					   "instance_profile": "bla",
 					   "root_volume": {
 							"size": 400
-					   }
+					   },
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"auto_repair": true,
 					"replicas":2,
@@ -2997,7 +3054,10 @@ var _ = Describe("Hcp Machine pool", func() {
 				  "availability_zone": "us-east-1a",
 				  "aws_node_pool": {
 					"instance_type": "r5.xlarge",
-					disk_size = 256
+					"root_volume": {
+						"size": 400
+					},
+					"ec2_metadata_http_tokens": "required"
 				  },
 				  "auto_repair": true,
 				  "version": {
@@ -3024,7 +3084,10 @@ var _ = Describe("Hcp Machine pool", func() {
 				auto_repair = true
 				version = "4.14.10"
 			}`)
-			Expect(Terraform.Apply()).NotTo(BeZero())
+			runOutput = Terraform.Apply()
+			Expect(runOutput.ExitCode).ToNot(BeZero())
+			runOutput.VerifyErrorContainsSubstring(
+				"Attribute aws_node_pool.disk_size, cannot be changed")
 		})
 
 		It("Cannot create machine pool with invalid disk size", func() {
@@ -3065,7 +3128,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					   "instance_profile": "bla",
 					   "capacity_reservation": {
 					       "id": "cr-1234567890abcdef0"
-					   }
+					   },
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"auto_repair": true,
 					"replicas":2,
@@ -3124,7 +3188,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					   "capacity_reservation": {
 					       "id": "cr-1234567890abcdef0",
 					       "preference": "capacity-reservations-only"
-					   }
+					   },
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"auto_repair": true,
 					"replicas":2,
@@ -3184,7 +3249,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					   "instance_profile": "bla",
 					   "capacity_reservation": {
 					       "id": "cr-1234567890abcdef0"
-					   }
+					   },
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"auto_repair": true,
 					"replicas":2,
@@ -3232,7 +3298,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					   "instance_profile": "bla",
 					   "capacity_reservation": {
 					       "id": "cr-1234567890abcdef0"
-					   }
+					   },
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"auto_repair": true,
 					"replicas":2,
@@ -3331,7 +3398,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					   "instance_profile": "bla",
 					   "capacity_reservation": {
 					       "preference": "open"
-					   }
+					   },
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"auto_repair": true,
 					"replicas":2,
@@ -3386,7 +3454,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					"id":"my-pool",
 					"aws_node_pool":{
 					   "instance_type":"r5.xlarge",
-					   "instance_profile": "bla"
+					   "instance_profile": "bla",
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"image_type": "Default",
 					"auto_repair": true,
@@ -3437,7 +3506,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					"id":"my-pool",
 					"aws_node_pool":{
 					   "instance_type":"r5.xlarge",
-					   "instance_profile": "bla"
+					   "instance_profile": "bla",
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"image_type": "Default",
 					"auto_repair": true,
@@ -3495,7 +3565,8 @@ var _ = Describe("Hcp Machine pool", func() {
 						   "instance_profile": "bla",
 						   "spot_market_options": {
 						       "max_price": "1"
-						   }
+						   },
+						   "ec2_metadata_http_tokens": "required"
 						},
 						"auto_repair": true,
 						"replicas":2,
@@ -3554,7 +3625,8 @@ var _ = Describe("Hcp Machine pool", func() {
 						"aws_node_pool":{
 						   "instance_type":"r5.xlarge",
 						   "instance_profile": "bla",
-						   "spot_market_options": {}
+						   "spot_market_options": {},
+						   "ec2_metadata_http_tokens": "required"
 						},
 						"auto_repair": true,
 						"replicas":2,
@@ -3610,7 +3682,8 @@ var _ = Describe("Hcp Machine pool", func() {
 						"id":"my-pool",
 						"aws_node_pool":{
 						   "instance_type":"r5.xlarge",
-						   "instance_profile": "bla"
+						   "instance_profile": "bla",
+						   "ec2_metadata_http_tokens": "required"
 						},
 						"auto_repair": true,
 						"replicas":2,
@@ -3692,7 +3765,8 @@ var _ = Describe("Hcp Machine pool", func() {
 						   "instance_profile": "bla",
 						   "spot_market_options": {
 						       "max_price": "1"
-						   }
+						   },
+						   "ec2_metadata_http_tokens": "required"
 						},
 						"auto_repair": true,
 						"replicas":2,
@@ -3740,7 +3814,8 @@ var _ = Describe("Hcp Machine pool", func() {
 						   "instance_profile": "bla",
 						   "spot_market_options": {
 						       "max_price": "1"
-						   }
+						   },
+						   "ec2_metadata_http_tokens": "required"
 						},
 						"auto_repair": true,
 						"replicas":2,
@@ -3788,7 +3863,8 @@ var _ = Describe("Hcp Machine pool", func() {
 						"id":"my-pool",
 						"aws_node_pool":{
 						   "instance_type":"r5.xlarge",
-						   "instance_profile": "bla"
+						   "instance_profile": "bla",
+						   "ec2_metadata_http_tokens": "required"
 						},
 						"auto_repair": true,
 						"replicas":2,
@@ -3831,7 +3907,8 @@ var _ = Describe("Hcp Machine pool", func() {
 						"id":"my-pool",
 						"aws_node_pool":{
 						   "instance_type":"r5.xlarge",
-						   "instance_profile": "bla"
+						   "instance_profile": "bla",
+						   "ec2_metadata_http_tokens": "required"
 						},
 						"auto_repair": true,
 						"replicas":2,
@@ -3883,7 +3960,8 @@ var _ = Describe("Hcp Machine pool", func() {
 						   "instance_profile": "bla",
 						   "spot_market_options": {
 						       "max_price": "1"
-						   }
+						   },
+						   "ec2_metadata_http_tokens": "required"
 						},
 						"auto_repair": true,
 						"replicas":2,
@@ -3931,7 +4009,8 @@ var _ = Describe("Hcp Machine pool", func() {
 						   "instance_profile": "bla",
 						   "spot_market_options": {
 						       "max_price": "1"
-						   }
+						   },
+						   "ec2_metadata_http_tokens": "required"
 						},
 						"auto_repair": true,
 						"replicas":2,
@@ -4021,7 +4100,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4042,7 +4122,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4058,7 +4139,8 @@ var _ = Describe("Hcp Machine pool", func() {
 						{
 							"id": "worker",
 							"aws_node_pool":{
-								"instance_type":"r5.xlarge"
+								"instance_type":"r5.xlarge",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4075,7 +4157,8 @@ var _ = Describe("Hcp Machine pool", func() {
 						{
 							"id": "worker",
 							"aws_node_pool":{
-								"instance_type":"r5.xlarge"
+								"instance_type":"r5.xlarge",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4126,7 +4209,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4147,7 +4231,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4168,7 +4253,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4189,7 +4275,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4239,7 +4326,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4260,7 +4348,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4306,7 +4395,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4327,7 +4417,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4373,7 +4464,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4394,7 +4486,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4415,7 +4508,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4436,7 +4530,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4488,7 +4583,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4509,7 +4605,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4530,7 +4627,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4554,7 +4652,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4610,7 +4709,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4631,7 +4731,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4655,7 +4756,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4676,7 +4778,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4730,7 +4833,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4751,7 +4855,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4772,7 +4877,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4796,7 +4902,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4851,7 +4958,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4875,7 +4983,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4899,7 +5008,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4923,7 +5033,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -4980,7 +5091,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -5001,7 +5113,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -5022,7 +5135,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -5046,7 +5160,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -5101,7 +5216,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -5125,7 +5241,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -5149,7 +5266,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -5170,7 +5288,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"replicas": 2,
 							"aws_node_pool":{
 								"instance_type":"r5.xlarge",
-								"instance_profile": "bla"
+								"instance_profile": "bla",
+								"ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -5263,7 +5382,8 @@ var _ = Describe("Hcp Machine pool", func() {
 						  },
 						  "aws_node_pool": {
 							"instance_type": "r5.xlarge",
-							"instance_profile": "bla"
+							"instance_profile": "bla",
+							"ec2_metadata_http_tokens": "required"
 						  },
 						  "auto_repair": true,
 						  "version": {
@@ -5300,7 +5420,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					"replicas": 3,
 					"aws_node_pool":{
 						"instance_type":"r5.xlarge",
-						"instance_profile": "bla"
+						"instance_profile": "bla",
+						"ec2_metadata_http_tokens": "required"
 					},
 					"version": {
 						"raw_id": "4.14.10"
@@ -5325,7 +5446,8 @@ var _ = Describe("Hcp Machine pool", func() {
 						  "name": "{{.PoolId}}",
 						  "aws_node_pool":{
 							 "instance_type":"r5.xlarge",
-							 "instance_profile": "bla"
+							 "instance_profile": "bla",
+							 "ec2_metadata_http_tokens": "required"
 						  },
 						  "replicas": 3,
 						  "availability_zone": "us-east-1a",
@@ -5411,7 +5533,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"availability_zone": "us-east-1a",
 							"aws_node_pool":{
 							   "instance_type":"r5.xlarge",
-							   "instance_profile": "bla"
+							   "instance_profile": "bla",
+							   "ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -5427,7 +5550,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"availability_zone": "us-east-1a",
 							"aws_node_pool":{
 							   "instance_type":"r5.xlarge",
-							   "instance_profile": "bla"
+							   "instance_profile": "bla",
+							   "ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -5471,7 +5595,8 @@ var _ = Describe("Hcp Machine pool", func() {
 							"availability_zone": "us-east-1a",
 							"aws_node_pool":{
 							   "instance_type":"r5.xlarge",
-							   "instance_profile": "bla"
+							   "instance_profile": "bla",
+							   "ec2_metadata_http_tokens": "required"
 							},
 							"version": {
 								"raw_id": "4.14.10"
@@ -5510,7 +5635,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					"id":"my-pool",
 					"aws_node_pool":{
 					   "instance_type":"r5.xlarge",
-					   "instance_profile": "bla"
+					   "instance_profile": "bla",
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"auto_repair": true,
 					"replicas":4,
@@ -5568,7 +5694,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					"id":"my-pool",
 					"aws_node_pool":{
 					   "instance_type":"r5.xlarge",
-					   "instance_profile": "bla"
+					   "instance_profile": "bla",
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"auto_repair": true,
 					"replicas":4,
@@ -5622,7 +5749,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					"id":"my-pool",
 					"aws_node_pool":{
 					   "instance_type":"r5.xlarge",
-					   "instance_profile": "bla"
+					   "instance_profile": "bla",
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"auto_repair": true,
 					"replicas":4,
@@ -5668,7 +5796,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					"id":"my-pool",
 					"aws_node_pool":{
 					   "instance_type":"r5.xlarge",
-					   "instance_profile": "bla"
+					   "instance_profile": "bla",
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"auto_repair": true,
 					"replicas":4,
@@ -5704,7 +5833,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					"id":"my-pool",
 					"aws_node_pool":{
 					   "instance_type":"r5.xlarge",
-					   "instance_profile": "bla"
+					   "instance_profile": "bla",
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"auto_repair": true,
 					"replicas":4,
@@ -5761,7 +5891,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					"id":"my-pool",
 					"aws_node_pool":{
 					   "instance_type":"r5.xlarge",
-					   "instance_profile": "bla"
+					   "instance_profile": "bla",
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"auto_repair": true,
 					"replicas":4,
@@ -5810,7 +5941,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					"id":"my-pool",
 					"aws_node_pool":{
 					   "instance_type":"r5.xlarge",
-					   "instance_profile": "bla"
+					   "instance_profile": "bla",
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"auto_repair": true,
 					"replicas":4,
@@ -5836,7 +5968,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					"id":"my-pool",
 					"aws_node_pool":{
 					   "instance_type":"r5.xlarge",
-					   "instance_profile": "bla"
+					   "instance_profile": "bla",
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"auto_repair": true,
 					"replicas":4,
@@ -5866,7 +5999,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					"id":"my-pool",
 					"aws_node_pool":{
 					   "instance_type":"r5.xlarge",
-					   "instance_profile": "bla"
+					   "instance_profile": "bla",
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"auto_repair": true,
 					"replicas":4,
@@ -5891,7 +6025,8 @@ var _ = Describe("Hcp Machine pool", func() {
 					"id":"my-pool",
 					"aws_node_pool":{
 					   "instance_type":"r5.xlarge",
-					   "instance_profile": "bla"
+					   "instance_profile": "bla",
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"auto_repair": true,
 					"replicas":4,
@@ -5989,7 +6124,8 @@ var _ = Describe("Hcp Machine pool", func() {
 				"id":"my-pool",
 				"aws_node_pool":{
 				   "instance_type":"r5.xlarge",
-				   "instance_profile": "bla"
+				   "instance_profile": "bla",
+				   "ec2_metadata_http_tokens": "required"
 				},
 				"auto_repair": true,
 				"replicas":4,
@@ -6039,7 +6175,8 @@ var _ = Describe("Hcp Machine pool", func() {
 				"id":"my-pool",
 				"aws_node_pool":{
 				   "instance_type":"r5.xlarge",
-				   "instance_profile": "bla"
+				   "instance_profile": "bla",
+				   "ec2_metadata_http_tokens": "required"
 				},
 				"auto_repair": true,
 				"replicas":4,
@@ -6141,7 +6278,8 @@ var _ = Describe("Hcp Machine pool", func() {
 						"replicas": 3,
 						"aws_node_pool":{
 							"instance_type":"r5.xlarge",
-							"instance_profile": "bla"
+							"instance_profile": "bla",
+							"ec2_metadata_http_tokens": "required"
 						},
 						"version": {
 							"channel_group": "stable",
@@ -6172,7 +6310,8 @@ var _ = Describe("Hcp Machine pool", func() {
 						"name": "{{.PoolId}}",
 						"aws_node_pool":{
 							"instance_type":"r5.xlarge",
-							"instance_profile": "bla"
+							"instance_profile": "bla",
+							"ec2_metadata_http_tokens": "required"
 						},
 						"replicas": 3,
 						"availability_zone": "us-east-1a",
@@ -6633,7 +6772,8 @@ var _ = Describe("Hcp Machine pool", func() {
 						"replicas": 3,
 						"aws_node_pool":{
 							"instance_type":"r5.xlarge",
-							"instance_profile": "bla"
+							"instance_profile": "bla",
+							"ec2_metadata_http_tokens": "required"
 						},
 						"version": {
 							"channel_group": "stable",
@@ -6660,7 +6800,8 @@ var _ = Describe("Hcp Machine pool", func() {
 						"replicas": 3,
 						"aws_node_pool":{
 							"instance_type":"r5.xlarge",
-							"instance_profile": "bla"
+							"instance_profile": "bla",
+							"ec2_metadata_http_tokens": "required"
 						},
 						"version": {
 							"channel_group": "stable",
@@ -6708,7 +6849,8 @@ var _ = Describe("Hcp Machine pool", func() {
 						"replicas": 3,
 						"aws_node_pool":{
 							"instance_type":"r5.xlarge",
-							"instance_profile": "bla"
+							"instance_profile": "bla",
+							"ec2_metadata_http_tokens": "required"
 						},
 						"version": {
 							"channel_group": "stable",
@@ -6735,7 +6877,8 @@ var _ = Describe("Hcp Machine pool", func() {
 						"replicas": 3,
 						"aws_node_pool":{
 							"instance_type":"r5.xlarge",
-							"instance_profile": "bla"
+							"instance_profile": "bla",
+							"ec2_metadata_http_tokens": "required"
 						},
 						"version": {
 							"channel_group": "stable",

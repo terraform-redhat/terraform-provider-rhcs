@@ -62,7 +62,8 @@ func buildNodePoolJSON(instanceProfile string) map[string]any {
 		"id":     "test-pool",
 		"subnet": "subnet-abc123",
 		"aws_node_pool": map[string]any{
-			"instance_type": "m5.xlarge",
+			"instance_type":            "m5.xlarge",
+			"ec2_metadata_http_tokens": "required",
 		},
 		"auto_repair": true,
 		"replicas":    2,
@@ -87,6 +88,46 @@ var _ = Describe("HCP Machine Pool populateState", func() {
 	BeforeEach(func() {
 		ctx = context.Background()
 		cluster = clusterForNodePoolTests()
+	})
+
+	Context("ec2_metadata_http_tokens handling", func() {
+		It("Errors when API omits ec2_metadata_http_tokens", func() {
+			npJSON := buildNodePoolJSON("")
+			delete(npJSON["aws_node_pool"].(map[string]any), "ec2_metadata_http_tokens")
+			raw, err := json.Marshal(npJSON)
+			Expect(err).ToNot(HaveOccurred())
+
+			nodePool, err := cmv1.UnmarshalNodePool(raw)
+			Expect(err).ToNot(HaveOccurred())
+
+			state := &HcpMachinePoolState{
+				AWSNodePool: &AWSNodePool{
+					Tags: types.MapNull(types.StringType),
+				},
+			}
+			err = populateState(ctx, nodePool, state, cluster)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("received empty aws_node_pool.ec2_metadata_http_tokens from API"))
+		})
+
+		It("Errors when API returns empty ec2_metadata_http_tokens", func() {
+			npJSON := buildNodePoolJSON("")
+			npJSON["aws_node_pool"].(map[string]any)["ec2_metadata_http_tokens"] = ""
+			raw, err := json.Marshal(npJSON)
+			Expect(err).ToNot(HaveOccurred())
+
+			nodePool, err := cmv1.UnmarshalNodePool(raw)
+			Expect(err).ToNot(HaveOccurred())
+
+			state := &HcpMachinePoolState{
+				AWSNodePool: &AWSNodePool{
+					Tags: types.MapNull(types.StringType),
+				},
+			}
+			err = populateState(ctx, nodePool, state, cluster)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("received empty aws_node_pool.ec2_metadata_http_tokens from API"))
+		})
 	})
 
 	Context("additional_security_group_ids handling", func() {

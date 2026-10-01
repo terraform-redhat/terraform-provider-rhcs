@@ -69,7 +69,7 @@ Optional:
 - `capacity_reservation_id` (String) The ID of the AWS Capacity Reservation used for the node pool.
 - `capacity_reservation_preference` (String) The preference for using AWS Capacity Reservations. Valid values are 'none', 'open', or 'capacity-reservations-only'.
 - `disk_size` (Number) The root disk size, in GiB.
-- `ec2_metadata_http_tokens` (String) This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the nodes.This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). This feature is available from After the creation of the resource, it is not possible to update the attribute value.
+- `ec2_metadata_http_tokens` (String) EC2 Instance Metadata Service mode for EC2 instances in the nodes (`required` for IMDSv2 only, or `optional` for IMDS v1 or v2). Configure this value on the `rhcs_hcp_machine_pool` resource; this data source only reports it.
 - `image_type` (String) The image type used for the node pool. Valid values are 'Default' or 'Windows'.
 - `node_drain_grace_period` (Number) Grace period in whole minutes before nodes are forcibly drained during upgrade or replacement.
 - `tags` (Map of String) Apply user defined tags to all machine pool resources created in AWS. After the creation of the resource, it is not possible to update the attribute value.

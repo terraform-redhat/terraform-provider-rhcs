@@ -449,8 +449,14 @@ func (r *ClusterRosaHcpResource) Schema(ctx context.Context, req resource.Schema
 				},
 			},
 			"ec2_metadata_http_tokens": schema.StringAttribute{
-				Description: "This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the cluster." +
-					"This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only)." + common.ValueCannotBeChangedStringDescription,
+				Description: "This value determines which EC2 Instance Metadata Service mode " +
+					"to use for EC2 instances in the cluster. " +
+					"This can be set as `required` (IMDSv2 only) or `optional` (IMDS v1 or v2). " +
+					"When omitted, the API determines the value. " +
+					"Set `required` or `optional` explicitly if you need a specific mode. " +
+					"This applies only to the initial machine pool created with the cluster; additional machine pools must " +
+					"configure `ec2_metadata_http_tokens` separately on the `rhcs_hcp_machine_pool` resource. " +
+					common.ValueCannotBeChangedStringDescription,
 				Optional: true,
 				Computed: true,
 				Validators: []validator.String{attrvalidators.EnumValueValidator([]string{string(cmv1.Ec2MetadataHttpTokensOptional),
@@ -2167,11 +2173,11 @@ func populateRosaHcpClusterState(ctx context.Context, object *cmv1.Cluster, stat
 	}
 
 	httpTokensState, ok := object.AWS().GetEc2MetadataHttpTokens()
-	if ok && httpTokensState != "" {
-		state.Ec2MetadataHttpTokens = types.StringValue(string(httpTokensState))
-	} else {
-		state.Ec2MetadataHttpTokens = types.StringValue(string(cmv1.Ec2MetadataHttpTokensOptional))
+	if !ok || httpTokensState == "" {
+		return fmt.Errorf("received empty ec2_metadata_http_tokens from API; expected %q or %q",
+			cmv1.Ec2MetadataHttpTokensOptional, cmv1.Ec2MetadataHttpTokensRequired)
 	}
+	state.Ec2MetadataHttpTokens = types.StringValue(string(httpTokensState))
 
 	stsState, ok := object.AWS().GetSTS()
 	if ok {

@@ -172,7 +172,6 @@ func (c *Cluster) CreateAWSBuilder(clusterTopology rosaTypes.ClusterTopology,
 		awsBuilder.Tags(awsTags)
 	}
 
-	awsBuilder.Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokensOptional)
 	if ec2MetadataHttpTokens != nil {
 		awsBuilder.Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokens(*ec2MetadataHttpTokens))
 	}

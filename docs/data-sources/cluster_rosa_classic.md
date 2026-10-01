@@ -58,7 +58,7 @@ data "rhcs_cluster_rosa_classic" "cluster" {
 - `disable_waiting_in_destroy` (Boolean) This attribute is not supported for cluster data source. Therefore, it will not be displayed as an output of the datasource
 - `disable_workload_monitoring` (Boolean) Enables you to monitor your own projects in isolation from Red Hat Site Reliability Engineer (SRE) platform metrics.
 - `domain` (String) DNS domain of cluster.
-- `ec2_metadata_http_tokens` (String) This value determines which EC2 Instance Metadata Service mode to use for EC2 instances in the cluster.This can be set as `optional` (IMDS v1 or v2) or `required` (IMDSv2 only). This feature is available from OpenShift version 4.11.0 and newer. After the creation of the resource, it is not possible to update the attribute value.
+- `ec2_metadata_http_tokens` (String) EC2 Instance Metadata Service mode for EC2 instances in the cluster (`required` for IMDSv2 only, or `optional` for IMDS v1 or v2). Available from OpenShift version 4.11.0 and newer. Configure this value on the `rhcs_cluster_rosa_classic` resource; this data source only reports it.
 - `etcd_encryption` (Boolean) Encrypt etcd data. Note that all AWS storage is already encrypted. After the creation of the resource, it is not possible to update the attribute value.
 - `external_id` (String) Unique external identifier of the cluster. After the creation of the resource, it is not possible to update the attribute value.
 - `fips` (Boolean) Create cluster that uses FIPS Validated / Modules in Process cryptographic libraries. After the creation of the resource, it is not possible to update the attribute value.

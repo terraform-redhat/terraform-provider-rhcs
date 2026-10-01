@@ -2287,13 +2287,14 @@ var _ = Describe("Hcp Machine pool", func() {
 						http.MethodPost,
 						"/api/clusters_mgmt/v1/clusters/123/node_pools",
 					),
-					VerifyJQ(".aws_node_pool.ec2_metadata_http_tokens", "optional"),
+					// Provider omits the field when unset so the API default applies.
+					VerifyJQ(`(.aws_node_pool | has("ec2_metadata_http_tokens"))`, false),
 					RespondWithJSON(http.StatusCreated, `{
 					"id":"my-pool",
 					"aws_node_pool":{
 					   "instance_type":"r5.xlarge",
 					   "instance_profile": "bla",
-					   "ec2_metadata_http_tokens": "optional"
+					   "ec2_metadata_http_tokens": "required"
 					},
 					"auto_repair": true,
 					"replicas":2,
@@ -2331,7 +2332,7 @@ var _ = Describe("Hcp Machine pool", func() {
 			Expect(resource).To(MatchJQ(".attributes.id", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.name", "my-pool"))
 			Expect(resource).To(MatchJQ(".attributes.aws_node_pool.instance_type", "r5.xlarge"))
-			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.ec2_metadata_http_tokens`, "optional"))
+			Expect(resource).To(MatchJQ(`.attributes.aws_node_pool.ec2_metadata_http_tokens`, "required"))
 		})
 
 		It("Can create machine pool with node_drain_grace_period", func() {

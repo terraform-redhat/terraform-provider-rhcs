@@ -54,10 +54,6 @@ This Terraform example creates a ROSA STS cluster that uses a managed OIDC confi
          ```  
          export TF_VAR_tags=<aws_resource_tags>
          ```
-    1.  **Optional**: You can specify if you want to use IMDSv1 and IMDSv2 or require all of your ec2 instances to use IMDSv2 by setting this variable as either "required" or "optional." The default value is *optional*.
-         ```  
-         export TF_VAR_ec2_metadata_http_tokens=<required_or_optional>
-         ```
     1. In your local copy of the `cluster_with_managed_oidc_config` folder, run the following command:
    ````
    terraform init

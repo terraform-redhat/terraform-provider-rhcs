@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path"
@@ -72,8 +73,13 @@ func (ctx *terraformExecutorContext) execCommand(cmd string, flags []string) (ou
 	}
 	finalCmd.Dir = ctx.manifestsDir
 	var stdoutput bytes.Buffer
-	finalCmd.Stdout = &stdoutput
-	finalCmd.Stderr = &stdoutput
+	outputWriter := io.Writer(&stdoutput)
+	streamOutput := os.Getenv("TF_EXEC_STREAM_OUTPUT") == "true"
+	if streamOutput {
+		outputWriter = io.MultiWriter(&stdoutput, os.Stdout)
+	}
+	finalCmd.Stdout = outputWriter
+	finalCmd.Stderr = outputWriter
 	err = finalCmd.Run()
 	output = helper.Strip(stdoutput.String(), "\n")
 	if err != nil {
@@ -81,7 +87,9 @@ func (ctx *terraformExecutorContext) execCommand(cmd string, flags []string) (ou
 		err = fmt.Errorf("%s: %s", err.Error(), output)
 		return
 	}
-	Logger.Debugf(output)
+	if !streamOutput {
+		Logger.Debugf(output)
+	}
 	return
 }
 

@@ -16,6 +16,7 @@ type ClusterStateNative struct {
 	RoleARN                        string            `hfsdk:"spec.hostedCluster.autoNode.provisionerConfig.karpenter.aws.roleARN"`
 	Platform                       string            `hfsdk:"spec.hostedCluster.autoNode.provisionerConfig.karpenter.platform"`
 	ProvisionerConfigName          string            `hfsdk:"spec.hostedCluster.autoNode.provisionerConfig.name"`
+	Channel                        string            `hfsdk:"spec.hostedCluster.channel"`
 	ContainerLogMaxFiles           *int32            `hfsdk:"spec.hostedCluster.configuration.kubelet.containerLogMaxFiles"`
 	ContainerLogMaxSize            string            `hfsdk:"spec.hostedCluster.configuration.kubelet.containerLogMaxSize"`
 	ImageGCHighThresholdPercent    *int32            `hfsdk:"spec.hostedCluster.configuration.kubelet.imageGCHighThresholdPercent"`
@@ -33,20 +34,9 @@ type ClusterStateNative struct {
 	ImageContentSources            string            `hfsdk:"spec.hostedCluster.imageContentSources"`
 	AllocateNodeCIDRs              string            `hfsdk:"spec.hostedCluster.networking.allocateNodeCIDRs"`
 	AdvertiseAddress               string            `hfsdk:"spec.hostedCluster.networking.apiServer.advertiseAddress"`
-	AllowedCIDRBlocks              string            `hfsdk:"spec.hostedCluster.networking.apiServer.allowedCIDRBlocks"`
 	Port                           *int32            `hfsdk:"spec.hostedCluster.networking.apiServer.port"`
-	ClusterNetwork                 string            `hfsdk:"spec.hostedCluster.networking.clusterNetwork"`
-	MachineNetwork                 string            `hfsdk:"spec.hostedCluster.networking.machineNetwork"`
-	NetworkType                    string            `hfsdk:"spec.hostedCluster.networking.networkType"`
-	ServiceNetwork                 string            `hfsdk:"spec.hostedCluster.networking.serviceNetwork"`
-	AdditionalAllowedPrincipals    string            `hfsdk:"spec.hostedCluster.platform.aws.additionalAllowedPrincipals"`
 	Filters                        string            `hfsdk:"spec.hostedCluster.platform.aws.cloudProviderConfig.subnet.filters"`
 	Subnet_id                      string            `hfsdk:"spec.hostedCluster.platform.aws.cloudProviderConfig.subnet.id"`
-	Vpc                            string            `hfsdk:"spec.hostedCluster.platform.aws.cloudProviderConfig.vpc"`
-	Zone                           string            `hfsdk:"spec.hostedCluster.platform.aws.cloudProviderConfig.zone"`
-	EndpointAccess                 string            `hfsdk:"spec.hostedCluster.platform.aws.endpointAccess"`
-	MultiArch                      *bool             `hfsdk:"spec.hostedCluster.platform.aws.multiArch"`
-	Region                         string            `hfsdk:"spec.hostedCluster.platform.aws.region"`
 	ResourceTags                   string            `hfsdk:"spec.hostedCluster.platform.aws.resourceTags"`
 	ControlPlaneOperatorARN        string            `hfsdk:"spec.hostedCluster.platform.aws.rolesRef.controlPlaneOperatorARN"`
 	ImageRegistryARN               string            `hfsdk:"spec.hostedCluster.platform.aws.rolesRef.imageRegistryARN"`
@@ -61,16 +51,36 @@ type ClusterStateNative struct {
 	SharedVPCRolesRefIngressARN    string            `hfsdk:"spec.hostedCluster.platform.aws.sharedVPC.rolesRef.ingressARN"`
 	TerminationHandlerQueueURL     string            `hfsdk:"spec.hostedCluster.platform.aws.terminationHandlerQueueURL"`
 	Type                           string            `hfsdk:"spec.hostedCluster.platform.type"`
-	Image                          string            `hfsdk:"spec.hostedCluster.release.image"`
+	Version                        string            `hfsdk:"spec.hostedCluster.release.image"`
 	OidcConfigId                   string            `hfsdk:"spec.oidcConfigId"`
 	Properties                     map[string]string `hfsdk:"spec.properties"`
 	Tags                           map[string]string `hfsdk:"spec.tags"`
 	Operator_roles_prefix          string            `hfsdk:"-"`
-	Aws_subnet_ids                 []string          `hfsdk:"-"`
-	Vpc_id                         string            `hfsdk:"-"`
-	Availability_zones             []string          `hfsdk:"-"`
-	Aws_partition                  string            `hfsdk:"-"`
 	Cloud_region                   string            `hfsdk:"-"`
 	Api_url                        string            `hfsdk:"-"`
 	Phase                          string            `hfsdk:"-"`
+	Network                        ClusterNetworkNative
+	Aws                            ClusterAwsNative
+}
+
+// ClusterNetworkNative is the native representation of the network bundle.
+type ClusterNetworkNative struct {
+	Api_allowed_cidr_blocks string `hfsdk:"spec.hostedCluster.networking.apiServer.allowedCIDRBlocks"`
+	Pod_cidr                string `hfsdk:"spec.hostedCluster.networking.clusterNetwork"`
+	Machine_cidr            string `hfsdk:"spec.hostedCluster.networking.machineNetwork"`
+	Network_type            string `hfsdk:"spec.hostedCluster.networking.networkType"`
+	Service_cidr            string `hfsdk:"spec.hostedCluster.networking.serviceNetwork"`
+}
+
+// ClusterAwsNative is the native representation of the aws bundle.
+type ClusterAwsNative struct {
+	Additional_allowed_principals string   `hfsdk:"spec.hostedCluster.platform.aws.additionalAllowedPrincipals"`
+	Vpc_id                        string   `hfsdk:"spec.hostedCluster.platform.aws.cloudProviderConfig.vpc"`
+	Availability_zone             string   `hfsdk:"spec.hostedCluster.platform.aws.cloudProviderConfig.zone"`
+	Endpoint_access               string   `hfsdk:"spec.hostedCluster.platform.aws.endpointAccess"`
+	Multi_arch                    bool     `hfsdk:"spec.hostedCluster.platform.aws.multiArch"`
+	Region                        string   `hfsdk:"spec.hostedCluster.platform.aws.region"`
+	Aws_subnet_ids                []string `hfsdk:"-"`
+	Availability_zones            []string `hfsdk:"-"`
+	Aws_partition                 string   `hfsdk:"-"`
 }

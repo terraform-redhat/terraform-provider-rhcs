@@ -20,6 +20,7 @@ type ClusterState struct {
 	RoleARN                        types.String `tfsdk:"role_arn"`
 	Platform                       types.String `tfsdk:"platform"`
 	ProvisionerConfigName          types.String `tfsdk:"provisioner_config_name"`
+	Channel                        types.String `tfsdk:"channel"`
 	ContainerLogMaxFiles           types.Int64  `tfsdk:"container_log_max_files"`
 	ContainerLogMaxSize            types.String `tfsdk:"container_log_max_size"`
 	ImageGCHighThresholdPercent    types.Int64  `tfsdk:"image_gc_high_threshold_percent"`
@@ -37,20 +38,9 @@ type ClusterState struct {
 	ImageContentSources            types.String `tfsdk:"image_content_sources"`
 	AllocateNodeCIDRs              types.String `tfsdk:"allocate_node_cidrs"`
 	AdvertiseAddress               types.String `tfsdk:"advertise_address"`
-	AllowedCIDRBlocks              types.String `tfsdk:"allowed_cidr_blocks"`
 	Port                           types.Int64  `tfsdk:"port"`
-	ClusterNetwork                 types.String `tfsdk:"cluster_network"`
-	MachineNetwork                 types.String `tfsdk:"machine_network"`
-	NetworkType                    types.String `tfsdk:"network_type"`
-	ServiceNetwork                 types.String `tfsdk:"service_network"`
-	AdditionalAllowedPrincipals    types.String `tfsdk:"additional_allowed_principals"`
 	Filters                        types.String `tfsdk:"filters"`
 	Subnet_id                      types.String `tfsdk:"subnet_id"`
-	Vpc                            types.String `tfsdk:"vpc"`
-	Zone                           types.String `tfsdk:"zone"`
-	EndpointAccess                 types.String `tfsdk:"endpoint_access"`
-	MultiArch                      types.Bool   `tfsdk:"multi_arch"`
-	Region                         types.String `tfsdk:"region"`
 	ResourceTags                   types.String `tfsdk:"resource_tags"`
 	ControlPlaneOperatorARN        types.String `tfsdk:"control_plane_operator_arn"`
 	ImageRegistryARN               types.String `tfsdk:"image_registry_arn"`
@@ -65,18 +55,16 @@ type ClusterState struct {
 	SharedVPCRolesRefIngressARN    types.String `tfsdk:"shared_vpc_roles_ref_ingress_arn"`
 	TerminationHandlerQueueURL     types.String `tfsdk:"termination_handler_queue_url"`
 	Type                           types.String `tfsdk:"type"`
-	Image                          types.String `tfsdk:"image"`
+	Version                        types.String `tfsdk:"version"`
 	OidcConfigId                   types.String `tfsdk:"oidc_config_id"`
 	Properties                     types.Map    `tfsdk:"properties"`
 	Tags                           types.Map    `tfsdk:"tags"`
 	Operator_roles_prefix          types.String `tfsdk:"operator_roles_prefix"`
-	Aws_subnet_ids                 types.List   `tfsdk:"aws_subnet_ids"`
-	Vpc_id                         types.String `tfsdk:"vpc_id"`
-	Availability_zones             types.List   `tfsdk:"availability_zones"`
-	Aws_partition                  types.String `tfsdk:"aws_partition"`
 	Cloud_region                   types.String `tfsdk:"cloud_region"`
 	Api_url                        types.String `tfsdk:"api_url"`
 	Phase                          types.String `tfsdk:"phase"`
+	Network                        types.Object `tfsdk:"network"`
+	Aws                            types.Object `tfsdk:"aws"`
 }
 
 // mergeResponseCluster merges API response values into Terraform state.
@@ -102,18 +90,6 @@ func mergeResponseCluster(plan, response *ClusterState) {
 	if !response.Operator_roles_prefix.IsNull() {
 		plan.Operator_roles_prefix = response.Operator_roles_prefix
 	}
-	if !response.Aws_subnet_ids.IsNull() {
-		plan.Aws_subnet_ids = response.Aws_subnet_ids
-	}
-	if !response.Vpc_id.IsNull() {
-		plan.Vpc_id = response.Vpc_id
-	}
-	if !response.Availability_zones.IsNull() {
-		plan.Availability_zones = response.Availability_zones
-	}
-	if !response.Aws_partition.IsNull() {
-		plan.Aws_partition = response.Aws_partition
-	}
 	if !response.Cloud_region.IsNull() {
 		plan.Cloud_region = response.Cloud_region
 	}
@@ -123,4 +99,10 @@ func mergeResponseCluster(plan, response *ClusterState) {
 	if !response.Phase.IsNull() {
 		plan.Phase = response.Phase
 	}
+	plan.Network = mergeTerraformObject(plan.Network, response.Network, []string{})
+	plan.Aws = mergeTerraformObject(plan.Aws, response.Aws, []string{
+		"aws_subnet_ids",
+		"availability_zones",
+		"aws_partition",
+	})
 }

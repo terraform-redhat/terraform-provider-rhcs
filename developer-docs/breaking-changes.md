@@ -27,6 +27,7 @@ Treat any of the following as potentially breaking unless proven otherwise:
 WHEN a breaking change is necessary:
 - MUST: Use the PR template **Breaking Changes** section and migration fields.
 - MUST: Add tests that show the impact; update docs/examples as needed.
+- MUST: Complete the breaking-change section of the [PR Verification Template](verification_template.md) with Terraform output from a prior supported configuration and state that demonstrates the practitioner-facing impact and migration.
 - MUST: Request human review before merge.
 - DEFAULT: Prefer non-breaking changes; document migration when breaking is unavoidable.
 

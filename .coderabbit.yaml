@@ -1,5 +1,37 @@
 inheritance: true
 reviews:
+  pre_merge_checks:
+    custom_checks:
+      - name: "Terraform verification evidence"
+        mode: error
+        instructions: |
+          Apply this check only when the PR changes code under:
+          provider/**/*.go, internal/**/*.go,
+          subsystem/**/*.go, tests/**/*.go, or tests/**/*.tf.
+
+          Pass only when a PR comment contains a completed copy of
+          developer-docs/verification_template.md. It must contain the required
+          proof for every applicable checklist item, or a specific technical
+          justification for every inapplicable item.
+
+          Fail when the verification template is absent, incomplete, has missing
+          required output, or uses a generic justification.
+      - name: "E2E coverage"
+        mode: error
+        instructions: |
+          Apply this check only when the PR changes code under:
+          provider/**/*.go, internal/**/*.go,
+          subsystem/**/*.go, tests/**/*.go, or tests/**/*.tf.
+
+          Pass only when the PR adds or updates relevant coverage under
+          tests/e2e/,
+          or when the PR description or verification evidence gives a specific
+          technical justification that E2E coverage does not apply.
+
+          The justification must identify the changed behavior, explain why an
+          E2E scenario cannot exercise it, and identify the narrower test layer
+          that verifies it. "Not needed", "unit tested", or "subsystem tested"
+          alone do not pass.
   path_instructions:
     - path: "**/*.go"
       instructions: |
@@ -9,6 +41,17 @@ reviews:
         - Flag variable shadowing, unnecessary nesting, and unclear naming.
         - Prefer existing repository patterns over introducing new architecture.
         - Ensure no secrets/tokens/credentials are hardcoded or logged.
+        - For changed Terraform behavior, inspect related E2E surfaces even when
+          they are unchanged: tests/e2e/, tests/tf-manifests/,
+          tests/utils/exec/, tests/utils/profilehandler/, and
+          tests/ci/profiles/.
+        - Decide separately whether the PR requires an E2E test to be added or
+          updated, and whether it breaks an existing user-facing E2E contract.
+          Flag missing or stale E2E coverage, and flag any changed behavior that
+          invalidates an existing E2E assertion, fixture, manifest wiring,
+          profile gate, expected diagnostic, or side-effect expectation.
+        - Do not treat subsystem coverage as proof that existing E2E behavior
+          remains valid.
     - path: "provider/**/*.go"
       instructions: |
         - Review as Terraform Plugin Framework code (not legacy SDK patterns).

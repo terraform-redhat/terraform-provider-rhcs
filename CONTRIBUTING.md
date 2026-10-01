@@ -209,6 +209,11 @@ FYI: Terraform module repos already run gitleaks inside `make security-check` / 
 
 ### 5. Manual testing and debugging using the locally compiled RHCS Provider binary
 Manual testing should be performed before opening a PR to ensure there isn't any regression behavior in the provider. You can find [here an example for that](https://github.com/terraform-redhat/terraform-rhcs-rosa/tree/main/examples/rosa-classic-public-with-unmanaged-oidc)
+
+### Terraform resource PR verification
+
+For every PR that adds, removes, or changes a Terraform resource, copy and complete the [PR Verification Template](developer-docs/verification_template.md) in a PR comment. Every test case and required output in the template is mandatory. Skip a test only when it cannot apply, and record a specific technical justification in **Note / Blockers**; do not leave checklist items or required outputs blank. Redact sensitive values in all posted logs, state output, and CLI output as `REDACTED`. Then use the appropriate [`/verified` command](https://docs.ci.openshift.org/architecture/jira/#verified-command-examples) in a PR comment. Use `/verified by <test name>, @github_username` for completed pre-merge verification; use `/verified later @github_username` only when post-merge verification is required.
+
 After compiling the RHCS provider, debugging terraform provider can be difficult. But here are a some tips to make your life easier.
 
 First, Make sure you are using your local build of the provider. `make install` will compile the project and place the binary in the local `~/.terraform/` folder.

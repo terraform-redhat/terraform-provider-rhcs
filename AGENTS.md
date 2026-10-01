@@ -51,7 +51,8 @@ Thin entrypoints `CLAUDE.md` and `GEMINI.md` should only point here to avoid dri
 5. Security — [`developer-docs/security.md`](developer-docs/security.md).
 6. Breaking or high-risk? — [`developer-docs/breaking-changes.md`](developer-docs/breaking-changes.md).
 7. Commits / DCO / changelog — [`CONTRIBUTING.md`](CONTRIBUTING.md).
-8. Before PR — [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`.github/pull_request_template.md`](.github/pull_request_template.md).
+8. For any Terraform resource added, removed, or changed, post a completed [`developer-docs/verification_template.md`](developer-docs/verification_template.md) as a PR comment and use the appropriate [`/verified` command](https://docs.ci.openshift.org/architecture/jira/#verified-command-examples). Every test case and required output is mandatory; skips require a specific technical justification, and sensitive values must be `REDACTED`.
+9. Before PR — [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`.github/pull_request_template.md`](.github/pull_request_template.md).
 
 ## Guardrails
 
